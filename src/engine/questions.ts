@@ -1,0 +1,29 @@
+/* Question-first — nobody needs to know the seven tools by name. Pick a plain
+ * question; the app picks the tool, dimension and measure behind it. P0 answers
+ * everything with a Pareto; the P1 tools slot into the same picker (each a pure
+ * read over the same drilled rows). */
+import type { DimensionKey, Measure } from '../types';
+
+export type Tool = 'pareto' | 'run' | 'histogram' | 'scatter' | 'fishbone' | 'stratify' | 'bar';
+
+export interface Question {
+  id: string;
+  label: string;
+  sub: string;
+  tool: Tool;
+  dimension: DimensionKey;
+  measure: Measure;
+}
+
+/** P0: three questions, all answered by a Pareto. More cards (run/histogram/
+ *  scatter/fishbone/stratify) drop in here as their tools land — no other change. */
+export const QUESTIONS: Question[] = [
+  { id: 'where-time', label: 'Where are we losing the most?', sub: 'Assets, by time lost', tool: 'pareto', dimension: 'asset', measure: 'time' },
+  { id: 'what-often', label: "What's going wrong most often?", sub: 'Categories, by how often', tool: 'pareto', dimension: 'category', measure: 'count' },
+  { id: 'shift-time', label: 'Which shift is it worst on?', sub: 'Shifts, by time lost', tool: 'pareto', dimension: 'shift', measure: 'time' },
+];
+
+export function chooseTool(questionId: string): { tool: Tool; dimension: DimensionKey; measure: Measure } {
+  const q = QUESTIONS.find(x => x.id === questionId) ?? QUESTIONS[0];
+  return { tool: q.tool, dimension: q.dimension, measure: q.measure };
+}

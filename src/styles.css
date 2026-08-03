@@ -1,0 +1,99 @@
+/* Finder — design system. Neutral, calm, flat. Built for a phone on a loud
+   floor (big targets, high contrast) and a boardroom screen (clean, quiet).
+   Light default + dark. No gradients, no noise — just clear surfaces. */
+
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --ink: #141b26;
+  --ink-2: #3d4756;
+  --muted: #727d8c;
+  --line: #dde3ec;
+  --accent: #2b5ae0;      /* calm cobalt — action */
+  --accent-soft: #e8eeff;
+  --accent-rgb: 43, 90, 224;
+  --ok: #1f9d57;
+  --warn: #b9821a;
+  --danger: #d84b3f;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(20, 27, 38, 0.04), 0 8px 24px rgba(20, 27, 38, 0.06);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --tap: 48px;            /* minimum touch target */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1420;
+    --surface: #161d2b;
+    --surface-2: #1e2635;
+    --ink: #e9eef7;
+    --ink-2: #b7c0cf;
+    --muted: #8792a3;
+    --line: #29323f;
+    --accent: #6f9bff;
+    --accent-soft: #1c2740;
+    --accent-rgb: 111, 155, 255;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+h1, h2, h3, p { margin: 0; }
+button { font-family: inherit; }
+
+/* page shell */
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 18px 16px calc(96px + env(safe-area-inset-bottom));
+}
+
+.eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.sub { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+/* buttons */
+.btn {
+  min-height: var(--tap);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 18px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-ghost { background: transparent; }
+.btn-lg { min-height: 56px; font-size: 16px; padding: 0 22px; }
+
+/* the empty/placeholder splash */
+.splash {
+  min-height: 100%; display: grid; place-items: center;
+  padding: 40px 20px; text-align: center;
+}
+.splash .mark { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.splash .tag { color: var(--muted); margin-top: 6px; }
