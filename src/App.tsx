@@ -1,13 +1,8 @@
-/* Finder — clean start. This placeholder shell proves the scaffold runs;
-   it's replaced by the workspace router + screens once the P0 spec lands. */
+import { useBootResume } from './state/useResume';
+import { Router } from './router';
+
 export default function App() {
-  return (
-    <div className="splash">
-      <div>
-        <div className="mark">Finder</div>
-        <div className="tag">Find the opportunities on your floor.</div>
-        <div className="tag" style={{ marginTop: 18, fontSize: 13 }}>Clean slate — the build starts here.</div>
-      </div>
-    </div>
-  );
+  const ready = useBootResume(); // may replace the hash to resume the last workspace
+  if (!ready) return null; // one tick; avoids a Home flash before a resume
+  return <Router />;
 }

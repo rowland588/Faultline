@@ -97,3 +97,120 @@ button { font-family: inherit; }
 }
 .splash .mark { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
 .splash .tag { color: var(--muted); margin-top: 6px; }
+
+/* ---------- app frame ---------- */
+.app { min-height: 100%; display: flex; flex-direction: column; }
+.app-main { flex: 1; }
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.ws-name {
+  display: flex; align-items: center; gap: 8px; max-width: 84%;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--ink); font-size: 16px; font-weight: 800; padding: 8px 6px;
+}
+.ws-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ws-name-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-caret { color: var(--muted); font-size: 12px; }
+
+/* ---------- bottom tabs ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab {
+  min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: transparent; border: none; color: var(--muted); cursor: pointer;
+}
+.tab.on { color: var(--accent); }
+.tab-ic { font-size: 18px; line-height: 1; }
+.tab-lbl { font-size: 11px; font-weight: 700; }
+
+/* ---------- home / workspaces ---------- */
+.home-head { padding: 14px 4px 20px; }
+.mark { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.new-ws { width: 100%; margin-bottom: 16px; }
+.ws-list { display: flex; flex-direction: column; gap: 10px; }
+.ws-card {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px 16px; min-height: 64px;
+}
+.ws-card:active { transform: scale(0.995); }
+.ws-card-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.ws-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ws-card-name { font-size: 16px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-card-meta { font-size: 12.5px; color: var(--muted); }
+.ws-card-go { color: var(--accent); font-weight: 700; font-size: 14px; white-space: nowrap; }
+
+/* ---------- forms ---------- */
+.field-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.text-input {
+  width: 100%; min-height: 48px; margin-top: 6px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink); font-size: 16px; outline: none;
+}
+.text-input:focus { border-color: var(--accent); }
+.row-end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.row-inline { display: flex; gap: 8px; align-items: center; }
+.row-inline .text-input { margin-top: 0; }
+.create-card { margin-bottom: 16px; }
+
+/* ---------- chips ---------- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: 40px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-add { color: var(--muted); font-weight: 800; }
+.chip-add-form { padding: 0 6px 0 12px; }
+.chip-add-form input { border: none; background: transparent; font: inherit; color: var(--ink); width: 130px; outline: none; }
+.chip-add-form button { border: none; background: var(--accent); color: #fff; border-radius: 999px; padding: 6px 12px; font-weight: 700; cursor: pointer; }
+.chip-add-form button:disabled { opacity: 0.5; }
+.chip-x { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 16px; line-height: 1; opacity: 0.55; padding: 0 0 0 2px; }
+
+/* ---------- bottom sheet ---------- */
+.sheet-scrim { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.4); display: flex; align-items: flex-end; }
+.sheet {
+  width: 100%; background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 8px 14px calc(18px + env(safe-area-inset-bottom)); box-shadow: var(--shadow);
+}
+.sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 6px auto 10px; }
+.sheet-title { font-weight: 800; font-size: 15px; padding: 4px 4px 8px; }
+.sheet-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  min-height: 52px; padding: 0 6px; background: transparent; border: none; border-top: 1px solid var(--line);
+  font-size: 15px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left;
+}
+.sheet-row.danger { color: var(--danger); }
+.sheet-row-hint { color: var(--muted); font-weight: 500; font-size: 13px; }
+
+/* ---------- empty ---------- */
+.empty { text-align: center; padding: 48px 24px; }
+.empty-ic { font-size: 34px; opacity: 0.5; }
+.empty-title { font-size: 18px; font-weight: 700; margin-top: 10px; }
+.empty-sub { color: var(--muted); font-size: 14px; line-height: 1.55; margin-top: 6px; max-width: 40ch; margin-left: auto; margin-right: auto; }
+.empty-action { margin-top: 16px; }
+
+/* ---------- log ---------- */
+.log-list { display: flex; flex-direction: column; margin-top: 12px; }
+.log-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px; border-top: 1px solid var(--line); }
+.log-main { flex: 1; min-width: 0; }
+.log-title { font-size: 15px; }
+.log-where { color: var(--ink-2); }
+.log-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.log-del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; padding: 8px; }
+
+/* ---------- present (placeholder frame) ---------- */
+.present { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; }
+.present-center { margin: auto; text-align: center; padding: 24px; }
+.present-exit {
+  position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 18px; cursor: pointer;
+}
