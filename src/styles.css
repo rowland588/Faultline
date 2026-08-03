@@ -257,3 +257,72 @@ button { font-family: inherit; }
 .ev-viewer { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.9); display: grid; place-items: center; }
 .ev-close { position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 18px; cursor: pointer; }
 .ev-stage img, .ev-stage video { max-width: 96vw; max-height: 90vh; border-radius: 8px; display: block; }
+
+/* ---------- analyse: question picker ---------- */
+.q-list { display: flex; flex-direction: column; gap: 10px; }
+.q-card {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; min-height: 68px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px;
+}
+.q-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.q-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.q-label { font-size: 16px; font-weight: 700; color: var(--ink); }
+.q-sub { font-size: 13px; color: var(--muted); }
+.q-go { color: var(--accent); font-size: 20px; font-weight: 700; }
+
+/* ---------- analyse: controls ---------- */
+.analyse-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.link-btn { background: transparent; border: none; color: var(--accent); font-weight: 700; font-size: 14px; cursor: pointer; padding: 6px 0; }
+.measure-toggle { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; }
+.mt { border: none; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.mt.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-bottom: 12px; }
+.crumb-wrap { display: inline-flex; align-items: center; gap: 3px; }
+.crumb { background: transparent; border: none; color: var(--ink-2); font-size: 13px; font-weight: 600; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.crumb.on { color: var(--ink); font-weight: 800; }
+.crumb-sep { color: var(--muted); font-size: 11px; }
+
+.insight {
+  display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; padding: 11px 13px;
+  background: var(--accent-soft); border: 1px solid rgba(var(--accent-rgb), 0.35); border-radius: 12px;
+  color: var(--ink); font-size: 13.5px; font-weight: 600;
+}
+.insight-flag { color: var(--accent); }
+
+.chart-caption { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.chart-caption b { color: var(--ink-2); }
+.chart-hint { color: var(--accent); }
+.analyse-meta { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+.leaf { text-align: center; padding: 24px 12px; }
+.leaf-num { font-size: 26px; font-weight: 800; }
+.leaf-sub { color: var(--muted); font-family: var(--mono); margin-top: 4px; }
+
+.ev-strip { margin-top: 16px; }
+.ev-strip-head { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.ev-strip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.present-cta { width: 100%; margin-top: 18px; }
+
+/* ---------- the Pareto (SVG) ---------- */
+.pareto { display: block; }
+.pareto-bar { fill: var(--ink-2); opacity: 0.24; }
+.pareto-bar.vital { opacity: 1; }
+.pareto-col.tappable { cursor: pointer; }
+.pareto-col.tappable:active .pareto-bar { opacity: 0.65; }
+.pareto-80 { stroke: var(--danger); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.65; }
+.pareto-80-lbl { fill: var(--danger); font-size: 9px; font-weight: 700; font-family: var(--mono); opacity: 0.9; }
+.pareto-val { fill: var(--ink); font-size: 9.5px; font-weight: 700; font-family: var(--mono); }
+.pareto-lbl { fill: var(--ink-2); font-size: 10px; font-weight: 600; }
+.pareto-cum { fill: var(--muted); font-size: 8.5px; font-family: var(--mono); }
+.pareto-cumline { fill: none; stroke: var(--ink-2); stroke-width: 1.5; opacity: 0.5; }
+.pareto-cumdot { fill: var(--ink-2); opacity: 0.7; }
+
+/* ---------- present ---------- */
+.present-body { flex: 1; overflow: auto; width: 100%; max-width: 820px; margin: 0 auto; padding: 46px 18px calc(24px + env(safe-area-inset-bottom)); }
+.present-head { margin-bottom: 14px; }
+.present-ws { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--muted); font-size: 14px; }
+.present-q { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 10px; }
+.present-chart { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+.present-leaf { padding: 40px 12px; }

@@ -13,14 +13,15 @@ export interface Question {
   tool: Tool;
   dimension: DimensionKey;
   measure: Measure;
+  order: DimensionKey[]; // the drill sequence, starting with this question's dimension
 }
 
 /** P0: three questions, all answered by a Pareto. More cards (run/histogram/
  *  scatter/fishbone/stratify) drop in here as their tools land — no other change. */
 export const QUESTIONS: Question[] = [
-  { id: 'where-time', label: 'Where are we losing the most?', sub: 'Assets, by time lost', tool: 'pareto', dimension: 'asset', measure: 'time' },
-  { id: 'what-often', label: "What's going wrong most often?", sub: 'Categories, by how often', tool: 'pareto', dimension: 'category', measure: 'count' },
-  { id: 'shift-time', label: 'Which shift is it worst on?', sub: 'Shifts, by time lost', tool: 'pareto', dimension: 'shift', measure: 'time' },
+  { id: 'where-time', label: 'Where are we losing the most?', sub: 'Assets, by time lost', tool: 'pareto', dimension: 'asset', measure: 'time', order: ['asset', 'category', 'reason'] },
+  { id: 'what-often', label: "What's going wrong most often?", sub: 'Categories, by how often', tool: 'pareto', dimension: 'category', measure: 'count', order: ['category', 'asset', 'reason'] },
+  { id: 'shift-time', label: 'Which shift is it worst on?', sub: 'Shifts, by time lost', tool: 'pareto', dimension: 'shift', measure: 'time', order: ['shift', 'asset', 'category'] },
 ];
 
 export function chooseTool(questionId: string): { tool: Tool; dimension: DimensionKey; measure: Measure } {

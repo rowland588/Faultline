@@ -2,7 +2,7 @@
  * state lives in the URL (?measure=&path=…) so a workstream is shareable and
  * survives a reload. No router library; just parse the hash. */
 import { useEffect, useMemo, useState } from 'react';
-import type { ID, Measure, DrillPath, DimensionKey } from '../types';
+import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'log' | 'settings';
 
@@ -77,14 +77,32 @@ export function decodePath(raw: string | null): DrillPath {
     });
 }
 
-/** Build an analyse/present hash from measure + drill path. */
+/** Build an analyse/present hash from measure + drill order + drill path.
+ *  This URL fully captures the view, so it's shareable and resumable. */
 export function buildAnalyseHash(
   wsId: ID,
   screen: 'analyse' | 'present',
   measure: Measure,
   path: DrillPath,
+  dims?: DimensionKey[],
 ): string {
   const q = new URLSearchParams({ measure });
+  if (dims && dims.length) q.set('dims', dims.join(','));
   if (path.length) q.set('path', encodePath(path));
   return `#/w/${wsId}/${screen}?${q.toString()}`;
+}
+
+/** Reconstruct the full engine view from the URL — the single source Analyse and
+ *  Present both read. null when there's no chosen question yet. */
+export function readWorkstreamView(route: Route, wsId: ID): WorkstreamView | null {
+  const measure = route.query.get('measure');
+  const dims = route.query.get('dims');
+  if ((measure !== 'count' && measure !== 'time') || !dims) return null;
+  return {
+    workspaceId: wsId,
+    measure,
+    dimensionOrder: dims.split(',').filter(Boolean) as DimensionKey[],
+    path: decodePath(route.query.get('path')),
+    mode: route.name === 'present' ? 'present' : 'analyse',
+  };
 }
