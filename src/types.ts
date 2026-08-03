@@ -6,7 +6,7 @@
 export type ID = string; // crypto.randomUUID()
 export type Millis = number; // epoch ms (Date.now())
 export type Measure = 'count' | 'time'; // 'cost' is a P1 seam
-export type DimensionKey = 'asset' | 'category' | 'reason' | 'shift';
+export type DimensionKey = 'asset' | 'category' | 'subcategory';
 
 /* ============ WORKSPACE — top-level isolation container ============ */
 export interface Workspace {
@@ -16,10 +16,11 @@ export interface Workspace {
   createdAt: Millis;
   updatedAt: Millis; // LWW clock for future sync
 
-  // Managed vocabularies (WHAT / WHERE / WHY / shift). Plain strings; grow inline.
-  categories: string[]; // seeded with lean defaults
-  assets: string[]; // starts empty; the operator adds their machines
-  reasons: string[]; // starts empty; optional 3rd drill level
+  // Managed vocabularies. Categories and assets are plain string lists;
+  // sub-categories are scoped PER category (each drills to its own Pareto).
+  categories: string[]; // WHAT — seeded with lean defaults
+  subcategories: Record<string, string[]>; // category → its sub-categories
+  assets: string[]; // WHERE — starts empty; the operator adds their machines
   shifts: Shift[]; // optional stratifier; starts empty
 
   // Sticky capture defaults so a repeat event is one tap (START).
@@ -44,6 +45,7 @@ export interface Shift {
 
 export interface ActiveTimer {
   category: string;
+  subcategory?: string;
   asset: string;
   startedAt: Millis; // elapsed = Date.now() - startedAt on resume
 }
@@ -53,10 +55,10 @@ export interface Observation {
   id: ID;
   workspaceId: ID; // ISOLATION KEY — every query filters on this
 
-  category: string; // WHAT  (Pareto axis, fishbone spine, stratify)
+  category: string; // WHAT  (Pareto axis)
+  subcategory?: string; // WHAT, level 2 — the category's sub-level (its own Pareto on drill)
   asset: string; // WHERE (primary drill entry point)
-  reason?: string; // WHY   (optional; deepest drill / fishbone leaf)
-  shift?: string; // optional stratifier (which shift saw it)
+  shift?: string; // optional stratifier (reserved)
 
   startedAt: Millis; // event start = run-chart X, shift bucket
   endedAt?: Millis; // stopwatch stop; absent for instant/typed

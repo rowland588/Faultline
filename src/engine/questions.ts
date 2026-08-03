@@ -19,9 +19,9 @@ export interface Question {
 /** P0: three questions, all answered by a Pareto. More cards (run/histogram/
  *  scatter/fishbone/stratify) drop in here as their tools land — no other change. */
 export const QUESTIONS: Question[] = [
-  { id: 'where-time', label: 'Where are we losing the most?', sub: 'Assets, by time lost', tool: 'pareto', dimension: 'asset', measure: 'time', order: ['asset', 'category', 'reason'] },
-  { id: 'what-often', label: "What's going wrong most often?", sub: 'Categories, by how often', tool: 'pareto', dimension: 'category', measure: 'count', order: ['category', 'asset', 'reason'] },
-  { id: 'shift-time', label: 'Which shift is it worst on?', sub: 'Shifts, by time lost', tool: 'pareto', dimension: 'shift', measure: 'time', order: ['shift', 'asset', 'category'] },
+  { id: 'where-time', label: 'Where are we losing the most?', sub: 'Assets → category → sub-category, by time', tool: 'pareto', dimension: 'asset', measure: 'time', order: ['asset', 'category', 'subcategory'] },
+  { id: 'what-often', label: "What's going wrong most often?", sub: 'Category → sub-category → asset, by count', tool: 'pareto', dimension: 'category', measure: 'count', order: ['category', 'subcategory', 'asset'] },
+  { id: 'what-time', label: 'Which problem costs the most time?', sub: 'Category → sub-category → asset, by time', tool: 'pareto', dimension: 'category', measure: 'time', order: ['category', 'subcategory', 'asset'] },
 ];
 
 export function chooseTool(questionId: string): { tool: Tool; dimension: DimensionKey; measure: Measure } {

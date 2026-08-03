@@ -41,6 +41,14 @@ export function getDB(): Promise<IDBPDatabase<FinderDB>> {
 
 const PALETTE = ['#2b5ae0', '#0f8f6b', '#b3552d', '#7a4fd0', '#0e7fa8', '#b5495b', '#4a7a1e', '#96631c'];
 const DEFAULT_CATEGORIES = ['Breakdown', 'Minor stop', 'Changeover', 'Waiting', 'Quality', 'Speed loss'];
+const DEFAULT_SUBCATEGORIES: Record<string, string[]> = {
+  Breakdown: ['Mechanical', 'Electrical', 'Jam / blockage'],
+  'Minor stop': ['Misfeed', 'Sensor trip', 'Manual clear'],
+  Changeover: ['Tooling', 'Setup', 'No standard'],
+  Quality: ['Reject', 'Rework', 'Seal fault'],
+};
+const cloneSubs = (src: Record<string, string[]>): Record<string, string[]> =>
+  Object.fromEntries(Object.entries(src).map(([k, v]) => [k, [...v]]));
 
 export async function listWorkspaces(): Promise<Workspace[]> {
   const all = await (await getDB()).getAll('workspaces');
@@ -62,8 +70,8 @@ export async function createWorkspace(name: string): Promise<Workspace> {
     createdAt: t,
     updatedAt: t,
     categories: [...DEFAULT_CATEGORIES],
+    subcategories: cloneSubs(DEFAULT_SUBCATEGORIES),
     assets: [],
-    reasons: [],
     shifts: [],
     schemaVersion: 1,
   };

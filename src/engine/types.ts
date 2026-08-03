@@ -15,15 +15,13 @@ export const measureOf: Record<Measure, (o: Observation) => number> = {
 export const dimOf: Record<DimensionKey, (o: Observation) => string> = {
   asset: o => o.asset || '(unassigned)',
   category: o => o.category || '(uncategorised)',
-  reason: o => o.reason ?? '(no reason given)',
-  shift: o => o.shift ?? '(no shift)',
+  subcategory: o => o.subcategory || '(none)',
 };
 
 export const DIM_LABEL: Record<DimensionKey, string> = {
   asset: 'Asset',
   category: 'Category',
-  reason: 'Reason',
-  shift: 'Shift',
+  subcategory: 'Sub-category',
 };
 
 export const MEASURE_LABEL: Record<Measure, string> = {

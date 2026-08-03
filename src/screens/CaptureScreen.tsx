@@ -17,7 +17,10 @@ export function CaptureScreen() {
   const { workspace, observations, addObs, removeObs, patchWorkspace } = useWorkspace();
 
   const [category, setCategory] = useState(workspace.lastCategory ?? workspace.categories[0] ?? '');
+  const [subcategory, setSubcategory] = useState('');
   const [asset, setAsset] = useState(workspace.lastAsset ?? workspace.assets[0] ?? '');
+  const subOptions = (workspace.subcategories ?? {})[category] ?? [];
+  const pickCategory = (c: string) => { setCategory(c); setSubcategory(''); };
   const [pending, setPending] = useState<MediaRef[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(workspace.activeTimer?.startedAt ?? null);
   const [typed, setTyped] = useState(false);
@@ -31,6 +34,7 @@ export function CaptureScreen() {
     if (workspace.activeTimer) {
       setStartedAt(workspace.activeTimer.startedAt);
       setCategory(workspace.activeTimer.category);
+      setSubcategory(workspace.activeTimer.subcategory ?? '');
       setAsset(workspace.activeTimer.asset);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -44,6 +48,7 @@ export function CaptureScreen() {
       id: uid(),
       workspaceId: workspace.id,
       category,
+      subcategory: subcategory || undefined,
       asset,
       startedAt: startAt,
       endedAt: kind === 'stopwatch' ? now() : undefined,
@@ -65,7 +70,7 @@ export function CaptureScreen() {
     if (!canLog) return;
     const t = now();
     setStartedAt(t);
-    await saveActiveTimer(workspace.id, { category, asset, startedAt: t });
+    await saveActiveTimer(workspace.id, { category, subcategory: subcategory || undefined, asset, startedAt: t });
   };
   const stopAndLog = async () => {
     if (startedAt === null) return;
@@ -106,11 +111,26 @@ export function CaptureScreen() {
           options={workspace.categories}
           value={category}
           color={workspace.color}
-          onChange={setCategory}
+          onChange={pickCategory}
           onAdd={c => void patchWorkspace({ categories: [...workspace.categories, c] })}
           addLabel="Add a category…"
         />
       </div>
+
+      {/* WHAT — sub-category (scoped to the chosen category; drills to its own Pareto) */}
+      {category && (
+        <div className="cap-block">
+          <div className="field-label">Which kind? <span className="opt">optional</span></div>
+          <ChipPicker
+            options={subOptions}
+            value={subcategory}
+            color={workspace.color}
+            onChange={setSubcategory}
+            onAdd={s => void patchWorkspace({ subcategories: { ...(workspace.subcategories ?? {}), [category]: [...subOptions, s] } })}
+            addLabel={`Add a kind of ${category}…`}
+          />
+        </div>
+      )}
 
       {/* WHERE */}
       <div className="cap-block">
