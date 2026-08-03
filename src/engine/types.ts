@@ -9,6 +9,7 @@ export type { Measure, DimensionKey, DrillStep, DrillPath, WorkstreamView } from
 export const measureOf: Record<Measure, (o: Observation) => number> = {
   count: o => o.count,
   time: o => o.durationMs,
+  cost: o => o.durationMs, // ranks identically to time; £ is applied at display
 };
 
 /** Which bucket an observation falls in, per dimension. Empty → an honest label. */
@@ -27,4 +28,5 @@ export const DIM_LABEL: Record<DimensionKey, string> = {
 export const MEASURE_LABEL: Record<Measure, string> = {
   count: 'how often',
   time: 'time lost',
+  cost: 'cost',
 };

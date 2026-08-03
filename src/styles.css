@@ -155,6 +155,9 @@ button { font-family: inherit; }
   background: var(--surface); color: var(--ink); font-size: 16px; outline: none;
 }
 .text-input:focus { border-color: var(--accent); }
+.mini-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+.cost-readout { margin-top: 12px; padding: 10px 12px; background: var(--accent-soft); border-radius: var(--radius-sm); font-size: 13.5px; color: var(--ink-2); }
+.cost-readout b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .row-end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .row-inline { display: flex; gap: 8px; align-items: center; }
 .row-inline .text-input { margin-top: 0; }
@@ -306,18 +309,43 @@ button { font-family: inherit; }
 .present-cta { width: 100%; margin-top: 18px; }
 
 /* ---------- the Pareto (SVG) ---------- */
-.pareto { display: block; }
-.pareto-bar { fill: var(--ink-2); opacity: 0.24; }
-.pareto-bar.vital { opacity: 1; }
-.pareto-col.tappable { cursor: pointer; }
-.pareto-col.tappable:active .pareto-bar { opacity: 0.65; }
-.pareto-80 { stroke: var(--danger); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.65; }
-.pareto-80-lbl { fill: var(--danger); font-size: 9px; font-weight: 700; font-family: var(--mono); opacity: 0.9; }
-.pareto-val { fill: var(--ink); font-size: 9.5px; font-weight: 700; font-family: var(--mono); }
-.pareto-lbl { fill: var(--ink-2); font-size: 10px; font-weight: 600; }
-.pareto-cum { fill: var(--muted); font-size: 8.5px; font-family: var(--mono); }
-.pareto-cumline { fill: none; stroke: var(--ink-2); stroke-width: 1.5; opacity: 0.5; }
-.pareto-cumdot { fill: var(--ink-2); opacity: 0.7; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px 12px 12px; margin-top: 8px;
+}
+.pk { display: block; width: 100%; height: auto; overflow: visible; }
+.pk text { font-family: var(--font); }
+
+.pk-grid { stroke: var(--line); stroke-width: 1; }
+.pk-grid.base { stroke: var(--ink-2); opacity: 0.32; }
+
+.pk-ax { fill: var(--muted); font-size: 9px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pk-80 { stroke: var(--warn); stroke-width: 1.25; stroke-dasharray: 3 3; opacity: 0.75; }
+.pk-80-t { fill: var(--warn); font-size: 9px; font-weight: 800; letter-spacing: 0.01em; }
+
+.pk-bar { transition: opacity 0.12s ease; }
+.pk-col.tap { cursor: pointer; }
+.pk-col.tap:hover .pk-val { fill: var(--accent); }
+.pk-col.tap:active { opacity: 0.72; }
+
+.pk-cum { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; }
+.pk-cumdot { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.6; }
+
+.pk-val { fill: var(--ink); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pk-lbl { fill: var(--ink-2); font-size: 11px; font-weight: 700; }
+.pk-sub { fill: var(--muted); font-size: 9.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pk-ev-pill { fill: var(--ink); }
+.pk-ev-cam { fill: var(--surface); }
+.pk-ev-lens { fill: var(--ink); }
+.pk-ev-ct { fill: var(--surface); font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.pk-leg-t { fill: var(--muted); font-size: 10px; font-weight: 700; }
+.pk-leg-line { opacity: 0.9; }
+.pk-foot { fill: var(--muted); font-size: 8.5px; font-weight: 600; opacity: 0.85; }
+
+.mt.mt-add { color: var(--accent); }
 
 /* ---------- present ---------- */
 .present-body { flex: 1; overflow: auto; width: 100%; max-width: 820px; margin: 0 auto; padding: 46px 18px calc(24px + env(safe-area-inset-bottom)); }

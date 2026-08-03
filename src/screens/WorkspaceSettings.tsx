@@ -3,6 +3,7 @@
  * level → its own Pareto). Same quick add as the floor. */
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
+import { hasCost, fmtGBP } from '../lib/cost';
 
 function ChipEditor({ title, items, onChange, addLabel }: {
   title?: string; items: string[]; onChange: (next: string[]) => void; addLabel: string;
@@ -43,6 +44,28 @@ export function WorkspaceSettings() {
         <label className="field-label">Workspace name</label>
         <input className="text-input" defaultValue={workspace.name} maxLength={60}
           onBlur={e => { const v = e.target.value.trim(); if (v && v !== workspace.name) void patchWorkspace({ name: v }); }} />
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="field-label">Cost of downtime</div>
+        <p className="sub" style={{ margin: '4px 0 10px' }}>Crew on the line × labour rate = £/hour of idle labour. Time lost then reads in £.</p>
+        <div className="row-inline" style={{ alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <label className="mini-label">People on the line</label>
+            <input className="text-input" type="number" inputMode="decimal" min={0} step="1"
+              defaultValue={workspace.crew ?? ''} placeholder="e.g. 6"
+              onBlur={e => { const v = parseFloat(e.target.value); void patchWorkspace({ crew: Number.isFinite(v) && v > 0 ? v : undefined }); }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label className="mini-label">Labour rate £/hr</label>
+            <input className="text-input" type="number" inputMode="decimal" min={0} step="0.01"
+              defaultValue={workspace.labourRatePerHour ?? ''} placeholder="e.g. 18.50"
+              onBlur={e => { const v = parseFloat(e.target.value); void patchWorkspace({ labourRatePerHour: Number.isFinite(v) && v > 0 ? v : undefined }); }} />
+          </div>
+        </div>
+        {hasCost(workspace) && (
+          <div className="cost-readout">= <b>{fmtGBP(workspace.crew! * workspace.labourRatePerHour!)}/hr</b> of idle labour while this line is down</div>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>

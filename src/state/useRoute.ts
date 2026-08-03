@@ -97,7 +97,7 @@ export function buildAnalyseHash(
 export function readWorkstreamView(route: Route, wsId: ID): WorkstreamView | null {
   const measure = route.query.get('measure');
   const dims = route.query.get('dims');
-  if ((measure !== 'count' && measure !== 'time') || !dims) return null;
+  if ((measure !== 'count' && measure !== 'time' && measure !== 'cost') || !dims) return null;
   return {
     workspaceId: wsId,
     measure,

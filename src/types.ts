@@ -5,7 +5,7 @@
 
 export type ID = string; // crypto.randomUUID()
 export type Millis = number; // epoch ms (Date.now())
-export type Measure = 'count' | 'time'; // 'cost' is a P1 seam
+export type Measure = 'count' | 'time' | 'cost'; // cost = idle-labour £, ranks like time
 export type DimensionKey = 'asset' | 'category' | 'subcategory';
 
 /* ============ WORKSPACE — top-level isolation container ============ */
@@ -22,6 +22,11 @@ export interface Workspace {
   subcategories: Record<string, string[]>; // category → its sub-categories
   assets: string[]; // WHERE — starts empty; the operator adds their machines
   shifts: Shift[]; // optional stratifier; starts empty
+
+  // Idle-labour cost model: crew on the line × labour rate/hr = cost per hour;
+  // a downtime event costs (its hours) × that rate — so cost ranks like time.
+  crew?: number; // people on the line
+  labourRatePerHour?: number; // £ per person-hour
 
   // Sticky capture defaults so a repeat event is one tap (START).
   lastCategory?: string;

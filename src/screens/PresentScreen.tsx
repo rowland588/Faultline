@@ -1,18 +1,22 @@
 /* Present — the same analysis, calm and full-screen for the senior team. Big
- * Pareto, the one insight, the proof as hero. Still live: drill in front of the
- * room, and exit lands back in Analyse at the very same spot. */
+ * Pareto (magnitude + frequency + evidence), the one insight, the proof as hero.
+ * Still live: drill in front of the room; exit lands back in Analyse. */
 import { useMemo } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, navReplace, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { drillNode, pushDrill } from '../engine/drill';
+import { computePareto } from '../engine/pareto';
 import { DIM_LABEL, MEASURE_LABEL } from '../engine/types';
 import type { Measure } from '../types';
-import { ParetoChart } from '../charts/ParetoChart';
+import { ParetoChart, type SecondaryInfo } from '../charts/ParetoChart';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
-import { fmtDurationWords, plural } from '../lib/format';
+import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
+import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+
+const LEG: Record<Measure, string> = { count: 'Count', time: 'Time', cost: 'Cost' };
 
 export function PresentScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
@@ -27,6 +31,20 @@ export function PresentScreen({ route }: { route: Route }) {
   const exit = () => nav(buildAnalyseHash(workspace.id, 'analyse', view.measure, view.path, view.dimensionOrder));
 
   const totalMs = node.rows.reduce((a, o) => a + o.durationMs, 0);
+  const costable = hasCost(workspace);
+  const factor = costPerMs(workspace);
+  const fmtOf = (m: Measure) => (v: number) =>
+    m === 'count' ? `${Math.round(v)}×` : m === 'time' ? fmtDuration(v) : fmtGBP(v * factor);
+  const secondary: Measure = view.measure === 'count' ? 'time' : 'count';
+
+  const hasChart = !!node.dimension && !!node.pareto && node.pareto.slices.length > 0;
+  const secondaryByKey: Record<string, SecondaryInfo> = {};
+  const mediaByKey: Record<string, number> = {};
+  if (hasChart) {
+    const byId = new Map(node.rows.map(o => [o.id, o]));
+    for (const s of node.pareto!.slices) mediaByKey[s.key] = s.observationIds.reduce((a, id) => a + (byId.get(id)?.media.length ?? 0), 0);
+    for (const s of computePareto(node.rows, node.dimension!, secondary).slices) secondaryByKey[s.key] = { value: s.value, share: s.share };
+  }
 
   return (
     <div className="present">
@@ -35,22 +53,31 @@ export function PresentScreen({ route }: { route: Route }) {
       <div className="present-body">
         <div className="present-head">
           <span className="present-ws"><span className="ws-dot" style={{ background: workspace.color }} />{workspace.name}</span>
-          {node.dimension && (
-            <h1 className="present-q">By {DIM_LABEL[node.dimension].toLowerCase()} · {MEASURE_LABEL[view.measure]}</h1>
-          )}
+          {node.dimension && <h1 className="present-q">By {DIM_LABEL[node.dimension].toLowerCase()} · {MEASURE_LABEL[view.measure]}</h1>}
           <DrillBreadcrumb path={view.path} onJump={jump} />
         </div>
 
         <DisagreementBanner d={node.disagreement} />
 
-        {node.pareto && node.pareto.slices.length > 0 ? (
+        {hasChart ? (
           <div className="present-chart">
-            <ParetoChart pareto={node.pareto} color={workspace.color} onDrill={drill} canDrill />
+            <ParetoChart
+              pareto={node.pareto!}
+              color={workspace.color}
+              fmtPrimary={fmtOf(view.measure)}
+              fmtSecondary={fmtOf(secondary)}
+              secondaryByKey={secondaryByKey}
+              mediaByKey={mediaByKey}
+              primaryLegend={LEG[view.measure]}
+              secondaryLegend={LEG[secondary]}
+              onDrill={drill}
+              canDrill
+            />
           </div>
         ) : (
           <div className="leaf present-leaf">
             <div className="leaf-num">{plural(node.rows.length, 'observation')}</div>
-            {totalMs > 0 && <div className="leaf-sub">{fmtDurationWords(totalMs)} in total</div>}
+            {totalMs > 0 && <div className="leaf-sub">{fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''} in total</div>}
           </div>
         )}
 
