@@ -1,25 +1,25 @@
-/* Analyse — question-first. Pick a plain question; the app builds the Pareto,
- * you tap a bar to walk in (asset → category → sub-category), the breadcrumb
- * walks you back. Count / time / £ is one tap; the chart shows both magnitude
- * and frequency together; when they disagree the app says so. All in the URL. */
+/* Analyse — question-first. Pick a plain question; the app builds the Pareto and
+ * shows BOTH measures at once: a lost-time bar (with its £ cost) beside a
+ * frequency bar, for every category. You tap a bar to walk in (asset → category →
+ * sub-category); the breadcrumb walks you back. The toggle changes only what you
+ * RANK by — time or frequency — so you can flip the lens and watch the order
+ * change. When the two rankings disagree, the app says so. All state in the URL. */
 import { useMemo } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { drillNode, pushDrill } from '../engine/drill';
-import { computePareto } from '../engine/pareto';
-import { DIM_LABEL, MEASURE_LABEL } from '../engine/types';
+import { buildCompare } from '../engine/compare';
+import { DIM_LABEL } from '../engine/types';
 import { QUESTIONS } from '../engine/questions';
 import type { Measure } from '../types';
-import { ParetoChart, type SecondaryInfo } from '../charts/ParetoChart';
+import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
 import { EmptyState } from '../ui/EmptyState';
 import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
-
-const LEG: Record<Measure, string> = { count: 'Count', time: 'Time', cost: 'Cost' };
 
 function QuestionPicker({ wsId, color }: { wsId: string; color: string }) {
   return (
@@ -55,35 +55,35 @@ export function AnalyseScreen({ route }: { route: Route }) {
   const drill = (key: string) => { if (node.dimension) goto(view.measure, pushDrill(view, key, node.dimension).path); };
   const jump = (depth: number) => goto(view.measure, view.path.slice(0, depth));
 
+  const rankByFreq = view.measure === 'count';
   const noRows = node.rows.length === 0;
-  const hasChart = !!node.dimension && !!node.pareto && node.pareto.slices.length > 0;
+  const hasChart = !!node.dimension && !noRows;
   const totalMs = node.rows.reduce((a, o) => a + o.durationMs, 0);
   const costable = hasCost(workspace);
   const factor = costPerMs(workspace);
 
-  const fmtOf = (m: Measure) => (v: number) =>
-    m === 'count' ? `${Math.round(v)}×` : m === 'time' ? fmtDuration(v) : fmtGBP(v * factor);
-
-  // The second measure paired on the chart — magnitude ↔ frequency.
-  const secondary: Measure = view.measure === 'count' ? 'time' : 'count';
-  let secondaryByKey: Record<string, SecondaryInfo> = {};
-  let mediaByKey: Record<string, number> = {};
-  if (hasChart) {
-    const byId = new Map(node.rows.map(o => [o.id, o]));
-    for (const s of node.pareto!.slices) mediaByKey[s.key] = s.observationIds.reduce((a, id) => a + (byId.get(id)?.media.length ?? 0), 0);
-    for (const s of computePareto(node.rows, node.dimension!, secondary).slices) secondaryByKey[s.key] = { value: s.value, share: s.share };
-  }
+  const byId = new Map(node.rows.map(o => [o.id, o]));
+  const slices: CompareSlice[] = !hasChart || !node.dimension ? [] :
+    buildCompare(node.rows, node.dimension, rankByFreq ? 'count' : 'time').map(r => ({
+      key: r.key,
+      timeShare: r.timeShare,
+      freqShare: r.countShare,
+      cumShare: r.cumShare,
+      timeLabel: fmtDuration(r.timeMs),
+      costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
+      freqLabel: `${r.count}×`,
+      isVitalFew: r.isVitalFew,
+      media: r.observationIds.reduce((a, id) => a + (byId.get(id)?.media.length ?? 0), 0),
+    }));
 
   return (
     <div className="wrap analyse">
       <div className="analyse-top">
         <button className="link-btn" onClick={() => nav(`/w/${workspace.id}/analyse`)}>‹ Question</button>
-        <div className="measure-toggle">
-          <button className={'mt' + (view.measure === 'count' ? ' on' : '')} onClick={() => goto('count')}>Count</button>
-          <button className={'mt' + (view.measure === 'time' ? ' on' : '')} onClick={() => goto('time')}>Time</button>
-          {costable
-            ? <button className={'mt' + (view.measure === 'cost' ? ' on' : '')} onClick={() => goto('cost')}>Cost £</button>
-            : <button className="mt mt-add" title="Set crew & rate to see £" onClick={() => nav(`/w/${workspace.id}/settings`)}>£?</button>}
+        <div className="measure-toggle" role="group" aria-label="Rank by">
+          <span className="mt-label">Rank by</span>
+          <button className={'mt' + (!rankByFreq ? ' on' : '')} onClick={() => goto('time')}>Lost time</button>
+          <button className={'mt' + (rankByFreq ? ' on' : '')} onClick={() => goto('count')}>Frequency</button>
         </div>
       </div>
 
@@ -102,24 +102,26 @@ export function AnalyseScreen({ route }: { route: Route }) {
           {hasChart ? (
             <>
               <div className="chart-caption">
-                Ranked by <b>{DIM_LABEL[node.dimension!].toLowerCase()}</b> · {MEASURE_LABEL[view.measure]}
-                {node.pareto!.slices.length > 1 && <span className="chart-hint"> · tap a bar to drill</span>}
+                Every <b>{DIM_LABEL[node.dimension!].toLowerCase()}</b> — time lost <i>and</i> how often — ranked by <b>{rankByFreq ? 'frequency' : 'lost time'}</b>
+                {slices.length > 1 && <span className="chart-hint"> · tap a bar to drill</span>}
               </div>
               <div className="chart-card">
                 <ParetoChart
-                  pareto={node.pareto!}
+                  slices={slices}
                   color={workspace.color}
-                  fmtPrimary={fmtOf(view.measure)}
-                  fmtSecondary={fmtOf(secondary)}
-                  secondaryByKey={secondaryByKey}
-                  mediaByKey={mediaByKey}
-                  primaryLegend={LEG[view.measure]}
-                  secondaryLegend={LEG[secondary]}
+                  rankLabel={rankByFreq ? 'cumulative freq' : 'cumulative time'}
                   onDrill={drill}
                   canDrill
                 />
               </div>
-              <div className="analyse-meta">{plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}` : ''}</div>
+              <div className="analyse-meta">
+                {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}` : ''}
+              </div>
+              {!costable && (
+                <button className="cost-hint" onClick={() => nav(`/w/${workspace.id}/settings`)}>
+                  💷 Put a £ on this lost time — add crew &amp; labour rate ›
+                </button>
+              )}
             </>
           ) : (
             <div className="leaf">

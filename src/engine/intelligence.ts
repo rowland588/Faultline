@@ -66,6 +66,6 @@ export function detectDisagreement(rows: Observation[], dim: DimensionKey): Disa
   const agree = !topByCount || !topByTime || topByCount === topByTime;
   const message = agree
     ? ''
-    : `“${topByCount}” happens most often — but “${topByTime}” costs the most time. Chase the time.`;
+    : `“${topByTime}” costs the most time — but “${topByCount}” happens most often. Two different problems: fix the costly one, or stop the constant one.`;
   return { dimension: dim, topByCount, topByTime, agree, message, rankShifts };
 }
