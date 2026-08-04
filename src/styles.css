@@ -411,6 +411,9 @@ button { font-family: inherit; }
 .pk-val-cost { fill: var(--muted); font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pk-val-freq { fill: var(--freq); font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .pk-lbl { fill: var(--ink-2); font-size: 10.5px; font-weight: 700; }
+.pk-lbl-agg { fill: var(--muted); font-style: italic; font-weight: 600; }
+.pk-col.tap:focus { outline: none; }
+.pk-col.tap:focus-visible .pk-bar-time, .pk-col.tap:focus-visible .pk-bar-freq { stroke: var(--accent); stroke-width: 2.5; paint-order: stroke; }
 .pk-tag { font-size: 8.5px; font-weight: 800; letter-spacing: 0.02em; }
 .pk-tag.costly { fill: var(--warn); }
 .pk-tag.frequent { fill: var(--freq); }

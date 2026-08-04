@@ -8,7 +8,8 @@
  * bar means "happens a lot, costs little" — and vice-versa. The cumulative curve
  * + 80% line follow whichever measure you ranked by. A 📷 marks bars with evidence.
  * `compact` drops the legend + footnote for the small per-asset charts on the board.
- * Every column is a tap target: tap to drill in. */
+ * Beyond a cap the long tail folds into one "+ N more" bar so labels never collide.
+ * Every real column is a tap AND keyboard target: activate to drill in. */
 
 function short(s: string, n = 12): string {
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -27,6 +28,8 @@ export interface CompareSlice {
   tag?: 'costly' | 'frequent'; // the divergence call-out
 }
 
+type Slice = CompareSlice & { aggregate?: boolean };
+
 const TAG_TEXT: Record<'costly' | 'frequent', string> = {
   costly: 'rare but costly',
   frequent: 'frequent but quick',
@@ -44,6 +47,19 @@ export function ParetoChart({
 }) {
   if (slices.length === 0) return null;
 
+  // Fold the long tail into one "+ N more" bar so labels never collide at scale.
+  const MAX = compact ? 8 : 12;
+  const tail = slices.length > MAX ? slices.slice(MAX - 1) : [];
+  const display: Slice[] = tail.length
+    ? [...slices.slice(0, MAX - 1), {
+        key: `+ ${tail.length} more`,
+        timeShare: tail.reduce((a, s) => a + s.timeShare, 0),
+        freqShare: tail.reduce((a, s) => a + s.freqShare, 0),
+        cumShare: 1,
+        timeLabel: '', freqLabel: '', isVitalFew: false, media: 0, aggregate: true,
+      }]
+    : slices;
+
   const W = 440;
   const padL = compact ? 34 : 40;
   const padR = compact ? 34 : 40;
@@ -54,7 +70,7 @@ export function ParetoChart({
   const plotH = H - padT - padB;
   const baseY = padT + plotH;
 
-  const n = slices.length;
+  const n = display.length;
   const colW = plotW / n;
   const barW = Math.min(compact ? 24 : 30, colW * 0.28);
   const gap = Math.min(compact ? 7 : 10, colW * 0.06);
@@ -65,8 +81,7 @@ export function ParetoChart({
   const yShare = (s: number) => baseY - plotH * Math.max(0, Math.min(1, s));
 
   const grid = [0, 0.25, 0.5, 0.75, 1];
-  const cumPts = slices.map((s, i) => `${cx(i)},${yShare(s.cumShare)}`).join(' ');
-  const tappable = !!(onDrill && canDrill);
+  const cumPts = display.map((s, i) => `${cx(i)},${yShare(s.cumShare)}`).join(' ');
   const legFreqX = padL + 118;
   const legCumX = W - padR - 96;
 
@@ -84,15 +99,21 @@ export function ParetoChart({
       <line className="pk-80" x1={padL} x2={padL + plotW} y1={yShare(0.8)} y2={yShare(0.8)} />
       {!compact && <text className="pk-80-t" x={padL + plotW - 1} y={yShare(0.8) - 5} textAnchor="end">80%</text>}
 
-      {/* bars: lost time (colour) + frequency (slate) */}
-      {slices.map((s, i) => {
+      {/* bars: lost time (colour) + frequency (slate). Real columns are interactive. */}
+      {display.map((s, i) => {
         const tTop = yShare(s.timeShare);
         const fTop = yShare(s.freqShare);
         const op = s.isVitalFew ? 1 : 0.26;
+        const hit = !!(onDrill && canDrill) && !s.aggregate;
+        const activate = hit ? () => onDrill!(s.key) : undefined;
+        const label = s.aggregate ? `${s.key} categories`
+          : `${s.key}: ${s.timeLabel} lost${s.costLabel ? ` (${s.costLabel})` : ''}, ${s.freqLabel}${hit ? ' — activate to drill in' : ''}`;
         return (
-          <g key={'b' + s.key} className={'pk-col' + (tappable ? ' tap' : '')}
-            onClick={tappable ? () => onDrill!(s.key) : undefined}>
-            {tappable && <rect x={cx(i) - colW / 2} y={padT - 30} width={colW} height={plotH + 32} fill="transparent" />}
+          <g key={'b' + s.key} className={'pk-col' + (hit ? ' tap' : '')}
+            onClick={activate} role={hit ? 'button' : undefined} tabIndex={hit ? 0 : undefined} aria-label={label}
+            onKeyDown={hit ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate!(); } }) : undefined}>
+            <title>{label}</title>
+            {hit && <rect x={cx(i) - colW / 2} y={padT - 30} width={colW} height={plotH + 32} fill="transparent" />}
             <rect className="pk-bar-time" x={timeCx(i) - barW / 2} y={tTop} width={barW} height={Math.max(1.5, baseY - tTop)} rx={3.5} style={{ fill: color, opacity: op }} />
             <rect className="pk-bar-freq" x={freqCx(i) - barW / 2} y={fTop} width={barW} height={Math.max(1.5, baseY - fTop)} rx={3.5} style={{ opacity: op }} />
           </g>
@@ -101,10 +122,10 @@ export function ParetoChart({
 
       {/* cumulative curve of the ranked measure */}
       <polyline className="pk-cum" points={cumPts} />
-      {slices.map((s, i) => <circle key={'cd' + s.key} cx={cx(i)} cy={yShare(s.cumShare)} r={compact ? 2.3 : 2.8} className="pk-cumdot" />)}
+      {display.map((s, i) => <circle key={'cd' + s.key} cx={cx(i)} cy={yShare(s.cumShare)} r={compact ? 2.3 : 2.8} className="pk-cumdot" />)}
 
       {/* labels + evidence (non-interactive overlay so text never eats a tap) */}
-      {slices.map((s, i) => {
+      {display.map((s, i) => {
         const tTop = yShare(s.timeShare);
         const fTop = yShare(s.freqShare);
         return (
@@ -121,9 +142,9 @@ export function ParetoChart({
               </g>
             )}
             {s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19} textAnchor="middle">{s.costLabel}</text>}
-            <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>
-            <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7} textAnchor="middle">{s.freqLabel}</text>
-            <text className="pk-lbl" x={cx(i)} y={baseY + 16} textAnchor="middle">{short(s.key)}</text>
+            {s.timeLabel && <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>}
+            {s.freqLabel && <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7} textAnchor="middle">{s.freqLabel}</text>}
+            <text className={'pk-lbl' + (s.aggregate ? ' pk-lbl-agg' : '')} x={cx(i)} y={baseY + 16} textAnchor="middle">{short(s.key)}</text>
             {s.tag && <text className={'pk-tag ' + s.tag} x={cx(i)} y={baseY + 29} textAnchor="middle">{TAG_TEXT[s.tag]}</text>}
           </g>
         );
