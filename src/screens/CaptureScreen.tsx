@@ -4,10 +4,11 @@
 import { useEffect, useState } from 'react';
 import type { Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
+import { nav } from '../state/useRoute';
 import { saveActiveTimer } from '../db';
 import { uid, now } from '../lib/ids';
 import { captureMedia } from '../lib/media';
-import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
+import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
 import { ChipPicker } from '../ui/Chip';
 import { Stopwatch } from '../ui/Stopwatch';
 import { Toast } from '../ui/Toast';
@@ -101,6 +102,7 @@ export function CaptureScreen() {
   };
 
   const total = observations.reduce((a, o) => a + o.durationMs, 0);
+  const recent = [...observations].sort((a, b) => b.createdAt - a.createdAt).slice(0, 6);
 
   return (
     <div className="wrap cap">
@@ -187,10 +189,36 @@ export function CaptureScreen() {
         {pending.length > 0 && <p className="sub" style={{ marginTop: 6 }}>{plural(pending.length, 'clip')} ready — attaches to the next log.</p>}
       </div>
 
-      {/* RUNNING TALLY */}
-      <div className="cap-tally">
-        <b>{observations.length}</b> {observations.length === 1 ? 'observation' : 'observations'}
-        {total > 0 && <> · <b>{fmtDurationWords(total)}</b> logged</>}
+      {/* THE CHECK SHEET — every log lands here, newest first */}
+      <div className="cap-feed">
+        <div className="cap-feed-head">
+          <span className="cap-feed-title-lbl">Logged this workspace</span>
+          <span className="cap-feed-count"><b>{observations.length}</b> {observations.length === 1 ? 'entry' : 'entries'}{total > 0 && <> · <b>{fmtDurationWords(total)}</b></>}</span>
+        </div>
+        {recent.length === 0 ? (
+          <p className="cap-feed-empty">Nothing yet. Pick an asset, say what you saw, put a time to it — it lands here.</p>
+        ) : (
+          <div className="cap-feed-list">
+            {recent.map(o => (
+              <div className="cap-feed-row" key={o.id}>
+                <span className="cap-feed-dot" style={{ background: workspace.color }} />
+                <div className="cap-feed-main">
+                  <div className="cap-feed-what">{o.asset} · <b>{o.category}</b>{o.subcategory ? ` · ${o.subcategory}` : ''}</div>
+                  <div className="cap-feed-meta">
+                    {o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.createdAt)}
+                    {o.media.length > 0 && <> · 📷 {o.media.length}</>}
+                  </div>
+                </div>
+                <button className="cap-feed-del" onClick={() => void removeObs(o.id)} aria-label={`Delete ${o.category} on ${o.asset}`}>×</button>
+              </div>
+            ))}
+            {observations.length > recent.length && (
+              <button className="cap-feed-more" onClick={() => nav(`/w/${workspace.id}/log`)}>
+                See all {observations.length} ›
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {toast && <Toast message={toast.msg} onUndo={undo} onDismiss={() => setToast(null)} />}

@@ -244,6 +244,26 @@ button { font-family: inherit; }
 .cap-tally { text-align: center; color: var(--muted); font-size: 13.5px; padding: 8px 0 4px; }
 .cap-tally b { color: var(--ink-2); font-family: var(--mono); }
 
+/* ---------- capture feed (the live check sheet) ---------- */
+.cap-feed { margin-top: 20px; }
+.cap-feed-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.cap-feed-title-lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cap-feed-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cap-feed-count b { color: var(--ink-2); }
+.cap-feed-empty { font-size: 13.5px; color: var(--muted); line-height: 1.5; background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px; }
+.cap-feed-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.cap-feed-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-top: 1px solid var(--line); animation: feedIn 0.28s ease; }
+.cap-feed-row:first-child { border-top: none; }
+.cap-feed-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.cap-feed-main { flex: 1; min-width: 0; }
+.cap-feed-what { font-size: 14.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cap-feed-what b { font-weight: 700; }
+.cap-feed-meta { font-size: 12px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.cap-feed-del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 8px; flex: none; }
+.cap-feed-del:active { background: var(--surface-2); color: var(--danger); }
+.cap-feed-more { width: 100%; border: none; border-top: 1px solid var(--line); background: transparent; color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 12px; cursor: pointer; }
+@keyframes feedIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; left: 12px; right: 12px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 45;
