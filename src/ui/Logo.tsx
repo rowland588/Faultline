@@ -20,3 +20,13 @@ export function Wordmark({ size = 34 }: { size?: number }) {
     </div>
   );
 }
+
+/** A calm, branded loading state — shown for the boot tick and while a workspace
+ *  loads, so there's never a blank white flash. */
+export function BootSplash() {
+  return (
+    <div className="splash">
+      <div className="splash-mark"><LogoMark size={46} /></div>
+    </div>
+  );
+}

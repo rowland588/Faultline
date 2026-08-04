@@ -9,6 +9,7 @@ import {
   updateWorkspace, setLastWorkspace,
 } from '../db';
 import { navReplace } from './useRoute';
+import { BootSplash } from '../ui/Logo';
 
 interface WorkspaceCtx {
   workspace: Workspace;
@@ -33,10 +34,17 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
   const [missing, setMissing] = useState(false);
 
   const reload = useCallback(async () => {
-    const ws = await getWorkspace(wsId);
-    if (!ws) { setMissing(true); return; }
-    setWorkspace(ws);
-    setObservations(await listObservations(wsId));
+    try {
+      const ws = await getWorkspace(wsId);
+      if (!ws) { setMissing(true); return; }
+      // Load both before setting state so we never render workspace-with-no-rows
+      // (which flashed "Nothing logged yet" / "0 observations").
+      const obs = await listObservations(wsId);
+      setWorkspace(ws);
+      setObservations(obs);
+    } catch {
+      setMissing(true); // storage unavailable → bounce Home rather than hang blank
+    }
   }, [wsId]);
 
   useEffect(() => {
@@ -66,7 +74,7 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
   }, [wsId]);
 
   if (missing) { navReplace('/'); return null; }
-  if (!workspace) return null; // brief; boot is already gated
+  if (!workspace) return <BootSplash />; // branded, not a blank flash, while the workspace loads
 
   return (
     <Ctx.Provider value={{ workspace, observations, reload, addObs, removeObs, patchWorkspace }}>

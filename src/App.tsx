@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { useBootResume } from './state/useResume';
 import { Router } from './router';
+import { BootSplash } from './ui/Logo';
 
 /** A render error becomes a recoverable message, never a blank screen — a field
  *  app must not silently vanish. Local data is safe (it's in IndexedDB). */
@@ -27,7 +28,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { err: Error | nu
 
 export default function App() {
   const ready = useBootResume(); // may replace the hash to resume the last workspace
-  if (!ready) return null; // one tick; avoids a Home flash before a resume
+  if (!ready) return <BootSplash />; // branded, not a blank flash, while we decide where to land
   return (
     <ErrorBoundary>
       <Router />

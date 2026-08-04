@@ -119,6 +119,9 @@ button { font-family: inherit; }
 }
 .splash .mark { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
 .splash .tag { color: var(--muted); margin-top: 6px; }
+.splash-mark { animation: splashPulse 1.4s ease-in-out infinite; }
+.splash-mark .logo-mark { border-radius: 12px; box-shadow: 0 6px 20px rgba(20, 24, 31, 0.22); }
+@keyframes splashPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.95); } }
 
 /* ---------- app frame ---------- */
 .app { min-height: 100%; display: flex; flex-direction: column; }

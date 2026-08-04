@@ -13,15 +13,20 @@ export function useBootResume(): boolean {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const r = parseRoute(window.location.hash);
-      if (r.name === 'home') {
-        const last = await getLastWorkspace();
-        if (alive && last && (await getWorkspace(last))) {
-          navReplace(`/w/${last}`);
-          setReady(true);
-          return;
+      // Ask the browser to keep our IndexedDB (best-effort) so the floor's data
+      // isn't silently evicted. Never blocks boot.
+      try { await navigator.storage?.persist?.(); } catch { /* not supported */ }
+      try {
+        const r = parseRoute(window.location.hash);
+        if (r.name === 'home') {
+          const last = await getLastWorkspace();
+          if (alive && last && (await getWorkspace(last))) {
+            navReplace(`/w/${last}`);
+            setReady(true);
+            return;
+          }
         }
-      }
+      } catch { /* storage unavailable — fall through and render Home rather than hang */ }
       if (alive) setReady(true);
     })();
     return () => { alive = false; };

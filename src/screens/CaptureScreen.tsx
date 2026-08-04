@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import type { Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { saveActiveTimer } from '../db';
 import { uid, now } from '../lib/ids';
 import { captureMedia } from '../lib/media';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
@@ -71,7 +70,9 @@ export function CaptureScreen() {
     if (!canLog) return;
     const t = now();
     setStartedAt(t);
-    await saveActiveTimer(workspace.id, { category, subcategory: subcategory || undefined, asset, startedAt: t });
+    // patchWorkspace (not saveActiveTimer) so the running timer lives in memory too
+    // — otherwise switching tabs and back loses it / resurrects a discarded one.
+    await patchWorkspace({ activeTimer: { category, subcategory: subcategory || undefined, asset, startedAt: t } });
   };
   const stopAndLog = async () => {
     if (startedAt === null) return;
@@ -79,7 +80,7 @@ export function CaptureScreen() {
   };
   const discard = async () => {
     setStartedAt(null);
-    await saveActiveTimer(workspace.id, undefined);
+    await patchWorkspace({ activeTimer: undefined });
   };
   const logInstant = async () => {
     if (!canLog) return;

@@ -45,7 +45,10 @@ export function buildCompare(rows: Observation[], dimension: DimensionKey, ranke
   const countP = computePareto(rows, dimension, 'count');
   const timeBy = new Map(timeP.slices.map(s => [s.key, s]));
   const countBy = new Map(countP.slices.map(s => [s.key, s]));
-  const rankedP = ranked === 'time' ? timeP : countP;
+  // Rank by the chosen measure — but if it's all zero (e.g. instant/count-only
+  // logs ranked by time), fall back to the other so the chart is never blank.
+  let rankedP = ranked === 'time' ? timeP : countP;
+  if (rankedP.grandTotal === 0) rankedP = rankedP === timeP ? countP : timeP;
   return rankedP.slices.map(s => {
     const t = timeBy.get(s.key);
     const c = countBy.get(s.key);
