@@ -111,9 +111,7 @@ export function CaptureScreen() {
         <div className="field-label">Which asset?</div>
         <ChipPicker
           options={workspace.assets}
-          value={asset}
-          color={workspace.color}
-          onChange={setAsset}
+          value={asset}          onChange={setAsset}
           onAdd={a => void patchWorkspace({ assets: [...workspace.assets, a] })}
           addLabel="Add a machine or area…"
         />
@@ -125,9 +123,7 @@ export function CaptureScreen() {
         <div className="field-label">What did you see?</div>
         <ChipPicker
           options={workspace.categories}
-          value={category}
-          color={workspace.color}
-          onChange={pickCategory}
+          value={category}          onChange={pickCategory}
           onAdd={c => void patchWorkspace({ categories: [...workspace.categories, c] })}
           addLabel="Add a category…"
         />
@@ -139,9 +135,7 @@ export function CaptureScreen() {
           <div className="field-label">Which kind? <span className="opt">optional</span></div>
           <ChipPicker
             options={subOptions}
-            value={subcategory}
-            color={workspace.color}
-            onChange={setSubcategory}
+            value={subcategory}            onChange={setSubcategory}
             onAdd={s => void patchWorkspace({ subcategories: { ...(workspace.subcategories ?? {}), [category]: [...subOptions, s] } })}
             addLabel={`Add a kind of ${category}…`}
           />

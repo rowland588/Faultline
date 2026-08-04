@@ -5,6 +5,7 @@ import type { Workspace } from '../types';
 import { listWorkspaces, listObservations, createWorkspace } from '../db';
 import { nav } from '../state/useRoute';
 import { EmptyState } from '../ui/EmptyState';
+import { Wordmark } from '../ui/Logo';
 import { fmtRelative, plural } from '../lib/format';
 
 export function WorkspaceHome() {
@@ -34,8 +35,8 @@ export function WorkspaceHome() {
   return (
     <div className="wrap home">
       <div className="home-head">
-        <div className="mark">Finder</div>
-        <div className="sub">Find the opportunities on your floor.</div>
+        <Wordmark />
+        <p className="home-tag">Walk the line, put a time to every stop, and watch the loss turn into a Pareto and a pound figure.</p>
       </div>
 
       {creating ? (
