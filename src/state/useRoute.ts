@@ -60,6 +60,13 @@ export const navReplace = (to: string): void => {
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 };
 
+/** Go back to wherever you came from, with a safe fallback if there's no history
+ *  (deep link / hard refresh). Used by the secondary pages' back button. */
+export const goBack = (fallback: string): void => {
+  if (window.history.length > 1) window.history.back();
+  else nav(fallback);
+};
+
 /* ---------- drill path <-> URL (?path=asset:Brillopack>category:Changeover) ---------- */
 
 export function encodePath(path: DrillPath): string {

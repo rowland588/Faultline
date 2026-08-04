@@ -312,6 +312,28 @@ button { font-family: inherit; }
 .cap-feed-more { width: 100%; border: none; border-top: 1px solid var(--line); background: transparent; color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 12px; cursor: pointer; }
 @keyframes feedIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
+/* ---------- secondary-page header (Log, Settings) ---------- */
+.subhead { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.back-btn {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px 0 10px;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  color: var(--accent); font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow);
+}
+.back-btn:active { background: var(--surface-2); }
+.subhead-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- capture → analyse bridge ---------- */
+.board-cta {
+  display: flex; align-items: center; gap: 11px; width: 100%; margin-top: 18px;
+  padding: 14px 16px; border: 1px solid rgba(var(--accent-rgb), 0.4);
+  background: var(--accent-soft); border-radius: var(--radius); cursor: pointer; text-align: left;
+  transition: transform 0.06s ease;
+}
+.board-cta:active { transform: scale(0.995); }
+.board-cta-ic { font-size: 17px; color: var(--accent); }
+.board-cta-main { flex: 1; font-size: 15px; font-weight: 800; color: var(--ink); }
+.board-cta-go { color: var(--accent); font-size: 20px; font-weight: 700; }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; left: 12px; right: 12px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 45;

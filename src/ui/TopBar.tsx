@@ -11,8 +11,10 @@ export function TopBar() {
   const { workspace, observations } = useWorkspace();
   const [menu, setMenu] = useState(false);
 
+  const go = (to: string) => { setMenu(false); nav(to); };
   const remove = async () => {
     if (!window.confirm(`Delete "${workspace.name}" and everything in it? This cannot be undone.`)) return;
+    setMenu(false);
     await deleteWorkspace(workspace.id);
     nav('/');
   };
@@ -29,9 +31,11 @@ export function TopBar() {
       </button>
 
       <Sheet open={menu} onClose={() => setMenu(false)} title={workspace.name}>
-        <SheetRow label="All workspaces" hint="switch" onClick={() => nav('/')} />
-        <SheetRow label="The log" hint={`${observations.length} logged`} onClick={() => nav(`/w/${workspace.id}/log`)} />
-        <SheetRow label="Workspace settings" onClick={() => nav(`/w/${workspace.id}/settings`)} />
+        <SheetRow label="Capture" hint="log what you see" onClick={() => go(`/w/${workspace.id}/capture`)} />
+        <SheetRow label="Analyse" hint="the board" onClick={() => go(`/w/${workspace.id}/analyse`)} />
+        <SheetRow label="The log" hint={`${observations.length} logged`} onClick={() => go(`/w/${workspace.id}/log`)} />
+        <SheetRow label="Workspace settings" onClick={() => go(`/w/${workspace.id}/settings`)} />
+        <SheetRow label="All workspaces" hint="switch" onClick={() => go('/')} />
         <SheetRow label="Delete this workspace" danger onClick={remove} />
       </Sheet>
     </header>

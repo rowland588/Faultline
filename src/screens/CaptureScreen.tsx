@@ -201,6 +201,15 @@ export function CaptureScreen() {
         {pending.length > 0 && <p className="sub" style={{ marginTop: 6 }}>{plural(pending.length, 'clip')} ready — attaches to the next log.</p>}
       </div>
 
+      {/* the bridge to the payoff — logging leads somewhere */}
+      {observations.length > 0 && (
+        <button className="board-cta" onClick={() => nav(`/w/${workspace.id}/analyse`)}>
+          <span className="board-cta-ic" aria-hidden>▤</span>
+          <span className="board-cta-main">See where the line's losing time</span>
+          <span className="board-cta-go" aria-hidden>›</span>
+        </button>
+      )}
+
       {/* THE CHECK SHEET — every log lands here, newest first */}
       <div className="cap-feed">
         <div className="cap-feed-head">

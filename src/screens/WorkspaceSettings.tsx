@@ -4,6 +4,7 @@
  * it's in use). Each change confirms with a quiet toast. */
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
+import { goBack } from '../state/useRoute';
 import { renameInObservations } from '../db';
 import { Toast } from '../ui/Toast';
 import { hasCost, fmtGBP } from '../lib/cost';
@@ -102,7 +103,10 @@ export function WorkspaceSettings() {
 
   return (
     <div className="wrap">
-      <p className="eyebrow">Settings</p>
+      <div className="subhead">
+        <button className="back-btn" onClick={() => goBack(`/w/${workspace.id}/analyse`)}>‹ Back</button>
+        <span className="subhead-title">Settings</span>
+      </div>
 
       <div className="card">
         <label className="field-label">Workspace name</label>
