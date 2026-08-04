@@ -11,9 +11,9 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { drillNode, pushDrill } from '../engine/drill';
 import { buildCompare, divergenceTags } from '../engine/compare';
 import { DIM_LABEL } from '../engine/types';
-import { QUESTIONS } from '../engine/questions';
 import type { Measure } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
+import { LineBoard } from './LineBoard';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
@@ -21,34 +21,18 @@ import { EmptyState } from '../ui/EmptyState';
 import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 
-function QuestionPicker({ wsId, color }: { wsId: string; color: string }) {
-  return (
-    <div className="wrap">
-      <p className="eyebrow">Analyse</p>
-      <h1 className="h1">What do you want to know?</h1>
-      <p className="sub" style={{ marginBottom: 16 }}>Pick a question — Finder picks the tool and ranks the answer.</p>
-      <div className="q-list">
-        {QUESTIONS.map(q => (
-          <button key={q.id} className="q-card" onClick={() => nav(buildAnalyseHash(wsId, 'analyse', q.measure, [], q.order))}>
-            <span className="q-dot" style={{ background: color }} />
-            <span className="q-main">
-              <span className="q-label">{q.label}</span>
-              <span className="q-sub">{q.sub}</span>
-            </span>
-            <span className="q-go">›</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function AnalyseScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
   const view = readWorkstreamView(route, workspace.id);
   const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
 
-  if (!view) return <QuestionPicker wsId={workspace.id} color={workspace.color} />;
+  if (!view) return (
+    <div className="wrap analyse board">
+      <p className="eyebrow">The line</p>
+      <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
+      <LineBoard />
+    </div>
+  );
   if (!node) return null;
 
   const goto = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'analyse', m, path, view.dimensionOrder));

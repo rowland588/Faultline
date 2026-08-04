@@ -368,6 +368,22 @@ button { font-family: inherit; }
 .present-chart { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
 .present-leaf { padding: 40px 12px; }
 
+/* ---------- line board ---------- */
+.board-sec { margin: 24px 2px 8px; }
+.asset-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 700px) { .asset-grid { grid-template-columns: 1fr 1fr; } }
+.asset-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 8px 10px 6px;
+}
+.asset-card-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%;
+  background: transparent; border: none; cursor: pointer; padding: 4px 4px 6px; text-align: left;
+}
+.asset-card-name { font-size: 15px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-card-total { font-size: 12.5px; font-weight: 700; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.asset-card-head:active .asset-card-total { color: var(--accent); }
+
 /* ---------- sub-category bits ---------- */
 .opt { font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 11px; }
 .sub-editor { padding: 12px 0; border-top: 1px solid var(--line); }

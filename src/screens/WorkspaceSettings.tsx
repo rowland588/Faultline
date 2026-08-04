@@ -85,7 +85,7 @@ export function WorkspaceSettings() {
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
-        <ChipEditor title="Assets (Where)" items={workspace.assets} addLabel="Add a machine or area…"
+        <ChipEditor title="Assets on the line" items={workspace.assets} addLabel="Add a machine or area…"
           onChange={assets => void patchWorkspace({ assets })} />
       </div>
     </div>

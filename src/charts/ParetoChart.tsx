@@ -7,17 +7,8 @@
  * their heights are honestly comparable: a tall frequency bar beside a short time
  * bar means "happens a lot, costs little" — and vice-versa. The cumulative curve
  * + 80% line follow whichever measure you ranked by. A 📷 marks bars with evidence.
+ * `compact` drops the legend + footnote for the small per-asset charts on the board.
  * Every column is a tap target: tap to drill in. */
-
-const W = 440;
-const H = 336;
-const padL = 40;
-const padR = 40;
-const padT = 74;   // legend + stacked time/£ labels + evidence badge
-const padB = 54;
-const plotW = W - padL - padR;
-const plotH = H - padT - padB;
-const baseY = padT + plotH;
 
 function short(s: string, n = 12): string {
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -42,20 +33,31 @@ const TAG_TEXT: Record<'costly' | 'frequent', string> = {
 };
 
 export function ParetoChart({
-  slices, color, rankLabel, onDrill, canDrill,
+  slices, color, rankLabel, onDrill, canDrill, compact = false,
 }: {
   slices: CompareSlice[];
   color: string;
-  rankLabel: string; // e.g. "cumulative time" — labels the curve
+  rankLabel: string; // labels the cumulative curve
   onDrill?: (key: string) => void;
   canDrill?: boolean;
+  compact?: boolean;
 }) {
   if (slices.length === 0) return null;
 
+  const W = 440;
+  const padL = compact ? 34 : 40;
+  const padR = compact ? 34 : 40;
+  const padT = compact ? 44 : 74;   // full: legend + stacked time/£ labels + evidence
+  const padB = compact ? 44 : 54;   // full: category + tag + footnote
+  const H = compact ? 244 : 336;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const baseY = padT + plotH;
+
   const n = slices.length;
   const colW = plotW / n;
-  const barW = Math.min(30, colW * 0.28);
-  const gap = Math.min(10, colW * 0.06);
+  const barW = Math.min(compact ? 24 : 30, colW * 0.28);
+  const gap = Math.min(compact ? 7 : 10, colW * 0.06);
 
   const cx = (i: number) => padL + colW * i + colW / 2;
   const timeCx = (i: number) => cx(i) - gap / 2 - barW / 2;
@@ -69,7 +71,7 @@ export function ParetoChart({
   const legCumX = W - padR - 96;
 
   return (
-    <svg className="pk" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Lost time versus frequency by category">
+    <svg className="pk" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Lost time versus frequency">
       {/* gridlines + left % axis (one axis: everything is share of total) */}
       {grid.map((g, i) => (
         <line key={'g' + i} className={'pk-grid' + (i === 0 ? ' base' : '')} x1={padL} x2={padL + plotW} y1={yShare(g)} y2={yShare(g)} />
@@ -78,9 +80,9 @@ export function ParetoChart({
         <text key={'a' + i} className="pk-ax" x={padL - 7} y={yShare(g) + 3.2} textAnchor="end">{Math.round(g * 100)}%</text>
       ))}
 
-      {/* 80% reference line (of the ranked measure's cumulative) */}
+      {/* 80% reference line */}
       <line className="pk-80" x1={padL} x2={padL + plotW} y1={yShare(0.8)} y2={yShare(0.8)} />
-      <text className="pk-80-t" x={padL + plotW - 1} y={yShare(0.8) - 5} textAnchor="end">80%</text>
+      {!compact && <text className="pk-80-t" x={padL + plotW - 1} y={yShare(0.8) - 5} textAnchor="end">80%</text>}
 
       {/* bars: lost time (colour) + frequency (slate) */}
       {slices.map((s, i) => {
@@ -90,7 +92,7 @@ export function ParetoChart({
         return (
           <g key={'b' + s.key} className={'pk-col' + (tappable ? ' tap' : '')}
             onClick={tappable ? () => onDrill!(s.key) : undefined}>
-            {tappable && <rect x={cx(i) - colW / 2} y={padT - 34} width={colW} height={plotH + 36} fill="transparent" />}
+            {tappable && <rect x={cx(i) - colW / 2} y={padT - 30} width={colW} height={plotH + 32} fill="transparent" />}
             <rect className="pk-bar-time" x={timeCx(i) - barW / 2} y={tTop} width={barW} height={Math.max(1.5, baseY - tTop)} rx={3.5} style={{ fill: color, opacity: op }} />
             <rect className="pk-bar-freq" x={freqCx(i) - barW / 2} y={fTop} width={barW} height={Math.max(1.5, baseY - fTop)} rx={3.5} style={{ opacity: op }} />
           </g>
@@ -99,7 +101,7 @@ export function ParetoChart({
 
       {/* cumulative curve of the ranked measure */}
       <polyline className="pk-cum" points={cumPts} />
-      {slices.map((s, i) => <circle key={'cd' + s.key} cx={cx(i)} cy={yShare(s.cumShare)} r={2.8} className="pk-cumdot" />)}
+      {slices.map((s, i) => <circle key={'cd' + s.key} cx={cx(i)} cy={yShare(s.cumShare)} r={compact ? 2.3 : 2.8} className="pk-cumdot" />)}
 
       {/* labels + evidence (non-interactive overlay so text never eats a tap) */}
       {slices.map((s, i) => {
@@ -127,19 +129,21 @@ export function ParetoChart({
         );
       })}
 
-      {/* legend */}
-      <g className="pk-legend" style={{ pointerEvents: 'none' }}>
-        <rect x={padL} y={13} width={12} height={12} rx={3} style={{ fill: color }} />
-        <text x={padL + 17} y={23} className="pk-leg-t">Lost time</text>
-        <rect className="pk-freq-sw" x={legFreqX} y={13} width={12} height={12} rx={3} />
-        <text x={legFreqX + 17} y={23} className="pk-leg-t">Frequency</text>
-        <line className="pk-cum pk-leg-line" x1={legCumX} x2={legCumX + 15} y1={19} y2={19} />
-        <circle className="pk-cumdot" cx={legCumX + 7.5} cy={19} r={2.8} />
-        <text x={legCumX + 21} y={23} className="pk-leg-t">{rankLabel}</text>
-      </g>
-
-      {/* footnote: what the bar heights mean */}
-      <text className="pk-foot" x={W / 2} y={H - 5} textAnchor="middle">bar height = share of total · numbers are the real amounts</text>
+      {/* legend + footnote (full mode only) */}
+      {!compact && (
+        <>
+          <g className="pk-legend" style={{ pointerEvents: 'none' }}>
+            <rect x={padL} y={13} width={12} height={12} rx={3} style={{ fill: color }} />
+            <text x={padL + 17} y={23} className="pk-leg-t">Lost time</text>
+            <rect className="pk-freq-sw" x={legFreqX} y={13} width={12} height={12} rx={3} />
+            <text x={legFreqX + 17} y={23} className="pk-leg-t">Frequency</text>
+            <line className="pk-cum pk-leg-line" x1={legCumX} x2={legCumX + 15} y1={19} y2={19} />
+            <circle className="pk-cumdot" cx={legCumX + 7.5} cy={19} r={2.8} />
+            <text x={legCumX + 21} y={23} className="pk-leg-t">{rankLabel}</text>
+          </g>
+          <text className="pk-foot" x={W / 2} y={H - 5} textAnchor="middle">bar height = share of total · numbers are the real amounts</text>
+        </>
+      )}
     </svg>
   );
 }

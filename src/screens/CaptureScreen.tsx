@@ -104,7 +104,21 @@ export function CaptureScreen() {
 
   return (
     <div className="wrap cap">
-      {/* WHAT */}
+      {/* ASSET — where on the line (the floor thinks asset-first: this machine stopped) */}
+      <div className="cap-block">
+        <div className="field-label">Which asset?</div>
+        <ChipPicker
+          options={workspace.assets}
+          value={asset}
+          color={workspace.color}
+          onChange={setAsset}
+          onAdd={a => void patchWorkspace({ assets: [...workspace.assets, a] })}
+          addLabel="Add a machine or area…"
+        />
+        {workspace.assets.length === 0 && <p className="sub" style={{ marginTop: 6 }}>Add the machines on this line. “Whole line” is for losses that aren't one machine.</p>}
+      </div>
+
+      {/* WHAT — what did you see on it */}
       <div className="cap-block">
         <div className="field-label">What did you see?</div>
         <ChipPicker
@@ -132,24 +146,11 @@ export function CaptureScreen() {
         </div>
       )}
 
-      {/* WHERE */}
-      <div className="cap-block">
-        <div className="field-label">Where?</div>
-        <ChipPicker
-          options={workspace.assets}
-          value={asset}
-          onChange={setAsset}
-          onAdd={a => void patchWorkspace({ assets: [...workspace.assets, a] })}
-          addLabel="Add a machine or area…"
-        />
-        {workspace.assets.length === 0 && <p className="sub" style={{ marginTop: 6 }}>Add the first machine or area — that's where the drill-down starts.</p>}
-      </div>
-
       {/* THE TIME — the whole point */}
       <div className={'cap-timer' + (timing ? ' live' : '')}>
         {timing ? (
           <>
-            <div className="cap-timer-what">{category} · {asset}</div>
+            <div className="cap-timer-what">{asset} · {category}</div>
             <div className="cap-clock"><span className="cap-dot" />{startedAt !== null && <Stopwatch startedAt={startedAt} />}</div>
             <div className="cap-timer-actions">
               <button className="btn btn-primary btn-lg cap-stop" onClick={stopAndLog}>■ Stop &amp; log</button>

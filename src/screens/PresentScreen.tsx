@@ -10,6 +10,7 @@ import { buildCompare, divergenceTags } from '../engine/compare';
 import { DIM_LABEL } from '../engine/types';
 import type { Measure } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
+import { LineBoard } from './LineBoard';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
@@ -21,7 +22,21 @@ export function PresentScreen({ route }: { route: Route }) {
   const view = readWorkstreamView(route, workspace.id);
   const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
 
-  if (!view || !node) { navReplace(`/w/${workspace.id}/analyse`); return null; }
+  if (!view) {
+    return (
+      <div className="present">
+        <button className="present-exit" onClick={() => nav(`/w/${workspace.id}/analyse`)} aria-label="Exit present">✕</button>
+        <div className="present-body">
+          <div className="present-head">
+            <span className="present-ws"><span className="ws-dot" style={{ background: workspace.color }} />{workspace.name}</span>
+            <h1 className="present-q">The line — where we're losing time</h1>
+          </div>
+          <LineBoard present />
+        </div>
+      </div>
+    );
+  }
+  if (!node) { navReplace(`/w/${workspace.id}/analyse`); return null; }
 
   const goPresent = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'present', m, path, view.dimensionOrder));
   const drill = (key: string) => { if (node.dimension) goPresent(view.measure, pushDrill(view, key, node.dimension).path); };

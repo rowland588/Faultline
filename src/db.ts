@@ -71,7 +71,7 @@ export async function createWorkspace(name: string): Promise<Workspace> {
     updatedAt: t,
     categories: [...DEFAULT_CATEGORIES],
     subcategories: cloneSubs(DEFAULT_SUBCATEGORIES),
-    assets: [],
+    assets: ['Whole line'], // the line itself — where cross-cutting losses (changeover, waiting) live
     shifts: [],
     schemaVersion: 1,
   };
