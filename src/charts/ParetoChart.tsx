@@ -33,7 +33,13 @@ export interface CompareSlice {
   freqLabel: string;   // "6×"
   isVitalFew: boolean;
   media: number;
+  tag?: 'costly' | 'frequent'; // the divergence call-out
 }
+
+const TAG_TEXT: Record<'costly' | 'frequent', string> = {
+  costly: 'rare but costly',
+  frequent: 'frequent but quick',
+};
 
 export function ParetoChart({
   slices, color, rankLabel, onDrill, canDrill,
@@ -116,6 +122,7 @@ export function ParetoChart({
             <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>
             <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7} textAnchor="middle">{s.freqLabel}</text>
             <text className="pk-lbl" x={cx(i)} y={baseY + 16} textAnchor="middle">{short(s.key)}</text>
+            {s.tag && <text className={'pk-tag ' + s.tag} x={cx(i)} y={baseY + 29} textAnchor="middle">{TAG_TEXT[s.tag]}</text>}
           </g>
         );
       })}

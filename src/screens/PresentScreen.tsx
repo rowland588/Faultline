@@ -6,7 +6,7 @@ import type { Route } from '../state/useRoute';
 import { nav, navReplace, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { drillNode, pushDrill } from '../engine/drill';
-import { buildCompare } from '../engine/compare';
+import { buildCompare, divergenceTags } from '../engine/compare';
 import { DIM_LABEL } from '../engine/types';
 import type { Measure } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
@@ -35,18 +35,20 @@ export function PresentScreen({ route }: { route: Route }) {
   const hasChart = !!node.dimension && node.rows.length > 0;
 
   const byId = new Map(node.rows.map(o => [o.id, o]));
-  const slices: CompareSlice[] = !hasChart || !node.dimension ? [] :
-    buildCompare(node.rows, node.dimension, rankByFreq ? 'count' : 'time').map(r => ({
-      key: r.key,
-      timeShare: r.timeShare,
-      freqShare: r.countShare,
-      cumShare: r.cumShare,
-      timeLabel: fmtDuration(r.timeMs),
-      costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
-      freqLabel: `${r.count}×`,
-      isVitalFew: r.isVitalFew,
-      media: r.observationIds.reduce((a, id) => a + (byId.get(id)?.media.length ?? 0), 0),
-    }));
+  const compareRows = !hasChart || !node.dimension ? [] : buildCompare(node.rows, node.dimension, rankByFreq ? 'count' : 'time');
+  const tags = divergenceTags(compareRows);
+  const slices: CompareSlice[] = compareRows.map(r => ({
+    key: r.key,
+    timeShare: r.timeShare,
+    freqShare: r.countShare,
+    cumShare: r.cumShare,
+    timeLabel: fmtDuration(r.timeMs),
+    costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
+    freqLabel: `${r.count}×`,
+    isVitalFew: r.isVitalFew,
+    media: r.observationIds.reduce((a, id) => a + (byId.get(id)?.media.length ?? 0), 0),
+    tag: tags[r.key],
+  }));
 
   return (
     <div className="present">

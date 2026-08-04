@@ -19,6 +19,27 @@ export interface CompareRow {
   observationIds: ID[];
 }
 
+export type DivergeTag = 'costly' | 'frequent';
+
+/** Name the standouts: the one category that eats a far bigger share of TIME than
+ *  of stoppages ("rare but costly") and the one that's the reverse ("frequent but
+ *  quick"). Only the single biggest gap each way, and only when it's real — so the
+ *  chart calls out the insight without tagging every bar. */
+export function divergenceTags(rows: CompareRow[], thresh = 0.1): Record<string, DivergeTag> {
+  const out: Record<string, DivergeTag> = {};
+  if (rows.length < 2) return out;
+  let costly: CompareRow | null = null;
+  let frequent: CompareRow | null = null;
+  for (const r of rows) {
+    const gap = r.timeShare - r.countShare; // + = more time than its frequency; − = more frequent than its time
+    if (gap >= thresh && (!costly || gap > costly.timeShare - costly.countShare)) costly = r;
+    if (-gap >= thresh && (!frequent || (r.countShare - r.timeShare) > frequent.countShare - frequent.timeShare)) frequent = r;
+  }
+  if (costly) out[costly.key] = 'costly';
+  if (frequent) out[frequent.key] = 'frequent';
+  return out;
+}
+
 export function buildCompare(rows: Observation[], dimension: DimensionKey, ranked: RankMeasure): CompareRow[] {
   const timeP = computePareto(rows, dimension, 'time');
   const countP = computePareto(rows, dimension, 'count');
