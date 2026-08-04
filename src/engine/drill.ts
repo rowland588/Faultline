@@ -15,11 +15,18 @@ export function applyDrill(all: Observation[], wsId: ID, path: DrillPath): Obser
   );
 }
 
-/** The dimension to rank by at this depth = first in the order not yet used.
- *  null → we're at a leaf (nothing left to cut by). */
-export function currentDimension(view: WorkstreamView): DimensionKey | null {
+/** The dimension to rank by at this depth = the first not-yet-used dimension that
+ *  actually SPLITS these rows (≥2 distinct values). Degenerate levels (e.g. every
+ *  row has "(none)" sub-category) are skipped so you never click through a lone
+ *  single bar. null → a genuine leaf (nothing left worth cutting by). */
+export function currentDimension(view: WorkstreamView, rows: Observation[]): DimensionKey | null {
   const used = new Set(view.path.map(s => s.dimension));
-  return view.dimensionOrder.find(d => !used.has(d)) ?? null;
+  for (const d of view.dimensionOrder) {
+    if (used.has(d)) continue;
+    const distinct = new Set(rows.map(o => dimOf[d](o)));
+    if (distinct.size >= 2) return d;
+  }
+  return null;
 }
 
 export function pushDrill(view: WorkstreamView, sliceKey: string, dim: DimensionKey): WorkstreamView {
@@ -42,7 +49,7 @@ export interface DrillNode {
 /** Everything the Analyse/Present screens need for the current drill position. */
 export function drillNode(all: Observation[], view: WorkstreamView): DrillNode {
   const rows = applyDrill(all, view.workspaceId, view.path);
-  const dimension = currentDimension(view);
+  const dimension = currentDimension(view, rows);
   const pareto = dimension ? computePareto(rows, dimension, view.measure) : null;
   const media = rows.flatMap(o => o.media);
   const suggestion = dimension ? suggestNextDimension(rows, view) : null;

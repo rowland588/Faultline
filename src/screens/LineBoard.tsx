@@ -67,21 +67,31 @@ export function LineBoard({ present = false }: { present?: boolean }) {
     nav(buildAnalyseHash(workspace.id, screen, 'time', [{ dimension: 'asset', value: asset }, { dimension: 'category', value: cat }], ASSET_ORDER));
 
   const totalMs = live.reduce((a, o) => a + o.durationMs, 0);
+  const multi = assets.length > 1; // one asset → the overarching by-asset chart is a lone 100% bar; skip it
 
   return (
     <>
-      <div className="chart-caption">
-        Loss by <b>asset</b> — time lost <i>and</i> how often
-        {assetSlices.length > 1 && <span className="chart-hint"> · tap a bar to walk into it</span>}
-      </div>
-      <div className="chart-card">
-        <ParetoChart slices={assetSlices} color={workspace.color} rankLabel="cumulative time" onDrill={goAsset} canDrill />
-      </div>
+      {multi && (
+        <>
+          <div className="chart-caption">
+            Loss by <b>asset</b> — time lost <i>and</i> how often<span className="chart-hint"> · tap a bar to walk into it</span>
+          </div>
+          <div className="chart-card">
+            <ParetoChart slices={assetSlices} color={workspace.color} rankLabel="cumulative time" onDrill={goAsset} canDrill />
+          </div>
+        </>
+      )}
       <div className="analyse-meta">
         {plural(live.length, 'observation')} · {fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}
       </div>
 
-      <p className="eyebrow board-sec">Each asset, up close</p>
+      {!costable && !present && (
+        <button className="cost-hint" onClick={() => nav(`/w/${workspace.id}/settings`)}>
+          💷 Put a £ on this lost time — add crew &amp; labour rate ›
+        </button>
+      )}
+
+      <p className="eyebrow board-sec">{multi ? 'Each asset, up close' : 'This line, up close'}</p>
       <div className="asset-grid">
         {assets.map(a => (
           <div className="asset-card" key={a.name}>
@@ -89,7 +99,7 @@ export function LineBoard({ present = false }: { present?: boolean }) {
               <span className="asset-card-name">{a.name}</span>
               <span className="asset-card-total">{fmtDuration(a.ms)}{costable ? ` · ${fmtGBP(a.ms * factor)}` : ''} ›</span>
             </button>
-            <ParetoChart slices={toSlices(a.rows, 'category', costable, factor)} color={workspace.color} rankLabel="cumulative time" onDrill={key => goAssetCat(a.name, key)} canDrill compact />
+            <ParetoChart slices={toSlices(a.rows, 'category', costable, factor)} color={workspace.color} rankLabel="cumulative time" onDrill={key => goAssetCat(a.name, key)} canDrill compact={multi} />
           </div>
         ))}
       </div>

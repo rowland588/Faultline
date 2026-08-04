@@ -4,7 +4,7 @@
  * stores ONLY through the functions here, and every observation path is
  * workspaceId-scoped — that is the whole isolation guarantee. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { ID, Workspace, Observation, ActiveTimer } from './types';
+import type { ID, Workspace, Observation } from './types';
 import { uid, now } from './lib/ids';
 
 interface FinderDB extends DBSchema {
@@ -83,6 +83,21 @@ export async function updateWorkspace(ws: Workspace): Promise<void> {
   await (await getDB()).put('workspaces', { ...ws, updatedAt: now() });
 }
 
+/** Atomic read-modify-write of one workspace record — get + put in a single
+ *  transaction so concurrent patches (route, timer, settings) can't clobber each
+ *  other. Returns the written record (for the provider's in-memory state). */
+export async function patchWorkspaceRecord(id: ID, patch: Partial<Workspace>): Promise<Workspace | undefined> {
+  const db = await getDB();
+  const tx = db.transaction('workspaces', 'readwrite');
+  const store = tx.objectStore('workspaces');
+  const ws = await store.get(id);
+  if (!ws) { await tx.done; return undefined; }
+  const next = { ...ws, ...patch, updatedAt: now() };
+  await store.put(next);
+  await tx.done;
+  return next;
+}
+
 /** Atomic purge: the workspace, its observations, and their media blobs. */
 export async function deleteWorkspace(id: ID): Promise<void> {
   const db = await getDB();
@@ -117,6 +132,34 @@ export async function softDeleteObservation(id: ID): Promise<void> {
   await db.put('observations', { ...o, deletedAt: now(), updatedAt: now() });
 }
 
+/** Undo a soft-delete (clears the tombstone). Powers the delete → Undo affordance. */
+export async function restoreObservation(id: ID): Promise<void> {
+  const db = await getDB();
+  const o = await db.get('observations', id);
+  if (!o) return;
+  await db.put('observations', { ...o, deletedAt: undefined, updatedAt: now() });
+}
+
+/** Rename a taxonomy value across every observation that uses it, so a rename in
+ *  settings doesn't orphan history (the taxonomy is stored as plain strings). */
+export async function renameInObservations(
+  workspaceId: ID, field: 'category' | 'subcategory' | 'asset', from: string, to: string,
+  onlyCategory?: string, // scope sub-category renames to their parent category
+): Promise<number> {
+  if (from === to) return 0;
+  const db = await getDB();
+  const all = await db.getAllFromIndex('observations', 'by_workspace', workspaceId);
+  const tx = db.transaction('observations', 'readwrite');
+  let n = 0;
+  for (const o of all) {
+    if (o[field] === from && (onlyCategory == null || o.category === onlyCategory)) {
+      await tx.objectStore('observations').put({ ...o, [field]: to, updatedAt: now() }); n++;
+    }
+  }
+  await tx.done;
+  return n;
+}
+
 /* ---------- evidence blobs ---------- */
 
 export async function putBlob(key: string, blob: Blob): Promise<void> {
@@ -136,16 +179,11 @@ export async function deleteBlobs(keys: string[]): Promise<void> {
 
 export async function saveRoute(workspaceId: ID, hash: string): Promise<void> {
   const db = await getDB();
-  const ws = await db.get('workspaces', workspaceId);
-  if (!ws || ws.lastRoute === hash) return;
-  await db.put('workspaces', { ...ws, lastRoute: hash, updatedAt: now() });
-}
-
-export async function saveActiveTimer(workspaceId: ID, t?: ActiveTimer): Promise<void> {
-  const db = await getDB();
-  const ws = await db.get('workspaces', workspaceId);
-  if (!ws) return;
-  await db.put('workspaces', { ...ws, activeTimer: t, updatedAt: now() });
+  const tx = db.transaction('workspaces', 'readwrite');
+  const store = tx.objectStore('workspaces');
+  const ws = await store.get(workspaceId);
+  if (ws && ws.lastRoute !== hash) await store.put({ ...ws, lastRoute: hash, updatedAt: now() });
+  await tx.done;
 }
 
 export async function setLastWorkspace(id: ID | null): Promise<void> {

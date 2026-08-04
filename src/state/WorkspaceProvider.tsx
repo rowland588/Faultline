@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { ID, Workspace, Observation } from '../types';
 import {
   getWorkspace, listObservations, addObservation, softDeleteObservation,
-  updateWorkspace, setLastWorkspace,
+  restoreObservation, patchWorkspaceRecord, setLastWorkspace,
 } from '../db';
 import { navReplace } from './useRoute';
 import { BootSplash } from '../ui/Logo';
@@ -17,6 +17,7 @@ interface WorkspaceCtx {
   reload: () => Promise<void>;
   addObs: (o: Observation) => Promise<void>;
   removeObs: (id: ID) => Promise<void>;
+  restoreObs: (id: ID) => Promise<void>;
   patchWorkspace: (patch: Partial<Workspace>) => Promise<void>;
 }
 
@@ -42,6 +43,7 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
       const obs = await listObservations(wsId);
       setWorkspace(ws);
       setObservations(obs);
+      void setLastWorkspace(wsId); // only remember it once we know it's real (no dangling pointer)
     } catch {
       setMissing(true); // storage unavailable → bounce Home rather than hang blank
     }
@@ -51,9 +53,10 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
     setWorkspace(null);
     setObservations([]);
     setMissing(false);
-    void setLastWorkspace(wsId);
     void reload();
   }, [wsId, reload]);
+
+  useEffect(() => { if (missing) navReplace('/'); }, [missing]);
 
   const addObs = useCallback(async (o: Observation) => {
     await addObservation(o);
@@ -65,19 +68,21 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
     setObservations(await listObservations(wsId));
   }, [wsId]);
 
-  const patchWorkspace = useCallback(async (patch: Partial<Workspace>) => {
-    const cur = await getWorkspace(wsId);
-    if (!cur) return;
-    const next = { ...cur, ...patch };
-    await updateWorkspace(next);
-    setWorkspace(next);
+  const restoreObs = useCallback(async (id: ID) => {
+    await restoreObservation(id);
+    setObservations(await listObservations(wsId));
   }, [wsId]);
 
-  if (missing) { navReplace('/'); return null; }
+  const patchWorkspace = useCallback(async (patch: Partial<Workspace>) => {
+    const next = await patchWorkspaceRecord(wsId, patch);
+    if (next) setWorkspace(next);
+  }, [wsId]);
+
+  if (missing) return null; // redirect happens in the effect above
   if (!workspace) return <BootSplash />; // branded, not a blank flash, while the workspace loads
 
   return (
-    <Ctx.Provider value={{ workspace, observations, reload, addObs, removeObs, patchWorkspace }}>
+    <Ctx.Provider value={{ workspace, observations, reload, addObs, removeObs, restoreObs, patchWorkspace }}>
       {children}
     </Ctx.Provider>
   );

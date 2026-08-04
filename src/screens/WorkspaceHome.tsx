@@ -12,6 +12,7 @@ export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
 
   useEffect(() => {
@@ -20,14 +21,15 @@ export function WorkspaceHome() {
       const ws = await listWorkspaces();
       if (!alive) return;
       setList(ws);
-      const c: Record<string, number> = {};
-      for (const w of ws) c[w.id] = (await listObservations(w.id)).length;
-      if (alive) setCounts(c);
+      const entries = await Promise.all(ws.map(async w => [w.id, (await listObservations(w.id)).length] as const));
+      if (alive) setCounts(Object.fromEntries(entries));
     })();
     return () => { alive = false; };
   }, []);
 
   const create = async () => {
+    if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces
+    setBusy(true);
     const w = await createWorkspace(name);
     nav(`/w/${w.id}`);
   };
@@ -51,7 +53,7 @@ export function WorkspaceHome() {
           <p className="sub" style={{ marginTop: 8 }}>A workspace keeps its own data and tools — a clean, separate space for one line, one project, one investigation.</p>
           <div className="row-end">
             <button className="btn btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
-            <button className="btn btn-primary" disabled={!name.trim()} onClick={create}>Create</button>
+            <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>{busy ? 'Creating…' : 'Create'}</button>
           </div>
         </div>
       ) : (
@@ -64,7 +66,7 @@ export function WorkspaceHome() {
         </EmptyState>
       ) : (
         <div className="ws-list">
-          {list.map((w, i) => (
+          {list.map(w => (
             <button key={w.id} className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
               <span className="ws-card-dot" style={{ background: w.color }} />
               <span className="ws-card-main">
@@ -74,7 +76,7 @@ export function WorkspaceHome() {
                   {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
                 </span>
               </span>
-              <span className="ws-card-go">{i === 0 && w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
+              <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
             </button>
           ))}
         </div>

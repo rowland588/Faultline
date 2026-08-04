@@ -3,7 +3,7 @@
  * hero. Still live: drill in front of the room; exit lands back in Analyse. */
 import { useMemo } from 'react';
 import type { Route } from '../state/useRoute';
-import { nav, navReplace, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
+import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { drillNode, pushDrill } from '../engine/drill';
 import { buildCompare, divergenceTags } from '../engine/compare';
@@ -36,11 +36,12 @@ export function PresentScreen({ route }: { route: Route }) {
       </div>
     );
   }
-  if (!node) { navReplace(`/w/${workspace.id}/analyse`); return null; }
+  if (!node) return null; // unreachable when view is set; keeps types honest without navigating in render
 
   const goPresent = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'present', m, path, view.dimensionOrder));
   const drill = (key: string) => { if (node.dimension) goPresent(view.measure, pushDrill(view, key, node.dimension).path); };
-  const jump = (depth: number) => goPresent(view.measure, view.path.slice(0, depth));
+  const jump = (depth: number) => { if (depth === 0) nav(`/w/${workspace.id}/present`); else goPresent(view.measure, view.path.slice(0, depth)); };
+  const leafName = view.path[view.path.length - 1]?.value;
   const exit = () => nav(buildAnalyseHash(workspace.id, 'analyse', view.measure, view.path, view.dimensionOrder));
 
   const rankByFreq = view.measure === 'count';
@@ -72,7 +73,9 @@ export function PresentScreen({ route }: { route: Route }) {
       <div className="present-body">
         <div className="present-head">
           <span className="present-ws"><span className="ws-dot" style={{ background: workspace.color }} />{workspace.name}</span>
-          {node.dimension && <h1 className="present-q">By {DIM_LABEL[node.dimension].toLowerCase()} — time &amp; frequency</h1>}
+          <h1 className="present-q">
+            {node.dimension ? <>By {DIM_LABEL[node.dimension].toLowerCase()} — time &amp; frequency</> : (leafName ?? 'Detail')}
+          </h1>
           <DrillBreadcrumb path={view.path} onJump={jump} />
         </div>
 
@@ -88,10 +91,16 @@ export function PresentScreen({ route }: { route: Route }) {
               canDrill
             />
           </div>
+        ) : node.rows.length === 0 ? (
+          <div className="leaf present-leaf">
+            <div className="leaf-num">Nothing here</div>
+            <p className="sub" style={{ marginTop: 6 }}>These filters match no observations — step back with the breadcrumb.</p>
+          </div>
         ) : (
           <div className="leaf present-leaf">
             <div className="leaf-num">{plural(node.rows.length, 'observation')}</div>
             {totalMs > 0 && <div className="leaf-sub">{fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''} in total</div>}
+            <p className="sub" style={{ marginTop: 6 }}>The bottom of the drill — this is the specific problem. Proof below.</p>
           </div>
         )}
 

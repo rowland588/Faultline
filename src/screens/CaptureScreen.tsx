@@ -1,10 +1,11 @@
 /* Capture — the shop floor. Tap WHAT, tap WHERE, put a TIME to it, snap the
  * proof. One thumb, no charts, nothing technical. A running stopwatch is
  * persisted, so it survives the app closing. Every log is a check-sheet row. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
+import { deleteBlobs } from '../db';
 import { uid, now } from '../lib/ids';
 import { captureMedia } from '../lib/media';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
@@ -13,8 +14,11 @@ import { Stopwatch } from '../ui/Stopwatch';
 import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 
+const blobKeysOf = (media: MediaRef[]): string[] =>
+  media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]);
+
 export function CaptureScreen() {
-  const { workspace, observations, addObs, removeObs, patchWorkspace } = useWorkspace();
+  const { workspace, observations, addObs, removeObs, restoreObs, patchWorkspace } = useWorkspace();
 
   const [category, setCategory] = useState(workspace.lastCategory ?? workspace.categories[0] ?? '');
   const [subcategory, setSubcategory] = useState('');
@@ -26,7 +30,7 @@ export function CaptureScreen() {
   const [typed, setTyped] = useState(false);
   const [tMin, setTMin] = useState('');
   const [tSec, setTSec] = useState('');
-  const [toast, setToast] = useState<{ msg: string; obsId: string } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; undo?: () => void } | null>(null);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
 
   // Resume a running stopwatch (and its what/where) that survived an app close.
@@ -39,6 +43,12 @@ export function CaptureScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reclaim orphaned evidence blobs: if you attach a photo/video then leave
+  // without logging, the blob is otherwise stranded in IndexedDB forever.
+  const pendingRef = useRef<MediaRef[]>([]);
+  pendingRef.current = pending;
+  useEffect(() => () => { const k = blobKeysOf(pendingRef.current); if (k.length) void deleteBlobs(k); }, []);
 
   const timing = startedAt !== null;
   const canLog = !!category && !!asset;
@@ -63,7 +73,7 @@ export function CaptureScreen() {
     await patchWorkspace({ lastCategory: category, lastAsset: asset, activeTimer: undefined });
     setPending([]);
     setStartedAt(null);
-    setToast({ msg: `${o.category} · ${o.asset}${durationMs > 0 ? ' · ' + fmtDuration(durationMs) : ''}`, obsId: o.id });
+    setToast({ msg: `Logged · ${o.asset} · ${o.category}${durationMs > 0 ? ' · ' + fmtDuration(durationMs) : ''}`, undo: () => void removeObs(o.id) });
   };
 
   const start = async () => {
@@ -87,19 +97,23 @@ export function CaptureScreen() {
     await commit(0, 'instant', now());
   };
   const logTyped = async () => {
-    const ms = ((parseInt(tMin, 10) || 0) * 60 + (parseInt(tSec, 10) || 0)) * 1000;
+    const secs = Math.min(59, Math.max(0, parseInt(tSec, 10) || 0)); // typed values ignore the max attr
+    const ms = ((parseInt(tMin, 10) || 0) * 60 + secs) * 1000;
     if (!canLog || ms <= 0) return;
     setTyped(false); setTMin(''); setTSec('');
     await commit(ms, 'typed', now());
   };
   const attach = async (kind: 'photo' | 'video') => {
-    const ref = await captureMedia(kind);
-    if (ref) setPending(m => [...m, ref]);
+    try {
+      const ref = await captureMedia(kind);
+      if (ref) setPending(m => [...m, ref]);
+    } catch {
+      setToast({ msg: "Couldn't save that clip — device storage may be full." });
+    }
   };
-  const undo = async () => {
-    if (!toast) return;
-    await removeObs(toast.obsId);
-    setToast(null);
+  const delFeed = async (o: Observation) => {
+    await removeObs(o.id);
+    setToast({ msg: `Deleted · ${o.asset} · ${o.category}`, undo: () => void restoreObs(o.id) });
   };
 
   const total = observations.reduce((a, o) => a + o.durationMs, 0);
@@ -107,6 +121,8 @@ export function CaptureScreen() {
 
   return (
     <div className="wrap cap">
+      {/* pickers lock while a timer runs so the elapsed time can't be re-attributed */}
+      <fieldset className="cap-fields" disabled={timing}>
       {/* ASSET — where on the line (the floor thinks asset-first: this machine stopped) */}
       <div className="cap-block">
         <div className="field-label">Which asset?</div>
@@ -142,6 +158,7 @@ export function CaptureScreen() {
           />
         </div>
       )}
+      </fieldset>
 
       {/* THE TIME — the whole point */}
       <div className={'cap-timer' + (timing ? ' live' : '')}>
@@ -204,7 +221,7 @@ export function CaptureScreen() {
                     {o.media.length > 0 && <> · 📷 {o.media.length}</>}
                   </div>
                 </div>
-                <button className="cap-feed-del" onClick={() => void removeObs(o.id)} aria-label={`Delete ${o.category} on ${o.asset}`}>×</button>
+                <button className="cap-feed-del" onClick={() => void delFeed(o)} aria-label={`Delete ${o.category} on ${o.asset}`}>×</button>
               </div>
             ))}
             {observations.length > recent.length && (
@@ -216,7 +233,7 @@ export function CaptureScreen() {
         )}
       </div>
 
-      {toast && <Toast message={toast.msg} onUndo={undo} onDismiss={() => setToast(null)} />}
+      {toast && <Toast message={toast.msg} onUndo={toast.undo ? () => { toast.undo!(); setToast(null); } : undefined} onDismiss={() => setToast(null)} />}
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
