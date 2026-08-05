@@ -69,14 +69,15 @@ export function Landing({ onEnterLocal }: { onEnterLocal: () => void }) {
 
           <label className="field-label">Email</label>
           <input
-            className="text-input" type="email" autoComplete="email" inputMode="email"
+            className="text-input" type="email" inputMode="email"
+            autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
             value={email} onChange={e => setEmail(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
           />
           <label className="field-label" style={{ marginTop: 10 }}>Password</label>
           <input
             className="text-input" type="password"
-            autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
+            autoComplete="new-password" /* stops the browser pre-filling a saved password on this shared-safe form */
             value={pw} onChange={e => setPw(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
           />

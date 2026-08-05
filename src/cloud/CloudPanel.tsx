@@ -67,9 +67,9 @@ function AuthSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
     <Sheet open={open} onClose={onClose} title={mode === 'in' ? 'Back up & sync' : 'Create account'}>
       <p className="sub" style={{ marginBottom: 12 }}>Your data stays on this device; signing in adds an encrypted cloud copy and syncs it to your other devices.</p>
       <label className="field-label">Email</label>
-      <input className="text-input" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void submit(); }} />
+      <input className="text-input" type="email" inputMode="email" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void submit(); }} />
       <label className="field-label" style={{ marginTop: 10 }}>Password</label>
-      <input className="text-input" type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void submit(); }} />
+      <input className="text-input" type="password" autoComplete="new-password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void submit(); }} />
       {err && <p className="sub" style={{ color: 'var(--danger)', marginTop: 8 }}>{err}</p>}
       {ok && <p className="sub" style={{ color: 'var(--ok)', marginTop: 8 }}>{ok}</p>}
       <div className="row-end" style={{ marginTop: 14 }}>
