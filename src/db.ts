@@ -21,12 +21,18 @@ interface FinderDB extends DBSchema {
   segments: { key: string; value: Segment; indexes: { by_workspace: string } };
   snag_assets: { key: string; value: SnagAsset; indexes: { by_workspace: string; by_segment: string } };
   snags: { key: string; value: Snag; indexes: { by_workspace: string; by_asset: string } };
+  // Cloud sync (v3): tombstones record hard local deletes so they propagate.
+  tombstones: { key: string; value: Tombstone };
 }
+
+/** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
+export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
+export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags';
 
 let dbp: Promise<IDBPDatabase<FinderDB>> | null = null;
 export function getDB(): Promise<IDBPDatabase<FinderDB>> {
   if (!dbp) {
-    dbp = openDB<FinderDB>('finder', 2, {
+    dbp = openDB<FinderDB>('finder', 3, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
@@ -47,6 +53,9 @@ export function getDB(): Promise<IDBPDatabase<FinderDB>> {
           const sn = db.createObjectStore('snags', { keyPath: 'id' });
           sn.createIndex('by_workspace', 'workspaceId');
           sn.createIndex('by_asset', 'assetId');
+        }
+        if (oldVersion < 3) {
+          db.createObjectStore('tombstones', { keyPath: 'id' });
         }
       },
     });
@@ -115,16 +124,35 @@ export async function patchWorkspaceRecord(id: ID, patch: Partial<Workspace>): P
   return next;
 }
 
-/** Atomic purge: the workspace, its observations, and their media blobs. */
+/** Atomic purge: the workspace and EVERYTHING under it (observations + the whole
+ *  snag walk) plus their media blobs. Records tombstones so the delete syncs. */
 export async function deleteWorkspace(id: ID): Promise<void> {
   const db = await getDB();
-  const obs = await db.getAllFromIndex('observations', 'by_workspace', id);
-  const blobKeys = obs.flatMap(o => o.media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]));
-  const tx = db.transaction(['workspaces', 'observations', 'media'], 'readwrite');
+  const [obs, segs, assets, snags] = await Promise.all([
+    db.getAllFromIndex('observations', 'by_workspace', id),
+    db.getAllFromIndex('segments', 'by_workspace', id),
+    db.getAllFromIndex('snag_assets', 'by_workspace', id),
+    db.getAllFromIndex('snags', 'by_workspace', id),
+  ]);
+  const blobKeys = [
+    ...obs.flatMap(o => o.media.flatMap(m => [m.blobKey, m.thumbKey])),
+    ...segs.flatMap(s => [s.videoKey, s.posterKey]),
+    ...assets.map(a => a.stillKey),
+    ...snags.map(s => s.detailPhotoKey),
+  ].filter(Boolean) as string[];
+  const tx = db.transaction(['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'media'], 'readwrite');
   await tx.objectStore('workspaces').delete(id);
   for (const o of obs) await tx.objectStore('observations').delete(o.id);
+  for (const s of segs) await tx.objectStore('segments').delete(s.id);
+  for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
+  for (const s of snags) await tx.objectStore('snags').delete(s.id);
   for (const k of blobKeys) await tx.objectStore('media').delete(k);
   await tx.done;
+  await recordTombstones('workspaces', [id]);
+  await recordTombstones('observations', obs.map(o => o.id));
+  await recordTombstones('segments', segs.map(s => s.id));
+  await recordTombstones('snag_assets', assets.map(a => a.id));
+  await recordTombstones('snags', snags.map(s => s.id));
 }
 
 /* ---------- observations (always workspace-scoped) ---------- */
@@ -212,6 +240,103 @@ export async function getLastWorkspace(): Promise<ID | null> {
 }
 
 /* ============================================================
+ *  CLOUD SYNC support — tombstones, raw row access, remote-delete cascades, and
+ *  a sync cursor. Inert for anyone not signed in; used only by src/cloud/sync.
+ * ============================================================ */
+export async function recordTombstones(kind: SyncKind, ids: ID[]): Promise<void> {
+  if (!ids.length) return;
+  const db = await getDB();
+  const tx = db.transaction('tombstones', 'readwrite');
+  const t = now();
+  for (const id of ids) await tx.objectStore('tombstones').put({ id, kind, deletedAt: t });
+  await tx.done;
+}
+export async function listTombstones(): Promise<Tombstone[]> {
+  return (await getDB()).getAll('tombstones');
+}
+export async function clearTombstones(ids: ID[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('tombstones', 'readwrite');
+  for (const id of ids) await tx.objectStore('tombstones').delete(id);
+  await tx.done;
+}
+
+/* Raw store access for the sync layer (no stamping, no scoping). `store` is a
+ * SyncKind; the `as never` casts satisfy idb's per-store typed overloads. */
+export async function rawAll(store: SyncKind): Promise<Record<string, unknown>[]> {
+  return (await getDB()).getAll(store as never) as Promise<Record<string, unknown>[]>;
+}
+export async function rawPut(store: SyncKind, value: Record<string, unknown>): Promise<void> {
+  await (await getDB()).put(store as never, value as never);
+}
+export async function hasBlob(key: string): Promise<boolean> {
+  return (await (await getDB()).getKey('media', key)) !== undefined;
+}
+export async function getSyncCursor(): Promise<number> {
+  const m = (await (await getDB()).get('meta', 'sync')) as { at: number } | undefined;
+  return m?.at ?? 0;
+}
+export async function setSyncCursor(at: number): Promise<void> {
+  await (await getDB()).put('meta', { at }, 'sync');
+}
+
+/** Apply a remote delete locally WITHOUT recording a tombstone (else it echoes
+ *  back). Cascades to descendants + their media, mirroring the FK graph. */
+export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
+  const db = await getDB();
+  if (kind === 'workspaces') {
+    const [obs, segs, assets, snags] = await Promise.all([
+      db.getAllFromIndex('observations', 'by_workspace', id),
+      db.getAllFromIndex('segments', 'by_workspace', id),
+      db.getAllFromIndex('snag_assets', 'by_workspace', id),
+      db.getAllFromIndex('snags', 'by_workspace', id),
+    ]);
+    const blobs = [
+      ...obs.flatMap(o => o.media.flatMap(m => [m.blobKey, m.thumbKey])),
+      ...segs.flatMap(s => [s.videoKey, s.posterKey]),
+      ...assets.map(a => a.stillKey), ...snags.map(s => s.detailPhotoKey),
+    ].filter(Boolean) as string[];
+    const tx = db.transaction(['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+    await tx.objectStore('workspaces').delete(id);
+    for (const o of obs) await tx.objectStore('observations').delete(o.id);
+    for (const s of segs) await tx.objectStore('segments').delete(s.id);
+    for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
+    for (const s of snags) await tx.objectStore('snags').delete(s.id);
+    for (const k of blobs) await tx.objectStore('media').delete(k);
+    await tx.done;
+  } else if (kind === 'segments') {
+    const assets = await db.getAllFromIndex('snag_assets', 'by_segment', id);
+    const snags: Snag[] = [];
+    for (const a of assets) snags.push(...await db.getAllFromIndex('snags', 'by_asset', a.id));
+    const seg = await db.get('segments', id);
+    const blobs = [seg?.videoKey, seg?.posterKey, ...assets.map(a => a.stillKey), ...snags.map(s => s.detailPhotoKey)].filter(Boolean) as string[];
+    const tx = db.transaction(['segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+    await tx.objectStore('segments').delete(id);
+    for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
+    for (const s of snags) await tx.objectStore('snags').delete(s.id);
+    for (const k of blobs) await tx.objectStore('media').delete(k);
+    await tx.done;
+  } else if (kind === 'snag_assets') {
+    const snags = await db.getAllFromIndex('snags', 'by_asset', id);
+    const asset = await db.get('snag_assets', id);
+    const blobs = [asset?.stillKey, ...snags.map(s => s.detailPhotoKey)].filter(Boolean) as string[];
+    const tx = db.transaction(['snag_assets', 'snags', 'media'], 'readwrite');
+    await tx.objectStore('snag_assets').delete(id);
+    for (const s of snags) await tx.objectStore('snags').delete(s.id);
+    for (const k of blobs) await tx.objectStore('media').delete(k);
+    await tx.done;
+  } else if (kind === 'snags') {
+    const s = await db.get('snags', id);
+    if (s?.detailPhotoKey) await db.delete('media', s.detailPhotoKey);
+    await db.delete('snags', id);
+  } else {
+    const o = await db.get('observations', id);
+    if (o) for (const k of o.media.flatMap(m => [m.blobKey, m.thumbKey]).filter(Boolean) as string[]) await db.delete('media', k);
+    await db.delete('observations', id);
+  }
+}
+
+/* ============================================================
  *  SNAG LIST (v2) — segments, assets, snags. Workspace-scoped like everything
  *  else; media blobs share the `media` store via putBlob/getBlob/deleteBlobs.
  * ============================================================ */
@@ -229,7 +354,7 @@ export async function nextSegmentSequence(workspaceId: ID): Promise<number> {
   return ((segs.length ? segs[segs.length - 1].sequence : 0) ?? 0) + 1;
 }
 export async function addSegment(seg: Segment): Promise<void> {
-  await (await getDB()).put('segments', seg);
+  await (await getDB()).put('segments', { ...seg, updatedAt: now() });
 }
 /** Delete a segment and everything below it: its assets, their snags, and every
  *  media blob any of them holds — one transaction, no orphaned blobs. */
@@ -250,6 +375,9 @@ export async function deleteSegment(id: ID): Promise<void> {
   for (const s of snags) await tx.objectStore('snags').delete(s.id);
   for (const k of blobKeys) await tx.objectStore('media').delete(k);
   await tx.done;
+  await recordTombstones('segments', [id]);
+  await recordTombstones('snag_assets', assets.map(a => a.id));
+  await recordTombstones('snags', snags.map(s => s.id));
 }
 /** Rewrite the sequence column to a new walk order. */
 export async function reorderSegments(orderedIds: ID[]): Promise<void> {
@@ -257,7 +385,7 @@ export async function reorderSegments(orderedIds: ID[]): Promise<void> {
   const tx = db.transaction('segments', 'readwrite');
   for (let i = 0; i < orderedIds.length; i++) {
     const seg = await tx.objectStore('segments').get(orderedIds[i]);
-    if (seg) await tx.objectStore('segments').put({ ...seg, sequence: i + 1 });
+    if (seg) await tx.objectStore('segments').put({ ...seg, sequence: i + 1, updatedAt: now() });
   }
   await tx.done;
 }
@@ -274,7 +402,7 @@ export async function getSnagAsset(id: ID): Promise<SnagAsset | undefined> {
   return (await getDB()).get('snag_assets', id);
 }
 export async function addSnagAsset(a: SnagAsset): Promise<void> {
-  await (await getDB()).put('snag_assets', a);
+  await (await getDB()).put('snag_assets', { ...a, updatedAt: now() });
 }
 
 /* ---------- snags ---------- */
@@ -298,6 +426,7 @@ export async function deleteSnag(id: ID): Promise<void> {
   if (!s) return;
   if (s.detailPhotoKey) await deleteBlobs([s.detailPhotoKey]);
   await db.delete('snags', id);
+  await recordTombstones('snags', [id]);
 }
 export async function setSnagsStatus(ids: ID[], status: Snag['status']): Promise<void> {
   const db = await getDB();

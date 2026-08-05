@@ -22,6 +22,7 @@ export interface Segment {
   posterKey?: string;        // key into the `media` store (first-frame thumbnail)
   durationS?: number;
   createdAt: Millis;
+  updatedAt?: Millis;        // LWW clock for cloud sync
 }
 
 /** An asset — created ONLY by marking a frame in a segment. No catalogue. */
@@ -34,6 +35,7 @@ export interface SnagAsset {
   code?: string;
   stillKey: string;          // key into the `media` store (the frozen frame)
   createdAt: Millis;
+  updatedAt?: Millis;        // LWW clock for cloud sync
 }
 
 /** A snag pinned onto an asset's still. x/y are PERCENTAGES (0–100), never

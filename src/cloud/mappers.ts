@@ -1,0 +1,121 @@
+/* Local (camelCase, epoch-ms) <-> cloud row (snake_case, bigint) translation for
+ * every synced entity, plus which media blob keys each one references. The sync
+ * engine iterates MAPS; nothing here touches the network. */
+import type { SyncKind } from '../db';
+import type { Workspace, Observation } from '../types';
+import type { Segment, SnagAsset, Snag } from '../snag/types';
+
+type Row = Record<string, unknown>;
+
+export interface EntityMap {
+  toRow(local: unknown, ownerId: string): Row;
+  fromRow(row: Row): Row;
+  mediaKeys(local: unknown): string[];
+  /** The LWW clock for this local record. */
+  clock(local: unknown): number;
+}
+
+const n = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
+
+export const MAPS: Record<SyncKind, EntityMap> = {
+  workspaces: {
+    clock: l => (l as Workspace).updatedAt ?? (l as Workspace).createdAt,
+    mediaKeys: () => [],
+    toRow: (l, owner) => {
+      const w = l as Workspace;
+      return {
+        id: w.id, owner_id: owner, name: w.name, color: w.color ?? null,
+        categories: w.categories, subcategories: w.subcategories, assets: w.assets, shifts: w.shifts,
+        crew: w.crew ?? null, labour_rate_per_hour: w.labourRatePerHour ?? null,
+        last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
+        archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
+      };
+    },
+    // NB: device-only fields (activeTimer, lastRoute, schemaVersion) are NOT in
+    // the row and are preserved by the sync merge, not reconstructed here.
+    fromRow: (r) => ({
+      id: r.id as string, name: r.name as string, color: (r.color as string) ?? undefined,
+      categories: (r.categories as string[]) ?? [], subcategories: (r.subcategories as Record<string, string[]>) ?? {},
+      assets: (r.assets as string[]) ?? [], shifts: (r.shifts as Workspace['shifts']) ?? [],
+      crew: n(r.crew), labourRatePerHour: n(r.labour_rate_per_hour),
+      lastCategory: (r.last_category as string) ?? undefined, lastAsset: (r.last_asset as string) ?? undefined,
+      archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    }),
+  },
+
+  observations: {
+    clock: l => (l as Observation).updatedAt ?? (l as Observation).createdAt,
+    mediaKeys: l => (l as Observation).media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]),
+    toRow: (l, owner) => {
+      const o = l as Observation;
+      return {
+        id: o.id, owner_id: owner, workspace_id: o.workspaceId, category: o.category, subcategory: o.subcategory ?? null,
+        asset: o.asset, shift: o.shift ?? null, started_at: o.startedAt, ended_at: o.endedAt ?? null,
+        duration_ms: o.durationMs, timing: o.timing, count: o.count, value_num: o.valueNum ?? null, cost_per: o.costPer ?? null,
+        note: o.note ?? null, media: o.media, created_at: o.createdAt, updated_at: o.updatedAt, deleted_at: o.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, workspaceId: r.workspace_id as string, category: r.category as string,
+      subcategory: (r.subcategory as string) ?? undefined, asset: r.asset as string, shift: (r.shift as string) ?? undefined,
+      startedAt: Number(r.started_at), endedAt: n(r.ended_at), durationMs: Number(r.duration_ms), timing: r.timing as Observation['timing'],
+      count: Number(r.count) || 1, valueNum: n(r.value_num), costPer: n(r.cost_per), note: (r.note as string) ?? undefined,
+      media: (r.media as Observation['media']) ?? [], createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
+
+  segments: {
+    clock: l => (l as Segment).updatedAt ?? (l as Segment).createdAt,
+    mediaKeys: l => { const s = l as Segment; return [s.videoKey, s.posterKey].filter(Boolean) as string[]; },
+    toRow: (l, owner) => {
+      const s = l as Segment;
+      return { id: s.id, owner_id: owner, workspace_id: s.workspaceId, sequence: s.sequence, name: s.name ?? null,
+        video_key: s.videoKey, poster_key: s.posterKey ?? null, duration_s: s.durationS ?? null,
+        created_at: s.createdAt, updated_at: s.updatedAt ?? s.createdAt, deleted_at: null };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, workspaceId: r.workspace_id as string, sequence: Number(r.sequence) || 0,
+      name: (r.name as string) ?? undefined, videoKey: r.video_key as string, posterKey: (r.poster_key as string) ?? undefined,
+      durationS: n(r.duration_s), createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    }),
+  },
+
+  snag_assets: {
+    clock: l => (l as SnagAsset).updatedAt ?? (l as SnagAsset).createdAt,
+    mediaKeys: l => [(l as SnagAsset).stillKey].filter(Boolean) as string[],
+    toRow: (l, owner) => {
+      const a = l as SnagAsset;
+      return { id: a.id, owner_id: owner, workspace_id: a.workspaceId, segment_id: a.segmentId, timestamp_s: a.timestampS,
+        name: a.name, code: a.code ?? null, still_key: a.stillKey,
+        created_at: a.createdAt, updated_at: a.updatedAt ?? a.createdAt, deleted_at: null };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, workspaceId: r.workspace_id as string, segmentId: r.segment_id as string,
+      timestampS: Number(r.timestamp_s) || 0, name: r.name as string, code: (r.code as string) ?? undefined,
+      stillKey: r.still_key as string, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    }),
+  },
+
+  snags: {
+    clock: l => (l as Snag).updatedAt ?? (l as Snag).raisedAt,
+    mediaKeys: l => [(l as Snag).detailPhotoKey].filter(Boolean) as string[],
+    toRow: (l, owner) => {
+      const s = l as Snag;
+      return { id: s.id, owner_id: owner, workspace_id: s.workspaceId, asset_id: s.assetId, x_pct: s.xPct, y_pct: s.yPct,
+        problem: s.problem, proposed_solution: s.proposedSolution ?? null, status: s.status, owner: s.owner ?? null,
+        raised_at: s.raisedAt, closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
+        detail_photo_key: s.detailPhotoKey ?? null, linked_obs_ids: s.linkedObsIds ?? [],
+        updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, workspaceId: r.workspace_id as string, assetId: r.asset_id as string,
+      xPct: Number(r.x_pct) || 0, yPct: Number(r.y_pct) || 0, problem: r.problem as string,
+      proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
+      owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), closedAt: n(r.closed_at),
+      closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
+      linkedObsIds: (r.linked_obs_ids as string[]) ?? undefined, updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
+};
+
+export const SYNC_KINDS: SyncKind[] = ['workspaces', 'observations', 'segments', 'snag_assets', 'snags'];

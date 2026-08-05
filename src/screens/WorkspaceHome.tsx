@@ -7,6 +7,7 @@ import { nav } from '../state/useRoute';
 import { EmptyState } from '../ui/EmptyState';
 import { Wordmark } from '../ui/Logo';
 import { fmtRelative, plural } from '../lib/format';
+import { CloudPanel } from '../cloud/CloudPanel';
 
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
@@ -40,6 +41,8 @@ export function WorkspaceHome() {
         <Wordmark />
         <p className="home-tag">Walk the line, put a time to every stop, and watch the loss turn into a Pareto and a pound figure.</p>
       </div>
+
+      <CloudPanel />
 
       {creating ? (
         <div className="card create-card">
