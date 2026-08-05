@@ -5,6 +5,7 @@
  * workspaceId-scoped — that is the whole isolation guarantee. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { ID, Workspace, Observation } from './types';
+import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 
 interface FinderDB extends DBSchema {
@@ -16,21 +17,37 @@ interface FinderDB extends DBSchema {
   };
   media: { key: string; value: Blob };
   meta: { key: string; value: unknown };
+  // Snag List (v2) — the video-walk model, workspace-scoped like observations.
+  segments: { key: string; value: Segment; indexes: { by_workspace: string } };
+  snag_assets: { key: string; value: SnagAsset; indexes: { by_workspace: string; by_segment: string } };
+  snags: { key: string; value: Snag; indexes: { by_workspace: string; by_asset: string } };
 }
 
 let dbp: Promise<IDBPDatabase<FinderDB>> | null = null;
 export function getDB(): Promise<IDBPDatabase<FinderDB>> {
   if (!dbp) {
-    dbp = openDB<FinderDB>('finder', 1, {
-      upgrade(db) {
-        const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
-        ws.createIndex('by_updatedAt', 'updatedAt');
-        const ob = db.createObjectStore('observations', { keyPath: 'id' });
-        ob.createIndex('by_workspace', 'workspaceId');
-        ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
-        ob.createIndex('by_updatedAt', 'updatedAt');
-        db.createObjectStore('media'); // out-of-line: explicit blob keys
-        db.createObjectStore('meta'); // out-of-line singletons
+    dbp = openDB<FinderDB>('finder', 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
+          ws.createIndex('by_updatedAt', 'updatedAt');
+          const ob = db.createObjectStore('observations', { keyPath: 'id' });
+          ob.createIndex('by_workspace', 'workspaceId');
+          ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
+          ob.createIndex('by_updatedAt', 'updatedAt');
+          db.createObjectStore('media'); // out-of-line: explicit blob keys
+          db.createObjectStore('meta'); // out-of-line singletons
+        }
+        if (oldVersion < 2) {
+          const seg = db.createObjectStore('segments', { keyPath: 'id' });
+          seg.createIndex('by_workspace', 'workspaceId');
+          const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
+          as.createIndex('by_workspace', 'workspaceId');
+          as.createIndex('by_segment', 'segmentId');
+          const sn = db.createObjectStore('snags', { keyPath: 'id' });
+          sn.createIndex('by_workspace', 'workspaceId');
+          sn.createIndex('by_asset', 'assetId');
+        }
       },
     });
   }
@@ -192,4 +209,102 @@ export async function setLastWorkspace(id: ID | null): Promise<void> {
 export async function getLastWorkspace(): Promise<ID | null> {
   const m = (await (await getDB()).get('meta', 'app')) as { lastWorkspaceId: ID | null } | undefined;
   return m?.lastWorkspaceId ?? null;
+}
+
+/* ============================================================
+ *  SNAG LIST (v2) — segments, assets, snags. Workspace-scoped like everything
+ *  else; media blobs share the `media` store via putBlob/getBlob/deleteBlobs.
+ * ============================================================ */
+
+/* ---------- segments ---------- */
+export async function listSegments(workspaceId: ID): Promise<Segment[]> {
+  const all = await (await getDB()).getAllFromIndex('segments', 'by_workspace', workspaceId);
+  return all.sort((a, b) => a.sequence - b.sequence);
+}
+export async function getSegment(id: ID): Promise<Segment | undefined> {
+  return (await getDB()).get('segments', id);
+}
+export async function nextSegmentSequence(workspaceId: ID): Promise<number> {
+  const segs = await listSegments(workspaceId);
+  return ((segs.length ? segs[segs.length - 1].sequence : 0) ?? 0) + 1;
+}
+export async function addSegment(seg: Segment): Promise<void> {
+  await (await getDB()).put('segments', seg);
+}
+/** Delete a segment and everything below it: its assets, their snags, and every
+ *  media blob any of them holds — one transaction, no orphaned blobs. */
+export async function deleteSegment(id: ID): Promise<void> {
+  const db = await getDB();
+  const seg = await db.get('segments', id);
+  const assets = await db.getAllFromIndex('snag_assets', 'by_segment', id);
+  const snags: Snag[] = [];
+  for (const a of assets) snags.push(...(await db.getAllFromIndex('snags', 'by_asset', a.id)));
+  const blobKeys = [
+    seg?.videoKey, seg?.posterKey,
+    ...assets.map(a => a.stillKey),
+    ...snags.map(s => s.detailPhotoKey),
+  ].filter(Boolean) as string[];
+  const tx = db.transaction(['segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+  await tx.objectStore('segments').delete(id);
+  for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
+  for (const s of snags) await tx.objectStore('snags').delete(s.id);
+  for (const k of blobKeys) await tx.objectStore('media').delete(k);
+  await tx.done;
+}
+/** Rewrite the sequence column to a new walk order. */
+export async function reorderSegments(orderedIds: ID[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('segments', 'readwrite');
+  for (let i = 0; i < orderedIds.length; i++) {
+    const seg = await tx.objectStore('segments').get(orderedIds[i]);
+    if (seg) await tx.objectStore('segments').put({ ...seg, sequence: i + 1 });
+  }
+  await tx.done;
+}
+
+/* ---------- assets ---------- */
+export async function listSnagAssets(workspaceId: ID): Promise<SnagAsset[]> {
+  return (await getDB()).getAllFromIndex('snag_assets', 'by_workspace', workspaceId);
+}
+export async function assetsForSegment(segmentId: ID): Promise<SnagAsset[]> {
+  const all = await (await getDB()).getAllFromIndex('snag_assets', 'by_segment', segmentId);
+  return all.sort((a, b) => a.timestampS - b.timestampS);
+}
+export async function getSnagAsset(id: ID): Promise<SnagAsset | undefined> {
+  return (await getDB()).get('snag_assets', id);
+}
+export async function addSnagAsset(a: SnagAsset): Promise<void> {
+  await (await getDB()).put('snag_assets', a);
+}
+
+/* ---------- snags ---------- */
+export async function snagsForAsset(assetId: ID): Promise<Snag[]> {
+  const all = await (await getDB()).getAllFromIndex('snags', 'by_asset', assetId);
+  return all.filter(s => s.deletedAt == null).sort((a, b) => a.raisedAt - b.raisedAt);
+}
+export async function snagsForWorkspace(workspaceId: ID): Promise<Snag[]> {
+  const all = await (await getDB()).getAllFromIndex('snags', 'by_workspace', workspaceId);
+  return all.filter(s => s.deletedAt == null);
+}
+export async function addSnag(s: Snag): Promise<void> {
+  await (await getDB()).put('snags', s);
+}
+export async function updateSnag(s: Snag): Promise<void> {
+  await (await getDB()).put('snags', { ...s, updatedAt: now() });
+}
+export async function deleteSnag(id: ID): Promise<void> {
+  const db = await getDB();
+  const s = await db.get('snags', id);
+  if (!s) return;
+  if (s.detailPhotoKey) await deleteBlobs([s.detailPhotoKey]);
+  await db.delete('snags', id);
+}
+export async function setSnagsStatus(ids: ID[], status: Snag['status']): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('snags', 'readwrite');
+  for (const id of ids) {
+    const s = await tx.objectStore('snags').get(id);
+    if (s) await tx.objectStore('snags').put({ ...s, status, closedAt: status === 'closed' ? now() : undefined, updatedAt: now() });
+  }
+  await tx.done;
 }

@@ -8,12 +8,18 @@ import { AnalyseScreen } from './AnalyseScreen';
 import { PresentScreen } from './PresentScreen';
 import { LogScreen } from './LogScreen';
 import { WorkspaceSettings } from './WorkspaceSettings';
+import { SnagsScreen } from '../snag/SnagsScreen';
+import { SegmentScreen } from '../snag/SegmentScreen';
+import { AssetScreen } from '../snag/AssetScreen';
+import { SnagListScreen } from '../snag/SnagListScreen';
+import { WalkthroughScreen } from '../snag/WalkthroughScreen';
 
 export function AppShell({ route }: { route: Route }) {
   const screen = route.name;
 
-  // Present is a calm, chrome-free full-bleed surface.
+  // Present and the snag walkthrough are calm, chrome-free full-bleed surfaces.
   if (screen === 'present') return <PresentScreen route={route} />;
+  if (screen === 'walk') return <WalkthroughScreen wsId={route.wsId!} />;
 
   return (
     <div className="app">
@@ -23,6 +29,10 @@ export function AppShell({ route }: { route: Route }) {
         {screen === 'analyse' && <AnalyseScreen route={route} />}
         {screen === 'log' && <LogScreen />}
         {screen === 'settings' && <WorkspaceSettings />}
+        {screen === 'snags' && <SnagsScreen />}
+        {screen === 'segment' && <SegmentScreen wsId={route.wsId!} segmentId={route.id!} />}
+        {screen === 'asset' && <AssetScreen wsId={route.wsId!} assetId={route.id!} />}
+        {screen === 'snaglist' && <SnagListScreen />}
       </main>
       <TabBar active={screen} wsId={route.wsId!} />
     </div>

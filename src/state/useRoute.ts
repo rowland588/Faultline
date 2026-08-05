@@ -4,11 +4,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 
-export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'log' | 'settings';
+export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'log' | 'settings'
+  | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk';
 
 export interface Route {
   name: RouteName;
   wsId?: ID;
+  id?: string;          // sub-entity id (segment/:id, asset/:id)
   query: URLSearchParams;
 }
 
@@ -18,6 +20,12 @@ const SCREENS: Record<string, RouteName> = {
   present: 'present',
   log: 'log',
   settings: 'settings',
+  // Snag List module
+  snags: 'snags',
+  segment: 'segment',
+  asset: 'asset',
+  snaglist: 'snaglist',
+  walk: 'walk',
 };
 
 export function parseRoute(hash: string): Route {
@@ -28,7 +36,8 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'w' && segs[1]) {
     const wsId = decodeURIComponent(segs[1]);
     const name = (segs[2] && SCREENS[segs[2]]) || 'resume';
-    return { name, wsId, query };
+    const id = segs[3] ? decodeURIComponent(segs[3]) : undefined;
+    return { name, wsId, id, query };
   }
   return { name: 'home', query };
 }
