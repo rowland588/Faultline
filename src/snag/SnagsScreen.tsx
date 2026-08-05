@@ -85,10 +85,9 @@ export function SnagsScreen() {
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/capture`)}>‹ Back</button>
         <div style={{ flex: 1 }} />
         {segs.length > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>}
-        {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snags</button>}
+        {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag list</button>}
       </div>
 
       <div className="mark" style={{ fontSize: 22 }}>Snag walk</div>

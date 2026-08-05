@@ -17,6 +17,7 @@ export function WorkspaceHome() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
 
@@ -34,16 +35,23 @@ export function WorkspaceHome() {
 
   const create = async () => {
     if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces
-    setBusy(true);
-    const w = await createWorkspace(name);
-    nav(`/w/${w.id}`);
+    setBusy(true); setError('');
+    try {
+      const w = await createWorkspace(name);
+      nav(`/w/${w.id}`); // unmounts this screen on success
+    } catch (e) {
+      // Never leave the button stuck on "Creating…": surface the real reason and
+      // let them retry. (A storage/upgrade fault used to hang here silently.)
+      setError(e instanceof Error ? e.message : 'Could not create the workspace. Try again.');
+      setBusy(false);
+    }
   };
 
   return (
     <div className="wrap home">
       <div className="home-head">
         <Wordmark />
-        <p className="home-tag">Walk the line, put a time to every stop, and watch the loss turn into a Pareto and a pound figure.</p>
+        <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
       </div>
 
       <CloudPanel />
@@ -69,6 +77,7 @@ export function WorkspaceHome() {
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) void create(); if (e.key === 'Escape') setCreating(false); }}
           />
           <p className="sub" style={{ marginTop: 8 }}>A workspace keeps its own data and tools — a clean, separate space for one line, one project, one investigation.</p>
+          {error && <p className="sub" style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
           <div className="row-end">
             <button className="btn btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
             <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>{busy ? 'Creating…' : 'Create'}</button>

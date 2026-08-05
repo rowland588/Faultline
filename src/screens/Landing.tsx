@@ -8,9 +8,9 @@ import { LogoMark } from '../ui/Logo';
 import { signIn, signUp } from '../cloud/session';
 
 const POINTS = [
-  ['Walk the line', 'Log every stop with a tap. Time, count, cost — one clean row per observation.'],
-  ['See the loss', 'It turns into a Pareto and a pound figure the moment you stop walking.'],
-  ['Yours, everywhere', 'Works offline on the floor, then backs up and syncs to every device you sign in on.'],
+  ['Discover the problems', 'Walk the line and log what you find — lost time, minor stops, and faults you pin straight onto a video-walk still.'],
+  ['Make them visible', 'Every finding becomes a picture: a Pareto and a cost for the loss, a tracked snag list for the faults — nothing stays buried in a notebook.'],
+  ['Shared, and always with you', 'Works offline on the floor, then backs up and syncs to every device and teammate you invite.'],
 ] as const;
 
 export function Landing({ onEnterLocal }: { onEnterLocal: () => void }) {
@@ -45,10 +45,11 @@ export function Landing({ onEnterLocal }: { onEnterLocal: () => void }) {
             <LogoMark size={40} />
             <span className="landing-name">Finder</span>
           </div>
-          <h1 className="landing-h1">Find the loss. Put a pound on it.</h1>
+          <h1 className="landing-h1">Find the problems. Make them visible.</h1>
           <p className="landing-lede">
-            A field-first way to walk a line, time every stop, and turn wasted minutes
-            into a Pareto and a cost — built for in-house CI and ops teams.
+            A field-first way to walk a line, surface what's wrong — lost time and
+            physical faults alike — and turn it into something everyone can see and
+            act on. Built for in-house CI and ops teams.
           </p>
           <ul className="landing-points">
             {POINTS.map(([t, d]) => (

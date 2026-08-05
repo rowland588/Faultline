@@ -31,35 +31,45 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
 
 let dbp: Promise<IDBPDatabase<FinderDB>> | null = null;
 export function getDB(): Promise<IDBPDatabase<FinderDB>> {
-  if (!dbp) {
-    dbp = openDB<FinderDB>('finder', 3, {
-      upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
-          ws.createIndex('by_updatedAt', 'updatedAt');
-          const ob = db.createObjectStore('observations', { keyPath: 'id' });
-          ob.createIndex('by_workspace', 'workspaceId');
-          ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
-          ob.createIndex('by_updatedAt', 'updatedAt');
-          db.createObjectStore('media'); // out-of-line: explicit blob keys
-          db.createObjectStore('meta'); // out-of-line singletons
-        }
-        if (oldVersion < 2) {
-          const seg = db.createObjectStore('segments', { keyPath: 'id' });
-          seg.createIndex('by_workspace', 'workspaceId');
-          const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
-          as.createIndex('by_workspace', 'workspaceId');
-          as.createIndex('by_segment', 'segmentId');
-          const sn = db.createObjectStore('snags', { keyPath: 'id' });
-          sn.createIndex('by_workspace', 'workspaceId');
-          sn.createIndex('by_asset', 'assetId');
-        }
-        if (oldVersion < 3) {
-          db.createObjectStore('tombstones', { keyPath: 'id' });
-        }
-      },
-    });
-  }
+  if (dbp) return dbp;
+  let opened: IDBPDatabase<FinderDB> | null = null;
+  const p = openDB<FinderDB>('finder', 3, {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
+        ws.createIndex('by_updatedAt', 'updatedAt');
+        const ob = db.createObjectStore('observations', { keyPath: 'id' });
+        ob.createIndex('by_workspace', 'workspaceId');
+        ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
+        ob.createIndex('by_updatedAt', 'updatedAt');
+        db.createObjectStore('media'); // out-of-line: explicit blob keys
+        db.createObjectStore('meta'); // out-of-line singletons
+      }
+      if (oldVersion < 2) {
+        const seg = db.createObjectStore('segments', { keyPath: 'id' });
+        seg.createIndex('by_workspace', 'workspaceId');
+        const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
+        as.createIndex('by_workspace', 'workspaceId');
+        as.createIndex('by_segment', 'segmentId');
+        const sn = db.createObjectStore('snags', { keyPath: 'id' });
+        sn.createIndex('by_workspace', 'workspaceId');
+        sn.createIndex('by_asset', 'assetId');
+      }
+      if (oldVersion < 3) {
+        db.createObjectStore('tombstones', { keyPath: 'id' });
+      }
+    },
+    // Another tab already holds an older version open, blocking THIS upgrade.
+    // That tab's `blocking` handler (below) closes it, so we just wait it out
+    // rather than hanging silently forever.
+    blocked() { console.warn('[finder] database upgrade is waiting for another open tab to close.'); },
+    // WE are the old connection blocking a newer version opened elsewhere — let
+    // go immediately so that upgrade can proceed; the next call reopens fresh.
+    blocking() { opened?.close(); if (dbp === p) dbp = null; },
+    terminated() { if (dbp === p) dbp = null; },
+  });
+  p.then(db => { opened = db; }).catch(() => { if (dbp === p) dbp = null; }); // never cache a failed open — allow a retry
+  dbp = p;
   return dbp;
 }
 
