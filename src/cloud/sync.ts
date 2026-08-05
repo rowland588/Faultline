@@ -42,7 +42,7 @@ async function uploadMedia(uid: string, keys: string[], uploaded: Set<string>): 
     const blob = await getBlob(key);
     if (!blob) { uploaded.add(key); continue; }        // referenced but gone locally — skip
     const { error } = await sb.storage.from(BUCKET).upload(`${uid}/${key}`, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' });
-    if (error) throw new Error(`media upload: ${error.message}`);
+    if (error) continue;                               // best-effort: bucket missing / transient — retry next sync, don't block data
     uploaded.add(key);
   }
 }
