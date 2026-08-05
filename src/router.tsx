@@ -1,8 +1,9 @@
 /* The whole route table. Home lives outside any workspace; everything else is
  * wrapped in the WorkspaceProvider so its data is scoped to that one workspace.
- * When cloud sync is configured, an unauthenticated visitor meets the Landing
- * first — unless they've chosen to work locally on this device. */
-import { useState } from 'react';
+ *
+ * Invite-only: when cloud sync is configured, the app is gated behind sign-in —
+ * there is NO anonymous/local way in. An invited account is the only door. (Once
+ * signed in the session is cached locally, so the app still works offline after.) */
 import { useRoute } from './state/useRoute';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
@@ -14,23 +15,17 @@ import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
 
-const LOCAL_KEY = 'finder.enteredLocal';
-
 export function Router() {
   const route = useRoute();
   usePersistRoute(route.wsId);
 
   const { session, loading } = useSession();
-  const [enteredLocal, setEnteredLocal] = useState(() => localStorage.getItem(LOCAL_KEY) === '1');
 
   // Hold the branded splash while the session resolves, so a returning signed-in
   // visitor never flashes the app or the landing on the way in.
   if (cloudConfigured && loading) return <BootSplash />;
-
-  // Front door: cloud on, nobody signed in, and they haven't opted to stay local.
-  if (cloudConfigured && !session && !enteredLocal) {
-    return <Landing onEnterLocal={() => { localStorage.setItem(LOCAL_KEY, '1'); setEnteredLocal(true); }} />;
-  }
+  // Not signed in → the front door. No bypass.
+  if (cloudConfigured && !session) return <Landing />;
 
   if (route.name === 'home' || !route.wsId) return <WorkspaceHome />;
 

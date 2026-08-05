@@ -13,7 +13,7 @@ const POINTS = [
   ['Shared, and always with you', 'Works offline on the floor, then backs up and syncs to every device and teammate you invite.'],
 ] as const;
 
-export function Landing({ onEnterLocal }: { onEnterLocal: () => void }) {
+export function Landing() {
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
@@ -64,7 +64,7 @@ export function Landing({ onEnterLocal }: { onEnterLocal: () => void }) {
         <section className="landing-auth card">
           <div className="landing-auth-head">
             <h2 className="landing-auth-title">{mode === 'in' ? 'Sign in' : 'Create your account'}</h2>
-            <p className="sub">{mode === 'in' ? 'Back up your work and sync it across devices.' : 'Free to start. Your data stays on your device too.'}</p>
+            <p className="sub">{mode === 'in' ? 'Back up your work and sync it across devices.' : 'Register with the email your admin invited — you set your own password.'}</p>
           </div>
 
           <label className="field-label">Email</label>
@@ -93,13 +93,7 @@ export function Landing({ onEnterLocal }: { onEnterLocal: () => void }) {
             className="landing-toggle"
             onClick={() => { setMode(m => (m === 'in' ? 'up' : 'in')); setErr(''); setOk(''); }}
           >
-            {mode === 'in' ? 'New here? Create an account' : 'Already have an account? Sign in'}
-          </button>
-
-          <div className="landing-or"><span>or</span></div>
-          <button className="landing-local" onClick={onEnterLocal}>
-            Continue on this device →
-            <span className="sub">No account. Everything stays local; you can sign in later.</span>
+            {mode === 'in' ? 'Been invited? Create your account' : 'Already have an account? Sign in'}
           </button>
         </section>
       </div>
