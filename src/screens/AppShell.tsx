@@ -1,5 +1,6 @@
 /* The in-workspace frame: title bar on top, the active screen in the middle,
- * the three modes fixed at the bottom. Present takes the whole screen. */
+ * the mode tabs fixed at the bottom. Present and the snag walkthrough take the
+ * whole screen. */
 import type { Route } from '../state/useRoute';
 import { TopBar } from '../ui/TopBar';
 import { TabBar } from '../ui/TabBar';

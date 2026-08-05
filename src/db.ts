@@ -29,48 +29,118 @@ interface FinderDB extends DBSchema {
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags';
 
+/* The database name is deliberately app-specific. The bare name 'finder' was
+ * used by an earlier build on this origin and can sit at a HIGHER version there;
+ * IndexedDB refuses to open a name at a lower version than exists, which would
+ * throw VersionError and wedge the whole app. Our own name can't collide. Real
+ * data from a genuine old 'finder' (a version WE created) is imported once. */
+const DB_NAME = 'finder-qc';
+const LEGACY_NAME = 'finder';
+const DB_VERSION = 3;
+const OPEN_TIMEOUT_MS = 12_000;
+
 let dbp: Promise<IDBPDatabase<FinderDB>> | null = null;
+let opened: IDBPDatabase<FinderDB> | null = null;
+
 export function getDB(): Promise<IDBPDatabase<FinderDB>> {
   if (dbp) return dbp;
-  let opened: IDBPDatabase<FinderDB> | null = null;
-  const p = openDB<FinderDB>('finder', 3, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
-        ws.createIndex('by_updatedAt', 'updatedAt');
-        const ob = db.createObjectStore('observations', { keyPath: 'id' });
-        ob.createIndex('by_workspace', 'workspaceId');
-        ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
-        ob.createIndex('by_updatedAt', 'updatedAt');
-        db.createObjectStore('media'); // out-of-line: explicit blob keys
-        db.createObjectStore('meta'); // out-of-line singletons
-      }
-      if (oldVersion < 2) {
-        const seg = db.createObjectStore('segments', { keyPath: 'id' });
-        seg.createIndex('by_workspace', 'workspaceId');
-        const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
-        as.createIndex('by_workspace', 'workspaceId');
-        as.createIndex('by_segment', 'segmentId');
-        const sn = db.createObjectStore('snags', { keyPath: 'id' });
-        sn.createIndex('by_workspace', 'workspaceId');
-        sn.createIndex('by_asset', 'assetId');
-      }
-      if (oldVersion < 3) {
-        db.createObjectStore('tombstones', { keyPath: 'id' });
-      }
-    },
-    // Another tab already holds an older version open, blocking THIS upgrade.
-    // That tab's `blocking` handler (below) closes it, so we just wait it out
-    // rather than hanging silently forever.
-    blocked() { console.warn('[finder] database upgrade is waiting for another open tab to close.'); },
-    // WE are the old connection blocking a newer version opened elsewhere — let
-    // go immediately so that upgrade can proceed; the next call reopens fresh.
-    blocking() { opened?.close(); if (dbp === p) dbp = null; },
-    terminated() { if (dbp === p) dbp = null; },
-  });
-  p.then(db => { opened = db; }).catch(() => { if (dbp === p) dbp = null; }); // never cache a failed open — allow a retry
-  dbp = p;
+  const mine = openAndImport();
+  dbp = mine;
+  // Never cache a failed OR hung open. This `.catch` is attached to `mine`
+  // itself (one hop) and BEFORE any caller awaits it, so it nulls `dbp` ahead of
+  // the caller's catch — a synchronous retry then re-opens instead of replaying
+  // the rejection.
+  mine.catch(() => { if (dbp === mine) { dbp = null; opened = null; } });
   return dbp;
+}
+
+async function openAndImport(): Promise<IDBPDatabase<FinderDB>> {
+  const db = await openMain();
+  opened = db;
+  try { await importLegacyOnce(db); } catch { /* best-effort; a failed import must never block boot */ }
+  return db;
+}
+
+function openMain(): Promise<IDBPDatabase<FinderDB>> {
+  return new Promise((resolve, reject) => {
+    // A cross-tab upgrade can leave the open request `blocked` indefinitely when
+    // an older tab never releases its connection. Without this timeout the open
+    // would never settle and the UI (e.g. "Creating…") would hang forever with
+    // nothing to catch. Reject with an actionable message instead.
+    const timer = setTimeout(
+      () => reject(new Error('Storage is busy — another open tab may be holding an older version. Close other tabs of this app and reload.')),
+      OPEN_TIMEOUT_MS,
+    );
+    openDB<FinderDB>(DB_NAME, DB_VERSION, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
+          ws.createIndex('by_updatedAt', 'updatedAt');
+          const ob = db.createObjectStore('observations', { keyPath: 'id' });
+          ob.createIndex('by_workspace', 'workspaceId');
+          ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
+          ob.createIndex('by_updatedAt', 'updatedAt');
+          db.createObjectStore('media'); // out-of-line: explicit blob keys
+          db.createObjectStore('meta'); // out-of-line singletons
+        }
+        if (oldVersion < 2) {
+          const seg = db.createObjectStore('segments', { keyPath: 'id' });
+          seg.createIndex('by_workspace', 'workspaceId');
+          const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
+          as.createIndex('by_workspace', 'workspaceId');
+          as.createIndex('by_segment', 'segmentId');
+          const sn = db.createObjectStore('snags', { keyPath: 'id' });
+          sn.createIndex('by_workspace', 'workspaceId');
+          sn.createIndex('by_asset', 'assetId');
+        }
+        if (oldVersion < 3) {
+          db.createObjectStore('tombstones', { keyPath: 'id' });
+        }
+      },
+      blocked() { console.warn('[finder] storage upgrade is waiting for another open tab; will time out if it never releases.'); },
+      // WE are the old connection blocking a newer version opened elsewhere —
+      // let go so that upgrade can proceed; the next call reopens fresh.
+      blocking() { opened?.close(); opened = null; dbp = null; },
+      terminated() { opened = null; dbp = null; },
+    }).then(
+      db => { clearTimeout(timer); resolve(db); },
+      err => { clearTimeout(timer); reject(err); },
+    );
+  });
+}
+
+/** Bring real data over from a genuine legacy 'finder' database exactly once —
+ *  but only if it's a version this app created (≤ our current), so a foreign DB
+ *  that merely reused the name is left untouched. Best-effort and idempotent. */
+async function importLegacyOnce(db: IDBPDatabase<FinderDB>): Promise<void> {
+  if (await db.get('meta', 'legacyImport')) return;
+  await db.put('meta', { at: now() }, 'legacyImport'); // mark up front so a partial failure can't loop
+
+  // Only proceed if we can positively confirm the legacy DB exists, so probing
+  // never CREATES an empty 'finder' as a side effect. (databases() is absent on
+  // some engines; there we simply skip — cloud sync restores signed-in data.)
+  const factory = indexedDB as { databases?: () => Promise<Array<{ name?: string }>> };
+  if (!factory.databases) return;
+  const present = (await factory.databases()).some(d => d.name === LEGACY_NAME);
+  if (!present) return;
+
+  let legacy: IDBPDatabase | null = null;
+  try {
+    legacy = await openDB(LEGACY_NAME);
+    if (legacy.version > DB_VERSION) return; // a different app owns this name — leave it alone
+    const anyDb = db as unknown as IDBPDatabase;
+    for (const store of ['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'tombstones'] as const) {
+      if (!legacy.objectStoreNames.contains(store) || !db.objectStoreNames.contains(store)) continue;
+      for (const v of await legacy.getAll(store)) await anyDb.put(store, v);
+    }
+    if (legacy.objectStoreNames.contains('media')) { // out-of-line: copy with explicit keys
+      const keys = await legacy.getAllKeys('media');
+      const vals = await legacy.getAll('media');
+      for (let i = 0; i < keys.length; i++) await anyDb.put('media', vals[i], keys[i]);
+    }
+  } finally {
+    legacy?.close();
+  }
 }
 
 /* ---------- workspaces (the isolation container) ---------- */
