@@ -51,18 +51,31 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
     finally { setBusy(false); }
   };
 
-  const save = async () => {
-    if (!marking || !seg || !name.trim()) return;
+  /** Persist the marked frame as an asset; returns its id (or null on failure). */
+  const create = async (): Promise<string | null> => {
+    if (!marking || !seg || !name.trim()) return null;
     setBusy(true);
     try {
+      const id = uid();
       const stillKey = `blob-${uid()}`;
       await putBlob(stillKey, marking.blob);
-      await addSnagAsset({ id: uid(), workspaceId: wsId, segmentId: seg.id, timestampS: marking.timestamp, name: name.trim(), code: code.trim() || undefined, stillKey, createdAt: now() });
+      await addSnagAsset({ id, workspaceId: wsId, segmentId: seg.id, timestampS: marking.timestamp, name: name.trim(), code: code.trim() || undefined, stillKey, createdAt: now() });
       URL.revokeObjectURL(marking.still);
-      const ts = marking.timestamp; setMarking(null);
-      await loadAssets(); seek(ts); // stay put so the user keeps scrubbing forward
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save.'); }
+      return id;
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save.'); return null; }
     finally { setBusy(false); }
+  };
+
+  // The natural next step: go straight to the still to zoom in and pin snags.
+  const saveAndAnnotate = async () => {
+    const id = await create();
+    if (id) { setMarking(null); nav(`/w/${wsId}/asset/${id}`); }
+  };
+  // The fast path: keep scrubbing to mark more assets in one pass.
+  const saveAndMarkAnother = async () => {
+    const ts = marking?.timestamp ?? 0;
+    const id = await create();
+    if (id) { setMarking(null); await loadAssets(); seek(ts); }
   };
   const cancel = () => { if (marking) URL.revokeObjectURL(marking.still); setMarking(null); };
 
@@ -107,11 +120,12 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       <Sheet open={!!marking} onClose={cancel} title="New asset">
         {marking && <img className="mark-still" src={marking.still} alt="marked frame" />}
         <div className="field-label" style={{ marginTop: 8 }}>Asset name</div>
-        <input className="text-input" autoFocus value={name} placeholder="e.g. Multihead Weigher" onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
+        <input className="text-input" autoFocus value={name} placeholder="e.g. Multihead Weigher" onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
         <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
-        <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          <button className="btn btn-primary" onClick={save} disabled={busy || !name.trim()}>{busy ? 'Saving…' : 'Save asset'}</button>
+        <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={saveAndAnnotate} disabled={busy || !name.trim()}>{busy ? 'Saving…' : 'Save & add snags →'}</button>
+          <button className="btn" onClick={saveAndMarkAnother} disabled={busy || !name.trim()}>Save &amp; mark another</button>
           <button className="btn btn-ghost" onClick={cancel}>Cancel</button>
         </div>
       </Sheet>

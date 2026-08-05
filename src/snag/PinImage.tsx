@@ -21,6 +21,11 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
   const gesture = useRef<{ dist: number; scale: number; moved: boolean } | null>(null);
 
   const clampScale = (s: number) => Math.min(5, Math.max(1, s));
+  const zoomBy = (f: number) => setScale(s => {
+    const next = clampScale(Math.round(s * f * 100) / 100);
+    if (next === 1) { setTx(0); setTy(0); } // snapped back to fit → recentre
+    return next;
+  });
 
   const onPointerDown = (e: RPointerEvent) => {
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -80,7 +85,11 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
           </button>
         ))}
       </div>
-      {scale > 1 && <button className="pin-reset" onClick={() => { setScale(1); setTx(0); setTy(0); }}>Reset zoom</button>}
+      <div className="pin-zoom" onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
+        <button type="button" aria-label="Zoom out" disabled={scale <= 1} onClick={e => { e.stopPropagation(); zoomBy(1 / 1.5); }}>−</button>
+        <button type="button" aria-label="Zoom in" disabled={scale >= 5} onClick={e => { e.stopPropagation(); zoomBy(1.5); }}>＋</button>
+      </div>
+      {scale > 1 && <button className="pin-reset" onClick={() => { setScale(1); setTx(0); setTy(0); }}>Reset</button>}
     </div>
   );
 }

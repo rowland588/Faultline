@@ -44,7 +44,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         {hiddenClosed > 0 && <button className="btn" onClick={() => setShowClosed(v => !v)}>{showClosed ? 'Hide closed' : `Show closed (${hiddenClosed})`}</button>}
       </div>
       <div className="mark" style={{ fontSize: 22 }}>{asset?.name ?? '…'}{asset?.code ? <span className="sub" style={{ fontSize: 15, fontWeight: 400 }}> · {asset.code}</span> : null}</div>
-      <p className="sub" style={{ marginTop: 4 }}>{plural(openCount, 'open snag')}. Tap the image to pin a problem where you see it.</p>
+      <p className="sub" style={{ marginTop: 4 }}>{plural(openCount, 'open snag')}. Pinch or use ＋ / − to zoom in, then tap the picture to drop a red dot where the problem is.</p>
 
       <div style={{ marginTop: 12 }}>
         <PinImage src={still} pins={pins} alt={asset?.name}
@@ -103,7 +103,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
       if (snag) {
         await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined, closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, linkedObsIds: links.length ? links : undefined, closedAt: status === 'closed' ? (snag.closedAt ?? now()) : undefined });
       } else if (draft) {
-        await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status: 'open', raisedAt: now(), updatedAt: now() });
+        await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, status: 'open', raisedAt: now(), updatedAt: now() });
       }
       onSaved();
     } finally { setBusy(false); }
@@ -118,14 +118,22 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
       <div className="field-label" style={{ marginTop: 10 }}>Proposed solution <span className="opt">optional</span></div>
       <textarea className="text-area" rows={2} value={solution} placeholder="What would fix it?" onChange={e => setSolution(e.target.value)} />
 
+      <div className="field-label" style={{ marginTop: 10 }}>Owner <span className="opt">who's on it — optional</span></div>
+      <input className="text-input" value={owner} placeholder="Name" onChange={e => setOwner(e.target.value)} />
+
+      {snag && (
+        <p className="sub" style={{ marginTop: 10 }}>
+          Raised {new Date(snag.raisedAt).toLocaleDateString()}
+          {snag.closedAt ? ` · closed ${new Date(snag.closedAt).toLocaleDateString()}` : ''}
+        </p>
+      )}
+
       {snag && (
         <>
           <div className="field-label" style={{ marginTop: 12 }}>Status</div>
           <div className="chip-row">
             {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <Chip key={s} label={SNAG_STATUS_META[s].label} on={status === s} onClick={() => setStatus(s)} />)}
           </div>
-          <div className="field-label" style={{ marginTop: 12 }}>Owner</div>
-          <input className="text-input" value={owner} placeholder="Who owns the fix" onChange={e => setOwner(e.target.value)} />
           {status === 'closed' && (<>
             <div className="field-label" style={{ marginTop: 10 }}>Close note</div>
             <textarea className="text-area" rows={2} value={closeNote} placeholder="What was done" onChange={e => setCloseNote(e.target.value)} />
