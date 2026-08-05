@@ -587,14 +587,41 @@ button { font-family: inherit; }
   .snag-table .mini-owner, .snag-table .mini-select { width: auto; }
 }
 
-/* printable */
-.print-asset { break-inside: avoid; margin-bottom: 20px; }
-.print-still { position: relative; display: inline-block; max-width: 100%; }
-.print-still img { max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); display: block; }
-.print-pin { position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50%; color: #fff; font-family: var(--mono); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
-.print-snags { margin: 8px 0 0; padding-left: 22px; font-size: 14px; }
-.print-snags li { margin-bottom: 3px; }
-.print-status { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+/* ---- snag report (Print → Save as PDF) ---- */
+.print-root { max-width: 860px; }
+.report-head { border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin: 6px 0 20px; }
+.report-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.report-meta { color: var(--muted); margin-top: 3px; }
+.report-filter { color: var(--accent); font-size: 13px; margin-top: 5px; font-weight: 600; }
+.report-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.report-stat { font-size: 13px; padding: 4px 11px; border: 1px solid var(--line); border-radius: 999px; }
+.report-stat b { font-weight: 800; }
+.report-stat.st-open b { color: var(--danger); }
+.report-stat.st-prog b { color: var(--warn); }
+.report-stat.st-closed b { color: var(--ok); }
+.report-stat.st-stale { border-color: var(--danger); color: var(--danger); }
+
+.print-asset { break-inside: avoid; page-break-inside: avoid; margin-bottom: 24px; }
+.print-asset-name { font-size: 17px; font-weight: 800; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.print-asset-code { color: var(--muted); font-weight: 600; }
+.print-asset-count { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 600; }
+.print-asset-body { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 640px) { .print-asset-body { grid-template-columns: 1fr; } }
+.print-still { position: relative; display: block; }
+.print-still img { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); display: block; }
+.print-pin { position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50%; color: #fff; font-family: var(--mono); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+.print-snag-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.print-snag-list li { display: flex; gap: 9px; break-inside: avoid; }
+.print-snag-n { flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.print-snag-body { min-width: 0; }
+.print-snag-problem { font-weight: 600; font-size: 14px; line-height: 1.35; }
+.print-snag-sol { color: var(--muted); font-weight: 400; }
+.print-snag-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.print-badge { font-weight: 700; color: var(--ink-2); }
+.print-badge.st-open { color: var(--danger); }
+.print-badge.st-in_progress { color: var(--warn); }
+.print-badge.st-closed { color: var(--ok); }
+.report-foot { display: none; }
 
 /* walkthrough (full-bleed present) */
 .walk-stage { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); }
@@ -629,10 +656,16 @@ button { font-family: inherit; }
 .wps-dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
 .wps-status { color: var(--muted); font-family: var(--mono); font-size: 11px; margin-left: auto; white-space: nowrap; }
 
+@page { margin: 15mm; }
 @media print {
   .no-print, .topbar, .tabbar { display: none !important; }
-  .wrap { max-width: 100%; }
-  .print-asset { page-break-inside: avoid; }
+  .wrap, .print-root { max-width: 100%; padding: 0; }
+  .print-asset, .print-still, .print-still img, .print-snag-list li { page-break-inside: avoid; break-inside: avoid; }
+  .report-foot { display: block; text-align: center; color: var(--muted); font-size: 11px; margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); }
+  /* keep the status colours (pins, badges) in the printed PDF */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* force a light report even if the viewer's device is in dark mode */
+  :root { --bg: #fff; --surface: #fff; --ink: #141b26; --ink-2: #3d4756; --muted: #6b7480; --line: #d5dae2; }
 }
 
 /* ── cloud sync panel (Home) ── */

@@ -59,7 +59,15 @@ export function SnagListScreen() {
     a.download = `snags-${workspace.name.replace(/\W+/g, '-').toLowerCase()}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };
 
-  if (printing) return <PrintView wsName={workspace.name} assets={assets} rows={rows} onDone={() => setPrinting(false)} />;
+  const activeFilters = [
+    statusF !== 'all' ? SNAG_STATUS_META[statusF].label : null,
+    ageF === 'stale' ? `stale (open > ${SNAG_STALE_DAYS}d)` : null,
+    assetF !== 'all' ? (assets.find(a => a.id === assetF)?.name ?? 'one asset') : null,
+    ownerF !== 'all' ? ownerF : null,
+    search.trim() ? `“${search.trim()}”` : null,
+  ].filter(Boolean) as string[];
+
+  if (printing) return <PrintView wsName={workspace.name} assets={assets} rows={filtered} filterNote={activeFilters.join(' · ')} onDone={() => setPrinting(false)} />;
 
   return (
     <div className="wrap">
@@ -122,23 +130,74 @@ export function SnagListScreen() {
   );
 }
 
-function PrintView({ wsName, assets, rows, onDone }: { wsName: string; assets: SnagAsset[]; rows: Row[]; onDone: () => void }) {
+function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: string; assets: SnagAsset[]; rows: Row[]; filterNote: string; onDone: () => void }) {
   const groups = assets.map(a => ({ asset: a, snags: rows.filter(r => r.assetId === a.id).map(r => r.snag) })).filter(g => g.snags.length > 0);
+  const all = rows.map(r => r.snag);
+  const c = { open: 0, in_progress: 0, closed: 0, stale: 0 };
+  for (const s of all) { c[s.status]++; if (isStaleOpen(s)) c.stale++; }
+  const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+
   return (
     <div className="wrap print-root">
-      <div className="subhead no-print"><button className="btn btn-ghost" onClick={onDone}>‹ Back</button><div style={{ flex: 1 }} /><button className="btn btn-primary" onClick={() => window.print()}>Print</button></div>
-      <div className="mark" style={{ fontSize: 22 }}>{wsName} — snag sheet</div>
-      {groups.length === 0 ? <p className="sub" style={{ marginTop: 10 }}>No snags to print.</p> : groups.map(g => <PrintAsset key={g.asset.id} asset={g.asset} snags={g.snags} />)}
+      <div className="subhead no-print">
+        <button className="btn btn-ghost" onClick={onDone}>‹ Back</button>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-primary" onClick={() => window.print()}>Save as PDF / Print</button>
+      </div>
+      <p className="sub no-print" style={{ marginTop: -4, marginBottom: 12 }}>In the print dialog choose “Save as PDF” as the destination to email it.</p>
+
+      <header className="report-head">
+        <h1>Snag report</h1>
+        <p className="report-meta">{wsName} · {today}</p>
+        {filterNote && <p className="report-filter">Showing: {filterNote}</p>}
+        <div className="report-stats">
+          <span className="report-stat"><b>{all.length}</b> snag{all.length === 1 ? '' : 's'}</span>
+          <span className="report-stat"><b>{groups.length}</b> asset{groups.length === 1 ? '' : 's'}</span>
+          <span className="report-stat st-open"><b>{c.open}</b> open</span>
+          <span className="report-stat st-prog"><b>{c.in_progress}</b> in progress</span>
+          <span className="report-stat st-closed"><b>{c.closed}</b> closed</span>
+          {c.stale > 0 && <span className="report-stat st-stale"><b>{c.stale}</b> stale</span>}
+        </div>
+      </header>
+
+      {groups.length === 0 ? <p className="sub" style={{ marginTop: 16 }}>No snags to report.</p>
+        : groups.map(g => <PrintAsset key={g.asset.id} asset={g.asset} snags={g.snags} />)}
+
+      <p className="report-foot">Finder · snag report · {wsName}</p>
     </div>
   );
 }
+
 function PrintAsset({ asset, snags }: { asset: SnagAsset; snags: Snag[] }) {
   const url = useBlobUrl(asset.stillKey);
   return (
-    <div className="print-asset">
-      <h3 style={{ marginTop: 16 }}>{asset.name}{asset.code ? ` · ${asset.code}` : ''}</h3>
-      <div className="print-still">{url && <img src={url} alt={asset.name} />}{snags.map((s, i) => <span key={s.id} className="print-pin" style={{ left: `${s.xPct}%`, top: `${s.yPct}%`, background: SNAG_STATUS_META[s.status].color }}>{i + 1}</span>)}</div>
-      <ol className="print-snags">{snags.map(s => <li key={s.id}><b>{s.problem}</b>{s.proposedSolution ? ` — ${s.proposedSolution}` : ''} <span className="print-status">[{SNAG_STATUS_META[s.status].label}{s.owner ? `, ${s.owner}` : ''}]</span></li>)}</ol>
-    </div>
+    <section className="print-asset">
+      <h2 className="print-asset-name">
+        {asset.name}{asset.code ? <span className="print-asset-code"> · {asset.code}</span> : null}
+        <span className="print-asset-count">{snags.length} snag{snags.length === 1 ? '' : 's'}</span>
+      </h2>
+      <div className="print-asset-body">
+        <div className="print-still">
+          {url && <img src={url} alt={asset.name} />}
+          {snags.map((s, i) => <span key={s.id} className="print-pin" style={{ left: `${s.xPct}%`, top: `${s.yPct}%`, background: SNAG_STATUS_META[s.status].color }}>{i + 1}</span>)}
+        </div>
+        <ol className="print-snag-list">
+          {snags.map((s, i) => (
+            <li key={s.id}>
+              <span className="print-snag-n" style={{ background: SNAG_STATUS_META[s.status].color }}>{i + 1}</span>
+              <div className="print-snag-body">
+                <div className="print-snag-problem">{s.problem}{s.proposedSolution ? <span className="print-snag-sol"> → {s.proposedSolution}</span> : null}</div>
+                <div className="print-snag-meta">
+                  <span className={'print-badge st-' + s.status}>{SNAG_STATUS_META[s.status].label}</span>
+                  {s.owner ? <span>· {s.owner}</span> : null}
+                  <span>· raised {dateNice(s.raisedAt)}</span>
+                  {s.closedAt ? <span>· closed {dateNice(s.closedAt)}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
   );
 }
