@@ -31,8 +31,17 @@ export async function signIn(email: string, password: string): Promise<void> {
 export async function signUp(email: string, password: string): Promise<{ needsConfirm: boolean }> {
   if (!supabase) throw new Error('Cloud sync isn’t configured.');
   const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-  if (error) throw error;
+  if (error) throw mapSignUpError(error);
   return { needsConfirm: !data.session };
+}
+
+/** The invite gate lives in a DB trigger, so a rejected sign-up comes back as a
+ *  generic auth/DB error. Translate that into the real reason for the user. */
+function mapSignUpError(error: { message?: string }): Error {
+  const m = (error.message ?? '').toLowerCase();
+  if (m.includes('finder_not_invited') || m.includes('database error'))
+    return new Error('This email hasn’t been invited yet. Ask your administrator to add it, then try again.');
+  return new Error(error.message || 'Could not create your account.');
 }
 export async function signOut(): Promise<void> {
   if (supabase) await supabase.auth.signOut();

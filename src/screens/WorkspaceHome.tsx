@@ -8,6 +8,8 @@ import { EmptyState } from '../ui/EmptyState';
 import { Wordmark } from '../ui/Logo';
 import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
+import { AdminPanel } from '../cloud/AdminPanel';
+import { useProfile } from '../cloud/admin';
 
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
@@ -15,6 +17,8 @@ export function WorkspaceHome() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
+  const { profile } = useProfile();
+  const [adminOpen, setAdminOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -43,6 +47,17 @@ export function WorkspaceHome() {
       </div>
 
       <CloudPanel />
+
+      {profile?.is_super && (
+        <>
+          <button className="admin-row" onClick={() => setAdminOpen(true)}>
+            <span className="admin-ic" aria-hidden>◆</span>
+            <span className="cloud-main"><b>Team &amp; invites</b><span className="sub">invite people, see who's joined</span></span>
+            <span className="cloud-go" aria-hidden>›</span>
+          </button>
+          <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+        </>
+      )}
 
       {creating ? (
         <div className="card create-card">
