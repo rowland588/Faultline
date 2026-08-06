@@ -7,6 +7,7 @@ import { useBlobUrl } from './useBlobUrl';
 import { captureFrame } from './frame';
 import { createSegmentFromVideo } from './addSegment';
 import { sectionLabel } from './labels';
+import { useSyncedAt } from '../cloud/session';
 import type { Segment, SnagAsset } from './types';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
@@ -42,7 +43,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
     })();
     // eslint-disable-next-line
   }, [segmentId]);
-  useEffect(() => { void listSegments(wsId).then(setSegs); }, [wsId]);
+  const syncedAt = useSyncedAt();
+  useEffect(() => { void listSegments(wsId).then(setSegs); void loadAssets(); /* eslint-disable-next-line */ }, [wsId, syncedAt]);
 
   const idx = segs.findIndex(s => s.id === segmentId);
   const goSeg = (s?: Segment) => { if (s) nav(`/w/${wsId}/segment/${s.id}`); };

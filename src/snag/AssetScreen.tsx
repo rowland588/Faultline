@@ -8,6 +8,7 @@ import { plural } from '../lib/format';
 import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';
 import { useBlobUrl } from './useBlobUrl';
+import { useSyncedAt } from '../cloud/session';
 import PinImage, { type Pin } from './PinImage';
 import { SNAG_STATUS_META, ageDays, isStaleOpen, type SnagAsset, type Snag, type SnagStatus } from './types';
 
@@ -33,7 +34,8 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
     const seg = await getSegment(a.segmentId);
     setVideoKey(seg?.videoKey);
   };
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [assetId]);
+  const syncedAt = useSyncedAt();
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [assetId, syncedAt]);
 
   const visible = snags.filter(s => showClosed || !(s.status === 'closed' && ageDays(s.closedAt ?? s.raisedAt) > 30));
   const hiddenClosed = snags.length - visible.length;

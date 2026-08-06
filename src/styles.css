@@ -808,6 +808,6 @@ button { font-family: inherit; }
 }
 
 /* Build has no cloud credentials — say so plainly instead of hiding sign-in. */
-.cloud-row.cloud-unconfigured { cursor: default; border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); align-items: flex-start; }
+.cloud-row.cloud-unconfigured { cursor: pointer; border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); align-items: flex-start; }
 .cloud-row.cloud-unconfigured .cloud-ic { color: var(--warn); }
 .cloud-row.cloud-unconfigured .sub { display: block; margin-top: 3px; }

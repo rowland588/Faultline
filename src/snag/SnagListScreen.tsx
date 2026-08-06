@@ -3,6 +3,7 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, updateSnag, setSnagsStatus } from '../db';
 import { useBlobUrl } from './useBlobUrl';
+import { useSyncedAt } from '../cloud/session';
 import { SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, type Snag, type SnagStatus, type SnagAsset } from './types';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
@@ -29,7 +30,8 @@ export function SnagListScreen() {
       .sort((x, y) => x.sequence - y.sequence || x.timestampS - y.timestampS || x.snag.raisedAt - y.snag.raisedAt);
     setRows(rs); setAssets(as);
   };
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id]);
+  const syncedAt = useSyncedAt();
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
 
   const owners = useMemo(() => [...new Set(rows.map(r => r.snag.owner).filter(Boolean))] as string[], [rows]);
   const counts = useMemo(() => { const c = { open: 0, in_progress: 0, closed: 0, stale: 0 }; for (const r of rows) { c[r.snag.status]++; if (isStaleOpen(r.snag)) c.stale++; } return c; }, [rows]);

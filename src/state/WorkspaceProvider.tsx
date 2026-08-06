@@ -9,6 +9,7 @@ import {
   restoreObservation, patchWorkspaceRecord, setLastWorkspace,
 } from '../db';
 import { navReplace } from './useRoute';
+import { useSyncedAt } from '../cloud/session';
 import { BootSplash } from '../ui/Logo';
 
 interface WorkspaceCtx {
@@ -49,12 +50,12 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
     }
   }, [wsId]);
 
+  // Also re-reads after every completed sync, so remotely-changed data shows up.
+  const syncedAt = useSyncedAt();
   useEffect(() => {
-    setWorkspace(null);
-    setObservations([]);
     setMissing(false);
     void reload();
-  }, [wsId, reload]);
+  }, [wsId, reload, syncedAt]);
 
   useEffect(() => { if (missing) navReplace('/'); }, [missing]);
 

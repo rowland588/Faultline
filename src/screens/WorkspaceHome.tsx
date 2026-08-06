@@ -10,6 +10,7 @@ import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { useProfile } from '../cloud/admin';
+import { useSyncedAt } from '../cloud/session';
 
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
@@ -21,6 +22,9 @@ export function WorkspaceHome() {
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
 
+  // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
+  // straight after signing in on a new device) appears without a manual refresh.
+  const syncedAt = useSyncedAt();
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -31,7 +35,7 @@ export function WorkspaceHome() {
       if (alive) setCounts(Object.fromEntries(entries));
     })();
     return () => { alive = false; };
-  }, []);
+  }, [syncedAt]);
 
   const create = async () => {
     if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces

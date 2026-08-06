@@ -7,6 +7,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
+import { useSyncedAt } from '../cloud/session';
 import { sectionLabel } from './labels';
 import type { Segment } from './types';
 
@@ -72,7 +73,8 @@ export function SnagsScreen() {
     }
     setSegs(ss); setNamesBySeg(names); setOpenSnags(snags.filter(s => s.status !== 'closed').length);
   };
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id]);
+  const syncedAt = useSyncedAt();
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
 
   const onFile = async (file: File) => {
     setErr(''); setBusy('Saving the video…');

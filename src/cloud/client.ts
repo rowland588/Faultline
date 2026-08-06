@@ -1,14 +1,12 @@
-/* The Supabase client — the OPTIONAL cloud mirror. Faultline stays local-first:
- * with no env vars (or signed out) the app runs fully offline on IndexedDB.
- * Set the two VITE_SUPABASE_* vars to enable backup + multi-device sync. */
+/* The Supabase client. Credentials are resolved in ./config (env var → saved in
+ * this browser → built-in), so a mis-set or late-added host env var can no
+ * longer leave the app silently signed-out with no way in. */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { cloudConfig } from './config';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+/** True when this app knows where its backend is — sign-in and sync are possible. */
+export const cloudConfigured = Boolean(cloudConfig);
 
-/** True when the build was given Supabase credentials — cloud sync is possible. */
-export const cloudConfigured = Boolean(url && key);
-
-export const supabase: SupabaseClient | null = cloudConfigured
-  ? createClient(url as string, key as string, { auth: { persistSession: true, autoRefreshToken: true } })
+export const supabase: SupabaseClient | null = cloudConfig
+  ? createClient(cloudConfig.url, cloudConfig.key, { auth: { persistSession: true, autoRefreshToken: true } })
   : null;

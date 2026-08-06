@@ -23,6 +23,14 @@ export function useSyncStatus(): SyncStatus {
   return s;
 }
 
+/** Ticks every time a sync FINISHES. Screens put this in their load effect's
+ *  deps so freshly pulled data appears by itself — without it, a device that
+ *  syncs in the background keeps showing whatever it read at mount (i.e. an
+ *  empty list right after signing in on a new device). */
+export function useSyncedAt(): number | null {
+  return useSyncStatus().lastSyncedAt;
+}
+
 export async function signIn(email: string, password: string): Promise<void> {
   if (!supabase) throw new Error('Cloud sync isn’t configured.');
   const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });

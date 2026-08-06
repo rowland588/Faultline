@@ -16,17 +16,14 @@ export function CloudPanel() {
 
   if (!cloudConfigured) {
     return (
-      <div className="cloud-row cloud-unconfigured">
+      <button className="cloud-row cloud-unconfigured" onClick={() => { localStorage.removeItem('faultline.localOnly'); window.location.reload(); }}>
         <span className="cloud-ic" aria-hidden>⚠</span>
         <span className="cloud-main">
-          <b>Offline mode — no account on this build</b>
-          <span className="sub">
-            This copy was built without cloud credentials, so sign-in and sync are off and your
-            work stays on this device. Fix: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in
-            the host, then redeploy <em>without</em> the build cache.
-          </span>
+          <b>Offline mode — not connected to an account</b>
+          <span className="sub">Your work is only on this device. Tap to connect it for sign-in, backup and sync.</span>
         </span>
-      </div>
+        <span className="cloud-go" aria-hidden>›</span>
+      </button>
     );
   }
   if (loading) return null;
