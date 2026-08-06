@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { nav, goBack } from '../state/useRoute';
-import { getSegment, listSegments, assetsForSegment, snagsForAsset, addSnagAsset, putBlob } from '../db';
+import { getSegment, listSegments, updateSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
@@ -20,6 +20,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [addingVideo, setAddingVideo] = useState(false);
+  const [renamingSeg, setRenamingSeg] = useState(false);
   const [err, setErr] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const addRef = useRef<HTMLInputElement>(null);
@@ -52,6 +53,14 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       nav(`/w/${wsId}/segment/${id}`); // jump into the new video
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
     finally { setAddingVideo(false); if (addRef.current) addRef.current.value = ''; }
+  };
+
+  const renameSeg = async (nm: string) => {
+    if (!seg) return;
+    await updateSegment({ ...seg, name: nm.trim() || undefined });
+    const s = await getSegment(segmentId); setSeg(s ?? null);   // refresh title
+    await listSegments(wsId).then(setSegs);                     // refresh strip labels
+    setRenamingSeg(false);
   };
 
   const seek = (to: number) => { const v = videoRef.current; if (v) v.currentTime = Math.max(0, Math.min(dur || v.duration || 0, to)); };
@@ -123,7 +132,12 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         </button>
       </div>
 
-      <div className="mark" style={{ fontSize: 22 }}>{seg?.name || `Segment ${seg?.sequence ?? ''}`}</div>
+      <div className="seg-title-row">
+        <button className="asset-title" style={{ width: 'auto' }} onClick={() => seg && setRenamingSeg(true)}>
+          <span className="mark" style={{ fontSize: 22 }}>{seg?.name || `Segment ${seg?.sequence ?? ''}`}</span>
+        </button>
+        {seg && <button className="btn seg-rename-btn" onClick={() => setRenamingSeg(true)}>✎ Name this video</button>}
+      </div>
       <p className="sub" style={{ marginTop: 4 }}>Scrub to a machine, pause, and mark it. That exact frame becomes its still.{segs.length > 1 ? ' Switch videos with the numbers above.' : ''}</p>
 
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
@@ -168,6 +182,28 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           <button className="btn btn-ghost" onClick={cancel}>Cancel</button>
         </div>
       </Sheet>
+
+      <Sheet open={renamingSeg} onClose={() => setRenamingSeg(false)} title="Name this video">
+        {seg && <SegNameForm key={seg.id} initial={seg.name ?? ''} placeholder={`Segment ${seg.sequence}`} onSave={renameSeg} onClose={() => setRenamingSeg(false)} />}
+      </Sheet>
     </div>
+  );
+}
+
+/** The little name form for a video/section. Kept simple — one field. */
+function SegNameForm({ initial, placeholder, onSave, onClose }: { initial: string; placeholder: string; onSave: (n: string) => Promise<void>; onClose: () => void }) {
+  const [name, setName] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const save = async () => { setBusy(true); try { await onSave(name); } finally { setBusy(false); } };
+  return (
+    <>
+      <p className="sub" style={{ marginBottom: 10 }}>Give this video a name so you can tell your sections apart — e.g. “Infeed”, “Filler → capper”, “Outfeed”.</p>
+      <div className="field-label">Video name</div>
+      <input className="text-input" autoFocus value={name} placeholder={placeholder} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
+      <div className="row-end" style={{ marginTop: 14 }}>
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+      </div>
+    </>
   );
 }

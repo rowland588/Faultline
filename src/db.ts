@@ -436,6 +436,11 @@ export async function nextSegmentSequence(workspaceId: ID): Promise<number> {
 export async function addSegment(seg: Segment): Promise<void> {
   await (await getDB()).put('segments', { ...seg, updatedAt: now() });
 }
+/** Edit a segment (name it). Stamps updatedAt so the change syncs and shows
+ *  everywhere the segment is read. */
+export async function updateSegment(seg: Segment): Promise<void> {
+  await (await getDB()).put('segments', { ...seg, updatedAt: now() });
+}
 /** Delete a segment and everything below it: its assets, their snags, and every
  *  media blob any of them holds — one transaction, no orphaned blobs. */
 export async function deleteSegment(id: ID): Promise<void> {
