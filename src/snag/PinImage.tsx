@@ -70,7 +70,11 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
   const hit = 44 / scale, dot = 24 / scale;
 
   return (
-    <div className="pin-wrap" onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+    // When NOT zoomed, allow normal vertical page scrolling over the image (a
+    // one-finger drag scrolls the page past it). Only once zoomed do we take over
+    // touch to pan the image — otherwise the tall still would trap the scroll.
+    <div className="pin-wrap" style={{ touchAction: scale > 1 ? 'none' : 'pan-y' }}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove}
       onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
       onDoubleClick={() => { setScale(s => (s > 1 ? 1 : 2)); setTx(0); setTy(0); }}>
       <div className="pin-layer" style={{ transform: `translate(${tx}px, ${ty}px) scale(${scale})` }}>
