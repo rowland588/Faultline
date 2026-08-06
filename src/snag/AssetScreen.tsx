@@ -33,8 +33,11 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const hiddenClosed = snags.length - visible.length;
   const openCount = snags.filter(s => s.status !== 'closed').length;
 
-  const pins: Pin[] = visible.map(s => ({ id: s.id, xPct: s.xPct, yPct: s.yPct, color: SNAG_STATUS_META[s.status].color, label: s.problem, active: editing?.id === s.id }));
-  if (draft) pins.push({ id: '__draft', xPct: draft.xPct, yPct: draft.yPct, color: 'var(--brand)', active: true });
+  // Stable reference number per snag (raised order), shown on the pin AND in the
+  // list AND in the printed report, so "snag 3" means the same everywhere.
+  const numById = new Map(snags.map((s, i) => [s.id, i + 1] as const));
+  const pins: Pin[] = visible.map(s => ({ id: s.id, xPct: s.xPct, yPct: s.yPct, color: SNAG_STATUS_META[s.status].color, label: s.problem, n: numById.get(s.id), active: editing?.id === s.id }));
+  if (draft) pins.push({ id: '__draft', xPct: draft.xPct, yPct: draft.yPct, color: 'var(--brand)', n: snags.length + 1, active: true });
 
   return (
     <div className="wrap">
@@ -57,7 +60,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         {visible.length === 0 ? <p className="sub">None yet — tap the image above where you see a problem.</p>
           : visible.map(s => (
             <button key={s.id} className="snag-line-row" onClick={() => { setDraft(null); setEditing(s); }}>
-              <span className="snag-dot-sm" style={{ background: SNAG_STATUS_META[s.status].color }} />
+              <span className="snag-dot-sm" style={{ background: SNAG_STATUS_META[s.status].color }}>{numById.get(s.id)}</span>
               <span className="snag-line-main">
                 <span className="snag-line-problem">{s.problem}</span>
                 <span className="snag-line-meta">{SNAG_STATUS_META[s.status].label}{s.owner ? ` · ${s.owner}` : ''} · {ageDays(s.raisedAt)}d{isStaleOpen(s) ? ' · ⚠ stale' : ''}</span>

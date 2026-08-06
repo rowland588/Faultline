@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { nav, goBack } from '../state/useRoute';
-import { getSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob } from '../db';
+import { getSegment, listSegments, assetsForSegment, snagsForAsset, addSnagAsset, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
@@ -9,6 +9,7 @@ import type { Segment, SnagAsset } from './types';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
   const [seg, setSeg] = useState<Segment | null>(null);
+  const [segs, setSegs] = useState<Segment[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
   const [openCounts, setOpenCounts] = useState<Map<string, number>>(new Map());
   const [t, setT] = useState(0);
@@ -36,6 +37,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
     })();
     // eslint-disable-next-line
   }, [segmentId]);
+  useEffect(() => { void listSegments(wsId).then(setSegs); }, [wsId]);
+
+  const idx = segs.findIndex(s => s.id === segmentId);
+  const goSeg = (s?: Segment) => { if (s) nav(`/w/${wsId}/segment/${s.id}`); };
 
   const seek = (to: number) => { const v = videoRef.current; if (v) v.currentTime = Math.max(0, Math.min(dur || v.duration || 0, to)); };
   const step = (d: number) => { const v = videoRef.current; if (v) { v.pause(); seek(v.currentTime + d); } };
@@ -82,10 +87,29 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => goBack(`/w/${wsId}/snags`)}>‹ Segments</button>
+        <button className="btn btn-ghost" onClick={() => goBack(`/w/${wsId}/snags`)}>‹ All segments</button>
+        <div style={{ flex: 1 }} />
+        {segs.length > 1 && (
+          <div className="seg-nav">
+            <button className="seg-nav-arrow" disabled={idx <= 0} onClick={() => goSeg(segs[idx - 1])} aria-label="Previous segment">‹</button>
+            <span className="seg-nav-pos">{idx + 1} / {segs.length}</span>
+            <button className="seg-nav-arrow" disabled={idx < 0 || idx >= segs.length - 1} onClick={() => goSeg(segs[idx + 1])} aria-label="Next segment">›</button>
+          </div>
+        )}
       </div>
+
+      {segs.length > 1 && (
+        <div className="seg-strip">
+          {segs.map((s, i) => (
+            <button key={s.id} className={'seg-chip' + (s.id === segmentId ? ' on' : '')} onClick={() => goSeg(s)} title={s.name || `Segment ${s.sequence}`}>
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="mark" style={{ fontSize: 22 }}>{seg?.name || `Segment ${seg?.sequence ?? ''}`}</div>
-      <p className="sub" style={{ marginTop: 4 }}>Scrub to a machine, pause, and mark it. That exact frame becomes its still.</p>
+      <p className="sub" style={{ marginTop: 4 }}>Scrub to a machine, pause, and mark it. That exact frame becomes its still.{segs.length > 1 ? ' Switch videos with the numbers above.' : ''}</p>
 
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 

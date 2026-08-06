@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 
-export interface Pin { id: string; xPct: number; yPct: number; color: string; label?: string; active?: boolean; }
+export interface Pin { id: string; xPct: number; yPct: number; color: string; label?: string; n?: number; active?: boolean; }
 
 /** A large image you can pinch-zoom/pan, with coloured pins anchored by
  *  x/y PERCENTAGE. Tap empty space to place (unless readOnly); tap a pin to open
@@ -67,7 +67,7 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
   };
 
   const display = deOverlap(pins);
-  const hit = 44 / scale, dot = 15 / scale;
+  const hit = 44 / scale, dot = 24 / scale;
 
   return (
     <div className="pin-wrap" onPointerDown={onPointerDown} onPointerMove={onPointerMove}
@@ -81,7 +81,7 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
           <button key={p.id} type="button" className={'pin-dot' + (p.active ? ' active' : '')} title={p.label}
             style={{ left: `${p.xPct}%`, top: `${p.yPct}%`, width: hit, height: hit }}
             onClick={ev => { ev.stopPropagation(); onPinTap?.(p.id); }}>
-            <span className="pin-core" style={{ width: dot, height: dot, background: p.color }} />
+            <span className="pin-core" style={{ width: dot, height: dot, background: p.color, fontSize: 12.5 / scale }}>{p.n ?? ''}</span>
           </button>
         ))}
       </div>

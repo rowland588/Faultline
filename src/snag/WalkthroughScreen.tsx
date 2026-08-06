@@ -84,7 +84,7 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
 
 function ReadOnlyStill({ asset, snags }: { asset: SnagAsset; snags: Snag[] }) {
   const url = useBlobUrl(asset.stillKey);
-  const pins: Pin[] = snags.map(s => ({ id: s.id, xPct: s.xPct, yPct: s.yPct, color: SNAG_STATUS_META[s.status].color, label: s.problem }));
+  const pins: Pin[] = snags.map((s, i) => ({ id: s.id, xPct: s.xPct, yPct: s.yPct, color: SNAG_STATUS_META[s.status].color, label: s.problem, n: i + 1 }));
   return (
     <>
       <PinImage src={url} pins={pins} readOnly alt={asset.name} />
