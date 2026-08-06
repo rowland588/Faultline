@@ -1,0 +1,102 @@
+/* The front door. Shown before the app when cloud sync is configured and no one
+ * is signed in — a calm hero plus an inline sign-in / create-account card. The
+ * app stays offline-first, so there's always a quiet "use on this device" way in
+ * that skips the account entirely. Once you sign in (or choose local), you land
+ * in the app and don't see this again. */
+import { useState } from 'react';
+import { LogoMark } from '../ui/Logo';
+import { signIn, signUp } from '../cloud/session';
+
+const POINTS = [
+  ['Discover the problems', 'Walk the line and log what you find — lost time, minor stops, and faults you pin straight onto a video-walk still.'],
+  ['Make them visible', 'Every finding becomes a picture: a Pareto and a cost for the loss, a tracked snag list for the faults — nothing stays buried in a notebook.'],
+  ['Shared, and always with you', 'Works offline on the floor, then backs up and syncs to every device and teammate you invite.'],
+] as const;
+
+export function Landing() {
+  const [mode, setMode] = useState<'in' | 'up'>('in');
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
+
+  const submit = async () => {
+    if (busy || !email.trim() || !pw) return;
+    setErr(''); setOk(''); setBusy(true);
+    try {
+      if (mode === 'in') await signIn(email, pw); // session change unmounts the landing
+      else {
+        const { needsConfirm } = await signUp(email, pw);
+        if (needsConfirm) setOk('Account created — check your email to confirm, then sign in.');
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="landing">
+      <div className="landing-inner">
+        <section className="landing-hero">
+          <div className="landing-brand">
+            <LogoMark size={40} />
+            <span className="landing-name">Faultline</span>
+          </div>
+          <h1 className="landing-h1">Find the problems. Make them visible.</h1>
+          <p className="landing-lede">
+            A field-first way to walk a line, surface what's wrong — lost time and
+            physical faults alike — and turn it into something everyone can see and
+            act on. Built for in-house CI and ops teams.
+          </p>
+          <ul className="landing-points">
+            {POINTS.map(([t, d]) => (
+              <li key={t}>
+                <span className="landing-point-dot" aria-hidden />
+                <span><b>{t}</b><span className="sub">{d}</span></span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="landing-auth card">
+          <div className="landing-auth-head">
+            <h2 className="landing-auth-title">{mode === 'in' ? 'Sign in' : 'Create your account'}</h2>
+            <p className="sub">{mode === 'in' ? 'Back up your work and sync it across devices.' : 'Register with the email your admin invited — you set your own password.'}</p>
+          </div>
+
+          <label className="field-label">Email</label>
+          <input
+            className="text-input" type="email" inputMode="email"
+            autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
+            value={email} onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
+          />
+          <label className="field-label" style={{ marginTop: 10 }}>Password</label>
+          <input
+            className="text-input" type="password"
+            autoComplete="new-password" /* stops the browser pre-filling a saved password on this shared-safe form */
+            value={pw} onChange={e => setPw(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
+          />
+
+          {err && <p className="sub landing-msg" style={{ color: 'var(--danger)' }}>{err}</p>}
+          {ok && <p className="sub landing-msg" style={{ color: 'var(--ok)' }}>{ok}</p>}
+
+          <button className="btn btn-primary btn-lg landing-submit" disabled={busy || !email.trim() || !pw} onClick={submit}>
+            {busy ? 'Please wait…' : mode === 'in' ? 'Sign in' : 'Create account'}
+          </button>
+
+          <button
+            className="landing-toggle"
+            onClick={() => { setMode(m => (m === 'in' ? 'up' : 'in')); setErr(''); setOk(''); }}
+          >
+            {mode === 'in' ? 'Been invited? Create your account' : 'Already have an account? Sign in'}
+          </button>
+        </section>
+      </div>
+    </div>
+  );
+}

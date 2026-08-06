@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://faultline.opexelevate.co.uk/sitemap.xml

@@ -1,0 +1,40 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
+
+// Faultline — local-first PWA. The service worker precaches the app shell so it
+// launches with no network (data already lives in IndexedDB); autoUpdate keeps
+// installed floor tablets current. The manifest makes it installable.
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
+      manifest: {
+        name: 'Faultline — find the problems, make them visible',
+        short_name: 'Faultline',
+        description: 'Walk the line, log losses and pin faults on a video-walk still, and turn what you find into a Pareto, a cost, and a tracked snag list. Offline-first, synced across your devices.',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        orientation: 'portrait',
+        background_color: '#14181f',
+        theme_color: '#14181f',
+        icons: [
+          // PNG for reliable install on iOS (SVG icons are ignored there) and Android.
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'mark.svg', sizes: 'any', type: 'image/svg+xml' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+      },
+    }),
+  ],
+});
