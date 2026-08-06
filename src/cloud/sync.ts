@@ -141,6 +141,15 @@ export async function syncNow(): Promise<void> {
   }
 }
 
+/** Forget what's been synced and push/pull EVERYTHING again. For recovery — e.g.
+ *  after the cloud tables were rebuilt. Upserts are idempotent, so this is safe
+ *  to run any time; it just costs bandwidth. */
+export async function fullResync(): Promise<void> {
+  await setSyncCursor(0);
+  await metaPut('uploaded', { keys: [] });
+  await syncNow();
+}
+
 /* ---------- lifecycle: sync on focus / online / interval, debounced ---------- */
 let started = false;
 let timer: number | undefined;

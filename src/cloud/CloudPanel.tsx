@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
 import { useSession, useSyncStatus, signIn, signUp, signOut } from './session';
-import { syncNow } from './sync';
+import { syncNow, fullResync } from './sync';
 import { Sheet } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 
@@ -40,6 +40,7 @@ export function CloudPanel() {
       </span>
       <span className="cloud-actions">
         <button className="btn" onClick={() => void syncNow()}>Sync now</button>
+        <button className="btn" title="Re-send and re-fetch everything — use if devices are out of step" onClick={() => void fullResync()}>Full re-sync</button>
         <button className="btn btn-ghost" onClick={() => void signOut()}>Sign out</button>
       </span>
     </div>
