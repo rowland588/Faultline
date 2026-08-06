@@ -11,11 +11,18 @@ import type { Segment } from './types';
 
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
-function SegRow({ seg, assetCount, first, last, onOpen, onUp, onDown, onRename, onDelete }: {
-  seg: Segment; assetCount: number; first: boolean; last: boolean;
+function SegRow({ seg, assetNames, first, last, onOpen, onUp, onDown, onRename, onDelete }: {
+  seg: Segment; assetNames: string[]; first: boolean; last: boolean;
   onOpen: () => void; onUp: () => void; onDown: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const poster = useBlobUrl(seg.posterKey);
+  // Prefer what's actually meaningful: an explicit segment name, else the asset
+  // name(s) already marked in it, else the bare "Segment N".
+  const label = seg.name
+    ? seg.name
+    : assetNames.length === 1 ? assetNames[0]
+    : assetNames.length > 1 ? `${assetNames[0]} + ${assetNames.length - 1} more`
+    : `Segment ${seg.sequence}`;
   return (
     <div className="seg-row">
       <div className="seg-order">
@@ -25,8 +32,8 @@ function SegRow({ seg, assetCount, first, last, onOpen, onUp, onDown, onRename, 
       </div>
       <button className="seg-poster" onClick={onOpen}>{poster ? <img src={poster} alt="" /> : <span>▶</span>}</button>
       <button className="seg-main" onClick={onOpen}>
-        <span className="seg-name">{seg.name || `Segment ${seg.sequence}`}</span>
-        <span className="seg-meta">{fmtDur(seg.durationS)} · {plural(assetCount, 'asset')}</span>
+        <span className="seg-name">{label}</span>
+        <span className="seg-meta">{fmtDur(seg.durationS)} · {plural(assetNames.length, 'asset')}</span>
       </button>
       <button className="seg-edit" onClick={onRename} aria-label="Rename segment">✎</button>
       <button className="seg-del" onClick={onDelete} aria-label="Delete segment">×</button>
@@ -55,7 +62,7 @@ function SegNameForm({ initial, placeholder, onSave, onClose }: { initial: strin
 export function SnagsScreen() {
   const { workspace } = useWorkspace();
   const [segs, setSegs] = useState<Segment[]>([]);
-  const [counts, setCounts] = useState<Map<string, number>>(new Map());
+  const [namesBySeg, setNamesBySeg] = useState<Map<string, string[]>>(new Map());
   const [openSnags, setOpenSnags] = useState(0);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
@@ -64,9 +71,11 @@ export function SnagsScreen() {
 
   const load = async () => {
     const [ss, assets, snags] = await Promise.all([listSegments(workspace.id), listSnagAssets(workspace.id), snagsForWorkspace(workspace.id)]);
-    const c = new Map<string, number>();
-    for (const a of assets) c.set(a.segmentId, (c.get(a.segmentId) ?? 0) + 1);
-    setSegs(ss); setCounts(c); setOpenSnags(snags.filter(s => s.status !== 'closed').length);
+    const names = new Map<string, string[]>();
+    for (const a of [...assets].sort((x, y) => x.timestampS - y.timestampS)) {
+      names.set(a.segmentId, [...(names.get(a.segmentId) ?? []), a.name]);
+    }
+    setSegs(ss); setNamesBySeg(names); setOpenSnags(snags.filter(s => s.status !== 'closed').length);
   };
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id]);
 
@@ -88,12 +97,12 @@ export function SnagsScreen() {
   };
 
   const remove = async (seg: Segment) => {
-    const n = counts.get(seg.id) ?? 0;
+    const n = (namesBySeg.get(seg.id) ?? []).length;
     if (!window.confirm(`Delete "${seg.name || `Segment ${seg.sequence}`}"? This also removes ${plural(n, 'asset')} and all their snags. This can't be undone.`)) return;
     await deleteSegment(seg.id); await load();
   };
 
-  const totalAssets = [...counts.values()].reduce((a, b) => a + b, 0);
+  const totalAssets = [...namesBySeg.values()].reduce((a, b) => a + b.length, 0);
 
   return (
     <div className="wrap">
@@ -123,7 +132,7 @@ export function SnagsScreen() {
         <div className="card">
           <div className="field-label" style={{ marginBottom: 8 }}>Segments · walk order</div>
           {segs.map((seg, i) => (
-            <SegRow key={seg.id} seg={seg} assetCount={counts.get(seg.id) ?? 0} first={i === 0} last={i === segs.length - 1}
+            <SegRow key={seg.id} seg={seg} assetNames={namesBySeg.get(seg.id) ?? []} first={i === 0} last={i === segs.length - 1}
               onOpen={() => nav(`/w/${workspace.id}/segment/${seg.id}`)}
               onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)}
               onRename={() => setRenaming(seg)} onDelete={() => remove(seg)} />
