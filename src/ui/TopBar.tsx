@@ -4,11 +4,14 @@ import { nav } from '../state/useRoute';
 import { deleteWorkspace } from '../db';
 import { Sheet, SheetRow } from './Sheet';
 import { LogoMark } from './Logo';
+import { cloudConfigured } from '../cloud/client';
+import { useSession, signOut } from '../cloud/session';
 
 /** The workspace's title bar. The name is the switcher handle; the menu holds
- *  the quieter destinations (log, settings) and the danger zone. */
+ *  the quieter destinations (log, settings), the account, and the danger zone. */
 export function TopBar() {
   const { workspace, observations } = useWorkspace();
+  const { session } = useSession();
   const [menu, setMenu] = useState(false);
 
   const go = (to: string) => { setMenu(false); nav(to); };
@@ -17,6 +20,11 @@ export function TopBar() {
     setMenu(false);
     await deleteWorkspace(workspace.id);
     nav('/');
+  };
+  const logout = async () => {
+    if (!window.confirm('Sign out of Finder on this device? Your work is saved and will sync back when you sign in again.')) return;
+    setMenu(false);
+    await signOut(); // session clears → the app returns to the sign-in screen
   };
 
   return (
@@ -38,6 +46,9 @@ export function TopBar() {
         <SheetRow label="Workspace settings" onClick={() => go(`/w/${workspace.id}/settings`)} />
         <SheetRow label="All workspaces" hint="switch" onClick={() => go('/')} />
         <SheetRow label="Delete this workspace" danger onClick={remove} />
+        {cloudConfigured && session && (
+          <SheetRow label="Sign out" hint={session.user.email ?? 'signed in'} onClick={logout} />
+        )}
       </Sheet>
     </header>
   );
