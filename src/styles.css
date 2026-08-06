@@ -811,3 +811,4 @@ button { font-family: inherit; }
 .cloud-row.cloud-unconfigured { cursor: pointer; border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); align-items: flex-start; }
 .cloud-row.cloud-unconfigured .cloud-ic { color: var(--warn); }
 .cloud-row.cloud-unconfigured .sub { display: block; margin-top: 3px; }
+.landing-inner-solo { grid-template-columns: 1fr; max-width: 560px; }

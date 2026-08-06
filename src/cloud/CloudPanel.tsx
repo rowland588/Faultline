@@ -14,19 +14,9 @@ export function CloudPanel() {
   const status = useSyncStatus();
   const [open, setOpen] = useState(false);
 
-  if (!cloudConfigured) {
-    return (
-      <button className="cloud-row cloud-unconfigured" onClick={() => { localStorage.removeItem('faultline.localOnly'); window.location.reload(); }}>
-        <span className="cloud-ic" aria-hidden>⚠</span>
-        <span className="cloud-main">
-          <b>Offline mode — not connected to an account</b>
-          <span className="sub">Your work is only on this device. Tap to connect it for sign-in, backup and sync.</span>
-        </span>
-        <span className="cloud-go" aria-hidden>›</span>
-      </button>
-    );
-  }
-  if (loading) return null;
+  // Unreachable in practice — the Router blocks an unconfigured build before any
+  // screen renders — but kept honest rather than silently rendering nothing.
+  if (!cloudConfigured || loading) return null;
 
   if (!session) {
     return (
