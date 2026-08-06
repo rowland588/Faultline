@@ -61,45 +61,64 @@ async function openAndImport(): Promise<IDBPDatabase<FinderDB>> {
   return db;
 }
 
-function openMain(): Promise<IDBPDatabase<FinderDB>> {
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones'] as const;
+
+/** Create any store our schema needs that the DB lacks. Version-agnostic and
+ *  idempotent, so it works whether we open a fresh DB or one another build left
+ *  at a higher version. */
+function ensureStores(db: IDBPDatabase<FinderDB>): void {
+  if (!db.objectStoreNames.contains('workspaces')) {
+    db.createObjectStore('workspaces', { keyPath: 'id' }).createIndex('by_updatedAt', 'updatedAt');
+  }
+  if (!db.objectStoreNames.contains('observations')) {
+    const ob = db.createObjectStore('observations', { keyPath: 'id' });
+    ob.createIndex('by_workspace', 'workspaceId');
+    ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
+    ob.createIndex('by_updatedAt', 'updatedAt');
+  }
+  if (!db.objectStoreNames.contains('media')) db.createObjectStore('media');
+  if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+  if (!db.objectStoreNames.contains('segments')) {
+    db.createObjectStore('segments', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
+  }
+  if (!db.objectStoreNames.contains('snag_assets')) {
+    const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
+    as.createIndex('by_workspace', 'workspaceId');
+    as.createIndex('by_segment', 'segmentId');
+  }
+  if (!db.objectStoreNames.contains('snags')) {
+    const sn = db.createObjectStore('snags', { keyPath: 'id' });
+    sn.createIndex('by_workspace', 'workspaceId');
+    sn.createIndex('by_asset', 'assetId');
+  }
+  if (!db.objectStoreNames.contains('tombstones')) db.createObjectStore('tombstones', { keyPath: 'id' });
+}
+
+async function openMain(): Promise<IDBPDatabase<FinderDB>> {
+  // Probe the CURRENT version first so we never request a LOWER one — IndexedDB
+  // throws VersionError for that and wedges the whole app. (This has bitten twice:
+  // a foreign 'finder'@5, and 'finder-qc'@13 left by a newer build in a browser.)
+  let existing = 0, hasAll = false;
+  try {
+    const probe = await openDB(DB_NAME); // no version → opens as-is (or creates at 1)
+    existing = probe.version;
+    hasAll = REQUIRED_STORES.every(s => probe.objectStoreNames.contains(s));
+    probe.close();
+  } catch { /* treat as fresh */ }
+  // Open at >= what exists. Only bump one past a higher/foreign DB when our stores
+  // are missing, so an idempotent ensureStores pass can add them.
+  const target = existing < DB_VERSION ? DB_VERSION : (hasAll ? existing : existing + 1);
+
   return new Promise((resolve, reject) => {
-    // A cross-tab upgrade can leave the open request `blocked` indefinitely when
-    // an older tab never releases its connection. Without this timeout the open
-    // would never settle and the UI (e.g. "Creating…") would hang forever with
-    // nothing to catch. Reject with an actionable message instead.
+    // A cross-tab upgrade can leave the open request `blocked` indefinitely if an
+    // older tab never releases; time out with an actionable message instead of hanging.
     const timer = setTimeout(
-      () => reject(new Error('Storage is busy — another open tab may be holding an older version. Close other tabs of this app and reload.')),
+      () => reject(new Error('Storage is busy — another open tab may be holding it. Close other tabs of this app and reload.')),
       OPEN_TIMEOUT_MS,
     );
-    openDB<FinderDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          const ws = db.createObjectStore('workspaces', { keyPath: 'id' });
-          ws.createIndex('by_updatedAt', 'updatedAt');
-          const ob = db.createObjectStore('observations', { keyPath: 'id' });
-          ob.createIndex('by_workspace', 'workspaceId');
-          ob.createIndex('by_ws_started', ['workspaceId', 'startedAt']);
-          ob.createIndex('by_updatedAt', 'updatedAt');
-          db.createObjectStore('media'); // out-of-line: explicit blob keys
-          db.createObjectStore('meta'); // out-of-line singletons
-        }
-        if (oldVersion < 2) {
-          const seg = db.createObjectStore('segments', { keyPath: 'id' });
-          seg.createIndex('by_workspace', 'workspaceId');
-          const as = db.createObjectStore('snag_assets', { keyPath: 'id' });
-          as.createIndex('by_workspace', 'workspaceId');
-          as.createIndex('by_segment', 'segmentId');
-          const sn = db.createObjectStore('snags', { keyPath: 'id' });
-          sn.createIndex('by_workspace', 'workspaceId');
-          sn.createIndex('by_asset', 'assetId');
-        }
-        if (oldVersion < 3) {
-          db.createObjectStore('tombstones', { keyPath: 'id' });
-        }
-      },
+    openDB<FinderDB>(DB_NAME, target, {
+      upgrade(db) { ensureStores(db); },
       blocked() { console.warn('[finder] storage upgrade is waiting for another open tab; will time out if it never releases.'); },
-      // WE are the old connection blocking a newer version opened elsewhere —
-      // let go so that upgrade can proceed; the next call reopens fresh.
       blocking() { opened?.close(); opened = null; dbp = null; },
       terminated() { opened = null; dbp = null; },
     }).then(
