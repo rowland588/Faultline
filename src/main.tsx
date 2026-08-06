@@ -8,21 +8,12 @@ import './styles.css';
 // is restored — the app is fully usable offline with neither.
 startSync();
 
-// Keep an installed (kept-open) app from getting stuck on a stale build: poll
-// for a new service worker on focus and every minute, and reload once when a new
-// version actually takes control. The `hadController` guard avoids reloading on
-// the very first install (only on genuine updates).
+// Fetch a newer build in the BACKGROUND so the next time the app is opened it's
+// current. We deliberately do NOT force a reload mid-session — that yanks you off
+// whatever screen you're on. The update simply applies on the next fresh open.
 if ('serviceWorker' in navigator) {
-  const hadController = !!navigator.serviceWorker.controller;
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
   navigator.serviceWorker.ready.then(reg => {
     const check = () => { void reg.update().catch(() => {}); };
-    setInterval(check, 60_000);
     window.addEventListener('focus', check);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
   }).catch(() => { /* no SW (e.g. dev) — fine */ });
