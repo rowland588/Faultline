@@ -6,6 +6,7 @@ import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { captureFrame } from './frame';
 import { createSegmentFromVideo } from './addSegment';
+import { sectionLabel } from './labels';
 import type { Segment, SnagAsset } from './types';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
@@ -134,7 +135,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
 
       <div className="seg-title-row">
         <button className="asset-title" style={{ width: 'auto' }} onClick={() => seg && setRenamingSeg(true)}>
-          <span className="mark" style={{ fontSize: 22 }}>{seg?.name || `Segment ${seg?.sequence ?? ''}`}</span>
+          <span className="mark" style={{ fontSize: 22 }}>{seg ? sectionLabel(seg, assets.map(a => a.name)) : '…'}</span>
         </button>
         {seg && <button className="btn seg-rename-btn" onClick={() => setRenamingSeg(true)}>✎ Name this video</button>}
       </div>

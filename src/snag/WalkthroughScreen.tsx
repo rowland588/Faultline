@@ -5,6 +5,7 @@ import { listSegments, listSnagAssets, snagsForAsset } from '../db';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import PinImage, { type Pin } from './PinImage';
+import { sectionLabel } from './labels';
 import { SNAG_STATUS_META, type Segment, type SnagAsset, type Snag } from './types';
 
 interface Flat { asset: SnagAsset; sequence: number; open: number }
@@ -45,7 +46,7 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
     <div className="walk-stage">
       <div className="walk-stage-head">
         <button className="btn btn-ghost" onClick={() => goBack(`/w/${wsId}/snags`)}>‹ Exit</button>
-        <span className="walk-stage-title">{workspace.name}{curSeg ? ` · ${curSeg.name || `Segment ${curSeg.sequence}`}` : ''}</span>
+        <span className="walk-stage-title">{workspace.name}{curSeg ? ` · ${sectionLabel(curSeg, inSeg.map(f => f.asset.name))}` : ''}</span>
       </div>
       <div className="walk-stage-body">
         <div className="walk-video-col">

@@ -7,6 +7,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
+import { sectionLabel } from './labels';
 import type { Segment } from './types';
 
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
@@ -16,13 +17,7 @@ function SegRow({ seg, assetNames, first, last, onOpen, onUp, onDown, onRename, 
   onOpen: () => void; onUp: () => void; onDown: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const poster = useBlobUrl(seg.posterKey);
-  // Prefer what's actually meaningful: an explicit segment name, else the asset
-  // name(s) already marked in it, else the bare "Segment N".
-  const label = seg.name
-    ? seg.name
-    : assetNames.length === 1 ? assetNames[0]
-    : assetNames.length > 1 ? `${assetNames[0]} + ${assetNames.length - 1} more`
-    : `Segment ${seg.sequence}`;
+  const label = sectionLabel(seg, assetNames);
   return (
     <div className="seg-row">
       <div className="seg-order">
