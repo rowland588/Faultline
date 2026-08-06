@@ -29,12 +29,28 @@ drop trigger if exists finder_handle_new_user on auth.users;
 do $wipe$
 declare r record;
 begin
-  for r in select viewname from pg_views where schemaname = 'public' loop
-    execute format('drop view if exists public.%I cascade', r.viewname);
-  end loop;
-
-  for r in select tablename from pg_tables where schemaname = 'public' loop
-    execute format('drop table if exists public.%I cascade', r.tablename);
+  -- Every relation in public (views, matviews, tables, partitioned/foreign
+  -- tables, sequences) EXCEPT anything owned by an extension — dropping those
+  -- would abort the whole run. Views first so dependents go cleanly.
+  for r in
+    select c.relname, c.relkind
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relkind in ('v','m','r','p','f','S')
+      and not exists (select 1 from pg_depend d
+                      where d.classid = 'pg_class'::regclass
+                        and d.objid = c.oid and d.deptype = 'e')
+    order by case c.relkind when 'v' then 1 when 'm' then 2 else 3 end
+  loop
+    execute format(
+      case r.relkind
+        when 'v' then 'drop view if exists public.%I cascade'
+        when 'm' then 'drop materialized view if exists public.%I cascade'
+        when 'f' then 'drop foreign table if exists public.%I cascade'
+        when 'S' then 'drop sequence if exists public.%I cascade'
+        else          'drop table if exists public.%I cascade'
+      end, r.relname);
   end loop;
 
   -- Drop non-extension functions/procedures in public. CASCADE also removes any
@@ -44,12 +60,31 @@ begin
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+      and not exists (select 1 from pg_depend d
+                      where d.classid = 'pg_proc'::regclass
+                        and d.objid = p.oid and d.deptype = 'e')
   loop
     if r.prokind = 'p' then
       execute format('drop procedure if exists public.%I(%s) cascade', r.proname, r.args);
     elsif r.prokind = 'f' then
       execute format('drop function if exists public.%I(%s) cascade', r.proname, r.args);
+    end if;
+  end loop;
+
+  -- Leftover enum/domain types (a name collision would break CREATE TABLE).
+  for r in
+    select t.typname, t.typtype
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public' and t.typtype in ('e','d')
+      and not exists (select 1 from pg_depend d
+                      where d.classid = 'pg_type'::regclass
+                        and d.objid = t.oid and d.deptype = 'e')
+  loop
+    if r.typtype = 'd' then
+      execute format('drop domain if exists public.%I cascade', r.typname);
+    else
+      execute format('drop type if exists public.%I cascade', r.typname);
     end if;
   end loop;
 end
@@ -77,8 +112,9 @@ $$;
 grant execute on function public.is_super() to authenticated, anon;
 
 alter table public.profiles enable row level security;
-create policy "profiles read"   on public.profiles for select using (id = auth.uid() or public.is_super());
-create policy "profiles update" on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
+create policy "profiles read" on public.profiles for select using (id = auth.uid() or public.is_super());
+-- NOTE: deliberately NO update policy on profiles — the app never writes to it,
+-- and an update policy would let a user flip their own is_super flag.
 
 create table public.allowed_emails (
   email      text primary key,
@@ -250,13 +286,19 @@ create policy "own snags"        on public.snags        for all using (owner_id 
 --    can't manage storage policies, you'll get a NOTICE and can do this part
 --    in the dashboard instead (Storage → media → policies).
 -- ---------------------------------------------------------------------------
-do $storage$
-declare r record;
+do $bucket$
 begin
   insert into storage.buckets (id, name, public)
   values ('media', 'media', false)
   on conflict (id) do update set public = false;
+exception when insufficient_privilege then
+  raise notice 'Create the bucket in the dashboard: Storage -> New bucket -> "media" (private).';
+end
+$bucket$;
 
+do $storage$
+declare r record;
+begin
   for r in select policyname from pg_policies where schemaname = 'storage' and tablename = 'objects' loop
     execute format('drop policy if exists %I on storage.objects', r.policyname);
   end loop;
@@ -290,6 +332,13 @@ union all
 select 'media bucket',
   coalesce((select case when public then 'EXISTS BUT PUBLIC — make it private!' else 'exists (private)' end
             from storage.buckets where id = 'media'), 'MISSING — create in dashboard')
+union all
+select 'media storage policies',
+  case when (select count(*) from pg_policies
+             where schemaname = 'storage' and tablename = 'objects'
+               and policyname like 'media %') = 4
+       then 'installed (all 4)'
+       else 'MISSING — add in dashboard: Storage -> media -> Policies' end
 union all
 select 'superadmin profile',
   coalesce((select 'yes — ' || email from public.profiles where is_super limit 1), 'not signed up yet (appears after first sign-in)')

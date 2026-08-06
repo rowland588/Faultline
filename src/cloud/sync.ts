@@ -91,7 +91,13 @@ export async function syncNow(): Promise<void> {
           if (r.deleted_at != null) { if (local.has(id)) await applyRemoteDelete(kind, id); continue; }
           const localRow = local.get(id);
           const localClock = localRow ? map.clock(localRow) : -1;
-          if (Number(r.updated_at) <= localClock) continue;          // local is newer — keep it
+          if (Number(r.updated_at) <= localClock) {
+            // Local row wins — but still fetch any blobs it's missing (hasBlob
+            // short-circuits, so this is cheap). This is what lets a Full
+            // re-sync heal media that failed or arrived late on a device.
+            if (localRow) await downloadMedia(uid, map.mediaKeys(localRow));
+            continue;
+          }
           const incoming = map.fromRow(r);
           // workspaces: preserve device-only fields (running timer, last route, version)
           const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
@@ -131,8 +137,13 @@ export async function syncNow(): Promise<void> {
       await clearTombstones(tombs.map(t => t.id));
     }
 
-    await metaPut('uploaded', { keys: [...uploaded] });
-    await setSyncCursor(startedAt);
+    // Compare-and-set: only advance the cursor if nobody reset it while we ran.
+    // Without this, a Full re-sync tapped mid-sync would be silently clobbered
+    // by this (stale) run's completion — the exact "did nothing" failure mode.
+    if ((await getSyncCursor()) === cursor) {
+      await metaPut('uploaded', { keys: [...uploaded] });
+      await setSyncCursor(startedAt);
+    }
     set({ state: 'idle', lastSyncedAt: Date.now() });
   } catch (e) {
     set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });
@@ -142,11 +153,14 @@ export async function syncNow(): Promise<void> {
 }
 
 /** Forget what's been synced and push/pull EVERYTHING again. For recovery — e.g.
- *  after the cloud tables were rebuilt. Upserts are idempotent, so this is safe
- *  to run any time; it just costs bandwidth. */
+ *  after the cloud tables were rebuilt. Waits out any in-flight sync (whose
+ *  completion is CAS-guarded above, so it can't clobber the reset), then runs a
+ *  genuine full pass. Upserts are idempotent — safe any time, just bandwidth. */
 export async function fullResync(): Promise<void> {
   await setSyncCursor(0);
   await metaPut('uploaded', { keys: [] });
+  set({ state: 'syncing', error: undefined });
+  while (running) await new Promise(r => setTimeout(r, 300)); // let the in-flight pass finish
   await syncNow();
 }
 
