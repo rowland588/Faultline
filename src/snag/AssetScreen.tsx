@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack } from '../state/useRoute';
-import { getSnagAsset, snagsForAsset, addSnag, updateSnag, deleteSnag, putBlob } from '../db';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, deleteSnag, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { plural } from '../lib/format';
 import { Sheet } from '../ui/Sheet';
@@ -20,12 +20,17 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const [showClosed, setShowClosed] = useState(false);
   const [draft, setDraft] = useState<{ xPct: number; yPct: number } | null>(null);
   const [editing, setEditing] = useState<Snag | null>(null);
+  const [videoKey, setVideoKey] = useState<string | undefined>();
+  const [watching, setWatching] = useState(false);
   const still = useBlobUrl(asset?.stillKey);
+  const videoUrl = useBlobUrl(videoKey); // the source clip this still was frozen from
 
   const load = async () => {
     const a = await getSnagAsset(assetId);
     if (!a) { nav(`/w/${wsId}/snags`); return; }
     setAsset(a); setSnags(await snagsForAsset(a.id));
+    const seg = await getSegment(a.segmentId);
+    setVideoKey(seg?.videoKey);
   };
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [assetId]);
 
@@ -55,6 +60,12 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           onPinTap={id => { const s = snags.find(x => x.id === id); if (s) { setDraft(null); setEditing(s); } }} />
       </div>
 
+      {videoUrl && (
+        <button className="btn watch-video-btn" onClick={() => setWatching(true)}>
+          ▶ Watch the video — see it live
+        </button>
+      )}
+
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label" style={{ marginBottom: 8 }}>Snags on this asset</div>
         {visible.length === 0 ? <p className="sub">None yet — tap the image above where you see a problem.</p>
@@ -74,6 +85,16 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           onClose={() => { setDraft(null); setEditing(null); }}
           onSaved={async () => { setDraft(null); setEditing(null); await load(); }} />
       )}
+
+      <Sheet open={watching} onClose={() => setWatching(false)} title={asset ? `${asset.name} — live` : 'Video'}>
+        {videoUrl
+          ? <video className="asset-video" src={videoUrl} playsInline controls autoPlay
+              onLoadedMetadata={e => { const v = e.target as HTMLVideoElement; if (asset) { try { v.currentTime = asset.timestampS; } catch { /* seek before ready */ } } }} />
+          : <p className="sub">The video isn't on this device yet — it will download on the next sync.</p>}
+        <p className="sub" style={{ marginTop: 8 }}>
+          The still with the dots was frozen from this clip{asset ? ` at ${asset.timestampS.toFixed(1)}s` : ''}. Play it to show what's happening in real life.
+        </p>
+      </Sheet>
     </div>
   );
 }

@@ -546,6 +546,8 @@ button { font-family: inherit; }
 .snag-line-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .snag-line-problem { font-size: 15px; font-weight: 600; }
 .snag-line-meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.watch-video-btn { width: 100%; margin-top: 10px; }
+.asset-video { width: 100%; max-height: 60vh; border-radius: var(--radius-sm); background: #000; display: block; }
 
 /* pareto link */
 .loss-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 7px 10px; margin-bottom: 6px; }
