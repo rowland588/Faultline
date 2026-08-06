@@ -458,6 +458,10 @@ button { font-family: inherit; }
 .present-head { margin-bottom: 14px; }
 .present-ws { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--muted); font-size: 14px; }
 .present-q { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 10px; }
+.present-snag { margin-top: 8px; }
+.present-snag-sub { color: var(--ink-2); font-size: 16px; line-height: 1.5; margin-bottom: 20px; max-width: 520px; }
+.present-snag-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.present-snag-actions .btn { min-width: 180px; }
 .present-chart { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
 .present-leaf { padding: 40px 12px; }
 

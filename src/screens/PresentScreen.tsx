@@ -1,10 +1,11 @@
 /* Present — the same analysis, calm and full-screen for the senior team. The big
  * two-measure Pareto (time + £ beside frequency), the one insight, the proof as
  * hero. Still live: drill in front of the room; exit lands back in Analyse. */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
+import { listSnagAssets, snagsForWorkspace } from '../db';
 import { drillNode, pushDrill } from '../engine/drill';
 import { buildCompare, divergenceTags } from '../engine/compare';
 import { DIM_LABEL } from '../engine/types';
@@ -21,17 +22,37 @@ export function PresentScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
   const view = readWorkstreamView(route, workspace.id);
   const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
+  const [snag, setSnag] = useState<{ assets: number; snags: number } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void Promise.all([listSnagAssets(workspace.id), snagsForWorkspace(workspace.id)])
+      .then(([a, s]) => { if (alive) setSnag({ assets: a.length, snags: s.length }); });
+    return () => { alive = false; };
+  }, [workspace.id]);
 
   if (!view) {
+    // A snag walk (assets/snags but no time-study observations) presents itself —
+    // the video walkthrough and the snag report — not the empty loss board.
+    const isSnagWalk = observations.length === 0 && !!snag && (snag.assets > 0 || snag.snags > 0);
     return (
       <div className="present">
-        <button className="present-exit" onClick={() => nav(`/w/${workspace.id}/analyse`)} aria-label="Exit present">✕</button>
+        <button className="present-exit" onClick={() => nav(`/w/${workspace.id}/${isSnagWalk ? 'snags' : 'analyse'}`)} aria-label="Exit present">✕</button>
         <div className="present-body">
           <div className="present-head">
             <span className="present-ws"><span className="ws-dot" style={{ background: workspace.color }} />{workspace.name}</span>
-            <h1 className="present-q">The line — where we're losing time</h1>
+            <h1 className="present-q">{isSnagWalk ? 'Present the snag walk' : "The line — where we're losing time"}</h1>
           </div>
-          <LineBoard present />
+          {isSnagWalk ? (
+            <div className="present-snag">
+              <p className="present-snag-sub">{plural(snag!.snags, 'snag')} across {plural(snag!.assets, 'asset')}. Show the walk to the team, or open the report to print / save as PDF.</p>
+              <div className="present-snag-actions">
+                <button className="btn btn-primary btn-lg" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
+                <button className="btn btn-lg" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag report →</button>
+              </div>
+            </div>
+          ) : (
+            <LineBoard present />
+          )}
         </div>
       </div>
     );
