@@ -70,26 +70,35 @@ export async function syncNow(): Promise<void> {
     const cursor = await getSyncCursor();
     const uploaded = await uploadedSet();
 
-    // ---- PULL: remote changes since the cursor, LWW into local ----
+    // ---- PULL: remote changes since the cursor, LWW into local. PAGED, because
+    //      PostgREST caps a single response (~1000 rows) — an unpaged pull would
+    //      silently drop everything past the cap and the cursor would skip it
+    //      forever. We drain every page ordered by (updated_at, id). ----
+    const PAGE = 500;
     for (const kind of SYNC_KINDS) {
-      const { data, error } = await supabase.from(kind).select('*').gt('updated_at', cursor);
-      if (error) throw new Error(`pull ${kind}: ${error.message}`);
-      const remotes = data ?? [];
-      if (!remotes.length) continue;
       const local = new Map<string, Record<string, unknown>>();
       for (const row of await rawAll(kind)) local.set(row.id as string, row);
       const map = MAPS[kind];
-      for (const r of remotes as Record<string, unknown>[]) {
-        const id = r.id as string;
-        if (r.deleted_at != null) { if (local.has(id)) await applyRemoteDelete(kind, id); continue; }
-        const localRow = local.get(id);
-        const localClock = localRow ? map.clock(localRow) : -1;
-        if (Number(r.updated_at) <= localClock) continue;          // local is newer — keep it
-        const incoming = map.fromRow(r);
-        // workspaces: preserve device-only fields (running timer, last route, version)
-        const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
-        await rawPut(kind, merged as Record<string, unknown>);
-        await downloadMedia(uid, map.mediaKeys(merged as Record<string, unknown>));
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase.from(kind).select('*')
+          .gt('updated_at', cursor)
+          .order('updated_at', { ascending: true }).order('id', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw new Error(`pull ${kind}: ${error.message}`);
+        const remotes = (data ?? []) as Record<string, unknown>[];
+        for (const r of remotes) {
+          const id = r.id as string;
+          if (r.deleted_at != null) { if (local.has(id)) await applyRemoteDelete(kind, id); continue; }
+          const localRow = local.get(id);
+          const localClock = localRow ? map.clock(localRow) : -1;
+          if (Number(r.updated_at) <= localClock) continue;          // local is newer — keep it
+          const incoming = map.fromRow(r);
+          // workspaces: preserve device-only fields (running timer, last route, version)
+          const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
+          await rawPut(kind, merged as Record<string, unknown>);
+          await downloadMedia(uid, map.mediaKeys(merged as Record<string, unknown>));
+        }
+        if (remotes.length < PAGE) break;
       }
     }
 

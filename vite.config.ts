@@ -11,11 +11,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['mark.svg', 'icon-maskable.svg'],
+      includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Finder — line loss, seen & costed',
+        name: 'Finder — find the problems, make them visible',
         short_name: 'Finder',
-        description: 'Walk the line, log every stop and put a time to it, and watch the loss turn into a Pareto and a pound figure.',
+        description: 'Walk the line, log losses and pin faults on a video-walk still, and turn what you find into a Pareto, a cost, and a tracked snag list. Offline-first, synced across your devices.',
         start_url: '/',
         scope: '/',
         display: 'standalone',
@@ -23,12 +23,15 @@ export default defineConfig({
         background_color: '#14181f',
         theme_color: '#14181f',
         icons: [
+          // PNG for reliable install on iOS (SVG icons are ignored there) and Android.
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'mark.svg', sizes: 'any', type: 'image/svg+xml' },
-          { src: 'icon-maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },
