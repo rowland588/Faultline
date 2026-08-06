@@ -5,6 +5,7 @@ import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { captureFrame } from './frame';
+import { createSegmentFromVideo } from './addSegment';
 import type { Segment, SnagAsset } from './types';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
@@ -18,8 +19,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [addingVideo, setAddingVideo] = useState(false);
   const [err, setErr] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const addRef = useRef<HTMLInputElement>(null);
   const videoUrl = useBlobUrl(seg?.videoKey);
 
   const loadAssets = async () => {
@@ -41,6 +44,15 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
 
   const idx = segs.findIndex(s => s.id === segmentId);
   const goSeg = (s?: Segment) => { if (s) nav(`/w/${wsId}/segment/${s.id}`); };
+
+  const addVideo = async (file: File) => {
+    setErr(''); setAddingVideo(true);
+    try {
+      const id = await createSegmentFromVideo(wsId, file);
+      nav(`/w/${wsId}/segment/${id}`); // jump into the new video
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
+    finally { setAddingVideo(false); if (addRef.current) addRef.current.value = ''; }
+  };
 
   const seek = (to: number) => { const v = videoRef.current; if (v) v.currentTime = Math.max(0, Math.min(dur || v.duration || 0, to)); };
   const step = (d: number) => { const v = videoRef.current; if (v) { v.pause(); seek(v.currentTime + d); } };
@@ -98,15 +110,18 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         )}
       </div>
 
-      {segs.length > 1 && (
-        <div className="seg-strip">
-          {segs.map((s, i) => (
-            <button key={s.id} className={'seg-chip' + (s.id === segmentId ? ' on' : '')} onClick={() => goSeg(s)} title={s.name || `Segment ${s.sequence}`}>
-              {i + 1}
-            </button>
-          ))}
-        </div>
-      )}
+      <input ref={addRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) void addVideo(f); }} />
+      <div className="seg-strip">
+        {segs.map((s, i) => (
+          <button key={s.id} className={'seg-chip' + (s.id === segmentId ? ' on' : '')} onClick={() => goSeg(s)} title={s.name || `Segment ${s.sequence}`}>
+            {i + 1}
+          </button>
+        ))}
+        <button className="seg-chip seg-chip-add" disabled={addingVideo} onClick={() => addRef.current?.click()} title="Add another video">
+          {addingVideo ? '…' : '＋ Video'}
+        </button>
+      </div>
 
       <div className="mark" style={{ fontSize: 22 }}>{seg?.name || `Segment ${seg?.sequence ?? ''}`}</div>
       <p className="sub" style={{ marginTop: 4 }}>Scrub to a machine, pause, and mark it. That exact frame becomes its still.{segs.length > 1 ? ' Switch videos with the numbers above.' : ''}</p>

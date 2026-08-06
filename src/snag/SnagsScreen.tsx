@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { listSegments, listSnagAssets, snagsForWorkspace, nextSegmentSequence, addSegment, deleteSegment, reorderSegments, putBlob } from '../db';
-import { uid, now } from '../lib/ids';
+import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, reorderSegments } from '../db';
 import { plural } from '../lib/format';
 import { EmptyState } from '../ui/EmptyState';
 import { useBlobUrl } from './useBlobUrl';
-import { readVideoMeta, posterFromVideo } from './frame';
+import { createSegmentFromVideo } from './addSegment';
 import type { Segment } from './types';
 
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
@@ -51,19 +50,12 @@ export function SnagsScreen() {
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id]);
 
   const onFile = async (file: File) => {
-    setErr(''); setBusy('Reading video…');
+    setErr(''); setBusy('Saving the video…');
     try {
-      const meta = await readVideoMeta(file).catch(() => ({ duration: 0, width: 0, height: 0 }));
-      setBusy('Making a poster…');
-      let posterKey: string | undefined;
-      try { const poster = await posterFromVideo(file); posterKey = `blob-${uid()}`; await putBlob(posterKey, poster); } catch { /* poster optional */ }
-      setBusy('Saving…');
-      const videoKey = `blob-${uid()}`;
-      await putBlob(videoKey, file);
-      const sequence = await nextSegmentSequence(workspace.id);
-      await addSegment({ id: uid(), workspaceId: workspace.id, sequence, videoKey, posterKey, durationS: meta.duration || undefined, createdAt: now() });
+      const id = await createSegmentFromVideo(workspace.id, file);
       await load();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the segment.'); }
+      nav(`/w/${workspace.id}/segment/${id}`); // jump straight into the new video to mark assets
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
     finally { setBusy(''); if (fileRef.current) fileRef.current.value = ''; }
   };
 
@@ -101,7 +93,7 @@ export function SnagsScreen() {
       {busy ? (
         <div className="card" style={{ marginTop: 14 }}><b>{busy}</b><p className="sub" style={{ marginTop: 6 }}>Large files take a moment — keep this screen open.</p></div>
       ) : (
-        <div style={{ margin: '14px 0' }}><button className="btn btn-primary btn-lg" onClick={() => fileRef.current?.click()}>+ Add segment (film or choose)</button></div>
+        <div style={{ margin: '14px 0' }}><button className="btn btn-primary btn-lg" onClick={() => fileRef.current?.click()}>＋ Add a video (film or choose)</button></div>
       )}
 
       {segs.length === 0 && !busy ? (

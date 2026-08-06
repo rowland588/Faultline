@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack } from '../state/useRoute';
-import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, deleteSnag, putBlob } from '../db';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { plural } from '../lib/format';
 import { Sheet } from '../ui/Sheet';
@@ -22,6 +22,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const [editing, setEditing] = useState<Snag | null>(null);
   const [videoKey, setVideoKey] = useState<string | undefined>();
   const [watching, setWatching] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const still = useBlobUrl(asset?.stillKey);
   const videoUrl = useBlobUrl(videoKey); // the source clip this still was frozen from
 
@@ -49,9 +50,12 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       <div className="subhead">
         <button className="btn btn-ghost" onClick={() => goBack(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
         <div style={{ flex: 1 }} />
+        {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}
         {hiddenClosed > 0 && <button className="btn" onClick={() => setShowClosed(v => !v)}>{showClosed ? 'Hide closed' : `Show closed (${hiddenClosed})`}</button>}
       </div>
-      <div className="mark" style={{ fontSize: 22 }}>{asset?.name ?? '…'}{asset?.code ? <span className="sub" style={{ fontSize: 15, fontWeight: 400 }}> · {asset.code}</span> : null}</div>
+      <button className="asset-title" onClick={() => asset && setRenaming(true)}>
+        <span className="mark" style={{ fontSize: 22 }}>{asset?.name ?? '…'}{asset?.code ? <span className="sub" style={{ fontSize: 15, fontWeight: 400 }}> · {asset.code}</span> : null}</span>
+      </button>
       <p className="sub" style={{ marginTop: 4 }}>{plural(openCount, 'open snag')}. Pinch or use ＋ / − to zoom in, then tap the picture to drop a red dot where the problem is.</p>
 
       <div style={{ marginTop: 12 }}>
@@ -85,6 +89,8 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           onClose={() => { setDraft(null); setEditing(null); }}
           onSaved={async () => { setDraft(null); setEditing(null); await load(); }} />
       )}
+
+      {asset && <RenameSheet asset={asset} open={renaming} onClose={() => setRenaming(false)} onSaved={async () => { setRenaming(false); await load(); }} />}
 
       <Sheet open={watching} onClose={() => setWatching(false)} title={asset ? `${asset.name} — live` : 'Video'}>
         {videoUrl
@@ -189,6 +195,35 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
         <button className="btn btn-primary" onClick={save} disabled={busy || !problem.trim()}>{busy ? 'Saving…' : snag ? 'Save' : 'Add snag'}</button>
         {snag && <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={remove}>Delete</button>}
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** Rename an asset (name + code). The change stamps updatedAt, so it syncs and
+ *  every screen that reads the asset shows the new name on its next load. */
+function RenameSheet({ asset, open, onClose, onSaved }: { asset: SnagAsset; open: boolean; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(asset.name);
+  const [code, setCode] = useState(asset.code ?? '');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setName(asset.name); setCode(asset.code ?? ''); }, [asset.id, asset.name, asset.code, open]);
+
+  const save = async () => {
+    if (busy || !name.trim()) return;
+    setBusy(true);
+    try { await updateSnagAsset({ ...asset, name: name.trim(), code: code.trim() || undefined }); onSaved(); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Rename asset">
+      <div className="field-label">Asset name</div>
+      <input className="text-input" autoFocus value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
+      <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
+      <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
+      <div className="row-end" style={{ marginTop: 14 }}>
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
       </div>
     </Sheet>
   );

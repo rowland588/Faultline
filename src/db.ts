@@ -484,6 +484,11 @@ export async function getSnagAsset(id: ID): Promise<SnagAsset | undefined> {
 export async function addSnagAsset(a: SnagAsset): Promise<void> {
   await (await getDB()).put('snag_assets', { ...a, updatedAt: now() });
 }
+/** Edit an asset (rename / recode). Stamps updatedAt so the change syncs and is
+ *  reflected everywhere the asset is read. */
+export async function updateSnagAsset(a: SnagAsset): Promise<void> {
+  await (await getDB()).put('snag_assets', { ...a, updatedAt: now() });
+}
 
 /* ---------- snags ---------- */
 export async function snagsForAsset(assetId: ID): Promise<Snag[]> {
