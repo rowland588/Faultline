@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, reorderSegments } from '../db';
+import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, reorderSegments, updateSegment } from '../db';
 import { plural } from '../lib/format';
 import { EmptyState } from '../ui/EmptyState';
+import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
 import type { Segment } from './types';
 
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
-function SegRow({ seg, assetCount, first, last, onOpen, onUp, onDown, onDelete }: {
+function SegRow({ seg, assetCount, first, last, onOpen, onUp, onDown, onRename, onDelete }: {
   seg: Segment; assetCount: number; first: boolean; last: boolean;
-  onOpen: () => void; onUp: () => void; onDown: () => void; onDelete: () => void;
+  onOpen: () => void; onUp: () => void; onDown: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const poster = useBlobUrl(seg.posterKey);
   return (
@@ -27,8 +28,27 @@ function SegRow({ seg, assetCount, first, last, onOpen, onUp, onDown, onDelete }
         <span className="seg-name">{seg.name || `Segment ${seg.sequence}`}</span>
         <span className="seg-meta">{fmtDur(seg.durationS)} · {plural(assetCount, 'asset')}</span>
       </button>
+      <button className="seg-edit" onClick={onRename} aria-label="Rename segment">✎</button>
       <button className="seg-del" onClick={onDelete} aria-label="Delete segment">×</button>
     </div>
+  );
+}
+
+/** One-field name form for a video/section, reset each time the sheet opens. */
+function SegNameForm({ initial, placeholder, onSave, onClose }: { initial: string; placeholder: string; onSave: (n: string) => Promise<void>; onClose: () => void }) {
+  const [name, setName] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const save = async () => { setBusy(true); try { await onSave(name); } finally { setBusy(false); } };
+  return (
+    <>
+      <p className="sub" style={{ marginBottom: 10 }}>Name this section so you can tell your videos apart — e.g. “Infeed”, “Filler → capper”, “Outfeed”.</p>
+      <div className="field-label">Video name</div>
+      <input className="text-input" autoFocus value={name} placeholder={placeholder} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
+      <div className="row-end" style={{ marginTop: 14 }}>
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+      </div>
+    </>
   );
 }
 
@@ -39,6 +59,7 @@ export function SnagsScreen() {
   const [openSnags, setOpenSnags] = useState(0);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
+  const [renaming, setRenaming] = useState<Segment | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -104,10 +125,17 @@ export function SnagsScreen() {
           {segs.map((seg, i) => (
             <SegRow key={seg.id} seg={seg} assetCount={counts.get(seg.id) ?? 0} first={i === 0} last={i === segs.length - 1}
               onOpen={() => nav(`/w/${workspace.id}/segment/${seg.id}`)}
-              onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)} onDelete={() => remove(seg)} />
+              onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)}
+              onRename={() => setRenaming(seg)} onDelete={() => remove(seg)} />
           ))}
         </div>
       )}
+
+      <Sheet open={!!renaming} onClose={() => setRenaming(null)} title="Name this video">
+        {renaming && <SegNameForm key={renaming.id} initial={renaming.name ?? ''} placeholder={`Segment ${renaming.sequence}`}
+          onSave={async nm => { await updateSegment({ ...renaming, name: nm.trim() || undefined }); setRenaming(null); await load(); }}
+          onClose={() => setRenaming(null)} />}
+      </Sheet>
     </div>
   );
 }
