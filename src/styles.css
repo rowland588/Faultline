@@ -806,3 +806,8 @@ button { font-family: inherit; }
   .invite-when { grid-column: 1; }
   .invite-x { grid-column: 2; grid-row: 2; justify-self: end; }
 }
+
+/* Build has no cloud credentials — say so plainly instead of hiding sign-in. */
+.cloud-row.cloud-unconfigured { cursor: default; border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); align-items: flex-start; }
+.cloud-row.cloud-unconfigured .cloud-ic { color: var(--warn); }
+.cloud-row.cloud-unconfigured .sub { display: block; margin-top: 3px; }

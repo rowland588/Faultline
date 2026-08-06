@@ -5,14 +5,31 @@ import { syncNow, fullResync } from './sync';
 import { Sheet } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 
-/** The one bit of cloud UI: a backup/sync row on Home. Hidden entirely when the
- *  build has no Supabase credentials — the app stays purely local. */
+/** The one bit of cloud UI: a backup/sync row on Home. When the build has no
+ *  Supabase credentials the app still works (purely local) — but we SAY SO
+ *  rather than silently hiding sign-in, because an unexplained missing login
+ *  screen is impossible to diagnose from the outside. */
 export function CloudPanel() {
   const { session, loading } = useSession();
   const status = useSyncStatus();
   const [open, setOpen] = useState(false);
 
-  if (!cloudConfigured || loading) return null;
+  if (!cloudConfigured) {
+    return (
+      <div className="cloud-row cloud-unconfigured">
+        <span className="cloud-ic" aria-hidden>⚠</span>
+        <span className="cloud-main">
+          <b>Offline mode — no account on this build</b>
+          <span className="sub">
+            This copy was built without cloud credentials, so sign-in and sync are off and your
+            work stays on this device. Fix: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in
+            the host, then redeploy <em>without</em> the build cache.
+          </span>
+        </span>
+      </div>
+    );
+  }
+  if (loading) return null;
 
   if (!session) {
     return (
