@@ -603,6 +603,83 @@ button { font-family: inherit; }
   text-align: center; padding: 28px 22px; min-height: 180px; background: var(--surface-2);
   border-radius: var(--radius-sm); color: var(--ink-2);
 }
+/* ---------- trend ("is it getting better?") ---------- */
+.kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.kpi-card b { font-size: 22px; }
+.kpi-good { color: var(--ok); font-weight: 700; font-size: 12.5px; }
+.kpi-bad { color: var(--warn); font-weight: 700; font-size: 12.5px; }
+.kpi-lbl { color: var(--muted); font-size: 12px; }
+.trend-legend { display: flex; gap: 16px; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.trend-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.cat-trend-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.cat-trend-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cat-trend-main b { font-size: 14px; }
+.cat-verdict { font-size: 11.5px; font-weight: 800; flex: none; }
+.cat-verdict.improving { color: var(--ok); }
+.cat-verdict.worsening { color: var(--danger); }
+.cat-verdict.flat { color: var(--warn); }
+
+/* ---------- asset history ("through time") ---------- */
+.hist-stills { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hist-stills:has(> :only-child) { grid-template-columns: 1fr; }
+.hist-still { position: relative; border-radius: 10px; overflow: hidden; }
+.hist-still.hl { outline: 2px solid var(--brand); }
+.hist-tag { position: absolute; z-index: 2; top: 8px; left: 8px; background: rgba(9, 20, 38, 0.75); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.hist-verdict { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.chipv { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 5px 11px; }
+.chipv.good { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); color: var(--ok); }
+.chipv.bad { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
+.chipv.warn { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); color: var(--warn); }
+.hist-filmstrip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.hist-frame { position: relative; flex: none; width: 64px; height: 48px; border-radius: 6px; overflow: hidden; border: 2px solid transparent; padding: 0; background: var(--surface-2); cursor: pointer; }
+.hist-frame.on { border-color: var(--brand); }
+.hist-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hist-frame small { position: absolute; bottom: 2px; left: 4px; color: #fff; font-size: 8.5px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.hist-frame-ph { display: grid; place-items: center; width: 100%; height: 100%; color: var(--muted); }
+.hist-dot { position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); border: 1.5px solid #fff; }
+
+/* ---------- the one-page report ---------- */
+.report-stage { min-height: 100vh; background: var(--bg); padding-bottom: 40px; }
+.report-actions { display: flex; align-items: center; gap: 10px; max-width: 820px; margin: 0 auto; padding: 12px 16px; }
+.report-page { max-width: 780px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 34px 38px; box-shadow: var(--shadow); }
+.report-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--chrome); padding-bottom: 12px; }
+.report-brand { display: flex; align-items: center; gap: 9px; font-weight: 900; font-size: 18px; }
+.report-meta { text-align: right; color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+.report-h1 { font-size: 23px; margin: 20px 0 2px; }
+.report-sub { color: var(--muted); font-size: 12.5px; margin: 0; }
+.report-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+.rstat { border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+.rstat b { font-size: 20px; display: block; }
+.rstat span { font-size: 11px; color: var(--muted); }
+.rstat em { display: block; font-style: normal; font-size: 11.5px; font-weight: 700; margin-top: 2px; }
+.rstat em.good, .rbadge.good { color: var(--ok); }
+.rstat em.bad { color: var(--warn); }
+.report-cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; margin-top: 16px; }
+@media (max-width: 640px) { .report-cols { grid-template-columns: 1fr; } }
+.report-h2 { font-size: 13.5px; margin: 0 0 8px; }
+.report-note { color: var(--muted); font-size: 11px; font-weight: 400; }
+.report-empty { color: var(--muted); font-size: 12.5px; }
+.rbar { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-size: 12px; }
+.rbar-lbl { width: 110px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rbar-track { height: 15px; border-radius: 5px; flex: none; }
+.rbar-val { color: var(--muted); font-size: 11.5px; }
+.rsnag { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12.5px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.rsnag > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rbadge { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 2px 9px; flex: none; }
+.rbadge.bad { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
+.rbadge.warn { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); color: var(--warn); }
+.rbadge.new { background: var(--accent-soft); color: var(--accent); }
+.rbadge.good { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
+.report-foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; }
+
+@media print {
+  .no-print, .tabbar, .topbar { display: none !important; }
+  body, .report-stage { background: #fff !important; }
+  .report-stage { padding: 0; }
+  .report-page { border: none; box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
+}
+
 /* a quiet footer, not a feature — diagnosable without looking technical */
 .build-stamp { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; opacity: 0.8; }
 .build-refresh { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 4px 10px; cursor: pointer; }

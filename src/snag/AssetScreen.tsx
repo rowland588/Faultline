@@ -52,6 +52,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       <div className="subhead">
         <button className="btn btn-ghost" onClick={() => nav(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
         <div style={{ flex: 1 }} />
+        {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}>⏱ Through time</button>}
         {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}
         {hiddenClosed > 0 && <button className="btn" onClick={() => setShowClosed(v => !v)}>{showClosed ? 'Hide closed' : `Show closed (${hiddenClosed})`}</button>}
       </div>

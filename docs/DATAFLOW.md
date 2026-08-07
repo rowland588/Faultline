@@ -22,6 +22,11 @@ A display derived from data must derive from **all** of the data it claims to
 summarise — a workspace card that says what's inside counts observations AND
 videos AND snags, never one kind standing in for the whole.
 
+Derived numbers shown on more than one screen come from ONE module —
+`lib/stats` (weekly loss, headline KPIs, category momentum) and
+`snag/history` (walk grouping, asset timelines) — so Trend, the Report and
+Asset history can never disagree about the same figure.
+
 ## Write path (why nothing needs a Sync button)
 
 ```
@@ -56,6 +61,9 @@ stale data look newer than a real edit from another device.
 | **AssetScreen** `asset/:id` | the asset, its snags, source video key | assetId · syncedAt · own writes (snag CRUD/rename) |
 | **SnagListScreen** `snaglist` | all assets + snags of the workspace | wsId · syncedAt · own writes (status changes) |
 | **WalkthroughScreen** `walk` | segments + assets + snags | wsId · syncedAt |
+| **TrendScreen** `trend` | provider observations → lib/stats weekly buckets; snags (closed flags) | provider's rules · syncedAt |
+| **AssetHistoryScreen** `history/:id` | all assets/segments/snags → snag/history derivations | wsId+assetId · syncedAt |
+| **ReportScreen** `report` | provider observations + snags → lib/stats | provider's rules · syncedAt |
 | **CloudPanel** (on Home) | session + sync status | auth events · sync status events |
 | **AdminPanel** (superadmin) | profiles + allowed_emails (cloud reads) | open · own writes |
 

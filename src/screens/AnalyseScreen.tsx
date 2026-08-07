@@ -122,6 +122,14 @@ export function AnalyseScreen({ route }: { route: Route }) {
           <button className="btn btn-primary present-cta" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder))}>
             Present this ›
           </button>
+
+          {/* the Pareto says WHERE the pain is; the trend says whether the
+              walks are changing anything — the natural next question */}
+          <button className="board-cta" onClick={() => nav(`/w/${workspace.id}/trend`)}>
+            <span className="board-cta-ic" aria-hidden>📈</span>
+            <span className="board-cta-main">Is it getting better?</span>
+            <span className="board-cta-go" aria-hidden>›</span>
+          </button>
         </>
       )}
     </div>
