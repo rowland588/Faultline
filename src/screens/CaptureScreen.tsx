@@ -7,7 +7,8 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { deleteBlobs } from '../db';
 import { uid, now } from '../lib/ids';
-import { captureMedia } from '../lib/media';
+import { captureMedia, saveVideoBlob } from '../lib/media';
+import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
 import { ChipPicker } from '../ui/Chip';
 import { Stopwatch } from '../ui/Stopwatch';
@@ -32,6 +33,7 @@ export function CaptureScreen() {
   const [tSec, setTSec] = useState('');
   const [toast, setToast] = useState<{ msg: string; undo?: () => void } | null>(null);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  const [recording, setRecording] = useState(false);
 
   // Resume a running stopwatch (and its what/where) that survived an app close.
   useEffect(() => {
@@ -104,9 +106,20 @@ export function CaptureScreen() {
     await commit(ms, 'typed', now());
   };
   const attach = async (kind: 'photo' | 'video') => {
+    // Video stays on-screen and records straight from the camera stream so
+    // several clips can be shot back to back — see VideoRecorder for why.
+    if (kind === 'video' && videoCaptureSupported()) { setRecording(true); return; }
     try {
       const ref = await captureMedia(kind);
       if (ref) setPending(m => [...m, ref]);
+    } catch {
+      setToast({ msg: "Couldn't save that clip — device storage may be full." });
+    }
+  };
+  const onClip = async (blob: Blob) => {
+    try {
+      const ref = await saveVideoBlob(blob);
+      setPending(m => [...m, ref]);
     } catch {
       setToast({ msg: "Couldn't save that clip — device storage may be full." });
     }
@@ -244,6 +257,7 @@ export function CaptureScreen() {
 
       {toast && <Toast message={toast.msg} onUndo={toast.undo ? () => { toast.undo!(); setToast(null); } : undefined} onDismiss={() => setToast(null)} />}
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
+      {recording && <VideoRecorder onCapture={o => void onClip(o)} onClose={() => setRecording(false)} />}
     </div>
   );
 }

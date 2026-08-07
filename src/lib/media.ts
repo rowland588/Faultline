@@ -13,7 +13,13 @@ function pickFile(kind: 'photo' | 'video'): Promise<File | null> {
     input.accept = kind === 'photo' ? 'image/*' : 'video/*';
     // hint mobile browsers to open the rear camera directly
     input.setAttribute('capture', 'environment');
-    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.style.position = 'fixed';
+    input.style.top = '-9999px';
+    // Some mobile browsers — notably iOS Safari in standalone/installed mode —
+    // silently ignore .click() on an element that was never attached to the
+    // document, so the camera never opens and the caller hangs forever.
+    document.body.appendChild(input);
+    input.onchange = () => { input.remove(); resolve(input.files?.[0] ?? null); };
     input.click();
   });
 }
@@ -44,15 +50,25 @@ async function makePhotoThumb(blob: Blob): Promise<Blob | null> {
 export async function captureMedia(kind: 'photo' | 'video'): Promise<MediaRef | null> {
   const file = await pickFile(kind);
   if (!file) return null;
+  return kind === 'photo' ? saveEvidence('photo', file) : saveEvidence('video', file);
+}
+
+async function saveEvidence(kind: 'photo' | 'video', blob: Blob): Promise<MediaRef> {
   const blobKey = `blob-${uid()}`;
-  await putBlob(blobKey, file);
+  await putBlob(blobKey, blob);
   let thumbKey: string | undefined;
   if (kind === 'photo') {
-    const thumb = await makePhotoThumb(file);
+    const thumb = await makePhotoThumb(blob);
     if (thumb) {
       thumbKey = `thumb-${uid()}`;
       await putBlob(thumbKey, thumb);
     }
   }
-  return { id: uid(), kind, blobKey, thumbKey, mime: file.type || (kind === 'photo' ? 'image/jpeg' : 'video/mp4'), capturedAt: now() };
+  return { id: uid(), kind, blobKey, thumbKey, mime: blob.type || (kind === 'photo' ? 'image/jpeg' : 'video/mp4'), capturedAt: now() };
+}
+
+/** Save an in-app recorded clip (MediaRecorder output) the same way a picked
+ *  video file is saved, so both paths land in the same evidence shape. */
+export function saveVideoBlob(blob: Blob): Promise<MediaRef> {
+  return saveEvidence('video', blob);
 }
