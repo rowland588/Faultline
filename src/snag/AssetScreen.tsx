@@ -172,7 +172,9 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
           </>)}
 
           <div className="field-label" style={{ marginTop: 12 }}>Detail photo <span className="opt">optional</span></div>
-          <input ref={photoRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) void addPhoto(f); }} />
+          {/* No `capture`, so the OS chooser offers BOTH the camera and existing
+              photos — a close-up often already exists on the phone or a laptop. */}
+          <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) void addPhoto(f); }} />
           {photoUrl ? <button className="mark-still-btn" onClick={() => photoRef.current?.click()}><img className="mark-still" src={photoUrl} alt="detail" /></button>
             : <button className="btn" onClick={() => photoRef.current?.click()}>📷 Add close-up of the fault</button>}
 

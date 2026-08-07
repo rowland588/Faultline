@@ -7,7 +7,7 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { deleteBlobs } from '../db';
 import { uid, now } from '../lib/ids';
-import { captureMedia, saveVideoBlob } from '../lib/media';
+import { captureMedia, saveVideoBlob, pickExistingMedia } from '../lib/media';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
 import { ChipPicker } from '../ui/Chip';
@@ -116,6 +116,15 @@ export function CaptureScreen() {
       setToast({ msg: "Couldn't save that clip — device storage may be full." });
     }
   };
+  /** Footage that already exists — phone gallery, Files, or a laptop's disk. */
+  const upload = async () => {
+    try {
+      const refs = await pickExistingMedia();
+      if (refs.length) setPending(m => [...m, ...refs]);
+    } catch {
+      setToast({ msg: "Couldn't attach those files — device storage may be full." });
+    }
+  };
   const onClip = async (blob: Blob) => {
     try {
       const ref = await saveVideoBlob(blob);
@@ -209,6 +218,7 @@ export function CaptureScreen() {
         <div className="cap-ev-row">
           <button className="btn cap-ev-btn" onClick={() => attach('photo')}>📷 Photo</button>
           <button className="btn cap-ev-btn" onClick={() => attach('video')}>🎥 Video</button>
+          <button className="btn cap-ev-btn" onClick={upload}>⬆ Upload</button>
           {pending.map(m => <EvidenceThumb key={m.id} media={m} onClick={() => setViewing(m)} />)}
         </div>
         {pending.length > 0 && <p className="sub" style={{ marginTop: 6 }}>{plural(pending.length, 'clip')} ready — attaches to the next log.</p>}

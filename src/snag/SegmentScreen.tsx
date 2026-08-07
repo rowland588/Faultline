@@ -3,7 +3,7 @@ import { nav } from '../state/useRoute';
 import { getSegment, listSegments, updateSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob, getBlob } from '../db';
 import { sniffVideoCodec, browserCanPlay } from '../lib/mime';
 import { uid, now } from '../lib/ids';
-import { Sheet } from '../ui/Sheet';
+import { Sheet, SheetRow } from '../ui/Sheet';
 import { useBlobSource } from './useBlobUrl';
 import { captureFrame } from './frame';
 import { createSegmentFromVideo } from './addSegment';
@@ -31,6 +31,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const { url: videoUrl, state: videoState } = useBlobSource(seg?.videoKey);
   const [noPicture, setNoPicture] = useState<null | 'video-track' | 'none'>(null);
   const [filming, setFilming] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [codec, setCodec] = useState<string | null>(null);
 
   const loadAssets = async () => {
@@ -154,7 +155,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         )}
       </div>
 
-      <input ref={addRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
+      {/* No `capture`: it would send a phone to the camera and hide the gallery. */}
+      <input ref={addRef} type="file" accept="video/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) void addVideo(f); }} />
       <div className="seg-strip">
         {segs.map((s, i) => (
@@ -162,10 +164,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             {i + 1}
           </button>
         ))}
-        {/* In-app filming records H.264 (plays anywhere); the picker stays for
-            footage that already exists. */}
+        {/* Both routes stay reachable: filming records H.264 (plays anywhere),
+            uploading takes footage that already exists on the phone or laptop. */}
         <button className="seg-chip seg-chip-add" disabled={addingVideo}
-          onClick={() => (videoCaptureSupported() ? setFilming(true) : addRef.current?.click())} title="Film another section">
+          onClick={() => (videoCaptureSupported() ? setAdding(true) : addRef.current?.click())} title="Add another video">
           {addingVideo ? '…' : '＋ Video'}
         </button>
       </div>
@@ -249,6 +251,13 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       </Sheet>
 
       {filming && <VideoRecorder onCapture={b => void addFilmed(b)} onClose={() => setFilming(false)} />}
+
+      <Sheet open={adding} onClose={() => setAdding(false)} title="Add a video">
+        <SheetRow label="🎥 Film a new section" hint="records in a format every device plays"
+          onClick={() => { setAdding(false); setFilming(true); }} />
+        <SheetRow label="⬆ Upload a video" hint="from this phone or computer"
+          onClick={() => { setAdding(false); addRef.current?.click(); }} />
+      </Sheet>
 
       <Sheet open={renamingSeg} onClose={() => setRenamingSeg(false)} title="Name this video">
         {seg && <SegNameForm key={seg.id} initial={seg.name ?? ''} placeholder={`Segment ${seg.sequence}`} onSave={renameSeg} onClose={() => setRenamingSeg(false)} />}

@@ -78,12 +78,19 @@ export function SnagsScreen() {
   const syncedAt = useSyncedAt();
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
 
-  const onFile = async (file: Blob) => {
-    setErr(''); setBusy('Saving the video…');
+  /** Uploaded footage — each file becomes a segment, in the order picked. */
+  const onFiles = async (files: File[]) => {
+    setErr(''); setBusy(files.length > 1 ? `Saving ${files.length} videos…` : 'Saving the video…');
+    let firstId: string | null = null;
     try {
-      const id = await createSegmentFromVideo(workspace.id, file);
+      for (const f of files) {
+        const id = await createSegmentFromVideo(workspace.id, f);
+        firstId ??= id;
+      }
       await load();
-      nav(`/w/${workspace.id}/segment/${id}`); // jump straight into the new video to mark assets
+      // One video: drop straight into it to start marking. Several: stay on the
+      // list, which is where you'd order and name a batch anyway.
+      if (files.length === 1 && firstId) nav(`/w/${workspace.id}/segment/${firstId}`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
     finally { setBusy(''); if (fileRef.current) fileRef.current.value = ''; }
   };
@@ -125,8 +132,11 @@ export function SnagsScreen() {
 
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 
-      <input ref={fileRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) void onFile(f); }} />
+      {/* No `capture` attribute: with it, a phone goes straight to the camera and
+          never offers the gallery or Files — which is the opposite of what this
+          button is for. Multiple, because footage usually arrives in batches. */}
+      <input ref={fileRef} type="file" accept="video/*" multiple style={{ display: 'none' }}
+        onChange={e => { const f = Array.from(e.target.files ?? []); if (f.length) void onFiles(f); }} />
 
       {busy ? (
         <div className="card" style={{ marginTop: 14 }}><b>{busy}</b><p className="sub" style={{ marginTop: 6 }}>Large files take a moment — keep this screen open.</p></div>
@@ -140,7 +150,7 @@ export function SnagsScreen() {
             <button className="btn btn-primary btn-lg" onClick={() => setFilming(true)}>🎥 Film the walk</button>
           )}
           <button className={'btn btn-lg' + (videoCaptureSupported() ? '' : ' btn-primary')} onClick={() => fileRef.current?.click()}>
-            {videoCaptureSupported() ? 'Choose an existing video' : '＋ Add a video (film or choose)'}
+            ⬆ Upload video{videoCaptureSupported() ? 's' : ''}
           </button>
         </div>
       )}

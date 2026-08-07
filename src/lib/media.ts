@@ -5,21 +5,28 @@
 import type { MediaRef } from '../types';
 import { putBlob } from '../db';
 import { uid, now } from './ids';
+import { sniffMime, withUsableMime } from './mime';
 
-function pickFile(kind: 'photo' | 'video'): Promise<File | null> {
+/** Open the device's file picker.
+ *
+ *  `camera: true` adds the capture attribute, which sends phones straight to
+ *  the camera. That is ONLY ever right when the user asked to shoot something —
+ *  with it set, a phone will not offer the gallery or Files at all, so an
+ *  "upload what I already have" button carrying it is simply broken. */
+export function pickFiles(accept: string, opts: { camera?: boolean; multiple?: boolean } = {}): Promise<File[]> {
   return new Promise(resolve => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = kind === 'photo' ? 'image/*' : 'video/*';
-    // hint mobile browsers to open the rear camera directly
-    input.setAttribute('capture', 'environment');
+    input.accept = accept;
+    if (opts.camera) input.setAttribute('capture', 'environment');
+    if (opts.multiple) input.multiple = true;
     input.style.position = 'fixed';
     input.style.top = '-9999px';
     // Some mobile browsers — notably iOS Safari in standalone/installed mode —
     // silently ignore .click() on an element that was never attached to the
-    // document, so the camera never opens and the caller hangs forever.
+    // document, so the picker never opens and the caller hangs forever.
     document.body.appendChild(input);
-    input.onchange = () => { input.remove(); resolve(input.files?.[0] ?? null); };
+    input.onchange = () => { input.remove(); resolve(Array.from(input.files ?? [])); };
     input.click();
   });
 }
@@ -46,14 +53,29 @@ async function makePhotoThumb(blob: Blob): Promise<Blob | null> {
   }
 }
 
-/** Capture one piece of evidence; returns its ref, or null if cancelled. */
+/** Shoot one piece of evidence with the device camera; null if cancelled. */
 export async function captureMedia(kind: 'photo' | 'video'): Promise<MediaRef | null> {
-  const file = await pickFile(kind);
+  const [file] = await pickFiles(kind === 'photo' ? 'image/*' : 'video/*', { camera: true });
   if (!file) return null;
-  return kind === 'photo' ? saveEvidence('photo', file) : saveEvidence('video', file);
+  return saveEvidence(kind, file);
 }
 
-async function saveEvidence(kind: 'photo' | 'video', blob: Blob): Promise<MediaRef> {
+/** Attach photos/videos the user ALREADY has — phone gallery, Files, or a
+ *  laptop's disk. Several at once, since that's how footage usually arrives. */
+export async function pickExistingMedia(): Promise<MediaRef[]> {
+  const files = await pickFiles('image/*,video/*', { multiple: true });
+  const refs: MediaRef[] = [];
+  for (const f of files) {
+    const mime = f.type || (await sniffMime(f)) || '';
+    refs.push(await saveEvidence(mime.startsWith('video/') ? 'video' : 'photo', f));
+  }
+  return refs;
+}
+
+async function saveEvidence(kind: 'photo' | 'video', raw: Blob): Promise<MediaRef> {
+  // Store it already carrying a type the browser can dispatch on — files
+  // dragged off a laptop often arrive with none at all.
+  const blob = await withUsableMime(raw, kind === 'photo' ? 'image/jpeg' : 'video/mp4');
   const blobKey = `blob-${uid()}`;
   await putBlob(blobKey, blob);
   let thumbKey: string | undefined;
