@@ -11,6 +11,7 @@ import { CloudPanel } from '../cloud/CloudPanel';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { useProfile } from '../cloud/admin';
 import { useSyncedAt } from '../cloud/session';
+import { InstallPanel } from '../ui/InstallPanel';
 
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
@@ -58,6 +59,7 @@ export function WorkspaceHome() {
         <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
       </div>
 
+      <InstallPanel />
       <CloudPanel />
 
       {profile?.is_super && (
