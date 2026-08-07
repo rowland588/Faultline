@@ -2,7 +2,7 @@
  * tools). Tapping one resumes exactly where you left it. */
 import { useEffect, useState } from 'react';
 import type { Workspace } from '../types';
-import { listWorkspaces, listObservations, createWorkspace } from '../db';
+import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, createWorkspace } from '../db';
 import { nav } from '../state/useRoute';
 import { EmptyState } from '../ui/EmptyState';
 import { Wordmark } from '../ui/Logo';
@@ -39,9 +39,24 @@ function BuildStamp() {
   );
 }
 
+/* What a workspace card must answer: "what's in here?" — for ALL content, not
+ * one kind of it. Counting only time observations made a workspace full of
+ * walk videos and snags read "0 observations", i.e. "your work is gone". */
+interface WsContents { obs: number; videos: number; openSnags: number }
+
+function contentsLabel(c: WsContents | undefined): string {
+  if (!c) return '…';
+  const parts = [
+    c.obs > 0 ? plural(c.obs, 'observation') : '',
+    c.videos > 0 ? plural(c.videos, 'video') : '',
+    c.openSnags > 0 ? `${c.openSnags} open snag${c.openSnags === 1 ? '' : 's'}` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'empty — tap to start';
+}
+
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [counts, setCounts] = useState<Record<string, WsContents>>({});
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
@@ -58,7 +73,16 @@ export function WorkspaceHome() {
       const ws = await listWorkspaces();
       if (!alive) return;
       setList(ws);
-      const entries = await Promise.all(ws.map(async w => [w.id, (await listObservations(w.id)).length] as const));
+      const entries = await Promise.all(ws.map(async w => {
+        const [obs, segs, snags] = await Promise.all([
+          listObservations(w.id), listSegments(w.id), snagsForWorkspace(w.id),
+        ]);
+        return [w.id, {
+          obs: obs.length,
+          videos: segs.length,
+          openSnags: snags.filter(s => s.status !== 'closed').length,
+        }] as const;
+      }));
       if (alive) setCounts(Object.fromEntries(entries));
     })();
     return () => { alive = false; };
@@ -131,7 +155,7 @@ export function WorkspaceHome() {
               <span className="ws-card-main">
                 <span className="ws-card-name">{w.name}</span>
                 <span className="ws-card-meta">
-                  {plural(counts[w.id] ?? 0, 'observation')}
+                  {contentsLabel(counts[w.id])}
                   {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
                 </span>
               </span>

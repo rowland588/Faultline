@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForAsset } from '../db';
+import { useSyncedAt } from '../cloud/session';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import PinImage, { type Pin } from './PinImage';
@@ -22,6 +23,7 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const curSeg = segments[cur];
   const videoUrl = useBlobUrl(curSeg?.videoKey);
+  const syncedAt = useSyncedAt();
 
   useEffect(() => {
     (async () => {
@@ -33,7 +35,8 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
         .sort((x, y) => x.sequence - y.sequence || x.asset.timestampS - y.asset.timestampS);
       setSegments(segs); setFlat(fl); setSnagsBy(by);
     })();
-  }, [wsId]);
+    // syncedAt: a walkthrough left open picks up snags closed on another device
+  }, [wsId, syncedAt]);
 
   const inSeg = flat.filter(f => f.asset.segmentId === curSeg?.id);
   const nearest = inSeg.filter(f => f.asset.timestampS <= t + 0.25).slice(-1)[0] ?? inSeg[0];

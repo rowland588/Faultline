@@ -42,15 +42,17 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
     for (const a of list) { const sn = await snagsForAsset(a.id); c.set(a.id, sn.filter(s => s.status !== 'closed').length); }
     setOpenCounts(c);
   };
+  const syncedAt = useSyncedAt();
   useEffect(() => {
     (async () => {
       const s = await getSegment(segmentId);
       if (!s) { nav(`/w/${wsId}/snags`); return; }
       setSeg(s); await loadAssets();
     })();
+    // syncedAt: the segment RECORD too (a rename or re-encode from another
+    // device), not just its asset list.
     // eslint-disable-next-line
-  }, [segmentId]);
-  const syncedAt = useSyncedAt();
+  }, [segmentId, syncedAt]);
   useEffect(() => { void listSegments(wsId).then(setSegs); void loadAssets(); /* eslint-disable-next-line */ }, [wsId, syncedAt]);
 
   // Reset the decode verdict when the segment changes; name the codec only if
