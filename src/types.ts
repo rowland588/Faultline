@@ -34,6 +34,9 @@ export interface Workspace {
 
   // Resume: the full hash the user last stood on in this workspace.
   lastRoute?: string;
+  // Device-local recency for the Home sort — deliberately NOT the sync clock,
+  // so opening a workspace never gives stale data a fresher LWW stamp.
+  lastOpenedAt?: Millis;
 
   // Running stopwatch survives app close (persisted, debounced).
   activeTimer?: ActiveTimer;

@@ -191,6 +191,45 @@ exception when insufficient_privilege then
 end
 $pol$;
 
+-- ---------- sync transport: server-assigned rev + realtime ----------
+-- `rev` (one global sequence, trigger-stamped) is the pull cursor: devices ask
+-- for "rev > last seen", which is pure server truth — device clock skew can
+-- never skip rows. The realtime publication tells every other signed-in device
+-- to pull the moment one pushes.
+create sequence if not exists public.faultline_rev_seq;
+
+create or replace function public.faultline_stamp_rev()
+returns trigger language plpgsql as $$
+begin
+  new.rev := nextval('public.faultline_rev_seq');
+  return new;
+end $$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['workspaces','observations','segments','snag_assets','snags'] loop
+    execute format('alter table public.%I add column if not exists rev bigint', t);
+    execute format('drop trigger if exists faultline_rev on public.%I', t);
+    execute format('create trigger faultline_rev before insert or update on public.%I for each row execute function public.faultline_stamp_rev()', t);
+    execute format('update public.%I set rev = nextval(''public.faultline_rev_seq'') where rev is null', t);
+    execute format('create index if not exists idx_%s_rev on public.%I (rev)', t, t);
+  end loop;
+end $$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['workspaces','observations','segments','snag_assets','snags'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception
+      when duplicate_object then null;
+      when undefined_object then null; -- realtime disabled; interval sync still works
+    end;
+  end loop;
+end $$;
+
 -- ---------- report ----------
 select 'clock ' || table_name || '.' || column_name as item, data_type as value
 from information_schema.columns

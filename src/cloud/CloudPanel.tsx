@@ -33,7 +33,7 @@ export function CloudPanel() {
 
   const label = status.state === 'syncing' ? 'Syncing…'
     : status.state === 'error' ? 'Sync error — will retry'
-    : status.lastSyncedAt ? `Synced ${fmtRelative(status.lastSyncedAt)}` : 'Signed in';
+    : status.lastSyncedAt ? `Synced automatically ${fmtRelative(status.lastSyncedAt)}` : 'Signed in';
 
   return (
     <div className="cloud-row cloud-signedin">
@@ -41,6 +41,11 @@ export function CloudPanel() {
       <span className="cloud-main">
         <b>{session.user.email}</b>
         <span className="sub">{label}{status.state === 'error' && status.error ? ` · ${status.error}` : ''}</span>
+        {status.schemaOutdated && (
+          <span className="sub" style={{ color: 'var(--warn)' }}>
+            One-time upgrade needed: run supabase/SYNC_UPGRADE.sql (in the repo) in the Supabase SQL editor for instant, loss-proof sync.
+          </span>
+        )}
       </span>
       <span className="cloud-actions">
         <button className="btn" onClick={() => void syncNow()}>Sync now</button>

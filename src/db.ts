@@ -41,6 +41,20 @@ const OPEN_TIMEOUT_MS = 12_000;
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
 let opened: IDBPDatabase<AppDB> | null = null;
 
+/* ---------- local-write signal ----------
+ * Every user-path mutation announces itself, so the sync engine can push within
+ * seconds of a change instead of waiting for a timer that mobile browsers
+ * freeze in the background. Sync-applied writes (rawPut/applyRemoteDelete) do
+ * NOT signal — that would loop. */
+const writeListeners = new Set<() => void>();
+export function onLocalWrite(fn: () => void): () => void {
+  writeListeners.add(fn);
+  return () => { writeListeners.delete(fn); };
+}
+function signalWrite(): void {
+  for (const fn of writeListeners) { try { fn(); } catch { /* listener's problem */ } }
+}
+
 export function getDB(): Promise<IDBPDatabase<AppDB>> {
   if (dbp) return dbp;
   const mine = openAndImport();
@@ -182,7 +196,8 @@ const cloneSubs = (src: Record<string, string[]>): Record<string, string[]> =>
 
 export async function listWorkspaces(): Promise<Workspace[]> {
   const all = await (await getDB()).getAll('workspaces');
-  return all.filter(w => !w.archived).sort((a, b) => b.updatedAt - a.updatedAt);
+  const recency = (w: Workspace) => Math.max(w.updatedAt, w.lastOpenedAt ?? 0);
+  return all.filter(w => !w.archived).sort((a, b) => recency(b) - recency(a));
 }
 
 export async function getWorkspace(id: ID): Promise<Workspace | undefined> {
@@ -206,12 +221,23 @@ export async function createWorkspace(name: string): Promise<Workspace> {
     schemaVersion: 1,
   };
   await db.put('workspaces', ws);
+  signalWrite();
   return ws;
 }
 
 export async function updateWorkspace(ws: Workspace): Promise<void> {
   await (await getDB()).put('workspaces', { ...ws, updatedAt: now() });
+  signalWrite();
 }
+
+/* Fields that live on THIS device only (running timer, resume route, recency).
+ * A patch touching nothing else must NOT stamp updatedAt: the stamp is the sync
+ * LWW clock, and bumping it on mere navigation gave a stale device a fresher
+ * clock than a real edit made elsewhere — opening the app could then overwrite
+ * a rename/category change from another device with old data. */
+const DEVICE_LOCAL_FIELDS = new Set<keyof Workspace>(['activeTimer', 'lastRoute', 'lastOpenedAt']);
+const isDeviceLocalPatch = (patch: Partial<Workspace>): boolean =>
+  Object.keys(patch).every(k => DEVICE_LOCAL_FIELDS.has(k as keyof Workspace));
 
 /** Atomic read-modify-write of one workspace record — get + put in a single
  *  transaction so concurrent patches (route, timer, settings) can't clobber each
@@ -222,9 +248,11 @@ export async function patchWorkspaceRecord(id: ID, patch: Partial<Workspace>): P
   const store = tx.objectStore('workspaces');
   const ws = await store.get(id);
   if (!ws) { await tx.done; return undefined; }
-  const next = { ...ws, ...patch, updatedAt: now() };
+  const deviceLocal = isDeviceLocalPatch(patch);
+  const next = deviceLocal ? { ...ws, ...patch } : { ...ws, ...patch, updatedAt: now() };
   await store.put(next);
   await tx.done;
+  if (!deviceLocal) signalWrite(); // device-local churn isn't worth a push
   return next;
 }
 
@@ -268,10 +296,12 @@ export async function listObservations(workspaceId: ID): Promise<Observation[]> 
 
 export async function addObservation(o: Observation): Promise<void> {
   await (await getDB()).put('observations', o);
+  signalWrite();
 }
 
 export async function updateObservation(o: Observation): Promise<void> {
   await (await getDB()).put('observations', { ...o, updatedAt: now() });
+  signalWrite();
 }
 
 export async function softDeleteObservation(id: ID): Promise<void> {
@@ -279,6 +309,7 @@ export async function softDeleteObservation(id: ID): Promise<void> {
   const o = await db.get('observations', id);
   if (!o) return;
   await db.put('observations', { ...o, deletedAt: now(), updatedAt: now() });
+  signalWrite();
 }
 
 /** Undo a soft-delete (clears the tombstone). Powers the delete → Undo affordance. */
@@ -287,6 +318,7 @@ export async function restoreObservation(id: ID): Promise<void> {
   const o = await db.get('observations', id);
   if (!o) return;
   await db.put('observations', { ...o, deletedAt: undefined, updatedAt: now() });
+  signalWrite();
 }
 
 /** Rename a taxonomy value across every observation that uses it, so a rename in
@@ -306,6 +338,7 @@ export async function renameInObservations(
     }
   }
   await tx.done;
+  if (n > 0) signalWrite();
   return n;
 }
 
@@ -331,7 +364,9 @@ export async function saveRoute(workspaceId: ID, hash: string): Promise<void> {
   const tx = db.transaction('workspaces', 'readwrite');
   const store = tx.objectStore('workspaces');
   const ws = await store.get(workspaceId);
-  if (ws && ws.lastRoute !== hash) await store.put({ ...ws, lastRoute: hash, updatedAt: now() });
+  // Deliberately does NOT stamp updatedAt (see DEVICE_LOCAL_FIELDS) — recency
+  // for the Home sort lives in lastOpenedAt instead.
+  if (ws && ws.lastRoute !== hash) await store.put({ ...ws, lastRoute: hash, lastOpenedAt: now() });
   await tx.done;
 }
 
@@ -354,6 +389,7 @@ export async function recordTombstones(kind: SyncKind, ids: ID[]): Promise<void>
   const t = now();
   for (const id of ids) await tx.objectStore('tombstones').put({ id, kind, deletedAt: t });
   await tx.done;
+  signalWrite();
 }
 export async function listTombstones(): Promise<Tombstone[]> {
   return (await getDB()).getAll('tombstones');
@@ -459,11 +495,13 @@ export async function nextSegmentSequence(workspaceId: ID): Promise<number> {
 }
 export async function addSegment(seg: Segment): Promise<void> {
   await (await getDB()).put('segments', { ...seg, updatedAt: now() });
+  signalWrite();
 }
 /** Edit a segment (name it). Stamps updatedAt so the change syncs and shows
  *  everywhere the segment is read. */
 export async function updateSegment(seg: Segment): Promise<void> {
   await (await getDB()).put('segments', { ...seg, updatedAt: now() });
+  signalWrite();
 }
 /** Delete a segment and everything below it: its assets, their snags, and every
  *  media blob any of them holds — one transaction, no orphaned blobs. */
@@ -497,6 +535,7 @@ export async function reorderSegments(orderedIds: ID[]): Promise<void> {
     if (seg) await tx.objectStore('segments').put({ ...seg, sequence: i + 1, updatedAt: now() });
   }
   await tx.done;
+  signalWrite();
 }
 
 /* ---------- assets ---------- */
@@ -512,11 +551,13 @@ export async function getSnagAsset(id: ID): Promise<SnagAsset | undefined> {
 }
 export async function addSnagAsset(a: SnagAsset): Promise<void> {
   await (await getDB()).put('snag_assets', { ...a, updatedAt: now() });
+  signalWrite();
 }
 /** Edit an asset (rename / recode). Stamps updatedAt so the change syncs and is
  *  reflected everywhere the asset is read. */
 export async function updateSnagAsset(a: SnagAsset): Promise<void> {
   await (await getDB()).put('snag_assets', { ...a, updatedAt: now() });
+  signalWrite();
 }
 
 /* ---------- snags ---------- */
@@ -530,9 +571,11 @@ export async function snagsForWorkspace(workspaceId: ID): Promise<Snag[]> {
 }
 export async function addSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', s);
+  signalWrite();
 }
 export async function updateSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', { ...s, updatedAt: now() });
+  signalWrite();
 }
 export async function deleteSnag(id: ID): Promise<void> {
   const db = await getDB();
@@ -550,4 +593,5 @@ export async function setSnagsStatus(ids: ID[], status: Snag['status']): Promise
     if (s) await tx.objectStore('snags').put({ ...s, status, closedAt: status === 'closed' ? now() : undefined, updatedAt: now() });
   }
   await tx.done;
+  signalWrite();
 }
