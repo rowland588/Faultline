@@ -7,6 +7,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
+import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useSyncedAt } from '../cloud/session';
 import { sectionLabel } from './labels';
 import type { Segment } from './types';
@@ -63,6 +64,7 @@ export function SnagsScreen() {
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const [renaming, setRenaming] = useState<Segment | null>(null);
+  const [filming, setFilming] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -76,7 +78,7 @@ export function SnagsScreen() {
   const syncedAt = useSyncedAt();
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
 
-  const onFile = async (file: File) => {
+  const onFile = async (file: Blob) => {
     setErr(''); setBusy('Saving the video…');
     try {
       const id = await createSegmentFromVideo(workspace.id, file);
@@ -84,6 +86,15 @@ export function SnagsScreen() {
       nav(`/w/${workspace.id}/segment/${id}`); // jump straight into the new video to mark assets
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
     finally { setBusy(''); if (fileRef.current) fileRef.current.value = ''; }
+  };
+
+  /* Each clip recorded in one session becomes its own segment — that's exactly
+   * the shape of a walk (infeed, filler, outfeed). Saved as they're shot so
+   * nothing is lost if the camera is closed mid-session. */
+  const onRecorded = async (blob: Blob) => {
+    setErr('');
+    try { await createSegmentFromVideo(workspace.id, blob); await load(); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Could not save the clip.'); }
   };
 
   const move = async (from: number, to: number) => {
@@ -120,7 +131,18 @@ export function SnagsScreen() {
       {busy ? (
         <div className="card" style={{ marginTop: 14 }}><b>{busy}</b><p className="sub" style={{ marginTop: 6 }}>Large files take a moment — keep this screen open.</p></div>
       ) : (
-        <div style={{ margin: '14px 0' }}><button className="btn btn-primary btn-lg" onClick={() => fileRef.current?.click()}>＋ Add a video (film or choose)</button></div>
+        <div className="add-video-row">
+          {/* Filming in-app records H.264, which plays on every device. The
+              phone's own camera app defaults to HEVC on most handsets, which
+              a laptop can decode the sound of but not the picture — so that's
+              the fallback, not the headline action. */}
+          {videoCaptureSupported() && (
+            <button className="btn btn-primary btn-lg" onClick={() => setFilming(true)}>🎥 Film the walk</button>
+          )}
+          <button className={'btn btn-lg' + (videoCaptureSupported() ? '' : ' btn-primary')} onClick={() => fileRef.current?.click()}>
+            {videoCaptureSupported() ? 'Choose an existing video' : '＋ Add a video (film or choose)'}
+          </button>
+        </div>
       )}
 
       {segs.length === 0 && !busy ? (
@@ -136,6 +158,8 @@ export function SnagsScreen() {
           ))}
         </div>
       )}
+
+      {filming && <VideoRecorder onCapture={b => void onRecorded(b)} onClose={() => setFilming(false)} />}
 
       <Sheet open={!!renaming} onClose={() => setRenaming(null)} title="Name this video">
         {renaming && <SegNameForm key={renaming.id} initial={renaming.name ?? ''} placeholder={`Segment ${renaming.sequence}`}

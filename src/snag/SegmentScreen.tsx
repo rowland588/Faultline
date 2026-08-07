@@ -8,6 +8,7 @@ import { useBlobSource } from './useBlobUrl';
 import { captureFrame } from './frame';
 import { createSegmentFromVideo } from './addSegment';
 import { sectionLabel } from './labels';
+import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useSyncedAt } from '../cloud/session';
 import type { Segment, SnagAsset } from './types';
 
@@ -29,6 +30,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const addRef = useRef<HTMLInputElement>(null);
   const { url: videoUrl, state: videoState } = useBlobSource(seg?.videoKey);
   const [noPicture, setNoPicture] = useState<null | 'video-track' | 'none'>(null);
+  const [filming, setFilming] = useState(false);
   const [codec, setCodec] = useState<string | null>(null);
 
   const loadAssets = async () => {
@@ -66,13 +68,22 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const idx = segs.findIndex(s => s.id === segmentId);
   const goSeg = (s?: Segment) => { if (s) nav(`/w/${wsId}/segment/${s.id}`); };
 
-  const addVideo = async (file: File) => {
+  const addVideo = async (file: Blob) => {
     setErr(''); setAddingVideo(true);
     try {
       const id = await createSegmentFromVideo(wsId, file);
       nav(`/w/${wsId}/segment/${id}`); // jump into the new video
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
     finally { setAddingVideo(false); if (addRef.current) addRef.current.value = ''; }
+  };
+
+  /* Filming stays put: navigating on the first clip would unmount this screen
+   * and take the camera down with it, so a multi-clip walk could only ever
+   * record one. Just refresh the strip and let them keep shooting. */
+  const addFilmed = async (blob: Blob) => {
+    setErr('');
+    try { await createSegmentFromVideo(wsId, blob); await listSegments(wsId).then(setSegs); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Could not save the clip.'); }
   };
 
   const renameSeg = async (nm: string) => {
@@ -151,7 +162,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             {i + 1}
           </button>
         ))}
-        <button className="seg-chip seg-chip-add" disabled={addingVideo} onClick={() => addRef.current?.click()} title="Add another video">
+        {/* In-app filming records H.264 (plays anywhere); the picker stays for
+            footage that already exists. */}
+        <button className="seg-chip seg-chip-add" disabled={addingVideo}
+          onClick={() => (videoCaptureSupported() ? setFilming(true) : addRef.current?.click())} title="Film another section">
           {addingVideo ? '…' : '＋ Video'}
         </button>
       </div>
@@ -233,6 +247,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           <button className="btn btn-ghost" onClick={cancel}>Cancel</button>
         </div>
       </Sheet>
+
+      {filming && <VideoRecorder onCapture={b => void addFilmed(b)} onClose={() => setFilming(false)} />}
 
       <Sheet open={renamingSeg} onClose={() => setRenamingSeg(false)} title="Name this video">
         {seg && <SegNameForm key={seg.id} initial={seg.name ?? ''} placeholder={`Segment ${seg.sequence}`} onSave={renameSeg} onClose={() => setRenamingSeg(false)} />}

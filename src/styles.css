@@ -600,6 +600,8 @@ button { font-family: inherit; }
   text-align: center; padding: 28px 22px; min-height: 180px; background: var(--surface-2);
   border-radius: var(--radius-sm); color: var(--ink-2);
 }
+.add-video-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+.add-video-row .btn { flex: 1 1 auto; }
 .video-msg b { font-size: 15px; }
 .video-msg .sub { max-width: 42ch; }
 .video-msg-ic { font-size: 26px; opacity: 0.55; margin-bottom: 2px; }
