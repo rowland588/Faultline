@@ -114,12 +114,33 @@ async function downloadMedia(uid: string, keys: MediaKey[], failed: Set<string>)
   }
 }
 
+/* ---------- one-time re-baseline per engine version ----------
+ * Devices that synced under the old engine carry cursors advanced past rows
+ * the old clock-skew bug silently skipped — new code alone doesn't heal them.
+ * On the first sync after an engine change, reset the cursors so this device
+ * re-pulls and re-pushes EVERYTHING once, automatically. (The `uploaded` set
+ * is kept: media already in the cloud isn't re-sent; upserts are idempotent.)
+ * Nobody should ever be told to press a repair button for our migration. */
+const ENGINE_VERSION = 2;
+let migrationDone: Promise<void> | null = null;
+function ensureMigrated(): Promise<void> {
+  migrationDone ??= (async () => {
+    const v = (await metaGet('engineVersion')) as number | undefined;
+    if (v === ENGINE_VERSION) return;
+    await setSyncCursor(0);
+    await metaPut(REV_KEY, {});
+    await metaPut('engineVersion', ENGINE_VERSION);
+  })();
+  return migrationDone;
+}
+
 /* ---------- the sync ---------- */
 let running = false;
 let runQueued = false;
 export async function syncNow(): Promise<void> {
   if (!cloudConfigured || !supabase) return;
   if (running) { runQueued = true; return; } // a write mid-sync re-runs at the end, not never
+  await ensureMigrated();
   const uid = await userId();
   if (!uid) { set({ state: 'signedout' }); return; }
 
