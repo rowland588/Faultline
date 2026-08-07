@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { goBack } from '../state/useRoute';
+import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForAsset } from '../db';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
@@ -45,14 +45,16 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
   return (
     <div className="walk-stage">
       <div className="walk-stage-head">
-        <button className="btn btn-ghost" onClick={() => goBack(`/w/${wsId}/snags`)}>‹ Exit</button>
+        <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ Exit</button>
         <span className="walk-stage-title">{workspace.name}{curSeg ? ` · ${sectionLabel(curSeg, inSeg.map(f => f.asset.name))}` : ''}</span>
       </div>
       <div className="walk-stage-body">
         <div className="walk-video-col">
           <div className="walk-video-frame">
-            <video ref={videoRef} className="walk-video" src={videoUrl ?? undefined} playsInline controls autoPlay
-              onEnded={onEnded} onLoadedMetadata={onLoaded} onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
+            {videoUrl
+              ? <video ref={videoRef} className="walk-video" src={videoUrl} playsInline controls autoPlay
+                  onEnded={onEnded} onLoadedMetadata={onLoaded} onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
+              : <div className="video-msg walk-video"><span className="video-msg-ic" aria-hidden>☁</span><b>This clip isn't on this device yet</b><span className="sub">It'll download on the next sync.</span></div>}
             {nearest && (
               <button className="walk-overlay" onClick={() => setSelected(nearest.asset)}>
                 <span className="walk-overlay-name">{nearest.asset.name}</span>

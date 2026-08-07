@@ -3,7 +3,8 @@
  * media blobs, and propagates deletes via tombstones. Inert unless configured
  * AND signed in — the app is fully usable with neither. */
 import { supabase, cloudConfigured } from './client';
-import { MAPS, SYNC_KINDS } from './mappers';
+import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
+import { withUsableMime } from '../lib/mime';
 import type { SyncKind } from '../db';
 import {
   rawAll, rawPut, hasBlob, getBlob, putBlob, applyRemoteDelete,
@@ -35,24 +36,29 @@ async function uploadedSet(): Promise<Set<string>> {
   return new Set(meta?.keys ?? []);
 }
 
-async function uploadMedia(uid: string, keys: string[], uploaded: Set<string>): Promise<void> {
+async function uploadMedia(uid: string, keys: MediaKey[], uploaded: Set<string>): Promise<void> {
   const sb = supabase!;
-  for (const key of keys) {
+  for (const { key, mime } of keys) {
     if (!key || uploaded.has(key)) continue;
-    const blob = await getBlob(key);
-    if (!blob) { uploaded.add(key); continue; }        // referenced but gone locally — skip
+    const raw = await getBlob(key);
+    if (!raw) { uploaded.add(key); continue; }         // referenced but gone locally — skip
+    // Send a real content type. Storage echoes this back on download, so an
+    // octet-stream here is what makes the clip unplayable on every OTHER device.
+    const blob = await withUsableMime(raw, mime);
     const { error } = await sb.storage.from(BUCKET).upload(`${uid}/${key}`, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' });
     if (error) continue;                               // best-effort: bucket missing / transient — retry next sync, don't block data
     uploaded.add(key);
   }
 }
-async function downloadMedia(uid: string, keys: string[]): Promise<void> {
+async function downloadMedia(uid: string, keys: MediaKey[]): Promise<void> {
   const sb = supabase!;
-  for (const key of keys) {
+  for (const { key, mime } of keys) {
     if (!key || (await hasBlob(key))) continue;
     const { data, error } = await sb.storage.from(BUCKET).download(`${uid}/${key}`);
     if (error || !data) continue;                       // best-effort; a missing blob isn't fatal
-    await putBlob(key, data);
+    // Re-derive the type from the bytes: what comes back off the wire is often
+    // application/octet-stream, which no <video> or <img> will render.
+    await putBlob(key, await withUsableMime(data, mime));
   }
 }
 

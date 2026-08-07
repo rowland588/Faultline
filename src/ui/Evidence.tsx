@@ -1,21 +1,6 @@
-import { useEffect, useState } from 'react';
 import type { MediaRef } from '../types';
-import { getBlob } from '../db';
-
-/** Load a stored blob as an object URL, revoking it on unmount/change. */
-function useBlobUrl(key?: string): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    let obj: string | null = null;
-    if (!key) { setUrl(null); return; }
-    void getBlob(key).then(b => {
-      if (alive && b) { obj = URL.createObjectURL(b); setUrl(obj); }
-    });
-    return () => { alive = false; if (obj) URL.revokeObjectURL(obj); };
-  }, [key]);
-  return url;
-}
+import { useBlobUrl, useBlobSource } from '../lib/useBlobUrl';
+import { VideoPlayer } from './VideoPlayer';
 
 export function EvidenceThumb({ media, onClick, size = 54 }: {
   media: MediaRef; onClick?: () => void; size?: number;
@@ -31,14 +16,15 @@ export function EvidenceThumb({ media, onClick, size = 54 }: {
 
 /** Full-screen lightbox for one piece of evidence. */
 export function EvidenceViewer({ media, onClose }: { media: MediaRef; onClose: () => void }) {
-  const url = useBlobUrl(media.blobKey);
+  const { url, state } = useBlobSource(media.blobKey);
   return (
     <div className="ev-viewer" onClick={onClose}>
       <button className="ev-close" onClick={onClose} aria-label="Close">✕</button>
       <div className="ev-stage" onClick={e => e.stopPropagation()}>
-        {url && (media.kind === 'photo'
-          ? <img src={url} alt="Evidence" />
-          : <video src={url} controls autoPlay playsInline />)}
+        {media.kind === 'photo'
+          ? (url ? <img src={url} alt="Evidence" />
+            : <div className="video-msg">{state === 'loading' ? <span className="sub">Loading…</span> : <><span className="video-msg-ic" aria-hidden>☁</span><b>Not on this device yet</b><span className="sub">It'll download on the next sync.</span></>}</div>)
+          : <VideoPlayer blobKey={media.blobKey} autoPlay />}
       </div>
     </div>
   );

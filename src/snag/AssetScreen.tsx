@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav, goBack } from '../state/useRoute';
+import { nav } from '../state/useRoute';
 import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { plural } from '../lib/format';
 import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';
 import { useBlobUrl } from './useBlobUrl';
+import { VideoPlayer } from '../ui/VideoPlayer';
 import { useSyncedAt } from '../cloud/session';
 import PinImage, { type Pin } from './PinImage';
 import { SNAG_STATUS_META, ageDays, isStaleOpen, type SnagAsset, type Snag, type SnagStatus } from './types';
@@ -25,7 +26,6 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const [watching, setWatching] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const still = useBlobUrl(asset?.stillKey);
-  const videoUrl = useBlobUrl(videoKey); // the source clip this still was frozen from
 
   const load = async () => {
     const a = await getSnagAsset(assetId);
@@ -50,7 +50,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => goBack(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
+        <button className="btn btn-ghost" onClick={() => nav(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
         <div style={{ flex: 1 }} />
         {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}
         {hiddenClosed > 0 && <button className="btn" onClick={() => setShowClosed(v => !v)}>{showClosed ? 'Hide closed' : `Show closed (${hiddenClosed})`}</button>}
@@ -66,7 +66,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           onPinTap={id => { const s = snags.find(x => x.id === id); if (s) { setDraft(null); setEditing(s); } }} />
       </div>
 
-      {videoUrl && (
+      {/* Offered whenever a source clip exists — the player itself explains if
+          it hasn't synced to this device yet, rather than the button vanishing. */}
+      {videoKey && (
         <button className="btn watch-video-btn" onClick={() => setWatching(true)}>
           ▶ Watch the video — see it live
         </button>
@@ -95,10 +97,8 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       {asset && <RenameSheet asset={asset} open={renaming} onClose={() => setRenaming(false)} onSaved={async () => { setRenaming(false); await load(); }} />}
 
       <Sheet open={watching} onClose={() => setWatching(false)} title={asset ? `${asset.name} — live` : 'Video'}>
-        {videoUrl
-          ? <video className="asset-video" src={videoUrl} playsInline controls autoPlay
-              onLoadedMetadata={e => { const v = e.target as HTMLVideoElement; if (asset) { try { v.currentTime = asset.timestampS; } catch { /* seek before ready */ } } }} />
-          : <p className="sub">The video isn't on this device yet — it will download on the next sync.</p>}
+        <VideoPlayer blobKey={videoKey} className="asset-video" autoPlay
+          onLoadedMetadata={e => { const v = e.target as HTMLVideoElement; if (asset) { try { v.currentTime = asset.timestampS; } catch { /* seek before ready */ } } }} />
         <p className="sub" style={{ marginTop: 8 }}>
           The still with the dots was frozen from this clip{asset ? ` at ${asset.timestampS.toFixed(1)}s` : ''}. Play it to show what's happening in real life.
         </p>

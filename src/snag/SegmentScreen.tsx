@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { nav, goBack } from '../state/useRoute';
+import { nav } from '../state/useRoute';
 import { getSegment, listSegments, updateSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
-import { useBlobUrl } from './useBlobUrl';
+import { useBlobSource } from './useBlobUrl';
 import { captureFrame } from './frame';
 import { createSegmentFromVideo } from './addSegment';
 import { sectionLabel } from './labels';
@@ -26,7 +26,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const [err, setErr] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const addRef = useRef<HTMLInputElement>(null);
-  const videoUrl = useBlobUrl(seg?.videoKey);
+  const { url: videoUrl, state: videoState } = useBlobSource(seg?.videoKey);
 
   const loadAssets = async () => {
     const list = await assetsForSegment(segmentId);
@@ -111,7 +111,11 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => goBack(`/w/${wsId}/snags`)}>‹ All segments</button>
+        {/* A named destination, so go straight there. history.back() would only
+            rewind ONE entry — and every segment you switched through (strip
+            chips, ‹ › arrows) pushed one, so it walked you back a segment at a
+            time instead of reaching the list. */}
+        <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ All segments</button>
         <div style={{ flex: 1 }} />
         {segs.length > 1 && (
           <div className="seg-nav">
@@ -146,9 +150,17 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 
       <div className="card" style={{ marginTop: 12, padding: 10 }}>
-        <video ref={videoRef} className="seg-video" src={videoUrl ?? undefined} playsInline controls
-          onLoadedMetadata={e => setDur((e.target as HTMLVideoElement).duration || 0)}
-          onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
+        {videoState === 'ready' ? (
+          <video ref={videoRef} className="seg-video" src={videoUrl ?? undefined} playsInline controls preload="metadata"
+            onLoadedMetadata={e => setDur((e.target as HTMLVideoElement).duration || 0)}
+            onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
+        ) : (
+          <div className="video-msg seg-video">
+            <span className="video-msg-ic" aria-hidden>☁</span>
+            <b>{videoState === 'loading' ? 'Loading…' : 'Not on this device yet'}</b>
+            {videoState === 'missing' && <span className="sub">This video will download on the next sync — keep this device online for a moment.</span>}
+          </div>
+        )}
         <div className="seg-controls">
           <button className="btn" onClick={() => step(-1)}>◄ 1s</button>
           <button className="btn" onClick={() => step(1)}>1s ►</button>

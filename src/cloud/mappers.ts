@@ -7,13 +7,20 @@ import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
 
+/** A blob this record points at. `mime` is a fallback used only when the bytes
+ *  aren't self-identifying — storage doesn't reliably preserve content types,
+ *  and an untyped blob won't play (see lib/mime). */
+export interface MediaKey { key: string; mime?: string }
+
 export interface EntityMap {
   toRow(local: unknown, ownerId: string): Row;
   fromRow(row: Row): Row;
-  mediaKeys(local: unknown): string[];
+  mediaKeys(local: unknown): MediaKey[];
   /** The LWW clock for this local record. */
   clock(local: unknown): number;
 }
+
+const k = (key: string | undefined, mime?: string): MediaKey[] => (key ? [{ key, mime }] : []);
 
 const n = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
 
@@ -45,7 +52,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   observations: {
     clock: l => (l as Observation).updatedAt ?? (l as Observation).createdAt,
-    mediaKeys: l => (l as Observation).media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]),
+    mediaKeys: l => (l as Observation).media.flatMap(m => [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')]),
     toRow: (l, owner) => {
       const o = l as Observation;
       return {
@@ -66,7 +73,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   segments: {
     clock: l => (l as Segment).updatedAt ?? (l as Segment).createdAt,
-    mediaKeys: l => { const s = l as Segment; return [s.videoKey, s.posterKey].filter(Boolean) as string[]; },
+    mediaKeys: l => { const s = l as Segment; return [...k(s.videoKey, 'video/mp4'), ...k(s.posterKey, 'image/jpeg')]; },
     toRow: (l, owner) => {
       const s = l as Segment;
       return { id: s.id, owner_id: owner, workspace_id: s.workspaceId, sequence: s.sequence, name: s.name ?? null,
@@ -82,7 +89,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   snag_assets: {
     clock: l => (l as SnagAsset).updatedAt ?? (l as SnagAsset).createdAt,
-    mediaKeys: l => [(l as SnagAsset).stillKey].filter(Boolean) as string[],
+    mediaKeys: l => k((l as SnagAsset).stillKey, 'image/jpeg'),
     toRow: (l, owner) => {
       const a = l as SnagAsset;
       return { id: a.id, owner_id: owner, workspace_id: a.workspaceId, segment_id: a.segmentId, timestamp_s: a.timestampS,
@@ -98,7 +105,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   snags: {
     clock: l => (l as Snag).updatedAt ?? (l as Snag).raisedAt,
-    mediaKeys: l => [(l as Snag).detailPhotoKey].filter(Boolean) as string[],
+    mediaKeys: l => k((l as Snag).detailPhotoKey, 'image/jpeg'),
     toRow: (l, owner) => {
       const s = l as Snag;
       return { id: s.id, owner_id: owner, workspace_id: s.workspaceId, asset_id: s.assetId, x_pct: s.xPct, y_pct: s.yPct,

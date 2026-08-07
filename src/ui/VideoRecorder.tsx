@@ -10,8 +10,19 @@ export function videoCaptureSupported(): boolean {
   return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
 }
 
+/* Ordered by how widely the RESULT plays back, not by quality. An H.264 MP4
+ * opens on anything, including Safari and Windows' default player; a VP9 WebM
+ * is Chrome/Firefox only, so a clip filmed on an Android phone would refuse to
+ * play on a colleague's Mac. We only fall back to WebM when MP4 isn't offered. */
 function pickMimeType(): string | undefined {
-  return ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+  return [
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4;codecs=avc1',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ].find(m => MediaRecorder.isTypeSupported(m));
 }
 
 const fmtElapsed = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
