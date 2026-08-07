@@ -183,7 +183,10 @@ async function importLegacyOnce(db: IDBPDatabase<AppDB>): Promise<void> {
 
 /* ---------- workspaces (the isolation container) ---------- */
 
-const PALETTE = ['#2b5ae0', '#0f8f6b', '#b3552d', '#7a4fd0', '#0e7fa8', '#b5495b', '#4a7a1e', '#96631c'];
+/* Workspace accent colors — the brand family first (blue, green, light orange),
+ * then clean companions. Only new workspaces draw from here; existing ones keep
+ * the color they were born with. */
+const PALETTE = ['#2563eb', '#0e9f6e', '#f97316', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#d97706'];
 const DEFAULT_CATEGORIES = ['Breakdown', 'Minor stop', 'Changeover', 'Waiting', 'Quality', 'Speed loss'];
 const DEFAULT_SUBCATEGORIES: Record<string, string[]> = {
   Breakdown: ['Mechanical', 'Electrical', 'Jam / blockage'],

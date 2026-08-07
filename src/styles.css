@@ -3,30 +3,31 @@
    Light default + dark. No gradients, no noise — just clear surfaces. */
 
 :root {
-  --bg: #f6f8fb;
+  --bg: #f5f8fc;
   --surface: #ffffff;
-  --surface-2: #eef1f6;
-  --ink: #141b26;
-  --ink-2: #3d4756;
-  --muted: #727d8c;
-  --line: #dde3ec;
-  /* brand — industrial amber. --accent is the READABLE amber (text/links); --brand
-     is the bright fill (buttons, live, the mark); --on-brand is text on amber. */
-  --accent: #b45309;      /* amber-800 — readable brand text on light */
-  --accent-soft: #fdf0dc; /* amber wash */
-  --accent-rgb: 245, 158, 11;
-  --brand: #f59e0b;       /* amber-500 — fills */
-  --brand-2: #d97706;     /* amber-600 — hover/pressed */
-  --on-brand: #1a1206;    /* near-black — text on amber fills */
-  /* chrome — the dark cockpit frame (top bar + tab bar), same in light & dark */
-  --chrome: #14181f;
-  --chrome-2: #1e242e;
-  --chrome-ink: #eef1f6;
-  --chrome-muted: #8b95a4;
-  --chrome-line: #2a323e;
-  --ok: #1f9d57;
-  --warn: #b9821a;
-  --danger: #d84b3f;
+  --surface-2: #ecf1f8;
+  --ink: #12233b;
+  --ink-2: #3b4c63;
+  --muted: #6d7f96;
+  --line: #dbe4f0;
+  /* brand — crisp blue. --accent is the READABLE blue (text/links); --brand is
+     the fill (buttons, live, the mark); --on-brand is text on blue. Green says
+     "good", light orange is reserved for the fault that matters. */
+  --accent: #1d4ed8;      /* blue-700 — readable brand text on light */
+  --accent-soft: #e8effc; /* blue wash */
+  --accent-rgb: 37, 99, 235;
+  --brand: #2563eb;       /* blue-600 — fills */
+  --brand-2: #1d4ed8;     /* blue-700 — hover/pressed */
+  --on-brand: #ffffff;    /* white — text on blue fills */
+  /* chrome — the deep-navy cockpit frame (top bar + tab bar), light & dark */
+  --chrome: #0f2440;
+  --chrome-2: #18355c;
+  --chrome-ink: #eef3fa;
+  --chrome-muted: #8fa5c2;
+  --chrome-line: #23436e;
+  --ok: #0e9f6e;
+  --warn: #c2660a;        /* the light-orange family, kept readable on white */
+  --danger: #dc4a3d;
   --freq: #5b6b84;        /* frequency series — a slate that pairs with any workspace hue */
   --radius: 14px;
   --radius-sm: 10px;
@@ -38,24 +39,26 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e1420;
-    --surface: #161d2b;
-    --surface-2: #1e2635;
+    --bg: #0c1523;
+    --surface: #142031;
+    --surface-2: #1c2a3e;
     --ink: #e9eef7;
-    --ink-2: #b7c0cf;
-    --muted: #8792a3;
-    --line: #29323f;
-    --accent: #fbbf24;      /* amber-400 — readable on dark */
-    --accent-soft: #2a2012;
-    --accent-rgb: 245, 158, 11;
-    --brand: #f59e0b;
-    --brand-2: #fbbf24;
-    --on-brand: #1a1206;
-    --chrome: #090c12;      /* near-black chrome, recedes under the dark content */
-    --chrome-2: #161d2b;
-    --chrome-ink: #eef1f6;
-    --chrome-muted: #8b95a4;
-    --chrome-line: #222a35;
+    --ink-2: #b7c2d3;
+    --muted: #8595ab;
+    --line: #263650;
+    --accent: #7aa8ff;      /* readable blue on dark */
+    --accent-soft: #16263f;
+    --accent-rgb: 96, 165, 250;
+    --brand: #3b82f6;
+    --brand-2: #60a5fa;
+    --on-brand: #ffffff;
+    --chrome: #081120;      /* near-black navy chrome, recedes under the content */
+    --chrome-2: #13233a;
+    --chrome-ink: #eef3fa;
+    --chrome-muted: #8fa5c2;
+    --chrome-line: #1f3450;
+    --ok: #34d399;
+    --warn: #f0a44b;
     --freq: #8ea0bd;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
   }
