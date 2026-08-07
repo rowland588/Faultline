@@ -5,6 +5,7 @@
  * in the app and don't see this again. */
 import { useState } from 'react';
 import { LogoMark } from '../ui/Logo';
+import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
 
 const POINTS = [
@@ -59,6 +60,9 @@ export function Landing() {
               </li>
             ))}
           </ul>
+          <button className="landing-guide-link" onClick={() => nav('/guide')}>
+            See how it works — real screens, two minutes ›
+          </button>
         </section>
 
         <section className="landing-auth card">

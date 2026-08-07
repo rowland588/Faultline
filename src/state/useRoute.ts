@@ -6,7 +6,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'log' | 'settings'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk'
-  | 'trend' | 'history' | 'report';
+  | 'trend' | 'history' | 'report' | 'guide';
 
 export interface Route {
   name: RouteName;
@@ -38,6 +38,7 @@ export function parseRoute(hash: string): Route {
   const [path, qs] = raw.split('?');
   const query = new URLSearchParams(qs || '');
   const segs = path.split('/').filter(Boolean);
+  if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   if (segs[0] === 'w' && segs[1]) {
     const wsId = decodeURIComponent(segs[1]);
     const name = (segs[2] && SCREENS[segs[2]]) || 'resume';

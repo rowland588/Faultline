@@ -11,6 +11,7 @@ import { WorkspaceHome } from './screens/WorkspaceHome';
 import { ResumeRedirect } from './screens/ResumeRedirect';
 import { AppShell } from './screens/AppShell';
 import { Landing } from './screens/Landing';
+import { GuideScreen } from './screens/GuideScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -25,6 +26,9 @@ export function Router() {
   // A build with no backend can't offer accounts. Say so — never fall through to
   // an unauthenticated app, and never ask the user to supply credentials.
   if (!cloudConfigured) return <ServiceUnavailable />;
+
+  // The "how it works" tour is public — an invitee reads it BEFORE signing up.
+  if (route.name === 'guide') return <GuideScreen />;
 
   // Hold the branded splash while the session resolves, so a returning signed-in
   // visitor never flashes the app or the landing on the way in.
