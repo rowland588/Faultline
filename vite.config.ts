@@ -5,7 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Faultline — local-first PWA. The service worker precaches the app shell so it
 // launches with no network (data already lives in IndexedDB); autoUpdate keeps
 // installed floor tablets current. The manifest makes it installable.
+/* Stamped into the bundle at build time and shown on Home. A deployed PWA can
+ * serve a cached shell long after a new build ships, and "is the fix actually
+ * live?" is otherwise unanswerable from the outside — this makes it one glance. */
+const BUILD_STAMP = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+
 export default defineConfig({
+  define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },
   plugins: [
     react(),
     VitePWA({

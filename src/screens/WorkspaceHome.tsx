@@ -13,6 +13,32 @@ import { useProfile } from '../cloud/admin';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 
+/* An installed PWA keeps serving its cached shell until the service worker
+ * hands over, so a device can sit on an old build for a long time with nothing
+ * on screen to say so — which makes "the fix isn't working" and "the fix hasn't
+ * arrived" look identical. This shows which build you're on, and forces the
+ * update through rather than waiting for it. */
+function BuildStamp() {
+  const [busy, setBusy] = useState(false);
+  const update = async () => {
+    setBusy(true);
+    try {
+      const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+      await Promise.all(regs.map(r => r.unregister()));
+      if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
+    } catch { /* nothing cached to clear */ }
+    location.reload();
+  };
+  return (
+    <p className="build-stamp">
+      Build {__BUILD_STAMP__}
+      <button className="build-refresh" disabled={busy} onClick={update}>
+        {busy ? 'updating…' : 'check for update'}
+      </button>
+    </p>
+  );
+}
+
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -57,6 +83,7 @@ export function WorkspaceHome() {
       <div className="home-head">
         <Wordmark />
         <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
+        <BuildStamp />
       </div>
 
       <InstallPanel />
