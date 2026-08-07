@@ -83,7 +83,6 @@ export function WorkspaceHome() {
       <div className="home-head">
         <Wordmark />
         <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
-        <BuildStamp />
       </div>
 
       <InstallPanel />
@@ -141,6 +140,8 @@ export function WorkspaceHome() {
           ))}
         </div>
       )}
+
+      <BuildStamp />
     </div>
   );
 }

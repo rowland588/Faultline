@@ -7,8 +7,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 // installed floor tablets current. The manifest makes it installable.
 /* Stamped into the bundle at build time and shown on Home. A deployed PWA can
  * serve a cached shell long after a new build ships, and "is the fix actually
- * live?" is otherwise unanswerable from the outside — this makes it one glance. */
-const BUILD_STAMP = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+ * live?" is otherwise unanswerable from the outside — this makes it one glance.
+ * FAULTLINE_BUILD_STAMP overrides it (deterministic builds / update tests). */
+const BUILD_STAMP = process.env.FAULTLINE_BUILD_STAMP
+  || new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
 export default defineConfig({
   define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },

@@ -600,7 +600,8 @@ button { font-family: inherit; }
   text-align: center; padding: 28px 22px; min-height: 180px; background: var(--surface-2);
   border-radius: var(--radius-sm); color: var(--ink-2);
 }
-.build-stamp { margin-top: 10px; font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* a quiet footer, not a feature — diagnosable without looking technical */
+.build-stamp { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; opacity: 0.8; }
 .build-refresh { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
 .build-refresh:disabled { opacity: 0.6; }
 .prog { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 10px; }
@@ -754,7 +755,9 @@ button { font-family: inherit; }
 .cloud-go { color: var(--muted); font-size: 20px; }
 .cloud-actions { display: flex; gap: 8px; flex: none; }
 .cloud-actions .btn { padding: 8px 12px; min-height: 40px; }
-@media (max-width: 520px) { .cloud-row.cloud-signedin { flex-wrap: wrap; } .cloud-actions { width: 100%; } .cloud-actions .btn { flex: 1; } }
+/* the account itself is the tap target; sign-out sits beside it */
+.cloud-account { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.cloud-signedin > .btn { flex: none; }
 
 /* ---------- landing / front door ---------- */
 .landing {
