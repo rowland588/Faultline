@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { getSegment, listSegments, updateSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob } from '../db';
+import { getSegment, listSegments, updateSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob, getBlob } from '../db';
+import { sniffVideoCodec, browserCanPlay } from '../lib/mime';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { useBlobSource } from './useBlobUrl';
@@ -27,6 +28,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const videoRef = useRef<HTMLVideoElement>(null);
   const addRef = useRef<HTMLInputElement>(null);
   const { url: videoUrl, state: videoState } = useBlobSource(seg?.videoKey);
+  const [noPicture, setNoPicture] = useState<null | 'video-track' | 'none'>(null);
+  const [codec, setCodec] = useState<string | null>(null);
 
   const loadAssets = async () => {
     const list = await assetsForSegment(segmentId);
@@ -45,6 +48,20 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   }, [segmentId]);
   const syncedAt = useSyncedAt();
   useEffect(() => { void listSegments(wsId).then(setSegs); void loadAssets(); /* eslint-disable-next-line */ }, [wsId, syncedAt]);
+
+  // Reset the decode verdict when the segment changes; name the codec only if
+  // one of them actually failed, so the message can be specific.
+  useEffect(() => { setNoPicture(null); setCodec(null); }, [seg?.videoKey]);
+  useEffect(() => {
+    if (!noPicture || !seg?.videoKey) return;
+    let alive = true;
+    void getBlob(seg.videoKey).then(async b => {
+      if (!b) return;
+      const c = await sniffVideoCodec(b);
+      if (alive && c && !browserCanPlay(c)) setCodec(c);
+    });
+    return () => { alive = false; };
+  }, [noPicture, seg?.videoKey]);
 
   const idx = segs.findIndex(s => s.id === segmentId);
   const goSeg = (s?: Segment) => { if (s) nav(`/w/${wsId}/segment/${s.id}`); };
@@ -150,10 +167,29 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 
       <div className="card" style={{ marginTop: 12, padding: 10 }}>
-        {videoState === 'ready' ? (
+        {videoState === 'ready' && !noPicture ? (
           <video ref={videoRef} className="seg-video" src={videoUrl ?? undefined} playsInline controls preload="metadata"
-            onLoadedMetadata={e => setDur((e.target as HTMLVideoElement).duration || 0)}
+            onError={() => setNoPicture('none')}
+            onLoadedMetadata={e => {
+              const v = e.target as HTMLVideoElement;
+              // No picture despite metadata = the video track didn't decode
+              // (phone HEVC on a laptop). Frames can't be grabbed from it either.
+              if (v.videoWidth === 0) { setNoPicture('video-track'); return; }
+              setDur(v.duration || 0);
+            }}
             onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
+        ) : videoState === 'ready' && noPicture ? (
+          <div className="video-msg seg-video">
+            <span className="video-msg-ic" aria-hidden>⚠</span>
+            <b>{noPicture === 'video-track' ? "This browser can't show the picture" : "This browser can't play this clip"}</b>
+            <span className="sub">
+              {noPicture === 'video-track'
+                ? <>The clip and its sound are here, but the picture is {codec ? <b>{codec}</b> : 'in a format'} this browser can't decode — so frames can't be marked on this device.</>
+                : <>Its format isn't supported by this browser.</>}
+            </span>
+            <span className="sub">Open this workspace in Chrome, or mark the assets on the phone that filmed it.</span>
+            {videoUrl && <a className="btn" style={{ marginTop: 10 }} href={videoUrl} download="faultline-clip.mp4">Download the clip</a>}
+          </div>
         ) : (
           <div className="video-msg seg-video">
             <span className="video-msg-ic" aria-hidden>☁</span>
@@ -165,7 +201,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           <button className="btn" onClick={() => step(-1)}>◄ 1s</button>
           <button className="btn" onClick={() => step(1)}>1s ►</button>
           <span className="seg-time">{t.toFixed(1)}s{dur ? ` / ${dur.toFixed(0)}s` : ''}</span>
-          <button className="btn btn-primary" onClick={mark} disabled={busy || !videoUrl}>＋ Mark asset</button>
+          <button className="btn btn-primary" onClick={mark} disabled={busy || !videoUrl || !!noPicture}>＋ Mark asset</button>
         </div>
         {dur > 0 && (
           <div className="seg-timeline">

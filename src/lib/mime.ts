@@ -40,3 +40,46 @@ export async function withUsableMime(blob: Blob, hint?: string): Promise<Blob> {
   const mime = (await sniffMime(blob)) ?? (isUsableMime(hint) ? hint! : null);
   return mime ? blob.slice(0, blob.size, mime) : blob;
 }
+
+/* ---------- which video codec is inside ----------
+ * Phones default to HEVC (H.265) for camera recordings. A laptop browser will
+ * happily decode the AAC audio of such a file while failing on the video track,
+ * which shows up as sound playing over a blank picture. Naming the codec turns
+ * that from "the app is broken" into something actionable, so we look for the
+ * sample-description fourcc. The moov box sits at the start on some files and
+ * the end on others, so check both ends rather than reading the whole clip. */
+const FOURCC: Array<[string, string]> = [
+  ['hvc1', 'HEVC (H.265)'], ['hev1', 'HEVC (H.265)'],
+  ['avc1', 'H.264'], ['avc3', 'H.264'],
+  ['av01', 'AV1'], ['vp09', 'VP9'], ['vp08', 'VP8'],
+];
+
+export async function sniffVideoCodec(blob: Blob): Promise<string | null> {
+  const WINDOW = 1_048_576; // 1MB from each end covers where moov actually lands
+  try {
+    const parts = blob.size <= WINDOW * 2
+      ? [blob]
+      : [blob.slice(0, WINDOW), blob.slice(blob.size - WINDOW)];
+    for (const part of parts) {
+      const text = new TextDecoder('latin1').decode(await part.arrayBuffer());
+      for (const [cc, label] of FOURCC) if (text.includes(cc)) return label;
+    }
+  } catch { /* diagnostics only — never block playback on this */ }
+  return null;
+}
+
+/** Can this browser decode that codec at all? Used to phrase the failure
+ *  honestly ("this browser can't play HEVC") rather than blaming the file. */
+export function browserCanPlay(codecLabel: string | null): boolean {
+  if (!codecLabel) return true;
+  const probe: Record<string, string> = {
+    'HEVC (H.265)': 'video/mp4; codecs="hvc1"',
+    'H.264': 'video/mp4; codecs="avc1.42E01E"',
+    'AV1': 'video/mp4; codecs="av01.0.05M.08"',
+    'VP9': 'video/webm; codecs="vp9"',
+    'VP8': 'video/webm; codecs="vp8"',
+  };
+  const type = probe[codecLabel];
+  if (!type) return true;
+  return document.createElement('video').canPlayType(type) !== '';
+}
