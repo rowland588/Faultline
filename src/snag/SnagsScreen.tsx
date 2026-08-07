@@ -8,6 +8,7 @@ import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
+import { findUnportable, repairSegment } from './repair';
 import { useSyncedAt } from '../cloud/session';
 import { sectionLabel } from './labels';
 import type { Segment } from './types';
@@ -63,6 +64,9 @@ export function SnagsScreen() {
   const [openSnags, setOpenSnags] = useState(0);
   const [busy, setBusy] = useState('');
   const [progress, setProgress] = useState<number | null>(null);
+  const [stuck, setStuck] = useState<Segment[]>([]);
+  const [repairing, setRepairing] = useState<{ index: number; total: number; fraction: number } | null>(null);
+  const [repairMsg, setRepairMsg] = useState('');
   const [err, setErr] = useState('');
   const [renaming, setRenaming] = useState<Segment | null>(null);
   const [filming, setFilming] = useState(false);
@@ -78,6 +82,33 @@ export function SnagsScreen() {
   };
   const syncedAt = useSyncedAt();
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
+
+  // Anything filmed before conversion existed is still stuck in a format other
+  // devices can't show. Offer to fix it, but only where it can actually be done.
+  useEffect(() => {
+    let alive = true;
+    void findUnportable(workspace.id).then(s => { if (alive) setStuck(s); });
+    return () => { alive = false; };
+  }, [workspace.id, segs.length, repairMsg]);
+
+  const repairAll = async () => {
+    setRepairMsg(''); setErr('');
+    let done = 0, blocked = false;
+    for (let i = 0; i < stuck.length; i++) {
+      setRepairing({ index: i, total: stuck.length, fraction: 0 });
+      const outcome = await repairSegment(stuck[i], f => setRepairing({ index: i, total: stuck.length, fraction: f }));
+      if (outcome === 'converted') done++;
+      // No decoder here means no source to convert FROM — the phone that filmed
+      // it is the only place this can work, so stop rather than grind through.
+      if (outcome === 'cannot-decode') { blocked = true; break; }
+    }
+    setRepairing(null);
+    await load();
+    setRepairMsg(blocked
+      ? `Converted ${done}. The rest can't be converted on this device — it can't read that format. Open this workspace on the phone that filmed them and tap this again.`
+      : done > 0 ? `Converted ${done} video${done === 1 ? '' : 's'} — they'll play on your other devices once synced.`
+      : 'Nothing could be converted here.');
+  };
 
   /** Uploaded footage — each file becomes a segment, in the order picked.
    *  Phone clips get converted on the way in, which runs at playback speed, so
@@ -136,6 +167,35 @@ export function SnagsScreen() {
       <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'segment')} · {plural(totalAssets, 'asset')} · {openSnags} open</p>
 
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
+
+      {(stuck.length > 0 || repairing || repairMsg) && (
+        <div className="card" style={{ marginTop: 12 }}>
+          {repairing ? (
+            <>
+              <b>Converting video {repairing.index + 1} of {repairing.total}…</b>
+              <p className="sub" style={{ marginTop: 6 }}>Runs at playback speed — keep this screen open.</p>
+              <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(repairing.fraction * 100)}%` }} /></div>
+            </>
+          ) : repairMsg ? (
+            <>
+              <p className="sub">{repairMsg}</p>
+              {stuck.length > 0 && <button className="btn" style={{ marginTop: 10 }} onClick={repairAll}>Try again</button>}
+            </>
+          ) : (
+            <>
+              <b>{plural(stuck.length, 'video')} won't play on your other devices</b>
+              <p className="sub" style={{ marginTop: 6 }}>
+                {stuck.length === 1 ? 'It was' : 'They were'} filmed in your phone's own format, which a laptop
+                can play the sound of but not the picture. Converting {stuck.length === 1 ? 'it' : 'them'} here fixes
+                that everywhere — your marked assets and snags are kept. This takes about as long as the footage runs.
+              </p>
+              <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={repairAll}>
+                Convert {plural(stuck.length, 'video')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* No `capture` attribute: with it, a phone goes straight to the camera and
           never offers the gallery or Files — which is the opposite of what this
