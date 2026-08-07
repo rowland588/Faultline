@@ -8,7 +8,7 @@ import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
-import { findUnportable, repairSegment } from './repair';
+import { findUnportable, repairSegment, canRepairHere } from './repair';
 import { useSyncedAt } from '../cloud/session';
 import { sectionLabel } from './labels';
 import type { Segment } from './types';
@@ -67,6 +67,7 @@ export function SnagsScreen() {
   const [stuck, setStuck] = useState<Segment[]>([]);
   const [repairing, setRepairing] = useState<{ index: number; total: number; fraction: number } | null>(null);
   const [repairMsg, setRepairMsg] = useState('');
+  const [canRepair, setCanRepair] = useState(false);
   const [err, setErr] = useState('');
   const [renaming, setRenaming] = useState<Segment | null>(null);
   const [filming, setFilming] = useState(false);
@@ -87,7 +88,12 @@ export function SnagsScreen() {
   // devices can't show. Offer to fix it, but only where it can actually be done.
   useEffect(() => {
     let alive = true;
-    void findUnportable(workspace.id).then(s => { if (alive) setStuck(s); });
+    void (async () => {
+      const s = await findUnportable(workspace.id);
+      if (!alive) return;
+      setStuck(s);
+      setCanRepair(s.length > 0 ? await canRepairHere(s) : false);
+    })();
     return () => { alive = false; };
   }, [workspace.id, segs.length, repairMsg]);
 
@@ -184,14 +190,27 @@ export function SnagsScreen() {
           ) : (
             <>
               <b>{plural(stuck.length, 'video')} won't play on your other devices</b>
-              <p className="sub" style={{ marginTop: 6 }}>
-                {stuck.length === 1 ? 'It was' : 'They were'} filmed in your phone's own format, which a laptop
-                can play the sound of but not the picture. Converting {stuck.length === 1 ? 'it' : 'them'} here fixes
-                that everywhere — your marked assets and snags are kept. This takes about as long as the footage runs.
-              </p>
-              <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={repairAll}>
-                Convert {plural(stuck.length, 'video')}
-              </button>
+              {canRepair ? (
+                <>
+                  <p className="sub" style={{ marginTop: 6 }}>
+                    {stuck.length === 1 ? 'It was' : 'They were'} filmed in your phone's own format, which a laptop
+                    can play the sound of but not the picture. Converting {stuck.length === 1 ? 'it' : 'them'} here
+                    fixes that everywhere — your marked assets and snags are kept. Takes about as long as the
+                    footage runs, so keep this screen open.
+                  </p>
+                  <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={repairAll}>
+                    Convert {plural(stuck.length, 'video')}
+                  </button>
+                </>
+              ) : (
+                /* Converting means decoding the original first, and this device
+                   can't read the format — so don't offer a button that can only fail. */
+                <p className="sub" style={{ marginTop: 6 }}>
+                  This has to be done on the phone that filmed {stuck.length === 1 ? 'it' : 'them'} — this device
+                  can't read that format, so there's nothing here to convert from. Open this workspace on that
+                  phone, come to <b>Snag walk</b>, and tap <b>Convert</b>. They'll play here afterwards.
+                </p>
+              )}
             </>
           )}
         </div>

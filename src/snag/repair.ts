@@ -10,6 +10,7 @@
 import { listSegments, getBlob, putBlob, updateSegment, deleteBlobs } from '../db';
 import { uid } from '../lib/ids';
 import { needsTranscode, toPortableVideo } from '../lib/transcode';
+import { sniffVideoCodec, browserCanPlay } from '../lib/mime';
 import { readVideoMeta, posterFromVideo } from './frame';
 import type { Segment } from './types';
 
@@ -23,6 +24,18 @@ export async function findUnportable(wsId: string): Promise<Segment[]> {
     if (await needsTranscode(blob)) out.push(seg);
   }
   return out;
+}
+
+/** Can THIS device do the conversion? It has to decode the original to
+ *  re-encode it, so a laptop that can't read the format can't help — and should
+ *  say so rather than offer a button that's guaranteed to fail. */
+export async function canRepairHere(segs: Segment[]): Promise<boolean> {
+  for (const seg of segs) {
+    const blob = await getBlob(seg.videoKey);
+    if (!blob) continue;
+    if (browserCanPlay(await sniffVideoCodec(blob))) return true;
+  }
+  return false;
 }
 
 export type RepairOutcome = 'converted' | 'cannot-decode' | 'failed' | 'missing';

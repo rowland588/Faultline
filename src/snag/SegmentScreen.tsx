@@ -213,10 +213,13 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             <b>{noPicture === 'video-track' ? "This browser can't show the picture" : "This browser can't play this clip"}</b>
             <span className="sub">
               {noPicture === 'video-track'
-                ? <>The clip and its sound are here, but the picture is {codec ? <b>{codec}</b> : 'in a format'} this browser can't decode — so frames can't be marked on this device.</>
+                ? <>The clip and its sound are here, but the picture is {codec ? <b>{codec}</b> : 'in a format'} this device can't decode — the format phones record in — so frames can't be marked here.</>
                 : <>Its format isn't supported by this browser.</>}
             </span>
-            <span className="sub">Open this workspace in Chrome, or mark the assets on the phone that filmed it.</span>
+            <span className="sub">
+              <b>To fix it for good:</b> open this workspace on the phone that filmed it, go to{' '}
+              <b>Snag walk</b>, and tap <b>Convert</b>. It'll play and mark here from then on.
+            </span>
             {videoUrl && <a className="btn" style={{ marginTop: 10 }} href={videoUrl} download="faultline-clip.mp4">Download the clip</a>}
           </div>
         ) : (

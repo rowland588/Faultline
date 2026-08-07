@@ -67,10 +67,13 @@ export function VideoPlayer({ blobKey, className, poster, onLoadedMetadata, ...r
         <b>{fail === 'video-track' ? "This browser can't show the picture" : "This browser can't play this clip"}</b>
         <span className="sub">
           {fail === 'video-track'
-            ? <>The clip is here and its sound works, but the picture is {named ? <b>{named}</b> : 'in a format'} this browser can't decode. It was filmed in a format your phone understands and this device doesn't.</>
+            ? <>The clip is here and its sound works, but the picture is {named ? <b>{named}</b> : 'in a format'} this device can't decode — the format phones record in.</>
             : <>The file is here, but its format isn't supported by this browser.</>}
         </span>
-        <span className="sub">Try opening it in Chrome, or download it and play it with your usual video player.</span>
+        <span className="sub">
+          <b>To fix it for good:</b> open this workspace on the phone that filmed it, go to <b>Snag walk</b>,
+          and tap <b>Convert</b>. It'll play here — and everywhere — from then on.
+        </span>
         {url && <a className="btn" style={{ marginTop: 10 }} href={url} download="faultline-clip.mp4">Download the clip</a>}
       </div>
     );
