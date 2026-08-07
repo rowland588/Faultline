@@ -600,6 +600,8 @@ button { font-family: inherit; }
   text-align: center; padding: 28px 22px; min-height: 180px; background: var(--surface-2);
   border-radius: var(--radius-sm); color: var(--ink-2);
 }
+.prog { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 10px; }
+.prog-bar { height: 100%; background: var(--brand); border-radius: 999px; transition: width 0.25s linear; }
 .add-video-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
 .add-video-row .btn { flex: 1 1 auto; }
 .video-msg b { font-size: 15px; }

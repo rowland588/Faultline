@@ -62,6 +62,7 @@ export function SnagsScreen() {
   const [namesBySeg, setNamesBySeg] = useState<Map<string, string[]>>(new Map());
   const [openSnags, setOpenSnags] = useState(0);
   const [busy, setBusy] = useState('');
+  const [progress, setProgress] = useState<number | null>(null);
   const [err, setErr] = useState('');
   const [renaming, setRenaming] = useState<Segment | null>(null);
   const [filming, setFilming] = useState(false);
@@ -78,21 +79,25 @@ export function SnagsScreen() {
   const syncedAt = useSyncedAt();
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
 
-  /** Uploaded footage — each file becomes a segment, in the order picked. */
+  /** Uploaded footage — each file becomes a segment, in the order picked.
+   *  Phone clips get converted on the way in, which runs at playback speed, so
+   *  the progress here is the real thing rather than a spinner. */
   const onFiles = async (files: File[]) => {
-    setErr(''); setBusy(files.length > 1 ? `Saving ${files.length} videos…` : 'Saving the video…');
+    setErr(''); setProgress(null);
     let firstId: string | null = null;
     try {
-      for (const f of files) {
-        const id = await createSegmentFromVideo(workspace.id, f);
+      for (let i = 0; i < files.length; i++) {
+        setBusy(files.length > 1 ? `Adding video ${i + 1} of ${files.length}…` : 'Adding the video…');
+        const id = await createSegmentFromVideo(workspace.id, files[i], f => setProgress(f));
         firstId ??= id;
+        setProgress(null);
       }
       await load();
       // One video: drop straight into it to start marking. Several: stay on the
       // list, which is where you'd order and name a batch anyway.
       if (files.length === 1 && firstId) nav(`/w/${workspace.id}/segment/${firstId}`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
-    finally { setBusy(''); if (fileRef.current) fileRef.current.value = ''; }
+    finally { setBusy(''); setProgress(null); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   /* Each clip recorded in one session becomes its own segment — that's exactly
@@ -139,7 +144,21 @@ export function SnagsScreen() {
         onChange={e => { const f = Array.from(e.target.files ?? []); if (f.length) void onFiles(f); }} />
 
       {busy ? (
-        <div className="card" style={{ marginTop: 14 }}><b>{busy}</b><p className="sub" style={{ marginTop: 6 }}>Large files take a moment — keep this screen open.</p></div>
+        <div className="card" style={{ marginTop: 14 }}>
+          <b>{busy}</b>
+          {progress === null ? (
+            <p className="sub" style={{ marginTop: 6 }}>Large files take a moment — keep this screen open.</p>
+          ) : (
+            <>
+              <p className="sub" style={{ marginTop: 6 }}>
+                Converting so it plays on your laptop as well as your phone. This runs at
+                playback speed — keep this screen open.
+              </p>
+              <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+              <p className="sub" style={{ marginTop: 6 }}>{Math.round(progress * 100)}%</p>
+            </>
+          )}
+        </div>
       ) : (
         <div className="add-video-row">
           {/* Filming in-app records H.264, which plays on every device. The

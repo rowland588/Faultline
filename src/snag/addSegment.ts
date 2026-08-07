@@ -3,10 +3,20 @@
 import { nextSegmentSequence, addSegment, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
 import { readVideoMeta, posterFromVideo } from './frame';
+import { prepareVideoForImport } from '../lib/transcode';
 
 /** Persist a video file as a new segment (poster is best-effort). Returns the id.
- *  Takes a Blob so in-app recordings and picked files share one path. */
-export async function createSegmentFromVideo(wsId: string, file: Blob): Promise<string> {
+ *  Takes a Blob so in-app recordings and picked files share one path.
+ *
+ *  Phone footage is converted to a portable codec first (see lib/transcode) —
+ *  otherwise a walk filmed on a phone shows sound with no picture on the laptop
+ *  it gets reviewed on. `onProgress` reports 0..1 while that runs. */
+export async function createSegmentFromVideo(
+  wsId: string,
+  input: Blob,
+  onProgress?: (fraction: number) => void,
+): Promise<string> {
+  const { blob: file } = await prepareVideoForImport(input, onProgress);
   const meta = await readVideoMeta(file).catch(() => ({ duration: 0, width: 0, height: 0 }));
   let posterKey: string | undefined;
   try { const poster = await posterFromVideo(file); posterKey = `blob-${uid()}`; await putBlob(posterKey, poster); } catch { /* poster optional */ }

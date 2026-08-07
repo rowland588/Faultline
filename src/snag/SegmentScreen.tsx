@@ -32,6 +32,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const [noPicture, setNoPicture] = useState<null | 'video-track' | 'none'>(null);
   const [filming, setFilming] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [codec, setCodec] = useState<string | null>(null);
 
   const loadAssets = async () => {
@@ -70,12 +71,12 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const goSeg = (s?: Segment) => { if (s) nav(`/w/${wsId}/segment/${s.id}`); };
 
   const addVideo = async (file: Blob) => {
-    setErr(''); setAddingVideo(true);
+    setErr(''); setAddingVideo(true); setProgress(null);
     try {
-      const id = await createSegmentFromVideo(wsId, file);
+      const id = await createSegmentFromVideo(wsId, file, f => setProgress(f));
       nav(`/w/${wsId}/segment/${id}`); // jump into the new video
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
-    finally { setAddingVideo(false); if (addRef.current) addRef.current.value = ''; }
+    finally { setAddingVideo(false); setProgress(null); if (addRef.current) addRef.current.value = ''; }
   };
 
   /* Filming stays put: navigating on the first clip would unmount this screen
@@ -182,6 +183,15 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
 
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 
+      {addingVideo && progress !== null && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <b>Adding the video…</b>
+          <p className="sub" style={{ marginTop: 6 }}>Converting so it plays on your laptop as well as your phone — this runs at playback speed.</p>
+          <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+          <p className="sub" style={{ marginTop: 6 }}>{Math.round(progress * 100)}%</p>
+        </div>
+      )}
+
       <div className="card" style={{ marginTop: 12, padding: 10 }}>
         {videoState === 'ready' && !noPicture ? (
           <video ref={videoRef} className="seg-video" src={videoUrl ?? undefined} playsInline controls preload="metadata"
@@ -191,7 +201,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
               // No picture despite metadata = the video track didn't decode
               // (phone HEVC on a laptop). Frames can't be grabbed from it either.
               if (v.videoWidth === 0) { setNoPicture('video-track'); return; }
-              setDur(v.duration || 0);
+              // A MediaRecorder clip reports Infinity until it's been seeked;
+              // fall back to the length we measured and stored at import so the
+              // timeline still has a scale.
+              setDur(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : (seg?.durationS ?? 0));
             }}
             onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
         ) : videoState === 'ready' && noPicture ? (

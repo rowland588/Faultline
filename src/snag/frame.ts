@@ -21,7 +21,24 @@ export function readVideoMeta(file: Blob): Promise<VideoMeta> {
     const url = URL.createObjectURL(file);
     const v = document.createElement('video');
     v.preload = 'metadata';
-    v.onloadedmetadata = () => { const m = { duration: v.duration || 0, width: v.videoWidth, height: v.videoHeight }; URL.revokeObjectURL(url); resolve(m); };
+    const done = () => {
+      const m = { duration: Number.isFinite(v.duration) ? v.duration : 0, width: v.videoWidth, height: v.videoHeight };
+      URL.revokeObjectURL(url);
+      resolve(m);
+    };
+    v.onloadedmetadata = () => {
+      // Anything MediaRecorder produced (an in-app recording, or a converted
+      // clip) reports duration Infinity: the muxer writes a streaming header
+      // with no length. Seeking past the end forces the real value to resolve —
+      // without it the scrub timeline has no scale and the list shows no length.
+      if (v.duration === Infinity) {
+        v.ontimeupdate = () => { v.ontimeupdate = null; v.currentTime = 0; done(); };
+        v.currentTime = 1e101;
+        setTimeout(done, 3000); // never hang an import on this
+        return;
+      }
+      done();
+    };
     v.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read the video.')); };
     v.src = url;
   });

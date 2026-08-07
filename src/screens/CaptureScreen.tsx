@@ -34,6 +34,7 @@ export function CaptureScreen() {
   const [toast, setToast] = useState<{ msg: string; undo?: () => void } | null>(null);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [recording, setRecording] = useState(false);
+  const [converting, setConverting] = useState<{ label: string; fraction: number } | null>(null);
 
   // Resume a running stopwatch (and its what/where) that survived an app close.
   useEffect(() => {
@@ -119,10 +120,13 @@ export function CaptureScreen() {
   /** Footage that already exists — phone gallery, Files, or a laptop's disk. */
   const upload = async () => {
     try {
-      const refs = await pickExistingMedia();
+      const refs = await pickExistingMedia((i, total, f) =>
+        setConverting({ label: total > 1 ? `Video ${i + 1} of ${total}` : 'Video', fraction: f }));
       if (refs.length) setPending(m => [...m, ...refs]);
     } catch {
       setToast({ msg: "Couldn't attach those files — device storage may be full." });
+    } finally {
+      setConverting(null);
     }
   };
   const onClip = async (blob: Blob) => {
@@ -221,6 +225,12 @@ export function CaptureScreen() {
           <button className="btn cap-ev-btn" onClick={upload}>⬆ Upload</button>
           {pending.map(m => <EvidenceThumb key={m.id} media={m} onClick={() => setViewing(m)} />)}
         </div>
+        {converting && (
+          <div style={{ marginTop: 10 }}>
+            <p className="sub">Converting {converting.label.toLowerCase()} so it plays on every device — runs at playback speed.</p>
+            <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(converting.fraction * 100)}%` }} /></div>
+          </div>
+        )}
         {pending.length > 0 && <p className="sub" style={{ marginTop: 6 }}>{plural(pending.length, 'clip')} ready — attaches to the next log.</p>}
       </div>
 

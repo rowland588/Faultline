@@ -6,6 +6,7 @@ import type { MediaRef } from '../types';
 import { putBlob } from '../db';
 import { uid, now } from './ids';
 import { sniffMime, withUsableMime } from './mime';
+import { prepareVideoForImport } from './transcode';
 
 /** Open the device's file picker.
  *
@@ -61,13 +62,23 @@ export async function captureMedia(kind: 'photo' | 'video'): Promise<MediaRef | 
 }
 
 /** Attach photos/videos the user ALREADY has — phone gallery, Files, or a
- *  laptop's disk. Several at once, since that's how footage usually arrives. */
-export async function pickExistingMedia(): Promise<MediaRef[]> {
+ *  laptop's disk. Several at once, since that's how footage usually arrives.
+ *  Phone video is converted on the way in so it plays on other devices too;
+ *  `onProgress` reports (fileIndex, 0..1) while that runs. */
+export async function pickExistingMedia(
+  onProgress?: (index: number, total: number, fraction: number) => void,
+): Promise<MediaRef[]> {
   const files = await pickFiles('image/*,video/*', { multiple: true });
   const refs: MediaRef[] = [];
-  for (const f of files) {
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
     const mime = f.type || (await sniffMime(f)) || '';
-    refs.push(await saveEvidence(mime.startsWith('video/') ? 'video' : 'photo', f));
+    if (mime.startsWith('video/')) {
+      const { blob } = await prepareVideoForImport(f, fr => onProgress?.(i, files.length, fr));
+      refs.push(await saveEvidence('video', blob));
+    } else {
+      refs.push(await saveEvidence('photo', f));
+    }
   }
   return refs;
 }
