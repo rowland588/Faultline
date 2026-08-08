@@ -14,12 +14,14 @@ import { ChipPicker } from '../ui/Chip';
 import { Stopwatch } from '../ui/Stopwatch';
 import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
+import { useTeam } from '../cloud/team';
 
 const blobKeysOf = (media: MediaRef[]): string[] =>
   media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]);
 
 export function CaptureScreen() {
   const { workspace, observations, addObs, removeObs, restoreObs, patchWorkspace } = useWorkspace();
+  const { whoIs, myId } = useTeam();
 
   const [category, setCategory] = useState(workspace.lastCategory ?? workspace.categories[0] ?? '');
   const [subcategory, setSubcategory] = useState('');
@@ -261,6 +263,8 @@ export function CaptureScreen() {
                   <div className="cap-feed-meta">
                     {o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.createdAt)}
                     {o.media.length > 0 && <> · 📷 {o.media.length}</>}
+                    {/* a teammate's entry says whose it is — shared workspace, no mystery rows */}
+                    {o.ownerId && myId && o.ownerId !== myId && <> · <b>{whoIs(o.ownerId)?.name ?? 'teammate'}</b></>}
                   </div>
                 </div>
                 <button className="cap-feed-del" onClick={() => void delFeed(o)} aria-label={`Delete ${o.category} on ${o.asset}`}>×</button>

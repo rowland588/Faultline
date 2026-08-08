@@ -23,7 +23,7 @@ $$;
 grant execute on function public.is_super() to authenticated, anon;
 
 alter table public.profiles enable row level security;
-create policy "profiles read" on public.profiles for select using (id = auth.uid() or public.is_super());
+create policy "team profiles read" on public.profiles for select to authenticated using (true);
 
 create table public.allowed_emails (
   email      text primary key,
@@ -164,11 +164,13 @@ alter table public.segments     enable row level security;
 alter table public.snag_assets  enable row level security;
 alter table public.snags        enable row level security;
 
-create policy "own workspaces"   on public.workspaces   for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy "own observations" on public.observations for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy "own segments"     on public.segments     for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy "own snag_assets"  on public.snag_assets  for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy "own snags"        on public.snags        for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+-- ONE TEAM: sign-up is invite-only, so "any authenticated user" IS the team.
+-- owner_id is kept for attribution ("logged by Dave"), not for privacy.
+create policy "team workspaces"   on public.workspaces   for all to authenticated using (true) with check (true);
+create policy "team observations" on public.observations for all to authenticated using (true) with check (true);
+create policy "team segments"     on public.segments     for all to authenticated using (true) with check (true);
+create policy "team snag_assets"  on public.snag_assets  for all to authenticated using (true) with check (true);
+create policy "team snags"        on public.snags        for all to authenticated using (true) with check (true);
 
 -- ---------- storage: private 'media' bucket, per-user folders ----------
 do $bucket$
@@ -182,10 +184,10 @@ $bucket$;
 
 do $pol$
 begin
-  execute $p$create policy "media read own folder"   on storage.objects for select using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
-  execute $p$create policy "media write own folder"  on storage.objects for insert with check (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
-  execute $p$create policy "media update own folder" on storage.objects for update using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
-  execute $p$create policy "media delete own folder" on storage.objects for delete using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
+  execute $p$create policy "team media read"   on storage.objects for select to authenticated using (bucket_id = 'media')$p$;
+  execute $p$create policy "team media write"  on storage.objects for insert to authenticated with check (bucket_id = 'media')$p$;
+  execute $p$create policy "team media update" on storage.objects for update to authenticated using (bucket_id = 'media')$p$;
+  execute $p$create policy "team media delete" on storage.objects for delete to authenticated using (bucket_id = 'media')$p$;
 exception when insufficient_privilege then
   raise notice 'Add policies in the dashboard: Storage -> media -> Policies (authenticated users, own folder).';
 end
@@ -246,7 +248,7 @@ select 'media bucket',
 union all
 select 'media storage policies',
   case when (select count(*) from pg_policies
-             where schemaname = 'storage' and tablename = 'objects' and policyname like 'media %') = 4
+             where schemaname = 'storage' and tablename = 'objects' and policyname like '%media%') >= 4
        then 'installed (all 4)' else 'MISSING — add in dashboard' end
 union all
 select 'sign-up gate',

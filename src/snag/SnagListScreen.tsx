@@ -3,7 +3,7 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, updateSnag, setSnagsStatus } from '../db';
 import { useBlobUrl } from './useBlobUrl';
-import { useSyncedAt } from '../cloud/session';
+import { useSyncedAt, useSession } from '../cloud/session';
 import { SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, type Snag, type SnagStatus, type SnagAsset } from './types';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
@@ -12,6 +12,8 @@ interface Row { snag: Snag; assetName: string; assetId: string; sequence: number
 
 export function SnagListScreen() {
   const { workspace } = useWorkspace();
+  const { session } = useSession();
+  const myEmail = (session?.user.email ?? '').toLowerCase();
   const [rows, setRows] = useState<Row[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
   const [statusF, setStatusF] = useState<'all' | SnagStatus>('all');
@@ -92,6 +94,13 @@ export function SnagListScreen() {
         <div className="chip-row">
           {(['all', 'open', 'in_progress', 'closed'] as const).map(s => <button key={s} className={'chip' + (statusF === s ? ' on' : '')} onClick={() => setStatusF(s)}>{s === 'all' ? 'All' : SNAG_STATUS_META[s].label}</button>)}
           <button className={'chip' + (ageF === 'stale' ? ' on' : '')} onClick={() => setAgeF(a => a === 'stale' ? 'all' : 'stale')}>Stale</button>
+          {/* the fixer's view: one tap to "what's on MY plate" */}
+          {myEmail && rows.some(r => (r.snag.owner ?? '').toLowerCase() === myEmail) && (
+            <button className={'chip' + (ownerF.toLowerCase() === myEmail ? ' on' : '')}
+              onClick={() => setOwnerF(f => (f.toLowerCase() === myEmail ? 'all' : (rows.find(r => (r.snag.owner ?? '').toLowerCase() === myEmail)?.snag.owner ?? 'all')))}>
+              Mine
+            </button>
+          )}
         </div>
         <div className="snag-filter-row">
           <select className="mini-select" value={assetF} onChange={e => setAssetF(e.target.value)}><option value="all">All assets</option>{assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>

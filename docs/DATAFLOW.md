@@ -47,6 +47,18 @@ Device-local fields — `lastRoute`, `activeTimer`, `lastOpenedAt` — never sta
 `updatedAt` (the LWW clock) and never sync. Opening the app must not make
 stale data look newer than a real edit from another device.
 
+## Team model (v3)
+
+Sign-up is invite-only, so **any authenticated user IS the team**: RLS grants
+the whole team read/write on all data tables, and every workspace is shared.
+`owner_id` is attribution ("logged by Dave"), never privacy — and the client
+must NEVER reassign it: `toRow` keeps the row's existing `ownerId`, stamping
+the current user only on rows created locally. Media uploads to the flat
+`${key}` storage path (team-readable); downloads fall back to the capturer's
+legacy `${owner}/${key}` folder, then our own. Snag `owner` is free text with
+the team as suggestions; assignment to a member's email powers their "Mine"
+view.
+
 ## Screen inventory
 
 | Screen (route) | Reads | Refreshes on |

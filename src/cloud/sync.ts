@@ -84,8 +84,13 @@ let revSupported = true;
 const isMissingRev = (e: { code?: string; message?: string }) =>
   e.code === '42703' || /column .*\brev\b|(?:\brev\b).* does not exist/i.test(e.message ?? '');
 
-/* ---------- media (paths: `${uid}/${blobKey}`) ---------- */
-async function uploadMedia(uid: string, keys: MediaKey[], uploaded: Set<string>, wanted: Set<string>): Promise<void> {
+/* ---------- media ----------
+ * SHARED workspaces need a shared namespace: new uploads go to the flat
+ * `${key}` path (keys are uuids — no collisions), readable by the whole team.
+ * Downloads try flat first, then the capturer's legacy per-user folder, then
+ * our own — media uploaded before workspaces became shared lives under
+ * `${uploaderUid}/${key}` and must keep working without re-uploading. */
+async function uploadMedia(_uid: string, keys: MediaKey[], uploaded: Set<string>, wanted: Set<string>): Promise<void> {
   const sb = supabase!;
   for (const { key, mime } of keys) {
     if (!key) continue;
@@ -96,20 +101,25 @@ async function uploadMedia(uid: string, keys: MediaKey[], uploaded: Set<string>,
     // Send a real content type. Storage echoes this back on download, so an
     // octet-stream here is what makes the clip unplayable on every OTHER device.
     const blob = await withUsableMime(raw, mime);
-    const { error } = await sb.storage.from(BUCKET).upload(`${uid}/${key}`, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' });
+    const { error } = await sb.storage.from(BUCKET).upload(key, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' });
     if (error) continue;                               // stays in `wanted` − `uploaded` → retried next sync
     uploaded.add(key);
   }
 }
-async function downloadMedia(uid: string, keys: MediaKey[], failed: Set<string>): Promise<void> {
+async function downloadMedia(uid: string, keys: MediaKey[], failed: Map<string, string | undefined>): Promise<void> {
   const sb = supabase!;
-  for (const { key, mime } of keys) {
+  for (const { key, mime, owner } of keys) {
     if (!key || (await hasBlob(key))) { if (key) failed.delete(key); continue; }
-    const { data, error } = await sb.storage.from(BUCKET).download(`${uid}/${key}`);
-    if (error || !data) { failed.add(key); continue; } // queued — retried on every sync until it lands
+    const paths = [key, ...(owner && owner !== uid ? [`${owner}/${key}`] : []), `${uid}/${key}`];
+    let got: Blob | null = null;
+    for (const path of paths) {
+      const { data, error } = await sb.storage.from(BUCKET).download(path);
+      if (!error && data) { got = data; break; }
+    }
+    if (!got) { failed.set(key, owner); continue; }    // queued — retried on every sync until it lands
     // Re-derive the type from the bytes: what comes back off the wire is often
     // application/octet-stream, which no <video> or <img> will render.
-    await putBlob(key, await withUsableMime(data, mime));
+    await putBlob(key, await withUsableMime(got, mime));
     failed.delete(key);
   }
 }
@@ -121,7 +131,7 @@ async function downloadMedia(uid: string, keys: MediaKey[], failed: Set<string>)
  * re-pulls and re-pushes EVERYTHING once, automatically. (The `uploaded` set
  * is kept: media already in the cloud isn't re-sent; upserts are idempotent.)
  * Nobody should ever be told to press a repair button for our migration. */
-const ENGINE_VERSION = 2;
+const ENGINE_VERSION = 3; // v3: shared team workspaces — re-pull the world once so teammates' rows appear
 let migrationDone: Promise<void> | null = null;
 function ensureMigrated(): Promise<void> {
   migrationDone ??= (async () => {
@@ -151,11 +161,13 @@ export async function syncNow(): Promise<void> {
     const cursor = await getSyncCursor();       // push cursor: local clock vs local rows — self-consistent
     const uploaded = await keySet('uploaded');
     const wantedUploads = await keySet('pendingUploads');   // prior failures — retry first
-    const failedDownloads = await keySet('pendingDownloads');
+    const failedDownloads = new Map<string, string | undefined>(
+      [...await keySet('pendingDownloads')].map(s => { const i = s.indexOf('|'); return i < 0 ? [s, undefined] : [s.slice(0, i), s.slice(i + 1) || undefined]; }),
+    );
 
     // ---- retry media that failed on earlier passes, before anything else ----
     if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, new Set());
-    if (failedDownloads.size) await downloadMedia(uid, [...failedDownloads].map(key => ({ key })), failedDownloads);
+    if (failedDownloads.size) await downloadMedia(uid, [...failedDownloads].map(([key, owner]) => ({ key, owner })), failedDownloads);
 
     // ---- PULL: everything with a rev this device hasn't seen. Keyset-paged
     //      (cursor = last rev of the page), so rows moving mid-pull can't cause
@@ -255,7 +267,7 @@ export async function syncNow(): Promise<void> {
     }
     // Retry queues persist regardless — an extra retry is harmless, a lost one isn't.
     await keySetPut('pendingUploads', new Set([...wanted].filter(k => !uploaded.has(k))));
-    await keySetPut('pendingDownloads', failedDownloads);
+    await keySetPut('pendingDownloads', new Set([...failedDownloads].map(([k, o]) => (o ? `${k}|${o}` : k))));
 
     set({ state: 'idle', lastSyncedAt: Date.now() });
   } catch (e) {

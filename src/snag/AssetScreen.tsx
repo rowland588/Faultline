@@ -9,6 +9,7 @@ import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';
 import { useBlobUrl } from './useBlobUrl';
 import { VideoPlayer } from '../ui/VideoPlayer';
+import { useTeam } from '../cloud/team';
 import { useSyncedAt } from '../cloud/session';
 import PinImage, { type Pin } from './PinImage';
 import { SNAG_STATUS_META, ageDays, isStaleOpen, type SnagAsset, type Snag, type SnagStatus } from './types';
@@ -112,6 +113,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
   wsId: string; asset: SnagAsset; draft: { xPct: number; yPct: number } | null; snag: Snag | null;
   observations: Observation[]; onClose: () => void; onSaved: () => void;
 }) {
+  const { members } = useTeam();
   const [problem, setProblem] = useState(snag?.problem ?? '');
   const [solution, setSolution] = useState(snag?.proposedSolution ?? '');
   const [status, setStatus] = useState<SnagStatus>(snag?.status ?? 'open');
@@ -152,7 +154,13 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
       <textarea className="text-area" rows={2} value={solution} placeholder="What would fix it?" onChange={e => setSolution(e.target.value)} />
 
       <div className="field-label" style={{ marginTop: 10 }}>Owner <span className="opt">who's on it — optional</span></div>
-      <input className="text-input" value={owner} placeholder="Name" onChange={e => setOwner(e.target.value)} />
+      {/* free text with the team as suggestions: assign a real teammate (they
+          get a "Mine" view) or type an outside contractor's name — both valid */}
+      <input className="text-input" value={owner} placeholder="Name or teammate" list="team-members"
+        onChange={e => setOwner(e.target.value)} />
+      <datalist id="team-members">
+        {members.map(m => <option key={m.id} value={m.email}>{m.name}</option>)}
+      </datalist>
 
       {snag && (
         <p className="sub" style={{ marginTop: 10 }}>

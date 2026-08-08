@@ -11,6 +11,8 @@ export type DimensionKey = 'asset' | 'category' | 'subcategory';
 /* ============ WORKSPACE — top-level isolation container ============ */
 export interface Workspace {
   id: ID;
+  /** Who created it (auth user id). Set by sync; local-only rows may lack it. */
+  ownerId?: string;
   name: string;
   color: string; // single accent, auto-assigned on create
   createdAt: Millis;
@@ -61,6 +63,8 @@ export interface ActiveTimer {
 /* ============ OBSERVATION — the one row; every lens reads this ============ */
 export interface Observation {
   id: ID;
+  /** Who captured it — shown to teammates in a shared workspace. */
+  ownerId?: string;
   workspaceId: ID; // ISOLATION KEY — every query filters on this
 
   category: string; // WHAT  (Pareto axis)

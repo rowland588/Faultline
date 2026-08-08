@@ -8,9 +8,11 @@ import { EmptyState } from '../ui/EmptyState';
 import { Toast } from '../ui/Toast';
 import { EvidenceViewer } from '../ui/Evidence';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
+import { useTeam } from '../cloud/team';
 
 export function LogScreen() {
   const { workspace, observations, removeObs, restoreObs } = useWorkspace();
+  const { whoIs, myId } = useTeam();
   const [toast, setToast] = useState<{ msg: string; undo?: () => void } | null>(null);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
 
@@ -50,7 +52,10 @@ export function LogScreen() {
             <span className="log-dot" style={{ background: workspace.color }} />
             <div className="log-main">
               <div className="log-title">{o.asset} · <b>{o.category || '—'}</b>{o.subcategory ? ` · ${o.subcategory}` : ''}</div>
-              <div className="log-meta">{o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.startedAt)}</div>
+              <div className="log-meta">
+                {o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.startedAt)}
+                {o.ownerId && myId && o.ownerId !== myId && <> · <b>{whoIs(o.ownerId)?.name ?? 'teammate'}</b></>}
+              </div>
             </div>
             {o.media.length > 0 && (
               <button className="log-ev" onClick={() => setViewing(o.media[0])} aria-label={`View ${plural(o.media.length, 'clip')}`}>

@@ -15,6 +15,7 @@ export type SnagStatus = 'open' | 'in_progress' | 'closed';
 /** One video segment of the walk. `sequence` gives flow order along the line. */
 export interface Segment {
   id: ID;
+  ownerId?: string; // who captured it (auth user id) — set by sync
   workspaceId: ID;
   sequence: number;          // 1, 2, 3… walk order
   name?: string;
@@ -28,6 +29,7 @@ export interface Segment {
 /** An asset — created ONLY by marking a frame in a segment. No catalogue. */
 export interface SnagAsset {
   id: ID;
+  ownerId?: string; // who captured it (auth user id) — set by sync
   workspaceId: ID;
   segmentId: ID;
   timestampS: number;        // where in the video it was marked
@@ -42,6 +44,7 @@ export interface SnagAsset {
  *  pixels, so a pin stays correct at any size, orientation or zoom. */
 export interface Snag {
   id: ID;
+  ownerId?: string; // who captured it (auth user id) — set by sync
   workspaceId: ID;
   assetId: ID;
   xPct: number;
