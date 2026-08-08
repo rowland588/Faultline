@@ -165,6 +165,12 @@ export function WorkspaceHome() {
         </div>
       )}
 
+      {/* signed-in users need a way to the tour too — for themselves, and to
+          show a colleague what they're being invited into */}
+      <button className="home-guide-link" onClick={() => nav('/guide')}>
+        📖 How Faultline works — the two-minute tour ›
+      </button>
+
       <BuildStamp />
     </div>
   );

@@ -709,6 +709,7 @@ button { font-family: inherit; }
 .guide-cta h2 { margin: 0 0 4px; font-size: 20px; }
 .guide-cta .btn { margin-top: 14px; }
 .landing-guide-link { border: none; background: none; color: var(--accent); font-weight: 700; font-size: 14px; cursor: pointer; padding: 14px 0 0; text-align: left; }
+.home-guide-link { display: block; width: 100%; margin-top: 22px; border: none; background: none; color: var(--accent); font-weight: 700; font-size: 13.5px; cursor: pointer; text-align: center; }
 
 /* a quiet footer, not a feature — diagnosable without looking technical */
 .build-stamp { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; opacity: 0.8; }
