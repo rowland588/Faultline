@@ -671,7 +671,8 @@ button { font-family: inherit; }
 .rbadge.warn { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); color: var(--warn); }
 .rbadge.new { background: var(--accent-soft); color: var(--accent); }
 .rbadge.good { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
-.report-foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; }
+.report-foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 10.5px; }
+.report-foot > span:first-child { flex: 1; } /* keeps the halves apart even when print collapses widths */
 
 @media print {
   .no-print, .tabbar, .topbar { display: none !important; }
