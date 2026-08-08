@@ -42,8 +42,11 @@ export function transcodeSupported(): boolean {
 }
 
 /** Would this clip fail to play on other devices? Only a positive
- *  identification counts — never re-encode something we merely can't name. */
+ *  identification counts — never re-encode something we merely can't name.
+ *  `__FORCE_TRANSCODE__` is a test hook: browsers can't fabricate real HEVC,
+ *  so the smoke suites set it to push synthetic footage down the convert path. */
 export async function needsTranscode(blob: Blob): Promise<boolean> {
+  if ((globalThis as { __FORCE_TRANSCODE__?: boolean }).__FORCE_TRANSCODE__) return true;
   const codec = await sniffVideoCodec(blob);
   return !!codec && codec.startsWith('HEVC');
 }
