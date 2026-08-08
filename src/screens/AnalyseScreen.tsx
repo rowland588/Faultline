@@ -17,6 +17,7 @@ import { LineBoard } from './LineBoard';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
+import { ActionComposer } from './ActionComposer';
 import { EmptyState } from '../ui/EmptyState';
 import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
@@ -122,6 +123,10 @@ export function AnalyseScreen({ route }: { route: Route }) {
           <button className="btn btn-primary present-cta" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder))}>
             Present this ›
           </button>
+
+          {/* the board just said WHERE the fix goes — record it before it
+              escapes into a notebook */}
+          <ActionComposer wsId={workspace.id} path={view.path} />
 
           {/* the Pareto says WHERE the pain is; the trend says whether the
               walks are changing anything — the natural next question */}

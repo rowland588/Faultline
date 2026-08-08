@@ -83,7 +83,7 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
 function HistoryStill({ appearance, snags, highlight }: { appearance: AssetAppearance; snags: Snag[]; highlight?: boolean }) {
   const url = useBlobUrl(appearance.asset.stillKey);
   const mine = snags.filter(s => s.assetId === appearance.asset.id);
-  const pins: Pin[] = mine.map((s, i) => ({ id: s.id, xPct: s.xPct, yPct: s.yPct, color: SNAG_STATUS_META[s.status].color, label: s.problem, n: i + 1 }));
+  const pins: Pin[] = mine.map((s, i) => ({ id: s.id, xPct: s.xPct ?? 0, yPct: s.yPct ?? 0, color: SNAG_STATUS_META[s.status].color, label: s.problem, n: i + 1 }));
   return (
     <div className={'hist-still' + (highlight ? ' hl' : '')}>
       <span className="hist-tag">{fmtDay(appearance.day)}</span>

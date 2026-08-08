@@ -27,7 +27,7 @@ export function assetHistory(
   const segDay = new Map(allSegments.map(s => [s.id, dayOf(s.createdAt)]));
   const key = assetKey(target);
   const byAsset = new Map<string, Snag[]>();
-  for (const s of allSnags) byAsset.set(s.assetId, [...(byAsset.get(s.assetId) ?? []), s]);
+  for (const s of allSnags) if (s.assetId) byAsset.set(s.assetId, [...(byAsset.get(s.assetId) ?? []), s]);
   return allAssets
     .filter(a => assetKey(a) === key && segDay.has(a.segmentId))
     .map(a => {

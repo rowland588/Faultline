@@ -40,15 +40,22 @@ export interface SnagAsset {
   updatedAt?: Millis;        // LWW clock for cloud sync
 }
 
-/** A snag pinned onto an asset's still. x/y are PERCENTAGES (0–100), never
- *  pixels, so a pin stays correct at any size, orientation or zoom. */
+/** A snag pinned onto an asset's still — OR an action raised straight from the
+ *  Pareto board. A pinned snag has assetId + x/y (PERCENTAGES 0–100, never
+ *  pixels, so a pin stays correct at any size). A board action has none of
+ *  those; instead it carries the drill target it came from (category / kind /
+ *  operational asset name). Both share the same lifecycle, owners, snag list,
+ *  report and trend flags — one action system, two ways in. */
 export interface Snag {
   id: ID;
   ownerId?: string; // who captured it (auth user id) — set by sync
   workspaceId: ID;
-  assetId: ID;
-  xPct: number;
-  yPct: number;
+  assetId?: ID;              // absent → board action (no pin)
+  xPct?: number;
+  yPct?: number;
+  targetCategory?: string;   // board actions: where the Pareto pointed
+  targetSubcategory?: string;
+  targetAsset?: string;      // operational asset NAME (observation vocabulary)
   problem: string;
   proposedSolution?: string;
   status: SnagStatus;
@@ -69,6 +76,11 @@ export const SNAG_STATUS_META: Record<SnagStatus, { label: string; color: string
   in_progress: { label: 'In progress', color: 'var(--warn)' },
   closed:      { label: 'Closed',      color: 'var(--ok)' },
 };
+
+/** "Changeover · Size change · Filler" — where the board pointed when this
+ *  action was raised. Empty string for pinned snags. */
+export const actionTarget = (s: Snag): string =>
+  [s.targetCategory, s.targetSubcategory, s.targetAsset].filter(Boolean).join(' · ');
 
 export const ageDays = (raisedAt: number, ref = Date.now()): number =>
   Math.max(0, Math.floor((ref - raisedAt) / 86_400_000));

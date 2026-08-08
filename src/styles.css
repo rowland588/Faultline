@@ -712,6 +712,21 @@ button { font-family: inherit; }
   .paper-A3 .report-page { zoom: 1.38; }
 }
 
+/* ---------- actions raised from the Pareto board ---------- */
+.action-form { margin-top: 10px; }
+.action-raised {
+  margin-top: 10px; padding: 12px 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--line));
+  font-size: 14px; line-height: 1.55;
+}
+.action-raised .linkish { margin-left: 8px; }
+.st-target {
+  display: inline-block; font-size: 11px; font-weight: 700; color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 10%, var(--surface));
+  border-radius: 6px; padding: 1px 6px;
+}
+
 /* ---------- the public "how it works" guide ---------- */
 .guide { min-height: 100vh; background: var(--bg); }
 .guide-inner { max-width: 860px; margin: 0 auto; padding: 14px 18px 60px; }

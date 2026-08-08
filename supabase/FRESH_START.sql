@@ -130,13 +130,18 @@ create table public.snag_assets (
   deleted_at bigint
 );
 
+-- a snag is EITHER pinned on an asset still (asset_id + x/y) OR an action
+-- raised from the Pareto board (target_* records where the board pointed)
 create table public.snags (
   id uuid primary key,
   owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
-  asset_id uuid not null references public.snag_assets (id) on delete cascade,
-  x_pct numeric not null,
-  y_pct numeric not null,
+  asset_id uuid references public.snag_assets (id) on delete cascade,
+  x_pct numeric,
+  y_pct numeric,
+  target_category text,
+  target_subcategory text,
+  target_asset text,
   problem text not null,
   proposed_solution text,
   status text not null default 'open' check (status in ('open','in_progress','closed')),

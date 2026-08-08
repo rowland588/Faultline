@@ -112,15 +112,20 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     mediaKeys: l => { const s = l as Snag; return k(s.detailPhotoKey, 'image/jpeg', s.ownerId); },
     toRow: (l, fallbackOwner) => {
       const s = l as Snag;
-      return { id: s.id, owner_id: s.ownerId ?? fallbackOwner, workspace_id: s.workspaceId, asset_id: s.assetId, x_pct: s.xPct, y_pct: s.yPct,
+      return { id: s.id, owner_id: s.ownerId ?? fallbackOwner, workspace_id: s.workspaceId,
+        asset_id: s.assetId ?? null, x_pct: s.xPct ?? null, y_pct: s.yPct ?? null,
+        target_category: s.targetCategory ?? null, target_subcategory: s.targetSubcategory ?? null, target_asset: s.targetAsset ?? null,
         problem: s.problem, proposed_solution: s.proposedSolution ?? null, status: s.status, owner: s.owner ?? null,
         raised_at: s.raisedAt, closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
         detail_photo_key: s.detailPhotoKey ?? null, linked_obs_ids: s.linkedObsIds ?? [],
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
     fromRow: (r) => ({
-      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string, assetId: r.asset_id as string,
-      xPct: Number(r.x_pct) || 0, yPct: Number(r.y_pct) || 0, problem: r.problem as string,
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string,
+      assetId: (r.asset_id as string) ?? undefined,
+      xPct: r.x_pct == null ? undefined : Number(r.x_pct), yPct: r.y_pct == null ? undefined : Number(r.y_pct),
+      targetCategory: (r.target_category as string) ?? undefined, targetSubcategory: (r.target_subcategory as string) ?? undefined,
+      targetAsset: (r.target_asset as string) ?? undefined, problem: r.problem as string,
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,

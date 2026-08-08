@@ -75,6 +75,18 @@ the capturer's legacy `${owner}/${key}` folder, then our own. Snag `owner` is
 free text with the team as suggestions; assignment to a member's email powers
 their "Mine" view.
 
+## One action system, two ways in
+
+A `snags` row is EITHER a pinned snag (assetId + x/y on a walk still) OR a
+**board action** raised straight from the Pareto drill (no pin; `target_*`
+columns record where the board pointed — category / kind / operational asset
+name). Both share the same lifecycle, owners, snag list (actions sort first,
+flagged ⚑), printed snag report ("Actions from the board" section), one-page
+report ("needing a push" / "closed this week") and trend fix-flags. Pin-based
+screens (Asset, Walkthrough, History) read via the `by_asset` index, which
+naturally excludes pinless rows. Never assume `assetId`/`xPct`/`yPct` exist on
+a Snag.
+
 ## Screen inventory
 
 | Screen (route) | Reads | Refreshes on |

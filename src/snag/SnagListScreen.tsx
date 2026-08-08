@@ -4,7 +4,7 @@ import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, updateSnag, setSnagsStatus } from '../db';
 import { useBlobUrl } from './useBlobUrl';
 import { useSyncedAt, useSession } from '../cloud/session';
-import { SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, type Snag, type SnagStatus, type SnagAsset } from './types';
+import { SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, actionTarget, type Snag, type SnagStatus, type SnagAsset } from './types';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
 
@@ -28,8 +28,12 @@ export function SnagListScreen() {
     const [segs, as, snags] = await Promise.all([listSegments(workspace.id), listSnagAssets(workspace.id), snagsForWorkspace(workspace.id)]);
     const seq = new Map(segs.map(s => [s.id, s.sequence]));
     const aById = new Map(as.map(a => [a.id, a]));
-    const rs: Row[] = snags.map(sn => { const a = aById.get(sn.assetId); return { snag: sn, assetName: a?.name ?? '—', assetId: sn.assetId, sequence: a ? (seq.get(a.segmentId) ?? 0) : 0, timestampS: a?.timestampS ?? 0 }; })
-      .sort((x, y) => x.sequence - y.sequence || x.timestampS - y.timestampS || x.snag.raisedAt - y.snag.raisedAt);
+    // board actions (no pin) sort first — they're the board's priorities
+    const rs: Row[] = snags.map(sn => {
+      if (!sn.assetId) return { snag: sn, assetName: actionTarget(sn) || 'From the board', assetId: '', sequence: -1, timestampS: 0 };
+      const a = aById.get(sn.assetId);
+      return { snag: sn, assetName: a?.name ?? '—', assetId: sn.assetId, sequence: a ? (seq.get(a.segmentId) ?? 0) : 0, timestampS: a?.timestampS ?? 0 };
+    }).sort((x, y) => x.sequence - y.sequence || x.timestampS - y.timestampS || x.snag.raisedAt - y.snag.raisedAt);
     setRows(rs); setAssets(as);
   };
   const syncedAt = useSyncedAt();
@@ -126,7 +130,9 @@ export function SnagListScreen() {
                 {filtered.map(r => (
                   <tr key={r.snag.id} className={isStaleOpen(r.snag) ? 'row-stale' : ''}>
                     <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
-                    <td data-label="Asset"><button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button></td>
+                    <td data-label="Asset">{r.assetId
+                      ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
+                      : <span className="st-target" title="Raised from the Pareto board">⚑ {r.assetName}</span>}</td>
                     <td className="st-problem" data-label="Problem">{r.snag.problem}{r.snag.proposedSolution ? <span className="st-sol"> → {r.snag.proposedSolution}</span> : ''}</td>
                     <td data-label="Status"><select className="mini-select" value={r.snag.status} onChange={e => changeStatus(r, e.target.value as SnagStatus)}>{(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <option key={s} value={s}>{SNAG_STATUS_META[s].label}</option>)}</select></td>
                     <td data-label="Owner"><input className="mini-owner" defaultValue={r.snag.owner ?? ''} placeholder="—" onBlur={e => changeOwner(r, e.target.value.trim())} /></td>
@@ -143,6 +149,7 @@ export function SnagListScreen() {
 
 function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: string; assets: SnagAsset[]; rows: Row[]; filterNote: string; onDone: () => void }) {
   const groups = assets.map(a => ({ asset: a, snags: rows.filter(r => r.assetId === a.id).map(r => r.snag) })).filter(g => g.snags.length > 0);
+  const actions = rows.filter(r => !r.snag.assetId).map(r => r.snag);
   const all = rows.map(r => r.snag);
   const c = { open: 0, in_progress: 0, closed: 0, stale: 0 };
   for (const s of all) { c[s.status]++; if (isStaleOpen(s)) c.stale++; }
@@ -171,7 +178,29 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
         </div>
       </header>
 
-      {groups.length === 0 ? <p className="sub" style={{ marginTop: 16 }}>No snags to report.</p>
+      {actions.length > 0 && (
+        <section className="print-asset">
+          <h2 className="print-asset-name">⚑ Actions from the board<span className="print-asset-count">{actions.length} action{actions.length === 1 ? '' : 's'}</span></h2>
+          <ol className="print-snag-list">
+            {actions.map((s, i) => (
+              <li key={s.id}>
+                <span className="print-snag-n" style={{ background: SNAG_STATUS_META[s.status].color }}>{i + 1}</span>
+                <div className="print-snag-body">
+                  <div className="print-snag-problem">{s.problem}{s.proposedSolution ? <span className="print-snag-sol"> → {s.proposedSolution}</span> : null}</div>
+                  <div className="print-snag-meta">
+                    <span className={'print-badge st-' + s.status}>{SNAG_STATUS_META[s.status].label}</span>
+                    {actionTarget(s) ? <span>· {actionTarget(s)}</span> : null}
+                    {s.owner ? <span>· {s.owner}</span> : null}
+                    <span>· raised {dateNice(s.raisedAt)}</span>
+                    {s.closedAt ? <span>· closed {dateNice(s.closedAt)}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {groups.length === 0 && actions.length === 0 ? <p className="sub" style={{ marginTop: 16 }}>No snags to report.</p>
         : groups.map(g => <PrintAsset key={g.asset.id} asset={g.asset} snags={g.snags} />)}
 
       <p className="report-foot">Faultline · snag report · {wsName}</p>
