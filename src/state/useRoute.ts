@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 
-export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'log' | 'settings'
+export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk'
   | 'trend' | 'history' | 'report' | 'guide';
 
@@ -21,6 +21,7 @@ const SCREENS: Record<string, RouteName> = {
   present: 'present',
   log: 'log',
   settings: 'settings',
+  people: 'people',
   // Snag List module
   snags: 'snags',
   segment: 'segment',

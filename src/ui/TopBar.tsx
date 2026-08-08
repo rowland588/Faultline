@@ -37,12 +37,19 @@ export function TopBar() {
         <span className="ws-name-txt">{workspace.name}</span>
         <span className="ws-caret" aria-hidden>▾</span>
       </button>
+      {cloudConfigured && (
+        <button className="people-btn" onClick={() => nav(`/w/${workspace.id}/people`)}
+          aria-label="People — invite someone to this workspace">
+          👥
+        </button>
+      )}
 
       <Sheet open={menu} onClose={() => setMenu(false)} title={workspace.name}>
         <SheetRow label="Capture" hint="log what you see" onClick={() => go(`/w/${workspace.id}/capture`)} />
         <SheetRow label="Analyse" hint="the board" onClick={() => go(`/w/${workspace.id}/analyse`)} />
         <SheetRow label="Snag list" hint="video walk · pinned faults" onClick={() => go(`/w/${workspace.id}/snags`)} />
         <SheetRow label="The log" hint={`${observations.length} logged`} onClick={() => go(`/w/${workspace.id}/log`)} />
+        {cloudConfigured && <SheetRow label="People" hint="invite someone to this workspace" onClick={() => go(`/w/${workspace.id}/people`)} />}
         <SheetRow label="Workspace settings" onClick={() => go(`/w/${workspace.id}/settings`)} />
         <SheetRow label="All workspaces" hint="switch" onClick={() => go('/')} />
         <SheetRow label="Delete this workspace" danger onClick={remove} />
