@@ -40,9 +40,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
-        // the guide's screenshots are a first-visit page, not a floor tool —
-        // don't make every install download ~1MB of tour images for offline
-        globIgnores: ['**/guide/**'],
+        // the guide's screenshots and the social share card are first-visit
+        // assets, not floor tools — don't make every install download them
+        globIgnores: ['**/guide/**', '**/og.png'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },
