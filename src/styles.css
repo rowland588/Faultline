@@ -674,11 +674,18 @@ button { font-family: inherit; }
 .report-foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 10.5px; }
 .report-foot > span:first-child { flex: 1; } /* keeps the halves apart even when print collapses widths */
 
+.paper-toggle { display: flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.paper-toggle .pt { border: none; background: transparent; color: var(--ink-2); font-weight: 700; font-size: 12.5px; padding: 6px 13px; border-radius: 999px; cursor: pointer; }
+.paper-toggle .pt.on { background: var(--brand); color: var(--on-brand); }
+
 @media print {
   .no-print, .tabbar, .topbar { display: none !important; }
   body, .report-stage { background: #fff !important; }
   .report-stage { padding: 0; }
   .report-page { border: none; box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
+  /* A3 is √2 the linear size of A4 — scale the content so it fills the sheet
+     at boardroom-readable size instead of floating in a corner of it. */
+  .paper-A3 .report-page { zoom: 1.38; }
 }
 
 /* ---------- the public "how it works" guide ---------- */

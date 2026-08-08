@@ -15,9 +15,16 @@ import { ageDays, type Snag } from '../snag/types';
 
 const WEEK_MS = 7 * 24 * 3600_000;
 
+type Paper = 'A4' | 'A3';
+
 export function ReportScreen() {
   const { workspace, observations } = useWorkspace();
   const [snags, setSnags] = useState<Snag[]>([]);
+  // A4 for the desk, A3 for the line-side board. The choice writes an @page
+  // rule so the browser's print dialog is pre-set to the right sheet, and the
+  // A3 class scales the content ~√2 so it FILLS the bigger paper rather than
+  // sitting in a small column of it.
+  const [paper, setPaper] = useState<Paper>('A4');
   const syncedAt = useSyncedAt();
   useEffect(() => { void snagsForWorkspace(workspace.id).then(setSnags); }, [workspace.id, syncedAt]);
 
@@ -41,10 +48,16 @@ export function ReportScreen() {
   const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
-    <div className="report-stage">
+    <div className={`report-stage paper-${paper}`}>
+      <style>{`@page { size: ${paper} portrait; margin: 12mm; }`}</style>
       <div className="report-actions no-print">
         <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/trend`)}>‹ Back</button>
         <div style={{ flex: 1 }} />
+        <div className="paper-toggle" role="group" aria-label="Paper size">
+          {(['A4', 'A3'] as Paper[]).map(sz => (
+            <button key={sz} className={'pt' + (paper === sz ? ' on' : '')} onClick={() => setPaper(sz)}>{sz}</button>
+          ))}
+        </div>
         <button className="btn btn-primary" onClick={() => window.print()}>🖨 Print / save PDF</button>
       </div>
 
