@@ -143,7 +143,9 @@ export function ParetoChart({
             )}
             {s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19} textAnchor="middle">{s.costLabel}</text>}
             {s.timeLabel && <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>}
-            {s.freqLabel && <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7} textAnchor="middle">{s.freqLabel}</text>}
+            {/* when the two bars top out at similar heights, a wide time label
+                runs into the freq label — lift the freq figure a row */}
+            {s.freqLabel && <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7 - (Math.abs(tTop - fTop) < 13 ? 12 : 0)} textAnchor="middle">{s.freqLabel}</text>}
             <text className={'pk-lbl' + (s.aggregate ? ' pk-lbl-agg' : '')} x={cx(i)} y={baseY + 16} textAnchor="middle">{short(s.key)}</text>
             {s.tag && <text className={'pk-tag ' + s.tag} x={cx(i)} y={baseY + 29} textAnchor="middle">{TAG_TEXT[s.tag]}</text>}
           </g>

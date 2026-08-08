@@ -8,7 +8,6 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { listSnagAssets, snagsForWorkspace } from '../db';
 import { drillNode, pushDrill } from '../engine/drill';
 import { buildCompare, divergenceTags } from '../engine/compare';
-import { DIM_LABEL } from '../engine/types';
 import type { Measure } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { LineBoard } from './LineBoard';
@@ -71,6 +70,14 @@ export function PresentScreen({ route }: { route: Route }) {
   const factor = costPerMs(workspace);
   const hasChart = !!node.dimension && node.rows.length > 0;
 
+  // The headline the room came for: the money and the hours, huge, with the
+  // period they cover — before anyone has to read a chart.
+  const spanDays = node.rows.length
+    ? Math.max(1, Math.round((Math.max(...node.rows.map(o => o.startedAt)) - Math.min(...node.rows.map(o => o.startedAt))) / 86_400_000))
+    : 0;
+  const spanLabel = spanDays >= 14 ? `over ${Math.round(spanDays / 7)} weeks` : spanDays > 1 ? `over ${spanDays} days` : '';
+  const bigHours = totalMs >= 36_000_000 ? `${Math.round(totalMs / 3_600_000)} h` : fmtDurationWords(totalMs);
+
   const byId = new Map(node.rows.map(o => [o.id, o]));
   const compareRows = !hasChart || !node.dimension ? [] : buildCompare(node.rows, node.dimension, rankByFreq ? 'count' : 'time');
   const tags = divergenceTags(compareRows);
@@ -79,7 +86,8 @@ export function PresentScreen({ route }: { route: Route }) {
     timeShare: r.timeShare,
     freqShare: r.countShare,
     cumShare: r.cumShare,
-    timeLabel: fmtDuration(r.timeMs),
+    // words, not a stopwatch: "32h 33m" reads across a boardroom, "32:32:42" doesn't
+    timeLabel: fmtDurationWords(r.timeMs) || fmtDuration(r.timeMs),
     costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
     freqLabel: `${r.count}×`,
     isVitalFew: r.isVitalFew,
@@ -95,10 +103,29 @@ export function PresentScreen({ route }: { route: Route }) {
         <div className="present-head">
           <span className="present-ws"><span className="ws-dot" style={{ background: workspace.color }} />{workspace.name}</span>
           <h1 className="present-q">
-            {node.dimension ? <>By {DIM_LABEL[node.dimension].toLowerCase()} — time &amp; frequency</> : (leafName ?? 'Detail')}
+            {node.dimension ? <>Where the line is losing time{leafName ? <> — {leafName}</> : null}</> : (leafName ?? 'Detail')}
           </h1>
           <DrillBreadcrumb path={view.path} onJump={jump} />
         </div>
+
+        {node.rows.length > 0 && (
+          <div className="present-stats">
+            <div className="pstat">
+              <b>{bigHours}</b>
+              <span>lost {spanLabel || 'in this view'}</span>
+            </div>
+            {costable && totalMs > 0 && (
+              <div className="pstat">
+                <b>{fmtGBP(totalMs * factor)}</b>
+                <span>cost of that time</span>
+              </div>
+            )}
+            <div className="pstat">
+              <b>{node.rows.length}</b>
+              <span>observations{spanLabel ? ` ${spanLabel}` : ''}</span>
+            </div>
+          </div>
+        )}
 
         <DisagreementBanner d={node.disagreement} />
 
@@ -126,6 +153,8 @@ export function PresentScreen({ route }: { route: Route }) {
         )}
 
         <EvidenceStrip media={node.media} />
+
+        {hasChart && <p className="present-hint">Tap a bar to drill in front of the room · ✕ returns to Analyse</p>}
       </div>
     </div>
   );
