@@ -164,13 +164,80 @@ alter table public.segments     enable row level security;
 alter table public.snag_assets  enable row level security;
 alter table public.snags        enable row level security;
 
--- ONE TEAM: sign-up is invite-only, so "any authenticated user" IS the team.
--- owner_id is kept for attribution ("logged by Dave"), not for privacy.
-create policy "team workspaces"   on public.workspaces   for all to authenticated using (true) with check (true);
-create policy "team observations" on public.observations for all to authenticated using (true) with check (true);
-create policy "team segments"     on public.segments     for all to authenticated using (true) with check (true);
-create policy "team snag_assets"  on public.snag_assets  for all to authenticated using (true) with check (true);
-create policy "team snags"        on public.snags        for all to authenticated using (true) with check (true);
+-- WORKSPACE TEAMS: each workspace is an independent room with its own
+-- stakeholders. Whoever creates it owns it and chooses who else is in it —
+-- you see a workspace only if you own it or your email is on its people list.
+-- owner_id also feeds attribution ("logged by Dave").
+create table public.workspace_members (
+  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  email        text not null,
+  added_by     uuid references auth.users (id) on delete set null,
+  created_at   timestamptz not null default now(),
+  primary key (workspace_id, email)
+);
+alter table public.workspace_members enable row level security;
+
+create or replace function public.is_ws_owner(ws uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.workspaces w where w.id = ws and w.owner_id = auth.uid())
+$$;
+
+create or replace function public.is_ws_member(ws uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select public.is_super()
+      or public.is_ws_owner(ws)
+      or exists (
+        select 1 from public.workspace_members m
+        where m.workspace_id = ws
+          and m.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+      )
+$$;
+
+grant execute on function public.is_ws_owner(uuid)  to authenticated;
+grant execute on function public.is_ws_member(uuid) to authenticated;
+
+create policy "member workspaces select" on public.workspaces
+  for select to authenticated using (public.is_ws_member(id));
+create policy "member workspaces insert" on public.workspaces
+  for insert to authenticated with check (owner_id = auth.uid() or public.is_ws_member(id));
+create policy "member workspaces update" on public.workspaces
+  for update to authenticated using (public.is_ws_member(id)) with check (public.is_ws_member(id));
+create policy "member workspaces delete" on public.workspaces
+  for delete to authenticated using (public.is_ws_owner(id) or public.is_super());
+
+create policy "member observations" on public.observations for all to authenticated
+  using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
+create policy "member segments"     on public.segments     for all to authenticated
+  using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
+create policy "member snag_assets"  on public.snag_assets  for all to authenticated
+  using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
+create policy "member snags"        on public.snags        for all to authenticated
+  using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
+
+create policy "members read" on public.workspace_members
+  for select to authenticated using (public.is_ws_member(workspace_id));
+create policy "members manage" on public.workspace_members
+  for all to authenticated
+  using (public.is_ws_owner(workspace_id) or public.is_super())
+  with check (public.is_ws_owner(workspace_id) or public.is_super());
+
+-- Late-joiner history: when a member is added, no-op updates re-stamp every
+-- row of the workspace with fresh revs (the faultline_rev trigger below), so
+-- the new member's rev-cursor pull receives the workspace's FULL history —
+-- not just changes from the moment they joined.
+create or replace function public.faultline_member_added()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  update public.workspaces   set updated_at = updated_at where id = new.workspace_id;
+  update public.observations set updated_at = updated_at where workspace_id = new.workspace_id;
+  update public.segments     set updated_at = updated_at where workspace_id = new.workspace_id;
+  update public.snag_assets  set updated_at = updated_at where workspace_id = new.workspace_id;
+  update public.snags        set updated_at = updated_at where workspace_id = new.workspace_id;
+  return new;
+end $$;
+create trigger faultline_member_added
+  after insert on public.workspace_members
+  for each row execute function public.faultline_member_added();
 
 -- ---------- storage: private 'media' bucket, per-user folders ----------
 do $bucket$

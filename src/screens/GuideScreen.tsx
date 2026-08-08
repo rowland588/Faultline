@@ -41,6 +41,7 @@ const STEPS: Array<{ n: string; title: string; body: string; img: string; wide?:
 
 const EXPECT: Array<[string, string]> = [
   ['Invite-only', 'No public sign-up. Your admin invites you by email; you set your own password.'],
+  ['Your workspace, your team', 'Every workspace is its own room. Whoever opens it chooses who\'s in it — add a colleague by email in Settings and they get the whole history, not just what happens next.'],
   ['Works offline', 'Capture with no signal on the floor. It saves on the device and syncs itself when you\'re back in coverage.'],
   ['Syncs by itself', 'No sync buttons. Log on the phone, and it\'s on the laptop seconds later.'],
   ['Phone footage just works', 'Videos are converted on the way in so they play on every device — laptops included.'],

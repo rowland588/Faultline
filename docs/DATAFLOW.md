@@ -47,17 +47,33 @@ Device-local fields — `lastRoute`, `activeTimer`, `lastOpenedAt` — never sta
 `updatedAt` (the LWW clock) and never sync. Opening the app must not make
 stale data look newer than a real edit from another device.
 
-## Team model (v3)
+## Team model (v4: workspace teams)
 
-Sign-up is invite-only, so **any authenticated user IS the team**: RLS grants
-the whole team read/write on all data tables, and every workspace is shared.
-`owner_id` is attribution ("logged by Dave"), never privacy — and the client
-must NEVER reassign it: `toRow` keeps the row's existing `ownerId`, stamping
-the current user only on rows created locally. Media uploads to the flat
-`${key}` storage path (team-readable); downloads fall back to the capturer's
-legacy `${owner}/${key}` folder, then our own. Snag `owner` is free text with
-the team as suggestions; assignment to a member's email powers their "Mine"
-view.
+Two doors, two owners. The **app door** belongs to the superadmin: sign-up is
+invite-only via `allowed_emails`. Each **workspace door** belongs to whoever
+created that workspace: anyone in the app can open a workspace, and its owner
+picks the stakeholders on `workspace_members` (by email) through the People
+panel in Settings. RLS (`is_ws_member`) shows you a workspace — and all its
+child rows — only if you own it, you're on its people list, or you're the
+superadmin. There is no all-shared world.
+
+**Late joiners get full history.** Devices pull by the server `rev` cursor, so
+a member added to a workspace with months of history would otherwise see
+nothing older than their cursor. A DB trigger (`faultline_member_added`) runs
+no-op updates on every row of the workspace when a member is added; the rev
+trigger re-stamps them, and the new member's next pull sweeps up the lot.
+`updated_at` is untouched, so LWW is unaffected and other devices just re-pull
+identical rows once.
+
+`owner_id` is attribution ("logged by Dave") AND workspace-level access —
+the client must NEVER reassign it: `toRow` keeps the row's existing `ownerId`,
+stamping the current user only on rows created locally. The people list is a
+live cloud fetch (not offline-synced): you manage people while online. Media
+uploads to the flat `${key}` storage path (team-readable; keys are unguessable
+uuids, rows pointing at them are membership-scoped); downloads fall back to
+the capturer's legacy `${owner}/${key}` folder, then our own. Snag `owner` is
+free text with the team as suggestions; assignment to a member's email powers
+their "Mine" view.
 
 ## Screen inventory
 
@@ -78,6 +94,7 @@ view.
 | **ReportScreen** `report` | provider observations + snags → lib/stats | provider's rules · syncedAt |
 | **CloudPanel** (on Home) | session + sync status | auth events · sync status events |
 | **AdminPanel** (superadmin) | profiles + allowed_emails (cloud reads) | open · own writes |
+| **PeoplePanel** (in Settings) | workspace_members + profiles (cloud reads) | open · own add/remove |
 
 ## Media
 
