@@ -719,7 +719,14 @@ button { font-family: inherit; }
 .guide-brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 22px; margin-top: 8px; }
 .guide-h1 { font-size: clamp(26px, 5vw, 36px); margin: 10px 0 6px; letter-spacing: -0.5px; }
 .guide-lede { color: var(--ink-2); font-size: 15.5px; line-height: 1.6; max-width: 56ch; margin: 0 0 26px; }
-.guide-step { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: center; padding: 26px 0; border-top: 1px solid var(--line); }
+/* the tour's three chapters: Pareto → snags → reports, in working order */
+.guide-chapter { margin-top: 14px; }
+.guide-chapter-head { border-top: 2px solid var(--brand); padding-top: 18px; }
+.guide-chapter-part { display: inline-block; color: var(--brand); font-weight: 800; font-size: 12.5px; letter-spacing: 1.4px; text-transform: uppercase; }
+.guide-chapter-title { font-size: clamp(21px, 4vw, 26px); margin: 4px 0 4px; letter-spacing: -0.4px; }
+.guide-chapter-lede { color: var(--ink-2); font-size: 14.5px; margin: 0 0 4px; max-width: 56ch; }
+.guide-step { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: center; padding: 26px 0; }
+.guide-steps .guide-step + .guide-step { border-top: 1px solid var(--line); }
 @media (min-width: 760px) {
   .guide-step { grid-template-columns: 1fr 340px; gap: 36px; }
   .guide-step:nth-child(even) .guide-shot { order: -1; } /* alternate sides */
