@@ -28,7 +28,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
   const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
 
   if (!view) return (
-    <div className="wrap analyse board">
+    <div className="wrap analyse board" data-tour="board">
       <p className="eyebrow">The line</p>
       <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
       <LineBoard />

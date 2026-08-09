@@ -13,7 +13,7 @@ import { useProfile } from '../cloud/admin';
 import { useSyncedAt, useSession } from '../cloud/session';
 import { cloudConfigured } from '../cloud/client';
 import { InstallPanel } from '../ui/InstallPanel';
-import { Tour, tourSeen } from '../ui/Tour';
+import { startWizard, wizardSeen } from '../ui/Wizard';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -66,12 +66,11 @@ export function WorkspaceHome() {
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
 
-  // A new invitee's first sign-in gets the step-by-step walkthrough, once per
-  // device. Replayable from the link at the foot of this page.
+  // A new invitee's first sign-in starts the interactive walkthrough — press
+  // here, tap that — once per device. Replayable from the link on this page.
   const { session } = useSession();
-  const [tourOpen, setTourOpen] = useState(false);
   useEffect(() => {
-    if (cloudConfigured && session && !tourSeen()) setTourOpen(true);
+    if (cloudConfigured && session && !wizardSeen()) startWizard();
   }, [session]);
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
@@ -150,7 +149,7 @@ export function WorkspaceHome() {
           </div>
         </div>
       ) : (
-        <button className="btn btn-primary btn-lg new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
+        <button className="btn btn-primary btn-lg new-ws" data-tour="new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
       )}
 
       {list === null ? null : list.length === 0 && !creating ? (
@@ -177,14 +176,13 @@ export function WorkspaceHome() {
 
       {/* signed-in users need a way to the tour too — for themselves, and to
           show a colleague what they're being invited into */}
-      <button className="home-guide-link" onClick={() => setTourOpen(true)}>
+      <button className="home-guide-link" onClick={startWizard}>
         ▶ Step-by-step walkthrough — how to use Faultline ›
       </button>
       <button className="home-guide-link" style={{ marginTop: 6 }} onClick={() => nav('/guide')}>
         📖 How Faultline works — the two-minute tour ›
       </button>
 
-      <Tour open={tourOpen} onClose={() => setTourOpen(false)} />
       <BuildStamp />
     </div>
   );

@@ -712,29 +712,31 @@ button { font-family: inherit; }
   .paper-A3 .report-page { zoom: 1.38; }
 }
 
-/* ---------- the first-run walkthrough (instruction manual as a tour) ---------- */
-.tour-scrim {
-  position: fixed; inset: 0; z-index: 90; background: rgba(10, 22, 40, 0.66);
-  display: flex; align-items: center; justify-content: center; padding: 14px;
-  backdrop-filter: blur(2px);
+/* ---------- the interactive walkthrough (press here, tap that) ---------- */
+.wiz { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.wiz-dim { position: absolute; inset: 0; background: rgba(10, 22, 40, 0.62); }
+/* the spotlight: a hole in the dark, cut around the REAL control */
+.wiz-spot {
+  position: fixed; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(10, 22, 40, 0.62), 0 0 0 3px var(--brand);
+  transition: all 0.25s ease;
 }
-.tour-card {
-  width: 100%; max-width: 500px; max-height: 94vh; overflow: auto;
-  background: var(--surface); border-radius: 18px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
-  display: flex; flex-direction: column;
+.wiz-card {
+  position: fixed; pointer-events: auto; width: min(320px, calc(100vw - 20px));
+  background: var(--surface); border-radius: 14px; padding: 14px 15px 11px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 }
-.tour-img { background: #0f2440; display: flex; justify-content: center; padding: 14px 14px 0; border-radius: 18px 18px 0 0; }
-.tour-img img { max-width: 230px; width: 62%; max-height: 34vh; object-fit: cover; object-position: top; border-radius: 12px 12px 0 0; display: block; }
-.tour-body { padding: 14px 18px 4px; }
-.tour-title { font-size: 19px; margin: 0 0 8px; }
-.tour-list { margin: 0; padding: 0 0 0 18px; display: grid; gap: 7px; }
-.tour-list li { color: var(--ink-2); font-size: 13.8px; line-height: 1.55; }
-.tour-foot { display: flex; align-items: center; gap: 10px; padding: 12px 16px 14px; }
-.tour-skip { color: var(--muted); font-size: 12.5px; }
-.tour-dots { flex: 1; display: flex; justify-content: center; gap: 5px; }
-.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
-.tour-dots i.on { background: var(--brand); }
-.tour-nav { display: flex; gap: 8px; }
+/* no spotlight to anchor to (mid-action, or the closing card): sit at the
+   bottom edge, out of the way of whatever the user is doing */
+.wiz-card.wiz-center { left: 50%; bottom: 16px; transform: translateX(-50%); }
+.wiz-title { font-weight: 800; font-size: 15.5px; margin-bottom: 6px; }
+.wiz-body { color: var(--ink-2); font-size: 13.3px; line-height: 1.55; margin: 0 0 10px; }
+.wiz-foot { display: flex; align-items: center; gap: 10px; }
+.wiz-skip { color: var(--muted); font-size: 12px; }
+.wiz-dots { flex: 1; display: flex; justify-content: center; gap: 4px; }
+.wiz-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.wiz-dots i.on { background: var(--brand); }
+.wiz-hint { margin-top: 8px; color: var(--brand); font-size: 11.5px; font-weight: 700; text-align: center; }
 
 /* ---------- actions raised from the Pareto board ---------- */
 .action-form { margin-top: 10px; }

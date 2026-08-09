@@ -22,6 +22,7 @@ export function TabBar({ active, wsId }: { active: string; wsId: ID }) {
       {TABS.map(t => (
         <button
           key={t.name}
+          data-tour={`tab-${t.name}`}
           className={'tab' + (activeTab === t.name ? ' on' : '')}
           onClick={() => nav(`/w/${wsId}/${t.to}`)}
         >

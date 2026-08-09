@@ -239,7 +239,7 @@ export function SnagsScreen() {
           )}
         </div>
       ) : (
-        <div className="add-video-row">
+        <div className="add-video-row" data-tour="film">
           {/* Filming in-app records H.264, which plays on every device. The
               phone's own camera app defaults to HEVC on most handsets, which
               a laptop can decode the sound of but not the picture — so that's

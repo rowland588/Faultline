@@ -150,7 +150,7 @@ export function CaptureScreen() {
   return (
     <div className="wrap cap">
       {/* pickers lock while a timer runs so the elapsed time can't be re-attributed */}
-      <fieldset className="cap-fields" disabled={timing}>
+      <fieldset className="cap-fields" data-tour="cap-fields" disabled={timing}>
       {/* ASSET — where on the line (the floor thinks asset-first: this machine stopped) */}
       <div className="cap-block">
         <div className="field-label">Which asset?</div>
@@ -205,7 +205,7 @@ export function CaptureScreen() {
               ▶ Start timing
             </button>
             <div className="cap-secondary">
-              <button className="btn" disabled={!canLog} onClick={logInstant}>Log now</button>
+              <button className="btn" data-tour="log-now" disabled={!canLog} onClick={logInstant}>Log now</button>
               <button className="btn" disabled={!canLog} onClick={() => setTyped(t => !t)}>Type a time</button>
             </div>
             {typed && (

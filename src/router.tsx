@@ -14,6 +14,7 @@ import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
+import { Wizard } from './ui/Wizard';
 import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
 
@@ -36,11 +37,19 @@ export function Router() {
   // Not signed in → the front door. No bypass.
   if (!session) return <Landing />;
 
-  if (route.name === 'home' || !route.wsId) return <WorkspaceHome />;
-
+  // The walkthrough overlays the real app and walks ACROSS screens, so it must
+  // be ONE instance that survives every route change — mounted here, once,
+  // beside whichever screen is showing.
   return (
-    <WorkspaceProvider wsId={route.wsId}>
-      {route.name === 'resume' ? <ResumeRedirect /> : <AppShell route={route} />}
-    </WorkspaceProvider>
+    <>
+      {route.name === 'home' || !route.wsId
+        ? <WorkspaceHome />
+        : (
+          <WorkspaceProvider wsId={route.wsId}>
+            {route.name === 'resume' ? <ResumeRedirect /> : <AppShell route={route} />}
+          </WorkspaceProvider>
+        )}
+      <Wizard />
+    </>
   );
 }
