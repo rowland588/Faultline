@@ -10,8 +10,10 @@ import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { useProfile } from '../cloud/admin';
-import { useSyncedAt } from '../cloud/session';
+import { useSyncedAt, useSession } from '../cloud/session';
+import { cloudConfigured } from '../cloud/client';
 import { InstallPanel } from '../ui/InstallPanel';
+import { Tour, tourSeen } from '../ui/Tour';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -63,6 +65,14 @@ export function WorkspaceHome() {
   const [error, setError] = useState('');
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
+
+  // A new invitee's first sign-in gets the step-by-step walkthrough, once per
+  // device. Replayable from the link at the foot of this page.
+  const { session } = useSession();
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    if (cloudConfigured && session && !tourSeen()) setTourOpen(true);
+  }, [session]);
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
@@ -167,10 +177,14 @@ export function WorkspaceHome() {
 
       {/* signed-in users need a way to the tour too — for themselves, and to
           show a colleague what they're being invited into */}
-      <button className="home-guide-link" onClick={() => nav('/guide')}>
+      <button className="home-guide-link" onClick={() => setTourOpen(true)}>
+        ▶ Step-by-step walkthrough — how to use Faultline ›
+      </button>
+      <button className="home-guide-link" style={{ marginTop: 6 }} onClick={() => nav('/guide')}>
         📖 How Faultline works — the two-minute tour ›
       </button>
 
+      <Tour open={tourOpen} onClose={() => setTourOpen(false)} />
       <BuildStamp />
     </div>
   );
