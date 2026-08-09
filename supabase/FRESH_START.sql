@@ -72,6 +72,7 @@ create table public.workspaces (
   shifts jsonb not null default '[]'::jsonb,
   crew numeric,
   labour_rate_per_hour numeric,
+  labour_burden numeric,
   last_category text,
   last_asset text,
   archived boolean not null default false,

@@ -37,7 +37,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: w.id, owner_id: w.ownerId ?? fallbackOwner, name: w.name, color: w.color ?? null,
         categories: w.categories, subcategories: w.subcategories, assets: w.assets, shifts: w.shifts,
-        crew: w.crew ?? null, labour_rate_per_hour: w.labourRatePerHour ?? null,
+        crew: w.crew ?? null, labour_rate_per_hour: w.labourRatePerHour ?? null, labour_burden: w.labourBurden ?? null,
         last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
         archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
       };
@@ -48,7 +48,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, name: r.name as string, color: (r.color as string) ?? undefined,
       categories: (r.categories as string[]) ?? [], subcategories: (r.subcategories as Record<string, string[]>) ?? {},
       assets: (r.assets as string[]) ?? [], shifts: (r.shifts as Workspace['shifts']) ?? [],
-      crew: n(r.crew), labourRatePerHour: n(r.labour_rate_per_hour),
+      crew: n(r.crew), labourRatePerHour: n(r.labour_rate_per_hour), labourBurden: n(r.labour_burden),
       lastCategory: (r.last_category as string) ?? undefined, lastAsset: (r.last_asset as string) ?? undefined,
       archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),

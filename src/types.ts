@@ -25,10 +25,13 @@ export interface Workspace {
   assets: string[]; // WHERE — starts empty; the operator adds their machines
   shifts: Shift[]; // optional stratifier; starts empty
 
-  // Idle-labour cost model: crew on the line × labour rate/hr = cost per hour;
+  // Idle-labour cost model: crew × wage × on-costs ratio = cost per hour;
   // a downtime event costs (its hours) × that rate — so cost ranks like time.
+  // The ratio turns the wage into what a person actually costs the business
+  // (employer NI, pension, holiday cover — typically ×1.25–1.4).
   crew?: number; // people on the line
-  labourRatePerHour?: number; // £ per person-hour
+  labourRatePerHour?: number; // £ per person-hour (base wage)
+  labourBurden?: number; // on-costs multiplier; unset = 1 (wage only)
 
   // Sticky capture defaults so a repeat event is one tap (START).
   lastCategory?: string;

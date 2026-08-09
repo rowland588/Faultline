@@ -7,7 +7,7 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack } from '../state/useRoute';
 import { renameInObservations } from '../db';
 import { Toast } from '../ui/Toast';
-import { hasCost, fmtGBP } from '../lib/cost';
+import { hasCost, costPerHour, burdenOf, fmtGBP } from '../lib/cost';
 import { plural } from '../lib/format';
 import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
@@ -120,7 +120,7 @@ export function WorkspaceSettings() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label">Cost of downtime</div>
-        <p className="sub" style={{ margin: '4px 0 10px' }}>Crew on the line × labour rate = £/hour of idle labour. Time lost then reads in £.</p>
+        <p className="sub" style={{ margin: '4px 0 10px' }}>Crew × wage × on-costs = £/hour of idle labour. Time lost then reads in £.</p>
         <div className="row-inline" style={{ alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <label className="mini-label">People on the line</label>
@@ -133,7 +133,7 @@ export function WorkspaceSettings() {
               }} />
           </div>
           <div style={{ flex: 1 }}>
-            <label className="mini-label">Labour rate £/hr</label>
+            <label className="mini-label">Wage £/hr</label>
             <input className="text-input" type="number" inputMode="decimal" min={0} step="0.01"
               defaultValue={workspace.labourRatePerHour ?? ''} placeholder="e.g. 18.50"
               onBlur={e => {
@@ -142,9 +142,26 @@ export function WorkspaceSettings() {
                 void save({ labourRatePerHour: raw && v > 0 ? v : undefined });
               }} />
           </div>
+          <div style={{ flex: 1 }}>
+            <label className="mini-label">On-costs ×</label>
+            <input className="text-input" type="number" inputMode="decimal" min={1} step="0.05"
+              defaultValue={workspace.labourBurden ?? ''} placeholder="e.g. 1.3"
+              onBlur={e => {
+                const raw = e.target.value.trim(); const v = parseFloat(raw);
+                if (raw && !(Number.isFinite(v) && v >= 1)) { setToast('On-costs is a multiplier from 1 up — e.g. 1.3'); return; }
+                void save({ labourBurden: raw && v >= 1 ? v : undefined });
+              }} />
+          </div>
         </div>
+        <p className="sub" style={{ margin: '8px 0 0', fontSize: 12 }}>
+          On-costs turns the wage into what a person costs the business — employer NI, pension, holiday
+          cover. Typically ×1.25–1.4; ask finance for yours. Leave blank to count wages only.
+        </p>
         {hasCost(workspace) && (
-          <div className="cost-readout">= <b>{fmtGBP(workspace.crew! * workspace.labourRatePerHour!)}/hr</b> of idle labour while this line is down</div>
+          <div className="cost-readout">
+            = <b>{fmtGBP(costPerHour(workspace))}/hr</b> of idle labour while this line is down
+            <span className="sub"> ({workspace.crew} × £{workspace.labourRatePerHour}{burdenOf(workspace) !== 1 ? ` × ${burdenOf(workspace)}` : ''})</span>
+          </div>
         )}
       </div>
 
