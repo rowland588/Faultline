@@ -281,6 +281,19 @@ export async function syncNow(): Promise<void> {
 /** Debounced sync request — writes call this (via the db signal), realtime
  *  events call this, everything calls this. Bursts collapse into one pass. */
 let debounceTimer: number | undefined;
+/** Truthful backup state for one item: its row pushed AND its media in cloud
+ *  storage. Drives the quiet "backed up ✓" on walks — a fact, never a guess.
+ *  (A key with no local blob came FROM the cloud, so it counts as backed up.) */
+export async function backedUp(updatedAt: number, keys: Array<string | undefined>): Promise<boolean> {
+  if (!cloudConfigured) return false;
+  if (updatedAt > await getSyncCursor()) return false;   // the row itself hasn't pushed
+  const uploaded = await keySet('uploaded');
+  for (const k of keys) {
+    if (k && !uploaded.has(k) && await hasBlob(k)) return false;
+  }
+  return true;
+}
+
 export function requestSync(delayMs = 1200): void {
   if (typeof window === 'undefined' || !cloudConfigured) return;
   window.clearTimeout(debounceTimer);

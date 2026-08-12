@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { deleteWorkspace } from '../db';
 import { Sheet, SheetRow } from './Sheet';
 import { LogoMark } from './Logo';
 import { cloudConfigured } from '../cloud/client';
@@ -15,10 +14,15 @@ export function TopBar() {
   const [menu, setMenu] = useState(false);
 
   const go = (to: string) => { setMenu(false); nav(to); };
-  const remove = async () => {
-    if (!window.confirm(`Delete "${workspace.name}" and everything in it? This cannot be undone.`)) return;
+  // Deleting a workspace is the most destructive tap in the app — it gets a
+  // confirm AND an undo window. Nothing is actually deleted here: Home holds
+  // the workspace in limbo for a few seconds and only then commits.
+  const remove = () => {
+    if (!window.confirm(`Delete "${workspace.name}" and everything in it?`)) return;
     setMenu(false);
-    await deleteWorkspace(workspace.id);
+    sessionStorage.setItem('faultline-pending-delete', JSON.stringify({
+      id: workspace.id, name: workspace.name, until: Date.now() + 8000,
+    }));
     nav('/');
   };
   const logout = async () => {

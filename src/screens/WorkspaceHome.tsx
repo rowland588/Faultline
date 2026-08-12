@@ -2,7 +2,8 @@
  * tools). Tapping one resumes exactly where you left it. */
 import { useEffect, useState } from 'react';
 import type { Workspace } from '../types';
-import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, createWorkspace } from '../db';
+import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, createWorkspace, deleteWorkspace } from '../db';
+import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { EmptyState } from '../ui/EmptyState';
 import { Wordmark } from '../ui/Logo';
@@ -60,6 +61,27 @@ export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
   const [creating, setCreating] = useState(false);
+  // A deleted workspace sits in limbo here for a few seconds with an Undo —
+  // committed only when the toast expires. A flag left by a closed app is
+  // treated as CANCELLED: losing an intent beats losing a workspace.
+  const [pendingDel, setPendingDel] = useState<{ id: string; name: string } | null>(null);
+  const [delTick, setDelTick] = useState(0);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('faultline-pending-delete');
+      if (!raw) return;
+      const v = JSON.parse(raw) as { id: string; name: string; until: number };
+      if (v.until > Date.now()) setPendingDel({ id: v.id, name: v.name });
+      else sessionStorage.removeItem('faultline-pending-delete');
+    } catch { /* malformed flag — ignore */ }
+  }, []);
+  const undoDelete = () => { sessionStorage.removeItem('faultline-pending-delete'); setPendingDel(null); };
+  const commitDelete = async () => {
+    const target = pendingDel;
+    sessionStorage.removeItem('faultline-pending-delete');
+    setPendingDel(null);
+    if (target) { await deleteWorkspace(target.id); setDelTick(t => t + 1); }
+  };
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -95,7 +117,7 @@ export function WorkspaceHome() {
       if (alive) setCounts(Object.fromEntries(entries));
     })();
     return () => { alive = false; };
-  }, [syncedAt]);
+  }, [syncedAt, delTick]);
 
   const create = async () => {
     if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces
@@ -158,7 +180,7 @@ export function WorkspaceHome() {
         </EmptyState>
       ) : (
         <div className="ws-list">
-          {list.map(w => (
+          {list.filter(w => w.id !== pendingDel?.id).map(w => (
             <button key={w.id} className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
               <span className="ws-card-dot" style={{ background: w.color }} />
               <span className="ws-card-main">
@@ -183,6 +205,9 @@ export function WorkspaceHome() {
         📖 How Faultline works — the two-minute tour ›
       </button>
 
+      {pendingDel && (
+        <Toast message={`Deleted “${pendingDel.name}”`} onUndo={undoDelete} onDismiss={() => void commitDelete()} />
+      )}
       <BuildStamp />
     </div>
   );

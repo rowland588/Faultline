@@ -712,6 +712,10 @@ button { font-family: inherit; }
   .paper-A3 .report-page { zoom: 1.38; }
 }
 
+/* the walk's backup state — quiet truth, not sync machinery */
+.seg-backup.ok { color: var(--ok); font-weight: 600; }
+.seg-backup.pending { color: var(--muted); }
+
 /* ---------- the interactive walkthrough (press here, tap that) ---------- */
 .wiz { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 .wiz-dim { position: absolute; inset: 0; background: rgba(10, 22, 40, 0.62); }

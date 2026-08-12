@@ -10,13 +10,15 @@ import { createSegmentFromVideo } from './addSegment';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { findUnportable, repairSegment, canRepairHere } from './repair';
 import { useSyncedAt } from '../cloud/session';
+import { backedUp } from '../cloud/sync';
+import { cloudConfigured } from '../cloud/client';
 import { sectionLabel } from './labels';
 import type { Segment } from './types';
 
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
-function SegRow({ seg, assetNames, first, last, onOpen, onUp, onDown, onRename, onDelete }: {
-  seg: Segment; assetNames: string[]; first: boolean; last: boolean;
+function SegRow({ seg, assetNames, first, last, backed, onOpen, onUp, onDown, onRename, onDelete }: {
+  seg: Segment; assetNames: string[]; first: boolean; last: boolean; backed?: boolean;
   onOpen: () => void; onUp: () => void; onDown: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const poster = useBlobUrl(seg.posterKey);
@@ -31,7 +33,16 @@ function SegRow({ seg, assetNames, first, last, onOpen, onUp, onDown, onRename, 
       <button className="seg-poster" onClick={onOpen}>{poster ? <img src={poster} alt="" /> : <span>▶</span>}</button>
       <button className="seg-main" onClick={onOpen}>
         <span className="seg-name">{label}</span>
-        <span className="seg-meta">{fmtDur(seg.durationS)} · {plural(assetNames.length, 'asset')}</span>
+        <span className="seg-meta">
+          {fmtDur(seg.durationS)} · {plural(assetNames.length, 'asset')}
+          {/* a fact from the sync engine, not a guess — silence would hide a
+              walk quietly failing to reach the cloud for days */}
+          {cloudConfigured && backed !== undefined && (
+            backed
+              ? <span className="seg-backup ok"> · ✓ backed up</span>
+              : <span className="seg-backup pending"> · ↻ backing up…</span>
+          )}
+        </span>
       </button>
       <button className="seg-edit" onClick={onRename} aria-label="Rename segment">✎</button>
       <button className="seg-del" onClick={onDelete} aria-label="Delete segment">×</button>
@@ -60,6 +71,7 @@ function SegNameForm({ initial, placeholder, onSave, onClose }: { initial: strin
 export function SnagsScreen() {
   const { workspace } = useWorkspace();
   const [segs, setSegs] = useState<Segment[]>([]);
+  const [backed, setBacked] = useState<Map<string, boolean>>(new Map());
   const [namesBySeg, setNamesBySeg] = useState<Map<string, string[]>>(new Map());
   const [openSnags, setOpenSnags] = useState(0);
   const [busy, setBusy] = useState('');
@@ -80,6 +92,11 @@ export function SnagsScreen() {
       names.set(a.segmentId, [...(names.get(a.segmentId) ?? []), a.name]);
     }
     setSegs(ss); setNamesBySeg(names); setOpenSnags(snags.filter(s => s.status !== 'closed').length);
+    if (cloudConfigured) {
+      const entries = await Promise.all(ss.map(async sg =>
+        [sg.id, await backedUp(sg.updatedAt ?? sg.createdAt, [sg.videoKey, sg.posterKey])] as const));
+      setBacked(new Map(entries));
+    }
   };
   const syncedAt = useSyncedAt();
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
@@ -270,6 +287,7 @@ export function SnagsScreen() {
           <div className="field-label" style={{ marginBottom: 8 }}>Segments · walk order</div>
           {segs.map((seg, i) => (
             <SegRow key={seg.id} seg={seg} assetNames={namesBySeg.get(seg.id) ?? []} first={i === 0} last={i === segs.length - 1}
+              backed={backed.get(seg.id)}
               onOpen={() => nav(`/w/${workspace.id}/segment/${seg.id}`)}
               onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)}
               onRename={() => setRenaming(seg)} onDelete={() => remove(seg)} />
