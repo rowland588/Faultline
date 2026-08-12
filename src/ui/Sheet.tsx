@@ -1,6 +1,11 @@
 import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
-/** A bottom sheet — the switcher, menus, quick edits. Tap the scrim to close. */
+/** A bottom sheet — the switcher, menus, quick edits. Tap the scrim to close.
+ *  Rendered via a PORTAL to <body>: a sheet opened from inside the sticky top
+ *  bar would otherwise be trapped in that bar's stacking context (z 20) and
+ *  sit BELOW the bottom tab bar (z 30) — leaving its lowest rows ("Sign out",
+ *  "Delete this workspace") visible but untappable wherever they overlap. */
 export function Sheet({ open, onClose, title, children }: {
   open: boolean; onClose: () => void; title?: string; children: ReactNode;
 }) {
@@ -14,14 +19,15 @@ export function Sheet({ open, onClose, title, children }: {
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="sheet-scrim" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="sheet-grip" />
         {title && <div className="sheet-title">{title}</div>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

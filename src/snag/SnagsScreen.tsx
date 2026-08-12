@@ -116,6 +116,16 @@ export function SnagsScreen() {
       : 'Nothing could be converted here.');
   };
 
+  /* A full device mustn't read as a mystery: name the actual problem and the
+   * way out. (The footage was NOT saved — saying so beats implying maybe.) */
+  const saveError = (e: unknown, fallback: string) => {
+    const msg = e instanceof Error ? e.message : '';
+    const quota = (e instanceof DOMException && e.name === 'QuotaExceededError') || /quota/i.test(msg);
+    return quota
+      ? 'This device is out of storage space — the video was NOT saved. Free some space (old photos and videos are the usual culprits) and try again.'
+      : msg || fallback;
+  };
+
   /** Uploaded footage — each file becomes a segment, in the order picked.
    *  Phone clips get converted on the way in, which runs at playback speed, so
    *  the progress here is the real thing rather than a spinner. */
@@ -133,7 +143,7 @@ export function SnagsScreen() {
       // One video: drop straight into it to start marking. Several: stay on the
       // list, which is where you'd order and name a batch anyway.
       if (files.length === 1 && firstId) nav(`/w/${workspace.id}/segment/${firstId}`);
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the video.'); }
+    } catch (e) { setErr(saveError(e, 'Could not add the video.')); }
     finally { setBusy(''); setProgress(null); if (fileRef.current) fileRef.current.value = ''; }
   };
 
@@ -143,7 +153,7 @@ export function SnagsScreen() {
   const onRecorded = async (blob: Blob) => {
     setErr('');
     try { await createSegmentFromVideo(workspace.id, blob); await load(); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Could not save the clip.'); }
+    catch (e) { setErr(saveError(e, 'Could not save the clip.')); }
   };
 
   const move = async (from: number, to: number) => {
