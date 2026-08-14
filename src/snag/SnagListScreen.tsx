@@ -1,14 +1,48 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, updateSnag, setSnagsStatus } from '../db';
 import { useBlobUrl } from './useBlobUrl';
 import { useSyncedAt, useSession } from '../cloud/session';
-import { SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, actionTarget, type Snag, type SnagStatus, type SnagAsset } from './types';
+import {
+  SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, actionTarget,
+  dueInDays, isOverdue, isDueSoon, closedDaysLate, compareReview, dueToInput, dueFromInput,
+  type Snag, type SnagStatus, type SnagAsset,
+} from './types';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
 
 interface Row { snag: Snag; assetName: string; assetId: string; sequence: number; timestampS: number }
+
+/** The promise, drawn: raised → today → due. Fill is elapsed time; the notch is
+ *  the due day. Green while comfortable, amber inside the due-soon window, red
+ *  past the promise. Closed actions get a verdict instead of a bar. */
+function TimeStrip({ snag }: { snag: Snag }) {
+  const late = closedDaysLate(snag);
+  if (snag.status === 'closed') {
+    if (late == null) return null;
+    return <span className={'ts-verdict ' + (late <= 0 ? 'ts-ontime' : 'ts-late')}>{late <= 0 ? 'on time ✓' : `${late}d late`}</span>;
+  }
+  if (snag.dueAt == null) return null;
+  const start = snag.raisedAt, nowMs = Date.now();
+  const end = Math.max(snag.dueAt, nowMs, start + 1);
+  const pct = (v: number) => Math.min(100, Math.max(0, ((v - start) / (end - start)) * 100));
+  const state = isOverdue(snag) ? 'over' : isDueSoon(snag) ? 'soon' : 'ok';
+  return (
+    <span className={'time-strip ts-' + state} title={`Raised ${dateNice(start)} · due ${dateNice(snag.dueAt)}`}>
+      <span className="ts-fill" style={{ width: `${pct(nowMs)}%` }} />
+      <span className="ts-mark" style={{ left: `${pct(snag.dueAt)}%` }} />
+    </span>
+  );
+}
+
+/** "5d" / "today" / "3d over" — the words next to the strip. */
+function dueWord(s: Snag): string | null {
+  if (s.status === 'closed') return null;
+  const d = dueInDays(s);
+  if (d == null) return null;
+  return d < 0 ? `${-d}d over` : d === 0 ? 'today' : `${d}d`;
+}
 
 export function SnagListScreen() {
   const { workspace } = useWorkspace();
@@ -19,7 +53,8 @@ export function SnagListScreen() {
   const [statusF, setStatusF] = useState<'all' | SnagStatus>('all');
   const [assetF, setAssetF] = useState('all');
   const [ownerF, setOwnerF] = useState('all');
-  const [ageF, setAgeF] = useState<'all' | 'stale'>('all');
+  const [ageF, setAgeF] = useState<'all' | 'stale' | 'overdue'>('all');
+  const [byOwner, setByOwner] = useState(false);
   const [search, setSearch] = useState('');
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
@@ -40,29 +75,77 @@ export function SnagListScreen() {
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
 
   const owners = useMemo(() => [...new Set(rows.map(r => r.snag.owner).filter(Boolean))] as string[], [rows]);
-  const counts = useMemo(() => { const c = { open: 0, in_progress: 0, closed: 0, stale: 0 }; for (const r of rows) { c[r.snag.status]++; if (isStaleOpen(r.snag)) c.stale++; } return c; }, [rows]);
+  const counts = useMemo(() => {
+    const c = { open: 0, in_progress: 0, closed: 0, stale: 0, overdue: 0 };
+    for (const r of rows) { c[r.snag.status]++; if (isStaleOpen(r.snag)) c.stale++; if (isOverdue(r.snag)) c.overdue++; }
+    return c;
+  }, [rows]);
 
   const filtered = rows.filter(({ snag, assetId }) => {
     if (statusF !== 'all' && snag.status !== statusF) return false;
     if (assetF !== 'all' && assetId !== assetF) return false;
     if (ownerF !== 'all' && (snag.owner ?? '') !== ownerF) return false;
     if (ageF === 'stale' && !isStaleOpen(snag)) return false;
-    if (search.trim() && !((snag.problem + ' ' + (snag.proposedSolution ?? '')).toLowerCase().includes(search.toLowerCase()))) return false;
+    if (ageF === 'overdue' && !isOverdue(snag)) return false;
+    if (search.trim() && !((snag.problem + ' ' + (snag.proposedSolution ?? '') + ' ' + (snag.latestUpdate ?? '')).toLowerCase().includes(search.toLowerCase()))) return false;
     return true;
   });
+
+  // Review order: overdue first (most urgent leading), then dated, then the
+  // rest, closed last — walk order survives within each band (stable sort).
+  const ordered = useMemo(() => [...filtered].sort((x, y) => compareReview(x.snag, y.snag)), [filtered]);
+
+  // The accountability view: who's carrying what. Heaviest plate first;
+  // unassigned work sits last, visibly nobody's.
+  const ownerGroups = useMemo(() => {
+    if (!byOwner) return null;
+    const m = new Map<string, Row[]>();
+    for (const r of ordered) {
+      const key = r.snag.owner?.trim() || 'Unassigned';
+      const g = m.get(key) ?? [];
+      g.push(r); m.set(key, g);
+    }
+    return [...m.entries()]
+      .map(([name, rs]) => ({
+        name, rows: rs,
+        open: rs.filter(r => r.snag.status !== 'closed').length,
+        overdue: rs.filter(r => isOverdue(r.snag)).length,
+      }))
+      .sort((a, b) => (a.name === 'Unassigned' ? 1 : 0) - (b.name === 'Unassigned' ? 1 : 0) || b.overdue - a.overdue || b.open - a.open || a.name.localeCompare(b.name));
+  }, [byOwner, ordered]);
 
   const changeStatus = async (r: Row, status: SnagStatus) => {
     setRows(rs => rs.map(x => x.snag.id === r.snag.id ? { ...x, snag: { ...x.snag, status } } : x));
     await updateSnag({ ...r.snag, status, closedAt: status === 'closed' ? Date.now() : undefined });
   };
   const changeOwner = async (r: Row, owner: string) => { if (owner === (r.snag.owner ?? '')) return; await updateSnag({ ...r.snag, owner: owner || undefined }); void load(); };
+  const changeDue = async (r: Row, v: string) => {
+    const dueAt = dueFromInput(v);
+    if (dueAt === r.snag.dueAt) return;
+    await updateSnag({ ...r.snag, dueAt }); void load();
+  };
+  const changeUpdate = async (r: Row, text: string) => {
+    const t = text.trim();
+    if (t === (r.snag.latestUpdate ?? '')) return;
+    await updateSnag({ ...r.snag, latestUpdate: t || undefined, latestUpdateAt: t ? Date.now() : undefined }); void load();
+  };
   const bulk = async (status: SnagStatus) => { if (!sel.size) return; await setSnagsStatus([...sel], status); setSel(new Set()); await load(); };
   const toggleSel = (id: string) => setSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const exportCsv = () => {
     const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
-    const lines = [['Asset', 'Problem', 'Proposed solution', 'Status', 'Owner', 'Raised', 'Age (days)'].join(',')];
-    for (const { snag, assetName } of filtered) lines.push([assetName, snag.problem, snag.proposedSolution ?? '', SNAG_STATUS_META[snag.status].label, snag.owner ?? '', dateNice(snag.raisedAt), String(ageDays(snag.raisedAt))].map(esc).join(','));
+    const lines = [['Asset', 'Problem', 'Proposed solution', 'Status', 'Owner', 'Raised', 'Age (days)', 'Due', 'Overdue (days)', 'Latest update', 'Updated'].join(',')];
+    for (const { snag, assetName } of ordered) {
+      const d = dueInDays(snag);
+      const late = closedDaysLate(snag);
+      const over = snag.status === 'closed' ? (late != null && late > 0 ? late : '') : (d != null && d < 0 ? -d : '');
+      lines.push([
+        assetName, snag.problem, snag.proposedSolution ?? '', SNAG_STATUS_META[snag.status].label, snag.owner ?? '',
+        dateNice(snag.raisedAt), String(ageDays(snag.raisedAt)),
+        snag.dueAt ? dateNice(snag.dueAt) : '', String(over),
+        snag.latestUpdate ?? '', snag.latestUpdateAt ? dateNice(snag.latestUpdateAt) : '',
+      ].map(esc).join(','));
+    }
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
     a.download = `snags-${workspace.name.replace(/\W+/g, '-').toLowerCase()}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };
@@ -70,12 +153,41 @@ export function SnagListScreen() {
   const activeFilters = [
     statusF !== 'all' ? SNAG_STATUS_META[statusF].label : null,
     ageF === 'stale' ? `stale (open > ${SNAG_STALE_DAYS}d)` : null,
+    ageF === 'overdue' ? 'overdue' : null,
     assetF !== 'all' ? (assets.find(a => a.id === assetF)?.name ?? 'one asset') : null,
     ownerF !== 'all' ? ownerF : null,
     search.trim() ? `“${search.trim()}”` : null,
   ].filter(Boolean) as string[];
 
-  if (printing) return <PrintView wsName={workspace.name} assets={assets} rows={filtered} filterNote={activeFilters.join(' · ')} onDone={() => setPrinting(false)} />;
+  if (printing) return <PrintView wsName={workspace.name} assets={assets} rows={ordered} filterNote={activeFilters.join(' · ')} onDone={() => setPrinting(false)} />;
+
+  const renderRow = (r: Row) => (
+    <tr key={r.snag.id} className={isOverdue(r.snag) ? 'row-over' : isStaleOpen(r.snag) ? 'row-stale' : ''}>
+      <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
+      <td data-label="Asset">{r.assetId
+        ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
+        : <span className="st-target" title="Raised from the Pareto board">⚑ {r.assetName}</span>}</td>
+      <td className="st-problem" data-label="Problem">
+        {r.snag.problem}{r.snag.proposedSolution ? <span className="st-sol"> → {r.snag.proposedSolution}</span> : ''}
+        {/* the answer to "what's happening with this?" — editable right in the review */}
+        <input className="mini-update" defaultValue={r.snag.latestUpdate ?? ''} placeholder="Latest update…"
+          maxLength={200} onBlur={e => changeUpdate(r, e.target.value)} />
+        {r.snag.latestUpdateAt ? <span className="st-upd-when">{dateNice(r.snag.latestUpdateAt)}</span> : null}
+      </td>
+      <td data-label="Status"><select className="mini-select" value={r.snag.status} onChange={e => changeStatus(r, e.target.value as SnagStatus)}>{(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <option key={s} value={s}>{SNAG_STATUS_META[s].label}</option>)}</select></td>
+      <td data-label="Owner"><input className="mini-owner" defaultValue={r.snag.owner ?? ''} placeholder="—" onBlur={e => changeOwner(r, e.target.value.trim())} /></td>
+      <td className="st-due" data-label="Due">
+        <div className="due-cell">
+          <div className="due-cell-top">
+            <input type="date" className="mini-due" defaultValue={dueToInput(r.snag.dueAt)} onChange={e => changeDue(r, e.target.value)} />
+            {dueWord(r.snag) ? <span className={'due-word' + (isOverdue(r.snag) ? ' dw-over' : isDueSoon(r.snag) ? ' dw-soon' : '')}>{dueWord(r.snag)}</span> : null}
+          </div>
+          <TimeStrip snag={r.snag} />
+        </div>
+      </td>
+      <td className="st-num" data-label="Age">{ageDays(r.snag.raisedAt)}d</td>
+    </tr>
+  );
 
   return (
     <div className="wrap">
@@ -91,13 +203,16 @@ export function SnagListScreen() {
         <span className="ss-pill"><b>{counts.open}</b> open</span>
         <span className="ss-pill"><b>{counts.in_progress}</b> in progress</span>
         <span className="ss-pill"><b>{counts.closed}</b> closed</span>
+        <span className={'ss-pill' + (counts.overdue > 0 ? ' ss-over' : '')} title="Open past their due date"><b>{counts.overdue}</b> overdue</span>
         <span className={'ss-pill' + (counts.stale > 0 ? ' ss-stale' : '')} title={`Open snags older than ${SNAG_STALE_DAYS} days`}><b>{counts.stale}</b> open &gt; {SNAG_STALE_DAYS}d</span>
       </div>
 
       <div className="snag-filters">
         <div className="chip-row">
           {(['all', 'open', 'in_progress', 'closed'] as const).map(s => <button key={s} className={'chip' + (statusF === s ? ' on' : '')} onClick={() => setStatusF(s)}>{s === 'all' ? 'All' : SNAG_STATUS_META[s].label}</button>)}
+          <button className={'chip' + (ageF === 'overdue' ? ' on' : '')} onClick={() => setAgeF(a => a === 'overdue' ? 'all' : 'overdue')}>Overdue</button>
           <button className={'chip' + (ageF === 'stale' ? ' on' : '')} onClick={() => setAgeF(a => a === 'stale' ? 'all' : 'stale')}>Stale</button>
+          <button className={'chip' + (byOwner ? ' on' : '')} title="Group by owner — who's carrying what" onClick={() => setByOwner(v => !v)}>By owner</button>
           {/* the fixer's view: one tap to "what's on MY plate" */}
           {myEmail && rows.some(r => (r.snag.owner ?? '').toLowerCase() === myEmail) && (
             <button className={'chip' + (ownerF.toLowerCase() === myEmail ? ' on' : '')}
@@ -122,23 +237,22 @@ export function SnagListScreen() {
       )}
 
       <div className="card" style={{ overflowX: 'auto' }}>
-        {filtered.length === 0 ? <p className="sub">{rows.length === 0 ? 'No snags yet — mark assets and pin problems first.' : 'No snags match these filters.'}</p>
+        {ordered.length === 0 ? <p className="sub">{rows.length === 0 ? 'No snags yet — mark assets and pin problems first.' : 'No snags match these filters.'}</p>
           : (
             <table className="snag-table">
-              <thead><tr><th></th><th>Asset</th><th>Problem</th><th>Status</th><th>Owner</th><th>Age</th></tr></thead>
+              <thead><tr><th></th><th>Asset</th><th>Problem</th><th>Status</th><th>Owner</th><th>Due</th><th>Age</th></tr></thead>
               <tbody>
-                {filtered.map(r => (
-                  <tr key={r.snag.id} className={isStaleOpen(r.snag) ? 'row-stale' : ''}>
-                    <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
-                    <td data-label="Asset">{r.assetId
-                      ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
-                      : <span className="st-target" title="Raised from the Pareto board">⚑ {r.assetName}</span>}</td>
-                    <td className="st-problem" data-label="Problem">{r.snag.problem}{r.snag.proposedSolution ? <span className="st-sol"> → {r.snag.proposedSolution}</span> : ''}</td>
-                    <td data-label="Status"><select className="mini-select" value={r.snag.status} onChange={e => changeStatus(r, e.target.value as SnagStatus)}>{(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <option key={s} value={s}>{SNAG_STATUS_META[s].label}</option>)}</select></td>
-                    <td data-label="Owner"><input className="mini-owner" defaultValue={r.snag.owner ?? ''} placeholder="—" onBlur={e => changeOwner(r, e.target.value.trim())} /></td>
-                    <td className="st-num" data-label="Age">{ageDays(r.snag.raisedAt)}d</td>
-                  </tr>
-                ))}
+                {ownerGroups
+                  ? ownerGroups.map(g => (
+                    <Fragment key={g.name}>
+                      <tr className="owner-head"><td colSpan={7}>
+                        {g.name}
+                        <span className="oh-counts">{g.open} open{g.overdue > 0 ? <b className="oh-over"> · {g.overdue} overdue</b> : null}</span>
+                      </td></tr>
+                      {g.rows.map(renderRow)}
+                    </Fragment>
+                  ))
+                  : ordered.map(renderRow)}
               </tbody>
             </table>
           )}
@@ -151,8 +265,8 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
   const groups = assets.map(a => ({ asset: a, snags: rows.filter(r => r.assetId === a.id).map(r => r.snag) })).filter(g => g.snags.length > 0);
   const actions = rows.filter(r => !r.snag.assetId).map(r => r.snag);
   const all = rows.map(r => r.snag);
-  const c = { open: 0, in_progress: 0, closed: 0, stale: 0 };
-  for (const s of all) { c[s.status]++; if (isStaleOpen(s)) c.stale++; }
+  const c = { open: 0, in_progress: 0, closed: 0, stale: 0, overdue: 0 };
+  for (const s of all) { c[s.status]++; if (isStaleOpen(s)) c.stale++; if (isOverdue(s)) c.overdue++; }
   const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
@@ -174,6 +288,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
           <span className="report-stat st-open"><b>{c.open}</b> open</span>
           <span className="report-stat st-prog"><b>{c.in_progress}</b> in progress</span>
           <span className="report-stat st-closed"><b>{c.closed}</b> closed</span>
+          {c.overdue > 0 && <span className="report-stat st-overdue"><b>{c.overdue}</b> overdue</span>}
           {c.stale > 0 && <span className="report-stat st-stale"><b>{c.stale}</b> stale</span>}
         </div>
       </header>
@@ -185,16 +300,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
             {actions.map((s, i) => (
               <li key={s.id}>
                 <span className="print-snag-n" style={{ background: SNAG_STATUS_META[s.status].color }}>{i + 1}</span>
-                <div className="print-snag-body">
-                  <div className="print-snag-problem">{s.problem}{s.proposedSolution ? <span className="print-snag-sol"> → {s.proposedSolution}</span> : null}</div>
-                  <div className="print-snag-meta">
-                    <span className={'print-badge st-' + s.status}>{SNAG_STATUS_META[s.status].label}</span>
-                    {actionTarget(s) ? <span>· {actionTarget(s)}</span> : null}
-                    {s.owner ? <span>· {s.owner}</span> : null}
-                    <span>· raised {dateNice(s.raisedAt)}</span>
-                    {s.closedAt ? <span>· closed {dateNice(s.closedAt)}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
-                  </div>
-                </div>
+                <PrintSnagBody snag={s} target={actionTarget(s)} />
               </li>
             ))}
           </ol>
@@ -204,6 +310,29 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
         : groups.map(g => <PrintAsset key={g.asset.id} asset={g.asset} snags={g.snags} />)}
 
       <p className="report-foot">Faultline · snag report · {wsName}</p>
+    </div>
+  );
+}
+
+/** One snag's print block: problem, then the who/when line — including the due
+ *  date and, when the promise was missed, by how much (that's what gets read
+ *  aloud in the review) — then the latest update if someone left one. */
+function PrintSnagBody({ snag: s, target }: { snag: Snag; target?: string }) {
+  const d = dueInDays(s);
+  const late = closedDaysLate(s);
+  return (
+    <div className="print-snag-body">
+      <div className="print-snag-problem">{s.problem}{s.proposedSolution ? <span className="print-snag-sol"> → {s.proposedSolution}</span> : null}</div>
+      <div className="print-snag-meta">
+        <span className={'print-badge st-' + s.status}>{SNAG_STATUS_META[s.status].label}</span>
+        {target ? <span>· {target}</span> : null}
+        {s.owner ? <span>· {s.owner}</span> : null}
+        <span>· raised {dateNice(s.raisedAt)}</span>
+        {s.dueAt ? <span>· due {dateNice(s.dueAt)}</span> : null}
+        {s.status !== 'closed' && d != null && d < 0 ? <b className="print-over">· {-d}d overdue</b> : null}
+        {s.closedAt ? <span>· closed {dateNice(s.closedAt)}{late != null ? (late <= 0 ? ' (on time)' : ` (${late}d late)`) : ''}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
+      </div>
+      {s.latestUpdate ? <div className="print-snag-update">↻ {s.latestUpdate}{s.latestUpdateAt ? ` — ${dateNice(s.latestUpdateAt)}` : ''}</div> : null}
     </div>
   );
 }
@@ -225,15 +354,7 @@ function PrintAsset({ asset, snags }: { asset: SnagAsset; snags: Snag[] }) {
           {snags.map((s, i) => (
             <li key={s.id}>
               <span className="print-snag-n" style={{ background: SNAG_STATUS_META[s.status].color }}>{i + 1}</span>
-              <div className="print-snag-body">
-                <div className="print-snag-problem">{s.problem}{s.proposedSolution ? <span className="print-snag-sol"> → {s.proposedSolution}</span> : null}</div>
-                <div className="print-snag-meta">
-                  <span className={'print-badge st-' + s.status}>{SNAG_STATUS_META[s.status].label}</span>
-                  {s.owner ? <span>· {s.owner}</span> : null}
-                  <span>· raised {dateNice(s.raisedAt)}</span>
-                  {s.closedAt ? <span>· closed {dateNice(s.closedAt)}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
-                </div>
-              </div>
+              <PrintSnagBody snag={s} />
             </li>
           ))}
         </ol>

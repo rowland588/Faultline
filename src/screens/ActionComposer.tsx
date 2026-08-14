@@ -8,6 +8,7 @@ import { addSnag } from '../db';
 import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { useTeam } from '../cloud/team';
+import { dueFromInput } from '../snag/types';
 import type { DrillPath } from '../types';
 
 const fromPath = (path: DrillPath, dim: string): string | undefined =>
@@ -18,6 +19,7 @@ export function ActionComposer({ wsId, path }: { wsId: string; path: DrillPath }
   const [open, setOpen] = useState(false);
   const [problem, setProblem] = useState('');
   const [owner, setOwner] = useState('');
+  const [due, setDue] = useState('');
   const [raised, setRaised] = useState<string | null>(null);
 
   const target = {
@@ -32,10 +34,10 @@ export function ActionComposer({ wsId, path }: { wsId: string; path: DrillPath }
     if (!p) return;
     await addSnag({
       id: uid(), workspaceId: wsId, ...target,
-      problem: p, owner: owner.trim() || undefined,
+      problem: p, owner: owner.trim() || undefined, dueAt: dueFromInput(due),
       status: 'open', raisedAt: Date.now(), updatedAt: Date.now(),
     });
-    setRaised(p); setProblem(''); setOwner(''); setOpen(false);
+    setRaised(p); setProblem(''); setOwner(''); setDue(''); setOpen(false);
   };
 
   if (raised) return (
@@ -65,6 +67,9 @@ export function ActionComposer({ wsId, path }: { wsId: string; path: DrillPath }
         <input className="text-input" list="team-members" value={owner} placeholder="Owner (who drives it)"
           maxLength={80} onChange={e => setOwner(e.target.value)} />
         <datalist id="team-members">{members.map(m => <option key={m.id} value={m.email}>{m.name}</option>)}</datalist>
+        {/* the promise — optional, but it's what gives the review its teeth */}
+        <input className="text-input due-input" type="date" value={due} aria-label="Due date"
+          title="Due date (optional)" onChange={e => setDue(e.target.value)} />
         <button className="btn btn-primary" onClick={() => void raise()} disabled={!problem.trim()}>Raise</button>
         <button className="btn btn-ghost" onClick={() => { setOpen(false); setProblem(''); }}>Cancel</button>
       </div>

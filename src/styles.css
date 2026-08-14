@@ -839,6 +839,36 @@ button { font-family: inherit; }
 .st-num { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
 .linkish { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; text-align: left; }
 
+/* tracker teeth — the promise (due dates) and the accountability view */
+.ss-pill.ss-over { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.ss-pill.ss-over b { color: var(--danger); }
+.snag-table tr.row-over td { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.owner-head td { background: var(--accent-soft); font-weight: 800; font-size: 13px; padding: 7px 8px; }
+.oh-counts { margin-left: 8px; font-weight: 600; font-size: 12px; color: var(--muted); }
+.oh-over { color: var(--danger); font-weight: 800; }
+.st-due { min-width: 150px; }
+.due-cell { display: flex; flex-direction: column; gap: 4px; }
+.due-cell-top { display: flex; align-items: center; gap: 6px; }
+.mini-due { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--ink); padding: 6px 7px; font: inherit; font-size: 12px; }
+.due-input { flex: none; width: auto; }
+.due-word { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.due-word.dw-soon { color: var(--warn); font-weight: 700; }
+.due-word.dw-over { color: var(--danger); font-weight: 800; }
+/* "what's happening with this?" — a quiet inline line, not a form field */
+.mini-update { display: block; width: 100%; margin-top: 4px; background: none; border: none; border-bottom: 1px dashed var(--line); color: var(--ink-2); font: inherit; font-size: 12px; font-style: italic; padding: 2px 0; border-radius: 0; }
+.mini-update::placeholder { color: var(--muted); opacity: 0.65; }
+.mini-update:focus { outline: none; border-bottom: 1px solid var(--accent); }
+.st-upd-when { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+/* the time strip: raised → today → due. Fill = elapsed, notch = the due day. */
+.time-strip { position: relative; display: block; width: 100%; max-width: 150px; height: 6px; border-radius: 3px; background: var(--line); }
+.ts-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ok); }
+.ts-soon .ts-fill { background: var(--warn); }
+.ts-over .ts-fill { background: var(--danger); }
+.ts-mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); transform: translateX(-50%); border-radius: 1px; }
+.ts-verdict { font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+.ts-verdict.ts-ontime { color: var(--ok); }
+.ts-verdict.ts-late { color: var(--danger); }
+
 /* On phones the wide table becomes one card per snag — every field labelled and
    visible, no sideways scroll that hides Owner / Status / Age off the edge. */
 @media (max-width: 680px) {
@@ -847,13 +877,18 @@ button { font-family: inherit; }
   .snag-table tbody, .snag-table tr, .snag-table td { display: block; width: 100%; }
   .snag-table tr { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 12px; margin-bottom: 10px; }
   .snag-table tr.row-stale { background: color-mix(in srgb, var(--danger) 6%, transparent); }
+  .snag-table tr.row-over { background: color-mix(in srgb, var(--danger) 10%, transparent); }
   .snag-table td { border: none; padding: 7px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .snag-table td::before { content: attr(data-label); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); flex: none; }
   .snag-table td.st-check { justify-content: flex-start; padding-bottom: 0; }
   .snag-table td.st-check::before { content: none; }
   .snag-table td.st-problem { flex-direction: column; align-items: flex-start; gap: 3px; }
   .snag-table td.st-problem { max-width: none; }
+  .snag-table td.st-due { align-items: flex-start; }
+  .snag-table td.st-due .due-cell { flex: 1; }
   .snag-table .mini-owner, .snag-table .mini-select { width: auto; }
+  .snag-table tr.owner-head { padding: 0; }
+  .snag-table tr.owner-head td { padding: 7px 12px; }
 }
 
 /* ---- snag report (Print → Save as PDF) ---- */
@@ -869,6 +904,7 @@ button { font-family: inherit; }
 .report-stat.st-prog b { color: var(--warn); }
 .report-stat.st-closed b { color: var(--ok); }
 .report-stat.st-stale { border-color: var(--danger); color: var(--danger); }
+.report-stat.st-overdue { border-color: var(--danger); color: var(--danger); }
 
 .print-asset { break-inside: avoid; page-break-inside: avoid; margin-bottom: 24px; }
 .print-asset-name { font-size: 17px; font-weight: 800; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
@@ -887,6 +923,8 @@ button { font-family: inherit; }
 .print-snag-sol { color: var(--muted); font-weight: 400; }
 .print-snag-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
 .print-badge { font-weight: 700; color: var(--ink-2); }
+.print-over { color: var(--danger); font-weight: 800; }
+.print-snag-update { font-size: 12px; color: var(--ink-2); font-style: italic; margin-top: 3px; }
 .print-badge.st-open { color: var(--danger); }
 .print-badge.st-in_progress { color: var(--warn); }
 .print-badge.st-closed { color: var(--ok); }

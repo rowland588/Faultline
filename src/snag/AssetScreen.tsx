@@ -12,7 +12,7 @@ import { VideoPlayer } from '../ui/VideoPlayer';
 import { useTeam } from '../cloud/team';
 import { useSyncedAt } from '../cloud/session';
 import PinImage, { type Pin } from './PinImage';
-import { SNAG_STATUS_META, ageDays, isStaleOpen, type SnagAsset, type Snag, type SnagStatus } from './types';
+import { SNAG_STATUS_META, ageDays, isStaleOpen, dueToInput, dueFromInput, type SnagAsset, type Snag, type SnagStatus } from './types';
 
 const obsLabel = (o: Observation) => `${o.category}${o.subcategory ? ' · ' + o.subcategory : ''}${o.note ? ' — ' + o.note : ''}`;
 
@@ -118,6 +118,8 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
   const [solution, setSolution] = useState(snag?.proposedSolution ?? '');
   const [status, setStatus] = useState<SnagStatus>(snag?.status ?? 'open');
   const [owner, setOwner] = useState(snag?.owner ?? '');
+  const [due, setDue] = useState(dueToInput(snag?.dueAt));
+  const [update, setUpdate] = useState(snag?.latestUpdate ?? '');
   const [closeNote, setCloseNote] = useState(snag?.closeNote ?? '');
   const [links, setLinks] = useState<string[]>(snag?.linkedObsIds ?? []);
   const [photoKey, setPhotoKey] = useState<string | undefined>(snag?.detailPhotoKey);
@@ -136,9 +138,13 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
     setBusy(true);
     try {
       if (snag) {
-        await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined, closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, linkedObsIds: links.length ? links : undefined, closedAt: status === 'closed' ? (snag.closedAt ?? now()) : undefined });
+        const u = update.trim();
+        await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
+          dueAt: dueFromInput(due), latestUpdate: u || undefined,
+          latestUpdateAt: u ? (u === snag.latestUpdate ? snag.latestUpdateAt : now()) : undefined,
+          closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, linkedObsIds: links.length ? links : undefined, closedAt: status === 'closed' ? (snag.closedAt ?? now()) : undefined });
       } else if (draft) {
-        await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, status: 'open', raisedAt: now(), updatedAt: now() });
+        await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, dueAt: dueFromInput(due), status: 'open', raisedAt: now(), updatedAt: now() });
       }
       onSaved();
     } finally { setBusy(false); }
@@ -161,6 +167,15 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
       <datalist id="team-members">
         {members.map(m => <option key={m.id} value={m.email}>{m.name}</option>)}
       </datalist>
+
+      <div className="field-label" style={{ marginTop: 10 }}>Due <span className="opt">the promise — optional</span></div>
+      <input className="text-input due-input" type="date" value={due} onChange={e => setDue(e.target.value)} />
+
+      {snag && (<>
+        <div className="field-label" style={{ marginTop: 10 }}>Latest update <span className="opt">what's happening — optional</span></div>
+        <input className="text-input" value={update} maxLength={200} placeholder="e.g. Parts ordered, ETA Thursday"
+          onChange={e => setUpdate(e.target.value)} />
+      </>)}
 
       {snag && (
         <p className="sub" style={{ marginTop: 10 }}>
