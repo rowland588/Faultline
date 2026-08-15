@@ -5,7 +5,7 @@ const TABS = [
   { name: 'capture', label: 'Capture', icon: '✎', to: 'capture' },
   { name: 'analyse', label: 'Analyse', icon: '▤', to: 'analyse' },
   { name: 'snags',   label: 'Snags',   icon: '⚑', to: 'snags' },
-  { name: 'present', label: 'Present', icon: '◨', to: 'present' },
+  { name: 'meeting', label: 'Meeting', icon: '◨', to: 'meeting' },
 ] as const;
 
 // The snag list is a walk → segments → assets → snags; any of those screens
@@ -16,7 +16,8 @@ const SNAG_FAMILY = new Set(['snags', 'segment', 'asset', 'snaglist', 'walk']);
  *  Snags is the video-walk fault list — a peer activity, usable on its own.
  *  Fixed to the bottom, thumb-reachable. */
 export function TabBar({ active, wsId }: { active: string; wsId: ID }) {
-  const activeTab = SNAG_FAMILY.has(active) ? 'snags' : active;
+  // Present is the fullscreen mode of Analyse now; the tab slot belongs to the meeting.
+  const activeTab = SNAG_FAMILY.has(active) ? 'snags' : active === 'present' ? 'meeting' : active;
   return (
     <nav className="tabbar">
       {TABS.map(t => (

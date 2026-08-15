@@ -7,6 +7,7 @@ import { TabBar } from '../ui/TabBar';
 import { CaptureScreen } from './CaptureScreen';
 import { AnalyseScreen } from './AnalyseScreen';
 import { PresentScreen } from './PresentScreen';
+import { MeetingScreen } from './MeetingScreen';
 import { LogScreen } from './LogScreen';
 import { WorkspaceSettings } from './WorkspaceSettings';
 import { PeopleScreen } from './PeopleScreen';
@@ -22,8 +23,9 @@ import { AssetHistoryScreen } from '../snag/AssetHistoryScreen';
 export function AppShell({ route }: { route: Route }) {
   const screen = route.name;
 
-  // Present, the snag walkthrough and the printable report are calm,
-  // chrome-free full-bleed surfaces.
+  // The meeting, Present, the snag walkthrough and the printable report are
+  // calm, chrome-free full-bleed surfaces.
+  if (screen === 'meeting') return <MeetingScreen />;
   if (screen === 'present') return <PresentScreen route={route} />;
   if (screen === 'walk') return <WalkthroughScreen wsId={route.wsId!} />;
   if (screen === 'report') return <ReportScreen />;

@@ -119,8 +119,8 @@ export function LineBoard({ present = false }: { present?: boolean }) {
               <span className="q-go">›</span>
             </button>
           </div>
-          <button className="btn btn-primary present-cta" onClick={() => nav(`/w/${workspace.id}/present`)}>
-            Present the board ›
+          <button className="btn btn-primary present-cta" onClick={() => nav(`/w/${workspace.id}/meeting`)}>
+            Run the meeting ›
           </button>
         </>
       )}

@@ -96,6 +96,7 @@ a Snag.
 | **CaptureScreen** `capture` | provider (workspace, observations) | provider's rules |
 | **LogScreen** `log` | provider | provider's rules |
 | **AnalyseScreen / Present** `analyse`/`present` | provider + URL drill state | provider's rules · hash change |
+| **MeetingScreen** `meeting` | provider observations → lib/stats + drill engine (windowed to the meeting's week); snags + assets (reckoning, verdicts); minutes = diff vs session start | provider's rules · syncedAt · own writes (updateSnag) |
 | **SnagsScreen** `snags` | segments, assets-per-segment, open snag count; unportable-footage scan | wsId · syncedAt · own writes (upload/film/reorder/delete/repair) |
 | **SegmentScreen** `segment/:id` | the segment record, sibling list, its assets + open counts | segmentId · syncedAt · own writes (mark/rename/add) |
 | **AssetScreen** `asset/:id` | the asset, its snags, source video key | assetId · syncedAt · own writes (snag CRUD/rename) |
