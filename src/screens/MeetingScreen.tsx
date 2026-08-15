@@ -14,7 +14,7 @@
  * the last FULL week so a Tuesday never reads as a miracle. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav } from '../state/useRoute';
+import { nav, goBack } from '../state/useRoute';
 import { listSnagAssets, snagsForWorkspace, updateSnag } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { weeklyLoss, categoryTrends, closedEvents, weekStart, type WeekPoint, type CategoryTrend } from '../lib/stats';
@@ -199,7 +199,9 @@ export function MeetingScreen() {
 
   return (
     <div className="present meet">
-      <button className="present-exit" onClick={() => nav(`/w/${workspace.id}/analyse`)} aria-label="Exit meeting">✕</button>
+      {/* ✕ returns WHERE YOU CAME FROM — the meeting is a room you step into,
+          not a corridor that dumps you somewhere else on the way out */}
+      <button className="present-exit" onClick={() => goBack(`/w/${workspace.id}/analyse`)} aria-label="Exit meeting">✕</button>
       <div className="present-body meet-body">
 
         <div className="meet-top">
@@ -209,6 +211,7 @@ export function MeetingScreen() {
             {[...fullWeeks].reverse().map(w => <option key={w.start} value={w.start}>{weekOf(w.start)}</option>)}
             <option value="all">All time</option>
           </select>
+          <button className="btn btn-ghost meet-print" title="The printable one-page report" onClick={() => nav(`/w/${workspace.id}/report`)}>📄 Report</button>
           {act !== 0 && <button className="btn btn-ghost meet-home" onClick={() => setAct(0)}>⌂ Overview</button>}
         </div>
 
@@ -256,6 +259,13 @@ export function MeetingScreen() {
               </button>
             </div>
           )}
+          {/* the doors the Present tab used to open — the meeting adds, never removes */}
+          <div className="meet-links">
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag report (print) ›</button>
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/report`)}>One-page report ›</button>
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/present`)}>Present the board ›</button>
+          </div>
         </div>
 
         {/* ═══ Act 1 — THE NUMBER ═══ */}
@@ -316,7 +326,9 @@ export function MeetingScreen() {
 
         {/* ═══ Act 3 — THE RECKONING (who / what / when, edited in the room) ═══ */}
         <div style={show(3)}>
-          <h1 className="present-q meet-q">Actions — who's carrying what</h1>
+          <h1 className="present-q meet-q">Actions — who's carrying what
+            <button className="linkish meet-act-link" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Full list &amp; print ›</button>
+          </h1>
           {openActions.length === 0 ? <p className="meet-empty">No open actions. Raise them from the board (Act 2) or on a walk.</p> : (() => {
             const groups = new Map<string, Snag[]>();
             for (const s of openActions) { const k = s.owner?.trim() || 'Unassigned'; const g = groups.get(k) ?? []; g.push(s); groups.set(k, g); }

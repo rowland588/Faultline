@@ -42,6 +42,11 @@ subsystem.
 reads does not ship.** Count the objects — if a design adds a second new
 object, the answer is no.
 
+**The no-removal rule: a new feature never removes or orphans an existing
+capability unless the removal is agreed first.** New doors may open; old
+doors stay. If a feature takes over an entry point (a tab, a button), every
+destination that entry point used to reach must remain reachable.
+
 Cases are deliberately scarce: a workspace with many open Cases should feel
 crowded — scarcity *is* the focus mechanism.
 

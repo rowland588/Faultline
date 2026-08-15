@@ -1107,7 +1107,12 @@ button { font-family: inherit; }
 .meet-body { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
 .meet-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: clamp(8px, 1.4vh, 16px); }
 .meet-period { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: var(--chrome-ink); }
-.meet-home { color: var(--chrome-muted); margin-left: auto; }
+.meet-home { color: var(--chrome-muted); }
+.meet-print { color: var(--chrome-muted); margin-left: auto; }
+.meet-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: clamp(14px, 2.2vh, 24px); }
+.meet-links .linkish { color: var(--chrome-muted); font-size: clamp(13px, 1.15vw, 16px); font-weight: 600; }
+.meet-links .linkish:hover { color: var(--chrome-ink); }
+.meet-act-link { font-size: clamp(12px, 1vw, 15px); font-weight: 600; margin-left: 14px; vertical-align: middle; }
 .meet-q { margin-bottom: clamp(12px, 2vh, 22px); }
 .meet-empty { color: var(--chrome-muted); font-size: clamp(15px, 1.4vw, 20px); max-width: 620px; line-height: 1.5; }
 
