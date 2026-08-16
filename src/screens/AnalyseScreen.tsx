@@ -36,6 +36,38 @@ function baselineFor(rows: ReturnType<typeof applyDrill>, workspace: Parameters<
   return rows.reduce((a, o) => a + o.durationMs, 0); // day-one workspace: all of it, one "week"
 }
 
+/** Weekly average ONLY when at least one full week backs it — the prize line
+ *  refuses to annualize a Tuesday. */
+function weeklyAvgFor(rows: ReturnType<typeof applyDrill>, workspace: Parameters<typeof weeklyLoss>[1]): number | null {
+  const full = weeklyLoss(rows, workspace, 6).filter(w => !w.current);
+  const recent = full.slice(-4);
+  if (!recent.length) return null;
+  const avg = recent.reduce((a, w) => a + w.ms, 0) / recent.length;
+  return avg > 0 ? avg : null;
+}
+
+const fmtHrs = (ms: number) => {
+  const h = ms / 3600_000;
+  return h >= 10 ? `${Math.round(h)} h` : h >= 1 ? `${Math.round(h * 10) / 10} h` : `${Math.round(ms / 60_000)} min`;
+};
+
+/** The prize, spoken where the pain is shown: what this drill position runs at
+ *  per week, and what halving it recovers — the consultant's whiteboard
+ *  arithmetic, computed live, clearly labelled as the halving scenario. */
+function PrizeLine({ weeklyMs, costable, factor }: { weeklyMs: number; costable: boolean; factor: number }) {
+  const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtHrs(ms));
+  const year = (ms: number) => (costable ? fmtGBP(ms * factor * 52) : fmtHrs(ms * 52));
+  return (
+    <div className="prize-line">
+      <span className="prize-ic" aria-hidden>💰</span>
+      <span>
+        Running at <b>{money(weeklyMs)}/wk</b> ({year(weeklyMs)}/yr).
+        Halve it and you recover <b>{money(weeklyMs / 2)}/wk ≈ {year(weeklyMs / 2)}/yr</b>.
+      </span>
+    </div>
+  );
+}
+
 export function AnalyseScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
   const view = readWorkstreamView(route, workspace.id);
@@ -73,12 +105,16 @@ export function AnalyseScreen({ route }: { route: Route }) {
   if (!node) return null;
 
   const existing = view.path.length > 0 ? openCases.find(c => samePath(c.path, view.path)) : undefined;
+  const weeklyMs = weeklyAvgFor(node.rows, workspace);
   const openCaseHere = async () => {
+    const baseline = baselineFor(node.rows, workspace);
     const c: Case = {
       id: uid(), workspaceId: workspace.id,
       title: view.path.map(s => s.value).join(' · '),
       path: view.path,
-      baselineMsWeek: baselineFor(node.rows, workspace),
+      baselineMsWeek: baseline,
+      // the prize becomes the promise: default target = halve it (editable on the Case)
+      targetMsWeek: Math.round(baseline / 2),
       status: 'open', openedAt: Date.now(), updatedAt: Date.now(),
     };
     await addCase(c);
@@ -176,6 +212,9 @@ export function AnalyseScreen({ route }: { route: Route }) {
           {/* the board just said WHERE the fix goes — record it before it
               escapes into a notebook */}
           <ActionComposer wsId={workspace.id} path={view.path} caseId={existing?.id} />
+
+          {/* the prize, right where the pain is — then one tap makes it the target */}
+          {weeklyMs != null && <PrizeLine weeklyMs={weeklyMs} costable={costable} factor={factor} />}
 
           {/* the drill just picked the problem — a Case makes it a story with a
               baseline, a target and a page (the A3 that fills itself) */}

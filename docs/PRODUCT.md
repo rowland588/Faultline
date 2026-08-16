@@ -145,6 +145,10 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
 - **Gantt charts** — never. Actions here have no dependency structure;
   overdue-sorted-by-owner is the honest version. The time strip is as
   Gantt as it gets.
+- **A separate Prize Board screen** — never (owner decision, Aug 2026). The
+  drill already shows where/what/time/cost; the prize is a LINE on the
+  existing board (£/wk, halve-it scenario, only ever computed from ≥1 full
+  week), and opening a Case turns that prize into the default target.
 - **A general dashboard** — never as such; the meeting Overview is the only
   cockpit, scoped to its period.
 - **A meeting/attendance object** — not unless auto-minutes-by-diff proves

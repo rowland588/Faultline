@@ -1300,3 +1300,7 @@ button { font-family: inherit; }
 .shift-name { flex: 1; min-width: 110px; }
 .shift-time { width: 106px; flex: none; }
 .shift-use { font-size: 11px; min-width: 0; }
+
+/* the prize line — the consultant's whiteboard arithmetic, live */
+.prize-line { display: flex; align-items: baseline; gap: 10px; background: color-mix(in srgb, var(--ok) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); border-radius: 12px; padding: 11px 14px; margin-top: 12px; font-size: 14px; line-height: 1.45; }
+.prize-ic { flex: none; }
