@@ -68,6 +68,7 @@ export interface Snag {
   closedAt?: Millis;
   closeNote?: string;
   detailPhotoKey?: string;   // key into the `media` store (close-up of the fault)
+  fixedPhotoKey?: string;    // the AFTER photo — the camera world's proof it's fixed
   linkedObsIds?: ID[];       // optional Pareto link → Observation ids (same workspace)
   updatedAt: Millis;
   deletedAt?: Millis;        // soft delete (tombstone), mirrors Observation

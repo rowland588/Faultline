@@ -123,10 +123,13 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
   const [closeNote, setCloseNote] = useState(snag?.closeNote ?? '');
   const [links, setLinks] = useState<string[]>(snag?.linkedObsIds ?? []);
   const [photoKey, setPhotoKey] = useState<string | undefined>(snag?.detailPhotoKey);
+  const [fixedKey, setFixedKey] = useState<string | undefined>(snag?.fixedPhotoKey);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
+  const fixedRef = useRef<HTMLInputElement>(null);
   const photoUrl = useBlobUrl(photoKey);
+  const fixedUrl = useBlobUrl(fixedKey);
 
   const obsById = new Map(observations.map(o => [o.id, o]));
   const candidates = q.trim()
@@ -142,7 +145,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
         await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
           dueAt: dueFromInput(due), latestUpdate: u || undefined,
           latestUpdateAt: u ? (u === snag.latestUpdate ? snag.latestUpdateAt : now()) : undefined,
-          closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, linkedObsIds: links.length ? links : undefined, closedAt: status === 'closed' ? (snag.closedAt ?? now()) : undefined });
+          closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, fixedPhotoKey: fixedKey, linkedObsIds: links.length ? links : undefined, closedAt: status === 'closed' ? (snag.closedAt ?? now()) : undefined });
       } else if (draft) {
         await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, dueAt: dueFromInput(due), status: 'open', raisedAt: now(), updatedAt: now() });
       }
@@ -151,6 +154,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
   };
   const remove = async () => { if (snag && window.confirm('Delete this snag?')) { await deleteSnag(snag.id); onSaved(); } };
   const addPhoto = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setPhotoKey(key); };
+  const addFixed = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setFixedKey(key); };
 
   return (
     <Sheet open onClose={onClose} title={snag ? 'Snag' : 'New snag'}>
@@ -193,6 +197,11 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
           {status === 'closed' && (<>
             <div className="field-label" style={{ marginTop: 10 }}>Close note</div>
             <textarea className="text-area" rows={2} value={closeNote} placeholder="What was done" onChange={e => setCloseNote(e.target.value)} />
+            {/* the camera world's proof: the AFTER photo, next to the before-still */}
+            <div className="field-label" style={{ marginTop: 10 }}>After photo <span className="opt">the proof it's fixed</span></div>
+            <input ref={fixedRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) void addFixed(f); }} />
+            {fixedUrl ? <button className="mark-still-btn" onClick={() => fixedRef.current?.click()}><img className="mark-still" src={fixedUrl} alt="after — fixed" /></button>
+              : <button className="btn" onClick={() => fixedRef.current?.click()}>📷 Add the after photo</button>}
           </>)}
 
           <div className="field-label" style={{ marginTop: 12 }}>Detail photo <span className="opt">optional</span></div>

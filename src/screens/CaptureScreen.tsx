@@ -2,10 +2,13 @@
  * proof. One thumb, no charts, nothing technical. A running stopwatch is
  * persisted, so it survives the app closing. Every log is a check-sheet row. */
 import { useEffect, useRef, useState } from 'react';
-import type { Observation, MediaRef } from '../types';
+import type { Case, Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { deleteBlobs } from '../db';
+import { deleteBlobs, listCases } from '../db';
+import { applyDrill } from '../engine/drill';
+import { studyResult } from '../lib/proof';
+import { useSyncedAt } from '../cloud/session';
 import { uid, now } from '../lib/ids';
 import { captureMedia, saveVideoBlob, pickExistingMedia } from '../lib/media';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
@@ -18,6 +21,32 @@ import { useTeam } from '../cloud/team';
 
 const blobKeysOf = (media: MediaRef[]): string[] =>
   media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]);
+
+/** Quiet banner while a confirmation study is running: every capture in its
+ *  scope counts automatically — this just shows the count climbing, so
+ *  re-measuring feels like winning. Reads the same lib/proof arithmetic as
+ *  the Case page; renders nothing when no study is armed. */
+function StudyChips({ wsId, observations }: { wsId: string; observations: Observation[] }) {
+  const [cases, setCases] = useState<Case[]>([]);
+  const syncedAt = useSyncedAt();
+  useEffect(() => { void listCases(wsId).then(setCases); }, [wsId, syncedAt]);
+  const running = cases.filter(c => c.status === 'open' && c.study && !c.study.closedAt);
+  if (running.length === 0) return null;
+  const live = observations.filter(o => o.deletedAt == null);
+  return (
+    <div className="study-chips">
+      {running.map(c => {
+        const r = studyResult(c, applyDrill(live, wsId, c.path));
+        if (!r) return null;
+        return (
+          <button key={c.id} className="study-chip" onClick={() => nav(`/w/${wsId}/case/${c.id}`)}>
+            🔬 <b>{c.title}</b> — {r.afterN} of {r.targetN} samples{r.enough ? ' ✓ ready to call' : ''}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function CaptureScreen() {
   const { workspace, observations, addObs, removeObs, restoreObs, patchWorkspace } = useWorkspace();
@@ -149,6 +178,7 @@ export function CaptureScreen() {
 
   return (
     <div className="wrap cap">
+      <StudyChips wsId={workspace.id} observations={observations} />
       {/* pickers lock while a timer runs so the elapsed time can't be re-attributed */}
       <fieldset className="cap-fields" data-tour="cap-fields" disabled={timing}>
       {/* ASSET — where on the line (the floor thinks asset-first: this machine stopped) */}

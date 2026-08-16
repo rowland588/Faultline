@@ -155,6 +155,7 @@ create table public.snags (
   closed_at bigint,
   close_note text,
   detail_photo_key text,
+  fixed_photo_key text,
   linked_obs_ids jsonb not null default '[]'::jsonb,
   updated_at bigint not null,
   deleted_at bigint
@@ -169,6 +170,7 @@ create table public.cases (
   title text not null,
   path jsonb not null default '[]'::jsonb,
   note text,
+  study jsonb,
   baseline_ms_week bigint not null default 0,
   target_ms_week bigint,
   status text not null default 'open' check (status in ('open','closed')),

@@ -287,7 +287,8 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
 
 /** One snag's print block: problem, then the who/when line — including the due
  *  date and, when the promise was missed, by how much (that's what gets read
- *  aloud in the review) — then the latest update if someone left one. */
+ *  aloud in the review) — then the latest update if someone left one, and the
+ *  after-photo when the fix left visual proof. */
 function PrintSnagBody({ snag: s, target }: { snag: Snag; target?: string }) {
   const d = dueInDays(s);
   const late = closedDaysLate(s);
@@ -304,6 +305,19 @@ function PrintSnagBody({ snag: s, target }: { snag: Snag; target?: string }) {
         {s.closedAt ? <span>· closed {dateNice(s.closedAt)}{late != null ? (late <= 0 ? ' (on time)' : ` (${late}d late)`) : ''}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
       </div>
       {s.latestUpdate ? <div className="print-snag-update">↻ {s.latestUpdate}{s.latestUpdateAt ? ` — ${dateNice(s.latestUpdateAt)}` : ''}</div> : null}
+      {s.fixedPhotoKey ? <FixedProof photoKey={s.fixedPhotoKey} /> : null}
+    </div>
+  );
+}
+
+/** The camera world's receipt: the after-photo, labelled as such. */
+function FixedProof({ photoKey }: { photoKey: string }) {
+  const url = useBlobUrl(photoKey);
+  if (!url) return null;
+  return (
+    <div className="fixed-proof">
+      <img src={url} alt="After — fixed" />
+      <span className="fixed-proof-lbl">✓ after</span>
     </div>
   );
 }

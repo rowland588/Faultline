@@ -93,10 +93,10 @@ a Snag.
 | --- | --- | --- |
 | **WorkspaceHome** `#/` | all workspaces; per-ws contents (obs + videos + open snags); profile | mount · syncedAt |
 | **WorkspaceProvider** (wraps `#/w/:id/*`) | the workspace + its observations | wsId · syncedAt · own writes (addObs etc.) |
-| **CaptureScreen** `capture` | provider (workspace, observations) | provider's rules |
+| **CaptureScreen** `capture` | provider (workspace, observations); cases (armed-study chips → lib/proof) | provider's rules · syncedAt (chips) |
 | **LogScreen** `log` | provider | provider's rules |
 | **AnalyseScreen / Present** `analyse`/`present` | provider + URL drill state | provider's rules · hash change |
-| **MeetingScreen** `meeting` | provider observations → lib/stats + drill engine (windowed to the meeting's week); snags + assets (reckoning, verdicts); minutes = diff vs session start | provider's rules · syncedAt · own writes (updateSnag) |
+| **MeetingScreen** `meeting` | provider observations → lib/stats + drill engine (windowed to the meeting's week); snags + assets (reckoning, verdicts); cases → lib/proof (Act 4 receipts); minutes = diff vs session start | provider's rules · syncedAt · own writes (updateSnag) |
 | **SnagsScreen** `snags` | segments, assets-per-segment, open snag count; unportable-footage scan | wsId · syncedAt · own writes (upload/film/reorder/delete/repair) |
 | **SegmentScreen** `segment/:id` | the segment record, sibling list, its assets + open counts | segmentId · syncedAt · own writes (mark/rename/add) |
 | **AssetScreen** `asset/:id` | the asset, its snags, source video key | assetId · syncedAt · own writes (snag CRUD/rename) |

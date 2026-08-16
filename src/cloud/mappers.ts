@@ -109,7 +109,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   snags: {
     clock: l => (l as Snag).updatedAt ?? (l as Snag).raisedAt,
-    mediaKeys: l => { const s = l as Snag; return k(s.detailPhotoKey, 'image/jpeg', s.ownerId); },
+    mediaKeys: l => { const s = l as Snag; return [...k(s.detailPhotoKey, 'image/jpeg', s.ownerId), ...k(s.fixedPhotoKey, 'image/jpeg', s.ownerId)]; },
     toRow: (l, fallbackOwner) => {
       const s = l as Snag;
       return { id: s.id, owner_id: s.ownerId ?? fallbackOwner, workspace_id: s.workspaceId,
@@ -120,7 +120,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
-        detail_photo_key: s.detailPhotoKey ?? null, linked_obs_ids: s.linkedObsIds ?? [],
+        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: s.linkedObsIds ?? [],
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
     fromRow: (r) => ({
@@ -134,6 +134,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),
       closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
+      fixedPhotoKey: (r.fixed_photo_key as string) ?? undefined,
       linkedObsIds: (r.linked_obs_ids as string[]) ?? undefined, updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
@@ -144,7 +145,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const c = l as Case;
       return { id: c.id, owner_id: c.ownerId ?? fallbackOwner, workspace_id: c.workspaceId,
-        title: c.title, path: c.path, note: c.note ?? null,
+        title: c.title, path: c.path, note: c.note ?? null, study: c.study ?? null,
         baseline_ms_week: c.baselineMsWeek, target_ms_week: c.targetMsWeek ?? null,
         status: c.status, opened_at: c.openedAt, closed_at: c.closedAt ?? null,
         updated_at: c.updatedAt ?? c.openedAt, deleted_at: c.deletedAt ?? null };
@@ -152,6 +153,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     fromRow: (r) => ({
       id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string,
       title: r.title as string, path: (r.path as Case['path']) ?? [], note: (r.note as string) ?? undefined,
+      study: (r.study as Case['study']) ?? undefined,
       baselineMsWeek: Number(r.baseline_ms_week) || 0, targetMsWeek: n(r.target_ms_week),
       status: (r.status as Case['status']) ?? 'open', openedAt: Number(r.opened_at), closedAt: n(r.closed_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),

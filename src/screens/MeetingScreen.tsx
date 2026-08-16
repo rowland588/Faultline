@@ -15,11 +15,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack } from '../state/useRoute';
-import { listSnagAssets, snagsForWorkspace, updateSnag } from '../db';
+import { listSnagAssets, snagsForWorkspace, updateSnag, listCases } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { weeklyLoss, categoryTrends, closedEvents, weekStart, type WeekPoint, type CategoryTrend } from '../lib/stats';
 import { buildCompare, divergenceTags } from '../engine/compare';
-import { drillNode } from '../engine/drill';
+import { applyDrill, drillNode } from '../engine/drill';
+import { studyResult } from '../lib/proof';
+import { fmtMean } from './CaseScreen';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
@@ -32,7 +34,7 @@ import {
   type Snag, type SnagStatus,
 } from '../snag/types';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
-import type { Observation, DrillPath, DimensionKey, WorkstreamView } from '../types';
+import type { Case, Observation, DrillPath, DimensionKey, WorkstreamView } from '../types';
 
 const WEEK_MS = 7 * 24 * 3600_000;
 const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory'];
@@ -105,11 +107,12 @@ export function MeetingScreen() {
   const [act, setAct] = useState(0);
 
   const [snags, setSnags] = useState<Snag[]>([]);
+  const [cases, setCases] = useState<Case[]>([]);
   const [assetNames, setAssetNames] = useState<Map<string, string>>(new Map());
   const syncedAt = useSyncedAt();
   const loadSnags = async () => {
-    const [sn, as] = await Promise.all([snagsForWorkspace(workspace.id), listSnagAssets(workspace.id)]);
-    setSnags(sn); setAssetNames(new Map(as.map(a => [a.id, a.name])));
+    const [sn, as, cs] = await Promise.all([snagsForWorkspace(workspace.id), listSnagAssets(workspace.id), listCases(workspace.id)]);
+    setSnags(sn); setAssetNames(new Map(as.map(a => [a.id, a.name]))); setCases(cs);
   };
   useEffect(() => { void loadSnags(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
   const mutate = async (s: Snag) => { await updateSnag(s); await loadSnags(); };
@@ -367,6 +370,29 @@ export function MeetingScreen() {
         {/* ═══ Act 4 — DID IT HOLD? (wins named, fake fixes reopened) ═══ */}
         <div style={show(4)}>
           <h1 className="present-q meet-q">Did the fixes hold?</h1>
+          {/* the receipts first: studies that re-measured and called it */}
+          {cases.filter(c => c.study).map(c => {
+            const r = studyResult(c, applyDrill(live, workspace.id, c.path));
+            if (!r) return null;
+            const called = c.study!.closedAt != null;
+            const good = (r.changePct ?? 0) < 0;
+            return (
+              <button key={c.id} className="meet-hold meet-receipt" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
+                <span className={'mh-verdict ' + (called ? (good ? 'mt-good' : 'mt-bad') : 'mm-flat')}>
+                  {called ? (good ? '✓ proven' : '✗ not better') : `🔬 ${r.afterN}/${r.targetN}`}
+                </span>
+                <div className="mh-body">
+                  <span className="mh-problem">{c.title}</span>
+                  <span className="mh-meta">
+                    {r.changePct != null
+                      ? <>{fmtMean(r.beforeMeanMs)} → {fmtMean(r.afterMeanMs)} per event (n={r.beforeN}/{r.afterN})
+                          {r.savedMsWeek != null && r.savedMsWeek > 0 ? <> · saving ≈ <b>{money(r.savedMsWeek)}/wk</b></> : null}</>
+                      : 'study running — samples collecting on Capture'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
           {weeks.length > 1 && <WeekBars weeks={weeks} sel={sel} flags={flagsByWeek} onPick={s => { setSel(s); setPath([]); }} />}
           {closedRecent.length === 0 ? <p className="meet-empty">No fixes closed in this range yet. When actions close, each one gets judged here against the trend.</p> : (
             <div className="meet-holds">

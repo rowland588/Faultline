@@ -125,6 +125,18 @@ export interface WorkstreamView {
  * current condition = the scoped rows' weekly loss, analysis = the drill,
  * countermeasures = snags carrying this caseId, follow-up = the scoped trend
  * against the target. It stores no chart, no analysis, no copies. */
+/** The confirmation study — the Case's proof phase. Everything before
+ *  `startedAt` is the BEFORE sample, everything after is the AFTER sample,
+ *  both over the same scope, measured the same way. `targetN` is the sample
+ *  size promised up front (defaults to matching the baseline's), `closedAt`
+ *  is when the team called the result. A field, not an object — the Case
+ *  stays the product's only addition. */
+export interface CaseStudy {
+  startedAt: Millis;
+  targetN: number;
+  closedAt?: Millis;
+}
+
 export interface Case {
   id: ID;
   ownerId?: string;      // who opened it (auth user id) — set by sync
@@ -132,6 +144,7 @@ export interface Case {
   title: string;         // the problem, in the team's words
   path: DrillPath;       // the saved scope — which slice of the data it watches
   note?: string;         // one-line background, optional
+  study?: CaseStudy;     // the proof phase — see above
   /** Weekly loss when the Case opened (avg of the 4 full weeks before) —
    *  auto-filled from data, never typed. The honest "before". */
   baselineMsWeek: number;

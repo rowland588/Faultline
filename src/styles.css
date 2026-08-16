@@ -1265,3 +1265,27 @@ button { font-family: inherit; }
 .lw-ic { color: var(--accent); font-size: 16px; }
 .lw-plus { align-self: center; font-size: 18px; font-weight: 800; color: var(--muted); }
 @media (max-width: 430px) { .landing-worlds { flex-direction: column; } .lw-plus { align-self: flex-start; padding-left: 14px; } }
+
+/* ═══════════ the proof study ═══════════ */
+.proof-readout { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.proof-side { display: flex; flex-direction: column; gap: 1px; }
+.proof-side b { font-size: 20px; font-family: var(--mono); letter-spacing: -0.01em; }
+.proof-label { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.proof-arrow { color: var(--muted); font-size: 18px; }
+.proof-progress { position: relative; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin-top: 4px; }
+.pp-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+.proof-stamp { display: inline-block; font-weight: 800; font-size: 14px; letter-spacing: 0.04em; border: 2px solid; border-radius: 8px; padding: 4px 10px; margin-bottom: 6px; }
+.proof-stamp.ps-good { color: var(--ok); border-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); }
+.proof-stamp.ps-bad { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+
+/* study chips on Capture — the count climbing while the floor re-measures */
+.study-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.study-chip { text-align: left; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 10px; padding: 9px 12px; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+
+/* meeting receipts (Act 4) */
+.meet-receipt { width: 100%; text-align: left; cursor: pointer; font: inherit; }
+
+/* the after-photo in the printed snag report */
+.fixed-proof { position: relative; display: inline-block; margin-top: 6px; }
+.fixed-proof img { max-width: 180px; max-height: 120px; border-radius: 8px; border: 2px solid var(--ok); display: block; }
+.fixed-proof-lbl { position: absolute; left: 6px; bottom: 6px; background: var(--ok); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; }

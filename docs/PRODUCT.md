@@ -69,6 +69,22 @@ app already trusts. It absorbs Present (one presenting system, not two). The
 Overview board is scoped to the meeting's period; it must not grow into a
 general dashboard.
 
+## The proof principle (two worlds, one rule)
+
+Never claim an improvement you didn't go back and verify — the passive trend
+only shows what people happened to log, so it can't be the receipt. Each world
+proves in its native language:
+
+- **Stopwatch world** (recurring costs): the **confirmation study** on a Case —
+  re-measure the same scope the same way, compare mean time per event, both
+  sample sizes always shown, £ projected at the baseline's stated frequency
+  (`lib/proof` is the single source of that arithmetic).
+- **Camera world** (conditions): the **after-photo** on a closed snag — the
+  before-still with the pin next to the proof it's gone.
+
+The tagline is this table: OEE systems have numbers and no eyes; audit apps
+have eyes and no numbers; Faultline has both — and closes both loops.
+
 ## The moat (why food, why us)
 
 The real incumbent is a consultant with a stopwatch and Excel. OEE systems

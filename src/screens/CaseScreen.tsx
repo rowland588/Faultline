@@ -16,7 +16,12 @@ import { plural } from '../lib/format';
 import { ActionComposer } from './ActionComposer';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput, type Snag, type SnagStatus } from '../snag/types';
+import { studyResult, defaultTargetN } from '../lib/proof';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
+
+/** Mean-per-event, in words a room can read aloud. */
+export const fmtMean = (ms: number): string =>
+  ms >= 60_000 ? `${(ms / 60_000).toFixed(1)} min` : `${Math.round(ms / 1000)}s`;
 
 const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory'];
 const fmtH = (ms: number) => {
@@ -34,6 +39,118 @@ export function caseNowMsWeek(scopedWeeklyMs: { start: number; ms: number; curre
   const full = scopedWeeklyMs.filter(w => !w.current);
   const recent = full.slice(-3);
   return recent.length ? recent.reduce((a, w) => a + w.ms, 0) / recent.length : 0;
+}
+
+/** The confirmation study, in its three states: not armed (the lab sheet),
+ *  collecting (progress + live means), called (the verdict — the receipt).
+ *  All arithmetic comes from lib/proof so no screen can disagree with it. */
+function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
+  kase: Case; scopedCount: number; result: ReturnType<typeof studyResult>;
+  costable: boolean; factor: number; onChange: (patch: Partial<Case>) => Promise<void>;
+}) {
+  const [tN, setTN] = useState<number | null>(null);
+
+  if (!kase.study) {
+    const suggested = defaultTargetN(scopedCount);
+    const target = tN ?? suggested;
+    return (
+      <div>
+        <p className="sub">
+          The weekly trend only shows what people happened to log — it can't prove a saving. A study can:
+          re-measure <b>{scopeLabel(kase)}</b> the same way, compare the average time per event, and state both sample sizes.
+        </p>
+        <p className="sub" style={{ marginTop: 6 }}>
+          Baseline sample so far: <b>{plural(scopedCount, 'observation')}</b>.
+          Everything captured in this scope from the moment you start counts toward the after-sample.
+        </p>
+        <div className="row-inline no-print" style={{ marginTop: 10 }}>
+          <label className="sub" htmlFor="study-n">Samples to collect:</label>
+          <input id="study-n" className="text-input case-target" type="number" min={3} max={50} step={1}
+            value={target} onChange={e => setTN(Math.max(3, Math.min(50, Number(e.target.value) || suggested)))} />
+          <button className="btn btn-primary" disabled={scopedCount === 0}
+            onClick={() => void onChange({ study: { startedAt: Date.now(), targetN: target } })}>
+            🔬 Start the study
+          </button>
+        </div>
+        {scopedCount === 0 && <p className="sub" style={{ marginTop: 6 }}>Needs a baseline first — capture some observations in this scope, then come back.</p>}
+      </div>
+    );
+  }
+
+  if (!result) return null;
+  const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtH(ms));
+  const called = kase.study.closedAt != null;
+  const better = (result.changePct ?? 0) < 0;
+
+  const readout = (
+    <div className="proof-readout">
+      <div className="proof-side">
+        <span className="proof-label">Before</span>
+        <b>{fmtMean(result.beforeMeanMs)}</b>
+        <span className="sub">avg per event · n={result.beforeN}</span>
+      </div>
+      <span className="proof-arrow" aria-hidden>→</span>
+      <div className="proof-side">
+        <span className="proof-label">After</span>
+        <b>{result.afterN === 0 ? '—' : fmtMean(result.afterMeanMs)}</b>
+        <span className="sub">avg per event · n={result.afterN}</span>
+      </div>
+      {result.changePct != null && (
+        <div className="proof-side">
+          <span className="proof-label">Change</span>
+          <b className={better ? 'mt-good' : 'mt-bad'}>{result.changePct > 0 ? '+' : ''}{result.changePct}%</b>
+          {result.savedMsWeek != null && (
+            <span className="sub">
+              {result.savedMsWeek >= 0 ? 'saving ≈ ' : 'costing ≈ '}
+              <b>{money(Math.abs(result.savedMsWeek))}/wk</b>
+              {costable ? ` (${fmtGBP(Math.abs(result.savedMsWeek) * factor * 52)}/yr)` : ''}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (called) {
+    return (
+      <div>
+        <p className={'proof-stamp ' + (better ? 'ps-good' : 'ps-bad')}>
+          {better ? '✓ PROVEN' : '✗ NO IMPROVEMENT'} — called {dateNice(kase.study.closedAt!)}
+        </p>
+        {readout}
+        <p className="sub" style={{ marginTop: 6 }}>
+          Method: same scope, same capture method, both sample sizes shown. £ projected at the baseline's frequency.
+        </p>
+        <button className="linkish no-print" onClick={() => void onChange({ study: { ...kase.study!, closedAt: undefined } })}>
+          Reopen the study
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="proof-progress" role="progressbar" aria-valuenow={result.afterN} aria-valuemax={result.targetN}>
+        <span className="pp-fill" style={{ width: `${Math.min(100, (result.afterN / result.targetN) * 100)}%` }} />
+      </div>
+      <p className="sub" style={{ marginTop: 4 }}>
+        🔬 Study running since {dateNice(kase.study.startedAt)} — <b>{result.afterN} of {result.targetN}</b> samples collected.
+        Capture in this scope and they count automatically.
+      </p>
+      {result.afterN > 0 && readout}
+      <div className="row-inline no-print" style={{ marginTop: 10 }}>
+        <button className="btn btn-primary" disabled={!result.enough}
+          title={result.enough ? undefined : `Collect ${result.targetN - result.afterN} more first`}
+          onClick={() => void onChange({ study: { ...kase.study!, closedAt: Date.now() } })}>
+          {result.enough ? 'Call it — record the verdict' : `Needs ${result.targetN - result.afterN} more`}
+        </button>
+        <button className="btn btn-ghost"
+          onClick={() => { if (window.confirm('Abandon this study? Its counting stops; observations stay.')) void onChange({ study: undefined }); }}>
+          Abandon
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function CaseScreen({ caseId }: { caseId: string }) {
@@ -225,6 +342,13 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         <div className="no-print">
           <ActionComposer wsId={workspace.id} path={kase.path} caseId={kase.id} onRaised={() => void load()} />
         </div>
+      </section>
+
+      {/* ── the proof: re-measure the same thing, the same way ── */}
+      <section className="case-box">
+        <h2 className="case-box-h">The proof</h2>
+        <ProofBox kase={kase} scopedCount={scoped.length} result={studyResult(kase, scoped)}
+          costable={costable} factor={factor} onChange={mutateCase} />
       </section>
 
       <p className="report-foot">Faultline · case · {workspace.name} · {scopeLabel(kase)}</p>
