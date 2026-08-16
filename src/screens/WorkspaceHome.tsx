@@ -15,6 +15,7 @@ import { useSyncedAt, useSession } from '../cloud/session';
 import { cloudConfigured } from '../cloud/client';
 import { InstallPanel } from '../ui/InstallPanel';
 import { startWizard, wizardSeen } from '../ui/Wizard';
+import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -84,6 +85,7 @@ export function WorkspaceHome() {
   };
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
+  const [taxId, setTaxId] = useState(DEFAULT_TAXONOMY_ID);
   const [error, setError] = useState('');
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
@@ -123,7 +125,7 @@ export function WorkspaceHome() {
     if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces
     setBusy(true); setError('');
     try {
-      const w = await createWorkspace(name);
+      const w = await createWorkspace(name, taxId);
       nav(`/w/${w.id}`); // unmounts this screen on success
     } catch (e) {
       // Never leave the button stuck on "Creating…": surface the real reason and
@@ -163,7 +165,19 @@ export function WorkspaceHome() {
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) void create(); if (e.key === 'Escape') setCreating(false); }}
           />
-          <p className="sub" style={{ marginTop: 8 }}>A workspace keeps its own data and tools — a clean, separate space for one line, one project, one investigation.</p>
+          {/* the domain moat, offered as a seed: pick the vocabulary your line
+              already speaks — every string stays editable afterwards */}
+          <label className="field-label" style={{ marginTop: 12 }}>Start from</label>
+          <div className="tax-pick" role="radiogroup" aria-label="Loss categories to start from">
+            {TAXONOMIES.map(t => (
+              <button key={t.id} role="radio" aria-checked={taxId === t.id}
+                className={'tax-opt' + (taxId === t.id ? ' on' : '')} onClick={() => setTaxId(t.id)}>
+                <span className="tax-name">{t.name}</span>
+                <span className="tax-sub">{t.sub}</span>
+              </button>
+            ))}
+          </div>
+          <p className="sub" style={{ marginTop: 8 }}>A workspace keeps its own data and tools — a clean, separate space for one line, one project, one investigation. Categories and assets from the starter are suggestions — rename, add or delete any of them in Settings.</p>
           {error && <p className="sub" style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
           <div className="row-end">
             <button className="btn btn-ghost" onClick={() => setCreating(false)}>Cancel</button>

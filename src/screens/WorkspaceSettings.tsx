@@ -11,6 +11,7 @@ import { hasCost, costPerHour, burdenOf, fmtGBP } from '../lib/cost';
 import { plural } from '../lib/format';
 import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
+import { TAXONOMIES, type LossTaxonomy } from '../lib/taxonomy';
 
 function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete }: {
   title?: string;
@@ -79,6 +80,19 @@ export function WorkspaceSettings() {
   const subs = workspace.subcategories ?? {};
 
   const save = async (patch: Parameters<typeof patchWorkspace>[0], msg = 'Saved') => { await patchWorkspace(patch); setToast(msg); };
+
+  // Union-merge a starter vocabulary in: adds what's missing, touches nothing
+  // that exists (no renames, no deletes — the no-removal rule, applied to data).
+  const mergeTaxonomy = async (t: LossTaxonomy) => {
+    const categories = [...workspace.categories, ...t.categories.filter(c => !workspace.categories.includes(c))];
+    const subcategories: Record<string, string[]> = { ...(workspace.subcategories ?? {}) };
+    for (const [cat, list] of Object.entries(t.subcategories)) {
+      const cur = subcategories[cat] ?? [];
+      subcategories[cat] = [...cur, ...list.filter(s => !cur.includes(s))];
+    }
+    const assets = [...workspace.assets, ...t.assets.filter(a => !workspace.assets.includes(a))];
+    await save({ categories, subcategories, assets }, `“${t.name}” merged in — nothing was removed`);
+  };
   const rename = async (
     field: 'category' | 'subcategory' | 'asset', from: string, to: string,
     patch: Parameters<typeof patchWorkspace>[0], onlyCategory?: string,
@@ -194,6 +208,19 @@ export function WorkspaceSettings() {
           onAdd={v => void save({ assets: [...workspace.assets, v] })}
           onRename={renameAsset}
           onDelete={v => void save({ assets: workspace.assets.filter(a => a !== v) })} />
+      </div>
+
+      {/* adopt a starter vocabulary later — ADDITIVE ONLY: merges what's missing,
+          never renames or removes anything you already have */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="field-label">Add a starter vocabulary</div>
+        <p className="sub" style={{ margin: '4px 0 8px' }}>Merge a pre-built loss tree into this workspace. Only adds what's missing — your existing categories, kinds and assets are untouched.</p>
+        {TAXONOMIES.filter(t => t.id !== 'lean').map(t => (
+          <button key={t.id} className="tax-opt" style={{ width: '100%', marginBottom: 6 }} onClick={() => void mergeTaxonomy(t)}>
+            <span className="tax-name">＋ {t.name}</span>
+            <span className="tax-sub">{t.sub}</span>
+          </button>
+        ))}
       </div>
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

@@ -7,6 +7,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { ID, Workspace, Observation, Case } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
+import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
 
 interface AppDB extends DBSchema {
   workspaces: { key: string; value: Workspace; indexes: { by_updatedAt: number } };
@@ -192,13 +193,6 @@ async function importLegacyOnce(db: IDBPDatabase<AppDB>): Promise<void> {
  * then clean companions. Only new workspaces draw from here; existing ones keep
  * the color they were born with. */
 const PALETTE = ['#2563eb', '#0e9f6e', '#f97316', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#d97706'];
-const DEFAULT_CATEGORIES = ['Breakdown', 'Minor stop', 'Changeover', 'Waiting', 'Quality', 'Speed loss'];
-const DEFAULT_SUBCATEGORIES: Record<string, string[]> = {
-  Breakdown: ['Mechanical', 'Electrical', 'Jam / blockage'],
-  'Minor stop': ['Misfeed', 'Sensor trip', 'Manual clear'],
-  Changeover: ['Tooling', 'Setup', 'No standard'],
-  Quality: ['Reject', 'Rework', 'Seal fault'],
-};
 const cloneSubs = (src: Record<string, string[]>): Record<string, string[]> =>
   Object.fromEntries(Object.entries(src).map(([k, v]) => [k, [...v]]));
 
@@ -212,9 +206,13 @@ export async function getWorkspace(id: ID): Promise<Workspace | undefined> {
   return (await getDB()).get('workspaces', id);
 }
 
-export async function createWorkspace(name: string): Promise<Workspace> {
+/** Create a workspace seeded from a loss taxonomy (lib/taxonomy — content, not
+ *  code). Defaults to the lean starter, so nothing changes for callers that
+ *  don't choose. Every seeded string stays fully editable afterwards. */
+export async function createWorkspace(name: string, taxonomyId?: string): Promise<Workspace> {
   const db = await getDB();
   const count = await db.count('workspaces');
+  const tax = taxonomyById(taxonomyId ?? DEFAULT_TAXONOMY_ID);
   const t = now();
   const ws: Workspace = {
     id: uid(),
@@ -222,9 +220,10 @@ export async function createWorkspace(name: string): Promise<Workspace> {
     color: PALETTE[count % PALETTE.length],
     createdAt: t,
     updatedAt: t,
-    categories: [...DEFAULT_CATEGORIES],
-    subcategories: cloneSubs(DEFAULT_SUBCATEGORIES),
-    assets: ['Whole line'], // the line itself — where cross-cutting losses (changeover, waiting) live
+    categories: [...tax.categories],
+    subcategories: cloneSubs(tax.subcategories),
+    // 'Whole line' is always present — where cross-cutting losses (changeover, waiting) live
+    assets: [...tax.assets],
     shifts: [],
     schemaVersion: 1,
   };
