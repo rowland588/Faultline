@@ -73,6 +73,8 @@ create table public.workspaces (
   crew numeric,
   labour_rate_per_hour numeric,
   labour_burden numeric,
+  packs_per_min numeric,
+  margin_per_pack numeric,
   last_category text,
   last_asset text,
   archived boolean not null default false,

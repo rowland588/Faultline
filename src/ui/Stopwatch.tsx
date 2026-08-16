@@ -27,7 +27,7 @@ export function CostTicker({ startedAt, perMs }: { startedAt: number; perMs: num
   return (
     <div className="cost-ticker" aria-live="off">
       <span className="ct-amount">£{v.toFixed(2)}</span>
-      <span className="ct-label">of idle labour, and counting</span>
+      <span className="ct-label">this stoppage has cost, and counting</span>
     </div>
   );
 }

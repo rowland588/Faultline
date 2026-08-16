@@ -7,7 +7,7 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack } from '../state/useRoute';
 import { renameInObservations } from '../db';
 import { Toast } from '../ui/Toast';
-import { hasCost, costPerHour, burdenOf, fmtGBP } from '../lib/cost';
+import { hasCost, costPerHour, labourPerHour, outputPerHour, burdenOf, fmtGBP } from '../lib/cost';
 import { plural } from '../lib/format';
 import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
@@ -78,8 +78,9 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
 export function WorkspaceSettings() {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
   const [toast, setToast] = useState<string | null>(null);
-  // on-costs stays visible for anyone already using it; hidden until asked otherwise
+  // refinements stay visible for anyone already using them; hidden until asked otherwise
   const [showBurden, setShowBurden] = useState(!!workspace.labourBurden);
+  const [showOutput, setShowOutput] = useState(!!(workspace.packsPerMin || workspace.marginPerPack));
   const subs = workspace.subcategories ?? {};
 
   const save = async (patch: Parameters<typeof patchWorkspace>[0], msg = 'Saved') => { await patchWorkspace(patch); setToast(msg); };
@@ -211,10 +212,54 @@ export function WorkspaceSettings() {
             </div>
           </div>
         )}
+
+        {/* lost output — the bigger half of the money, strictly opt-in:
+            labour stays the default; this ADDS the contribution of the packs
+            that never got made while the line stood */}
+        {!showOutput ? (
+          <button className="linkish" style={{ marginTop: 6, fontSize: 13, display: 'block' }} onClick={() => setShowOutput(true)}>
+            Know your line speed and margin per pack? Add lost output (optional) ›
+          </button>
+        ) : (
+          <div style={{ marginTop: 10 }}>
+            <label className="mini-label">Lost output <span className="opt">optional — adds the packs never made to the £</span></label>
+            <div className="row-inline" style={{ alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label className="mini-label">Packs / min <span className="opt">rated speed</span></label>
+                <input className="text-input" type="number" inputMode="decimal" min={0} step="1"
+                  defaultValue={workspace.packsPerMin ?? ''} placeholder="e.g. 120"
+                  onBlur={e => {
+                    const raw = e.target.value.trim(); const v = parseFloat(raw);
+                    if (raw && !(Number.isFinite(v) && v > 0)) { setToast('Speed needs a number above 0'); return; }
+                    void save({ packsPerMin: raw && v > 0 ? v : undefined });
+                  }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="mini-label">£ margin / pack</label>
+                <input className="text-input" type="number" inputMode="decimal" min={0} step="0.001"
+                  defaultValue={workspace.marginPerPack ?? ''} placeholder="e.g. 0.03"
+                  onBlur={e => {
+                    const raw = e.target.value.trim(); const v = parseFloat(raw);
+                    if (raw && !(Number.isFinite(v) && v > 0)) { setToast('Margin needs a number above 0 (in £ — 3p is 0.03)'); return; }
+                    void save({ marginPerPack: raw && v > 0 ? v : undefined });
+                  }} />
+              </div>
+            </div>
+            <p className="sub" style={{ margin: '6px 0 0', fontSize: 12 }}>
+              Speed × margin = the contribution earned by packs that never got made while the line stood.
+              Honest when the time can't be recovered (sold-out line, fixed shift end) — which is most food
+              lines, most of the time. Leave blank to count idle labour only.
+            </p>
+          </div>
+        )}
         {hasCost(workspace) && (
           <div className="cost-readout">
-            = <b>{fmtGBP(costPerHour(workspace))}/hr</b> of idle labour while this line is down
-            <span className="sub"> ({workspace.crew} × £{workspace.labourRatePerHour}{burdenOf(workspace) !== 1 ? ` × ${burdenOf(workspace)}` : ''})</span>
+            = <b>{fmtGBP(costPerHour(workspace))}/hr</b> while this line is down
+            <span className="sub">
+              {' '}({labourPerHour(workspace) > 0 ? `${fmtGBP(labourPerHour(workspace))} labour — ${workspace.crew} × £${workspace.labourRatePerHour}${burdenOf(workspace) !== 1 ? ` × ${burdenOf(workspace)}` : ''}` : ''}
+              {labourPerHour(workspace) > 0 && outputPerHour(workspace) > 0 ? ' + ' : ''}
+              {outputPerHour(workspace) > 0 ? `${fmtGBP(outputPerHour(workspace))} lost output at rated speed` : ''})
+            </span>
           </div>
         )}
       </div>

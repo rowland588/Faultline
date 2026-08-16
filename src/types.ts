@@ -32,6 +32,9 @@ export interface Workspace {
   crew?: number; // people on the line
   labourRatePerHour?: number; // £ per person-hour (base wage)
   labourBurden?: number; // on-costs multiplier; unset = 1 (wage only)
+  // Optional lost-output refinement: contribution of the packs never made.
+  packsPerMin?: number; // rated line speed
+  marginPerPack?: number; // £ contribution per pack
 
   // Sticky capture defaults so a repeat event is one tap (START).
   lastCategory?: string;
