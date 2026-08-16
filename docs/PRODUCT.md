@@ -107,7 +107,8 @@ existing habit, not create one.
    the first Pareto, not before).
 4. **Food loss taxonomy** — a content file offered at workspace creation.
 5. **AI narrative** — one server-side function, drafts the A3 prose, a human
-   edits and accepts.
+   edits and accepts. **PARKED by owner decision (Aug 2026): build only when
+   the owner asks.** Needs an Anthropic API key in Supabase when it comes.
 
 Along the way, one cheap future-proof: a `site` text label on workspaces
 (one column now so multi-site later is a query, not a migration).
