@@ -156,6 +156,12 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
 - **Wall mode** (a no-touch TV route cycling the meeting Overview) — PARKED
   by owner decision (Aug 2026): build only when the owner asks. When it
   comes, it's a re-choreography of the meeting Overview — no new data.
+- **Cost lenses** (view any £ as total / labour only / lost-output only, and
+  later more metrics — energy, materials) — when a customer asks to see the
+  split. The seam already exists: lib/cost computes each component
+  separately and blends only at display; this is a lens, never a data
+  rework. Until then the blended £ with the labelled breakdown in Settings
+  is the product.
 
 Written-down cuts are what stop addon creep when a future session has a clever
 idea. Amend this file first, build second.
