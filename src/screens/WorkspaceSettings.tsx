@@ -12,6 +12,7 @@ import { plural } from '../lib/format';
 import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
 import { TAXONOMIES, type LossTaxonomy } from '../lib/taxonomy';
+import type { Shift } from '../types';
 
 function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete }: {
   title?: string;
@@ -94,7 +95,7 @@ export function WorkspaceSettings() {
     await save({ categories, subcategories, assets }, `“${t.name}” merged in — nothing was removed`);
   };
   const rename = async (
-    field: 'category' | 'subcategory' | 'asset', from: string, to: string,
+    field: 'category' | 'subcategory' | 'asset' | 'shift', from: string, to: string,
     patch: Parameters<typeof patchWorkspace>[0], onlyCategory?: string,
   ) => {
     await patchWorkspace(patch);
@@ -106,6 +107,29 @@ export function WorkspaceSettings() {
   const usageCat = (v: string) => observations.filter(o => o.category === v).length;
   const usageAsset = (v: string) => observations.filter(o => o.asset === v).length;
   const usageSub = (cat: string, v: string) => observations.filter(o => o.category === cat && o.subcategory === v).length;
+  const usageShift = (v: string) => observations.filter(o => o.shift === v).length;
+
+  // shifts — names stratify the analysis; times let Capture stamp the shift
+  // automatically from the clock (windows may wrap midnight, e.g. 22:00–06:00)
+  const shifts = workspace.shifts ?? [];
+  const patchShift = (name: string, patch: Partial<Shift>) =>
+    void save({ shifts: shifts.map(s => (s.name === name ? { ...s, ...patch } : s)) });
+  const renameShift = (from: string, to: string) => {
+    if (!to.trim() || from === to.trim() || shifts.some(s => s.name === to.trim())) return;
+    void rename('shift', from, to.trim(), { shifts: shifts.map(s => (s.name === from ? { ...s, name: to.trim() } : s)) });
+  };
+  const removeShift = (name: string) => {
+    const used = usageShift(name);
+    if (used > 0 && !window.confirm(`“${name}” is on ${plural(used, 'observation')} — they keep the label, it just leaves the picker. Remove?`)) return;
+    void save({ shifts: shifts.filter(s => s.name !== name) });
+  };
+  const [newShift, setNewShift] = useState('');
+  const addShift = () => {
+    const n = newShift.trim();
+    if (!n || shifts.some(s => s.name === n)) return;
+    void save({ shifts: [...shifts, { name: n, start: '', end: '' }] });
+    setNewShift('');
+  };
 
   // categories (renaming a category also moves its sub-category list)
   const renameCat = (from: string, to: string) => {
@@ -208,6 +232,35 @@ export function WorkspaceSettings() {
           onAdd={v => void save({ assets: [...workspace.assets, v] })}
           onRename={renameAsset}
           onDelete={v => void save({ assets: workspace.assets.filter(a => a !== v) })} />
+      </div>
+
+      {/* shifts: the IPS team's question — "is it the same on shift C?" — needs
+          the data stamped. Names stratify; times make the stamping automatic. */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="field-label">Shifts</div>
+        <p className="sub" style={{ margin: '4px 0 8px' }}>
+          Name your shifts and every capture gets stamped with one — then Analyse can ask
+          "is it the same on every shift?". Add times and the stamp is automatic from the clock
+          (overnight windows like 22:00–06:00 are fine); without times the floor picks by tap.
+        </p>
+        {shifts.map(s => (
+          <div key={s.name} className="shift-row">
+            <input className="text-input shift-name" defaultValue={s.name} maxLength={24} aria-label="Shift name"
+              onBlur={e => renameShift(s.name, e.target.value)} />
+            <input className="text-input shift-time" type="time" value={s.start} aria-label="Starts"
+              onChange={e => patchShift(s.name, { start: e.target.value })} />
+            <span className="sub">→</span>
+            <input className="text-input shift-time" type="time" value={s.end} aria-label="Ends"
+              onChange={e => patchShift(s.name, { end: e.target.value })} />
+            <span className="sub shift-use">{usageShift(s.name) > 0 ? plural(usageShift(s.name), 'entry', 'entries') : ''}</span>
+            <button className="chip-x" onClick={() => removeShift(s.name)} aria-label={`Remove ${s.name}`}>×</button>
+          </div>
+        ))}
+        <div className="row-inline" style={{ marginTop: shifts.length ? 10 : 4 }}>
+          <input className="text-input" value={newShift} placeholder="e.g. Days / Backs / Nights…" maxLength={24}
+            onChange={e => setNewShift(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addShift(); }} />
+          <button className="btn" onClick={addShift} disabled={!newShift.trim()}>Add shift</button>
+        </div>
       </div>
 
       {/* adopt a starter vocabulary later — ADDITIVE ONLY: merges what's missing,

@@ -17,12 +17,14 @@ export const dimOf: Record<DimensionKey, (o: Observation) => string> = {
   asset: o => o.asset || '(unassigned)',
   category: o => o.category || '(uncategorised)',
   subcategory: o => o.subcategory || '(none)',
+  shift: o => o.shift || '(no shift)',
 };
 
 export const DIM_LABEL: Record<DimensionKey, string> = {
   asset: 'Asset',
   category: 'Category',
   subcategory: 'Sub-category',
+  shift: 'Shift',
 };
 
 export const MEASURE_LABEL: Record<Measure, string> = {

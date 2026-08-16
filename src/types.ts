@@ -6,7 +6,7 @@
 export type ID = string; // crypto.randomUUID()
 export type Millis = number; // epoch ms (Date.now())
 export type Measure = 'count' | 'time' | 'cost'; // cost = idle-labour £, ranks like time
-export type DimensionKey = 'asset' | 'category' | 'subcategory';
+export type DimensionKey = 'asset' | 'category' | 'subcategory' | 'shift';
 
 /* ============ WORKSPACE — top-level isolation container ============ */
 export interface Workspace {

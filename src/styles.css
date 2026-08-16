@@ -1294,3 +1294,9 @@ button { font-family: inherit; }
 .cost-ticker { display: flex; flex-direction: column; align-items: center; gap: 1px; margin: -8px 0 14px; }
 .ct-amount { font-family: var(--mono); font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: var(--danger); font-variant-numeric: tabular-nums; }
 .ct-label { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+
+/* shift editor rows in Settings */
+.shift-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.shift-name { flex: 1; min-width: 110px; }
+.shift-time { width: 106px; flex: none; }
+.shift-use { font-size: 11px; min-width: 0; }

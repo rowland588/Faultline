@@ -334,7 +334,7 @@ export async function restoreObservation(id: ID): Promise<void> {
 /** Rename a taxonomy value across every observation that uses it, so a rename in
  *  settings doesn't orphan history (the taxonomy is stored as plain strings). */
 export async function renameInObservations(
-  workspaceId: ID, field: 'category' | 'subcategory' | 'asset', from: string, to: string,
+  workspaceId: ID, field: 'category' | 'subcategory' | 'asset' | 'shift', from: string, to: string,
   onlyCategory?: string, // scope sub-category renames to their parent category
 ): Promise<number> {
   if (from === to) return 0;

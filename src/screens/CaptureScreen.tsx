@@ -8,6 +8,7 @@ import { nav } from '../state/useRoute';
 import { deleteBlobs, listCases } from '../db';
 import { applyDrill } from '../engine/drill';
 import { studyResult } from '../lib/proof';
+import { shiftAtTime } from '../lib/shifts';
 import { useSyncedAt } from '../cloud/session';
 import { uid, now } from '../lib/ids';
 import { captureMedia, saveVideoBlob, pickExistingMedia } from '../lib/media';
@@ -60,6 +61,10 @@ export function CaptureScreen() {
   const pickCategory = (c: string) => { setCategory(c); setSubcategory(''); };
   const [pending, setPending] = useState<MediaRef[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(workspace.activeTimer?.startedAt ?? null);
+  // shift: the clock's suggestion unless the operator overrides with a tap
+  const [shiftPick, setShiftPick] = useState<string | null>(null);
+  const autoShift = shiftAtTime(workspace.shifts, Date.now());
+  const shift = shiftPick ?? autoShift ?? '';
   const [typed, setTyped] = useState(false);
   const [tMin, setTMin] = useState('');
   const [tSec, setTSec] = useState('');
@@ -95,6 +100,8 @@ export function CaptureScreen() {
       category,
       subcategory: subcategory || undefined,
       asset,
+      // the shift the event STARTED in — the clock's call at startAt unless overridden
+      shift: (shiftPick ?? shiftAtTime(workspace.shifts, startAt)) || undefined,
       startedAt: startAt,
       endedAt: kind === 'stopwatch' ? now() : undefined,
       durationMs,
@@ -217,6 +224,22 @@ export function CaptureScreen() {
             onAdd={s => void patchWorkspace({ subcategories: { ...(workspace.subcategories ?? {}), [category]: [...subOptions, s] } })}
             addLabel={`Add a kind of ${category}…`}
           />
+        </div>
+      )}
+
+      {/* WHO'S ON — the shift (only when the workspace has shifts configured).
+          The clock picks it when the shifts carry times; a tap overrides. */}
+      {workspace.shifts.length > 0 && (
+        <div className="cap-block">
+          <div className="field-label">Which shift?{autoShift && shiftPick == null ? <span className="opt"> auto — it's {autoShift} now</span> : null}</div>
+          <div className="chip-row">
+            {workspace.shifts.map(s => (
+              <button key={s.name} className={'chip' + (shift === s.name ? ' on' : '')}
+                onClick={() => setShiftPick(p => (p === s.name ? null : s.name))}>
+                {s.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       </fieldset>

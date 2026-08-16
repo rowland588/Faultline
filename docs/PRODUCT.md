@@ -16,6 +16,8 @@ the user. The product is a short-cycle loop, entered anywhere:
 
 1. **Observe** — capture observations; film snag walks. (Measure)
 2. **Reveal** — the Pareto drill; count-vs-time disagreement; the vital few.
+   Shift is a drill dimension like any other — "is it the same on shift C?"
+   is one cut, not a feature.
    (Analyse — and the *sharp* problem definition falls out here, it is not
    paperwork done up front)
 3. **Decide** — raise actions on the vital few, from the board or a walk pin.

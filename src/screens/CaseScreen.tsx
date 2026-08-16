@@ -23,7 +23,7 @@ import type { Case, DimensionKey, WorkstreamView } from '../types';
 export const fmtMean = (ms: number): string =>
   ms >= 60_000 ? `${(ms / 60_000).toFixed(1)} min` : `${Math.round(ms / 1000)}s`;
 
-const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory'];
+const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory', 'shift'];
 const fmtH = (ms: number) => {
   const h = ms / 3600_000;
   return h >= 10 ? `${Math.round(h)} h` : h >= 1 ? `${Math.round(h * 10) / 10} h` : `${Math.round(ms / 60_000)} min`;

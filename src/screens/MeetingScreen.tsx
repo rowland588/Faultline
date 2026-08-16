@@ -37,7 +37,7 @@ import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import type { Case, Observation, DrillPath, DimensionKey, WorkstreamView } from '../types';
 
 const WEEK_MS = 7 * 24 * 3600_000;
-const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory'];
+const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory', 'shift'];
 
 const fmtH = (ms: number) => {
   const h = ms / 3600_000;
