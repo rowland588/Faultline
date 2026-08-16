@@ -78,6 +78,8 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
 export function WorkspaceSettings() {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
   const [toast, setToast] = useState<string | null>(null);
+  // on-costs stays visible for anyone already using it; hidden until asked otherwise
+  const [showBurden, setShowBurden] = useState(!!workspace.labourBurden);
   const subs = workspace.subcategories ?? {};
 
   const save = async (patch: Parameters<typeof patchWorkspace>[0], msg = 'Saved') => { await patchWorkspace(patch); setToast(msg); };
@@ -158,7 +160,13 @@ export function WorkspaceSettings() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label">Cost of downtime</div>
-        <p className="sub" style={{ margin: '4px 0 10px' }}>Crew × wage × on-costs = £/hour of idle labour. Time lost then reads in £.</p>
+        {/* the whole visible story is the simple ratio: people × £/hr × time.
+            On-costs is a finance refinement, so it lives behind a disclosure —
+            it confused the owner, so it will confuse every plant manager. */}
+        <p className="sub" style={{ margin: '4px 0 10px' }}>
+          People on the line × £ per hour each. A stoppage then costs its share of that:
+          10 minutes of 6 people's pay is exactly that — a straight ratio.
+        </p>
         <div className="row-inline" style={{ alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <label className="mini-label">People on the line</label>
@@ -171,7 +179,7 @@ export function WorkspaceSettings() {
               }} />
           </div>
           <div style={{ flex: 1 }}>
-            <label className="mini-label">Wage £/hr</label>
+            <label className="mini-label">£/hr per person</label>
             <input className="text-input" type="number" inputMode="decimal" min={0} step="0.01"
               defaultValue={workspace.labourRatePerHour ?? ''} placeholder="e.g. 18.50"
               onBlur={e => {
@@ -180,21 +188,29 @@ export function WorkspaceSettings() {
                 void save({ labourRatePerHour: raw && v > 0 ? v : undefined });
               }} />
           </div>
-          <div style={{ flex: 1 }}>
-            <label className="mini-label">On-costs ×</label>
-            <input className="text-input" type="number" inputMode="decimal" min={1} step="0.05"
-              defaultValue={workspace.labourBurden ?? ''} placeholder="e.g. 1.3"
-              onBlur={e => {
-                const raw = e.target.value.trim(); const v = parseFloat(raw);
-                if (raw && !(Number.isFinite(v) && v >= 1)) { setToast('On-costs is a multiplier from 1 up — e.g. 1.3'); return; }
-                void save({ labourBurden: raw && v >= 1 ? v : undefined });
-              }} />
-          </div>
         </div>
-        <p className="sub" style={{ margin: '8px 0 0', fontSize: 12 }}>
-          On-costs turns the wage into what a person costs the business — employer NI, pension, holiday
-          cover. Typically ×1.25–1.4; ask finance for yours. Leave blank to count wages only.
-        </p>
+        {!showBurden ? (
+          <button className="linkish" style={{ marginTop: 8, fontSize: 13 }} onClick={() => setShowBurden(true)}>
+            Finance gave you a fully-loaded rate or on-cost %? Refine it (optional) ›
+          </button>
+        ) : (
+          <div style={{ marginTop: 10 }}>
+            <label className="mini-label">On-costs multiplier <span className="opt">optional — blank counts wages only</span></label>
+            <div className="row-inline" style={{ alignItems: 'center' }}>
+              <input className="text-input" style={{ maxWidth: 120 }} type="number" inputMode="decimal" min={1} step="0.05"
+                defaultValue={workspace.labourBurden ?? ''} placeholder="e.g. 1.3"
+                onBlur={e => {
+                  const raw = e.target.value.trim(); const v = parseFloat(raw);
+                  if (raw && !(Number.isFinite(v) && v >= 1)) { setToast('On-costs is a multiplier from 1 up — e.g. 1.3'); return; }
+                  void save({ labourBurden: raw && v >= 1 ? v : undefined });
+                }} />
+              <p className="sub" style={{ fontSize: 12, flex: 1 }}>
+                The wage isn't the full cost of employing someone — employer NI, pension and holiday cover sit on top
+                (typically ×1.25–1.4 in the UK; finance will know yours). This only refines the £; the ratio logic never changes.
+              </p>
+            </div>
+          </div>
+        )}
         {hasCost(workspace) && (
           <div className="cost-readout">
             = <b>{fmtGBP(costPerHour(workspace))}/hr</b> of idle labour while this line is down
