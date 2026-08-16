@@ -153,6 +153,9 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
   cockpit, scoped to its period.
 - **A meeting/attendance object** — not unless auto-minutes-by-diff proves
   insufficient in real use.
+- **Wall mode** (a no-touch TV route cycling the meeting Overview) — PARKED
+  by owner decision (Aug 2026): build only when the owner asks. When it
+  comes, it's a re-choreography of the meeting Overview — no new data.
 
 Written-down cuts are what stop addon creep when a future session has a clever
 idea. Amend this file first, build second.
