@@ -84,6 +84,12 @@ let revSupported = true;
 const isMissingRev = (e: { code?: string; message?: string }) =>
   e.code === '42703' || /column .*\brev\b|(?:\brev\b).* does not exist/i.test(e.message ?? '');
 
+/** A table this build knows about that the cloud doesn't have yet (its one-time
+ *  SQL hasn't been run). Sync must keep working for everything else — the new
+ *  kind just waits; nothing is lost because its cursor never advances. */
+const isMissingTable = (e: { code?: string; message?: string }) =>
+  e.code === '42P01' || /relation .* does not exist|could not find the table/i.test(e.message ?? '');
+
 /* ---------- media ----------
  * SHARED workspaces need a shared namespace: new uploads go to the flat
  * `${key}` path (keys are uuids — no collisions), readable by the whole team.
@@ -204,6 +210,7 @@ export async function syncNow(): Promise<void> {
             .gt('rev', since).order('rev', { ascending: true }).limit(PAGE);
           if (error) {
             if (isMissingRev(error)) { revSupported = false; set({ schemaOutdated: true }); break; }
+            if (isMissingTable(error)) { set({ schemaOutdated: true }); break; } // its SQL not run yet — skip this kind
             throw new Error(`pull ${kind}: ${error.message}`);
           }
           const remotes = (data ?? []) as Record<string, unknown>[];
@@ -221,7 +228,10 @@ export async function syncNow(): Promise<void> {
             .gt('updated_at', cursor)
             .order('updated_at', { ascending: true }).order('id', { ascending: true })
             .range(from, from + PAGE - 1);
-          if (error) throw new Error(`pull ${kind}: ${error.message}`);
+          if (error) {
+            if (isMissingTable(error)) { set({ schemaOutdated: true }); break; }
+            throw new Error(`pull ${kind}: ${error.message}`);
+          }
           const remotes = (data ?? []) as Record<string, unknown>[];
           for (const r of remotes) await applyRemote(r);
           if (remotes.length < PAGE) break;
@@ -230,6 +240,7 @@ export async function syncNow(): Promise<void> {
     }
 
     // ---- PUSH: local changes since the cursor, upsert to cloud ----
+    let pushIncomplete = false; // a kind was skipped (its SQL not run) — don't advance the cursor past its rows
     const wanted = new Set<string>(wantedUploads);
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
@@ -240,7 +251,12 @@ export async function syncNow(): Promise<void> {
       const rows = changed.map(row => map.toRow(row, uid));
       for (let i = 0; i < rows.length; i += CHUNK) {
         const { error } = await supabase.from(kind).upsert(rows.slice(i, i + CHUNK), { onConflict: 'id' });
-        if (error) throw new Error(`push ${kind}: ${error.message}`);
+        if (error) {
+          // rows for this kind wait for their SQL — holding the cursor back
+          // keeps them "changed", so they retry until the table exists
+          if (isMissingTable(error)) { pushIncomplete = true; set({ schemaOutdated: true }); break; }
+          throw new Error(`push ${kind}: ${error.message}`);
+        }
       }
     }
 
@@ -260,8 +276,9 @@ export async function syncNow(): Promise<void> {
     }
 
     // Compare-and-set: only advance the push cursor if nobody reset it while we
-    // ran (a Full re-sync tapped mid-sync must not be clobbered).
-    if ((await getSyncCursor()) === cursor) {
+    // ran (a Full re-sync tapped mid-sync must not be clobbered), and never past
+    // rows a missing table made us skip.
+    if (!pushIncomplete && (await getSyncCursor()) === cursor) {
       await metaPut('uploaded', { keys: [...uploaded] });
       await setSyncCursor(startedAt);
     }

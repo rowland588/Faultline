@@ -1207,3 +1207,41 @@ button { font-family: inherit; }
 .mr-step.on { background: var(--accent); color: #fff; }
 .mr-lbl { font-size: 12px; font-weight: 700; }
 @media (max-width: 720px) { .mr-step:not(.on) .mr-lbl { display: none; } }
+
+/* ═══════════ THE CASE — the A3 that fills itself ═══════════ */
+.case-root { max-width: 860px; }
+.case-title { width: 100%; background: none; border: none; border-bottom: 1px dashed transparent; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); padding: 0; font-family: inherit; }
+.case-title:hover, .case-title:focus { border-bottom-color: var(--line); outline: none; }
+.case-box { margin: 18px 0; break-inside: avoid; page-break-inside: avoid; }
+.case-box-h { font-size: 13px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 5px; margin-bottom: 10px; }
+.case-note { font-size: 14px; }
+.case-target { width: 110px; }
+.case-weeks { position: relative; display: flex; align-items: flex-end; gap: 6px; height: 130px; margin: 8px 0 6px; }
+.cw-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; min-width: 0; }
+.cw-bar { width: 100%; max-width: 44px; border-radius: 5px 5px 0 0; opacity: 0.85; }
+.cw-col.cur .cw-bar { opacity: 0.35; }
+.cw-lbl { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+.cw-flag { font-size: 11px; color: var(--ok); line-height: 1; min-height: 1em; }
+.cw-line { position: absolute; left: 0; right: 0; z-index: 1; pointer-events: none; }
+.cw-line.cw-base { border-top: 2px solid var(--ink-2); opacity: 0.55; }
+.cw-line.cw-target { border-top: 2px dashed var(--ok); }
+.case-action { box-shadow: none; }
+.case-suggest { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; margin-top: 6px; }
+.cs-problem { font-size: 13px; }
+.case-delete { color: var(--danger); margin-top: 18px; font-size: 13px; }
+.case-upd { font-size: 12px; font-style: italic; color: var(--ink-2); }
+
+/* the open-cases strip on the Analyse board */
+.cases-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.case-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 9px 13px; cursor: pointer; font: inherit; color: var(--ink); }
+.case-chip:hover { border-color: var(--accent); }
+.cc-title { font-weight: 700; font-size: 13px; }
+.cc-sub { font-size: 12px; color: var(--muted); }
+
+/* screen/print swap for the case page */
+.print-only { display: none; }
+@media print {
+  .print-only { display: inline; }
+  .case-title { border-bottom: none; }
+  .case-action { border: none; border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 0; }
+}

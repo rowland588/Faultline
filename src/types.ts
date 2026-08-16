@@ -116,3 +116,29 @@ export interface WorkstreamView {
   path: DrillPath; // current drill position
   mode: 'analyse' | 'present';
 }
+
+/* ============ CASE — the thin A3: a folder with a number on it ============
+ * The product's ONE deliberate addition beyond the original objects (see
+ * docs/PRODUCT.md — the coherence rule). A Case is a question, a saved scope
+ * (a drill path — the same shape the engine filters by), a baseline and a
+ * target. Everything in its A3 boxes DERIVES from data that already exists:
+ * current condition = the scoped rows' weekly loss, analysis = the drill,
+ * countermeasures = snags carrying this caseId, follow-up = the scoped trend
+ * against the target. It stores no chart, no analysis, no copies. */
+export interface Case {
+  id: ID;
+  ownerId?: string;      // who opened it (auth user id) — set by sync
+  workspaceId: ID;
+  title: string;         // the problem, in the team's words
+  path: DrillPath;       // the saved scope — which slice of the data it watches
+  note?: string;         // one-line background, optional
+  /** Weekly loss when the Case opened (avg of the 4 full weeks before) —
+   *  auto-filled from data, never typed. The honest "before". */
+  baselineMsWeek: number;
+  targetMsWeek?: number; // the promise; unset = "make it better"
+  status: 'open' | 'closed';
+  openedAt: Millis;
+  closedAt?: Millis;
+  updatedAt: Millis;     // LWW clock for cloud sync
+  deletedAt?: Millis;    // soft delete (tombstone)
+}

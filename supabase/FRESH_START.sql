@@ -147,6 +147,7 @@ create table public.snags (
   proposed_solution text,
   status text not null default 'open' check (status in ('open','in_progress','closed')),
   owner text,
+  case_id uuid,
   raised_at bigint not null,
   due_at bigint,
   latest_update text,
@@ -159,6 +160,24 @@ create table public.snags (
   deleted_at bigint
 );
 
+-- the thin A3: a question, a saved drill scope, a baseline and a target.
+-- Everything else derives on the device — no analysis is ever stored here.
+create table public.cases (
+  id uuid primary key,
+  owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  title text not null,
+  path jsonb not null default '[]'::jsonb,
+  note text,
+  baseline_ms_week bigint not null default 0,
+  target_ms_week bigint,
+  status text not null default 'open' check (status in ('open','closed')),
+  opened_at bigint not null,
+  closed_at bigint,
+  updated_at bigint not null,
+  deleted_at bigint
+);
+
 create index idx_observations_ws      on public.observations (workspace_id);
 create index idx_observations_updated on public.observations (owner_id, updated_at);
 create index idx_segments_ws          on public.segments (workspace_id);
@@ -166,10 +185,12 @@ create index idx_snag_assets_ws       on public.snag_assets (workspace_id);
 create index idx_snag_assets_seg      on public.snag_assets (segment_id);
 create index idx_snags_ws             on public.snags (workspace_id);
 create index idx_snags_asset          on public.snags (asset_id);
+create index idx_cases_ws             on public.cases (workspace_id);
 
 alter table public.workspaces   enable row level security;
 alter table public.observations enable row level security;
 alter table public.segments     enable row level security;
+alter table public.cases        enable row level security;
 alter table public.snag_assets  enable row level security;
 alter table public.snags        enable row level security;
 
@@ -222,6 +243,8 @@ create policy "member snag_assets"  on public.snag_assets  for all to authentica
   using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
 create policy "member snags"        on public.snags        for all to authenticated
   using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
+create policy "member cases"        on public.cases        for all to authenticated
+  using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
 
 create policy "members read" on public.workspace_members
   for select to authenticated using (public.is_ws_member(workspace_id));
@@ -242,6 +265,7 @@ begin
   update public.segments     set updated_at = updated_at where workspace_id = new.workspace_id;
   update public.snag_assets  set updated_at = updated_at where workspace_id = new.workspace_id;
   update public.snags        set updated_at = updated_at where workspace_id = new.workspace_id;
+  update public.cases        set updated_at = updated_at where workspace_id = new.workspace_id;
   return new;
 end $$;
 create trigger faultline_member_added
@@ -286,7 +310,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['workspaces','observations','segments','snag_assets','snags'] loop
+  foreach t in array array['workspaces','observations','segments','snag_assets','snags','cases'] loop
     execute format('alter table public.%I add column if not exists rev bigint', t);
     execute format('drop trigger if exists faultline_rev on public.%I', t);
     execute format('create trigger faultline_rev before insert or update on public.%I for each row execute function public.faultline_stamp_rev()', t);
@@ -298,7 +322,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['workspaces','observations','segments','snag_assets','snags'] loop
+  foreach t in array array['workspaces','observations','segments','snag_assets','snags','cases'] loop
     begin
       execute format('alter publication supabase_realtime add table public.%I', t);
     exception

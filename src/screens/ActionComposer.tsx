@@ -14,7 +14,7 @@ import type { DrillPath } from '../types';
 const fromPath = (path: DrillPath, dim: string): string | undefined =>
   path.find(s => s.dimension === dim)?.value;
 
-export function ActionComposer({ wsId, path }: { wsId: string; path: DrillPath }) {
+export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string; path: DrillPath; caseId?: string; onRaised?: () => void }) {
   const { members } = useTeam();
   const [open, setOpen] = useState(false);
   const [problem, setProblem] = useState('');
@@ -33,11 +33,12 @@ export function ActionComposer({ wsId, path }: { wsId: string; path: DrillPath }
     const p = problem.trim();
     if (!p) return;
     await addSnag({
-      id: uid(), workspaceId: wsId, ...target,
+      id: uid(), workspaceId: wsId, ...target, caseId,
       problem: p, owner: owner.trim() || undefined, dueAt: dueFromInput(due),
       status: 'open', raisedAt: Date.now(), updatedAt: Date.now(),
     });
     setRaised(p); setProblem(''); setOwner(''); setDue(''); setOpen(false);
+    onRaised?.();
   };
 
   if (raised) return (

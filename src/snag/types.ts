@@ -56,6 +56,7 @@ export interface Snag {
   targetCategory?: string;   // board actions: where the Pareto pointed
   targetSubcategory?: string;
   targetAsset?: string;      // operational asset NAME (observation vocabulary)
+  caseId?: ID;               // the Case (A3) this action belongs to, if any
   problem: string;
   proposedSolution?: string;
   status: SnagStatus;

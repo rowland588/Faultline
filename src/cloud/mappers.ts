@@ -2,7 +2,7 @@
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
-import type { Workspace, Observation } from '../types';
+import type { Workspace, Observation, Case } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -115,6 +115,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return { id: s.id, owner_id: s.ownerId ?? fallbackOwner, workspace_id: s.workspaceId,
         asset_id: s.assetId ?? null, x_pct: s.xPct ?? null, y_pct: s.yPct ?? null,
         target_category: s.targetCategory ?? null, target_subcategory: s.targetSubcategory ?? null, target_asset: s.targetAsset ?? null,
+        case_id: s.caseId ?? null,
         problem: s.problem, proposed_solution: s.proposedSolution ?? null, status: s.status, owner: s.owner ?? null,
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
@@ -127,7 +128,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       assetId: (r.asset_id as string) ?? undefined,
       xPct: r.x_pct == null ? undefined : Number(r.x_pct), yPct: r.y_pct == null ? undefined : Number(r.y_pct),
       targetCategory: (r.target_category as string) ?? undefined, targetSubcategory: (r.target_subcategory as string) ?? undefined,
-      targetAsset: (r.target_asset as string) ?? undefined, problem: r.problem as string,
+      targetAsset: (r.target_asset as string) ?? undefined, caseId: (r.case_id as string) ?? undefined, problem: r.problem as string,
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), dueAt: n(r.due_at),
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),
@@ -136,6 +137,28 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       linkedObsIds: (r.linked_obs_ids as string[]) ?? undefined, updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
+
+  cases: {
+    clock: l => (l as Case).updatedAt ?? (l as Case).openedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const c = l as Case;
+      return { id: c.id, owner_id: c.ownerId ?? fallbackOwner, workspace_id: c.workspaceId,
+        title: c.title, path: c.path, note: c.note ?? null,
+        baseline_ms_week: c.baselineMsWeek, target_ms_week: c.targetMsWeek ?? null,
+        status: c.status, opened_at: c.openedAt, closed_at: c.closedAt ?? null,
+        updated_at: c.updatedAt ?? c.openedAt, deleted_at: c.deletedAt ?? null };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string,
+      title: r.title as string, path: (r.path as Case['path']) ?? [], note: (r.note as string) ?? undefined,
+      baselineMsWeek: Number(r.baseline_ms_week) || 0, targetMsWeek: n(r.target_ms_week),
+      status: (r.status as Case['status']) ?? 'open', openedAt: Number(r.opened_at), closedAt: n(r.closed_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
 };
 
-export const SYNC_KINDS: SyncKind[] = ['workspaces', 'observations', 'segments', 'snag_assets', 'snags'];
+// cases push before snags so a snag's case_id never points at a case the cloud
+// hasn't met (no hard FK, but no reason to arrive out of order either).
+export const SYNC_KINDS: SyncKind[] = ['workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags'];

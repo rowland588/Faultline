@@ -19,6 +19,7 @@ import { WalkthroughScreen } from '../snag/WalkthroughScreen';
 import { TrendScreen } from './TrendScreen';
 import { ReportScreen } from './ReportScreen';
 import { AssetHistoryScreen } from '../snag/AssetHistoryScreen';
+import { CaseScreen } from './CaseScreen';
 
 export function AppShell({ route }: { route: Route }) {
   const screen = route.name;
@@ -45,6 +46,7 @@ export function AppShell({ route }: { route: Route }) {
         {screen === 'snaglist' && <SnagListScreen />}
         {screen === 'trend' && <TrendScreen />}
         {screen === 'history' && <AssetHistoryScreen wsId={route.wsId!} assetId={route.id!} />}
+        {screen === 'case' && <CaseScreen caseId={route.id!} />}
       </main>
       <TabBar active={screen} wsId={route.wsId!} />
     </div>

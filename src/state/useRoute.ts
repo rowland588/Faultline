@@ -6,7 +6,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk'
-  | 'trend' | 'history' | 'report' | 'guide';
+  | 'trend' | 'history' | 'report' | 'case' | 'guide';
 
 export interface Route {
   name: RouteName;
@@ -33,6 +33,7 @@ const SCREENS: Record<string, RouteName> = {
   trend: 'trend',
   history: 'history',
   report: 'report',
+  case: 'case',
 };
 
 export function parseRoute(hash: string): Route {

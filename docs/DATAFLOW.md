@@ -105,6 +105,7 @@ a Snag.
 | **TrendScreen** `trend` | provider observations → lib/stats weekly buckets; snags (closed flags) | provider's rules · syncedAt |
 | **AssetHistoryScreen** `history/:id` | all assets/segments/snags → snag/history derivations | wsId+assetId · syncedAt |
 | **ReportScreen** `report` | provider observations + snags → lib/stats | provider's rules · syncedAt |
+| **CaseScreen** `case/:id` | the case; provider observations scoped by its path (weekly trend, analysis); snags with its caseId + in-scope suggestions | wsId+caseId · syncedAt · own writes (updateCase/updateSnag/addSnag) |
 | **CloudPanel** (on Home) | session + sync status | auth events · sync status events |
 | **AdminPanel** (superadmin) | profiles + allowed_emails (cloud reads) | open · own writes |
 | **PeoplePanel** (in Settings) | workspace_members + profiles (cloud reads) | open · own add/remove |

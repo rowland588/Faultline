@@ -4,7 +4,7 @@
  * stores ONLY through the functions here, and every observation path is
  * workspaceId-scoped — that is the whole isolation guarantee. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { ID, Workspace, Observation } from './types';
+import type { ID, Workspace, Observation, Case } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 
@@ -23,11 +23,13 @@ interface AppDB extends DBSchema {
   snags: { key: string; value: Snag; indexes: { by_workspace: string; by_asset: string } };
   // Cloud sync (v3): tombstones record hard local deletes so they propagate.
   tombstones: { key: string; value: Tombstone };
+  // Cases (v4): the thin A3 — see types.ts.
+  cases: { key: string; value: Case; indexes: { by_workspace: string } };
 }
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
-export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags';
+export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases';
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
  * the Faultline rebrand — read ONCE to migrate a device's existing data into the
@@ -35,7 +37,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 3;
+const DB_VERSION = 4; // v4: cases
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -74,7 +76,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -105,6 +107,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
     sn.createIndex('by_asset', 'assetId');
   }
   if (!db.objectStoreNames.contains('tombstones')) db.createObjectStore('tombstones', { keyPath: 'id' });
+  if (!db.objectStoreNames.contains('cases')) {
+    db.createObjectStore('cases', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
+  }
 }
 
 async function openMain(): Promise<IDBPDatabase<AppDB>> {
@@ -263,11 +268,12 @@ export async function patchWorkspaceRecord(id: ID, patch: Partial<Workspace>): P
  *  snag walk) plus their media blobs. Records tombstones so the delete syncs. */
 export async function deleteWorkspace(id: ID): Promise<void> {
   const db = await getDB();
-  const [obs, segs, assets, snags] = await Promise.all([
+  const [obs, segs, assets, snags, cases] = await Promise.all([
     db.getAllFromIndex('observations', 'by_workspace', id),
     db.getAllFromIndex('segments', 'by_workspace', id),
     db.getAllFromIndex('snag_assets', 'by_workspace', id),
     db.getAllFromIndex('snags', 'by_workspace', id),
+    db.getAllFromIndex('cases', 'by_workspace', id),
   ]);
   const blobKeys = [
     ...obs.flatMap(o => o.media.flatMap(m => [m.blobKey, m.thumbKey])),
@@ -275,12 +281,13 @@ export async function deleteWorkspace(id: ID): Promise<void> {
     ...assets.map(a => a.stillKey),
     ...snags.map(s => s.detailPhotoKey),
   ].filter(Boolean) as string[];
-  const tx = db.transaction(['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+  const tx = db.transaction(['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'cases', 'media'], 'readwrite');
   await tx.objectStore('workspaces').delete(id);
   for (const o of obs) await tx.objectStore('observations').delete(o.id);
   for (const s of segs) await tx.objectStore('segments').delete(s.id);
   for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
   for (const s of snags) await tx.objectStore('snags').delete(s.id);
+  for (const c of cases) await tx.objectStore('cases').delete(c.id);
   for (const k of blobKeys) await tx.objectStore('media').delete(k);
   await tx.done;
   await recordTombstones('workspaces', [id]);
@@ -288,6 +295,7 @@ export async function deleteWorkspace(id: ID): Promise<void> {
   await recordTombstones('segments', segs.map(s => s.id));
   await recordTombstones('snag_assets', assets.map(a => a.id));
   await recordTombstones('snags', snags.map(s => s.id));
+  await recordTombstones('cases', cases.map(c => c.id));
 }
 
 /* ---------- observations (always workspace-scoped) ---------- */
@@ -428,25 +436,29 @@ export async function setSyncCursor(at: number): Promise<void> {
 export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
   const db = await getDB();
   if (kind === 'workspaces') {
-    const [obs, segs, assets, snags] = await Promise.all([
+    const [obs, segs, assets, snags, cases] = await Promise.all([
       db.getAllFromIndex('observations', 'by_workspace', id),
       db.getAllFromIndex('segments', 'by_workspace', id),
       db.getAllFromIndex('snag_assets', 'by_workspace', id),
       db.getAllFromIndex('snags', 'by_workspace', id),
+      db.getAllFromIndex('cases', 'by_workspace', id),
     ]);
     const blobs = [
       ...obs.flatMap(o => o.media.flatMap(m => [m.blobKey, m.thumbKey])),
       ...segs.flatMap(s => [s.videoKey, s.posterKey]),
       ...assets.map(a => a.stillKey), ...snags.map(s => s.detailPhotoKey),
     ].filter(Boolean) as string[];
-    const tx = db.transaction(['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+    const tx = db.transaction(['workspaces', 'observations', 'segments', 'snag_assets', 'snags', 'cases', 'media'], 'readwrite');
     await tx.objectStore('workspaces').delete(id);
     for (const o of obs) await tx.objectStore('observations').delete(o.id);
     for (const s of segs) await tx.objectStore('segments').delete(s.id);
     for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
     for (const s of snags) await tx.objectStore('snags').delete(s.id);
+    for (const c of cases) await tx.objectStore('cases').delete(c.id);
     for (const k of blobs) await tx.objectStore('media').delete(k);
     await tx.done;
+  } else if (kind === 'cases') {
+    await db.delete('cases', id);
   } else if (kind === 'segments') {
     const assets = await db.getAllFromIndex('snag_assets', 'by_segment', id);
     const snags: Snag[] = [];
@@ -597,4 +609,30 @@ export async function setSnagsStatus(ids: ID[], status: Snag['status']): Promise
   }
   await tx.done;
   signalWrite();
+}
+
+/* ---------- cases (the thin A3 — always workspace-scoped) ---------- */
+export async function listCases(workspaceId: ID): Promise<Case[]> {
+  const all = await (await getDB()).getAllFromIndex('cases', 'by_workspace', workspaceId);
+  return all.filter(c => c.deletedAt == null).sort((a, b) => b.openedAt - a.openedAt);
+}
+export async function getCase(id: ID): Promise<Case | undefined> {
+  const c = await (await getDB()).get('cases', id);
+  return c?.deletedAt == null ? c : undefined;
+}
+export async function addCase(c: Case): Promise<void> {
+  await (await getDB()).put('cases', c);
+  signalWrite();
+}
+export async function updateCase(c: Case): Promise<void> {
+  await (await getDB()).put('cases', { ...c, updatedAt: now() });
+  signalWrite();
+}
+/** Hard delete + tombstone. Actions keep their caseId (it just dangles —
+ *  they lose the folder, never their own life). */
+export async function deleteCase(id: ID): Promise<void> {
+  const db = await getDB();
+  if (!(await db.get('cases', id))) return;
+  await db.delete('cases', id);
+  await recordTombstones('cases', [id]);
 }
