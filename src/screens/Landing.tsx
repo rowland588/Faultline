@@ -9,9 +9,10 @@ import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
 
 const POINTS = [
-  ['Discover the problems', 'Walk the line and log what you find — lost time, minor stops, and faults you pin straight onto a video-walk still.'],
-  ['Make them visible', 'Every finding becomes a picture: a Pareto and a cost for the loss, a tracked snag list for the faults — nothing stays buried in a notebook.'],
-  ['Shared, and always with you', 'Works offline on the floor, then backs up and syncs to every device and teammate you invite.'],
+  ['Find it — both ways', 'Time the losses with a stopwatch; film the line and pin the faults on the footage. Two lenses, one workspace.'],
+  ['Price it in pounds', 'Every lost minute meets your crew cost. The Pareto ranks the pain in £/week — the language the board decides in.'],
+  ['Fix it, and prove it held', 'Actions with owners and due dates, a weekly meeting that runs itself, and evidence when the fix worked — not a hope, a receipt.'],
+  ['Offline on the floor, shared everywhere', 'Works with no signal, then backs up and syncs to every device and teammate you invite.'],
 ] as const;
 
 export function Landing() {
@@ -46,12 +47,29 @@ export function Landing() {
             <LogoMark size={40} />
             <span className="landing-name">Faultline</span>
           </div>
-          <h1 className="landing-h1">Find the problems. Make them visible.</h1>
+          <h1 className="landing-h1 landing-tag">
+            <span className="lt-line">OEE systems have numbers and no eyes.</span>
+            <span className="lt-line">Audit apps have eyes and no numbers.</span>
+            <span className="lt-punch">Faultline has both.</span>
+          </h1>
           <p className="landing-lede">
-            A field-first way to walk a line, surface what's wrong — lost time and
-            physical faults alike — and turn it into something everyone can see and
-            act on. Built for in-house CI and ops teams.
+            The stopwatch and the camera on the same line: losses timed and priced
+            in £, faults pinned on video — one loop that finds the problem, fixes
+            it, and proves the fix held. Built for food manufacturing and ops teams.
           </p>
+          <div className="landing-worlds" aria-hidden>
+            <div className="lw-card">
+              <span className="lw-ic">▤</span>
+              <b>The stopwatch</b>
+              <span className="sub">Pareto · £/week · proof by re-measure</span>
+            </div>
+            <span className="lw-plus">+</span>
+            <div className="lw-card">
+              <span className="lw-ic">▣</span>
+              <b>The camera</b>
+              <span className="sub">Video walks · pinned faults · proof by re-look</span>
+            </div>
+          </div>
           <ul className="landing-points">
             {POINTS.map(([t, d]) => (
               <li key={t}>
