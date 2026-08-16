@@ -1289,3 +1289,8 @@ button { font-family: inherit; }
 .fixed-proof { position: relative; display: inline-block; margin-top: 6px; }
 .fixed-proof img { max-width: 180px; max-height: 120px; border-radius: 8px; border: 2px solid var(--ok); display: block; }
 .fixed-proof-lbl { position: absolute; left: 6px; bottom: 6px; background: var(--ok); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; }
+
+/* the £ ticker under the running stopwatch — money, visibly bleeding */
+.cost-ticker { display: flex; flex-direction: column; align-items: center; gap: 1px; margin: -8px 0 14px; }
+.ct-amount { font-family: var(--mono); font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: var(--danger); font-variant-numeric: tabular-nums; }
+.ct-label { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }

@@ -14,7 +14,8 @@ import { captureMedia, saveVideoBlob, pickExistingMedia } from '../lib/media';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
 import { ChipPicker } from '../ui/Chip';
-import { Stopwatch } from '../ui/Stopwatch';
+import { Stopwatch, CostTicker } from '../ui/Stopwatch';
+import { costPerMs } from '../lib/cost';
 import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useTeam } from '../cloud/team';
@@ -107,7 +108,9 @@ export function CaptureScreen() {
     await patchWorkspace({ lastCategory: category, lastAsset: asset, activeTimer: undefined });
     setPending([]);
     setStartedAt(null);
-    setToast({ msg: `Logged · ${o.asset} · ${o.category}${durationMs > 0 ? ' · ' + fmtDuration(durationMs) : ''}`, undo: () => void removeObs(o.id) });
+    // name the £ the event just cost — the same rate the ticker was counting at
+    const cost = durationMs * costPerMs(workspace);
+    setToast({ msg: `Logged · ${o.asset} · ${o.category}${durationMs > 0 ? ' · ' + fmtDuration(durationMs) : ''}${cost > 0 ? ` · £${cost.toFixed(2)}` : ''}`, undo: () => void removeObs(o.id) });
   };
 
   const start = async () => {
@@ -224,6 +227,7 @@ export function CaptureScreen() {
           <>
             <div className="cap-timer-what">{asset} · {category}</div>
             <div className="cap-clock"><span className="cap-dot" />{startedAt !== null && <Stopwatch startedAt={startedAt} />}</div>
+            {startedAt !== null && <CostTicker startedAt={startedAt} perMs={costPerMs(workspace)} />}
             <div className="cap-timer-actions">
               <button className="btn btn-primary btn-lg cap-stop" onClick={stopAndLog}>■ Stop &amp; log</button>
               <button className="btn btn-ghost" onClick={discard}>Discard</button>
