@@ -312,7 +312,8 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
     const meta = await readVideoMeta(real).catch(() => ({ duration: 30, width: 0, height: 0 }));
     durationS = meta.duration || 30;
     for (let i = 0; i < walkAssets.length; i++) {
-      const t = Math.max(0.5, durationS * (0.1 + i * (0.8 / walkAssets.length)));
+      // sweep the clip end to end: first machine near the start, last near the end
+      const t = Math.max(0.5, durationS * (0.04 + i * (0.89 / Math.max(1, walkAssets.length - 1))));
       assetStamp.set(walkAssets[i].name, t);
       try {
         const key = `blob-${uid()}`;
