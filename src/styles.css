@@ -1,70 +1,42 @@
-/* Faultline — design system. Bright, pastel, warm. Blush paper, a friendly
-   rose as the brand, soft plum for the cockpit — inviting on a phone on a
-   loud floor (big targets, contrast checked on every pairing) and confident
-   on a boardroom screen. Light default + a soft plum dark. */
+/* Faultline — design system. Light, airy, fresh. Sky-tinted paper, a bright
+   friendly blue as the brand, greens for good news, light orange for the
+   spark — and NO dark surfaces anywhere: the cockpit and the meeting room
+   are light too. One light theme on every device. */
 
 :root {
-  --bg: #fbf6f3;          /* blush paper */
+  --bg: #f4f9fc;          /* airy sky-tinted paper */
   --surface: #ffffff;
-  --surface-2: #f7edea;
-  --ink: #3b3237;         /* warm charcoal-plum — never black */
-  --ink-2: #675a62;
-  --muted: #92838c;
-  --line: #efe0e4;
-  /* brand — a warm, friendly rose. --accent is the READABLE rose (text/links,
-     ≥4.5:1 on paper); --brand is the fill (buttons, live, the mark);
-     --on-brand is text on rose. Fresh green says "good"; honey warns; a
-     clear warm red is reserved for what's overdue. */
-  --accent: #b83a60;      /* readable rose on blush */
-  --accent-soft: #fbe7ee; /* rose wash */
-  --accent-rgb: 216, 84, 122;
-  --brand: #d8547a;       /* rose — fills */
-  --brand-2: #c04568;     /* pressed/hover */
+  --surface-2: #e8f1f8;
+  --ink: #21374c;         /* deep blue-slate text */
+  --ink-2: #4a6076;
+  --muted: #7a8fa2;
+  --line: #d8e5ef;
+  /* brand — bright friendly blue. --accent is the READABLE blue (text/links);
+     --brand is the fill (buttons, live, the mark); --on-brand is text on
+     blue. Green says "good"; light orange is the spark (the logo's spike,
+     the warn family); a clear warm red only for what's overdue. */
+  --accent: #196bb3;      /* readable blue on sky */
+  --accent-soft: #e4f0fa; /* blue wash */
+  --accent-rgb: 43, 135, 212;
+  --brand: #2b87d4;       /* bright blue — fills */
+  --brand-2: #1f6fb6;     /* pressed/hover */
   --on-brand: #ffffff;
-  /* chrome — the soft-plum cockpit frame (top bar, tab bar, the meeting room) */
-  --chrome: #4a3b58;
-  --chrome-2: #5d4b6e;
-  --chrome-ink: #faf6fd;
-  --chrome-muted: #c9b8d6;
-  --chrome-line: #6a5680;
-  --ok: #268757;          /* fresh green — readable on paper */
-  --warn: #a9700b;        /* honey, kept readable on blush */
-  --danger: #d64545;      /* clear warm red */
-  --freq: #8d7e88;        /* frequency series — soft mauve, pairs with any workspace hue */
+  /* chrome — the LIGHT cockpit frame (top bar, tab bar, the meeting room) */
+  --chrome: #e9f3fa;
+  --chrome-2: #dcebf5;
+  --chrome-ink: #21374c;
+  --chrome-muted: #647d92;
+  --chrome-line: #c8dcea;
+  --ok: #1f8a4c;          /* fresh green */
+  --warn: #c26a0a;        /* light-orange family, kept readable on white */
+  --danger: #d94f43;      /* clear warm red */
+  --freq: #6b8095;        /* frequency series — blue-slate, pairs with any workspace hue */
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(59, 50, 55, 0.05), 0 8px 24px rgba(59, 50, 55, 0.07);
+  --shadow: 0 1px 2px rgba(33, 55, 76, 0.04), 0 8px 24px rgba(33, 55, 76, 0.06);
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --tap: 48px;            /* minimum touch target */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #201927;        /* soft plum night — never black */
-    --surface: #2a2233;
-    --surface-2: #342b3e;
-    --ink: #f4eef6;
-    --ink-2: #d4c9da;
-    --muted: #a495af;
-    --line: #40354d;
-    --accent: #f291b2;      /* readable rose on dark */
-    --accent-soft: #3a2a3c;
-    --accent-rgb: 216, 84, 122;
-    --brand: #d8547a;
-    --brand-2: #e76f93;
-    --on-brand: #ffffff;
-    --chrome: #191322;      /* deep plum, recedes under the content */
-    --chrome-2: #2c2438;
-    --chrome-ink: #f4eef6;
-    --chrome-muted: #bba9c9;
-    --chrome-line: #453856;
-    --ok: #5ed095;
-    --warn: #e8b45c;
-    --danger: #f28b82;
-    --freq: #a899a9;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
-  }
 }
 
 * { box-sizing: border-box; }
@@ -142,20 +114,20 @@ button { font-family: inherit; }
   display: inline-flex; align-items: center; background: transparent; border: none;
   padding: 6px; margin-right: 2px; cursor: pointer; border-radius: 9px;
 }
-.brand-btn:active { background: rgba(255, 255, 255, 0.07); }
+.brand-btn:active { background: rgba(33, 55, 76, 0.08); }
 .ws-name {
   display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
   background: transparent; border: none; cursor: pointer;
   color: var(--chrome-ink); font-size: 15.5px; font-weight: 800; padding: 8px 6px;
 }
-.ws-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08); }
+.ws-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(33, 55, 76, 0.10); }
 /* the always-visible way into sharing a workspace */
 .people-btn {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.08); border: none; cursor: pointer;
+  background: rgba(33, 55, 76, 0.07); border: none; cursor: pointer;
   font-size: 15px; line-height: 1; padding: 7px 10px; border-radius: 9px;
 }
-.people-btn:active { background: rgba(255, 255, 255, 0.16); }
+.people-btn:active { background: rgba(33, 55, 76, 0.14); }
 .ws-name-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-caret { color: var(--chrome-muted); font-size: 12px; }
 
@@ -281,7 +253,7 @@ button { font-family: inherit; }
 .present { position: fixed; inset: 0; z-index: 40; background: radial-gradient(120% 90% at 50% 0%, var(--chrome-2) 0%, var(--chrome) 55%) var(--chrome); display: flex; }
 .present-exit {
   position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 50%; z-index: 2;
-  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.1); color: var(--chrome-ink); font-size: 18px; cursor: pointer;
+  border: 1px solid rgba(33, 55, 76, 0.22); background: rgba(33, 55, 76, 0.05); color: var(--chrome-ink); font-size: 18px; cursor: pointer;
 }
 
 /* ---------- capture ---------- */
@@ -506,21 +478,21 @@ button { font-family: inherit; }
 .present-q { font-size: clamp(24px, 2.9vw, 46px); font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 10px; color: var(--chrome-ink); }
 /* headline numbers — the reason the room is looking at the screen */
 .present-stats { display: flex; gap: clamp(10px, 1.4vw, 20px); flex-wrap: wrap; margin-bottom: clamp(12px, 2vh, 22px); }
-.pstat { flex: 1 1 180px; max-width: 340px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: clamp(12px, 1.6vh, 20px) clamp(14px, 1.4vw, 24px); }
+.pstat { flex: 1 1 180px; max-width: 340px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: clamp(12px, 1.6vh, 20px) clamp(14px, 1.4vw, 24px); }
 .pstat b { display: block; font-size: clamp(28px, 3.4vw, 56px); font-weight: 800; letter-spacing: -0.02em; color: var(--chrome-ink); line-height: 1.1; }
 .pstat span { color: var(--chrome-muted); font-size: clamp(12px, 1vw, 15px); font-weight: 600; }
 /* dark-stage variants of the shared pieces */
 .present .crumb { color: var(--chrome-muted); }
 .present .crumb.on { color: var(--chrome-ink); }
 .present .crumb-sep { color: var(--chrome-muted); }
-.present .insight { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14); color: var(--chrome-ink); font-size: clamp(14px, 1.25vw, 19px); }
+.present .insight { background: var(--accent-soft); border: 1px solid var(--line); color: var(--chrome-ink); font-size: clamp(14px, 1.25vw, 19px); }
 .present .insight, .present .insight * { color: var(--chrome-ink); }
 .present .ev-strip-head { color: var(--chrome-muted); }
 .present-snag { margin-top: 8px; }
 .present-snag-sub { color: var(--chrome-ink); font-size: clamp(16px, 1.4vw, 21px); line-height: 1.5; margin-bottom: 20px; max-width: 560px; opacity: 0.9; }
 .present-snag-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .present-snag-actions .btn { min-width: 180px; }
-.present-chart { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: clamp(14px, 1.8vw, 30px); box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35); }
+.present-chart { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: clamp(14px, 1.8vw, 30px); box-shadow: 0 18px 60px rgba(33, 55, 76, 0.14); }
 /* a stage never scrolls: cap the chart so head + numbers + chart share one screen */
 .present-chart svg { width: 100%; height: auto; max-height: min(56vh, 620px); display: block; margin: 0 auto; }
 .present-leaf { padding: 40px 12px; background: var(--surface); border-radius: 20px; }
@@ -731,7 +703,7 @@ button { font-family: inherit; }
 .wiz-card {
   position: fixed; pointer-events: auto; width: min(320px, calc(100vw - 20px));
   background: var(--surface); border-radius: 14px; padding: 14px 15px 11px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 50px rgba(33, 55, 76, 0.25);
 }
 /* no spotlight to anchor to (mid-action, or the closing card): sit at the
    bottom edge, out of the way of whatever the user is doing */
@@ -1109,7 +1081,7 @@ button { font-family: inherit; }
 .meet { flex-direction: column; }
 .meet-body { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
 .meet-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: clamp(8px, 1.4vh, 16px); }
-.meet-period { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: var(--chrome-ink); }
+.meet-period { background: var(--surface); border-color: var(--line); color: var(--ink); }
 .meet-home { color: var(--chrome-muted); }
 .meet-print { color: var(--chrome-muted); margin-left: auto; }
 .meet-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: clamp(14px, 2.2vh, 24px); }
@@ -1122,7 +1094,7 @@ button { font-family: inherit; }
 /* act 0 — the overview board: every tile is a door */
 .meet-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(10px, 1.4vw, 18px); }
 @media (max-width: 720px) { .meet-grid { grid-template-columns: 1fr; } }
-.meet-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: clamp(14px, 1.8vw, 26px); box-shadow: 0 14px 44px rgba(0,0,0,0.3); font: inherit; color: var(--ink); }
+.meet-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: clamp(14px, 1.8vw, 26px); box-shadow: 0 14px 44px rgba(33, 55, 76, 0.10); font: inherit; color: var(--ink); }
 .meet-tile:hover { border-color: var(--accent); }
 .meet-tile.mt-wide { grid-column: 1 / -1; }
 .mt-eyebrow { font-size: clamp(11px, 0.95vw, 14px); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
@@ -1144,10 +1116,10 @@ button { font-family: inherit; }
 .meet-weeks { display: flex; align-items: flex-end; gap: clamp(4px, 0.7vw, 10px); height: clamp(90px, 16vh, 160px); margin: clamp(10px, 1.8vh, 20px) 0; }
 .mw-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; background: none; border: none; cursor: pointer; padding: 0; min-width: 0; }
 .mw-col:disabled { cursor: default; }
-.mw-bar { width: 100%; max-width: 54px; border-radius: 6px 6px 0 0; background: rgba(255,255,255,0.28); transition: background 0.15s; }
-.mw-col:hover:not(:disabled) .mw-bar { background: rgba(255,255,255,0.5); }
+.mw-bar { width: 100%; max-width: 54px; border-radius: 6px 6px 0 0; background: rgba(33, 55, 76, 0.24); transition: background 0.15s; }
+.mw-col:hover:not(:disabled) .mw-bar { background: rgba(33, 55, 76, 0.40); }
 .mw-col.on .mw-bar { background: var(--accent); }
-.mw-col.cur .mw-bar { background: repeating-linear-gradient(45deg, rgba(255,255,255,0.22), rgba(255,255,255,0.22) 4px, rgba(255,255,255,0.08) 4px, rgba(255,255,255,0.08) 8px); }
+.mw-col.cur .mw-bar { background: repeating-linear-gradient(45deg, rgba(33,55,76,0.20), rgba(33,55,76,0.20) 4px, rgba(33,55,76,0.07) 4px, rgba(33,55,76,0.07) 8px); }
 .mw-lbl { font-size: clamp(10px, 0.9vw, 13px); color: var(--chrome-muted); font-family: var(--mono); }
 .mw-col.on .mw-lbl { color: var(--chrome-ink); font-weight: 800; }
 .mw-flags { font-size: clamp(10px, 0.95vw, 14px); color: var(--ok); line-height: 1; min-height: 1em; }
@@ -1155,7 +1127,7 @@ button { font-family: inherit; }
 /* act 1 — movers */
 .meet-movers { margin-top: clamp(10px, 1.6vh, 18px); display: flex; flex-direction: column; gap: 8px; max-width: 720px; }
 .meet-movers .mt-eyebrow { color: var(--chrome-muted); }
-.meet-mover { display: flex; align-items: baseline; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 14px; color: var(--chrome-ink); font-size: clamp(14px, 1.3vw, 19px); }
+.meet-mover { display: flex; align-items: baseline; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; color: var(--chrome-ink); font-size: clamp(14px, 1.3vw, 19px); }
 .mm-arrow { font-weight: 800; }
 .mm-flat { color: var(--chrome-muted); }
 .mm-name { font-weight: 700; }
@@ -1166,7 +1138,7 @@ button { font-family: inherit; }
 .meet .crumb { color: var(--chrome-muted); }
 .meet .crumb.on { color: var(--chrome-ink); }
 .meet .crumb-sep { color: var(--chrome-muted); }
-.meet .insight { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); }
+.meet .insight { background: var(--accent-soft); border: 1px solid var(--line); }
 .meet .insight, .meet .insight * { color: var(--chrome-ink); }
 .meet .ev-strip-head { color: var(--chrome-muted); }
 
@@ -1205,7 +1177,7 @@ button { font-family: inherit; }
 .meet-copy { margin-top: 14px; }
 
 /* the agenda rail — fixed, always one tap from anywhere */
-.meet-rail { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 6px; background: rgba(32, 24, 40, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; padding: 6px; z-index: 50; max-width: calc(100vw - 16px); overflow-x: auto; }
+.meet-rail { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 6px; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 999px; padding: 6px; z-index: 50; max-width: calc(100vw - 16px); overflow-x: auto; }
 .mr-step { display: flex; align-items: center; gap: 7px; background: none; border: none; color: var(--chrome-muted); font: inherit; font-weight: 800; font-size: 14px; padding: 8px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
 .mr-step.on { background: var(--accent); color: #fff; }
 .mr-lbl { font-size: 12px; font-weight: 700; }

@@ -189,13 +189,13 @@ async function importLegacyOnce(db: IDBPDatabase<AppDB>): Promise<void> {
 
 /* ---------- workspaces (the isolation container) ---------- */
 
-/* Workspace accent colors — bright sorbet tones, rose (the brand) first. The
+/* Workspace accent colors — fresh greens, blues and one light orange. The
  * ORDER is deliberate and validated (dataviz six checks: lightness band,
  * chroma floor, CVD separation on adjacent pairs, normal-vision floor,
  * contrast on light AND dark surfaces) — don't reshuffle without re-running
  * the validator. Only new workspaces draw from here; existing ones keep the
  * color they were born with. */
-const PALETTE = ['#D8547A', '#5E85D6', '#B98A1E', '#12A184', '#B94A97', '#4BA34F', '#9C6BD6'];
+const PALETTE = ['#2F9E52', '#2B87D4', '#D06E12', '#12958F', '#5E7DD8', '#6E9322'];
 const cloneSubs = (src: Record<string, string[]>): Record<string, string[]> =>
   Object.fromEntries(Object.entries(src).map(([k, v]) => [k, [...v]]));
 
