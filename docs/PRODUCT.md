@@ -87,6 +87,17 @@ proves in its native language:
 The tagline is this table: OEE systems have numbers and no eyes; audit apps
 have eyes and no numbers; Faultline has both — and closes both loops.
 
+## Positioning: the companion, never the scoreboard
+
+Faultline does not compute OEE, does not attack OEE, and never ships a rival
+headline metric (owner decision, Aug 2026 — a named "replacement number" was
+considered and rejected: it turns the product into a competing scoreboard and
+confuses the story). The pitch is the companion: **"Your OEE / CX / hours
+says X. Faultline shows you why, where, and what it costs — and proves the
+fix held."** Their score is the smoke alarm; Faultline finds the fire. The
+tagline is consistent with this: it says OEE systems can't SEE, not that the
+score is wrong.
+
 ## The moat (why food, why us)
 
 The real incumbent is a consultant with a stopwatch and Excel. OEE systems
@@ -156,6 +167,11 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
 - **Wall mode** (a no-touch TV route cycling the meeting Overview) — PARKED
   by owner decision (Aug 2026): build only when the owner asks. When it
   comes, it's a re-choreography of the meeting Overview — no new data.
+- **CSV import of existing downtime records** (end-of-shift sheets, planner
+  spreadsheets, OEE-system exports → ordinary observations, labelled
+  imported; kills the cold start, fits the companion story) — when a real
+  prospect has an export in hand and the empty first week is what's blocking
+  the sale. Imported rows never mix into a proof study's after-sample.
 - **Cost lenses** (view any £ as total / labour only / lost-output only, and
   later more metrics — energy, materials) — when a customer asks to see the
   split. The seam already exists: lib/cost computes each component
