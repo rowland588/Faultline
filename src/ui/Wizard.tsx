@@ -14,15 +14,20 @@ const markSeen = () => { try { localStorage.setItem(KEY, String(Date.now())); } 
 let active = false;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach(fn => { try { fn(); } catch { /* ignore */ } });
-export const startWizard = (): void => { active = true; emit(); };
 
-interface WStep {
+export interface WStep {
   target?: string;                       // [data-tour=…]; absent → centered card
   title: string;
   body: string;
   advance: 'next' | 'click' | { route: RegExp };
   cta?: string;                          // what the fallback button says
 }
+
+/* The engine runs SCRIPTS. The invitee walkthrough below is the default; the
+ * guided demo (lib/demoTour) passes its own — same spotlights, same
+ * do-it-on-screen advancing, different story. */
+let steps: WStep[] = [];
+export const startWizard = (script?: WStep[]): void => { steps = script ?? STEPS; active = true; emit(); };
 
 const STEPS: WStep[] = [
   {
@@ -83,12 +88,12 @@ export function Wizard() {
   }, []);
 
   const close = () => { active = false; markSeen(); setI(0); force(x => x + 1); };
-  const next = () => { if (iRef.current >= STEPS.length - 1) close(); else setI(x => x + 1); };
+  const next = () => { if (iRef.current >= steps.length - 1) close(); else setI(x => x + 1); };
 
   // track the highlighted control (it may render late, move, or disappear)
   useEffect(() => {
     if (!active) return;
-    const step = STEPS[i];
+    const step = steps[i];
     let scrolled = false;
     const find = () => {
       const el = step.target ? document.querySelector(`[data-tour="${step.target}"]`) : null;
@@ -107,7 +112,7 @@ export function Wizard() {
   // the resume redirect; without the guard the wizard would skip a step)
   useEffect(() => {
     if (!active) return;
-    const step = STEPS[i];
+    const step = steps[i];
     let fired = false;
     const go = () => { if (!fired) { fired = true; setTimeout(next, 450); } };
     if (step.advance === 'click' && step.target) {
@@ -138,9 +143,9 @@ export function Wizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active ? 1 : 0]);
 
-  if (!active) return null;
-  const step = STEPS[i];
-  const last = i === STEPS.length - 1;
+  if (!active || !steps[i]) return null;
+  const step = steps[i];
+  const last = i === steps.length - 1;
   const doIt = step.advance !== 'next';
 
   // tooltip placement: under the spotlight if it fits, else above, else centered
@@ -165,8 +170,8 @@ export function Wizard() {
         <p className="wiz-body">{step.body}</p>
         <div className="wiz-foot">
           <button className="linkish wiz-skip" onClick={close}>Skip the tour</button>
-          <span className="wiz-dots" aria-label={`Step ${i + 1} of ${STEPS.length}`}>
-            {STEPS.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}
+          <span className="wiz-dots" aria-label={`Step ${i + 1} of ${steps.length}`}>
+            {steps.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}
           </span>
           <button className={'btn' + (doIt ? '' : ' btn-primary')} onClick={next}>
             {step.cta ?? (last ? 'Finish ›' : doIt ? 'Next ›' : 'Next ›')}

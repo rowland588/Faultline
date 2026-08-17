@@ -283,7 +283,7 @@ export function SnagsScreen() {
       {segs.length === 0 && !busy ? (
         <EmptyState icon="🎥" title="No footage yet">Film the line infeed-to-outfeed — several clips for a long line — and add them in walk order. Then scrub each to mark its assets.</EmptyState>
       ) : (
-        <div className="card">
+        <div className="card" data-tour="seg-list">
           <div className="field-label" style={{ marginBottom: 8 }}>Segments · walk order</div>
           {segs.map((seg, i) => (
             <SegRow key={seg.id} seg={seg} assetNames={namesBySeg.get(seg.id) ?? []} first={i === 0} last={i === segs.length - 1}

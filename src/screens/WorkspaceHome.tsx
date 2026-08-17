@@ -17,6 +17,7 @@ import { InstallPanel } from '../ui/InstallPanel';
 import { startWizard, wizardSeen } from '../ui/Wizard';
 import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
 import { seedDemoWorkspace } from '../lib/demo';
+import { DEMO_TOUR } from '../lib/demoTour';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -94,7 +95,9 @@ export function WorkspaceHome() {
     setSeeding('starting…');
     try {
       const id = await seedDemoWorkspace(setSeeding);
-      nav(`/w/${id}`);
+      nav(`/w/${id}/analyse`);
+      // straight into the guided demo — the immersive manual, not a slideshow
+      setTimeout(() => startWizard(DEMO_TOUR), 600);
     } catch (e) {
       setSeeding(null);
       setError(e instanceof Error ? e.message : 'Demo seeding failed — try again.');
@@ -233,7 +236,7 @@ export function WorkspaceHome() {
 
       {/* signed-in users need a way to the tour too — for themselves, and to
           show a colleague what they're being invited into */}
-      <button className="home-guide-link" onClick={startWizard}>
+      <button className="home-guide-link" onClick={() => startWizard()}>
         ▶ Step-by-step walkthrough — how to use Faultline ›
       </button>
       <button className="home-guide-link" style={{ marginTop: 6 }} onClick={() => nav('/guide')}>

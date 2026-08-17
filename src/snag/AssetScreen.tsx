@@ -51,7 +51,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => nav(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
+        <button className="btn btn-ghost" data-tour="asset-back" onClick={() => nav(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
         <div style={{ flex: 1 }} />
         {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}>⏱ Through time</button>}
         {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}
@@ -62,7 +62,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       </button>
       <p className="sub" style={{ marginTop: 4 }}>{plural(openCount, 'open snag')}. Pinch or use ＋ / − to zoom in, then tap the picture to drop a red dot where the problem is.</p>
 
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 12 }} data-tour="pins">
         <PinImage src={still} pins={pins} alt={asset?.name}
           onPlace={(x, y) => { setEditing(null); setDraft({ xPct: x, yPct: y }); }}
           onPinTap={id => { const s = snags.find(x => x.id === id); if (s) { setDraft(null); setEditing(s); } }} />

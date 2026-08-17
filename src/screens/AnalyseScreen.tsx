@@ -18,6 +18,9 @@ import { weeklyLoss } from '../lib/stats';
 import { studyResult } from '../lib/proof';
 import { freshness, agoWord } from '../lib/gemba';
 import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
+import { startWizard } from '../ui/Wizard';
+import { DEMO_TOUR } from '../lib/demoTour';
+import { DEMO_NAME } from '../lib/demo';
 import type { Case, Measure, DrillPath } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { LineBoard } from './LineBoard';
@@ -60,7 +63,7 @@ function PrizeLine({ weeklyMs, costable, factor }: { weeklyMs: number; costable:
   const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtHrs(ms));
   const year = (ms: number) => (costable ? fmtGBP(ms * factor * 52) : fmtHrs(ms * 52));
   return (
-    <div className="prize-line">
+    <div className="prize-line" data-tour="prize">
       <span className="prize-ic" aria-hidden>💰</span>
       <span>
         Running at <b>{money(weeklyMs)}/wk</b> ({year(weeklyMs)}/yr).
@@ -105,9 +108,12 @@ export function AnalyseScreen({ route }: { route: Route }) {
     <div className="wrap analyse board" data-tour="board">
       <p className="eyebrow">The line</p>
       <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
+      {workspace.name === DEMO_NAME && (
+        <button className="chip demo-tour-pill" onClick={() => startWizard(DEMO_TOUR)}>▶ Guided demo — press-this, see-that</button>
+      )}
       {/* the honesty meter: silence at the gemba, made visible */}
       {(live.length > 0 || walkTimes.length > 0) && (
-        <div className={'gemba gm-' + fr.level}>
+        <div className={'gemba gm-' + fr.level} data-tour="gemba">
           <span aria-hidden>👁</span>
           <span>Eyes on the line: observed <b>{agoWord(fr.daysSinceObs)}</b> · walked <b>{agoWord(fr.daysSinceWalk)}</b>
             {fr.level !== 'fresh' && <> — this board is only as honest as the last visit. <b>Go and see.</b></>}</span>
@@ -115,7 +121,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
       )}
       {/* the trophy shelf: proof that the loop pays — what keeps a CI habit alive */}
       {wins.length > 0 && (
-        <div className="wins-shelf">
+        <div className="wins-shelf" data-tour="wins">
           <button className="wins-head" onClick={() => setWinsOpen(o => !o)}>
             <span aria-hidden>🏆</span> <b>{perYr(totalSavedWk)}</b>&nbsp;proven recovered · {plural(wins.length, 'win')} <span className="wins-caret">{winsOpen ? '▾' : '›'}</span>
           </button>
@@ -128,7 +134,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
         </div>
       )}
       {openCases.length > 0 && (
-        <div className="cases-strip">
+        <div className="cases-strip" data-tour="cases">
           {openCases.map(c => {
             const now = caseNowMsWeek(weeklyLoss(applyDrill(observations, workspace.id, c.path), workspace, 12));
             const vs = c.baselineMsWeek > 0 ? Math.round(((now - c.baselineMsWeek) / c.baselineMsWeek) * 100) : null;
@@ -263,12 +269,12 @@ export function AnalyseScreen({ route }: { route: Route }) {
               baseline, a target and a page (the A3 that fills itself) */}
           {view.path.length > 0 && (
             existing
-              ? <button className="board-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}>
+              ? <button className="board-cta" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}>
                   <span className="board-cta-ic" aria-hidden>📌</span>
                   <span className="board-cta-main">Open its Case — {existing.title}</span>
                   <span className="board-cta-go" aria-hidden>›</span>
                 </button>
-              : <button className="board-cta" onClick={() => void openCaseHere()}>
+              : <button className="board-cta" data-tour="case-cta" onClick={() => void openCaseHere()}>
                   <span className="board-cta-ic" aria-hidden>📌</span>
                   <span className="board-cta-main">Open a Case on this — baseline it, target it, track it</span>
                   <span className="board-cta-go" aria-hidden>›</span>

@@ -24,6 +24,7 @@ import {
   addSegment, addSnagAsset, putBlob,
 } from '../db';
 import { uid } from './ids';
+import { readVideoMeta } from '../snag/frame';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
 const DAY = 86_400_000;
@@ -138,6 +139,55 @@ async function recordWalkVideo(assets: Array<{ name: string; accent: string }>, 
   return { videoKey, posterKey, durationS };
 }
 
+
+/* ---------- REAL footage, when the deployment carries it ----------
+ * Drop any properly licensed clip (Pexels/Pixabay are free for commercial
+ * use) at public/demo/footage.mp4 or .webm and the walk uses IT: the video
+ * plays in the app and the machine stills are frozen from its real frames,
+ * captioned per machine. Without a clip, the drawn line stands in. */
+async function fetchRealFootage(): Promise<Blob | null> {
+  for (const path of ['/demo/footage.mp4', '/demo/footage.webm']) {
+    try {
+      const r = await fetch(path);
+      if (!r.ok) continue;
+      const b = await r.blob();
+      if (b.size > 50_000) return b.type.startsWith('video') ? b : b.slice(0, b.size, path.endsWith('.mp4') ? 'video/mp4' : 'video/webm');
+    } catch { /* absent — drawn fallback */ }
+  }
+  return null;
+}
+
+/** Freeze a real frame at `t` seconds, cover-cropped to 1280×720, with the
+ *  machine's name captioned — the still the pins live on. */
+function frameFromVideo(blob: Blob, t: number, label: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+    const fail = (e: unknown) => { URL.revokeObjectURL(url); reject(e instanceof Error ? e : new Error('frame')); };
+    v.onerror = fail;
+    v.onloadedmetadata = () => { try { v.currentTime = Math.min(t, Math.max(0, (v.duration || t) - 0.2)); } catch (e) { fail(e); } };
+    v.onseeked = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 1280; c.height = 720;
+        const ctx = c.getContext('2d')!;
+        const vw = v.videoWidth || 1280, vh = v.videoHeight || 720;
+        const scale = Math.max(1280 / vw, 720 / vh);
+        const dw = vw * scale, dh = vh * scale;
+        ctx.drawImage(v, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
+        // caption band: the machine's name, so every still is unmistakable
+        ctx.fillStyle = 'rgba(33,55,76,0.82)'; ctx.beginPath(); ctx.roundRect(24, 636, 24 + label.length * 19 + 36, 56, 12); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = '700 32px -apple-system, Segoe UI, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(label, 48, 675);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '600 18px -apple-system, Segoe UI, sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText('DEMO', 1256, 700);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => (b ? resolve(b) : reject(new Error('canvas'))), 'image/jpeg', 0.86);
+      } catch (e) { fail(e); }
+    };
+  });
+}
+
 /* ---------- the event table: what a packing hall actually loses ---------- */
 interface EventKind {
   asset: string; category: string; sub?: string;
@@ -242,8 +292,8 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
   obs.sort((a, b) => a.startedAt - b.startedAt);
   for (const o of obs) await addObservation(o);
 
-  // ---- the walk: footage, stills, pinned snags ----
-  note('drawing the line…');
+  // ---- the walk: footage (REAL when provided), stills, pinned snags ----
+  note('preparing the walk footage…');
   const walkAssets = [
     { name: 'Flow wrapper', accent: '#2b87d4' },
     { name: 'Multihead weigher', accent: '#2f9e52' },
@@ -251,20 +301,46 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
     { name: 'Checkweigher', accent: '#12958f' },
     { name: 'Case packer', accent: '#5e7dd8' },
   ];
-  const { videoKey, posterKey, durationS } = await recordWalkVideo(walkAssets, note);
+  const real = await fetchRealFootage();
+  let videoKey: string; let posterKey: string | undefined; let durationS: number;
+  const assetStamp = new Map<string, number>();
+  const stillKeys = new Map<string, string>();
+  if (real) {
+    note('freezing stills from the real footage…');
+    videoKey = `blob-${uid()}`;
+    await putBlob(videoKey, real);
+    const meta = await readVideoMeta(real).catch(() => ({ duration: 30, width: 0, height: 0 }));
+    durationS = meta.duration || 30;
+    for (let i = 0; i < walkAssets.length; i++) {
+      const t = Math.max(0.5, durationS * (0.1 + i * (0.8 / walkAssets.length)));
+      assetStamp.set(walkAssets[i].name, t);
+      try {
+        const key = `blob-${uid()}`;
+        await putBlob(key, await frameFromVideo(real, t, walkAssets[i].name));
+        stillKeys.set(walkAssets[i].name, key);
+      } catch { stillKeys.set(walkAssets[i].name, await makeStill(walkAssets[i].name, walkAssets[i].accent)); }
+    }
+    try { posterKey = `blob-${uid()}`; await putBlob(posterKey, await frameFromVideo(real, Math.min(1, durationS * 0.05), 'Packing hall — line walk')); } catch { posterKey = undefined; }
+  } else {
+    const rec = await recordWalkVideo(walkAssets, note);
+    videoKey = rec.videoKey; posterKey = rec.posterKey; durationS = rec.durationS;
+    for (let i = 0; i < walkAssets.length; i++) {
+      assetStamp.set(walkAssets[i].name, 1.5 + i * 2.3);
+      stillKeys.set(walkAssets[i].name, await makeStill(walkAssets[i].name, walkAssets[i].accent));
+    }
+  }
   const segId = uid();
   const walkAt = now - 2 * DAY;
   await addSegment({ id: segId, workspaceId: ws.id, sequence: 0, name: 'Packing hall — line walk', videoKey, posterKey, durationS, createdAt: walkAt, updatedAt: walkAt });
 
   note('pinning the snags…');
   const assetIds = new Map<string, string>();
-  for (let i = 0; i < walkAssets.length; i++) {
-    const a = walkAssets[i];
+  for (const a of walkAssets) {
     const id = uid();
     assetIds.set(a.name, id);
     const asset: SnagAsset = {
-      id, workspaceId: ws.id, segmentId: segId, timestampS: 1.5 + i * 2.3,
-      name: a.name, stillKey: await makeStill(a.name, a.accent), createdAt: walkAt, updatedAt: walkAt,
+      id, workspaceId: ws.id, segmentId: segId, timestampS: assetStamp.get(a.name) ?? 2,
+      name: a.name, stillKey: stillKeys.get(a.name)!, createdAt: walkAt, updatedAt: walkAt,
     };
     await addSnagAsset(asset);
   }

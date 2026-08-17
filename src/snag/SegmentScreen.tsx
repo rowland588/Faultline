@@ -244,7 +244,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         )}
       </div>
 
-      <div className="card">
+      <div className="card" data-tour="asset-lines">
         <div className="field-label" style={{ marginBottom: 8 }}>Assets in this segment</div>
         {assets.length === 0 ? <p className="sub">None yet — scrub to a machine, pause, tap “Mark asset”.</p>
           : assets.map(a => (

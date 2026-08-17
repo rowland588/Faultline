@@ -79,7 +79,7 @@ export function LineBoard({ present = false }: { present?: boolean }) {
           <div className="chart-caption">
             Loss by <b>asset</b> — time lost <i>and</i> how often<span className="chart-hint"> · tap a bar to walk into it</span>
           </div>
-          <div className="chart-card">
+          <div className="chart-card" data-tour="line-chart">
             <ParetoChart slices={assetSlices} color={workspace.color} rankLabel="cumulative time" onDrill={goAsset} canDrill />
           </div>
         </>

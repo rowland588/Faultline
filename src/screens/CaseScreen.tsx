@@ -246,7 +246,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   return (
     <div className="wrap case-root print-root">
       <div className="subhead no-print">
-        <button className="btn btn-ghost" onClick={() => goBack(`/w/${workspace.id}/analyse`)}>‹ Back</button>
+        <button className="btn btn-ghost" data-tour="case-back" onClick={() => goBack(`/w/${workspace.id}/analyse`)}>‹ Back</button>
         <div style={{ flex: 1 }} />
         <button className="btn" onClick={() => window.print()}>Print A3</button>
         {kase.status === 'open'
@@ -332,7 +332,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       </section>
 
       {/* ── why it happens (the 5-Whys chain) ── */}
-      <section className="case-box">
+      <section className="case-box" data-tour="whys">
         <h2 className="case-box-h">Why it happens</h2>
         <WhyChain whys={kase.whys ?? []} onChange={w => void mutateCase({ whys: w.length ? w : undefined })} />
       </section>
@@ -385,7 +385,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       </section>
 
       {/* ── the proof: re-measure the same thing, the same way ── */}
-      <section className="case-box">
+      <section className="case-box" data-tour="proof">
         <h2 className="case-box-h">The proof</h2>
         <ProofBox kase={kase} scopedCount={scoped.length} result={studyResult(kase, scoped)}
           costable={costable} factor={factor} onChange={mutateCase} />

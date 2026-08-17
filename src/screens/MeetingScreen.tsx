@@ -235,7 +235,7 @@ export function MeetingScreen() {
           {live.length === 0 && snags.length === 0 ? (
             <p className="meet-empty">Nothing logged yet. Capture losses or walk the line — the meeting builds itself from what the team records.</p>
           ) : (
-            <div className="meet-grid">
+            <div className="meet-grid" data-tour="meet-grid">
               <button className="meet-tile mt-number" onClick={() => setAct(1)}>
                 <span className="mt-eyebrow">1 · The number</span>
                 <span className="mt-big">{money(ms)}</span>
