@@ -41,6 +41,37 @@ export function caseNowMsWeek(scopedWeeklyMs: { start: number; ms: number; curre
   return recent.length ? recent.reduce((a, w) => a + w.ms, 0) / recent.length : 0;
 }
 
+/** The 5-Whys chain. Each line is a "because…"; the LAST filled line wears the
+ *  ROOT CAUSE badge. Edit any line; clear a line to drop it. The floor's
+ *  action composer asks WHAT to do — this box asks WHY it happens. */
+function WhyChain({ whys, onChange }: { whys: string[]; onChange: (w: string[]) => void }) {
+  const rows = whys.length < 5 ? [...whys, ''] : [...whys];
+  const commit = (i: number, raw: string) => {
+    const next = [...whys];
+    const v = raw.trim();
+    if (i < next.length) { if (v) next[i] = v; else next.splice(i, 1); }
+    else if (v) next.push(v);
+    if (JSON.stringify(next) !== JSON.stringify(whys)) onChange(next);
+  };
+  const lastFilled = whys.length - 1;
+  return (
+    <div>
+      {rows.map((w, i) => (
+        <div key={`${i}-${w}`} className="why-row">
+          <span className="why-n">{i + 1}</span>
+          <span className="why-word">Why?</span>
+          <input className="text-input why-input no-print" defaultValue={w} maxLength={200}
+            placeholder={i === 0 ? 'Because… (start the chain)' : 'Because…'}
+            onBlur={e => commit(i, e.target.value)} />
+          {w ? <span className="print-only">{w}</span> : null}
+          {i === lastFilled && w ? <span className="why-root">ROOT CAUSE</span> : null}
+        </div>
+      ))}
+      <p className="sub no-print" style={{ marginTop: 4 }}>Keep asking until it stops answering — the last line is what the countermeasures must kill.</p>
+    </div>
+  );
+}
+
 /** The confirmation study, in its three states: not armed (the lab sheet),
  *  collecting (progress + live means), called (the verdict — the receipt).
  *  All arithmetic comes from lib/proof so no screen can disagree with it. */
@@ -300,9 +331,18 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         </button>
       </section>
 
+      {/* ── why it happens (the 5-Whys chain) ── */}
+      <section className="case-box">
+        <h2 className="case-box-h">Why it happens</h2>
+        <WhyChain whys={kase.whys ?? []} onChange={w => void mutateCase({ whys: w.length ? w : undefined })} />
+      </section>
+
       {/* ── countermeasures ── */}
       <section className="case-box">
         <h2 className="case-box-h">Countermeasures — {openMine.length} open · {closedMine.length} closed</h2>
+        {kase.whys?.length ? (
+          <p className="case-root">Aimed at the root cause: <b>{kase.whys[kase.whys.length - 1]}</b></p>
+        ) : null}
         {mine.length === 0 && <p className="sub">No actions on this case yet. Raise the first one below.</p>}
         {mine.map(s => (
           <div key={s.id} className={'meet-action case-action' + (isOverdue(s) ? ' over' : '') + (s.status === 'closed' ? ' done' : '')}>

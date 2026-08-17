@@ -9,13 +9,15 @@ import type { Route } from '../state/useRoute';
 import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { useSyncedAt } from '../cloud/session';
-import { listCases, addCase } from '../db';
+import { listCases, listSegments, addCase } from '../db';
 import { uid } from '../lib/ids';
 import { applyDrill, drillNode, pushDrill } from '../engine/drill';
 import { buildCompare, divergenceTags } from '../engine/compare';
 import { DIM_LABEL } from '../engine/types';
 import { weeklyLoss } from '../lib/stats';
-import { scopeLabel, caseNowMsWeek } from './CaseScreen';
+import { studyResult } from '../lib/proof';
+import { freshness, agoWord } from '../lib/gemba';
+import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
 import type { Case, Measure, DrillPath } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { LineBoard } from './LineBoard';
@@ -74,17 +76,57 @@ export function AnalyseScreen({ route }: { route: Route }) {
   const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
 
   const [cases, setCases] = useState<Case[]>([]);
+  const [walkTimes, setWalkTimes] = useState<number[]>([]);
+  const [winsOpen, setWinsOpen] = useState(false);
   const syncedAt = useSyncedAt();
-  useEffect(() => { void listCases(workspace.id).then(setCases); }, [workspace.id, syncedAt]);
+  useEffect(() => {
+    void listCases(workspace.id).then(setCases);
+    void listSegments(workspace.id).then(s => setWalkTimes(s.map(x => x.createdAt)));
+  }, [workspace.id, syncedAt]);
   const openCases = cases.filter(c => c.status === 'open');
 
   const samePath = (a: DrillPath, b: DrillPath) =>
     a.length === b.length && a.every((s, i) => s.dimension === b[i].dimension && s.value === b[i].value);
 
-  if (!view) return (
+  if (!view) {
+    const live = observations.filter(o => o.deletedAt == null);
+    const fr = freshness(live, walkTimes);
+    const costableB = hasCost(workspace);
+    const factorB = costPerMs(workspace);
+    const perYr = (msWeek: number) => (costableB ? `${fmtGBP(msWeek * factorB * 52)}/yr` : `${fmtHrs(msWeek * 52)}/yr`);
+    const dn = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    // the trophy shelf: cases whose study was CALLED and showed a real reduction
+    const wins = cases
+      .map(c => (c.study?.closedAt ? { c, r: studyResult(c, applyDrill(observations, workspace.id, c.path)) } : null))
+      .filter((x): x is { c: Case; r: NonNullable<ReturnType<typeof studyResult>> } =>
+        !!x && !!x.r && (x.r.changePct ?? 0) < 0 && (x.r.savedMsWeek ?? 0) > 0);
+    const totalSavedWk = wins.reduce((a, w) => a + (w.r.savedMsWeek ?? 0), 0);
+    return (
     <div className="wrap analyse board" data-tour="board">
       <p className="eyebrow">The line</p>
       <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
+      {/* the honesty meter: silence at the gemba, made visible */}
+      {(live.length > 0 || walkTimes.length > 0) && (
+        <div className={'gemba gm-' + fr.level}>
+          <span aria-hidden>👁</span>
+          <span>Eyes on the line: observed <b>{agoWord(fr.daysSinceObs)}</b> · walked <b>{agoWord(fr.daysSinceWalk)}</b>
+            {fr.level !== 'fresh' && <> — this board is only as honest as the last visit. <b>Go and see.</b></>}</span>
+        </div>
+      )}
+      {/* the trophy shelf: proof that the loop pays — what keeps a CI habit alive */}
+      {wins.length > 0 && (
+        <div className="wins-shelf">
+          <button className="wins-head" onClick={() => setWinsOpen(o => !o)}>
+            <span aria-hidden>🏆</span> <b>{perYr(totalSavedWk)}</b>&nbsp;proven recovered · {plural(wins.length, 'win')} <span className="wins-caret">{winsOpen ? '▾' : '›'}</span>
+          </button>
+          {winsOpen && wins.map(({ c, r }) => (
+            <button key={c.id} className="win-row" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
+              <span className="win-title">✓ {c.title}</span>
+              <span className="win-meta">{fmtMean(r.beforeMeanMs)} → {fmtMean(r.afterMeanMs)} per event · {perYr(r.savedMsWeek ?? 0)} · proven {dn(c.study!.closedAt!)}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {openCases.length > 0 && (
         <div className="cases-strip">
           {openCases.map(c => {
@@ -101,7 +143,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
       )}
       <LineBoard />
     </div>
-  );
+    );
+  }
   if (!node) return null;
 
   const existing = view.path.length > 0 ? openCases.find(c => samePath(c.path, view.path)) : undefined;

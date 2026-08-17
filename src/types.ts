@@ -147,6 +147,10 @@ export interface Case {
   title: string;         // the problem, in the team's words
   path: DrillPath;       // the saved scope — which slice of the data it watches
   note?: string;         // one-line background, optional
+  /** The 5-Whys chain — each entry a "because…"; the LAST one is the root
+   *  cause. The floor's action composer asks WHAT to do; this asks WHY it
+   *  happens — different altitudes, and the A3's Analysis box needs both. */
+  whys?: string[];
   study?: CaseStudy;     // the proof phase — see above
   /** Weekly loss when the Case opened (avg of the 4 full weeks before) —
    *  auto-filled from data, never typed. The honest "before". */

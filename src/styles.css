@@ -1279,3 +1279,27 @@ button { font-family: inherit; }
 /* the prize line — the consultant's whiteboard arithmetic, live */
 .prize-line { display: flex; align-items: baseline; gap: 10px; background: color-mix(in srgb, var(--ok) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); border-radius: 12px; padding: 11px 14px; margin-top: 12px; font-size: 14px; line-height: 1.45; }
 .prize-ic { flex: none; }
+
+/* ═══════════ CI strength: eyes on the line, wins, the why-chain ═══════════ */
+.gemba { display: flex; align-items: baseline; gap: 8px; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); }
+.gemba.gm-fading { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); }
+.gemba.gm-stale { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 7%, var(--surface)); }
+.meet-gemba { font-size: clamp(13px, 1.15vw, 16px); color: var(--chrome-muted); margin: -6px 0 14px; }
+.meet-gemba.gm-fading b:last-child { color: var(--warn); }
+.meet-gemba.gm-stale b:last-child { color: var(--danger); }
+
+.wins-shelf { margin-bottom: 12px; }
+.wins-head { display: inline-flex; align-items: baseline; gap: 6px; background: color-mix(in srgb, var(--ok) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent); border-radius: 999px; padding: 9px 14px; cursor: pointer; font: inherit; font-size: 13.5px; color: var(--ink); }
+.wins-head b { color: var(--ok); }
+.wins-caret { color: var(--muted); }
+.win-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 9px 13px; margin-top: 6px; cursor: pointer; font: inherit; color: var(--ink); }
+.win-row:hover { border-color: var(--ok); }
+.win-title { font-weight: 700; font-size: 13.5px; color: var(--ok); }
+.win-meta { font-size: 12px; color: var(--muted); }
+
+.why-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.why-n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font-size: 11px; font-weight: 800; display: grid; place-items: center; font-family: var(--mono); }
+.why-word { flex: none; font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.why-input { flex: 1; }
+.why-root { flex: none; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: var(--ok); border: 1.5px solid var(--ok); border-radius: 6px; padding: 2px 7px; }
+.case-root { font-size: 13px; background: color-mix(in srgb, var(--ok) 7%, var(--surface)); border-left: 3px solid var(--ok); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }

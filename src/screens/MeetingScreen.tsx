@@ -15,7 +15,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack } from '../state/useRoute';
-import { listSnagAssets, snagsForWorkspace, updateSnag, listCases } from '../db';
+import { listSnagAssets, snagsForWorkspace, updateSnag, listCases, listSegments } from '../db';
+import { freshness, agoWord } from '../lib/gemba';
 import { useSyncedAt } from '../cloud/session';
 import { weeklyLoss, categoryTrends, closedEvents, weekStart, type WeekPoint, type CategoryTrend } from '../lib/stats';
 import { buildCompare, divergenceTags } from '../engine/compare';
@@ -110,9 +111,10 @@ export function MeetingScreen() {
   const [cases, setCases] = useState<Case[]>([]);
   const [assetNames, setAssetNames] = useState<Map<string, string>>(new Map());
   const syncedAt = useSyncedAt();
+  const [walkTimes, setWalkTimes] = useState<number[]>([]);
   const loadSnags = async () => {
-    const [sn, as, cs] = await Promise.all([snagsForWorkspace(workspace.id), listSnagAssets(workspace.id), listCases(workspace.id)]);
-    setSnags(sn); setAssetNames(new Map(as.map(a => [a.id, a.name]))); setCases(cs);
+    const [sn, as, cs, segs] = await Promise.all([snagsForWorkspace(workspace.id), listSnagAssets(workspace.id), listCases(workspace.id), listSegments(workspace.id)]);
+    setSnags(sn); setAssetNames(new Map(as.map(a => [a.id, a.name]))); setCases(cs); setWalkTimes(segs.map(s => s.createdAt));
   };
   useEffect(() => { void loadSnags(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
   const mutate = async (s: Snag) => { await updateSnag(s); await loadSnags(); };
@@ -221,6 +223,15 @@ export function MeetingScreen() {
         {/* ═══ Act 0 — THE OVERVIEW BOARD. Every tile is a door. ═══ */}
         <div style={show(0)}>
           <h1 className="present-q meet-q">The meeting · {periodLabel}</h1>
+          {(live.length > 0 || walkTimes.length > 0) && (() => {
+            const fr = freshness(live, walkTimes);
+            return (
+              <p className={'meet-gemba gm-' + fr.level}>
+                👁 Eyes on the line: observed <b>{agoWord(fr.daysSinceObs)}</b> · walked <b>{agoWord(fr.daysSinceWalk)}</b>
+                {fr.level !== 'fresh' && <b> — go and see before you decide.</b>}
+              </p>
+            );
+          })()}
           {live.length === 0 && snags.length === 0 ? (
             <p className="meet-empty">Nothing logged yet. Capture losses or walk the line — the meeting builds itself from what the team records.</p>
           ) : (
@@ -254,7 +265,15 @@ export function MeetingScreen() {
                     {' '}· {plural(closedRecent.length, 'fix', 'fixes')} closed
                   </>}
                 </span>
-                <span className="mt-sub">Green flags on the trend mark the weeks a fix landed.</span>
+                {(() => {
+                  const wins = cases
+                    .map(c => (c.study?.closedAt ? studyResult(c, applyDrill(live, workspace.id, c.path)) : null))
+                    .filter(r => !!r && (r.changePct ?? 0) < 0 && (r.savedMsWeek ?? 0) > 0);
+                  const total = wins.reduce((a, r) => a + (r!.savedMsWeek ?? 0), 0);
+                  return total > 0
+                    ? <span className="mt-sub">🏆 <b className="mt-good">{money(total)}/wk proven recovered all-time</b> · {plural(wins.length, 'win')}</span>
+                    : <span className="mt-sub">Green flags on the trend mark the weeks a fix landed.</span>;
+                })()}
               </button>
               <button className="meet-tile mt-wide" onClick={() => setAct(5)}>
                 <span className="mt-eyebrow">5 · This meeting</span>

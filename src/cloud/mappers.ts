@@ -147,7 +147,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const c = l as Case;
       return { id: c.id, owner_id: c.ownerId ?? fallbackOwner, workspace_id: c.workspaceId,
-        title: c.title, path: c.path, note: c.note ?? null, study: c.study ?? null,
+        title: c.title, path: c.path, note: c.note ?? null, whys: c.whys ?? null, study: c.study ?? null,
         baseline_ms_week: c.baselineMsWeek, target_ms_week: c.targetMsWeek ?? null,
         status: c.status, opened_at: c.openedAt, closed_at: c.closedAt ?? null,
         updated_at: c.updatedAt ?? c.openedAt, deleted_at: c.deletedAt ?? null };
@@ -155,7 +155,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     fromRow: (r) => ({
       id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string,
       title: r.title as string, path: (r.path as Case['path']) ?? [], note: (r.note as string) ?? undefined,
-      study: (r.study as Case['study']) ?? undefined,
+      whys: (r.whys as string[]) ?? undefined, study: (r.study as Case['study']) ?? undefined,
       baselineMsWeek: Number(r.baseline_ms_week) || 0, targetMsWeek: n(r.target_ms_week),
       status: (r.status as Case['status']) ?? 'open', openedAt: Number(r.opened_at), closedAt: n(r.closed_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),

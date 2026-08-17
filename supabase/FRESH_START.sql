@@ -172,6 +172,7 @@ create table public.cases (
   title text not null,
   path jsonb not null default '[]'::jsonb,
   note text,
+  whys jsonb,
   study jsonb,
   baseline_ms_week bigint not null default 0,
   target_ms_week bigint,
