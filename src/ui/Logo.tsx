@@ -6,10 +6,10 @@
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" role="img" aria-label="Faultline" className="logo-mark">
-      <rect width="32" height="32" rx="7" fill="#2b1f18" />
-      <path d="M5 20 L11.5 20" stroke="#f6efe6" strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d="M22 20 L27 20" stroke="#f6efe6" strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d="M11.5 20 L15 8.5 L19 25 L22 20" stroke="#ff7a4d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <rect width="32" height="32" rx="7" fill="#4a3b58" />
+      <path d="M5 20 L11.5 20" stroke="#faf6fd" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <path d="M22 20 L27 20" stroke="#faf6fd" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <path d="M11.5 20 L15 8.5 L19 25 L22 20" stroke="#ff7ba1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }
