@@ -16,6 +16,7 @@ import { cloudConfigured } from '../cloud/client';
 import { InstallPanel } from '../ui/InstallPanel';
 import { startWizard, wizardSeen } from '../ui/Wizard';
 import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
+import { seedDemoWorkspace } from '../lib/demo';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -87,6 +88,18 @@ export function WorkspaceHome() {
   const [name, setName] = useState('');
   const [taxId, setTaxId] = useState(DEFAULT_TAXONOMY_ID);
   const [error, setError] = useState('');
+  const [seeding, setSeeding] = useState<string | null>(null);
+  const seedDemo = async () => {
+    if (seeding) return;
+    setSeeding('starting…');
+    try {
+      const id = await seedDemoWorkspace(setSeeding);
+      nav(`/w/${id}`);
+    } catch (e) {
+      setSeeding(null);
+      setError(e instanceof Error ? e.message : 'Demo seeding failed — try again.');
+    }
+  };
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
 
@@ -153,6 +166,14 @@ export function WorkspaceHome() {
             <span className="cloud-go" aria-hidden>›</span>
           </button>
           <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+          {/* the showcase: a fully seeded workspace for demos — 14 weeks of
+              story-shaped data, cases, a proven study, a walk. Superadmin only:
+              customers never see this button. Delete it like any workspace. */}
+          <button className="admin-row" onClick={() => void seedDemo()} disabled={!!seeding}>
+            <span className="admin-ic" aria-hidden>◈</span>
+            <span className="cloud-main"><b>{seeding ? `Building the demo… ${seeding}` : 'Build the demo workspace'}</b><span className="sub">14 weeks of showcase data — every screen lit</span></span>
+            <span className="cloud-go" aria-hidden>›</span>
+          </button>
         </>
       )}
 

@@ -119,6 +119,22 @@ export function Landing() {
           </button>
         </section>
       </div>
+
+      {/* the proof, moving: a seeded packing hall recorded straight from the
+          product — the board, the drill, a live case, a proven saving, the
+          Monday meeting. Click to play; nothing autoplays at a visitor. */}
+      <section className="landing-demo">
+        <h2 className="landing-demo-h">Watch a week inside Faultline</h2>
+        <p className="sub landing-demo-sub">
+          A packing hall with everything running: where the line bleeds, the drill to the why,
+          a live case with an overdue action, a proven £-saving with its receipt, and the meeting
+          that runs itself. 70 seconds, real screens.
+        </p>
+        <video controls preload="none" playsInline poster="/demo/poster.png">
+          <source src="/demo/demo.webm" type="video/webm" />
+          Your browser can't play this clip — the tour link above tells the same story.
+        </video>
+      </section>
     </div>
   );
 }

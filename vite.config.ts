@@ -42,7 +42,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         // the guide's screenshots and the social share card are first-visit
         // assets, not floor tools — don't make every install download them
-        globIgnores: ['**/guide/**', '**/og.png'],
+        globIgnores: ['**/guide/**', '**/og.png', '**/demo/**'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },
