@@ -1,37 +1,39 @@
-/* Faultline — design system. Neutral, calm, flat. Built for a phone on a loud
-   floor (big targets, high contrast) and a boardroom screen (clean, quiet).
-   Light default + dark. No gradients, no noise — just clear surfaces. */
+/* Faultline — design system. Warm, bright, confident. Cream paper, coral
+   brand, espresso chrome: friendly on a phone on a loud floor (big targets,
+   high contrast — every token pairing checked), assured on a boardroom
+   screen. Light default + a warm dark. Flat surfaces, no noise. */
 
 :root {
-  --bg: #f5f8fc;
-  --surface: #ffffff;
-  --surface-2: #ecf1f8;
-  --ink: #12233b;
-  --ink-2: #3b4c63;
-  --muted: #6d7f96;
-  --line: #dbe4f0;
-  /* brand — crisp blue. --accent is the READABLE blue (text/links); --brand is
-     the fill (buttons, live, the mark); --on-brand is text on blue. Green says
-     "good", light orange is reserved for the fault that matters. */
-  --accent: #1d4ed8;      /* blue-700 — readable brand text on light */
-  --accent-soft: #e8effc; /* blue wash */
-  --accent-rgb: 37, 99, 235;
-  --brand: #2563eb;       /* blue-600 — fills */
-  --brand-2: #1d4ed8;     /* blue-700 — hover/pressed */
-  --on-brand: #ffffff;    /* white — text on blue fills */
-  /* chrome — the deep-navy cockpit frame (top bar + tab bar), light & dark */
-  --chrome: #0f2440;
-  --chrome-2: #18355c;
-  --chrome-ink: #eef3fa;
-  --chrome-muted: #8fa5c2;
-  --chrome-line: #23436e;
-  --ok: #0e9f6e;
-  --warn: #c2660a;        /* the light-orange family, kept readable on white */
-  --danger: #dc4a3d;
-  --freq: #5b6b84;        /* frequency series — a slate that pairs with any workspace hue */
+  --bg: #faf5ee;          /* warm paper */
+  --surface: #fffdf9;
+  --surface-2: #f3ebdf;
+  --ink: #33271d;         /* warm espresso — reads soft, measures high-contrast */
+  --ink-2: #5d4f42;
+  --muted: #8a7a6a;
+  --line: #eadfcf;
+  /* brand — confident coral (the logo's spike, promoted). --accent is the
+     READABLE coral (text/links, ≥4.5:1 on paper); --brand is the fill
+     (buttons, live, the mark); --on-brand is text on coral. Sage says
+     "good"; honey warns; the warm red is reserved for what's overdue. */
+  --accent: #bc4a1e;      /* readable coral on cream */
+  --accent-soft: #fbe8dc; /* coral wash */
+  --accent-rgb: 217, 78, 47;
+  --brand: #d94e2f;       /* coral — fills */
+  --brand-2: #bc4425;     /* pressed/hover */
+  --on-brand: #ffffff;
+  /* chrome — the espresso cockpit frame (top bar, tab bar, the meeting room) */
+  --chrome: #2b1f18;
+  --chrome-2: #3d2c21;
+  --chrome-ink: #f6efe6;
+  --chrome-muted: #c0a892;
+  --chrome-line: #4b3728;
+  --ok: #2e7d4f;          /* sage — readable on paper */
+  --warn: #a86407;        /* honey, kept readable on cream */
+  --danger: #c94434;      /* warm red */
+  --freq: #857665;        /* frequency series — warm taupe, pairs with any workspace hue */
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(20, 27, 38, 0.04), 0 8px 24px rgba(20, 27, 38, 0.06);
+  --shadow: 0 1px 2px rgba(51, 39, 29, 0.05), 0 8px 24px rgba(51, 39, 29, 0.07);
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --tap: 48px;            /* minimum touch target */
@@ -39,27 +41,28 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c1523;
-    --surface: #142031;
-    --surface-2: #1c2a3e;
-    --ink: #e9eef7;
-    --ink-2: #b7c2d3;
-    --muted: #8595ab;
-    --line: #263650;
-    --accent: #7aa8ff;      /* readable blue on dark */
-    --accent-soft: #16263f;
-    --accent-rgb: 96, 165, 250;
-    --brand: #3b82f6;
-    --brand-2: #60a5fa;
+    --bg: #171210;        /* warm dark — espresso, not navy */
+    --surface: #211913;
+    --surface-2: #2b211a;
+    --ink: #f2e9df;
+    --ink-2: #cfc0b1;
+    --muted: #a08f7d;
+    --line: #382b21;
+    --accent: #f19a70;      /* readable coral on dark */
+    --accent-soft: #33231a;
+    --accent-rgb: 226, 87, 60;
+    --brand: #d94e2f;
+    --brand-2: #ee7047;
     --on-brand: #ffffff;
-    --chrome: #081120;      /* near-black navy chrome, recedes under the content */
-    --chrome-2: #13233a;
-    --chrome-ink: #eef3fa;
-    --chrome-muted: #8fa5c2;
-    --chrome-line: #1f3450;
-    --ok: #34d399;
-    --warn: #f0a44b;
-    --freq: #8ea0bd;
+    --chrome: #100b08;      /* near-black espresso, recedes under the content */
+    --chrome-2: #241a13;
+    --chrome-ink: #f6efe6;
+    --chrome-muted: #b8a28c;
+    --chrome-line: #3a2b1f;
+    --ok: #5bc98d;
+    --warn: #edad55;
+    --danger: #f0806e;
+    --freq: #a3937f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
   }
 }
@@ -1202,7 +1205,7 @@ button { font-family: inherit; }
 .meet-copy { margin-top: 14px; }
 
 /* the agenda rail — fixed, always one tap from anywhere */
-.meet-rail { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 6px; background: rgba(8, 17, 32, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; padding: 6px; z-index: 50; max-width: calc(100vw - 16px); overflow-x: auto; }
+.meet-rail { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 6px; background: rgba(24, 16, 11, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; padding: 6px; z-index: 50; max-width: calc(100vw - 16px); overflow-x: auto; }
 .mr-step { display: flex; align-items: center; gap: 7px; background: none; border: none; color: var(--chrome-muted); font: inherit; font-weight: 800; font-size: 14px; padding: 8px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
 .mr-step.on { background: var(--accent); color: #fff; }
 .mr-lbl { font-size: 12px; font-weight: 700; }
