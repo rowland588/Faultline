@@ -1312,3 +1312,22 @@ button { font-family: inherit; }
 
 /* the guided-demo replay pill on the demo board */
 .demo-tour-pill { margin-bottom: 12px; border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+
+/* ═══ mobile audit fixes ═══ */
+/* the Case header is its own layout — the report screen's flex header was
+   crushing the title against the right-aligned meta on phones */
+.case-root .report-head { display: block; border-bottom: 2px solid var(--ink); }
+.case-root .report-meta { text-align: left; font-size: 13px; margin-top: 4px; line-height: 1.45; }
+.case-title { font-size: clamp(20px, 5.5vw, 26px); }
+/* wizard card: never squash the footer; count instead of dots on phones */
+.wiz-skip { white-space: nowrap; }
+.wiz-count { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+@media (max-width: 480px) {
+  .wiz-dots { display: none; }
+  .wiz-card { width: min(342px, calc(100vw - 16px)); }
+}
+/* the meeting rail must never sit on the content */
+@media (max-width: 720px) {
+  .meet-body { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+}

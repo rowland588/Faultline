@@ -264,6 +264,9 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
           const arc = k.arc?.(d) ?? {};
           let w = arc.weight ?? k.weight;
           if (sh.name === 'Nights' && k.nightsX) w *= k.nightsX;
+          // the programme is WORKING: older weeks run heavier, recent weeks
+          // lighter, so the trend (and the meeting's headline) reads down
+          w *= 1 + 0.24 * ((d - 49) / 49);
           return w;
         });
         const total = weights.reduce((a, b) => a + b, 0);

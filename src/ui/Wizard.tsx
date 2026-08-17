@@ -97,7 +97,13 @@ export function Wizard() {
     let scrolled = false;
     const find = () => {
       const el = step.target ? document.querySelector(`[data-tour="${step.target}"]`) : null;
-      if (el && !scrolled) { scrolled = true; el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      if (el && !scrolled) {
+        scrolled = true;
+        // a target taller than the screen scrolls to its TOP — centering a huge
+        // element shows its middle, which reads as random content
+        const tall = el.getBoundingClientRect().height > window.innerHeight * 0.6;
+        el.scrollIntoView({ block: tall ? 'start' : 'center', behavior: 'smooth' });
+      }
       setRect(el ? el.getBoundingClientRect() : null);
     };
     find();
@@ -158,7 +164,7 @@ export function Wizard() {
     const fitsAbove = rect.top - PAD - 12 - 220 > 0;
     if (fitsBelow) style.top = below;
     else if (fitsAbove) style.bottom = window.innerHeight - rect.top + PAD + 12;
-    else style.bottom = 16; // huge target — keep the card reachable
+    else style.bottom = window.innerWidth <= 680 ? 88 : 16; // huge target — reachable, clear of the tab bar
     style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 330));
   }
 
@@ -174,6 +180,7 @@ export function Wizard() {
         <p className="wiz-body">{step.body}</p>
         <div className="wiz-foot">
           <button className="linkish wiz-skip" onClick={close}>Skip the tour</button>
+          <span className="wiz-count" aria-hidden>{i + 1}/{steps.length}</span>
           <span className="wiz-dots" aria-label={`Step ${i + 1} of ${steps.length}`}>
             {steps.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}
           </span>
