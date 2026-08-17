@@ -148,13 +148,17 @@ export function Wizard() {
   const last = i === steps.length - 1;
   const doIt = step.advance !== 'next';
 
-  // tooltip placement: under the spotlight if it fits, else above, else centered
+  // tooltip placement: under the spotlight if it fits, above if THAT fits —
+  // and when the target is taller than the screen (a whole board), pin the
+  // card to the bottom of the viewport instead of computing it off-screen.
   const style: React.CSSProperties = {};
   if (rect) {
     const below = rect.bottom + PAD + 12;
     const fitsBelow = below + 220 < window.innerHeight;
-    style.top = fitsBelow ? below : undefined;
-    style.bottom = fitsBelow ? undefined : Math.max(12, window.innerHeight - rect.top + PAD + 12);
+    const fitsAbove = rect.top - PAD - 12 - 220 > 0;
+    if (fitsBelow) style.top = below;
+    else if (fitsAbove) style.bottom = window.innerHeight - rect.top + PAD + 12;
+    else style.bottom = 16; // huge target — keep the card reachable
     style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 330));
   }
 

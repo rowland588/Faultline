@@ -29,43 +29,33 @@ export const DEMO_TOUR: WStep[] = [
     advance: 'click',
   },
   {
-    target: 'cases', title: 'The open problems',
-    body: 'Each pin is a Case — one problem being worked, with its own page: baseline, target, root cause, actions, proof. The arrow shows how it\'s moving against its baseline right now.',
-    advance: 'next',
-  },
-  {
-    target: 'line-chart', title: 'Ask why — tap the tallest bar',
-    body: 'The board answers "where?"; the drill answers "why?". Tap the tallest bar to walk into that machine.',
-    advance: { route: /\/analyse\?.*path=/ },
-  },
-  {
-    target: 'prize', title: 'The prize line',
-    body: 'At every level of the drill, the same sentence a consultant would scribble on a whiteboard: what this problem runs at per week — and what halving it would recover per year. Computed only from full weeks of data; never a guess.',
-    advance: 'next',
-  },
-  {
-    target: 'case-cta', title: 'Make it a Case — tap it',
-    body: 'One tap turns the drill position into a Case: the baseline is measured from the last four weeks, the target defaults to the prize. This drill already has one — open it.',
+    target: 'cases', title: 'The open problems — tap the Allergen one',
+    body: 'Each pin is a Case — one problem being worked. The arrow shows how it\'s moving against its measured baseline right now. Tap the Allergen changeovers chip to open its page.',
     advance: { route: /\/case\// },
   },
   {
     target: 'whys', title: 'Why, until it stops answering',
-    body: 'The 5-Whys chain — the floor asks WHAT to do; this page asks WHY it happens. The last line wears the root-cause badge, and the actions below aim at it.',
+    body: 'The 5-Whys chain — the floor asks WHAT to do; this page asks WHY it happens. The last line wears the root-cause badge, and the countermeasures below aim at it.',
     advance: 'next',
   },
   {
     target: 'proof', title: 'The receipt',
-    body: 'The confirmation study: re-measure the same scope the same way, compare the average per event, both sample sizes shown. It can say ✓ PROVEN or ✗ NO IMPROVEMENT — a proof that can\'t say no proves nothing. This is what the FD believes.',
+    body: 'The confirmation study: re-measure the same scope the same way, compare the average per event, both sample sizes shown. It can say ✓ PROVEN or ✗ NO IMPROVEMENT — a proof that can\'t say no proves nothing. This one is still collecting on Capture.',
     advance: 'next',
   },
   {
     target: 'case-back', title: 'Step back out — tap ‹ Back',
-    body: 'Navigation rule of the whole app: every level has one way in and one way back out. Tap Back and you land exactly where you drilled from.',
+    body: 'Navigation rule of the whole app: every level has one way in and one way back out. Tap Back and you land exactly where you came from.',
     advance: { route: /\/analyse/ },
   },
   {
-    target: 'tab-snags', title: 'Now the camera world — tap Snags',
-    body: 'Numbers were half the story. The other half: film the line, pin the faults ON the footage. Tap Snags.',
+    target: 'line-chart', title: 'Ask why — tap the tallest bar',
+    body: 'The board answers "where?"; the drill answers "why?". Tap the tallest bar to walk into that machine — and keep tapping to go deeper: kind of problem, then even which shift.',
+    advance: { route: /\/analyse\?.*path=/ },
+  },
+  {
+    target: 'prize', title: 'The prize line',
+    body: 'At every drill level, the consultant\'s whiteboard sentence: what this runs at per week — and what halving it recovers per year. From here, ⚑ raises an action and 📌 opens a Case with the prize as its target. Tap Snags on the tab bar when you\'re ready.',
     advance: { route: /\/(snags|segment|asset|snaglist|walk)/ },
   },
   {

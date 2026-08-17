@@ -16,7 +16,7 @@ import { cloudConfigured } from '../cloud/client';
 import { InstallPanel } from '../ui/InstallPanel';
 import { startWizard, wizardSeen } from '../ui/Wizard';
 import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
-import { seedDemoWorkspace } from '../lib/demo';
+import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 import { DEMO_TOUR } from '../lib/demoTour';
 
 /* An installed PWA keeps serving its cached shell until the service worker
@@ -94,6 +94,10 @@ export function WorkspaceHome() {
     if (seeding) return;
     setSeeding('starting…');
     try {
+      // REBUILD, never duplicate: any existing demo workspace goes first (the
+      // delete cascades and syncs to every device, same as any delete).
+      const existing = (await listWorkspaces()).filter(w => w.name === DEMO_NAME);
+      for (const w of existing) { setSeeding('removing the old demo…'); await deleteWorkspace(w.id); }
       const id = await seedDemoWorkspace(setSeeding);
       nav(`/w/${id}/analyse`);
       // straight into the guided demo — the immersive manual, not a slideshow
@@ -174,7 +178,7 @@ export function WorkspaceHome() {
               customers never see this button. Delete it like any workspace. */}
           <button className="admin-row" onClick={() => void seedDemo()} disabled={!!seeding}>
             <span className="admin-ic" aria-hidden>◈</span>
-            <span className="cloud-main"><b>{seeding ? `Building the demo… ${seeding}` : 'Build the demo workspace'}</b><span className="sub">14 weeks of showcase data — every screen lit</span></span>
+            <span className="cloud-main"><b>{seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace'}</b><span className="sub">14 weeks of showcase data — replaces any existing demo</span></span>
             <span className="cloud-go" aria-hidden>›</span>
           </button>
         </>
