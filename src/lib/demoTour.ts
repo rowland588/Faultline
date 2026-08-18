@@ -15,7 +15,7 @@ export const DEMO_TOUR: WStep[] = [
   },
   {
     target: 'board', title: 'The line, in pounds',
-    body: 'This is the board — where every demo starts. Each bar is a machine; green is time lost (with its £), slate is how often. Everything on this screen updates the moment anyone on the floor logs anything.',
+    body: 'This is the board — where every demo starts. Each bar is a machine, sized by time lost with its £. The chips above the chart switch the view: frequency, or both side by side. Everything updates the moment anyone on the floor logs anything.',
     advance: 'next',
   },
   {

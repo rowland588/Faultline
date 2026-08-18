@@ -459,9 +459,20 @@ button { font-family: inherit; }
 .pk-ev-lens { fill: var(--ink); }
 .pk-ev-ct { fill: var(--surface); font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-.pk-leg-t { fill: var(--muted); font-size: 10px; font-weight: 700; }
-.pk-leg-line { opacity: 0.85; }
 .pk-foot { fill: var(--muted); font-size: 8px; font-weight: 600; opacity: 0.8; }
+
+/* the measure picker — the legend you can press (calm rule: one measure of
+   bars at a time; "Both" is the comparison on demand) */
+.pk-picker { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+.pk-pick {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--muted);
+  background: transparent; border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 11px; cursor: pointer;
+}
+.pk-pick.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.pk-sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.pk-sw-freq { background: var(--freq); }
 
 /* rank-by toggle + cost hint */
 .mt-label { font-size: 11px; font-weight: 700; color: var(--muted); padding: 0 8px 0 4px; align-self: center; }
@@ -1254,8 +1265,10 @@ button { font-family: inherit; }
 .proof-stamp.ps-bad { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
 
 /* study chips on Capture — the count climbing while the floor re-measures */
-.study-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.study-chip { text-align: left; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 10px; padding: 9px 12px; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+/* running-study pill on Capture — rides the shared status strip (calm rule) */
+.st-pill.study-chip { border-color: color-mix(in srgb, var(--accent) 40%, transparent); color: var(--ink-2); }
+.st-pill.study-chip b { color: var(--accent); }
+.cap-board-link { display: block; margin: 14px auto 2px; }
 
 /* meeting receipts (Act 4) */
 .meet-receipt { width: 100%; text-align: left; cursor: pointer; font: inherit; }

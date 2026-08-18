@@ -225,7 +225,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
           {hasChart ? (
             <>
               <div className="chart-caption">
-                Every <b>{DIM_LABEL[node.dimension!].toLowerCase()}</b> — time lost <i>and</i> how often — ranked by <b>{rankByFreq ? 'frequency' : 'lost time'}</b>
+                Every <b>{DIM_LABEL[node.dimension!].toLowerCase()}</b>, ranked by <b>{rankByFreq ? 'frequency' : 'lost time'}</b>
                 {slices.length > 1 && <span className="chart-hint"> · tap a bar to drill</span>}
               </div>
               <div className="chart-card">

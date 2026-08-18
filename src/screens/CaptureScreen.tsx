@@ -36,13 +36,14 @@ function StudyChips({ wsId, observations }: { wsId: string; observations: Observ
   if (running.length === 0) return null;
   const live = observations.filter(o => o.deletedAt == null);
   return (
-    <div className="study-chips">
+    <div className="status-strip">
       {running.map(c => {
         const r = studyResult(c, applyDrill(live, wsId, c.path));
         if (!r) return null;
         return (
-          <button key={c.id} className="study-chip" onClick={() => nav(`/w/${wsId}/case/${c.id}`)}>
-            🔬 <b>{c.title}</b> — {r.afterN} of {r.targetN} samples{r.enough ? ' ✓ ready to call' : ''}
+          <button key={c.id} className="st-pill study-chip" onClick={() => nav(`/w/${wsId}/case/${c.id}`)}
+            title={`Confirmation study on ${c.title} — every capture in its scope counts automatically`}>
+            🔬 {c.title} · <b>{r.afterN}/{r.targetN}</b>{r.enough ? ' ✓' : ''}
           </button>
         );
       })}
@@ -293,12 +294,11 @@ export function CaptureScreen() {
         {pending.length > 0 && <p className="sub" style={{ marginTop: 6 }}>{plural(pending.length, 'clip')} ready — attaches to the next log.</p>}
       </div>
 
-      {/* the bridge to the payoff — logging leads somewhere */}
+      {/* the bridge to the payoff — a quiet link; Start timing stays the one
+          loud thing on this screen (the calm rule) */}
       {observations.length > 0 && (
-        <button className="board-cta" onClick={() => nav(`/w/${workspace.id}/analyse`)}>
-          <span className="board-cta-ic" aria-hidden>▤</span>
-          <span className="board-cta-main">See where the line's losing time</span>
-          <span className="board-cta-go" aria-hidden>›</span>
+        <button className="linkish cap-board-link" onClick={() => nav(`/w/${workspace.id}/analyse`)}>
+          ▤ See where the line's losing time ›
         </button>
       )}
 
