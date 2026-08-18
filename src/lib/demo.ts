@@ -145,13 +145,30 @@ async function recordWalkVideo(assets: Array<{ name: string; accent: string }>, 
  * use) at public/demo/footage.mp4 or .webm and the walk uses IT: the video
  * plays in the app and the machine stills are frozen from its real frames,
  * captioned per machine. Without a clip, the drawn line stands in. */
+/** True when THIS browser can actually decode the clip — a fetched file can
+ *  exist yet be unplayable here (e.g. an HEVC phone original), so every
+ *  candidate is proven before it's accepted. */
+function decodable(b: Blob): Promise<boolean> {
+  return new Promise(res => {
+    const url = URL.createObjectURL(b);
+    const v = document.createElement('video');
+    v.muted = true; v.preload = 'metadata'; v.src = url;
+    const done = (ok: boolean) => { URL.revokeObjectURL(url); res(ok); };
+    v.onloadedmetadata = () => done(v.videoWidth > 0);
+    v.onerror = () => done(false);
+    setTimeout(() => done(false), 8000);
+  });
+}
+
 async function fetchRealFootage(): Promise<Blob | null> {
   for (const path of ['/demo/footage.mp4', '/demo/footage.webm']) {
     try {
       const r = await fetch(path);
       if (!r.ok) continue;
-      const b = await r.blob();
-      if (b.size > 50_000) return b.type.startsWith('video') ? b : b.slice(0, b.size, path.endsWith('.mp4') ? 'video/mp4' : 'video/webm');
+      let b = await r.blob();
+      if (b.size <= 50_000) continue;
+      if (!b.type.startsWith('video')) b = b.slice(0, b.size, path.endsWith('.mp4') ? 'video/mp4' : 'video/webm');
+      if (await decodable(b)) return b; // else fall through to the next format
     } catch { /* absent — drawn fallback */ }
   }
   return null;

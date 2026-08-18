@@ -29,8 +29,14 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const still = useBlobUrl(asset?.stillKey);
 
   const load = async () => {
-    const a = await getSnagAsset(assetId);
-    if (!a) { nav(`/w/${wsId}/snags`); return; }
+    let a = await getSnagAsset(assetId);
+    if (!a) {
+      // one transient read miss (heavy writes in flight) must not eject the
+      // user back to the hub — re-read once before concluding it's gone
+      await new Promise(r => setTimeout(r, 400));
+      a = await getSnagAsset(assetId);
+      if (!a) { nav(`/w/${wsId}/snags`); return; }
+    }
     setAsset(a); setSnags(await snagsForAsset(a.id));
     const seg = await getSegment(a.segmentId);
     setVideoKey(seg?.videoKey);
