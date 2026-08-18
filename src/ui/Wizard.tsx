@@ -24,10 +24,14 @@ export interface WStep {
 }
 
 /* The engine runs SCRIPTS. The invitee walkthrough below is the default; the
- * guided demo (lib/demoTour) passes its own — same spotlights, same
- * do-it-on-screen advancing, different story. */
+ * guided demo (lib/demoTour) and the room demo (lib/roomTour) pass their own —
+ * same spotlights, same do-it-on-screen advancing, different story. The room
+ * option renders the cards presentation-sized, readable from across a table. */
 let steps: WStep[] = [];
-export const startWizard = (script?: WStep[]): void => { steps = script ?? STEPS; active = true; emit(); };
+let roomMode = false;
+export const startWizard = (script?: WStep[], opts?: { room?: boolean }): void => {
+  steps = script ?? STEPS; roomMode = !!opts?.room; active = true; emit();
+};
 
 const STEPS: WStep[] = [
   {
@@ -165,11 +169,11 @@ export function Wizard() {
     if (fitsBelow) style.top = below;
     else if (fitsAbove) style.bottom = window.innerHeight - rect.top + PAD + 12;
     else style.bottom = window.innerWidth <= 680 ? 88 : 16; // huge target — reachable, clear of the tab bar
-    style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 330));
+    style.left = Math.max(10, Math.min(rect.left, window.innerWidth - (roomMode ? 440 : 330)));
   }
 
   return (
-    <div className="wiz" role="dialog" aria-label="Guided walkthrough">
+    <div className={'wiz' + (roomMode ? ' wiz-room' : '')} role="dialog" aria-label="Guided walkthrough">
       {rect
         ? <div className="wiz-spot" style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }} />
         : !step.target

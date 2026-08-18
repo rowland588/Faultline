@@ -1324,7 +1324,15 @@ button { font-family: inherit; }
 .landing-demo video { width: 100%; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow); display: block; background: var(--surface); }
 
 /* the guided-demo replay pill on the demo board */
+.demo-pills { display: flex; gap: 8px; flex-wrap: wrap; }
 .demo-tour-pill { margin-bottom: 12px; border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+/* room mode: the same wizard, sized to be read across a table off a projector */
+.wiz-room .wiz-card { width: min(430px, calc(100vw - 20px)); padding: 18px 20px 14px; }
+.wiz-room .wiz-title { font-size: 19px; }
+.wiz-room .wiz-body { font-size: 16px; line-height: 1.5; }
+.wiz-room .wiz-hint { font-size: 13px; }
+.wiz-room .wiz-dots { display: none; } /* 26 dots is noise at room scale — the count carries it */
 
 
 /* ═══ mobile audit fixes ═══ */

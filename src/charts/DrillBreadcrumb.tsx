@@ -8,7 +8,7 @@ export function DrillBreadcrumb({ path, onJump }: {
 }) {
   return (
     <div className="crumbs">
-      <button className={'crumb' + (path.length === 0 ? ' on' : '')} onClick={() => onJump(0)}>All</button>
+      <button className={'crumb' + (path.length === 0 ? ' on' : '')} data-tour="crumb-all" onClick={() => onJump(0)}>All</button>
       {path.map((s, i) => (
         <span key={i} className="crumb-wrap">
           <span className="crumb-sep" aria-hidden>▸</span>

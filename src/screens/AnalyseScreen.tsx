@@ -20,6 +20,7 @@ import { freshness, agoWord } from '../lib/gemba';
 import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
 import { startWizard } from '../ui/Wizard';
 import { DEMO_TOUR } from '../lib/demoTour';
+import { ROOM_TOUR } from '../lib/roomTour';
 import { DEMO_NAME } from '../lib/demo';
 import type { Case, Measure, DrillPath } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
@@ -109,7 +110,12 @@ export function AnalyseScreen({ route }: { route: Route }) {
       <p className="eyebrow">The line</p>
       <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
       {workspace.name === DEMO_NAME && (
-        <button className="chip demo-tour-pill" onClick={() => startWizard(DEMO_TOUR)}>▶ Guided demo — press-this, see-that</button>
+        <div className="demo-pills">
+          <button className="chip demo-tour-pill" onClick={() => startWizard(DEMO_TOUR)}>▶ Guided demo — press-this, see-that</button>
+          {/* the consultant's script: same engine, presentation-sized cards,
+              written to be read aloud to a room */}
+          <button className="chip demo-tour-pill" onClick={() => startWizard(ROOM_TOUR, { room: true })}>🎤 Room demo — present it live</button>
+        </div>
       )}
       {/* ONE quiet status row — the calm rule: signals share a strip, the
           chart is the hero. Each pill expands or navigates on tap. */}
@@ -174,7 +180,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
 
   const goto = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'analyse', m, path, view.dimensionOrder));
   const drill = (key: string) => { if (node.dimension) goto(view.measure, pushDrill(view, key, node.dimension).path); };
-  const jump = (depth: number) => goto(view.measure, view.path.slice(0, depth));
+  // "All" means the line: land back on the board, not a rootless drill view
+  const jump = (depth: number) => { if (depth === 0) nav(`/w/${workspace.id}/analyse`); else goto(view.measure, view.path.slice(0, depth)); };
 
   const rankByFreq = view.measure === 'count';
   const noRows = node.rows.length === 0;
@@ -228,7 +235,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 Every <b>{DIM_LABEL[node.dimension!].toLowerCase()}</b>, ranked by <b>{rankByFreq ? 'frequency' : 'lost time'}</b>
                 {slices.length > 1 && <span className="chart-hint"> · tap a bar to drill</span>}
               </div>
-              <div className="chart-card">
+              <div className="chart-card" data-tour="drill-chart">
                 <ParetoChart
                   slices={slices}
                   color={workspace.color}

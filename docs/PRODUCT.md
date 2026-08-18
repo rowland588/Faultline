@@ -199,7 +199,12 @@ Three parts with distinct jobs — keep them distinct:
   meaningfully changes (scratchpad recorder script; the seam at
   public/demo/footage.mp4 swaps in real factory footage).
 - **The tour teaches** (▶ Guided demo in the seeded workspace): press-this,
-  see-that, on the real product.
+  see-that, on the real product, for a prospect on their own.
+- **The room tour performs** (🎤 Room demo, same wizard engine, `room` mode
+  = presentation-sized cards): the consultant's start-to-finish script ON the
+  live app — every card says what we're about to press and what it will
+  show, then waits for the press. Includes the live log→board beat and the
+  drill-in / asset-Pareto / zoom-back-out choreography.
 - **The script arms the presenter** (docs/DEMO_SCRIPT.md): seven beats with
   the say-this lines, the numbers to have cold, one-breath objection
   answers, and the recovery moves. The live phone-capture beat — a log on
