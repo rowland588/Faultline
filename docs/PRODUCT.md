@@ -188,5 +188,22 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
   rework. Until then the blended £ with the labelled breakdown in Settings
   is the product.
 
+## The demo system (the sales machine, Aug 2026)
+
+Three parts with distinct jobs — keep them distinct:
+
+- **The film sells** (landing page): a directed piece, not a screen
+  recording — title card with the tagline, visible cursor doing real clicks,
+  lower-third captions narrating every beat, punch-in zooms on the payoffs
+  (the prize line, the proven receipt), end card. Re-record whenever the UI
+  meaningfully changes (scratchpad recorder script; the seam at
+  public/demo/footage.mp4 swaps in real factory footage).
+- **The tour teaches** (▶ Guided demo in the seeded workspace): press-this,
+  see-that, on the real product.
+- **The script arms the presenter** (docs/DEMO_SCRIPT.md): seven beats with
+  the say-this lines, the numbers to have cold, one-breath objection
+  answers, and the recovery moves. The live phone-capture beat — a log on
+  the phone moving the big-screen bar — is the wow; never cut it.
+
 Written-down cuts are what stop addon creep when a future session has a clever
 idea. Amend this file first, build second.

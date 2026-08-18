@@ -128,7 +128,7 @@ export function Landing() {
         <p className="sub landing-demo-sub">
           A packing hall with everything running: where the line bleeds, the drill to the why,
           a live case with an overdue action, a proven £-saving with its receipt, and the meeting
-          that runs itself. 70 seconds, real screens.
+          that runs itself. 85 seconds — real screens, real clicks, narrated as it goes.
         </p>
         <video controls preload="none" playsInline poster="/demo/poster.png">
           <source src="/demo/demo.webm" type="video/webm" />
