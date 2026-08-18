@@ -204,15 +204,19 @@ Three parts, each a distinct thing:
   customer room and what a prospect watches in the app. Re-record whenever
   the UI meaningfully changes (scratchpad recorder; the seam at
   public/demo/footage.mp4 swaps in real factory footage).
-- **The landing film** (public/demo/demo.webm): the shorter marketing cut
-  on the landing page — tagline title card, payoff punch-ins, end card.
+- **The landing page plays the SAME film** — one video, everywhere. There
+  is no separate marketing cut (owner decision, Aug 2026: "remove all demos
+  apart from the correct 1").
 - **The script arms the presenter** (docs/DEMO_SCRIPT.md): the beats with
   say-this lines, the numbers to have cold, one-breath objection answers,
   and the recovery moves. The live phone-capture beat — a log on the phone
   moving the big-screen bar — is the wow; never cut it.
 
-The invitee onboarding walkthrough (the wizard) is unrelated to the demo:
-it exists for a real new user's first sign-in, and stays.
+The wizard walkthrough (invitee onboarding + its home-page replay link) was
+REMOVED in the same decision — it read as yet another demo. 📖 the /guide
+page is the how-to now, and it's labelled documentation, never "tour" or
+"demo". The [data-tour] anchors stay in the markup: the film recorder
+scripts target them.
 
 Written-down cuts are what stop addon creep when a future session has a clever
 idea. Amend this file first, build second.

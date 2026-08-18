@@ -120,19 +120,20 @@ export function Landing() {
         </section>
       </div>
 
-      {/* the proof, moving: a seeded packing hall recorded straight from the
-          product — the board, the drill, a live case, a proven saving, the
-          Monday meeting. Click to play; nothing autoplays at a visitor. */}
+      {/* THE demo — the one film, everywhere (owner decision, Aug 2026): the
+          whole app used start to finish, recorded straight from the product,
+          narrated as it goes. Click to play; nothing autoplays at a visitor. */}
       <section className="landing-demo">
-        <h2 className="landing-demo-h">Watch a week inside Faultline</h2>
+        <h2 className="landing-demo-h">Watch the demo</h2>
         <p className="sub landing-demo-sub">
-          A packing hall with everything running: where the line bleeds, the drill to the why,
-          a live case with an overdue action, a proven £-saving with its receipt, and the meeting
-          that runs itself. 85 seconds — real screens, real clicks, narrated as it goes.
+          The whole app, start to finish, in two minutes: a loss logged with the £ counting live,
+          the board it lands on, the drill into the worst machine and back out, a case with its
+          running study, a proven £-saving with its receipt, the filmed walk, and the meeting
+          that runs itself. Real screens, real clicks, explained as it goes.
         </p>
         <video controls preload="none" playsInline poster="/demo/poster.png">
-          <source src="/demo/demo.webm" type="video/webm" />
-          Your browser can't play this clip — the tour link above tells the same story.
+          <source src="/demo/tutorial.webm" type="video/webm" />
+          Your browser can't play this clip — the guide link above tells the same story.
         </video>
       </section>
     </div>

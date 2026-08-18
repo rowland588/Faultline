@@ -11,10 +11,8 @@ import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { useProfile } from '../cloud/admin';
-import { useSyncedAt, useSession } from '../cloud/session';
-import { cloudConfigured } from '../cloud/client';
+import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
-import { startWizard, wizardSeen } from '../ui/Wizard';
 import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 
@@ -107,13 +105,6 @@ export function WorkspaceHome() {
   };
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
-
-  // A new invitee's first sign-in starts the interactive walkthrough — press
-  // here, tap that — once per device. Replayable from the link on this page.
-  const { session } = useSession();
-  useEffect(() => {
-    if (cloudConfigured && session && !wizardSeen()) startWizard();
-  }, [session]);
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
@@ -236,13 +227,9 @@ export function WorkspaceHome() {
         </div>
       )}
 
-      {/* signed-in users need a way to the tour too — for themselves, and to
-          show a colleague what they're being invited into */}
-      <button className="home-guide-link" onClick={() => startWizard()}>
-        ▶ Step-by-step walkthrough — how to use Faultline ›
-      </button>
-      <button className="home-guide-link" style={{ marginTop: 6 }} onClick={() => nav('/guide')}>
-        📖 How Faultline works — the two-minute tour ›
+      {/* documentation, not a demo — THE demo is the film on the demo board */}
+      <button className="home-guide-link" onClick={() => nav('/guide')}>
+        📖 User guide — how Faultline works ›
       </button>
 
       {pendingDel && (

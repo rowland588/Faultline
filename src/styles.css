@@ -702,32 +702,6 @@ button { font-family: inherit; }
 .seg-backup.ok { color: var(--ok); font-weight: 600; }
 .seg-backup.pending { color: var(--muted); }
 
-/* ---------- the interactive walkthrough (press here, tap that) ---------- */
-.wiz { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
-.wiz-dim { position: absolute; inset: 0; background: rgba(10, 22, 40, 0.62); }
-/* the spotlight: a hole in the dark, cut around the REAL control */
-.wiz-spot {
-  position: fixed; border-radius: 12px; pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(10, 22, 40, 0.62), 0 0 0 3px var(--brand);
-  transition: all 0.25s ease;
-}
-.wiz-card {
-  position: fixed; pointer-events: auto; width: min(320px, calc(100vw - 20px));
-  background: var(--surface); border-radius: 14px; padding: 14px 15px 11px;
-  box-shadow: 0 18px 50px rgba(33, 55, 76, 0.25);
-}
-/* no spotlight to anchor to (mid-action, or the closing card): sit at the
-   bottom edge, out of the way of whatever the user is doing */
-.wiz-card.wiz-center { left: 50%; bottom: 16px; transform: translateX(-50%); }
-.wiz-title { font-weight: 800; font-size: 15.5px; margin-bottom: 6px; }
-.wiz-body { color: var(--ink-2); font-size: 13.3px; line-height: 1.55; margin: 0 0 10px; }
-.wiz-foot { display: flex; align-items: center; gap: 10px; }
-.wiz-skip { color: var(--muted); font-size: 12px; }
-.wiz-dots { flex: 1; display: flex; justify-content: center; gap: 4px; }
-.wiz-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
-.wiz-dots i.on { background: var(--brand); }
-.wiz-hint { margin-top: 8px; color: var(--brand); font-size: 11.5px; font-weight: 700; text-align: center; }
-
 /* ---------- actions raised from the Pareto board ---------- */
 .action-form { margin-top: 10px; }
 .action-raised {
@@ -1345,13 +1319,6 @@ button { font-family: inherit; }
 .case-root .report-head { display: block; border-bottom: 2px solid var(--ink); }
 .case-root .report-meta { text-align: left; font-size: 13px; margin-top: 4px; line-height: 1.45; }
 .case-title { font-size: clamp(20px, 5.5vw, 26px); }
-/* wizard card: never squash the footer; count instead of dots on phones */
-.wiz-skip { white-space: nowrap; }
-.wiz-count { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
-@media (max-width: 480px) {
-  .wiz-dots { display: none; }
-  .wiz-card { width: min(342px, calc(100vw - 16px)); }
-}
 /* the meeting rail must never sit on the content */
 @media (max-width: 720px) {
   .meet-body { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
