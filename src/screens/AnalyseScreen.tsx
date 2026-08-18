@@ -18,9 +18,6 @@ import { weeklyLoss } from '../lib/stats';
 import { studyResult } from '../lib/proof';
 import { freshness, agoWord } from '../lib/gemba';
 import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
-import { startWizard } from '../ui/Wizard';
-import { DEMO_TOUR } from '../lib/demoTour';
-import { ROOM_TOUR } from '../lib/roomTour';
 import { DEMO_NAME } from '../lib/demo';
 import type { Case, Measure, DrillPath } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
@@ -82,6 +79,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
   const [cases, setCases] = useState<Case[]>([]);
   const [walkTimes, setWalkTimes] = useState<number[]>([]);
   const [winsOpen, setWinsOpen] = useState(false);
+  const [film, setFilm] = useState(false); // the tutorial film, played in place
   const syncedAt = useSyncedAt();
   useEffect(() => {
     void listCases(workspace.id).then(setCases);
@@ -109,13 +107,10 @@ export function AnalyseScreen({ route }: { route: Route }) {
     <div className="wrap analyse board" data-tour="board">
       <p className="eyebrow">The line</p>
       <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
+      {/* THE demo (owner decision, Aug 2026): one automatic film — the whole
+          app used start to finish, narrated as it goes. */}
       {workspace.name === DEMO_NAME && (
-        <div className="demo-pills">
-          <button className="chip demo-tour-pill" onClick={() => startWizard(DEMO_TOUR)}>▶ Guided demo — press-this, see-that</button>
-          {/* the consultant's script: same engine, presentation-sized cards,
-              written to be read aloud to a room */}
-          <button className="chip demo-tour-pill" onClick={() => startWizard(ROOM_TOUR, { room: true })}>🎤 Room demo — present it live</button>
-        </div>
+        <button className="chip demo-tour-pill" onClick={() => setFilm(true)}>▶ Watch the demo — the app, start to finish</button>
       )}
       {/* ONE quiet status row — the calm rule: signals share a strip, the
           chart is the hero. Each pill expands or navigates on tap. */}
@@ -156,6 +151,12 @@ export function AnalyseScreen({ route }: { route: Route }) {
         </div>
       )}
       <LineBoard />
+      {film && (
+        <div className="film-overlay" onClick={() => setFilm(false)} role="dialog" aria-label="Tutorial film">
+          <video src="/demo/tutorial.webm" controls autoPlay playsInline onClick={e => e.stopPropagation()} />
+          <button className="film-close" onClick={() => setFilm(false)} aria-label="Close the film">×</button>
+        </div>
+      )}
     </div>
     );
   }

@@ -190,25 +190,29 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
 
 ## The demo system (the sales machine, Aug 2026)
 
-Three parts with distinct jobs — keep them distinct:
+**The demo IS the video** (owner decision, Aug 2026 — after trying wizard
+tours, the owner cut them: two demo entry points confused the product).
+Three parts, each a distinct thing:
 
-- **The film sells** (landing page): a directed piece, not a screen
-  recording — title card with the tagline, visible cursor doing real clicks,
-  lower-third captions narrating every beat, punch-in zooms on the payoffs
-  (the prize line, the proven receipt), end card. Re-record whenever the UI
-  meaningfully changes (scratchpad recorder script; the seam at
+- **The tutorial film** (▶ Watch the demo on the demo board →
+  public/demo/tutorial.webm): an automatic ~2-minute film of the whole app
+  used start to finish in workflow order — capture with the live £ ticker,
+  the board, drill in / asset Pareto / deeper / prize / All back out, the
+  Case with whys and running study, the proven receipt, the walk with
+  pinned faults and footage, the meeting. Visible cursor, real clicks,
+  captions explaining each function as it's used. This is what plays in a
+  customer room and what a prospect watches in the app. Re-record whenever
+  the UI meaningfully changes (scratchpad recorder; the seam at
   public/demo/footage.mp4 swaps in real factory footage).
-- **The tour teaches** (▶ Guided demo in the seeded workspace): press-this,
-  see-that, on the real product, for a prospect on their own.
-- **The room tour performs** (🎤 Room demo, same wizard engine, `room` mode
-  = presentation-sized cards): the consultant's start-to-finish script ON the
-  live app — every card says what we're about to press and what it will
-  show, then waits for the press. Includes the live log→board beat and the
-  drill-in / asset-Pareto / zoom-back-out choreography.
-- **The script arms the presenter** (docs/DEMO_SCRIPT.md): seven beats with
-  the say-this lines, the numbers to have cold, one-breath objection
-  answers, and the recovery moves. The live phone-capture beat — a log on
-  the phone moving the big-screen bar — is the wow; never cut it.
+- **The landing film** (public/demo/demo.webm): the shorter marketing cut
+  on the landing page — tagline title card, payoff punch-ins, end card.
+- **The script arms the presenter** (docs/DEMO_SCRIPT.md): the beats with
+  say-this lines, the numbers to have cold, one-breath objection answers,
+  and the recovery moves. The live phone-capture beat — a log on the phone
+  moving the big-screen bar — is the wow; never cut it.
+
+The invitee onboarding walkthrough (the wizard) is unrelated to the demo:
+it exists for a real new user's first sign-in, and stays.
 
 Written-down cuts are what stop addon creep when a future session has a clever
 idea. Amend this file first, build second.

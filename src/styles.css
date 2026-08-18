@@ -1324,15 +1324,19 @@ button { font-family: inherit; }
 .landing-demo video { width: 100%; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow); display: block; background: var(--surface); }
 
 /* the guided-demo replay pill on the demo board */
-.demo-pills { display: flex; gap: 8px; flex-wrap: wrap; }
 .demo-tour-pill { margin-bottom: 12px; border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
-/* room mode: the same wizard, sized to be read across a table off a projector */
-.wiz-room .wiz-card { width: min(430px, calc(100vw - 20px)); padding: 18px 20px 14px; }
-.wiz-room .wiz-title { font-size: 19px; }
-.wiz-room .wiz-body { font-size: 16px; line-height: 1.5; }
-.wiz-room .wiz-hint { font-size: 13px; }
-.wiz-room .wiz-dots { display: none; } /* 26 dots is noise at room scale — the count carries it */
+/* the demo film, played in place over the board */
+.film-overlay {
+  position: fixed; inset: 0; z-index: 300; background: rgba(10, 24, 36, 0.88);
+  display: flex; align-items: center; justify-content: center;
+}
+.film-overlay video { width: min(1100px, 94vw); max-height: 86vh; border-radius: 12px; background: #000; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5); }
+.film-close {
+  position: absolute; top: 14px; right: 16px; width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: rgba(255, 255, 255, 0.14); color: #fff; font-size: 22px; cursor: pointer;
+}
+.film-close:hover { background: rgba(255, 255, 255, 0.26); }
 
 
 /* ═══ mobile audit fixes ═══ */

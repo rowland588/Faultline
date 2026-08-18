@@ -3,11 +3,11 @@
 One page. Read it twice before the room; then leave it in your bag.
 The demo workspace is the deck — you never open slides.
 
-**The easy mode:** on the demo board, press **🎤 Room demo — present it
-live**. The app itself walks the full arc with presentation-sized cards —
-each one says what we're about to press and what it will show, and advances
-when you press it. The beats below are the same story for when you want to
-drive freehand; the numbers and objection answers apply either way.
+**The easy mode:** on the demo board, press **▶ Watch the demo**. The
+tutorial film shows the whole app used start to finish, automatically, with
+captions explaining each function — play it to the room, then do beats 2
+and 5 live yourself. The beats below are for driving it freehand; the
+numbers and objection answers apply either way.
 
 **The promise, word for word:** *"Your OEE tells you the number. Faultline
 tells you what the number is made of — what happened, where, how often,
@@ -100,7 +100,6 @@ in red until someone closes it. That's accountability without a spreadsheet."
 ## If it goes wrong
 
 - Demo data looks stale or mangled → home page → **rebuild the demo** (20 s).
-- Projector fights you → the landing-page film tells beats 1–7 in 85 seconds;
-  play it, then do beats 2 and 5 live.
-- You forget a line → press **🎤 Room demo** and let the cards drive; they
-  say what to press and what it shows, in order, every time.
+- You forget a line, or the room wants the overview first → press
+  **▶ Watch the demo**: the film walks every function, in order, narrated,
+  the same every time. Pick up live from wherever it lands.
