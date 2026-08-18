@@ -111,40 +111,42 @@ export function AnalyseScreen({ route }: { route: Route }) {
       {workspace.name === DEMO_NAME && (
         <button className="chip demo-tour-pill" onClick={() => startWizard(DEMO_TOUR)}>▶ Guided demo — press-this, see-that</button>
       )}
-      {/* the honesty meter: silence at the gemba, made visible */}
-      {(live.length > 0 || walkTimes.length > 0) && (
-        <div className={'gemba gm-' + fr.level} data-tour="gemba">
-          <span aria-hidden>👁</span>
-          <span>Eyes on the line: observed <b>{agoWord(fr.daysSinceObs)}</b> · walked <b>{agoWord(fr.daysSinceWalk)}</b>
-            {fr.level !== 'fresh' && <> — this board is only as honest as the last visit. <b>Go and see.</b></>}</span>
-        </div>
-      )}
-      {/* the trophy shelf: proof that the loop pays — what keeps a CI habit alive */}
-      {wins.length > 0 && (
-        <div className="wins-shelf" data-tour="wins">
-          <button className="wins-head" onClick={() => setWinsOpen(o => !o)}>
-            <span aria-hidden>🏆</span> <b>{perYr(totalSavedWk)}</b>&nbsp;proven recovered · {plural(wins.length, 'win')} <span className="wins-caret">{winsOpen ? '▾' : '›'}</span>
+      {/* ONE quiet status row — the calm rule: signals share a strip, the
+          chart is the hero. Each pill expands or navigates on tap. */}
+      <div className="status-strip">
+        {(live.length > 0 || walkTimes.length > 0) && (
+          <span className={'st-pill gm-' + fr.level} data-tour="gemba"
+            title={`Eyes on the line: observed ${agoWord(fr.daysSinceObs)} · walked ${agoWord(fr.daysSinceWalk)}. The board is only as honest as the last visit.`}>
+            👁 {agoWord(fr.daysSinceObs)}{fr.level !== 'fresh' ? ' — go and see' : ''}
+          </span>
+        )}
+        {wins.length > 0 && (
+          <button className="st-pill st-wins" data-tour="wins" onClick={() => setWinsOpen(o => !o)}>
+            🏆 <b>{perYr(totalSavedWk)}</b> proven · {plural(wins.length, 'win')} {winsOpen ? '▾' : '›'}
           </button>
-          {winsOpen && wins.map(({ c, r }) => (
+        )}
+        {openCases.length > 0 && (
+          <span className="st-cases" data-tour="cases">
+            {openCases.map(c => {
+              const now = caseNowMsWeek(weeklyLoss(applyDrill(observations, workspace.id, c.path), workspace, 12));
+              const vs = c.baselineMsWeek > 0 ? Math.round(((now - c.baselineMsWeek) / c.baselineMsWeek) * 100) : null;
+              return (
+                <button key={c.id} className="st-pill st-case" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)} title={scopeLabel(c)}>
+                  📌 {c.title}{vs != null ? <b className={vs <= 0 ? 'mt-good' : 'mt-bad'}> {vs <= 0 ? '▼' : '▲'}{Math.abs(vs)}%</b> : null}
+                </button>
+              );
+            })}
+          </span>
+        )}
+      </div>
+      {winsOpen && wins.length > 0 && (
+        <div className="wins-shelf">
+          {wins.map(({ c, r }) => (
             <button key={c.id} className="win-row" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
               <span className="win-title">✓ {c.title}</span>
               <span className="win-meta">{fmtMean(r.beforeMeanMs)} → {fmtMean(r.afterMeanMs)} per event · {perYr(r.savedMsWeek ?? 0)} · proven {dn(c.study!.closedAt!)}</span>
             </button>
           ))}
-        </div>
-      )}
-      {openCases.length > 0 && (
-        <div className="cases-strip" data-tour="cases">
-          {openCases.map(c => {
-            const now = caseNowMsWeek(weeklyLoss(applyDrill(observations, workspace.id, c.path), workspace, 12));
-            const vs = c.baselineMsWeek > 0 ? Math.round(((now - c.baselineMsWeek) / c.baselineMsWeek) * 100) : null;
-            return (
-              <button key={c.id} className="case-chip" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
-                <span className="cc-title">📌 {c.title}</span>
-                <span className="cc-sub">{scopeLabel(c)}{vs != null ? <b className={vs <= 0 ? 'mt-good' : 'mt-bad'}> · {vs <= 0 ? '▼' : '▲'} {Math.abs(vs)}%</b> : null}</span>
-              </button>
-            );
-          })}
         </div>
       )}
       <LineBoard />
@@ -254,39 +256,26 @@ export function AnalyseScreen({ route }: { route: Route }) {
 
           <EvidenceStrip media={node.media} />
 
-          <button className="btn btn-primary present-cta" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder))}>
-            Present this ›
-          </button>
-
           {/* the board just said WHERE the fix goes — record it before it
-              escapes into a notebook */}
+              escapes into a notebook. ONE prominent thing (the calm rule):
+              raising the action; presenting is a quiet link below. */}
           <ActionComposer wsId={workspace.id} path={view.path} caseId={existing?.id} />
 
           {/* the prize, right where the pain is — then one tap makes it the target */}
           {weeklyMs != null && <PrizeLine weeklyMs={weeklyMs} costable={costable} factor={factor} />}
 
-          {/* the drill just picked the problem — a Case makes it a story with a
-              baseline, a target and a page (the A3 that fills itself) */}
-          {view.path.length > 0 && (
-            existing
-              ? <button className="board-cta" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}>
-                  <span className="board-cta-ic" aria-hidden>📌</span>
-                  <span className="board-cta-main">Open its Case — {existing.title}</span>
-                  <span className="board-cta-go" aria-hidden>›</span>
-                </button>
-              : <button className="board-cta" data-tour="case-cta" onClick={() => void openCaseHere()}>
-                  <span className="board-cta-ic" aria-hidden>📌</span>
-                  <span className="board-cta-main">Open a Case on this — baseline it, target it, track it</span>
-                  <span className="board-cta-go" aria-hidden>›</span>
-                </button>
-          )}
+          {/* quiet next steps — the composer above is the one loud thing */}
+          <div className="next-row">
+            {view.path.length > 0 && (
+              existing
+                ? <button className="linkish" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}>📌 Open its Case — {existing.title} ›</button>
+                : <button className="linkish" data-tour="case-cta" onClick={() => void openCaseHere()}>📌 Open a Case on this ›</button>
+            )}
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/trend`)}>📈 Is it getting better? ›</button>
+          </div>
 
-          {/* the Pareto says WHERE the pain is; the trend says whether the
-              walks are changing anything — the natural next question */}
-          <button className="board-cta" onClick={() => nav(`/w/${workspace.id}/trend`)}>
-            <span className="board-cta-ic" aria-hidden>📈</span>
-            <span className="board-cta-main">Is it getting better?</span>
-            <span className="board-cta-go" aria-hidden>›</span>
+          <button className="linkish present-link" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder))}>
+            Present this ›
           </button>
         </>
       )}

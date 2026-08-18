@@ -52,6 +52,15 @@ destination that entry point used to reach must remain reachable.
 Cases are deliberately scarce: a workspace with many open Cases should feel
 crowded — scarcity *is* the focus mechanism.
 
+**The calm rule: every screen has ONE hero; status signals share a single
+quiet strip; detail unfolds on tap.** (Owner call, Aug 2026 — "it feels very
+busy".) Features earn their signal a *pill*, not a banner: each new capability
+that announces itself on an existing screen joins the shared status strip
+instead of stacking its own card above the hero. At most one primary button
+per screen; every other route out is a quiet link. The same rule applies
+inside a chart: figures live on the vital-few bars only — the tail keeps its
+bars and its tooltips but goes quiet.
+
 ## The meeting (the room where the product is judged)
 
 Weekly, zero preparation, runs on live data, decisions land as data before the

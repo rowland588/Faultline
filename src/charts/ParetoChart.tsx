@@ -80,6 +80,15 @@ export function ParetoChart({
   const freqCx = (i: number) => cx(i) + gap / 2 + barW / 2;
   const yShare = (s: number) => baseY - plotH * Math.max(0, Math.min(1, s));
 
+  // calm rule, in-chart: past a few columns, numbers on EVERY bar collide into
+  // noise — so the vital few keep their figures and the tail goes quiet (exact
+  // values stay in each bar's tooltip). Narrow columns stagger their names
+  // across two rows instead of overlapping.
+  const numsFor = (s: Slice) => s.isVitalFew || n <= 5;
+  const stagger = colW < 50 && n > 4;
+  const lblY = (i: number) => baseY + (stagger && i % 2 === 1 ? 28 : 16);
+  const tagY = baseY + (stagger ? 40 : 29);
+
   const grid = [0, 0.25, 0.5, 0.75, 1];
   const cumPts = display.map((s, i) => `${cx(i)},${yShare(s.cumShare)}`).join(' ');
   const legFreqX = padL + 118;
@@ -128,10 +137,11 @@ export function ParetoChart({
       {display.map((s, i) => {
         const tTop = yShare(s.timeShare);
         const fTop = yShare(s.freqShare);
+        const nums = numsFor(s);
         return (
           <g key={'l' + s.key} style={{ pointerEvents: 'none' }}>
             {s.media > 0 && (
-              <g className="pk-ev" transform={`translate(${timeCx(i)}, ${tTop - (s.costLabel ? 34 : 22)})`}>
+              <g className="pk-ev" transform={`translate(${timeCx(i)}, ${tTop - (nums && s.costLabel ? 34 : 22)})`}>
                 <rect className="pk-ev-pill" x={s.media > 1 ? -15 : -10} y={-8.5} width={s.media > 1 ? 30 : 20} height={15} rx={7.5} />
                 <g transform={`translate(${s.media > 1 ? -5 : 0}, 0)`}>
                   <rect className="pk-ev-cam" x={-5} y={-2.2} width={10} height={7} rx={1.4} />
@@ -141,13 +151,13 @@ export function ParetoChart({
                 {s.media > 1 && <text className="pk-ev-ct" x={6.5} y={2.5} textAnchor="middle">{s.media}</text>}
               </g>
             )}
-            {s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19} textAnchor="middle">{s.costLabel}</text>}
-            {s.timeLabel && <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>}
+            {nums && s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19} textAnchor="middle">{s.costLabel}</text>}
+            {nums && s.timeLabel && <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>}
             {/* when the two bars top out at similar heights, a wide time label
                 runs into the freq label — lift the freq figure a row */}
-            {s.freqLabel && <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7 - (Math.abs(tTop - fTop) < 13 ? 12 : 0)} textAnchor="middle">{s.freqLabel}</text>}
-            <text className={'pk-lbl' + (s.aggregate ? ' pk-lbl-agg' : '')} x={cx(i)} y={baseY + 16} textAnchor="middle">{short(s.key)}</text>
-            {s.tag && <text className={'pk-tag ' + s.tag} x={cx(i)} y={baseY + 29} textAnchor="middle">{TAG_TEXT[s.tag]}</text>}
+            {nums && s.freqLabel && <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7 - (Math.abs(tTop - fTop) < 13 ? 12 : 0)} textAnchor="middle">{s.freqLabel}</text>}
+            <text className={'pk-lbl' + (s.aggregate ? ' pk-lbl-agg' : '')} x={cx(i)} y={lblY(i)} textAnchor="middle">{short(s.key)}</text>
+            {s.tag && <text className={'pk-tag ' + s.tag} x={cx(i)} y={tagY} textAnchor="middle">{TAG_TEXT[s.tag]}</text>}
           </g>
         );
       })}

@@ -1331,3 +1331,18 @@ button { font-family: inherit; }
 @media (max-width: 720px) {
   .meet-body { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
 }
+
+/* ═══ the calm rule: one hero per screen, signals share a strip ═══ */
+.status-strip { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.st-pill { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; color: var(--ink-2); font-family: inherit; cursor: default; }
+button.st-pill { cursor: pointer; }
+.st-pill.gm-fading { border-color: var(--warn); color: var(--warn); }
+.st-pill.gm-stale { border-color: var(--danger); color: var(--danger); }
+.st-pill.st-wins { border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.st-pill.st-wins b { color: var(--ok); }
+.st-cases { display: contents; }
+.st-pill.st-case { max-width: 100%; }
+.st-pill.st-case b { font-size: 11.5px; }
+.next-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
+.next-row .linkish { font-size: 13.5px; font-weight: 600; }
+.present-link { display: block; margin: 10px auto 0; font-size: 13.5px; font-weight: 600; }
