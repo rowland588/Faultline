@@ -1,6 +1,6 @@
 /* Home — the workspaces. Each is a clean, isolated split (its own data, its own
  * tools). Tapping one resumes exactly where you left it. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, createWorkspace, deleteWorkspace } from '../db';
 import { Toast } from '../ui/Toast';
@@ -109,6 +109,7 @@ export function WorkspaceHome() {
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
   const syncedAt = useSyncedAt();
+  const dedupedDemos = useRef(false);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -125,7 +126,20 @@ export function WorkspaceHome() {
           openSnags: snags.filter(s => s.status !== 'closed').length,
         }] as const;
       }));
-      if (alive) setCounts(Object.fromEntries(entries));
+      if (!alive) return;
+      const byId = Object.fromEntries(entries);
+      setCounts(byId);
+      // self-heal: rebuilds across devices and sessions can leave several demo
+      // workspaces synced into one account. There is ONE demo — keep the
+      // richest copy, delete the rest (tombstones sync the cleanup everywhere).
+      const demos = ws.filter(w => w.name === DEMO_NAME);
+      if (demos.length > 1 && !dedupedDemos.current) {
+        dedupedDemos.current = true;
+        const keep = [...demos].sort((a, b) =>
+          (byId[b.id]?.obs ?? 0) - (byId[a.id]?.obs ?? 0) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+        for (const d of demos) if (d.id !== keep.id) await deleteWorkspace(d.id);
+        if (alive) setDelTick(t => t + 1);
+      }
     })();
     return () => { alive = false; };
   }, [syncedAt, delTick]);
@@ -162,14 +176,6 @@ export function WorkspaceHome() {
             <span className="cloud-go" aria-hidden>›</span>
           </button>
           <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
-          {/* the showcase: a fully seeded workspace for demos — 14 weeks of
-              story-shaped data, cases, a proven study, a walk. Superadmin only:
-              customers never see this button. Delete it like any workspace. */}
-          <button className="admin-row" onClick={() => void seedDemo()} disabled={!!seeding}>
-            <span className="admin-ic" aria-hidden>◈</span>
-            <span className="cloud-main"><b>{seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace'}</b><span className="sub">14 weeks of showcase data — replaces any existing demo</span></span>
-            <span className="cloud-go" aria-hidden>›</span>
-          </button>
         </>
       )}
 
@@ -225,6 +231,14 @@ export function WorkspaceHome() {
             </button>
           ))}
         </div>
+      )}
+
+      {/* the showcase builder, tucked at the bottom — a superadmin tool, not a
+          headline. 14 weeks of story-shaped data; replaces any existing demo. */}
+      {profile?.is_super && (
+        <button className="home-guide-link" onClick={() => void seedDemo()} disabled={!!seeding}>
+          ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace ›'}
+        </button>
       )}
 
       {/* documentation, not a demo — THE demo is the film on the demo board */}

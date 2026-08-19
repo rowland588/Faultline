@@ -27,7 +27,7 @@ export function Landing() {
     if (busy || !email.trim() || !pw) return;
     setErr(''); setOk(''); setBusy(true);
     try {
-      if (mode === 'in') await signIn(email, pw); // session change unmounts the landing
+      if (mode === 'in') { await signIn(email, pw); nav('/'); } // land on YOUR workspaces, never inside a stale route
       else {
         const { needsConfirm } = await signUp(email, pw);
         if (needsConfirm) setOk('Account created — check your email to confirm, then sign in.');
