@@ -153,7 +153,11 @@ export function AnalyseScreen({ route }: { route: Route }) {
       <LineBoard />
       {film && (
         <div className="film-overlay" onClick={() => setFilm(false)} role="dialog" aria-label="Tutorial film">
-          <video src="/demo/tutorial.webm" controls autoPlay playsInline onClick={e => e.stopPropagation()} />
+          <video controls autoPlay playsInline onClick={e => e.stopPropagation()}>
+            {/* mp4 first: iPhones and iPads don't play VP8 webm */}
+            <source src="/demo/tutorial.mp4" type="video/mp4" />
+            <source src="/demo/tutorial.webm" type="video/webm" />
+          </video>
           <button className="film-close" onClick={() => setFilm(false)} aria-label="Close the film">×</button>
         </div>
       )}

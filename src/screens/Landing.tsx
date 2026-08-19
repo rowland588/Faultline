@@ -132,6 +132,8 @@ export function Landing() {
           that runs itself. Real screens, real clicks, explained as it goes.
         </p>
         <video controls preload="none" playsInline poster="/demo/poster.png">
+          {/* mp4 first: iPhones and iPads don't play VP8 webm */}
+          <source src="/demo/tutorial.mp4" type="video/mp4" />
           <source src="/demo/tutorial.webm" type="video/webm" />
           Your browser can't play this clip — the guide link above tells the same story.
         </video>
