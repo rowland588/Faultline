@@ -446,6 +446,7 @@ button { font-family: inherit; }
 .pk-val-time { fill: var(--ink); font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .pk-val-cost { fill: var(--muted); font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pk-val-freq { fill: var(--freq); font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pk-val-dim { font-size: 8.5px; font-weight: 700; opacity: 0.78; }
 .pk-lbl { fill: var(--ink-2); font-size: 10.5px; font-weight: 700; }
 .pk-lbl-agg { fill: var(--muted); font-style: italic; font-weight: 600; }
 .pk-col.tap:focus { outline: none; }

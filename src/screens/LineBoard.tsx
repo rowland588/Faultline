@@ -27,7 +27,7 @@ function toSlices(rows: Observation[], dimension: DimensionKey, costable: boolea
     timeShare: r.timeShare,
     freqShare: r.countShare,
     cumShare: r.cumShare,
-    timeLabel: fmtDuration(r.timeMs),
+    timeLabel: fmtDurationWords(r.timeMs),
     costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
     freqLabel: `${r.count}×`,
     isVitalFew: r.isVitalFew,

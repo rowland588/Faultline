@@ -181,8 +181,15 @@ export function ParetoChart({
                 </g>
               )}
               {nums && showT && s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19} textAnchor="middle">{s.costLabel}</text>}
-              {nums && showT && s.timeLabel && <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>}
-              {nums && showF && s.freqLabel && <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7 - fLift} textAnchor="middle">{s.freqLabel}</text>}
+              {/* the ACTUAL time on every bar — the vital few carry £ + time in
+                  full voice; the tail still says its time, just quietly. (In
+                  Both, two series of numbers collide, so the tail stays bare.) */}
+              {showT && s.timeLabel && (nums
+                ? <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>
+                : !both && <text className="pk-val-time pk-val-dim" x={timeCx(i)} y={tTop - 6} textAnchor="middle">{s.timeLabel}</text>)}
+              {showF && s.freqLabel && (nums
+                ? <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7 - fLift} textAnchor="middle">{s.freqLabel}</text>
+                : !both && <text className="pk-val-freq pk-val-dim" x={freqCx(i)} y={fTop - 6} textAnchor="middle">{s.freqLabel}</text>)}
               {rot
                 ? <text className={'pk-lbl' + (s.aggregate ? ' pk-lbl-agg' : '')} x={cx(i) + 5} y={baseY + 14}
                     textAnchor="end" transform={`rotate(-35 ${cx(i) + 5} ${baseY + 14})`}>{short(s.key)}</text>

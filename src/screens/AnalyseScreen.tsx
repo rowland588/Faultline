@@ -27,7 +27,7 @@ import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
 import { ActionComposer } from './ActionComposer';
 import { EmptyState } from '../ui/EmptyState';
-import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
+import { fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 
 /** Average weekly loss of the scope over its last 4 full weeks — the honest,
@@ -203,7 +203,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
     timeShare: r.timeShare,
     freqShare: r.countShare,
     cumShare: r.cumShare,
-    timeLabel: fmtDuration(r.timeMs),
+    timeLabel: fmtDurationWords(r.timeMs),
     costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
     freqLabel: `${r.count}×`,
     isVitalFew: r.isVitalFew,

@@ -28,7 +28,7 @@ import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
 import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
 import { ActionComposer } from './ActionComposer';
-import { fmtDuration, plural } from '../lib/format';
+import { fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 import {
   SNAG_STATUS_META, actionTarget, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput,
@@ -66,7 +66,7 @@ function toSlices(rows: Observation[], dimension: DimensionKey, costable: boolea
     timeShare: r.timeShare,
     freqShare: r.countShare,
     cumShare: r.cumShare,
-    timeLabel: fmtDuration(r.timeMs),
+    timeLabel: fmtDurationWords(r.timeMs),
     costLabel: costable ? fmtGBP(r.timeMs * factor) : undefined,
     freqLabel: `${r.count}×`,
     isVitalFew: r.isVitalFew,
