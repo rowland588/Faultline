@@ -52,7 +52,9 @@ export const TAXONOMIES: LossTaxonomy[] = [
     sub: 'Flow wrapper to palletiser: giveaway, seal faults, allergen changeovers',
     categories: FOOD_CATEGORIES,
     subcategories: FOOD_SUBCATEGORIES,
-    assets: ['Whole line', 'Flow wrapper', 'Tray sealer', 'Multihead weigher', 'Checkweigher', 'Metal detector', 'X-ray', 'Case packer', 'Labeller', 'Date coder', 'Palletiser'],
+    // line order, infeed → outfeed; 'Whole line' is the bucket for losses that
+    // aren't one machine, so it rides at the end — it isn't a station
+    assets: ['Flow wrapper', 'Tray sealer', 'Multihead weigher', 'Checkweigher', 'Metal detector', 'X-ray', 'Case packer', 'Labeller', 'Date coder', 'Palletiser', 'Whole line'],
   },
   {
     id: 'food-process',
@@ -60,7 +62,7 @@ export const TAXONOMIES: LossTaxonomy[] = [
     sub: 'Mixer to freezer: ovens, depositors, cleandowns, QA holds',
     categories: FOOD_CATEGORIES,
     subcategories: FOOD_SUBCATEGORIES,
-    assets: ['Whole line', 'Mixer', 'Divider / former', 'Depositor', 'Prover', 'Oven', 'Fryer', 'Cooler', 'Chiller / freezer', 'Enrober', 'Slicer', 'Conveyors'],
+    assets: ['Mixer', 'Divider / former', 'Depositor', 'Prover', 'Oven', 'Fryer', 'Cooler', 'Chiller / freezer', 'Enrober', 'Slicer', 'Conveyors', 'Whole line'],
   },
 ];
 

@@ -14,7 +14,7 @@ import { PeoplePanel } from './PeopleScreen';
 import { TAXONOMIES, type LossTaxonomy } from '../lib/taxonomy';
 import type { Shift } from '../types';
 
-function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete }: {
+function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete, onMove }: {
   title?: string;
   items: string[];
   addLabel: string;
@@ -22,6 +22,8 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
   onAdd: (v: string) => void;
   onRename: (from: string, to: string) => void;
   onDelete: (v: string) => void;
+  /** when the ORDER of this list means something (the line), arrows appear */
+  onMove?: (index: number, dir: -1 | 1) => void;
 }) {
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
@@ -49,7 +51,7 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
     <div className="chip-editor">
       {title && <div className="field-label">{title}</div>}
       <div className="chip-row" style={{ marginTop: 8 }}>
-        {items.map(it => editing === it ? (
+        {items.map((it, i) => editing === it ? (
           <span key={it} className="chip chip-add-form">
             <input autoFocus value={editText} maxLength={48}
               onChange={e => setEditText(e.target.value)}
@@ -58,7 +60,9 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
           </span>
         ) : (
           <span key={it} className="chip chip-editable">
+            {onMove && <button className="chip-move" disabled={i === 0} onClick={() => onMove(i, -1)} aria-label={`Move ${it} earlier on the line`}>‹</button>}
             <button className="chip-label" onClick={() => { setEditing(it); setEditText(it); }} title={`Rename “${it}”`}>{it}</button>
+            {onMove && <button className="chip-move" disabled={i === items.length - 1} onClick={() => onMove(i, 1)} aria-label={`Move ${it} later on the line`}>›</button>}
             <button className="chip-x" onClick={() => del(it)} aria-label={`Remove ${it}`}>×</button>
           </span>
         ))}
@@ -288,11 +292,19 @@ export function WorkspaceSettings() {
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
-        <ChipEditor title="Assets on the line" items={workspace.assets} addLabel="Add a machine or area…"
+        <ChipEditor title="Machines on the line" items={workspace.assets} addLabel="Add a machine or area…"
           usageOf={usageAsset}
           onAdd={v => void save({ assets: [...workspace.assets, v] })}
           onRename={renameAsset}
-          onDelete={v => void save({ assets: workspace.assets.filter(a => a !== v) })} />
+          onDelete={v => void save({ assets: workspace.assets.filter(a => a !== v) })}
+          onMove={(i, dir) => {
+            const next = [...workspace.assets];
+            const [m] = next.splice(i, 1); next.splice(i + dir, 0, m);
+            void save({ assets: next }, 'Line order saved');
+          }} />
+        {/* the order IS the line: Capture's chips, the board's asset cards and
+            the Line view all walk the machines in this order */}
+        <p className="sub" style={{ marginTop: 6 }}>‹ › put the machines in the order they stand on the floor — the app walks the line in this order.</p>
       </div>
 
       {/* shifts: the IPS team's question — "is it the same on shift C?" — needs

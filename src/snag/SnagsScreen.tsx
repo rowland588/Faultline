@@ -199,6 +199,16 @@ export function SnagsScreen() {
       <div className="mark" style={{ fontSize: 22 }}>Snag walk</div>
       <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'segment')} · {plural(totalAssets, 'asset')} · {openSnags} open</p>
 
+      {/* THE LINE — the place, machine by machine in floor order. This hub
+          stays the filing cabinet; the Line is where you stand and look. */}
+      {totalAssets > 0 && (
+        <button className="line-door" onClick={() => nav(`/w/${workspace.id}/line`)}>
+          <span className="line-door-ic" aria-hidden>⟷</span>
+          <span className="board-cta-main">Walk the line — machine by machine</span>
+          <span className="board-cta-go" aria-hidden>›</span>
+        </button>
+      )}
+
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 
       {(stuck.length > 0 || repairing || repairMsg) && (

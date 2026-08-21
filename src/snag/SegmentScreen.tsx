@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
+import { useWorkspace } from '../state/WorkspaceProvider';
 import { getSegment, listSegments, updateSegment, assetsForSegment, snagsForAsset, addSnagAsset, putBlob, getBlob } from '../db';
 import { sniffVideoCodec, browserCanPlay } from '../lib/mime';
 import { uid, now } from '../lib/ids';
@@ -13,6 +14,9 @@ import { useSyncedAt } from '../cloud/session';
 import type { Segment, SnagAsset } from './types';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
+  // the workspace's machine list is the LINE — marking picks from it, so the
+  // footage's machines and the Pareto's machines are the same spine by construction
+  const { workspace, patchWorkspace } = useWorkspace();
   const [seg, setSeg] = useState<Segment | null>(null);
   const [segs, setSegs] = useState<Segment[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
@@ -121,6 +125,11 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       const stillKey = `blob-${uid()}`;
       await putBlob(stillKey, marking.blob);
       await addSnagAsset({ id, workspaceId: wsId, segmentId: seg.id, timestampS: marking.timestamp, name: name.trim(), code: code.trim() || undefined, stillKey, createdAt: now() });
+      // a machine typed fresh here joins the workspace's line list, so the
+      // spine grows from the walk too — one machine list, everywhere
+      if (!workspace.assets.some(a => a.toLowerCase() === name.trim().toLowerCase())) {
+        await patchWorkspace({ assets: [...workspace.assets, name.trim()] });
+      }
       URL.revokeObjectURL(marking.still);
       return id;
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save.'); return null; }
@@ -255,10 +264,19 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           ))}
       </div>
 
-      <Sheet open={!!marking} onClose={cancel} title="New asset">
+      <Sheet open={!!marking} onClose={cancel} title="Which machine is this?">
         {marking && <img className="mark-still" src={marking.still} alt="marked frame" />}
-        <div className="field-label" style={{ marginTop: 8 }}>Asset name</div>
-        <input className="text-input" autoFocus value={name} placeholder="e.g. Multihead Weigher" onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
+        {/* pick, don't type: the workspace's machines ARE the line — choosing a
+            chip keeps footage and Pareto on the same names by construction */}
+        {workspace.assets.length > 0 && (
+          <div className="chip-row" style={{ marginTop: 10 }}>
+            {workspace.assets.map(a => (
+              <button key={a} className={'chip' + (name === a ? ' on' : '')} onClick={() => setName(a)}>{a}</button>
+            ))}
+          </div>
+        )}
+        <div className="field-label" style={{ marginTop: 8 }}>{workspace.assets.length > 0 ? <>Or a new one <span className="opt">joins the line list too</span></> : 'Machine name'}</div>
+        <input className="text-input" value={name} placeholder="e.g. Multihead Weigher" onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
         <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
         <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
         <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>

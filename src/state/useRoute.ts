@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
-  | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk'
+  | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide';
 
 export interface Route {
@@ -29,6 +29,7 @@ const SCREENS: Record<string, RouteName> = {
   asset: 'asset',
   snaglist: 'snaglist',
   walk: 'walk',
+  line: 'line',
   // the ecosystem: proof, memory, and the page you print
   trend: 'trend',
   history: 'history',

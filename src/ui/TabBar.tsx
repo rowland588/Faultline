@@ -10,7 +10,7 @@ const TABS = [
 
 // The snag list is a walk → segments → assets → snags; any of those screens
 // should keep the Snags tab lit, so the whole activity reads as one place.
-const SNAG_FAMILY = new Set(['snags', 'segment', 'asset', 'snaglist', 'walk']);
+const SNAG_FAMILY = new Set(['snags', 'segment', 'asset', 'snaglist', 'walk', 'line']);
 
 /** The floor's modes. Capture logs losses; Analyse and Present read that data;
  *  Snags is the video-walk fault list — a peer activity, usable on its own.

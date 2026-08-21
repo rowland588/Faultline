@@ -218,5 +218,34 @@ page is the how-to now, and it's labelled documentation, never "tour" or
 "demo". The [data-tour] anchors stay in the markup: the film recorder
 scripts target them.
 
+## The workspace is the place (owner decision, Aug 2026)
+
+A workspace is a PLACE — a line, an area — and the product renders it
+spatially wherever it can. Three rules:
+
+- **One name.** The workspace name is the line name. Never a second
+  "line name" field.
+- **Asset order is line order.** `workspace.assets` is the machines in the
+  order they stand on the floor (Settings ‹ › reorders). Capture's chips
+  and the Line view walk that order; the Pareto stays worst-first.
+- **One machine list.** Marking a machine on walk footage PICKS from the
+  workspace's machines (add-new joins the list) — so the camera world and
+  the numbers world share one spine by construction, joined by name.
+
+**The Line view** (`/line`, door on the snags hub) shows the workspace as
+the place: one machine per screen in line order, latest still, read-only
+pins, filmed-when stamp (amber when stale), grey gap for machines not yet
+filmed. The three-jobs rule keeps the camera world legible: *the hub files
+walks · the Line is where you stand and look · the asset page is the
+workbench.* The Line never edits — tap the machine to work on it.
+
+Staged on top of this spine, in order, as the owner asks: (2) layers on
+the portraits — £-heat per machine, action markers, proof ticks; (3) the
+time scrubber — the line across walks; (4) spatial capture — log a loss
+from the machine you're standing at. No new objects at any stage; each is
+a rendering of segments, stills, pins and observations that already exist.
+Projects that aren't lines lose nothing: with no marked machines the Line
+door never appears.
+
 Written-down cuts are what stop addon creep when a future session has a clever
 idea. Amend this file first, build second.

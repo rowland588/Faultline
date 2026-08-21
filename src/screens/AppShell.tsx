@@ -12,6 +12,7 @@ import { LogScreen } from './LogScreen';
 import { WorkspaceSettings } from './WorkspaceSettings';
 import { PeopleScreen } from './PeopleScreen';
 import { SnagsScreen } from '../snag/SnagsScreen';
+import { LineScreen } from '../snag/LineScreen';
 import { SegmentScreen } from '../snag/SegmentScreen';
 import { AssetScreen } from '../snag/AssetScreen';
 import { SnagListScreen } from '../snag/SnagListScreen';
@@ -41,6 +42,7 @@ export function AppShell({ route }: { route: Route }) {
         {screen === 'settings' && <WorkspaceSettings />}
         {screen === 'people' && <PeopleScreen />}
         {screen === 'snags' && <SnagsScreen />}
+        {screen === 'line' && <LineScreen wsId={route.wsId!} />}
         {screen === 'segment' && <SegmentScreen wsId={route.wsId!} segmentId={route.id!} />}
         {screen === 'asset' && <AssetScreen wsId={route.wsId!} assetId={route.id!} />}
         {screen === 'snaglist' && <SnagListScreen />}
