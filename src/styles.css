@@ -1407,3 +1407,49 @@ button.st-pill { cursor: pointer; }
 .line-dot.hot { box-shadow: 0 0 0 2.5px rgba(217, 79, 67, 0.55); }
 .line-dot.gap { background: transparent; border: 1.5px dashed var(--muted); }
 .line-hint { text-align: center; margin-top: 8px; }
+
+/* ---------- stage 2: the layers — the portrait as the canvas ---------- */
+.line-layers { justify-content: center; margin: 2px 0 10px; }
+/* £ heat: the machine glows in proportion to its measured weekly loss */
+.line-heat {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 100% at 50% 100%, rgba(217, 79, 67, 0.5) 0%, rgba(217, 79, 67, 0.08) 60%, transparent 80%);
+  box-shadow: inset 0 0 90px rgba(217, 79, 67, 0.55);
+}
+.line-cost-tag {
+  position: absolute; top: 12px; right: 12px; display: flex; align-items: baseline; gap: 4px;
+  background: rgba(20, 34, 48, 0.85); color: #fff; border-radius: 10px; padding: 8px 14px;
+}
+.line-cost-tag b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.line-cost-tag span { font-size: 12px; opacity: 0.85; }
+.line-cost-tag.worst { background: rgba(160, 40, 30, 0.92); }
+.line-gap .line-cost-tag { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.line-gap .line-cost-tag span { opacity: 0.7; }
+
+/* actions layer: who's carrying what, where it physically is */
+.line-actions {
+  position: absolute; left: 12px; right: 12px; bottom: 64px; display: flex; flex-direction: column; gap: 5px;
+  pointer-events: none;
+}
+.la-row {
+  background: rgba(20, 34, 48, 0.85); color: #fff; border-radius: 9px; padding: 7px 12px;
+  font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.la-row.over { box-shadow: inset 3px 0 0 var(--danger); }
+.la-row b { font-weight: 700; }
+.la-more { font-size: 11.5px; color: #fff; opacity: 0.8; padding-left: 4px; }
+.la-none {
+  background: rgba(20, 34, 48, 0.6); color: #fff; border-radius: 9px; padding: 6px 12px;
+  font-size: 12.5px; align-self: flex-start;
+}
+.line-gap .line-actions { bottom: 16px; }
+.line-gap .la-none, .line-gap .line-proof .la-none { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+
+/* proof layer: the case being worked here, or the receipt of the one that held */
+.line-proof {
+  position: absolute; left: 12px; right: 12px; bottom: 64px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+}
+.lp-badge { border-radius: 10px; padding: 8px 14px; font-size: 13.5px; font-weight: 700; cursor: pointer; text-align: left; }
+.lp-win { background: rgba(23, 94, 51, 0.92); color: #fff; }
+.lp-live { background: rgba(20, 60, 96, 0.92); color: #fff; }
+.line-gap .line-proof { bottom: 16px; }

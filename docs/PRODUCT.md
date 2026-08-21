@@ -239,11 +239,20 @@ filmed. The three-jobs rule keeps the camera world legible: *the hub files
 walks · the Line is where you stand and look · the asset page is the
 workbench.* The Line never edits — tap the machine to work on it.
 
-Staged on top of this spine, in order, as the owner asks: (2) layers on
-the portraits — £-heat per machine, action markers, proof ticks; (3) the
-time scrubber — the line across walks; (4) spatial capture — log a loss
-from the machine you're standing at. No new objects at any stage; each is
-a rendering of segments, stills, pins and observations that already exist.
+**Stage 2 — the layers (built Aug 2026).** The portrait is the canvas all
+the data renders onto, one lens at a time (calm rule): 📍 Faults (the
+pins) · £ heat (the machine's measured weekly loss glowing ON the metal,
+normalized to the worst machine; the rail's dots size with the money) ·
+⚑ Actions (open pins + board actions aimed at this machine, with owners
+and due words) · ✓ Proof (the case being worked here, or the receipt of
+the one that held — tap-through to the Case). Layers derive live from
+weeklyLoss / studyResult / the snag store; heat renders on unfilmed gap
+cards too, because a machine can bleed £ before it's ever been filmed.
+
+Still staged, in order, as the owner asks: (3) the time scrubber — the
+line across walks; (4) spatial capture — log a loss from the machine
+you're standing at. No new objects at any stage; each is a rendering of
+segments, stills, pins and observations that already exist.
 Projects that aren't lines lose nothing: with no marked machines the Line
 door never appears.
 
