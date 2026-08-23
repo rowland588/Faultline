@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav } from '../state/useRoute';
+import { nav, navReplace } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, reorderSegments, updateSegment } from '../db';
 import { plural } from '../lib/format';
 import { EmptyState } from '../ui/EmptyState';
@@ -187,6 +187,14 @@ export function SnagsScreen() {
   };
 
   const totalAssets = [...namesBySeg.values()].reduce((a, b) => a + b.length, 0);
+
+  // The tab lands on THE LINE once machines are marked (owner cut, Aug 2026):
+  // a photograph of your factory is understood instantly; this hub is the back
+  // room — reachable from the Line's "Manage walks ›" link (?manage keeps you here).
+  useEffect(() => {
+    if (totalAssets > 0 && !location.hash.includes('manage')) navReplace(`#/w/${workspace.id}/line`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalAssets]);
 
   return (
     <div className="wrap">

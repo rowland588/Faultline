@@ -206,8 +206,10 @@ export function LineScreen({ wsId }: { wsId: string }) {
 
   return (
     <div className="wrap line-wrap">
+      {/* the tab's landing (owner cut, Aug 2026): the Line IS the eyes' front
+          door — ONE action (film), and the filing lives in the back room */}
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ Snags</button>
+        <button className="btn" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}>🎥 Film a walk</button>
         <span className="subhead-title">The line</span>
         <div style={{ flex: 1 }} />
         <span className="sub line-count">{at + 1} / {stops.length}</span>
@@ -244,6 +246,10 @@ export function LineScreen({ wsId }: { wsId: string }) {
           : layer === 'proof' ? 'Cases and receipts, machine by machine'
           : 'Swipe along the line · tap the machine to zoom & pin'}
       </p>
+      <div className="next-row line-links">
+        <button className="linkish" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ Snag list ›</button>
+        <button className="linkish" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}>Manage walks ›</button>
+      </div>
     </div>
   );
 }

@@ -15,8 +15,6 @@ import type { Observation, DimensionKey } from '../types';
 // 'shift' rides at the end of every order: the drill only offers a cut when it
 // actually splits the rows, so workspaces without shift data never see it.
 const ASSET_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory', 'shift'];
-const WHAT_ORDER: DimensionKey[] = ['category', 'subcategory', 'asset', 'shift'];
-const SHIFT_ORDER: DimensionKey[] = ['shift', 'category', 'subcategory', 'asset'];
 
 function toSlices(rows: Observation[], dimension: DimensionKey, costable: boolean, factor: number): CompareSlice[] {
   const byId = new Map(rows.map(o => [o.id, o]));
@@ -107,36 +105,15 @@ export function LineBoard({ present = false }: { present?: boolean }) {
         ))}
       </div>
 
+      {/* ONE exit (owner cut, Aug 2026): the question-cards duplicated the
+          chart's own chips and the drill, and Present lives inside the
+          meeting — one door per verb is what makes the system instantly
+          legible. Frequency ranking, shift cuts and presenting all remain,
+          exactly one press deeper, where playing finds them. */}
       {!present && (
-        <>
-          <p className="eyebrow board-sec">Or ask another way</p>
-          <div className="q-list">
-            <button className="q-card" onClick={() => nav(buildAnalyseHash(workspace.id, 'analyse', 'count', [], WHAT_ORDER))}>
-              <span className="q-dot" style={{ background: workspace.color }} />
-              <span className="q-main"><span className="q-label">What's going wrong most often?</span><span className="q-sub">Across the whole line, by frequency</span></span>
-              <span className="q-go">›</span>
-            </button>
-            <button className="q-card" onClick={() => nav(buildAnalyseHash(workspace.id, 'analyse', 'time', [], WHAT_ORDER))}>
-              <span className="q-dot" style={{ background: workspace.color }} />
-              <span className="q-main"><span className="q-label">Which problem costs the most time?</span><span className="q-sub">Across the whole line, by lost time</span></span>
-              <span className="q-go">›</span>
-            </button>
-            {/* the IPS team's question — only shown once shift data exists to answer it */}
-            {new Set(live.map(o => o.shift).filter(Boolean)).size >= 2 && (
-              <button className="q-card" onClick={() => nav(buildAnalyseHash(workspace.id, 'analyse', 'time', [], SHIFT_ORDER))}>
-                <span className="q-dot" style={{ background: workspace.color }} />
-                <span className="q-main"><span className="q-label">Is it the same on every shift?</span><span className="q-sub">Loss by shift — drill into one to see its own Pareto</span></span>
-                <span className="q-go">›</span>
-              </button>
-            )}
-          </div>
-          <button className="btn btn-primary present-cta" onClick={() => nav(`/w/${workspace.id}/meeting`)}>
-            Run the meeting ›
-          </button>
-          <button className="linkish present-link" onClick={() => nav(`/w/${workspace.id}/present`)}>
-            Present the board ›
-          </button>
-        </>
+        <button className="btn btn-primary present-cta" onClick={() => nav(`/w/${workspace.id}/meeting`)}>
+          Run the meeting ›
+        </button>
       )}
     </>
   );

@@ -1495,3 +1495,6 @@ button.st-pill { cursor: pointer; }
   .pf-meta { white-space: normal; }
   .pf-row { align-items: flex-start; }
 }
+
+/* the Line as the eyes' landing */
+.line-links { justify-content: center; margin-top: 12px; }

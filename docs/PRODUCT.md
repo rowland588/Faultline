@@ -88,6 +88,18 @@ destination that entry point used to reach must remain reachable.
 Cases are deliberately scarce: a workspace with many open Cases should feel
 crowded — scarcity *is* the focus mechanism.
 
+**The one-door rule (owner cut, Aug 2026): the system is four verbs — log
+it · see what it costs · fix it · prove it — and each verb gets exactly ONE
+obvious door.** Duplicate doors are what make a product feel complicated;
+every one costs a sentence of explanation. Agreed removals under this rule:
+the board's three question-cards (their answers live in the chart's chips
+and the drill), the board's "Present the board" link (Present lives inside
+the meeting), and the snag hub as the eyes' landing — the Snags tab now
+lands on THE LINE once machines are marked, with 🎥 Film a walk as its one
+action and the hub demoted to "Manage walks ›" (?manage=1 reaches it
+without redirect). Capability was not removed anywhere — only doors; every
+destination stays exactly one press deeper.
+
 **The calm rule: every screen has ONE hero; status signals share a single
 quiet strip; detail unfolds on tap.** (Owner call, Aug 2026 — "it feels very
 busy".) Features earn their signal a *pill*, not a banner: each new capability
