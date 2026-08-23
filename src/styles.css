@@ -1498,3 +1498,6 @@ button.st-pill { cursor: pointer; }
 
 /* the Line as the eyes' landing */
 .line-links { justify-content: center; margin-top: 12px; }
+
+/* landing: the quiet trust line under the four verbs */
+.landing-trust { margin-top: 18px; font-size: 13px; line-height: 1.5; }

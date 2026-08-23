@@ -38,6 +38,38 @@ it is what their winners have to reference.
 truer, fuller, or more readable? If it only makes the demo shinier, it's
 marketing, not product.**
 
+## Who it's for, and the boundary (owner decision, Aug 2026)
+
+Underneath everything is ONE ATOM: *see a problem in its place, pin it
+with evidence, someone owns it, it closes with proof.* Many teams' work
+is made of that atom — a CI manager's losses, a capex manager's punch
+list — and that reach is welcome, but:
+
+- **Personas are doors, never modes.** The workspace and its templates
+  carry the difference; the object graph stays at four. Persona-specific
+  wants enter as CONTENT (a taxonomy, a walk template, a print variant)
+  or get refused. The atom evolves for everyone or not at all.
+- **The market hears one door at a time.** The forbidden sentence is "it
+  does many things." The permitted sentence: "one discipline — see it,
+  pin it, own it, prove it closed — applied to whatever bleeds."
+  Versatility is a second-act reveal in a live room, never the opening
+  claim anywhere.
+- **The buyer is the PERFORMANCE side of SME food factories** — ops
+  managers, CI leads, line leaders, ops directors — reached through
+  consultants, judged in pounds recovered, receipted.
+- **The performance/conformance boundary:** Faultline answers "does it
+  work and what does it cost?" It never answers "does it comply?" A
+  conformance finding only means something against a standard (BRC
+  clauses, glass policies, severities, sign-offs) — hosting standards
+  makes you a QMS fighting iAuditor/Safefood 360 on their ground for a
+  buyer who purchases paperwork. Technical/QA is therefore NOT a target
+  buyer; the glass-audit wedge (briefly considered) is withdrawn for
+  this reason — mechanical fit isn't meaning fit. If a technical manager
+  ever PULLS for it regardless, revisit with eyes open; never push.
+  Capex punch lists and fabrication/equipment damage pass the boundary
+  (they're working-order questions) and need no build — a workspace
+  already serves them.
+
 Power = evidence (video, observations) denominated in £. Intelligence =
 the engine that says where to look next. Simplicity = one question to start,
 one screen per role, one key back to the overview.

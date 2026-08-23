@@ -8,11 +8,13 @@ import { LogoMark } from '../ui/Logo';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
 
+/* The four verbs — the whole system, in the order a week runs. One door
+ * (the ops buyer's); the ledger's marketing rules live in PRODUCT.md. */
 const POINTS = [
-  ['Find it — both ways', 'Time the losses with a stopwatch; film the line and pin the faults on the footage. Two lenses, one workspace.'],
+  ['See it — both ways', 'Time the losses with a stopwatch; film the line and pin the faults on the footage. Two lenses, one workspace.'],
   ['Price it in pounds', 'Every lost minute meets your crew cost. The Pareto ranks the pain in £/week — the language the board decides in.'],
-  ['Fix it, and prove it held', 'Actions with owners and due dates, a weekly meeting that runs itself, and evidence when the fix worked — not a hope, a receipt.'],
-  ['Offline on the floor, shared everywhere', 'Works with no signal, then backs up and syncs to every device and teammate you invite.'],
+  ['Fix it — owned and dated', 'Every action carries a name and a due date, ages in red when it slips, and lands in a Monday meeting that runs itself.'],
+  ['Prove it held — or admit it didn\'t', 'A study re-measures the same scope the same way, both sample sizes shown. The verdict can be ✗ — which is exactly why a ✓ is a receipt, not a claim.'],
 ] as const;
 
 export function Landing() {
@@ -53,9 +55,9 @@ export function Landing() {
             <span className="lt-punch">Faultline has both.</span>
           </h1>
           <p className="landing-lede">
-            The stopwatch and the camera on the same line: losses timed and priced
-            in £, faults pinned on video — one loop that finds the problem, fixes
-            it, and proves the fix held. Built for food manufacturing and ops teams.
+            One discipline for food-manufacturing ops teams: see the loss, price it
+            in pounds, fix it, and prove the fix held — with receipts a finance
+            director believes.
           </p>
           <div className="landing-worlds" aria-hidden>
             <div className="lw-card">
@@ -78,6 +80,11 @@ export function Landing() {
               </li>
             ))}
           </ul>
+          <p className="sub landing-trust">
+            Offline-first on the phones you already own — works with no signal on
+            the floor, then syncs to every teammate you invite. No sensors, no
+            integrations, no IT project.
+          </p>
           <button className="landing-guide-link" onClick={() => nav('/guide')}>
             See how it works — real screens, two minutes ›
           </button>
