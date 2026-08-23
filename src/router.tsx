@@ -12,6 +12,7 @@ import { ResumeRedirect } from './screens/ResumeRedirect';
 import { AppShell } from './screens/AppShell';
 import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
+import { PortfolioScreen } from './screens/PortfolioScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -35,6 +36,10 @@ export function Router() {
   if (loading) return <BootSplash />;
   // Not signed in → the front door. No bypass.
   if (!session) return <Landing />;
+
+  // The portfolio/ledger reads across every workspace, so it lives beside
+  // Home, outside any single WorkspaceProvider scope.
+  if (route.name === 'portfolio') return <PortfolioScreen />;
 
   return (
     route.name === 'home' || !route.wsId

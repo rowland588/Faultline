@@ -6,7 +6,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
-  | 'trend' | 'history' | 'report' | 'case' | 'guide';
+  | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio';
 
 export interface Route {
   name: RouteName;
@@ -43,6 +43,7 @@ export function parseRoute(hash: string): Route {
   const query = new URLSearchParams(qs || '');
   const segs = path.split('/').filter(Boolean);
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
+  if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'w' && segs[1]) {
     const wsId = decodeURIComponent(segs[1]);
     const name = (segs[2] && SCREENS[segs[2]]) || 'resume';

@@ -15,10 +15,16 @@ failure mode) — charters, stage gates, benefits typed into boxes, events
 counted instead of pounds recovered. Faultline's answer is structural: the
 Case IS the improvement event, and its numbers are derived, not declared.
 
-**The enterprise surface** (next major build): one page holding every Case
-across lines and sites — stage, owner, £ at stake, £ proven. The CI manager
-reads it as a portfolio of events; the FD reads it as a ledger of outcomes:
-lost, recovered, receipted. Same data, same screen, both buyers.
+**The enterprise surface** (built Aug 2026): `/portfolio`, door on the home
+page — one page holding every Case across every workspace: stage, owners
+(derived from the case's actions), £ at stake (recent truth vs baseline),
+£ proven. The CI manager reads it as a portfolio of events; the FD reads it
+as a ledger of outcomes. Sections: being worked · the receipts · called-
+didn't-hold (shown, not hidden — the honest ✗ is what makes the ✓ credible)
+· closed without a study. Honesty rules: every £ uses its own workspace's
+rate; unpriced workspaces contribute hours, never silently mixed into £
+totals. It is NOT a dashboard — it lists improvement work and its evidence,
+nothing else; no KPIs beyond the cases' own numbers, ever.
 
 The road to enterprise, in order, each still passing the coherence and calm
 rules: (1) the portfolio/ledger page; (2) the year — annual totals, every

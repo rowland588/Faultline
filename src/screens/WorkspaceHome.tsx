@@ -2,7 +2,7 @@
  * tools). Tapping one resumes exactly where you left it. */
 import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../types';
-import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, createWorkspace, deleteWorkspace } from '../db';
+import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, createWorkspace, deleteWorkspace } from '../db';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { EmptyState } from '../ui/EmptyState';
@@ -45,7 +45,7 @@ function BuildStamp() {
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of
  * walk videos and snags read "0 observations", i.e. "your work is gone". */
-interface WsContents { obs: number; videos: number; openSnags: number }
+interface WsContents { obs: number; videos: number; openSnags: number; cases?: number }
 
 function contentsLabel(c: WsContents | undefined): string {
   if (!c) return '…';
@@ -60,6 +60,7 @@ function contentsLabel(c: WsContents | undefined): string {
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
+  const [casesTotal, setCasesTotal] = useState(0);
   const [creating, setCreating] = useState(false);
   // A deleted workspace sits in limbo here for a few seconds with an Undo —
   // committed only when the toast expires. A flag left by a closed app is
@@ -117,15 +118,17 @@ export function WorkspaceHome() {
       if (!alive) return;
       setList(ws);
       const entries = await Promise.all(ws.map(async w => {
-        const [obs, segs, snags] = await Promise.all([
-          listObservations(w.id), listSegments(w.id), snagsForWorkspace(w.id),
+        const [obs, segs, snags, cases] = await Promise.all([
+          listObservations(w.id), listSegments(w.id), snagsForWorkspace(w.id), listCases(w.id),
         ]);
         return [w.id, {
           obs: obs.length,
           videos: segs.length,
           openSnags: snags.filter(s => s.status !== 'closed').length,
+          cases: cases.length,
         }] as const;
       }));
+      if (alive) setCasesTotal(entries.reduce((a, [, c]) => a + (c.cases ?? 0), 0));
       if (!alive) return;
       const byId = Object.fromEntries(entries);
       setCounts(byId);
@@ -209,6 +212,16 @@ export function WorkspaceHome() {
         </div>
       ) : (
         <button className="btn btn-primary btn-lg new-ws" data-tour="new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
+      )}
+
+      {/* the enterprise surface: every Case, every line, one page — the
+          portfolio for the CI manager, the ledger for the FD */}
+      {casesTotal > 0 && (
+        <button className="admin-row pf-door" onClick={() => nav('/portfolio')}>
+          <span className="admin-ic" aria-hidden>▥</span>
+          <span className="cloud-main"><b>Improvement work</b><span className="sub">every case, every line — at stake &amp; proven</span></span>
+          <span className="cloud-go" aria-hidden>›</span>
+        </button>
       )}
 
       {list === null ? null : list.length === 0 && !creating ? (
