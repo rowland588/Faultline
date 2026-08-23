@@ -214,20 +214,58 @@ interface EventKind {
   arc?: (daysAgo: number) => { weight?: number; meanMin?: number };
 }
 const FIX_STUDY_START = 21; // film-snag study armed 21d ago (the win)
+/* Every machine carries a realistic MIX of losses (3–4 kinds), so its own
+ * Pareto is a real chart — a dominant bar plus a tail — not a lone 100% bar.
+ * The two story arcs stay dominant where they live: the film-snag fix on the
+ * Flow wrapper, the allergen changeovers on the Whole line at Nights. */
 const KINDS: EventKind[] = [
+  // Flow wrapper — the win lives here
   { asset: 'Flow wrapper', category: 'Minor stop', sub: 'Film / packaging snag', meanMin: 7, weight: 3.1,
     arc: d => (d <= FIX_STUDY_START ? { weight: 1.0, meanMin: 2.4 } : {}) }, // the proven fix
+  { asset: 'Flow wrapper', category: 'Breakdown', sub: 'Mechanical', meanMin: 22, weight: 0.6 },
+  { asset: 'Flow wrapper', category: 'Quality', sub: 'Seal integrity reject', meanMin: 5, weight: 0.45 },
+  { asset: 'Flow wrapper', category: 'Speed loss', sub: 'Slow after restart', meanMin: 4, weight: 0.5 },
+  // Whole line — the allergen story
   { asset: 'Whole line', category: 'Changeover', sub: 'Allergen changeover', meanMin: 34, weight: 1.9, nightsX: 2.2 },
   { asset: 'Whole line', category: 'Changeover', sub: 'Product change', meanMin: 17, weight: 1.7 },
-  { asset: 'Tray sealer', category: 'Waiting', sub: 'Starved upstream', meanMin: 9, weight: 1.6 },
-  { asset: 'Multihead weigher', category: 'Minor stop', sub: 'Misfeed', meanMin: 3.5, weight: 1.9 },
-  { asset: 'Flow wrapper', category: 'Breakdown', sub: 'Mechanical', meanMin: 22, weight: 0.6 },
-  { asset: 'Checkweigher', category: 'Quality', sub: 'Underweight reject', meanMin: 4, weight: 1.1 },
-  { asset: 'Metal detector', category: 'Quality', sub: 'Foreign body / detector reject', meanMin: 12, weight: 0.4 },
-  { asset: 'Case packer', category: 'Breakdown', sub: 'Jam / blockage', meanMin: 6, weight: 1.0 },
   { asset: 'Whole line', category: 'Hygiene & cleaning', sub: 'Unscheduled clean', meanMin: 26, weight: 0.5 },
-  { asset: 'Labeller', category: 'Minor stop', sub: 'Sensor trip', meanMin: 2.5, weight: 0.9 },
   { asset: 'Whole line', category: 'Waiting', sub: 'No labour', meanMin: 15, weight: 0.5 },
+  // Tray sealer
+  { asset: 'Tray sealer', category: 'Waiting', sub: 'Starved upstream', meanMin: 9, weight: 1.6 },
+  { asset: 'Tray sealer', category: 'Minor stop', sub: 'Tray jam at infeed', meanMin: 3, weight: 0.9 },
+  { asset: 'Tray sealer', category: 'Quality', sub: 'Weak seal reject', meanMin: 6, weight: 0.4 },
+  { asset: 'Tray sealer', category: 'Breakdown', sub: 'Seal head fault', meanMin: 18, weight: 0.3 },
+  // Multihead weigher
+  { asset: 'Multihead weigher', category: 'Minor stop', sub: 'Misfeed', meanMin: 3.5, weight: 1.9 },
+  { asset: 'Multihead weigher', category: 'Hygiene & cleaning', sub: 'Product build-up clean', meanMin: 8, weight: 0.45 },
+  { asset: 'Multihead weigher', category: 'Quality', sub: 'Giveaway check', meanMin: 5, weight: 0.5 },
+  { asset: 'Multihead weigher', category: 'Breakdown', sub: 'Load cell fault', meanMin: 25, weight: 0.18 },
+  // Checkweigher
+  { asset: 'Checkweigher', category: 'Quality', sub: 'Underweight reject', meanMin: 4, weight: 1.1 },
+  { asset: 'Checkweigher', category: 'Minor stop', sub: 'Belt slip', meanMin: 2.5, weight: 0.6 },
+  { asset: 'Checkweigher', category: 'Breakdown', sub: 'Reject arm fault', meanMin: 10, weight: 0.25 },
+  // Metal detector
+  { asset: 'Metal detector', category: 'Quality', sub: 'Foreign body / detector reject', meanMin: 12, weight: 0.4 },
+  { asset: 'Metal detector', category: 'Minor stop', sub: 'False trigger', meanMin: 3, weight: 0.7 },
+  { asset: 'Metal detector', category: 'Waiting', sub: 'QA hold at detector', meanMin: 14, weight: 0.2 },
+  // X-ray
+  { asset: 'X-ray', category: 'Minor stop', sub: 'False reject', meanMin: 2.5, weight: 0.45 },
+  { asset: 'X-ray', category: 'Quality', sub: 'X-ray reject investigation', meanMin: 6, weight: 0.3 },
+  // Case packer
+  { asset: 'Case packer', category: 'Breakdown', sub: 'Jam / blockage', meanMin: 6, weight: 1.0 },
+  { asset: 'Case packer', category: 'Minor stop', sub: 'Glue nozzle blocked', meanMin: 4, weight: 0.8 },
+  { asset: 'Case packer', category: 'Waiting', sub: 'No cases from erector', meanMin: 9, weight: 0.35 },
+  // Labeller
+  { asset: 'Labeller', category: 'Minor stop', sub: 'Sensor trip', meanMin: 2.5, weight: 0.9 },
+  { asset: 'Labeller', category: 'Quality', sub: 'Label skew reject', meanMin: 5, weight: 0.4 },
+  { asset: 'Labeller', category: 'Breakdown', sub: 'Print head fault', meanMin: 15, weight: 0.15 },
+  // Date coder
+  { asset: 'Date coder', category: 'Minor stop', sub: 'Code smudge / re-run', meanMin: 3, weight: 0.5 },
+  { asset: 'Date coder', category: 'Breakdown', sub: 'Printer fault', meanMin: 12, weight: 0.15 },
+  // Palletiser
+  { asset: 'Palletiser', category: 'Breakdown', sub: 'Layer squash / jam', meanMin: 8, weight: 0.5 },
+  { asset: 'Palletiser', category: 'Minor stop', sub: 'Slip sheet misplace', meanMin: 3, weight: 0.4 },
+  { asset: 'Palletiser', category: 'Waiting', sub: 'No pallets', meanMin: 10, weight: 0.3 },
 ];
 const SHIFTS = [
   { name: 'Days', start: '06:00', end: '14:00', startH: 6 },

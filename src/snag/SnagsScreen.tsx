@@ -196,7 +196,8 @@ export function SnagsScreen() {
         {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag list</button>}
       </div>
 
-      <div className="mark" style={{ fontSize: 22 }}>Snag walk</div>
+      <p className="eyebrow">The eyes</p>
+      <h1 className="h1">Snag walk</h1>
       <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'segment')} · {plural(totalAssets, 'asset')} · {openSnags} open</p>
 
       {/* THE LINE — the place, machine by machine in floor order. This hub

@@ -168,7 +168,8 @@ export function SnagListScreen() {
         <button className="btn" onClick={exportCsv}>CSV</button>
         <button className="btn" onClick={() => setPrinting(true)}>Print</button>
       </div>
-      <div className="mark" style={{ fontSize: 22 }}>Snags</div>
+      <p className="eyebrow">The eyes</p>
+      <h1 className="h1">Snags</h1>
 
       <div className="snag-summary">
         <span className="ss-pill"><b>{counts.open}</b> open</span>
