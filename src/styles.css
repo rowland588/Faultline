@@ -1501,3 +1501,7 @@ button.st-pill { cursor: pointer; }
 
 /* landing: the quiet trust line under the four verbs */
 .landing-trust { margin-top: 18px; font-size: 13px; line-height: 1.5; }
+
+/* the period lens — flipping between windows IS the trend */
+.period-row { margin: 0 0 10px; }
+.board .period-row { margin-top: 2px; }

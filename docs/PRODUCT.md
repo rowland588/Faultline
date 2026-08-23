@@ -120,6 +120,18 @@ destination that entry point used to reach must remain reachable.
 Cases are deliberately scarce: a workspace with many open Cases should feel
 crowded — scarcity *is* the focus mechanism.
 
+**The period lens (built Aug 2026): the board shows NOW; time is a lens.**
+An unwindowed Pareto fossilizes — a problem fixed in March still towers in
+September because months of dead history are baked into the bar. Every
+ranking view (board, drill, present) is scoped to a rolling window — 4 wks
+(default) · 12 wks · Year · All — carried in the URL (`p`) so it survives
+the drill and the breadcrumb. Rolling days, not calendar weeks, so today's
+log still lands on the board the moment it's made. Cases, wins, gemba and
+studies keep their OWN windows — only ranking is scoped. Flipping periods
+IS the trend, told in the Pareto's own vocabulary. Division of labour:
+Pareto = where, within a period · trend + flags = whether, across weeks ·
+movers = how the ranking shifts · studies = proof, at a moment.
+
 **The one-door rule (owner cut, Aug 2026): the system is four verbs — log
 it · see what it costs · fix it · prove it — and each verb gets exactly ONE
 obvious door.** Duplicate doors are what make a product feel complicated;

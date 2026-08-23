@@ -112,10 +112,12 @@ export function buildAnalyseHash(
   measure: Measure,
   path: DrillPath,
   dims?: DimensionKey[],
+  period?: string, // the period lens (lib/period) — absent = the default window
 ): string {
   const q = new URLSearchParams({ measure });
   if (dims && dims.length) q.set('dims', dims.join(','));
   if (path.length) q.set('path', encodePath(path));
+  if (period) q.set('p', period);
   return `#/w/${wsId}/${screen}?${q.toString()}`;
 }
 

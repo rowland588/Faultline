@@ -19,6 +19,7 @@ import { studyResult } from '../lib/proof';
 import { freshness, agoWord } from '../lib/gemba';
 import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
 import { DEMO_NAME } from '../lib/demo';
+import { PERIODS, DEFAULT_PERIOD, asPeriod, periodCutoff, periodWord } from '../lib/period';
 import type { Case, Measure, DrillPath } from '../types';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { LineBoard } from './LineBoard';
@@ -74,7 +75,28 @@ function PrizeLine({ weeklyMs, costable, factor }: { weeklyMs: number; costable:
 export function AnalyseScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
   const view = readWorkstreamView(route, workspace.id);
-  const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
+
+  // THE PERIOD LENS (lib/period): every Pareto is scoped to a rolling window —
+  // default: the recent-truth horizon. Cases, wins, gemba and studies keep
+  // their OWN windows; only the ranking views are scoped here.
+  const period = asPeriod(route.query.get('p'));
+  const cutoff = periodCutoff(period);
+  const inPeriod = useMemo(() => observations.filter(o => o.startedAt >= cutoff), [observations, cutoff]);
+
+  const node = useMemo(() => (view ? drillNode(inPeriod, view) : null), [view, inPeriod]);
+
+  const periodChips = (
+    <div className="pk-picker period-row" role="group" aria-label="Period">
+      {PERIODS.map(p => (
+        <button key={p.key} type="button" className={'pk-pick' + (period === p.key ? ' on' : '')}
+          onClick={() => nav(view
+            ? buildAnalyseHash(workspace.id, 'analyse', view.measure, view.path, view.dimensionOrder, p.key)
+            : `/w/${workspace.id}/analyse${p.key === DEFAULT_PERIOD ? '' : `?p=${p.key}`}`)}>
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
 
   const [cases, setCases] = useState<Case[]>([]);
   const [walkTimes, setWalkTimes] = useState<number[]>([]);
@@ -150,7 +172,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
           ))}
         </div>
       )}
-      <LineBoard />
+      {periodChips}
+      <LineBoard since={cutoff} periodKey={period} />
       {film && (
         <div className="film-overlay" onClick={() => setFilm(false)} role="dialog" aria-label="Tutorial film">
           <video controls autoPlay playsInline onClick={e => e.stopPropagation()}>
@@ -183,10 +206,10 @@ export function AnalyseScreen({ route }: { route: Route }) {
     nav(`/w/${workspace.id}/case/${c.id}`);
   };
 
-  const goto = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'analyse', m, path, view.dimensionOrder));
+  const goto = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'analyse', m, path, view.dimensionOrder, period));
   const drill = (key: string) => { if (node.dimension) goto(view.measure, pushDrill(view, key, node.dimension).path); };
   // "All" means the line: land back on the board, not a rootless drill view
-  const jump = (depth: number) => { if (depth === 0) nav(`/w/${workspace.id}/analyse`); else goto(view.measure, view.path.slice(0, depth)); };
+  const jump = (depth: number) => { if (depth === 0) nav(`/w/${workspace.id}/analyse${period === DEFAULT_PERIOD ? '' : `?p=${period}`}`); else goto(view.measure, view.path.slice(0, depth)); };
 
   const rankByFreq = view.measure === 'count';
   const noRows = node.rows.length === 0;
@@ -223,6 +246,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
       </div>
 
       <DrillBreadcrumb path={view.path} onJump={jump} />
+      {periodChips}
 
       {noRows ? (
         <EmptyState title={observations.length === 0 ? 'Nothing logged yet' : 'Nothing here'} icon="▤">
@@ -250,7 +274,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 />
               </div>
               <div className="analyse-meta">
-                {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}` : ''}
+                {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}` : ''} · {periodWord(period)}
               </div>
               {!costable && (
                 <button className="cost-hint" onClick={() => nav(`/w/${workspace.id}/settings`)}>
@@ -286,7 +310,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/trend`)}>📈 Is it getting better? ›</button>
           </div>
 
-          <button className="linkish present-link" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder))}>
+          <button className="linkish present-link" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder, period))}>
             Present this ›
           </button>
         </>

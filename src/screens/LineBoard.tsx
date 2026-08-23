@@ -34,15 +34,21 @@ function toSlices(rows: Observation[], dimension: DimensionKey, costable: boolea
   }));
 }
 
-export function LineBoard({ present = false }: { present?: boolean }) {
+export function LineBoard({ present = false, since = 0, periodKey }: { present?: boolean; since?: number; periodKey?: string }) {
   const { workspace, observations } = useWorkspace();
-  const live = observations.filter(o => o.deletedAt == null);
+  // the period lens: the board ranks what happened INSIDE the window
+  const live = observations.filter(o => o.deletedAt == null && o.startedAt >= since);
   const costable = hasCost(workspace);
   const factor = costPerMs(workspace);
   const screen = present ? 'present' : 'analyse';
 
   if (live.length === 0) {
-    return (
+    const anyEver = observations.some(o => o.deletedAt == null);
+    return anyEver && since > 0 ? (
+      <EmptyState title="A quiet window" icon="▤">
+        Nothing logged in this period. Widen the period above — or better, get to the line and log what you see.
+      </EmptyState>
+    ) : (
       <EmptyState title="Nothing logged yet" icon="▤">
         Head to Capture and log what you see on the line — the board builds itself.
       </EmptyState>
@@ -63,9 +69,9 @@ export function LineBoard({ present = false }: { present?: boolean }) {
     .sort((a, b) => b.ms - a.ms);
 
   const goAsset = (asset: string) =>
-    nav(buildAnalyseHash(workspace.id, screen, 'time', [{ dimension: 'asset', value: asset }], ASSET_ORDER));
+    nav(buildAnalyseHash(workspace.id, screen, 'time', [{ dimension: 'asset', value: asset }], ASSET_ORDER, periodKey));
   const goAssetCat = (asset: string, cat: string) =>
-    nav(buildAnalyseHash(workspace.id, screen, 'time', [{ dimension: 'asset', value: asset }, { dimension: 'category', value: cat }], ASSET_ORDER));
+    nav(buildAnalyseHash(workspace.id, screen, 'time', [{ dimension: 'asset', value: asset }, { dimension: 'category', value: cat }], ASSET_ORDER, periodKey));
 
   const totalMs = live.reduce((a, o) => a + o.durationMs, 0);
   const multi = assets.length > 1; // one asset → the overarching by-asset chart is a lone 100% bar; skip it

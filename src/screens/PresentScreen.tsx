@@ -16,11 +16,16 @@ import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
 import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { asPeriod, periodCutoff } from '../lib/period';
 
 export function PresentScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
   const view = readWorkstreamView(route, workspace.id);
-  const node = useMemo(() => (view ? drillNode(observations, view) : null), [view, observations]);
+  // present mirrors analyse: the same period lens scopes the same ranking
+  const period = asPeriod(route.query.get('p'));
+  const cutoff = periodCutoff(period);
+  const inPeriod = useMemo(() => observations.filter(o => o.startedAt >= cutoff), [observations, cutoff]);
+  const node = useMemo(() => (view ? drillNode(inPeriod, view) : null), [view, inPeriod]);
   const [snag, setSnag] = useState<{ assets: number; snags: number } | null>(null);
   useEffect(() => {
     let alive = true;
@@ -50,7 +55,7 @@ export function PresentScreen({ route }: { route: Route }) {
               </div>
             </div>
           ) : (
-            <LineBoard present />
+            <LineBoard present since={cutoff} periodKey={period} />
           )}
         </div>
       </div>
@@ -58,11 +63,11 @@ export function PresentScreen({ route }: { route: Route }) {
   }
   if (!node) return null; // unreachable when view is set; keeps types honest without navigating in render
 
-  const goPresent = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'present', m, path, view.dimensionOrder));
+  const goPresent = (m: Measure, path = view.path) => nav(buildAnalyseHash(workspace.id, 'present', m, path, view.dimensionOrder, period));
   const drill = (key: string) => { if (node.dimension) goPresent(view.measure, pushDrill(view, key, node.dimension).path); };
   const jump = (depth: number) => { if (depth === 0) nav(`/w/${workspace.id}/present`); else goPresent(view.measure, view.path.slice(0, depth)); };
   const leafName = view.path[view.path.length - 1]?.value;
-  const exit = () => nav(buildAnalyseHash(workspace.id, 'analyse', view.measure, view.path, view.dimensionOrder));
+  const exit = () => nav(buildAnalyseHash(workspace.id, 'analyse', view.measure, view.path, view.dimensionOrder, period));
 
   const rankByFreq = view.measure === 'count';
   const totalMs = node.rows.reduce((a, o) => a + o.durationMs, 0);
