@@ -1,8 +1,38 @@
 # Faultline — what the product is
 
-**Faultline is the improvement loop for food factories: it measures where a
-line bleeds money in £, writes the A3 as the team works, and proves the fix
-held.** Power = evidence (video, observations) denominated in £. Intelligence =
+**Faultline is where a factory runs its improvement work — and the only
+system where that work has to prove itself.** (Owner decision, Aug 2026.)
+You manage improvement events in it: every event opens against a MEASURED
+loss in pounds (a baseline from real weeks, never typed), its actions live
+on the same tracker the floor uses, and it cannot close with a claim — it
+closes with a re-measured study that is allowed to say *no improvement*.
+The management layer is how it's used; the evidence layer is why it's
+bought and believed. Strip either half and it's a gimmick: admin theatre
+without the proof, dead accounting without the workflow.
+
+The category disease to never catch: **improvement theatre** (the KaiNexus
+failure mode) — charters, stage gates, benefits typed into boxes, events
+counted instead of pounds recovered. Faultline's answer is structural: the
+Case IS the improvement event, and its numbers are derived, not declared.
+
+**The enterprise surface** (next major build): one page holding every Case
+across lines and sites — stage, owner, £ at stake, £ proven. The CI manager
+reads it as a portfolio of events; the FD reads it as a ledger of outcomes:
+lost, recovered, receipted. Same data, same screen, both buyers.
+
+The road to enterprise, in order, each still passing the coherence and calm
+rules: (1) the portfolio/ledger page; (2) the year — annual totals, every
+receipt retrievable, the line's condition over time; (3) audit-grade rigor —
+who logged what and when, method always stated; then the parked items below
+by their triggers. The refusals hold: no sensors, no chat/comms, no andon
+engine, no compliance modules — a system of proof doesn't fight those wars,
+it is what their winners have to reference.
+
+**The test for every future feature: does it make the improvement work
+truer, fuller, or more readable? If it only makes the demo shinier, it's
+marketing, not product.**
+
+Power = evidence (video, observations) denominated in £. Intelligence =
 the engine that says where to look next. Simplicity = one question to start,
 one screen per role, one key back to the overview.
 
