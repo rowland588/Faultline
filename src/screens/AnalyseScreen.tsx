@@ -15,7 +15,7 @@ import { applyDrill, drillNode, pushDrill } from '../engine/drill';
 import { buildCompare, divergenceTags } from '../engine/compare';
 import { DIM_LABEL } from '../engine/types';
 import { weeklyLoss } from '../lib/stats';
-import { studyResult } from '../lib/proof';
+import { studyResult, provenWin } from '../lib/proof';
 import { freshness, agoWord } from '../lib/gemba';
 import { scopeLabel, caseNowMsWeek, fmtMean } from './CaseScreen';
 import { DEMO_NAME } from '../lib/demo';
@@ -123,7 +123,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
     const wins = cases
       .map(c => (c.study?.closedAt ? { c, r: studyResult(c, applyDrill(observations, workspace.id, c.path)) } : null))
       .filter((x): x is { c: Case; r: NonNullable<ReturnType<typeof studyResult>> } =>
-        !!x && !!x.r && (x.r.changePct ?? 0) < 0 && (x.r.savedMsWeek ?? 0) > 0);
+        !!x && !!x.r && provenWin(x.r));
     const totalSavedWk = wins.reduce((a, w) => a + (w.r.savedMsWeek ?? 0), 0);
     return (
     <div className="wrap analyse board" data-tour="board">
@@ -166,8 +166,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
         <div className="wins-shelf">
           {wins.map(({ c, r }) => (
             <button key={c.id} className="win-row" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
-              <span className="win-title">✓ {c.title}</span>
-              <span className="win-meta">{fmtMean(r.beforeMeanMs)} → {fmtMean(r.afterMeanMs)} per event · {perYr(r.savedMsWeek ?? 0)} · proven {dn(c.study!.closedAt!)}</span>
+              <span className="win-title">{r.sinceCall?.slipping ? '⚠' : '✓'} {c.title}</span>
+              <span className="win-meta">{fmtMean(r.beforeMeanMs)} → {fmtMean(r.afterMeanMs)} per event · {perYr(r.savedMsWeek ?? 0)} · proven {dn(c.study!.closedAt!)}{r.sinceCall?.slipping ? ' · slipping since' : ''}</span>
             </button>
           ))}
         </div>

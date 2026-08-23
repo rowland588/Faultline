@@ -128,16 +128,42 @@ export interface WorkstreamView {
  * current condition = the scoped rows' weekly loss, analysis = the drill,
  * countermeasures = snags carrying this caseId, follow-up = the scoped trend
  * against the target. It stores no chart, no analysis, no copies. */
+/** The receipt — the study's numbers FROZEN at the moment the team called
+ *  the verdict. Without it a "proven" claim silently recomputes forever:
+ *  next month's data would rewrite last month's verdict. With it, the claim
+ *  is auditable (what was known, when) and everything logged after the call
+ *  becomes a separate question — "is it holding?" — not a revision. */
+export interface StudyReceipt {
+  beforeN: number;
+  beforeMeanMs: number;
+  afterN: number;
+  afterMeanMs: number;
+  changePct: number;
+  savedMsWeek: number;
+  /** how much CALENDAR the samples cover — density, so a 3-day blitz can't
+   *  impersonate a 3-month collection */
+  beforeSpanMs: number;
+  afterSpanMs: number;
+  /** events/week either side, from the spans (informational; £ stays duration-based) */
+  beforeRateWk: number | null;
+  afterRateWk: number | null;
+  /** Welch one-sided p (after < before). null = too few samples to test. */
+  pValue: number | null;
+  calledAt: Millis;
+}
+
 /** The confirmation study — the Case's proof phase. Everything before
  *  `startedAt` is the BEFORE sample, everything after is the AFTER sample,
  *  both over the same scope, measured the same way. `targetN` is the sample
  *  size promised up front (defaults to matching the baseline's), `closedAt`
- *  is when the team called the result. A field, not an object — the Case
- *  stays the product's only addition. */
+ *  is when the team called the result, `receipt` freezes what they saw when
+ *  they called it. A field, not an object — the Case stays the product's
+ *  only addition. */
 export interface CaseStudy {
   startedAt: Millis;
   targetN: number;
   closedAt?: Millis;
+  receipt?: StudyReceipt;
 }
 
 export interface Case {

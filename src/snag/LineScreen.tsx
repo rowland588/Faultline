@@ -28,7 +28,7 @@ import { fmtRelative, fmtDurationWords } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 import { weeklyLoss } from '../lib/stats';
 import { applyDrill } from '../engine/drill';
-import { studyResult } from '../lib/proof';
+import { studyResult, provenWin } from '../lib/proof';
 import { dueWord } from './TimeStrip';
 import { SNAG_STATUS_META, isOverdue, type Snag, type SnagAsset } from './types';
 import type { Case } from '../types';
@@ -45,7 +45,7 @@ interface Stop {
   msWeek: number | null; // avg weekly loss of this machine (full weeks only)
   actions: Snag[];      // open work aimed here: open pins + board actions
   openCase?: Case;      // a case scoped to this machine, still being worked
-  win?: { c: Case; savedMsWeek: number }; // the proven receipt
+  win?: { c: Case; savedMsWeek: number; slipping: boolean }; // the proven receipt (+ is it holding?)
 }
 
 function MachineSlide({ stop, wsId, layer, heat, money }: {
@@ -82,7 +82,7 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
         <span className="line-proof">
           {stop.win && (
             <span className="lp-badge lp-win" role="button" tabIndex={0} onClick={e => openCase(e, stop.win!.c.id)}>
-              ✓ {money(stop.win.savedMsWeek)}/wk proven — {stop.win.c.title} ›
+              {stop.win.slipping ? '⚠' : '✓'} {money(stop.win.savedMsWeek)}/wk proven{stop.win.slipping ? ' · slipping' : ''} — {stop.win.c.title} ›
             </span>
           )}
           {stop.openCase && (
@@ -171,11 +171,11 @@ export function LineScreen({ wsId }: { wsId: string }) {
       const openCase = scoped.find(c => c.status === 'open' && !c.study?.closedAt);
       const win = scoped
         .map(c => (c.study?.closedAt ? { c, r: studyResult(c, applyDrill(observations, wsId, c.path)) } : null))
-        .find(x => x && x.r && (x.r.changePct ?? 0) < 0 && (x.r.savedMsWeek ?? 0) > 0);
+        .find(x => x && x.r && provenWin(x.r));
       return {
         name, asset, pins, open: pins.filter(s => s.status !== 'closed').length,
         msWeek, actions, openCase,
-        win: win ? { c: win.c, savedMsWeek: win.r!.savedMsWeek! } : undefined,
+        win: win ? { c: win.c, savedMsWeek: win.r!.savedMsWeek!, slipping: !!win.r!.sinceCall?.slipping } : undefined,
       };
     });
   }, [workspace, observations, assets, snags, cases, wsId]);

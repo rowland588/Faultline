@@ -16,7 +16,7 @@ import { plural } from '../lib/format';
 import { ActionComposer } from './ActionComposer';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput, type Snag, type SnagStatus } from '../snag/types';
-import { studyResult, defaultTargetN } from '../lib/proof';
+import { studyResult, defaultTargetN, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
 
 /** Mean-per-event, in words a room can read aloud. */
@@ -112,6 +112,24 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
   const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtH(ms));
   const called = kase.study.closedAt != null;
   const better = (result.changePct ?? 0) < 0;
+  const fmtP = (p: number) => (p < 0.01 ? 'p<0.01' : `p=${p.toFixed(2)}`);
+
+  /* density — n means little without the calendar it covers */
+  const density = (
+    <p className="sub" style={{ marginTop: 6 }}>
+      Sample density: before <b>{result.beforeN}</b> {result.beforeSpanMs > 0 ? <>over <b>{fmtSpan(result.beforeSpanMs)}</b></> : null}
+      {' · '}after <b>{result.afterN}</b> {result.afterSpanMs > 0 && result.afterN > 0 ? <>over <b>{fmtSpan(result.afterSpanMs)}</b></> : null}
+    </p>
+  );
+  /* frequency — informational only, and only once both spans can carry it */
+  const showRates = result.beforeRateWk != null && result.afterRateWk != null
+    && result.beforeSpanMs >= 14 * 24 * 3600_000 && result.afterSpanMs >= 7 * 24 * 3600_000;
+  const rates = showRates ? (
+    <p className="sub">
+      Frequency: <b>{result.beforeRateWk!.toFixed(1)}/wk</b> → <b>{result.afterRateWk!.toFixed(1)}/wk</b>
+      {' '}— for information; the £ claim compares time per event, at the baseline's frequency.
+    </p>
+  ) : null;
 
   const readout = (
     <div className="proof-readout">
@@ -143,16 +161,40 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
   );
 
   if (called) {
+    const won = provenWin(result);
+    const noise = better && result.significant === false; // improved on average, but within noise
+    const stamp = won ? '✓ PROVEN' : noise ? '✗ NOT PROVEN — within noise' : '✗ NO IMPROVEMENT';
+    const since = result.sinceCall;
     return (
       <div>
-        <p className={'proof-stamp ' + (better ? 'ps-good' : 'ps-bad')}>
-          {better ? '✓ PROVEN' : '✗ NO IMPROVEMENT'} — called {dateNice(kase.study.closedAt!)}
+        <p className={'proof-stamp ' + (won ? 'ps-good' : 'ps-bad')}>
+          {stamp} — called {dateNice(kase.study.closedAt!)}
         </p>
+        {noise && (
+          <p className="sub">
+            The averages moved, but with these samples the difference isn't distinguishable from chance
+            {result.pValue != null ? <> ({fmtP(result.pValue)})</> : null}. Collect more and re-call, or let it stand as honest.
+          </p>
+        )}
         {readout}
+        {density}
+        {rates}
         <p className="sub" style={{ marginTop: 6 }}>
           Method: same scope, same capture method, both sample sizes shown. £ projected at the baseline's frequency.
+          {result.frozen
+            ? <> Numbers frozen at the call{result.pValue != null ? <> · {fmtP(result.pValue)}</> : null} — logs since then don't rewrite this receipt.</>
+            : result.pValue != null ? <> {fmtP(result.pValue)} (one-sided).</> : null}
         </p>
-        <button className="linkish no-print" onClick={() => void onChange({ study: { ...kase.study!, closedAt: undefined } })}>
+        {won && since && (
+          since.n === 0
+            ? <p className="sub">Holding? Nothing logged in this scope since the call — silence is fine; watch the Line.</p>
+            : <p className={'sub' + (since.slipping ? ' mt-bad' : '')}>
+                {since.slipping ? '⚠ SLIPPING' : '✓ Holding'} — {plural(since.n, 'event')} since the call, averaging <b>{fmtMean(since.meanMs)}</b>
+                {result.afterMeanMs > 0 ? <> vs <b>{fmtMean(result.afterMeanMs)}</b> proven</> : null}.
+                {since.slipping ? ' The fix is drifting — reopen the case and look.' : ''}
+              </p>
+        )}
+        <button className="linkish no-print" onClick={() => void onChange({ study: { ...kase.study!, closedAt: undefined, receipt: undefined } })}>
           Reopen the study
         </button>
       </div>
@@ -168,11 +210,34 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
         🔬 Study running since {dateNice(kase.study.startedAt)} — <b>{result.afterN} of {result.targetN}</b> samples collected.
         Capture in this scope and they count automatically.
       </p>
+      {result.stale && (
+        <p className="sub mt-bad">
+          ⚠ This study has drifted — armed over 60 days and still short of target. The line may have changed
+          underneath it; abandon and re-arm for a clean before/after.
+        </p>
+      )}
       {result.afterN > 0 && readout}
+      {result.afterN > 0 && density}
+      {result.afterN > 0 && rates}
+      {result.afterN > 0 && (
+        <p className="sub">
+          Signal: {result.pValue == null
+            ? 'too early to test — needs at least 3 samples each side.'
+            : result.significant && better
+              ? <>the improvement is distinguishable from noise ({fmtP(result.pValue)}).</>
+              : better
+                ? <>looks better, but not yet distinguishable from noise ({fmtP(result.pValue)}) — keep collecting.</>
+                : <>no improvement signal yet ({fmtP(result.pValue)}).</>}
+        </p>
+      )}
       <div className="row-inline no-print" style={{ marginTop: 10 }}>
         <button className="btn btn-primary" disabled={!result.enough}
           title={result.enough ? undefined : `Collect ${result.targetN - result.afterN} more first`}
-          onClick={() => void onChange({ study: { ...kase.study!, closedAt: Date.now() } })}>
+          onClick={() => {
+            const calledAt = Date.now();
+            // freeze the receipt AT the call — the verdict becomes a record, not a recompute
+            void onChange({ study: { ...kase.study!, closedAt: calledAt, receipt: makeReceipt(result, calledAt) ?? undefined } });
+          }}>
           {result.enough ? 'Call it — record the verdict' : `Needs ${result.targetN - result.afterN} more`}
         </button>
         <button className="btn btn-ghost"

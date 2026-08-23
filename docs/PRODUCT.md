@@ -132,6 +132,27 @@ IS the trend, told in the Pareto's own vocabulary. Division of labour:
 Pareto = where, within a period · trend + flags = whether, across weeks ·
 movers = how the ranking shifts · studies = proof, at a moment.
 
+**Proof hardening (built Aug 2026): a verdict is a RECEIPT, not a recompute.**
+Three weaknesses, closed in one package. (1) *Frozen receipts* — calling a
+study freezes its numbers (means, n, spans, rates, p, calledAt) into
+`study.receipt`; logs after the call can never silently rewrite last month's
+claim. Reopening clears the receipt; legacy called studies without one keep
+computing live, never retro-failed. (2) *Sample density* — n means nothing
+without the calendar it covers, so every readout states "before 29 over
+11 wks · after 9 over 2 wks", the frequency line (events/wk each side) is
+shown for information — the £ claim stays duration-based at the baseline's
+frequency — and a study armed >60 days short of target is flagged as
+drifted. (3) *The significance gate* — Welch one-sided t (after < before,
+p < 0.10, humane for factory sample sizes) in lib/proof; a "win" within
+noise is stamped **✗ NOT PROVEN — within noise**, which is exactly why a ✓
+is a receipt. One definition of a win product-wide (`provenWin`): better on
+average, £ recovered, and past the gate — untestable/legacy = grandfathered
+pass, tested-and-failed = not a win. And after the call the question flips:
+events since the call answer **"is it holding?"** — n≥5 with the mean >1.3×
+the proven after-mean flags ⚠ SLIPPING on the Case, the wins shelf, the
+meeting's receipts, the portfolio row and the Line's proof badge. This is
+the first leg of audit-grade rigor on the enterprise road.
+
 **The one-door rule (owner cut, Aug 2026): the system is four verbs — log
 it · see what it costs · fix it · prove it — and each verb gets exactly ONE
 obvious door.** Duplicate doors are what make a product feel complicated;

@@ -17,7 +17,7 @@ import { listWorkspaces, listObservations, listCases, snagsForWorkspace } from '
 import { useSyncedAt } from '../cloud/session';
 import { applyDrill } from '../engine/drill';
 import { weeklyLoss } from '../lib/stats';
-import { studyResult } from '../lib/proof';
+import { studyResult, provenWin } from '../lib/proof';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 import { scopeLabel, caseNowMsWeek } from './CaseScreen';
 import { Wordmark } from '../ui/Logo';
@@ -101,8 +101,9 @@ export function PortfolioScreen() {
           const owners = [...new Set(snags.filter(s => s.caseId === c.id && s.status !== 'closed' && s.owner).map(s => s.owner!))];
           let stage: Stage; let stageLabel: string; let savedMsWeek: number | undefined;
           if (c.study?.closedAt && r) {
-            if ((r.changePct ?? 0) < 0 && (r.savedMsWeek ?? 0) > 0) {
-              stage = 'proven'; stageLabel = `proven ${dn(c.study.closedAt)}`; savedMsWeek = r.savedMsWeek!;
+            if (provenWin(r)) {
+              stage = 'proven'; savedMsWeek = r.savedMsWeek!;
+              stageLabel = `proven ${dn(c.study.closedAt)}${r.sinceCall?.slipping ? ' · slipping ⚠' : ''}`;
             } else { stage = 'failed'; stageLabel = `called ${dn(c.study.closedAt)} — didn't hold`; }
           } else if (c.study && r) {
             stage = 'collecting'; stageLabel = `study · ${r.afterN}/${r.targetN} samples`;

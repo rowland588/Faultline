@@ -21,7 +21,7 @@ import { useSyncedAt } from '../cloud/session';
 import { weeklyLoss, categoryTrends, closedEvents, weekStart, type WeekPoint, type CategoryTrend } from '../lib/stats';
 import { buildCompare, divergenceTags } from '../engine/compare';
 import { applyDrill, drillNode } from '../engine/drill';
-import { studyResult } from '../lib/proof';
+import { studyResult, provenWin } from '../lib/proof';
 import { fmtMean } from './CaseScreen';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { DrillBreadcrumb } from '../charts/DrillBreadcrumb';
@@ -268,7 +268,7 @@ export function MeetingScreen() {
                 {(() => {
                   const wins = cases
                     .map(c => (c.study?.closedAt ? studyResult(c, applyDrill(live, workspace.id, c.path)) : null))
-                    .filter(r => !!r && (r.changePct ?? 0) < 0 && (r.savedMsWeek ?? 0) > 0);
+                    .filter(r => !!r && provenWin(r));
                   const total = wins.reduce((a, r) => a + (r!.savedMsWeek ?? 0), 0);
                   return total > 0
                     ? <span className="mt-sub">🏆 <b className="mt-good">{money(total)}/wk proven recovered all-time</b> · {plural(wins.length, 'win')}</span>
@@ -394,11 +394,12 @@ export function MeetingScreen() {
             const r = studyResult(c, applyDrill(live, workspace.id, c.path));
             if (!r) return null;
             const called = c.study!.closedAt != null;
-            const good = (r.changePct ?? 0) < 0;
+            const good = provenWin(r);
+            const slipping = good && r.sinceCall?.slipping;
             return (
               <button key={c.id} className="meet-hold meet-receipt" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
-                <span className={'mh-verdict ' + (called ? (good ? 'mt-good' : 'mt-bad') : 'mm-flat')}>
-                  {called ? (good ? '✓ proven' : '✗ not better') : `🔬 ${r.afterN}/${r.targetN}`}
+                <span className={'mh-verdict ' + (called ? (slipping ? 'mt-bad' : good ? 'mt-good' : 'mt-bad') : 'mm-flat')}>
+                  {called ? (slipping ? '⚠ slipping' : good ? '✓ proven' : '✗ not proven') : `🔬 ${r.afterN}/${r.targetN}`}
                 </span>
                 <div className="mh-body">
                   <span className="mh-problem">{c.title}</span>
