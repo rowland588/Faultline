@@ -166,11 +166,14 @@ export function ParetoChart({
           // in Both, a wide time label can run into the freq label when the two
           // bars top out at similar heights — lift the freq figure a row
           const fLift = both && Math.abs(tTop - fTop) < 13 ? 12 : 0;
+          // narrow columns: ADJACENT vital-few labels can kiss — lift every
+          // other labelled column a row so neighbours never share a baseline
+          const vLift = colW < 40 && i % 2 === 1 ? 13 : 0;
           const evTop = showT ? tTop : fTop;
           return (
             <g key={'l' + s.key} style={{ pointerEvents: 'none' }}>
               {s.media > 0 && (
-                <g className="pk-ev" transform={`translate(${showT ? timeCx(i) : freqCx(i)}, ${evTop - (nums && showT && s.costLabel ? 34 : 22)})`}>
+                <g className="pk-ev" transform={`translate(${showT ? timeCx(i) : freqCx(i)}, ${evTop - vLift - (nums && showT && s.costLabel ? 34 : 22)})`}>
                   <rect className="pk-ev-pill" x={s.media > 1 ? -15 : -10} y={-8.5} width={s.media > 1 ? 30 : 20} height={15} rx={7.5} />
                   <g transform={`translate(${s.media > 1 ? -5 : 0}, 0)`}>
                     <rect className="pk-ev-cam" x={-5} y={-2.2} width={10} height={7} rx={1.4} />
@@ -180,13 +183,13 @@ export function ParetoChart({
                   {s.media > 1 && <text className="pk-ev-ct" x={6.5} y={2.5} textAnchor="middle">{s.media}</text>}
                 </g>
               )}
-              {nums && showT && s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19} textAnchor="middle">{s.costLabel}</text>}
+              {nums && showT && s.costLabel && <text className="pk-val-cost" x={timeCx(i)} y={tTop - 19 - vLift} textAnchor="middle">{s.costLabel}</text>}
               {/* the ACTUAL time on every bar — the vital few carry £ + time in
                   full voice; the tail still says its time, just quietly. (In
                   Both, two series of numbers collide, so the tail stays bare.) */}
               {showT && s.timeLabel && (nums
-                ? <text className="pk-val-time" x={timeCx(i)} y={tTop - 7} textAnchor="middle">{s.timeLabel}</text>
-                : !both && <text className="pk-val-time pk-val-dim" x={timeCx(i)} y={tTop - 6} textAnchor="middle">{s.timeLabel}</text>)}
+                ? <text className="pk-val-time" x={timeCx(i)} y={tTop - 7 - vLift} textAnchor="middle">{s.timeLabel}</text>
+                : !both && <text className="pk-val-time pk-val-dim" x={timeCx(i)} y={tTop - 6 - vLift} textAnchor="middle">{s.timeLabel}</text>)}
               {showF && s.freqLabel && (nums
                 ? <text className="pk-val-freq" x={freqCx(i)} y={fTop - 7 - fLift} textAnchor="middle">{s.freqLabel}</text>
                 : !both && <text className="pk-val-freq pk-val-dim" x={freqCx(i)} y={fTop - 6} textAnchor="middle">{s.freqLabel}</text>)}
