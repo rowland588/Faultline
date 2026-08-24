@@ -328,6 +328,18 @@ Three parts, each a distinct thing:
   screenshots are re-shot from the seeded demo whenever the UI meaningfully
   changes (scratchpad guide-shots.js), and the tour now includes the Line
   chapter (£ heat + proof layers).
+- **SEO + AEO layer (built Aug 2026)** — the app is a client-rendered SPA,
+  so crawlers and AI answer engines get a purpose-built static surface:
+  index.html carries the current positioning (title/description/OG) plus
+  JSON-LD (SoftwareApplication, VideoObject for the film, FAQPage with six
+  definitional Q&As) and a `<noscript>` mirror of the pitch for raw-HTML
+  crawlers; /how-it-works.html is a static, indexable copy of the guide
+  (screens, alt text, FAQ — keep in step with GuideContent.tsx); /llms.txt
+  is the answer-engine summary; robots.txt explicitly welcomes the AI
+  crawlers; the sitemap lists both pages. The FAQ answers ARE the
+  positioning — first sentence definitional, boundary stated (never
+  compliance), sensors framed as complement. Update all of it when the
+  pinned definition changes, and only then.
 - **The script arms the presenter** (docs/DEMO_SCRIPT.md): the beats with
   say-this lines, the numbers to have cold, one-breath objection answers,
   and the recovery moves. The live phone-capture beat — a log on the phone

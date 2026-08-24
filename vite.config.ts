@@ -21,9 +21,9 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Faultline — find the problems, make them visible',
+        name: 'Faultline — prove the fix held',
         short_name: 'Faultline',
-        description: 'Walk the line, log losses and pin faults on a video-walk still, and turn what you find into a Pareto, a cost, and a tracked snag list. Offline-first, synced across your devices.',
+        description: 'See the loss, price it in £/week, fix it with owned actions, and prove the fix held — with dated receipts. Offline-first improvement software for food factories.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

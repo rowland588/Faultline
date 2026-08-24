@@ -1,26 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#e9f3fa" />
-    <title>Faultline — find the problems, make them visible</title>
-    <meta name="description" content="Walk the line, log losses and pin faults, and turn what you find into a Pareto, a cost, and a tracked snag list. Offline-first, synced across your devices." />
+    <title>Faultline — factory improvement software that proves the saving</title>
+    <meta name="description" content="Log production-line losses on a phone, price them in £/week, fix them with owned actions, and prove the fix held — with dated, statistically-checked receipts. Offline-first improvement software for SME food factories. No sensors, no IT project." />
     <link rel="canonical" href="https://faultline.opexelevate.co.uk/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Faultline" />
-    <meta property="og:title" content="Faultline — find the problems, make them visible" />
-    <meta property="og:description" content="A field-first quality tool for in-house CI and ops teams: walk the line, pin faults on a video-walk still, and turn what you find into a tracked snag list." />
+    <meta property="og:title" content="Faultline — factory improvement software that proves the saving" />
+    <meta property="og:description" content="See the loss, price it in pounds, fix it, and prove the fix held — with receipts a finance director believes. Offline-first, for SME food factories." />
     <meta property="og:url" content="https://faultline.opexelevate.co.uk/" />
     <meta property="og:image" content="https://faultline.opexelevate.co.uk/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Faultline — walk the line, find the problems, make them visible" />
+    <meta property="og:image:alt" content="Faultline — OEE systems have numbers and no eyes. Audit apps have eyes and no numbers. Faultline has both." />
+    <meta property="og:locale" content="en_GB" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Faultline — find the problems, make them visible" />
-    <meta name="twitter:description" content="A field-first quality tool for in-house CI and ops teams: walk the line, pin faults on a video-walk still, and turn what you find into a tracked snag list." />
+    <meta name="twitter:title" content="Faultline — factory improvement software that proves the saving" />
+    <meta name="twitter:description" content="See the loss, price it in pounds, fix it, and prove the fix held — with receipts a finance director believes. Offline-first, for SME food factories." />
     <meta name="twitter:image" content="https://faultline.opexelevate.co.uk/og.png" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <link rel="icon" type="image/svg+xml" href="/mark.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <!-- iOS home-screen icon must be PNG (SVG is ignored by Safari) -->
@@ -28,9 +29,107 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Faultline" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://faultline.opexelevate.co.uk/#app",
+          "name": "Faultline",
+          "url": "https://faultline.opexelevate.co.uk/",
+          "description": "Faultline is where a factory runs its improvement work — and the only system where that work has to prove itself. Log line losses on a phone, price them in £/week, fix them with owned actions, and prove the fix held with dated, statistically-checked receipts.",
+          "applicationCategory": "BusinessApplication",
+          "applicationSubCategory": "Continuous improvement / manufacturing operations",
+          "operatingSystem": "Any (installable web app — phone, tablet, laptop)",
+          "featureList": [
+            "Offline-first loss logging on the factory floor — works with no signal, syncs itself",
+            "Live Pareto of lost time, frequency and £/week, drillable by machine, problem and shift",
+            "Video line walks with faults pinned to the exact spot on the machine",
+            "Owned, dated actions with a weekly meeting that runs on live data",
+            "Before/after proof studies with frozen receipts and a statistical significance gate",
+            "Multi-site portfolio ledger: £/yr at stake, £/yr proven, receipts retrievable"
+          ],
+          "image": "https://faultline.opexelevate.co.uk/og.png",
+          "screenshot": [
+            "https://faultline.opexelevate.co.uk/guide/pareto.png",
+            "https://faultline.opexelevate.co.uk/guide/line.png",
+            "https://faultline.opexelevate.co.uk/guide/report.png"
+          ]
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://faultline.opexelevate.co.uk/#demo",
+          "name": "Faultline — the whole app, start to finish, in two minutes",
+          "description": "A loss logged with the £ counting live, the Pareto board it lands on, the drill into the worst machine, a case with its running study, a proven £-saving with its receipt, the filmed walk with pinned faults, and the meeting that runs itself.",
+          "thumbnailUrl": "https://faultline.opexelevate.co.uk/demo/poster.png",
+          "contentUrl": "https://faultline.opexelevate.co.uk/demo/tutorial.mp4",
+          "uploadDate": "2026-08-23",
+          "duration": "PT1M51S"
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://faultline.opexelevate.co.uk/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Faultline?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Faultline is improvement software for food factories: teams log production-line losses on a phone, the losses rank themselves on a live Pareto priced in £/week, fixes become owned and dated actions, and a before/after study proves whether each fix held — recorded as a dated receipt, not a claim." }
+            },
+            {
+              "@type": "Question",
+              "name": "Who is Faultline for?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Ops and continuous-improvement teams in small and mid-size food manufacturing sites, usually introduced by an improvement consultant. It answers 'does the line work and what does it cost?' — it is deliberately not a compliance or audit-checklist tool." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does Faultline need sensors, integrations or an IT project?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No. Faultline is an installable web app that runs offline-first on the phones a team already owns. Losses are observed and logged by people, everything syncs itself when there is signal, and there is no hardware to fit and nothing to integrate." }
+            },
+            {
+              "@type": "Question",
+              "name": "How is Faultline different from OEE or machine-monitoring systems?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Sensor-based OEE tools see that a machine stopped; they cannot see why, or the changeover, labour and quality losses around it, and they do not run the fix or prove it worked. Faultline captures the why with human eyes and video walks, prices every loss in pounds, and closes the loop with a proof study. The two approaches complement each other." }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Faultline prove a saving is real?",
+              "acceptedAnswer": { "@type": "Answer", "text": "A study re-measures the same scope the same way and compares average time per event before and after the fix, with both sample sizes and the calendar they cover always shown. The verdict passes a statistical significance test, and calling it freezes the numbers into a dated receipt that later data cannot quietly rewrite. Fixes are then watched for slipping." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does Faultline work offline on the factory floor?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Capture works with no signal — everything saves on the device and syncs itself to the rest of the team when coverage returns. It installs to the home screen like a native app." }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static mirror for crawlers that don't run JavaScript (AI answer
+           engines fetch raw HTML). Replaced by the app the moment it mounts;
+           <noscript> so users never see a flash. Keep in step with the
+           landing page and /how-it-works.html. -->
+      <noscript>
+        <main>
+          <h1>Faultline — factory improvement software that proves the saving</h1>
+          <p>OEE systems have numbers and no eyes. Audit apps have eyes and no numbers. Faultline has both.</p>
+          <p>Faultline is where a factory runs its improvement work — and the only system where that work has to prove itself. One discipline for food-manufacturing ops teams: see the loss, price it in pounds, fix it, and prove the fix held — with receipts a finance director believes.</p>
+          <h2>The four verbs</h2>
+          <ul>
+            <li><strong>See it — both ways.</strong> Time the losses with a stopwatch; film the line and pin the faults on the footage.</li>
+            <li><strong>Price it in pounds.</strong> Every lost minute meets your crew cost. The Pareto ranks the pain in £/week.</li>
+            <li><strong>Fix it — owned and dated.</strong> Every action carries a name and a due date, and lands in a Monday meeting that runs itself.</li>
+            <li><strong>Prove it held — or admit it didn't.</strong> A study re-measures the same scope the same way. The verdict can be ✗ — which is exactly why a ✓ is a receipt, not a claim.</li>
+          </ul>
+          <p>Offline-first on the phones you already own — works with no signal on the floor, then syncs to every teammate you invite. No sensors, no integrations, no IT project.</p>
+          <p><a href="/how-it-works.html">See how it works — real screens, two minutes</a></p>
+        </main>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
