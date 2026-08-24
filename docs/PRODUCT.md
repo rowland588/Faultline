@@ -320,6 +320,14 @@ Three parts, each a distinct thing:
 - **The landing page plays the SAME film** — one video, everywhere. There
   is no separate marketing cut (owner decision, Aug 2026: "remove all demos
   apart from the correct 1").
+- **The guide renders INLINE on the landing page** (owner decision, Aug
+  2026): nobody clicks links on a landing page and plenty never press play,
+  so the /guide chapters — real screens, one sentence each — are the scroll
+  story below the film. ONE source of truth (GuideContent.tsx) rendered in
+  both places; /guide stays alive as the standalone, shareable copy. The
+  screenshots are re-shot from the seeded demo whenever the UI meaningfully
+  changes (scratchpad guide-shots.js), and the tour now includes the Line
+  chapter (£ heat + proof layers).
 - **The script arms the presenter** (docs/DEMO_SCRIPT.md): the beats with
   say-this lines, the numbers to have cold, one-breath objection answers,
   and the recovery moves. The live phone-capture beat — a log on the phone

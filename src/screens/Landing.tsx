@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { LogoMark } from '../ui/Logo';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
+import { GuideChapters, GuideExpect } from './GuideContent';
 
 /* The four verbs — the whole system, in the order a week runs. One door
  * (the ops buyer's); the ledger's marketing rules live in PRODUCT.md. */
@@ -85,8 +86,8 @@ export function Landing() {
             the floor, then syncs to every teammate you invite. No sensors, no
             integrations, no IT project.
           </p>
-          <button className="landing-guide-link" onClick={() => nav('/guide')}>
-            See how it works — real screens, two minutes ›
+          <button className="landing-guide-link" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
+            See how it works — real screens, two minutes ↓
           </button>
         </section>
 
@@ -142,8 +143,25 @@ export function Landing() {
           {/* mp4 first: iPhones and iPads don't play VP8 webm */}
           <source src="/demo/tutorial.mp4" type="video/mp4" />
           <source src="/demo/tutorial.webm" type="video/webm" />
-          Your browser can't play this clip — the guide link above tells the same story.
+          Your browser can't play this clip — the screens below tell the same story.
         </video>
+      </section>
+
+      {/* The same story for scrollers (owner decision, Aug 2026): the guide's
+          real-screen chapters render inline — nobody clicks links on a landing
+          page, and plenty of visitors never press play. /guide stays alive as
+          the standalone, shareable copy of exactly this content. */}
+      <section className="landing-how" id="how-it-works">
+        <h2 className="landing-demo-h">Or scroll it — the real screens</h2>
+        <p className="sub landing-demo-sub">
+          The same story, picture by picture. Every screen below is the live
+          product, not a mock-up.
+        </p>
+        <GuideChapters />
+        <GuideExpect />
+        <button className="landing-guide-link" onClick={() => nav('/guide')}>
+          Want this as its own page to share? Open the guide ›
+        </button>
       </section>
     </div>
   );

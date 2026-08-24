@@ -1298,6 +1298,10 @@ button { font-family: inherit; }
 .landing-demo-h { font-size: clamp(22px, 3vw, 30px); font-weight: 800; letter-spacing: -0.02em; }
 .landing-demo-sub { max-width: 640px; margin: 8px auto 18px; line-height: 1.5; }
 .landing-demo video { width: 100%; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow); display: block; background: var(--surface); }
+/* the inlined guide — same chapters as /guide, centred header, left-set story */
+.landing-how { width: 100%; max-width: 860px; margin: 0 auto 56px; padding: 0 24px; }
+.landing-how > .landing-demo-h, .landing-how > .landing-demo-sub { text-align: center; }
+.landing-how .landing-guide-link { display: block; margin: 26px auto 0; text-align: center; }
 @media (max-width: 800px) {
   .landing-demo { margin: 28px auto 36px; padding: 0 16px; }
   .landing-demo video { border-radius: 12px; }
