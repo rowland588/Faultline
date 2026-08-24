@@ -86,8 +86,9 @@ export function Landing() {
             the floor, then syncs to every teammate you invite. No sensors, no
             integrations, no IT project.
           </p>
-          <button className="landing-guide-link" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
-            See how it works — real screens, two minutes ↓
+          <button className="btn btn-lg landing-see-btn" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
+            <b>See how it works</b>
+            <span className="lsb-sub">real screens, two minutes ↓</span>
           </button>
         </section>
 

@@ -754,6 +754,14 @@ button { font-family: inherit; }
 .guide-cta h2 { margin: 0 0 4px; font-size: 20px; }
 .guide-cta .btn { margin-top: 14px; }
 .landing-guide-link { border: none; background: none; color: var(--accent); font-weight: 700; font-size: 14px; cursor: pointer; padding: 14px 0 0; text-align: left; }
+/* the hero's one loud door to the inlined guide — impossible to miss */
+.landing-see-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 100%; margin-top: 18px; padding: 14px 26px;
+  border: 2px solid var(--accent); color: var(--accent); border-radius: 999px;
+}
+.landing-see-btn b { font-size: 19px; letter-spacing: -0.2px; }
+.landing-see-btn .lsb-sub { font-size: 13.5px; font-weight: 600; opacity: 0.85; }
 .home-guide-link { display: block; width: 100%; margin-top: 22px; border: none; background: none; color: var(--accent); font-weight: 700; font-size: 13.5px; cursor: pointer; text-align: center; }
 
 /* a quiet footer, not a feature — diagnosable without looking technical */
