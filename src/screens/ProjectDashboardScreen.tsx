@@ -13,10 +13,10 @@
 import { useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { PaceMeeting } from './PaceMeeting';
+import { PaceSnags } from './PaceSnags';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
-import type { PaceObservation } from '../lib/projectPaceData';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import type { ActionChange, PaceDiff } from '../lib/paceDiff';
 
@@ -27,38 +27,6 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
       <span className="pace-kpi-l">{label}</span>
       {sub && <span className="pace-kpi-s">{sub}</span>}
     </div>
-  );
-}
-
-/* ---------- gemba: what people actually saw ---------- */
-function ObservationsPanel({ observations }: { observations: PaceObservation[] }) {
-  const lenses = ['People', 'Plant', 'Process', 'Material'];
-  // Notes from a walk, not the agenda — folded away unless asked for.
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="pace-sec">
-      <button className="pace-fold" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="pace-fold-ic" aria-hidden>{open ? '▾' : '▸'}</span>
-        <span className="pace-sec-title">On the floor</span>
-        <span className="pace-fold-sub">{observations.length} notes from the walk</span>
-      </button>
-      {!open ? null : <div className="pace-4m">
-        {lenses.map(l => {
-          const items = observations.filter(o => o.lens === l);
-          return (
-            <div key={l} className="pace-4m-col">
-              <h4 className="pace-4m-head">{l} <span>{items.length}</span></h4>
-              {items.length === 0 ? <p className="pace-4m-none">Nothing logged.</p> : items.map((o, i) => (
-                <div key={i} className="pace-4m-item">
-                  <p>{o.text}</p>
-                  <span className="pace-4m-who">{o.observer}</span>
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>}
-    </section>
   );
 }
 
@@ -227,21 +195,22 @@ function UploadPanel({ state }: { state: PaceState }) {
   );
 }
 
-type Lens = 'overview' | 'meeting' | 'data';
+type Lens = 'overview' | 'meeting' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview', sub: 'the picture' },
   { id: 'meeting',  label: 'Meeting',  sub: 'by owner' },
+  { id: 'snags',    label: 'Snag list', sub: 'the line, filmed' },
   { id: 'data',     label: 'Data',     sub: 'upload & ppm' },
 ];
 
 export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const lens: Lens = raw === 'meeting' || raw === 'data' ? raw : 'overview';
+  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' ? raw : 'overview';
 
   const pace = usePaceSnapshots();
   const ppm = usePaceLines();
-  const { actions, observations } = pace;
+  const { actions } = pace;
 
   const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
   const overdue = actions.filter(a => /overdue/i.test(a.flag ?? '')).length;
@@ -260,7 +229,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         <div className="pace-head-main">
           <p className="pace-eyebrow">Improvement initiative</p>
           <h1 className="pace-title">Project Pace</h1>
-          <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, every action in flight, and what the walk found on the floor.</p>
+          <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, every action in flight, and the snag walk of the line.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
@@ -305,7 +274,6 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             </div>
           </section>
 
-          <ObservationsPanel observations={observations} />
         </>
       )}
 
@@ -316,6 +284,16 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             <p className="pace-sec-sub">Pick a name and work through their open actions · roster from the workbook's Lists sheet</p>
           </div>
           <PaceMeeting actions={actions} roster={pace.roster} />
+        </section>
+      )}
+
+      {lens === 'snags' && (
+        <section className="pace-sec">
+          <div className="pace-sec-head">
+            <h2 className="pace-sec-title">Snag list</h2>
+            <p className="pace-sec-sub">Film the line, mark the frames, pin what is wrong · play it back in the meeting</p>
+          </div>
+          <PaceSnags />
         </section>
       )}
 
@@ -333,7 +311,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
       )}
 
       <footer className="pace-foot">
-        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions and observations from the team’s tracker</p>
+        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions from the team’s tracker · the line walk filmed in the app</p>
       </footer>
     </div>
   );

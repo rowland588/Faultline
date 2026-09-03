@@ -1931,3 +1931,73 @@ button.st-pill { cursor: pointer; }
   .pm-controls, .pm-roster, .pm-nav { display: none !important; }
   .pm-card { break-inside: avoid; box-shadow: none; }
 }
+
+/* ---- the snag list on the project page ---- */
+.ps-empty { text-align: center; padding: 40px 20px; }
+.ps-empty-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: var(--ink); }
+.ps-empty-sub { margin: 0 auto 20px; max-width: 52ch; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+.ps-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 14px;
+}
+.ps-bar-stats { font-size: 13px; color: var(--ink-2); }
+.ps-bar-stats b { color: var(--ink); font-size: 15px; }
+.ps-bar-stats b.is-open { color: #a51f2d; }
+.ps-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.ps-segs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; margin-bottom: 22px; }
+.ps-seg {
+  display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 12px; box-shadow: var(--shadow);
+}
+.ps-seg:hover { border-color: var(--brand); }
+.ps-seg-poster {
+  width: 84px; height: 54px; flex-shrink: 0; border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--surface-2); display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 18px;
+}
+.ps-seg-poster img { width: 100%; height: 100%; object-fit: cover; }
+.ps-seg-main { min-width: 0; flex: 1; }
+.ps-seg-name { display: block; font-size: 14px; font-weight: 700; color: var(--ink); }
+.ps-seg-meta { display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.ps-seg-go { color: var(--muted); font-size: 18px; }
+
+.ps-h { margin: 0 0 10px; font-size: 15px; color: var(--ink); }
+.ps-snags { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+.ps-snag {
+  display: flex; gap: 11px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--muted);
+  border-radius: var(--radius); padding: 10px 12px; box-shadow: var(--shadow);
+}
+.ps-snag:hover { border-color: var(--brand); }
+.ps-snag.is-open { border-left-color: #a51f2d; }
+.ps-snag.is-prog { border-left-color: #c26a0a; }
+.ps-snag.is-done { border-left-color: var(--ok); opacity: 0.75; }
+.ps-snag-still {
+  position: relative; width: 88px; height: 58px; flex-shrink: 0; border-radius: var(--radius-sm);
+  overflow: hidden; background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center; color: var(--muted);
+}
+.ps-snag-still img { width: 100%; height: 100%; object-fit: cover; }
+/* the pin sits at its stored percentage, so it lands right at any size */
+.ps-pin {
+  position: absolute; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%;
+  background: #a51f2d; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+}
+.ps-snag-body { min-width: 0; flex: 1; }
+.ps-snag-problem { display: block; font-size: 13px; line-height: 1.45; color: var(--ink); }
+.ps-snag-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.ps-snag-asset { font-weight: 700; color: var(--ink-2); }
+.ps-snag-status { font-weight: 800; }
+.ps-snag-status.is-open { color: #a51f2d; }
+.ps-snag-status.is-prog { color: #c26a0a; }
+.ps-snag-status.is-done { color: var(--ok); }
+
+@media (max-width: 720px) {
+  .ps-segs, .ps-snags { grid-template-columns: 1fr; }
+  .ps-bar-actions { width: 100%; }
+}
+@media print { .ps-bar-actions { display: none !important; } .ps-seg, .ps-snag { break-inside: avoid; } }

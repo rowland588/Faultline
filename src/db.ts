@@ -769,3 +769,17 @@ export async function listPaceLines(): Promise<PaceLineRow[]> {
 export async function putPaceLine(row: PaceLineRow): Promise<void> {
   await (await getDB()).put('pace_lines', { ...row, updatedAt: now() });
 }
+
+/* ---------- the workspace behind Project Pace ----------
+ * The snag list is workspace-scoped ("the workspace IS the line"), and Project
+ * Pace is not a workspace, so it keeps one of its own. The id is remembered in
+ * meta rather than looked up by name, so renaming the workspace cannot orphan
+ * a walk. */
+export async function getPaceWorkspaceId(): Promise<ID | null> {
+  const m = (await (await getDB()).get('meta', 'paceWorkspace')) as { id: ID } | undefined;
+  if (!m?.id) return null;
+  return (await getWorkspace(m.id)) ? m.id : null;   // deleted since? treat as absent
+}
+export async function setPaceWorkspaceId(id: ID): Promise<void> {
+  await (await getDB()).put('meta', { id }, 'paceWorkspace');
+}
