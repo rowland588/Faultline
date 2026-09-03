@@ -2,7 +2,6 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { startSync } from './cloud/sync';
-import './lib/populateProjectData'; // Make __populateProjectData available in browser console
 import './styles.css';
 
 // Boot the cloud sync loop. No-ops unless Supabase is configured AND a session

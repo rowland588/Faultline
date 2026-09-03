@@ -13,9 +13,7 @@ import { AppShell } from './screens/AppShell';
 import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
 import { PortfolioScreen } from './screens/PortfolioScreen';
-import { ProjectsListScreen } from './screens/ProjectsListScreen';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
-import { ProjectMetricsScreen } from './screens/ProjectMetricsScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -44,10 +42,11 @@ export function Router() {
   // Home, outside any single WorkspaceProvider scope.
   if (route.name === 'portfolio') return <PortfolioScreen />;
 
-  // Projects span multiple workspaces, so they're top-level like portfolio
-  if (route.name === 'projects') return <ProjectsListScreen />;
-  if (route.name === 'projectDashboard' && route.id) return <ProjectDashboardScreen projectId={route.id} />;
-  if (route.name === 'projectMetrics' && route.id) return <ProjectMetricsScreen projectId={route.id} />;
+  // Project Pace spans four lines, so like the portfolio it lives outside any
+  // single WorkspaceProvider scope. One initiative, so the door opens on the A3
+  // itself rather than a list with one row in it.
+  if (route.name === 'projects' || route.name === 'projectDashboard')
+    return <ProjectDashboardScreen projectId={route.id ?? 'pace'} />;
 
   return (
     route.name === 'home' || !route.wsId

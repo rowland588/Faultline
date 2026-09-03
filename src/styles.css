@@ -1517,3 +1517,193 @@ button.st-pill { cursor: pointer; }
 /* the period lens — flipping between windows IS the trend */
 .period-row { margin: 0 0 10px; }
 .board .period-row { margin-top: 2px; }
+
+/* ============================================================
+ *  PROJECT PACE — the multi-line A3.
+ *  Reads as one page in a stand-up and prints as one sheet. Chart colours are
+ *  validated (actual/target dE 28.7 normal, 25.1 CVD); status colours ride with
+ *  their label so nothing depends on hue alone.
+ * ============================================================ */
+.pace { max-width: 1180px; padding-bottom: 56px; }
+
+.pace-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 18px;
+  padding: 22px 0 18px; border-bottom: 3px solid var(--brand); margin-bottom: 20px;
+}
+.pace-head-main { min-width: 0; }
+.pace-eyebrow {
+  margin: 0 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--brand);
+}
+.pace-title { margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em; color: var(--ink); }
+.pace-lede { margin: 8px 0 0; max-width: 62ch; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.pace-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* headline numbers — a stat tile, not a chart */
+.pace-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 26px; }
+.pace-kpi {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; box-shadow: var(--shadow); border-top: 3px solid var(--muted);
+}
+.pace-kpi.is-good { border-top-color: var(--ok); }
+.pace-kpi.is-bad  { border-top-color: #a51f2d; }
+.pace-kpi.is-warn { border-top-color: var(--warn); }
+.pace-kpi-n { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1; }
+.pace-kpi-l { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.pace-kpi-s { display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+
+.pace-sec { margin-bottom: 34px; }
+.pace-sec-head { margin-bottom: 14px; }
+.pace-sec-title { margin: 0; font-size: 19px; letter-spacing: -0.01em; color: var(--ink); }
+.pace-sec-sub { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* ---- line charts (small multiples) ---- */
+.pace-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 14px; }
+.pace-chart {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px 12px; box-shadow: var(--shadow);
+}
+.pace-chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pace-chart-title { margin: 0; font-size: 16px; color: var(--ink); }
+.pace-chart-sub { margin: 1px 0 0; font-size: 11px; color: var(--muted); }
+.pace-chart-delta { text-align: right; line-height: 1.25; }
+.pace-delta-n { font-size: 22px; font-weight: 800; color: var(--ink); }
+.pace-delta-u { display: block; font-size: 10.5px; color: var(--muted); }
+.pace-delta-v { display: block; font-size: 11px; font-weight: 700; color: var(--muted); }
+.pace-chart-delta.is-good .pace-delta-v { color: var(--ok); }
+.pace-chart-delta.is-bad  .pace-delta-v { color: #a51f2d; }
+
+.pace-legend { display: flex; gap: 14px; margin: 8px 0 2px; font-size: 11.5px; color: var(--ink-2); }
+.pace-key { display: inline-flex; align-items: center; gap: 6px; }
+.pace-swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.pace-swatch-dash {
+  background-image: linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px);
+  background-color: transparent !important;
+  height: 3px;
+}
+.pace-key .pace-swatch-dash { background: none; border-top: 3px dashed #c26a0a; height: 0; }
+
+.pace-quarters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.pace-q {
+  text-align: center; padding: 6px 4px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid transparent;
+}
+.pace-q.is-now { background: #fdf0e0; border-color: #c26a0a; }
+.pace-q-lbl { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: var(--muted); }
+.pace-q.is-now .pace-q-lbl { color: #c26a0a; }
+.pace-q-val { display: block; font-size: 15px; font-weight: 800; color: var(--ink); }
+
+/* ---- pareto: magnitude ranking, one hue ---- */
+.pace-pareto {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px 16px; box-shadow: var(--shadow);
+}
+.pace-bar-row {
+  display: grid; grid-template-columns: minmax(190px, 1.5fr) minmax(90px, 2fr) 84px minmax(110px, auto);
+  align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line);
+}
+.pace-bar-row:last-child { border-bottom: 0; }
+.pace-bar-row.is-cut { border-bottom: 2px solid var(--warn); }
+.pace-bar-name { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.pace-bar-meta { display: block; margin-top: 1px; font-size: 11px; color: var(--muted); }
+.pace-profile {
+  margin-left: 6px; padding: 1px 6px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.pace-profile-longstop { background: #fdf0e0; color: #c26a0a; }
+.pace-profile-frequency { background: #e7f1fb; color: #196bb3; }
+.pace-bar-track { background: var(--surface-2); border-radius: 4px; height: 16px; overflow: hidden; }
+.pace-bar-fill { height: 100%; background: var(--brand); border-radius: 0 4px 4px 0; }
+.pace-bar-nums { text-align: right; }
+.pace-bar-mins { display: block; font-size: 15px; font-weight: 800; color: var(--ink); }
+.pace-bar-mins i { font-style: normal; font-size: 10px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.pace-bar-cum { display: block; font-size: 10.5px; color: var(--muted); }
+.pace-bar-split { display: flex; gap: 8px; font-size: 11px; color: var(--muted); }
+.pace-bar-split b { color: var(--ink-2); }
+.pace-more {
+  margin-top: 10px; background: none; border: 0; padding: 6px 0;
+  color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer;
+}
+
+/* ---- filters ---- */
+.pace-filters { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; }
+.pace-filter-grp { display: flex; flex-wrap: wrap; gap: 5px; }
+.pace-fbtn {
+  padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.pace-fbtn.on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+
+/* ---- actions ---- */
+.pace-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 10px; }
+.pace-action {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.pace-action-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 7px; }
+.pace-ref { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); }
+.pace-pri {
+  font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.pace-line-tag, .pace-cat-tag {
+  font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.pace-cat-tag { background: var(--accent-soft); color: var(--accent); }
+.pace-flag {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+  font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 20px;
+}
+.pace-problem { margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.pace-do { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+.pace-do b { color: var(--ink); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; }
+.pace-action-foot {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line);
+  font-size: 11px; color: var(--muted);
+}
+.pace-owner { font-weight: 700; color: var(--ink-2); }
+.pace-due { margin-left: auto; font-family: var(--mono); }
+.pace-status { font-weight: 700; }
+.pace-none { color: var(--muted); font-size: 13px; padding: 18px 0; }
+
+/* ---- 4M observations ---- */
+.pace-4m { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.pace-4m-col {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.pace-4m-head {
+  margin: 0 0 9px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--brand); display: flex; justify-content: space-between; align-items: center;
+}
+.pace-4m-head span { font-size: 11px; color: var(--muted); background: var(--surface-2); padding: 1px 7px; border-radius: 20px; }
+.pace-4m-item { padding: 8px 0; border-top: 1px solid var(--line); }
+.pace-4m-item:first-of-type { border-top: 0; }
+.pace-4m-item p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink); }
+.pace-4m-who { display: inline-block; margin-top: 3px; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.pace-4m-none { margin: 0; font-size: 12px; color: var(--muted); }
+
+.pace-foot { margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--line); }
+.pace-foot p { margin: 0; font-size: 11.5px; color: var(--muted); }
+
+/* the door on Home */
+.pace-door .admin-ic { color: var(--brand); }
+
+@media (max-width: 720px) {
+  .pace-title { font-size: 26px; }
+  .pace-head { flex-direction: column; }
+  .pace-charts { grid-template-columns: 1fr; }
+  .pace-bar-row { grid-template-columns: 1fr; gap: 5px; }
+  .pace-bar-nums { text-align: left; display: flex; gap: 10px; align-items: baseline; }
+}
+
+@media print {
+  .pace-head-actions, .pace-filters, .pace-more { display: none !important; }
+  .pace { max-width: none; }
+  .pace-sec, .pace-chart, .pace-action, .pace-4m-col { break-inside: avoid; }
+  .pace-charts { grid-template-columns: 1fr 1fr; }
+  .pace-actions { grid-template-columns: 1fr 1fr; }
+  .pace-kpi, .pace-chart, .pace-pareto, .pace-action, .pace-4m-col { box-shadow: none; }
+}

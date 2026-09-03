@@ -7,7 +7,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectMetrics';
+  | 'projects' | 'projectDashboard';
 
 export interface Route {
   name: RouteName;
@@ -46,12 +46,7 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
-  if (segs[0] === 'project' && segs[1]) {
-    const projectId = decodeURIComponent(segs[1]);
-    const view = segs[2] || 'dashboard';
-    const name = view === 'metrics' ? 'projectMetrics' : 'projectDashboard';
-    return { name, id: projectId, query };
-  }
+  if (segs[0] === 'project' && segs[1]) return { name: 'projectDashboard', id: decodeURIComponent(segs[1]), query };
   if (segs[0] === 'w' && segs[1]) {
     const wsId = decodeURIComponent(segs[1]);
     const name = (segs[2] && SCREENS[segs[2]]) || 'resume';
@@ -90,8 +85,6 @@ export const nav = (to: string | { page: string; [key: string]: any }): void => 
       hash = '#/projects' + (qs ? '?' + qs : '');
     } else if (page === 'projectDashboard') {
       hash = '#/project/' + params.projectId + (qs ? '?' + qs : '');
-    } else if (page === 'projectMetrics') {
-      hash = '#/project/' + params.projectId + '/metrics' + (qs ? '?' + qs : '');
     } else {
       hash = '#/' + page + (qs ? '?' + qs : '');
     }
