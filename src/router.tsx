@@ -13,6 +13,8 @@ import { AppShell } from './screens/AppShell';
 import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
 import { PortfolioScreen } from './screens/PortfolioScreen';
+import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
+import { ProjectMetricsScreen } from './screens/ProjectMetricsScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -40,6 +42,10 @@ export function Router() {
   // The portfolio/ledger reads across every workspace, so it lives beside
   // Home, outside any single WorkspaceProvider scope.
   if (route.name === 'portfolio') return <PortfolioScreen />;
+
+  // Projects span multiple workspaces, so they're top-level like portfolio
+  if (route.name === 'projectDashboard' && route.id) return <ProjectDashboardScreen projectId={route.id} />;
+  if (route.name === 'projectMetrics' && route.id) return <ProjectMetricsScreen projectId={route.id} />;
 
   return (
     route.name === 'home' || !route.wsId
