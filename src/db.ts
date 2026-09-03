@@ -55,6 +55,7 @@ export interface PaceLineRow {
 export interface PaceSnapshotRow {
   id: string; takenAt: number; fileName: string;
   actions: unknown[]; observations: unknown[];
+  roster?: unknown;
 }
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */

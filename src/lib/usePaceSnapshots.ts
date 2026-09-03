@@ -5,9 +5,9 @@
  * state. Every later upload compares against the one before it. */
 import { useCallback, useEffect, useState } from 'react';
 import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot } from '../db';
-import { readPaceWorkbook, type PaceSnapshot } from './paceWorkbook';
+import { readPaceWorkbook, type PaceSnapshot, type PaceRoster } from './paceWorkbook';
 import { diffSnapshots, type PaceDiff } from './paceDiff';
-import { PACE_ACTIONS, PACE_OBSERVATIONS, PACE_BASELINE_AT } from './projectPaceData';
+import { PACE_ACTIONS, PACE_OBSERVATIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
 import type { PaceAction, PaceObservation } from './projectPaceData';
 
 const BASELINE: PaceSnapshot = {
@@ -16,6 +16,7 @@ const BASELINE: PaceSnapshot = {
   fileName: 'Project_Pace_Action_Tracker.xlsx (baseline)',
   actions: PACE_ACTIONS,
   observations: PACE_OBSERVATIONS,
+  roster: PACE_ROSTER,
 };
 
 export interface PaceState {
@@ -25,6 +26,8 @@ export interface PaceState {
   /** The current picture — the newest upload, or the baseline. */
   actions: PaceAction[];
   observations: PaceObservation[];
+  /** The team's own owner/status lists, from the newest upload that carried them. */
+  roster?: PaceRoster;
   /** Newest vs the one before it. Null when only the baseline exists. */
   diff: PaceDiff | null;
   busy: boolean;
@@ -47,6 +50,7 @@ export function usePaceSnapshots(): PaceState {
     setRows(stored.map(r => ({
       id: r.id, takenAt: r.takenAt, fileName: r.fileName,
       actions: r.actions as PaceAction[], observations: r.observations as PaceObservation[],
+      roster: (r as { roster?: PaceRoster }).roster,
     })));
     setLoading(false);
   }, []);
@@ -63,6 +67,7 @@ export function usePaceSnapshots(): PaceState {
         fileName: report.snapshot.fileName,
         actions: report.snapshot.actions,
         observations: report.snapshot.observations,
+        roster: report.snapshot.roster,
       });
       setWarnings(report.warnings);
       await load();
@@ -88,6 +93,8 @@ export function usePaceSnapshots(): PaceState {
     snapshots: chain,
     actions: current.actions,
     observations: current.observations,
+    // an older upload may predate roster support — fall back down the chain
+    roster: chain.find(s => s.roster?.owners.length)?.roster,
     diff: previous ? diffSnapshots(previous, current) : null,
     upload, remove,
     dismissError: () => setError(null),

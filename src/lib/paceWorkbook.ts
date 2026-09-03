@@ -15,6 +15,20 @@ export interface PaceSnapshot {
   fileName: string;
   actions: PaceAction[];
   observations: PaceObservation[];
+  /** The Lists sheet — the team's own vocabulary. Absent on older snapshots. */
+  roster?: PaceRoster;
+}
+
+/** The dropdown lists the workbook drives itself from. The owner column is the
+ *  roster the meeting is run through, and it INCLUDES people with no actions
+ *  this week — "nothing from you" is a real answer at a stand-up, and it can
+ *  only be given if the person is on screen to be asked. */
+export interface PaceRoster {
+  owners: string[];
+  statuses: string[];
+  categories: string[];
+  lines: string[];
+  departments: string[];
 }
 
 export interface ParseReport {
@@ -85,6 +99,30 @@ function parseTracker(sheet: SheetData, warnings: string[]): PaceAction[] {
   return out;
 }
 
+/** Read a single labelled column straight down from its heading. */
+function columnUnder(sheet: SheetData, heading: string): string[] {
+  const hm = headerMap(sheet.rows, [heading]);
+  if (!hm) return [];
+  const ci = hm.cols.get(heading.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  if (ci == null) return [];
+  const out: string[] = [];
+  for (let r = hm.row + 1; r < sheet.rows.length; r++) {
+    const v = txt(sheet.rows[r]?.[ci] ?? null);
+    if (v && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+function parseRoster(sheet: SheetData): PaceRoster {
+  return {
+    owners: columnUnder(sheet, 'Owner'),
+    statuses: columnUnder(sheet, 'Status'),
+    categories: columnUnder(sheet, 'Category'),
+    lines: columnUnder(sheet, 'Line'),
+    departments: columnUnder(sheet, 'Who'),
+  };
+}
+
 const LENSES = ['People', 'Plant', 'Process', 'Material'];
 
 function parseObservations(sheet: SheetData): PaceObservation[] {
@@ -116,6 +154,13 @@ export function readPaceWorkbook(buf: ArrayBuffer, fileName: string): ParseRepor
   const actions = tracker ? parseTracker(tracker, warnings) : [];
   if (!tracker) warnings.push('No Tracker sheet found — actions could not be read.');
 
+  // The Lists sheet drives the workbook's own dropdowns, so it is the closest
+  // thing to an authoritative roster.
+  const listsSheet = sheets.find(s => /^lists?$/i.test(s.name.trim()))
+    ?? sheets.find(s => headerMap(s.rows, ['Owner', 'Status']));
+  const roster = listsSheet ? parseRoster(listsSheet) : undefined;
+  if (!roster?.owners.length) warnings.push('No owner list found on a "Lists" sheet — the roster falls back to whoever appears in the tracker.');
+
   const obsSheets = sheets.filter(s => /observation/i.test(s.name));
   const observations = obsSheets.flatMap(parseObservations);
   if (!obsSheets.length) warnings.push('No Observations sheets found.');
@@ -134,6 +179,7 @@ export function readPaceWorkbook(buf: ArrayBuffer, fileName: string): ParseRepor
       fileName,
       actions,
       observations,
+      roster,
     },
     sheetsSeen: sheets.map(s => s.name),
     warnings,

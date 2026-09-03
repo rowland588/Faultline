@@ -18,6 +18,18 @@ export const PACE_BASELINE_AT = Date.UTC(2026, 7, 6);
 export const PACE_TOTAL_MINS = 3638;
 export const PACE_TOTAL_STOPS = 398;
 
+
+/** The workbook's own Lists sheet — the roster the meeting is run through,
+ *  plus the vocabulary its dropdowns use. Includes people with nothing open. */
+export interface PaceRosterData { owners: string[]; statuses: string[]; categories: string[]; lines: string[]; departments: string[] }
+export const PACE_ROSTER: PaceRosterData = {
+  owners: ["Tanya (GM)", "Rowland (Ops Lead)", "Ronnie (CI)", "Steve Wright (Technical)", "Rob Scott (Shift A)", "Paul Armitage (Shift B)", "Lee Carty (Shift C)", "Alex Hamilton", "Paul Selby", "Chris Smyth (Engineering)", "Sam Burrows (Eng)", "Debbie"],
+  statuses: ["Open", "In progress", "Blocked", "Done"],
+  lines: ["Line 2", "Line 7", "Line 10", "All lines"],
+  departments: ["Production", "Technical", "CI", "Engineering"],
+  categories: ["Stock starvation", "Changeovers", "General line organisation", "Brillopack snags", "Break management", "engineering", "Quality", "Robot / automation", "Consumable changes", "GIC failure", "Line staff capability", "Packaging or equipment issues", "Box compliance / box damage", "Operator error", "Business systems", "Set up", "Checkweigher", "Team meeting", "Equipment", "Reject management", "Electrical issue", "Trial", "Tipper", "Bagger printer", "Uncategorised", "Planning", "Design of process"],
+};
+
 export const PACE_LINES: PaceLine[] = [
   { key: "2A", name: "Line 2A", variant: "Line 2 \u2014 measured independently", q1: 44, q2: 50, q3: 52, q4: 55, weekly: [42, 41, 35, 47, 44, 46] },
   { key: "2B", name: "Line 2B", variant: "Line 2 \u2014 measured independently", q1: 44, q2: 50, q3: 52, q4: 55, weekly: [28, 30, 29, null, 28, 34] },

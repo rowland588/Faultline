@@ -313,9 +313,9 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Round the table</h2>
-            <p className="pace-sec-sub">Each owner reports their own workload · open one at a time, closed actions hidden</p>
+            <p className="pace-sec-sub">Pick a name and work through their open actions · roster from the workbook's Lists sheet</p>
           </div>
-          <PaceMeeting actions={actions} />
+          <PaceMeeting actions={actions} roster={pace.roster} />
         </section>
       )}
 
