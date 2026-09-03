@@ -1,7 +1,7 @@
 /* PROJECTS LIST — browse and create improvement initiatives.
  * Shows all projects with their lines and status. Entry point for the project system. */
 import { useEffect, useState } from 'react';
-import { allProjects, listWorkspaces, addProject } from '../db';
+import { allProjects, listWorkspaces, addProject, deleteProject } from '../db';
 import { nav } from '../state/useRoute';
 import { uid, now } from '../lib/ids';
 import type { Project, Workspace } from '../types';
@@ -53,6 +53,13 @@ export function ProjectsListScreen() {
     }
   };
 
+  const handleDeleteProject = async (projectId: string) => {
+    if (confirm('Delete this project? This cannot be undone.')) {
+      await deleteProject(projectId);
+      setProjects(projects.filter(p => p.id !== projectId));
+    }
+  };
+
   if (loading) return <div className="screen-container"><p>Loading projects...</p></div>;
 
   return (
@@ -64,10 +71,21 @@ export function ProjectsListScreen() {
         <div className="projects-grid">
           {projects.map(proj => (
             <div key={proj.id} className="project-card" style={{ borderLeftColor: proj.color }}>
-              <h3>{proj.name}</h3>
-              <p className="sub">{proj.description}</p>
-              <p className="line-count">{proj.workspaceIds.length} line(s)</p>
-              <button onClick={() => nav({ page: 'projectDashboard', projectId: proj.id })}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                  <h3>{proj.name}</h3>
+                  <p className="sub">{proj.description}</p>
+                  <p className="line-count">{proj.workspaceIds.length} line(s)</p>
+                </div>
+                <button
+                  onClick={() => handleDeleteProject(proj.id)}
+                  style={{ padding: '4px 8px', fontSize: '12px', background: '#fee', color: '#c00', border: '1px solid #f99', cursor: 'pointer', borderRadius: '4px' }}
+                  title="Delete project"
+                >
+                  Delete
+                </button>
+              </div>
+              <button onClick={() => nav({ page: 'projectDashboard', projectId: proj.id })} style={{ marginTop: '12px', width: '100%' }}>
                 View Dashboard →
               </button>
             </div>
