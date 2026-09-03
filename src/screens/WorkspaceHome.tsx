@@ -216,6 +216,12 @@ export function WorkspaceHome() {
 
       {/* the enterprise surface: every Case, every line, one page — the
           portfolio for the CI manager, the ledger for the FD */}
+      <button className="admin-row pf-door" onClick={() => nav('projects')}>
+        <span className="admin-ic" aria-hidden>📊</span>
+        <span className="cloud-main"><b>Projects</b><span className="sub">multi-line improvement initiatives — track pace across lines</span></span>
+        <span className="cloud-go" aria-hidden>›</span>
+      </button>
+
       {casesTotal > 0 && (
         <button className="admin-row pf-door" onClick={() => nav('/portfolio')}>
           <span className="admin-ic" aria-hidden>▥</span>
