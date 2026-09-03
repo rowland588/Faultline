@@ -42,8 +42,8 @@ function Cell({ value, onCommit, label }: {
   );
 }
 
-export function PpmEditor({ state }: { state: PaceLinesState }) {
-  const [open, setOpen] = useState(false);
+export function PpmEditor({ state, startOpen = false }: { state: PaceLinesState; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen);
   const { lines, weeks } = state;
   const weekIdx = Array.from({ length: weeks }, (_, i) => i);
   const lastEmpty = weeks > 0 && lines.every(l => l.weekly[weeks - 1] == null);

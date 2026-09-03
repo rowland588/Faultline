@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { useBootResume } from './state/useResume';
 import { Router } from './router';
 import { BootSplash } from './ui/Logo';
+import { UpdateBanner } from './ui/UpdateBanner';
 
 /** A render error becomes a recoverable message, never a blank screen — a field
  *  app must not silently vanish. Local data is safe (it's in IndexedDB). */
@@ -31,6 +32,7 @@ export default function App() {
   if (!ready) return <BootSplash />; // branded, not a blank flash, while we decide where to land
   return (
     <ErrorBoundary>
+      <UpdateBanner />
       <Router />
     </ErrorBoundary>
   );

@@ -1,36 +1,24 @@
-/* PROJECT PACE — the A3.
+/* PROJECT PACE — three lenses on one set of data.
  *
- * One page that answers the four questions a weekly stand-up actually asks:
- * are we at pace, where is the time going, who owes what, and what did we see
- * on the floor. Everything here is the team's own data; nothing is entered on
- * this screen, so there is no empty state to design around.
- */
-import { useMemo, useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
+ *   Overview — the arc, for the GM: are we at pace, what moved, what the walk
+ *              found. Compact enough to take in at a glance, and what prints.
+ *   Meeting  — the tracker by OWNER, because that is how the meeting is run:
+ *              each person reports their own workload. Sections fold, so one
+ *              person is on screen at a time.
+ *   Data     — the mechanics: upload this week's tracker, type the ppm. Its own
+ *              tab so it is never buried inside a page you have to scroll.
+ *
+ * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
+ * into the meeting. */
+import { useRef, useState } from 'react';
+import { nav, useRoute } from '../state/useRoute';
+import { PaceMeeting } from './PaceMeeting';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
-import type { PaceAction, PaceObservation } from '../lib/projectPaceData';
+import type { PaceObservation } from '../lib/projectPaceData';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import type { ActionChange, PaceDiff } from '../lib/paceDiff';
-
-/* Status colours are reserved and always ride with their label — never colour
- * alone. Validated as a set: worst adjacent pair dE 17.3 normal / 14.9 CVD. */
-const FLAG_STYLE: Record<string, { bg: string; fg: string; mark: string }> = {
-  'OVERDUE':   { bg: '#fbeae8', fg: '#a51f2d', mark: '●' },
-  'Due soon':  { bg: '#fdf0e0', fg: '#c26a0a', mark: '◐' },
-  'On track':  { bg: '#e7f1fb', fg: '#196bb3', mark: '○' },
-  'Done':      { bg: '#e6f4ec', fg: '#1f8a4c', mark: '✓' },
-};
-
-function FlagChip({ flag }: { flag: string }) {
-  const s = FLAG_STYLE[flag] ?? { bg: 'var(--surface-2)', fg: 'var(--ink-2)', mark: '·' };
-  return (
-    <span className="pace-flag" style={{ background: s.bg, color: s.fg }}>
-      <span aria-hidden>{s.mark}</span>{flag || '—'}
-    </span>
-  );
-}
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -42,83 +30,19 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
   );
 }
 
-/* ---------- the tracker ---------- */
-function ActionsPanel({ actions }: { actions: PaceAction[] }) {
-  const [line, setLine] = useState('All');
-  const [flag, setFlag] = useState('All');
-
-  const lines = useMemo(() => ['All', ...Array.from(new Set(actions.map(a => a.line)))], [actions]);
-  const flags = ['All', 'OVERDUE', 'Due soon', 'On track', 'Done'];
-
-  const shown = actions.filter(a =>
-    (line === 'All' || a.line === line) && (flag === 'All' || a.flag === flag));
-
-  // The source workbook reuses a couple of Ref numbers across distinct rows
-  // (T-010, T-011), so the ref alone is not a key.
-  const rank = (a: PaceAction) =>
-    (a.flag === 'OVERDUE' ? 0 : a.flag === 'Due soon' ? 1 : a.flag === 'On track' ? 2 : 3) * 10 + (a.priority || 3);
-  const sorted = shown.map((a, i) => ({ a, k: `${a.ref}#${i}` })).sort((x, y) => rank(x.a) - rank(y.a));
-
-  return (
-    <section className="pace-sec">
-      <div className="pace-sec-head">
-        <h2 className="pace-sec-title">Action tracker</h2>
-        <p className="pace-sec-sub">{actions.length} actions · overdue first, then by priority</p>
-      </div>
-
-      {/* filters in one row above the content */}
-      <div className="pace-filters">
-        <div className="pace-filter-grp">
-          {lines.map(l => (
-            <button key={l} className={'pace-fbtn' + (line === l ? ' on' : '')} onClick={() => setLine(l)}>{l}</button>
-          ))}
-        </div>
-        <div className="pace-filter-grp">
-          {flags.map(f => (
-            <button key={f} className={'pace-fbtn' + (flag === f ? ' on' : '')} onClick={() => setFlag(f)}>{f}</button>
-          ))}
-        </div>
-      </div>
-
-      {sorted.length === 0 ? (
-        <p className="pace-none">No actions match that filter.</p>
-      ) : (
-        <div className="pace-actions">
-          {sorted.map(({ a, k }) => (
-            <article key={k} className="pace-action">
-              <header className="pace-action-top">
-                <span className="pace-ref">{a.ref}</span>
-                <span className="pace-pri" title={`Priority ${a.priority}`}>P{a.priority}</span>
-                <span className="pace-line-tag">{a.line}</span>
-                <span className="pace-cat-tag">{a.category}</span>
-                <FlagChip flag={a.flag} />
-              </header>
-              {a.problem && <p className="pace-problem">{a.problem}</p>}
-              {a.action && <p className="pace-do"><b>Action</b> {a.action}</p>}
-              <footer className="pace-action-foot">
-                {a.owner && <span className="pace-owner">{a.owner}</span>}
-                {a.who && <span className="pace-who">{a.who}</span>}
-                {a.due && <span className="pace-due">due {a.due}</span>}
-                <span className="pace-status">{a.status}</span>
-              </footer>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 /* ---------- gemba: what people actually saw ---------- */
 function ObservationsPanel({ observations }: { observations: PaceObservation[] }) {
   const lenses = ['People', 'Plant', 'Process', 'Material'];
+  // Notes from a walk, not the agenda — folded away unless asked for.
+  const [open, setOpen] = useState(false);
   return (
     <section className="pace-sec">
-      <div className="pace-sec-head">
-        <h2 className="pace-sec-title">On the floor</h2>
-        <p className="pace-sec-sub">{observations.length} observations from the walk · grouped People / Plant / Process / Material</p>
-      </div>
-      <div className="pace-4m">
+      <button className="pace-fold" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="pace-fold-ic" aria-hidden>{open ? '▾' : '▸'}</span>
+        <span className="pace-sec-title">On the floor</span>
+        <span className="pace-fold-sub">{observations.length} notes from the walk</span>
+      </button>
+      {!open ? null : <div className="pace-4m">
         {lenses.map(l => {
           const items = observations.filter(o => o.lens === l);
           return (
@@ -133,7 +57,7 @@ function ObservationsPanel({ observations }: { observations: PaceObservation[] }
             </div>
           );
         })}
-      </div>
+      </div>}
     </section>
   );
 }
@@ -303,7 +227,18 @@ function UploadPanel({ state }: { state: PaceState }) {
   );
 }
 
+type Lens = 'overview' | 'meeting' | 'data';
+const LENSES: { id: Lens; label: string; sub: string }[] = [
+  { id: 'overview', label: 'Overview', sub: 'the picture' },
+  { id: 'meeting',  label: 'Meeting',  sub: 'by owner' },
+  { id: 'data',     label: 'Data',     sub: 'upload & ppm' },
+];
+
 export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: string }) {
+  const route = useRoute();
+  const raw = route.query.get('view');
+  const lens: Lens = raw === 'meeting' || raw === 'data' ? raw : 'overview';
+
   const pace = usePaceSnapshots();
   const ppm = usePaceLines();
   const { actions, observations } = pace;
@@ -320,7 +255,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
   if (pace.loading || ppm.loading) return <div className="wrap pace"><p className="sub">Loading Project Pace…</p></div>;
 
   return (
-    <div className="wrap pace">
+    <div className={'wrap pace is-' + lens}>
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">Improvement initiative</p>
@@ -333,34 +268,72 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         </div>
       </header>
 
-      <UploadPanel state={pace} />
+      {/* the lens picker — always visible, so no view is ever buried */}
+      <nav className="pace-lenses" aria-label="View">
+        {LENSES.map(l => (
+          <button
+            key={l.id}
+            className={'pace-lens' + (lens === l.id ? ' on' : '')}
+            aria-current={lens === l.id ? 'page' : undefined}
+            onClick={() => nav(l.id === 'overview' ? '/projects' : `/projects?view=${l.id}`)}
+          >
+            <span className="pace-lens-l">{l.label}</span>
+            <span className="pace-lens-s">{l.sub}</span>
+          </button>
+        ))}
+      </nav>
 
-      <div className="pace-kpis">
-        <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target" sub="latest week vs Q1"
-          tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
-        <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
-        <Kpi n={String(live)} label="still live" sub="open or in progress" />
-        <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
-      </div>
+      {lens === 'overview' && (
+        <>
+          <div className="pace-kpis">
+            <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target" sub="latest week vs Q1"
+              tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
+            <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
+            <Kpi n={String(live)} label="still live" sub="open or in progress" />
+            <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
+          </div>
 
-      {pace.diff && <ChangesPanel diff={pace.diff} />}
+          {pace.diff && <ChangesPanel diff={pace.diff} />}
 
-      <section className="pace-sec">
-        <div className="pace-sec-head">
-          <h2 className="pace-sec-title">Line pace</h2>
-          <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 3 Aug 2026</p>
-        </div>
-        <PpmEditor state={ppm} />
-        <div className="pace-charts">
-          {ppm.lines.map(l => <PaceLineChart key={l.key} line={l} />)}
-        </div>
-      </section>
+          <section className="pace-sec">
+            <div className="pace-sec-head">
+              <h2 className="pace-sec-title">Line pace</h2>
+              <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 3 Aug 2026</p>
+            </div>
+            <div className="pace-charts">
+              {ppm.lines.map(l => <PaceLineChart key={l.key} line={l} />)}
+            </div>
+          </section>
 
-      <ActionsPanel actions={actions} />
-      <ObservationsPanel observations={observations} />
+          <ObservationsPanel observations={observations} />
+        </>
+      )}
+
+      {lens === 'meeting' && (
+        <section className="pace-sec">
+          <div className="pace-sec-head">
+            <h2 className="pace-sec-title">Round the table</h2>
+            <p className="pace-sec-sub">Each owner reports their own workload · open one at a time, closed actions hidden</p>
+          </div>
+          <PaceMeeting actions={actions} />
+        </section>
+      )}
+
+      {lens === 'data' && (
+        <>
+          <UploadPanel state={pace} />
+          <section className="pace-sec">
+            <div className="pace-sec-head">
+              <h2 className="pace-sec-title">Packs per minute</h2>
+              <p className="pace-sec-sub">Type the weekly readings · saves as you go</p>
+            </div>
+            <PpmEditor state={ppm} startOpen />
+          </section>
+        </>
+      )}
 
       <footer className="pace-foot">
-        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions and observations from the team\u2019s tracker</p>
+        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions and observations from the team’s tracker</p>
       </footer>
     </div>
   );

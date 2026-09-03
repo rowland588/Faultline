@@ -225,7 +225,7 @@ export function WorkspaceHome() {
       {/* the multi-line initiative: four lines, one A3, read weekly */}
       <button className="admin-row pf-door pace-door" onClick={() => nav('/projects')}>
         <span className="admin-ic" aria-hidden>◈</span>
-        <span className="cloud-main"><b>Project Pace</b><span className="sub">Line 2A · 2B · 7 · 10 — ppm against target, the Pareto, and every action</span></span>
+        <span className="cloud-main"><b>Project Pace</b><span className="sub">Line 2A · 2B · 7 · 10 — ppm against target, the actions by owner, and the weekly change</span></span>
         <span className="cloud-go" aria-hidden>›</span>
       </button>
 
