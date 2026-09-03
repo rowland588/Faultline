@@ -5,13 +5,13 @@
  * on the floor. Everything here is the team's own data; nothing is entered on
  * this screen, so there is no empty state to design around.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { PaceLineChart } from '../charts/PaceLineChart';
-import {
-  PACE_LINES, PACE_ACTIONS, PACE_OBSERVATIONS,
-} from '../lib/projectPaceData';
-import type { PaceAction } from '../lib/projectPaceData';
+import { PACE_LINES } from '../lib/projectPaceData';
+import type { PaceAction, PaceObservation } from '../lib/projectPaceData';
+import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
+import type { ActionChange, PaceDiff } from '../lib/paceDiff';
 
 /* Status colours are reserved and always ride with their label — never colour
  * alone. Validated as a set: worst adjacent pair dE 17.3 normal / 14.9 CVD. */
@@ -42,14 +42,14 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
 }
 
 /* ---------- the tracker ---------- */
-function ActionsPanel() {
+function ActionsPanel({ actions }: { actions: PaceAction[] }) {
   const [line, setLine] = useState('All');
   const [flag, setFlag] = useState('All');
 
-  const lines = useMemo(() => ['All', ...Array.from(new Set(PACE_ACTIONS.map(a => a.line)))], []);
+  const lines = useMemo(() => ['All', ...Array.from(new Set(actions.map(a => a.line)))], [actions]);
   const flags = ['All', 'OVERDUE', 'Due soon', 'On track', 'Done'];
 
-  const shown = PACE_ACTIONS.filter(a =>
+  const shown = actions.filter(a =>
     (line === 'All' || a.line === line) && (flag === 'All' || a.flag === flag));
 
   // The source workbook reuses a couple of Ref numbers across distinct rows
@@ -62,7 +62,7 @@ function ActionsPanel() {
     <section className="pace-sec">
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">Action tracker</h2>
-        <p className="pace-sec-sub">{PACE_ACTIONS.length} actions · overdue first, then by priority</p>
+        <p className="pace-sec-sub">{actions.length} actions · overdue first, then by priority</p>
       </div>
 
       {/* filters in one row above the content */}
@@ -109,17 +109,17 @@ function ActionsPanel() {
 }
 
 /* ---------- gemba: what people actually saw ---------- */
-function ObservationsPanel() {
+function ObservationsPanel({ observations }: { observations: PaceObservation[] }) {
   const lenses = ['People', 'Plant', 'Process', 'Material'];
   return (
     <section className="pace-sec">
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">On the floor</h2>
-        <p className="pace-sec-sub">{PACE_OBSERVATIONS.length} observations from the walk · grouped People / Plant / Process / Material</p>
+        <p className="pace-sec-sub">{observations.length} observations from the walk · grouped People / Plant / Process / Material</p>
       </div>
       <div className="pace-4m">
         {lenses.map(l => {
-          const items = PACE_OBSERVATIONS.filter(o => o.lens === l);
+          const items = observations.filter(o => o.lens === l);
           return (
             <div key={l} className="pace-4m-col">
               <h4 className="pace-4m-head">{l} <span>{items.length}</span></h4>
@@ -137,15 +137,185 @@ function ObservationsPanel() {
   );
 }
 
+/* ---------- what moved since last week ---------- */
+const CHANGE_META: Record<ActionChange['kind'], { label: string; tone: string }> = {
+  closed:   { label: 'Closed',        tone: 'good' },
+  added:    { label: 'New action',    tone: 'info' },
+  reopened: { label: 'Re-opened',     tone: 'bad'  },
+  flag:     { label: 'Flag changed',  tone: 'warn' },
+  status:   { label: 'Status moved',  tone: 'info' },
+  due:      { label: 'Due date moved',tone: 'warn' },
+  owner:    { label: 'Owner changed', tone: 'info' },
+  text:     { label: 'Action reworded', tone: 'muted' },
+  removed:  { label: 'Removed',       tone: 'bad'  },
+};
+
+const when = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+function Movement({ n, label }: { n: number; label: string }) {
+  const sign = n > 0 ? '+' : '';
+  return (
+    <span className="pace-move">
+      <b className={n === 0 ? '' : n > 0 ? 'up' : 'down'}>{sign}{n}</b> {label}
+    </span>
+  );
+}
+
+function ChangesPanel({ diff }: { diff: PaceDiff }) {
+  const [open, setOpen] = useState(true);
+  const t = diff.totals;
+  const closed = diff.changes.filter(c => c.kind === 'closed').length;
+  const added = diff.changes.filter(c => c.kind === 'added').length;
+
+  if (!diff.changes.length && !diff.obsAdded.length) {
+    return (
+      <section className="pace-sec pace-changes">
+        <div className="pace-sec-head">
+          <h2 className="pace-sec-title">What changed</h2>
+          <p className="pace-sec-sub">Compared with {when(diff.from.at)} — nothing moved between these two uploads.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="pace-sec pace-changes">
+      <div className="pace-sec-head">
+        <h2 className="pace-sec-title">What changed</h2>
+        <p className="pace-sec-sub">
+          {when(diff.from.at)} → {when(diff.to.at)} · {diff.changes.length} change{diff.changes.length === 1 ? '' : 's'}
+          {diff.obsAdded.length > 0 && ` · ${diff.obsAdded.length} new observation${diff.obsAdded.length === 1 ? '' : 's'}`}
+        </p>
+      </div>
+
+      <div className="pace-move-row">
+        <Movement n={closed} label="closed this week" />
+        <Movement n={added} label="new actions" />
+        <Movement n={t.doneNow - t.doneThen} label="net done" />
+        <Movement n={t.overdueNow - t.overdueThen} label="overdue" />
+        <Movement n={t.actionsNow - t.actionsThen} label="tracker size" />
+      </div>
+
+      <button className="pace-more" onClick={() => setOpen(o => !o)}>
+        {open ? 'Hide the detail' : `Show all ${diff.changes.length} changes ›`}
+      </button>
+
+      {open && (
+        <div className="pace-change-list">
+          {diff.changes.map(c => {
+            const m = CHANGE_META[c.kind];
+            return (
+              <div key={c.key + c.kind + (c.field ?? '')} className={'pace-change is-' + m.tone}>
+                <div className="pace-change-top">
+                  <span className="pace-change-kind">{m.label}</span>
+                  <span className="pace-ref">{c.action.ref}</span>
+                  <span className="pace-line-tag">{c.action.line}</span>
+                  {c.action.owner && <span className="pace-change-owner">{c.action.owner}</span>}
+                </div>
+                {c.action.problem && <p className="pace-change-what">{c.action.problem}</p>}
+                {c.field && (
+                  <p className="pace-change-delta">
+                    <span className="pace-change-field">{c.field}</span>
+                    <span className="pace-was">{c.from}</span>
+                    <span className="pace-arrow" aria-label="changed to">→</span>
+                    <span className="pace-now">{c.to}</span>
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          {diff.obsAdded.map((o, i) => (
+            <div key={'obs' + i} className="pace-change is-info">
+              <div className="pace-change-top">
+                <span className="pace-change-kind">New observation</span>
+                <span className="pace-cat-tag">{o.lens}</span>
+                <span className="pace-change-owner">{o.observer}</span>
+              </div>
+              <p className="pace-change-what">{o.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------- weekly upload ---------- */
+function UploadPanel({ state }: { state: PaceState }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  return (
+    <section className="pace-upload">
+      <div className="pace-upload-main">
+        <div>
+          <h3 className="pace-upload-title">Weekly update</h3>
+          <p className="pace-upload-sub">
+            Showing <b>{state.snapshots[0].fileName}</b> · {when(state.snapshots[0].takenAt)}
+            {state.snapshots.length > 1 && ` · ${state.snapshots.length - 1} earlier upload${state.snapshots.length === 2 ? '' : 's'}`}
+          </p>
+        </div>
+        <div className="pace-upload-actions">
+          <button className="btn btn-primary" disabled={state.busy} onClick={() => input.current?.click()}>
+            {state.busy ? 'Reading…' : 'Upload this week\u2019s tracker'}
+          </button>
+          {state.snapshots.length > 1 && (
+            <button className="btn btn-ghost" onClick={() => setShowHistory(h => !h)}>
+              {showHistory ? 'Hide history' : 'History'}
+            </button>
+          )}
+        </div>
+        <input
+          ref={input} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const f = e.target.files?.[0];
+            if (f) void state.upload(f);
+            e.target.value = ''; // same file twice in a row still fires
+          }}
+        />
+      </div>
+
+      {state.error && (
+        <p className="pace-upload-err" role="alert">
+          {state.error}
+          <button className="pace-err-x" onClick={state.dismissError} aria-label="Dismiss">×</button>
+        </p>
+      )}
+      {state.warnings.map((w, i) => <p key={i} className="pace-upload-warn">{w}</p>)}
+
+      {showHistory && (
+        <ul className="pace-history">
+          {state.snapshots.map(sn => (
+            <li key={sn.id}>
+              <span className="pace-hist-when">{when(sn.takenAt)}</span>
+              <span className="pace-hist-name">{sn.fileName}</span>
+              <span className="pace-hist-n">{sn.actions.length} actions</span>
+              {sn.id !== 'baseline' && (
+                <button className="pace-hist-x" onClick={() => void state.remove(sn.id)}>Remove</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: string }) {
-  const done = PACE_ACTIONS.filter(a => a.status === 'Done').length;
-  const overdue = PACE_ACTIONS.filter(a => a.flag === 'OVERDUE').length;
-  const live = PACE_ACTIONS.length - done;
+  const pace = usePaceSnapshots();
+  const { actions, observations } = pace;
+
+  const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
+  const overdue = actions.filter(a => /overdue/i.test(a.flag ?? '')).length;
+  const live = actions.length - done;
   // "at target" = the most recent week actually measured on that line
   const atTarget = PACE_LINES.filter(l => {
     const seen = l.weekly.filter((v): v is number => v != null);
     return seen.length > 0 && seen[seen.length - 1] >= l.q1;
   }).length;
+
+  if (pace.loading) return <div className="wrap pace"><p className="sub">Loading Project Pace…</p></div>;
 
   return (
     <div className="wrap pace">
@@ -161,13 +331,17 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         </div>
       </header>
 
+      <UploadPanel state={pace} />
+
       <div className="pace-kpis">
         <Kpi n={`${atTarget}/${PACE_LINES.length}`} label="lines at target" sub="latest week vs Q1"
           tone={atTarget === PACE_LINES.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
-        <Kpi n={String(done)} label="actions closed" sub={`of ${PACE_ACTIONS.length}`} tone="good" />
+        <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
         <Kpi n={String(live)} label="still live" sub="open or in progress" />
         <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
       </div>
+
+      {pace.diff && <ChangesPanel diff={pace.diff} />}
 
       <section className="pace-sec">
         <div className="pace-sec-head">
@@ -179,11 +353,11 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         </div>
       </section>
 
-      <ActionsPanel />
-      <ObservationsPanel />
+      <ActionsPanel actions={actions} />
+      <ObservationsPanel observations={observations} />
 
       <footer className="pace-foot">
-        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions and observations from the team's tracker</p>
+        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions and observations from the team\u2019s tracker</p>
       </footer>
     </div>
   );

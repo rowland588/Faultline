@@ -30,6 +30,17 @@ interface AppDB extends DBSchema {
   projects: { key: string; value: Project; indexes: { by_updatedAt: number } };
   project_targets: { key: string; value: ProjectLineTarget; indexes: { by_project: string; by_workspace: string } };
   project_actuals: { key: string; value: ProjectLineActual; indexes: { by_project: string; by_workspace: string; by_date: [string, number] } };
+  /* Pace snapshots (v6): one row per uploaded tracker workbook, kept so the app
+   * can report what moved between weeks. Deliberately NOT a SyncKind — the
+   * workbook is the system of record and each device keeps its own upload
+   * history rather than racing to merge copies of the same spreadsheet. */
+  pace_snapshots: { key: string; value: PaceSnapshotRow; indexes: { by_takenAt: number } };
+}
+
+/** A parsed tracker upload, stored whole. */
+export interface PaceSnapshotRow {
+  id: string; takenAt: number; fileName: string;
+  actions: unknown[]; observations: unknown[];
 }
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
@@ -42,7 +53,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 5; // v5: projects, project_targets, project_actuals
+const DB_VERSION = 6; // v6: pace_snapshots (weekly tracker uploads)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -81,7 +92,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -97,6 +108,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
     ob.createIndex('by_updatedAt', 'updatedAt');
   }
   if (!db.objectStoreNames.contains('media')) db.createObjectStore('media');
+  if (!db.objectStoreNames.contains('pace_snapshots')) {
+    db.createObjectStore('pace_snapshots', { keyPath: 'id' }).createIndex('by_takenAt', 'takenAt');
+  }
   if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
   if (!db.objectStoreNames.contains('segments')) {
     db.createObjectStore('segments', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
@@ -716,4 +730,18 @@ export async function getProjectActualsByWorkspace(projectId: ID, workspaceId: I
   const db = await getDB();
   const actuals = await db.getAllFromIndex('project_actuals', 'by_workspace', workspaceId);
   return actuals.filter(a => a.projectId === projectId && !a.deletedAt).sort((a, b) => a.date - b.date);
+}
+
+
+/* ============ PACE SNAPSHOTS — weekly uploads of the tracker workbook ============
+ * Newest first. Local to this device by design (see the schema note above). */
+export async function listPaceSnapshots(): Promise<PaceSnapshotRow[]> {
+  const all = await (await getDB()).getAll('pace_snapshots');
+  return all.sort((a, b) => b.takenAt - a.takenAt);
+}
+export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
+  await (await getDB()).put('pace_snapshots', s);
+}
+export async function deletePaceSnapshot(id: ID): Promise<void> {
+  await (await getDB()).delete('pace_snapshots', id);
 }
