@@ -33,3 +33,17 @@ export function usePaceWorkspace() {
 
   return { wsId, loading, ensure };
 }
+
+/** True when the workspace on screen is the one behind Project Pace. The snag
+ *  screens are generic, so this is how they know to offer a way back to the
+ *  project rather than only to Home. */
+export function useIsPaceWorkspace(wsId?: string): boolean {
+  const [is, setIs] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    if (!wsId) { setIs(false); return; }
+    void getPaceWorkspaceId().then(id => { if (alive) setIs(!!id && id === wsId); });
+    return () => { alive = false; };
+  }, [wsId]);
+  return is;
+}

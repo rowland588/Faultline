@@ -591,6 +591,28 @@ export async function deleteSegment(id: ID): Promise<void> {
   await recordTombstones('snag_assets', assets.map(a => a.id));
   await recordTombstones('snags', snags.map(s => s.id));
 }
+/** Delete a marked frame and the snags pinned on it, plus their blobs — the
+ *  asset level was the one gap in the walk's delete chain, so a frame marked by
+ *  mistake could only be removed by deleting the whole segment. Mirrors
+ *  deleteSegment: one transaction, no orphaned blobs, tombstones so it syncs. */
+export async function deleteSnagAsset(id: ID): Promise<void> {
+  const db = await getDB();
+  const asset = await db.get('snag_assets', id);
+  if (!asset) return;
+  const snags = await db.getAllFromIndex('snags', 'by_asset', id);
+  const blobKeys = [
+    asset.stillKey,
+    ...snags.flatMap(s => [s.detailPhotoKey, s.fixedPhotoKey]),
+  ].filter(Boolean) as string[];
+  const tx = db.transaction(['snag_assets', 'snags', 'media'], 'readwrite');
+  await tx.objectStore('snag_assets').delete(id);
+  for (const s of snags) await tx.objectStore('snags').delete(s.id);
+  for (const k of blobKeys) await tx.objectStore('media').delete(k);
+  await tx.done;
+  await recordTombstones('snag_assets', [id]);
+  await recordTombstones('snags', snags.map(s => s.id));
+}
+
 /** Rewrite the sequence column to a new walk order. */
 export async function reorderSegments(orderedIds: ID[]): Promise<void> {
   const db = await getDB();
