@@ -4,16 +4,12 @@
  * are we at pace, where is the time going, who owes what, and what did we see
  * on the floor. Everything here is the team's own data; nothing is entered on
  * this screen, so there is no empty state to design around.
- *
- * The Pareto is single-hue bars, not a stacked split: its job is ranking
- * magnitude, and the per-line numbers read better as figures than as three
- * colours competing inside one bar. */
+ */
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import {
-  PACE_LINES, PACE_PARETO, PACE_ACTIONS, PACE_OBSERVATIONS,
-  PACE_PERIOD, PACE_TOTAL_MINS, PACE_TOTAL_STOPS,
+  PACE_LINES, PACE_ACTIONS, PACE_OBSERVATIONS,
 } from '../lib/projectPaceData';
 import type { PaceAction } from '../lib/projectPaceData';
 
@@ -42,66 +38,6 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
       <span className="pace-kpi-l">{label}</span>
       {sub && <span className="pace-kpi-s">{sub}</span>}
     </div>
-  );
-}
-
-/* ---------- Pareto: ranking by magnitude, single hue ---------- */
-function ParetoPanel() {
-  const [showAll, setShowAll] = useState(false);
-  const rows = showAll ? PACE_PARETO : PACE_PARETO.slice(0, 10);
-  const max = PACE_PARETO[0]?.mins ?? 1;
-
-  // where the running total crosses 80% — the line that separates the vital few
-  const cutIdx = useMemo(() => {
-    let run = 0;
-    for (let i = 0; i < PACE_PARETO.length; i++) {
-      run += PACE_PARETO[i].mins;
-      if (run / PACE_TOTAL_MINS >= 0.8) return i;
-    }
-    return PACE_PARETO.length - 1;
-  }, []);
-
-  let running = 0;
-  return (
-    <section className="pace-sec">
-      <div className="pace-sec-head">
-        <h2 className="pace-sec-title">Where the time is going</h2>
-        <p className="pace-sec-sub">{PACE_TOTAL_MINS.toLocaleString()} minutes lost across {PACE_TOTAL_STOPS} stops · {PACE_PERIOD}</p>
-      </div>
-      <div className="pace-pareto">
-        {rows.map((r, i) => {
-          running += r.mins;
-          const cum = running / PACE_TOTAL_MINS;
-          const isCut = i === cutIdx;
-          return (
-            <div key={r.category} className={'pace-bar-row' + (isCut ? ' is-cut' : '')}>
-              <div className="pace-bar-lbl">
-                <span className="pace-bar-name">{r.category}</span>
-                <span className="pace-bar-meta">
-                  {r.events} stop{r.events === 1 ? '' : 's'} · {r.minPerEvent} min each
-                  <span className={'pace-profile pace-profile-' + r.profile.toLowerCase().replace(/[^a-z]/g, '')}>{r.profile}</span>
-                </span>
-              </div>
-              <div className="pace-bar-track">
-                <div className="pace-bar-fill" style={{ width: `${(r.mins / max) * 100}%` }} />
-              </div>
-              <div className="pace-bar-nums">
-                <span className="pace-bar-mins">{Math.round(r.mins)}<i>min</i></span>
-                <span className="pace-bar-cum">{Math.round(cum * 100)}% cum</span>
-              </div>
-              <div className="pace-bar-split">
-                {r.l2 > 0 && <span>L2 <b>{Math.round(r.l2)}</b></span>}
-                {r.l7 > 0 && <span>L7 <b>{Math.round(r.l7)}</b></span>}
-                {r.l10 > 0 && <span>L10 <b>{Math.round(r.l10)}</b></span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <button className="pace-more" onClick={() => setShowAll(s => !s)}>
-        {showAll ? 'Show top 10 only' : `Show all ${PACE_PARETO.length} categories ›`}
-      </button>
-    </section>
   );
 }
 
@@ -205,6 +141,11 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
   const done = PACE_ACTIONS.filter(a => a.status === 'Done').length;
   const overdue = PACE_ACTIONS.filter(a => a.flag === 'OVERDUE').length;
   const live = PACE_ACTIONS.length - done;
+  // "at target" = the most recent week actually measured on that line
+  const atTarget = PACE_LINES.filter(l => {
+    const seen = l.weekly.filter((v): v is number => v != null);
+    return seen.length > 0 && seen[seen.length - 1] >= l.q1;
+  }).length;
 
   return (
     <div className="wrap pace">
@@ -212,7 +153,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         <div className="pace-head-main">
           <p className="pace-eyebrow">Improvement initiative</p>
           <h1 className="pace-title">Project Pace</h1>
-          <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, the loss Pareto behind them, and every action in flight.</p>
+          <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, every action in flight, and what the walk found on the floor.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
@@ -221,8 +162,8 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
       </header>
 
       <div className="pace-kpis">
-        <Kpi n={PACE_TOTAL_MINS.toLocaleString()} label="minutes lost" sub={PACE_PERIOD} />
-        <Kpi n={String(PACE_TOTAL_STOPS)} label="stops recorded" sub="three measured lines" />
+        <Kpi n={`${atTarget}/${PACE_LINES.length}`} label="lines at target" sub="latest week vs Q1"
+          tone={atTarget === PACE_LINES.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
         <Kpi n={String(done)} label="actions closed" sub={`of ${PACE_ACTIONS.length}`} tone="good" />
         <Kpi n={String(live)} label="still live" sub="open or in progress" />
         <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
@@ -238,12 +179,11 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         </div>
       </section>
 
-      <ParetoPanel />
       <ActionsPanel />
       <ObservationsPanel />
 
       <footer className="pace-foot">
-        <p>Project Pace · data from the team's action tracker · Pareto snapshot {PACE_PERIOD}</p>
+        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions and observations from the team's tracker</p>
       </footer>
     </div>
   );

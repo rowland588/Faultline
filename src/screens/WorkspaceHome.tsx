@@ -72,8 +72,14 @@ export function WorkspaceHome() {
       const raw = sessionStorage.getItem('faultline-pending-delete');
       if (!raw) return;
       const v = JSON.parse(raw) as { id: string; name: string; until: number };
-      if (v.until > Date.now()) setPendingDel({ id: v.id, name: v.name });
-      else sessionStorage.removeItem('faultline-pending-delete');
+      if (v.until > Date.now()) { setPendingDel({ id: v.id, name: v.name }); return; }
+      // The undo window elapsed while the app was closed or on another screen.
+      // The delete was already confirmed by name in a dialog, so an elapsed
+      // window means "no undo was taken" — commit it. Treating it as a
+      // cancellation (what we did before) meant a workspace you deleted came
+      // back the moment you refreshed before the toast timed out.
+      sessionStorage.removeItem('faultline-pending-delete');
+      void deleteWorkspace(v.id).then(() => setDelTick(t => t + 1));
     } catch { /* malformed flag — ignore */ }
   }, []);
   const undoDelete = () => { sessionStorage.removeItem('faultline-pending-delete'); setPendingDel(null); };

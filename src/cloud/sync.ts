@@ -175,6 +175,27 @@ export async function syncNow(): Promise<void> {
     if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, new Set());
     if (failedDownloads.size) await downloadMedia(uid, [...failedDownloads].map(([key, owner]) => ({ key, owner })), failedDownloads);
 
+    // ---- PUSH tombstones FIRST ----
+    // A local delete is a decision this device has already made, so it has to
+    // reach the cloud BEFORE we accept cloud state. Pushed after the pull (as
+    // it was), the pull re-inserted the very row being deleted — its cloud copy
+    // still had deleted_at null, so applyRemote treated it as a new row and
+    // rawPut it back. That is the deleted workspace reappearing on Home.
+    const tombs = await listTombstones();
+    const tombstoned = new Set(tombs.map(t => `${t.kind}:${t.id}`));
+    if (tombs.length) {
+      const byKind = new Map<SyncKind, string[]>();
+      for (const t of tombs) byKind.set(t.kind, [...(byKind.get(t.kind) ?? []), t.id]);
+      for (const [kind, ids] of byKind) {
+        for (let i = 0; i < ids.length; i += CHUNK) {
+          const part = ids.slice(i, i + CHUNK);
+          const { error } = await supabase.from(kind).update({ deleted_at: startedAt, updated_at: startedAt }).in('id', part);
+          if (error) throw new Error(`tombstone ${kind}: ${error.message}`);
+        }
+      }
+      await clearTombstones(tombs.map(t => t.id));
+    }
+
     // ---- PULL: everything with a rev this device hasn't seen. Keyset-paged
     //      (cursor = last rev of the page), so rows moving mid-pull can't cause
     //      offset skips, and the cursor is pure server truth. ----
@@ -187,6 +208,9 @@ export async function syncNow(): Promise<void> {
       const applyRemote = async (r: Record<string, unknown>) => {
         const id = r.id as string;
         if (r.deleted_at != null) { if (local.has(id)) await applyRemoteDelete(kind, id); return; }
+        // Deleted here this pass — never resurrect it, even if the tombstone
+        // push above failed (it stays queued and retries next run).
+        if (tombstoned.has(`${kind}:${id}`)) return;
         const localRow = local.get(id);
         const localClock = localRow ? map.clock(localRow) : -1;
         if (Number(r.updated_at) <= localClock) {
@@ -258,21 +282,6 @@ export async function syncNow(): Promise<void> {
           throw new Error(`push ${kind}: ${error.message}`);
         }
       }
-    }
-
-    // ---- PUSH tombstones: flag deletes on the cloud rows, then clear them ----
-    const tombs = await listTombstones();
-    if (tombs.length) {
-      const byKind = new Map<SyncKind, string[]>();
-      for (const t of tombs) byKind.set(t.kind, [...(byKind.get(t.kind) ?? []), t.id]);
-      for (const [kind, ids] of byKind) {
-        for (let i = 0; i < ids.length; i += CHUNK) {
-          const part = ids.slice(i, i + CHUNK);
-          const { error } = await supabase.from(kind).update({ deleted_at: startedAt, updated_at: startedAt }).in('id', part);
-          if (error) throw new Error(`tombstone ${kind}: ${error.message}`);
-        }
-      }
-      await clearTombstones(tombs.map(t => t.id));
     }
 
     // Compare-and-set: only advance the push cursor if nobody reset it while we
