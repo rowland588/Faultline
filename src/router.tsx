@@ -13,6 +13,7 @@ import { AppShell } from './screens/AppShell';
 import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
 import { PortfolioScreen } from './screens/PortfolioScreen';
+import { ProjectsListScreen } from './screens/ProjectsListScreen';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectMetricsScreen } from './screens/ProjectMetricsScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
@@ -44,6 +45,7 @@ export function Router() {
   if (route.name === 'portfolio') return <PortfolioScreen />;
 
   // Projects span multiple workspaces, so they're top-level like portfolio
+  if (route.name === 'projects') return <ProjectsListScreen />;
   if (route.name === 'projectDashboard' && route.id) return <ProjectDashboardScreen projectId={route.id} />;
   if (route.name === 'projectMetrics' && route.id) return <ProjectMetricsScreen projectId={route.id} />;
 
