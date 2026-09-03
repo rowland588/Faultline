@@ -35,6 +35,20 @@ interface AppDB extends DBSchema {
    * workbook is the system of record and each device keeps its own upload
    * history rather than racing to merge copies of the same spreadsheet. */
   pace_snapshots: { key: string; value: PaceSnapshotRow; indexes: { by_takenAt: number } };
+  /* Pace lines (v7): the ppm numbers, entered in the app. Keyed by line so a
+   * reading is edited in place. Local to the device, like the snapshots — the
+   * cloud tables for these do not exist yet, and a half-synced number is worse
+   * than an honestly local one. */
+  pace_lines: { key: string; value: PaceLineRow };
+}
+
+/** One production line's targets and its weekly ppm readings. `weekly` is
+ *  indexed from PACE_START; null is a week that was never measured. */
+export interface PaceLineRow {
+  key: string; name: string; variant?: string;
+  q1: number; q2: number; q3: number; q4: number;
+  weekly: (number | null)[];
+  updatedAt: number;
 }
 
 /** A parsed tracker upload, stored whole. */
@@ -53,7 +67,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 6; // v6: pace_snapshots (weekly tracker uploads)
+const DB_VERSION = 7; // v7: pace_lines (ppm entered in the app)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -92,7 +106,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -111,6 +125,7 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   if (!db.objectStoreNames.contains('pace_snapshots')) {
     db.createObjectStore('pace_snapshots', { keyPath: 'id' }).createIndex('by_takenAt', 'takenAt');
   }
+  if (!db.objectStoreNames.contains('pace_lines')) db.createObjectStore('pace_lines', { keyPath: 'key' });
   if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
   if (!db.objectStoreNames.contains('segments')) {
     db.createObjectStore('segments', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
@@ -744,4 +759,12 @@ export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
 }
 export async function deletePaceSnapshot(id: ID): Promise<void> {
   await (await getDB()).delete('pace_snapshots', id);
+}
+
+/* ---------- pace lines (the ppm numbers) ---------- */
+export async function listPaceLines(): Promise<PaceLineRow[]> {
+  return (await getDB()).getAll('pace_lines');
+}
+export async function putPaceLine(row: PaceLineRow): Promise<void> {
+  await (await getDB()).put('pace_lines', { ...row, updatedAt: now() });
 }

@@ -8,7 +8,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { PaceLineChart } from '../charts/PaceLineChart';
-import { PACE_LINES } from '../lib/projectPaceData';
+import { usePaceLines } from '../lib/usePaceLines';
+import { PpmEditor } from './PpmEditor';
 import type { PaceAction, PaceObservation } from '../lib/projectPaceData';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import type { ActionChange, PaceDiff } from '../lib/paceDiff';
@@ -304,18 +305,19 @@ function UploadPanel({ state }: { state: PaceState }) {
 
 export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: string }) {
   const pace = usePaceSnapshots();
+  const ppm = usePaceLines();
   const { actions, observations } = pace;
 
   const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
   const overdue = actions.filter(a => /overdue/i.test(a.flag ?? '')).length;
   const live = actions.length - done;
   // "at target" = the most recent week actually measured on that line
-  const atTarget = PACE_LINES.filter(l => {
+  const atTarget = ppm.lines.filter(l => {
     const seen = l.weekly.filter((v): v is number => v != null);
     return seen.length > 0 && seen[seen.length - 1] >= l.q1;
   }).length;
 
-  if (pace.loading) return <div className="wrap pace"><p className="sub">Loading Project Pace…</p></div>;
+  if (pace.loading || ppm.loading) return <div className="wrap pace"><p className="sub">Loading Project Pace…</p></div>;
 
   return (
     <div className="wrap pace">
@@ -334,8 +336,8 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
       <UploadPanel state={pace} />
 
       <div className="pace-kpis">
-        <Kpi n={`${atTarget}/${PACE_LINES.length}`} label="lines at target" sub="latest week vs Q1"
-          tone={atTarget === PACE_LINES.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
+        <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target" sub="latest week vs Q1"
+          tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
         <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
         <Kpi n={String(live)} label="still live" sub="open or in progress" />
         <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
@@ -346,10 +348,11 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
       <section className="pace-sec">
         <div className="pace-sec-head">
           <h2 className="pace-sec-title">Line pace</h2>
-          <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · six weeks from w/c 3 Aug 2026</p>
+          <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 3 Aug 2026</p>
         </div>
+        <PpmEditor state={ppm} />
         <div className="pace-charts">
-          {PACE_LINES.map(l => <PaceLineChart key={l.key} line={l} />)}
+          {ppm.lines.map(l => <PaceLineChart key={l.key} line={l} />)}
         </div>
       </section>
 

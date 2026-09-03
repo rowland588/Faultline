@@ -1772,3 +1772,49 @@ button.st-pill { cursor: pointer; }
   .pace-changes { background: none; border: 1px solid var(--line); }
   .pace-change { break-inside: avoid; }
 }
+
+/* ---- entering the ppm numbers ---- */
+.ppm-editor { margin-bottom: 14px; }
+.ppm-toggle {
+  width: 100%; display: flex; align-items: center; gap: 8px; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 11px 14px; font-size: 13.5px; font-weight: 700; color: var(--ink); cursor: pointer;
+}
+.ppm-toggle:hover { border-color: var(--brand); }
+.ppm-toggle-ic { color: var(--brand); font-size: 11px; }
+.ppm-toggle-sub { margin-left: auto; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.ppm-body {
+  background: var(--surface); border: 1px solid var(--line); border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius); padding: 14px; margin-top: -6px;
+}
+/* a wide grid scrolls inside itself — the page never scrolls sideways */
+.ppm-scroll { overflow-x: auto; }
+.ppm-grid { border-collapse: collapse; font-size: 13px; }
+.ppm-grid th, .ppm-grid td { padding: 3px; }
+.ppm-grid thead th {
+  font-size: 10.5px; font-weight: 700; color: var(--muted); text-align: center;
+  padding-bottom: 6px; white-space: nowrap;
+}
+.ppm-wk { display: block; font-size: 11px; font-weight: 800; color: var(--ink-2); }
+.ppm-wc { display: block; font-size: 10px; color: var(--muted); }
+.ppm-corner { text-align: left !important; }
+.ppm-rowhead {
+  text-align: left; font-size: 12.5px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; padding-right: 10px !important; position: sticky; left: 0;
+  background: var(--surface);
+}
+.ppm-cell {
+  width: 62px; padding: 7px 6px; text-align: center; font-size: 13.5px; font-weight: 600;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); font-variant-numeric: tabular-nums;
+}
+.ppm-cell:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: var(--brand); }
+.ppm-cell.is-empty { background: var(--surface-2); color: var(--muted); }
+.ppm-week-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.ppm-hint { font-size: 11.5px; color: var(--muted); flex: 1; min-width: 220px; line-height: 1.45; }
+.ppm-targets { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ppm-targets summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--accent); margin-bottom: 8px;
+}
+
+@media print { .ppm-editor { display: none !important; } }
