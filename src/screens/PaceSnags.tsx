@@ -10,6 +10,7 @@
  * The walk-through is the one to open in front of people: full screen, the
  * footage and the pinned stills, nothing else on the page. */
 import { useCallback, useEffect, useState } from 'react';
+import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, deleteSnag, deleteSnagAsset } from '../db';
 import { usePaceWorkspace } from '../lib/usePaceWorkspace';
@@ -87,23 +88,43 @@ export function PaceSnags() {
 
   useEffect(() => { if (wsId) void load(wsId); }, [wsId, load]);
 
-  /* Deleting a walk takes its marked frames and their pinned snags with it —
-   * deleteSegment already cascades — so the count is spelled out before it
-   * happens rather than after. */
+  /* A walk is footage that cannot be re-filmed, so deleting one is deferred
+   * rather than confirmed: it leaves the list at once and a toast offers Undo.
+   *
+   * NOTHING is destroyed until the window elapses — Undo simply stops the
+   * timer, so there is no restore path to get wrong. The deliberate
+   * consequence is that closing the tab mid-window leaves the walk intact.
+   * For a video you cannot shoot again, "it came back" is the right way to
+   * fail; "it silently went" is not. */
+  const [pending, setPending] = useState<Segment | null>(null);
+
+  const commitPending = useCallback(async () => {
+    const seg = pending;
+    setPending(null);
+    if (!seg || !wsId) return;
+    await deleteSegment(seg.id);
+    await load(wsId);
+  }, [pending, wsId, load]);
+
   const removeSegment = async (seg: Segment) => {
     if (!wsId) return;
+    // a second delete while one is still pending commits the first
+    if (pending && pending.id !== seg.id) { await deleteSegment(pending.id); }
+    setPending(seg);
+  };
+
+  const undoRemove = useCallback(() => setPending(null), []);
+
+  /** What the toast should say is going with it. */
+  const pendingSummary = (seg: Segment) => {
     const mine = assets.filter(a => a.segmentId === seg.id);
     const ids = new Set(mine.map(a => a.id));
     const pins = snags.filter(sn => sn.assetId && ids.has(sn.assetId)).length;
-    const what = [
-      mine.length ? `${mine.length} marked frame${mine.length === 1 ? '' : 's'}` : '',
-      pins ? `${pins} pinned snag${pins === 1 ? '' : 's'}` : '',
-    ].filter(Boolean).join(' and ');
-    const msg = `Delete "${seg.name || 'Walk ' + seg.sequence}"?`
-      + (what ? `\n\nThis also deletes ${what}. It cannot be undone.` : '\n\nThis cannot be undone.');
-    if (!window.confirm(msg)) return;
-    await deleteSegment(seg.id);
-    await load(wsId);
+    const bits = [
+      mine.length ? `${mine.length} frame${mine.length === 1 ? '' : 's'}` : '',
+      pins ? `${pins} snag${pins === 1 ? '' : 's'}` : '',
+    ].filter(Boolean);
+    return `Deleted “${seg.name || 'Walk ' + seg.sequence}”` + (bits.length ? ` and ${bits.join(', ')}` : '');
   };
 
   const removeSnag = async (sn: Snag) => {
@@ -132,11 +153,18 @@ export function PaceSnags() {
 
   if (loading) return <p className="sub">Loading the snag list…</p>;
 
-  const pinned = snags.filter(s => s.assetId);
-  const open = pinned.filter(OPEN);
-  const assetById = new Map(assets.map(a => [a.id, a]));
+  // everything below reads the view WITHOUT the walk awaiting deletion, so the
+  // counts always describe what is actually on screen
+  const shownSegments = segments.filter(sg => sg.id !== pending?.id);
+  const shownAssets = assets.filter(a => a.segmentId !== pending?.id);
+  const shownAssetIds = new Set(shownAssets.map(a => a.id));
+  const shownSnags = snags.filter(sn => !sn.assetId || shownAssetIds.has(sn.assetId));
 
-  if (!wsId || segments.length === 0) {
+  const pinned = shownSnags.filter(s => s.assetId);
+  const open = pinned.filter(OPEN);
+  const assetById = new Map(shownAssets.map(a => [a.id, a]));
+
+  if (!wsId || shownSegments.length === 0) {
     return (
       <div className="ps-empty">
         <p className="ps-empty-title">No walk filmed yet</p>
@@ -147,6 +175,9 @@ export function PaceSnags() {
         <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => void start()}>
           {busy ? 'Setting up…' : 'Film a walk'}
         </button>
+        {pending && (
+          <Toast message={pendingSummary(pending)} onUndo={undoRemove} onDismiss={() => void commitPending()} />
+        )}
       </div>
     );
   }
@@ -155,7 +186,7 @@ export function PaceSnags() {
     <div className="ps">
       <div className="ps-bar">
         <div className="ps-bar-stats">
-          <b>{segments.length}</b> walk{segments.length === 1 ? '' : 's'} · <b>{assets.length}</b> asset{assets.length === 1 ? '' : 's'}
+          <b>{shownSegments.length}</b> walk{shownSegments.length === 1 ? '' : 's'} · <b>{shownAssets.length}</b> asset{shownAssets.length === 1 ? '' : 's'}
           {pinned.length > 0 && <> · <b className={open.length ? 'is-open' : ''}>{open.length}</b> open snag{open.length === 1 ? '' : 's'}</>}
         </div>
         <div className="ps-bar-actions">
@@ -166,24 +197,24 @@ export function PaceSnags() {
       </div>
 
       <div className="ps-segs">
-        {segments.map(seg => (
+        {shownSegments.map(seg => (
           <SegmentCard
             key={seg.id} seg={seg}
-            assets={assets.filter(a => a.segmentId === seg.id)} snags={snags}
+            assets={shownAssets.filter(a => a.segmentId === seg.id)} snags={shownSnags}
             onOpen={() => nav(`/w/${wsId}/segment/${seg.id}`)}
             onDelete={() => void removeSegment(seg)}
           />
         ))}
       </div>
 
-      {assets.length > 0 && (
+      {shownAssets.length > 0 && (
         <>
           <h3 className="ps-h">Marked frames</h3>
           <div className="ps-assets">
-            {assets.map(a => (
+            {shownAssets.map(a => (
               <div key={a.id} className="ps-asset">
                 <span className="ps-asset-name">{a.name}</span>
-                <span className="ps-asset-meta">{(() => { const n = snags.filter(sn => sn.assetId === a.id).length;
+                <span className="ps-asset-meta">{(() => { const n = shownSnags.filter(sn => sn.assetId === a.id).length;
                   return n === 0 ? 'no snags' : `${n} snag${n === 1 ? '' : 's'}`; })()}</span>
                 <button className="ps-del" onClick={() => void removeAsset(a)} aria-label={`Delete ${a.name}`}>Delete</button>
               </div>
@@ -207,6 +238,10 @@ export function PaceSnags() {
               ))}
           </div>
         </>
+      )}
+
+      {pending && (
+        <Toast message={pendingSummary(pending)} onUndo={undoRemove} onDismiss={() => void commitPending()} />
       )}
     </div>
   );
