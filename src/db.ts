@@ -4,7 +4,7 @@
  * stores ONLY through the functions here, and every observation path is
  * workspaceId-scoped — that is the whole isolation guarantee. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { ID, Workspace, Observation, Case } from './types';
+import type { ID, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
@@ -26,11 +26,15 @@ interface AppDB extends DBSchema {
   tombstones: { key: string; value: Tombstone };
   // Cases (v4): the thin A3 — see types.ts.
   cases: { key: string; value: Case; indexes: { by_workspace: string } };
+  // Projects (v5): improvement initiatives spanning multiple workspaces (lines).
+  projects: { key: string; value: Project; indexes: { by_updatedAt: number } };
+  project_targets: { key: string; value: ProjectLineTarget; indexes: { by_project: string; by_workspace: string } };
+  project_actuals: { key: string; value: ProjectLineActual; indexes: { by_project: string; by_workspace: string; by_date: [string, number] } };
 }
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
-export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases';
+export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals';
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
  * the Faultline rebrand — read ONCE to migrate a device's existing data into the
@@ -38,7 +42,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 4; // v4: cases
+const DB_VERSION = 5; // v5: projects, project_targets, project_actuals
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -77,7 +81,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -110,6 +114,20 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   if (!db.objectStoreNames.contains('tombstones')) db.createObjectStore('tombstones', { keyPath: 'id' });
   if (!db.objectStoreNames.contains('cases')) {
     db.createObjectStore('cases', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
+  }
+  if (!db.objectStoreNames.contains('projects')) {
+    db.createObjectStore('projects', { keyPath: 'id' }).createIndex('by_updatedAt', 'updatedAt');
+  }
+  if (!db.objectStoreNames.contains('project_targets')) {
+    const pt = db.createObjectStore('project_targets', { keyPath: 'id' });
+    pt.createIndex('by_project', 'projectId');
+    pt.createIndex('by_workspace', 'workspaceId');
+  }
+  if (!db.objectStoreNames.contains('project_actuals')) {
+    const pa = db.createObjectStore('project_actuals', { keyPath: 'id' });
+    pa.createIndex('by_project', 'projectId');
+    pa.createIndex('by_workspace', 'workspaceId');
+    pa.createIndex('by_date', ['projectId', 'date']);
   }
 }
 
@@ -637,4 +655,65 @@ export async function deleteCase(id: ID): Promise<void> {
   if (!(await db.get('cases', id))) return;
   await db.delete('cases', id);
   await recordTombstones('cases', [id]);
+}
+
+/* ============ PROJECTS — improvement initiatives spanning multiple workspaces ============ */
+export async function allProjects(): Promise<Project[]> {
+  const db = await getDB();
+  const projects = await db.getAll('projects');
+  return projects.filter(p => !p.deletedAt);
+}
+export async function getProject(id: ID): Promise<Project | undefined> {
+  const p = await (await getDB()).get('projects', id);
+  return p?.deletedAt == null ? p : undefined;
+}
+export async function addProject(p: Project): Promise<void> {
+  await (await getDB()).put('projects', p);
+  signalWrite();
+}
+export async function updateProject(p: Project): Promise<void> {
+  await (await getDB()).put('projects', { ...p, updatedAt: now() });
+  signalWrite();
+}
+export async function deleteProject(id: ID): Promise<void> {
+  const db = await getDB();
+  const p = await db.get('projects', id);
+  if (!p) return;
+  await db.put('projects', { ...p, deletedAt: now() });
+  signalWrite();
+}
+
+/* Project targets — quarterly PPM goals for each line */
+export async function getProjectTargets(projectId: ID): Promise<ProjectLineTarget[]> {
+  const db = await getDB();
+  const targets = await db.getAllFromIndex('project_targets', 'by_project', projectId);
+  return targets.filter(t => !t.deletedAt);
+}
+export async function addProjectTarget(t: ProjectLineTarget): Promise<void> {
+  await (await getDB()).put('project_targets', t);
+  signalWrite();
+}
+export async function updateProjectTarget(t: ProjectLineTarget): Promise<void> {
+  await (await getDB()).put('project_targets', { ...t, updatedAt: now() });
+  signalWrite();
+}
+
+/* Project actuals — daily/weekly PPM measurements */
+export async function getProjectActuals(projectId: ID, startDate?: Millis, endDate?: Millis): Promise<ProjectLineActual[]> {
+  const db = await getDB();
+  const actuals = await db.getAllFromIndex('project_actuals', 'by_project', projectId);
+  const filtered = actuals.filter(a => !a.deletedAt);
+  if (startDate || endDate) {
+    return filtered.filter(a => (!startDate || a.date >= startDate) && (!endDate || a.date <= endDate));
+  }
+  return filtered;
+}
+export async function addProjectActual(a: ProjectLineActual): Promise<void> {
+  await (await getDB()).put('project_actuals', a);
+  signalWrite();
+}
+export async function getProjectActualsByWorkspace(projectId: ID, workspaceId: ID): Promise<ProjectLineActual[]> {
+  const db = await getDB();
+  const actuals = await db.getAllFromIndex('project_actuals', 'by_workspace', workspaceId);
+  return actuals.filter(a => a.projectId === projectId && !a.deletedAt).sort((a, b) => a.date - b.date);
 }

@@ -188,3 +188,49 @@ export interface Case {
   updatedAt: Millis;     // LWW clock for cloud sync
   deletedAt?: Millis;    // soft delete (tombstone)
 }
+
+/* ============ PROJECT — groups multiple workspaces (lines) under one initiative ============
+ * A Project is an improvement initiative (e.g., "Project Pace") that spans multiple
+ * production lines (workspaces). It holds quarterly targets and tracks actual performance
+ * weekly/daily, enabling presentation of multiple lines' progress in one A3. */
+export interface Project {
+  id: ID;
+  ownerId?: string;
+  name: string;           // "Project Pace"
+  description?: string;   // brief project overview
+  color: string;          // branded color
+  workspaceIds: ID[];     // the lines in this project (workspace IDs)
+  createdAt: Millis;
+  updatedAt: Millis;
+  deletedAt?: Millis;     // soft delete
+}
+
+/** Quarterly target for one line in a project. Defines the goal at each quarter.
+ *  Q1-Q4 targets let the project dashboard show progression and calculate weekly targets. */
+export interface ProjectLineTarget {
+  id: ID;
+  projectId: ID;
+  workspaceId: ID;        // which line (workspace)
+  lineVariant?: string;   // "2A", "2B" etc. if a line has sub-lines
+  q1Target: number;       // ppm (or other metric)
+  q2Target: number;
+  q3Target: number;
+  q4Target: number;
+  startDate: Millis;      // when Q1 starts (e.g., Aug 2026)
+  createdAt: Millis;
+  updatedAt: Millis;
+  deletedAt?: Millis;
+}
+
+/** Daily/weekly actual performance for one line. Tracks real-world ppm against targets. */
+export interface ProjectLineActual {
+  id: ID;
+  projectId: ID;
+  workspaceId: ID;
+  lineVariant?: string;
+  date: Millis;           // the date this measurement was taken
+  actualPpm: number;      // observed packs per minute
+  createdAt: Millis;
+  updatedAt: Millis;
+  deletedAt?: Millis;
+}
