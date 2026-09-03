@@ -4,7 +4,7 @@
  * stores ONLY through the functions here, and every observation path is
  * workspaceId-scoped — that is the whole isolation guarantee. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { ID, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
+import type { ID, Millis, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';

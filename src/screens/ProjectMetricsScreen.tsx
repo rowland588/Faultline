@@ -2,9 +2,9 @@
  * Simple forms to input PPM targets and measurements for each line. */
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { getProject, getProjectTargets, addProjectTarget, updateProjectTarget, getWorkspace, addProjectActual, getProjectActualsByWorkspace } from '../db';
+import { getProject, getProjectTargets, addProjectTarget, updateProjectTarget, getWorkspace, addProjectActual } from '../db';
 import { uid, now } from '../lib/ids';
-import type { Project, ProjectLineTarget, ProjectLineActual, Workspace } from '../types';
+import type { Project, ProjectLineTarget, Workspace } from '../types';
 
 export function ProjectMetricsScreen({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);

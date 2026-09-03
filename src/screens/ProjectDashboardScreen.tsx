@@ -14,7 +14,6 @@ interface LineMetrics {
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [lines, setLines] = useState<LineMetrics[]>([]);
-  const [targets, setTargets] = useState<ProjectLineTarget[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,11 +25,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       }
       setProject(p);
 
-      // Load targets for this project
+      // Load targets and actuals for this project
       const tgts = await getProjectTargets(projectId);
-      setTargets(tgts);
-
-      // Load actuals for this project
       const acts = await getProjectActuals(projectId);
 
       // Load workspace details for each line

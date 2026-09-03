@@ -2,7 +2,7 @@
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
-import type { Workspace, Observation, Case } from '../types';
+import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -161,8 +161,62 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
+  // Projects (local-only for now)
+  projects: {
+    clock: (l) => (l as Project).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l) => {
+      const p = l as Project;
+      return {
+        id: p.id, name: p.name, color: p.color, workspace_ids: p.workspaceIds,
+        created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, name: r.name as string, color: r.color as string,
+      workspaceIds: (r.workspace_ids as string[]) ?? [], createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
+  project_targets: {
+    clock: (l) => (l as ProjectLineTarget).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l) => {
+      const t = l as ProjectLineTarget;
+      return {
+        id: t.id, project_id: t.projectId, workspace_id: t.workspaceId, line_variant: t.lineVariant ?? null,
+        q1_target: t.q1Target, q2_target: t.q2Target, q3_target: t.q3Target, q4_target: t.q4Target,
+        start_date: t.startDate, created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: t.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string, workspaceId: r.workspace_id as string,
+      lineVariant: (r.line_variant as string) ?? undefined, q1Target: Number(r.q1_target),
+      q2Target: Number(r.q2_target), q3Target: Number(r.q3_target), q4Target: Number(r.q4_target),
+      startDate: Number(r.start_date), createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
+  project_actuals: {
+    clock: (l) => (l as ProjectLineActual).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l) => {
+      const a = l as ProjectLineActual;
+      return {
+        id: a.id, project_id: a.projectId, workspace_id: a.workspaceId, line_variant: a.lineVariant ?? null,
+        date: a.date, actual_ppm: a.actualPpm, created_at: a.createdAt, updated_at: a.updatedAt, deleted_at: a.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string, workspaceId: r.workspace_id as string,
+      lineVariant: (r.line_variant as string) ?? undefined, date: Number(r.date),
+      actualPpm: Number(r.actual_ppm), createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
 };
 
 // cases push before snags so a snag's case_id never points at a case the cloud
 // hasn't met (no hard FK, but no reason to arrive out of order either).
-export const SYNC_KINDS: SyncKind[] = ['workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags'];
+// Projects are local-only for now, but included in the list for future cloud sync.
+export const SYNC_KINDS: SyncKind[] = ['workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags', 'projects', 'project_targets', 'project_actuals'];
