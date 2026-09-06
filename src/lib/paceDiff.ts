@@ -14,7 +14,10 @@
 import type { PaceAction, PaceObservation } from './projectPaceData';
 import type { PaceSnapshot } from './paceWorkbook';
 
-export type ChangeKind = 'added' | 'removed' | 'closed' | 'reopened' | 'status' | 'flag' | 'owner' | 'due' | 'text';
+export type ChangeKind =
+  | 'added' | 'removed' | 'closed' | 'reopened'
+  | 'status' | 'flag' | 'owner' | 'due' | 'priority'
+  | 'line' | 'category' | 'who' | 'problem' | 'text';
 
 export interface ActionChange {
   key: string;
@@ -43,23 +46,68 @@ const isDone = (a: PaceAction) => /^done$/i.test(a.status.trim());
 const isOverdue = (a: PaceAction) => /overdue/i.test(a.flag ?? '');
 const clean = (s?: string) => (s ?? '').replace(/\s+/g, ' ').trim();
 
-/** What the action is about — position-independent, so inserting rows in Excel
- *  does not masquerade as the tracker being rewritten. */
-const identity = (a: PaceAction): string => {
-  const what = clean(a.problem) || clean(a.action) || clean(a.category);
-  return `${clean(a.line).toLowerCase()}|${what.toLowerCase()}`;
-};
+/* MATCHING, in three passes.
+ *
+ * A single identity key cannot survive the edits a tracker actually gets. If
+ * the key is "line + what's happening", then tidying the wording of a problem,
+ * or moving an action to another line, makes the row vanish and a stranger
+ * appear — reported as a removal AND an addition, which reads as churn and
+ * buries the real change underneath.
+ *
+ * So rows are paired on progressively weaker keys, and only what is left after
+ * all three is genuinely new or genuinely gone:
+ *
+ *   1. line + what's happening   — the normal case
+ *   2. the Action text           — catches a reworded problem. This is the
+ *                                  column the workbook's own Ref formula keys
+ *                                  off (IF($F7="",...)), so it is what the
+ *                                  sheet already treats as "a row exists".
+ *   3. what's happening alone    — catches an action moved to another line
+ *
+ * Rows sharing a key are paired in order, so genuine duplicates still pair 1:1.
+ */
+const norm = (s?: string) => (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
-export function keyFor(actions: PaceAction[]): Map<string, PaceAction> {
-  const seen = new Map<string, number>();
-  const out = new Map<string, PaceAction>();
-  for (const a of actions) {
-    const base = identity(a);
-    const n = (seen.get(base) ?? 0) + 1;
-    seen.set(base, n);
-    out.set(n === 1 ? base : `${base}#${n}`, a);
+type KeyFn = (a: PaceAction) => string | null;
+const LEVELS: KeyFn[] = [
+  a => `1|${norm(a.line)}|${norm(a.problem) || norm(a.action) || norm(a.category)}`,
+  a => (norm(a.action) ? `2|${norm(a.action)}` : null),
+  a => (norm(a.problem) ? `3|${norm(a.problem)}` : null),
+];
+
+export interface Pairing {
+  pairs: [PaceAction, PaceAction][];
+  removed: PaceAction[];
+  added: PaceAction[];
+}
+
+export function pairActions(prev: PaceAction[], next: PaceAction[]): Pairing {
+  const pairs: [PaceAction, PaceAction][] = [];
+  let left = [...prev];
+  let right = [...next];
+
+  for (const keyOf of LEVELS) {
+    if (!left.length || !right.length) break;
+    const buckets = new Map<string, PaceAction[]>();
+    for (const a of left) {
+      const k = keyOf(a);
+      if (!k) continue;
+      const q = buckets.get(k);
+      if (q) q.push(a); else buckets.set(k, [a]);
+    }
+    const claimed = new Set<PaceAction>();
+    const stillRight: PaceAction[] = [];
+    for (const b of right) {
+      const k = keyOf(b);
+      const q = k ? buckets.get(k) : undefined;
+      const a = q && q.length ? q.shift() : undefined;
+      if (a) { pairs.push([a, b]); claimed.add(a); }
+      else stillRight.push(b);
+    }
+    left = left.filter(a => !claimed.has(a));
+    right = stillRight;
   }
-  return out;
+  return { pairs, removed: left, added: right };
 }
 
 /* Keyed on the observation itself, not on who logged it: the observer is a
@@ -68,41 +116,34 @@ export function keyFor(actions: PaceAction[]): Map<string, PaceAction> {
 const obsKey = (o: PaceObservation) => `${o.lens}|${clean(o.text).toLowerCase()}`;
 
 export function diffSnapshots(prev: PaceSnapshot, next: PaceSnapshot): PaceDiff {
-  const A = keyFor(prev.actions);
-  const B = keyFor(next.actions);
+  const { pairs, removed, added } = pairActions(prev.actions, next.actions);
   const changes: ActionChange[] = [];
 
-  for (const [key, b] of B) {
-    const a = A.get(key);
-    if (!a) { changes.push({ key, kind: 'added', action: b }); continue; }
+  const push = (key: string, kind: ChangeKind, action: PaceAction, field: string, from?: string, to?: string) =>
+    changes.push({ key, kind, action, field, from: from || '—', to: to || '—' });
+
+  pairs.forEach(([a, b], i) => {
+    const key = `${b.ref}#${i}`;
 
     // Closing (or re-opening) is the headline; it replaces the plain status note.
-    if (!isDone(a) && isDone(b)) {
-      changes.push({ key, kind: 'closed', action: b, field: 'Status', from: a.status, to: b.status });
-    } else if (isDone(a) && !isDone(b)) {
-      changes.push({ key, kind: 'reopened', action: b, field: 'Status', from: a.status, to: b.status });
-    } else if (clean(a.status) !== clean(b.status)) {
-      changes.push({ key, kind: 'status', action: b, field: 'Status', from: a.status, to: b.status });
-    }
+    if (!isDone(a) && isDone(b)) push(key, 'closed', b, 'Status', a.status, b.status);
+    else if (isDone(a) && !isDone(b)) push(key, 'reopened', b, 'Status', a.status, b.status);
+    else if (clean(a.status) !== clean(b.status)) push(key, 'status', b, 'Status', a.status, b.status);
 
     // A flag flip only matters while the action is still live.
-    if (!isDone(b) && clean(a.flag) !== clean(b.flag)) {
-      changes.push({ key, kind: 'flag', action: b, field: 'Flag', from: a.flag || '—', to: b.flag || '—' });
-    }
-    if (clean(a.owner) !== clean(b.owner)) {
-      changes.push({ key, kind: 'owner', action: b, field: 'Owner', from: a.owner || '—', to: b.owner || '—' });
-    }
-    if (clean(a.due) !== clean(b.due)) {
-      changes.push({ key, kind: 'due', action: b, field: 'Due', from: a.due || '—', to: b.due || '—' });
-    }
-    // Only a rewording — if the action text were the thing that matched them,
-    // a change to it would have made them two different rows instead.
-    if (clean(a.problem) && clean(a.action) !== clean(b.action)) {
-      changes.push({ key, kind: 'text', action: b, field: 'Action', from: clean(a.action) || '—', to: clean(b.action) || '—' });
-    }
-  }
+    if (!isDone(b) && clean(a.flag) !== clean(b.flag)) push(key, 'flag', b, 'Flag', a.flag, b.flag);
+    if (clean(a.owner) !== clean(b.owner)) push(key, 'owner', b, 'Owner', a.owner, b.owner);
+    if (clean(a.due) !== clean(b.due)) push(key, 'due', b, 'Due', a.due, b.due);
+    if ((a.priority || 3) !== (b.priority || 3)) push(key, 'priority', b, 'Priority', `P${a.priority || 3}`, `P${b.priority || 3}`);
+    if (clean(a.line) !== clean(b.line)) push(key, 'line', b, 'Line', a.line, b.line);
+    if (clean(a.category) !== clean(b.category)) push(key, 'category', b, 'Category', a.category, b.category);
+    if (clean(a.who) !== clean(b.who)) push(key, 'who', b, 'Department', a.who, b.who);
+    if (clean(a.problem) !== clean(b.problem)) push(key, 'problem', b, "What's happening", clean(a.problem), clean(b.problem));
+    if (clean(a.action) !== clean(b.action)) push(key, 'text', b, 'Action', clean(a.action), clean(b.action));
+  });
 
-  for (const [key, a] of A) if (!B.has(key)) changes.push({ key, kind: 'removed', action: a });
+  added.forEach((b, i) => changes.push({ key: `add:${b.ref}#${i}`, kind: 'added', action: b }));
+  removed.forEach((a, i) => changes.push({ key: `del:${a.ref}#${i}`, kind: 'removed', action: a }));
 
   const oldObs = new Map(prev.observations.map(o => [obsKey(o), o]));
   const newObs = new Map(next.observations.map(o => [obsKey(o), o]));
@@ -125,4 +166,4 @@ export function diffSnapshots(prev: PaceSnapshot, next: PaceSnapshot): PaceDiff 
 }
 
 /** Progress first, then new work, then drift — the order a stand-up reads in. */
-const ORDER: ChangeKind[] = ['closed', 'added', 'reopened', 'flag', 'status', 'due', 'owner', 'text', 'removed'];
+const ORDER: ChangeKind[] = ['closed', 'added', 'reopened', 'priority', 'flag', 'status', 'due', 'owner', 'line', 'category', 'who', 'problem', 'text', 'removed'];

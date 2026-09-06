@@ -39,6 +39,11 @@ const CHANGE_META: Record<ActionChange['kind'], { label: string; tone: string }>
   status:   { label: 'Status moved',  tone: 'info' },
   due:      { label: 'Due date moved',tone: 'warn' },
   owner:    { label: 'Owner changed', tone: 'info' },
+  priority: { label: 'Priority changed', tone: 'warn' },
+  line:     { label: 'Moved line',    tone: 'info' },
+  category: { label: 'Recategorised', tone: 'muted' },
+  who:      { label: 'Department changed', tone: 'info' },
+  problem:  { label: 'Problem reworded', tone: 'muted' },
   text:     { label: 'Action reworded', tone: 'muted' },
   removed:  { label: 'Removed',       tone: 'bad'  },
 };
