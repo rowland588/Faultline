@@ -10,7 +10,6 @@ export interface ParetoRow { category: string; mins: number; events: number; min
 export interface PaceAction { /** A stable id from an ID/UID column, when the sheet has one. Unlike Ref
  *  (a formula off ROW()) this survives inserts, sorting and row reuse. */
   uid?: string; ref: string; priority: number; line: string; category: string; problem?: string; action?: string; who?: string; owner?: string; due?: string; status: string; flag: string; }
-export interface PaceObservation { observer: string; lens: string; text: string; }
 
 /** Q1 starts August 2026; each quarter is 13 weeks. Weekly actuals run from W/C 3 Aug 2026. */
 export const PACE_START = Date.UTC(2026, 7, 3);
@@ -113,21 +112,3 @@ export const PACE_ACTIONS: PaceAction[] = [
   { ref: "T-040", priority: 3, line: "Line 2", category: "General line organisation", problem: "currenlty no clear manning plan of where the people will go when we have a full atuomation on both liens, we have  10 people in buget , need to understand where the popel will og, and possibley potential bottlenecks once the plan is understood", action: "Rowland speak to Tanya , and do the packing  calculations \" how fast does the packer had to be to keep up with a 75ppm \" is it practical \" ?   8 seconds per basket 1 pallet every 5 min", who: "Production", owner: "Rowland (Ops Lead)", due: "2026-09-10", status: "In progress", flag: "Due soon" },
 ];
 
-export const PACE_OBSERVATIONS: PaceObservation[] = [
-  { observer: "Rowland", lens: "People", text: "Line leadership -  poor comunications - the line is silent from the opertator who is leading the line ?  Do they know they also lead the people ? B shift Polonia?  Very vocal full of energy is she the new line 2 operator , however she does run line 7" },
-  { observer: "Rowland", lens: "People", text: "Standard manning  - Alex trying to get it imbedded facing resistance from production - not from the agency  ?" },
-  { observer: "Rowland", lens: "People", text: "observed b shift skill  matrix, looks thin, even when ronnie said they had trainied multiple people ?" },
-  { observer: "Rowland", lens: "Plant", text: "Speed test find the sweet spot need doing" },
-  { observer: "Rowland", lens: "Plant", text: "Extend the belt  - L2A should resolve the frequent stops caused by  change of pallet and could result in having more space to do the new packimng technique" },
-  { observer: "Rowland", lens: "Plant", text: "Basket decanting  issue, jamming on infeed white conveyour belt and actual de-staker \u2026 flag to chris.. A sensore bracket needs desigining  to stop the basket white conveyor james" },
-  { observer: "Rowland", lens: "Process", text: "Label application onto an A4 sheet \" why not print just on A4\" ?" },
-  { observer: "Rowland", lens: "Material", text: "Film \" holes\" major issue.. Lisa looking at it" },
-  { observer: "Pauls", lens: "People", text: "FLT not causing downtime" },
-  { observer: "Pauls", lens: "People", text: "Quality of the FLT driver does impact the process. Initially key experienced drivers should be on this line with the lesser experienced drivers training on the other lines. Line has not ran out but it gets tighter at times with inexperienced drivers" },
-  { observer: "Pauls", lens: "Plant", text: "Box tipper light curtain causing stoppages. Line not affected" },
-  { observer: "Pauls", lens: "Plant", text: "Oculus infeed belt trips out from time to time. This does affect the throughput but seems to have been resolved for the time being" },
-  { observer: "Pauls", lens: "Process", text: "Product c/overs causing mixed product. Poor controls on c/over process. Often run one side of the Newtec with a different variety on the c/overs" },
-  { observer: "Pauls", lens: "Process", text: "Ungraded product (1 box). Issue with grading - (See material comments)" },
-  { observer: "Pauls", lens: "Material", text: "Occassionally ungraded product (Not been over the Celox) arrives to the line causing grading issues and slowing the process down. (Three boxes in total seen)" },
-  { observer: "Pauls", lens: "Material", text: "Varying quality issues with the RM sometimes causes d/time at changeovers but not when the line is running and the varifill hoppers are full. Chasing Celox on grading quality" },
-];

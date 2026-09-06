@@ -7,15 +7,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot } from '../db';
 import { readPaceWorkbook, type PaceSnapshot, type PaceRoster } from './paceWorkbook';
-import { PACE_ACTIONS, PACE_OBSERVATIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
-import type { PaceAction, PaceObservation } from './projectPaceData';
+import { PACE_ACTIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
+import type { PaceAction } from './projectPaceData';
 
 const BASELINE: PaceSnapshot = {
   id: 'baseline',
   takenAt: PACE_BASELINE_AT,
   fileName: 'Project_Pace_Action_Tracker.xlsx (baseline)',
   actions: PACE_ACTIONS,
-  observations: PACE_OBSERVATIONS,
   roster: PACE_ROSTER,
 };
 
@@ -25,7 +24,6 @@ export interface PaceState {
   snapshots: PaceSnapshot[];
   /** The current picture — the newest upload, or the baseline. */
   actions: PaceAction[];
-  observations: PaceObservation[];
   /** The team's own owner/status lists, from the newest upload that carried them. */
   roster?: PaceRoster;
   busy: boolean;
@@ -47,7 +45,7 @@ export function usePaceSnapshots(): PaceState {
     const stored = await listPaceSnapshots();
     setRows(stored.map(r => ({
       id: r.id, takenAt: r.takenAt, fileName: r.fileName,
-      actions: r.actions as PaceAction[], observations: r.observations as PaceObservation[],
+      actions: r.actions as PaceAction[],
       roster: (r as { roster?: PaceRoster }).roster,
     })));
     setLoading(false);
@@ -64,7 +62,6 @@ export function usePaceSnapshots(): PaceState {
         takenAt: report.snapshot.takenAt,
         fileName: report.snapshot.fileName,
         actions: report.snapshot.actions,
-        observations: report.snapshot.observations,
         roster: report.snapshot.roster,
       });
       setWarnings(report.warnings);
@@ -89,7 +86,6 @@ export function usePaceSnapshots(): PaceState {
     loading, busy, error, warnings,
     snapshots: chain,
     actions: current.actions,
-    observations: current.observations,
     // an older upload may predate roster support — fall back down the chain
     roster: chain.find(s => s.roster?.owners.length)?.roster,
     upload, remove,

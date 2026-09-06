@@ -1,20 +1,19 @@
 /* The tracker workbook -> a snapshot the app can hold and compare.
  *
- * The workbook stays the system of record; Faultline takes a copy each week and
- * reports what moved. So this reads by COLUMN HEADING, never by fixed position —
+ * The workbook stays the system of record; Faultline reads it and shows it. So
+ * this reads by COLUMN HEADING, never by fixed position —
  * inserting a column in Excel must not silently shift every field by one.
  *
  * Anything it cannot make sense of is reported rather than guessed at: a bad
  * upload should say what was wrong with it, not quietly import half a file. */
 import { readXlsx, type CellValue, type SheetData } from './xlsxRead';
-import type { PaceAction, PaceObservation } from './projectPaceData';
+import type { PaceAction } from './projectPaceData';
 
 export interface PaceSnapshot {
   id: string;
   takenAt: number;
   fileName: string;
   actions: PaceAction[];
-  observations: PaceObservation[];
   /** The Lists sheet — the team's own vocabulary. Absent on older snapshots. */
   roster?: PaceRoster;
 }
@@ -127,25 +126,6 @@ function parseRoster(sheet: SheetData): PaceRoster {
   };
 }
 
-const LENSES = ['People', 'Plant', 'Process', 'Material'];
-
-function parseObservations(sheet: SheetData): PaceObservation[] {
-  const observer = sheet.name.replace(/observations?/i, '').replace(/[’']s\b/i, '').trim() || sheet.name.trim();
-  const hm = headerMap(sheet.rows, ['People']);
-  if (!hm) return [];
-  const { row: hr, cols } = hm;
-  const out: PaceObservation[] = [];
-  for (const lens of LENSES) {
-    const ci = cols.get(lens.toLowerCase());
-    if (ci == null) continue;
-    for (let r = hr + 1; r < sheet.rows.length; r++) {
-      const v = txt(sheet.rows[r]?.[ci] ?? null);
-      if (v) out.push({ observer, lens, text: v });
-    }
-  }
-  return out;
-}
-
 /** Read an uploaded workbook. Throws only when the file isn't a workbook at
  *  all; a workbook missing a sheet comes back as a warning so the user can see
  *  what was and wasn't picked up. */
@@ -165,14 +145,13 @@ export function readPaceWorkbook(buf: ArrayBuffer, fileName: string): ParseRepor
   const roster = listsSheet ? parseRoster(listsSheet) : undefined;
   if (!roster?.owners.length) warnings.push('No owner list found on a "Lists" sheet — the roster falls back to whoever appears in the tracker.');
 
-  const obsSheets = sheets.filter(s => /observation/i.test(s.name));
-  const observations = obsSheets.flatMap(parseObservations);
-  if (!obsSheets.length) warnings.push('No Observations sheets found.');
-
-  if (!actions.length && !observations.length) {
+  // The Observations sheets are deliberately NOT read. What people see on the
+  // floor belongs in the Snag list — filmed, pinned on the frame — not as notes
+  // copied out of a spreadsheet.
+  if (!actions.length) {
     throw new Error(
-      'That workbook had nothing this app recognises. Expected a "Tracker" sheet '
-      + 'with Ref / Line / Status columns, and/or "… Observations" sheets.',
+      'That workbook had no actions this app recognises. Expected a "Tracker" '
+      + 'sheet with Ref / Line / Status columns.',
     );
   }
 
@@ -182,7 +161,6 @@ export function readPaceWorkbook(buf: ArrayBuffer, fileName: string): ParseRepor
       takenAt: Date.now(),
       fileName,
       actions,
-      observations,
       roster,
     },
     sheetsSeen: sheets.map(s => s.name),

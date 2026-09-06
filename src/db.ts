@@ -40,6 +40,21 @@ interface AppDB extends DBSchema {
    * cloud tables for these do not exist yet, and a half-synced number is worse
    * than an honestly local one. */
   pace_lines: { key: string; value: PaceLineRow };
+  /* Next steps (v8): the things that still need doing and the things we are
+   * waiting on. Typed in the app — these are NOT in the workbook, which only
+   * carries actions that already have an owner and a due date. */
+  pace_todos: { key: string; value: PaceTodoRow; indexes: { by_createdAt: number } };
+}
+
+/** One line of "what we still need to do". `where` is the line or the machine,
+ *  `why` the reason it matters — a trial nobody can justify is a trial that
+ *  gets dropped. `when` is free text on purpose: "before the Tesco launch" is a
+ *  real answer and a date picker cannot hold it. */
+export interface PaceTodoRow {
+  id: string;
+  what: string; where: string; why: string; who: string; when: string;
+  state: 'todo' | 'waiting' | 'done';
+  createdAt: number; updatedAt: number;
 }
 
 /** One production line's targets and its weekly ppm readings. `weekly` is
@@ -54,7 +69,7 @@ export interface PaceLineRow {
 /** A parsed tracker upload, stored whole. */
 export interface PaceSnapshotRow {
   id: string; takenAt: number; fileName: string;
-  actions: unknown[]; observations: unknown[];
+  actions: unknown[];
   roster?: unknown;
 }
 
@@ -68,7 +83,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 7; // v7: pace_lines (ppm entered in the app)
+const DB_VERSION = 8; // v8: pace_todos (next steps / waiting for)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -107,7 +122,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -127,6 +142,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
     db.createObjectStore('pace_snapshots', { keyPath: 'id' }).createIndex('by_takenAt', 'takenAt');
   }
   if (!db.objectStoreNames.contains('pace_lines')) db.createObjectStore('pace_lines', { keyPath: 'key' });
+  if (!db.objectStoreNames.contains('pace_todos')) {
+    db.createObjectStore('pace_todos', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
+  }
   if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
   if (!db.objectStoreNames.contains('segments')) {
     db.createObjectStore('segments', { keyPath: 'id' }).createIndex('by_workspace', 'workspaceId');
@@ -804,4 +822,16 @@ export async function getPaceWorkspaceId(): Promise<ID | null> {
 }
 export async function setPaceWorkspaceId(id: ID): Promise<void> {
   await (await getDB()).put('meta', { id }, 'paceWorkspace');
+}
+
+/* ---------- next steps ---------- */
+export async function listPaceTodos(): Promise<PaceTodoRow[]> {
+  const all = await (await getDB()).getAll('pace_todos');
+  return all.sort((a, b) => a.createdAt - b.createdAt);
+}
+export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
+  await (await getDB()).put('pace_todos', { ...t, updatedAt: now() });
+}
+export async function deletePaceTodo(id: ID): Promise<void> {
+  await (await getDB()).delete('pace_todos', id);
 }
