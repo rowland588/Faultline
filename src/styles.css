@@ -2311,6 +2311,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 .exec-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: var(--muted); }
 
+/* while the PDF is being captured: force the full A3 desktop layout and flatten
+ * the page cards, so the download looks the same whether it's built on a laptop
+ * or a phone. Off-screen; restored the moment the capture finishes. */
+.exec-report.is-exporting { width: 1160px; max-width: none; padding: 0; }
+.exec-report.is-exporting .exec-bar { display: none; }
+.exec-report.is-exporting .exec-sheet {
+  width: 1160px; min-height: 0; margin: 0 0 1px;
+  border: 0; border-radius: 0; box-shadow: none; padding: 22px 24px;
+}
+.exec-report.is-exporting .exec-stats { grid-template-columns: repeat(6, 1fr); }
+.exec-report.is-exporting .exec-body-1 { grid-template-columns: 1.35fr 1fr; }
+.exec-report.is-exporting .exec-body-2 { grid-template-columns: 1fr 1fr; }
+.exec-report.is-exporting .exec-charts { grid-template-columns: 1fr 1fr; }
+.exec-report.is-exporting .exec-bar-hint { display: none; }
+
 /* on a phone the sheets stop pretending to be A3 and just stack readably */
 @media (max-width: 780px) {
   .exec-sheet { aspect-ratio: auto; }

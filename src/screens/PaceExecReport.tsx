@@ -12,7 +12,7 @@
  *
  * Download = the browser's print-to-PDF. A named @page (see styles.css) sets A3
  * landscape, so "Save as PDF" comes out right without the GM touching a setting. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -83,6 +83,9 @@ export function PaceExecReport() {
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
   const [snags, setSnags] = useState<Snag[] | null>(null);
 
+  const root = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     void (async () => {
       setTodos(await listPaceTodos());
@@ -92,15 +95,50 @@ export function PaceExecReport() {
     })();
   }, []);
 
-  // Set the print page to A3 landscape only while this report is on screen, so
-  // the meeting's own "Print A3" is untouched. One global size for the whole
-  // print — a per-element page size would emit a blank page on the size switch.
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = '@page { size: A3 landscape; margin: 9mm; }';
-    document.head.appendChild(style);
-    return () => { document.head.removeChild(style); };
-  }, []);
+  /* Build the PDF in the app rather than handing off to window.print(): the
+   * browser's print dialog adds its own header/footer (the URL, the date, page
+   * numbers), can fall back to A4 and can drop the background colours — so the
+   * saved file never matched the report. This renders each sheet to an image and
+   * lays it on an A3 landscape page: one click, no dialog, identical to screen.
+   *
+   * A width is forced during capture so the two-column layout holds even when
+   * the report is generated on a phone (where the responsive grid collapses). */
+  const download = async () => {
+    const el = root.current;
+    if (!el || saving) return;
+    setSaving(true);
+    el.classList.add('is-exporting');
+    try {
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas-pro')).default;
+      const sheets = Array.from(el.querySelectorAll<HTMLElement>('.exec-sheet'));
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      for (let i = 0; i < sheets.length; i++) {
+        const canvas = await html2canvas(sheets[i], { scale: 2, backgroundColor: '#ffffff', logging: false });
+        // JPEG, not PNG: a PNG of a full A3 page at 2× is ~12MB — two of them make
+        // a 25MB file no mail server will send. On a white report JPEG at high
+        // quality is indistinguishable and an order of magnitude smaller.
+        const img = canvas.toDataURL('image/jpeg', 0.92);
+        const ratio = canvas.width / canvas.height;
+        let w = pageW - 2 * margin;
+        let h = w / ratio;
+        if (h > pageH - 2 * margin) { h = pageH - 2 * margin; w = h * ratio; }
+        if (i > 0) pdf.addPage('a3', 'landscape');
+        pdf.addImage(img, 'JPEG', (pageW - w) / 2, (pageH - h) / 2, w, h);
+      }
+      const stamp = new Date().toISOString().slice(0, 10);
+      pdf.save(`Project-Pace-report-${stamp}.pdf`);
+    } catch (err) {
+      console.error('PDF export failed', err);
+      window.alert('Sorry — the PDF could not be generated. Please try again.');
+    } finally {
+      el.classList.remove('is-exporting');
+      setSaving(false);
+    }
+  };
 
   const loading = pace.loading || ppm.loading || todos == null || wins == null || snags == null;
   if (loading) {
@@ -162,12 +200,14 @@ export function PaceExecReport() {
   const seg = (count: number) => (openTotal + complete ? (count / actions.length) * 100 : 0);
 
   return (
-    <div className="exec-report">
+    <div className="exec-report" ref={root}>
       <div className="exec-bar no-print">
         <button className="btn btn-ghost" onClick={() => nav({ page: 'projectDashboard', projectId: 'pace' })}>← Back to Project Pace</button>
         <div className="exec-bar-r">
-          <span className="exec-bar-hint">Downloads as a double-sided A3 PDF — pick “Save as PDF” in the dialog</span>
-          <button className="btn btn-primary" onClick={() => window.print()}>Download PDF</button>
+          <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
+          <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
+            {saving ? 'Building PDF…' : 'Download PDF'}
+          </button>
         </div>
       </div>
 
