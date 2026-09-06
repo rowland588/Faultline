@@ -135,6 +135,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
           <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, every action in flight, and the snag walk of the line.</p>
         </div>
         <div className="pace-head-actions">
+          <button className="btn btn-ghost" onClick={() => nav('/pace-report')}>GM report</button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
           <button className="btn btn-ghost" onClick={() => nav('/')}>Home</button>
         </div>

@@ -2165,3 +2165,176 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .win-in { border: 0; padding: 2px 0; }
   .win-card { break-inside: avoid; border-left-width: 4px; }
 }
+
+/* ============================================================
+ *  WEEKLY EXECUTIVE REPORT — the GM's double-sided A3 download.
+ *  Screen shows the two pages as cards; print maps each .exec-sheet to one
+ *  A3-landscape page via the named @page below. Colours are forced light and
+ *  print-exact so the PDF looks the same on any device.
+ * ============================================================ */
+.exec-report { max-width: 1140px; margin: 0 auto; padding: 18px 16px 60px; }
+
+.exec-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 18px; flex-wrap: wrap;
+}
+.exec-bar-r { display: flex; align-items: center; gap: 14px; }
+.exec-bar-hint { font-size: 12px; color: var(--muted); max-width: 30ch; }
+
+/* a sheet — one A3 landscape page */
+.exec-sheet {
+  background: #fff; color: #141b26;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 22px; margin: 0 auto 22px;
+  display: flex; flex-direction: column;
+  /* looks like an A3 landscape page on screen, but grows if content needs it
+   * rather than clipping — print pins it to a real A3 page (see @page below) */
+  width: 100%; min-height: 760px;
+}
+
+/* compact the shared line chart for the report: the quarterly Q1–Q4 cells and
+ * the per-chart legend are dropped — the KPI strip and the "vs Q1" delta already
+ * carry that, and four full charts would overflow the page. */
+.exec-charts .pace-chart { padding: 8px 10px; }
+.exec-charts .pace-chart-title { font-size: 13px; }
+.exec-charts .pace-chart-sub { font-size: 10px; }
+.exec-charts .pace-quarters { display: none; }
+.exec-charts .pace-legend { display: none; }
+.exec-charts .pace-delta-n { font-size: 20px; }
+
+.exec-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #141b26; padding-bottom: 12px; }
+.exec-eyebrow { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand); }
+.exec-title { margin: 3px 0 2px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: #141b26; }
+.exec-lede { margin: 0; font-size: 12.5px; color: #4a5568; }
+.exec-head-meta { text-align: right; display: flex; flex-direction: column; gap: 1px; flex: none; }
+.exec-asat { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.exec-asat-d { font-size: 14px; font-weight: 700; color: #141b26; }
+.exec-forwhom { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* KPI strip */
+.exec-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 14px 0 4px; }
+.exec-stat {
+  border: 1px solid var(--line); border-top: 3px solid var(--muted);
+  border-radius: 10px; padding: 9px 10px 10px; display: flex; flex-direction: column; gap: 1px;
+  background: #fff;
+}
+.exec-stat.is-good { border-top-color: var(--ok); }
+.exec-stat.is-warn { border-top-color: var(--warn); }
+.exec-stat.is-bad  { border-top-color: var(--danger); }
+.exec-stat.is-flat { border-top-color: var(--brand); }
+.exec-stat-n { font-size: 26px; font-weight: 800; line-height: 1.05; color: #141b26; letter-spacing: -0.02em; }
+.exec-stat.is-good .exec-stat-n { color: var(--ok); }
+.exec-stat.is-bad  .exec-stat-n { color: var(--danger); }
+.exec-stat.is-warn .exec-stat-n { color: #b45f09; }
+.exec-stat-l { font-size: 11.5px; font-weight: 700; color: #141b26; }
+.exec-stat-s { font-size: 10px; color: var(--muted); }
+
+/* section box — lean A3: numbered, titled, with a one-line "so what" */
+.exec-box { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #fff; }
+.exec-sec-head { display: flex; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 10px; }
+.exec-sec-n {
+  flex: none; width: 20px; height: 20px; border-radius: 50%; background: #141b26; color: #fff;
+  font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;
+  align-self: center;
+}
+.exec-sec-title { margin: 0; font-size: 15px; font-weight: 800; color: #141b26; }
+.exec-sec-sowhat { font-size: 11px; color: var(--muted); margin-left: auto; text-align: right; }
+
+/* page 1 body: line pace beside the tracker */
+.exec-body-1 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; margin-top: 12px; flex: 1; min-height: 0; }
+.exec-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* stacked status bar */
+.exec-splitbar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+.exec-splitbar .seg { display: block; height: 100%; }
+.exec-splitbar .seg.is-done { background: var(--ok); }
+.exec-splitbar .seg.is-open { background: var(--brand); }
+.exec-splitbar .seg.is-late { background: var(--danger); }
+.exec-legend { display: flex; gap: 16px; margin: 8px 0 12px; font-size: 11.5px; color: #141b26; }
+.exec-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+.exec-legend .lg b { font-weight: 800; }
+.exec-legend .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.exec-legend .sw.is-done { background: var(--ok); }
+.exec-legend .sw.is-open { background: var(--brand); }
+.exec-legend .sw.is-late { background: var(--danger); }
+
+/* by-line matrix */
+.exec-matrix { width: 100%; border-collapse: collapse; font-size: 12px; }
+.exec-matrix th[scope=col] { text-align: right; font-size: 10px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.exec-matrix th[scope=col]:first-child { text-align: left; }
+.exec-matrix td, .exec-matrix th[scope=row] { padding: 6px; border-bottom: 1px solid var(--line); text-align: right; color: #141b26; }
+.exec-matrix th[scope=row] { text-align: left; font-weight: 700; }
+.exec-matrix tbody tr:last-child td, .exec-matrix tbody tr:last-child th { border-bottom: 0; }
+.exec-matrix td.is-bad { color: var(--danger); font-weight: 800; }
+.exec-pace { font-weight: 800; }
+.exec-pace.is-good { color: var(--ok); }
+.exec-pace.is-bad { color: var(--danger); }
+.exec-pace.is-none { color: var(--muted); }
+.exec-pace-t { font-weight: 600; color: var(--muted); font-size: 10.5px; }
+
+/* page 2 body: four boxes in two columns */
+.exec-body-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; align-content: start; }
+
+.exec-list { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.exec-list th[scope=col] { text-align: left; font-size: 10px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); padding: 3px 6px; border-bottom: 1px solid var(--line); }
+.exec-list td { padding: 5px 6px; border-bottom: 1px solid var(--line); color: #141b26; vertical-align: top; }
+.exec-list tbody tr:last-child td { border-bottom: 0; }
+.exec-list .c-what { width: 50%; }
+.exec-list .c-where { color: var(--muted); }
+.exec-list .c-who { color: #4a5568; white-space: nowrap; }
+.exec-list .c-due { white-space: nowrap; }
+.exec-list .c-due.is-bad { color: var(--danger); font-weight: 700; }
+.exec-list .c-line { white-space: nowrap; font-weight: 700; }
+
+.exec-tag { display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; padding: 2px 6px; border-radius: 20px; }
+.exec-tag.is-todo { background: var(--accent-soft); color: var(--accent); }
+.exec-tag.is-waiting { background: #fdf0e0; color: #b45f09; }
+
+.exec-empty { font-size: 12px; color: var(--muted); margin: 6px 2px; }
+
+.exec-snags { list-style: none; margin: 0; padding: 0; }
+.exec-snags li { display: flex; align-items: baseline; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--line); font-size: 11.5px; }
+.exec-snags li:last-child { border-bottom: 0; }
+.exec-snag-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; align-self: center; }
+.exec-snag-dot.is-open { background: var(--danger); }
+.exec-snag-dot.is-in_progress { background: var(--warn); }
+.exec-snag-p { color: #141b26; flex: 1; min-width: 0; }
+.exec-snag-m { color: var(--muted); white-space: nowrap; font-size: 10.5px; }
+
+.exec-wins { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.exec-win-top { display: flex; align-items: baseline; gap: 8px; }
+.exec-win-t { font-weight: 800; font-size: 12.5px; color: #141b26; flex: 1; }
+.exec-win-i { font-size: 11px; font-weight: 800; color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, #fff); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+.exec-win-s { margin: 2px 0 0; font-size: 11px; line-height: 1.4; color: #4a5568; }
+.exec-win-by { margin: 2px 0 0; font-size: 10.5px; font-weight: 700; color: var(--accent); }
+
+.exec-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: var(--muted); }
+
+/* on a phone the sheets stop pretending to be A3 and just stack readably */
+@media (max-width: 780px) {
+  .exec-sheet { aspect-ratio: auto; }
+  .exec-stats { grid-template-columns: repeat(3, 1fr); }
+  .exec-body-1, .exec-body-2 { grid-template-columns: 1fr; }
+  .exec-charts { grid-template-columns: 1fr 1fr; }
+  .exec-bar-hint { display: none; }
+}
+
+/* ---- the download: A3 landscape, one sheet per page, chrome removed ----
+ * The @page size is set at runtime by the report component (a single injected
+ * rule while it is mounted), NOT here: a page-size change mid-document forces
+ * Chromium to emit a blank page for the size switch, which turned two sheets
+ * into four pages. One global size for the whole print, applied only on this
+ * route, avoids that. */
+@media print {
+  /* only the report prints; the on-screen toolbar is .no-print (handled above) */
+  .exec-report { max-width: none; margin: 0; padding: 0; }
+  .exec-sheet {
+    height: auto; min-height: 0;
+    border: 0; border-radius: 0; box-shadow: none; margin: 0; padding: 4mm 2mm;
+  }
+  .exec-sheet + .exec-sheet { break-before: page; }
+  .exec-box, .exec-charts, .exec-win, .exec-snags li, .exec-matrix tr, .exec-list tr { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+.exec-more { margin: 8px 2px 0; font-size: 10.5px; font-weight: 700; color: var(--danger); }

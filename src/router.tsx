@@ -14,6 +14,7 @@ import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
 import { PortfolioScreen } from './screens/PortfolioScreen';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
+import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -47,6 +48,10 @@ export function Router() {
   // itself rather than a list with one row in it.
   if (route.name === 'projects' || route.name === 'projectDashboard')
     return <ProjectDashboardScreen projectId={route.id ?? 'pace'} />;
+
+  // The GM's weekly report — its own route so the print output carries no app
+  // chrome, only the two A3 pages.
+  if (route.name === 'paceReport') return <PaceExecReport />;
 
   return (
     route.name === 'home' || !route.wsId
