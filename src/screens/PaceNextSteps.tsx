@@ -15,8 +15,8 @@
  * WHEN is free text. "Before the Tesco launch" and "w/c 22nd" are real answers
  * that a date picker cannot hold, and forcing a date would make people invent
  * one. */
-import { useCallback, useEffect, useState } from 'react';
-import { listPaceTodos, putPaceTodo, deletePaceTodo, type PaceTodoRow } from '../db';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
 
 type State = PaceTodoRow['state'];
@@ -73,9 +73,20 @@ function Row({ row, onPatch, onDelete }: {
 export function PaceNextSteps() {
   const [rows, setRows] = useState<PaceTodoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const root = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => { setRows(await listPaceTodos()); setLoading(false); }, []);
-  useEffect(() => { void load(); }, [load]);
+
+  // A line added on the laptop appears here without a reload — that is the
+  // point of syncing it. Held back while somebody is typing in this table,
+  // because re-reading mid-keystroke would flick a half-typed word back.
+  useEffect(() => {
+    void load();
+    return onDataChange(() => {
+      if (root.current?.contains(document.activeElement)) return;
+      void load();
+    });
+  }, [load]);
 
   const patch = async (id: string, p: Partial<PaceTodoRow>) => {
     const next = rows.map(r => (r.id === id ? { ...r, ...p } : r));
@@ -110,7 +121,7 @@ export function PaceNextSteps() {
   };
 
   return (
-    <div className="ns">
+    <div className="ns" ref={root}>
       <div className="ns-bar">
         <div className="ns-bar-stats">
           <b>{counts.todo}</b> to do · <b>{counts.waiting}</b> waiting

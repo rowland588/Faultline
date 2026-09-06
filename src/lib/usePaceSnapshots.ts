@@ -5,7 +5,7 @@
  * the previous file take over again. The workbook shipped with the app is the
  * last resort underneath them all. */
 import { useCallback, useEffect, useState } from 'react';
-import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot } from '../db';
+import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot, onDataChange } from '../db';
 import { readPaceWorkbook, type PaceSnapshot, type PaceRoster } from './paceWorkbook';
 import { PACE_ACTIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
 import type { PaceAction } from './projectPaceData';
@@ -51,7 +51,8 @@ export function usePaceSnapshots(): PaceState {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  // Upload the tracker on the laptop, and the phone is already showing it.
+  useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load]);
 
   const upload = useCallback(async (file: File) => {
     setBusy(true); setError(null); setWarnings([]);

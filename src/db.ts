@@ -8,6 +8,7 @@ import type { ID, Millis, Workspace, Observation, Case, Project, ProjectLineTarg
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
+import { PACE_BASELINE_AT } from './lib/projectPaceData';
 
 interface AppDB extends DBSchema {
   workspaces: { key: string; value: Workspace; indexes: { by_updatedAt: number } };
@@ -110,6 +111,24 @@ export function onLocalWrite(fn: () => void): () => void {
 }
 function signalWrite(): void {
   for (const fn of writeListeners) { try { fn(); } catch { /* listener's problem */ } }
+  signalData();
+}
+
+/* ---------- data-changed signal ----------
+ * Separate from the one above, and it fires for BOTH kinds of write: what the
+ * user did here, and what sync pulled down from another device. Screens listen
+ * to this one.
+ *
+ * The sync engine must NOT listen to it — a pull would request a push would
+ * request a pull. It keeps onLocalWrite, which only ever fires for a change
+ * made on this device. */
+const dataListeners = new Set<() => void>();
+export function onDataChange(fn: () => void): () => void {
+  dataListeners.add(fn);
+  return () => { dataListeners.delete(fn); };
+}
+function signalData(): void {
+  for (const fn of dataListeners) { try { fn(); } catch { /* listener's problem */ } }
 }
 
 export function getDB(): Promise<IDBPDatabase<AppDB>> {
@@ -499,6 +518,7 @@ export async function rawAll(store: SyncKind): Promise<Record<string, unknown>[]
 }
 export async function rawPut(store: SyncKind, value: Record<string, unknown>): Promise<void> {
   await (await getDB()).put(store as never, value as never);
+  signalData();   // a row from another device — the open screen has to redraw
 }
 export async function hasBlob(key: string): Promise<boolean> {
   return (await (await getDB()).getKey('media', key)) !== undefined;
@@ -564,11 +584,18 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
     const s = await db.get('snags', id);
     if (s?.detailPhotoKey) await db.delete('media', s.detailPhotoKey);
     await db.delete('snags', id);
+  } else if (kind === 'pace_ppm' || kind === 'pace_todos' || kind === 'pace_snapshots'
+    || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
+    // Flat rows with no children and no media. They need naming explicitly:
+    // the fallthrough below assumes an observation, so a Next step deleted on
+    // the laptop was never deleted on the phone — it just sat there.
+    await db.delete(kind, id);
   } else {
     const o = await db.get('observations', id);
     if (o) for (const k of o.media.flatMap(m => [m.blobKey, m.thumbKey]).filter(Boolean) as string[]) await db.delete('media', k);
     await db.delete('observations', id);
   }
+  signalData();   // gone on another device — the open screen has to redraw
 }
 
 /* ============================================================
@@ -814,45 +841,88 @@ export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
 export async function deletePaceSnapshot(id: ID): Promise<void> {
   await (await getDB()).delete('pace_snapshots', id);
   await recordTombstones('pace_snapshots', [id]);
+  signalWrite();
 }
 
 /* ---------- pace lines (the ppm numbers) ----------
- * `seed` is the shipped starting point, used only when there is nothing at all
- * — on this device or in the cloud. Two devices that both seed while offline
- * produce two rows for the same line; the newer one wins and the loser is
- * tombstoned, so the cloud converges instead of flip-flopping forever. */
+ * `seed` is the shipped starting point, used only for a line this device has no
+ * row for. Every device derives the same id from the line name, so seeding on a
+ * second device tops up the SAME cloud row rather than making a rival one, and
+ * the seed carries a fixed old clock so it can never overwrite a real reading
+ * somebody typed. Older rows on random ids are folded onto the shared id. */
 export async function loadPaceLines(seed: Omit<PaceLineRow, 'id'>[]): Promise<PaceLineRow[]> {
   const db = await getDB();
   let rows = await db.getAll('pace_ppm');
 
   // one-time lift out of the old line-name-keyed store
-  if (!rows.length && db.objectStoreNames.contains('pace_lines')) {
+  if (db.objectStoreNames.contains('pace_lines')) {
     const old = await db.getAll('pace_lines');
     if (old.length) {
-      rows = old.map(r => ({ ...r, id: r.id || uid() }));
-      for (const r of rows) await db.put('pace_ppm', r);
+      for (const r of old) { const row = { ...r, id: r.id || ppmId(r.key) }; await db.put('pace_ppm', row); rows.push(row); }
       await db.clear('pace_lines');           // migrated, not duplicated
     }
   }
 
-  if (!rows.length) {
-    rows = seed.map(r => ({ ...r, id: uid(), updatedAt: now() }));
-    for (const r of rows) await db.put('pace_ppm', r);
-    signalWrite();
-  }
-
-  // converge duplicates: newest per line key wins, the rest are deleted for real
+  // Collapse to ONE row per line, on an id every device derives the same way.
+  //
+  // A random id per device was the bug: open the app on the phone and it minted
+  // its own four rows, then — being newer — deleted the four the laptop had the
+  // typed numbers in. Deriving the id from the line key means the phone's seed
+  // and the laptop's row are the SAME row, so the cloud merges them by clock
+  // instead of one killing the other.
   const best = new Map<string, PaceLineRow>();
   const losers: string[] = [];
-  for (const r of rows.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))) {
-    if (best.has(r.key)) losers.push(r.id); else best.set(r.key, r);
+  const better = (a: PaceLineRow, b: PaceLineRow) => {
+    const ta = a.updatedAt ?? 0, tb = b.updatedAt ?? 0;
+    if (ta !== tb) return ta > tb ? a : b;                  // newest edit wins
+    return a.id === ppmId(a.key) ? a : b;                   // tie: the canonical id
+  };
+  for (const r of rows) {
+    const cur = best.get(r.key);
+    if (!cur) { best.set(r.key, r); continue; }
+    const win = better(cur, r);
+    best.set(r.key, win);
+    losers.push(win === cur ? r.id : cur.id);
   }
+
+  // Re-key the survivor onto the canonical id, keeping its clock so a typed
+  // number still beats another device's untouched seed.
+  const out: PaceLineRow[] = [];
+  for (const [key, r] of best) {
+    const want = ppmId(key);
+    if (r.id === want) { out.push(r); continue; }
+    // A new clock, because the re-key IS a change the cloud has to hear about:
+    // keeping the old one would leave the row below this device's push cursor,
+    // so the canonical row would never leave the laptop.
+    const moved = { ...r, id: want, updatedAt: now() };
+    await db.put('pace_ppm', moved);          // write the new row BEFORE dropping the old
+    losers.push(r.id);
+    out.push(moved);
+  }
+
   if (losers.length) {
     for (const id of losers) await db.delete('pace_ppm', id);
     await recordTombstones('pace_ppm', losers);
   }
-  return [...best.values()];
+
+  // Seed only the lines that are missing, at a FIXED clock — shipped baseline
+  // data, not an edit. A fresh device's seed must lose to a real reading typed
+  // on another device, and it does, because that reading's clock is later.
+  const seen = new Set(out.map(r => r.key));
+  let seeded = false;
+  for (const s of seed) {
+    if (seen.has(s.key)) continue;
+    const row = { ...s, id: ppmId(s.key), updatedAt: PACE_BASELINE_AT };
+    await db.put('pace_ppm', row);
+    out.push(row);
+    seeded = true;
+  }
+  if (seeded || losers.length) signalWrite();
+  return out;
 }
+/** The same id on every device, so one line is one cloud row. */
+const ppmId = (key: string) => `ppm-${key}`;
+
 export async function putPaceLine(row: PaceLineRow): Promise<void> {
   await (await getDB()).put('pace_ppm', { ...row, updatedAt: now() });
   signalWrite();
@@ -884,4 +954,5 @@ export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
 export async function deletePaceTodo(id: ID): Promise<void> {
   await (await getDB()).delete('pace_todos', id);
   await recordTombstones('pace_todos', [id]);
+  signalWrite();
 }
