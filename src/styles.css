@@ -2035,29 +2035,4 @@ button.st-pill { cursor: pointer; }
 }
 @media print { .ps-del, .ps-assets { display: none !important; } }
 
-/* ---- actions that left the sheet without being closed ---- */
-.pace-lost {
-  background: #fbeae8; border: 1px solid #f0bdb6; border-left: 3px solid #a51f2d;
-  border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;
-}
-.pace-lost-h { margin: 0; font-size: 14px; font-weight: 800; color: #a51f2d; }
-.pace-lost-sub { margin: 3px 0 9px; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
-.pace-lost-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.pace-lost-list li {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-  background: var(--surface); border-radius: var(--radius-sm); padding: 7px 10px;
-}
-.pace-lost-ref { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); }
-.pace-lost-what { flex: 1; min-width: 180px; font-size: 12.5px; line-height: 1.45; color: var(--ink); }
-.pace-lost-meta { font-size: 11px; font-weight: 700; color: #a51f2d; }
-
-.pace-change-over {
-  margin: 7px 0 0; padding: 7px 9px; border-radius: var(--radius-sm);
-  background: var(--surface-2); font-size: 12px; line-height: 1.45; color: var(--ink-2);
-}
-.pace-change-over b {
-  display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--muted); margin-bottom: 2px;
-}
-.pace-over-status { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: var(--muted); }
-.pace-over-status.is-lost { color: #a51f2d; }
+.pace-upload-note { margin: 6px 0 0; font-size: 11.5px; color: var(--muted); }
