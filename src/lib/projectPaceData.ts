@@ -7,7 +7,9 @@
 
 export interface PaceLine { key: string; name: string; variant?: string; q1: number; q2: number; q3: number; q4: number; weekly: (number | null)[]; }
 export interface ParetoRow { category: string; mins: number; events: number; minPerEvent: number; profile: string; l2: number; l7: number; l10: number; }
-export interface PaceAction { ref: string; priority: number; line: string; category: string; problem?: string; action?: string; who?: string; owner?: string; due?: string; status: string; flag: string; }
+export interface PaceAction { /** A stable id from an ID/UID column, when the sheet has one. Unlike Ref
+ *  (a formula off ROW()) this survives inserts, sorting and row reuse. */
+  uid?: string; ref: string; priority: number; line: string; category: string; problem?: string; action?: string; who?: string; owner?: string; due?: string; status: string; flag: string; }
 export interface PaceObservation { observer: string; lens: string; text: string; }
 
 /** Q1 starts August 2026; each quarter is 13 weeks. Weekly actuals run from W/C 3 Aug 2026. */

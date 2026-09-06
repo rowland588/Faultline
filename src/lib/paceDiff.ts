@@ -17,7 +17,9 @@ import type { PaceSnapshot } from './paceWorkbook';
 export type ChangeKind =
   | 'added' | 'removed' | 'closed' | 'reopened'
   | 'status' | 'flag' | 'owner' | 'due' | 'priority'
-  | 'line' | 'category' | 'who' | 'problem' | 'text';
+  | 'line' | 'category' | 'who' | 'problem' | 'text'
+  /** The row was recycled: same Ref, entirely different action written over it. */
+  | 'reused';
 
 export interface ActionChange {
   key: string;
@@ -26,12 +28,21 @@ export interface ActionChange {
   field?: string;
   from?: string;
   to?: string;
+  /** For `reused`: the action that was written over and no longer exists. */
+  displaced?: PaceAction;
+  /** True when the action lost here was still live — nobody closed it. */
+  lostWhileOpen?: boolean;
 }
 
 export interface PaceDiff {
   from: { at: number; fileName: string };
   to: { at: number; fileName: string };
   changes: ActionChange[];
+  /* Actions that were live last week and are simply not in the sheet this week
+   * — overwritten, deleted, or lost to a bad edit. Nobody marked them Done, so
+   * without this they leave no trace at all. This is the safety net that does
+   * not depend on working out WHY they went. */
+  vanished: PaceAction[];
   obsAdded: PaceObservation[];
   obsRemoved: PaceObservation[];
   totals: {
@@ -70,6 +81,9 @@ const norm = (s?: string) => (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
 
 type KeyFn = (a: PaceAction) => string | null;
 const LEVELS: KeyFn[] = [
+  // An explicit id, when the sheet has one, is exact and beats every heuristic
+  // below — including for a reused row, which gets a new id.
+  a => (norm(a.uid) ? `0|${norm(a.uid)}` : null),
   a => `1|${norm(a.line)}|${norm(a.problem) || norm(a.action) || norm(a.category)}`,
   a => (norm(a.action) ? `2|${norm(a.action)}` : null),
   a => (norm(a.problem) ? `3|${norm(a.problem)}` : null),
@@ -110,6 +124,35 @@ export function pairActions(prev: PaceAction[], next: PaceAction[]): Pairing {
   return { pairs, removed: left, added: right };
 }
 
+/* A recycled row: someone typed a new action over an old one. Nothing in the
+ * content ties the two together — that is the whole problem — so the only
+ * remaining signal is the Ref they share.
+ *
+ * Ref is positional and shifts when rows are inserted, so this is a guess, not
+ * a fact. It is only ever applied to rows that survived all the content passes
+ * unmatched, and it is always reported WITH what was overwritten, so the guess
+ * can be judged rather than trusted. The action that was displaced is counted
+ * as lost either way, so a wrong guess here cannot hide a lost action. */
+function detectReuse(removed: PaceAction[], added: PaceAction[]) {
+  const byRef = new Map<string, PaceAction[]>();
+  for (const a of removed) {
+    const r = clean(a.ref);
+    if (!r) continue;
+    const q = byRef.get(r);
+    if (q) q.push(a); else byRef.set(r, [a]);
+  }
+  const reused: { was: PaceAction; now: PaceAction }[] = [];
+  const stillAdded: PaceAction[] = [];
+  const claimed = new Set<PaceAction>();
+  for (const b of added) {
+    const q = byRef.get(clean(b.ref));
+    const was = q && q.length ? q.shift() : undefined;
+    if (was) { reused.push({ was, now: b }); claimed.add(was); }
+    else stillAdded.push(b);
+  }
+  return { reused, added: stillAdded, removed: removed.filter(a => !claimed.has(a)) };
+}
+
 /* Keyed on the observation itself, not on who logged it: the observer is a
  * label derived from a sheet name, and relabelling a sheet must not read as
  * everyone's observations being deleted and re-added. */
@@ -142,8 +185,20 @@ export function diffSnapshots(prev: PaceSnapshot, next: PaceSnapshot): PaceDiff 
     if (clean(a.action) !== clean(b.action)) push(key, 'text', b, 'Action', clean(a.action), clean(b.action));
   });
 
-  added.forEach((b, i) => changes.push({ key: `add:${b.ref}#${i}`, kind: 'added', action: b }));
-  removed.forEach((a, i) => changes.push({ key: `del:${a.ref}#${i}`, kind: 'removed', action: a }));
+  const reuse = detectReuse(removed, added);
+
+  reuse.reused.forEach(({ was, now }, i) => changes.push({
+    key: `re:${now.ref}#${i}`, kind: 'reused', action: now, displaced: was,
+    field: 'Row reused', from: clean(was.problem) || clean(was.action), to: clean(now.problem) || clean(now.action),
+    lostWhileOpen: !isDone(was),
+  }));
+  reuse.added.forEach((b, i) => changes.push({ key: `add:${b.ref}#${i}`, kind: 'added', action: b }));
+  reuse.removed.forEach((a, i) => changes.push({
+    key: `del:${a.ref}#${i}`, kind: 'removed', action: a, lostWhileOpen: !isDone(a),
+  }));
+
+  // Everything that left the sheet without being closed, however it left.
+  const vanished = [...reuse.removed, ...reuse.reused.map(r => r.was)].filter(a => !isDone(a));
 
   const oldObs = new Map(prev.observations.map(o => [obsKey(o), o]));
   const newObs = new Map(next.observations.map(o => [obsKey(o), o]));
@@ -154,6 +209,7 @@ export function diffSnapshots(prev: PaceSnapshot, next: PaceSnapshot): PaceDiff 
     from: { at: prev.takenAt, fileName: prev.fileName },
     to: { at: next.takenAt, fileName: next.fileName },
     changes: changes.sort((x, y) => ORDER.indexOf(x.kind) - ORDER.indexOf(y.kind)),
+    vanished,
     obsAdded,
     obsRemoved,
     totals: {
@@ -166,4 +222,4 @@ export function diffSnapshots(prev: PaceSnapshot, next: PaceSnapshot): PaceDiff 
 }
 
 /** Progress first, then new work, then drift — the order a stand-up reads in. */
-const ORDER: ChangeKind[] = ['closed', 'added', 'reopened', 'priority', 'flag', 'status', 'due', 'owner', 'line', 'category', 'who', 'problem', 'text', 'removed'];
+const ORDER: ChangeKind[] = ['reused', 'closed', 'added', 'reopened', 'priority', 'flag', 'status', 'due', 'owner', 'line', 'category', 'who', 'problem', 'text', 'removed'];

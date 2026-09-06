@@ -81,7 +81,11 @@ function parseTracker(sheet: SheetData, warnings: string[]): PaceAction[] {
     const ref = txt(at(row, 'ref'));
     if (!ref) continue;
     const pr = Number(at(row, 'priority'));
+    // An explicit id column is the only thing that makes a row's identity
+    // survive being overwritten. Optional — the sheet does not have one yet.
+    const uid = txt(at(row, 'id')) || txt(at(row, 'uid')) || txt(at(row, 'actionid')) || undefined;
     out.push({
+      uid,
       ref,
       priority: Number.isFinite(pr) && pr > 0 ? pr : 3,
       line: txt(at(row, 'line')),

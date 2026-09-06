@@ -32,6 +32,7 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
 
 /* ---------- what moved since last week ---------- */
 const CHANGE_META: Record<ActionChange['kind'], { label: string; tone: string }> = {
+  reused:   { label: 'Row reused',    tone: 'bad'  },
   closed:   { label: 'Closed',        tone: 'good' },
   added:    { label: 'New action',    tone: 'info' },
   reopened: { label: 'Re-opened',     tone: 'bad'  },
@@ -86,6 +87,27 @@ function ChangesPanel({ diff }: { diff: PaceDiff }) {
         </p>
       </div>
 
+      {diff.vanished.length > 0 && (
+        <div className="pace-lost" role="alert">
+          <p className="pace-lost-h">
+            {diff.vanished.length} action{diff.vanished.length === 1 ? '' : 's'} left the sheet without being closed
+          </p>
+          <p className="pace-lost-sub">
+            Overwritten, deleted, or lost to an edit — nobody marked {diff.vanished.length === 1 ? 'it' : 'them'} Done.
+            Check {diff.vanished.length === 1 ? 'it is' : 'they are'} genuinely finished before the tracker forgets {diff.vanished.length === 1 ? 'it' : 'them'}.
+          </p>
+          <ul className="pace-lost-list">
+            {diff.vanished.map((a, i) => (
+              <li key={a.ref + '#' + i}>
+                <span className="pace-lost-ref">{a.ref}</span>
+                <span className="pace-lost-what">{a.problem || a.action}</span>
+                <span className="pace-lost-meta">{a.owner || 'no owner'} · was {a.status}{a.flag ? ` · ${a.flag}` : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="pace-move-row">
         <Movement n={closed} label="closed this week" />
         <Movement n={added} label="new actions" />
@@ -111,7 +133,16 @@ function ChangesPanel({ diff }: { diff: PaceDiff }) {
                   {c.action.owner && <span className="pace-change-owner">{c.action.owner}</span>}
                 </div>
                 {c.action.problem && <p className="pace-change-what">{c.action.problem}</p>}
-                {c.field && (
+                {c.kind === 'reused' && c.displaced && (
+                  <p className="pace-change-over">
+                    <b>Written over</b> {c.displaced.problem || c.displaced.action}
+                    <span className={'pace-over-status' + (c.lostWhileOpen ? ' is-lost' : '')}>
+                      {c.displaced.owner ? c.displaced.owner + ' · ' : ''}was {c.displaced.status}
+                      {c.lostWhileOpen ? ' — never closed' : ''}
+                    </span>
+                  </p>
+                )}
+                {c.field && c.kind !== 'reused' && (
                   <p className="pace-change-delta">
                     <span className="pace-change-field">{c.field}</span>
                     <span className="pace-was">{c.from}</span>
