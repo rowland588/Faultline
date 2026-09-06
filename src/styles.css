@@ -1737,41 +1737,7 @@ button.st-pill { cursor: pointer; }
 .pace-hist-n { color: var(--muted); }
 .pace-hist-x { border: 0; background: none; color: #a51f2d; font-size: 12px; font-weight: 700; cursor: pointer; }
 
-.pace-changes { background: var(--accent-soft); border-radius: var(--radius); padding: 16px; }
-.pace-move-row { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 4px; }
-.pace-move { font-size: 12.5px; color: var(--ink-2); }
-.pace-move b { font-size: 17px; font-weight: 800; color: var(--muted); margin-right: 3px; }
-.pace-move b.up { color: var(--ok); }
-.pace-move b.down { color: #a51f2d; }
-
-.pace-change-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; margin-top: 10px; }
-.pace-change {
-  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--muted);
-  border-radius: var(--radius-sm); padding: 10px 12px;
-}
-.pace-change.is-good { border-left-color: var(--ok); }
-.pace-change.is-bad { border-left-color: #a51f2d; }
-.pace-change.is-warn { border-left-color: #c26a0a; }
-.pace-change.is-info { border-left-color: var(--brand); }
-.pace-change-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 5px; }
-.pace-change-kind { font-size: 11px; font-weight: 800; letter-spacing: 0.03em; color: var(--ink); }
-.is-good .pace-change-kind { color: var(--ok); }
-.is-bad .pace-change-kind { color: #a51f2d; }
-.is-warn .pace-change-kind { color: #c26a0a; }
-.is-info .pace-change-kind { color: var(--accent); }
-.pace-change-owner { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); }
-.pace-change-what { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
-.pace-change-delta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0; font-size: 12px; }
-.pace-change-field { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-.pace-was { color: var(--muted); text-decoration: line-through; }
-.pace-arrow { color: var(--muted); }
-.pace-now { font-weight: 700; color: var(--ink); }
-
-@media print {
-  .pace-upload { display: none !important; }
-  .pace-changes { background: none; border: 1px solid var(--line); }
-  .pace-change { break-inside: avoid; }
-}
+@media print { .pace-upload { display: none !important; } }
 
 /* ---- entering the ppm numbers ---- */
 .ppm-editor { margin-bottom: 14px; }

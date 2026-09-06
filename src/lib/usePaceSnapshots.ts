@@ -1,12 +1,12 @@
-/* Weekly uploads, and the comparison between them.
+/* Weekly uploads.
  *
- * The workbook shipped with the app is the BASELINE, so the very first upload
- * already reports movement instead of showing an empty "nothing to compare"
- * state. Every later upload compares against the one before it. */
+ * The newest upload IS the picture — the app reads the workbook and shows it,
+ * nothing more. Earlier uploads are kept only so a bad one can be removed and
+ * the previous file take over again. The workbook shipped with the app is the
+ * last resort underneath them all. */
 import { useCallback, useEffect, useState } from 'react';
 import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot } from '../db';
 import { readPaceWorkbook, type PaceSnapshot, type PaceRoster } from './paceWorkbook';
-import { diffSnapshots, type PaceDiff } from './paceDiff';
 import { PACE_ACTIONS, PACE_OBSERVATIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
 import type { PaceAction, PaceObservation } from './projectPaceData';
 
@@ -28,8 +28,6 @@ export interface PaceState {
   observations: PaceObservation[];
   /** The team's own owner/status lists, from the newest upload that carried them. */
   roster?: PaceRoster;
-  /** Newest vs the one before it. Null when only the baseline exists. */
-  diff: PaceDiff | null;
   busy: boolean;
   error: string | null;
   warnings: string[];
@@ -86,7 +84,6 @@ export function usePaceSnapshots(): PaceState {
   // newest first, with the baseline always last
   const chain = [...rows].sort((a, b) => b.takenAt - a.takenAt).concat(BASELINE);
   const current = chain[0];
-  const previous = chain[1];
 
   return {
     loading, busy, error, warnings,
@@ -95,7 +92,6 @@ export function usePaceSnapshots(): PaceState {
     observations: current.observations,
     // an older upload may predate roster support — fall back down the chain
     roster: chain.find(s => s.roster?.owners.length)?.roster,
-    diff: previous ? diffSnapshots(previous, current) : null,
     upload, remove,
     dismissError: () => setError(null),
   };

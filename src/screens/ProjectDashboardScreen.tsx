@@ -18,7 +18,6 @@ import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
-import type { ActionChange, PaceDiff } from '../lib/paceDiff';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -30,113 +29,7 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
   );
 }
 
-/* ---------- what moved since last week ---------- */
-const CHANGE_META: Record<ActionChange['kind'], { label: string; tone: string }> = {
-  closed:   { label: 'Closed',        tone: 'good' },
-  added:    { label: 'New action',    tone: 'info' },
-  reopened: { label: 'Re-opened',     tone: 'bad'  },
-  flag:     { label: 'Flag changed',  tone: 'warn' },
-  status:   { label: 'Status moved',  tone: 'info' },
-  due:      { label: 'Due date moved',tone: 'warn' },
-  owner:    { label: 'Owner changed', tone: 'info' },
-  priority: { label: 'Priority changed', tone: 'warn' },
-  line:     { label: 'Moved line',    tone: 'info' },
-  category: { label: 'Recategorised', tone: 'muted' },
-  who:      { label: 'Department changed', tone: 'info' },
-  problem:  { label: 'Problem reworded', tone: 'muted' },
-  text:     { label: 'Action reworded', tone: 'muted' },
-  removed:  { label: 'Removed',       tone: 'bad'  },
-};
-
 const when = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-
-function Movement({ n, label }: { n: number; label: string }) {
-  const sign = n > 0 ? '+' : '';
-  return (
-    <span className="pace-move">
-      <b className={n === 0 ? '' : n > 0 ? 'up' : 'down'}>{sign}{n}</b> {label}
-    </span>
-  );
-}
-
-function ChangesPanel({ diff }: { diff: PaceDiff }) {
-  const [open, setOpen] = useState(true);
-  const t = diff.totals;
-  const closed = diff.changes.filter(c => c.kind === 'closed').length;
-  const added = diff.changes.filter(c => c.kind === 'added').length;
-
-  if (!diff.changes.length && !diff.obsAdded.length) {
-    return (
-      <section className="pace-sec pace-changes">
-        <div className="pace-sec-head">
-          <h2 className="pace-sec-title">What changed</h2>
-          <p className="pace-sec-sub">Compared with {when(diff.from.at)} — nothing moved between these two uploads.</p>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="pace-sec pace-changes">
-      <div className="pace-sec-head">
-        <h2 className="pace-sec-title">What changed</h2>
-        <p className="pace-sec-sub">
-          {when(diff.from.at)} → {when(diff.to.at)} · {diff.changes.length} change{diff.changes.length === 1 ? '' : 's'}
-          {diff.obsAdded.length > 0 && ` · ${diff.obsAdded.length} new observation${diff.obsAdded.length === 1 ? '' : 's'}`}
-        </p>
-      </div>
-
-      <div className="pace-move-row">
-        <Movement n={closed} label="closed this week" />
-        <Movement n={added} label="new actions" />
-        <Movement n={t.doneNow - t.doneThen} label="net done" />
-        <Movement n={t.overdueNow - t.overdueThen} label="overdue" />
-        <Movement n={t.actionsNow - t.actionsThen} label="tracker size" />
-      </div>
-
-      <button className="pace-more" onClick={() => setOpen(o => !o)}>
-        {open ? 'Hide the detail' : `Show all ${diff.changes.length} changes ›`}
-      </button>
-
-      {open && (
-        <div className="pace-change-list">
-          {diff.changes.map(c => {
-            const m = CHANGE_META[c.kind];
-            return (
-              <div key={c.key + c.kind + (c.field ?? '')} className={'pace-change is-' + m.tone}>
-                <div className="pace-change-top">
-                  <span className="pace-change-kind">{m.label}</span>
-                  <span className="pace-ref">{c.action.ref}</span>
-                  <span className="pace-line-tag">{c.action.line}</span>
-                  {c.action.owner && <span className="pace-change-owner">{c.action.owner}</span>}
-                </div>
-                {c.action.problem && <p className="pace-change-what">{c.action.problem}</p>}
-                {c.field && (
-                  <p className="pace-change-delta">
-                    <span className="pace-change-field">{c.field}</span>
-                    <span className="pace-was">{c.from}</span>
-                    <span className="pace-arrow" aria-label="changed to">→</span>
-                    <span className="pace-now">{c.to}</span>
-                  </p>
-                )}
-              </div>
-            );
-          })}
-          {diff.obsAdded.map((o, i) => (
-            <div key={'obs' + i} className="pace-change is-info">
-              <div className="pace-change-top">
-                <span className="pace-change-kind">New observation</span>
-                <span className="pace-cat-tag">{o.lens}</span>
-                <span className="pace-change-owner">{o.observer}</span>
-              </div>
-              <p className="pace-change-what">{o.text}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
 
 /* ---------- weekly upload ---------- */
 function UploadPanel({ state }: { state: PaceState }) {
@@ -268,9 +161,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
           </div>
 
-          {pace.diff && <ChangesPanel diff={pace.diff} />}
-
-          <section className="pace-sec">
+              <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">Line pace</h2>
               <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 3 Aug 2026</p>
