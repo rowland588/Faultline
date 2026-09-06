@@ -44,6 +44,12 @@ interface AppDB extends DBSchema {
    * waiting on. Typed in the app — these are NOT in the workbook, which only
    * carries actions that already have an owner and a due date. */
   pace_todos: { key: string; value: PaceTodoRow; indexes: { by_createdAt: number } };
+  /* v9: the ppm rows again, keyed by a syncable id rather than by the line name.
+   * A line name cannot be a cloud primary key — two people both have a "2A" —
+   * and the old store cannot be re-keyed in place without risking numbers
+   * somebody typed, so this is a new store that the old one migrates into on
+   * first read. `pace_lines` stays declared only so that migration can happen. */
+  pace_ppm: { key: string; value: PaceLineRow; indexes: { by_key: string } };
 }
 
 /** One line of "what we still need to do". `where` is the line or the machine,
@@ -60,6 +66,8 @@ export interface PaceTodoRow {
 /** One production line's targets and its weekly ppm readings. `weekly` is
  *  indexed from PACE_START; null is a week that was never measured. */
 export interface PaceLineRow {
+  /** Sync identity. `key` ('2A') stays the human one. */
+  id: string;
   key: string; name: string; variant?: string;
   q1: number; q2: number; q3: number; q4: number;
   weekly: (number | null)[];
@@ -75,7 +83,8 @@ export interface PaceSnapshotRow {
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
-export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals';
+export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
+  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots';
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
  * the Faultline rebrand — read ONCE to migrate a device's existing data into the
@@ -83,7 +92,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 8; // v8: pace_todos (next steps / waiting for)
+const DB_VERSION = 9; // v9: pace_ppm (ppm rows re-keyed for cloud sync)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -122,7 +131,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -144,6 +153,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   if (!db.objectStoreNames.contains('pace_lines')) db.createObjectStore('pace_lines', { keyPath: 'key' });
   if (!db.objectStoreNames.contains('pace_todos')) {
     db.createObjectStore('pace_todos', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
+  }
+  if (!db.objectStoreNames.contains('pace_ppm')) {
+    db.createObjectStore('pace_ppm', { keyPath: 'id' }).createIndex('by_key', 'key');
   }
   if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
   if (!db.objectStoreNames.contains('segments')) {
@@ -797,17 +809,53 @@ export async function listPaceSnapshots(): Promise<PaceSnapshotRow[]> {
 }
 export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
   await (await getDB()).put('pace_snapshots', s);
+  signalWrite();
 }
 export async function deletePaceSnapshot(id: ID): Promise<void> {
   await (await getDB()).delete('pace_snapshots', id);
+  await recordTombstones('pace_snapshots', [id]);
 }
 
-/* ---------- pace lines (the ppm numbers) ---------- */
-export async function listPaceLines(): Promise<PaceLineRow[]> {
-  return (await getDB()).getAll('pace_lines');
+/* ---------- pace lines (the ppm numbers) ----------
+ * `seed` is the shipped starting point, used only when there is nothing at all
+ * — on this device or in the cloud. Two devices that both seed while offline
+ * produce two rows for the same line; the newer one wins and the loser is
+ * tombstoned, so the cloud converges instead of flip-flopping forever. */
+export async function loadPaceLines(seed: Omit<PaceLineRow, 'id'>[]): Promise<PaceLineRow[]> {
+  const db = await getDB();
+  let rows = await db.getAll('pace_ppm');
+
+  // one-time lift out of the old line-name-keyed store
+  if (!rows.length && db.objectStoreNames.contains('pace_lines')) {
+    const old = await db.getAll('pace_lines');
+    if (old.length) {
+      rows = old.map(r => ({ ...r, id: r.id || uid() }));
+      for (const r of rows) await db.put('pace_ppm', r);
+      await db.clear('pace_lines');           // migrated, not duplicated
+    }
+  }
+
+  if (!rows.length) {
+    rows = seed.map(r => ({ ...r, id: uid(), updatedAt: now() }));
+    for (const r of rows) await db.put('pace_ppm', r);
+    signalWrite();
+  }
+
+  // converge duplicates: newest per line key wins, the rest are deleted for real
+  const best = new Map<string, PaceLineRow>();
+  const losers: string[] = [];
+  for (const r of rows.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))) {
+    if (best.has(r.key)) losers.push(r.id); else best.set(r.key, r);
+  }
+  if (losers.length) {
+    for (const id of losers) await db.delete('pace_ppm', id);
+    await recordTombstones('pace_ppm', losers);
+  }
+  return [...best.values()];
 }
 export async function putPaceLine(row: PaceLineRow): Promise<void> {
-  await (await getDB()).put('pace_lines', { ...row, updatedAt: now() });
+  await (await getDB()).put('pace_ppm', { ...row, updatedAt: now() });
+  signalWrite();
 }
 
 /* ---------- the workspace behind Project Pace ----------
@@ -831,7 +879,9 @@ export async function listPaceTodos(): Promise<PaceTodoRow[]> {
 }
 export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
   await (await getDB()).put('pace_todos', { ...t, updatedAt: now() });
+  signalWrite();
 }
 export async function deletePaceTodo(id: ID): Promise<void> {
   await (await getDB()).delete('pace_todos', id);
+  await recordTombstones('pace_todos', [id]);
 }

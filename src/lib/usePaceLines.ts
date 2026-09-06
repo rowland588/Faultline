@@ -4,7 +4,7 @@
  * seed runs only when the store is EMPTY — otherwise every reload would undo
  * the user's own numbers. */
 import { useCallback, useEffect, useState } from 'react';
-import { listPaceLines, putPaceLine, type PaceLineRow } from '../db';
+import { loadPaceLines, putPaceLine, type PaceLineRow } from '../db';
 import { PACE_LINES, PACE_START } from './projectPaceData';
 
 const WEEK_MS = 7 * 86_400_000;
@@ -33,16 +33,13 @@ export function usePaceLines(): PaceLinesState {
 
   useEffect(() => {
     void (async () => {
-      let rows = await listPaceLines();
-      if (!rows.length) {
-        // first run on this device — take the shipped figures as the starting point
-        rows = PACE_LINES.map(l => ({
-          key: l.key, name: l.name, variant: l.variant,
-          q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4,
-          weekly: [...l.weekly], updatedAt: Date.now(),
-        }));
-        for (const r of rows) await putPaceLine(r);
-      }
+      // db does the migrating, de-duplicating and (only if there is nothing
+      // anywhere) the seeding — one place, so two callers cannot disagree.
+      const rows = await loadPaceLines(PACE_LINES.map(l => ({
+        key: l.key, name: l.name, variant: l.variant,
+        q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4,
+        weekly: [...l.weekly], updatedAt: Date.now(),
+      })));
       setLines(rows.sort(byShippedOrder));
       setLoading(false);
     })();

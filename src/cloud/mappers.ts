@@ -3,6 +3,7 @@
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
+import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow } from '../db';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -214,9 +215,80 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
+
+  /* ---- Project Pace ----
+   * Per-USER rows, not workspace children: this is one person's management
+   * surface, so the cloud scopes them by owner_id rather than by membership.
+   * JSON columns hold the arrays whole (a snapshot's actions, a line's weekly
+   * readings) — they are read and written as one document, never queried into,
+   * so splitting them into rows would buy nothing and cost a join. */
+  pace_ppm: {
+    clock: l => (l as PaceLineRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const p = l as PaceLineRow;
+      return {
+        id: p.id, owner_id: fallbackOwner, line_key: p.key, name: p.name, variant: p.variant ?? null,
+        q1: p.q1, q2: p.q2, q3: p.q3, q4: p.q4,
+        weekly: p.weekly, updated_at: p.updatedAt, deleted_at: null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, key: r.line_key as string, name: r.name as string,
+      variant: (r.variant as string) ?? undefined,
+      q1: Number(r.q1) || 0, q2: Number(r.q2) || 0, q3: Number(r.q3) || 0, q4: Number(r.q4) || 0,
+      // nulls inside the array are meaningful: a week that was never measured
+      weekly: (r.weekly as (number | null)[]) ?? [],
+      updatedAt: Number(r.updated_at),
+    }),
+  },
+
+  pace_todos: {
+    clock: l => (l as PaceTodoRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const t = l as PaceTodoRow;
+      return {
+        id: t.id, owner_id: fallbackOwner,
+        what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
+        state: t.state, created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string,
+      what: (r.what as string) ?? '', where: (r.where_at as string) ?? '', why: (r.why as string) ?? '',
+      who: (r.who as string) ?? '', when: (r.when_at as string) ?? '',
+      state: (r.state as PaceTodoRow['state']) ?? 'todo',
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    }),
+  },
+
+  pace_snapshots: {
+    // A snapshot is never edited, so its clock is simply when it was taken.
+    clock: l => (l as PaceSnapshotRow).takenAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const s = l as PaceSnapshotRow;
+      return {
+        id: s.id, owner_id: fallbackOwner, taken_at: s.takenAt, file_name: s.fileName,
+        actions: s.actions, roster: s.roster ?? null,
+        // the engine's LWW reads updated_at for every kind; a snapshot is never
+        // edited, so it mirrors when it was taken
+        updated_at: s.takenAt, deleted_at: null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, takenAt: Number(r.taken_at), fileName: (r.file_name as string) ?? 'upload',
+      actions: (r.actions as unknown[]) ?? [], roster: r.roster ?? undefined,
+    }),
+  },
 };
 
 // cases push before snags so a snag's case_id never points at a case the cloud
 // hasn't met (no hard FK, but no reason to arrive out of order either).
 // Projects are local-only for now, but included in the list for future cloud sync.
-export const SYNC_KINDS: SyncKind[] = ['workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags', 'projects', 'project_targets', 'project_actuals'];
+export const SYNC_KINDS: SyncKind[] = [
+  'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
+  'projects', 'project_targets', 'project_actuals',
+  'pace_ppm', 'pace_todos', 'pace_snapshots',
+];
