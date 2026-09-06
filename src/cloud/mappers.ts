@@ -3,7 +3,7 @@
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
-import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow } from '../db';
+import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow } from '../db';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -263,6 +263,25 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     }),
   },
 
+  pace_wins: {
+    clock: l => (l as PaceWinRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const w = l as PaceWinRow;
+      return {
+        id: w.id, owner_id: fallbackOwner,
+        title: w.title, story: w.story, where_at: w.where, who: w.who, impact: w.impact,
+        created_at: w.createdAt, updated_at: w.updatedAt, deleted_at: null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string,
+      title: (r.title as string) ?? '', story: (r.story as string) ?? '',
+      where: (r.where_at as string) ?? '', who: (r.who as string) ?? '', impact: (r.impact as string) ?? '',
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    }),
+  },
+
   pace_snapshots: {
     // A snapshot is never edited, so its clock is simply when it was taken.
     clock: l => (l as PaceSnapshotRow).takenAt,
@@ -290,5 +309,5 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 export const SYNC_KINDS: SyncKind[] = [
   'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
   'projects', 'project_targets', 'project_actuals',
-  'pace_ppm', 'pace_todos', 'pace_snapshots',
+  'pace_ppm', 'pace_todos', 'pace_snapshots', 'pace_wins',
 ];

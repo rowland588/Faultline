@@ -15,6 +15,7 @@ import { nav, useRoute } from '../state/useRoute';
 import { PaceMeeting } from './PaceMeeting';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
+import { PaceSuccess } from './PaceSuccess';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
@@ -95,11 +96,12 @@ function UploadPanel({ state }: { state: PaceState }) {
   );
 }
 
-type Lens = 'overview' | 'meeting' | 'next' | 'snags' | 'data';
+type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
   { id: 'meeting',  label: 'Meeting',    sub: 'by owner' },
   { id: 'next',     label: 'Next steps', sub: 'to do & waiting' },
+  { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Snag list',  sub: 'the line, filmed' },
   { id: 'data',     label: 'Data',       sub: 'upload & ppm' },
 ];
@@ -107,7 +109,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
 export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' ? raw : 'overview';
+  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' ? raw : 'overview';
 
   const pace = usePaceSnapshots();
   const ppm = usePaceLines();
@@ -193,6 +195,16 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             <p className="pace-sec-sub">What still needs doing, and what we are waiting on · not in the workbook, typed here</p>
           </div>
           <PaceNextSteps />
+        </section>
+      )}
+
+      {lens === 'wins' && (
+        <section className="pace-sec">
+          <div className="pace-sec-head">
+            <h2 className="pace-sec-title">Success</h2>
+            <p className="pace-sec-sub">What we did and what worked · the wins to show the team · not in the workbook, logged here</p>
+          </div>
+          <PaceSuccess />
         </section>
       )}
 

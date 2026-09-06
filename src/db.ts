@@ -51,6 +51,10 @@ interface AppDB extends DBSchema {
    * somebody typed, so this is a new store that the old one migrates into on
    * first read. `pace_lines` stays declared only so that migration can happen. */
   pace_ppm: { key: string; value: PaceLineRow; indexes: { by_key: string } };
+  /* Success log (v10): what was done and what worked. Typed in the app, synced
+   * like the todos, kept SEPARATE from them — a win is not a task with its state
+   * flipped to done, it is the story you tell the team. Newest first. */
+  pace_wins: { key: string; value: PaceWinRow; indexes: { by_createdAt: number } };
 }
 
 /** One line of "what we still need to do". `where` is the line or the machine,
@@ -61,6 +65,16 @@ export interface PaceTodoRow {
   id: string;
   what: string; where: string; why: string; who: string; when: string;
   state: 'todo' | 'waiting' | 'done';
+  createdAt: number; updatedAt: number;
+}
+
+/** One win worth showing the team. `title` is what worked, `story` the
+ *  commentary of what was actually done, `impact` the number that proves it
+ *  ("44 → 49 ppm"), `who` the credit — a named person, because morale is the
+ *  point. All free text; a win is a story, not a form. */
+export interface PaceWinRow {
+  id: string;
+  title: string; story: string; where: string; who: string; impact: string;
   createdAt: number; updatedAt: number;
 }
 
@@ -85,7 +99,7 @@ export interface PaceSnapshotRow {
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
-  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots';
+  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins';
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
  * the Faultline rebrand — read ONCE to migrate a device's existing data into the
@@ -93,7 +107,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 9; // v9: pace_ppm (ppm rows re-keyed for cloud sync)
+const DB_VERSION = 10; // v10: pace_wins (the success log)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -150,7 +164,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -175,6 +189,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   }
   if (!db.objectStoreNames.contains('pace_ppm')) {
     db.createObjectStore('pace_ppm', { keyPath: 'id' }).createIndex('by_key', 'key');
+  }
+  if (!db.objectStoreNames.contains('pace_wins')) {
+    db.createObjectStore('pace_wins', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
   }
   if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
   if (!db.objectStoreNames.contains('segments')) {
@@ -585,7 +602,7 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
     if (s?.detailPhotoKey) await db.delete('media', s.detailPhotoKey);
     await db.delete('snags', id);
   } else if (kind === 'pace_ppm' || kind === 'pace_todos' || kind === 'pace_snapshots'
-    || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
+    || kind === 'pace_wins' || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on
     // the laptop was never deleted on the phone — it just sat there.
@@ -954,5 +971,20 @@ export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
 export async function deletePaceTodo(id: ID): Promise<void> {
   await (await getDB()).delete('pace_todos', id);
   await recordTombstones('pace_todos', [id]);
+  signalWrite();
+}
+
+/* ---------- the success log ---------- */
+export async function listPaceWins(): Promise<PaceWinRow[]> {
+  const all = await (await getDB()).getAll('pace_wins');
+  return all.sort((a, b) => b.createdAt - a.createdAt);   // newest win on top
+}
+export async function putPaceWin(w: PaceWinRow): Promise<void> {
+  await (await getDB()).put('pace_wins', { ...w, updatedAt: now() });
+  signalWrite();
+}
+export async function deletePaceWin(id: ID): Promise<void> {
+  await (await getDB()).delete('pace_wins', id);
+  await recordTombstones('pace_wins', [id]);
   signalWrite();
 }

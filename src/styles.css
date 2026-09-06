@@ -2094,3 +2094,74 @@ button.st-pill { cursor: pointer; }
   .ns-scroll { overflow: visible; }
   .ns-group, .ns-row { break-inside: avoid; }
 }
+
+/* ---------- SUCCESS log ---------- */
+.win-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.win-bar-stats { font-size: 13px; color: var(--ink-2); }
+.win-bar-stats b { color: var(--ok); font-size: 15px; }
+
+.win-empty { text-align: center; padding: 44px 20px; }
+.win-empty-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: var(--ink); }
+.win-empty-sub { margin: 0 auto 20px; max-width: 58ch; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+.win-list { display: grid; gap: 14px; }
+@media (min-width: 900px) { .win-list { grid-template-columns: 1fr 1fr; } }
+
+.win-card {
+  position: relative; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--ok) 30%, var(--line));
+  border-left: 4px solid var(--ok);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+
+.win-top { display: flex; align-items: flex-start; gap: 10px; }
+
+.win-in {
+  width: 100%; border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; font: inherit; color: var(--ink);
+  padding: 4px 6px; resize: none;
+}
+.win-in::placeholder { color: var(--muted); font-weight: 400; }
+.win-in:hover { border-color: var(--line); }
+.win-in:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: transparent; background: var(--surface); }
+textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the text where supported */
+
+.win-title { font-size: 17px; font-weight: 800; color: var(--ink); flex: 1; }
+.win-impact {
+  flex: 0 0 auto; text-align: center; font-weight: 800; font-size: 13px;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); border-radius: 999px; padding: 5px 10px;
+  /* size to the figure so "44 → 49 ppm" never clips; capped so a long paste
+   * can't push the title off the card. width:auto lets field-sizing shrink it
+   * to the text in Chrome; Safari ignores field-sizing and falls back to the
+   * input's natural width (~20ch) — wider than needed, but never clipped. */
+  width: auto; field-sizing: content; min-width: 9ch; max-width: 20ch;
+}
+.win-impact::placeholder { color: color-mix(in srgb, var(--ok) 55%, var(--muted)); font-weight: 700; }
+.win-impact:focus { color: var(--ink); }
+
+.win-story { font-size: 13.5px; line-height: 1.55; color: var(--ink-2); margin-top: 4px; }
+
+.win-foot {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  padding-top: 8px; border-top: 1px solid var(--line); flex-wrap: wrap;
+}
+.win-who { flex: 0 1 16ch; font-weight: 700; font-size: 12.5px; color: var(--accent); }
+.win-who::placeholder { color: var(--muted); font-weight: 400; }
+.win-where { flex: 0 1 12ch; font-size: 12px; color: var(--muted); }
+.win-date { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.win-del {
+  border: 1px solid transparent; background: none; cursor: pointer;
+  padding: 4px 8px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.win-del:hover { background: #fbeae8; border-color: #f3c4bf; color: #a51f2d; }
+
+@media print {
+  .win-bar, .win-del { display: none !important; }
+  .win-list { grid-template-columns: 1fr 1fr; }
+  .win-in { border: 0; padding: 2px 0; }
+  .win-card { break-inside: avoid; border-left-width: 4px; }
+}

@@ -1,11 +1,12 @@
 -- ============================================================================
 -- FAULTLINE — PROJECT PACE sync. Run ONCE (SQL Editor → Run). Re-runnable.
 --
--- Three things typed in the app rather than read from the workbook, so that the
+-- Four things typed in the app rather than read from the workbook, so that the
 -- ppm numbers can be entered on a laptop and presented from a phone:
 --
 --   pace_ppm        one row per line — quarterly targets and the weekly readings
 --   pace_todos      Next steps: what / where / why / who / when
+--   pace_wins       Success log: what was done and what worked
 --   pace_snapshots  each uploaded tracker workbook, parsed
 --
 -- These are PER USER, not workspace children. Project Pace is one person's
@@ -59,6 +60,24 @@ create table if not exists public.pace_todos (
 );
 create index if not exists idx_pace_todos_owner on public.pace_todos (owner_id);
 
+-- ---------- the success log ----------
+-- What was done and what worked — the wins to show the team. `where` is a
+-- reserved word, hence where_at; the app maps it back to where on the way in
+-- and out, the same as the todos.
+create table if not exists public.pace_wins (
+  id text primary key,
+  owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title text not null default '',
+  story text not null default '',
+  where_at text not null default '',
+  who text not null default '',
+  impact text not null default '',
+  created_at bigint not null,
+  updated_at bigint not null,
+  deleted_at bigint
+);
+create index if not exists idx_pace_wins_owner on public.pace_wins (owner_id);
+
 -- ---------- uploaded tracker workbooks ----------
 create table if not exists public.pace_snapshots (
   id text primary key,
@@ -80,7 +99,7 @@ alter table public.pace_snapshots alter column updated_at set default 0;
 do $$
 declare t text;
 begin
-  foreach t in array array['pace_ppm','pace_todos','pace_snapshots'] loop
+  foreach t in array array['pace_ppm','pace_todos','pace_snapshots','pace_wins'] loop
     execute format('alter table public.%I enable row level security', t);
     begin
       execute format(
@@ -95,7 +114,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['pace_ppm','pace_todos','pace_snapshots'] loop
+  foreach t in array array['pace_ppm','pace_todos','pace_snapshots','pace_wins'] loop
     execute format('alter table public.%I add column if not exists rev bigint', t);
     execute format('drop trigger if exists faultline_rev on public.%I', t);
     execute format('create trigger faultline_rev before insert or update on public.%I
@@ -121,11 +140,14 @@ union all
 select 'pace_snapshots',
        case when exists (select 1 from pg_tables where schemaname='public' and tablename='pace_snapshots') then 'created ✓' else 'MISSING — rerun' end
 union all
-select 'rev triggers (3 expected)',
-       (select count(*)::text || ' of 3 ✓' from pg_trigger
-         where tgname = 'faultline_rev'
-           and tgrelid in ('public.pace_ppm'::regclass,'public.pace_todos'::regclass,'public.pace_snapshots'::regclass))
+select 'pace_wins',
+       case when exists (select 1 from pg_tables where schemaname='public' and tablename='pace_wins') then 'created ✓' else 'MISSING — rerun' end
 union all
-select 'owner-scoped RLS (3 expected)',
-       (select count(*)::text || ' of 3 ✓' from pg_policies
-         where schemaname='public' and tablename in ('pace_ppm','pace_todos','pace_snapshots'));
+select 'rev triggers (4 expected)',
+       (select count(*)::text || ' of 4 ✓' from pg_trigger
+         where tgname = 'faultline_rev'
+           and tgrelid in ('public.pace_ppm'::regclass,'public.pace_todos'::regclass,'public.pace_snapshots'::regclass,'public.pace_wins'::regclass))
+union all
+select 'owner-scoped RLS (4 expected)',
+       (select count(*)::text || ' of 4 ✓' from pg_policies
+         where schemaname='public' and tablename in ('pace_ppm','pace_todos','pace_snapshots','pace_wins'));
