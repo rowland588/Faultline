@@ -141,10 +141,45 @@ export function PaceExecReport() {
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
+      /* html2canvas renders a CLONE of the page in an off-screen iframe, and by
+       * default that clone links the stylesheet by URL and re-fetches it. If the
+       * fetch has not finished when the clone is rasterised the page is drawn
+       * with NO styles at all — the report came out as unstyled serif text. So
+       * the stylesheet is read out of the live document (same-origin, so the
+       * rules are readable) and injected into the clone as inline text: nothing
+       * to fetch, nothing to race. */
+      const cssText = Array.from(document.styleSheets)
+        .map(sheet => {
+          try { return Array.from(sheet.cssRules).map(r => r.cssText).join('\n'); }
+          catch { return ''; }   // a cross-origin sheet we cannot read; skip it
+        })
+        .join('\n');
+
       for (let i = 0; i < sheets.length; i++) {
         // 2.5x of a 1600px sheet is ~4000px across an A3 page — about 240dpi,
         // so the charts and the small print stay sharp when it is printed.
-        const canvas = await html2canvas(sheets[i], { scale: 2.5, backgroundColor: '#ffffff', logging: false });
+        const canvas = await html2canvas(sheets[i], {
+          scale: 2.5,
+          backgroundColor: '#ffffff',
+          logging: false,
+          // the clone must believe it is a desktop window, or the responsive
+          // rules collapse the layout when the report is built on a phone
+          windowWidth: SHEET_W + 120,
+          windowHeight: SHEET_H + 120,
+          onclone: (doc: Document, node: HTMLElement) => {
+            const style = doc.createElement('style');
+            style.textContent = cssText;
+            doc.head.appendChild(style);
+            // belt and braces: pin the sheet's own geometry on the clone, so it
+            // cannot depend on a class or a media query surviving the copy
+            node.style.width = `${SHEET_W}px`;
+            node.style.height = `${SHEET_H}px`;
+            node.style.transform = 'none';
+            node.style.border = '0';
+            node.style.borderRadius = '0';
+            node.style.boxShadow = 'none';
+          },
+        });
         // JPEG, not PNG: a PNG of a full A3 page at 2× is ~12MB — two of them make
         // a 25MB file no mail server will send. On a white report JPEG at high
         // quality is indistinguishable and an order of magnitude smaller.
