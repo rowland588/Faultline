@@ -4,7 +4,7 @@
  * stores ONLY through the functions here, and every observation path is
  * workspaceId-scoped — that is the whole isolation guarantee. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { ID, Millis, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
+import type { ID, Millis, MediaRef, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
@@ -65,6 +65,10 @@ export interface PaceTodoRow {
   id: string;
   what: string; where: string; why: string; who: string; when: string;
   state: 'todo' | 'waiting' | 'done';
+  /** Pictures of the thing being discussed — opened full screen in the meeting.
+   *  Same MediaRef shape observations use, so the thumbnail, the viewer and the
+   *  blob sync are all the existing ones. */
+  media?: MediaRef[];
   createdAt: number; updatedAt: number;
 }
 
@@ -601,7 +605,13 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
     const s = await db.get('snags', id);
     if (s?.detailPhotoKey) await db.delete('media', s.detailPhotoKey);
     await db.delete('snags', id);
-  } else if (kind === 'pace_ppm' || kind === 'pace_todos' || kind === 'pace_snapshots'
+  } else if (kind === 'pace_todos') {
+    const row = await db.get('pace_todos', id);
+    for (const k of (row?.media ?? []).flatMap(m => [m.blobKey, m.thumbKey]).filter(Boolean) as string[]) {
+      await db.delete('media', k);
+    }
+    await db.delete('pace_todos', id);
+  } else if (kind === 'pace_ppm' || kind === 'pace_snapshots'
     || kind === 'pace_wins' || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on
@@ -969,7 +979,12 @@ export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
   signalWrite();
 }
 export async function deletePaceTodo(id: ID): Promise<void> {
-  await (await getDB()).delete('pace_todos', id);
+  const db = await getDB();
+  const row = await db.get('pace_todos', id);
+  // the pictures go with it — otherwise the blobs sit in the media store forever
+  const blobs = (row?.media ?? []).flatMap(m => [m.blobKey, m.thumbKey]).filter(Boolean) as string[];
+  for (const k of blobs) await db.delete('media', k);
+  await db.delete('pace_todos', id);
   await recordTombstones('pace_todos', [id]);
   signalWrite();
 }

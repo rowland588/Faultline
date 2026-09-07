@@ -59,6 +59,9 @@ create table if not exists public.pace_todos (
   deleted_at bigint
 );
 create index if not exists idx_pace_todos_owner on public.pace_todos (owner_id);
+-- pictures attached to a Next step, as the same MediaRef list observations use.
+-- The images themselves live in storage; this is only the list of keys.
+alter table public.pace_todos add column if not exists media jsonb not null default '[]'::jsonb;
 
 -- ---------- the success log ----------
 -- What was done and what worked — the wins to show the team. `where` is a

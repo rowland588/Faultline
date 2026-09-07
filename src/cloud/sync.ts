@@ -90,6 +90,14 @@ const isMissingRev = (e: { code?: string; message?: string }) =>
 const isMissingTable = (e: { code?: string; message?: string }) =>
   e.code === '42P01' || /relation .* does not exist|could not find the table/i.test(e.message ?? '');
 
+/** A COLUMN this build writes that the cloud doesn't have yet — the same
+ *  situation as a missing table, one migration smaller. Without this a single
+ *  un-migrated column threw and aborted the whole sync pass, so every other
+ *  kind stopped syncing too until the SQL was run. Treated the same way: this
+ *  kind holds its cursor and retries, everything else carries on. */
+const isMissingColumn = (e: { code?: string; message?: string }) =>
+  e.code === '42703' || /column .* does not exist|could not find the .* column/i.test(e.message ?? '');
+
 /* ---------- media ----------
  * SHARED workspaces need a shared namespace: new uploads go to the flat
  * `${key}` path (keys are uuids — no collisions), readable by the whole team.
@@ -278,7 +286,9 @@ export async function syncNow(): Promise<void> {
         if (error) {
           // rows for this kind wait for their SQL — holding the cursor back
           // keeps them "changed", so they retry until the table exists
-          if (isMissingTable(error)) { pushIncomplete = true; set({ schemaOutdated: true }); break; }
+          if (isMissingTable(error) || isMissingColumn(error)) {
+            pushIncomplete = true; set({ schemaOutdated: true }); break;
+          }
           throw new Error(`push ${kind}: ${error.message}`);
         }
       }

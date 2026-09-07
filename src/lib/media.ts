@@ -83,6 +83,16 @@ export async function pickExistingMedia(
   return refs;
 }
 
+/** Attach photos only — the phone gallery, Files, or a laptop's disk. Several
+ *  at once. Used by Next steps, where the attachment is a picture of the thing
+ *  being discussed rather than footage of the line. */
+export async function pickExistingPhotos(): Promise<MediaRef[]> {
+  const files = await pickFiles('image/*', { multiple: true });
+  const refs: MediaRef[] = [];
+  for (const f of files) refs.push(await saveEvidence('photo', f));
+  return refs;
+}
+
 async function saveEvidence(kind: 'photo' | 'video', raw: Blob): Promise<MediaRef> {
   // Store it already carrying a type the browser can dispatch on — files
   // dragged off a laptop often arrive with none at all.

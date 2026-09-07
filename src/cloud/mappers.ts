@@ -245,13 +245,16 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   pace_todos: {
     clock: l => (l as PaceTodoRow).updatedAt,
-    mediaKeys: () => [],
+    // the attached pictures travel with the row, same as an observation's
+    mediaKeys: l => ((l as PaceTodoRow).media ?? [])
+      .flatMap(m => [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')]),
     toRow: (l, fallbackOwner) => {
       const t = l as PaceTodoRow;
       return {
         id: t.id, owner_id: fallbackOwner,
         what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
-        state: t.state, created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
+        state: t.state, media: t.media ?? [],
+        created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
       };
     },
     fromRow: (r) => ({
@@ -259,6 +262,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       what: (r.what as string) ?? '', where: (r.where_at as string) ?? '', why: (r.why as string) ?? '',
       who: (r.who as string) ?? '', when: (r.when_at as string) ?? '',
       state: (r.state as PaceTodoRow['state']) ?? 'todo',
+      media: (r.media as PaceTodoRow['media']) ?? [],
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },

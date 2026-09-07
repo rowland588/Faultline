@@ -2037,11 +2037,12 @@ button.st-pill { cursor: pointer; }
   color: var(--muted); padding: 9px 10px 7px; border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 /* the prose columns get the room; the short ones stay short */
-.ns-table th:nth-child(1), .ns-table td:nth-child(1) { width: 24%; }
-.ns-table th:nth-child(2), .ns-table td:nth-child(2) { width: 13%; }
-.ns-table th:nth-child(3), .ns-table td:nth-child(3) { width: 25%; }
-.ns-table th:nth-child(4), .ns-table td:nth-child(4) { width: 15%; }
-.ns-table th:nth-child(5), .ns-table td:nth-child(5) { width: 11%; }
+.ns-table th:nth-child(1), .ns-table td:nth-child(1) { width: 21%; }
+.ns-table th:nth-child(2), .ns-table td:nth-child(2) { width: 11%; }
+.ns-table th:nth-child(3), .ns-table td:nth-child(3) { width: 22%; }
+.ns-table th:nth-child(4), .ns-table td:nth-child(4) { width: 13%; }
+.ns-table th:nth-child(5), .ns-table td:nth-child(5) { width: 10%; }
+.ns-table th:nth-child(6), .ns-table td:nth-child(6) { width: 13%; }
 .ns-table td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid var(--line); }
 .ns-table tbody tr:last-child td { border-bottom: 0; }
 .ns-row.is-done .ns-in { color: var(--muted); }
@@ -2366,3 +2367,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   display: block; font-size: 9px; font-weight: 800; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--brand); margin-top: 1px;
 }
+
+/* pictures on a Next step — tap one to put it on screen in the meeting */
+.ns-pics { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px; }
+.ns-pic { position: relative; display: inline-flex; }
+.ns-pic-x {
+  position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  font-size: 12px; line-height: 1; cursor: pointer; padding: 0;
+}
+.ns-pic-x:hover { background: #fbeae8; border-color: #f3c4bf; color: #a51f2d; }
+.ns-pic-add {
+  width: 46px; height: 46px; flex: none; border-radius: 10px;
+  border: 1px dashed var(--line); background: var(--surface-2);
+  color: var(--accent); font-size: 20px; font-weight: 700; cursor: pointer; padding: 0;
+}
+.ns-pic-add:hover { border-color: var(--accent); background: var(--accent-soft); }
+.ns-pic-add:disabled { opacity: 0.5; cursor: default; }
+@media print { .ns-pic-x, .ns-pic-add { display: none !important; } }

@@ -18,6 +18,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
+import { pickExistingPhotos } from '../lib/media';
+import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
+import type { MediaRef } from '../types';
 
 type State = PaceTodoRow['state'];
 
@@ -39,9 +42,24 @@ function Grow({ value, onChange, placeholder, label }: {
   );
 }
 
-function Row({ row, onPatch, onDelete }: {
+function Row({ row, onPatch, onDelete, onOpen }: {
   row: PaceTodoRow; onPatch: (p: Partial<PaceTodoRow>) => void; onDelete: () => void;
+  onOpen: (m: MediaRef) => void;
 }) {
+  const [busy, setBusy] = useState(false);
+  const media = row.media ?? [];
+
+  const add = async () => {
+    setBusy(true);
+    try {
+      const picked = await pickExistingPhotos();
+      if (picked.length) onPatch({ media: [...media, ...picked] });
+    } finally { setBusy(false); }
+  };
+  const drop = (m: MediaRef) => {
+    if (!window.confirm('Remove this picture?')) return;
+    onPatch({ media: media.filter(x => x.id !== m.id) });
+  };
   return (
     <tr className={'ns-row is-' + row.state}>
       <td data-h="What"><Grow value={row.what} label="What" placeholder="Trial the Tesco Express trays"
@@ -54,6 +72,19 @@ function Row({ row, onPatch, onDelete }: {
         onChange={e => onPatch({ who: e.target.value })} /></td>
       <td data-h="When"><input className="ns-in" value={row.when} aria-label="When" placeholder="w/c 22nd"
         onChange={e => onPatch({ when: e.target.value })} /></td>
+      <td data-h="Pictures">
+        <div className="ns-pics">
+          {media.map(m => (
+            <span key={m.id} className="ns-pic">
+              {/* tap the picture to throw it up full screen in the meeting */}
+              <EvidenceThumb media={m} size={46} onClick={() => onOpen(m)} />
+              <button className="ns-pic-x" onClick={() => drop(m)} aria-label="Remove this picture">×</button>
+            </span>
+          ))}
+          <button className="ns-pic-add" onClick={() => void add()} disabled={busy}
+            aria-label="Add a picture">{busy ? '…' : '+'}</button>
+        </div>
+      </td>
       <td data-h="" className="ns-actions">
         <div className="ns-state" role="group" aria-label="State">
           {GROUPS.map(g => (
@@ -73,6 +104,7 @@ function Row({ row, onPatch, onDelete }: {
 export function PaceNextSteps() {
   const [rows, setRows] = useState<PaceTodoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewing, setViewing] = useState<MediaRef | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => { setRows(await listPaceTodos()); setLoading(false); }, []);
@@ -153,14 +185,16 @@ export function PaceNextSteps() {
                 <thead>
                   <tr>
                     <th scope="col">What</th><th scope="col">Where</th><th scope="col">Why</th>
-                    <th scope="col">Who</th><th scope="col">When</th><th scope="col"><span className="sr">Actions</span></th>
+                    <th scope="col">Who</th><th scope="col">When</th><th scope="col">Pictures</th>
+                    <th scope="col"><span className="sr">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {mine.map(r => (
                     <Row key={r.id} row={r}
                       onPatch={p => void patch(r.id, p)}
-                      onDelete={() => void remove(r)} />
+                      onDelete={() => void remove(r)}
+                      onOpen={setViewing} />
                   ))}
                 </tbody>
               </table>
@@ -168,6 +202,8 @@ export function PaceNextSteps() {
           </section>
         );
       })}
+
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
