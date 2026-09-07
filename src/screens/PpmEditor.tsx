@@ -67,9 +67,12 @@ export function PpmEditor({ state, startOpen = false }: { state: PaceLinesState;
                 <tr>
                   <th className="ppm-corner" scope="col">Line</th>
                   {weekIdx.map(i => (
-                    <th key={i} scope="col">
+                    <th key={i} scope="col" className={i === thisWeek ? 'is-now' : undefined}>
                       <span className="ppm-wk">W{i + 1}</span>
                       <span className="ppm-wc">{weekLabel(i)}</span>
+                      {/* name the week in progress, so a reading can never look
+                          as though it belongs to a week that hasn't happened */}
+                      {i === thisWeek && <span className="ppm-now">this week</span>}
                     </th>
                   ))}
                 </tr>

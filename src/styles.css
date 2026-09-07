@@ -2358,3 +2358,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .acct-btn:hover { background: var(--surface-2); border-color: var(--accent); }
 .pace-out { font-weight: 700; }
 @media print { .acct-btn { display: none !important; } }
+
+/* the week in progress, named in the ppm grid — a reading should never look as
+ * though it belongs to a week that has not happened yet */
+.ppm-grid thead th.is-now { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.ppm-now {
+  display: block; font-size: 9px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--brand); margin-top: 1px;
+}
