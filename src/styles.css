@@ -2385,3 +2385,19 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ns-pic-add:hover { border-color: var(--accent); background: var(--accent-soft); }
 .ns-pic-add:disabled { opacity: 0.5; cursor: default; }
 @media print { .ns-pic-x, .ns-pic-add { display: none !important; } }
+
+/* the write-up under a Next step — where a trial gets recorded */
+.ns-noterow > td { padding: 0 8px 8px !important; border-bottom: 1px solid var(--line); }
+.ns-table tbody tr.ns-noterow:last-child > td { border-bottom: 0; }
+.ns-noterow.is-todo    > td { box-shadow: inset 3px 0 0 var(--brand); }
+.ns-noterow.is-waiting > td { box-shadow: inset 3px 0 0 #c26a0a; }
+.ns-noterow.is-done    > td { box-shadow: inset 3px 0 0 var(--ok); }
+.ns-notes {
+  width: 100%; field-sizing: content; min-height: 30px;
+  font-size: 13px; line-height: 1.5; color: var(--ink-2);
+  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+}
+.ns-notes:focus { background: var(--surface); color: var(--ink); }
+.ns-notes::placeholder { color: var(--muted); font-style: italic; }
+/* the row above it no longer closes the record, so drop its own rule */
+.ns-table tbody tr.ns-row > td { border-bottom: 0; }

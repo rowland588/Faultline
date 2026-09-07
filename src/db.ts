@@ -65,7 +65,12 @@ export interface PaceTodoRow {
   id: string;
   what: string; where: string; why: string; who: string; when: string;
   state: 'todo' | 'waiting' | 'done';
-  /** Pictures of the thing being discussed — opened full screen in the meeting.
+  /** What happened. What/Where/Why/Who/When are all set BEFORE the thing is
+   *  done; this is the write-up afterwards — the run, the numbers, the verdict.
+   *  It is what makes a Next step able to hold a trial rather than only name
+   *  one, so trials live here rather than in a tab of their own. */
+  notes?: string;
+  /** Pictures and video of the thing being discussed — opened full screen.
    *  Same MediaRef shape observations use, so the thumbnail, the viewer and the
    *  blob sync are all the existing ones. */
   media?: MediaRef[];

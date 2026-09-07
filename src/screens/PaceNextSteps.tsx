@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
-import { pickExistingPhotos } from '../lib/media';
+import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 
@@ -52,15 +52,16 @@ function Row({ row, onPatch, onDelete, onOpen }: {
   const add = async () => {
     setBusy(true);
     try {
-      const picked = await pickExistingPhotos();
+      const picked = await pickExistingMedia();
       if (picked.length) onPatch({ media: [...media, ...picked] });
     } finally { setBusy(false); }
   };
   const drop = (m: MediaRef) => {
-    if (!window.confirm('Remove this picture?')) return;
+    if (!window.confirm('Remove this?')) return;
     onPatch({ media: media.filter(x => x.id !== m.id) });
   };
   return (
+    <>
     <tr className={'ns-row is-' + row.state}>
       <td data-h="What"><Grow value={row.what} label="What" placeholder="Trial the Tesco Express trays"
         onChange={v => onPatch({ what: v })} /></td>
@@ -72,17 +73,17 @@ function Row({ row, onPatch, onDelete, onOpen }: {
         onChange={e => onPatch({ who: e.target.value })} /></td>
       <td data-h="When"><input className="ns-in" value={row.when} aria-label="When" placeholder="w/c 22nd"
         onChange={e => onPatch({ when: e.target.value })} /></td>
-      <td data-h="Pictures">
+      <td data-h="Evidence">
         <div className="ns-pics">
           {media.map(m => (
             <span key={m.id} className="ns-pic">
               {/* tap the picture to throw it up full screen in the meeting */}
               <EvidenceThumb media={m} size={46} onClick={() => onOpen(m)} />
-              <button className="ns-pic-x" onClick={() => drop(m)} aria-label="Remove this picture">×</button>
+              <button className="ns-pic-x" onClick={() => drop(m)} aria-label="Remove this">×</button>
             </span>
           ))}
           <button className="ns-pic-add" onClick={() => void add()} disabled={busy}
-            aria-label="Add a picture">{busy ? '…' : '+'}</button>
+            aria-label="Add a picture or video">{busy ? '…' : '+'}</button>
         </div>
       </td>
       <td data-h="" className="ns-actions">
@@ -98,6 +99,19 @@ function Row({ row, onPatch, onDelete, onOpen }: {
         <button className="ns-del" onClick={onDelete} aria-label="Delete this line">Delete</button>
       </td>
     </tr>
+    {/* What happened, written up afterwards. Full width and always here rather
+        than behind a toggle: a trial needs room for a paragraph, and a plain
+        to-do simply leaves it empty, where it takes one line. */}
+    <tr className={'ns-noterow is-' + row.state}>
+      <td colSpan={7}>
+        <textarea
+          className="ns-in ns-notes" rows={1} value={row.notes ?? ''} aria-label="What happened"
+          placeholder="What happened — how the run went, the numbers, what we do next"
+          onChange={e => onPatch({ notes: e.target.value })}
+        />
+      </td>
+    </tr>
+    </>
   );
 }
 
@@ -167,7 +181,8 @@ export function PaceNextSteps() {
           <p className="ns-empty-title">Nothing written down yet</p>
           <p className="ns-empty-sub">
             The things that are not tracker actions yet — a trial to run, a quote to chase,
-            an answer someone owes you. Say what it is, where, why it matters, who has it and when.
+            an answer someone owes you. Say what it is, where, why it matters, who has it and when,
+            then write up what happened and attach the pictures or video.
           </p>
           <button className="btn btn-primary btn-lg" onClick={() => void add()}>+ Add the first one</button>
         </div>
@@ -185,7 +200,7 @@ export function PaceNextSteps() {
                 <thead>
                   <tr>
                     <th scope="col">What</th><th scope="col">Where</th><th scope="col">Why</th>
-                    <th scope="col">Who</th><th scope="col">When</th><th scope="col">Pictures</th>
+                    <th scope="col">Who</th><th scope="col">When</th><th scope="col">Evidence</th>
                     <th scope="col"><span className="sr">Actions</span></th>
                   </tr>
                 </thead>

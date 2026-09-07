@@ -253,7 +253,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: t.id, owner_id: fallbackOwner,
         what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
-        state: t.state, media: t.media ?? [],
+        state: t.state, media: t.media ?? [], notes: t.notes ?? '',
         created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
       };
     },
@@ -263,6 +263,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       who: (r.who as string) ?? '', when: (r.when_at as string) ?? '',
       state: (r.state as PaceTodoRow['state']) ?? 'todo',
       media: (r.media as PaceTodoRow['media']) ?? [],
+      notes: (r.notes as string) ?? '',
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },

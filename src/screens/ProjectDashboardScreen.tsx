@@ -196,7 +196,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Next steps</h2>
-            <p className="pace-sec-sub">What still needs doing, and what we are waiting on · not in the workbook, typed here</p>
+            <p className="pace-sec-sub">What still needs doing, what we are waiting on, and trials — with the write-up and the evidence · not in the workbook, typed here</p>
           </div>
           <PaceNextSteps />
         </section>
