@@ -42,12 +42,24 @@ function Grow({ value, onChange, placeholder, label }: {
   );
 }
 
-function Row({ row, onPatch, onDelete, onOpen }: {
+function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
   row: PaceTodoRow; onPatch: (p: Partial<PaceTodoRow>) => void; onDelete: () => void;
   onOpen: (m: MediaRef) => void;
+  focusOutcome: boolean; onFocused: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const media = row.media ?? [];
+  const done = row.state === 'done';
+  /* Marking a line Done should land you straight in the Outcome box — that is
+   * the moment you know what to write, and it is why the field exists.
+   *
+   * The parent holds the intent rather than this component: clicking Done moves
+   * the row from "Needs doing" into "Done", which unmounts it and mounts a new
+   * one, so a local "was it done a moment ago?" flag never survives to see it. */
+  const outcomeRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (focusOutcome && done) { outcomeRef.current?.focus(); onFocused(); }
+  }, [focusOutcome, done, onFocused]);
 
   const add = async () => {
     setBusy(true);
@@ -86,6 +98,20 @@ function Row({ row, onPatch, onDelete, onOpen }: {
             aria-label="Add a picture or video">{busy ? '…' : '+'}</button>
         </div>
       </td>
+      <td data-h="Outcome" className="ns-outcome-cell">
+        {done ? (
+          <textarea
+            ref={outcomeRef}
+            className="ns-in ns-grow ns-outcome" rows={2} value={row.outcome ?? ''} aria-label="Outcome"
+            placeholder="How did it end? Worked / didn't / needs another go"
+            onChange={e => onPatch({ outcome: e.target.value })}
+          />
+        ) : (
+          <span className="ns-outcome-wait" title="Mark this line Done to record the outcome">
+            {row.outcome ? row.outcome : '—'}
+          </span>
+        )}
+      </td>
       <td data-h="" className="ns-actions">
         <div className="ns-state" role="group" aria-label="State">
           {GROUPS.map(g => (
@@ -103,7 +129,7 @@ function Row({ row, onPatch, onDelete, onOpen }: {
         than behind a toggle: a trial needs room for a paragraph, and a plain
         to-do simply leaves it empty, where it takes one line. */}
     <tr className={'ns-noterow is-' + row.state}>
-      <td colSpan={7}>
+      <td colSpan={8}>
         <textarea
           className="ns-in ns-notes" rows={1} value={row.notes ?? ''} aria-label="What happened"
           placeholder="What happened — how the run went, the numbers, what we do next"
@@ -119,6 +145,7 @@ export function PaceNextSteps() {
   const [rows, setRows] = useState<PaceTodoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  const [justDone, setJustDone] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => { setRows(await listPaceTodos()); setLoading(false); }, []);
@@ -135,6 +162,7 @@ export function PaceNextSteps() {
   }, [load]);
 
   const patch = async (id: string, p: Partial<PaceTodoRow>) => {
+    if (p.state === 'done') setJustDone(id);      // land the cursor in Outcome
     const next = rows.map(r => (r.id === id ? { ...r, ...p } : r));
     setRows(next);                                   // optimistic: typing stays responsive
     const row = next.find(r => r.id === id);
@@ -201,6 +229,7 @@ export function PaceNextSteps() {
                   <tr>
                     <th scope="col">What</th><th scope="col">Where</th><th scope="col">Why</th>
                     <th scope="col">Who</th><th scope="col">When</th><th scope="col">Evidence</th>
+                    <th scope="col">Outcome</th>
                     <th scope="col"><span className="sr">Actions</span></th>
                   </tr>
                 </thead>
@@ -209,7 +238,9 @@ export function PaceNextSteps() {
                     <Row key={r.id} row={r}
                       onPatch={p => void patch(r.id, p)}
                       onDelete={() => void remove(r)}
-                      onOpen={setViewing} />
+                      onOpen={setViewing}
+                      focusOutcome={justDone === r.id}
+                      onFocused={() => setJustDone(null)} />
                   ))}
                 </tbody>
               </table>

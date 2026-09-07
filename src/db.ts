@@ -70,6 +70,10 @@ export interface PaceTodoRow {
    *  It is what makes a Next step able to hold a trial rather than only name
    *  one, so trials live here rather than in a tab of their own. */
   notes?: string;
+  /** The verdict, written when the line is marked Done — did the trial work,
+   *  did the quote land, what did we conclude. Separate from `notes`, which is
+   *  the running write-up: this is the one line you read out in the meeting. */
+  outcome?: string;
   /** Pictures and video of the thing being discussed — opened full screen.
    *  Same MediaRef shape observations use, so the thumbnail, the viewer and the
    *  blob sync are all the existing ones. */

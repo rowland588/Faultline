@@ -2037,12 +2037,13 @@ button.st-pill { cursor: pointer; }
   color: var(--muted); padding: 9px 10px 7px; border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 /* the prose columns get the room; the short ones stay short */
-.ns-table th:nth-child(1), .ns-table td:nth-child(1) { width: 21%; }
-.ns-table th:nth-child(2), .ns-table td:nth-child(2) { width: 11%; }
-.ns-table th:nth-child(3), .ns-table td:nth-child(3) { width: 22%; }
-.ns-table th:nth-child(4), .ns-table td:nth-child(4) { width: 13%; }
-.ns-table th:nth-child(5), .ns-table td:nth-child(5) { width: 10%; }
-.ns-table th:nth-child(6), .ns-table td:nth-child(6) { width: 13%; }
+.ns-table th:nth-child(1), .ns-table td:nth-child(1) { width: 18%; }
+.ns-table th:nth-child(2), .ns-table td:nth-child(2) { width: 10%; }
+.ns-table th:nth-child(3), .ns-table td:nth-child(3) { width: 18%; }
+.ns-table th:nth-child(4), .ns-table td:nth-child(4) { width: 11%; }
+.ns-table th:nth-child(5), .ns-table td:nth-child(5) { width: 9%; }
+.ns-table th:nth-child(6), .ns-table td:nth-child(6) { width: 12%; }
+.ns-table th:nth-child(7), .ns-table td:nth-child(7) { width: 16%; }
 .ns-table td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid var(--line); }
 .ns-table tbody tr:last-child td { border-bottom: 0; }
 .ns-row.is-done .ns-in { color: var(--muted); }
@@ -2401,3 +2402,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ns-notes::placeholder { color: var(--muted); font-style: italic; }
 /* the row above it no longer closes the record, so drop its own rule */
 .ns-table tbody tr.ns-row > td { border-bottom: 0; }
+
+/* the outcome — only writable once the line is Done, which is when you know it */
+.ns-outcome { background: color-mix(in srgb, var(--ok) 7%, transparent); }
+.ns-outcome:focus { background: var(--surface); }
+.ns-outcome::placeholder { color: var(--muted); font-style: italic; }
+.ns-outcome-wait { display: block; padding: 6px; color: var(--muted); font-size: 12.5px; }
