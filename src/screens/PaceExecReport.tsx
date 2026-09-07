@@ -23,6 +23,7 @@ import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   type PaceTodoRow, type PaceWinRow } from '../db';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceReportData } from '../lib/paceReportPdf';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -122,81 +123,25 @@ export function PaceExecReport() {
     })();
   }, []);
 
-  /* Build the PDF in the app rather than handing off to window.print(): the
-   * browser's print dialog adds its own header/footer (the URL, the date, page
-   * numbers), can fall back to A4 and can drop the background colours — so the
-   * saved file never matched the report. This renders each sheet to an image and
-   * lays it on an A3 landscape page: one click, no dialog, identical to screen.
+  /* Draw the PDF from the numbers — see lib/paceReportPdf.
    *
-   * A width is forced during capture so the two-column layout holds even when
-   * the report is generated on a phone (where the responsive grid collapses). */
+   * Deliberately NOT a screenshot of this page. Rasterising the DOM made the
+   * output depend on the browser finishing a stylesheet fetch inside a hidden
+   * clone, which failed on real devices in four different ways. Nothing here
+   * touches the DOM, so the file is identical on every device. */
   const download = async () => {
-    const el = root.current;
-    if (!el || saving) return;
+    if (saving || loading) return;
     setSaving(true);
-    el.classList.add('is-exporting');
     try {
       const { jsPDF } = await import('jspdf');
-      const html2canvas = (await import('html2canvas-pro')).default;
-      const sheets = Array.from(el.querySelectorAll<HTMLElement>('.exec-sheet'));
+      const { drawPaceReport } = await import('../lib/paceReportPdf');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      /* html2canvas renders a CLONE of the page in an off-screen iframe, and by
-       * default that clone links the stylesheet by URL and re-fetches it. If the
-       * fetch has not finished when the clone is rasterised the page is drawn
-       * with NO styles at all — the report came out as unstyled serif text. So
-       * the stylesheet is read out of the live document (same-origin, so the
-       * rules are readable) and injected into the clone as inline text: nothing
-       * to fetch, nothing to race. */
-      const cssText = Array.from(document.styleSheets)
-        .map(sheet => {
-          try { return Array.from(sheet.cssRules).map(r => r.cssText).join('\n'); }
-          catch { return ''; }   // a cross-origin sheet we cannot read; skip it
-        })
-        .join('\n');
-
-      for (let i = 0; i < sheets.length; i++) {
-        // 2.5x of a 1600px sheet is ~4000px across an A3 page — about 240dpi,
-        // so the charts and the small print stay sharp when it is printed.
-        const canvas = await html2canvas(sheets[i], {
-          scale: 2.5,
-          backgroundColor: '#ffffff',
-          logging: false,
-          // the clone must believe it is a desktop window, or the responsive
-          // rules collapse the layout when the report is built on a phone
-          windowWidth: SHEET_W + 120,
-          windowHeight: SHEET_H + 120,
-          onclone: (doc: Document, node: HTMLElement) => {
-            const style = doc.createElement('style');
-            style.textContent = cssText;
-            doc.head.appendChild(style);
-            // belt and braces: pin the sheet's own geometry on the clone, so it
-            // cannot depend on a class or a media query surviving the copy
-            node.style.width = `${SHEET_W}px`;
-            node.style.height = `${SHEET_H}px`;
-            node.style.transform = 'none';
-            node.style.border = '0';
-            node.style.borderRadius = '0';
-            node.style.boxShadow = 'none';
-          },
-        });
-        // JPEG, not PNG: a PNG of a full A3 page at 2× is ~12MB — two of them make
-        // a 25MB file no mail server will send. On a white report JPEG at high
-        // quality is indistinguishable and an order of magnitude smaller.
-        const img = canvas.toDataURL('image/jpeg', 0.92);
-        // the sheet is already A3-shaped, so it fills the page edge to edge
-        // with no letterboxing and nothing squashed
-        if (i > 0) pdf.addPage('a3', 'landscape');
-        pdf.addImage(img, 'JPEG', 0, 0, pageW, pageH);
-      }
-      const stamp = new Date().toISOString().slice(0, 10);
-      pdf.save(`Project-Pace-report-${stamp}.pdf`);
+      drawPaceReport(pdf, reportData());
+      pdf.save(`Project-Pace-report-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
       console.error('PDF export failed', err);
       window.alert('Sorry — the PDF could not be generated. Please try again.');
     } finally {
-      el.classList.remove('is-exporting');
       setSaving(false);
     }
   };
@@ -258,6 +203,47 @@ export function PaceExecReport() {
     .filter(r => r.total > 0);
 
   const seg = (count: number) => (openTotal + complete ? (count / actions.length) * 100 : 0);
+
+  /* Everything the PDF needs, as plain numbers and strings. The drawer never
+   * looks at the DOM, so this is the whole contract between screen and file. */
+  const reportData = (): PaceReportData => ({
+    now,
+    lines: ppm.lines.map(l => ({
+      key: l.key, name: l.name, variant: l.variant,
+      q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4, weekly: l.weekly,
+    })),
+    atTarget, pctDone,
+    complete, total: actions.length, openTotal, openOnTrack, late,
+    openSnags: openSnags.length, winsThisWeek: winsThisWeek.length,
+    byLine: byLine.map(r => ({ name: r.name, open: r.open, late: r.late, done: r.done, total: r.total })),
+    lateActions: lateActions.map(a => ({
+      line: norm(a.line) || '—',
+      what: a.action || a.problem || `Action ${a.ref}`,
+      owner: a.owner || a.who || '—',
+      due: fmtShort(a.due),
+    })),
+    lateMore,
+    todos: openTodos.map(t => ({
+      state: t.state === 'waiting' ? 'waiting' : 'todo',
+      what: [t.what || '—', t.where].filter(Boolean).join(' · '),
+      who: t.who || '—',
+      when: t.when || '—',
+    })),
+    snags: openSnags
+      .slice()
+      .sort((a, b) => a.raisedAt - b.raisedAt)
+      .slice(0, 6)
+      .map(s => ({
+        problem: s.problem || 'Snag',
+        owner: s.owner || 'unassigned',
+        days: Math.max(0, Math.floor((now - s.raisedAt) / dayMs)),
+        status: s.status,
+      })),
+    wins: showWins.map(w => ({
+      title: w.title || 'Win', impact: w.impact || '', story: w.story || '',
+      who: w.who || 'the team', where: w.where || '',
+    })),
+  });
 
   return (
     <div className="exec-report" ref={root}>

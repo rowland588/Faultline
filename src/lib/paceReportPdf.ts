@@ -1,0 +1,458 @@
+/* THE GM REPORT, DRAWN AS A REAL PDF.
+ *
+ * Not a screenshot. Earlier versions rasterised the live page with html2canvas,
+ * which renders a CLONE of the document in a hidden iframe — and that clone has
+ * to re-fetch the stylesheet, re-evaluate the media queries and finish before it
+ * is captured. On a developer machine it always won that race; on a real device,
+ * over a network, behind a service worker, it did not, and the report came out
+ * unstyled, mis-sized or soft. Four different symptoms, one cause: the output
+ * depended on the browser's state at the moment you pressed the button.
+ *
+ * So nothing here depends on the browser. Every rule, box and glyph is drawn
+ * from the numbers, in points, on an A3 landscape page. The result is a proper
+ * vector PDF — real selectable text, sharp at any zoom, a few hundred KB — and
+ * byte-for-byte the same document on every device, every time.
+ *
+ * The layout deliberately mirrors the on-screen report: the same sections in the
+ * same order, the same palette, the same chart geometry. */
+import type { jsPDF } from 'jspdf';
+
+/* ---------- the app's palette, as the report uses it ---------- */
+const INK = '#21374c', INK2 = '#4a6076', MUTED = '#7a8fa2', LINE = '#d8e5ef';
+const ACCENT = '#196bb3', BRAND = '#2b87d4', SURF2 = '#e8f1f8';
+const OK = '#1f8a4c', WARN = '#c26a0a', DANGER = '#d94f43';
+/** The validated chart pair — actual vs target (target is also dashed, so the
+ *  two never rely on colour alone). */
+const ACTUAL = '#2b87d4', TARGET = '#c26a0a';
+
+export interface PaceReportData {
+  now: number;
+  lines: { key: string; name: string; variant?: string; q1: number; q2: number; q3: number; q4: number; weekly: (number | null)[] }[];
+  atTarget: number;
+  pctDone: number; complete: number; total: number; openTotal: number; openOnTrack: number; late: number;
+  openSnags: number; winsThisWeek: number;
+  byLine: { name: string; open: number; late: number; done: number; total: number }[];
+  lateActions: { line: string; what: string; owner: string; due: string }[];
+  lateMore: number;
+  todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
+  snags: { problem: string; owner: string; days: number; status: string }[];
+  wins: { title: string; impact: string; story: string; who: string; where: string }[];
+}
+
+/* ---------- small drawing helpers ---------- */
+type Doc = jsPDF;
+
+/** jsPDF's built-in fonts are WinAnsi-encoded, which has no arrows and no
+ *  general Unicode: an impact typed as "44 → 49 ppm" came out as "44 !' 49 ppm"
+ *  and mis-measured its own pill. Map the characters people actually type onto
+ *  ones the encoding has. (·, —, ’, “ ” and … are all in WinAnsi, so they stay.) */
+function san(t: string): string {
+  return t
+    .replace(/[\u2192\u27A1\u2794]/g, '->')
+    .replace(/[\u2190]/g, '<-')
+    .replace(/[\u2713\u2714]/g, 'v')
+    .replace(/[\u2022]/g, '·')
+    .replace(/[\u00A0\u202F\u2009]/g, ' ')
+    // anything still outside Latin-1 would draw as noise; drop it rather than
+    // print rubbish in a report going to the GM
+    .replace(/[^\u0000-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026]/g, '');
+}
+
+const setFont = (d: Doc, size: number, weight: 'normal' | 'bold', colour: string) => {
+  d.setFont('helvetica', weight);
+  d.setFontSize(size);
+  d.setTextColor(colour);
+};
+
+/** Trim to fit a column, with an ellipsis — the exec cut, never a wrapped essay. */
+function fit(d: Doc, text: string, maxW: number): string {
+  if (d.getTextWidth(text) <= maxW) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (d.getTextWidth(text.slice(0, mid) + '…') <= maxW) lo = mid; else hi = mid - 1;
+  }
+  return text.slice(0, lo).trimEnd() + '…';
+}
+
+/** A bordered section panel with the numbered head the on-screen report uses. */
+function panel(d: Doc, x: number, y: number, w: number, h: number, n: string, title: string, sowhat: string): number {
+  d.setDrawColor(LINE); d.setLineWidth(0.8);
+  d.setFillColor('#ffffff');
+  d.roundedRect(x, y, w, h, 6, 6, 'FD');
+
+  const cy = y + 18;
+  d.setFillColor('#141b26');
+  d.circle(x + 22, cy, 8, 'F');
+  setFont(d, 8, 'bold', '#ffffff');
+  d.text(n, x + 22, cy + 2.8, { align: 'center' });
+
+  setFont(d, 11.5, 'bold', '#141b26');
+  d.text(title, x + 36, cy + 3.5);
+  setFont(d, 8, 'normal', MUTED);
+  d.text(sowhat, x + w - 14, cy + 3, { align: 'right' });
+
+  const ruleY = y + 30;
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(x + 12, ruleY, x + w - 12, ruleY);
+  return ruleY;                    // content starts below this
+}
+
+/* ---------- one line chart, same geometry as the on-screen SVG ---------- */
+function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReportData['lines'][number]) {
+  d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
+  d.roundedRect(x, y, w, h, 5, 5, 'FD');
+
+  const target = l.q1;
+  const vals = l.weekly.filter((v): v is number => v != null);
+  const last = vals.length ? vals[vals.length - 1] : null;
+  const delta = last == null ? null : last - target;
+
+  /* head: name + variant on the left, latest reading and delta on the right */
+  setFont(d, 11.5, 'bold', INK);
+  d.text(l.name, x + 12, y + 18);
+  if (l.variant) { setFont(d, 7, 'normal', MUTED); d.text(fit(d, l.variant, w * 0.55), x + 12, y + 28); }
+
+  if (last != null) {
+    setFont(d, 17, 'bold', INK);
+    d.text(String(last), x + w - 12, y + 20, { align: 'right' });
+    setFont(d, 6.5, 'normal', MUTED);
+    d.text('ppm latest', x + w - 12, y + 28, { align: 'right' });
+    setFont(d, 7.5, 'bold', delta! >= 0 ? OK : DANGER);
+    d.text(`${delta! >= 0 ? '+' : ''}${delta} vs Q1 target`, x + w - 12, y + 37, { align: 'right' });
+  }
+
+  /* legend — always present, both series named */
+  const lgY = y + 46;
+  d.setDrawColor(ACTUAL); d.setLineWidth(1.6);
+  d.setLineDashPattern([], 0);
+  d.line(x + 12, lgY, x + 26, lgY);
+  setFont(d, 7, 'normal', INK2); d.text('Actual', x + 30, lgY + 2.4);
+  const t0 = x + 30 + d.getTextWidth('Actual') + 10;
+  d.setDrawColor(TARGET); d.setLineDashPattern([3, 2], 0);
+  d.line(t0, lgY, t0 + 14, lgY);
+  d.setLineDashPattern([], 0);
+  setFont(d, 7, 'normal', INK2);
+  d.text(`Q1 target · ${target} ppm`, t0 + 18, lgY + 2.4);
+
+  /* plot area */
+  const qH = 26;                                   // quarterly cells at the foot
+  const pL = x + 34, pR = x + w - 52;
+  const pT = y + 58, pB = y + h - qH - 20;
+  const n = l.weekly.length;
+
+  const lo = Math.min(target, ...vals), hi = Math.max(target, ...vals);
+  const pad = Math.max(4, (hi - lo) * 0.35);
+  const yMin = Math.floor(lo - pad), yMax = Math.ceil(hi + pad);
+  const px = (i: number) => pL + (i * (pR - pL)) / Math.max(1, n - 1);
+  const py = (v: number) => pT + ((yMax - v) / (yMax - yMin)) * (pB - pT);
+
+  // recessive gridlines + y labels
+  const grid = [yMin, Math.round((yMin + yMax) / 2), yMax];
+  d.setLineWidth(0.4);
+  for (const g of grid) {
+    d.setDrawColor('#eef3f8'); d.setLineDashPattern([2, 2], 0);
+    d.line(pL, py(g), pR, py(g));
+    d.setLineDashPattern([], 0);
+    setFont(d, 6, 'normal', MUTED);
+    d.text(String(g), pL - 5, py(g) + 2, { align: 'right' });
+  }
+  // week labels
+  setFont(d, 6, 'normal', MUTED);
+  for (let i = 0; i < n; i++) d.text(`W${i + 1}`, px(i), pB + 11, { align: 'center' });
+
+  // target line, dashed, labelled at the right
+  d.setDrawColor(TARGET); d.setLineWidth(1.2); d.setLineDashPattern([4, 3], 0);
+  d.line(pL, py(target), pR, py(target));
+  d.setLineDashPattern([], 0);
+  setFont(d, 6.5, 'bold', TARGET);
+  d.text('Target', pR + 5, py(target) + 2);
+
+  // actual: contiguous runs only — a missing week breaks the line rather than
+  // inventing a reading across it
+  d.setDrawColor(ACTUAL); d.setLineWidth(1.8);
+  let run: number[] = [];
+  const flush = () => {
+    for (let k = 1; k < run.length; k++) {
+      d.line(px(run[k - 1]), py(l.weekly[run[k - 1]]!), px(run[k]), py(l.weekly[run[k]]!));
+    }
+    run = [];
+  };
+  l.weekly.forEach((v, i) => { if (v == null) flush(); else run.push(i); });
+  flush();
+  d.setFillColor(ACTUAL);
+  l.weekly.forEach((v, i) => { if (v != null) d.circle(px(i), py(v), 2.2, 'F'); });
+  if (last != null) {
+    const li = l.weekly.lastIndexOf(last);
+    setFont(d, 6.5, 'bold', ACTUAL);
+    d.text(String(last), px(li) + 5, py(last) + 2);
+  }
+
+  /* quarterly targets, Q1 highlighted as the one in play */
+  const qs: [string, number][] = [['Q1', l.q1], ['Q2', l.q2], ['Q3', l.q3], ['Q4', l.q4]];
+  const qW = (w - 24 - 3 * 5) / 4;
+  qs.forEach(([lab, val], i) => {
+    const qx = x + 12 + i * (qW + 5), qy = y + h - qH - 6;
+    const now = i === 0;
+    d.setFillColor(now ? '#fdf0e0' : SURF2);
+    d.setDrawColor(now ? WARN : SURF2); d.setLineWidth(0.8);
+    d.roundedRect(qx, qy, qW, qH, 4, 4, 'FD');
+    setFont(d, 6, 'bold', now ? WARN : MUTED);
+    d.text(lab, qx + qW / 2, qy + 10, { align: 'center' });
+    setFont(d, 9.5, 'bold', now ? WARN : INK);
+    d.text(String(val), qx + qW / 2, qy + 21, { align: 'center' });
+  });
+}
+
+/* ---------- a simple table ---------- */
+function table(
+  d: Doc, x: number, y: number, w: number,
+  cols: { head: string; width: number; align?: 'left' | 'right'; }[],
+  rows: { text: string; colour?: string; bold?: boolean }[][],
+  maxY: number,
+): number {
+  const xs: number[] = [];
+  let cx = x;
+  for (const c of cols) { xs.push(cx); cx += c.width * w; }
+
+  setFont(d, 6.5, 'bold', MUTED);
+  cols.forEach((c, i) => {
+    const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i];
+    d.text(c.head.toUpperCase(), tx, y, { align: c.align === 'right' ? 'right' : 'left' });
+  });
+  let cy = y + 5;
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(x, cy, x + w, cy);
+
+  for (const row of rows) {
+    if (cy + 16 > maxY) break;                    // never spill past the panel
+    cy += 13;
+    row.forEach((cell, i) => {
+      const c = cols[i];
+      setFont(d, 8, cell.bold ? 'bold' : 'normal', cell.colour ?? INK);
+      const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i];
+      d.text(fit(d, cell.text, c.width * w - 10), tx, cy, { align: c.align === 'right' ? 'right' : 'left' });
+    });
+    d.setDrawColor('#eef3f8'); d.setLineWidth(0.4);
+    d.line(x, cy + 4, x + w, cy + 4);
+  }
+  return cy;
+}
+
+/* ============================================================ */
+export function drawPaceReport(d: Doc, raw: PaceReportData): void {
+  // sanitise once, at the boundary — everything below draws known-safe text
+  const data: PaceReportData = {
+    ...raw,
+    lines: raw.lines.map(l => ({ ...l, name: san(l.name), variant: l.variant ? san(l.variant) : undefined })),
+    byLine: raw.byLine.map(r => ({ ...r, name: san(r.name) })),
+    lateActions: raw.lateActions.map(a => ({ line: san(a.line), what: san(a.what), owner: san(a.owner), due: san(a.due) })),
+    todos: raw.todos.map(t => ({ ...t, what: san(t.what), who: san(t.who), when: san(t.when) })),
+    snags: raw.snags.map(s2 => ({ ...s2, problem: san(s2.problem), owner: san(s2.owner) })),
+    wins: raw.wins.map(w => ({
+      title: san(w.title), impact: san(w.impact), story: san(w.story),
+      who: san(w.who), where: san(w.where),
+    })),
+  };
+  const W = d.internal.pageSize.getWidth();        // 1190.55pt
+  const H = d.internal.pageSize.getHeight();       // 841.89pt
+  const M = 26;
+  const CW = W - 2 * M;
+
+  const dateLong = new Date(data.now).toLocaleDateString(undefined,
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  /* ================= PAGE 1 — LINE PACE ================= */
+  setFont(d, 8, 'bold', BRAND);
+  d.text('IMPROVEMENT INITIATIVE · WEEKLY EXECUTIVE REPORT', M, M + 8);
+  setFont(d, 24, 'bold', '#141b26');
+  d.text('Project Pace', M, M + 34);
+  setFont(d, 9, 'normal', INK2);
+  d.text('Lines 2A · 2B · 7 · 10 — packs per minute, the action tracker, the line walk', M, M + 48);
+
+  setFont(d, 7, 'bold', MUTED);
+  d.text('STATUS AS AT', W - M, M + 8, { align: 'right' });
+  setFont(d, 11, 'bold', '#141b26');
+  d.text(dateLong, W - M, M + 24, { align: 'right' });
+  setFont(d, 8, 'normal', MUTED);
+  d.text('Prepared for the General Manager', W - M, M + 37, { align: 'right' });
+
+  d.setDrawColor('#141b26'); d.setLineWidth(1.4);
+  d.line(M, M + 56, W - M, M + 56);
+
+  /* KPI tiles */
+  const tiles: [string, string, string, string][] = [
+    [`${data.atTarget}/${data.lines.length}`, 'Lines at target', 'latest week vs Q1',
+      data.atTarget === data.lines.length ? OK : data.atTarget === 0 ? DANGER : WARN],
+    [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, OK],
+    [String(data.openTotal), 'Still open', 'in flight', BRAND],
+    [String(data.late), 'Overdue', 'past their date', data.late > 0 ? DANGER : OK],
+    [String(data.openSnags), 'Open snags', 'on the line walk', data.openSnags > 0 ? WARN : OK],
+    [String(data.winsThisWeek), 'Wins this week', 'what worked', OK],
+  ];
+  const tGap = 8, tW = (CW - tGap * 5) / 6, tY = M + 68, tH = 54;
+  tiles.forEach(([n, label, sub, colour], i) => {
+    const tx = M + i * (tW + tGap);
+    d.setFillColor('#ffffff'); d.setDrawColor(LINE); d.setLineWidth(0.8);
+    d.roundedRect(tx, tY, tW, tH, 5, 5, 'FD');
+    d.setFillColor(colour);                                  // the status band
+    d.roundedRect(tx, tY, tW, 3, 1.5, 1.5, 'F');
+    setFont(d, 19, 'bold', colour === BRAND ? '#141b26' : colour);
+    d.text(n, tx + 10, tY + 26);
+    setFont(d, 8, 'bold', '#141b26');
+    d.text(label, tx + 10, tY + 38);
+    setFont(d, 6.5, 'normal', MUTED);
+    d.text(sub, tx + 10, tY + 47);
+  });
+
+  /* line pace */
+  const lpY = tY + tH + 12;
+  const lpH = H - M - lpY - 18;
+  const ruleY = panel(d, M, lpY, CW, lpH, '1', 'Line pace', 'Weekly packs per minute against the quarterly targets');
+  const cGap = 10;
+  const cW = (CW - 24 - cGap) / 2;
+  const cH = (lpY + lpH - ruleY - 20 - cGap) / 2;
+  data.lines.slice(0, 4).forEach((l, i) => {
+    const cx = M + 12 + (i % 2) * (cW + cGap);
+    const cy = ruleY + 10 + Math.floor(i / 2) * (cH + cGap);
+    chart(d, cx, cy, cW, cH, l);
+  });
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text('Project Pace · weekly executive report · page 1 of 2 — line pace', M, H - M + 6);
+  d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
+
+  /* ================= PAGE 2 — TRACKER, ATTENTION & MOVEMENT ================= */
+  d.addPage('a3', 'landscape');
+
+  const gap = 12;
+  const colW = (CW - gap * 2) / 3;
+  const rowH1 = (H - 2 * M - 18 - gap) * 0.56;
+  const rowH2 = (H - 2 * M - 18 - gap) - rowH1;
+  const r1y = M, r2y = M + rowH1 + gap;
+
+  /* 2 — action tracker */
+  const atRule = panel(d, M, r1y, colW, rowH1, '2', 'Action tracker', `${data.total} actions`);
+  const barY = atRule + 14, barW = colW - 24, barX = M + 12;
+  const seg = (v: number) => (data.total ? (v / data.total) * barW : 0);
+  d.setFillColor(SURF2); d.roundedRect(barX, barY, barW, 14, 3, 3, 'F');
+  let sx = barX;
+  ([[data.complete, OK], [data.openOnTrack, BRAND], [data.late, DANGER]] as [number, string][])
+    .forEach(([v, c]) => { const sw = seg(v); if (sw > 0.5) { d.setFillColor(c); d.rect(sx, barY, sw, 14, 'F'); sx += sw; } });
+
+  let lx = barX;
+  ([['Complete', data.complete, OK], ['Open', data.openOnTrack, BRAND], ['Overdue', data.late, DANGER]] as [string, number, string][])
+    .forEach(([lab, v, c]) => {
+      d.setFillColor(c); d.roundedRect(lx, barY + 22, 7, 7, 1.5, 1.5, 'F');
+      setFont(d, 7.5, 'normal', '#141b26');
+      d.text(lab, lx + 11, barY + 28.5);
+      const lw = d.getTextWidth(lab);
+      setFont(d, 7.5, 'bold', '#141b26');
+      d.text(String(v), lx + 14 + lw, barY + 28.5);
+      lx += 14 + lw + d.getTextWidth(String(v)) + 12;
+    });
+
+  table(d, barX, barY + 46, barW,
+    [{ head: 'Line', width: 0.34 }, { head: 'Open', width: 0.17, align: 'right' },
+     { head: 'Overdue', width: 0.21, align: 'right' }, { head: 'Complete', width: 0.28, align: 'right' }],
+    data.byLine.map(r => [
+      { text: r.name, bold: true },
+      { text: String(r.open) },
+      { text: String(r.late), colour: r.late > 0 ? DANGER : INK, bold: r.late > 0 },
+      { text: String(r.done) },
+    ]),
+    r1y + rowH1 - 10);
+
+  /* 3 — overdue & at risk (spans two columns) */
+  const odX = M + colW + gap, odW = colW * 2 + gap;
+  const odRule = panel(d, odX, r1y, odW, rowH1, '3', 'Overdue & at risk', 'The actions past their date — where help is needed');
+  const endY = table(d, odX + 12, odRule + 14, odW - 24,
+    [{ head: 'Line', width: 0.10 }, { head: 'Action', width: 0.55 },
+     { head: 'Owner', width: 0.22 }, { head: 'Due', width: 0.13, align: 'right' }],
+    data.lateActions.map(a => [
+      { text: a.line, bold: true },
+      { text: a.what },
+      { text: a.owner, colour: INK2 },
+      { text: a.due, colour: DANGER, bold: true },
+    ]),
+    r1y + rowH1 - 22);
+  if (data.lateMore > 0) {
+    setFont(d, 7, 'bold', DANGER);
+    d.text(`+${data.lateMore} more overdue — see the tracker`, odX + 12, endY + 16);
+  }
+
+  /* 4 — next steps */
+  const nsRule = panel(d, M, r2y, colW, rowH2, '4', 'Next steps', 'To do & waiting on');
+  table(d, M + 12, nsRule + 14, colW - 24,
+    [{ head: 'State', width: 0.20 }, { head: 'What', width: 0.44 }, { head: 'Who', width: 0.20 }, { head: 'When', width: 0.16 }],
+    data.todos.map(t => [
+      { text: t.state === 'waiting' ? 'Waiting' : 'To do', colour: t.state === 'waiting' ? WARN : ACCENT, bold: true },
+      { text: t.what },
+      { text: t.who, colour: INK2 },
+      { text: t.when, colour: INK2 },
+    ]),
+    r2y + rowH2 - 10);
+
+  /* 5 — line walk */
+  const lwX = M + colW + gap;
+  const lwRule = panel(d, lwX, r2y, colW, rowH2, '5', 'Line walk',
+    `${data.openSnags} open snag${data.openSnags === 1 ? '' : 's'}`);
+  let sy = lwRule + 18;
+  if (data.snags.length === 0) {
+    setFont(d, 8, 'normal', MUTED);
+    d.text('No open snags on the walk.', lwX + 12, sy);
+  }
+  for (const s of data.snags) {
+    if (sy + 14 > r2y + rowH2 - 10) break;
+    d.setFillColor(s.status === 'in_progress' ? WARN : DANGER);
+    d.circle(lwX + 16, sy - 2.5, 3, 'F');
+    setFont(d, 8, 'normal', '#141b26');
+    d.text(fit(d, s.problem, colW - 100), lwX + 24, sy);
+    setFont(d, 7, 'normal', MUTED);
+    d.text(`${s.owner} · ${s.days}d`, lwX + colW - 12, sy, { align: 'right' });
+    d.setDrawColor('#eef3f8'); d.setLineWidth(0.4);
+    d.line(lwX + 12, sy + 5, lwX + colW - 12, sy + 5);
+    sy += 17;
+  }
+
+  /* 6 — what worked */
+  const wwX = M + (colW + gap) * 2;
+  const wwRule = panel(d, wwX, r2y, colW, rowH2, '6', 'What worked', 'Wins to build on');
+  let wy = wwRule + 18;
+  if (data.wins.length === 0) {
+    setFont(d, 8, 'normal', MUTED);
+    d.text('No wins logged yet.', wwX + 12, wy);
+  }
+  for (const win of data.wins) {
+    if (wy + 34 > r2y + rowH2 - 8) break;
+    // impact pill on the right, title takes what is left
+    let pillW = 0;
+    if (win.impact) {
+      setFont(d, 7, 'bold', OK);
+      pillW = d.getTextWidth(win.impact) + 12;
+      d.setFillColor('#eaf5ee'); d.setDrawColor(OK); d.setLineWidth(0.6);
+      d.roundedRect(wwX + colW - 12 - pillW, wy - 8, pillW, 12, 6, 6, 'FD');
+      setFont(d, 7, 'bold', OK);
+      d.text(win.impact, wwX + colW - 12 - pillW / 2, wy, { align: 'center' });
+    }
+    setFont(d, 8.5, 'bold', '#141b26');
+    d.text(fit(d, win.title, colW - 30 - pillW), wwX + 12, wy);
+    wy += 11;
+    if (win.story) {
+      setFont(d, 7.5, 'normal', INK2);
+      for (const ln of d.splitTextToSize(win.story, colW - 24).slice(0, 2)) {
+        if (wy + 10 > r2y + rowH2 - 8) break;
+        d.text(ln as string, wwX + 12, wy); wy += 9;
+      }
+    }
+    setFont(d, 7, 'bold', ACCENT);
+    d.text(fit(d, [win.who, win.where].filter(Boolean).join(' · '), colW - 24), wwX + 12, wy);
+    wy += 15;
+  }
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text('Project Pace · weekly executive report · page 2 of 2 — tracker, attention & movement', M, H - M + 6);
+  d.text(`Generated ${new Date(data.now).toLocaleString(undefined,
+    { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+    W - M, H - M + 6, { align: 'right' });
+}
