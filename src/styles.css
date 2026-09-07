@@ -2182,26 +2182,24 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-bar-hint { font-size: 12px; color: var(--muted); max-width: 30ch; }
 
 /* a sheet — one A3 landscape page */
+/* One page. Fixed at exactly A3-landscape proportions (1600 x 1131) so the
+ * captured image drops onto the PDF page edge to edge — nothing letterboxed,
+ * nothing squashed. On screen the component scales it down to fit the window,
+ * which is what makes the preview a true picture of the download. */
+.exec-pagewrap { width: 100%; overflow: hidden; margin: 0 auto 22px; }
 .exec-sheet {
   background: #fff; color: #141b26;
   border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 20px 22px; margin: 0 auto 22px;
+  padding: 18px 26px; margin: 0;
   display: flex; flex-direction: column;
-  /* looks like an A3 landscape page on screen, but grows if content needs it
-   * rather than clipping — print pins it to a real A3 page (see @page below) */
-  width: 100%; min-height: 760px;
+  width: 1600px; height: 1131px;
+  transform-origin: top left;
 }
 
-/* compact the shared line chart for the report: the quarterly Q1–Q4 cells and
- * the per-chart legend are dropped — the KPI strip and the "vs Q1" delta already
- * carry that, and four full charts would overflow the page. */
-.exec-charts .pace-chart { padding: 8px 10px; }
-.exec-charts .pace-chart-title { font-size: 13px; }
-.exec-charts .pace-chart-sub { font-size: 10px; }
-.exec-charts .pace-quarters { display: none; }
-.exec-charts .pace-legend { display: none; }
-.exec-charts .pace-delta-n { font-size: 20px; }
+/* The charts are the app's own, drawn full size — legend and quarterly targets
+ * included. Shrinking them was what made the report look nothing like Faultline. */
+.exec-charts .pace-chart { padding: 10px 14px; }
 
 .exec-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #141b26; padding-bottom: 12px; }
 .exec-eyebrow { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand); }
@@ -2242,8 +2240,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-sec-sowhat { font-size: 11px; color: var(--muted); margin-left: auto; text-align: right; }
 
 /* page 1 body: line pace beside the tracker */
-.exec-body-1 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; margin-top: 12px; flex: 1; min-height: 0; }
-.exec-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exec-body-1 { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; flex: 1; min-height: 0; }
+.exec-box-lines { display: flex; flex-direction: column; }
+.exec-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; align-content: stretch; }
+.exec-charts .pace-chart { display: flex; flex-direction: column; }
+/* Cap the plot so four full charts — heads, legends and quarterly targets all
+ * intact — fit the page instead of the bottom row being cut off. The SVG keeps
+ * its own aspect ratio, so nothing is stretched. */
+.exec-charts .pace-chart svg { height: 258px; }
 
 /* stacked status bar */
 .exec-splitbar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--surface-2); gap: 2px; }
@@ -2274,7 +2278,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-pace-t { font-weight: 600; color: var(--muted); font-size: 10.5px; }
 
 /* page 2 body: four boxes in two columns */
-.exec-body-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; align-content: start; }
+.exec-body-2 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+  /* stretch, not start: the rows share the full page height so the report does
+   * not bunch at the top with half an A3 left blank underneath it */
+  grid-template-rows: 1.3fr 1fr;
+  flex: 1; align-content: stretch; margin-top: 10px; min-height: 0;
+}
+.exec-box-late { grid-column: span 2; }
+.exec-body-2 .exec-box { overflow: hidden; }
 
 .exec-list { width: 100%; border-collapse: collapse; font-size: 11.5px; }
 .exec-list th[scope=col] { text-align: left; font-size: 10px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); padding: 3px 6px; border-bottom: 1px solid var(--line); }
@@ -2314,24 +2326,22 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* while the PDF is being captured: force the full A3 desktop layout and flatten
  * the page cards, so the download looks the same whether it's built on a laptop
  * or a phone. Off-screen; restored the moment the capture finishes. */
-.exec-report.is-exporting { width: 1160px; max-width: none; padding: 0; }
 .exec-report.is-exporting .exec-bar { display: none; }
+.exec-report.is-exporting .exec-pagewrap { width: 1600px; height: auto !important; overflow: visible; margin: 0; }
 .exec-report.is-exporting .exec-sheet {
-  width: 1160px; min-height: 0; margin: 0 0 1px;
-  border: 0; border-radius: 0; box-shadow: none; padding: 22px 24px;
+  transform: none !important;
+  border: 0; border-radius: 0; box-shadow: none;
 }
+/* hold the full layout even when the report is built on a phone, where the
+ * responsive rules below would otherwise collapse it to one column */
 .exec-report.is-exporting .exec-stats { grid-template-columns: repeat(6, 1fr); }
-.exec-report.is-exporting .exec-body-1 { grid-template-columns: 1.35fr 1fr; }
-.exec-report.is-exporting .exec-body-2 { grid-template-columns: 1fr 1fr; }
+.exec-report.is-exporting .exec-body-1 { grid-template-columns: 1fr; }
+.exec-report.is-exporting .exec-body-2 { grid-template-columns: 1fr 1fr 1fr; }
+.exec-report.is-exporting .exec-box-late { grid-column: span 2; }
 .exec-report.is-exporting .exec-charts { grid-template-columns: 1fr 1fr; }
-.exec-report.is-exporting .exec-bar-hint { display: none; }
 
 /* on a phone the sheets stop pretending to be A3 and just stack readably */
 @media (max-width: 780px) {
-  .exec-sheet { aspect-ratio: auto; }
-  .exec-stats { grid-template-columns: repeat(3, 1fr); }
-  .exec-body-1, .exec-body-2 { grid-template-columns: 1fr; }
-  .exec-charts { grid-template-columns: 1fr 1fr; }
   .exec-bar-hint { display: none; }
 }
 

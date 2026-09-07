@@ -10,8 +10,9 @@
  * what". Two A3 landscape pages — page 1 the status at a glance, page 2 what
  * needs attention and what moved.
  *
- * Download = the browser's print-to-PDF. A named @page (see styles.css) sets A3
- * landscape, so "Save as PDF" comes out right without the GM touching a setting. */
+ * The download is built here, not handed to the print dialog: each sheet is laid
+ * out at exactly A3-landscape proportions, rendered to an image and dropped onto
+ * an A3 page. What is on screen is what lands in the PDF. */
 import { useEffect, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { PaceLineChart } from '../charts/PaceLineChart';
@@ -56,6 +57,13 @@ const dayMs = 86_400_000;
 /** The exec cut: one line per row, not the full workbook essay. */
 const clip = (s: string, n = 96) => (s.length > n ? s.slice(0, n).trimEnd() + '…' : s);
 
+/* The sheet is laid out at a fixed size in the exact proportions of A3
+ * landscape, so the captured image fills the PDF page edge to edge with no
+ * letterboxing and nothing distorted. On screen the same sheet is scaled down
+ * to fit the window, which makes the preview a true picture of the download. */
+const SHEET_W = 1600;
+const SHEET_H = 1131;
+
 function Stat({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'warn' | 'bad' | 'flat' }) {
   return (
     <div className={'exec-stat is-' + (tone ?? 'flat')}>
@@ -85,6 +93,24 @@ export function PaceExecReport() {
 
   const root = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const loading = pace.loading || ppm.loading || todos == null || wins == null || snags == null;
+
+  // Scale the fixed-size sheets down to whatever width the window gives us, so
+  // what is on screen is exactly what comes out of the PDF. Re-runs when the
+  // data lands, because the sheets (and the ref) only exist once it has.
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = root.current;
+    if (!el || loading) return;
+    const fit = () => {
+      const w = el.clientWidth;
+      if (w > 0) setScale(Math.min(1, w / SHEET_W));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [loading]);
 
   useEffect(() => {
     void (async () => {
@@ -115,19 +141,18 @@ export function PaceExecReport() {
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 20;
       for (let i = 0; i < sheets.length; i++) {
-        const canvas = await html2canvas(sheets[i], { scale: 2, backgroundColor: '#ffffff', logging: false });
+        // 2.5x of a 1600px sheet is ~4000px across an A3 page — about 240dpi,
+        // so the charts and the small print stay sharp when it is printed.
+        const canvas = await html2canvas(sheets[i], { scale: 2.5, backgroundColor: '#ffffff', logging: false });
         // JPEG, not PNG: a PNG of a full A3 page at 2× is ~12MB — two of them make
         // a 25MB file no mail server will send. On a white report JPEG at high
         // quality is indistinguishable and an order of magnitude smaller.
         const img = canvas.toDataURL('image/jpeg', 0.92);
-        const ratio = canvas.width / canvas.height;
-        let w = pageW - 2 * margin;
-        let h = w / ratio;
-        if (h > pageH - 2 * margin) { h = pageH - 2 * margin; w = h * ratio; }
+        // the sheet is already A3-shaped, so it fills the page edge to edge
+        // with no letterboxing and nothing squashed
         if (i > 0) pdf.addPage('a3', 'landscape');
-        pdf.addImage(img, 'JPEG', (pageW - w) / 2, (pageH - h) / 2, w, h);
+        pdf.addImage(img, 'JPEG', 0, 0, pageW, pageH);
       }
       const stamp = new Date().toISOString().slice(0, 10);
       pdf.save(`Project-Pace-report-${stamp}.pdf`);
@@ -140,7 +165,6 @@ export function PaceExecReport() {
     }
   };
 
-  const loading = pace.loading || ppm.loading || todos == null || wins == null || snags == null;
   if (loading) {
     return (
       <div className="exec-report">
@@ -175,7 +199,7 @@ export function PaceExecReport() {
   const lateAll = actions
     .filter(a => isLate(a, todayStart))
     .sort((a, b) => (dueMs(a) ?? Infinity) - (dueMs(b) ?? Infinity));
-  const LATE_SHOWN = 8;
+  const LATE_SHOWN = 10;
   const lateActions = lateAll.slice(0, LATE_SHOWN);
   const lateMore = lateAll.length - lateActions.length;
 
@@ -212,7 +236,8 @@ export function PaceExecReport() {
       </div>
 
       {/* ================= PAGE 1 — STATUS AT A GLANCE ================= */}
-      <section className="exec-sheet">
+      <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <header className="exec-head">
           <div>
             <p className="exec-eyebrow">Improvement initiative · weekly executive report</p>
@@ -238,12 +263,24 @@ export function PaceExecReport() {
 
         <div className="exec-body-1">
           <section className="exec-box exec-box-lines">
-            <SectionHead n="1" title="Line pace" sowhat="Weekly packs per minute against the Q1 target" />
+            <SectionHead n="1" title="Line pace" sowhat="Weekly packs per minute against the quarterly targets" />
             <div className="exec-charts">
               {ppm.lines.map(l => <PaceLineChart key={l.key} line={l} />)}
             </div>
           </section>
+        </div>
 
+        <footer className="exec-foot">
+          <span>Project Pace · weekly executive report · page 1 of 2 — line pace</span>
+          <span>The tracker workbook is the system of record; this report reads it.</span>
+        </footer>
+      </section>
+      </div>
+
+      {/* ================= PAGE 2 — TRACKER, ATTENTION & MOVEMENT ================= */}
+      <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-2">
           <section className="exec-box exec-box-actions">
             <SectionHead n="2" title="Action tracker" sowhat={`${actions.length} actions — where they stand`} />
 
@@ -276,17 +313,7 @@ export function PaceExecReport() {
               </tbody>
             </table>
           </section>
-        </div>
 
-        <footer className="exec-foot">
-          <span>Project Pace · weekly executive report · page 1 of 2 — status</span>
-          <span>The tracker workbook is the system of record; this report reads it.</span>
-        </footer>
-      </section>
-
-      {/* ================= PAGE 2 — ATTENTION & MOVEMENT ================= */}
-      <section className="exec-sheet">
-        <div className="exec-body-2">
           <section className="exec-box exec-box-late">
             <SectionHead n="3" title="Overdue & at risk" sowhat="The actions past their date — where help is needed" />
             {lateActions.length === 0 ? (
@@ -374,10 +401,11 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>Project Pace · weekly executive report · page 2 of 2 — attention & movement</span>
+          <span>Project Pace · weekly executive report · page 2 of 2 — tracker, attention & movement</span>
           <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>
+      </div>
     </div>
   );
 }
