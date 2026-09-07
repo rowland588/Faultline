@@ -21,10 +21,19 @@ export function weekLabel(index: number): string {
   return weekStart(index).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
+/** Which week we are in right now, counted from PACE_START (0-based). The grid
+ *  always runs up to here, so the week in progress is always there to type into
+ *  and nobody has to remember to add one every Monday. */
+export function currentWeekIndex(now = Date.now()): number {
+  return Math.max(0, Math.floor((now - PACE_START) / WEEK_MS));
+}
+
 export interface PaceLinesState {
   loading: boolean;
   lines: PaceLineRow[];
   weeks: number;
+  /** 0-based index of the week in progress — the grid never stops short of it. */
+  thisWeek: number;
   setPpm: (key: string, week: number, value: number | null) => Promise<void>;
   setTarget: (key: string, q: 'q1' | 'q2' | 'q3' | 'q4', value: number) => Promise<void>;
   addWeek: () => Promise<void>;
@@ -73,7 +82,13 @@ export function usePaceLines(): PaceLinesState {
     await putPaceLine(after);          // one row, not all four
   }, [lines]);
 
-  const weeks = lines.reduce((m, l) => Math.max(m, l.weekly.length), 0);
+  // Always reach the current week, even if nothing has been typed into it yet.
+  // Padding is for display only — nothing is written until a number is entered.
+  const thisWeek = currentWeekIndex();
+  const weeks = Math.max(lines.reduce((m, l) => Math.max(m, l.weekly.length), 0), thisWeek + 1);
+  const padded = lines.map(l => (l.weekly.length >= weeks
+    ? l
+    : { ...l, weekly: [...l.weekly, ...Array(weeks - l.weekly.length).fill(null)] as (number | null)[] }));
 
   const setPpm = useCallback(async (key: string, week: number, value: number | null) => {
     await patch(key, r => {
@@ -100,7 +115,7 @@ export function usePaceLines(): PaceLinesState {
     await write(lines.map(r => ({ ...r, weekly: r.weekly.slice(0, last) })));
   }, [lines, weeks, write]);
 
-  return { loading, lines, weeks, setPpm, setTarget, addWeek, removeLastWeek };
+  return { loading, lines: padded, weeks, thisWeek, setPpm, setTarget, addWeek, removeLastWeek };
 }
 
 /** Keep 2A, 2B, 7, 10 in the order the team says them, not alphabetically. */

@@ -44,9 +44,12 @@ function Cell({ value, onCommit, label }: {
 
 export function PpmEditor({ state, startOpen = false }: { state: PaceLinesState; startOpen?: boolean }) {
   const [open, setOpen] = useState(startOpen);
-  const { lines, weeks } = state;
+  const { lines, weeks, thisWeek } = state;
   const weekIdx = Array.from({ length: weeks }, (_, i) => i);
-  const lastEmpty = weeks > 0 && lines.every(l => l.weekly[weeks - 1] == null);
+  // only a trailing week BEYOND the one in progress can be removed — the current
+  // week is always shown, so offering to remove it would be a button that undoes
+  // itself the moment it is pressed
+  const lastEmpty = weeks > thisWeek + 1 && lines.every(l => l.weekly[weeks - 1] == null);
 
   return (
     <section className="ppm-editor">

@@ -11,8 +11,14 @@ export interface PaceAction { /** A stable id from an ID/UID column, when the sh
  *  (a formula off ROW()) this survives inserts, sorting and row reuse. */
   uid?: string; ref: string; priority: number; line: string; category: string; problem?: string; action?: string; who?: string; owner?: string; due?: string; status: string; flag: string; }
 
-/** Q1 starts August 2026; each quarter is 13 weeks. Weekly actuals run from W/C 3 Aug 2026. */
-export const PACE_START = Date.UTC(2026, 7, 3);
+/** Q1 starts August 2026; each quarter is 13 weeks.
+ *
+ * Weekly actuals run from W/C 27 JUL 2026. This was w/c 3 Aug, which put the
+ * sixth and last reading on w/c 7 Sep — the week currently in progress — so the
+ * tracker showed an actual for a week that had barely started. The six readings
+ * are the six COMPLETED weeks ending w/c 31 Aug; the current week is W7 and is
+ * empty until it is measured. */
+export const PACE_START = Date.UTC(2026, 6, 27);
 export const PACE_PERIOD = "14 Jul – 6 Aug 2026";
 /** The baseline upload every later week is measured against. */
 export const PACE_BASELINE_AT = Date.UTC(2026, 7, 6);
