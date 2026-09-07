@@ -22,6 +22,7 @@ import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 import { scopeLabel, caseNowMsWeek } from './CaseScreen';
 import { Wordmark } from '../ui/Logo';
 import type { Case, Workspace } from '../types';
+import { AccountMenu } from '../ui/AccountMenu';
 
 type Stage = 'working' | 'collecting' | 'proven' | 'failed' | 'closed';
 
@@ -145,6 +146,7 @@ export function PortfolioScreen() {
     <div className="wrap home pf-wrap">
       <div className="subhead">
         <button className="btn btn-ghost" onClick={() => nav('/')}>‹ Workspaces</button>
+        <AccountMenu />
       </div>
       <div className="home-head" style={{ marginTop: 4 }}>
         <Wordmark />

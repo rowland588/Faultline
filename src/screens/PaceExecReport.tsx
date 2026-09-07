@@ -15,6 +15,7 @@
  * an A3 page. What is on screen is what lands in the PDF. */
 import { useEffect, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
+import { AccountMenu } from '../ui/AccountMenu';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
@@ -267,6 +268,7 @@ export function PaceExecReport() {
           <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
             {saving ? 'Building PDF…' : 'Download PDF'}
           </button>
+          <AccountMenu />
         </div>
       </div>
 

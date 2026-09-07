@@ -16,6 +16,7 @@ import { PaceMeeting } from './PaceMeeting';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
+import { AccountMenu } from '../ui/AccountMenu';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
@@ -135,9 +136,11 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
           <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, every action in flight, and the snag walk of the line.</p>
         </div>
         <div className="pace-head-actions">
+          {/* the way out reads as a way out — same '‹' the rest of the app uses */}
+          <button className="btn btn-ghost pace-out" onClick={() => nav('/')}>‹ Workspaces</button>
           <button className="btn btn-ghost" onClick={() => nav('/pace-report')}>GM report</button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
-          <button className="btn btn-ghost" onClick={() => nav('/')}>Home</button>
+          <AccountMenu />
         </div>
       </header>
 
