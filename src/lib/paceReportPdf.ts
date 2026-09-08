@@ -35,6 +35,11 @@ export interface PaceReportData {
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
+  /** Finished lines and what came of them. A Next step marked Done used to drop
+   *  out of the report entirely, taking its outcome with it — which is the one
+   *  part the GM most wants to read. */
+  completed: { what: string; who: string; outcome: string }[];
+  completedMore: number;
   snags: { problem: string; owner: string; days: number; status: string }[];
   wins: { title: string; impact: string; story: string; who: string; where: string }[];
 }
@@ -248,6 +253,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     byLine: raw.byLine.map(r => ({ ...r, name: san(r.name) })),
     lateActions: raw.lateActions.map(a => ({ line: san(a.line), what: san(a.what), owner: san(a.owner), due: san(a.due) })),
     todos: raw.todos.map(t => ({ ...t, what: san(t.what), who: san(t.who), when: san(t.when) })),
+    completed: raw.completed.map(c => ({ what: san(c.what), who: san(c.who), outcome: san(c.outcome) })),
     snags: raw.snags.map(s2 => ({ ...s2, problem: san(s2.problem), owner: san(s2.owner) })),
     wins: raw.wins.map(w => ({
       title: san(w.title), impact: san(w.impact), story: san(w.story),
@@ -382,8 +388,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   /* 4 — next steps */
-  const nsRule = panel(d, M, r2y, colW, rowH2, '4', 'Next steps', 'To do & waiting on');
-  table(d, M + 12, nsRule + 14, colW - 24,
+  const nsRule = panel(d, M, r2y, colW, rowH2, '4', 'Next steps', 'To do, waiting, and what came of the finished ones');
+  const nsBottom = r2y + rowH2 - 10;
+  let ny = table(d, M + 12, nsRule + 14, colW - 24,
     [{ head: 'State', width: 0.20 }, { head: 'What', width: 0.44 }, { head: 'Who', width: 0.20 }, { head: 'When', width: 0.16 }],
     data.todos.map(t => [
       { text: t.state === 'waiting' ? 'Waiting' : 'To do', colour: t.state === 'waiting' ? WARN : ACCENT, bold: true },
@@ -391,7 +398,39 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       { text: t.who, colour: INK2 },
       { text: t.when, colour: INK2 },
     ]),
-    r2y + rowH2 - 10);
+    nsBottom);
+
+  /* Finished, with the outcome — the part that used to vanish the moment a line
+   * was ticked off. Two lines each so the verdict has room to be read. */
+  if (data.completed.length && ny + 30 < nsBottom) {
+    ny += 18;
+    setFont(d, 6.5, 'bold', OK);
+    d.text('DONE — WHAT CAME OF IT', M + 12, ny);
+    ny += 4;
+    d.setDrawColor(LINE); d.setLineWidth(0.6);
+    d.line(M + 12, ny, M + colW - 12, ny);
+    for (const c of data.completed) {
+      if (ny + 24 > nsBottom) break;
+      ny += 12;
+      setFont(d, 8, 'bold', '#141b26');
+      d.text(fit(d, c.what, colW - 70), M + 12, ny);
+      if (c.who) {
+        setFont(d, 7, 'normal', ACCENT);
+        d.text(fit(d, c.who, 52), M + colW - 12, ny, { align: 'right' });
+      }
+      if (c.outcome) {
+        ny += 9;
+        setFont(d, 7.5, 'normal', INK2);
+        d.text(fit(d, c.outcome, colW - 26), M + 12, ny);
+      }
+      ny += 4;
+    }
+    if (data.completedMore > 0 && ny + 12 < nsBottom) {
+      ny += 11;
+      setFont(d, 7, 'bold', MUTED);
+      d.text(`+${data.completedMore} more finished`, M + 12, ny);
+    }
+  }
 
   /* 5 — line walk */
   const lwX = M + colW + gap;

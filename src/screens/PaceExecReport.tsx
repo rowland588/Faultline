@@ -189,6 +189,15 @@ export function PaceExecReport() {
     .sort((a, b) => (a.state === b.state ? 0 : a.state === 'todo' ? -1 : 1))
     .slice(0, 9);
 
+  // Finished lines, most recently touched first. These used to be filtered out
+  // of the report entirely, so a line you ticked off took its outcome with it.
+  const DONE_SHOWN = 4;
+  const doneAll = todos
+    .filter(t => t.state === 'done')
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+  const doneTodos = doneAll.slice(0, DONE_SHOWN);
+  const doneMore = doneAll.length - doneTodos.length;
+
   const byLine = LINE_BUCKETS
     .map(name => {
       const mine = actions.filter(a => bucketOf(a) === name);
@@ -223,6 +232,12 @@ export function PaceExecReport() {
       due: fmtShort(a.due),
     })),
     lateMore,
+    completed: doneTodos.map(t => ({
+      what: t.what || '—',
+      who: t.who || '',
+      outcome: t.outcome || t.notes || '',
+    })),
+    completedMore: doneMore,
     todos: openTodos.map(t => ({
       state: t.state === 'waiting' ? 'waiting' : 'todo',
       what: [t.what || '—', t.where].filter(Boolean).join(' · '),
@@ -360,7 +375,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-next">
-            <SectionHead n="4" title="Next steps" sowhat="What still needs doing, and what we are waiting on" />
+            <SectionHead n="4" title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
             {openTodos.length === 0 ? (
               <p className="exec-empty">Nothing outstanding logged.</p>
             ) : (
@@ -377,6 +392,28 @@ export function PaceExecReport() {
                   ))}
                 </tbody>
               </table>
+            )}
+
+            {/* Finished lines and their outcome. A Next step marked Done used to
+                drop out of the report entirely, taking the outcome with it. */}
+            {doneTodos.length > 0 && (
+              <div className="exec-done">
+                <p className="exec-done-h">Done — what came of it</p>
+                <ul className="exec-done-list">
+                  {doneTodos.map(t => (
+                    <li key={t.id}>
+                      <div className="exec-done-top">
+                        <span className="exec-done-what">{clip(t.what || '—', 58)}</span>
+                        {t.who && <span className="exec-done-who">{clip(t.who, 18)}</span>}
+                      </div>
+                      {(t.outcome || t.notes) && (
+                        <p className="exec-done-out">{clip(t.outcome || t.notes || '', 110)}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {doneMore > 0 && <p className="exec-more" style={{ color: 'var(--muted)' }}>+{doneMore} more finished</p>}
+              </div>
             )}
           </section>
 
