@@ -267,7 +267,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const t = l as PaceTodoRow;
       return {
-        id: t.id, owner_id: fallbackOwner, project_id: t.projectId ?? null,
+        id: t.id, owner_id: fallbackOwner, project_id: t.projectId ?? null, line_id: t.lineId ?? null,
         what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
         state: t.state, media: t.media ?? [], notes: t.notes ?? '', outcome: t.outcome ?? '',
         created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
@@ -275,6 +275,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     },
     fromRow: (r) => ({
       id: r.id as string, projectId: (r.project_id as string) ?? undefined,
+      lineId: (r.line_id as string) ?? undefined,
       what: (r.what as string) ?? '', where: (r.where_at as string) ?? '', why: (r.why as string) ?? '',
       who: (r.who as string) ?? '', when: (r.when_at as string) ?? '',
       state: (r.state as PaceTodoRow['state']) ?? 'todo',
@@ -291,13 +292,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const w = l as PaceWinRow;
       return {
-        id: w.id, owner_id: fallbackOwner, project_id: w.projectId ?? null,
+        id: w.id, owner_id: fallbackOwner, project_id: w.projectId ?? null, line_id: w.lineId ?? null,
         title: w.title, story: w.story, where_at: w.where, who: w.who, impact: w.impact,
         created_at: w.createdAt, updated_at: w.updatedAt, deleted_at: null,
       };
     },
     fromRow: (r) => ({
       id: r.id as string, projectId: (r.project_id as string) ?? undefined,
+      lineId: (r.line_id as string) ?? undefined,
       title: (r.title as string) ?? '', story: (r.story as string) ?? '',
       where: (r.where_at as string) ?? '', who: (r.who as string) ?? '', impact: (r.impact as string) ?? '',
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),

@@ -61,12 +61,13 @@ function Card({ win, onPatch, onDelete }: {
   );
 }
 
-export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID }: { projectId?: string } = {}) {
+/** `lineId` narrows the log to one line's own wins — see PaceNextSteps. */
+export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID, lineId }: { projectId?: string; lineId?: string } = {}) {
   const [wins, setWins] = useState<PaceWinRow[]>([]);
   const [loading, setLoading] = useState(true);
   const root = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async () => { setWins(await listPaceWins(projectId)); setLoading(false); }, [projectId]);
+  const load = useCallback(async () => { setWins(await listPaceWins(projectId, lineId)); setLoading(false); }, [projectId, lineId]);
 
   // A win logged on the laptop appears here without a reload — held back while
   // someone is typing in a card, so a pull can't yank a half-written word.
@@ -87,7 +88,7 @@ export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID }: { projectId?: st
 
   const add = async () => {
     const w: PaceWinRow = {
-      id: uid(), projectId, title: '', story: '', where: '', who: '', impact: '',
+      id: uid(), projectId, lineId, title: '', story: '', where: '', who: '', impact: '',
       createdAt: Date.now(), updatedAt: Date.now(),
     };
     setWins([w, ...wins]);                            // newest on top

@@ -2526,8 +2526,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   font-size: 12.5px; font-weight: 800; color: var(--ink); text-align: center;
 }
 .pset-q { width: 58px; text-align: center; }
-.pset-actions { width: 190px; white-space: nowrap; text-align: right; }
-.pset-ws { padding: 5px 10px; font-size: 12.5px; }
+.pset-actions { width: 250px; white-space: nowrap; text-align: right; }
+.pset-ws { padding: 5px 9px; font-size: 12px; }
+.pset-ws + .pset-ws { margin-left: 5px; }
 .pset-x {
   width: 26px; height: 26px; margin-left: 6px; padding: 0;
   border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
@@ -2580,3 +2581,79 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 /* the project lead, on the report's masthead */
 .exec-lead { display: block; margin-top: 4px; font-size: 11px; font-weight: 800; color: var(--brand); }
+
+/* ============================================================
+   LINES — each owner's pack, and the roll-up that reads them
+   ============================================================ */
+
+/* the cards on the project's Lines lens — the way in to a line's own pack */
+.lc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.lc {
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.lc-open {
+  flex: 1; display: block; width: 100%; text-align: left;
+  padding: 14px 16px 12px; border: 0; background: none; cursor: pointer; font: inherit; color: inherit;
+}
+.lc-open:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.lc-head { display: flex; align-items: baseline; gap: 9px; }
+.lc-key {
+  padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 12%, transparent);
+  font-size: 12.5px; font-weight: 800; color: var(--ink);
+}
+.lc-name { flex: 1; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.lc-ppm { font-size: 22px; font-weight: 800; color: var(--muted); }
+.lc-ppm.is-good { color: var(--ok); }
+.lc-ppm.is-bad { color: var(--danger); }
+.lc-ppm-u { margin-left: 3px; font-size: 10px; font-weight: 700; color: var(--muted); }
+.lc-people { margin: 8px 0 0; font-size: 13px; color: var(--ink); }
+.lc-role {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); margin: 0 5px 0 10px;
+}
+.lc-people .lc-role:first-child { margin-left: 0; }
+.lc-target { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+.lc-pips {
+  /* four across, so they read as one row of four numbers rather than three and
+     an orphan — the wrap was making an even set look uneven */
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 11px;
+}
+.lc-pip {
+  display: flex; flex-direction: column; min-width: 0; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 9px;
+  font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.1;
+}
+.lc-pip.is-warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.lc-pip.is-good { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
+.lc-pip-l {
+  margin-top: 2px; font-size: 9px; font-weight: 700; letter-spacing: 0.01em;
+  color: var(--muted); text-transform: uppercase; line-height: 1.25;
+}
+.lc-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 16px 10px; border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--line) 22%, transparent);
+}
+.pace-lines-foot { margin-top: 14px; }
+
+/* a line's pack shows one chart, so it should not be stretched to fill a row
+   meant for four */
+.pace-charts.is-one { grid-template-columns: minmax(0, 620px); }
+
+/* the roll-up table carries more columns than the old three-bucket one */
+.exec-matrix.is-rollup { font-size: 11px; }
+.exec-matrix.is-rollup td, .exec-matrix.is-rollup th[scope=row] { padding: 5px 4px; }
+.exec-matrix .exec-mowner { text-align: left; color: var(--ink-2); font-size: 10.5px; }
+.exec-matrix th[scope=col]:nth-child(2) { text-align: left; }
+.exec-matrix .exec-mppm { font-weight: 800; color: var(--muted); }
+.exec-matrix .exec-mppm.is-good { color: var(--ok); }
+.exec-matrix .exec-mppm.is-bad { color: var(--danger); }
+.exec-matrix td.is-warn { color: var(--warn); font-weight: 800; }
+.exec-matrix td.is-good { color: var(--ok); font-weight: 800; }
+
+/* the report's chart grid follows how many lines it covers — a line's own deck
+   has one, and one chart in a four-up grid is three-quarters of a blank A3 */
+.exec-charts.is-one { grid-template-columns: 1fr; }
+.exec-charts.is-two { grid-template-columns: 1fr; }

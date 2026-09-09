@@ -7,12 +7,13 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'paceReport';
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport';
 
 export interface Route {
   name: RouteName;
   wsId?: ID;
-  id?: string;          // sub-entity id (segment/:id, asset/:id)
+  id?: string;          // sub-entity id (segment/:id, asset/:id, project/:id)
+  lineId?: string;      // the line within a project (project/:id/line/:lineId)
   query: URLSearchParams;
 }
 
@@ -48,9 +49,13 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the GM's weekly download
   if (segs[0] === 'project' && segs[1]) {
-    // /project/:id and /project/:id/setup — the project itself, and the page
-    // where its lines and people are managed.
+    // /project/:id            the project itself
+    // /project/:id/setup      where its lines and people are managed
+    // /project/:id/line/:lid  one line's own pack
     const id = decodeURIComponent(segs[1]);
+    if (segs[2] === 'line' && segs[3]) {
+      return { name: 'projectLine', id, lineId: decodeURIComponent(segs[3]), query };
+    }
     return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
   }
   if (segs[0] === 'w' && segs[1]) {

@@ -16,6 +16,7 @@ import { PortfolioScreen } from './screens/PortfolioScreen';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
 import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
+import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
@@ -56,6 +57,7 @@ export function Router() {
     return <ProjectsScreen />;
   }
   if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
+  if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;
   if (route.name === 'projectDashboard') return <ProjectDashboardScreen projectId={route.id!} />;
 
   // The GM's weekly report — its own route so the print output carries no app

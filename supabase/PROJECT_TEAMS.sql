@@ -121,6 +121,15 @@ alter table public.pace_ppm add column if not exists sort             integer no
 -- phone rather than the phone pushing it back
 alter table public.pace_ppm add column if not exists deleted_at       bigint;
 
+-- A next step or a win can belong to one LINE rather than the whole project:
+-- that is what gives each line owner their own pack. NULL means it spans the
+-- project, which is what everything logged before lines had packs of their own
+-- reads as.
+alter table public.pace_todos add column if not exists line_id text;
+alter table public.pace_wins  add column if not exists line_id text;
+create index if not exists idx_pace_todos_line on public.pace_todos (line_id);
+create index if not exists idx_pace_wins_line  on public.pace_wins (line_id);
+
 create index if not exists idx_pace_ppm_project       on public.pace_ppm (project_id);
 create index if not exists idx_pace_todos_project     on public.pace_todos (project_id);
 create index if not exists idx_pace_wins_project      on public.pace_wins (project_id);
@@ -201,6 +210,11 @@ select 'line columns on pace_ppm (7 expected)',
        (select count(*)::text || ' of 7 ✓' from information_schema.columns
          where table_schema='public' and table_name='pace_ppm'
            and column_name in ('project_id','line_owner','line_owner_email','sponsor','sponsor_email','workspace_id','sort'))
+union all
+select 'line_id on next steps and wins (2 expected)',
+       (select count(*)::text || ' of 2 ✓' from information_schema.columns
+         where table_schema='public' and column_name='line_id'
+           and table_name in ('pace_todos','pace_wins'))
 union all
 select 'project_id on the pace tables (4 expected)',
        (select count(*)::text || ' of 4 ✓' from information_schema.columns

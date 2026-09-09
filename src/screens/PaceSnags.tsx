@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, deleteSnag, deleteSnagAsset } from '../db';
-import { usePaceWorkspace } from '../lib/usePaceWorkspace';
+import { usePaceWorkspace, useLineWorkspace } from '../lib/usePaceWorkspace';
 import { useBlobUrl } from '../snag/useBlobUrl';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
@@ -74,8 +74,16 @@ function PinnedSnag({ snag, asset, onOpen, onDelete }: { snag: Snag; asset?: Sna
   );
 }
 
-export function PaceSnags({ projectId, projectName }: { projectId?: string; projectName?: string } = {}) {
-  const { wsId, loading, ensure } = usePaceWorkspace(projectId, projectName);
+/** Whose walk this is. A project films the plant; a line films itself, into a
+ *  workspace of its own — `line` is what switches between the two without the
+ *  screen below needing to know which it is looking at. */
+export function PaceSnags({ projectId, projectName, line }: {
+  projectId?: string; projectName?: string;
+  line?: { workspaceId?: string; name: string; attach: (wsId: string) => Promise<void> };
+} = {}) {
+  const projectWs = usePaceWorkspace(projectId, projectName);
+  const lineWs = useLineWorkspace(line?.workspaceId, line?.name ?? '', line?.attach ?? (async () => {}));
+  const { wsId, loading, ensure } = line ? lineWs : projectWs;
   const [segments, setSegments] = useState<Segment[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);

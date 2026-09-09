@@ -20,6 +20,7 @@ import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
+import { actionsForLine } from '../lib/paceLineMatch';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEFAULT_PROJECT_ID,
   type PaceTodoRow, type PaceWinRow } from '../db';
 import type { Snag } from '../snag/types';
@@ -40,15 +41,6 @@ const isLate = (a: PaceAction, todayStart: number) =>
 /** The tracker records actions against "Line 2 / 7 / 10 / All lines", not the
  *  2A/2B split the ppm uses — so actions are bucketed on the workbook's own
  *  vocabulary. 10 is checked before 2 so "Line 10" never falls into "Line 2". */
-const LINE_BUCKETS = ['Line 2', 'Line 7', 'Line 10', 'All / other'] as const;
-const bucketOf = (a: PaceAction): (typeof LINE_BUCKETS)[number] => {
-  const l = norm(a.line).toLowerCase();
-  if (l.includes('10')) return 'Line 10';
-  if (l.includes('7')) return 'Line 7';
-  if (l.includes('2')) return 'Line 2';
-  return 'All / other';
-};
-
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const fmtShort = (s?: string) => {
@@ -92,13 +84,20 @@ export function PaceExecReport() {
   // with, so the link that has always been #/pace-report still works.
   const route = useRoute();
   const projectId = route.query.get('project') || DEFAULT_PROJECT_ID;
+  // ?line= turns this into ONE LINE'S deck — the owner's own A3, same drawer,
+  // same layout, scoped to their line. Without it, it is the GM's, which is the
+  // roll-up of every line's.
+  const lineId = route.query.get('line') || undefined;
   const { loading: projLoading, project } = useProject(projectId);
 
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
+  const line = lineId ? ppm.lines.find(l => l.id === lineId) : undefined;
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
   const [snags, setSnags] = useState<Snag[] | null>(null);
+  /** Open snags per line, so the roll-up can say WHOSE they are. */
+  const [snagsByLine, setSnagsByLine] = useState<Map<string, Snag[]>>(new Map());
 
   const root = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
@@ -121,14 +120,29 @@ export function PaceExecReport() {
     return () => ro.disconnect();
   }, [loading]);
 
+  // Which walks to read. A line's deck reads its own; the project's reads the
+  // project walk AND every line's — that is the report pulling from all the
+  // others rather than from one workspace that only ever had the plant in it.
+  const walkSig = ppm.lines.map(l => `${l.id}:${l.workspaceId ?? ''}`).join(',');
   useEffect(() => {
     void (async () => {
-      setTodos(await listPaceTodos(projectId));
-      setWins(await listPaceWins(projectId));
+      setTodos(await listPaceTodos(projectId, lineId));
+      setWins(await listPaceWins(projectId, lineId));
+
+      const byLineSnags = new Map<string, Snag[]>();
+      for (const part of walkSig.split(',').filter(Boolean)) {
+        const i = part.indexOf(':');
+        const id = part.slice(0, i), ws = part.slice(i + 1);
+        if (ws) byLineSnags.set(id, await snagsForWorkspace(ws));
+      }
+      setSnagsByLine(byLineSnags);
+
+      if (lineId) { setSnags(byLineSnags.get(lineId) ?? []); return; }
       const wsId = await getPaceWorkspaceId(projectId);
-      setSnags(wsId ? await snagsForWorkspace(wsId) : []);
+      const walk = wsId ? await snagsForWorkspace(wsId) : [];
+      setSnags([...walk, ...[...byLineSnags.values()].flat()]);
     })();
-  }, [projectId]);
+  }, [projectId, lineId, walkSig]);
 
   /* Draw the PDF from the numbers — see lib/paceReportPdf.
    *
@@ -147,7 +161,8 @@ export function PaceExecReport() {
       // The file lands in someone's inbox on its own, so its NAME has to say
       // which project it is — "report.pdf" from three projects is three files
       // nobody can tell apart.
-      const slug = (project?.name ?? 'Project').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Project';
+      const name = line ? `${project?.name ?? 'Project'} ${line.name}` : (project?.name ?? 'Project');
+      const slug = name.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Project';
       pdf.save(`${slug}-report-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
       console.error('PDF export failed', err);
@@ -183,7 +198,11 @@ export function PaceExecReport() {
 
   const now = Date.now();
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
-  const actions = pace.actions;
+  // A line's deck shows that line's slice of the tracker; the project's shows
+  // the lot.
+  const actions = actionsForLine(pace.actions, line?.key);
+  // Which lines this report covers — one, or all of them.
+  const reportLines = line ? [line] : ppm.lines;
 
   const complete = actions.filter(isDone).length;
   const late = actions.filter(a => isLate(a, todayStart)).length;
@@ -191,16 +210,43 @@ export function PaceExecReport() {
   const openTotal = openOnTrack + late;
   const pctDone = actions.length ? Math.round((complete / actions.length) * 100) : 0;
 
-  const atTarget = ppm.lines.filter(l => {
+  const atTarget = reportLines.filter(l => {
     const seen = l.weekly.filter((v): v is number => v != null);
     return seen.length > 0 && seen[seen.length - 1] >= l.q1;
   }).length;
 
-  // The lines this project actually runs, read off the project rather than
+  // The lines this report actually covers, read off the project rather than
   // written into the page — so adding a line changes what the report says it covers.
-  const lineList = ppm.lines.map(l => l.key).join(' · ');
+  const lineList = reportLines.map(l => l.key).join(' · ');
+
+  /* What this report is CALLED, worked out once.
+   *
+   * The page and the PDF both read these. They used to be written out twice —
+   * once in the JSX, once in reportData — and the moment a line's own deck
+   * arrived the two disagreed: the file said "Line 7" while the page it is
+   * supposed to be a picture of still said "Project Pace". One definition is
+   * the only way that stays true. */
+  const title = line ? line.name : (project?.name ?? 'Project');
+  const lead = line ? line.owner : project?.lead;
+  const leadRole = line ? 'Line owner' : 'Project lead';
+  const subtitle = line
+    ? [line.owner && `Owner ${line.owner}`, line.sponsor && `Sponsor ${line.sponsor}`,
+       `part of ${project?.name ?? 'the project'}`].filter(Boolean).join(' · ')
+    : lineList
+      ? `${lineList} — packs per minute, the action tracker, the line walk`
+      : 'Packs per minute, the action tracker, the line walk';
 
   const openSnags = snags.filter(s => s.status !== 'closed');
+  /* Which line each snag came off. The project's report merges every line's
+   * walk, so a snag with no line against it is a problem the GM cannot route.
+   * On a line's own deck it stays blank — the masthead already said whose. */
+  const snagLine = new Map<string, string>();
+  if (!line) {
+    for (const [id, list] of snagsByLine) {
+      const name = ppm.lines.find(l => l.id === id)?.name ?? '';
+      for (const sn of list) snagLine.set(sn.id, name);
+    }
+  }
   const winsThisWeek = wins.filter(w => now - w.createdAt <= 7 * dayMs);
   const showWins = (winsThisWeek.length ? winsThisWeek : wins).slice(0, 4);
 
@@ -226,18 +272,33 @@ export function PaceExecReport() {
   const doneTodos = doneAll.slice(0, DONE_SHOWN);
   const doneMore = doneAll.length - doneTodos.length;
 
-  const byLine = LINE_BUCKETS
-    .map(name => {
-      const mine = actions.filter(a => bucketOf(a) === name);
-      return {
-        name,
-        total: mine.length,
-        done: mine.filter(isDone).length,
-        late: mine.filter(a => isLate(a, todayStart)).length,
-        open: mine.filter(a => !isDone(a)).length,
-      };
-    })
-    .filter(r => r.total > 0);
+  /* THE ROLL-UP. One row per line, and every number in it comes from that
+   * line's own pack — the actions its owner is carrying, the next steps they
+   * typed, the walk they filmed, the wins they logged. The GM reads one page;
+   * it is fed by everybody else's.
+   *
+   * It used to bucket tracker actions into three fixed names ('Line 2', 'Line
+   * 7', 'Line 10'), which could only ever describe the workbook. Now it
+   * describes the project. */
+  const byLine = reportLines.map(l => {
+    const mine = actionsForLine(pace.actions, l.key);
+    const lineTodos = todos.filter(t => t.lineId === l.id);
+    const seen = l.weekly.filter((v): v is number => v != null);
+    return {
+      name: l.name,
+      owner: l.owner ?? '—',
+      total: mine.length,
+      done: mine.filter(isDone).length,
+      late: mine.filter(a => isLate(a, todayStart)).length,
+      open: mine.filter(a => !isDone(a)).length,
+      nextOpen: lineTodos.filter(t => t.state !== 'done').length,
+      nextDone: lineTodos.filter(t => t.state === 'done').length,
+      snags: (snagsByLine.get(l.id) ?? []).filter(s => s.status !== 'closed').length,
+      wins: wins.filter(w => w.lineId === l.id).length,
+      ppm: seen.length ? seen[seen.length - 1] : null,
+      target: l.q1,
+    };
+  });
 
   const seg = (count: number) => (openTotal + complete ? (count / actions.length) * 100 : 0);
 
@@ -245,12 +306,10 @@ export function PaceExecReport() {
    * looks at the DOM, so this is the whole contract between screen and file. */
   const reportData = (): PaceReportData => ({
     now,
-    title: project?.name ?? 'Project',
-    lead: project?.lead,
-    subtitle: lineList
-      ? `${lineList} — packs per minute, the action tracker, the line walk`
-      : 'Packs per minute, the action tracker, the line walk',
-    lines: ppm.lines.map(l => ({
+    // A line's deck is titled for the LINE and led by its owner — it is that
+    // person's page to hand over. The project's is titled for the project.
+    title, lead, leadRole, subtitle,
+    lines: reportLines.map(l => ({
       key: l.key, name: l.name, variant: l.variant,
       owner: l.owner, sponsor: l.sponsor,
       q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4, weekly: l.weekly,
@@ -258,7 +317,7 @@ export function PaceExecReport() {
     atTarget, pctDone,
     complete, total: actions.length, openTotal, openOnTrack, late,
     openSnags: openSnags.length, winsThisWeek: winsThisWeek.length,
-    byLine: byLine.map(r => ({ name: r.name, open: r.open, late: r.late, done: r.done, total: r.total })),
+    byLine,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -287,6 +346,7 @@ export function PaceExecReport() {
         owner: s.owner || 'unassigned',
         days: Math.max(0, Math.floor((now - s.raisedAt) / dayMs)),
         status: s.status,
+        line: snagLine.get(s.id) ?? '',
       })),
     wins: showWins.map(w => ({
       title: w.title || 'Win', impact: w.impact || '', story: w.story || '',
@@ -297,7 +357,10 @@ export function PaceExecReport() {
   return (
     <div className="exec-report" ref={root}>
       <div className="exec-bar no-print">
-        <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>← Back to {project?.name ?? 'the project'}</button>
+        <button className="btn btn-ghost"
+          onClick={() => nav(line ? `/project/${projectId}/line/${line.id}` : `/project/${projectId}`)}>
+          ← Back to {line ? line.name : (project?.name ?? 'the project')}
+        </button>
         <div className="exec-bar-r">
           <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
           <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
@@ -312,23 +375,33 @@ export function PaceExecReport() {
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <header className="exec-head">
           <div>
-            <p className="exec-eyebrow">Improvement initiative · weekly executive report</p>
-            <h1 className="exec-title">{project?.name ?? 'Project'}</h1>
-            <p className="exec-lede">
-              {lineList ? `${lineList} — ` : ''}packs per minute, the action tracker, the line walk
+            <p className="exec-eyebrow">
+              {line ? `${project?.name ?? 'Project'} · line report` : 'Improvement initiative · weekly executive report'}
             </p>
+            <h1 className="exec-title">{title}</h1>
+            <p className="exec-lede">{subtitle}</p>
           </div>
           <div className="exec-head-meta">
             <span className="exec-asat">Status as at</span>
             <span className="exec-asat-d">{fmtDate(now)}</span>
             <span className="exec-forwhom">Prepared for the General Manager</span>
-            {project?.lead && <span className="exec-lead">Project lead · {project.lead}</span>}
+            {lead && <span className="exec-lead">{leadRole} · {lead}</span>}
           </div>
         </header>
 
         <div className="exec-stats">
-          <Stat n={`${atTarget}/${ppm.lines.length}`} label="Lines at target" sub="latest week vs Q1"
-            tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
+          {/* On a line's own deck "0/1 lines at target" is a riddle; the number
+              the owner is judged on is the reading itself, against target. */}
+          {line
+            ? (() => {
+                const last = [...line.weekly].reverse().find((v): v is number => v != null) ?? null;
+                const d = last == null ? null : last - line.q1;
+                return <Stat n={last == null ? '—' : String(last)} label="ppm latest"
+                  sub={d == null ? `Q1 target ${line.q1}` : `${d >= 0 ? '+' : ''}${d} vs Q1 target ${line.q1}`}
+                  tone={d == null ? 'flat' : d >= 0 ? 'good' : 'bad'} />;
+              })()
+            : <Stat n={`${atTarget}/${reportLines.length}`} label="Lines at target" sub="latest week vs Q1"
+                tone={atTarget === reportLines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />}
           <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="good" />
           <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
           <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'good'} />
@@ -339,14 +412,16 @@ export function PaceExecReport() {
         <div className="exec-body-1">
           <section className="exec-box exec-box-lines">
             <SectionHead n="1" title="Line pace" sowhat="Weekly packs per minute against the quarterly targets" />
-            <div className="exec-charts">
-              {ppm.lines.map(l => <PaceLineChart key={l.key} line={l} />)}
+            {/* one line's deck gets one full-width chart rather than one
+                quarter of a grid built for four — same rule the PDF follows */}
+            <div className={'exec-charts' + (reportLines.length === 1 ? ' is-one' : reportLines.length === 2 ? ' is-two' : '')}>
+              {reportLines.map(l => <PaceLineChart key={l.key} line={l} />)}
             </div>
           </section>
         </div>
 
         <footer className="exec-foot">
-          <span>{project?.name ?? 'Project'} · weekly executive report · page 1 of 2 — line pace</span>
+          <span>{title} · weekly executive report · page 1 of 2 — line pace</span>
           <span>The tracker workbook is the system of record; this report reads it.</span>
         </footer>
       </section>
@@ -357,7 +432,10 @@ export function PaceExecReport() {
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-2">
           <section className="exec-box exec-box-actions">
-            <SectionHead n="2" title="Action tracker" sowhat={`${actions.length} actions — where they stand`} />
+            <SectionHead n="2" title={line ? 'Action tracker' : 'Action tracker & the lines'}
+              sowhat={line
+                ? `${actions.length} actions on this line — where they stand`
+                : `${actions.length} actions — and what each line's own pack holds`} />
 
             <div className="exec-splitbar" role="img"
               aria-label={`${complete} complete, ${openOnTrack} open on track, ${late} overdue`}>
@@ -371,18 +449,30 @@ export function PaceExecReport() {
               <span className="lg"><i className="sw is-late" />Overdue <b>{late}</b></span>
             </div>
 
-            <table className="exec-matrix">
+            {/* The roll-up. Every column after the owner is that person's own
+                pack, read from here — which is what makes this one page the
+                GM needs rather than one page per line. */}
+            <table className="exec-matrix is-rollup">
               <thead>
-                <tr><th scope="col">Line</th><th scope="col">Open</th><th scope="col">Overdue</th><th scope="col">Complete</th><th scope="col">Total</th></tr>
+                <tr>
+                  <th scope="col">Line</th><th scope="col">Owner</th>
+                  <th scope="col">ppm</th><th scope="col">Open</th><th scope="col">Late</th>
+                  <th scope="col">Next</th><th scope="col">Snags</th><th scope="col">Wins</th>
+                </tr>
               </thead>
               <tbody>
                 {byLine.map(r => (
                   <tr key={r.name}>
                     <th scope="row">{r.name}</th>
+                    <td className="exec-mowner">{r.owner}</td>
+                    <td className={'exec-mppm ' + (r.ppm == null ? '' : r.ppm >= r.target ? 'is-good' : 'is-bad')}>
+                      {r.ppm == null ? '—' : r.ppm}
+                    </td>
                     <td>{r.open}</td>
                     <td className={r.late > 0 ? 'is-bad' : ''}>{r.late}</td>
-                    <td>{r.done}</td>
-                    <td className="exec-mtot">{r.total}</td>
+                    <td>{r.nextOpen}</td>
+                    <td className={r.snags > 0 ? 'is-warn' : ''}>{r.snags}</td>
+                    <td className={r.wins > 0 ? 'is-good' : ''}>{r.wins}</td>
                   </tr>
                 ))}
               </tbody>
@@ -468,7 +558,9 @@ export function PaceExecReport() {
                       <span className={'exec-snag-dot is-' + s.status} aria-hidden />
                       <span className="exec-snag-p">{clip(s.problem || 'Snag', 66)}</span>
                       <span className="exec-snag-m">
-                        {s.owner || 'unassigned'} · {Math.max(0, Math.floor((now - s.raisedAt) / dayMs))}d
+                        {[snagLine.get(s.id), s.owner || 'unassigned',
+                          `${Math.max(0, Math.floor((now - s.raisedAt) / dayMs))}d`]
+                          .filter(Boolean).join(' · ')}
                       </span>
                     </li>
                   ))}
@@ -498,7 +590,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{project?.name ?? 'Project'} · weekly executive report · page 2 of 2 — tracker, attention &amp; movement</span>
+          <span>{title} · weekly executive report · page 2 of 2 — tracker, attention &amp; movement</span>
           <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>

@@ -61,8 +61,9 @@ function NumCell({ value, onSave }: { value: number; onSave: (v: number) => void
   );
 }
 
-function LineRow({ line, first, last, state }: {
-  line: PaceLineRow; first: boolean; last: boolean; state: ReturnType<typeof usePaceLines>;
+function LineRow({ line, first, last, state, projectId }: {
+  line: PaceLineRow; first: boolean; last: boolean; projectId: string;
+  state: ReturnType<typeof usePaceLines>;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -106,8 +107,14 @@ function LineRow({ line, first, last, state }: {
       <td className="pset-q"><NumCell value={line.q3} onSave={v => void state.setTarget(line.key, 'q3', v)} /></td>
       <td className="pset-q"><NumCell value={line.q4} onSave={v => void state.setTarget(line.key, 'q4', v)} /></td>
       <td className="pset-actions">
+        {/* The pack is where this line's owner actually works, so it leads. The
+            workspace is inside it too, but a direct way in is worth keeping for
+            somebody heading straight for the camera. */}
+        <button className="btn btn-ghost pset-ws" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
+          Open pack
+        </button>
         <button className="btn btn-ghost pset-ws" disabled={busy} onClick={() => void openWorkspace()}>
-          {busy ? 'Opening…' : line.workspaceId ? 'Workspace' : 'Create workspace'}
+          {busy ? 'Opening…' : line.workspaceId ? 'Workspace' : 'Workspace +'}
         </button>
         <button className="pset-x" onClick={remove} aria-label={`Remove ${line.name}`}>×</button>
       </td>
@@ -282,7 +289,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
                 </thead>
                 <tbody>
                   {lines.lines.map((l, i) => (
-                    <LineRow key={l.id} line={l} state={lines}
+                    <LineRow key={l.id} line={l} state={lines} projectId={project.id}
                       first={i === 0} last={i === lines.lines.length - 1} />
                   ))}
                 </tbody>

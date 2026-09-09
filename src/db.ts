@@ -66,6 +66,10 @@ export interface PaceTodoRow {
   /** Which project's list this is on. Absent on rows written before projects
    *  became plural — those read as the default project's. */
   projectId?: string;
+  /** Which LINE it belongs to, when it belongs to one. Absent means it is the
+   *  project's own — something spanning every line, or something logged before
+   *  lines had their own packs. The project sees both; a line sees only its. */
+  lineId?: string;
   what: string; where: string; why: string; who: string; when: string;
   state: 'todo' | 'waiting' | 'done';
   /** What happened. What/Where/Why/Who/When are all set BEFORE the thing is
@@ -93,6 +97,8 @@ export interface PaceWinRow {
   title: string; story: string; where: string; who: string; impact: string;
   /** Which project's success log this is in — see PaceTodoRow. */
   projectId?: string;
+  /** Which line's win it is — see PaceTodoRow.lineId. */
+  lineId?: string;
   createdAt: number; updatedAt: number;
 }
 
@@ -1018,6 +1024,11 @@ export async function listPaceSnapshots(projectId: string = DEFAULT_PROJECT_ID):
  *  user already has into Project Pace rather than into nothing. */
 const inProject = (projectId: string) => (r: { projectId?: string }) =>
   (r.projectId ?? DEFAULT_PROJECT_ID) === projectId;
+
+/** Filter to one line's own items. No line asked for means the project view —
+ *  everything, whether it names a line or not, because the project is the sum
+ *  of its lines plus whatever spans them. */
+const onLine = (lineId?: string) => (r: { lineId?: string }) => !lineId || r.lineId === lineId;
 export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
   await (await getDB()).put('pace_snapshots', s);
   signalWrite();
@@ -1234,9 +1245,9 @@ export async function projectWorkspaceIds(projectId: string): Promise<ID[]> {
 }
 
 /* ---------- next steps ---------- */
-export async function listPaceTodos(projectId: string = DEFAULT_PROJECT_ID): Promise<PaceTodoRow[]> {
+export async function listPaceTodos(projectId: string = DEFAULT_PROJECT_ID, lineId?: string): Promise<PaceTodoRow[]> {
   const all = await (await getDB()).getAll('pace_todos');
-  return all.filter(inProject(projectId)).sort((a, b) => a.createdAt - b.createdAt);
+  return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => a.createdAt - b.createdAt);
 }
 export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
   await (await getDB()).put('pace_todos', { ...t, updatedAt: now() });
@@ -1254,9 +1265,9 @@ export async function deletePaceTodo(id: ID): Promise<void> {
 }
 
 /* ---------- the success log ---------- */
-export async function listPaceWins(projectId: string = DEFAULT_PROJECT_ID): Promise<PaceWinRow[]> {
+export async function listPaceWins(projectId: string = DEFAULT_PROJECT_ID, lineId?: string): Promise<PaceWinRow[]> {
   const all = await (await getDB()).getAll('pace_wins');
-  return all.filter(inProject(projectId)).sort((a, b) => b.createdAt - a.createdAt);   // newest win on top
+  return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => b.createdAt - a.createdAt);   // newest win on top
 }
 export async function putPaceWin(w: PaceWinRow): Promise<void> {
   await (await getDB()).put('pace_wins', { ...w, updatedAt: now() });

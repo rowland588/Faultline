@@ -22,6 +22,7 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
+import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import type { PaceLineRow } from '../db';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
@@ -106,24 +107,69 @@ function UploadPanel({ state }: { state: PaceState }) {
 /* Who is against a line, under its chart. A chart with nobody's name on it is
  * a number; with a name on it, it is somebody's number — which is the whole
  * point of putting owners and sponsors on the project in the first place. */
-function LinePeople({ line }: { line: PaceLineRow }) {
-  if (!line.owner && !line.sponsor && !line.workspaceId) return null;
+function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string }) {
   return (
     <div className="pace-line-people">
       {line.owner && <span className="pace-who"><span className="pace-who-role">Owner</span> {line.owner}</span>}
       {line.sponsor && <span className="pace-who"><span className="pace-who-role">Sponsor</span> {line.sponsor}</span>}
-      {line.workspaceId && (
-        <button className="pace-who-go" onClick={() => nav(`/w/${line.workspaceId}/capture`)}>
-          Its workspace ›
-        </button>
-      )}
+      <button className="pace-who-go" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
+        Its pack ›
+      </button>
     </div>
   );
 }
 
-type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
+/* One line, as the project sees it: whose it is, how it is doing, and how much
+ * is sitting in its pack. The whole card is the way in — the owner's pack is
+ * where the work actually happens, so getting there should not need aiming at
+ * a small link. */
+function LineCard({ line, pack, projectId }: { line: PaceLineRow; pack: LinePack; projectId: string }) {
+  const seen = line.weekly.filter((v): v is number => v != null);
+  const last = seen.length ? seen[seen.length - 1] : null;
+  const delta = last == null ? null : last - line.q1;
+  const open = pack.openTodos + pack.waitingTodos;
+
+  return (
+    <article className="lc">
+      <button className="lc-open" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
+        <header className="lc-head">
+          <span className="lc-key">{line.key}</span>
+          <span className="lc-name">{line.name}</span>
+          <span className={'lc-ppm' + (delta == null ? '' : delta >= 0 ? ' is-good' : ' is-bad')}>
+            {last == null ? '—' : last}
+            <span className="lc-ppm-u">ppm</span>
+          </span>
+        </header>
+        <p className="lc-people">
+          {line.owner
+            ? <><span className="lc-role">Owner</span> {line.owner}</>
+            : <span className="sub">No owner yet</span>}
+          {line.sponsor && <> <span className="lc-role">Sponsor</span> {line.sponsor}</>}
+        </p>
+        <p className="lc-target">
+          {delta == null
+            ? <>Q1 target {line.q1} ppm · nothing measured yet</>
+            : <>{delta >= 0 ? '+' : ''}{delta} against the Q1 target of {line.q1} ppm</>}
+        </p>
+        <div className="lc-pips">
+          <span className="lc-pip">{open}<span className="lc-pip-l">next steps open</span></span>
+          <span className="lc-pip">{pack.doneTodos}<span className="lc-pip-l">finished</span></span>
+          <span className={'lc-pip' + (pack.openSnags > 0 ? ' is-warn' : '')}>{pack.openSnags}<span className="lc-pip-l">open snags</span></span>
+          <span className="lc-pip is-good">{pack.wins}<span className="lc-pip-l">wins</span></span>
+        </div>
+      </button>
+      <footer className="lc-foot">
+        <span className="sub">{line.workspaceId ? 'Has its own workspace' : 'Workspace made on first walk'}</span>
+        <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}&line=${line.id}`)}>Its deck</button>
+      </footer>
+    </article>
+  );
+}
+
+type Lens = 'overview' | 'lines' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
+  { id: 'lines',    label: 'Lines',      sub: 'each owner\u2019s pack' },
   { id: 'meeting',  label: 'Meeting',    sub: 'by owner' },
   { id: 'next',     label: 'Next steps', sub: 'to do & waiting' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
@@ -134,12 +180,16 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' ? raw : 'overview';
+  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next'
+    || raw === 'wins' || raw === 'lines' ? raw : 'overview';
 
   const { loading: projLoading, project } = useProject(projectId);
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
   const { actions } = pace;
+  // Every line's own pack, counted. This is the roll-up: each number below was
+  // typed by a line owner into their own pack, not entered again here.
+  const packs = useAllLinePacks(projectId, ppm.lines);
 
   const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
   const overdue = actions.filter(a => /overdue/i.test(a.flag ?? '')).length;
@@ -231,7 +281,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                 {ppm.lines.map(l => (
                   <div key={l.key} className="pace-chart-cell">
                     <PaceLineChart line={l} />
-                    <LinePeople line={l} />
+                    <LinePeople line={l} projectId={projectId} />
                   </div>
                 ))}
               </div>
@@ -239,6 +289,38 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           </section>
 
         </>
+      )}
+
+      {lens === 'lines' && (
+        <section className="pace-sec">
+          <div className="pace-sec-head">
+            <h2 className="pace-sec-title">Lines</h2>
+            <p className="pace-sec-sub">
+              Each line has an owner and a pack of its own — its pace, its actions, its next steps, its wins and its
+              filmed walk. Open one to work in it; everything in it rolls up into the report above.
+            </p>
+          </div>
+          {ppm.lines.length === 0 ? (
+            <div className="pace-empty">
+              <p className="sub">No lines on this project yet.</p>
+              <button className="btn btn-primary" style={{ marginTop: 10 }}
+                onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+            </div>
+          ) : (
+            <>
+              <div className="lc-grid">
+                {ppm.lines.map(l => (
+                  <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId} />
+                ))}
+              </div>
+              <div className="pace-lines-foot">
+                <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>
+                  Add or change lines
+                </button>
+              </div>
+            </>
+          )}
+        </section>
       )}
 
       {lens === 'meeting' && (

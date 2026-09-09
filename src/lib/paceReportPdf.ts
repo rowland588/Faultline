@@ -32,6 +32,9 @@ export interface PaceReportData {
    *  because the person receiving it needs to know who to go to. */
   title: string;
   lead?: string;
+  /** What the lead IS on this report — the project's lead, or, on a line's own
+   *  deck, that line's owner. The page prints the same words. */
+  leadRole: string;
   subtitle: string;
   lines: {
     key: string; name: string; variant?: string;
@@ -41,7 +44,14 @@ export interface PaceReportData {
   atTarget: number;
   pctDone: number; complete: number; total: number; openTotal: number; openOnTrack: number; late: number;
   openSnags: number; winsThisWeek: number;
-  byLine: { name: string; open: number; late: number; done: number; total: number }[];
+  /** The roll-up: one row per line, each number coming from that line's own
+   *  pack. On a line's own deck this is the single line it covers. */
+  byLine: {
+    name: string; owner: string;
+    open: number; late: number; done: number; total: number;
+    nextOpen: number; nextDone: number; snags: number; wins: number;
+    ppm: number | null; target: number;
+  }[];
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
@@ -50,7 +60,11 @@ export interface PaceReportData {
    *  part the GM most wants to read. */
   completed: { what: string; who: string; outcome: string }[];
   completedMore: number;
-  snags: { problem: string; owner: string; days: number; status: string }[];
+  /** `line` is which line's walk it came off. On the project's report the
+   *  snags are merged from every line, so without it the GM reads six problems
+   *  with no idea whose they are. Empty on a line's own deck, where the answer
+   *  is on the masthead. */
+  snags: { problem: string; owner: string; days: number; status: string; line: string }[];
   wins: { title: string; impact: string; story: string; who: string; where: string }[];
 }
 
@@ -268,17 +282,18 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     title: san(raw.title) || 'Project',
     subtitle: san(raw.subtitle),
     lead: raw.lead ? san(raw.lead) : undefined,
+    leadRole: san(raw.leadRole) || 'Lead',
     lines: raw.lines.map(l => ({
       ...l, name: san(l.name),
       variant: l.variant ? san(l.variant) : undefined,
       owner: l.owner ? san(l.owner) : undefined,
       sponsor: l.sponsor ? san(l.sponsor) : undefined,
     })),
-    byLine: raw.byLine.map(r => ({ ...r, name: san(r.name) })),
+    byLine: raw.byLine.map(r => ({ ...r, name: san(r.name), owner: san(r.owner) })),
     lateActions: raw.lateActions.map(a => ({ line: san(a.line), what: san(a.what), owner: san(a.owner), due: san(a.due) })),
     todos: raw.todos.map(t => ({ ...t, what: san(t.what), who: san(t.who), when: san(t.when) })),
     completed: raw.completed.map(c => ({ what: san(c.what), who: san(c.who), outcome: san(c.outcome) })),
-    snags: raw.snags.map(s2 => ({ ...s2, problem: san(s2.problem), owner: san(s2.owner) })),
+    snags: raw.snags.map(s2 => ({ ...s2, problem: san(s2.problem), owner: san(s2.owner), line: san(s2.line) })),
     wins: raw.wins.map(w => ({
       title: san(w.title), impact: san(w.impact), story: san(w.story),
       who: san(w.who), where: san(w.where),
@@ -308,16 +323,24 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   d.text('Prepared for the General Manager', W - M, M + 37, { align: 'right' });
   if (data.lead) {
     setFont(d, 8, 'bold', BRAND);
-    d.text(fit(d, `Project lead · ${data.lead}`, CW * 0.35), W - M, M + 48, { align: 'right' });
+    d.text(fit(d, `${data.leadRole} · ${data.lead}`, CW * 0.35), W - M, M + 48, { align: 'right' });
   }
 
   d.setDrawColor('#141b26'); d.setLineWidth(1.4);
   d.line(M, M + 56, W - M, M + 56);
 
   /* KPI tiles */
+  // On a line's own deck "0/1 lines at target" is a riddle; the number the
+  // owner is judged on is the reading itself, against their target.
+  const only = data.lines.length === 1 ? data.lines[0] : null;
+  const onlyLast = only ? [...only.weekly].reverse().find((v): v is number => v != null) ?? null : null;
   const tiles: [string, string, string, string][] = [
-    [`${data.atTarget}/${data.lines.length}`, 'Lines at target', 'latest week vs Q1',
-      data.atTarget === data.lines.length ? OK : data.atTarget === 0 ? DANGER : WARN],
+    only
+      ? [onlyLast == null ? '--' : String(onlyLast), 'ppm latest',
+         onlyLast == null ? `Q1 target ${only.q1}` : `${onlyLast - only.q1 >= 0 ? '+' : ''}${onlyLast - only.q1} vs Q1 target ${only.q1}`,
+         onlyLast == null ? MUTED : onlyLast >= only.q1 ? OK : DANGER]
+      : [`${data.atTarget}/${data.lines.length}`, 'Lines at target', 'latest week vs Q1',
+         data.atTarget === data.lines.length ? OK : data.atTarget === 0 ? DANGER : WARN],
     [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, OK],
     [String(data.openTotal), 'Still open', 'in flight', BRAND],
     [String(data.late), 'Overdue', 'past their date', data.late > 0 ? DANGER : OK],
@@ -343,12 +366,19 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const lpY = tY + tH + 12;
   const lpH = H - M - lpY - 18;
   const ruleY = panel(d, M, lpY, CW, lpH, '1', 'Line pace', 'Weekly packs per minute against the quarterly targets');
+  /* The grid follows how many lines there actually are. A line's own deck has
+   * one chart, and one chart drawn in a quarter of the page leaves three
+   * quarters of an A3 blank — so one line gets the whole panel, two get a row
+   * each, and three or four get the two-by-two the project has always had. */
   const cGap = 10;
-  const cW = (CW - 24 - cGap) / 2;
-  const cH = (lpY + lpH - ruleY - 20 - cGap) / 2;
+  const n = Math.min(data.lines.length, 4);
+  const cols = n <= 1 ? 1 : 2;
+  const rows = n <= 2 ? 1 : 2;
+  const cW = (CW - 24 - (cols - 1) * cGap) / cols;
+  const cH = (lpY + lpH - ruleY - 20 - (rows - 1) * cGap) / rows;
   data.lines.slice(0, 4).forEach((l, i) => {
-    const cx = M + 12 + (i % 2) * (cW + cGap);
-    const cy = ruleY + 10 + Math.floor(i / 2) * (cH + cGap);
+    const cx = M + 12 + (i % cols) * (cW + cGap);
+    const cy = ruleY + 10 + Math.floor(i / cols) * (cH + cGap);
     chart(d, cx, cy, cW, cH, l);
   });
 
@@ -366,7 +396,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const r1y = M, r2y = M + rowH1 + gap;
 
   /* 2 — action tracker */
-  const atRule = panel(d, M, r1y, colW, rowH1, '2', 'Action tracker', `${data.total} actions`);
+  const atRule = panel(d, M, r1y, colW, rowH1, '2',
+    data.byLine.length > 1 ? 'Action tracker & the lines' : 'Action tracker',
+    data.byLine.length > 1
+      ? `${data.total} actions — and what each line's own pack holds`
+      : `${data.total} actions`);
   const barY = atRule + 14, barW = colW - 24, barX = M + 12;
   const seg = (v: number) => (data.total ? (v / data.total) * barW : 0);
   d.setFillColor(SURF2); d.roundedRect(barX, barY, barW, 14, 3, 3, 'F');
@@ -386,14 +420,24 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       lx += 14 + lw + d.getTextWidth(String(v)) + 12;
     });
 
+  /* The roll-up. Every column after the name is somebody else's pack read from
+   * here: their actions, their next steps, their walk, their wins. */
   table(d, barX, barY + 46, barW,
-    [{ head: 'Line', width: 0.34 }, { head: 'Open', width: 0.17, align: 'right' },
-     { head: 'Overdue', width: 0.21, align: 'right' }, { head: 'Complete', width: 0.28, align: 'right' }],
+    [{ head: 'Line', width: 0.19 }, { head: 'Owner', width: 0.19 },
+     { head: 'ppm', width: 0.11, align: 'right' },
+     { head: 'Open', width: 0.10, align: 'right' }, { head: 'Late', width: 0.10, align: 'right' },
+     { head: 'Next', width: 0.11, align: 'right' }, { head: 'Snags', width: 0.10, align: 'right' },
+     { head: 'Wins', width: 0.10, align: 'right' }],
     data.byLine.map(r => [
       { text: r.name, bold: true },
+      { text: r.owner, colour: MUTED },
+      { text: r.ppm == null ? '--' : String(r.ppm), bold: true,
+        colour: r.ppm == null ? MUTED : r.ppm >= r.target ? OK : DANGER },
       { text: String(r.open) },
       { text: String(r.late), colour: r.late > 0 ? DANGER : INK, bold: r.late > 0 },
-      { text: String(r.done) },
+      { text: String(r.nextOpen) },
+      { text: String(r.snags), colour: r.snags > 0 ? WARN : INK },
+      { text: String(r.wins), colour: r.wins > 0 ? OK : INK },
     ]),
     r1y + rowH1 - 10);
 
@@ -474,9 +518,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     d.setFillColor(s.status === 'in_progress' ? WARN : DANGER);
     d.circle(lwX + 16, sy - 2.5, 3, 'F');
     setFont(d, 8, 'normal', '#141b26');
-    d.text(fit(d, s.problem, colW - 100), lwX + 24, sy);
+    d.text(fit(d, s.problem, colW - 118), lwX + 24, sy);
     setFont(d, 7, 'normal', MUTED);
-    d.text(`${s.owner} · ${s.days}d`, lwX + colW - 12, sy, { align: 'right' });
+    d.text(fit(d, [s.line, s.owner, `${s.days}d`].filter(Boolean).join(' · '), 94),
+      lwX + colW - 12, sy, { align: 'right' });
     d.setDrawColor('#eef3f8'); d.setLineWidth(0.4);
     d.line(lwX + 12, sy + 5, lwX + colW - 12, sy + 5);
     sy += 17;

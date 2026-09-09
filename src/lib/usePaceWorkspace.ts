@@ -43,6 +43,33 @@ export function usePaceWorkspace(projectId?: string, projectName?: string) {
   return { wsId, loading, ensure };
 }
 
+/** The same thing for ONE LINE: its own workspace, made on first use.
+ *
+ * A line's workspace is remembered on the line row rather than in meta, because
+ * unlike the project's walk it has to travel — the owner films the line on the
+ * phone and the same workspace has to be there on the laptop. `ensure` writes
+ * the id back through the caller, which is the one that owns the line row.
+ *
+ * Same shape as usePaceWorkspace so the snag screen cannot tell them apart. */
+export function useLineWorkspace(
+  workspaceId: string | undefined,
+  lineName: string,
+  attach: (wsId: string) => Promise<void>,
+) {
+  const [wsId, setWsId] = useState<string | null>(workspaceId ?? null);
+  useEffect(() => { setWsId(workspaceId ?? null); }, [workspaceId]);
+
+  const ensure = useCallback(async (): Promise<string> => {
+    if (wsId) return wsId;
+    const ws = await createWorkspace(lineName, 'food-packing');
+    await attach(ws.id);
+    setWsId(ws.id);
+    return ws.id;
+  }, [wsId, lineName, attach]);
+
+  return { wsId, loading: false, ensure };
+}
+
 /** The project a workspace belongs to, when it belongs to one — its name and
  *  where to go back to. The snag and capture screens are generic, so this is
  *  how they know to offer a way back to the project rather than only to Home.
