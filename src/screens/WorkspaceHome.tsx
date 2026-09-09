@@ -222,10 +222,10 @@ export function WorkspaceHome() {
 
       {/* the enterprise surface: every Case, every line, one page — the
           portfolio for the CI manager, the ledger for the FD */}
-      {/* the multi-line initiative: four lines, one A3, read weekly */}
+      {/* the multi-line initiatives: lines with owners on them, one A3 each */}
       <button className="admin-row pf-door pace-door" onClick={() => nav('/projects')}>
         <span className="admin-ic" aria-hidden>◈</span>
-        <span className="cloud-main"><b>Project Pace</b><span className="sub">Line 2A · 2B · 7 · 10 — ppm against target, the actions by owner, and the weekly change</span></span>
+        <span className="cloud-main"><b>Projects</b><span className="sub">Lines with an owner and a sponsor on each — ppm against target, the actions by owner, and the weekly report</span></span>
         <span className="cloud-go" aria-hidden>›</span>
       </button>
 

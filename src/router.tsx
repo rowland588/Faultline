@@ -4,7 +4,7 @@
  * The front door is invite-only and there is no way around it: signed out means
  * the Landing (sign in / create account, and only invited emails can register).
  * Once signed in the session is cached locally, so the app still works offline. */
-import { useRoute } from './state/useRoute';
+import { useRoute, navReplace } from './state/useRoute';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
@@ -14,10 +14,13 @@ import { Landing } from './screens/Landing';
 import { GuideScreen } from './screens/GuideScreen';
 import { PortfolioScreen } from './screens/PortfolioScreen';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
+import { ProjectsScreen } from './screens/ProjectsScreen';
+import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
+import { DEFAULT_PROJECT_ID } from './db';
 import { useSession } from './cloud/session';
 
 export function Router() {
@@ -43,11 +46,17 @@ export function Router() {
   // Home, outside any single WorkspaceProvider scope.
   if (route.name === 'portfolio') return <PortfolioScreen />;
 
-  // Project Pace spans four lines, so like the portfolio it lives outside any
-  // single WorkspaceProvider scope. One initiative, so the door opens on the A3
-  // itself rather than a list with one row in it.
-  if (route.name === 'projects' || route.name === 'projectDashboard')
-    return <ProjectDashboardScreen projectId={route.id ?? 'pace'} />;
+  // Projects span several lines each, so like the portfolio they live outside
+  // any single WorkspaceProvider scope. The door opens on the LIST now that
+  // there can be more than one — but a link saved when there was only Project
+  // Pace (#/projects?view=next) still lands where it always did.
+  if (route.name === 'projects') {
+    const view = route.query.get('view');
+    if (view) { navReplace(`/project/${DEFAULT_PROJECT_ID}?view=${encodeURIComponent(view)}`); return <BootSplash />; }
+    return <ProjectsScreen />;
+  }
+  if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
+  if (route.name === 'projectDashboard') return <ProjectDashboardScreen projectId={route.id!} />;
 
   // The GM's weekly report — its own route so the print output carries no app
   // chrome, only the two A3 pages.

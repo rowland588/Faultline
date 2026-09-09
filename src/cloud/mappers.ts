@@ -162,20 +162,28 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
-  // Projects (local-only for now)
+  // Projects — the initiative itself: its name, who leads it, and nothing more.
+  // Its lines live in pace_ppm and its people in project_members.
   projects: {
     clock: (l) => (l as Project).updatedAt,
     mediaKeys: () => [],
-    toRow: (l) => {
+    toRow: (l, fallbackOwner) => {
       const p = l as Project;
       return {
-        id: p.id, name: p.name, color: p.color, workspace_ids: p.workspaceIds,
+        id: p.id, owner_id: p.ownerId ?? fallbackOwner,
+        name: p.name, description: p.description ?? null, color: p.color,
+        workspace_ids: p.workspaceIds,
+        lead: p.lead ?? null, lead_email: p.leadEmail ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, name: r.name as string, color: r.color as string,
-      workspaceIds: (r.workspace_ids as string[]) ?? [], createdAt: Number(r.created_at),
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined,
+      name: r.name as string, description: (r.description as string) ?? undefined,
+      color: r.color as string,
+      workspaceIds: (r.workspace_ids as string[]) ?? [],
+      lead: (r.lead as string) ?? undefined, leadEmail: (r.lead_email as string) ?? undefined,
+      createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
@@ -228,18 +236,26 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const p = l as PaceLineRow;
       return {
-        id: p.id, owner_id: fallbackOwner, line_key: p.key, name: p.name, variant: p.variant ?? null,
+        id: p.id, owner_id: fallbackOwner, project_id: p.projectId ?? null,
+        line_key: p.key, name: p.name, variant: p.variant ?? null,
+        line_owner: p.owner ?? null, line_owner_email: p.ownerEmail ?? null,
+        sponsor: p.sponsor ?? null, sponsor_email: p.sponsorEmail ?? null,
+        workspace_id: p.workspaceId ?? null, sort: p.sort ?? 0,
         q1: p.q1, q2: p.q2, q3: p.q3, q4: p.q4,
-        weekly: p.weekly, updated_at: p.updatedAt, deleted_at: null,
+        weekly: p.weekly, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
     fromRow: (r) => ({
       id: r.id as string, key: r.line_key as string, name: r.name as string,
       variant: (r.variant as string) ?? undefined,
+      projectId: (r.project_id as string) ?? undefined,
+      owner: (r.line_owner as string) ?? undefined, ownerEmail: (r.line_owner_email as string) ?? undefined,
+      sponsor: (r.sponsor as string) ?? undefined, sponsorEmail: (r.sponsor_email as string) ?? undefined,
+      workspaceId: (r.workspace_id as string) ?? undefined, sort: Number(r.sort) || 0,
       q1: Number(r.q1) || 0, q2: Number(r.q2) || 0, q3: Number(r.q3) || 0, q4: Number(r.q4) || 0,
       // nulls inside the array are meaningful: a week that was never measured
       weekly: (r.weekly as (number | null)[]) ?? [],
-      updatedAt: Number(r.updated_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
 
@@ -251,14 +267,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const t = l as PaceTodoRow;
       return {
-        id: t.id, owner_id: fallbackOwner,
+        id: t.id, owner_id: fallbackOwner, project_id: t.projectId ?? null,
         what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
         state: t.state, media: t.media ?? [], notes: t.notes ?? '', outcome: t.outcome ?? '',
         created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
       };
     },
     fromRow: (r) => ({
-      id: r.id as string,
+      id: r.id as string, projectId: (r.project_id as string) ?? undefined,
       what: (r.what as string) ?? '', where: (r.where_at as string) ?? '', why: (r.why as string) ?? '',
       who: (r.who as string) ?? '', when: (r.when_at as string) ?? '',
       state: (r.state as PaceTodoRow['state']) ?? 'todo',
@@ -275,13 +291,13 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const w = l as PaceWinRow;
       return {
-        id: w.id, owner_id: fallbackOwner,
+        id: w.id, owner_id: fallbackOwner, project_id: w.projectId ?? null,
         title: w.title, story: w.story, where_at: w.where, who: w.who, impact: w.impact,
         created_at: w.createdAt, updated_at: w.updatedAt, deleted_at: null,
       };
     },
     fromRow: (r) => ({
-      id: r.id as string,
+      id: r.id as string, projectId: (r.project_id as string) ?? undefined,
       title: (r.title as string) ?? '', story: (r.story as string) ?? '',
       where: (r.where_at as string) ?? '', who: (r.who as string) ?? '', impact: (r.impact as string) ?? '',
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
@@ -295,7 +311,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const s = l as PaceSnapshotRow;
       return {
-        id: s.id, owner_id: fallbackOwner, taken_at: s.takenAt, file_name: s.fileName,
+        id: s.id, owner_id: fallbackOwner, project_id: s.projectId ?? null,
+        taken_at: s.takenAt, file_name: s.fileName,
         actions: s.actions, roster: s.roster ?? null,
         // the engine's LWW reads updated_at for every kind; a snapshot is never
         // edited, so it mirrors when it was taken
@@ -303,7 +320,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, takenAt: Number(r.taken_at), fileName: (r.file_name as string) ?? 'upload',
+      id: r.id as string, projectId: (r.project_id as string) ?? undefined,
+      takenAt: Number(r.taken_at), fileName: (r.file_name as string) ?? 'upload',
       actions: (r.actions as unknown[]) ?? [], roster: r.roster ?? undefined,
     }),
   },
@@ -311,7 +329,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
 // cases push before snags so a snag's case_id never points at a case the cloud
 // hasn't met (no hard FK, but no reason to arrive out of order either).
-// Projects are local-only for now, but included in the list for future cloud sync.
+// A project must reach the cloud BEFORE the lines that name it, so somebody
+// invited into it never receives a line pointing at a project they can't see.
 export const SYNC_KINDS: SyncKind[] = [
   'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
   'projects', 'project_targets', 'project_actuals',

@@ -9,41 +9,60 @@
  * Created on FIRST USE, not on first view — opening a tab should not litter the
  * workspace list for someone who never records a walk. */
 import { useCallback, useEffect, useState } from 'react';
-import { getPaceWorkspaceId, setPaceWorkspaceId, createWorkspace } from '../db';
+import { getPaceWorkspaceId, setPaceWorkspaceId, createWorkspace, projectForWorkspace, getProject } from '../db';
 
 export const PACE_WS_NAME = 'Project Pace — line walk';
 
-export function usePaceWorkspace() {
+/** The walk workspace for ONE project. Each project gets its own, so two
+ *  projects' walks never land in the same list. */
+export function usePaceWorkspace(projectId?: string, projectName?: string) {
   const [wsId, setWsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void (async () => { setWsId(await getPaceWorkspaceId()); setLoading(false); })();
-  }, []);
+    let alive = true;
+    setLoading(true);
+    void (async () => {
+      const id = await getPaceWorkspaceId(projectId);
+      if (alive) { setWsId(id); setLoading(false); }
+    })();
+    return () => { alive = false; };
+  }, [projectId]);
 
   /** Returns the id, creating the workspace the first time it is actually needed. */
   const ensure = useCallback(async (): Promise<string> => {
-    const existing = await getPaceWorkspaceId();
+    const existing = await getPaceWorkspaceId(projectId);
     if (existing) { setWsId(existing); return existing; }
-    const ws = await createWorkspace(PACE_WS_NAME, 'food-packing');
-    await setPaceWorkspaceId(ws.id);
+    const name = projectName ? `${projectName} — line walk` : PACE_WS_NAME;
+    const ws = await createWorkspace(name, 'food-packing');
+    await setPaceWorkspaceId(ws.id, projectId);
     setWsId(ws.id);
     return ws.id;
-  }, []);
+  }, [projectId, projectName]);
 
   return { wsId, loading, ensure };
 }
 
-/** True when the workspace on screen is the one behind Project Pace. The snag
- *  screens are generic, so this is how they know to offer a way back to the
- *  project rather than only to Home. */
-export function useIsPaceWorkspace(wsId?: string): boolean {
-  const [is, setIs] = useState(false);
+/** The project a workspace belongs to, when it belongs to one — its name and
+ *  where to go back to. The snag and capture screens are generic, so this is
+ *  how they know to offer a way back to the project rather than only to Home.
+ *
+ *  It used to answer only "is this Project Pace's walk?", which was enough when
+ *  there was one project and one workspace under it. Now a line has a workspace
+ *  of its own and there can be several projects, so the question is which one. */
+export function useOwningProject(wsId?: string): { id: string; name: string } | null {
+  const [proj, setProj] = useState<{ id: string; name: string } | null>(null);
   useEffect(() => {
     let alive = true;
-    if (!wsId) { setIs(false); return; }
-    void getPaceWorkspaceId().then(id => { if (alive) setIs(!!id && id === wsId); });
+    if (!wsId) { setProj(null); return; }
+    void (async () => {
+      const id = await projectForWorkspace(wsId);
+      if (!alive) return;
+      if (!id) { setProj(null); return; }
+      const p = await getProject(id);
+      setProj({ id, name: p?.name ?? 'the project' });
+    })();
     return () => { alive = false; };
   }, [wsId]);
-  return is;
+  return proj;
 }

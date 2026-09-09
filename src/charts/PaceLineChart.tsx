@@ -27,7 +27,10 @@ function runs(weekly: (number | null)[]): number[][] {
   return out;
 }
 
-export function PaceLineChart({ line }: { line: PaceLine }) {
+/** The chart takes the shipped shape plus, when the line has them, the people
+ *  against it — drawn in the same place the PDF draws them, so the preview and
+ *  the file say the same thing. */
+export function PaceLineChart({ line }: { line: PaceLine & { owner?: string; sponsor?: string } }) {
   const [hover, setHover] = useState<number | null>(null);
   const weeks = line.weekly;
   const n = weeks.length;
@@ -73,7 +76,15 @@ export function PaceLineChart({ line }: { line: PaceLine }) {
       <div className="pace-chart-head">
         <div>
           <h3 className="pace-chart-title">{line.name}</h3>
-          {line.variant && <p className="pace-chart-sub">{line.variant}</p>}
+          {(line.owner || line.sponsor || line.variant) && (
+            <p className="pace-chart-sub">
+              {line.owner && <>Owner {line.owner}</>}
+              {line.owner && (line.sponsor || line.variant) && <>{'  ·  '}</>}
+              {line.sponsor && <>Sponsor {line.sponsor}</>}
+              {line.sponsor && line.variant && <>{'  ·  '}</>}
+              {line.variant}
+            </p>
+          )}
         </div>
         <div className={'pace-chart-delta ' + (delta == null ? '' : delta >= 0 ? 'is-good' : 'is-bad')}>
           {last == null ? '—' : (

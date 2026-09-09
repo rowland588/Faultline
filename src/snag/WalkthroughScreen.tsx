@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { useIsPaceWorkspace } from '../lib/usePaceWorkspace';
+import { useOwningProject } from '../lib/usePaceWorkspace';
 import { listSegments, listSnagAssets, snagsForAsset } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { Sheet } from '../ui/Sheet';
@@ -14,7 +14,7 @@ interface Flat { asset: SnagAsset; sequence: number; open: number }
 
 export function WalkthroughScreen({ wsId }: { wsId: string }) {
   const { workspace } = useWorkspace();
-  const fromPace = useIsPaceWorkspace(wsId);
+  const project = useOwningProject(wsId);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [flat, setFlat] = useState<Flat[]>([]);
   const [snagsBy, setSnagsBy] = useState<Map<string, Snag[]>>(new Map());
@@ -51,8 +51,8 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
     <div className="walk-stage">
       <div className="walk-stage-head">
         <button className="btn btn-ghost"
-          onClick={() => nav(fromPace ? '/projects?view=snags' : `/w/${wsId}/snags`)}>
-          ‹ {fromPace ? 'Project Pace' : 'Exit'}
+          onClick={() => nav(project ? `/project/${project.id}?view=snags` : `/w/${wsId}/snags`)}>
+          ‹ {project ? project.name : 'Exit'}
         </button>
         <span className="walk-stage-title">{workspace.name}{curSeg ? ` · ${sectionLabel(curSeg, inSeg.map(f => f.asset.name))}` : ''}</span>
       </div>

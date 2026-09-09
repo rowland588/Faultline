@@ -74,8 +74,8 @@ function PinnedSnag({ snag, asset, onOpen, onDelete }: { snag: Snag; asset?: Sna
   );
 }
 
-export function PaceSnags() {
-  const { wsId, loading, ensure } = usePaceWorkspace();
+export function PaceSnags({ projectId, projectName }: { projectId?: string; projectName?: string } = {}) {
+  const { wsId, loading, ensure } = usePaceWorkspace(projectId, projectName);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);

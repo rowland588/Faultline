@@ -7,7 +7,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'paceReport';
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'paceReport';
 
 export interface Route {
   name: RouteName;
@@ -47,7 +47,12 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the GM's weekly download
-  if (segs[0] === 'project' && segs[1]) return { name: 'projectDashboard', id: decodeURIComponent(segs[1]), query };
+  if (segs[0] === 'project' && segs[1]) {
+    // /project/:id and /project/:id/setup — the project itself, and the page
+    // where its lines and people are managed.
+    const id = decodeURIComponent(segs[1]);
+    return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
+  }
   if (segs[0] === 'w' && segs[1]) {
     const wsId = decodeURIComponent(segs[1]);
     const name = (segs[2] && SCREENS[segs[2]]) || 'resume';

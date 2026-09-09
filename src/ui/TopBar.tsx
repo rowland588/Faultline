@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { useIsPaceWorkspace } from '../lib/usePaceWorkspace';
+import { useOwningProject } from '../lib/usePaceWorkspace';
 import { Sheet, SheetRow } from './Sheet';
 import { LogoMark } from './Logo';
 import { cloudConfigured } from '../cloud/client';
@@ -15,9 +15,10 @@ export function TopBar() {
   const [menu, setMenu] = useState(false);
 
   const go = (to: string) => { setMenu(false); nav(to); };
-  // A walk reached from Project Pace must be able to get back there; the brand
-  // button only goes to Home, which strands you three steps from the project.
-  const fromPace = useIsPaceWorkspace(workspace.id);
+  // A workspace reached from a project must be able to get back to it; the
+  // brand button only goes to Home, which strands you three steps away. This
+  // covers a line's own workspace as well as the project's line walk.
+  const project = useOwningProject(workspace.id);
   // Deleting a workspace is the most destructive tap in the app — it gets a
   // confirm AND an undo window. Nothing is actually deleted here: Home holds
   // the workspace in limbo for a few seconds and only then commits.
@@ -37,9 +38,9 @@ export function TopBar() {
 
   return (
     <header className="topbar">
-      {fromPace ? (
-        <button className="brand-btn pace-back" onClick={() => nav('/projects?view=snags')}
-          aria-label="Back to Project Pace">‹ Pace</button>
+      {project ? (
+        <button className="brand-btn pace-back" onClick={() => nav(`/project/${project.id}`)}
+          aria-label={`Back to ${project.name}`} title={project.name}>‹ Project</button>
       ) : (
         <button className="brand-btn" onClick={() => nav('/')} aria-label="All workspaces (home)">
           <LogoMark size={22} />

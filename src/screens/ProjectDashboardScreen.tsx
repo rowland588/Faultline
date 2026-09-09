@@ -21,6 +21,8 @@ import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
+import { useProject } from '../lib/useProjects';
+import type { PaceLineRow } from '../db';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -45,8 +47,12 @@ function UploadPanel({ state }: { state: PaceState }) {
         <div>
           <h3 className="pace-upload-title">The tracker</h3>
           <p className="pace-upload-sub">
-            This page is showing <b>{state.snapshots[0].fileName}</b> · read {when(state.snapshots[0].takenAt)}
-            {state.snapshots.length > 1 && ` · ${state.snapshots.length - 1} earlier upload${state.snapshots.length === 2 ? '' : 's'}`}
+            {state.snapshots.length === 0
+              ? <>Nothing uploaded yet — the actions on this project come from the workbook.</>
+              : <>
+                  This page is showing <b>{state.snapshots[0].fileName}</b> · read {when(state.snapshots[0].takenAt)}
+                  {state.snapshots.length > 1 && ` · ${state.snapshots.length - 1} earlier upload${state.snapshots.length === 2 ? '' : 's'}`}
+                </>}
           </p>
           <p className="pace-upload-note">Upload the workbook and the whole page follows it. The sheet is the record; this just reads it.</p>
         </div>
@@ -97,6 +103,24 @@ function UploadPanel({ state }: { state: PaceState }) {
   );
 }
 
+/* Who is against a line, under its chart. A chart with nobody's name on it is
+ * a number; with a name on it, it is somebody's number — which is the whole
+ * point of putting owners and sponsors on the project in the first place. */
+function LinePeople({ line }: { line: PaceLineRow }) {
+  if (!line.owner && !line.sponsor && !line.workspaceId) return null;
+  return (
+    <div className="pace-line-people">
+      {line.owner && <span className="pace-who"><span className="pace-who-role">Owner</span> {line.owner}</span>}
+      {line.sponsor && <span className="pace-who"><span className="pace-who-role">Sponsor</span> {line.sponsor}</span>}
+      {line.workspaceId && (
+        <button className="pace-who-go" onClick={() => nav(`/w/${line.workspaceId}/capture`)}>
+          Its workspace ›
+        </button>
+      )}
+    </div>
+  );
+}
+
 type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
@@ -107,13 +131,14 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'data',     label: 'Data',       sub: 'upload & ppm' },
 ];
 
-export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: string }) {
+export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
   const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' ? raw : 'overview';
 
-  const pace = usePaceSnapshots();
-  const ppm = usePaceLines();
+  const { loading: projLoading, project } = useProject(projectId);
+  const pace = usePaceSnapshots(projectId);
+  const ppm = usePaceLines(projectId);
   const { actions } = pace;
 
   const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
@@ -125,20 +150,41 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
     return seen.length > 0 && seen[seen.length - 1] >= l.q1;
   }).length;
 
-  if (pace.loading || ppm.loading) return <div className="wrap pace"><p className="sub">Loading Project Pace…</p></div>;
+  if (pace.loading || ppm.loading || projLoading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+
+  // A link to a project that has since been deleted is a dead end, not a crash.
+  if (!project) {
+    return (
+      <div className="wrap pace">
+        <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+      </div>
+    );
+  }
+
+  // "Line 2A · 2B · 7 · 10" — read off the project's own lines rather than
+  // written into the page, so adding a line changes what the page says it covers.
+  const lineList = ppm.lines.map(l => l.key).join(' · ');
 
   return (
     <div className={'wrap pace is-' + lens}>
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">Improvement initiative</p>
-          <h1 className="pace-title">Project Pace</h1>
-          <p className="pace-lede">Line 2A · 2B · 7 · 10 — packs per minute against quarterly targets, every action in flight, and the snag walk of the line.</p>
+          <p className="pace-eyebrow">
+            Improvement initiative
+            {project.lead && <> · led by <b>{project.lead}</b></>}
+          </p>
+          <h1 className="pace-title">{project.name}</h1>
+          <p className="pace-lede">
+            {ppm.lines.length > 0 && <>{lineList} — </>}
+            packs per minute against quarterly targets, every action in flight, and the snag walk of the line.
+          </p>
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
-          <button className="btn btn-ghost pace-out" onClick={() => nav('/')}>‹ Workspaces</button>
-          <button className="btn btn-ghost" onClick={() => nav('/pace-report')}>GM report</button>
+          <button className="btn btn-ghost pace-out" onClick={() => nav('/projects')}>‹ Projects</button>
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
+          <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
           <AccountMenu />
         </div>
@@ -151,7 +197,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             key={l.id}
             className={'pace-lens' + (lens === l.id ? ' on' : '')}
             aria-current={lens === l.id ? 'page' : undefined}
-            onClick={() => nav(l.id === 'overview' ? '/projects' : `/projects?view=${l.id}`)}
+            onClick={() => nav(l.id === 'overview' ? `/project/${projectId}` : `/project/${projectId}?view=${l.id}`)}
           >
             <span className="pace-lens-l">{l.label}</span>
             <span className="pace-lens-s">{l.sub}</span>
@@ -172,11 +218,24 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
               <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">Line pace</h2>
-              <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 3 Aug 2026</p>
+              <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 27 Jul 2026</p>
             </div>
-            <div className="pace-charts">
-              {ppm.lines.map(l => <PaceLineChart key={l.key} line={l} />)}
-            </div>
+            {ppm.lines.length === 0 ? (
+              <div className="pace-empty">
+                <p className="sub">No lines on this project yet.</p>
+                <button className="btn btn-primary" style={{ marginTop: 10 }}
+                  onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+              </div>
+            ) : (
+              <div className="pace-charts">
+                {ppm.lines.map(l => (
+                  <div key={l.key} className="pace-chart-cell">
+                    <PaceLineChart line={l} />
+                    <LinePeople line={l} />
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
         </>
@@ -198,7 +257,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             <h2 className="pace-sec-title">Next steps</h2>
             <p className="pace-sec-sub">What still needs doing, what we are waiting on, and trials — with the write-up and the evidence · not in the workbook, typed here</p>
           </div>
-          <PaceNextSteps />
+          <PaceNextSteps projectId={projectId} />
         </section>
       )}
 
@@ -208,7 +267,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             <h2 className="pace-sec-title">Success</h2>
             <p className="pace-sec-sub">What we did and what worked · the wins to show the team · not in the workbook, logged here</p>
           </div>
-          <PaceSuccess />
+          <PaceSuccess projectId={projectId} />
         </section>
       )}
 
@@ -218,7 +277,7 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
             <h2 className="pace-sec-title">Snag list</h2>
             <p className="pace-sec-sub">Film the line, mark the frames, pin what is wrong · play it back in the meeting</p>
           </div>
-          <PaceSnags />
+          <PaceSnags projectId={projectId} projectName={project.name} />
         </section>
       )}
 
@@ -236,7 +295,12 @@ export function ProjectDashboardScreen({ projectId: _projectId }: { projectId: s
       )}
 
       <footer className="pace-foot">
-        <p>Project Pace · Line 2A · 2B · 7 · 10 · actions from the team’s tracker · the line walk filmed in the app</p>
+        <p>
+          {project.name}
+          {lineList && <> · {lineList}</>}
+          {project.lead && <> · led by {project.lead}</>}
+          {' '}· actions from the team’s tracker · the line walk filmed in the app
+        </p>
       </footer>
     </div>
   );

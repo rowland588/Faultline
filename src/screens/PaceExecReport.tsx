@@ -14,12 +14,13 @@
  * out at exactly A3-landscape proportions, rendered to an image and dropped onto
  * an A3 page. What is on screen is what lands in the PDF. */
 import { useEffect, useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
+import { nav, useRoute } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
-import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
+import { useProject } from '../lib/useProjects';
+import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEFAULT_PROJECT_ID,
   type PaceTodoRow, type PaceWinRow } from '../db';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
@@ -87,15 +88,21 @@ function SectionHead({ n, title, sowhat }: { n: string; title: string; sowhat: s
 }
 
 export function PaceExecReport() {
-  const pace = usePaceSnapshots();
-  const ppm = usePaceLines();
+  // Which project this is a report on. Defaults to the one the app shipped
+  // with, so the link that has always been #/pace-report still works.
+  const route = useRoute();
+  const projectId = route.query.get('project') || DEFAULT_PROJECT_ID;
+  const { loading: projLoading, project } = useProject(projectId);
+
+  const pace = usePaceSnapshots(projectId);
+  const ppm = usePaceLines(projectId);
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
   const [snags, setSnags] = useState<Snag[] | null>(null);
 
   const root = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
-  const loading = pace.loading || ppm.loading || todos == null || wins == null || snags == null;
+  const loading = pace.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
 
   // Scale the fixed-size sheets down to whatever width the window gives us, so
   // what is on screen is exactly what comes out of the PDF. Re-runs when the
@@ -116,12 +123,12 @@ export function PaceExecReport() {
 
   useEffect(() => {
     void (async () => {
-      setTodos(await listPaceTodos());
-      setWins(await listPaceWins());
-      const wsId = await getPaceWorkspaceId();
+      setTodos(await listPaceTodos(projectId));
+      setWins(await listPaceWins(projectId));
+      const wsId = await getPaceWorkspaceId(projectId);
       setSnags(wsId ? await snagsForWorkspace(wsId) : []);
     })();
-  }, []);
+  }, [projectId]);
 
   /* Draw the PDF from the numbers — see lib/paceReportPdf.
    *
@@ -137,7 +144,11 @@ export function PaceExecReport() {
       const { drawPaceReport } = await import('../lib/paceReportPdf');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
       drawPaceReport(pdf, reportData());
-      pdf.save(`Project-Pace-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      // The file lands in someone's inbox on its own, so its NAME has to say
+      // which project it is — "report.pdf" from three projects is three files
+      // nobody can tell apart.
+      const slug = (project?.name ?? 'Project').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Project';
+      pdf.save(`${slug}-report-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
       console.error('PDF export failed', err);
       window.alert('Sorry — the PDF could not be generated. Please try again.');
@@ -150,9 +161,22 @@ export function PaceExecReport() {
     return (
       <div className="exec-report">
         <div className="exec-bar no-print">
-          <button className="btn btn-ghost" onClick={() => nav({ page: 'projectDashboard', projectId: 'pace' })}>← Back</button>
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>← Back</button>
         </div>
         <p className="sub" style={{ padding: '40px' }}>Preparing the report…</p>
+      </div>
+    );
+  }
+
+  // A report on a project that isn't here is a page of empty boxes with
+  // "Project" at the top — say so and offer the way out instead.
+  if (!project) {
+    return (
+      <div className="exec-report">
+        <div className="exec-bar no-print">
+          <button className="btn btn-ghost" onClick={() => nav('/projects')}>← Projects</button>
+        </div>
+        <p className="sub" style={{ padding: '40px' }}>That project isn’t here any more, so there is nothing to report on.</p>
       </div>
     );
   }
@@ -171,6 +195,10 @@ export function PaceExecReport() {
     const seen = l.weekly.filter((v): v is number => v != null);
     return seen.length > 0 && seen[seen.length - 1] >= l.q1;
   }).length;
+
+  // The lines this project actually runs, read off the project rather than
+  // written into the page — so adding a line changes what the report says it covers.
+  const lineList = ppm.lines.map(l => l.key).join(' · ');
 
   const openSnags = snags.filter(s => s.status !== 'closed');
   const winsThisWeek = wins.filter(w => now - w.createdAt <= 7 * dayMs);
@@ -217,8 +245,14 @@ export function PaceExecReport() {
    * looks at the DOM, so this is the whole contract between screen and file. */
   const reportData = (): PaceReportData => ({
     now,
+    title: project?.name ?? 'Project',
+    lead: project?.lead,
+    subtitle: lineList
+      ? `${lineList} — packs per minute, the action tracker, the line walk`
+      : 'Packs per minute, the action tracker, the line walk',
     lines: ppm.lines.map(l => ({
       key: l.key, name: l.name, variant: l.variant,
+      owner: l.owner, sponsor: l.sponsor,
       q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4, weekly: l.weekly,
     })),
     atTarget, pctDone,
@@ -263,7 +297,7 @@ export function PaceExecReport() {
   return (
     <div className="exec-report" ref={root}>
       <div className="exec-bar no-print">
-        <button className="btn btn-ghost" onClick={() => nav({ page: 'projectDashboard', projectId: 'pace' })}>← Back to Project Pace</button>
+        <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>← Back to {project?.name ?? 'the project'}</button>
         <div className="exec-bar-r">
           <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
           <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
@@ -279,13 +313,16 @@ export function PaceExecReport() {
         <header className="exec-head">
           <div>
             <p className="exec-eyebrow">Improvement initiative · weekly executive report</p>
-            <h1 className="exec-title">Project Pace</h1>
-            <p className="exec-lede">Lines 2A · 2B · 7 · 10 — packs per minute, the action tracker, the line walk</p>
+            <h1 className="exec-title">{project?.name ?? 'Project'}</h1>
+            <p className="exec-lede">
+              {lineList ? `${lineList} — ` : ''}packs per minute, the action tracker, the line walk
+            </p>
           </div>
           <div className="exec-head-meta">
             <span className="exec-asat">Status as at</span>
             <span className="exec-asat-d">{fmtDate(now)}</span>
             <span className="exec-forwhom">Prepared for the General Manager</span>
+            {project?.lead && <span className="exec-lead">Project lead · {project.lead}</span>}
           </div>
         </header>
 
@@ -309,7 +346,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>Project Pace · weekly executive report · page 1 of 2 — line pace</span>
+          <span>{project?.name ?? 'Project'} · weekly executive report · page 1 of 2 — line pace</span>
           <span>The tracker workbook is the system of record; this report reads it.</span>
         </footer>
       </section>
@@ -461,7 +498,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>Project Pace · weekly executive report · page 2 of 2 — tracker, attention & movement</span>
+          <span>{project?.name ?? 'Project'} · weekly executive report · page 2 of 2 — tracker, attention &amp; movement</span>
           <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>

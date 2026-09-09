@@ -16,7 +16,7 @@
  * IMPACT is the number that settles the argument — "44 → 49 ppm", "changeover
  * 40 → 28 min". Free text, because not every win is a ppm figure. */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, type PaceWinRow } from '../db';
+import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, DEFAULT_PROJECT_ID, type PaceWinRow } from '../db';
 import { uid } from '../lib/ids';
 
 const when = (ms: number) =>
@@ -61,12 +61,12 @@ function Card({ win, onPatch, onDelete }: {
   );
 }
 
-export function PaceSuccess() {
+export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID }: { projectId?: string } = {}) {
   const [wins, setWins] = useState<PaceWinRow[]>([]);
   const [loading, setLoading] = useState(true);
   const root = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async () => { setWins(await listPaceWins()); setLoading(false); }, []);
+  const load = useCallback(async () => { setWins(await listPaceWins(projectId)); setLoading(false); }, [projectId]);
 
   // A win logged on the laptop appears here without a reload — held back while
   // someone is typing in a card, so a pull can't yank a half-written word.
@@ -87,7 +87,7 @@ export function PaceSuccess() {
 
   const add = async () => {
     const w: PaceWinRow = {
-      id: uid(), title: '', story: '', where: '', who: '', impact: '',
+      id: uid(), projectId, title: '', story: '', where: '', who: '', impact: '',
       createdAt: Date.now(), updatedAt: Date.now(),
     };
     setWins([w, ...wins]);                            // newest on top

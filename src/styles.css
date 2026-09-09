@@ -2417,3 +2417,166 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-done-what { font-size: 11.5px; font-weight: 700; color: #141b26; flex: 1; }
 .exec-done-who { font-size: 10px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .exec-done-out { margin: 1px 0 0; font-size: 10.5px; line-height: 1.4; color: var(--ink-2); }
+
+/* ============================================================
+   PROJECTS — the list, and the page where a project is set up
+   ============================================================ */
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- the list ---------- */
+.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+
+.proj-card {
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden;
+  /* the accent is the project's own colour, so two projects are told apart
+     before either name is read */
+  border-top: 3px solid var(--proj, var(--brand));
+}
+.proj-open {
+  flex: 1; display: block; width: 100%; text-align: left;
+  padding: 14px 16px 12px; border: 0; background: none; cursor: pointer; font: inherit; color: inherit;
+}
+.proj-open:hover { background: color-mix(in srgb, var(--proj, var(--brand)) 5%, transparent); }
+.proj-name { margin: 0; font-size: 19px; letter-spacing: -0.01em; color: var(--ink); }
+.proj-desc { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.proj-lead { margin: 8px 0 0; font-size: 13px; color: var(--ink); }
+.proj-lead-role {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); margin-right: 6px;
+}
+.proj-lines { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.proj-chip {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  padding: 3px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--proj, var(--brand)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--proj, var(--brand)) 28%, transparent);
+}
+.proj-chip-k { font-size: 12px; font-weight: 800; color: var(--ink); }
+.proj-chip-o { font-size: 10.5px; color: var(--ink-2); }
+.proj-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 10px 16px 12px; border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--line) 22%, transparent);
+}
+.proj-foot-actions { display: flex; gap: 8px; }
+
+.proj-new { margin-bottom: 18px; }
+.proj-new-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
+.proj-field { display: block; min-width: 0; }
+.proj-field .text-input { width: 100%; }
+
+.proj-empty { text-align: center; padding: 28px 20px; }
+.proj-empty-title { margin: 0 0 6px; font-size: 19px; color: var(--ink); }
+.proj-empty .sub { max-width: 52ch; margin: 0 auto; }
+
+/* ---------- setting a project up ---------- */
+.pset-identity { margin-bottom: 26px; }
+.pset-identity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.pset-identity-desc { grid-column: 1 / -1; }
+
+/* One editable cell, used in the identity card and in every line row. It reads
+   as text until you touch it — a page of boxed inputs is a form, and this is a
+   list you occasionally correct. */
+.pset-cell {
+  width: 100%; min-width: 0; box-sizing: border-box;
+  padding: 7px 8px; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--ink); font: inherit; font-size: 14px;
+}
+.pset-cell:hover { border-color: var(--line); }
+.pset-cell:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.pset-cell::placeholder { color: var(--muted); font-style: italic; }
+.pset-cell.is-wide { font-size: 15px; }
+.pset-cell.is-num { text-align: center; padding: 7px 2px; }
+/* the spinners steal width in a 60px column and nobody uses them */
+.pset-cell.is-num::-webkit-outer-spin-button,
+.pset-cell.is-num::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.pset-cell.is-num { appearance: textfield; }
+
+.pset-table-wrap {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.pset-table { width: 100%; min-width: 900px; border-collapse: collapse; }
+.pset-table th {
+  position: sticky; top: 0; z-index: 1;
+  padding: 9px 8px; text-align: left; white-space: nowrap;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--muted); background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.pset-table td { padding: 3px 6px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); vertical-align: middle; }
+.pset-table tbody tr:last-child td { border-bottom: 0; }
+.pset-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+
+.pset-order { width: 46px; white-space: nowrap; padding-left: 8px; }
+.pset-move {
+  width: 20px; height: 20px; padding: 0; line-height: 1;
+  border: 1px solid var(--line); border-radius: 5px; background: var(--surface);
+  color: var(--ink-2); font-size: 11px; cursor: pointer;
+}
+.pset-move:disabled { opacity: 0.3; cursor: default; }
+.pset-key {
+  display: inline-block; min-width: 30px; padding: 3px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  font-size: 12.5px; font-weight: 800; color: var(--ink); text-align: center;
+}
+.pset-q { width: 58px; text-align: center; }
+.pset-actions { width: 190px; white-space: nowrap; text-align: right; }
+.pset-ws { padding: 5px 10px; font-size: 12.5px; }
+.pset-x {
+  width: 26px; height: 26px; margin-left: 6px; padding: 0;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+  color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.pset-x:hover { color: var(--danger); border-color: var(--danger); }
+
+.pset-add { margin-top: 16px; padding: 14px 16px; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); }
+.pset-add-grid {
+  display: grid; gap: 12px; margin-top: 8px; align-items: end;
+  grid-template-columns: 90px repeat(3, minmax(140px, 1fr)) auto;
+}
+.pset-add-grid .text-input { width: 100%; }
+.pset-add-btn { white-space: nowrap; }
+
+.pset-role { font-weight: 600; color: var(--muted); text-transform: capitalize; }
+.pset-role-pick { flex: 0 0 auto; width: auto; margin-top: 0; }
+
+@media (max-width: 720px) {
+  .pset-add-grid { grid-template-columns: 1fr 1fr; }
+  .pset-add-btn { grid-column: 1 / -1; }
+  .proj-foot { justify-content: stretch; }
+  .proj-foot-actions { flex: 1; }
+  .proj-foot-actions .btn { flex: 1; }
+}
+
+/* ---------- who is against a line, under its chart ---------- */
+.pace-chart-cell { display: flex; flex-direction: column; }
+.pace-line-people {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px;
+  margin-top: -6px; padding: 8px 16px 10px;
+  background: var(--surface); border: 1px solid var(--line); border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.pace-who { font-size: 12.5px; color: var(--ink); }
+.pace-who-role {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); margin-right: 5px;
+}
+.pace-who-go {
+  margin-left: auto; padding: 0; border: 0; background: none;
+  color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.pace-who-go:hover { text-decoration: underline; }
+/* the chart inside a people-carrying cell loses its own bottom corners so the
+   two read as one card rather than two stacked ones */
+.pace-chart-cell:has(.pace-line-people) .pace-chart { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: 0; }
+
+.pace-empty { padding: 22px; text-align: center; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); }
+
+/* the project lead, on the report's masthead */
+.exec-lead { display: block; margin-top: 4px; font-size: 11px; font-weight: 800; color: var(--brand); }

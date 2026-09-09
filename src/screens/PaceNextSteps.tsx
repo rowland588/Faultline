@@ -16,7 +16,7 @@
  * that a date picker cannot hold, and forcing a date would make people invent
  * one. */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
+import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, DEFAULT_PROJECT_ID, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
 import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -141,14 +141,14 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
   );
 }
 
-export function PaceNextSteps() {
+export function PaceNextSteps({ projectId = DEFAULT_PROJECT_ID }: { projectId?: string } = {}) {
   const [rows, setRows] = useState<PaceTodoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [justDone, setJustDone] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async () => { setRows(await listPaceTodos()); setLoading(false); }, []);
+  const load = useCallback(async () => { setRows(await listPaceTodos(projectId)); setLoading(false); }, [projectId]);
 
   // A line added on the laptop appears here without a reload — that is the
   // point of syncing it. Held back while somebody is typing in this table,
@@ -171,7 +171,7 @@ export function PaceNextSteps() {
 
   const add = async () => {
     const row: PaceTodoRow = {
-      id: uid(), what: '', where: '', why: '', who: '', when: '',
+      id: uid(), projectId, what: '', where: '', why: '', who: '', when: '',
       state: 'todo', createdAt: Date.now(), updatedAt: Date.now(),
     };
     setRows([...rows, row]);

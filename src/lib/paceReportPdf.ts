@@ -27,7 +27,17 @@ const ACTUAL = '#2b87d4', TARGET = '#c26a0a';
 
 export interface PaceReportData {
   now: number;
-  lines: { key: string; name: string; variant?: string; q1: number; q2: number; q3: number; q4: number; weekly: (number | null)[] }[];
+  /** Whose project this is. The report used to say "Project Pace" because there
+   *  was only one; now it says whatever the project is called, and who leads it,
+   *  because the person receiving it needs to know who to go to. */
+  title: string;
+  lead?: string;
+  subtitle: string;
+  lines: {
+    key: string; name: string; variant?: string;
+    owner?: string; sponsor?: string;
+    q1: number; q2: number; q3: number; q4: number; weekly: (number | null)[];
+  }[];
   atTarget: number;
   pctDone: number; complete: number; total: number; openTotal: number; openOnTrack: number; late: number;
   openSnags: number; winsThisWeek: number;
@@ -115,8 +125,14 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
 
   /* head: name + variant on the left, latest reading and delta on the right */
   setFont(d, 11.5, 'bold', INK);
-  d.text(l.name, x + 12, y + 18);
-  if (l.variant) { setFont(d, 7, 'normal', MUTED); d.text(fit(d, l.variant, w * 0.55), x + 12, y + 28); }
+  d.text(san(l.name), x + 12, y + 18);
+  // Who is against this line. It sits where the variant used to on its own,
+  // because a chart with a name on it is somebody's number rather than just a
+  // number — and the sub-line is read before the plot is.
+  const people = [l.owner && `Owner ${l.owner}`, l.sponsor && `Sponsor ${l.sponsor}`]
+    .filter(Boolean).join('  ·  ');
+  const sub = [people, l.variant].filter(Boolean).join('  ·  ');
+  if (sub) { setFont(d, 7, 'normal', MUTED); d.text(fit(d, sub, w * 0.6), x + 12, y + 28); }
 
   if (last != null) {
     setFont(d, 17, 'bold', INK);
@@ -249,7 +265,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   // sanitise once, at the boundary — everything below draws known-safe text
   const data: PaceReportData = {
     ...raw,
-    lines: raw.lines.map(l => ({ ...l, name: san(l.name), variant: l.variant ? san(l.variant) : undefined })),
+    title: san(raw.title) || 'Project',
+    subtitle: san(raw.subtitle),
+    lead: raw.lead ? san(raw.lead) : undefined,
+    lines: raw.lines.map(l => ({
+      ...l, name: san(l.name),
+      variant: l.variant ? san(l.variant) : undefined,
+      owner: l.owner ? san(l.owner) : undefined,
+      sponsor: l.sponsor ? san(l.sponsor) : undefined,
+    })),
     byLine: raw.byLine.map(r => ({ ...r, name: san(r.name) })),
     lateActions: raw.lateActions.map(a => ({ line: san(a.line), what: san(a.what), owner: san(a.owner), due: san(a.due) })),
     todos: raw.todos.map(t => ({ ...t, what: san(t.what), who: san(t.who), when: san(t.when) })),
@@ -272,9 +296,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   setFont(d, 8, 'bold', BRAND);
   d.text('IMPROVEMENT INITIATIVE · WEEKLY EXECUTIVE REPORT', M, M + 8);
   setFont(d, 24, 'bold', '#141b26');
-  d.text('Project Pace', M, M + 34);
+  d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);
-  d.text('Lines 2A · 2B · 7 · 10 — packs per minute, the action tracker, the line walk', M, M + 48);
+  d.text(fit(d, data.subtitle, CW * 0.62), M, M + 48);
 
   setFont(d, 7, 'bold', MUTED);
   d.text('STATUS AS AT', W - M, M + 8, { align: 'right' });
@@ -282,6 +306,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   d.text(dateLong, W - M, M + 24, { align: 'right' });
   setFont(d, 8, 'normal', MUTED);
   d.text('Prepared for the General Manager', W - M, M + 37, { align: 'right' });
+  if (data.lead) {
+    setFont(d, 8, 'bold', BRAND);
+    d.text(fit(d, `Project lead · ${data.lead}`, CW * 0.35), W - M, M + 48, { align: 'right' });
+  }
 
   d.setDrawColor('#141b26'); d.setLineWidth(1.4);
   d.line(M, M + 56, W - M, M + 56);
@@ -325,7 +353,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   });
 
   setFont(d, 7, 'normal', MUTED);
-  d.text('Project Pace · weekly executive report · page 1 of 2 — line pace', M, H - M + 6);
+  d.text(fit(d, `${data.title} · weekly executive report · page 1 of 2 — line pace`, CW * 0.8), M, H - M + 6);
   d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
 
   /* ================= PAGE 2 — TRACKER, ATTENTION & MOVEMENT ================= */
@@ -490,7 +518,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   setFont(d, 7, 'normal', MUTED);
-  d.text('Project Pace · weekly executive report · page 2 of 2 — tracker, attention & movement', M, H - M + 6);
+  d.text(fit(d, `${data.title} · weekly executive report · page 2 of 2 — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
   d.text(`Generated ${new Date(data.now).toLocaleString(undefined,
     { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     W - M, H - M + 6, { align: 'right' });

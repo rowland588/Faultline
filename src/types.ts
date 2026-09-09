@@ -199,7 +199,15 @@ export interface Project {
   name: string;           // "Project Pace"
   description?: string;   // brief project overview
   color: string;          // branded color
-  workspaceIds: ID[];     // the lines in this project (workspace IDs)
+  workspaceIds: ID[];     // legacy: lines used to be listed here. Lines now carry
+                          // their own projectId, which survives being reordered.
+
+  /** The one person accountable for the whole project — the lead. Shown on the
+   *  GM report and at the top of the project, so a reader always knows whose
+   *  initiative this is. Each LINE then has its own owner and sponsor. */
+  lead?: string;          // "Rowland Glew"
+  leadEmail?: string;     // so the lead is also a person who can be invited
+
   createdAt: Millis;
   updatedAt: Millis;
   deletedAt?: Millis;     // soft delete
