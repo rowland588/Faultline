@@ -29,6 +29,7 @@ export function SnagListScreen() {
   const [search, setSearch] = useState('');
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
+  const [carding, setCarding] = useState(false);
 
   const load = async () => {
     const [segs, as, snags] = await Promise.all([listSegments(workspace.id), listSnagAssets(workspace.id), snagsForWorkspace(workspace.id)]);
@@ -121,6 +122,34 @@ export function SnagListScreen() {
     a.download = `snags-${workspace.name.replace(/\W+/g, '-').toLowerCase()}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };
 
+  /* THE SNAG CARD — the thing that goes to Engineering.
+   *
+   * Not a replacement for Print (which is the whole list on one sheet) or for
+   * the walk-through (which is what you present from). This is the third thing:
+   * one page per snag, the pinned frame on it, drawn rather than screenshotted
+   * so it looks the same wherever it is opened.
+   *
+   * Sends the SELECTED snags when any are ticked, otherwise everything the
+   * current filters are showing — which is how you send Engineering the four
+   * that are theirs rather than the lot. */
+  const sendCards = async (rows: Row[]) => {
+    if (carding || rows.length === 0) return;
+    setCarding(true);
+    try {
+      const { saveSnagCards } = await import('../lib/buildSnagCards');
+      await saveSnagCards(
+        rows.map(r => ({ snag: r.snag, asset: assets.find(a => a.id === r.assetId), assetName: r.assetName })),
+        workspace.name,
+        rows.length === ordered.length ? activeFilters.join(' · ') : undefined,
+      );
+    } catch (e) {
+      console.error('snag card failed', e);
+      window.alert('Sorry — the snag card could not be built. Please try again.');
+    } finally {
+      setCarding(false);
+    }
+  };
+
   const activeFilters = [
     statusF !== 'all' ? SNAG_STATUS_META[statusF].label : null,
     ageF === 'stale' ? `stale (open > ${SNAG_STALE_DAYS}d)` : null,
@@ -167,6 +196,11 @@ export function SnagListScreen() {
         <div style={{ flex: 1 }} />
         <button className="btn" onClick={exportCsv}>CSV</button>
         <button className="btn" onClick={() => setPrinting(true)}>Print</button>
+        <button className="btn btn-primary" disabled={carding || ordered.length === 0}
+          onClick={() => void sendCards(ordered)}
+          title="One page per snag, with its photo — the PDF to email">
+          {carding ? 'Building…' : 'Snag cards'}
+        </button>
       </div>
       <p className="eyebrow">The eyes</p>
       <h1 className="h1">Snags</h1>
@@ -204,6 +238,10 @@ export function SnagListScreen() {
         <div className="bulk-bar">
           <span>{sel.size} selected</span>
           {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <button key={s} className="btn" onClick={() => bulk(s)}>Mark {SNAG_STATUS_META[s].label.toLowerCase()}</button>)}
+          <button className="btn btn-primary" disabled={carding}
+            onClick={() => void sendCards(ordered.filter(r => sel.has(r.snag.id)))}>
+            {carding ? 'Building…' : `Send ${sel.size} as PDF`}
+          </button>
           <button className="btn btn-ghost" onClick={() => setSel(new Set())}>Clear</button>
         </div>
       )}

@@ -45,7 +45,10 @@ function SegmentCard({ seg, assets, snags, onOpen, onDelete }: {
   );
 }
 
-function PinnedSnag({ snag, asset, onOpen, onDelete }: { snag: Snag; asset?: SnagAsset; onOpen: () => void; onDelete: () => void }) {
+function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding }: {
+  snag: Snag; asset?: SnagAsset; onOpen: () => void; onDelete: () => void;
+  onCard: () => void; carding: boolean;
+}) {
   const still = useBlobUrl(asset?.stillKey);
   const tone = snag.status === 'closed' ? 'done' : snag.status === 'in_progress' ? 'prog' : 'open';
   return (
@@ -69,6 +72,11 @@ function PinnedSnag({ snag, asset, onOpen, onDelete }: { snag: Snag; asset?: Sna
         </span>
       </span>
       </button>
+      {/* the one to send: this snag, its frame and its pin, as a page you can
+          email. Sits beside Delete rather than replacing anything. */}
+      <button className="ps-card" onClick={onCard} disabled={carding}
+        aria-label={`Send "${snag.problem}" as a PDF`}
+        title="One page with the photo — the PDF to email">{carding ? '…' : 'PDF'}</button>
       <button className="ps-del" onClick={onDelete} aria-label="Delete this snag">Delete</button>
     </div>
   );
@@ -88,6 +96,28 @@ export function PaceSnags({ projectId, projectName, line }: {
   const [assets, setAssets] = useState<SnagAsset[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
   const [busy, setBusy] = useState(false);
+  /** Which snag's card is being built — so only that button says so. */
+  const [carding, setCarding] = useState<string | null>(null);
+
+  /* One snag, one page, with its frame and its pin. Additive: the walk-through
+   * you present from and the workspace's own print view are untouched. */
+  const sendCard = async (snag: Snag) => {
+    if (carding) return;
+    setCarding(snag.id);
+    try {
+      const { saveSnagCards } = await import('../lib/buildSnagCards');
+      const asset = snag.assetId ? assets.find(a => a.id === snag.assetId) : undefined;
+      await saveSnagCards(
+        [{ snag, asset, assetName: asset?.name ?? '' }],
+        line?.name ?? projectName ?? 'Line walk',
+      );
+    } catch (e) {
+      console.error('snag card failed', e);
+      window.alert('Sorry — the snag card could not be built. Please try again.');
+    } finally {
+      setCarding(null);
+    }
+  };
 
   const load = useCallback(async (id: string) => {
     const [sg, as, sn] = await Promise.all([listSegments(id), listSnagAssets(id), snagsForWorkspace(id)]);
@@ -242,6 +272,7 @@ export function PaceSnags({ projectId, projectName, line }: {
                   key={s.id} snag={s} asset={s.assetId ? assetById.get(s.assetId) : undefined}
                   onOpen={() => nav(`/w/${wsId}/asset/${s.assetId}`)}
                   onDelete={() => void removeSnag(s)}
+                  onCard={() => void sendCard(s)} carding={carding === s.id}
                 />
               ))}
           </div>

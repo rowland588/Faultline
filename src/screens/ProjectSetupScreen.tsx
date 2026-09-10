@@ -43,6 +43,73 @@ function Cell({ value, placeholder, onSave, wide }: {
   );
 }
 
+/** Who is against a line, as a real person rather than a word.
+ *
+ * The list is the project's own members, so picking one records their ACCOUNT
+ * (the email) alongside the name that prints. That is what turns "the word Lee
+ * is written on Line 7" into "Lee owns Line 7" — the same person the invite
+ * went to, the same person whose device the line's pack syncs to.
+ *
+ * Free text stays, because the person who runs a line is often not in the app
+ * yet — and a line with a name on it and no account is still better than a line
+ * with nothing. Such a name is kept and simply carries no email. */
+function PersonPicker({ name, email, members, onChange }: {
+  name: string; email: string;
+  members: { email: string }[];
+  onChange: (name: string, email: string) => void;
+}) {
+  const OTHER = '\u0000other';
+  // A name typed by hand (or one whose person has since left the project) has
+  // no matching option, so the control opens on the text field rather than
+  // silently showing "nobody".
+  const known = email && members.some(m => m.email === email);
+  const [typing, setTyping] = useState(!!name && !known);
+
+  if (typing || members.length === 0) {
+    return (
+      <div className="pset-person">
+        {/* Editing the NAME keeps whatever account is already against the line.
+            "Rowland Glew" reads better on a report than "rowlandglew35", and
+            correcting how somebody's name prints should never quietly unassign
+            them. Choosing "Someone not in the app" is what clears the account,
+            because that is the one case where it means a different person. */}
+        <Cell value={name} placeholder="Who runs it"
+          onSave={v => onChange(v, email)} />
+        {members.length > 0 && (
+          <button className="pset-swap" type="button" onClick={() => setTyping(false)}
+            title="Pick someone on this project instead">pick</button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pset-person">
+      <select
+        className="pset-cell pset-pick"
+        value={known ? email : (name ? OTHER : '')}
+        onChange={e => {
+          const v = e.target.value;
+          // A different person, so the account against the line goes with it.
+          if (v === OTHER) { onChange(name, ''); setTyping(true); return; }
+          if (!v) { onChange('', ''); return; }
+          // The name defaults to the email's local part; "rename" below fixes
+          // it to how the person is actually called without unassigning them.
+          onChange(displayName(v), v);
+        }}
+      >
+        <option value="">— nobody yet —</option>
+        {members.map(m => <option key={m.email} value={m.email}>{displayName(m.email)}</option>)}
+        <option value={OTHER}>Someone not in the app…</option>
+      </select>
+      {known && (
+        <button className="pset-swap" type="button" onClick={() => setTyping(true)}
+          title="Write their name the way it should print, keeping the assignment">rename</button>
+      )}
+    </div>
+  );
+}
+
 /** A quarterly target — a number, so it gets a number field and its own draft. */
 function NumCell({ value, onSave }: { value: number; onSave: (v: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -61,9 +128,10 @@ function NumCell({ value, onSave }: { value: number; onSave: (v: number) => void
   );
 }
 
-function LineRow({ line, first, last, state, projectId }: {
+function LineRow({ line, first, last, state, projectId, members }: {
   line: PaceLineRow; first: boolean; last: boolean; projectId: string;
   state: ReturnType<typeof usePaceLines>;
+  members: { email: string }[];
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -98,10 +166,10 @@ function LineRow({ line, first, last, state, projectId }: {
       <td><span className="pset-key">{line.key}</span></td>
       <td><Cell value={line.name} placeholder="Line name" wide
         onSave={v => void state.editLine(line.id, { name: v || line.key })} /></td>
-      <td><Cell value={line.owner ?? ''} placeholder="Who runs it"
-        onSave={v => void state.editLine(line.id, { owner: v || undefined })} /></td>
-      <td><Cell value={line.sponsor ?? ''} placeholder="Who sponsors it"
-        onSave={v => void state.editLine(line.id, { sponsor: v || undefined })} /></td>
+      <td><PersonPicker name={line.owner ?? ''} email={line.ownerEmail ?? ''} members={members}
+        onChange={(n, e) => void state.editLine(line.id, { owner: n || undefined, ownerEmail: e || undefined })} /></td>
+      <td><PersonPicker name={line.sponsor ?? ''} email={line.sponsorEmail ?? ''} members={members}
+        onChange={(n, e) => void state.editLine(line.id, { sponsor: n || undefined, sponsorEmail: e || undefined })} /></td>
       <td className="pset-q"><NumCell value={line.q1} onSave={v => void state.setTarget(line.key, 'q1', v)} /></td>
       <td className="pset-q"><NumCell value={line.q2} onSave={v => void state.setTarget(line.key, 'q2', v)} /></td>
       <td className="pset-q"><NumCell value={line.q3} onSave={v => void state.setTarget(line.key, 'q3', v)} /></td>
@@ -181,8 +249,8 @@ const ROLES: { id: ProjectRole; label: string }[] = [
   { id: 'member', label: 'Member' },
 ];
 
-function ProjectPeople({ projectId, lead }: { projectId: string; lead?: string }) {
-  const { members, loaded, myEmail, error, add, remove } = useProjectMembers(projectId);
+function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typeof useProjectMembers> }) {
+  const { members, loaded, myEmail, error, add, remove } = people;
   const [text, setText] = useState('');
   const [role, setRole] = useState<ProjectRole>('member');
   const [note, setNote] = useState('');
@@ -237,6 +305,14 @@ function ProjectPeople({ projectId, lead }: { projectId: string; lead?: string }
 export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
+  // One people list, read by the invite box AND by the owner/sponsor pickers on
+  // every line — so the moment somebody is invited they are assignable.
+  const people = useProjectMembers(projectId);
+  // The project's owner does not appear in project_members — they are the owner
+  // — but they are very often the one running a line, so they are pickable too.
+  const assignable = people.myEmail && !people.members.some(m => m.email === people.myEmail)
+    ? [{ email: people.myEmail }, ...people.members]
+    : people.members;
 
   if (loading || lines.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
@@ -289,7 +365,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
                 </thead>
                 <tbody>
                   {lines.lines.map((l, i) => (
-                    <LineRow key={l.id} line={l} state={lines} projectId={project.id}
+                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable}
                       first={i === 0} last={i === lines.lines.length - 1} />
                   ))}
                 </tbody>
@@ -306,7 +382,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <p className="pace-sec-sub">Sponsors and owners, invited by email · they see this project on their own device</p>
         </div>
         <div className="card">
-          <ProjectPeople projectId={project.id} lead={project.lead} />
+          <ProjectPeople lead={project.lead} people={people} />
         </div>
       </section>
     </div>
