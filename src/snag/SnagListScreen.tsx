@@ -72,7 +72,10 @@ export function SnagListScreen() {
     const rs: Row[] = snags.map(sn => {
       if (!sn.assetId) return { snag: sn, assetName: actionTarget(sn) || 'From the board', assetId: '', sequence: -1, timestampS: 0 };
       const a = aById.get(sn.assetId);
-      return { snag: sn, assetName: a?.name ?? '—', assetId: sn.assetId, sequence: a ? (seq.get(a.segmentId) ?? 0) : 0, timestampS: a?.timestampS ?? 0 };
+      // An asset whose clip was deleted has no sequence to sort by; it keeps
+      // its place at the front rather than disappearing off the list.
+      const sq = a?.segmentId ? seq.get(a.segmentId) ?? 0 : 0;
+      return { snag: sn, assetName: a?.name ?? '—', assetId: sn.assetId, sequence: a ? sq : 0, timestampS: a?.timestampS ?? 0 };
     }).sort((x, y) => x.sequence - y.sequence || x.timestampS - y.timestampS || x.snag.raisedAt - y.snag.raisedAt);
     setRows(rs); setAssets(as);
   };

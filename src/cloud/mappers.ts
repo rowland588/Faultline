@@ -99,12 +99,16 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     mediaKeys: l => { const a = l as SnagAsset; return k(a.stillKey, 'image/jpeg', a.ownerId); },
     toRow: (l, fallbackOwner) => {
       const a = l as SnagAsset;
-      return { id: a.id, owner_id: a.ownerId ?? fallbackOwner, workspace_id: a.workspaceId, segment_id: a.segmentId, timestamp_s: a.timestampS,
+      // segment_id is null once the clip is gone — an explicit null, not an
+      // absent key, or the upsert would leave the old link standing on the server
+      return { id: a.id, owner_id: a.ownerId ?? fallbackOwner, workspace_id: a.workspaceId, segment_id: a.segmentId ?? null, timestamp_s: a.timestampS,
         name: a.name, code: a.code ?? null, still_key: a.stillKey,
         created_at: a.createdAt, updated_at: a.updatedAt ?? a.createdAt, deleted_at: null };
     },
     fromRow: (r) => ({
-      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string, segmentId: r.segment_id as string,
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string,
+      // null once the clip is deleted — the frame stays, the link to the video goes
+      segmentId: (r.segment_id as string) ?? undefined,
       timestampS: Number(r.timestamp_s) || 0, name: r.name as string, code: (r.code as string) ?? undefined,
       stillKey: r.still_key as string, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),

@@ -197,7 +197,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
     return (
       <div className="wrap">
         <div className="subhead">
-          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ Snags</button>
+          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ Walks</button>
         </div>
         <p className="sub" style={{ marginTop: 16 }}>No machines yet — add them in Settings, or film a walk and mark them.</p>
       </div>

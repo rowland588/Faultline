@@ -187,16 +187,13 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
 
   const undoRemove = useCallback(() => setPending(null), []);
 
-  /** What the toast should say is going with it. */
+  /** What the toast should say — including, plainly, what is NOT going. */
   const pendingSummary = (seg: Segment) => {
     const mine = assets.filter(a => a.segmentId === seg.id);
-    const ids = new Set(mine.map(a => a.id));
-    const pins = snags.filter(sn => sn.assetId && ids.has(sn.assetId)).length;
-    const bits = [
-      mine.length ? `${mine.length} frame${mine.length === 1 ? '' : 's'}` : '',
-      pins ? `${pins} snag${pins === 1 ? '' : 's'}` : '',
-    ].filter(Boolean);
-    return `Deleted “${seg.name || 'Walk ' + seg.sequence}”` + (bits.length ? ` and ${bits.join(', ')}` : '');
+    const kept = mine.length
+      ? ` — ${mine.length} marked frame${mine.length === 1 ? '' : 's'} and their evidence stay`
+      : '';
+    return `Deleted the footage of “${seg.name || 'Walk ' + seg.sequence}”${kept}`;
   };
 
   const removeSnag = async (sn: Snag) => {
@@ -226,9 +223,11 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
   if (loading) return <p className="sub">Loading the snag list…</p>;
 
   // everything below reads the view WITHOUT the walk awaiting deletion, so the
-  // counts always describe what is actually on screen
+  // counts always describe what is actually on screen. The MARKED FRAMES stay:
+  // deleting a walk deletes the footage, not the evidence cut out of it, so
+  // hiding them here would tell the user a lie about what is about to happen.
   const shownSegments = segments.filter(sg => sg.id !== pending?.id);
-  const shownAssets = assets.filter(a => a.segmentId !== pending?.id);
+  const shownAssets = assets;
   const shownAssetIds = new Set(shownAssets.map(a => a.id));
   const shownSnags = snags.filter(sn => !sn.assetId || shownAssetIds.has(sn.assetId));
 

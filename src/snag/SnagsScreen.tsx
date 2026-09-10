@@ -89,6 +89,9 @@ export function SnagsScreen() {
     const [ss, assets, snags] = await Promise.all([listSegments(workspace.id), listSnagAssets(workspace.id), snagsForWorkspace(workspace.id)]);
     const names = new Map<string, string[]>();
     for (const a of [...assets].sort((x, y) => x.timestampS - y.timestampS)) {
+      // Assets whose clip has been deleted belong to no row on this screen.
+      // They are not lost — they are on the Evidence tab, where they live now.
+      if (!a.segmentId) continue;
       names.set(a.segmentId, [...(names.get(a.segmentId) ?? []), a.name]);
     }
     setSegs(ss); setNamesBySeg(names); setOpenSnags(snags.filter(s => s.status !== 'closed').length);
@@ -182,7 +185,8 @@ export function SnagsScreen() {
 
   const remove = async (seg: Segment) => {
     const n = (namesBySeg.get(seg.id) ?? []).length;
-    if (!window.confirm(`Delete "${seg.name || `Segment ${seg.sequence}`}"? This also removes ${plural(n, 'asset')} and all their snags. This can't be undone.`)) return;
+    const keeps = n ? `\n\nThe ${plural(n, 'marked frame')} cut from it stay, with everything pinned on them — you just won't be able to jump back to the video.` : '';
+    if (!window.confirm(`Delete the footage of "${seg.name || `Segment ${seg.sequence}`}"?${keeps}\n\nThe video can't be recovered.`)) return;
     await deleteSegment(seg.id); await load();
   };
 

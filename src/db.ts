@@ -628,15 +628,23 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
   } else if (kind === 'cases') {
     await db.delete('cases', id);
   } else if (kind === 'segments') {
+    // Mirrors deleteSegment, and for the same reason — only this is the version
+    // that used to do the damage QUIETLY. Deleting a walk on the phone arrived
+    // here as a segment tombstone, and this branch then wiped every marked
+    // frame, every still and every snag on THIS device, with nothing on screen
+    // to say so. That is the lost connection: named it here, deleted the clip
+    // there, and the name went with it overnight.
+    //
+    // Now only the clip goes. The frames let go of it and stay. Their
+    // updatedAt is deliberately NOT touched: the device that did the delete has
+    // already pushed them with a null segment, so re-stamping them here would
+    // only push the same fact back again.
     const assets = await db.getAllFromIndex('snag_assets', 'by_segment', id);
-    const snags: Snag[] = [];
-    for (const a of assets) snags.push(...await db.getAllFromIndex('snags', 'by_asset', a.id));
     const seg = await db.get('segments', id);
-    const blobs = [seg?.videoKey, seg?.posterKey, ...assets.map(a => a.stillKey), ...snags.map(s => s.detailPhotoKey)].filter(Boolean) as string[];
-    const tx = db.transaction(['segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+    const blobs = [seg?.videoKey, seg?.posterKey].filter(Boolean) as string[];
+    const tx = db.transaction(['segments', 'snag_assets', 'media'], 'readwrite');
     await tx.objectStore('segments').delete(id);
-    for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
-    for (const s of snags) await tx.objectStore('snags').delete(s.id);
+    for (const a of assets) await tx.objectStore('snag_assets').put({ ...a, segmentId: undefined });
     for (const k of blobs) await tx.objectStore('media').delete(k);
     await tx.done;
   } else if (kind === 'snag_assets') {
@@ -715,28 +723,36 @@ export async function updateSegment(seg: Segment): Promise<void> {
   await (await getDB()).put('segments', { ...seg, updatedAt: now() });
   signalWrite();
 }
-/** Delete a segment and everything below it: its assets, their snags, and every
- *  media blob any of them holds — one transaction, no orphaned blobs. */
+/** Delete a segment — THE CLIP ONLY.
+ *
+ *  This used to take the marked frames and everything pinned on them with it,
+ *  on the reasoning that they hung off the segment. They do not: the frozen
+ *  still IS the evidence, and it is a blob of its own. Deleting a clip that
+ *  would not play, to re-upload it, therefore destroyed every machine name and
+ *  every piece of evidence recorded against it — silently, because on the walk
+ *  screen the delete is deferred behind an Undo toast rather than a confirm.
+ *
+ *  So: the video and its poster go. The frames, their names, their stills and
+ *  everything pinned on them stay, and simply stop naming a clip. */
 export async function deleteSegment(id: ID): Promise<void> {
   const db = await getDB();
   const seg = await db.get('segments', id);
   const assets = await db.getAllFromIndex('snag_assets', 'by_segment', id);
-  const snags: Snag[] = [];
-  for (const a of assets) snags.push(...(await db.getAllFromIndex('snags', 'by_asset', a.id)));
-  const blobKeys = [
-    seg?.videoKey, seg?.posterKey,
-    ...assets.map(a => a.stillKey),
-    ...snags.map(s => s.detailPhotoKey),
-  ].filter(Boolean) as string[];
-  const tx = db.transaction(['segments', 'snag_assets', 'snags', 'media'], 'readwrite');
+
+  // The frames let go of the clip rather than dying with it. A fresh clock,
+  // because this IS a change the other devices have to hear about — otherwise
+  // they keep an asset pointing at a segment that no longer exists.
+  const tx = db.transaction(['segments', 'snag_assets', 'media'], 'readwrite');
   await tx.objectStore('segments').delete(id);
-  for (const a of assets) await tx.objectStore('snag_assets').delete(a.id);
-  for (const s of snags) await tx.objectStore('snags').delete(s.id);
-  for (const k of blobKeys) await tx.objectStore('media').delete(k);
+  for (const a of assets) {
+    await tx.objectStore('snag_assets').put({ ...a, segmentId: undefined, updatedAt: now() });
+  }
+  for (const k of [seg?.videoKey, seg?.posterKey].filter(Boolean) as string[]) {
+    await tx.objectStore('media').delete(k);
+  }
   await tx.done;
   await recordTombstones('segments', [id]);
-  await recordTombstones('snag_assets', assets.map(a => a.id));
-  await recordTombstones('snags', snags.map(s => s.id));
+  signalWrite();
 }
 /** Delete a marked frame and the snags pinned on it, plus their blobs — the
  *  asset level was the one gap in the walk's delete chain, so a frame marked by

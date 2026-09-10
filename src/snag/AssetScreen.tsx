@@ -37,7 +37,10 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       if (!a) { nav(`/w/${wsId}/snags`); return; }
     }
     setAsset(a); setSnags(await snagsForAsset(a.id));
-    const seg = await getSegment(a.segmentId);
+    // No segment id means the clip it was cut from has since been deleted.
+    // The still and everything pinned on it are still here — there is just no
+    // video to jump back to.
+    const seg = a.segmentId ? await getSegment(a.segmentId) : undefined;
     setVideoKey(seg?.videoKey);
   };
   const syncedAt = useSyncedAt();
@@ -56,7 +59,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" data-tour="asset-back" onClick={() => nav(asset ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snags`)}>‹ Segment</button>
+        <button className="btn btn-ghost" data-tour="asset-back"
+          onClick={() => nav(asset?.segmentId ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snaglist`)}>
+          {asset && !asset.segmentId ? '‹ Evidence' : '‹ Segment'}</button>
         {/* Straight to everything, from the screen where snags are made. Going
             back through the video you came from is how you end up watching a
             walk-through you did not ask for. */}

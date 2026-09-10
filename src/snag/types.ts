@@ -31,7 +31,11 @@ export interface SnagAsset {
   id: ID;
   ownerId?: string; // who captured it (auth user id) — set by sync
   workspaceId: ID;
-  segmentId: ID;
+  /** The clip this frame was cut from — OPTIONAL, because the clip can be
+   *  deleted and the frame must not go with it. The still is the evidence; the
+   *  video is only where it came from. An asset with no live segment still has
+   *  its name, its picture and everything pinned on it. */
+  segmentId?: ID;
   timestampS: number;        // where in the video it was marked
   name: string;
   code?: string;

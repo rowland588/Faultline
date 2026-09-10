@@ -29,12 +29,15 @@ export function assetHistory(
   const byAsset = new Map<string, Snag[]>();
   for (const s of allSnags) if (s.assetId) byAsset.set(s.assetId, [...(byAsset.get(s.assetId) ?? []), s]);
   return allAssets
-    .filter(a => assetKey(a) === key && segDay.has(a.segmentId))
+    // Dated by the walk it came from, or — once that clip has been deleted —
+    // by the day the frame itself was marked. An appearance does not stop
+    // having happened because the footage was tidied up.
+    .filter(a => assetKey(a) === key && (a.segmentId ? segDay.has(a.segmentId) : true))
     .map(a => {
       const snags = byAsset.get(a.id) ?? [];
       return {
         asset: a,
-        day: segDay.get(a.segmentId)!,
+        day: (a.segmentId ? segDay.get(a.segmentId) : undefined) ?? dayOf(a.createdAt),
         open: snags.filter(s => s.status !== 'closed').length,
         closed: snags.filter(s => s.status === 'closed').length,
       };

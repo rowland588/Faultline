@@ -33,14 +33,18 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
       const seq = new Map(segs.map(s => [s.id, s.sequence]));
       const by = new Map<string, Snag[]>();
       await Promise.all(assets.map(async a => by.set(a.id, await snagsForAsset(a.id))));
-      const fl: Flat[] = assets.map(a => ({ asset: a, sequence: seq.get(a.segmentId) ?? 0, open: (by.get(a.id) ?? []).filter(s => s.status !== 'closed').length }))
+      // Only assets that still have a clip: this screen plays the footage, and
+      // there is nothing to play for evidence whose video has been deleted.
+      const fl: Flat[] = assets
+        .filter((a): a is SnagAsset & { segmentId: string } => !!a.segmentId && seq.has(a.segmentId))
+        .map(a => ({ asset: a, sequence: seq.get(a.segmentId) ?? 0, open: (by.get(a.id) ?? []).filter(s => s.status !== 'closed').length }))
         .sort((x, y) => x.sequence - y.sequence || x.asset.timestampS - y.asset.timestampS);
       setSegments(segs); setFlat(fl); setSnagsBy(by);
     })();
     // syncedAt: a walkthrough left open picks up snags closed on another device
   }, [wsId, syncedAt]);
 
-  const inSeg = flat.filter(f => f.asset.segmentId === curSeg?.id);
+  const inSeg = flat.filter(f => !!curSeg && f.asset.segmentId === curSeg.id);
   const nearest = inSeg.filter(f => f.asset.timestampS <= t + 0.25).slice(-1)[0] ?? inSeg[0];
 
   const onEnded = () => { if (cur < segments.length - 1) setCur(c => c + 1); };

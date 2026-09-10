@@ -123,7 +123,9 @@ create table public.snag_assets (
   id uuid primary key,
   owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
-  segment_id uuid not null references public.segments (id) on delete cascade,
+  -- NULLABLE, and set null rather than cascade: the frozen still IS the
+  -- evidence, and it must outlive the clip it was cut from.
+  segment_id uuid references public.segments (id) on delete set null,
   timestamp_s numeric not null,
   name text not null,
   code text,
