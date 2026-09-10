@@ -152,13 +152,9 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   return (
     <div className="wrap">
       <div className="subhead">
-        {/* A named destination, so go straight there. history.back() would only
-            rewind ONE entry — and every segment you switched through (strip
-            chips, ‹ › arrows) pushed one, so it walked you back a segment at a
-            time instead of reaching the list. */}
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ All segments</button>
-        {/* The same escape as the asset screen: out of the footage and into
-            what the footage was for. */}
+        {/* Stepping up is the crumb bar's job now. What is left here is the
+            sideways move: out of the footage and into what the footage was
+            for. */}
         <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
         <div style={{ flex: 1 }} />
         {segs.length > 1 && (

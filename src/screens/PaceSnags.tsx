@@ -257,13 +257,13 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
     <div className="ps">
       <div className="ps-bar">
         <div className="ps-bar-stats">
-          <b>{shownSegments.length}</b> walk{shownSegments.length === 1 ? '' : 's'} · <b>{shownAssets.length}</b> asset{shownAssets.length === 1 ? '' : 's'}
-          {pinned.length > 0 && <> · <b className={open.length ? 'is-open' : ''}>{open.length}</b> open snag{open.length === 1 ? '' : 's'}</>}
+          <b>{shownSegments.length}</b> walk{shownSegments.length === 1 ? '' : 's'} · <b>{shownAssets.length}</b> marked frame{shownAssets.length === 1 ? '' : 's'}
+          {pinned.length > 0 && <> · <b className={open.length ? 'is-open' : ''}>{open.length}</b> open</>}
         </div>
         <div className="ps-bar-actions">
           <button className="btn btn-primary" onClick={() => nav(`/w/${wsId}/walk`)}>▶ Show the walk</button>
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>Film / edit</button>
-          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snaglist`)}>All snags</button>
+          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snaglist`)}>All evidence</button>
         </div>
       </div>
 

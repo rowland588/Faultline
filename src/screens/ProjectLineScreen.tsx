@@ -16,6 +16,7 @@
 import { useCallback, useMemo } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
+import { Crumbs } from '../ui/Crumbs';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { PaceMeeting } from './PaceMeeting';
 import { PaceNextSteps } from './PaceNextSteps';
@@ -101,6 +102,11 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   return (
     <div className={'wrap pace is-' + lens}>
+      <Crumbs trail={[
+        { label: 'Projects', to: '/projects' },
+        { label: project.name, to: `/project/${projectId}?view=lines` },
+        { label: line.name },
+      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">
@@ -115,7 +121,6 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           </p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-ghost pace-out" onClick={() => nav(`/project/${projectId}?view=lines`)}>‹ Lines</button>
           <button className="btn btn-primary" onClick={() => nav(`/pace-report?project=${projectId}&line=${lineId}`)}>
             This line’s deck
           </button>

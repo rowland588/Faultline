@@ -5,7 +5,6 @@ import type { Workspace } from '../types';
 import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, createWorkspace, deleteWorkspace } from '../db';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
-import { EmptyState } from '../ui/EmptyState';
 import { Wordmark } from '../ui/Logo';
 import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
@@ -14,6 +13,9 @@ import { useProfile } from '../cloud/admin';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
+import { ProjectCard } from '../ui/ProjectCard';
+import { useProjects } from '../lib/useProjects';
+import { allPaceLines, chainForWorkspace, type PaceLineRow } from '../db';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 
 /* An installed PWA keeps serving its cached shell until the service worker
@@ -113,9 +115,21 @@ export function WorkspaceHome() {
   const { profile } = useProfile();
   const [adminOpen, setAdminOpen] = useState(false);
 
+  // The projects lead this screen now. They are how the work is actually
+  // organised — a workspace is the container underneath a line, not the thing
+  // anybody sets out to open.
+  const { projects } = useProjects();
+  const [lines, setLines] = useState<PaceLineRow[]>([]);
+  const linesOf = (pid: string) => lines.filter(l => (l.projectId ?? '') === pid);
+
+  // Which line (and project) each workspace sits under, so the list below can
+  // say so instead of showing a bare name that means nothing on its own.
+  const [belongs, setBelongs] = useState<Record<string, string>>({});
+
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
   const syncedAt = useSyncedAt();
+  useEffect(() => { void allPaceLines().then(setLines); }, [syncedAt, delTick]);
   const dedupedDemos = useRef(false);
   useEffect(() => {
     let alive = true;
@@ -153,6 +167,19 @@ export function WorkspaceHome() {
     return () => { alive = false; };
   }, [syncedAt, delTick]);
 
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const ws = list ?? [];
+      const pairs = await Promise.all(ws.map(async w => {
+        const c = await chainForWorkspace(w.id);
+        return [w.id, c ? (c.lineName ? `${c.lineName} · ${c.projectName}` : c.projectName) : ''] as const;
+      }));
+      if (alive) setBelongs(Object.fromEntries(pairs.filter(([, v]) => v)));
+    })();
+    return () => { alive = false; };
+  }, [list]);
+
   const create = async () => {
     if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces
     setBusy(true); setError('');
@@ -174,9 +201,6 @@ export function WorkspaceHome() {
         <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
       </div>
 
-      <InstallPanel />
-      <CloudPanel />
-
       {profile?.is_super && (
         <>
           <button className="admin-row" onClick={() => setAdminOpen(true)}>
@@ -187,6 +211,30 @@ export function WorkspaceHome() {
           <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
         </>
       )}
+
+      {/* THE WORK, first. This screen used to open on "＋ New workspace" with
+          "No workspaces yet" filling the page — the model from before there
+          were projects, lines and owners. What he opens the app to do is go to
+          a project, then to his line; so that is what the front door shows,
+          and a line is one tap from here. */}
+      <section className="home-projects">
+        <div className="home-sec-head">
+          <h2 className="home-sec-title">Projects</h2>
+          <button className="btn btn-primary" onClick={() => nav('/projects')}>
+            {projects.length === 0 ? 'Start a project' : 'All projects'}
+          </button>
+        </div>
+        {projects.length === 0 ? (
+          <p className="sub home-sec-sub">
+            A project runs a set of lines. Each line gets an owner, a sponsor and a pack of its
+            own — its pace, its actions, its walk and the evidence off it.
+          </p>
+        ) : (
+          <div className="home-proj-list">
+            {projects.map(p => <ProjectCard key={p.id} p={p} lines={linesOf(p.id)} compact />)}
+          </div>
+        )}
+      </section>
 
       {creating ? (
         <div className="card create-card">
@@ -216,18 +264,7 @@ export function WorkspaceHome() {
             <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>{busy ? 'Creating…' : 'Create'}</button>
           </div>
         </div>
-      ) : (
-        <button className="btn btn-primary btn-lg new-ws" data-tour="new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
-      )}
-
-      {/* the enterprise surface: every Case, every line, one page — the
-          portfolio for the CI manager, the ledger for the FD */}
-      {/* the multi-line initiatives: lines with owners on them, one A3 each */}
-      <button className="admin-row pf-door pace-door" onClick={() => nav('/projects')}>
-        <span className="admin-ic" aria-hidden>◈</span>
-        <span className="cloud-main"><b>Projects</b><span className="sub">Lines with an owner and a sponsor on each — ppm against target, the actions by owner, and the weekly report</span></span>
-        <span className="cloud-go" aria-hidden>›</span>
-      </button>
+      ) : null}
 
       {casesTotal > 0 && (
         <button className="admin-row pf-door" onClick={() => nav('/portfolio')}>
@@ -237,26 +274,40 @@ export function WorkspaceHome() {
         </button>
       )}
 
-      {list === null ? null : list.length === 0 && !creating ? (
-        <EmptyState title="No workspaces yet" icon="◱">
-          Make one for a line, a project, or an investigation — the shop floor logs into it, the analysis stays inside it.
-        </EmptyState>
-      ) : (
-        <div className="ws-list">
-          {list.filter(w => w.id !== pendingDel?.id).map(w => (
-            <button key={w.id} className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
-              <span className="ws-card-dot" style={{ background: w.color }} />
-              <span className="ws-card-main">
-                <span className="ws-card-name">{w.name}</span>
-                <span className="ws-card-meta">
-                  {contentsLabel(counts[w.id])}
-                  {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
-                </span>
-              </span>
-              <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
-            </button>
-          ))}
-        </div>
+      {list === null ? null : (
+        <section className="home-spaces">
+          <div className="home-sec-head">
+            <h2 className="home-sec-title">Workspaces</h2>
+            {!creating && (
+              <button className="btn" data-tour="new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
+            )}
+          </div>
+          {list.length === 0 ? (
+            <p className="sub home-sec-sub">
+              A workspace is the container under a line — its captures, its walk and its evidence.
+              Filming a line makes one by itself, so there is usually nothing to do here.
+            </p>
+          ) : (
+            <div className="ws-list">
+              {list.filter(w => w.id !== pendingDel?.id).map(w => (
+                <button key={w.id} className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
+                  <span className="ws-card-dot" style={{ background: w.color }} />
+                  <span className="ws-card-main">
+                    <span className="ws-card-name">{w.name}</span>
+                    {/* WHOSE it is, first. A list of bare workspace names is
+                        unreadable once every line has one of its own. */}
+                    {belongs[w.id] && <span className="ws-card-own">{belongs[w.id]}</span>}
+                    <span className="ws-card-meta">
+                      {contentsLabel(counts[w.id])}
+                      {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
+                    </span>
+                  </span>
+                  <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       {/* the showcase builder, tucked at the bottom — a superadmin tool, not a
@@ -266,6 +317,12 @@ export function WorkspaceHome() {
           ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace ›'}
         </button>
       )}
+
+      {/* Signing in and installing are settings, not destinations. They used to
+          sit above everything, so the first third of the app's front door was
+          taken up by things you do once. */}
+      <InstallPanel />
+      <CloudPanel />
 
       {/* documentation, not a demo — THE demo is the film on the demo board */}
       <button className="home-guide-link" onClick={() => nav('/guide')}>

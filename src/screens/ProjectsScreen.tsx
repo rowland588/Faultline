@@ -12,9 +12,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
+import { Crumbs } from '../ui/Crumbs';
+import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
 import { allPaceLines, onDataChange, type PaceLineRow } from '../db';
-import type { Project } from '../types';
 
 /** The lines, grouped by project — the counts and the names shown on each card. */
 function useLinesByProject(): Map<string, PaceLineRow[]> {
@@ -33,41 +34,6 @@ function useLinesByProject(): Map<string, PaceLineRow[]> {
     }
     return by;
   }, [lines]);
-}
-
-function ProjectCard({ p, lines }: { p: Project; lines: PaceLineRow[] }) {
-  const withOwner = lines.filter(l => l.owner).length;
-  return (
-    <article className="proj-card" style={{ ['--proj' as string]: p.color }}>
-      <button className="proj-open" onClick={() => nav(`/project/${p.id}`)}>
-        <h2 className="proj-name">{p.name}</h2>
-        {p.description && <p className="proj-desc">{p.description}</p>}
-        <p className="proj-lead">
-          {p.lead ? <><span className="proj-lead-role">Lead</span> {p.lead}</> : <span className="sub">No lead set</span>}
-        </p>
-        <div className="proj-lines">
-          {lines.length === 0
-            ? <span className="sub">No lines yet</span>
-            : lines.map(l => (
-                <span key={l.id} className="proj-chip" title={l.owner ? `${l.name} · ${l.owner}` : l.name}>
-                  <span className="proj-chip-k">{l.key}</span>
-                  {l.owner && <span className="proj-chip-o">{l.owner.split(' ')[0]}</span>}
-                </span>
-              ))}
-        </div>
-      </button>
-      <footer className="proj-foot">
-        <span className="sub">
-          {lines.length} line{lines.length === 1 ? '' : 's'}
-          {lines.length > 0 && ` · ${withOwner} owned`}
-        </span>
-        <span className="proj-foot-actions">
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${p.id}/setup`)}>Lines &amp; people</button>
-          <button className="btn btn-primary" onClick={() => nav(`/project/${p.id}`)}>Open</button>
-        </span>
-      </footer>
-    </article>
-  );
 }
 
 export function ProjectsScreen() {
@@ -90,6 +56,7 @@ export function ProjectsScreen() {
 
   return (
     <div className="wrap pace projects-screen">
+      <Crumbs trail={[{ label: 'Home', to: '/' }, { label: 'Projects' }]} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">Improvement</p>
@@ -97,7 +64,6 @@ export function ProjectsScreen() {
           <p className="pace-lede">Each project runs a set of lines. Every line has an owner, a sponsor and a workspace of its own for its snag list, its captures and its reports.</p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-ghost pace-out" onClick={() => nav('/')}>‹ Workspaces</button>
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
             {adding ? 'Cancel' : 'New project'}
           </button>

@@ -13,6 +13,7 @@
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
+import { Crumbs } from '../ui/Crumbs';
 import { useProject, useProjects } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
@@ -327,6 +328,11 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace project-setup">
+      <Crumbs trail={[
+        { label: 'Projects', to: '/projects' },
+        { label: project.name, to: `/project/${project.id}` },
+        { label: 'Lines & people' },
+      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">Set up</p>
@@ -334,7 +340,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <p className="pace-lede">The lines this project runs, who owns each one, and who is invited to see it.</p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-ghost pace-out" onClick={() => nav('/projects')}>‹ Projects</button>
           <button className="btn btn-primary" onClick={() => nav(`/project/${project.id}`)}>Open project</button>
           <AccountMenu />
         </div>

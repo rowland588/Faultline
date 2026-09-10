@@ -1227,6 +1227,33 @@ export async function setPaceWorkspaceId(id: ID, projectId?: string): Promise<vo
   await (await getDB()).put('meta', { id }, walkKey(projectId));
 }
 
+/** WHERE AM I? — the full chain above a workspace, in one read.
+ *
+ *  A workspace is the bottom of a five-level tree (project → line → walk →
+ *  segment → frame) and until now it could only name the project two levels
+ *  up. That is why coming back out of a walk landed on the project overview
+ *  rather than on the line you were working: the app did not know which line
+ *  you had come from, so it guessed the only thing it knew.
+ *
+ *  Returns the line as well when the workspace is a line's own, so every screen
+ *  can show the trail and every back button can land on the step above. */
+export async function chainForWorkspace(wsId: ID): Promise<{
+  projectId: string; projectName: string; lineId?: string; lineName?: string;
+} | null> {
+  const db = await getDB();
+  const line = (await db.getAll('pace_ppm')).find(l => l.workspaceId === wsId && !l.deletedAt);
+  const projectId = line ? (line.projectId ?? DEFAULT_PROJECT_ID) : await projectForWorkspace(wsId);
+  if (!projectId) return null;
+  const p = await db.get('projects', projectId);
+  if (p?.deletedAt) return null;
+  return {
+    projectId,
+    projectName: p?.name ?? 'the project',
+    lineId: line?.id,
+    lineName: line?.name,
+  };
+}
+
 /** Which project a workspace belongs to, if any — its project's line-walk
  *  workspace, or the workspace of one of its lines. This is what lets the
  *  generic snag and capture screens offer a way back to the PROJECT rather

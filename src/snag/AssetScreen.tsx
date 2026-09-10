@@ -59,13 +59,10 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" data-tour="asset-back"
-          onClick={() => nav(asset?.segmentId ? `/w/${wsId}/segment/${asset.segmentId}` : `/w/${wsId}/snaglist`)}>
-          {asset && !asset.segmentId ? '‹ Evidence' : '‹ Segment'}</button>
-        {/* Straight to everything, from the screen where snags are made. Going
-            back through the video you came from is how you end up watching a
-            walk-through you did not ask for. */}
-        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
+        {/* No back button here any more — the crumb bar above says where this
+            frame sits and steps up to any of it. What is left is the SIDEWAYS
+            move: out of this one frame and into everything the line has. */}
+        <button className="btn" data-tour="asset-back" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
         <div style={{ flex: 1 }} />
         {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}>⏱ Through time</button>}
         {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}

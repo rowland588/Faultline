@@ -17,6 +17,7 @@ import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { AccountMenu } from '../ui/AccountMenu';
+import { Crumbs } from '../ui/Crumbs';
 import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PpmEditor } from './PpmEditor';
@@ -218,6 +219,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className={'wrap pace is-' + lens}>
+      <Crumbs trail={[{ label: 'Projects', to: '/projects' }, { label: project.name }]} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">
@@ -232,7 +234,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
-          <button className="btn btn-ghost pace-out" onClick={() => nav('/projects')}>‹ Projects</button>
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
           <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>

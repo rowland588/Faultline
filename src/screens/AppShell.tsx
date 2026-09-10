@@ -4,6 +4,9 @@
 import type { Route } from '../state/useRoute';
 import { TopBar } from '../ui/TopBar';
 import { TabBar } from '../ui/TabBar';
+import { Crumbs } from '../ui/Crumbs';
+import { useWsChain, useDeepCrumbs, wsTrail } from '../lib/useTrail';
+import { useWorkspace } from '../state/WorkspaceProvider';
 import { CaptureScreen } from './CaptureScreen';
 import { AnalyseScreen } from './AnalyseScreen';
 import { PresentScreen } from './PresentScreen';
@@ -24,6 +27,11 @@ import { CaseScreen } from './CaseScreen';
 
 export function AppShell({ route }: { route: Route }) {
   const screen = route.name;
+  // The trail is built here, once, rather than in each screen: a back button
+  // written per screen is how you end up with three of them disagreeing.
+  const { workspace } = useWorkspace();
+  const chain = useWsChain(route.wsId);
+  const deep = useDeepCrumbs(route);
 
   // The meeting, Present, the snag walkthrough and the printable report are
   // calm, chrome-free full-bleed surfaces.
@@ -35,6 +43,7 @@ export function AppShell({ route }: { route: Route }) {
   return (
     <div className="app">
       <TopBar />
+      <Crumbs trail={wsTrail(route, chain, workspace.name, deep)} />
       <main className="app-main">
         {screen === 'capture' && <CaptureScreen />}
         {screen === 'analyse' && <AnalyseScreen route={route} />}

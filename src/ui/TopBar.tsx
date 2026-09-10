@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { useOwningProject } from '../lib/usePaceWorkspace';
 import { Sheet, SheetRow } from './Sheet';
 import { LogoMark } from './Logo';
 import { cloudConfigured } from '../cloud/client';
@@ -15,10 +14,6 @@ export function TopBar() {
   const [menu, setMenu] = useState(false);
 
   const go = (to: string) => { setMenu(false); nav(to); };
-  // A workspace reached from a project must be able to get back to it; the
-  // brand button only goes to Home, which strands you three steps away. This
-  // covers a line's own workspace as well as the project's line walk.
-  const project = useOwningProject(workspace.id);
   // Deleting a workspace is the most destructive tap in the app — it gets a
   // confirm AND an undo window. Nothing is actually deleted here: Home holds
   // the workspace in limbo for a few seconds and only then commits.
@@ -38,14 +33,12 @@ export function TopBar() {
 
   return (
     <header className="topbar">
-      {project ? (
-        <button className="brand-btn pace-back" onClick={() => nav(`/project/${project.id}`)}
-          aria-label={`Back to ${project.name}`} title={project.name}>‹ Project</button>
-      ) : (
-        <button className="brand-btn" onClick={() => nav('/')} aria-label="All workspaces (home)">
-          <LogoMark size={22} />
-        </button>
-      )}
+      {/* Home, and only home. Stepping UP a level is the crumb bar's job now —
+          this used to say "‹ Project" and jump two levels past the line you
+          were actually working on. */}
+      <button className="brand-btn" onClick={() => nav('/')} aria-label="Home">
+        <LogoMark size={22} />
+      </button>
       <button className="ws-name" onClick={() => setMenu(true)}>
         <span className="ws-dot" style={{ background: workspace.color }} />
         <span className="ws-name-txt">{workspace.name}</span>
