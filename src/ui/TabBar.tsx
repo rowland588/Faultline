@@ -4,7 +4,10 @@ import { nav } from '../state/useRoute';
 const TABS = [
   { name: 'capture', label: 'Capture', icon: '✎', to: 'capture' },
   { name: 'analyse', label: 'Analyse', icon: '▤', to: 'analyse' },
-  { name: 'snags',   label: 'Snags',   icon: '⚑', to: 'snags' },
+  // Lands on the SNAGS, not on the films. Tapping a tab called Snags and
+  // getting a list of videos is how you end up back inside a walk-through when
+  // all you wanted was the thing you just wrote down.
+  { name: 'snags',   label: 'Snags',   icon: '⚑', to: 'snaglist' },
   { name: 'meeting', label: 'Meeting', icon: '◨', to: 'meeting' },
 ] as const;
 

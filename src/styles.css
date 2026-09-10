@@ -2755,3 +2755,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 800;
   background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--accent);
 }
+
+/* nothing recorded yet — say where snags come from, and offer the way there */
+.snag-empty { padding: 18px 4px 6px; }
+.snag-empty .sub { max-width: 56ch; }

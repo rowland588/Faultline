@@ -157,6 +157,9 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             chips, ‹ › arrows) pushed one, so it walked you back a segment at a
             time instead of reaching the list. */}
         <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ All segments</button>
+        {/* The same escape as the asset screen: out of the footage and into
+            what the footage was for. */}
+        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All snags</button>
         <div style={{ flex: 1 }} />
         {segs.length > 1 && (
           <div className="seg-nav">

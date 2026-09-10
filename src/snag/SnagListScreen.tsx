@@ -227,7 +227,10 @@ export function SnagListScreen() {
   return (
     <div className="wrap">
       <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/snags`)}>‹ Snag walk</button>
+        {/* Filming is somewhere you GO from here, not the thing you land in.
+            This screen is what the Snags tab opens, because it is what the
+            question "what have we got?" actually means. */}
+        <button className="btn" onClick={() => nav(`/w/${workspace.id}/snags`)}>🎥 Walks</button>
         <div style={{ flex: 1 }} />
         <button className="btn" onClick={exportCsv}>CSV</button>
         <button className="btn" onClick={() => setPrinting(true)}>Print</button>
@@ -292,7 +295,18 @@ export function SnagListScreen() {
       )}
 
       <div className="card" style={{ overflowX: 'auto' }}>
-        {ordered.length === 0 ? <p className="sub">{rows.length === 0 ? 'No snags yet — mark assets and pin problems first.' : 'No snags match these filters.'}</p>
+        {ordered.length === 0 ? (
+          rows.length === 0
+            ? (
+              <div className="snag-empty">
+                <p className="sub">Nothing here yet. Snags come off a walk: film the line, freeze the frames that
+                  matter, then pin what is wrong on each one.</p>
+                <button className="btn btn-primary" style={{ marginTop: 12 }}
+                  onClick={() => nav(`/w/${workspace.id}/snags`)}>🎥 Film the line</button>
+              </div>
+            )
+            : <p className="sub">No snags match these filters.</p>
+        )
           : (
             <table className="snag-table">
               <thead><tr><th></th><th>Asset</th><th>Problem</th><th>Status</th><th>Owner</th><th>Due</th><th>Age</th></tr></thead>
