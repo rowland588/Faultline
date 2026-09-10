@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useSticky } from '../lib/useSticky';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, updateSnag, setSnagsStatus } from '../db';
@@ -6,7 +7,7 @@ import { useBlobUrl } from './useBlobUrl';
 import { useSyncedAt, useSession } from '../cloud/session';
 import {
   SNAG_STATUS_META, SNAG_STALE_DAYS, ageDays, isStaleOpen, actionTarget,
-  dueInDays, isOverdue, isDueSoon, closedDaysLate, compareReview, dueToInput, dueFromInput,
+  dueInDays, isOverdue, isDueSoon, closedDaysLate, dueToInput, dueFromInput,
   type Snag, type SnagStatus, type SnagAsset,
 } from './types';
 import { TimeStrip, dueWord } from './TimeStrip';
@@ -15,17 +16,49 @@ const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { da
 
 interface Row { snag: Snag; assetName: string; assetId: string; sequence: number; timestampS: number }
 
+/* The orders worth having, and what each is FOR.
+ *
+ * "Review" is the walk order — down the line, infeed to outfeed — which is how
+ * you work through them standing in front of the machines. The rest are how you
+ * work through them sitting down: worst first, newest first, whose it is.
+ *
+ * Kept as one table so the control and the comparison can never drift apart,
+ * and so adding an order is one entry rather than three edits. */
+type SortKey = 'review' | 'oldest' | 'newest' | 'due' | 'asset' | 'owner' | 'status';
+
+const byText = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+
+const SORTS: Record<SortKey, { label: string; cmp: (x: Row, y: Row) => number }> = {
+  review:  { label: 'Walk order',      cmp: (x, y) => x.sequence - y.sequence || x.timestampS - y.timestampS || x.snag.raisedAt - y.snag.raisedAt },
+  due:     { label: 'Most overdue',    cmp: (x, y) => (x.snag.dueAt ?? Infinity) - (y.snag.dueAt ?? Infinity) || x.snag.raisedAt - y.snag.raisedAt },
+  oldest:  { label: 'Oldest first',    cmp: (x, y) => x.snag.raisedAt - y.snag.raisedAt },
+  newest:  { label: 'Newest first',    cmp: (x, y) => y.snag.raisedAt - x.snag.raisedAt },
+  asset:   { label: 'By asset',        cmp: (x, y) => byText(x.assetName, y.assetName) || x.snag.raisedAt - y.snag.raisedAt },
+  owner:   { label: 'By owner',        cmp: (x, y) => byText(x.snag.owner || 'zzz', y.snag.owner || 'zzz') || x.snag.raisedAt - y.snag.raisedAt },
+  status:  { label: 'By status',       cmp: (x, y) => STATUS_ORDER[x.snag.status] - STATUS_ORDER[y.snag.status] || x.snag.raisedAt - y.snag.raisedAt },
+};
+
+/** Open first, closed last — the order you care about them in. */
+const STATUS_ORDER: Record<SnagStatus, number> = { open: 0, in_progress: 1, closed: 2 };
+
 export function SnagListScreen() {
   const { workspace } = useWorkspace();
   const { session } = useSession();
   const myEmail = (session?.user.email ?? '').toLowerCase();
   const [rows, setRows] = useState<Row[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
-  const [statusF, setStatusF] = useState<'all' | SnagStatus>('all');
-  const [assetF, setAssetF] = useState('all');
-  const [ownerF, setOwnerF] = useState('all');
-  const [ageF, setAgeF] = useState<'all' | 'stale' | 'overdue'>('all');
-  const [byOwner, setByOwner] = useState(false);
+  /* Remembered per workspace. Re-choosing "overdue on the bagger, worst first"
+     every time the screen opens is the difference between a tool and a form —
+     and the answer to "I need the memory sorting". Search deliberately is NOT
+     remembered: a filter is a standing decision, a search is a thing you were
+     doing a minute ago. */
+  const sticky = `snaglist:${workspace.id}`;
+  const [statusF, setStatusF] = useSticky<'all' | SnagStatus>(sticky, 'status', 'all');
+  const [assetF, setAssetF] = useSticky(sticky, 'asset', 'all');
+  const [ownerF, setOwnerF] = useSticky(sticky, 'owner', 'all');
+  const [ageF, setAgeF] = useSticky<'all' | 'stale' | 'overdue'>(sticky, 'age', 'all');
+  const [byOwner, setByOwner] = useSticky(sticky, 'byOwner', false);
+  const [sortBy, setSortBy] = useSticky<SortKey>(sticky, 'sort', 'review');
   const [search, setSearch] = useState('');
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
@@ -65,7 +98,9 @@ export function SnagListScreen() {
 
   // Review order: overdue first (most urgent leading), then dated, then the
   // rest, closed last — walk order survives within each band (stable sort).
-  const ordered = useMemo(() => [...filtered].sort((x, y) => compareReview(x.snag, y.snag)), [filtered]);
+  const ordered = useMemo(
+    () => [...filtered].sort((x, y) => SORTS[sortBy].cmp(x, y)),
+    [filtered, sortBy]);
 
   // The accountability view: who's carrying what. Heaviest plate first;
   // unassigned work sits last, visibly nobody's.
@@ -216,13 +251,23 @@ export function SnagListScreen() {
       <div className="snag-filters">
         <div className="chip-row">
           {(['all', 'open', 'in_progress', 'closed'] as const).map(s => <button key={s} className={'chip' + (statusF === s ? ' on' : '')} onClick={() => setStatusF(s)}>{s === 'all' ? 'All' : SNAG_STATUS_META[s].label}</button>)}
-          <button className={'chip' + (ageF === 'overdue' ? ' on' : '')} onClick={() => setAgeF(a => a === 'overdue' ? 'all' : 'overdue')}>Overdue</button>
-          <button className={'chip' + (ageF === 'stale' ? ' on' : '')} onClick={() => setAgeF(a => a === 'stale' ? 'all' : 'stale')}>Stale</button>
-          <button className={'chip' + (byOwner ? ' on' : '')} title="Group by owner — who's carrying what" onClick={() => setByOwner(v => !v)}>By owner</button>
+          <button className={'chip' + (ageF === 'overdue' ? ' on' : '')} onClick={() => setAgeF(ageF === 'overdue' ? 'all' : 'overdue')}>Overdue</button>
+          <button className={'chip' + (ageF === 'stale' ? ' on' : '')} onClick={() => setAgeF(ageF === 'stale' ? 'all' : 'stale')}>Stale</button>
+          <button className={'chip' + (byOwner ? ' on' : '')} title="Group by owner — who's carrying what" onClick={() => setByOwner(!byOwner)}>By owner</button>
+          <label className="snag-sort">
+            <span className="sr-only">Sort by</span>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as SortKey)}>
+              {(Object.keys(SORTS) as SortKey[]).map(k => (
+                <option key={k} value={k}>{SORTS[k].label}</option>
+              ))}
+            </select>
+          </label>
           {/* the fixer's view: one tap to "what's on MY plate" */}
           {myEmail && rows.some(r => (r.snag.owner ?? '').toLowerCase() === myEmail) && (
             <button className={'chip' + (ownerF.toLowerCase() === myEmail ? ' on' : '')}
-              onClick={() => setOwnerF(f => (f.toLowerCase() === myEmail ? 'all' : (rows.find(r => (r.snag.owner ?? '').toLowerCase() === myEmail)?.snag.owner ?? 'all')))}>
+              onClick={() => setOwnerF(ownerF.toLowerCase() === myEmail
+                ? 'all'
+                : (rows.find(r => (r.snag.owner ?? '').toLowerCase() === myEmail)?.snag.owner ?? 'all'))}>
               Mine
             </button>
           )}

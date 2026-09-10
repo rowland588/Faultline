@@ -2718,3 +2718,40 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border: 1px solid color-mix(in srgb, var(--ok) 32%, transparent);
   font-size: 13px; color: var(--ink);
 }
+
+/* ---------- pinning a snag: a button, and the picture kept in view --------- */
+.asset-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.asset-actions .sub { flex: 1; min-width: 0; }
+
+/* The frame, inside the sheet that covers it. Small, but enough to know which
+   pin you are writing about. */
+.snag-where { margin-bottom: 14px; }
+.snag-where-img {
+  position: relative; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line); background: #eef3f8; line-height: 0;
+}
+.snag-where-img img { width: 100%; height: auto; display: block; max-height: 190px; object-fit: cover; }
+.snag-where-pin {
+  position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
+  border: 2.5px solid var(--danger); box-shadow: 0 0 0 2.5px #fff, 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.snag-where-pin::after {
+  content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--danger);
+}
+.snag-where-move { margin-top: 6px; padding: 4px 0; font-size: 12.5px; }
+
+.snag-editor-foot { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+/* the sort control sits with the filter chips it belongs to */
+.snag-sort select {
+  padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 13px;
+  font-weight: 700; cursor: pointer;
+}
+.snag-sort select:hover { border-color: var(--accent); }
+
+/* which line's walk a rolled-up snag came off */
+.ps-snag-from {
+  padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 800;
+  background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--accent);
+}

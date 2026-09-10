@@ -359,7 +359,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <h2 className="pace-sec-title">Snag list</h2>
             <p className="pace-sec-sub">Film the line, mark the frames, pin what is wrong · play it back in the meeting</p>
           </div>
-          <PaceSnags projectId={projectId} projectName={project.name} />
+          {/* every line's walk as well as the project's own, so a snag filmed
+              inside a line's pack is not invisible from here */}
+          <PaceSnags projectId={projectId} projectName={project.name}
+            alsoFrom={ppm.lines.filter(l => l.workspaceId).map(l => ({ wsId: l.workspaceId!, label: l.name }))} />
         </section>
       )}
 

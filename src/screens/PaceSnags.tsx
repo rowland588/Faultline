@@ -45,9 +45,13 @@ function SegmentCard({ seg, assets, snags, onOpen, onDelete }: {
   );
 }
 
-function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding }: {
+function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
   snag: Snag; asset?: SnagAsset; onOpen: () => void; onDelete: () => void;
   onCard: () => void; carding: boolean;
+  /** Which line's walk this came off. Absent means this page's own walk — and
+   *  a snag belonging to a line is deleted in that line's pack, not from here,
+   *  so it is shown without a Delete rather than with one that surprises. */
+  from?: string;
 }) {
   const still = useBlobUrl(asset?.stillKey);
   const tone = snag.status === 'closed' ? 'done' : snag.status === 'in_progress' ? 'prog' : 'open';
@@ -64,6 +68,7 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding }: {
       <span className="ps-snag-body">
         <span className="ps-snag-problem">{snag.problem}</span>
         <span className="ps-snag-meta">
+          {from && <span className="ps-snag-from">{from}</span>}
           {asset && <span className="ps-snag-asset">{asset.name}</span>}
           {snag.owner && <span>{snag.owner}</span>}
           <span className={'ps-snag-status is-' + tone}>
@@ -77,7 +82,7 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding }: {
       <button className="ps-card" onClick={onCard} disabled={carding}
         aria-label={`Send "${snag.problem}" as a PDF`}
         title="One page with the photo — the PDF to email">{carding ? '…' : 'PDF'}</button>
-      <button className="ps-del" onClick={onDelete} aria-label="Delete this snag">Delete</button>
+      {!from && <button className="ps-del" onClick={onDelete} aria-label="Delete this snag">Delete</button>}
     </div>
   );
 }
@@ -85,9 +90,18 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding }: {
 /** Whose walk this is. A project films the plant; a line films itself, into a
  *  workspace of its own — `line` is what switches between the two without the
  *  screen below needing to know which it is looking at. */
-export function PaceSnags({ projectId, projectName, line }: {
+export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
   projectId?: string; projectName?: string;
   line?: { workspaceId?: string; name: string; attach: (wsId: string) => Promise<void> };
+  /* The other walks whose snags belong on this page.
+   *
+   * A project now has a walk of its own AND one per line, which meant a snag
+   * filmed on Line 7 was invisible from the project and vice versa — two piles,
+   * no sign that the other existed. Looking at the project shows both, with the
+   * line named against each, so nothing is hidden by where you happen to be
+   * standing. A line's own pack passes none of these: there, its walk is the
+   * whole story. */
+  alsoFrom?: { wsId: string; label: string }[];
 } = {}) {
   const projectWs = usePaceWorkspace(projectId, projectName);
   const lineWs = useLineWorkspace(line?.workspaceId, line?.name ?? '', line?.attach ?? (async () => {}));
@@ -101,15 +115,14 @@ export function PaceSnags({ projectId, projectName, line }: {
 
   /* One snag, one page, with its frame and its pin. Additive: the walk-through
    * you present from and the workspace's own print view are untouched. */
-  const sendCard = async (snag: Snag) => {
+  const sendCardFor = async (snag: Snag, asset?: SnagAsset, where?: string) => {
     if (carding) return;
     setCarding(snag.id);
     try {
       const { saveSnagCards } = await import('../lib/buildSnagCards');
-      const asset = snag.assetId ? assets.find(a => a.id === snag.assetId) : undefined;
       await saveSnagCards(
         [{ snag, asset, assetName: asset?.name ?? '' }],
-        line?.name ?? projectName ?? 'Line walk',
+        where ?? line?.name ?? projectName ?? 'Line walk',
       );
     } catch (e) {
       console.error('snag card failed', e);
@@ -125,6 +138,27 @@ export function PaceSnags({ projectId, projectName, line }: {
   }, []);
 
   useEffect(() => { if (wsId) void load(wsId); }, [wsId, load]);
+
+  /* The lines' own walks, read alongside this one. Depends on the signature
+     rather than the array, which is rebuilt on every render of the parent. */
+  const [elsewhere, setElsewhere] = useState<{ label: string; wsId: string; snag: Snag; asset?: SnagAsset }[]>([]);
+  const alsoSig = alsoFrom.map(a => `${a.wsId}:${a.label}`).join(',');
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const out: { label: string; wsId: string; snag: Snag; asset?: SnagAsset }[] = [];
+      for (const part of alsoSig.split(',').filter(Boolean)) {
+        const i = part.indexOf(':');
+        const id = part.slice(0, i), label = part.slice(i + 1);
+        if (!id || id === wsId) continue;              // never list this walk twice
+        const [as, sn] = await Promise.all([listSnagAssets(id), snagsForWorkspace(id)]);
+        const byId = new Map(as.map(a => [a.id, a]));
+        for (const s of sn) out.push({ label, wsId: id, snag: s, asset: s.assetId ? byId.get(s.assetId) : undefined });
+      }
+      if (alive) setElsewhere(out);
+    })();
+    return () => { alive = false; };
+  }, [alsoSig, wsId]);
 
   /* A walk is footage that cannot be re-filmed, so deleting one is deferred
    * rather than confirmed: it leaves the list at once and a toast offers Undo.
@@ -272,7 +306,30 @@ export function PaceSnags({ projectId, projectName, line }: {
                   key={s.id} snag={s} asset={s.assetId ? assetById.get(s.assetId) : undefined}
                   onOpen={() => nav(`/w/${wsId}/asset/${s.assetId}`)}
                   onDelete={() => void removeSnag(s)}
-                  onCard={() => void sendCard(s)} carding={carding === s.id}
+                  onCard={() => void sendCardFor(s, s.assetId ? assetById.get(s.assetId) : undefined)}
+                  carding={carding === s.id}
+                />
+              ))}
+          </div>
+        </>
+      )}
+
+      {elsewhere.length > 0 && (
+        <>
+          <h3 className="ps-h">On the lines&rsquo; own walks</h3>
+          <p className="sub" style={{ margin: '-4px 0 10px' }}>
+            Filmed inside a line&rsquo;s pack rather than on the project&rsquo;s walk — shown here so nothing is
+            hidden by which page you opened.
+          </p>
+          <div className="ps-snags">
+            {[...elsewhere]
+              .sort((a, b) => (OPEN(b.snag) ? 1 : 0) - (OPEN(a.snag) ? 1 : 0) || b.snag.raisedAt - a.snag.raisedAt)
+              .map(e => (
+                <PinnedSnag
+                  key={e.snag.id} snag={e.snag} asset={e.asset} from={e.label}
+                  onOpen={() => nav(e.snag.assetId ? `/w/${e.wsId}/asset/${e.snag.assetId}` : `/w/${e.wsId}/snaglist`)}
+                  onDelete={() => { /* a line's snags are deleted in that line's pack */ }}
+                  onCard={() => void sendCardFor(e.snag, e.asset, e.label)} carding={carding === e.snag.id}
                 />
               ))}
           </div>

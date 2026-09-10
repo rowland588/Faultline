@@ -66,7 +66,18 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       <button className="asset-title" onClick={() => asset && setRenaming(true)}>
         <span className="mark" style={{ fontSize: 22 }}>{asset?.name ?? '…'}{asset?.code ? <span className="sub" style={{ fontSize: 15, fontWeight: 400 }}> · {asset.code}</span> : null}</span>
       </button>
-      <p className="sub" style={{ marginTop: 4 }}>{plural(openCount, 'open snag')}. Pinch or use ＋ / − to zoom in, then tap the picture to drop a red dot where the problem is.</p>
+      <div className="asset-actions">
+        {/* A BUTTON, not only a gesture. Tapping the picture still works, but on
+            a phone that tap competes with pinch-zoom, and when it loses there
+            is no other way in — you are stuck looking at a still you cannot
+            add anything to. The button drops the pin in the middle and the
+            editor lets you move it. */}
+        <button className="btn btn-primary" data-tour="add-snag"
+          onClick={() => { setEditing(null); setDraft({ xPct: 50, yPct: 50 }); }}>
+          ＋ Add a snag
+        </button>
+        <span className="sub">{plural(openCount, 'open snag')} · or tap the picture where the problem is</span>
+      </div>
 
       <div style={{ marginTop: 12 }} data-tour="pins">
         <PinImage src={still} pins={pins} alt={asset?.name}
@@ -98,8 +109,20 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
 
       {(draft || editing) && asset && (
         <SnagEditor wsId={wsId} asset={asset} draft={draft} snag={editing} observations={observations}
+          still={still} pinAt={draft ?? (editing ? { xPct: editing.xPct ?? 50, yPct: editing.yPct ?? 50 } : null)}
           onClose={() => { setDraft(null); setEditing(null); }}
-          onSaved={async () => { setDraft(null); setEditing(null); await load(); }} />
+          onSaved={async () => { setDraft(null); setEditing(null); await load(); }}
+          /* Saved, and straight into the next one — the answer to "I just want
+             to add another". The new pin lands a little away from the last so
+             the two do not sit on top of each other. */
+          onSavedAndNext={async () => {
+            const from = draft ?? { xPct: 50, yPct: 50 };
+            setEditing(null);
+            setDraft({ xPct: Math.min(90, from.xPct + 8), yPct: Math.min(90, from.yPct + 8) });
+            await load();
+          }}
+          /* Put the pin somewhere else: close up, tap the picture. */
+          onMovePin={() => { setEditing(null); setDraft(null); }} />
       )}
 
       {asset && <RenameSheet asset={asset} open={renaming} onClose={() => setRenaming(false)} onSaved={async () => { setRenaming(false); await load(); }} />}
@@ -115,9 +138,15 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   );
 }
 
-function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }: {
+function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onClose, onSaved, onSavedAndNext, onMovePin }: {
   wsId: string; asset: SnagAsset; draft: { xPct: number; yPct: number } | null; snag: Snag | null;
-  observations: Observation[]; onClose: () => void; onSaved: () => void;
+  observations: Observation[];
+  /** The frame and where this pin sits on it. Shown INSIDE the sheet, because
+   *  the sheet covers the picture: writing "the guide on the left" while unable
+   *  to see which pin you are writing about is how the wrong snag gets typed. */
+  still: string | null; pinAt: { xPct: number; yPct: number } | null;
+  onClose: () => void; onSaved: () => void;
+  onSavedAndNext: () => void; onMovePin: () => void;
 }) {
   const { members } = useTeam();
   const [problem, setProblem] = useState(snag?.problem ?? '');
@@ -142,7 +171,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
     ? observations.filter(o => !links.includes(o.id) && (obsLabel(o) + ' ' + o.asset).toLowerCase().includes(q.trim().toLowerCase())).slice(0, 8)
     : [];
 
-  const save = async () => {
+  const save = async (then: 'close' | 'another' = 'close') => {
     if (!problem.trim()) return;
     setBusy(true);
     try {
@@ -155,7 +184,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
       } else if (draft) {
         await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, dueAt: dueFromInput(due), status: 'open', raisedAt: now(), updatedAt: now() });
       }
-      onSaved();
+      if (then === 'another' && !snag) onSavedAndNext(); else onSaved();
     } finally { setBusy(false); }
   };
   const remove = async () => { if (snag && window.confirm('Delete this snag?')) { await deleteSnag(snag.id); onSaved(); } };
@@ -164,6 +193,17 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
 
   return (
     <Sheet open onClose={onClose} title={snag ? 'Snag' : 'New snag'}>
+      {still && pinAt && (
+        <div className="snag-where">
+          <div className="snag-where-img">
+            <img src={still} alt="" />
+            <span className="snag-where-pin" style={{ left: `${pinAt.xPct}%`, top: `${pinAt.yPct}%` }} aria-hidden />
+          </div>
+          <button className="btn btn-ghost snag-where-move" onClick={onMovePin}>
+            Put the pin somewhere else
+          </button>
+        </div>
+      )}
       <div className="field-label">Problem</div>
       <textarea className="text-area" autoFocus rows={2} value={problem} placeholder="What's wrong here?" onChange={e => setProblem(e.target.value)} />
       <div className="field-label" style={{ marginTop: 10 }}>Proposed solution <span className="opt">optional</span></div>
@@ -234,8 +274,18 @@ function SnagEditor({ wsId, asset, draft, snag, observations, onClose, onSaved }
         </>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-        <button className="btn btn-primary" onClick={save} disabled={busy || !problem.trim()}>{busy ? 'Saving…' : snag ? 'Save' : 'Add snag'}</button>
+      <div className="snag-editor-foot">
+        <button className="btn btn-primary" onClick={() => void save('close')} disabled={busy || !problem.trim()}>
+          {busy ? 'Saving…' : snag ? 'Save' : 'Add snag'}
+        </button>
+        {/* A walk finds problems in threes, not ones. Without this you save,
+            the sheet shuts, you hunt for the picture, tap it again and start
+            over — which is the bit that feels like being trapped. */}
+        {!snag && (
+          <button className="btn" onClick={() => void save('another')} disabled={busy || !problem.trim()}>
+            Add &amp; place another
+          </button>
+        )}
         {snag && <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={remove}>Delete</button>}
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
       </div>
