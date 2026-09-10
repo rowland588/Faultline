@@ -344,7 +344,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, OK],
     [String(data.openTotal), 'Still open', 'in flight', BRAND],
     [String(data.late), 'Overdue', 'past their date', data.late > 0 ? DANGER : OK],
-    [String(data.openSnags), 'Open snags', 'on the line walk', data.openSnags > 0 ? WARN : OK],
+    [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
     [String(data.winsThisWeek), 'Wins this week', 'what worked', OK],
   ];
   const tGap = 8, tW = (CW - tGap * 5) / 6, tY = M + 68, tH = 54;
@@ -426,7 +426,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     [{ head: 'Line', width: 0.19 }, { head: 'Owner', width: 0.19 },
      { head: 'ppm', width: 0.11, align: 'right' },
      { head: 'Open', width: 0.10, align: 'right' }, { head: 'Late', width: 0.10, align: 'right' },
-     { head: 'Next', width: 0.11, align: 'right' }, { head: 'Snags', width: 0.10, align: 'right' },
+     { head: 'Next', width: 0.11, align: 'right' }, { head: 'Evid.', width: 0.10, align: 'right' },
      { head: 'Wins', width: 0.10, align: 'right' }],
     data.byLine.map(r => [
       { text: r.name, bold: true },

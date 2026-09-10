@@ -75,7 +75,7 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
               ⚑ {a.problem}{a.owner ? <b> — {a.owner}</b> : ''}{dueWord(a) ? ` · ${dueWord(a)}` : ''}
             </span>
           ))}
-          {stop.actions.length > 3 && <span className="la-more">+ {stop.actions.length - 3} more on the snag list</span>}
+          {stop.actions.length > 3 && <span className="la-more">+ {stop.actions.length - 3} more on the evidence list</span>}
         </span>
       )}
       {layer === 'proof' && (
@@ -247,7 +247,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
           : 'Swipe along the line · tap the machine to zoom & pin'}
       </p>
       <div className="next-row line-links">
-        <button className="linkish" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ Snag list ›</button>
+        <button className="linkish" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ Evidence ›</button>
         <button className="linkish" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}>Manage walks ›</button>
       </div>
     </div>

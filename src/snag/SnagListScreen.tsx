@@ -154,7 +154,7 @@ export function SnagListScreen() {
       ].map(esc).join(','));
     }
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-    a.download = `snags-${workspace.name.replace(/\W+/g, '-').toLowerCase()}.csv`; a.click(); URL.revokeObjectURL(a.href);
+    a.download = `evidence-${workspace.name.replace(/\W+/g, '-').toLowerCase()}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };
 
   /* THE SNAG CARD — the thing that goes to Engineering.
@@ -236,12 +236,12 @@ export function SnagListScreen() {
         <button className="btn" onClick={() => setPrinting(true)}>Print</button>
         <button className="btn btn-primary" disabled={carding || ordered.length === 0}
           onClick={() => void sendCards(ordered)}
-          title="One page per snag, with its photo — the PDF to email">
-          {carding ? 'Building…' : 'Snag cards'}
+          title="One page each, with its photo — the PDF to email">
+          {carding ? 'Building…' : 'Evidence cards'}
         </button>
       </div>
       <p className="eyebrow">The eyes</p>
-      <h1 className="h1">Snags</h1>
+      <h1 className="h1">Evidence</h1>
 
       <div className="snag-summary">
         <span className="ss-pill"><b>{counts.open}</b> open</span>
@@ -299,13 +299,13 @@ export function SnagListScreen() {
           rows.length === 0
             ? (
               <div className="snag-empty">
-                <p className="sub">Nothing here yet. Snags come off a walk: film the line, freeze the frames that
-                  matter, then pin what is wrong on each one.</p>
+                <p className="sub">Nothing here yet. Evidence comes off a walk: film the line, freeze the frames that
+                  matter, then pin what you see on each one.</p>
                 <button className="btn btn-primary" style={{ marginTop: 12 }}
                   onClick={() => nav(`/w/${workspace.id}/snags`)}>🎥 Film the line</button>
               </div>
             )
-            : <p className="sub">No snags match these filters.</p>
+            : <p className="sub">Nothing matches these filters.</p>
         )
           : (
             <table className="snag-table">
@@ -348,7 +348,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
       <p className="sub no-print" style={{ marginTop: -4, marginBottom: 12 }}>In the print dialog choose “Save as PDF” as the destination to email it.</p>
 
       <header className="report-head">
-        <h1>Snag report</h1>
+        <h1>Evidence report</h1>
         <p className="report-meta">{wsName} · {today}</p>
         {filterNote && <p className="report-filter">Showing: {filterNote}</p>}
         <div className="report-stats">

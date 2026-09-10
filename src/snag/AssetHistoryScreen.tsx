@@ -68,7 +68,7 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
       {history.length > 1 && (
         <div className="card" style={{ marginTop: 12 }}>
           <div className="field-label">Every walk it appears in</div>
-          <p className="sub" style={{ margin: '2px 0 8px' }}>Tap a frame to compare it. Dot = open snags on that day's marking.</p>
+          <p className="sub" style={{ margin: '2px 0 8px' }}>Tap a frame to compare it. Dot = open items on that day's marking.</p>
           <div className="hist-filmstrip">
             {history.map(h => (
               <FilmFrame key={h.asset.id} appearance={h} active={h.asset.id === latest?.asset.id} onTap={() => setFocus(h.asset.id)} />

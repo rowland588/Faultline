@@ -7,7 +7,7 @@ const TABS = [
   // Lands on the SNAGS, not on the films. Tapping a tab called Snags and
   // getting a list of videos is how you end up back inside a walk-through when
   // all you wanted was the thing you just wrote down.
-  { name: 'snags',   label: 'Snags',   icon: '⚑', to: 'snaglist' },
+  { name: 'snags',   label: 'Evidence', icon: '⚑', to: 'snaglist' },
   { name: 'meeting', label: 'Meeting', icon: '◨', to: 'meeting' },
 ] as const;
 

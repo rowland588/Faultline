@@ -303,7 +303,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const closedFlagWeeks = new Set(closedMine.map(s => weekStart(s.closedAt ?? s.raisedAt)));
 
   const remove = async () => {
-    if (!window.confirm('Delete this case? Its actions keep living on the snag list.')) return;
+    if (!window.confirm('Delete this case? Its actions keep living on the evidence list.')) return;
     await deleteCase(kase.id);
     nav(`/w/${workspace.id}/analyse`);
   };

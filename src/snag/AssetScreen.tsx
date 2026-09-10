@@ -4,7 +4,6 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
 import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob } from '../db';
 import { uid, now } from '../lib/ids';
-import { plural } from '../lib/format';
 import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';
 import { useBlobUrl } from './useBlobUrl';
@@ -61,7 +60,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         {/* Straight to everything, from the screen where snags are made. Going
             back through the video you came from is how you end up watching a
             walk-through you did not ask for. */}
-        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All snags</button>
+        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
         <div style={{ flex: 1 }} />
         {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}>⏱ Through time</button>}
         {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}
@@ -78,9 +77,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
             editor lets you move it. */}
         <button className="btn btn-primary" data-tour="add-snag"
           onClick={() => { setEditing(null); setDraft({ xPct: 50, yPct: 50 }); }}>
-          ＋ Add a snag
+          ＋ Add evidence
         </button>
-        <span className="sub">{plural(openCount, 'open snag')} · or tap the picture where the problem is</span>
+        <span className="sub">{openCount} open · or tap the picture where you see it</span>
       </div>
 
       <div style={{ marginTop: 12 }} data-tour="pins">
@@ -98,8 +97,8 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       )}
 
       <div className="card" style={{ marginTop: 12 }}>
-        <div className="field-label" style={{ marginBottom: 8 }}>Snags on this asset</div>
-        {visible.length === 0 ? <p className="sub">None yet — tap the image above where you see a problem.</p>
+        <div className="field-label" style={{ marginBottom: 8 }}>On this asset</div>
+        {visible.length === 0 ? <p className="sub">Nothing on this frame yet — tap it where you see something.</p>
           : visible.map(s => (
             <button key={s.id} className="snag-line-row" onClick={() => { setDraft(null); setEditing(s); }}>
               <span className="snag-dot-sm" style={{ background: SNAG_STATUS_META[s.status].color }}>{numById.get(s.id)}</span>
@@ -191,12 +190,12 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
       if (then === 'another' && !snag) onSavedAndNext(); else onSaved();
     } finally { setBusy(false); }
   };
-  const remove = async () => { if (snag && window.confirm('Delete this snag?')) { await deleteSnag(snag.id); onSaved(); } };
+  const remove = async () => { if (snag && window.confirm('Delete this? The photo and everything written about it go with it.')) { await deleteSnag(snag.id); onSaved(); } };
   const addPhoto = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setPhotoKey(key); };
   const addFixed = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setFixedKey(key); };
 
   return (
-    <Sheet open onClose={onClose} title={snag ? 'Snag' : 'New snag'}>
+    <Sheet open onClose={onClose} title={snag ? 'Evidence' : 'New evidence'}>
       {still && pinAt && (
         <div className="snag-where">
           <div className="snag-where-img">
@@ -280,7 +279,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
 
       <div className="snag-editor-foot">
         <button className="btn btn-primary" onClick={() => void save('close')} disabled={busy || !problem.trim()}>
-          {busy ? 'Saving…' : snag ? 'Save' : 'Add snag'}
+          {busy ? 'Saving…' : snag ? 'Save' : 'Add it'}
         </button>
         {/* A walk finds problems in threes, not ones. Without this you save,
             the sheet shuts, you hunt for the picture, tap it again and start

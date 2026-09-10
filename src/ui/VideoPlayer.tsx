@@ -71,7 +71,7 @@ export function VideoPlayer({ blobKey, className, poster, onLoadedMetadata, ...r
             : <>The file is here, but its format isn't supported by this browser.</>}
         </span>
         <span className="sub">
-          <b>To fix it for good:</b> open this workspace on the phone that filmed it, go to <b>Snag walk</b>,
+          <b>To fix it for good:</b> open this workspace on the phone that filmed it, go to <b>Walks</b>,
           and tap <b>Convert</b>. It'll play here — and everywhere — from then on.
         </span>
         {url && <a className="btn" style={{ marginTop: 10 }} href={url} download="faultline-clip.mp4">Download the clip</a>}

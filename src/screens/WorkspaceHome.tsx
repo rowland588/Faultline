@@ -52,7 +52,7 @@ function contentsLabel(c: WsContents | undefined): string {
   const parts = [
     c.obs > 0 ? plural(c.obs, 'observation') : '',
     c.videos > 0 ? plural(c.videos, 'video') : '',
-    c.openSnags > 0 ? `${c.openSnags} open snag${c.openSnags === 1 ? '' : 's'}` : '',
+    c.openSnags > 0 ? `${c.openSnags} open on the walk` : '',
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : 'empty — tap to start';
 }

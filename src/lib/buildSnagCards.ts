@@ -80,7 +80,7 @@ export async function buildSnagCards(
     const still = await photoFrom(asset?.stillKey, { xPct: snag.xPct, yPct: snag.yPct });
     const detail = await photoFrom(snag.detailPhotoKey);
     snags.push({
-      problem: snag.problem || 'Snag',
+      problem: snag.problem || 'Evidence',
       proposedSolution: snag.proposedSolution || undefined,
       status: snag.status,
       statusLabel: SNAG_STATUS_META[snag.status].label,
@@ -108,7 +108,7 @@ export async function saveSnagCards(rows: SnagCardRow[], workspace: string, filt
   const data = await buildSnagCards(rows, workspace, filterNote);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   drawSnagCards(doc, data);
-  const slug = workspace.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'snags';
-  const one = rows.length === 1 ? '-' + (rows[0].snag.problem || 'snag').replace(/[^\w]+/g, '-').slice(0, 32).replace(/-$/, '').toLowerCase() : '';
-  doc.save(`snag${rows.length === 1 ? '' : 's'}-${slug}${one}-${new Date().toISOString().slice(0, 10)}.pdf`);
+  const slug = workspace.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'evidence';
+  const one = rows.length === 1 ? '-' + (rows[0].snag.problem || 'item').replace(/[^\w]+/g, '-').slice(0, 32).replace(/-$/, '').toLowerCase() : '';
+  doc.save(`evidence-${slug}${one}-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

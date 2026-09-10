@@ -37,18 +37,18 @@ const CHAPTERS: Array<{ part: string; label: string; lede: string; steps: Step[]
     ],
   },
   {
-    part: 'Part 2', label: 'The snag system',
+    part: 'Part 2', label: 'The evidence system',
     lede: 'Film the walk, and pin every fault to the exact spot on the machine.',
     steps: [
       {
         n: '5', img: 'asset',
         title: 'Film the walk. Pin the faults.',
-        body: "Film the line on your phone, freeze any frame into a named machine, and drop a red dot exactly where the problem is. Every snag gets an owner, a status, and an age — so it can't quietly rot in a notebook.",
+        body: "Film the line on your phone, freeze any frame into a named machine, and drop a red dot exactly where the problem is. Everything you record gets an owner, a status, and an age — so it can't quietly rot in a notebook.",
       },
       {
         n: '6', img: 'history',
         title: 'The same machine, then vs now.',
-        body: 'Walk the line again next month and Faultline lines the walks up: the same machine side by side across time, snags visibly closed, new ones visibly appearing, and the one that\'s been open 200 days impossible to ignore.',
+        body: 'Walk the line again next month and Faultline lines the walks up: the same machine side by side across time, things visibly closed, new ones visibly appearing, and the one that\'s been open 200 days impossible to ignore.',
       },
     ],
   },

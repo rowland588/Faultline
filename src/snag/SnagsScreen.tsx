@@ -201,11 +201,11 @@ export function SnagsScreen() {
       <div className="subhead">
         <div style={{ flex: 1 }} />
         {segs.length > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>}
-        {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag list</button>}
+        {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>⚑ Evidence</button>}
       </div>
 
       <p className="eyebrow">The eyes</p>
-      <h1 className="h1">Snag walk</h1>
+      <h1 className="h1">Walks</h1>
       <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'segment')} · {plural(totalAssets, 'asset')} · {openSnags} open</p>
 
       {/* THE LINE — the place, machine by machine in floor order. This hub
@@ -254,7 +254,7 @@ export function SnagsScreen() {
                 <p className="sub" style={{ marginTop: 6 }}>
                   This has to be done on the phone that filmed {stuck.length === 1 ? 'it' : 'them'} — this device
                   can't read that format, so there's nothing here to convert from. Open this workspace on that
-                  phone, come to <b>Snag walk</b>, and tap <b>Convert</b>. They'll play here afterwards.
+                  phone, come to <b>Walks</b>, and tap <b>Convert</b>. They'll play here afterwards.
                 </p>
               )}
             </>

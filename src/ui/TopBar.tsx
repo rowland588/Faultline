@@ -61,7 +61,7 @@ export function TopBar() {
       <Sheet open={menu} onClose={() => setMenu(false)} title={workspace.name}>
         <SheetRow label="Capture" hint="log what you see" onClick={() => go(`/w/${workspace.id}/capture`)} />
         <SheetRow label="Analyse" hint="the board" onClick={() => go(`/w/${workspace.id}/analyse`)} />
-        <SheetRow label="Snag list" hint="video walk · pinned faults" onClick={() => go(`/w/${workspace.id}/snags`)} />
+        <SheetRow label="Evidence" hint="the walk, and what it found" onClick={() => go(`/w/${workspace.id}/snags`)} />
         <SheetRow label="The log" hint={`${observations.length} logged`} onClick={() => go(`/w/${workspace.id}/log`)} />
         {cloudConfigured && <SheetRow label="People" hint="invite someone to this workspace" onClick={() => go(`/w/${workspace.id}/people`)} />}
         <SheetRow label="Workspace settings" onClick={() => go(`/w/${workspace.id}/settings`)} />

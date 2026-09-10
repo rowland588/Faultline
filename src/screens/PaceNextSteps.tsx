@@ -85,7 +85,7 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
         onChange={e => onPatch({ who: e.target.value })} /></td>
       <td data-h="When"><input className="ns-in" value={row.when} aria-label="When" placeholder="w/c 22nd"
         onChange={e => onPatch({ when: e.target.value })} /></td>
-      <td data-h="Evidence">
+      <td data-h="Photos">
         <div className="ns-pics">
           {media.map(m => (
             <span key={m.id} className="ns-pic">
@@ -231,7 +231,7 @@ export function PaceNextSteps({ projectId = DEFAULT_PROJECT_ID, lineId }: { proj
                 <thead>
                   <tr>
                     <th scope="col">What</th><th scope="col">Where</th><th scope="col">Why</th>
-                    <th scope="col">Who</th><th scope="col">When</th><th scope="col">Evidence</th>
+                    <th scope="col">Who</th><th scope="col">When</th><th scope="col">Photos</th>
                     <th scope="col">Outcome</th>
                     <th scope="col"><span className="sr">Actions</span></th>
                   </tr>

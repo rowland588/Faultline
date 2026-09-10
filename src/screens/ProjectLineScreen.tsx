@@ -35,7 +35,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'meeting',  label: 'Actions',    sub: 'from the tracker' },
   { id: 'next',     label: 'Next steps', sub: 'to do & trials' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
-  { id: 'snags',    label: 'Snag list',  sub: 'the line, filmed' },
+  { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Data',       sub: 'the ppm numbers' },
 ];
 
@@ -142,7 +142,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
             <Kpi n={String(mine.length - done)} label="actions live" sub={`${done} of ${mine.length} closed`} />
             <Kpi n={String(overdue)} label="overdue" sub="past their date" tone={overdue > 0 ? 'bad' : 'good'} />
             <Kpi n={String(counts.openTodos)} label="next steps open" sub={`${counts.doneTodos} finished`} />
-            <Kpi n={String(counts.openSnags)} label="open snags" sub="on this line’s walk" tone={counts.openSnags > 0 ? 'warn' : 'good'} />
+            <Kpi n={String(counts.openSnags)} label="open evidence" sub="on this line’s walk" tone={counts.openSnags > 0 ? 'warn' : 'good'} />
             {/* green only when there is something to be pleased about — a
                 green nought reads as "all good" when it means "nothing yet" */}
             <Kpi n={String(counts.wins)} label="wins logged" sub="what worked" tone={counts.wins > 0 ? 'good' : undefined} />
@@ -197,7 +197,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">{line.name}, filmed</h2>
-            <p className="pace-sec-sub">This line’s own walk — film it, mark the frames, pin what is wrong · play it back in the meeting</p>
+            <p className="pace-sec-sub">This line’s own walk — film it, mark the frames, pin what you see · play it back in the meeting</p>
           </div>
           <PaceSnags projectId={projectId} projectName={project.name}
             line={{ workspaceId: line.workspaceId, name: line.name, attach }} />

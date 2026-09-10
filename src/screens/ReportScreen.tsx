@@ -79,7 +79,7 @@ export function ReportScreen() {
             <div className="rstat"><b>{fmtGBP(kpi.lastWeekCost)}</b><span>cost of loss</span></div>
           )}
           <div className="rstat">
-            <b>{open.length}</b><span>open snags</span>
+            <b>{open.length}</b><span>open evidence</span>
             {stale.length > 0 && <em className="bad">{stale.length} stale (30d+)</em>}
           </div>
           <div className="rstat">

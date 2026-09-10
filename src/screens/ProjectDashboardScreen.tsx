@@ -173,7 +173,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'meeting',  label: 'Meeting',    sub: 'by owner' },
   { id: 'next',     label: 'Next steps', sub: 'to do & waiting' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
-  { id: 'snags',    label: 'Snag list',  sub: 'the line, filmed' },
+  { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Data',       sub: 'upload & ppm' },
 ];
 
@@ -356,8 +356,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'snags' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Snag list</h2>
-            <p className="pace-sec-sub">Film the line, mark the frames, pin what is wrong · play it back in the meeting</p>
+            <h2 className="pace-sec-title">Evidence</h2>
+            <p className="pace-sec-sub">Film the line, mark the frames, pin what you see · play it back in the meeting</p>
           </div>
           {/* every line's walk as well as the project's own, so a snag filmed
               inside a line's pack is not invisible from here */}

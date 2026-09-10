@@ -405,7 +405,7 @@ export function PaceExecReport() {
           <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="good" />
           <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
           <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'good'} />
-          <Stat n={String(openSnags.length)} label="Open snags" sub="on the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
+          <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
           <Stat n={String(winsThisWeek.length)} label="Wins this week" sub="what worked" tone="good" />
         </div>
 
@@ -457,7 +457,7 @@ export function PaceExecReport() {
                 <tr>
                   <th scope="col">Line</th><th scope="col">Owner</th>
                   <th scope="col">ppm</th><th scope="col">Open</th><th scope="col">Late</th>
-                  <th scope="col">Next</th><th scope="col">Snags</th><th scope="col">Wins</th>
+                  <th scope="col">Next</th><th scope="col">Evidence</th><th scope="col">Wins</th>
                 </tr>
               </thead>
               <tbody>

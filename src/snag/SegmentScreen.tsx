@@ -159,7 +159,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ All segments</button>
         {/* The same escape as the asset screen: out of the footage and into
             what the footage was for. */}
-        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All snags</button>
+        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
         <div style={{ flex: 1 }} />
         {segs.length > 1 && (
           <div className="seg-nav">
@@ -232,7 +232,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             </span>
             <span className="sub">
               <b>To fix it for good:</b> open this workspace on the phone that filmed it, go to{' '}
-              <b>Snag walk</b>, and tap <b>Convert</b>. It'll play and mark here from then on.
+              <b>Walks</b>, and tap <b>Convert</b>. It'll play and mark here from then on.
             </span>
             {videoUrl && <a className="btn" style={{ marginTop: 10 }} href={videoUrl} download="faultline-clip.mp4">Download the clip</a>}
           </div>
