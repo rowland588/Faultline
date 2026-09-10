@@ -45,7 +45,7 @@ export function chainCrumbs(chain: WsChain | null, wsName: string): Crumb[] {
 /** What the screen you are on is called, for the last crumb. */
 const SCREEN_LABEL: Record<string, string> = {
   capture: 'Capture', analyse: 'Analyse', log: 'The log', settings: 'Settings',
-  people: 'People', snaglist: 'Evidence', snags: 'Walks', line: 'The line',
+  people: 'People', snaglist: 'Evidence', snags: 'Walks', line: 'Machines',
   trend: 'Trend', history: 'Through time', case: 'The case',
 };
 

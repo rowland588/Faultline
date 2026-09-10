@@ -262,7 +262,9 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
         </div>
         <div className="ps-bar-actions">
           <button className="btn btn-primary" onClick={() => nav(`/w/${wsId}/walk`)}>▶ Show the walk</button>
-          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>Film / edit</button>
+          {/* ?manage, or the walk hub redirects to the machine board and a
+              button that says "Film" lands somewhere with no films on it. */}
+          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags?manage`)}>Film / edit</button>
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snaglist`)}>All evidence</button>
         </div>
       </div>
