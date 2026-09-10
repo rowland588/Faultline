@@ -62,6 +62,12 @@ grant execute on function public.is_project_member(text) to authenticated;
 -- a next step or a win gains the LINE it belongs to, which is what gives each
 -- owner their own pack. A null line_id means it spans the whole project, which
 -- is what everything logged before lines had packs reads as.
+--
+-- The `rev` column on projects is added here as well as in part 1, on purpose:
+-- an earlier draft of part 1 did not have it, so a database that ran that one
+-- would fail on the nextval below with "column rev does not exist". Adding it
+-- if-not-exists costs nothing and means this part does not care which part 1
+-- came before it.
 -- ============================================================================
 
 alter table public.pace_ppm add column if not exists project_id text;
@@ -87,6 +93,7 @@ update public.pace_ppm set project_id = 'project-pace' where project_id is null;
 update public.pace_todos set project_id = 'project-pace' where project_id is null;
 update public.pace_wins set project_id = 'project-pace' where project_id is null;
 update public.pace_snapshots set project_id = 'project-pace' where project_id is null;
+alter table public.projects add column if not exists rev bigint;
 drop trigger if exists faultline_rev on public.projects;
 create trigger faultline_rev before insert or update on public.projects for each row execute function public.faultline_stamp_rev();
 update public.projects set rev = nextval('public.faultline_rev_seq') where rev is null;
