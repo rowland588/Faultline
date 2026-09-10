@@ -17,6 +17,7 @@ import { useProject, useProjects } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
+import { LineTidyPanel } from './LineTidyPanel';
 import { displayName } from '../cloud/team';
 import { supabase } from '../cloud/client';
 
@@ -374,6 +375,10 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           )}
 
         <AddLine state={lines} />
+
+        {/* Work written before lines had packs of their own — offered for
+            placing, once, and gone from the page as soon as it is placed. */}
+        <LineTidyPanel projectId={project.id} lines={lines.lines} />
       </section>
 
       <section className="pace-sec">
