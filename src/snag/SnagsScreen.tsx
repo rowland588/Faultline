@@ -268,6 +268,27 @@ export function SnagsScreen() {
       <input ref={fileRef} type="file" accept="video/*" multiple style={{ display: 'none' }}
         onChange={e => { const f = Array.from(e.target.files ?? []); if (f.length) void onFiles(f); }} />
 
+      {/* THE FOOTAGE YOU HAVE COMES FIRST once there is any.
+       *
+       * This screen used to open with two big primary Film buttons and put the
+       * list of segments underneath them — so pressing "All segments" from
+       * inside a segment landed you on what reads as a filming screen, and the
+       * thing you asked for was below the fold. When there is footage, the
+       * footage leads and filming becomes an ordinary button at the bottom;
+       * with none, filming is the only sensible thing to offer and it leads. */}
+      {segs.length > 0 && (
+        <div className="card" data-tour="seg-list" style={{ marginTop: 14 }}>
+          <div className="field-label" style={{ marginBottom: 8 }}>Segments · walk order</div>
+          {segs.map((seg, i) => (
+            <SegRow key={seg.id} seg={seg} assetNames={namesBySeg.get(seg.id) ?? []} first={i === 0} last={i === segs.length - 1}
+              backed={backed.get(seg.id)}
+              onOpen={() => nav(`/w/${workspace.id}/segment/${seg.id}`)}
+              onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)}
+              onRename={() => setRenaming(seg)} onDelete={() => remove(seg)} />
+          ))}
+        </div>
+      )}
+
       {busy ? (
         <div className="card" style={{ marginTop: 14 }}>
           <b>{busy}</b>
@@ -285,33 +306,25 @@ export function SnagsScreen() {
           )}
         </div>
       ) : (
-        <div className="add-video-row" data-tour="film">
+        <div className={'add-video-row' + (segs.length > 0 ? ' is-secondary' : '')} data-tour="film">
           {/* Filming in-app records H.264, which plays on every device. The
               phone's own camera app defaults to HEVC on most handsets, which
               a laptop can decode the sound of but not the picture — so that's
               the fallback, not the headline action. */}
           {videoCaptureSupported() && (
-            <button className="btn btn-primary btn-lg" onClick={() => setFilming(true)}>🎥 Film the walk</button>
+            <button className={'btn' + (segs.length === 0 ? ' btn-primary btn-lg' : '')} onClick={() => setFilming(true)}>
+              🎥 {segs.length === 0 ? 'Film the walk' : 'Film another'}
+            </button>
           )}
-          <button className={'btn btn-lg' + (videoCaptureSupported() ? '' : ' btn-primary')} onClick={() => fileRef.current?.click()}>
+          <button className={segs.length === 0 ? ('btn btn-lg' + (videoCaptureSupported() ? '' : ' btn-primary')) : 'btn'}
+            onClick={() => fileRef.current?.click()}>
             ⬆ Upload video{videoCaptureSupported() ? 's' : ''}
           </button>
         </div>
       )}
 
-      {segs.length === 0 && !busy ? (
+      {segs.length === 0 && !busy && (
         <EmptyState icon="🎥" title="No footage yet">Film the line infeed-to-outfeed — several clips for a long line — and add them in walk order. Then scrub each to mark its assets.</EmptyState>
-      ) : (
-        <div className="card" data-tour="seg-list">
-          <div className="field-label" style={{ marginBottom: 8 }}>Segments · walk order</div>
-          {segs.map((seg, i) => (
-            <SegRow key={seg.id} seg={seg} assetNames={namesBySeg.get(seg.id) ?? []} first={i === 0} last={i === segs.length - 1}
-              backed={backed.get(seg.id)}
-              onOpen={() => nav(`/w/${workspace.id}/segment/${seg.id}`)}
-              onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)}
-              onRename={() => setRenaming(seg)} onDelete={() => remove(seg)} />
-          ))}
-        </div>
       )}
 
       {filming && <VideoRecorder onCapture={b => void onRecorded(b)} onClose={() => setFilming(false)} />}

@@ -2777,3 +2777,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1;
   cursor: pointer; padding: 0 4px;
 }
+
+/* filming, once there is already footage: still there, no longer the headline */
+.add-video-row.is-secondary { margin-top: 12px; opacity: 0.9; }
+.add-video-row.is-secondary .btn { font-size: 14px; padding: 8px 14px; }
