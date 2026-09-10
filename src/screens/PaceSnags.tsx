@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, deleteSnag, deleteSnagAsset } from '../db';
+import { ConvertBanner } from '../snag/ConvertBanner';
 import { usePaceWorkspace, useLineWorkspace } from '../lib/usePaceWorkspace';
 import { useBlobUrl } from '../snag/useBlobUrl';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
@@ -268,6 +269,8 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snaglist`)}>All evidence</button>
         </div>
       </div>
+
+      <ConvertBanner wsId={wsId} tick={segments.length} onDone={() => void load(wsId)} />
 
       <div className="ps-segs">
         {shownSegments.map(seg => (

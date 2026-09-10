@@ -2892,3 +2892,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   /* the second line is a hint, and there is no room for a hint on a phone */
   .pace-lens-s { display: none; }
 }
+
+/* The convert notice. A warning tone, because something does need doing — but
+   the footage is not at risk, so never the danger red. */
+.convert-card { margin-top: 12px; border-left: 3px solid var(--warn, #b4632a); }
+.convert-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

@@ -43,6 +43,18 @@ export function CloudPanel() {
           <span className="cloud-main">
             <b>{session.user.email}</b>
             {status.state === 'error' && <span className="sub">Backup paused — it will retry by itself</span>}
+            {/* "Is everything synced?" answered with a number. Silence means
+                yes; a count means the files still moving, and how many. */}
+            {status.state !== 'error' && (status.pendingUp || status.pendingDown) ? (
+              <span className="sub">
+                {status.pendingUp ? `${status.pendingUp} file${status.pendingUp === 1 ? '' : 's'} still to back up` : ''}
+                {status.pendingUp && status.pendingDown ? ' · ' : ''}
+                {status.pendingDown ? `${status.pendingDown} still to download` : ''}
+                {' — keep this device online'}
+              </span>
+            ) : status.state === 'idle' && status.lastSyncedAt ? (
+              <span className="sub">Everything is backed up ✓</span>
+            ) : null}
             {status.schemaOutdated && (
               <span className="sub" style={{ color: 'var(--warn)' }}>
                 Admin: run supabase/SYNC_UPGRADE.sql in the Supabase SQL editor once.
@@ -58,6 +70,15 @@ export function CloudPanel() {
           Your work backs up and syncs to your devices automatically
           {status.lastSyncedAt ? ` — last checked in ${fmtRelative(status.lastSyncedAt)}` : ''}.
         </p>
+        {(status.pendingUp || status.pendingDown) ? (
+          <p className="sub" style={{ marginBottom: 10 }}>
+            {status.pendingUp ? <><b>{status.pendingUp}</b> file{status.pendingUp === 1 ? '' : 's'} still going up. </> : null}
+            {status.pendingDown ? <><b>{status.pendingDown}</b> still coming down. </> : null}
+            Video is the slow part — a walk is a big file. It carries on by itself while the app is open.
+          </p>
+        ) : status.lastSyncedAt ? (
+          <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up ✓</p>
+        ) : null}
         {status.state === 'error' && status.error && (
           <p className="sub" style={{ color: 'var(--danger)', marginBottom: 10 }}>{status.error}</p>
         )}

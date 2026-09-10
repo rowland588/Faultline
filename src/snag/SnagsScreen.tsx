@@ -8,7 +8,7 @@ import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
-import { findUnportable, repairSegment, canRepairHere } from './repair';
+import { ConvertBanner } from './ConvertBanner';
 import { useSyncedAt } from '../cloud/session';
 import { backedUp } from '../cloud/sync';
 import { cloudConfigured } from '../cloud/client';
@@ -76,10 +76,6 @@ export function SnagsScreen() {
   const [openSnags, setOpenSnags] = useState(0);
   const [busy, setBusy] = useState('');
   const [progress, setProgress] = useState<number | null>(null);
-  const [stuck, setStuck] = useState<Segment[]>([]);
-  const [repairing, setRepairing] = useState<{ index: number; total: number; fraction: number } | null>(null);
-  const [repairMsg, setRepairMsg] = useState('');
-  const [canRepair, setCanRepair] = useState(false);
   const [err, setErr] = useState('');
   const [renaming, setRenaming] = useState<Segment | null>(null);
   const [filming, setFilming] = useState(false);
@@ -103,38 +99,6 @@ export function SnagsScreen() {
   };
   const syncedAt = useSyncedAt();
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
-
-  // Anything filmed before conversion existed is still stuck in a format other
-  // devices can't show. Offer to fix it, but only where it can actually be done.
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      const s = await findUnportable(workspace.id);
-      if (!alive) return;
-      setStuck(s);
-      setCanRepair(s.length > 0 ? await canRepairHere(s) : false);
-    })();
-    return () => { alive = false; };
-  }, [workspace.id, segs.length, repairMsg]);
-
-  const repairAll = async () => {
-    setRepairMsg(''); setErr('');
-    let done = 0, blocked = false;
-    for (let i = 0; i < stuck.length; i++) {
-      setRepairing({ index: i, total: stuck.length, fraction: 0 });
-      const outcome = await repairSegment(stuck[i], f => setRepairing({ index: i, total: stuck.length, fraction: f }));
-      if (outcome === 'converted') done++;
-      // No decoder here means no source to convert FROM — the phone that filmed
-      // it is the only place this can work, so stop rather than grind through.
-      if (outcome === 'cannot-decode') { blocked = true; break; }
-    }
-    setRepairing(null);
-    await load();
-    setRepairMsg(blocked
-      ? `Converted ${done}. The rest can't be converted on this device — it can't read that format. Open this workspace on the phone that filmed them and tap this again.`
-      : done > 0 ? `Converted ${done} video${done === 1 ? '' : 's'} — they'll play on your other devices once synced.`
-      : 'Nothing could be converted here.');
-  };
 
   /* A full device mustn't read as a mystery: name the actual problem and the
    * way out. (The footage was NOT saved — saying so beats implying maybe.) */
@@ -224,47 +188,7 @@ export function SnagsScreen() {
 
       {err && <div className="card" style={{ color: 'var(--danger)', marginTop: 12 }}>{err}</div>}
 
-      {(stuck.length > 0 || repairing || repairMsg) && (
-        <div className="card" style={{ marginTop: 12 }}>
-          {repairing ? (
-            <>
-              <b>Converting video {repairing.index + 1} of {repairing.total}…</b>
-              <p className="sub" style={{ marginTop: 6 }}>Runs at playback speed — keep this screen open.</p>
-              <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(repairing.fraction * 100)}%` }} /></div>
-            </>
-          ) : repairMsg ? (
-            <>
-              <p className="sub">{repairMsg}</p>
-              {stuck.length > 0 && <button className="btn" style={{ marginTop: 10 }} onClick={repairAll}>Try again</button>}
-            </>
-          ) : (
-            <>
-              <b>{plural(stuck.length, 'video')} won't play on your other devices</b>
-              {canRepair ? (
-                <>
-                  <p className="sub" style={{ marginTop: 6 }}>
-                    {stuck.length === 1 ? 'It was' : 'They were'} filmed in your phone's own format, which a laptop
-                    can play the sound of but not the picture. Converting {stuck.length === 1 ? 'it' : 'them'} here
-                    fixes that everywhere — your marked assets and snags are kept. Takes about as long as the
-                    footage runs, so keep this screen open.
-                  </p>
-                  <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={repairAll}>
-                    Convert {plural(stuck.length, 'video')}
-                  </button>
-                </>
-              ) : (
-                /* Converting means decoding the original first, and this device
-                   can't read the format — so don't offer a button that can only fail. */
-                <p className="sub" style={{ marginTop: 6 }}>
-                  This has to be done on the phone that filmed {stuck.length === 1 ? 'it' : 'them'} — this device
-                  can't read that format, so there's nothing here to convert from. Open this workspace on that
-                  phone, come to <b>Walks</b>, and tap <b>Convert</b>. They'll play here afterwards.
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      <ConvertBanner wsId={workspace.id} tick={segs.length} onDone={() => void load()} />
 
       {/* No `capture` attribute: with it, a phone goes straight to the camera and
           never offers the gallery or Files — which is the opposite of what this

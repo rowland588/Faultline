@@ -43,6 +43,12 @@ export interface SyncStatus {
   /** The cloud DB predates the rev upgrade — sync works (legacy mode) but the
    *  one-time supabase/SYNC_UPGRADE.sql should be run. */
   schemaOutdated?: boolean;
+  /** Files still waiting to go up, and still waiting to come down. "Is
+   *  everything synced?" has to be answerable with a number, not a feeling —
+   *  a cloud icon that always looks the same cannot tell you when a walk you
+   *  filmed an hour ago is still sitting on this phone. */
+  pendingUp?: number;
+  pendingDown?: number;
 }
 let status: SyncStatus = { state: 'signedout', lastSyncedAt: null };
 const listeners = new Set<() => void>();
@@ -302,10 +308,12 @@ export async function syncNow(): Promise<void> {
       await setSyncCursor(startedAt);
     }
     // Retry queues persist regardless — an extra retry is harmless, a lost one isn't.
-    await keySetPut('pendingUploads', new Set([...wanted].filter(k => !uploaded.has(k))));
-    await keySetPut('pendingDownloads', new Set([...failedDownloads].map(([k, o]) => (o ? `${k}|${o}` : k))));
+    const stillUp = new Set([...wanted].filter(k => !uploaded.has(k)));
+    const stillDown = new Set([...failedDownloads].map(([k, o]) => (o ? `${k}|${o}` : k)));
+    await keySetPut('pendingUploads', stillUp);
+    await keySetPut('pendingDownloads', stillDown);
 
-    set({ state: 'idle', lastSyncedAt: Date.now() });
+    set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, pendingDown: stillDown.size });
   } catch (e) {
     set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });
   } finally {
