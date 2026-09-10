@@ -11,6 +11,7 @@
  * file stays sendable.
  */
 import { getBlob } from '../db';
+import { loadPdfLib, deliverPdf } from './savePdf';
 import type { Snag, SnagAsset } from '../snag/types';
 import { SNAG_STATUS_META } from '../snag/types';
 import type { SnagCardData, SnagCardPhoto, SnagCardSet } from './snagCardPdf';
@@ -103,12 +104,14 @@ export async function buildSnagCards(
  *  that offers a card — one snag, or a filtered list — produces the identical
  *  file with the identical name. */
 export async function saveSnagCards(rows: SnagCardRow[], workspace: string, filterNote?: string): Promise<void> {
-  const { jsPDF } = await import('jspdf');
+  const { jsPDF } = await loadPdfLib();
   const { drawSnagCards } = await import('./snagCardPdf');
   const data = await buildSnagCards(rows, workspace, filterNote);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   drawSnagCards(doc, data);
   const slug = workspace.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'evidence';
   const one = rows.length === 1 ? '-' + (rows[0].snag.problem || 'item').replace(/[^\w]+/g, '-').slice(0, 32).replace(/-$/, '').toLowerCase() : '';
-  doc.save(`evidence-${slug}${one}-${new Date().toISOString().slice(0, 10)}.pdf`);
+  // Share sheet on a phone, download on a desktop — see lib/savePdf. A card is
+  // made to be sent, and on the floor that means the share sheet.
+  await deliverPdf(doc, `evidence-${slug}${one}-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

@@ -21,6 +21,7 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
 import { actionsForLine } from '../lib/paceLineMatch';
+import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEFAULT_PROJECT_ID,
   type PaceTodoRow, type PaceWinRow } from '../db';
 import type { Snag } from '../snag/types';
@@ -101,6 +102,15 @@ export function PaceExecReport() {
 
   const root = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<{ stale: boolean; msg: string } | null>(null);
+
+  /* Fetch the PDF library when the REPORT opens, not when the button is
+   * pressed. It is a separate 350KB chunk, and this is an installed PWA whose
+   * worker keeps serving the build it booted with — so after a deploy the page
+   * asks for a filename the server no longer has, the import rejects, and the
+   * button appears to do nothing. Loading it up front turns a dead button into
+   * something that can say what is wrong while you are still reading the page. */
+  useEffect(() => { void loadPdfLib().catch(() => { /* reported when pressed */ }); }, []);
   const loading = pace.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
 
   // Scale the fixed-size sheets down to whatever width the window gives us, so
@@ -153,8 +163,9 @@ export function PaceExecReport() {
   const download = async () => {
     if (saving || loading) return;
     setSaving(true);
+    setSaveErr(null);
     try {
-      const { jsPDF } = await import('jspdf');
+      const { jsPDF } = await loadPdfLib();
       const { drawPaceReport } = await import('../lib/paceReportPdf');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
       drawPaceReport(pdf, reportData());
@@ -163,10 +174,15 @@ export function PaceExecReport() {
       // nobody can tell apart.
       const name = line ? `${project?.name ?? 'Project'} ${line.name}` : (project?.name ?? 'Project');
       const slug = name.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Project';
-      pdf.save(`${slug}-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      const how = await deliverPdf(pdf, `${slug}-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      // Downloading is invisible on a phone, and "opened in a tab" needs saying
+      // or it looks like nothing happened at all.
+      if (how === 'opened') setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });
     } catch (err) {
       console.error('PDF export failed', err);
-      window.alert('Sorry — the PDF could not be generated. Please try again.');
+      setSaveErr(isStaleBuildError(err)
+        ? { stale: true, msg: 'This tab is still running an older version of the app, so the part that draws the PDF could not load.' }
+        : { stale: false, msg: err instanceof Error ? err.message : 'The PDF could not be built.' });
     } finally {
       setSaving(false);
     }
@@ -369,6 +385,21 @@ export function PaceExecReport() {
           <AccountMenu />
         </div>
       </div>
+
+      {/* What went wrong, in words, where the button is — an alert saying "try
+          again" on a report somebody needs for a meeting is a shrug, not an
+          error message. A stale build gets the one action that fixes it. */}
+      {saveErr && (
+        <div className={'exec-saveerr no-print' + (saveErr.stale ? ' is-stale' : '')} role="alert">
+          <span>{saveErr.msg}</span>
+          {saveErr.stale && (
+            <button className="btn btn-primary" onClick={() => void reloadOntoNewBuild()}>
+              Reload the app
+            </button>
+          )}
+          <button className="exec-saveerr-x" onClick={() => setSaveErr(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
 
       {/* ================= PAGE 1 — STATUS AT A GLANCE ================= */}
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>

@@ -2759,3 +2759,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* nothing recorded yet — say where snags come from, and offer the way there */
 .snag-empty { padding: 18px 4px 6px; }
 .snag-empty .sub { max-width: 56ch; }
+
+/* what stopped the PDF, said on the page rather than in an alert box */
+.exec-saveerr {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 0 16px 12px; padding: 10px 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+  font-size: 13.5px; color: var(--ink);
+}
+.exec-saveerr.is-stale {
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 38%, var(--line));
+}
+.exec-saveerr span { flex: 1; min-width: 220px; }
+.exec-saveerr-x {
+  border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1;
+  cursor: pointer; padding: 0 4px;
+}
