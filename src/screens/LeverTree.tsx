@@ -29,6 +29,8 @@ import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
 import { useSticky } from '../lib/useSticky';
 import { parsePastedRows } from '../lib/pastedRows';
+import { TrackerPicker, actionText } from './TrackerPicker';
+import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 
 /* How far in and out the tree will go. Below about a third the words stop being
  * words; above 1.6 there is no reason to be on this screen rather than reading
@@ -235,7 +237,10 @@ function Box({
               the rarer move and gets its own button rather than the default. */}
           <button type="button" className="lt-mini" title="Add another below" aria-label="Add another below" onClick={onAddBelow}>＋</button>
           <button type="button" className="lt-mini" title="Add the next level to its right" aria-label="Add the next level to its right" onClick={onAddRight}>＋›</button>
-          <button type="button" className="lt-mini" title="Paste a list to its right" aria-label="Paste a list to its right" onClick={onPaste}>⇱</button>
+          {/* The tracker is already in the app, so this opens THIS WEEK'S
+              ACTIONS to be picked from rather than sending anybody back to
+              Excel to copy a column. Typing is behind a link inside it. */}
+          <button type="button" className="lt-mini" title="Add work from the tracker" aria-label="Add work from the tracker" onClick={onPaste}>☰</button>
           <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}>×</button>
         </div>
       </div>
@@ -250,6 +255,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const [rows, setRows] = useState<TreeNodeRow[] | null>(null);
   const [pasteInto, setPasteInto] = useState<TreeNodeRow | null>(null);
   const [pasteText, setPasteText] = useState('');
+  /** 'pick' = choose off the tracker (the normal way); 'type' = write it out. */
+  const [addMode, setAddMode] = useState<'pick' | 'type'>('pick');
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
@@ -294,6 +301,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const a = t.item(0), b = t.item(1);
     return a && b ? Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) : 0;
   };
+
+  // This week's tracker, already uploaded and parsed — the work that gets hung
+  // on the tree comes from here, not from the clipboard.
+  const pace = usePaceSnapshots(projectId);
+  const trackerActions = pace.snapshots[0]?.actions ?? [];
 
   const load = useCallback(async () => { setRows(await listTreeNodes(projectId)); }, [projectId]);
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load, syncedAt]);
@@ -393,6 +405,24 @@ export function LeverTree({ projectId }: { projectId: string }) {
     await load();
   };
 
+  /** Hang the picked tracker rows under a box, in the order they were listed. */
+  const addPicked = async (parent: TreeNodeRow, picked: { ref: string }[]) => {
+    setPasteInto(null);
+    const sibs = siblingsOf(parent.id);
+    let sort = sibs.length ? sibs[sibs.length - 1].sort + 1 : 0;
+    const t = now();
+    await putTreeNodes(picked.map(a => ({
+      id: uid(), projectId, parentId: parent.id,
+      text: actionText(a as never), rag: 'n' as NodeStatus,
+      sort: sort++, createdAt: t, updatedAt: t,
+    })));
+    await load();
+  };
+
+  /** Everything already on the tree, lower-cased, so the picker can say which
+   *  rows are hung on it somewhere already. */
+  const alreadyOn = new Set(nodes.map(n => n.text.trim().toLowerCase()).filter(Boolean));
+
   const dragApi = { id: dragId, start: setDragId, over: overId, setOver: setOverId, drop };
 
   /** Move by tapping: pick a box up, then tap where it belongs. Shares the same
@@ -448,8 +478,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
         onAddBelow={() => void addBelow(t.node)}
         onAddRight={() => void addNode(t.node.id)}
         onDelete={() => void remove(t.node)}
-        onPaste={() => { setPasteInto(t.node); setPasteText(''); }}
-        onDropText={text => { setPasteInto(t.node); setPasteText(text); }}
+        onPaste={() => { setPasteInto(t.node); setPasteText(''); setAddMode('pick'); }}
+        onDropText={text => { setPasteInto(t.node); setPasteText(text); setAddMode('type'); }}
         onMove={d => void move(t.node, d)}
         drag={dragApi}
       />
@@ -550,18 +580,27 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
-              ⠿ move a box · ↑ ↓ reorder · ＋ another below · ＋› the next level along
-              {' '}· ⇱ paste a list underneath · pinch to zoom, or tap the percentage to fit it all on.
-              {' '}<br />On a computer you can also drag boxes about, and drag a selection straight
-              out of the tracker onto a box. Neither works by touch — on a phone, copy in the
-              spreadsheet and use ⇱.
+              ☰ hang this week’s tracker work under a box · ⠿ move a box · ↑ ↓ reorder
+              {' '}· ＋ another below · ＋› the next level along · pinch to zoom, or tap the
+              percentage to fit it all on.
             </span>
           </div>
         </>
       )}
 
-      {pasteInto && (
-        <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Paste a list">
+      {pasteInto && addMode === 'pick' && (
+        <TrackerPicker
+          title={pasteInto.text.trim() || 'this box'}
+          actions={trackerActions}
+          alreadyOn={alreadyOn}
+          onAdd={picked => void addPicked(pasteInto, picked)}
+          onClose={() => setPasteInto(null)}
+          onTypeInstead={() => setAddMode('type')}
+        />
+      )}
+
+      {pasteInto && addMode === 'type' && (
+        <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Type or paste a list">
           <div className="lt-paste">
             <h2 className="lt-paste-t">Paste underneath “{pasteInto.text.trim() || 'this box'}”</h2>
             <p className="sub">
@@ -585,6 +624,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
               </div>
             )}
             <div className="row-end">
+              {trackerActions.length > 0 && (
+                <button className="btn btn-ghost" onClick={() => setAddMode('pick')}>‹ Pick off the tracker</button>
+              )}
+              <div style={{ flex: 1 }} />
               <button className="btn btn-ghost" onClick={() => { setPasteInto(null); setPasteText(''); }}>Cancel</button>
               <button className="btn btn-primary" disabled={pasteRows.length === 0} onClick={() => void commitPaste()}>
                 Add {pasteRows.length || ''} box{pasteRows.length === 1 ? '' : 'es'}

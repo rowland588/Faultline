@@ -3205,3 +3205,71 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .lt-preview-l { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
 .lt-preview-l li { margin-bottom: 2px; }
+
+/* ---------- pick the work off the tracker ----------
+ * A full-height sheet, because the useful version of this is scrolling a real
+ * week's actions and tapping four of them — not squinting at six rows through
+ * a letterbox. Same on a phone and a laptop: tapping a row in a list is the one
+ * gesture that works everywhere.
+ */
+.lt-pick {
+  width: 100%; max-width: 620px; max-height: min(86vh, 760px);
+  display: flex; flex-direction: column;
+  background: var(--surface); border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(10, 20, 30, 0.3); overflow: hidden;
+}
+.lt-pick-head { padding: 18px 18px 12px; border-bottom: 1px solid var(--line); }
+.lt-pick-head .text-input { margin-top: 12px; }
+.lt-pick-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+.lt-pick-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.lt-pick-none { padding: 28px 20px; text-align: center; }
+
+.lt-pick-row {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
+  padding: 11px 16px; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; text-align: left; cursor: pointer;
+}
+.lt-pick-row:active { background: var(--surface-2); }
+.lt-pick-row.is-on { background: var(--accent-soft); }
+.lt-pick-row.is-dup { opacity: 0.62; }
+
+.lt-pick-tick {
+  flex: none; width: 22px; height: 22px; margin-top: 1px; border-radius: 6px;
+  border: 1.5px solid var(--line-2); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+}
+.lt-pick-row.is-on .lt-pick-tick { background: var(--accent); border-color: var(--accent); }
+
+.lt-pick-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lt-pick-what { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; }
+.lt-pick-meta { font-size: 12px; color: var(--muted); }
+.lt-pick-dup { color: var(--accent); font-weight: 700; }
+
+.lt-pick-foot {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); background: var(--surface-2);
+}
+/* On a phone the sheet comes up from the bottom and the LIST is what it is
+   for — so the head is trimmed hard and the filters shrink. Before this, the
+   title and two rows of chips took two thirds of the screen and left about two
+   and a half actions visible, which is not a list you can pick from. */
+@media (max-width: 560px) {
+  .lt-paste-back { padding: 0; align-items: flex-end; }
+  .lt-pick { max-width: none; max-height: 92vh; border-radius: 14px 14px 0 0; }
+  .lt-pick-head { padding: 14px 14px 10px; }
+  .lt-pick-head .lt-paste-t { font-size: 15.5px; line-height: 1.25; }
+  .lt-pick-head .sub { display: none; }
+  .lt-pick-head .text-input { margin-top: 9px; padding: 9px 11px; font-size: 16px; }
+  .lt-pick-filters { gap: 5px; margin-top: 8px; flex-wrap: nowrap; overflow-x: auto; }
+  .lt-pick-filters::-webkit-scrollbar { display: none; }
+  .lt-pick-filters .chip { flex: none; padding: 5px 11px; font-size: 12.5px; min-height: 0; }
+  .lt-pick-row { padding: 10px 13px; }
+  .lt-pick-what { font-size: 14px; }
+  /* the footer is two buttons and a way out, not three equal columns */
+  .lt-pick-foot { padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .lt-pick-foot .btn { flex: none; white-space: nowrap; }
+  .lt-pick-foot .btn-primary { flex: 1; }
+}
