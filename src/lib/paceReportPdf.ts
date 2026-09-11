@@ -66,6 +66,10 @@ export interface PaceReportData {
    *  is on the masthead. */
   snags: { problem: string; owner: string; days: number; status: string; line: string }[];
   wins: { title: string; impact: string; story: string; who: string; where: string }[];
+  /** The project's lever tree, flat — parent ids, drawn into a page of its own.
+   *  Empty when nobody has drawn one, and then the page is not printed at all
+   *  rather than printed blank. */
+  tree: { id: string; parentId?: string; text: string; rag: string; sort: number }[];
 }
 
 /* ---------- small drawing helpers ---------- */
@@ -275,6 +279,142 @@ function table(
 }
 
 /* ============================================================ */
+/* ---------- the lever tree ----------
+ * Laid out left to right, exactly as it is on screen: the outcome on the left,
+ * each level a column to its right, children stacked and their parent centred
+ * against them. Two passes — measure every subtree's height, then place — which
+ * is the only way a parent can sit level with the middle of its own children.
+ *
+ * Everything is drawn. A report that quietly dropped the bottom row would be
+ * hiding the work, so when the tree is bigger than the sheet the whole thing is
+ * scaled down instead. */
+const TREE_STATUS: Record<string, { c: string; label: string }> = {
+  n: { c: MUTED,  label: 'Not started' },
+  w: { c: ACCENT, label: 'In progress' },
+  a: { c: WARN,   label: 'At risk' },
+  r: { c: DANGER, label: 'Blocked' },
+  g: { c: OK,     label: 'Done' },
+};
+
+/** A pale wash of a colour, mixed toward white as a REAL rgb.
+ *
+ *  jsPDF has no alpha in setFillColor: an eight-digit hex like '#1f8a4c14' is
+ *  not read as "green at 8%", it falls through to black — which is how the
+ *  first version of this page came out with every box filled solid black and
+ *  dark text on top of it. Mixing here means the colour that goes in is the
+ *  colour that comes out. */
+function wash(hex: string, amount: number): [number, number, number] {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const m = (c: number) => Math.round(255 - (255 - c) * amount);
+  return [m(r), m(g), m(b)];
+}
+
+interface TreeIn { id: string; parentId?: string; text: string; rag: string; sort: number }
+interface TreeBox { text: string; rag: string; depth: number; kids: TreeBox[]; h: number; y: number }
+
+/* Mutable, and set for the duration of one page by withTreeScale below. jsPDF
+ * has no transform to scale a drawing after the fact, so the geometry itself is
+ * what shrinks — which keeps the text legible rather than squashing it. */
+let BOX_W = 150, BOX_GAP_Y = 7, COL_GAP = 34, LINE_H = 8.4, PAD = 6;
+let FS_BIG = 8, FS_SMALL = 7, FS_PILL = 5.6;
+const TREE_BASE = { BOX_W: 150, BOX_GAP_Y: 7, COL_GAP: 34, LINE_H: 8.4, PAD: 6, FS_BIG: 8, FS_SMALL: 7, FS_PILL: 5.6 };
+
+/** Draw the tree at `k` of its natural size, then put the geometry back. */
+function withTreeScale(k: number, draw: () => void): void {
+  BOX_W = TREE_BASE.BOX_W * k; BOX_GAP_Y = TREE_BASE.BOX_GAP_Y * k;
+  COL_GAP = TREE_BASE.COL_GAP * k; LINE_H = TREE_BASE.LINE_H * k; PAD = TREE_BASE.PAD * k;
+  // Type never goes below 5pt — under that it is a grey smear on paper, and a
+  // tree nobody can read is not a smaller tree, it is no tree.
+  FS_BIG = Math.max(5, TREE_BASE.FS_BIG * k);
+  FS_SMALL = Math.max(4.6, TREE_BASE.FS_SMALL * k);
+  FS_PILL = Math.max(4.2, TREE_BASE.FS_PILL * k);
+  try { draw(); } finally { Object.assign(
+    { }, TREE_BASE);
+    BOX_W = TREE_BASE.BOX_W; BOX_GAP_Y = TREE_BASE.BOX_GAP_Y; COL_GAP = TREE_BASE.COL_GAP;
+    LINE_H = TREE_BASE.LINE_H; PAD = TREE_BASE.PAD;
+    FS_BIG = TREE_BASE.FS_BIG; FS_SMALL = TREE_BASE.FS_SMALL; FS_PILL = TREE_BASE.FS_PILL;
+  }
+}
+
+function treeShape(rows: TreeIn[]): TreeBox[] {
+  const has = new Set(rows.map(r => r.id));
+  const kids = new Map<string, TreeIn[]>();
+  for (const r of rows) {
+    const k = r.parentId && has.has(r.parentId) ? r.parentId : '';
+    kids.set(k, [...(kids.get(k) ?? []), r]);
+  }
+  const make = (r: TreeIn, depth: number): TreeBox => ({
+    text: san(r.text) || '-', rag: r.rag, depth, h: 0, y: 0,
+    kids: (kids.get(r.id) ?? []).sort((a, b) => a.sort - b.sort).map(k => make(k, depth + 1)),
+  });
+  return (kids.get('') ?? []).sort((a, b) => a.sort - b.sort).map(r => make(r, 0));
+}
+
+/** Height of the box itself, and then of everything under it. A parent is as
+ *  tall as its children stacked, or as tall as its own box — whichever wins. */
+function treeMeasure(d: Doc, b: TreeBox): number {
+  setFont(d, b.depth >= 3 ? FS_SMALL : FS_BIG, 'bold', INK);
+  const lines = d.splitTextToSize(b.text, BOX_W - PAD * 2) as string[];
+  const own = PAD * 2 + lines.length * LINE_H + FS_PILL + 3;
+  const kidsH = b.kids.length
+    ? b.kids.reduce((t, k) => t + treeMeasure(d, k), 0) + (b.kids.length - 1) * BOX_GAP_Y
+    : 0;
+  b.h = Math.max(own, kidsH);
+  return b.h;
+}
+
+function treeDraw(d: Doc, b: TreeBox, x: number, top: number): void {
+  const st = TREE_STATUS[b.rag] ?? TREE_STATUS.n;
+  const small = b.depth >= 3;
+  setFont(d, small ? FS_SMALL : FS_BIG, 'bold', INK);
+  const lines = d.splitTextToSize(b.text, BOX_W - PAD * 2) as string[];
+  const own = PAD * 2 + lines.length * LINE_H + FS_PILL + 3;
+  const by = top + (b.h - own) / 2;            // centred against its own subtree
+
+  const [wr, wg, wb] = wash(st.c, b.rag === 'n' ? 0.05 : 0.11);
+  d.setFillColor(wr, wg, wb);                   // a wash of its own status
+  d.setDrawColor(st.c);
+  d.setLineWidth(b.rag === 'n' ? 0.4 : 0.7);
+  d.roundedRect(x, by, BOX_W, own, 2.5, 2.5, 'FD');
+  // the status stripe down the left, so the state reads even in mono
+  d.setFillColor(st.c);
+  d.rect(x, by + 1, 2, own - 2, 'F');
+
+  setFont(d, small ? FS_SMALL : FS_BIG, 'bold', INK);
+  lines.forEach((ln, i) => d.text(ln, x + PAD, by + PAD + LINE_H * 0.72 + i * LINE_H));
+  setFont(d, FS_PILL, 'bold', st.c);
+  d.text(st.label.toUpperCase(), x + PAD, by + own - PAD + 1.5);
+
+  if (b.kids.length === 0) return;
+
+  // stem out of this box, the bar down its children, and a stub into each
+  const cx = x + BOX_W, cy = by + own / 2;
+  const kidX = x + BOX_W + COL_GAP;
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(cx, cy, cx + COL_GAP / 2, cy);
+
+  let ky = top;
+  const centres: number[] = [];
+  for (const k of b.kids) {
+    treeDraw(d, k, kidX, ky);
+    const kOwn = (() => {
+      setFont(d, k.depth >= 3 ? FS_SMALL : FS_BIG, 'bold', INK);
+      const kl = d.splitTextToSize(k.text, BOX_W - PAD * 2) as string[];
+      return PAD * 2 + kl.length * LINE_H + FS_PILL + 3;
+    })();
+    const kcy = ky + (k.h - kOwn) / 2 + kOwn / 2;
+    centres.push(kcy);
+    d.setDrawColor(LINE); d.setLineWidth(0.6);
+    d.line(cx + COL_GAP / 2, kcy, kidX, kcy);
+    ky += k.h + BOX_GAP_Y;
+  }
+  if (centres.length > 1) {
+    d.setDrawColor(LINE); d.setLineWidth(0.6);
+    d.line(cx + COL_GAP / 2, centres[0], cx + COL_GAP / 2, centres[centres.length - 1]);
+  }
+}
+
 export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   // sanitise once, at the boundary — everything below draws known-safe text
   const data: PaceReportData = {
@@ -382,11 +522,54 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     chart(d, cx, cy, cW, cH, l);
   });
 
+  const pages = data.tree.length > 0 ? 3 : 2;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page 1 of 2 — line pace`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
   d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
 
-  /* ================= PAGE 2 — TRACKER, ATTENTION & MOVEMENT ================= */
+  /* ================= THE PLAN — the lever tree, its own sheet =================
+   * Only when there is one. A page with a heading and nothing under it is worse
+   * than no page. */
+  if (data.tree.length > 0) {
+    d.addPage('a3', 'landscape');
+    const tpY = panel(d, M, M, CW, H - 2 * M - 14, "2", "The plan",
+      'What has to be true for the outcome, and where each part has got to');
+
+    const roots = treeShape(data.tree);
+    for (const r of roots) treeMeasure(d, r);
+    const totalH = roots.reduce((t, r) => t + r.h, 0) + Math.max(0, roots.length - 1) * BOX_GAP_Y * 2;
+    const depth = (function deepest(bs: TreeBox[], at = 1): number {
+      return bs.reduce((m, b) => Math.max(m, b.kids.length ? deepest(b.kids, at + 1) : at), at);
+    })(roots);
+    const totalW = depth * BOX_W + (depth - 1) * COL_GAP;
+
+    // One scale for the whole drawing, so a big tree shrinks rather than
+    // spilling off the sheet or losing its bottom row.
+    const availW = CW - 24, availH = (H - M - 20) - tpY;
+    /* Up as well as down. A four-box tree drawn at 1:1 on an A3 is a postage
+     * stamp in the middle of a blank page; a big one still has to shrink to
+     * fit. Capped at 1.7 so the boxes stay boxes rather than becoming posters. */
+    const k = Math.min(1.7, availW / totalW, availH / totalH);
+
+    withTreeScale(k, () => {
+      // re-measured at the page's own scale — wrapping changes with the width
+      for (const r of roots) treeMeasure(d, r);
+      const th = roots.reduce((t, r) => t + r.h, 0) + Math.max(0, roots.length - 1) * BOX_GAP_Y * 2;
+      let y = tpY + Math.max(0, (availH - th) / 2);
+      const x0 = M + 12 + Math.max(0, (availW - totalW * k) / 2);
+      for (const r of roots) {
+        treeDraw(d, r, x0, y);
+        y += r.h + BOX_GAP_Y * 2;
+      }
+    });
+
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, `${data.title} · weekly executive report · page 2 of ${pages} — the plan`, CW * 0.8), M, H - M + 6);
+    d.text('Kept by hand on the project\u2019s lever tree; the work under it comes off the tracker.',
+      W - M, H - M + 6, { align: 'right' });
+  }
+
+  /* ================= TRACKER, ATTENTION & MOVEMENT ================= */
   d.addPage('a3', 'landscape');
 
   const gap = 12;
@@ -563,7 +746,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page 2 of 2 — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · weekly executive report · page ${pages} of ${pages} — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
   d.text(`Generated ${new Date(data.now).toLocaleString(undefined,
     { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     W - M, H - M + 6, { align: 'right' });

@@ -3287,3 +3287,40 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-pick-src.is-stale .lt-pick-src-t b { color: var(--warn); }
 .lt-pick-up { flex: none; padding: 4px 10px; min-height: 28px; font-size: 12px; }
 .lt-pick-err { color: var(--danger); margin-top: 8px; }
+
+/* ---------- the lever tree on the report sheet ----------
+ * Same markup and same classes as the live tree, deliberately: a report that
+ * redraws the tree in its own style is one people stop trusting the moment the
+ * two disagree. What goes is the editing — no tools, no folds, no targets.
+ */
+.lt-static { overflow: hidden; }
+.lt-static-in { display: inline-block; }
+.lt-static .lt-tools,
+.lt-static .lt-fold,
+.lt-static .lt-take { display: none !important; }
+.lt-static .lt-box { cursor: default; box-shadow: none; }
+/* a paragraph, not a textarea — nothing on the sheet should look typeable */
+.lt-text-s {
+  margin: 0 0 6px; font-size: 14px; font-weight: 700;
+  line-height: 1.34; color: var(--ink);
+}
+.lt-static .lt-box.is-act .lt-text-s { font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+.lt-static .lt-status { cursor: default; }
+
+/* The report keeps its landscape shape at every width — it is A3, scaled, and
+   the phone rules for the live tree must not reach into it. */
+@media (max-width: 719px) {
+  .lt-static .lt-node { flex-direction: row; align-items: center; }
+  .lt-static .lt-kids {
+    padding: 0 0 0 46px; margin-left: 0; border-left: 0;
+    flex-direction: column; justify-content: center;
+  }
+  .lt-static .lt-kids::before {
+    display: block; content: ""; position: absolute; left: 0; top: 50%;
+    width: 23px; height: 2px; margin-top: -1px; background: var(--line-2);
+  }
+  .lt-static .lt-kids > .lt-node { padding: 7px 0; }
+  .lt-static .lt-kids > .lt-node::before { left: -23px; top: 50%; width: 23px; margin-top: -1px; }
+  .lt-static .lt-kids > .lt-node > .lt-arm { display: block; }
+  .lt-static .lt-box { width: 240px; flex: none; }
+}

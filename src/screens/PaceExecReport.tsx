@@ -22,6 +22,8 @@ import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
 import { actionsForLine } from '../lib/paceLineMatch';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
+import { TreeStatic, useTreeNodes } from './TreeStatic';
+import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEFAULT_PROJECT_ID,
   type PaceTodoRow, type PaceWinRow } from '../db';
 import type { Snag } from '../snag/types';
@@ -80,6 +82,34 @@ function SectionHead({ n, title, sowhat }: { n: string; title: string; sowhat: s
   );
 }
 
+/* The tree gets its own sheet. It is the only thing in the report that says
+ * WHY any of the rest is being done, and it needs the width of an A3 to say it
+ * — squeezed into a corner of the pace page it would be a decoration. */
+function TreePage({ rows, title, scale, sheetH }: {
+  rows: TreeNodeRow[] | null; title: string; scale: number; sheetH: number;
+}) {
+  // No tree drawn yet: print nothing rather than a blank page with a heading on
+  // it. A report should never contain an empty box.
+  if (!rows || rows.length === 0) return null;
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n="2" title="The plan"
+              sowhat="What has to be true for the outcome, and where each part has got to" />
+            <TreeStatic rows={rows} maxW={1520} maxH={860} />
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · weekly executive report · page 2 of 3 — the plan</span>
+          <span>Kept by hand on the project’s lever tree; the work under it comes off the tracker.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 export function PaceExecReport() {
   // Which project this is a report on. Defaults to the one the app shipped
   // with, so the link that has always been #/pace-report still works.
@@ -99,6 +129,10 @@ export function PaceExecReport() {
   const [snags, setSnags] = useState<Snag[] | null>(null);
   /** Open snags per line, so the roll-up can say WHOSE they are. */
   const [snagsByLine, setSnagsByLine] = useState<Map<string, Snag[]>>(new Map());
+
+  // Read once, here, so the sheet on screen and the page in the PDF are drawn
+  // from the same rows rather than two reads that could disagree.
+  const treeRows = useTreeNodes(projectId);
 
   const root = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
@@ -322,6 +356,12 @@ export function PaceExecReport() {
    * looks at the DOM, so this is the whole contract between screen and file. */
   const reportData = (): PaceReportData => ({
     now,
+    // The lever tree, flat. Only on the PROJECT's report: a line's own deck is
+    // that line's page, and the whole project's plan on it would be somebody
+    // else's work printed under their name.
+    tree: line ? [] : (treeRows ?? []).map(n => ({
+      id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
+    })),
     // A line's deck is titled for the LINE and led by its owner — it is that
     // person's page to hand over. The project's is titled for the project.
     title, lead, leadRole, subtitle,
@@ -452,18 +492,21 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 1 of 2 — line pace</span>
+          <span>{title} · weekly executive report · page 1 of 3 — line pace</span>
           <span>The tracker workbook is the system of record; this report reads it.</span>
         </footer>
       </section>
       </div>
 
-      {/* ================= PAGE 2 — TRACKER, ATTENTION & MOVEMENT ================= */}
+      {/* ================= PAGE 2 — THE PLAN ================= */}
+      {!line && <TreePage rows={treeRows} title={title} scale={scale} sheetH={SHEET_H} />}
+
+      {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-2">
           <section className="exec-box exec-box-actions">
-            <SectionHead n="2" title={line ? 'Action tracker' : 'Action tracker & the lines'}
+            <SectionHead n="3" title={line ? 'Action tracker' : 'Action tracker & the lines'}
               sowhat={line
                 ? `${actions.length} actions on this line — where they stand`
                 : `${actions.length} actions — and what each line's own pack holds`} />
@@ -511,7 +554,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-late">
-            <SectionHead n="3" title="Overdue & at risk" sowhat="The actions past their date — where help is needed" />
+            <SectionHead n="4" title="Overdue & at risk" sowhat="The actions past their date — where help is needed" />
             {lateActions.length === 0 ? (
               <p className="exec-empty">Nothing overdue. Every open action is within its date.</p>
             ) : (
@@ -533,7 +576,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-next">
-            <SectionHead n="4" title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
+            <SectionHead n="5" title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
             {openTodos.length === 0 ? (
               <p className="exec-empty">Nothing outstanding logged.</p>
             ) : (
@@ -576,7 +619,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-snags">
-            <SectionHead n="5" title="Line walk" sowhat={`${openSnags.length} open snag${openSnags.length === 1 ? '' : 's'} filmed on the line`} />
+            <SectionHead n="6" title="Line walk" sowhat={`${openSnags.length} open snag${openSnags.length === 1 ? '' : 's'} filmed on the line`} />
             {openSnags.length === 0 ? (
               <p className="exec-empty">{snags.length ? 'All logged snags are closed.' : 'No walk recorded this week.'}</p>
             ) : (
@@ -600,7 +643,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-wins">
-            <SectionHead n="6" title="What worked" sowhat="Wins to build on — the proof the plan is landing" />
+            <SectionHead n="7" title="What worked" sowhat="Wins to build on — the proof the plan is landing" />
             {showWins.length === 0 ? (
               <p className="exec-empty">No wins logged yet.</p>
             ) : (
@@ -621,7 +664,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 2 of 2 — tracker, attention &amp; movement</span>
+          <span>{title} · weekly executive report · page 3 of 3 — tracker, attention &amp; movement</span>
           <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>
