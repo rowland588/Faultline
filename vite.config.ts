@@ -19,7 +19,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
+      includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
       manifest: {
         name: 'Faultline — prove the fix held',
         short_name: 'Faultline',
@@ -34,7 +34,11 @@ export default defineConfig({
           // PNG for reliable install on iOS (SVG icons are ignored there) and Android.
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          // Maskable is its OWN drawing, not the same file relabelled. Android
+          // crops a maskable icon to a circle 80% of its width; pointing this at
+          // the full-bleed icon was slicing the flat ends off the trace on every
+          // Android home screen. icon-maskable-512 holds the mark inside the crop.
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'mark.svg', sizes: 'any', type: 'image/svg+xml' },
         ],
       },

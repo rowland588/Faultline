@@ -3391,6 +3391,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* the one line that has to land, wearing the identity itself */
 .lt-punch {
   font-weight: 800; margin-top: 6px;
+  /* Hug the words. background-clip:text paints the gradient across the
+     ELEMENT's box, and as a stretched flex child that box was the full column —
+     so the words only ever showed the green end of a green-to-blue sweep. */
+  align-self: flex-start;
   background: var(--sweep); -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: var(--accent);
 }

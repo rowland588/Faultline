@@ -13,29 +13,36 @@
   <meta property="og:url" content="https://faultline.opexelevate.co.uk/how-it-works.html" />
   <meta property="og:image" content="https://faultline.opexelevate.co.uk/og.png" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="theme-color" content="#eaf4f1" />
   <link rel="icon" type="image/svg+xml" href="/mark.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <style>
-    :root { --ink: #17324a; --sub: #5a7186; --brand: #2f7fd1; --line: #d9e4ee; --bg: #f4f9fd; }
+    /* The identity's own tokens, kept in step with src/styles.css by hand — this
+       page is served straight out of public/ and never touches the bundle. */
+    :root {
+      --ink: #0c1f26; --sub: #35505a; --brand: #0b7d68; --line: #dbe8e6; --bg: #f3f8f7;
+      --sweep: linear-gradient(135deg, #0b7d68 0%, #13727f 45%, #1c6fb8 100%);
+    }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
     .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px 64px; }
     header a { color: var(--brand); font-weight: 700; text-decoration: none; }
     h1 { font-size: clamp(28px, 5vw, 38px); letter-spacing: -0.5px; margin: 14px 0 8px; }
     .lede { color: var(--sub); font-size: 17px; max-width: 62ch; }
-    .part { color: var(--brand); font-weight: 800; font-size: 12.5px; letter-spacing: 1.4px; text-transform: uppercase; margin: 40px 0 0; border-top: 2px solid var(--brand); padding-top: 16px; display: block; }
+    .part { color: var(--brand); font-weight: 800; font-size: 12.5px; letter-spacing: 1.4px; text-transform: uppercase; margin: 40px 0 0; border-top: 0; padding-top: 16px; display: block; background-image: var(--sweep); background-size: 74px 3px; background-repeat: no-repeat; background-position: 0 0; }
     h2 { font-size: clamp(21px, 4vw, 26px); margin: 4px 0; letter-spacing: -0.4px; }
     .chlede { color: var(--sub); margin: 0 0 8px; max-width: 56ch; }
     .step { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: center; padding: 24px 0; border-bottom: 1px solid var(--line); }
     @media (min-width: 700px) { .step { grid-template-columns: 1fr 340px; gap: 36px; } .step:nth-child(even) figure { order: -1; } .step.wide { grid-template-columns: 1fr; } }
-    .n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 800; font-size: 15px; }
+    .n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sweep); color: #fff; font-weight: 800; font-size: 15px; }
     h3 { font-size: 20px; margin: 8px 0 6px; letter-spacing: -0.3px; }
     .step p { margin: 0; color: var(--sub); font-size: 15.5px; max-width: 58ch; }
     figure { margin: 0; }
-    figure img { width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(23, 50, 74, .08); display: block; }
+    figure img { width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(12, 31, 38, .08); display: block; }
     .faq h3 { margin: 18px 0 4px; }
     .faq p { color: var(--sub); max-width: 68ch; margin: 0; }
     .cta { margin-top: 44px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; text-align: center; }
-    .cta a { display: inline-block; background: var(--brand); color: #fff; font-weight: 700; text-decoration: none; padding: 14px 28px; border-radius: 999px; font-size: 17px; }
+    .cta a { display: inline-block; background: var(--sweep); color: #fff; font-weight: 700; text-decoration: none; padding: 14px 28px; border-radius: 999px; font-size: 17px; }
     .cta p { color: var(--sub); margin: 0 0 12px; }
   </style>
 </head>
