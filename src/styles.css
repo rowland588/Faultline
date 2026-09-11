@@ -3273,3 +3273,17 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .lt-pick-foot .btn { flex: none; white-space: nowrap; }
   .lt-pick-foot .btn-primary { flex: 1; }
 }
+
+/* Which tracker the list came from, and how old it is. Sits above the list
+   rather than in a footnote: picking this week's work off a fortnight-old
+   upload is a mistake you only discover later, in a meeting. */
+.lt-pick-src {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 8px; padding: 7px 10px; border-radius: 8px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.lt-pick-src.is-stale, .lt-pick-src.is-base { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+.lt-pick-src-t { flex: 1; min-width: 150px; font-size: 12px; color: var(--muted); }
+.lt-pick-src.is-stale .lt-pick-src-t b { color: var(--warn); }
+.lt-pick-up { flex: none; padding: 4px 10px; min-height: 28px; font-size: 12px; }
+.lt-pick-err { color: var(--danger); margin-top: 8px; }

@@ -305,7 +305,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
   // This week's tracker, already uploaded and parsed — the work that gets hung
   // on the tree comes from here, not from the clipboard.
   const pace = usePaceSnapshots(projectId);
-  const trackerActions = pace.snapshots[0]?.actions ?? [];
+  // pace.actions, not snapshots[0] — it is the hook's own "current picture",
+  // which falls back to the workbook the app shipped with rather than showing
+  // an empty list on a device that has not uploaded yet.
+  const trackerActions = pace.actions;
+  const trackerFrom = pace.snapshots[0];
 
   const load = useCallback(async () => { setRows(await listTreeNodes(projectId)); }, [projectId]);
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load, syncedAt]);
@@ -592,6 +596,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
         <TrackerPicker
           title={pasteInto.text.trim() || 'this box'}
           actions={trackerActions}
+          source={trackerFrom?.fileName}
+          takenAt={trackerFrom?.takenAt}
+          busy={pace.busy}
+          uploadError={pace.error}
+          onUpload={f => void pace.upload(f)}
           alreadyOn={alreadyOn}
           onAdd={picked => void addPicked(pasteInto, picked)}
           onClose={() => setPasteInto(null)}
