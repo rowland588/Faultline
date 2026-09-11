@@ -81,13 +81,14 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 /* ---------- one box ---------- */
 
 function Box({
-  t, onChange, onAdd, onDelete, onPaste, onDropText, onMove, folded, onFold, drag,
+  t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove, folded, onFold, drag,
 }: {
   t: Tree;
   folded: boolean;
   onFold: () => void;
   onChange: (patch: Partial<TreeNodeRow>) => void;
-  onAdd: () => void;
+  onAddBelow: () => void;
+  onAddRight: () => void;
   onDelete: () => void;
   onPaste: () => void;
   onDropText: (text: string) => void;
@@ -192,7 +193,11 @@ function Box({
         <div className="lt-acts">
           <button type="button" className="lt-mini" title="Move up" aria-label="Move up" onClick={() => onMove(-1)}>↑</button>
           <button type="button" className="lt-mini" title="Move down" aria-label="Move down" onClick={() => onMove(1)}>↓</button>
-          <button type="button" className="lt-mini" title="Add to its right" aria-label="Add to its right" onClick={onAdd}>＋</button>
+          {/* ＋ is the one that gets pressed, so it does the common thing:
+              another box at THIS level, below this one. Going a level deeper is
+              the rarer move and gets its own button rather than the default. */}
+          <button type="button" className="lt-mini" title="Add another below" aria-label="Add another below" onClick={onAddBelow}>＋</button>
+          <button type="button" className="lt-mini" title="Add the next level to its right" aria-label="Add the next level to its right" onClick={onAddRight}>＋›</button>
           <button type="button" className="lt-mini" title="Paste a list to its right" aria-label="Paste a list to its right" onClick={onPaste}>⇱</button>
           <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}>×</button>
         </div>
@@ -266,6 +271,22 @@ export function LeverTree({ projectId }: { projectId: string }) {
     await putTreeNode({
       id: uid(), projectId, parentId, text: '', rag: 'n',
       sort: sibs.length ? sibs[sibs.length - 1].sort + 1 : 0,
+      createdAt: t, updatedAt: t,
+    });
+    await load();
+  };
+
+  /** Another box at the SAME level, directly below this one — what ＋ does.
+   *  Slotted between this row's sort and the next one's rather than appended,
+   *  so "add one here" puts it here and not at the bottom of the column. */
+  const addBelow = async (n: TreeNodeRow) => {
+    const sibs = siblingsOf(n.parentId);
+    const i = sibs.findIndex(s => s.id === n.id);
+    const next = sibs[i + 1];
+    const t = now();
+    await putTreeNode({
+      id: uid(), projectId, parentId: n.parentId, text: '', rag: 'n',
+      sort: next ? (n.sort + next.sort) / 2 : n.sort + 1,
       createdAt: t, updatedAt: t,
     });
     await load();
@@ -361,7 +382,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
         folded={folded.has(t.node.id)}
         onFold={() => toggleFold(t.node.id)}
         onChange={p => void change(t.node, p)}
-        onAdd={() => void addNode(t.node.id)}
+        onAddBelow={() => void addBelow(t.node)}
+        onAddRight={() => void addNode(t.node.id)}
         onDelete={() => void remove(t.node)}
         onPaste={() => { setPasteInto(t.node); setPasteText(''); }}
         onDropText={text => { setPasteInto(t.node); setPasteText(text); }}
@@ -455,7 +477,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
-              Drag a box onto another to move it there · ↑ ↓ reorder · ＋ adds to its right · ⇱ pastes a list
+              Drag a box onto another to move it there · ↑ ↓ reorder · ＋ adds another below · ＋› adds the next level along · ⇱ pastes a list
               {' '}· pinch to zoom, or tap the percentage to fit it all on.
               {' '}Drag a selection straight out of the tracker onto a box to fill the row under it.
             </span>
