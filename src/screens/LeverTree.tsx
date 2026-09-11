@@ -28,6 +28,7 @@ import { AccountMenu } from '../ui/AccountMenu';
 import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
 import { useSticky } from '../lib/useSticky';
+import { parsePastedRows } from '../lib/pastedRows';
 
 /* How far in and out the tree will go. Below about a third the words stop being
  * words; above 1.6 there is no reason to be on this screen rather than reading
@@ -68,13 +69,14 @@ function build(rows: TreeNodeRow[]): Tree[] {
 /* ---------- one box ---------- */
 
 function Box({
-  t, onChange, onAdd, onDelete, onPaste, onMove, drag,
+  t, onChange, onAdd, onDelete, onPaste, onDropText, onMove, drag,
 }: {
   t: Tree;
   onChange: (patch: Partial<TreeNodeRow>) => void;
   onAdd: () => void;
   onDelete: () => void;
   onPaste: () => void;
+  onDropText: (text: string) => void;
   onMove: (dir: -1 | 1) => void;
   drag: {
     id: string | null;
@@ -110,9 +112,22 @@ function Box({
       className={'lt-box is-' + node.rag + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')}
       draggable
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
-      onDragOver={e => { if (drag.id && drag.id !== node.id) { e.preventDefault(); e.stopPropagation(); drag.setOver(node.id); } }}
+      onDragOver={e => {
+        // two kinds of drag land here: a box being moved inside the tree, and a
+        // selection dragged in from a spreadsheet. Both are welcome.
+        const text = e.dataTransfer.types.includes('text/plain');
+        if ((drag.id && drag.id !== node.id) || text) {
+          e.preventDefault(); e.stopPropagation(); drag.setOver(node.id);
+        }
+      }}
       onDragLeave={() => { if (drag.over === node.id) drag.setOver(null); }}
-      onDrop={e => { e.preventDefault(); e.stopPropagation(); drag.drop(node.id); }}
+      onDrop={e => {
+        e.preventDefault(); e.stopPropagation();
+        const text = e.dataTransfer.getData('text/plain');
+        // dropped from outside — every row becomes a box underneath this one
+        if (!drag.id && text.trim()) { drag.setOver(null); onDropText(text); return; }
+        drag.drop(node.id);
+      }}
     >
       <textarea
         ref={ta} className="lt-text" rows={1} value={text}
@@ -260,7 +275,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
    *  gets in: copy the column, paste it, done. */
   const commitPaste = async () => {
     const parent = pasteInto;
-    const lines = pasteText.split('\n').map(l => l.replace(/^[\s•\-*•]+/, '').trim()).filter(Boolean);
+    const lines = parsePastedRows(pasteText);
     setPasteInto(null); setPasteText('');
     if (!parent || lines.length === 0) return;
     const sibs = siblingsOf(parent.id);
@@ -274,6 +289,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   };
 
   const dragApi = { id: dragId, start: setDragId, over: overId, setOver: setOverId, drop };
+  const pasteRows = pasteText.trim() ? parsePastedRows(pasteText) : [];
 
   const render = (t: Tree) => (
     <li className="lt-node" key={t.node.id}>
@@ -288,6 +304,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
         onAdd={() => void addNode(t.node.id)}
         onDelete={() => void remove(t.node)}
         onPaste={() => { setPasteInto(t.node); setPasteText(''); }}
+        onDropText={text => { setPasteInto(t.node); setPasteText(text); }}
         onMove={d => void move(t.node, d)}
         drag={dragApi}
       />
@@ -374,7 +391,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
               Drag a box onto another to move it there · ↑ ↓ reorder · ＋ adds to its right · ⇱ pastes a list
-              {' '}· pinch to zoom, or tap the percentage to fit it all on
+              {' '}· pinch to zoom, or tap the percentage to fit it all on.
+              {' '}Drag a selection straight out of the tracker onto a box to fill the row under it.
             </span>
           </div>
         </>
@@ -384,16 +402,30 @@ export function LeverTree({ projectId }: { projectId: string }) {
         <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Paste a list">
           <div className="lt-paste">
             <h2 className="lt-paste-t">Paste underneath “{pasteInto.text.trim() || 'this box'}”</h2>
-            <p className="sub">One box per line. Copy the column straight out of the tracker.</p>
+            <p className="sub">
+              One box per row. Select the column in the tracker, copy, paste here — several
+              columns at once is fine, they end up in the same box.
+            </p>
             <textarea
               className="text-input lt-paste-ta" autoFocus value={pasteText}
               placeholder={'Re-time the bagger changeover\nOrder the guard brackets\nRebuild Bagger 3 infeed'}
               onChange={e => setPasteText(e.target.value)}
             />
+            {/* what it will actually make, before it makes it — a paste out of a
+                spreadsheet rarely looks the way you expected in the box */}
+            {pasteRows.length > 0 && (
+              <div className="lt-preview">
+                <p className="lt-preview-h">{pasteRows.length} box{pasteRows.length === 1 ? '' : 'es'}</p>
+                <ol className="lt-preview-l">
+                  {pasteRows.slice(0, 8).map((r, i) => <li key={i}>{r}</li>)}
+                  {pasteRows.length > 8 && <li className="sub">…and {pasteRows.length - 8} more</li>}
+                </ol>
+              </div>
+            )}
             <div className="row-end">
               <button className="btn btn-ghost" onClick={() => { setPasteInto(null); setPasteText(''); }}>Cancel</button>
-              <button className="btn btn-primary" disabled={!pasteText.trim()} onClick={() => void commitPaste()}>
-                Add {pasteText.split('\n').filter(l => l.trim()).length || ''} box{pasteText.split('\n').filter(l => l.trim()).length === 1 ? '' : 'es'}
+              <button className="btn btn-primary" disabled={pasteRows.length === 0} onClick={() => void commitPaste()}>
+                Add {pasteRows.length || ''} box{pasteRows.length === 1 ? '' : 'es'}
               </button>
             </div>
           </div>

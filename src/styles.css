@@ -3104,3 +3104,17 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .lt-scroll { zoom: 1 !important; }   /* paper is not a screen */
   .lt-box { box-shadow: none; break-inside: avoid; }
 }
+
+/* What a paste is about to become, shown before it becomes it. A selection out
+   of a spreadsheet rarely looks in the box the way it looked in the sheet. */
+.lt-preview {
+  margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  max-height: 190px; overflow-y: auto;
+}
+.lt-preview-h {
+  margin: 0 0 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted);
+}
+.lt-preview-l { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.lt-preview-l li { margin-bottom: 2px; }
