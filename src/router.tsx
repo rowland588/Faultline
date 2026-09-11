@@ -17,6 +17,7 @@ import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
 import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
 import { ProjectLineScreen } from './screens/ProjectLineScreen';
+import { LeverTree } from './screens/LeverTree';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
@@ -66,6 +67,7 @@ function app(route: Route) {
     if (view) { navReplace(`/project/${DEFAULT_PROJECT_ID}?view=${encodeURIComponent(view)}`); return <BootSplash />; }
     return <ProjectsScreen />;
   }
+  if (route.name === 'leverTree') return <LeverTree projectId={route.id!} />;
   if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
   if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;
   if (route.name === 'projectDashboard') return <ProjectDashboardScreen projectId={route.id!} />;

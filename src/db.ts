@@ -55,6 +55,12 @@ interface AppDB extends DBSchema {
    * like the todos, kept SEPARATE from them — a win is not a task with its state
    * flipped to done, it is the story you tell the team. Newest first. */
   pace_wins: { key: string; value: PaceWinRow; indexes: { by_createdAt: number } };
+  /* The lever tree (v11): the project drawn as it is drawn on paper — an
+   * outcome, what has to be true for it, the conditions under that, and the
+   * work underneath. ONE node type, nested by parentId, because a tree of four
+   * named levels and a tree of nodes are the same thing and only one of them
+   * can be reshaped without a migration. */
+  tree_nodes: { key: string; value: TreeNodeRow; indexes: { by_project: string } };
 }
 
 /** One line of "what we still need to do". `where` is the line or the machine,
@@ -150,7 +156,7 @@ export interface PaceSnapshotRow {
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
-  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins';
+  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins' | 'tree_nodes';
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
  * the Faultline rebrand — read ONCE to migrate a device's existing data into the
@@ -158,7 +164,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 10; // v10: pace_wins (the success log)
+const DB_VERSION = 11; // v11: tree_nodes (the lever tree)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -215,7 +221,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -240,6 +246,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   }
   if (!db.objectStoreNames.contains('pace_ppm')) {
     db.createObjectStore('pace_ppm', { keyPath: 'id' }).createIndex('by_key', 'key');
+  }
+  if (!db.objectStoreNames.contains('tree_nodes')) {
+    db.createObjectStore('tree_nodes', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
   if (!db.objectStoreNames.contains('pace_wins')) {
     db.createObjectStore('pace_wins', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
@@ -683,7 +692,7 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
       // can never win a push against a real edit made anywhere else
       : { id, key: id.replace(/^ppm-/, ''), name: '', q1: 0, q2: 0, q3: 0, q4: 0, weekly: [], deletedAt: now(), updatedAt: 0 });
   } else if (kind === 'pace_snapshots'
-    || kind === 'pace_wins' || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
+    || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on
     // the laptop was never deleted on the phone — it just sat there.
@@ -1320,4 +1329,77 @@ export async function deletePaceWin(id: ID): Promise<void> {
   await (await getDB()).delete('pace_wins', id);
   await recordTombstones('pace_wins', [id]);
   signalWrite();
+}
+
+/* ---------- THE LEVER TREE ----------
+ *
+ * Drawn on paper it has four named levels: the desired outcome, what has to be
+ * true for it, the conditions under each of those, and the work underneath.
+ * Stored, it is one kind of node nested by `parentId`, and the level is simply
+ * how deep you are.
+ *
+ * That is deliberate. Four typed levels would need a migration the first time a
+ * fifth was wanted, or a level was collapsed, or a condition needed a condition
+ * under it — and the whole point of a tree you author yourself is that its shape
+ * is yours to change. One node type costs nothing and never has to be undone.
+ *
+ * The colour is set by hand, and is not derived from anything. This is a
+ * thinking surface before it is a reporting one; when the app starts deriving
+ * the colour it starts arguing with the person holding the pen.
+ */
+export type Rag = 'r' | 'a' | 'g' | 'n';   // n = no colour set yet
+
+export interface TreeNodeRow {
+  id: ID;
+  projectId: string;
+  /** Absent on the root — the desired outcome. Everything else hangs off one. */
+  parentId?: ID;
+  text: string;
+  rag: Rag;
+  /** Order among siblings. Data, not insertion order: the tree gets rearranged. */
+  sort: number;
+  createdAt: number; updatedAt: number; deletedAt?: number;
+}
+
+export async function listTreeNodes(projectId: string): Promise<TreeNodeRow[]> {
+  const all = await (await getDB()).getAllFromIndex('tree_nodes', 'by_project', projectId);
+  return all.filter(n => !n.deletedAt).sort((a, b) => a.sort - b.sort);
+}
+
+export async function putTreeNode(n: TreeNodeRow): Promise<void> {
+  await (await getDB()).put('tree_nodes', { ...n, updatedAt: now() });
+  signalWrite();
+}
+
+/** Several at once — a pasted block of work becomes one node per line, and one
+ *  write per node would fire the sync debounce a dozen times over. */
+export async function putTreeNodes(nodes: TreeNodeRow[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('tree_nodes', 'readwrite');
+  const t = now();
+  for (const n of nodes) await tx.store.put({ ...n, updatedAt: t });
+  await tx.done;
+  signalWrite();
+}
+
+/** A branch, not a node: deleting a condition takes the work under it, because
+ *  leaving orphans in a tree means leaving them invisible. */
+export async function deleteTreeBranch(projectId: string, id: ID): Promise<number> {
+  const all = await listTreeNodes(projectId);
+  const kids = new Map<string, TreeNodeRow[]>();
+  for (const n of all) {
+    const k = n.parentId ?? '';
+    kids.set(k, [...(kids.get(k) ?? []), n]);
+  }
+  const doomed: ID[] = [];
+  const walk = (nid: ID) => { doomed.push(nid); for (const c of kids.get(nid) ?? []) walk(c.id); };
+  walk(id);
+
+  const db = await getDB();
+  const tx = db.transaction('tree_nodes', 'readwrite');
+  for (const d of doomed) await tx.store.delete(d);
+  await tx.done;
+  await recordTombstones('tree_nodes', doomed);
+  signalWrite();
+  return doomed.length;
 }

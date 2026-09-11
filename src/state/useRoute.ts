@@ -7,7 +7,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport';
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree';
 
 export interface Route {
   name: RouteName;
@@ -56,6 +56,7 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'line' && segs[3]) {
       return { name: 'projectLine', id, lineId: decodeURIComponent(segs[3]), query };
     }
+    if (segs[2] === 'tree') return { name: 'leverTree', id, query };
     return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
   }
   if (segs[0] === 'w' && segs[1]) {

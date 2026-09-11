@@ -3,7 +3,7 @@
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
-import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow } from '../db';
+import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -310,6 +310,29 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     }),
   },
 
+  tree_nodes: {
+    clock: l => (l as TreeNodeRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const n = l as TreeNodeRow;
+      return {
+        id: n.id, owner_id: fallbackOwner, project_id: n.projectId,
+        // null, not undefined: the root has no parent, and an absent key would
+        // leave whatever the row said before standing on the server
+        parent_id: n.parentId ?? null,
+        text: n.text, rag: n.rag, sort: n.sort,
+        created_at: n.createdAt, updated_at: n.updatedAt, deleted_at: null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      parentId: (r.parent_id as string) ?? undefined,
+      text: (r.text as string) ?? '', rag: ((r.rag as string) ?? 'n') as TreeNodeRow['rag'],
+      sort: Number(r.sort) || 0,
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    }),
+  },
+
   pace_snapshots: {
     // A snapshot is never edited, so its clock is simply when it was taken.
     clock: l => (l as PaceSnapshotRow).takenAt,
@@ -341,4 +364,6 @@ export const SYNC_KINDS: SyncKind[] = [
   'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
   'projects', 'project_targets', 'project_actuals',
   'pace_ppm', 'pace_todos', 'pace_snapshots', 'pace_wins',
+  // after projects, because every node names one
+  'tree_nodes',
 ];

@@ -11,6 +11,7 @@
   --ink-2: #4a6076;
   --muted: #7a8fa2;
   --line: #d8e5ef;
+  --line-2: #b9cdde;      /* a stronger rule: tree connectors, crumb outlines */
   /* brand — bright friendly blue. --accent is the READABLE blue (text/links);
      --brand is the fill (buttons, live, the mark); --on-brand is text on
      blue. Green says "good"; light orange is the spark (the logo's spike,
@@ -941,7 +942,7 @@ button { font-family: inherit; }
   /* keep the status colours (pins, badges) in the printed PDF */
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   /* force a light report even if the viewer's device is in dark mode */
-  :root { --bg: #fff; --surface: #fff; --ink: #141b26; --ink-2: #3d4756; --muted: #6b7480; --line: #d5dae2; }
+  :root { --bg: #fff; --surface: #fff; --ink: #141b26; --ink-2: #3d4756; --muted: #6b7480; --line: #d5dae2; --line-2: #9aa4b2; }
 }
 
 /* ── cloud sync panel (Home) ── */
@@ -2931,3 +2932,157 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 /* a background job has no business on a printed report */
 @media print { .autoconv { display: none !important; } }
+
+/* ---------- THE LEVER TREE ----------
+ *
+ * Goal on the LEFT, levels running across the page. Turned this way round
+ * because the boxes hold sentences, not labels: text wants to be wide and
+ * short, four of those side by side fit a screen, and the tree then grows
+ * DOWNWARDS as it gets bigger — which is the direction a page scrolls anyway.
+ * Top-down put every level on its own row, threw the outer branches off both
+ * edges, and could not be read without scrolling sideways.
+ *
+ * The connectors are CSS, not SVG, so a box can grow to fit whatever is typed
+ * into it and the lines follow. Each child draws HALF the vertical bar above
+ * its own centre and half below; the first child drops its upper half and the
+ * last drops its lower, which leaves one bar running exactly from the first
+ * centre to the last, with nobody measuring anything.
+ */
+.lt-screen { max-width: none; }
+
+/* The level names sit across the top, on the same pitch as the columns, so
+   each one is a heading for the column beneath it. */
+.lt-legend {
+  display: flex; gap: 0; margin: 0 0 10px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  min-width: max-content;
+}
+.lt-legend-i {
+  flex: none; width: 240px; margin-right: 46px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lt-canvas { overflow-x: auto; padding: 4px 2px 18px; -webkit-overflow-scrolling: touch; }
+.lt-scroll { min-width: max-content; }
+
+.lt-root { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 26px; }
+
+/* a node is [ box ][ its children, stacked ] */
+.lt-node { position: relative; display: flex; flex-direction: row; align-items: center; }
+
+.lt-kids {
+  list-style: none; margin: 0; padding: 0 0 0 46px;
+  display: flex; flex-direction: column; justify-content: center;
+  position: relative;
+}
+/* the stub leaving the parent, out to where the bar stands */
+.lt-kids::before {
+  content: ""; position: absolute; left: 0; top: 50%;
+  width: 23px; height: 2px; margin-top: -1px; background: var(--line-2);
+}
+/* no gap between children — the bar halves are the full height of each child,
+   so a gap here would show as a break in the line */
+.lt-kids > .lt-node { padding: 7px 0; }
+/* the stub running into each child */
+.lt-kids > .lt-node::before {
+  content: ""; position: absolute; left: -23px; top: 50%;
+  width: 23px; height: 2px; margin-top: -1px; background: var(--line-2);
+}
+.lt-arm { display: none; }
+.lt-kids > .lt-node > .lt-arm {
+  display: block; position: absolute; left: -23px;
+  width: 2px; height: 50%; background: var(--line-2);
+}
+.lt-kids > .lt-node > .lt-arm-up { top: 0; }
+.lt-kids > .lt-node > .lt-arm-dn { top: 50%; }
+.lt-kids > .lt-node:first-child > .lt-arm-up,
+.lt-kids > .lt-node:last-child  > .lt-arm-dn { display: none; }
+
+/* ---------- a box ---------- */
+.lt-box {
+  flex: none; width: 240px; align-self: center;
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 10px 11px 8px; border-radius: 8px; cursor: grab;
+  background: var(--surface); border: 1px solid var(--line-2);
+  border-left: 4px solid var(--line-2);
+  box-shadow: var(--shadow);
+}
+.lt-box.is-g { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+.lt-box.is-a { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
+.lt-box.is-r { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+.lt-box.is-dragging { opacity: 0.4; }
+.lt-box.is-drop { outline: 2px dashed var(--accent); outline-offset: 3px; }
+
+.lt-text {
+  width: 100%; resize: none; overflow: hidden; cursor: text;
+  background: transparent; border: 0; padding: 0; margin: 0;
+  font: inherit; font-size: 14px; font-weight: 700; line-height: 1.34; color: var(--ink);
+}
+.lt-text::placeholder { font-weight: 500; color: var(--muted); opacity: 0.7; }
+.lt-text:focus { outline: none; }
+.lt-box:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.lt-tools { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.lt-rags { display: flex; gap: 3px; }
+.lt-rag {
+  width: 15px; height: 15px; border-radius: 4px; cursor: pointer; padding: 0;
+  border: 1px solid var(--line-2); background: var(--surface-2);
+}
+.lt-rag.is-g { background: var(--ok); border-color: var(--ok); }
+.lt-rag.is-a { background: var(--warn); border-color: var(--warn); }
+.lt-rag.is-r { background: var(--danger); border-color: var(--danger); }
+.lt-rag.on { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+.lt-acts { display: flex; gap: 1px; }
+.lt-mini {
+  min-width: 22px; height: 22px; padding: 0 3px; border: 0; border-radius: 5px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 13px; line-height: 1;
+}
+.lt-mini:hover { background: var(--surface-2); color: var(--ink); }
+.lt-mini.is-del:hover { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+
+.lt-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.lt-empty { text-align: center; padding: 48px 20px; }
+.lt-empty-t { font-size: 19px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
+.lt-empty .sub { max-width: 46ch; margin: 0 auto 18px; }
+
+/* ---------- paste a list ---------- */
+.lt-paste-back {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  background: rgba(12, 22, 32, 0.5); padding: 18px;
+}
+.lt-paste {
+  width: 100%; max-width: 520px; background: var(--surface);
+  border-radius: 14px; padding: 20px; box-shadow: 0 18px 50px rgba(10, 20, 30, 0.3);
+}
+.lt-paste-t { font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 4px; }
+.lt-paste-ta { min-height: 180px; margin-top: 12px; font-size: 14px; line-height: 1.5; }
+
+/* ---------- phone ----------
+ * Four 240px columns do not fit 390px, and shrinking them makes the sentences
+ * unreadable. So the columns become indents: the same tree, the same edits,
+ * running down instead of across. */
+@media (max-width: 719px) {
+  .lt-legend { display: none; }
+  .lt-box { width: auto; flex: 1; }
+  .lt-node { flex-direction: column; align-items: stretch; }
+  .lt-kids {
+    padding: 10px 0 0 20px; margin-left: 12px;
+    border-left: 2px solid var(--line-2);
+  }
+  .lt-kids::before { display: none; }
+  .lt-kids > .lt-node { padding: 5px 0; }
+  .lt-kids > .lt-node::before {
+    left: -20px; top: 26px; width: 14px; margin-top: 0;
+  }
+  .lt-kids > .lt-node > .lt-arm { display: none; }
+}
+
+/* Printing is the tree and nothing else — no chrome, no tools, no spine. */
+@media print {
+  .lt-tools, .lt-foot, .spine, .pace-head-actions { display: none !important; }
+  .lt-canvas { overflow: visible; }
+  .lt-box { box-shadow: none; break-inside: avoid; }
+}
