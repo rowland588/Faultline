@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   listTreeNodes, putTreeNode, putTreeNodes, deleteTreeBranch,
-  onDataChange, type TreeNodeRow, type Rag,
+  onDataChange, type TreeNodeRow, type NodeStatus,
 } from '../db';
 import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
@@ -41,12 +41,16 @@ const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 const LEVELS = ['Desired outcome', 'What needs to be true', 'Required conditions', 'Required actions'];
 const levelName = (depth: number) => LEVELS[depth] ?? `Level ${depth + 1}`;
 
-const RAGS: { k: Rag; label: string }[] = [
-  { k: 'g', label: 'On track' },
+/* Where a box has got to. In the order work actually travels, so the list reads
+ * as a course rather than a palette. */
+const STATUSES: { k: NodeStatus; label: string }[] = [
+  { k: 'n', label: 'Not started' },
+  { k: 'w', label: 'In progress' },
   { k: 'a', label: 'At risk' },
-  { k: 'r', label: 'Off track' },
-  { k: 'n', label: 'No colour' },
+  { k: 'r', label: 'Blocked' },
+  { k: 'g', label: 'Done' },
 ];
+const statusLabel = (k: NodeStatus) => STATUSES.find(s => s.k === k)?.label ?? 'Not started';
 
 interface Tree { node: TreeNodeRow; depth: number; kids: Tree[] }
 
@@ -180,16 +184,19 @@ function Box({
       )}
 
       <div className="lt-tools">
-        <div className="lt-rags" role="group" aria-label="Colour">
-          {RAGS.map(r => (
-            <button
-              key={r.k} type="button" title={r.label} aria-label={r.label}
-              aria-pressed={node.rag === r.k}
-              className={'lt-rag is-' + r.k + (node.rag === r.k ? ' on' : '')}
-              onClick={() => onChange({ rag: r.k })}
-            />
-          ))}
-        </div>
+        {/* The status says its name. A coloured square on its own tells you a
+            box is orange and not what orange means — and says nothing at all on
+            paper, or to anybody who cannot separate red from green. */}
+        <label className={'lt-status is-' + node.rag}>
+          <span className="lt-status-dot" aria-hidden />
+          <span className="lt-status-l">{statusLabel(node.rag)}</span>
+          <select
+            className="lt-status-sel" value={node.rag} aria-label="Status"
+            onChange={e => onChange({ rag: e.target.value as NodeStatus })}
+          >
+            {STATUSES.map(o => <option key={o.k} value={o.k}>{o.label}</option>)}
+          </select>
+        </label>
         <div className="lt-acts">
           <button type="button" className="lt-mini" title="Move up" aria-label="Move up" onClick={() => onMove(-1)}>↑</button>
           <button type="button" className="lt-mini" title="Move down" aria-label="Move down" onClick={() => onMove(1)}>↓</button>
@@ -349,7 +356,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
     let sort = sibs.length ? sibs[sibs.length - 1].sort + 1 : 0;
     const t = now();
     await putTreeNodes(lines.map(text => ({
-      id: uid(), projectId, parentId: parent.id, text, rag: 'n' as Rag,
+      id: uid(), projectId, parentId: parent.id, text, rag: 'n' as NodeStatus,
       sort: sort++, createdAt: t, updatedAt: t,
     })));
     await load();

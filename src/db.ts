@@ -1347,7 +1347,28 @@ export async function deletePaceWin(id: ID): Promise<void> {
  * thinking surface before it is a reporting one; when the app starts deriving
  * the colour it starts arguing with the person holding the pen.
  */
-export type Rag = 'r' | 'a' | 'g' | 'n';   // n = no colour set yet
+/* WHERE A BOX HAS GOT TO. Five states, not four colours.
+ *
+ * It began as red/amber/green plus "no colour set", which is a traffic light,
+ * not a status: four anonymous swatches told you a box was orange without ever
+ * telling you whether that meant started, slipping, or stuck. A project is
+ * steered on where something has GOT TO, so the states say that, and each one
+ * carries its name on the box rather than only a tint — which is also the only
+ * way it survives being printed or read by somebody who cannot separate red
+ * from green.
+ *
+ * The stored letters stay as they were, so nothing already typed in is
+ * disturbed: 'n' was "no colour" and is now "Not started", which is what an
+ * uncoloured box always meant in practice. */
+export type NodeStatus =
+  | 'n'   // not started
+  | 'w'   // in progress — working
+  | 'a'   // at risk
+  | 'r'   // blocked / off track
+  | 'g';  // done
+
+/** @deprecated the old traffic-light name — kept so nothing breaks mid-rename */
+export type Rag = NodeStatus;
 
 export interface TreeNodeRow {
   id: ID;
@@ -1355,7 +1376,8 @@ export interface TreeNodeRow {
   /** Absent on the root — the desired outcome. Everything else hangs off one. */
   parentId?: ID;
   text: string;
-  rag: Rag;
+  /** Column stays `rag` — renaming it would need a migration and buys nothing. */
+  rag: NodeStatus;
   /** Order among siblings. Data, not insertion order: the tree gets rearranged. */
   sort: number;
   createdAt: number; updatedAt: number; deletedAt?: number;
