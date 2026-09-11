@@ -85,9 +85,14 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 /* ---------- one box ---------- */
 
 function Box({
-  t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove, folded, onFold, drag,
+  t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove,
+  folded, onFold, drag, moving, onPickUp, onPutHere,
 }: {
   t: Tree;
+  /** id of the box being moved by tapping, anywhere in the tree */
+  moving: string | null;
+  onPickUp: () => void;
+  onPutHere: () => void;
   folded: boolean;
   onFold: () => void;
   onChange: (patch: Partial<TreeNodeRow>) => void;
@@ -133,10 +138,16 @@ function Box({
   const act = t.depth >= 3;
   const n = t.kids.length;
 
+  // A box being moved cannot be dropped inside itself, and the one you picked
+  // up is not a place to put it.
+  const isMoving = moving === node.id;
+  const canTake = !!moving && !isMoving;
+
   return (
     <div
       className={'lt-box is-' + node.rag + (act ? ' is-act' : '')
-        + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')}
+        + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')
+        + (isMoving ? ' is-lifted' : '')}
       draggable
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
       onDragOver={e => {
@@ -183,6 +194,15 @@ function Box({
         </button>
       )}
 
+      {/* While something is being moved, every other box turns into a target.
+          An overlay rather than a click handler on the box, because the box is
+          a textarea and tapping it has always meant "edit this". */}
+      {canTake && (
+        <button type="button" className="lt-take" onClick={onPutHere}>
+          Put it here
+        </button>
+      )}
+
       <div className="lt-tools">
         {/* The status says its name. A coloured square on its own tells you a
             box is orange and not what orange means — and says nothing at all on
@@ -198,6 +218,16 @@ function Box({
           </select>
         </label>
         <div className="lt-acts">
+          {/* Tapping this picks the box up; tapping another box drops it there.
+              Drag-and-drop does not exist on touch at all, so on a phone this
+              is the ONLY way to move a box — and it works the same on a
+              computer, so there is one thing to learn rather than two. */}
+          <button
+            type="button" className={'lt-mini' + (isMoving ? ' is-on' : '')}
+            title={isMoving ? 'Cancel the move' : 'Move this box somewhere else'}
+            aria-label={isMoving ? 'Cancel the move' : 'Move this box somewhere else'}
+            onClick={onPickUp}
+          >⠿</button>
           <button type="button" className="lt-mini" title="Move up" aria-label="Move up" onClick={() => onMove(-1)}>↑</button>
           <button type="button" className="lt-mini" title="Move down" aria-label="Move down" onClick={() => onMove(1)}>↓</button>
           {/* ＋ is the one that gets pressed, so it does the common thing:
@@ -222,6 +252,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const [pasteText, setPasteText] = useState('');
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
   const syncedAt = useSyncedAt();
 
   /* THE TREE IS ALWAYS LANDSCAPE, phone included. An earlier build folded it
@@ -364,6 +395,28 @@ export function LeverTree({ projectId }: { projectId: string }) {
 
   const dragApi = { id: dragId, start: setDragId, over: overId, setOver: setOverId, drop };
 
+  /** Move by tapping: pick a box up, then tap where it belongs. Shares the same
+   *  guard as the drag — a box can never be put inside its own branch. */
+  const putUnder = async (targetId: string | null) => {
+    const id = moving;
+    setMoving(null);
+    if (!id || id === targetId) return;
+    const box = nodes.find(n => n.id === id);
+    if (!box) return;
+    if (targetId) {
+      for (let p = nodes.find(n => n.id === targetId); p; p = nodes.find(n => n.id === p!.parentId)) {
+        if (p.id === id) return;
+      }
+    }
+    const sibs = siblingsOf(targetId ?? undefined);
+    await putTreeNode({
+      ...box, parentId: targetId ?? undefined,
+      sort: sibs.length ? sibs[sibs.length - 1].sort + 1 : 0,
+    });
+    await load();
+  };
+  const movingBox = moving ? nodes.find(n => n.id === moving) : null;
+
   /** Every box that has actions hanging off it — the one fold that gets used
    *  most, because it is the difference between the shape of the project and
    *  the detail of this week's work. */
@@ -388,6 +441,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
         t={t}
         folded={folded.has(t.node.id)}
         onFold={() => toggleFold(t.node.id)}
+        moving={moving}
+        onPickUp={() => setMoving(moving === t.node.id ? null : t.node.id)}
+        onPutHere={() => void putUnder(t.node.id)}
         onChange={p => void change(t.node, p)}
         onAddBelow={() => void addBelow(t.node)}
         onAddRight={() => void addNode(t.node.id)}
@@ -481,12 +537,24 @@ export function LeverTree({ projectId }: { projectId: string }) {
               <ul className="lt-root">{tree.map(render)}</ul>
             </div>
           </div>
+          {movingBox && (
+            <div className="lt-moving" role="status">
+              <span className="lt-moving-t">
+                Moving <b>{movingBox.text.trim() || 'an empty box'}</b> — tap the box it belongs under
+              </span>
+              <button className="btn btn-ghost" onClick={() => void putUnder(null)}>Put it at the top</button>
+              <button className="btn" onClick={() => setMoving(null)}>Cancel</button>
+            </div>
+          )}
+
           <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
-              Drag a box onto another to move it there · ↑ ↓ reorder · ＋ adds another below · ＋› adds the next level along · ⇱ pastes a list
-              {' '}· pinch to zoom, or tap the percentage to fit it all on.
-              {' '}Drag a selection straight out of the tracker onto a box to fill the row under it.
+              ⠿ move a box · ↑ ↓ reorder · ＋ another below · ＋› the next level along
+              {' '}· ⇱ paste a list underneath · pinch to zoom, or tap the percentage to fit it all on.
+              {' '}<br />On a computer you can also drag boxes about, and drag a selection straight
+              out of the tracker onto a box. Neither works by touch — on a phone, copy in the
+              spreadsheet and use ⇱.
             </span>
           </div>
         </>

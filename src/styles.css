@@ -3087,6 +3087,39 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* packed against each other, so the column reads as one block of work */
 .lt-kids > .lt-node:has(> .lt-box.is-act) { padding: 2px 0; }
 
+/* ---------- move a box by tapping ----------
+ * Drag-and-drop does not exist on touch, so this is the ONLY way to move a box
+ * on a phone — and it is the same two taps on a computer, so there is one thing
+ * to learn rather than two.
+ */
+.lt-box.is-lifted {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+  box-shadow: 0 8px 22px rgba(16, 32, 48, 0.22);
+}
+.lt-mini.is-on { background: var(--accent); color: #fff; }
+
+/* Every other box becomes a target while something is lifted. An overlay, not a
+   click handler on the box itself — the box is a textarea and tapping it has
+   always meant "edit this". */
+.lt-take {
+  position: absolute; inset: 0; z-index: 3; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--accent); border-radius: inherit;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent); font-size: 12px; font-weight: 800;
+}
+.lt-take:hover { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+
+.lt-moving {
+  position: sticky; bottom: 0; z-index: 30;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 10px 0; padding: 10px 14px;
+  border: 1px solid var(--accent); border-radius: 10px;
+  background: var(--surface); box-shadow: 0 -4px 18px rgba(16, 32, 48, 0.12);
+}
+.lt-moving-t { flex: 1; min-width: 200px; font-size: 13.5px; color: var(--ink-2); }
+.lt-moving-t b { color: var(--ink); }
+
 /* ---------- fold a branch away ---------- */
 .lt-fold {
   position: absolute; top: 50%; right: -13px; transform: translateY(-50%);
