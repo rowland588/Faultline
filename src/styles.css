@@ -3048,6 +3048,37 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-empty-t { font-size: 19px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
 .lt-empty .sub { max-width: 46ch; margin: 0 auto 18px; }
 
+/* ---------- the action level: a list, not a row of cards ----------
+ * The work at the bottom is a list and should read like one. Tight rows, a
+ * smaller face, and the whole column packed close so a condition with six
+ * actions under it does not become the tallest thing on the page and push the
+ * next condition off the bottom of the screen.
+ */
+.lt-box.is-act {
+  width: 250px; padding: 6px 9px 5px; gap: 4px;
+  border-left-width: 3px; border-radius: 6px; box-shadow: none;
+}
+.lt-box.is-act .lt-text { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+.lt-box.is-act .lt-rag { width: 12px; height: 12px; border-radius: 3px; }
+.lt-box.is-act .lt-mini { min-width: 19px; height: 19px; font-size: 11px; }
+/* packed against each other, so the column reads as one block of work */
+.lt-kids > .lt-node:has(> .lt-box.is-act) { padding: 2px 0; }
+
+/* ---------- fold a branch away ---------- */
+.lt-fold {
+  position: absolute; top: 50%; right: -13px; transform: translateY(-50%);
+  z-index: 2; display: inline-flex; align-items: center; gap: 3px;
+  min-width: 22px; height: 22px; padding: 0 5px;
+  border: 1px solid var(--line-2); border-radius: 999px;
+  background: var(--surface); color: var(--muted);
+  font-size: 10px; line-height: 1; cursor: pointer;
+}
+.lt-fold:hover { color: var(--ink); border-color: var(--ink-2); }
+.lt-fold.is-folded { background: var(--accent-soft, var(--surface-2)); color: var(--accent); border-color: var(--accent); }
+.lt-fold-c { font-size: 9px; }
+.lt-fold-n { font-weight: 800; font-variant-numeric: tabular-nums; }
+.lt-box { position: relative; }
+
 /* ---------- paste a list ---------- */
 .lt-paste-back {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;

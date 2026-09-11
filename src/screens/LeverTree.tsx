@@ -66,12 +66,26 @@ function build(rows: TreeNodeRow[]): Tree[] {
   return (kids.get('') ?? []).sort((a, b) => a.sort - b.sort).map(n => make(n, 0));
 }
 
+/** How deep a row sits, walked from the row itself — the rendered tree knows
+ *  this already, but the fold-all needs it before anything is rendered. */
+function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
+  let d = 0;
+  for (let p = n; p.parentId; d++) {
+    const up = all.find(x => x.id === p.parentId);
+    if (!up || d > 24) break;
+    p = up;
+  }
+  return d;
+}
+
 /* ---------- one box ---------- */
 
 function Box({
-  t, onChange, onAdd, onDelete, onPaste, onDropText, onMove, drag,
+  t, onChange, onAdd, onDelete, onPaste, onDropText, onMove, folded, onFold, drag,
 }: {
   t: Tree;
+  folded: boolean;
+  onFold: () => void;
   onChange: (patch: Partial<TreeNodeRow>) => void;
   onAdd: () => void;
   onDelete: () => void;
@@ -107,9 +121,17 @@ function Box({
 
   const commit = () => { if (text !== node.text) onChange({ text }); };
 
+  // The work at the bottom is a LIST, and should look like one: tight rows in a
+  // column, not full cards. Four actions rendered as cards made their branch
+  // taller than everything else on the page and pushed the next condition down
+  // out of sight, which is the opposite of a tree you can take in at a glance.
+  const act = t.depth >= 3;
+  const n = t.kids.length;
+
   return (
     <div
-      className={'lt-box is-' + node.rag + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')}
+      className={'lt-box is-' + node.rag + (act ? ' is-act' : '')
+        + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')}
       draggable
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
       onDragOver={e => {
@@ -140,6 +162,21 @@ function Box({
           if (e.key === 'Escape') { setText(node.text); (e.target as HTMLTextAreaElement).blur(); }
         }}
       />
+
+      {/* Fold this branch away. On a condition that is "hide the actions"; on a
+          line it is "hide that whole line's thinking" — same control, and the
+          count stays visible so nothing is hidden without saying so. */}
+      {n > 0 && (
+        <button
+          type="button" className={'lt-fold' + (folded ? ' is-folded' : '')}
+          onClick={onFold} aria-expanded={!folded}
+          title={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
+          aria-label={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
+        >
+          <span className="lt-fold-c" aria-hidden>{folded ? '▸' : '▾'}</span>
+          {folded && <span className="lt-fold-n">{n}</span>}
+        </button>
+      )}
 
       <div className="lt-tools">
         <div className="lt-rags" role="group" aria-label="Colour">
@@ -186,6 +223,15 @@ export function LeverTree({ projectId }: { projectId: string }) {
    * scales the paint and leaves the container the wrong size, which is how you
    * end up unable to scroll to the part you just zoomed towards. */
   const [zoom, setZoom] = useSticky<number>('tree:' + projectId, 'zoom', 1);
+
+  /* Which branches are folded away, remembered per project. Kept as a list of
+   * ids rather than a flag on the row: it is how YOU are looking at the tree
+   * right now, not something about the tree, and it has no business syncing to
+   * anybody else's screen or showing up as a change on another device. */
+  const [foldedIds, setFoldedIds] = useSticky<string[]>('tree:' + projectId, 'folded', []);
+  const folded = new Set(foldedIds);
+  const toggleFold = (id: string) =>
+    setFoldedIds(folded.has(id) ? foldedIds.filter(f => f !== id) : [...foldedIds, id]);
   const canvas = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
 
@@ -289,6 +335,18 @@ export function LeverTree({ projectId }: { projectId: string }) {
   };
 
   const dragApi = { id: dragId, start: setDragId, over: overId, setOver: setOverId, drop };
+
+  /** Every box that has actions hanging off it — the one fold that gets used
+   *  most, because it is the difference between the shape of the project and
+   *  the detail of this week's work. */
+  const actionParents = nodes
+    .filter(n => nodes.some(k => k.parentId === n.id && depthOf(k, nodes) >= 3))
+    .map(n => n.id);
+  const actionsFolded = actionParents.length > 0 && actionParents.every(id => folded.has(id));
+  const foldActions = () =>
+    setFoldedIds(actionsFolded
+      ? foldedIds.filter(f => !actionParents.includes(f))
+      : [...new Set([...foldedIds, ...actionParents])]);
   const pasteRows = pasteText.trim() ? parsePastedRows(pasteText) : [];
 
   const render = (t: Tree) => (
@@ -300,6 +358,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
       <span className="lt-arm lt-arm-dn" aria-hidden />
       <Box
         t={t}
+        folded={folded.has(t.node.id)}
+        onFold={() => toggleFold(t.node.id)}
         onChange={p => void change(t.node, p)}
         onAdd={() => void addNode(t.node.id)}
         onDelete={() => void remove(t.node)}
@@ -308,7 +368,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
         onMove={d => void move(t.node, d)}
         drag={dragApi}
       />
-      {t.kids.length > 0 && <ul className="lt-kids">{t.kids.map(render)}</ul>}
+      {t.kids.length > 0 && !folded.has(t.node.id) && <ul className="lt-kids">{t.kids.map(render)}</ul>}
     </li>
   );
 
@@ -345,6 +405,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
+          {actionParents.length > 0 && (
+            <button className="btn" onClick={foldActions}>
+              {actionsFolded ? 'Show actions' : 'Hide actions'}
+            </button>
+          )}
           <div className="lt-zoom" role="group" aria-label="Zoom">
             <button className="lt-zoom-b" aria-label="Zoom out" onClick={() => setZoom(clampZoom(zoom - 0.15))}>−</button>
             <button className="lt-zoom-n" onClick={fit} title="Fit the whole tree on screen">{Math.round(zoom * 100)}%</button>
