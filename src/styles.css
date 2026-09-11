@@ -3060,29 +3060,47 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-paste-t { font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 4px; }
 .lt-paste-ta { min-height: 180px; margin-top: 12px; font-size: 14px; line-height: 1.5; }
 
-/* ---------- phone ----------
- * Four 240px columns do not fit 390px, and shrinking them makes the sentences
- * unreadable. So the columns become indents: the same tree, the same edits,
- * running down instead of across. */
+/* ---------- phone: the SAME tree ----------
+ * It does not fold into a list. The shape is the point — a lever tree talked
+ * through with somebody looking over your shoulder has to be the same shape on
+ * the phone in your hand as on the screen behind you. So the columns stay, the
+ * canvas scrolls both ways, and you pinch to zoom.
+ *
+ * touch-action is the part that makes pinching work: without `pan-x pan-y` the
+ * browser claims the second finger for its own page zoom and the handler never
+ * sees it. `none` would kill scrolling with one finger, which is worse.
+ */
+.lt-canvas { touch-action: pan-x pan-y; }
 @media (max-width: 719px) {
-  .lt-legend { display: none; }
-  .lt-box { width: auto; flex: 1; }
-  .lt-node { flex-direction: column; align-items: stretch; }
-  .lt-kids {
-    padding: 10px 0 0 20px; margin-left: 12px;
-    border-left: 2px solid var(--line-2);
-  }
-  .lt-kids::before { display: none; }
-  .lt-kids > .lt-node { padding: 5px 0; }
-  .lt-kids > .lt-node::before {
-    left: -20px; top: 26px; width: 14px; margin-top: 0;
-  }
-  .lt-kids > .lt-node > .lt-arm { display: none; }
+  /* only the page chrome gets smaller, never the tree */
+  .lt-screen .pace-title { font-size: 24px; }
+  .lt-screen .pace-lede { display: none; }
+  .lt-legend-i { font-size: 10px; }
 }
+
+/* ---------- zoom ---------- */
+.lt-zoom {
+  display: inline-flex; align-items: stretch; flex: none;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); overflow: hidden; box-shadow: var(--shadow);
+}
+.lt-zoom-b {
+  width: 36px; border: 0; background: transparent; cursor: pointer;
+  color: var(--ink); font-size: 16px; line-height: 1;
+}
+.lt-zoom-b:active { background: var(--surface-2); }
+.lt-zoom-n {
+  min-width: 54px; padding: 0 6px; border: 0; border-inline: 1px solid var(--line);
+  background: transparent; cursor: pointer;
+  color: var(--ink-2); font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.lt-zoom-n:active { background: var(--surface-2); }
 
 /* Printing is the tree and nothing else — no chrome, no tools, no spine. */
 @media print {
   .lt-tools, .lt-foot, .spine, .pace-head-actions { display: none !important; }
   .lt-canvas { overflow: visible; }
+  .lt-scroll { zoom: 1 !important; }   /* paper is not a screen */
   .lt-box { box-shadow: none; break-inside: avoid; }
 }

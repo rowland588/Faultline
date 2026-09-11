@@ -16,7 +16,7 @@
  * per line, in one go, because typing twenty actions back in by hand is how a
  * tool gets abandoned in week two.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   listTreeNodes, putTreeNode, putTreeNodes, deleteTreeBranch,
   onDataChange, type TreeNodeRow, type Rag,
@@ -27,6 +27,13 @@ import { Crumbs } from '../ui/Crumbs';
 import { AccountMenu } from '../ui/AccountMenu';
 import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
+import { useSticky } from '../lib/useSticky';
+
+/* How far in and out the tree will go. Below about a third the words stop being
+ * words; above 1.6 there is no reason to be on this screen rather than reading
+ * one box. */
+const ZOOM_MIN = 0.3, ZOOM_MAX = 1.6;
+const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 /** What each depth is called. Past the fourth we stop naming them — the tree is
  *  the user's to shape, and a level with no name is better than a wrong one. */
@@ -152,6 +159,37 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const syncedAt = useSyncedAt();
+
+  /* THE TREE IS ALWAYS LANDSCAPE, phone included. An earlier build folded it
+   * into an indented list below 720px, which is a perfectly good list and not a
+   * lever tree — the shape IS the point, and a shape that changes with the
+   * screen cannot be talked through with somebody looking over your shoulder.
+   * So it keeps its columns everywhere and you zoom instead.
+   *
+   * Zoom is the CSS `zoom` property rather than a transform: it reflows, so the
+   * scrollbars and the scroll extent come out right by themselves. A transform
+   * scales the paint and leaves the container the wrong size, which is how you
+   * end up unable to scroll to the part you just zoomed towards. */
+  const [zoom, setZoom] = useSticky<number>('tree:' + projectId, 'zoom', 1);
+  const canvas = useRef<HTMLDivElement>(null);
+  const scroll = useRef<HTMLDivElement>(null);
+
+  /** Scale the whole tree to the width available — the "show me all of it" that
+   *  a phone needs before anything else. */
+  const fit = useCallback(() => {
+    const box = canvas.current, inner = scroll.current;
+    if (!box || !inner) return;
+    const natural = inner.scrollWidth / (zoom || 1);
+    if (natural > 0) setZoom(clampZoom((box.clientWidth - 8) / natural));
+  }, [zoom, setZoom]);
+
+  // Two fingers on the tree zooms it, which is what everybody's thumbs already
+  // try to do. The page itself must not zoom with it, hence preventDefault.
+  const pinch = useRef<{ d: number; z: number } | null>(null);
+  const gap = (t: React.TouchList) => {
+    const a = t.item(0), b = t.item(1);
+    return a && b ? Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) : 0;
+  };
 
   const load = useCallback(async () => { setRows(await listTreeNodes(projectId)); }, [projectId]);
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load, syncedAt]);
@@ -290,6 +328,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
+          <div className="lt-zoom" role="group" aria-label="Zoom">
+            <button className="lt-zoom-b" aria-label="Zoom out" onClick={() => setZoom(clampZoom(zoom - 0.15))}>−</button>
+            <button className="lt-zoom-n" onClick={fit} title="Fit the whole tree on screen">{Math.round(zoom * 100)}%</button>
+            <button className="lt-zoom-b" aria-label="Zoom in" onClick={() => setZoom(clampZoom(zoom + 0.15))}>＋</button>
+          </div>
           <button className="btn" onClick={() => window.print()}>Print</button>
           <AccountMenu />
         </div>
@@ -309,8 +352,17 @@ export function LeverTree({ projectId }: { projectId: string }) {
         </div>
       ) : (
         <>
-          <div className="lt-canvas">
-            <div className="lt-scroll">
+          <div
+            className="lt-canvas" ref={canvas}
+            onTouchStart={e => { if (e.touches.length === 2) pinch.current = { d: gap(e.touches), z: zoom }; }}
+            onTouchMove={e => {
+              if (e.touches.length !== 2 || !pinch.current) return;
+              e.preventDefault();
+              setZoom(clampZoom(pinch.current.z * (gap(e.touches) / pinch.current.d)));
+            }}
+            onTouchEnd={() => { pinch.current = null; }}
+          >
+            <div className="lt-scroll" ref={scroll} style={{ zoom }}>
               {/* the level names, on the same pitch as the columns below */}
               <div className="lt-legend">
                 {LEVELS.slice(0, depth).map(l => <span key={l} className="lt-legend-i">{l}</span>)}
@@ -322,6 +374,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
               Drag a box onto another to move it there · ↑ ↓ reorder · ＋ adds to its right · ⇱ pastes a list
+              {' '}· pinch to zoom, or tap the percentage to fit it all on
             </span>
           </div>
         </>
