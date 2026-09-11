@@ -23,6 +23,8 @@ import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
 import { DEFAULT_PROJECT_ID } from './db';
 import { useSession } from './cloud/session';
+import { AutoConvert } from './snag/AutoConvert';
+import type { Route } from './state/useRoute';
 
 export function Router() {
   const route = useRoute();
@@ -42,6 +44,14 @@ export function Router() {
   if (loading) return <BootSplash />;
   // Not signed in → the front door. No bypass.
   if (!session) return <Landing />;
+
+  // Wrapped around every signed-in screen, not mounted on one: the phone that
+  // filmed Line 7 should be fixing Line 7's footage whatever page you happen
+  // to be on, and wandering off a screen must not abandon it mid-clip.
+  return <><AutoConvert />{app(route)}</>;
+}
+
+function app(route: Route) {
 
   // The portfolio/ledger reads across every workspace, so it lives beside
   // Home, outside any single WorkspaceProvider scope.

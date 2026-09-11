@@ -2897,3 +2897,37 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    the footage is not at risk, so never the danger red. */
 .convert-card { margin-top: 12px; border-left: 3px solid var(--warn, #b4632a); }
 .convert-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* ---------- converting, quietly, while you get on with something else ----------
+ *
+ * Pinned to the bottom because that is where a status belongs and the top is
+ * where you are working. Above the tab bar, never over it: the thing that says
+ * "this is happening in the background" must not cover the buttons.
+ */
+.autoconv {
+  position: fixed; z-index: 40;
+  left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 8px 28px rgba(16, 32, 48, 0.18);
+}
+/* clear of the tab bar when there is one */
+.app .autoconv { bottom: calc(66px + env(safe-area-inset-bottom)); }
+.autoconv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.autoconv-main b { font-size: 13.5px; color: var(--ink); }
+.autoconv-main .sub { font-size: 11.5px; }
+.autoconv-prog {
+  flex: none; width: 56px; height: 6px; border-radius: 999px;
+  background: var(--surface-2); overflow: hidden;
+}
+.autoconv-bar { height: 100%; background: var(--accent); transition: width 0.3s linear; }
+.autoconv-x {
+  flex: none; background: none; border: 0; cursor: pointer;
+  font-size: 12px; font-weight: 700; color: var(--muted); padding: 6px 4px;
+}
+@media (min-width: 720px) {
+  .autoconv { left: auto; right: 20px; max-width: 460px; }
+}
+/* a background job has no business on a printed report */
+@media print { .autoconv { display: none !important; } }

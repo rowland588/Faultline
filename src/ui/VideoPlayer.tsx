@@ -71,9 +71,9 @@ export function VideoPlayer({ blobKey, className, poster, onLoadedMetadata, ...r
             : <>The file is here, but its format isn't supported by this browser.</>}
         </span>
         <span className="sub">
-          <b>It is backed up and safe</b> — this browser just can't decode it. To fix it for good, open this
-          line on the phone that filmed it and tap <b>Convert</b>. It'll play here, and everywhere, from
-          then on. Meanwhile the download below plays in QuickTime, VLC or Photos.
+          <b>It is backed up and safe</b> — this browser just can't decode it. To fix it for good, open
+          Faultline on the phone that filmed it and leave it on screen for a minute: it converts the clip by
+          itself, and it plays here from then on. Meanwhile the download below opens in QuickTime, VLC or Photos.
         </span>
         {url && <a className="btn" style={{ marginTop: 10 }} href={url} download="faultline-clip.mp4">Download the clip</a>}
       </div>

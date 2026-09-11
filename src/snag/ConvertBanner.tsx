@@ -114,20 +114,28 @@ export function ConvertBanner({ wsId, tick, onDone }: { wsId: string; tick?: unk
           </p>
           {canHere ? (
             <>
+              {/* This device can do it, so it already is — the strip at the
+                  bottom of the screen is the same job. Saying "press Convert"
+                  next to something converting by itself is how you get two
+                  encoders running on one clip. */}
               <p className="sub" style={{ marginTop: 6 }}>
-                This device can convert {stuck.length === 1 ? 'it' : 'them'}, which fixes it everywhere. Nothing
-                marked is lost. It takes about as long as the footage runs, so keep this screen open.
+                This device can read {stuck.length === 1 ? 'it' : 'them'}, so it is converting
+                {stuck.length === 1 ? ' it' : ' them'} by itself — you should see it working at the bottom of the
+                screen. Keep the app open and it finishes on its own; nothing marked is lost. It takes about as
+                long as the footage runs.
               </p>
-              <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => void run()}>
-                Convert {plural(stuck.length, 'video')}
+              <button className="btn" style={{ marginTop: 10 }} onClick={() => void run()}>
+                Do it now
               </button>
             </>
           ) : (
             <>
               <p className="sub" style={{ marginTop: 6 }}>
-                Converting means decoding the original first, and this device can’t — so it has to be done on the
-                phone that filmed {stuck.length === 1 ? 'it' : 'them'}: open this line there and tap <b>Convert</b>.
-                Until then you can still watch {stuck.length === 1 ? 'it' : 'them'} here — just outside the browser.
+                Converting means decoding the original first, and this device can’t — so it happens on the phone
+                that filmed {stuck.length === 1 ? 'it' : 'them'}. <b>Just open Faultline on that phone and leave
+                it on screen for a minute</b>: it converts by itself and {stuck.length === 1 ? 'the clip' : 'the clips'} will
+                play here from then on. Nothing to press. Meanwhile you can still watch
+                {stuck.length === 1 ? ' it' : ' them'} here — outside the browser.
               </p>
               <div className="convert-files">
                 {stuck.map(s => (
