@@ -24,6 +24,7 @@ import {
 import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { Sweep } from '../ui/Sweep';
 import { AccountMenu } from '../ui/AccountMenu';
 import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
@@ -508,6 +509,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace lt-screen">
+      <Sweep id={'tree:' + projectId} />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },

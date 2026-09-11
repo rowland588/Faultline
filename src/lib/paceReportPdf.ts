@@ -18,12 +18,12 @@
 import type { jsPDF } from 'jspdf';
 
 /* ---------- the app's palette, as the report uses it ---------- */
-const INK = '#21374c', INK2 = '#4a6076', MUTED = '#7a8fa2', LINE = '#d8e5ef';
-const ACCENT = '#196bb3', BRAND = '#2b87d4', SURF2 = '#e8f1f8';
-const OK = '#1f8a4c', WARN = '#c26a0a', DANGER = '#d94f43';
+const INK = '#0c1f26', INK2 = '#35505a', MUTED = '#6b8892', LINE = '#dbe8e6';
+const ACCENT = '#0a6d5b', BRAND = '#0b7d68', SURF2 = '#e9f2f0';
+const OK = '#2e9e5b', WARN = '#b8721a', DANGER = '#cc4436';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
-const ACTUAL = '#2b87d4', TARGET = '#c26a0a';
+const ACTUAL = '#1c6fb8', TARGET = '#b8721a';
 
 export interface PaceReportData {
   now: number;
@@ -290,7 +290,7 @@ function table(
  * scaled down instead. */
 const TREE_STATUS: Record<string, { c: string; label: string }> = {
   n: { c: MUTED,  label: 'Not started' },
-  w: { c: ACCENT, label: 'In progress' },
+  w: { c: '#1c6fb8', label: 'In progress' },
   a: { c: WARN,   label: 'At risk' },
   r: { c: DANGER, label: 'Blocked' },
   g: { c: OK,     label: 'Done' },

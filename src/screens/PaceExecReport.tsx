@@ -23,6 +23,7 @@ import { useProject } from '../lib/useProjects';
 import { actionsForLine } from '../lib/paceLineMatch';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import { TreeStatic, useTreeNodes } from './TreeStatic';
+import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEFAULT_PROJECT_ID,
   type PaceTodoRow, type PaceWinRow } from '../db';
@@ -412,6 +413,8 @@ export function PaceExecReport() {
 
   return (
     <div className="exec-report" ref={root}>
+      {/* the second before it goes up on the wall */}
+      <Sweep id={'report:' + projectId + (lineId ?? '')} />
       <div className="exec-bar no-print">
         <button className="btn btn-ghost"
           onClick={() => nav(line ? `/project/${projectId}/line/${line.id}` : `/project/${projectId}`)}>

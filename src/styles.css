@@ -1,50 +1,68 @@
-/* Faultline — design system. Light, airy, fresh. Sky-tinted paper, a bright
-   friendly blue as the brand, greens for good news, light orange for the
-   spark — and NO dark surfaces anywhere: the cockpit and the meeting room
-   are light too. One light theme on every device. */
+/* Faultline — design system.
+ *
+ * Green, blue, white. The identity is a SWEEP between a deep sea-green and a
+ * clean blue: it carries the mark, the landing, the headers and the transitions,
+ * and it is the only place in the app where colour is decorative. Everywhere
+ * else colour means something.
+ *
+ * "Futuristic but classic" is a discipline, not a palette. It is: one confident
+ * gradient and nothing else glowing; deep ink on generous white; hairlines
+ * rather than boxes; motion that is short and purposeful. Neon and dark mode
+ * both read as futuristic for about a week and then read as dated — a factory
+ * floor in daylight needs contrast, not atmosphere, so this stays one light
+ * theme on every device as it always has.
+ *
+ * The one rule that shapes the palette: the brand green and the "Done" green
+ * must never be mistaken for one another. The brand is a deep sea-green, cool
+ * and dark; Done is a lighter, grassier green, and always wears its name.
+ */
 
 :root {
-  --bg: #f4f9fc;          /* airy sky-tinted paper */
+  --bg: #f3f8f7;          /* cool white, the faintest green cast */
   --surface: #ffffff;
-  --surface-2: #e8f1f8;
-  --ink: #21374c;         /* deep blue-slate text */
-  --ink-2: #4a6076;
-  --muted: #7a8fa2;
-  --line: #d8e5ef;
-  --line-2: #b9cdde;      /* a stronger rule: tree connectors, crumb outlines */
+  --surface-2: #e9f2f0;
+  --ink: #0c1f26;         /* deep blue-green black */
+  --ink-2: #35505a;
+  --muted: #6b8892;
+  --line: #dbe8e6;
+  --line-2: #b5cbc7;      /* a stronger rule: tree connectors, crumb outlines */
 
-  /* WHERE A BOX HAS GOT TO — five states, picked to be told apart at a glance
-     and at 34% zoom. The old amber (--warn) read brown against the card fill,
-     so this one is lifted and cleaner; the blue for "in progress" is far enough
-     from the app's accent to not read as a link. */
-  --st-n: #7d8b99;   /* not started — deliberately quiet */
-  --st-w: #2f6fd0;   /* in progress */
-  --st-a: #e08a1e;   /* at risk */
-  --st-r: #cf4436;   /* blocked */
-  --st-g: #1f8a4c;   /* done */
-  /* brand — bright friendly blue. --accent is the READABLE blue (text/links);
-     --brand is the fill (buttons, live, the mark); --on-brand is text on
-     blue. Green says "good"; light orange is the spark (the logo's spike,
-     the warn family); a clear warm red only for what's overdue. */
-  --accent: #196bb3;      /* readable blue on sky */
-  --accent-soft: #e4f0fa; /* blue wash */
-  --accent-rgb: 43, 135, 212;
-  --brand: #2b87d4;       /* bright blue — fills */
-  --brand-2: #1f6fb6;     /* pressed/hover */
+  /* WHERE A BOX HAS GOT TO — five states, told apart at a glance and at 34%
+     zoom, and each one carries its name so none of them relies on colour. */
+  --st-n: #78909a;   /* not started — deliberately quiet */
+  --st-w: #1c6fb8;   /* in progress — the identity's blue */
+  --st-a: #d5891c;   /* at risk */
+  --st-r: #cc4436;   /* blocked */
+  --st-g: #2e9e5b;   /* done — grassier and lighter than the brand */
+
+  /* THE IDENTITY. --brand fills (buttons, the mark); --accent is the readable
+     one for text and links; --sweep is the gradient, used sparingly. */
+  --accent: #0a6d5b;      /* readable sea-green on white */
+  --accent-soft: #e2f1ee;
+  --accent-rgb: 11, 125, 104;
+  --brand: #0b7d68;       /* deep sea-green — fills */
+  --brand-2: #08604f;     /* pressed/hover */
   --on-brand: #ffffff;
-  /* chrome — the LIGHT cockpit frame (top bar, tab bar, the meeting room) */
-  --chrome: #e9f3fa;
-  --chrome-2: #dcebf5;
-  --chrome-ink: #21374c;
-  --chrome-muted: #647d92;
-  --chrome-line: #c8dcea;
-  --ok: #1f8a4c;          /* fresh green */
-  --warn: #c26a0a;        /* light-orange family, kept readable on white */
-  --danger: #d94f43;      /* clear warm red */
-  --freq: #6b8095;        /* frequency series — blue-slate, pairs with any workspace hue */
+  --blue: #1c6fb8;        /* the blue half of the identity */
+  --blue-soft: #e4eff9;
+  --sweep: linear-gradient(135deg, #0b7d68 0%, #13727f 45%, #1c6fb8 100%);
+  --sweep-soft: linear-gradient(135deg, #e6f4f0 0%, #e8f1f8 100%);
+
+  /* chrome — the light cockpit frame (top bar, tab bar, the meeting room) */
+  --chrome: #eaf4f1;
+  --chrome-2: #ddeeea;
+  --chrome-ink: #0c1f26;
+  --chrome-muted: #5f7d86;
+  --chrome-line: #c6ded8;
+
+  --ok: #2e9e5b;          /* good news — matches --st-g, never the brand */
+  --warn: #b8721a;        /* kept readable on white */
+  --danger: #cc4436;      /* clear warm red */
+  --freq: #6b8895;        /* frequency series — slate, pairs with any hue */
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(33, 55, 76, 0.04), 0 8px 24px rgba(33, 55, 76, 0.06);
+  --shadow: 0 1px 2px rgba(12, 31, 38, 0.04), 0 8px 24px rgba(12, 31, 38, 0.07);
+  --shadow-lift: 0 2px 6px rgba(12, 31, 38, 0.06), 0 18px 44px rgba(12, 31, 38, 0.12);
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --tap: 52px;            /* minimum touch target — floor thumbs, sometimes gloved */
@@ -3324,3 +3342,150 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .lt-static .lt-kids > .lt-node > .lt-arm { display: block; }
   .lt-static .lt-box { width: 240px; flex: none; }
 }
+
+/* ==========================================================================
+   THE FRONT DOOR — clean, minimal, and futuristic without being a light show.
+   ==========================================================================
+   The restraint IS the design. One moving thing (the sweep behind the mark),
+   hairlines instead of boxes, a lot of white, and type doing the work. Neon
+   and glass panels read as futuristic for about a week; deep ink, generous
+   space and one confident gradient still read that way in five years.
+*/
+.landing-hero { position: relative; isolation: isolate; }
+
+/* the sweep, drifting. Three soft blobs of the identity's own colours, well
+   under the content and well under the contrast that matters. */
+.landing-aurora {
+  position: absolute; z-index: -1; inset: -14% -18% auto -18%; height: 460px;
+  pointer-events: none; overflow: hidden;
+  -webkit-mask-image: radial-gradient(72% 62% at 26% 34%, #000 32%, transparent 76%);
+          mask-image: radial-gradient(72% 62% at 26% 34%, #000 32%, transparent 76%);
+}
+.la-blob {
+  position: absolute; border-radius: 50%; filter: blur(58px); opacity: 0.5;
+  will-change: transform;
+}
+.la-1 { width: 380px; height: 380px; left: 2%;  top: -8%;  background: #0b7d68; animation: la-drift-1 26s ease-in-out infinite; }
+.la-2 { width: 420px; height: 420px; left: 24%; top: 6%;   background: #1c6fb8; animation: la-drift-2 31s ease-in-out infinite; }
+.la-3 { width: 300px; height: 300px; left: 46%; top: -14%; background: #13727f; animation: la-drift-3 23s ease-in-out infinite; }
+@keyframes la-drift-1 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(70px,34px,0) scale(1.12); } }
+@keyframes la-drift-2 { 0%,100% { transform: translate3d(0,0,0) scale(1.06); } 50% { transform: translate3d(-58px,26px,0) scale(0.94); } }
+@keyframes la-drift-3 { 0%,100% { transform: translate3d(0,0,0) scale(0.96); } 50% { transform: translate3d(40px,-30px,0) scale(1.14); } }
+
+.landing-brand { display: flex; align-items: center; gap: 13px; margin-bottom: 26px; }
+.landing-name {
+  font-size: 25px; font-weight: 800; letter-spacing: -0.03em; color: var(--ink);
+}
+
+/* Sized to break where the sentences break. At 50px in the hero's column each
+   of these ran to three lines and the headline swallowed the screen; the three
+   statements are the argument, and the argument only works if you can see all
+   three of them at once. */
+.landing-tag {
+  display: flex; flex-direction: column; gap: 3px;
+  font-size: clamp(25px, 3.1vw, 35px); line-height: 1.12;
+  letter-spacing: -0.028em; margin: 0 0 22px; max-width: 20ch;
+  text-wrap: balance;
+}
+.lt-line { color: var(--ink-2); font-weight: 600; }
+/* the one line that has to land, wearing the identity itself */
+.lt-punch {
+  font-weight: 800; margin-top: 6px;
+  background: var(--sweep); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: var(--accent);
+}
+.landing-lede {
+  font-size: clamp(15.5px, 1.7vw, 17.5px); line-height: 1.6;
+  color: var(--ink-2); max-width: 52ch; margin: 0 0 26px;
+}
+/* The short bar under the punch line already exists further up; a second rule
+   added here gave it two. This just restyles the one that is there. */
+.lt-punch::after { width: 84px; height: 3px; background: var(--sweep); margin-top: 14px; }
+
+/* The two halves of the product. align-items:start, NOT stretch: once these
+   wrap onto separate rows on a phone, stretch made each one as tall as its
+   whole row and they became two huge empty boxes. */
+.landing-worlds {
+  display: flex; align-items: flex-start; gap: 14px; margin-bottom: 30px; flex-wrap: wrap;
+}
+.lw-card {
+  flex: 1 1 190px; display: flex; flex-direction: column; gap: 3px;
+  padding: 15px 17px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.lw-ic { font-size: 17px; color: var(--accent); }
+.lw-card b { font-size: 15.5px; color: var(--ink); }
+.lw-plus { align-self: center; color: var(--muted); font-weight: 700; }
+@media (max-width: 560px) {
+  .landing-worlds { gap: 10px; }
+  .lw-card { flex: 1 1 100%; }
+  .lw-plus { align-self: center; width: 100%; text-align: center; }
+}
+
+/* the week, in the order it runs */
+.landing-points { list-style: none; margin: 0 0 4px; padding: 0; border-top: 1px solid var(--line); }
+.landing-points li {
+  display: flex; gap: 16px; align-items: baseline;
+  padding: 15px 2px; border-bottom: 1px solid var(--line);
+}
+.lp-n {
+  flex: none; width: 26px; font-family: var(--mono); font-size: 12px;
+  font-weight: 600; color: var(--accent); letter-spacing: 0.02em;
+}
+.lp-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lp-main b { font-size: 16px; color: var(--ink); letter-spacing: -0.012em; }
+.lp-main .sub { line-height: 1.55; }
+
+.landing-see-btn { margin-top: 22px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .la-blob { animation: none !important; }
+}
+
+/* ---------- the sweep: the second before the screen goes up ----------
+ * Over the top of the content, never in front of it: pointer-events are off,
+ * the screen underneath is already drawn and already usable, and the whole
+ * thing is gone in under a second. A transition that holds the room up is a
+ * transition that gets turned off.
+ */
+.sweep {
+  position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden;
+  animation: sweep-out 0.9s ease-in forwards;
+}
+/* the turn — the identity's colours rotating once, out of the corner */
+.sweep-turn {
+  position: absolute; left: 50%; top: 50%;
+  width: 190vmax; height: 190vmax; margin: -95vmax 0 0 -95vmax;
+  border-radius: 44%;
+  background: conic-gradient(from 0deg,
+    rgba(11, 125, 104, 0.00) 0deg,
+    rgba(11, 125, 104, 0.42) 48deg,
+    rgba(19, 114, 127, 0.34) 128deg,
+    rgba(28, 111, 184, 0.40) 212deg,
+    rgba(28, 111, 184, 0.00) 320deg);
+  animation: sweep-spin 0.9s cubic-bezier(0.22, 0.9, 0.2, 1) forwards;
+}
+/* a pale wipe travelling with it, so the screen resolves out of light rather
+   than out of a colour wash */
+.sweep-wipe {
+  position: absolute; inset: 0;
+  background: linear-gradient(108deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(238, 248, 246, 0.72) 38%,
+    rgba(255, 255, 255, 0.00) 72%);
+  animation: sweep-slide 0.9s cubic-bezier(0.3, 0.85, 0.25, 1) forwards;
+}
+@keyframes sweep-spin {
+  0%   { transform: rotate(-58deg) scale(0.62); opacity: 0; }
+  22%  { opacity: 1; }
+  100% { transform: rotate(126deg) scale(1.5); opacity: 0; }
+}
+@keyframes sweep-slide {
+  0%   { transform: translate3d(-14%, 0, 0); opacity: 1; }
+  100% { transform: translate3d(112%, 0, 0); opacity: 0; }
+}
+@keyframes sweep-out { 0%, 74% { opacity: 1; } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) { .sweep { display: none !important; } }
+@media print { .sweep { display: none !important; } }

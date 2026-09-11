@@ -28,8 +28,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#f4f9fc',
-        theme_color: '#e9f3fa',
+        background_color: '#f3f8f7',
+        theme_color: '#eaf4f1',
         icons: [
           // PNG for reliable install on iOS (SVG icons are ignored there) and Android.
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

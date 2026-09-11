@@ -46,20 +46,31 @@ export function Landing() {
     <div className="landing">
       <div className="landing-inner">
         <section className="landing-hero">
+          {/* The identity's sweep, moving slowly behind the mark. It is the only
+              decorative colour in the app and it earns its place here: a front
+              door should look like something. Paused entirely for anybody who
+              has asked for less motion. */}
+          <div className="landing-aurora" aria-hidden>
+            <span className="la-blob la-1" /><span className="la-blob la-2" /><span className="la-blob la-3" />
+          </div>
+
           <div className="landing-brand">
-            <LogoMark size={40} />
+            <LogoMark size={44} />
             <span className="landing-name">Faultline</span>
           </div>
+
           <h1 className="landing-h1 landing-tag">
             <span className="lt-line">OEE systems have numbers and no eyes.</span>
             <span className="lt-line">Audit apps have eyes and no numbers.</span>
             <span className="lt-punch">Faultline has both.</span>
           </h1>
+
           <p className="landing-lede">
             One discipline for food-manufacturing ops teams: see the loss, price it
             in pounds, fix it, and prove the fix held — with receipts a finance
             director believes.
           </p>
+
           <div className="landing-worlds" aria-hidden>
             <div className="lw-card">
               <span className="lw-ic">▤</span>
@@ -73,14 +84,18 @@ export function Landing() {
               <span className="sub">Video walks · pinned faults · proof by re-look</span>
             </div>
           </div>
-          <ul className="landing-points">
-            {POINTS.map(([t, d]) => (
+
+          {/* Numbered, because they are a sequence — the order a week actually
+              runs in, not four features that happen to be listed. */}
+          <ol className="landing-points">
+            {POINTS.map(([t, d], i) => (
               <li key={t}>
-                <span className="landing-point-dot" aria-hidden />
-                <span><b>{t}</b><span className="sub">{d}</span></span>
+                <span className="lp-n" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
+                <span className="lp-main"><b>{t}</b><span className="sub">{d}</span></span>
               </li>
             ))}
-          </ul>
+          </ol>
+
           <p className="sub landing-trust">
             Offline-first on the phones you already own — works with no signal on
             the floor, then syncs to every teammate you invite. No sensors, no
