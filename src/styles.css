@@ -3443,49 +3443,199 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .la-blob { animation: none !important; }
 }
 
-/* ---------- the sweep: the second before the screen goes up ----------
- * Over the top of the content, never in front of it: pointer-events are off,
- * the screen underneath is already drawn and already usable, and the whole
- * thing is gone in under a second. A transition that holds the room up is a
- * transition that gets turned off.
- */
+/* ==========================================================================
+   THE ENTRANCE — power, then intelligence.
+   ==========================================================================
+   POWER is the dark beat: ink floods in, a vortex of the identity's colours
+   turns hard through it, a bright ring is thrown past the edges. The screen
+   commits to something before it resolves.
+
+   INTELLIGENCE is the assembly below: the content builds itself, level by
+   level, behind the vortex as it clears.
+
+   Nothing here ever blocks. The overlay takes no pointer events, the screen
+   underneath is drawn and usable from the first frame, and every element being
+   assembled ends at its natural state — so if an animation is interrupted, the
+   content is simply there.
+*/
 .sweep {
   position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden;
-  animation: sweep-out 0.9s ease-in forwards;
 }
-/* the turn — the identity's colours rotating once, out of the corner */
-.sweep-turn {
+
+/* --- the dark beat: deep ink, in fast and out faster --- */
+.sweep-veil {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 50%, rgba(6, 22, 28, 0.72) 0%, rgba(6, 22, 28, 0.94) 68%, #061620 100%);
+  animation: sw-veil 1.15s cubic-bezier(0.16, 0.9, 0.2, 1) forwards;
+}
+@keyframes sw-veil {
+  0%   { opacity: 0; transform: scale(1.06); }
+  14%  { opacity: 1; transform: scale(1); }
+  /* Starts lifting at ~0.32s and is mostly gone by ~0.7s. The hold used to run
+     to 0.53s, which put the first two levels of the tree behind solid ink — the
+     assembly has to be SEEN, or only the dark half of the idea lands. */
+  28%  { opacity: 1; }
+  56%  { opacity: 0.34; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+/* --- the vortex: the identity, turning hard ---
+       Two dead ends got it here, and both are worth keeping written down. A
+       smooth conic gradient blurred across a whole screen has nothing in it
+       whose movement you can see: rotate it and you get coloured fog, which
+       also swallows the dark beat underneath. Hard-edged blades fixed the
+       structure but not the motion — rays radiate, they do not swirl, and what
+       you read is a lens flare.
+       What makes it turn is the rays BENDING. The same blades are drawn three
+       times, as three rings out from the core, each one rotated a little
+       further round than the one inside it, so every ray trails backwards as it
+       travels out. That is a spiral standing still; rotate the whole thing and
+       it is a vortex. Three cheap layers, no canvas, no library. --- */
+.sweep-vortex {
   position: absolute; left: 50%; top: 50%;
-  width: 190vmax; height: 190vmax; margin: -95vmax 0 0 -95vmax;
-  border-radius: 44%;
-  background: conic-gradient(from 0deg,
-    rgba(11, 125, 104, 0.00) 0deg,
-    rgba(11, 125, 104, 0.42) 48deg,
-    rgba(19, 114, 127, 0.34) 128deg,
-    rgba(28, 111, 184, 0.40) 212deg,
-    rgba(28, 111, 184, 0.00) 320deg);
-  animation: sweep-spin 0.9s cubic-bezier(0.22, 0.9, 0.2, 1) forwards;
+  /* Sized off the viewport, not off a guess. A conic gradient is painted at the
+     element's real pixel size, so a 230vmax box on a phone is a ~190,000px
+     texture: the compositor either drops it or drops the frame. */
+  width: 130vmax; height: 130vmax; margin: -65vmax 0 0 -65vmax;
+  --blades: repeating-conic-gradient(from 0deg,
+    rgba(150, 235, 225, 0)    0deg 15deg,
+    rgba(120, 226, 214, 0.66) 16deg 20deg,
+    rgba(150, 235, 225, 0)    21deg 29deg,
+    rgba(90, 190, 236, 0.54)  30deg 33deg,
+    rgba(150, 235, 225, 0)    34deg 45deg);
+  background: radial-gradient(closest-side,
+    rgba(180, 245, 236, 0.95) 0%, rgba(64, 190, 220, 0.45) 9%, rgba(11, 125, 104, 0) 26%);
+  animation: sw-vortex 1.3s cubic-bezier(0.14, 0.86, 0.18, 1) forwards;
 }
-/* a pale wipe travelling with it, so the screen resolves out of light rather
-   than out of a colour wash */
+.sweep-vortex::before,
+.sweep-vortex::after { content: ''; position: absolute; inset: 0; background: var(--blades); }
+/* the inner ring of rays, straight out of the core */
+.sweep-vortex::before {
+  -webkit-mask-image: radial-gradient(closest-side, #000 6%, rgba(0,0,0,0.95) 24%, transparent 46%);
+  mask-image: radial-gradient(closest-side, #000 6%, rgba(0,0,0,0.95) 24%, transparent 46%);
+  filter: blur(2px);
+}
+/* the outer ring, swept back — the bend that makes it a swirl rather than a burst */
+.sweep-vortex::after {
+  transform: rotate(26deg);
+  -webkit-mask-image: radial-gradient(closest-side, transparent 32%, rgba(0,0,0,0.8) 52%, rgba(0,0,0,0.3) 70%, transparent 84%);
+  mask-image: radial-gradient(closest-side, transparent 32%, rgba(0,0,0,0.8) 52%, rgba(0,0,0,0.3) 70%, transparent 84%);
+  filter: blur(7px);
+}
+@keyframes sw-vortex {
+  /* ~390° in total rather than ~730°: past roughly one blade-pitch per frame
+     the blades alias into a flicker instead of reading as rotation. */
+  0%   { transform: rotate(-40deg) scale(0.24); opacity: 0; }
+  10%  { opacity: 1; }
+  46%  { transform: rotate(150deg) scale(0.86); opacity: 1; }
+  100% { transform: rotate(350deg) scale(2.5); opacity: 0; }
+}
+
+/* --- the ring: one hard edge of light thrown past the frame. The precision
+       against the vortex's mass — mass alone is weather, mass plus a clean
+       edge is a machine. --- */
+.sweep-ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 22vmax; height: 22vmax; margin: -11vmax 0 0 -11vmax;
+  border-radius: 50%;
+  border: 2px solid rgba(150, 235, 225, 0.9);
+  box-shadow: 0 0 42px rgba(64, 190, 220, 0.55), inset 0 0 28px rgba(64, 190, 220, 0.35);
+  animation: sw-ring 1.0s cubic-bezier(0.12, 0.82, 0.14, 1) forwards;
+}
+@keyframes sw-ring {
+  0%   { transform: scale(0.2); opacity: 0; border-width: 6px; }
+  18%  { opacity: 1; }
+  100% { transform: scale(9); opacity: 0; border-width: 0.5px; }
+}
+
+/* --- the wipe: the screen resolving out of light rather than out of ink --- */
 .sweep-wipe {
   position: absolute; inset: 0;
-  background: linear-gradient(108deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(238, 248, 246, 0.72) 38%,
-    rgba(255, 255, 255, 0.00) 72%);
-  animation: sweep-slide 0.9s cubic-bezier(0.3, 0.85, 0.25, 1) forwards;
+  background: linear-gradient(104deg,
+    rgba(255,255,255,0) 0%,
+    rgba(226,244,240,0.92) 34%,
+    rgba(255,255,255,0.98) 48%,
+    rgba(255,255,255,0) 84%);
+  animation: sw-wipe 0.95s 0.55s cubic-bezier(0.3, 0.85, 0.22, 1) forwards;
+  opacity: 0;
 }
-@keyframes sweep-spin {
-  0%   { transform: rotate(-58deg) scale(0.62); opacity: 0; }
+@keyframes sw-wipe {
+  0%   { transform: translate3d(-52%, 0, 0); opacity: 0; }
   22%  { opacity: 1; }
-  100% { transform: rotate(126deg) scale(1.5); opacity: 0; }
+  100% { transform: translate3d(118%, 0, 0); opacity: 0; }
 }
-@keyframes sweep-slide {
-  0%   { transform: translate3d(-14%, 0, 0); opacity: 1; }
-  100% { transform: translate3d(112%, 0, 0); opacity: 0; }
-}
-@keyframes sweep-out { 0%, 74% { opacity: 1; } 100% { opacity: 0; } }
 
-@media (prefers-reduced-motion: reduce) { .sweep { display: none !important; } }
-@media print { .sweep { display: none !important; } }
+/* ==========================================================================
+   THE ASSEMBLY — the content building itself behind the vortex.
+   ==========================================================================
+   Driven by .fl-enter on <html>, so the screens being assembled need to know
+   nothing about it. Every keyframe ENDS at the natural state and none of them
+   uses fill-mode forwards, so an interrupted animation leaves the content
+   visible rather than stranded.
+*/
+@keyframes fl-rise {
+  from { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fl-snap {
+  from { opacity: 0; transform: translate3d(-22px, 0, 0) scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fl-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fl-drop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* --- the lever tree: level by level, left to right, exactly the order you
+       would explain it in --- */
+.fl-enter .lt-box { animation: fl-snap 0.5s cubic-bezier(0.2, 0.9, 0.24, 1) backwards; }
+.fl-enter .lt-root > .lt-node > .lt-box                                  { animation-delay: 0.40s; }
+.fl-enter .lt-kids > .lt-node > .lt-box                                  { animation-delay: 0.58s; }
+.fl-enter .lt-kids .lt-kids > .lt-node > .lt-box                         { animation-delay: 0.76s; }
+.fl-enter .lt-kids .lt-kids .lt-kids > .lt-node > .lt-box                { animation-delay: 0.94s; }
+.fl-enter .lt-kids .lt-kids .lt-kids .lt-kids > .lt-node > .lt-box       { animation-delay: 1.10s; }
+/* and a beat between siblings, so a column lands as a run rather than a block */
+.fl-enter .lt-node:nth-child(2) > .lt-box { animation-delay: calc(var(--d, 0.58s) + 0.05s); }
+.fl-enter .lt-kids > .lt-node:nth-child(2) > .lt-box { animation-delay: 0.63s; }
+.fl-enter .lt-kids > .lt-node:nth-child(3) > .lt-box { animation-delay: 0.68s; }
+.fl-enter .lt-kids > .lt-node:nth-child(4) > .lt-box { animation-delay: 0.73s; }
+.fl-enter .lt-kids > .lt-node:nth-child(n+5) > .lt-box { animation-delay: 0.78s; }
+.fl-enter .lt-kids .lt-kids > .lt-node:nth-child(2) > .lt-box { animation-delay: 0.81s; }
+.fl-enter .lt-kids .lt-kids > .lt-node:nth-child(3) > .lt-box { animation-delay: 0.86s; }
+.fl-enter .lt-kids .lt-kids > .lt-node:nth-child(n+4) > .lt-box { animation-delay: 0.91s; }
+.fl-enter .lt-kids .lt-kids .lt-kids > .lt-node:nth-child(2) > .lt-box { animation-delay: 0.99s; }
+.fl-enter .lt-kids .lt-kids .lt-kids > .lt-node:nth-child(3) > .lt-box { animation-delay: 1.04s; }
+.fl-enter .lt-kids .lt-kids .lt-kids > .lt-node:nth-child(n+4) > .lt-box { animation-delay: 1.09s; }
+
+/* the connectors DRAW, rather than appearing — this is the part that reads as
+   the tree wiring itself together */
+.fl-enter .lt-kids::before,
+.fl-enter .lt-kids > .lt-node::before {
+  transform-origin: left center;
+  animation: fl-draw 0.34s 0.52s cubic-bezier(0.3, 0.9, 0.3, 1) backwards;
+}
+.fl-enter .lt-kids > .lt-node > .lt-arm {
+  transform-origin: top center;
+  animation: fl-drop 0.34s 0.52s cubic-bezier(0.3, 0.9, 0.3, 1) backwards;
+}
+.fl-enter .lt-legend-i { animation: fl-rise 0.45s 0.34s cubic-bezier(0.2, 0.9, 0.24, 1) backwards; }
+
+/* --- the GM report: the sheets and their panels rising in order --- */
+.fl-enter .exec-sheet { animation: fl-rise 0.6s 0.36s cubic-bezier(0.18, 0.9, 0.22, 1) backwards; }
+.fl-enter .exec-stats > * { animation: fl-rise 0.5s cubic-bezier(0.2, 0.9, 0.24, 1) backwards; }
+.fl-enter .exec-stats > *:nth-child(1) { animation-delay: 0.52s; }
+.fl-enter .exec-stats > *:nth-child(2) { animation-delay: 0.58s; }
+.fl-enter .exec-stats > *:nth-child(3) { animation-delay: 0.64s; }
+.fl-enter .exec-stats > *:nth-child(4) { animation-delay: 0.70s; }
+.fl-enter .exec-stats > *:nth-child(5) { animation-delay: 0.76s; }
+.fl-enter .exec-stats > *:nth-child(n+6) { animation-delay: 0.82s; }
+.fl-enter .exec-box { animation: fl-rise 0.55s 0.62s cubic-bezier(0.18, 0.9, 0.22, 1) backwards; }
+.fl-enter .exec-head { animation: fl-rise 0.55s 0.42s cubic-bezier(0.18, 0.9, 0.22, 1) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep { display: none !important; }
+  .fl-enter * { animation: none !important; }
+}
+@media print {
+  .sweep { display: none !important; }
+  .fl-enter * { animation: none !important; }
+}

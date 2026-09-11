@@ -1,24 +1,37 @@
-/* THE SWEEP — the transition into the two screens that get put on a wall.
+/* THE ENTRANCE — the two screens that go up in front of a room.
  *
- * The GM report and the lever tree are the two surfaces that go up in front of
- * a room, and the second before they appear is the second everybody looks up.
- * This fills it: a short swirl of the identity's own green-to-blue, turning
- * once and clearing.
+ * The GM report and the lever tree are the surfaces that get put on a wall, and
+ * the second before they appear is the second everybody looks up. The first
+ * version of this was a pale wipe: polite, and far too timid for the moment.
  *
- * Three rules keep it from becoming the thing everyone waits for:
+ * Two things make an entrance feel like power and intelligence, and they are
+ * different jobs:
  *
- *  - It NEVER blocks. The screen underneath renders immediately and the swirl
- *    plays over the top of it, pointer-events off, gone in three quarters of a
- *    second. Nothing is ever waiting on an animation to finish.
- *  - It fires ONCE per arrival, not on every re-render, and not when you come
- *    back to a screen you were just on — a flourish you see six times in a
- *    minute is an irritation, not a flourish.
- *  - It does not play at all for anybody who has asked for reduced motion, and
- *    it never plays on the printed page.
+ *   POWER is commitment. The screen goes DARK first — deep ink, a vortex of the
+ *   identity's own colours turning hard through it, a bright ring thrown out
+ *   past the edges. It decides something before it resolves. A transition that
+ *   only ever gets lighter reads as a page load; one that commits to a dark
+ *   beat and then opens reads as a system doing something.
+ *
+ *   INTELLIGENCE is assembly. Revealing a finished page is a curtain. Building
+ *   it — the outcome first, then what has to be true, then the conditions, then
+ *   the work, each level snapping in behind the one before it — is the app
+ *   composing the answer in front of the room. That is the half that actually
+ *   lands, and the half the first version was missing entirely.
+ *
+ * The rules that keep it from becoming the thing everyone waits for are
+ * unchanged, and they are not negotiable: the screen underneath is drawn and
+ * usable from the first frame, the overlay never takes a pointer event, it
+ * fires once per arrival with a cooldown, and anybody who has asked for less
+ * motion gets none of it.
  */
 import { useEffect, useState } from 'react';
 
-const COOLDOWN_MS = 90_000;   // seen it just now? then it isn't an entrance
+/** Long enough to feel deliberate, short enough that nobody waits. The dark
+ *  beat lands at ~320ms, the content starts assembling at ~420ms, and the last
+ *  level of the tree is home by ~1.5s. */
+const RUN_MS = 1700;
+const COOLDOWN_MS = 90_000;
 const seenAt = new Map<string, number>();
 
 const wantsMotion = () =>
@@ -34,24 +47,38 @@ export function Sweep({ id }: { id: string }) {
       seenAt.set(id, Date.now());
       setOn(true);
     }
-    /* The timer is scheduled UNCONDITIONALLY, and that is the whole point.
-     *
-     * React runs effects twice in development: mount, clean up, mount again.
-     * The first pass started the swirl and scheduled its end; the cleanup
-     * cancelled that timer; and the second pass hit the cooldown it had just
-     * written and returned early — leaving the swirl on screen with nothing
-     * left to take it off. It sat over the report for ever.
-     *
-     * Scheduling the end whether or not this pass started it means whoever
-     * started it, it still ends. */
-    const t = window.setTimeout(() => setOn(false), 900);
+    /* Scheduled unconditionally — React runs effects twice in development, and
+     * the pass that does NOT start the animation still has to be able to end
+     * it. Getting this wrong once left the overlay on screen for ever. */
+    const t = window.setTimeout(() => setOn(false), RUN_MS);
     return () => window.clearTimeout(t);
   }, [id]);
+
+  /* The staggered build of the content itself is driven from a class on <html>,
+   * not from this component's own tree: the boxes and panels being assembled
+   * belong to other screens entirely, and CSS can stagger them by nesting depth
+   * without any of them knowing this exists.
+   *
+   * It hangs off `on` rather than off the decision above, and that is the whole
+   * point. Setting it inside the decision looked right and was dead: in
+   * development React runs the effect, cleans up, and runs it again — the first
+   * pass added the class and wrote the cooldown, the cleanup took the class
+   * off, and the second pass hit its own cooldown and never put it back. The
+   * overlay played over content that never assembled. Tied to the state that is
+   * actually being rendered, the add and the remove cannot come apart. */
+  useEffect(() => {
+    if (!on) return;
+    const html = document.documentElement;
+    html.classList.add('fl-enter');
+    return () => html.classList.remove('fl-enter');
+  }, [on]);
 
   if (!on) return null;
   return (
     <div className="sweep" aria-hidden>
-      <span className="sweep-turn" />
+      <span className="sweep-veil" />
+      <span className="sweep-vortex" />
+      <span className="sweep-ring" />
       <span className="sweep-wipe" />
     </div>
   );
