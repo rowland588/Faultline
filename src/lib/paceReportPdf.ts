@@ -16,7 +16,7 @@
  * The layout deliberately mirrors the on-screen report: the same sections in the
  * same order, the same palette, the same chart geometry. */
 import type { jsPDF } from 'jspdf';
-import { boardSheets, boardScale, runHeight, BOARD_CARD_H, BOARD_CARD_GAP,
+import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 
 /* ---------- the app's palette, as the report uses it ---------- */
@@ -74,7 +74,7 @@ export interface PaceReportData {
   wins: { title: string; impact: string; story: string; who: string; where: string;
           verdict?: 'proven' | 'better' | 'flat' | 'worse' }[];
   /* PEOPLE · PROCESS · PLANT, straight off the workbook. Its own sheet, because
-     three columns of cards is the shape somebody is being handed — squeezed
+     three columns of actions is the shape somebody is being handed — squeezed
      into a corner it stops being a board and becomes a list. */
   board: { area: string; pillar: 'people' | 'plant' | 'process'; title: string;
            owner: string; due: string; rag: string }[];
@@ -619,13 +619,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   /* ============ PEOPLE · PROCESS · PLANT — its own sheet ============
-   * Three columns of cards, drawn as three columns. A board is the one thing in
+   * One card per area, each with three columns. A board is the one thing in
    * this report whose SHAPE is the message: if it arrives as a list somebody
    * has been handed different information. */
   if (data.board.length > 0) {
     d.addPage('a3', 'landscape');
     const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), '3P Board — People · Plant · Process',
-      'Every card off this week\u2019s workbook — nothing typed, nothing stored');
+      'One card per area \u00b7 every action off this week\u2019s workbook');
 
     const PILL: { key: 'people' | 'plant' | 'process'; label: string; c: string }[] = [
       { key: 'people',  label: 'PEOPLE',  c: BRAND },
@@ -635,14 +635,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     const colGap = 14;
     const colW = (CW - 24 - colGap * 2) / 3;
 
-    /* FIT AND FILL. The board is four or five area cards and it wants to be
+    /* FIT AND FILL. The board is four or five cards and it wants to be
        taken in whole, across a table — so the whole drawing is scaled to the
        sheet it is on, DOWN when there is a lot of work and UP when there is
        not. A board that leaves the bottom third of an A3 blank is as wrong as
        one that runs off the edge; it just fails more quietly.
 
        Each sheet gets its own scale, because a spilled second sheet carrying
-       one area should fill itself rather than print a single card at the top.
+       one card should fill itself rather than print it small at the top.
        Every vertical measurement and every type size below is multiplied by
        it, so the page is the same drawing at a different size. */
     let ay = bpY + 14;
@@ -655,7 +655,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         sheet++;
         ay = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage),
           '3P Board — People · Plant · Process (continued)',
-          'Every card off this week\u2019s workbook — nothing typed, nothing stored') + 14;
+          'One card per area \u00b7 every action off this week\u2019s workbook') + 14;
       }
       const k = boardScale(runHeight(plan));
       for (const blk of plan) {
@@ -675,8 +675,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
          says it is — that is what makes the fit honest rather than hopeful. */
       const headH = 16 * k;
       const colHeadH = 14 * k;
-      const cardH = BOARD_CARD_H * k;
-      const cardGap = BOARD_CARD_GAP * k;
+      const cardH = BOARD_ACT_H * k;
+      const cardGap = BOARD_ACT_GAP * k;
 
       PILL.forEach((p, i) => {
         const x = M + 12 + i * (colW + colGap);
@@ -735,7 +735,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
          fits and one that is merely close. */
       const tallest = Math.max(...blk.counts, 0);
       ay += BOARD_AREA_CHROME * k
-        + (tallest ? tallest * (BOARD_CARD_H + BOARD_CARD_GAP) * k : 14 * k)
+        + (tallest ? tallest * (BOARD_ACT_H + BOARD_ACT_GAP) * k : 14 * k)
         + BOARD_AREA_GAP * k;
       }
     }

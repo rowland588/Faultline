@@ -6,7 +6,7 @@
  * read it without being taught what they are looking at.
  *
  * THE WORKBOOK IS THE TRUTH AND THIS IS THE VIEW. Nothing here is stored and
- * nothing here is editable: the cards are derived from the latest upload every
+ * nothing here is editable: every card and action is derived from the latest upload every
  * time the board is drawn. That is the whole reason the weekly cycle works —
  * next week's file simply appears, a closed action goes green on its own, and
  * nothing anybody did in the app can be quietly overwritten, because there is
@@ -26,7 +26,7 @@ import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { statusOfAction } from '../lib/treeBind';
-import { board, cardTitle } from '../lib/pillars';
+import { board, actionTitle } from '../lib/pillars';
 import { fmtRelative } from '../lib/format';
 import { PACE_BASELINE_AT } from '../lib/projectPaceData';
 
@@ -46,9 +46,9 @@ function Card({ a }: { a: PaceAction }) {
   const st = statusOfAction(a);
   const who = (a.owner || a.who || '').trim();
   return (
-    <article className={'bd-card is-' + st}>
-      <p className="bd-card-t">{cardTitle(a)}</p>
-      <div className="bd-card-f">
+    <article className={'bd-act is-' + st}>
+      <p className="bd-act-t">{actionTitle(a)}</p>
+      <div className="bd-act-f">
         <span className={'bd-chip is-' + st}>{STATUS[st]}</span>
         {who && <span className="bd-who">{who}</span>}
         {a.line && <span className="bd-meta">{a.line}</span>}
@@ -106,7 +106,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           <p className="pace-lede">
             <b>This is the meeting.</b> Walk it area by area — People, Plant, Process — with the
             overdue and the blocked at the top of each column, because those are the ones that need
-            somebody in the room. Every card carries its owner. Nothing here is typed and nothing
+            somebody in the room. Every action carries its owner. Nothing here is typed and nothing
             here is stored: change a status in the tracker and it changes here on the next upload.
           </p>
         </div>
@@ -123,25 +123,28 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         {baseline
           ? <><b>Your tracker as at {fmtDay(PACE_BASELINE_AT)}</b> — the copy that ships with the app, so the board is here the moment you open it. Upload this week’s workbook and it takes over.</>
           : source
-            ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.total} card{full.total === 1 ? '' : 's'} across {full.areas.length} area{full.areas.length === 1 ? '' : 's'}</>
+            ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.areas.length} card{full.areas.length === 1 ? '' : 's'} · {full.total} action{full.total === 1 ? '' : 's'} across them</>
             : <>No tracker uploaded to this project yet.</>}
       </p>
 
       {full.areas.length > 1 && (
         <div className="bd-filters">
-          {/* THE TRAP THIS AVOIDS. The workbook has an area literally called
+          {/* THE TRAP THIS AVOIDS. The workbook has a card literally called
               "All lines", and in a row of filters next to a chip meaning "show
               everything" the two read as the same thing — except one of them
-              shows four cards out of twenty-eight. So the show-everything chip
-              carries the total and is set apart, and every area chip carries
-              its own count, so no two chips can be mistaken for each other. */}
+              shows that card's four actions out of twenty-eight.
+              So the show-everything chip is worded differently, set apart by a
+              divider, and carries NO number: every other chip's number is its
+              own action count, and a badge on this one would be a third
+              quantity in a row where two already mean different things. The
+              totals are said once, in words, in the line above. */}
           <button className={'chip is-all' + (area === '' ? ' on' : '')} onClick={() => setArea('')}>
-            Show all <span className="bs-n">{full.total}</span>
+            Every card
           </button>
           <span className="bd-filter-div" aria-hidden />
           {full.areas.map(a => (
             <button key={a.name} className={'chip' + (area === a.name ? ' on' : '')}
-              title={`Only the ${a.total} action${a.total === 1 ? '' : 's'} the workbook files under “${a.name}”`}
+              title={`Only the ${a.name} card — the ${a.total} action${a.total === 1 ? '' : 's'} the workbook files under it`}
               onClick={() => setArea(a.name)}>
               {a.name} <span className="bs-n">{a.total}</span>
             </button>
@@ -154,8 +157,8 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
       {area && (
         <p className="bd-filtered">
-          Showing <b>{area}</b> only — {shown.total} of {full.total} action{full.total === 1 ? '' : 's'}.{' '}
-          <button className="lt-gap-b" onClick={() => setArea('')}>Show all {full.total}</button>
+          Showing the <b>{area}</b> card only — {shown.total} of {full.total} action{full.total === 1 ? '' : 's'}.{' '}
+          <button className="lt-gap-b" onClick={() => setArea('')}>Show all {full.areas.length} cards</button>
         </p>
       )}
 
@@ -169,7 +172,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
             <>
               <p className="bd-empty-t">Nothing uploaded to this project yet</p>
               <p className="sub">
-                The board is drawn from the weekly tracker — every card on it is a row of your own
+                The board is drawn from the weekly tracker — every action on it is a row of your own
                 workbook. Upload this week’s and it builds itself.
               </p>
             </>
@@ -234,7 +237,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
             <ul className="lt-gap-list">
               {full.unplaced.slice(0, 20).map((a, i) => (
                 <li key={a.uid || a.ref || i}>
-                  <span className="lt-gap-w">{cardTitle(a)}</span>
+                  <span className="lt-gap-w">{actionTitle(a)}</span>
                   <span className="lt-gap-y">
                     {(a.pillar ?? '').trim()
                       ? `3P says “${a.pillar}” — not People, Plant or Process`

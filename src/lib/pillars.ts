@@ -1,5 +1,15 @@
 /* THE 3P BOARD — People / Plant / Process, by area.
  *
+ * WHAT A CARD IS, BECAUSE GETTING THIS WRONG MAKES EVERY COUNT A LIE. A CARD IS
+ * AN AREA. Line 2 is one card. Line 7 is one card. The workbook has five of
+ * them — Line 2, Line 7, Line 10, Cellox, All lines — and that is the number
+ * somebody means when they ask how many cards are on the board.
+ *
+ * The things INSIDE a card are ACTIONS, in three columns. There are 28 of those
+ * on the current tracker, and calling them cards turns "five cards" into
+ * "twenty-eight cards" — which describes a completely different object and is
+ * how a board stops being something a person can hold in their head.
+ *
  * This is modelled on the workbook's own "3P Board" sheet, because that sheet
  * is the thing being presented and the app should hand back the same picture
  * rather than a nearby one. Its shape: one block per AREA (Line 2, Line 7,
@@ -17,8 +27,9 @@
  * app reads the Tracker — which carries the 3P column — and draws the 3P
  * Board's shape from it. Same picture, nothing lost, nothing else broken.
  *
- * Nothing here is stored. The cards are derived from the latest upload every
- * time the board is drawn, so next week's file simply appears.
+ * Nothing here is stored. Every card and every action on it is derived from the
+ * latest upload each time the board is drawn, so next week's file simply
+ * appears.
  */
 import type { PaceAction } from './projectPaceData';
 import { statusOfAction } from './treeBind';
@@ -44,7 +55,7 @@ const MATCH: [PillarKey, RegExp][] = [
 /** Which column a row belongs in, or null when the sheet has not said.
  *  Deliberately forgiving about spelling and strict about meaning: a word the
  *  app does not recognise lands NOWHERE and is reported, because guessing would
- *  put a card in a column nobody chose. */
+ *  put an action in a column nobody chose. */
 export function pillarOf(a: PaceAction): PillarKey | null {
   const v = (a.pillar ?? '').trim();
   if (!v) return null;
@@ -87,7 +98,7 @@ export interface BoardResult {
 const isDone = (a: PaceAction): boolean => /^(done|complete|completed|closed)$/i.test((a.status ?? '').trim());
 
 /* THE ORDER A MEETING NEEDS. The board is what the meeting is now run off, so
- * the card at the top of a column has to be the one worth a question: overdue
+ * the action at the top of a column has to be the one worth a question: overdue
  * first, then blocked — the two that need somebody in the room — then whatever
  * the workbook's own Priority says, and done last because it is the answer
  * rather than the question. It used to be Priority alone, which buried an
@@ -132,24 +143,23 @@ export function board(actions: PaceAction[]): BoardResult {
   };
 }
 
-/** What a card says. The date stays in the workbook, which is where it gets
+/** What an action says on the board. The date stays in the workbook, which is where it gets
  *  changed and therefore where it stays right. */
-export const cardTitle = (a: PaceAction): string =>
+export const actionTitle = (a: PaceAction): string =>
   (a.action || a.problem || '').trim() || `Action ${a.ref}`;
 
 
 /* ---------- how the board FITS ----------
  * ONE rule, shared by the on-screen report and the PDF, because two rules is
  * how a four-page PDF ends up stamped "page 2 of 3". It is pure arithmetic on
- * the card COUNTS rather than on measured text, which is what lets both media
+ * the action COUNTS rather than on measured text, which is what lets both media
  * reach the same answer without one of them running a typesetter.
  *
- * The aim is ONE SHEET. An area is a card and there are only ever a handful of
- * them, so a board that spills onto a second page has failed at the one thing a
- * board is for: being taken in whole, at a glance, across a table. Two things
- * buy the room:
+ * The aim is ONE SHEET. There are only ever a handful of cards, so a board that
+ * spills onto a second page has failed at the one thing a board is for: being
+ * taken in whole, at a glance, across a table. Two things buy the room:
  *
- *   1. A printed card is ONE line of action text, not two. The workbook's
+ *   1. A printed action is ONE line of text, not two. The workbook's
  *      Action cells run to paragraphs — several dated updates in one cell — and
  *      a wall board wants the gist with the detail a tap away in the app.
  *   2. The whole drawing is then scaled to the page, DOWN to fit and UP to
@@ -159,14 +169,14 @@ export const cardTitle = (a: PaceAction): string =>
  * Only when even the floor scale cannot hold it does it spill, and then it
  * spills whole areas rather than cutting one in half.
  */
-export const BOARD_CARD_H = 24;      // one line of action, plus its status row
-export const BOARD_CARD_GAP = 5;
+export const BOARD_ACT_H = 24;      // one line of action, plus its status row
+export const BOARD_ACT_GAP = 5;
 export const BOARD_AREA_CHROME = 30; // the area heading plus the column headings
 export const BOARD_AREA_GAP = 14;
 
 /** How far the drawing may be squeezed before the type stops being readable
- *  across a table, and how far it may be stretched before the cards stop
- *  looking like cards. */
+ *  across a table, and how far it may be stretched before the board stops
+ *  looking like a board. */
 export const BOARD_MIN_SCALE = 0.74;
 export const BOARD_MAX_SCALE = 1.5;
 
@@ -178,7 +188,7 @@ export const BOARD_MAX_SCALE = 1.5;
  * same available height, and the screen converts once, here. */
 export const BOARD_SHEET_H = 841.89;              // A3 landscape, points
 export const BOARD_SHEET_PX_H = 1131;             // the same sheet, on screen
-/** What is left for cards after the page margins, the panel head and the foot. */
+/** What is left for the cards after the page margins, the panel head and the foot. */
 export const BOARD_AVAIL = BOARD_SHEET_H - 2 * 26 - 14 - 60;
 /** One point, in report-screen pixels. */
 export const BOARD_PX = BOARD_SHEET_PX_H / BOARD_SHEET_H;
@@ -186,7 +196,7 @@ export const BOARD_PX = BOARD_SHEET_PX_H / BOARD_SHEET_H;
 /** How tall one area's block is at scale 1. */
 export function areaBlockHeight(counts: number[]): number {
   const tallest = Math.max(...counts, 0);
-  return BOARD_AREA_CHROME + (tallest ? tallest * (BOARD_CARD_H + BOARD_CARD_GAP) : 14);
+  return BOARD_AREA_CHROME + (tallest ? tallest * (BOARD_ACT_H + BOARD_ACT_GAP) : 14);
 }
 
 /** The unscaled height of a run of areas. */

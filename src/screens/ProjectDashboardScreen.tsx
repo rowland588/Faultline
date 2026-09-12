@@ -23,7 +23,7 @@ import { PpmEditor } from './PpmEditor';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
-import { board as buildBoard, cardTitle } from '../lib/pillars';
+import { board as buildBoard, actionTitle } from '../lib/pillars';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
@@ -44,13 +44,14 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
  * in the corner, and the result was a surface that existed in the code and not
  * in anybody's week — you had to already know it was there to go and look at
  * it. The board is the heart of this project now, so it is ON the overview,
- * showing real cards, in the shape it has everywhere else: one block per area,
- * three columns inside it.
+ * showing the real thing, in the shape it has everywhere else: one CARD per
+ * area — Line 2, Line 7, Line 10, Cellox, All lines — with its actions in three
+ * columns inside it.
  *
  * Compact, not partial. Each column shows its first few and says how many more
  * there are, and the whole thing opens full size in one tap. What it never does
  * is imply it is showing everything when it is not. */
-const BOARD_PEEK = 3;
+const AREA_PEEK = 3;
 
 function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAction[] }) {
   const b = buildBoard(actions);
@@ -62,8 +63,8 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
         <h2 className="pace-sec-title">3P Board</h2>
         <p className="pace-sec-sub">
           {b.total > 0
-            ? <>The meeting agenda · {b.areas.length} area{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} · {b.done} done — overdue and blocked first in every column</>
-            : <>The meeting agenda — People, Plant and Process, every card off the weekly workbook</>}
+            ? <>The meeting agenda · {b.areas.length} card{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} inside them, {b.done} done — overdue and blocked first in every column</>
+            : <>The meeting agenda — one card per area, People, Plant and Process inside each</>}
         </p>
       </div>
 
@@ -104,19 +105,19 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
                     {c.rows.length === 0
                       ? <p className="pb-none">—</p>
                       : <>
-                          {c.rows.slice(0, BOARD_PEEK).map((x, i) => (
-                            <button key={x.uid || x.ref || i} className={'pb-card is-' + statusOfAction(x)} onClick={open}>
+                          {c.rows.slice(0, AREA_PEEK).map((x, i) => (
+                            <button key={x.uid || x.ref || i} className={'pb-act is-' + statusOfAction(x)} onClick={open}>
                               {/* the text is clamped on a span of its own: a line
                                   clamp applied to the button itself is unreliable,
-                                  and a card cut through the middle of a word reads
+                                  and an action cut through the middle of a word reads
                                   as a rendering fault rather than as "there is more
                                   of this on the board". */}
-                              <span className="pb-card-t">{cardTitle(x)}</span>
+                              <span className="pb-act-t">{actionTitle(x)}</span>
                             </button>
                           ))}
-                          {c.rows.length > BOARD_PEEK && (
+                          {c.rows.length > AREA_PEEK && (
                             <button className="pb-more" onClick={open}>
-                              +{c.rows.length - BOARD_PEEK} more
+                              +{c.rows.length - AREA_PEEK} more
                             </button>
                           )}
                         </>}
@@ -277,7 +278,7 @@ function LineCard({ line, pack, projectId }: { line: PaceLineRow; pack: LinePack
  * the side, one name on the floor at a time. It was a good screen and it was
  * the wrong one twice over: it asked "whose is it" when the meeting's question
  * is "what is the state of the work", and it meant the project had two things
- * both calling themselves the meeting. Every card on the board carries its
+ * both calling themselves the meeting. Every action on the board carries its
  * owner, so nothing about a go-round is lost by walking the areas instead.
  *
  * The lens row is now the running order, not a drawer: where we are, the board

@@ -3925,17 +3925,17 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .bd-col-b { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 12px; }
 .bd-none { margin: 2px 4px 4px; font-size: 13px; }
 
-.bd-card {
+.bd-act {
   background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-n);
   border-radius: 12px; padding: 10px 12px;
 }
-.bd-card.is-w { border-left-color: var(--st-w); }
-.bd-card.is-a { border-left-color: var(--st-a); }
-.bd-card.is-r { border-left-color: var(--st-r); }
-.bd-card.is-g { border-left-color: var(--st-g); }
-.bd-card.is-g .bd-card-t { color: var(--muted); }
-.bd-card-t { margin: 0 0 7px; font-size: 13.5px; line-height: 1.45; font-weight: 600; color: var(--ink); }
-.bd-card-f { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; }
+.bd-act.is-w { border-left-color: var(--st-w); }
+.bd-act.is-a { border-left-color: var(--st-a); }
+.bd-act.is-r { border-left-color: var(--st-r); }
+.bd-act.is-g { border-left-color: var(--st-g); }
+.bd-act.is-g .bd-act-t { color: var(--muted); }
+.bd-act-t { margin: 0 0 7px; font-size: 13.5px; line-height: 1.45; font-weight: 600; color: var(--ink); }
+.bd-act-f { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; }
 .bd-chip {
   padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 800;
   letter-spacing: 0.03em; text-transform: uppercase; color: #fff; background: var(--st-n);
@@ -3963,7 +3963,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media print {
   .bd-cols { grid-template-columns: repeat(3, 1fr) !important; }
   .bd-screen .pace-head-actions, .bd-filters { display: none !important; }
-  .bd-card { break-inside: avoid; }
+  .bd-act { break-inside: avoid; }
 }
 
 /* the board, on the report sheet. Three columns whatever the width — this is a
@@ -4008,7 +4008,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    The action text is one line — the workbook's Action cells run to paragraphs
    and the detail is a tap away in the app — and that is precisely what buys the
    room to get every area onto one sheet. */
-.exec-bcard {
+.exec-bact {
   display: block; box-sizing: border-box; overflow: hidden;
   height: var(--ba-card); margin-bottom: var(--ba-gap);
   padding: calc(var(--ba-card) * 0.09) var(--ba-pad);
@@ -4017,15 +4017,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border-left: 2px solid var(--st-n);
   break-inside: avoid;
 }
-.exec-bcard.is-w { border-left-color: var(--st-w); }
-.exec-bcard.is-a { border-left-color: var(--st-a); }
-.exec-bcard.is-r { border-left-color: var(--st-r); }
-.exec-bcard.is-g { border-left-color: var(--st-g); }
-.exec-bcard-t {
+.exec-bact.is-w { border-left-color: var(--st-w); }
+.exec-bact.is-a { border-left-color: var(--st-a); }
+.exec-bact.is-r { border-left-color: var(--st-r); }
+.exec-bact.is-g { border-left-color: var(--st-g); }
+.exec-bact-t {
   display: block; font-size: var(--ba-f-card); line-height: 1.25; font-weight: 700;
   color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.exec-bcard-f {
+.exec-bact-f {
   display: block; margin-top: calc(var(--ba-card) * 0.05);
   font-size: var(--ba-f-meta); line-height: 1.2; color: var(--ink-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4107,21 +4107,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pb-col.is-plant   .pb-col-t { color: var(--st-a); }
 .pb-col.is-process .pb-col-t { color: var(--blue); }
 .pb-col-n { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-.pb-card {
+.pb-act {
   display: block; width: 100%; margin-bottom: 6px; padding: 8px 10px;
   font: inherit; font-size: 12.5px; line-height: 1.35; font-weight: 600; text-align: left; color: var(--ink);
   background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-n);
   border-radius: 8px; cursor: pointer;
 }
-.pb-card-t {
+.pb-act-t {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; height: calc(2 * 1.35em);
 }
-.pb-card:hover { border-color: var(--brand); }
-.pb-card.is-w { border-left-color: var(--st-w); }
-.pb-card.is-a { border-left-color: var(--st-a); }
-.pb-card.is-r { border-left-color: var(--st-r); }
-.pb-card.is-g { border-left-color: var(--st-g); }
+.pb-act:hover { border-color: var(--brand); }
+.pb-act.is-w { border-left-color: var(--st-w); }
+.pb-act.is-a { border-left-color: var(--st-a); }
+.pb-act.is-r { border-left-color: var(--st-r); }
+.pb-act.is-g { border-left-color: var(--st-g); }
 .pb-more {
   display: block; padding: 2px 0; font: inherit; font-size: 12px; font-weight: 700;
   color: var(--accent); background: none; border: 0; cursor: pointer;
@@ -4133,7 +4133,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media (max-width: 700px) {
   /* Three columns is the shape, so it stays three columns — the cards get
      narrower, the board does not become a list. */
-  .pb-card { font-size: 11.5px; padding: 6px 8px; }
+  .pb-act { font-size: 11.5px; padding: 6px 8px; }
   .pb-col-t { font-size: 10.5px; letter-spacing: 0.03em; }
   .pb-cols { gap: 7px; }
 }

@@ -32,8 +32,8 @@ import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
-import { board as buildBoard, cardTitle, boardSheets, boardScale, runHeight,
-  BOARD_CARD_H, BOARD_CARD_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
+import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
+  BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -117,7 +117,7 @@ function TreePage({ rows, title, scale, sheetH, of }: {
 
 /* PEOPLE · PROCESS · PLANT gets its own sheet, for the same reason the tree did:
  * the SHAPE is the message. Three columns handed across a table say "these are
- * the three kinds of problem and here is where each stands"; the same cards as
+ * the three kinds of problem and here is where each stands"; the same actions as
  * a list say something much weaker. */
 function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet, fill }: {
   rows: PaceReportData['board']; unplaced: number; title: string;
@@ -147,8 +147,8 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
   const geom = {
     '--ba-head': px(16),
     '--ba-colhead': px(14),
-    '--ba-card': px(BOARD_CARD_H),
-    '--ba-gap': px(BOARD_CARD_GAP),
+    '--ba-card': px(BOARD_ACT_H),
+    '--ba-gap': px(BOARD_ACT_GAP),
     '--ba-areagap': px(BOARD_AREA_GAP),
     '--ba-pad': px(8),
     '--ba-f-area': px(10),
@@ -163,7 +163,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
         <div className="exec-body-1">
           <section className="exec-box">
             <SectionHead n={String(n)} title={'3P Board — People · Plant · Process' + (sheet > 1 ? ' (continued)' : '')}
-              sowhat="Every card off this week’s workbook — nothing typed, nothing stored" />
+              sowhat="One card per area · every action off this week’s workbook" />
             <div className="exec-areas" style={geom}>
             {areas.map(area => {
               const mine = rows.filter(r => r.area === area);
@@ -185,9 +185,9 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
                           {cr.length === 0
                             ? <p className="exec-empty">—</p>
                             : cr.map((r, i) => (
-                              <article key={i} className={'exec-bcard is-' + r.rag}>
-                                <span className="exec-bcard-t">{r.title}</span>
-                                <span className="exec-bcard-f">
+                              <article key={i} className={'exec-bact is-' + r.rag}>
+                                <span className="exec-bact-t">{r.title}</span>
+                                <span className="exec-bact-f">
                                   <b className={'exec-bst is-' + r.rag}>{LABEL[r.rag]}</b>
                                   {[r.owner, r.due && 'due ' + r.due].filter(Boolean).join(' · ')}
                                 </span>
@@ -372,7 +372,7 @@ export function PaceExecReport() {
   const boardData = buildBoard(actions);
   const boardRows: PaceReportData['board'] = boardData.areas.flatMap(ar =>
     ar.columns.flatMap(c => c.rows.map(a => ({
-      area: ar.name, pillar: c.key, title: cardTitle(a),
+      area: ar.name, pillar: c.key, title: actionTitle(a),
       owner: (a.owner || a.who || '').trim(), due: a.due ?? '',
       rag: statusOfAction(a),
     }))));
