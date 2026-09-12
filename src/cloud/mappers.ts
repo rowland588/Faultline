@@ -322,7 +322,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         // null, not undefined: the root has no parent, and an absent key would
         // leave whatever the row said before standing on the server
         parent_id: n.parentId ?? null,
-        text: n.text, rag: n.rag, sort: n.sort,
+        text: n.text, rag: n.rag, sort: n.sort, bind: n.bind ?? null,
         created_at: n.createdAt, updated_at: n.updatedAt, deleted_at: null,
       };
     },
@@ -330,7 +330,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       id: r.id as string, projectId: r.project_id as string,
       parentId: (r.parent_id as string) ?? undefined,
       text: (r.text as string) ?? '', rag: ((r.rag as string) ?? 'n') as TreeNodeRow['rag'],
-      sort: Number(r.sort) || 0,
+      sort: Number(r.sort) || 0, bind: (r.bind as TreeNodeRow['bind']) ?? undefined,
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },

@@ -31,6 +31,7 @@ import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
+import { withTrackerRows } from '../lib/treeBind';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -253,6 +254,12 @@ export function PaceExecReport() {
   // A line's deck shows that line's slice of the tracker; the project's shows
   // the lot.
   const actions = actionsForLine(pace.actions, line?.key);
+
+  /* The plan on the wall and the plan on the paper have to be the same plan.
+   * A condition bound to the tracker grows its actions at draw time, so the
+   * report runs the identical derivation the editor does rather than printing
+   * only the boxes that happen to be stored. */
+  const fullTree = withTrackerRows(treeRows ?? [], pace.actions);
   // Which lines this report covers — one, or all of them.
   const reportLines = line ? [line] : ppm.lines;
 
@@ -361,7 +368,7 @@ export function PaceExecReport() {
     // The lever tree, flat. Only on the PROJECT's report: a line's own deck is
     // that line's page, and the whole project's plan on it would be somebody
     // else's work printed under their name.
-    tree: line ? [] : (treeRows ?? []).map(n => ({
+    tree: line ? [] : fullTree.map(n => ({
       id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
     })),
     // A line's deck is titled for the LINE and led by its owner — it is that
@@ -513,7 +520,7 @@ export function PaceExecReport() {
       </div>
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
-      {!line && <TreePage rows={treeRows} title={title} scale={scale} sheetH={SHEET_H} />}
+      {!line && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} />}
 
       {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>

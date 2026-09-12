@@ -32,6 +32,10 @@ import { useSticky } from '../lib/useSticky';
 import { parsePastedRows } from '../lib/pastedRows';
 import { TrackerPicker, actionText } from './TrackerPicker';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { usePaceLines } from '../lib/usePaceLines';
+import { withTrackerRows, isBoundNode, bindCount, type TrackerBind } from '../lib/treeBind';
+import { BindSheet } from './BindSheet';
+import { SuggestSheet } from './SuggestSheet';
 
 /* How far in and out the tree will go. Below about a third the words stop being
  * words; above 1.6 there is no reason to be on this screen rather than reading
@@ -89,9 +93,13 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 
 function Box({
   t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove,
-  folded, onFold, drag, moving, onPickUp, onPutHere,
+  folded, onFold, drag, moving, onPickUp, onPutHere, onBind, boundCount,
 }: {
   t: Tree;
+  /** Open the tracker link for this box. Absent on a box that cannot carry one. */
+  onBind?: () => void;
+  /** What this box's binding is holding, when it has one. */
+  boundCount?: { total: number; done: number };
   /** id of the box being moved by tapping, anywhere in the tree */
   moving: string | null;
   onPickUp: () => void;
@@ -116,6 +124,10 @@ function Box({
   const { node } = t;
   const ta = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(node.text);
+  /* A row the tracker put here is not this app's to edit. Changing its words or
+   * its colour on the tree would be a lie the next upload silently undoes — the
+   * tracker is where it gets changed, and it says so rather than pretending. */
+  const fromTracker = isBoundNode(node.id);
 
   // Follow the stored value when it changes underneath us (another device,
   // an undo) — but never while this box is the one being typed into.
@@ -149,9 +161,10 @@ function Box({
   return (
     <div
       className={'lt-box is-' + node.rag + (act ? ' is-act' : '')
+        + (fromTracker ? ' is-bound' : '') + (node.bind ? ' is-linked' : '')
         + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')
         + (isMoving ? ' is-lifted' : '')}
-      draggable
+      draggable={!fromTracker}
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
       onDragOver={e => {
         // two kinds of drag land here: a box being moved inside the tree, and a
@@ -170,17 +183,26 @@ function Box({
         drag.drop(node.id);
       }}
     >
-      <textarea
-        ref={ta} className="lt-text" rows={1} value={text}
-        placeholder={levelName(t.depth)}
-        aria-label={levelName(t.depth)}
-        onChange={e => { setText(e.target.value); fit(); }}
-        onBlur={commit}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); }
-          if (e.key === 'Escape') { setText(node.text); (e.target as HTMLTextAreaElement).blur(); }
-        }}
-      />
+      {fromTracker ? (
+        /* Not a textarea. The tracker's own wording runs to whole paragraphs —
+         * one changeover action in the real workbook is five lines — and a
+         * column of five-line boxes is a tower, not a tree. Clamped to three
+         * lines with the whole thing on hover, and rendered as text because
+         * nothing about it is editable here anyway. */
+        <p className="lt-text lt-text-ro" title={node.text}>{node.text}</p>
+      ) : (
+        <textarea
+          ref={ta} className="lt-text" rows={1} value={text}
+          placeholder={levelName(t.depth)}
+          aria-label={levelName(t.depth)}
+          onChange={e => { setText(e.target.value); fit(); }}
+          onBlur={commit}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); }
+            if (e.key === 'Escape') { setText(node.text); (e.target as HTMLTextAreaElement).blur(); }
+          }}
+        />
+      )}
 
       {/* Fold this branch away. On a condition that is "hide the actions"; on a
           line it is "hide that whole line's thinking" — same control, and the
@@ -193,7 +215,12 @@ function Box({
           aria-label={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
         >
           <span className="lt-fold-c" aria-hidden>{folded ? '▸' : '▾'}</span>
-          {folded && <span className="lt-fold-n">{n}</span>}
+          {/* Folded away, a bare count says how much is hidden but not how it
+              is going. "8, 3 done" is the difference between a branch you can
+              leave folded and one you need to open. */}
+          {folded && <span className="lt-fold-n">
+            {boundCount ? `${boundCount.total}, ${boundCount.done} done` : n}
+          </span>}
         </button>
       )}
 
@@ -206,21 +233,43 @@ function Box({
         </button>
       )}
 
+      {fromTracker ? (
+        <div className="lt-tools is-ro">
+          <span className={'lt-status is-' + node.rag + ' is-ro'} title="From the tracker’s Status column">
+            <span className="lt-status-dot" aria-hidden />
+            <span className="lt-status-l">{statusLabel(node.rag)}</span>
+          </span>
+          <span className="lt-from">from the tracker</span>
+        </div>
+      ) : (
       <div className="lt-tools">
         {/* The status says its name. A coloured square on its own tells you a
             box is orange and not what orange means — and says nothing at all on
             paper, or to anybody who cannot separate red from green. */}
-        <label className={'lt-status is-' + node.rag}>
-          <span className="lt-status-dot" aria-hidden />
-          <span className="lt-status-l">{statusLabel(node.rag)}</span>
-          <select
-            className="lt-status-sel" value={node.rag} aria-label="Status"
-            onChange={e => onChange({ rag: e.target.value as NodeStatus })}
-          >
-            {STATUSES.map(o => <option key={o.k} value={o.k}>{o.label}</option>)}
-          </select>
-        </label>
+        {fromTracker ? (
+          /* The colour came off the tracker's own Status column, so it is shown
+             and not offered. Setting it here would be overwritten by the next
+             upload without a word, which is worse than not offering it. */
+          <span className={'lt-status is-' + node.rag + ' is-ro'} title="From the tracker’s Status column">
+            <span className="lt-status-dot" aria-hidden />
+            <span className="lt-status-l">{statusLabel(node.rag)}</span>
+          </span>
+        ) : (
+          <label className={'lt-status is-' + node.rag}>
+            <span className="lt-status-dot" aria-hidden />
+            <span className="lt-status-l">{statusLabel(node.rag)}</span>
+            <select
+              className="lt-status-sel" value={node.rag} aria-label="Status"
+              onChange={e => onChange({ rag: e.target.value as NodeStatus })}
+            >
+              {STATUSES.map(o => <option key={o.k} value={o.k}>{o.label}</option>)}
+            </select>
+          </label>
+        )}
         <div className="lt-acts">
+          {/* Nothing to press on a row the tracker owns — it is moved, renamed
+              and closed in the workbook, and every control here would be a
+              button that appears to work and does not. */}
           {/* Tapping this picks the box up; tapping another box drops it there.
               Drag-and-drop does not exist on touch at all, so on a phone this
               is the ONLY way to move a box — and it works the same on a
@@ -242,9 +291,22 @@ function Box({
               ACTIONS to be picked from rather than sending anybody back to
               Excel to copy a column. Typing is behind a link inside it. */}
           <button type="button" className="lt-mini" title="Add work from the tracker" aria-label="Add work from the tracker" onClick={onPaste}>☰</button>
+          {/* Link this box to the tracker once, and its work arrives every week
+              by itself. The chain is only offered where it means something: a
+              box that holds work, not the outcome and not a row the tracker
+              already put here. */}
+          {onBind && (
+            <button
+              type="button" className={'lt-mini lt-link' + (node.bind ? ' is-on' : '')}
+              title={node.bind ? 'Change what the tracker fills this with' : 'Fill this from the tracker every week'}
+              aria-label={node.bind ? 'Change what the tracker fills this with' : 'Fill this from the tracker every week'}
+              onClick={onBind}
+            >⛓</button>
+          )}
           <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}>×</button>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -261,6 +323,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
+  /** Which box's tracker link is being set up, if any. */
+  const [binding, setBinding] = useState<TreeNodeRow | null>(null);
+  /** Which "what needs to be true" box is having its conditions built. */
+  const [suggesting, setSuggesting] = useState<TreeNodeRow | null>(null);
   const syncedAt = useSyncedAt();
 
   /* THE TREE IS ALWAYS LANDSCAPE, phone included. An earlier build folded it
@@ -306,6 +372,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
   // This week's tracker, already uploaded and parsed — the work that gets hung
   // on the tree comes from here, not from the clipboard.
   const pace = usePaceSnapshots(projectId);
+  // The project's lines, so the bind sheet can offer them by name rather than
+  // asking anybody to remember that the workbook writes "Line 2" and the app
+  // keys it "2A".
+  const ppm = usePaceLines(projectId);
   // pace.actions, not snapshots[0] — it is the hook's own "current picture",
   // which falls back to the workbook the app shipped with rather than showing
   // an empty list on a device that has not uploaded yet.
@@ -316,7 +386,13 @@ export function LeverTree({ projectId }: { projectId: string }) {
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load, syncedAt]);
 
   const nodes = rows ?? [];
-  const tree = build(nodes);
+  /* What is STORED and what is DRAWN are two different lists. A condition that
+   * is bound to the tracker grows its actions at render time from this week's
+   * upload — they are never written down, so they cannot go stale, cannot be
+   * deleted by hand, and cannot need merging every Monday. Everything that
+   * EDITS the tree keeps working on `nodes`; only the drawing uses `drawn`. */
+  const drawn = withTrackerRows(nodes, pace.actions);
+  const tree = build(drawn);
   const siblingsOf = (parentId?: string) =>
     nodes.filter(n => (n.parentId ?? '') === (parentId ?? '')).sort((a, b) => a.sort - b.sort);
 
@@ -328,6 +404,19 @@ export function LeverTree({ projectId }: { projectId: string }) {
       sort: sibs.length ? sibs[sibs.length - 1].sort + 1 : 0,
       createdAt: t, updatedAt: t,
     });
+    await load();
+  };
+
+  /** Build a row of linked conditions under one box, in one write. */
+  const buildConditions = async (parent: TreeNodeRow, picked: { text: string; bind: TrackerBind }[]) => {
+    const sibs = siblingsOf(parent.id);
+    let sort = sibs.length ? sibs[sibs.length - 1].sort + 1 : 0;
+    const t = now();
+    await putTreeNodes(picked.map(c => ({
+      id: uid(), projectId, parentId: parent.id,
+      text: c.text, rag: 'n' as NodeStatus, bind: c.bind,
+      sort: sort++, createdAt: t, updatedAt: t,
+    })));
     await load();
   };
 
@@ -426,7 +515,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
 
   /** Everything already on the tree, lower-cased, so the picker can say which
    *  rows are hung on it somewhere already. */
-  const alreadyOn = new Set(nodes.map(n => n.text.trim().toLowerCase()).filter(Boolean));
+  const alreadyOn = new Set(drawn.map(n => n.text.trim().toLowerCase()).filter(Boolean));
 
   const dragApi = { id: dragId, start: setDragId, over: overId, setOver: setOverId, drop };
 
@@ -455,8 +544,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
   /** Every box that has actions hanging off it — the one fold that gets used
    *  most, because it is the difference between the shape of the project and
    *  the detail of this week's work. */
-  const actionParents = nodes
-    .filter(n => nodes.some(k => k.parentId === n.id && depthOf(k, nodes) >= 3))
+  const actionParents = drawn
+    .filter(n => drawn.some(k => k.parentId === n.id && depthOf(k, drawn) >= 3))
     .map(n => n.id);
   const actionsFolded = actionParents.length > 0 && actionParents.every(id => folded.has(id));
   const foldActions = () =>
@@ -484,10 +573,25 @@ export function LeverTree({ projectId }: { projectId: string }) {
         onAddRight={() => void addNode(t.node.id)}
         onDelete={() => void remove(t.node)}
         onPaste={() => { setPasteInto(t.node); setPasteText(''); setAddMode('pick'); }}
+        /* The chain is offered on a box that HOLDS work, never on the outcome
+           (nothing hangs off the tracker at that level) and never on a row the
+           tracker itself put there. */
+        onBind={isBoundNode(t.node.id) || t.depth === 0 ? undefined : () => setBinding(t.node)}
+        boundCount={t.node.bind ? bindCount(t.node.bind, trackerActions) : undefined}
         onDropText={text => { setPasteInto(t.node); setPasteText(text); setAddMode('type'); }}
         onMove={d => void move(t.node, d)}
         drag={dragApi}
       />
+      {/* A "what needs to be true" with nothing under it yet is the one moment
+          worth offering to do the tedious half — reading which kinds of work
+          the tracker has on that line and proposing a condition for each,
+          already linked. It disappears the instant the branch has something in
+          it, so it never becomes clutter. */}
+      {t.depth === 1 && t.kids.length === 0 && !isBoundNode(t.node.id) && trackerActions.length > 0 && (
+        <button className="lt-suggest" onClick={() => setSuggesting(t.node)}>
+          Build the conditions from the tracker →
+        </button>
+      )}
       {t.kids.length > 0 && !folded.has(t.node.id) && <ul className="lt-kids">{t.kids.map(render)}</ul>}
     </li>
   );
@@ -501,9 +605,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
     );
   }
 
-  const depth = Math.max(1, ...nodes.map(n => {
+  const depth = Math.max(1, ...drawn.map(n => {
     let d = 0;
-    for (let p = n; p?.parentId; p = nodes.find(x => x.id === p!.parentId)!) { d++; if (d > 12) break; }
+    for (let p = n; p?.parentId; p = drawn.find(x => x.id === p!.parentId)!) { d++; if (d > 12) break; }
     return d + 1;
   }));
 
@@ -592,6 +696,28 @@ export function LeverTree({ projectId }: { projectId: string }) {
             </span>
           </div>
         </>
+      )}
+
+      {suggesting && (
+        <SuggestSheet
+          title={suggesting.text}
+          lines={ppm.lines}
+          actions={trackerActions}
+          onClose={() => setSuggesting(null)}
+          onBuild={picked => { void buildConditions(suggesting, picked); setSuggesting(null); }}
+        />
+      )}
+
+      {binding && (
+        <BindSheet
+          title={binding.text}
+          lines={ppm.lines}
+          actions={trackerActions}
+          initial={binding.bind}
+          onClose={() => setBinding(null)}
+          onClear={() => { void change(binding, { bind: undefined }); setBinding(null); }}
+          onSave={b => { void change(binding, { bind: b }); setBinding(null); }}
+        />
       )}
 
       {pasteInto && addMode === 'pick' && (

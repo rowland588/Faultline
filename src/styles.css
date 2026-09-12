@@ -3751,3 +3751,82 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .why-door-t { display: block; font-size: 15px; font-weight: 800; color: var(--ink); }
 .why-door.is-behind .why-door-t { color: color-mix(in srgb, var(--warn) 82%, var(--ink)); }
 .why-door-s { display: block; margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--ink-2); max-width: 62ch; }
+
+
+/* ==========================================================================
+   BOXES THE TRACKER FILLS
+   ==========================================================================
+   A condition can be linked to the weekly upload, and the work beneath it then
+   arrives on its own. Two states to show, and they must not look the same:
+   the CONDITION that carries the link, and the ROWS the link brought in. */
+
+/* the condition holding the link — a quiet mark, not a badge. The box is still
+   the author's sentence and should read as one. */
+.lt-box.is-linked { border-left-width: 3px; border-left-color: var(--blue); }
+.lt-link.is-on { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 40%, var(--line)); background: color-mix(in srgb, var(--blue) 9%, transparent); }
+
+/* a row the tracker put here. Flatter than a box somebody wrote, because it is
+   not theirs to edit — and it says where it came from rather than leaving
+   somebody to discover that typing in it does nothing. */
+.lt-box.is-bound { background: var(--surface-2); border-style: dashed; }
+.lt-text-ro {
+  margin: 0; cursor: default;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lt-tools.is-ro { display: flex; align-items: center; gap: 8px; }
+.lt-status.is-ro { cursor: default; }
+.lt-from {
+  margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--muted); white-space: nowrap;
+}
+
+/* ---- the linking sheet ---- */
+.bs {
+  width: min(620px, 100%); max-height: 88vh; overflow: auto;
+  background: var(--surface); border-radius: 18px; padding: 18px 18px 16px;
+  box-shadow: var(--shadow-lg, 0 18px 50px rgba(12, 31, 38, 0.22));
+}
+.bs-lede { margin: 2px 0 4px; }
+.bs-hint { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.bs-n { opacity: 0.6; font-variant-numeric: tabular-nums; }
+.bs-catch {
+  margin-top: 16px; padding: 12px 14px; border-radius: 14px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.bs-catch-h { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+.bs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.bs-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.bs-row-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--st-n); transform: translateY(-1px); }
+.bs-row.is-w .bs-dot { background: var(--st-w); }
+.bs-row.is-a .bs-dot { background: var(--st-a); }
+.bs-row.is-r .bs-dot { background: var(--st-r); }
+.bs-row.is-g .bs-dot { background: var(--st-g); }
+.bs-more { margin: 2px 0 0; font-size: 12.5px; }
+
+/* the one-time invitation under an empty "what needs to be true" */
+.lt-suggest {
+  margin: 8px 0 0 14px; padding: 8px 13px; min-height: 34px;
+  border: 1px dashed var(--line-2); background: var(--surface); border-radius: 999px;
+  color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.lt-suggest:hover { background: var(--surface-2); border-style: solid; }
+
+.sg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sg-row {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px 12px;
+  text-align: left; font: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+}
+.sg-row.is-off { opacity: 0.5; background: var(--surface-2); }
+.sg-tick {
+  flex: none; width: 20px; height: 20px; border-radius: 6px; margin-top: 1px;
+  display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff;
+  background: var(--brand); border: 1px solid var(--brand);
+}
+.sg-row.is-off .sg-tick { background: transparent; border-color: var(--line-2); }
+.sg-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sg-t { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+.sg-s { font-size: 12px; color: var(--muted); }

@@ -10,6 +10,7 @@ import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
 import { PACE_BASELINE_AT } from './lib/projectPaceData';
 import type { WinProof } from './lib/ppmProof';
+import type { TrackerBind } from './lib/treeBind';
 
 interface AppDB extends DBSchema {
   workspaces: { key: string; value: Workspace; indexes: { by_updatedAt: number } };
@@ -1386,6 +1387,11 @@ export interface TreeNodeRow {
   rag: NodeStatus;
   /** Order among siblings. Data, not insertion order: the tree gets rearranged. */
   sort: number;
+  /** When set, the work under this box is DERIVED from the weekly tracker
+   *  rather than typed: which line, which categories, optionally a word. The
+   *  binding never shows on the tree — the box keeps the words its author
+   *  wrote. See lib/treeBind.ts. */
+  bind?: TrackerBind;
   createdAt: number; updatedAt: number; deletedAt?: number;
 }
 
