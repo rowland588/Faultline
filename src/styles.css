@@ -3965,3 +3965,31 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .bd-screen .pace-head-actions, .bd-filters { display: none !important; }
   .bd-card { break-inside: avoid; }
 }
+
+/* the board, on the report sheet. Three columns whatever the width — this is a
+   sheet of A3, not a responsive page, and the shape IS the message. */
+.exec-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 10px; }
+.exec-bcol { border-top: 3px solid var(--line-2); padding-top: 9px; }
+.exec-bcol.is-people  { border-top-color: var(--brand); }
+.exec-bcol.is-process { border-top-color: var(--blue); }
+.exec-bcol.is-plant   { border-top-color: var(--st-a); }
+.exec-bcol-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; margin-bottom: 8px; }
+.exec-bcol-t { font-size: 14px; font-weight: 800; color: var(--ink); }
+.exec-bcol-n { font-size: 11.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.exec-bcol-s { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
+.exec-bcard {
+  display: block; margin-bottom: 6px; padding: 7px 9px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-n);
+  break-inside: avoid;
+}
+.exec-bcard.is-w { border-left-color: var(--st-w); }
+.exec-bcard.is-a { border-left-color: var(--st-a); }
+.exec-bcard.is-r { border-left-color: var(--st-r); }
+.exec-bcard.is-g { border-left-color: var(--st-g); }
+.exec-bcard-t { display: block; font-size: 12px; line-height: 1.4; font-weight: 700; color: var(--ink); }
+.exec-bcard-f { display: block; margin-top: 3px; font-size: 10.5px; color: var(--ink-2); }
+.exec-bst { font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 6px; color: var(--st-n); }
+.exec-bst.is-w { color: var(--st-w); }
+.exec-bst.is-a { color: var(--st-a); }
+.exec-bst.is-r { color: var(--st-r); }
+.exec-bst.is-g { color: var(--st-g); }

@@ -31,7 +31,8 @@ import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
-import { withTrackerRows, bindSources } from '../lib/treeBind';
+import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
+import { board as buildBoard, cardTitle } from '../lib/pillars';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -88,8 +89,8 @@ function SectionHead({ n, title, sowhat }: { n: string; title: string; sowhat: s
 /* The tree gets its own sheet. It is the only thing in the report that says
  * WHY any of the rest is being done, and it needs the width of an A3 to say it
  * — squeezed into a corner of the pace page it would be a decoration. */
-function TreePage({ rows, title, scale, sheetH }: {
-  rows: TreeNodeRow[] | null; title: string; scale: number; sheetH: number;
+function TreePage({ rows, title, scale, sheetH, of }: {
+  rows: TreeNodeRow[] | null; title: string; scale: number; sheetH: number; of: number;
 }) {
   // No tree drawn yet: print nothing rather than a blank page with a heading on
   // it. A report should never contain an empty box.
@@ -105,8 +106,71 @@ function TreePage({ rows, title, scale, sheetH }: {
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 2 of 3 — the plan</span>
+          <span>{title} · weekly executive report · page 2 of {of} — the plan</span>
           <span>Kept by hand on the project’s lever tree; the work under it comes off the tracker.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+/* PEOPLE · PROCESS · PLANT gets its own sheet, for the same reason the tree did:
+ * the SHAPE is the message. Three columns handed across a table say "these are
+ * the three kinds of problem and here is where each stands"; the same cards as
+ * a list say something much weaker. */
+function BoardPage({ rows, unplaced, title, scale, sheetH, n, of }: {
+  rows: PaceReportData['board']; unplaced: number; title: string;
+  scale: number; sheetH: number; n: number; of: number;
+}) {
+  if (rows.length === 0) return null;   // never a page with a heading and nothing under it
+  const cols = [
+    { key: 'people' as const, label: 'People', blurb: 'who runs it, and whether they can' },
+    { key: 'process' as const, label: 'Process', blurb: 'the way of working itself' },
+    { key: 'plant' as const, label: 'Plant', blurb: 'the machine and everything on it' },
+  ];
+  const LABEL: Record<string, string> = {
+    n: 'Not started', w: 'In progress', a: 'Overdue', r: 'Blocked', g: 'Done',
+  };
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="People · Process · Plant"
+              sowhat="Every card off this week’s workbook — nothing typed, nothing stored" />
+            <div className="exec-board">
+              {cols.map(c => {
+                const mine = rows.filter(r => r.pillar === c.key);
+                const done = mine.filter(r => r.rag === 'g').length;
+                return (
+                  <section key={c.key} className={'exec-bcol is-' + c.key}>
+                    <header className="exec-bcol-h">
+                      <span className="exec-bcol-t">{c.label}</span>
+                      <span className="exec-bcol-n">{mine.length}{mine.length ? ` · ${done} done` : ''}</span>
+                      <span className="exec-bcol-s">{c.blurb}</span>
+                    </header>
+                    {mine.length === 0
+                      ? <p className="exec-empty">Nothing here this week.</p>
+                      : mine.map((r, i) => (
+                        <article key={i} className={'exec-bcard is-' + r.rag}>
+                          <span className="exec-bcard-t">{r.title}</span>
+                          <span className="exec-bcard-f">
+                            <b className={'exec-bst is-' + r.rag}>{LABEL[r.rag]}</b>
+                            {[r.owner, r.line, r.due && 'due ' + r.due].filter(Boolean).join(' · ')}
+                          </span>
+                        </article>
+                      ))}
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · weekly executive report · page {n} of {of} — people, process, plant</span>
+          <span>{unplaced > 0
+            ? `${unplaced} tracker row${unplaced === 1 ? '' : 's'} not placed in a pillar`
+            : 'Every tracker row is on the board.'}</span>
         </footer>
       </section>
     </div>
@@ -260,6 +324,23 @@ export function PaceExecReport() {
    * report runs the identical derivation the editor does rather than printing
    * only the boxes that happen to be stored. */
   const fullTree = withTrackerRows(treeRows ?? [], bindSources(pace.actions, todos ?? [], ppm.lines));
+
+  /* The board reads the same actions the rest of the report does — narrowed to
+   * the line when this is a line's own deck, so an owner's page shows only
+   * their three columns. */
+  const boardData = buildBoard(actions);
+  const boardRows: PaceReportData['board'] = boardData.columns.flatMap(c => c.rows.map(a => ({
+    pillar: c.key, title: cardTitle(a),
+    owner: (a.owner || a.who || '').trim(), line: a.line ?? '', due: a.due ?? '',
+    rag: statusOfAction(a),
+  })));
+
+  /* Page numbers have to agree with the PDF's, because somebody will have one
+   * on screen and the other in their hand. Both optional sheets are counted the
+   * same way, in the same order. */
+  const hasTree = !line && !!project?.leverTree && fullTree.length > 0;
+  const pageCount = 2 + (hasTree ? 1 : 0) + (boardRows.length > 0 ? 1 : 0);
+  const boardPageNo = 2 + (hasTree ? 1 : 0);
   // Which lines this report covers — one, or all of them.
   const reportLines = line ? [line] : ppm.lines;
 
@@ -368,6 +449,8 @@ export function PaceExecReport() {
     // The lever tree, flat. Only on the PROJECT's report: a line's own deck is
     // that line's page, and the whole project's plan on it would be somebody
     // else's work printed under their name.
+    board: boardRows,
+    boardUnplaced: boardData.unplaced.length,
     tree: line || !project?.leverTree ? [] : fullTree.map(n => ({
       id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
     })),
@@ -513,14 +596,16 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 1 of 3 — line pace</span>
+          <span>{title} · weekly executive report · page 1 of {pageCount} — line pace</span>
           <span>The tracker workbook is the system of record; this report reads it.</span>
         </footer>
       </section>
       </div>
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
-      {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} />}
+      {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} of={pageCount} />}
+      <BoardPage rows={boardRows} unplaced={boardData.unplaced.length} title={title}
+        scale={scale} sheetH={SHEET_H} n={boardPageNo} of={pageCount} />
 
       {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>
@@ -695,7 +780,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 3 of 3 — tracker, attention &amp; movement</span>
+          <span>{title} · weekly executive report · page {pageCount} of {pageCount} — tracker, attention &amp; movement</span>
           <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>

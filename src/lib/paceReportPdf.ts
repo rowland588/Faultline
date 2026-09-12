@@ -71,6 +71,13 @@ export interface PaceReportData {
      differently on purpose — a measured claim should not look like a typed one. */
   wins: { title: string; impact: string; story: string; who: string; where: string;
           verdict?: 'proven' | 'better' | 'flat' | 'worse' }[];
+  /* PEOPLE · PROCESS · PLANT, straight off the workbook. Its own sheet, because
+     three columns of cards is the shape somebody is being handed — squeezed
+     into a corner it stops being a board and becomes a list. */
+  board: { pillar: 'people' | 'process' | 'plant'; title: string; owner: string;
+           line: string; due: string; rag: string }[];
+  /** Rows the workbook did not place. Printed as a count, never hidden. */
+  boardUnplaced: number;
   /** The project's lever tree, flat — parent ids, drawn into a page of its own.
    *  Empty when nobody has drawn one, and then the page is not printed at all
    *  rather than printed blank. */
@@ -443,6 +450,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       title: san(w.title), impact: san(w.impact), story: san(w.story),
       who: san(w.who), where: san(w.where), verdict: w.verdict,
     })),
+    board: raw.board.map(b => ({
+      pillar: b.pillar, title: san(b.title), owner: san(b.owner),
+      line: san(b.line), due: san(b.due), rag: b.rag,
+    })),
+    boardUnplaced: raw.boardUnplaced,
   };
   const W = d.internal.pageSize.getWidth();        // 1190.55pt
   const H = d.internal.pageSize.getHeight();       // 841.89pt
@@ -527,10 +539,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     chart(d, cx, cy, cW, cH, l);
   });
 
-  const pages = data.tree.length > 0 ? 3 : 2;
+  const pages = 2 + (data.tree.length > 0 ? 1 : 0) + (data.board.length > 0 ? 1 : 0);
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
   d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
+
+  const planPage = 2;
+  const boardPage = 2 + (data.tree.length > 0 ? 1 : 0);
 
   /* ================= THE PLAN — the lever tree, its own sheet =================
    * Only when there is one. A page with a heading and nothing under it is worse
@@ -569,9 +584,89 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     });
 
     setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, `${data.title} · weekly executive report · page 2 of ${pages} — the plan`, CW * 0.8), M, H - M + 6);
+    d.text(fit(d, `${data.title} · weekly executive report · page ${planPage} of ${pages} — the plan`, CW * 0.8), M, H - M + 6);
     d.text('Kept by hand on the project\u2019s lever tree; the work under it comes off the tracker.',
       W - M, H - M + 6, { align: 'right' });
+  }
+
+  /* ============ PEOPLE · PROCESS · PLANT — its own sheet ============
+   * Three columns of cards, drawn as three columns. A board is the one thing in
+   * this report whose SHAPE is the message: if it arrives as a list somebody
+   * has been handed different information. */
+  if (data.board.length > 0) {
+    d.addPage('a3', 'landscape');
+    const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), 'People · Process · Plant',
+      'Every card off this week\u2019s workbook — nothing typed, nothing stored');
+
+    const PILL: { key: 'people' | 'process' | 'plant'; label: string; c: string }[] = [
+      { key: 'people',  label: 'PEOPLE',  c: BRAND },
+      { key: 'process', label: 'PROCESS', c: BLUE },
+      { key: 'plant',   label: 'PLANT',   c: WARN },
+    ];
+    const colGap = 16;
+    const colW = (CW - 24 - colGap * 2) / 3;
+    const top = bpY + 16;
+    const bottom = H - M - 22;
+
+    PILL.forEach((p, i) => {
+      const x = M + 12 + i * (colW + colGap);
+      const rows = data.board.filter(b => b.pillar === p.key);
+      const done = rows.filter(b => b.rag === 'g').length;
+
+      // column heading, ruled in its own colour so the three read apart
+      setFont(d, 10, 'bold', p.c);
+      d.text(p.label, x, top);
+      setFont(d, 8, 'normal', MUTED);
+      d.text(`${rows.length}${rows.length ? ` · ${done} done` : ''}`, x + colW, top, { align: 'right' });
+      d.setDrawColor(p.c); d.setLineWidth(1.4);
+      d.line(x, top + 5, x + colW, top + 5);
+
+      let y = top + 20;
+      if (rows.length === 0) {
+        setFont(d, 8, 'normal', MUTED);
+        d.text('Nothing here this week.', x, y);
+        return;
+      }
+      for (const b of rows) {
+        /* The tree's own words, except for amber. On the tree amber is a node
+           somebody judged at risk; on the board it is only ever set by the
+           workbook's Overdue flag, and "Overdue" is the word that gets asked
+           about in the room. */
+        const st = { ...(TREE_STATUS[b.rag] ?? TREE_STATUS.n) };
+        if (b.rag === 'a') st.label = 'Overdue';
+        const lines = d.splitTextToSize(b.title, colW - 18) as string[];
+        const shown = lines.slice(0, 3);
+        const cardH = 16 + shown.length * 10 + 12;
+        if (y + cardH > bottom) {
+          setFont(d, 7.5, 'bold', MUTED);
+          d.text(`+ ${rows.length - rows.indexOf(b)} more on the board`, x, y + 8);
+          break;
+        }
+        const [wr, wg, wb] = wash(st.c, 0.06);
+        d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.5);
+        d.roundedRect(x, y, colW, cardH, 4, 4, 'FD');
+        // the status as a spine down the left edge, the way the screen draws it
+        d.setFillColor(st.c); d.rect(x, y + 1, 2.5, cardH - 2, 'F');
+
+        setFont(d, 8.5, 'bold', '#141b26');
+        let ty = y + 13;
+        for (const ln of shown) { d.text(ln, x + 9, ty); ty += 10; }
+
+        setFont(d, 7, 'bold', st.c);
+        d.text(st.label.toUpperCase(), x + 9, ty + 1);
+        const stW = d.getTextWidth(st.label.toUpperCase());
+        setFont(d, 7, 'normal', INK2);
+        d.text(fit(d, [b.owner, b.line, b.due && 'due ' + b.due].filter(Boolean).join(' · '), colW - 22 - stW),
+          x + 9 + stW + 8, ty + 1);
+        y += cardH + 7;
+      }
+    });
+
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, `${data.title} · weekly executive report · page ${boardPage} of ${pages} — people, process, plant`, CW * 0.8), M, H - M + 6);
+    d.text(data.boardUnplaced > 0
+      ? `${data.boardUnplaced} tracker row${data.boardUnplaced === 1 ? '' : 's'} not placed in a pillar`
+      : 'Every tracker row is on the board.', W - M, H - M + 6, { align: 'right' });
   }
 
   /* ================= TRACKER, ATTENTION & MOVEMENT ================= */
