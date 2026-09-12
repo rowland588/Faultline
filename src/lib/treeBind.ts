@@ -82,8 +82,14 @@ export interface TrackerBind {
 }
 
 const DONE = /^(done|complete|completed|closed)$/i;
-const BLOCKED = /^(blocked|on hold|waiting)$/i;
-const GOING = /^(in progress|started|open|ongoing)$/i;
+/* Broader than the workbook's own dropdown on purpose. The dropdown says
+ * "Blocked", but people type what is actually true — "With supplier",
+ * "Awaiting parts", "On order" — and every one of those is the same thing:
+ * stopped, waiting on somebody else. */
+const BLOCKED = /^(blocked|on hold|waiting|waiting on .*|with (supplier|engineering|technical|.*)|awaiting.*|on order|chasing.*)$/i;
+const GOING = /^(in progress|started|open|ongoing|wip)$/i;
+/** Said in the sheet, in as many words: this has not begun. */
+const NOT_STARTED = /^(not started|new|raised|to do|todo|backlog)$/i;
 
 /** Where a tracker row has got to, in the tree's own five states.
  *
@@ -92,13 +98,21 @@ const GOING = /^(in progress|started|open|ongoing)$/i;
  *  puts in Flag — so a board in a meeting is never showing last month's colour. */
 export function statusOfAction(a: PaceAction): NodeStatus {
   const s = (a.status ?? '').trim();
+  if (!s) return 'n';
   if (DONE.test(s)) return 'g';
   if (BLOCKED.test(s)) return 'r';
   // Overdue is louder than "in progress": a live action past its date is the
   // one worth a question in the room.
   if (/overdue|late/i.test(a.flag ?? '')) return 'a';
   if (GOING.test(s)) return 'w';
-  return 'n';
+  if (NOT_STARTED.test(s)) return 'n';
+  /* Anything else is LIVE, not "not started". The fallback used to be 'n',
+   * which meant an action somebody had written "With supplier" against read on
+   * the wall as work nobody had begun — the most misleading thing a board can
+   * say in a meeting. A status the app does not recognise is still somebody
+   * tracking something; only an empty cell, or a word that says so, is "not
+   * started". */
+  return 'w';
 }
 
 /** What a tracker row reads as on the tree: what is being done, and by whom.
@@ -314,4 +328,32 @@ export function trackerLines(lines: PaceLineRow[]): { key: string; label: string
     out.push({ key: l.key, label: `Line ${d}` });
   }
   return out;
+}
+
+
+/** The tracker rows that reach NO box on the tree.
+ *
+ *  Three ways a row goes missing, and none of them announce themselves: the
+ *  Line cell is blank, so it matches no line; the Category is blank or is one
+ *  no condition was built for; or nobody has linked that line yet. All three
+ *  end the same way — the tracker says forty, the wall shows thirty-six, and
+ *  nobody can name the four.
+ *
+ *  So the tree counts them and says so. It is not clever and it does not guess
+ *  where they belong; it just refuses to lose them quietly. */
+export function unplacedActions(nodes: TreeNodeRow[], actions: PaceAction[]): PaceAction[] {
+  const bound = nodes.filter(n => n.bind && n.bind.source !== 'next');
+  if (!bound.length) return [];
+  const placed = new Set<string>();
+  for (const n of bound) {
+    for (const a of actionsForBind(actions, n.bind!)) placed.add(a.uid || a.ref);
+  }
+  return actions.filter(a => !placed.has(a.uid || a.ref));
+}
+
+/** Why one row is not on the tree, in words a person can act on. */
+export function whyUnplaced(a: PaceAction): string {
+  if (!(a.line ?? '').trim()) return 'no line on the tracker row';
+  if (!(a.category ?? '').trim()) return 'no category on the tracker row';
+  return `${a.category} on ${a.line} — no box is linked to it`;
 }

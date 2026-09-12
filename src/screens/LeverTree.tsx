@@ -34,7 +34,7 @@ import { TrackerPicker, actionText } from './TrackerPicker';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { usePaceLines } from '../lib/usePaceLines';
 import { fmtRelative } from '../lib/format';
-import { withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, type TrackerBind } from '../lib/treeBind';
+import { withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, unplacedActions, whyUnplaced, bindActionText, type TrackerBind } from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
 
@@ -342,6 +342,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const [binding, setBinding] = useState<TreeNodeRow | null>(null);
   /** Which "what needs to be true" box is having its conditions built. */
   const [suggesting, setSuggesting] = useState<TreeNodeRow | null>(null);
+  /** Showing the tracker rows that reach no box. */
+  const [showGap, setShowGap] = useState(false);
   const syncedAt = useSyncedAt();
 
   /* THE TREE IS ALWAYS LANDSCAPE, phone included. An earlier build folded it
@@ -419,6 +421,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
    * deleted by hand, and cannot need merging every Monday. Everything that
    * EDITS the tree keeps working on `nodes`; only the drawing uses `drawn`. */
   const drawn = withTrackerRows(nodes, sources);
+  /* What the bindings do NOT reach. Empty until something is linked — before
+   * that the prompt above already says nothing is on the tree. */
+  const unplaced = unplacedActions(nodes, trackerActions);
   const tree = build(drawn);
   const siblingsOf = (parentId?: string) =>
     nodes.filter(n => (n.parentId ?? '') === (parentId ?? '')).sort((a, b) => a.sort - b.sort);
@@ -766,6 +771,32 @@ export function LeverTree({ projectId }: { projectId: string }) {
                   const line = tree[0]?.kids[0]?.node ?? tree[0]?.node;
                   if (line) setSuggesting(line);
                 }}>{isBaseline ? 'Upload this week’s tracker' : 'Put them on the tree'}</button>
+              </div>
+            )}
+
+            {/* NEVER LOSE A ROW QUIETLY. A blank Line cell, a blank Category, or a
+                category nobody built a box for, and the action is simply not on
+                the tree — the tracker says forty, the wall shows thirty-six,
+                and nobody can name the four. So they are counted and named. */}
+            {unplaced.length > 0 && (
+              <div className="lt-gap">
+                <span className="lt-gap-t">
+                  <b>{unplaced.length}</b> of the tracker’s {trackerActions.length} action{trackerActions.length === 1 ? '' : 's'} {unplaced.length === 1 ? 'is' : 'are'} not on this tree.
+                </span>
+                <button className="lt-gap-b" onClick={() => setShowGap(v => !v)}>
+                  {showGap ? 'Hide them' : 'Which ones?'}
+                </button>
+                {showGap && (
+                  <ul className="lt-gap-list">
+                    {unplaced.slice(0, 12).map((a, i) => (
+                      <li key={a.uid || a.ref || i}>
+                        <span className="lt-gap-w">{bindActionText(a)}</span>
+                        <span className="lt-gap-y">{whyUnplaced(a)}</span>
+                      </li>
+                    ))}
+                    {unplaced.length > 12 && <li className="sub">and {unplaced.length - 12} more</li>}
+                  </ul>
+                )}
               </div>
             )}
 
