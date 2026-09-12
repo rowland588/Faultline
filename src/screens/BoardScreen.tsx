@@ -19,7 +19,7 @@
  * board at all.
  */
 import { useMemo, useState } from 'react';
-import { nav, useRoute } from '../state/useRoute';
+import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
@@ -52,7 +52,6 @@ function Card({ a }: { a: PaceAction }) {
 }
 
 export function BoardScreen({ projectId }: { projectId: string }) {
-  const route = useRoute();
   const { loading, project } = useProject(projectId);
   const pace = usePaceSnapshots(projectId);
   const [hideDone, setHideDone] = useState(false);
@@ -96,7 +95,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">People · Process · Plant</h1>
+          <h1 className="pace-title">3P Board</h1>
           <p className="pace-lede">
             Every card comes off the weekly workbook — nothing here is typed, and nothing here is
             stored. Change a status in the tracker and it changes here on the next upload.
@@ -121,9 +120,20 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
       {full.areas.length > 1 && (
         <div className="bd-filters">
-          <button className={'chip' + (area === '' ? ' on' : '')} onClick={() => setArea('')}>Every area</button>
+          {/* THE TRAP THIS AVOIDS. The workbook has an area literally called
+              "All lines", and in a row of filters next to a chip meaning "show
+              everything" the two read as the same thing — except one of them
+              shows four cards out of twenty-eight. So the show-everything chip
+              carries the total and is set apart, and every area chip carries
+              its own count, so no two chips can be mistaken for each other. */}
+          <button className={'chip is-all' + (area === '' ? ' on' : '')} onClick={() => setArea('')}>
+            Show all <span className="bs-n">{full.total}</span>
+          </button>
+          <span className="bd-filter-div" aria-hidden />
           {full.areas.map(a => (
-            <button key={a.name} className={'chip' + (area === a.name ? ' on' : '')} onClick={() => setArea(a.name)}>
+            <button key={a.name} className={'chip' + (area === a.name ? ' on' : '')}
+              title={`Only the ${a.total} action${a.total === 1 ? '' : 's'} the workbook files under “${a.name}”`}
+              onClick={() => setArea(a.name)}>
               {a.name} <span className="bs-n">{a.total}</span>
             </button>
           ))}
@@ -131,6 +141,13 @@ export function BoardScreen({ projectId }: { projectId: string }) {
             {hideDone ? 'Hiding done' : 'Showing done'}
           </button>
         </div>
+      )}
+
+      {area && (
+        <p className="bd-filtered">
+          Showing <b>{area}</b> only — {shown.total} of {full.total} action{full.total === 1 ? '' : 's'}.{' '}
+          <button className="lt-gap-b" onClick={() => setArea('')}>Show all {full.total}</button>
+        </p>
       )}
 
       {!full.hasPillarColumn ? (
@@ -205,8 +222,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
       <footer className="pace-foot">
         <p>
-          {project.name} · People · Process · Plant · derived from the weekly workbook, never stored
-          {route.query.get('view') ? '' : ''}
+          {project.name} · People · Plant · Process · derived from the weekly workbook, never stored
         </p>
       </footer>
     </div>

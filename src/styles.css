@@ -4009,3 +4009,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-area-h span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .exec-bcol.is-plant { border-top-color: var(--st-a); }
 .exec-bcol.is-process { border-top-color: var(--blue); }
+
+/* The show-everything chip is not one of the areas, and must not look like one
+   — the workbook has an area literally called "All lines" sitting two chips
+   away, holding 4 of 28 cards. */
+.chip.is-all { font-weight: 800; }
+.bd-filter-div { width: 1px; align-self: stretch; margin: 2px 4px; background: var(--line-2); }
+.bd-filtered {
+  margin: 0 0 12px; padding: 9px 13px; border-radius: 10px; font-size: 13px; color: var(--ink-2);
+  background: color-mix(in srgb, var(--blue) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--blue) 26%, var(--line));
+}
+.bd-filtered b { color: var(--ink); }
