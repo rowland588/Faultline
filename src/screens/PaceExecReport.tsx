@@ -652,6 +652,30 @@ export function PaceExecReport() {
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
       {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} of={pageCount} />}
+      {/* WHY THE BOARD SHEET IS NOT IN THIS REPORT.
+          A page with a heading and nothing under it has no place in something
+          going to a General Manager, so when the workbook has no 3P column the
+          board sheet is simply not built. But silence at this end reads as a
+          missing feature rather than as missing data — you go looking for the
+          board, find nothing, and have no way to tell which of the two it is.
+          So the report SCREEN says it, and the file stays clean: this note does
+          not print and is not in the PDF. */}
+      {boardRows.length === 0 && (
+        <div className="exec-note no-print">
+          <p>
+            <b>No 3P board sheet in this report.</b>{' '}
+            {actions.length === 0
+              ? <>There are no tracker actions on this {line ? 'line' : 'project'} yet.</>
+              : <>The tracker the app has read carries {actions.length} action{actions.length === 1 ? '' : 's'} and
+                  no <b>3P</b> column, so there is nothing to draw. Add one column to the Tracker sheet headed
+                  {' '}<b>3P</b>, with <b>People</b>, <b>Plant</b> or <b>Process</b> against each row, and the board
+                  becomes page {2 + (hasTree ? 1 : 0)} of this report.</>}
+          </p>
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}?view=data`)}>
+            Upload the workbook
+          </button>
+        </div>
+      )}
       {boardPlan.map((sheetAreas, i) => (
         <BoardPage key={i} rows={boardRows} unplaced={boardData.unplaced.length} title={title}
           scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount}

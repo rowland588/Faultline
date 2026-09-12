@@ -4079,3 +4079,71 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border: 1px solid color-mix(in srgb, var(--blue) 26%, var(--line));
 }
 .bd-filtered b { color: var(--ink); }
+
+/* ---------- the 3P board, on the project overview ----------
+   Real cards on the page somebody already has open, not a link to somewhere
+   they have to know about first. Every card is a button: wherever you tap you
+   land on the full board. */
+.pb-sec { margin-top: 22px; }
+.pb-area { margin-top: 14px; }
+.pb-area:first-of-type { margin-top: 6px; }
+.pb-area-h {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px;
+  margin: 0 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line);
+}
+.pb-area-h b { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); }
+.pb-area-h span { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pb-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.pb-col { min-width: 0; }
+.pb-col-h {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding-bottom: 5px; margin-bottom: 7px; border-bottom: 2px solid var(--line-2);
+}
+.pb-col.is-people  .pb-col-h { border-bottom-color: var(--brand); }
+.pb-col.is-plant   .pb-col-h { border-bottom-color: var(--st-a); }
+.pb-col.is-process .pb-col-h { border-bottom-color: var(--blue); }
+.pb-col-t { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink); }
+.pb-col.is-people  .pb-col-t { color: var(--brand); }
+.pb-col.is-plant   .pb-col-t { color: var(--st-a); }
+.pb-col.is-process .pb-col-t { color: var(--blue); }
+.pb-col-n { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pb-card {
+  display: block; width: 100%; margin-bottom: 6px; padding: 8px 10px;
+  font: inherit; font-size: 12.5px; line-height: 1.35; font-weight: 600; text-align: left; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-n);
+  border-radius: 8px; cursor: pointer;
+}
+.pb-card-t {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; height: calc(2 * 1.35em);
+}
+.pb-card:hover { border-color: var(--brand); }
+.pb-card.is-w { border-left-color: var(--st-w); }
+.pb-card.is-a { border-left-color: var(--st-a); }
+.pb-card.is-r { border-left-color: var(--st-r); }
+.pb-card.is-g { border-left-color: var(--st-g); }
+.pb-more {
+  display: block; padding: 2px 0; font: inherit; font-size: 12px; font-weight: 700;
+  color: var(--accent); background: none; border: 0; cursor: pointer;
+}
+.pb-none { margin: 0; font-size: 13px; color: var(--muted); }
+.pb-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 16px; }
+.pb-gap { font-size: 12.5px; }
+
+@media (max-width: 700px) {
+  /* Three columns is the shape, so it stays three columns — the cards get
+     narrower, the board does not become a list. */
+  .pb-card { font-size: 11.5px; padding: 6px 8px; }
+  .pb-col-t { font-size: 10.5px; letter-spacing: 0.03em; }
+  .pb-cols { gap: 7px; }
+}
+
+/* A note to the person BUILDING the report, never to the person receiving it —
+   .no-print keeps it off the paper and out of the PDF, which is drawn from the
+   numbers rather than from this page. */
+.exec-note {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  max-width: 1140px; margin: 0 auto 22px; padding: 14px 16px;
+  background: var(--surface); border: 1px dashed var(--line-2); border-radius: 12px;
+}
+.exec-note p { margin: 0; flex: 1 1 340px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }

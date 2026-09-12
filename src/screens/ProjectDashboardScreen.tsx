@@ -24,6 +24,9 @@ import { PpmEditor } from './PpmEditor';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
+import { board as buildBoard, cardTitle } from '../lib/pillars';
+import { statusOfAction } from '../lib/treeBind';
+import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
@@ -33,6 +36,108 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
       <span className="pace-kpi-l">{label}</span>
       {sub && <span className="pace-kpi-s">{sub}</span>}
     </div>
+  );
+}
+
+/* THE 3P BOARD, ON THE PAGE ITSELF.
+ *
+ * A tab is not a presence. The lever tree lived its whole life behind a button
+ * in the corner, and the result was a surface that existed in the code and not
+ * in anybody's week — you had to already know it was there to go and look at
+ * it. The board is the heart of this project now, so it is ON the overview,
+ * showing real cards, in the shape it has everywhere else: one block per area,
+ * three columns inside it.
+ *
+ * Compact, not partial. Each column shows its first few and says how many more
+ * there are, and the whole thing opens full size in one tap. What it never does
+ * is imply it is showing everything when it is not. */
+const BOARD_PEEK = 3;
+
+function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAction[] }) {
+  const b = buildBoard(actions);
+  const open = () => nav(`/project/${projectId}/board`);
+
+  return (
+    <section className="pace-sec pb-sec">
+      <div className="pace-sec-head">
+        <h2 className="pace-sec-title">3P Board</h2>
+        <p className="pace-sec-sub">
+          {b.total > 0
+            ? <>People, Plant and Process across {b.areas.length} area{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} · {b.done} done — every card off the weekly workbook</>
+            : <>People, Plant and Process — every card off the weekly workbook, nothing typed</>}
+        </p>
+      </div>
+
+      {!b.hasPillarColumn ? (
+        /* Not a blank panel and not a hidden one. It says which workbook the
+           app has read, what is missing from it, and offers the one action
+           that fixes it. */
+        <div className="pace-empty">
+          <p className="sub">
+            {actions.length === 0
+              ? <>Nothing uploaded yet — the board is drawn from the weekly tracker.</>
+              : <>The tracker the app has read carries {actions.length} action{actions.length === 1 ? '' : 's'} and
+                  no <b>3P</b> column, so there is nothing to sort them into. Add one column to the Tracker
+                  sheet headed <b>3P</b>, with <b>People</b>, <b>Plant</b> or <b>Process</b> against each row.</>}
+          </p>
+          <div className="pb-foot" style={{ marginTop: 10 }}>
+            <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}?view=data`)}>
+              Upload the workbook
+            </button>
+            <button className="btn btn-ghost" onClick={open}>What the board is</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {b.areas.map(a => (
+            <div key={a.name} className="pb-area">
+              <p className="pb-area-h">
+                <b>{a.name}</b>
+                <span>{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
+              </p>
+              <div className="pb-cols">
+                {a.columns.map(c => (
+                  <section key={c.key} className={'pb-col is-' + c.key}>
+                    <header className="pb-col-h">
+                      <span className="pb-col-t">{c.label}</span>
+                      <span className="pb-col-n">{c.rows.length}</span>
+                    </header>
+                    {c.rows.length === 0
+                      ? <p className="pb-none">—</p>
+                      : <>
+                          {c.rows.slice(0, BOARD_PEEK).map((x, i) => (
+                            <button key={x.uid || x.ref || i} className={'pb-card is-' + statusOfAction(x)} onClick={open}>
+                              {/* the text is clamped on a span of its own: a line
+                                  clamp applied to the button itself is unreliable,
+                                  and a card cut through the middle of a word reads
+                                  as a rendering fault rather than as "there is more
+                                  of this on the board". */}
+                              <span className="pb-card-t">{cardTitle(x)}</span>
+                            </button>
+                          ))}
+                          {c.rows.length > BOARD_PEEK && (
+                            <button className="pb-more" onClick={open}>
+                              +{c.rows.length - BOARD_PEEK} more
+                            </button>
+                          )}
+                        </>}
+                  </section>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="pb-foot">
+            <button className="btn btn-primary" onClick={open}>Open the 3P board</button>
+            {b.unplaced.length > 0 && (
+              <span className="sub pb-gap">
+                {b.unplaced.length} action{b.unplaced.length === 1 ? '' : 's'} not on it — the 3P cell is blank
+                or says something else
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -280,6 +385,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <Kpi n={String(live)} label="still live" sub="open or in progress" />
             <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
           </div>
+
+          <BoardPanel projectId={projectId} actions={pace.actions} />
 
               <section className="pace-sec">
             <div className="pace-sec-head">
