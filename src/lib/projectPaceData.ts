@@ -9,7 +9,12 @@ export interface PaceLine { key: string; name: string; variant?: string; q1: num
 export interface ParetoRow { category: string; mins: number; events: number; minPerEvent: number; profile: string; l2: number; l7: number; l10: number; }
 export interface PaceAction { /** A stable id from an ID/UID column, when the sheet has one. Unlike Ref
  *  (a formula off ROW()) this survives inserts, sorting and row reuse. */
-  uid?: string; ref: string; priority: number; line: string; category: string; problem?: string; action?: string; who?: string; owner?: string; due?: string; status: string; flag: string; }
+  uid?: string; ref: string; priority: number; line: string; category: string; problem?: string; action?: string; who?: string; owner?: string; due?: string; status: string; flag: string;
+  /** People / Process / Plant — the column this row sits in on the board.
+   *  Read from a "Pillar" (or "PPP") column on the tracker sheet. Absent on a
+   *  workbook that has not added the column yet, which the board says out loud
+   *  rather than quietly dropping the row. */
+  pillar?: string; }
 
 /** Q1 starts August 2026; each quarter is 13 weeks.
  *

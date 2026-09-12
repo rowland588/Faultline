@@ -96,6 +96,10 @@ function parseTracker(sheet: SheetData, warnings: string[]): PaceAction[] {
       due: iso(at(row, 'due')),
       status: txt(at(row, 'status')) || 'Open',
       flag: txt(at(row, 'flag')),
+      /* People / Process / Plant. Several spellings because the column is new
+         and whoever adds it will name it whatever reads best in the sheet. */
+      pillar: txt(at(row, 'pillar')) || txt(at(row, 'ppp'))
+        || txt(at(row, 'peopleprocessplant')) || txt(at(row, 'pillarppp')) || undefined,
     });
   }
   if (!out.length) warnings.push(`"${sheet.name}" had headings but no action rows under them.`);

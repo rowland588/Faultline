@@ -234,6 +234,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
+          {/* The board needs no setting: it appears the moment the workbook has a
+              Pillar column to draw it from, and says nothing until then. */}
+          {pace.actions.some(a => (a.pillar ?? '').trim()) && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/board`)}>Board</button>
+          )}
           {/* Offered only where the project asked for it — see Project.leverTree. */}
           {project.leverTree && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>

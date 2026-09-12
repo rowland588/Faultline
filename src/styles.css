@@ -3896,3 +3896,72 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pset-tool-m { display: flex; flex-direction: column; gap: 3px; }
 .pset-tool-m b { font-size: 15px; color: var(--ink); }
 .pset-tool-m .sub { max-width: 64ch; }
+
+
+/* ==========================================================================
+   PEOPLE · PROCESS · PLANT
+   ==========================================================================
+   Three columns, and the design is that there are only three. Side by side on
+   anything wide enough to take them, stacked on a phone — a board is one of the
+   few things that reads perfectly well as three lists when the screen is
+   narrow, so this is the one surface that does NOT need to stay landscape. */
+.bd-src { max-width: none; margin-bottom: 12px; }
+.bd-filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+
+.bd-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .bd-cols { grid-template-columns: 1fr; } }
+
+.bd-col { background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+/* One accent per column, so the three are told apart at a glance across a room
+   without anybody having to read the headings. */
+.bd-col.is-people  { border-top: 3px solid var(--brand); }
+.bd-col.is-process { border-top: 3px solid var(--blue); }
+.bd-col.is-plant   { border-top: 3px solid var(--st-a); }
+
+.bd-col-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 12px 14px 10px; }
+.bd-col-t { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.bd-col-n { font-size: 12.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bd-col-s { flex: 1 1 100%; font-size: 12px; color: var(--muted); }
+.bd-col-b { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 12px; }
+.bd-none { margin: 2px 4px 4px; font-size: 13px; }
+
+.bd-card {
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-n);
+  border-radius: 12px; padding: 10px 12px;
+}
+.bd-card.is-w { border-left-color: var(--st-w); }
+.bd-card.is-a { border-left-color: var(--st-a); }
+.bd-card.is-r { border-left-color: var(--st-r); }
+.bd-card.is-g { border-left-color: var(--st-g); }
+.bd-card.is-g .bd-card-t { color: var(--muted); }
+.bd-card-t { margin: 0 0 7px; font-size: 13.5px; line-height: 1.45; font-weight: 600; color: var(--ink); }
+.bd-card-f { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; }
+.bd-chip {
+  padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 800;
+  letter-spacing: 0.03em; text-transform: uppercase; color: #fff; background: var(--st-n);
+}
+.bd-chip.is-w { background: var(--st-w); }
+.bd-chip.is-a { background: var(--st-a); }
+.bd-chip.is-r { background: var(--st-r); }
+.bd-chip.is-g { background: var(--st-g); }
+.bd-who { font-size: 12px; font-weight: 700; color: var(--accent); }
+.bd-meta { font-size: 11.5px; color: var(--muted); }
+
+.bd-empty {
+  padding: 28px 22px; text-align: center;
+  background: var(--surface); border: 1px dashed var(--line-2); border-radius: 16px;
+}
+.bd-empty-t { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: var(--ink); }
+.bd-empty .sub { max-width: 70ch; margin: 0 auto; }
+
+.bd-gap { margin-top: 14px; }
+.bd-det summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--accent); }
+.bd-det[open] summary { margin-bottom: 4px; }
+
+/* On paper the three columns stay three columns — that is the shape somebody
+   is being handed. */
+@media print {
+  .bd-cols { grid-template-columns: repeat(3, 1fr) !important; }
+  .bd-screen .pace-head-actions, .bd-filters { display: none !important; }
+  .bd-card { break-inside: avoid; }
+}
