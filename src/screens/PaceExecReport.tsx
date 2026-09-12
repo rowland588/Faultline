@@ -31,7 +31,7 @@ import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
-import { withTrackerRows } from '../lib/treeBind';
+import { withTrackerRows, bindSources } from '../lib/treeBind';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -259,7 +259,7 @@ export function PaceExecReport() {
    * A condition bound to the tracker grows its actions at draw time, so the
    * report runs the identical derivation the editor does rather than printing
    * only the boxes that happen to be stored. */
-  const fullTree = withTrackerRows(treeRows ?? [], pace.actions);
+  const fullTree = withTrackerRows(treeRows ?? [], bindSources(pace.actions, todos ?? [], ppm.lines));
   // Which lines this report covers — one, or all of them.
   const reportLines = line ? [line] : ppm.lines;
 

@@ -16,9 +16,9 @@
  * per line, in one go, because typing twenty actions back in by hand is how a
  * tool gets abandoned in week two.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  listTreeNodes, putTreeNode, putTreeNodes, deleteTreeBranch,
+  listTreeNodes, putTreeNode, putTreeNodes, deleteTreeBranch, listPaceTodos, type PaceTodoRow,
   onDataChange, type TreeNodeRow, type NodeStatus,
 } from '../db';
 import { uid, now } from '../lib/ids';
@@ -33,7 +33,8 @@ import { parsePastedRows } from '../lib/pastedRows';
 import { TrackerPicker, actionText } from './TrackerPicker';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { usePaceLines } from '../lib/usePaceLines';
-import { withTrackerRows, isBoundNode, bindCount, trackerLines, type TrackerBind } from '../lib/treeBind';
+import { fmtRelative } from '../lib/format';
+import { withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, type TrackerBind } from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
 
@@ -395,8 +396,20 @@ export function LeverTree({ projectId }: { projectId: string }) {
   // an empty list on a device that has not uploaded yet.
   const trackerActions = pace.actions;
   const trackerFrom = pace.snapshots[0];
+  /* True when nothing has been uploaded to this project and the app is falling
+   * back to the workbook it shipped with. Everything downstream has to say so:
+   * those actions are real, they are just not HIS. */
+  const isBaseline = !!trackerFrom?.fileName?.includes('(baseline)');
 
-  const load = useCallback(async () => { setRows(await listTreeNodes(projectId)); }, [projectId]);
+  /* The project's own Next steps — work the team decided that never came out of
+   * a spreadsheet. A condition can read these instead of the tracker. */
+  const [todos, setTodos] = useState<PaceTodoRow[]>([]);
+  const sources = useMemo(() => bindSources(trackerActions, todos, ppm.lines), [trackerActions, todos, ppm.lines]);
+
+  const load = useCallback(async () => {
+    setRows(await listTreeNodes(projectId));
+    setTodos(await listPaceTodos(projectId));
+  }, [projectId]);
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load, syncedAt]);
 
   const nodes = rows ?? [];
@@ -405,7 +418,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
    * upload — they are never written down, so they cannot go stale, cannot be
    * deleted by hand, and cannot need merging every Monday. Everything that
    * EDITS the tree keeps working on `nodes`; only the drawing uses `drawn`. */
-  const drawn = withTrackerRows(nodes, pace.actions);
+  const drawn = withTrackerRows(nodes, sources);
   const tree = build(drawn);
   const siblingsOf = (parentId?: string) =>
     nodes.filter(n => (n.parentId ?? '') === (parentId ?? '')).sort((a, b) => a.sort - b.sort);
@@ -621,7 +634,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
            (nothing hangs off the tracker at that level) and never on a row the
            tracker itself put there. */
         onBind={isBoundNode(t.node.id) || t.depth === 0 ? undefined : () => setBinding(t.node)}
-        boundCount={t.node.bind ? bindCount(t.node.bind, trackerActions) : undefined}
+        boundCount={t.node.bind ? bindCount(t.node.bind, sources) : undefined}
         /* Offered on a line whose conditions are not linked yet — NOT only on an
            empty one. Keyed to emptiness it vanished the moment somebody typed a
            condition by hand, which is most trees, and left the chain glyph as
@@ -732,18 +745,27 @@ export function LeverTree({ projectId }: { projectId: string }) {
                 otherwise invisible on a tree that already had boxes in it, and
                 a thing nobody can find is a thing nobody has. */}
             {trackerActions.length > 0 && !nodes.some(n => n.bind) && (
-              <div className="lt-prompt">
+              <div className={'lt-prompt' + (isBaseline ? ' is-base' : '')}>
                 <span className="lt-prompt-t">
-                  This week’s tracker has <b>{trackerActions.length} actions</b> — none of them are on this tree yet.
+                  {/* NAME the workbook. Saying "this week's tracker has 40 actions"
+                      while reading the file the app SHIPPED WITH is how somebody
+                      ends up staring at forty actions they have never seen and
+                      concluding the app is broken. Which tracker, and how old. */}
+                  {isBaseline
+                    ? <>These <b>{trackerActions.length} actions</b> are the sample tracker the app shipped with — not yours.</>
+                    : <><b>{trackerActions.length} actions</b> from {trackerFrom?.fileName ?? 'the tracker'} — none of them are on this tree yet.</>}
                 </span>
                 <span className="lt-prompt-s">
-                  Link a box to the tracker once and its work arrives every week by itself. Nothing to copy.
+                  {isBaseline
+                    ? <>Upload this week’s workbook and the tree fills from your own actions. Until then, anything you link here will show the sample.</>
+                    : <>Read {trackerFrom ? fmtRelative(trackerFrom.takenAt) : 'recently'}. Link a box to the tracker once and its work arrives every week by itself — nothing to copy.</>}
                 </span>
                 <button className="btn btn-primary" onClick={() => {
+                  if (isBaseline) { nav(`/project/${projectId}?view=data`); return; }
                   // the first "what needs to be true", which is where conditions live
                   const line = tree[0]?.kids[0]?.node ?? tree[0]?.node;
                   if (line) setSuggesting(line);
-                }}>Put them on the tree</button>
+                }}>{isBaseline ? 'Upload this week’s tracker' : 'Put them on the tree'}</button>
               </div>
             )}
 
@@ -781,6 +803,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
           title={suggesting.text}
           lines={ppm.lines}
           actions={trackerActions}
+          source={trackerFrom?.fileName}
+          takenAt={trackerFrom?.takenAt}
+          todoCount={key => todos.filter(t => sources.lineIdsFor(key === '*all*' ? undefined : key).includes(t.lineId ?? '')
+            || (key === '*all*' && !t.lineId)).length}
           onClose={() => setSuggesting(null)}
           onBuild={picked => { void buildConditions(suggesting, picked); setSuggesting(null); }}
         />
@@ -791,6 +817,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
           title={binding.text}
           lines={ppm.lines}
           actions={trackerActions}
+          source={trackerFrom?.fileName}
+          takenAt={trackerFrom?.takenAt}
           initial={binding.bind}
           onClose={() => setBinding(null)}
           onClear={() => { void change(binding, { bind: undefined }); setBinding(null); }}

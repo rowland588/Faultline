@@ -3852,3 +3852,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media (max-width: 560px) {
   .lt-prompt .btn { margin: 4px 0 0; width: 100%; }
 }
+
+/* Which workbook these rows came from. Quiet when it is theirs; loud when it is
+   the sample the app shipped with, because forty actions nobody recognises is
+   how somebody decides the app is broken. */
+.bs-src {
+  margin: 0 0 14px; padding: 9px 12px; border-radius: 10px;
+  font-size: 12.5px; line-height: 1.5; color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.bs-src.is-base {
+  color: color-mix(in srgb, var(--warn) 78%, var(--ink));
+  background: color-mix(in srgb, var(--warn) 9%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 32%, var(--line));
+}
+.lt-prompt.is-base {
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 32%, var(--line));
+}

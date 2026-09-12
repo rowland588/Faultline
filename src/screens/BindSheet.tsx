@@ -18,18 +18,38 @@
 import { useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
+import { fmtRelative } from '../lib/format';
 import {
   actionsForBind, statusOfAction, bindActionText, trackerLines, allLinesCount, ALL_LINES,
   type TrackerBind,
 } from '../lib/treeBind';
 
+/** WHERE these rows come from, said plainly at the top of both sheets.
+ *  A sheet that offers "9 actions" without saying which workbook they are out
+ *  of is the difference between a tool somebody trusts and one they close. */
+export function SourceStrip({ fileName, takenAt }: { fileName?: string; takenAt?: number }) {
+  const baseline = !!fileName?.includes('(baseline)');
+  return (
+    <p className={'bs-src' + (baseline ? ' is-base' : '')}>
+      {baseline
+        ? <><b>The sample tracker the app shipped with</b> — not your workbook. Upload this week’s under the project’s <b>Data</b> tab and everything here becomes yours.</>
+        : fileName
+          ? <>From <b>{fileName}</b>{takenAt ? <> · read {fmtRelative(takenAt)}</> : null}</>
+          : <>No tracker uploaded to this project yet.</>}
+    </p>
+  );
+}
+
 export function BindSheet({
-  title, lines, actions, initial, onSave, onClear, onClose,
+  title, lines, actions, source, takenAt, initial, onSave, onClear, onClose,
 }: {
   /** The condition's own words, so it is obvious what is being bound. */
   title: string;
   lines: PaceLineRow[];
   actions: PaceAction[];
+  /** Which workbook these actions came from, and when it was read. */
+  source?: string;
+  takenAt?: number;
   initial?: TrackerBind;
   onSave: (b: TrackerBind) => void;
   onClear: () => void;
@@ -78,6 +98,7 @@ export function BindSheet({
           The work under <b>“{title || 'this box'}”</b> comes straight off the weekly upload
           from here on. Nothing to copy, and nothing to keep up to date.
         </p>
+        <SourceStrip fileName={source} takenAt={takenAt} />
 
         <p className="wp-lbl">Which line</p>
         <div className="wp-chips">

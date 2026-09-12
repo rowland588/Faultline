@@ -27,7 +27,7 @@
  * and would leave last week's deleted rows stranded on the tree forever.
  */
 import type { PaceAction } from './projectPaceData';
-import type { PaceLineRow, TreeNodeRow, NodeStatus } from '../db';
+import type { PaceLineRow, PaceTodoRow, TreeNodeRow, NodeStatus } from '../db';
 
 /* The tracker writes lines the way people say them ("Line 2", "Line 10") and
  * marks the ones that belong to nobody in particular "All lines". Matching on
@@ -72,6 +72,13 @@ export interface TrackerBind {
   /** A word that must appear in the action, the problem or the owner. For the
    *  cases where a category is too coarse to be one condition. */
   keyword?: string;
+  /** WHERE the work under this box comes from. The weekly tracker by default —
+   *  but a project's own Next steps are work too, they are already in the app,
+   *  and leaving them off the tree meant the plan on the wall was missing
+   *  whatever the team decided that did not come out of a spreadsheet.
+   *  Next steps carry no category, so a binding that reads them uses the line
+   *  alone. */
+  source?: 'tracker' | 'next';
 }
 
 const DONE = /^(done|complete|completed|closed)$/i;
@@ -105,6 +112,7 @@ export function bindActionText(a: PaceAction): string {
 
 /** The tracker rows a binding collects, in the tracker's own priority order. */
 export function actionsForBind(actions: PaceAction[], bind: TrackerBind): PaceAction[] {
+  if (bind.source === 'next') return [];
   const cats = (bind.categories ?? []).map(c => c.trim().toLowerCase()).filter(Boolean);
   const needle = (bind.keyword ?? '').trim().toLowerCase();
   return actions.filter(a => {
@@ -112,6 +120,34 @@ export function actionsForBind(actions: PaceAction[], bind: TrackerBind): PaceAc
     else if (bind.line && !onLine(a, bind.line)) return false;
     if (cats.length && !cats.includes((a.category ?? '').trim().toLowerCase())) return false;
     if (needle && ![a.action, a.problem, a.owner, a.who].some(v => (v ?? '').toLowerCase().includes(needle))) return false;
+    return true;
+  });
+}
+
+/** Where a Next step has got to, in the tree's own five states. */
+export function statusOfTodo(t: PaceTodoRow): NodeStatus {
+  if (t.state === 'done') return 'g';
+  if (t.state === 'waiting') return 'r';
+  return 'w';
+}
+
+/** What a Next step reads as on the tree. */
+export function todoText(t: PaceTodoRow): string {
+  const what = (t.what || '').trim() || 'Next step';
+  const who = (t.who || '').trim();
+  return who ? `${what} · ${who}` : what;
+}
+
+/** The project's own Next steps a binding collects. The line is matched on the
+ *  todo's own lineId, which the app sets when the step is logged on a line's
+ *  pack — no digits to bridge, because both sides are the app's own key. */
+export function todosForBind(todos: PaceTodoRow[], bind: TrackerBind, lineIds: string[]): PaceTodoRow[] {
+  if (bind.source !== 'next') return [];
+  const needle = (bind.keyword ?? '').trim().toLowerCase();
+  return todos.filter(t => {
+    if (bind.allLines) { if (t.lineId) return false; }      // the project's own, on no line
+    else if (bind.line && !lineIds.includes(t.lineId ?? '')) return false;
+    if (needle && ![t.what, t.why, t.who, t.where].some(v => (v ?? '').toLowerCase().includes(needle))) return false;
     return true;
   });
 }
@@ -125,18 +161,46 @@ export const isBoundNode = (id: string): boolean => id.startsWith(BOUND_PREFIX);
 /** Build the derived children of one bound node. They look like ordinary rows
  *  so that everything which draws a tree — the editor, the report, the PDF —
  *  keeps working without knowing any of this exists. */
-export function boundChildren(parent: TreeNodeRow, actions: PaceAction[]): TreeNodeRow[] {
+export function boundChildren(parent: TreeNodeRow, src: BindSources): TreeNodeRow[] {
   if (!parent.bind) return [];
-  return actionsForBind(actions, parent.bind).map((a, i) => ({
-    id: `${BOUND_PREFIX}${parent.id}:${a.uid || a.ref || i}`,
+  const row = (id: string, text: string, rag: NodeStatus, i: number): TreeNodeRow => ({
+    id: `${BOUND_PREFIX}${parent.id}:${id}`,
     projectId: parent.projectId,
     parentId: parent.id,
-    text: bindActionText(a),
-    rag: statusOfAction(a),
+    text, rag,
     sort: (i + 1) * 10,
     createdAt: parent.createdAt,
     updatedAt: parent.updatedAt,
-  }));
+  });
+  if (parent.bind.source === 'next') {
+    const ids = src.lineIdsFor(parent.bind.line);
+    return todosForBind(src.todos, parent.bind, ids)
+      .map((t, i) => row(t.id, todoText(t), statusOfTodo(t), i));
+  }
+  return actionsForBind(src.actions, parent.bind)
+    .map((a, i) => row(a.uid || a.ref || String(i), bindActionText(a), statusOfAction(a), i));
+}
+
+/** Everything a binding can draw from. Passed as one object so that adding a
+ *  third source later does not mean changing every caller again. */
+export interface BindSources {
+  actions: PaceAction[];
+  todos: PaceTodoRow[];
+  /** The app's line ids that answer to a tracker line key — 2A and 2B both
+   *  answer to "Line 2", and a Next step is logged against one of them. */
+  lineIdsFor: (lineKey?: string) => string[];
+}
+
+/** The usual sources, built from the project's lines. */
+export function bindSources(actions: PaceAction[], todos: PaceTodoRow[], lines: PaceLineRow[]): BindSources {
+  return {
+    actions, todos,
+    lineIdsFor: (lineKey) => {
+      if (!lineKey) return lines.map(l => l.id);
+      const want = digits(lineKey);
+      return lines.filter(l => digits(l.key) === want).map(l => l.id);
+    },
+  };
 }
 
 /** Every row the tree should draw: what is stored, plus what the bindings bring
@@ -147,20 +211,24 @@ export function boundChildren(parent: TreeNodeRow, actions: PaceAction[]): TreeN
  *  is meant to save typing, not to throw away the box somebody already wrote
  *  under it — and silently deleting work would be the fastest way to make
  *  nobody trust the feature. */
-export function withTrackerRows(nodes: TreeNodeRow[], actions: PaceAction[]): TreeNodeRow[] {
+export function withTrackerRows(nodes: TreeNodeRow[], src: BindSources): TreeNodeRow[] {
   if (!nodes.some(n => n.bind)) return nodes;
   const out: TreeNodeRow[] = [];
   for (const n of nodes) {
     out.push(n);
-    if (n.bind) out.push(...boundChildren(n, actions));
+    if (n.bind) out.push(...boundChildren(n, src));
   }
   return out;
 }
 
 /** How many rows a binding is holding, and how many of those are finished —
  *  what a folded branch should say instead of a bare count. */
-export function bindCount(bind: TrackerBind, actions: PaceAction[]): { total: number; done: number } {
-  const rows = actionsForBind(actions, bind);
+export function bindCount(bind: TrackerBind, src: BindSources): { total: number; done: number } {
+  if (bind.source === 'next') {
+    const rows = todosForBind(src.todos, bind, src.lineIdsFor(bind.line));
+    return { total: rows.length, done: rows.filter(t => statusOfTodo(t) === 'g').length };
+  }
+  const rows = actionsForBind(src.actions, bind);
   return { total: rows.length, done: rows.filter(a => statusOfAction(a) === 'g').length };
 }
 

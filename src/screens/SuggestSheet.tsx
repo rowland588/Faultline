@@ -18,14 +18,20 @@ import { useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
 import { suggestConditions, trackerLines, allLinesCount, ALL_LINES, type TrackerBind } from '../lib/treeBind';
+import { SourceStrip } from './BindSheet';
 
 export function SuggestSheet({
-  title, lines, actions, onBuild, onClose,
+  title, lines, actions, source, takenAt, todoCount, onBuild, onClose,
 }: {
   /** The "what needs to be true" box these conditions will hang under. */
   title: string;
   lines: PaceLineRow[];
   actions: PaceAction[];
+  /** Which workbook these actions came from, and when it was read. */
+  source?: string;
+  takenAt?: number;
+  /** How many of the project's OWN Next steps sit on the chosen line. */
+  todoCount?: (lineKey: string) => number;
   onBuild: (picked: { text: string; bind: TrackerBind }[]) => void;
   onClose: () => void;
 }) {
@@ -43,7 +49,22 @@ export function SuggestSheet({
   const proposed = useMemo(() => suggestConditions(actions, line), [actions, line]);
   const [off, setOff] = useState<Set<string>>(new Set());
 
-  const chosen = proposed.filter(p => !off.has(p.text));
+  /* The tracker is not the only work. A project's Next steps are decisions the
+     team took that never went near a spreadsheet, they are already in the app,
+     and leaving them off meant the plan on the wall was missing them. Offered
+     as one more condition, bound to the line rather than to a category —
+     Next steps do not carry one. */
+  const ownWork = todoCount?.(line) ?? 0;
+  const all = ownWork > 0
+    ? [...proposed, {
+        text: 'What we decided to do about it ourselves',
+        bind: (line === ALL_LINES ? { allLines: true, source: 'next' } : { line, source: 'next' }) as TrackerBind,
+        count: ownWork,
+        own: true,
+      }]
+    : proposed.map(p => ({ ...p, own: false }));
+
+  const chosen = all.filter(p => !off.has(p.text));
   const toggle = (t: string) =>
     setOff(o => { const n = new Set(o); if (n.has(t)) n.delete(t); else n.add(t); return n; });
 
@@ -56,6 +77,7 @@ export function SuggestSheet({
           Untick anything that doesn’t belong, then <b>edit the wording on the tree</b> — these are a
           starting point, not the finished sentence.
         </p>
+        <SourceStrip fileName={source} takenAt={takenAt} />
 
         {(choices.length > 1 || spanning > 0) && (
           <>
@@ -76,7 +98,7 @@ export function SuggestSheet({
         )}
 
         <p className="wp-lbl">Under “{title || 'this box'}”</p>
-        {proposed.length === 0 ? (
+        {all.length === 0 ? (
           /* A line with nothing of its own is a real finding, not an error, and
              it is worth saying out loud: on the baseline workbook Line 7 has no
              dedicated actions at all — everything that looked like its work was
@@ -94,7 +116,7 @@ export function SuggestSheet({
           </p>
         ) : (
           <ul className="sg-list">
-            {proposed.map(p => (
+            {all.map(p => (
               <li key={p.text}>
                 <button
                   type="button"
@@ -105,7 +127,11 @@ export function SuggestSheet({
                   <span className="sg-tick" aria-hidden>{off.has(p.text) ? '' : '✓'}</span>
                   <span className="sg-main">
                     <span className="sg-t">{p.text}</span>
-                    <span className="sg-s">{p.bind.categories?.[0]} · {p.count} action{p.count === 1 ? '' : 's'}</span>
+                    <span className="sg-s">
+                      {'own' in p && p.own
+                        ? <>this project’s own Next steps · {p.count}</>
+                        : <>{p.bind.categories?.[0]} · {p.count} action{p.count === 1 ? '' : 's'}</>}
+                    </span>
                   </span>
                 </button>
               </li>
@@ -116,7 +142,7 @@ export function SuggestSheet({
         <div className="wp-foot">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <div style={{ flex: 1 }} />
-          {proposed.length === 0 && spanning > 0 && line !== ALL_LINES ? (
+          {all.length === 0 && spanning > 0 && line !== ALL_LINES ? (
             <button className="btn btn-primary" onClick={() => { setLine(ALL_LINES); setOff(new Set()); }}>
               Show the {spanning} across every line
             </button>
