@@ -234,11 +234,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
-          {/* The board needs no setting: it appears the moment the workbook has a
-              Pillar column to draw it from, and says nothing until then. */}
-          {pace.actions.some(a => (a.pillar ?? '').trim()) && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/board`)}>Board</button>
-          )}
           {/* Offered only where the project asked for it — see Project.leverTree. */}
           {project.leverTree && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
@@ -263,6 +258,17 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <span className="pace-lens-s">{l.sub}</span>
           </button>
         ))}
+        {/* THE BOARD SITS IN THE ROW WITH EVERY OTHER VIEW, ALWAYS.
+            It used to appear only once the uploaded workbook already carried a
+            3P column — which hid the one screen that says what a 3P column is
+            and how to add one behind having already added it. The board is
+            reached from here whatever the workbook holds; if the column is not
+            there yet the board says so, in words, with the upload one tap
+            away. A view nobody can find is a view that does not exist. */}
+        <button className="pace-lens" onClick={() => nav(`/project/${projectId}/board`)}>
+          <span className="pace-lens-l">3P Board</span>
+          <span className="pace-lens-s">people · plant · process</span>
+        </button>
       </nav>
 
       {lens === 'overview' && (

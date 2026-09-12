@@ -151,17 +151,36 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       )}
 
       {!full.hasPillarColumn ? (
-        /* The column is missing rather than blank — a different job from a
-           blank cell, and worth saying separately so nobody goes hunting
-           through rows for something that was never there. */
+        /* Three different situations, three different sentences, because each
+           one needs a different thing doing. Nothing here is a dead end: the
+           upload is a tap away in every case, since the answer to all three is
+           a workbook this screen has not read yet. */
         <div className="bd-empty">
-          <p className="bd-empty-t">The workbook hasn’t got a <b>3P</b> column yet</p>
-          <p className="sub">
-            Add one column to the Tracker sheet, headed <b>3P</b> (or <b>Pillar</b>), and put
-            <b> People</b>, <b>Plant</b> or <b>Process</b> against each row. Upload it and this board
-            builds itself. Nothing else in the workbook needs to change — every other screen keeps
-            reading it exactly as it does now.
-          </p>
+          {pace.actions.length === 0 ? (
+            <>
+              <p className="bd-empty-t">Nothing uploaded to this project yet</p>
+              <p className="sub">
+                The board is drawn from the weekly tracker — every card on it is a row of your own
+                workbook. Upload this week’s and it builds itself.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="bd-empty-t">This workbook hasn’t got a <b>3P</b> column yet</p>
+              <p className="sub">
+                The tracker the app has read{source?.fileName ? <> — <b>{source.fileName}</b></> : null} carries
+                {' '}{pace.actions.length} action{pace.actions.length === 1 ? '' : 's'} and no <b>3P</b> column,
+                so there is nothing to sort them into. Add one column to the Tracker sheet, headed
+                {' '}<b>3P</b> (or <b>Pillar</b>), and put <b>People</b>, <b>Plant</b> or <b>Process</b> against
+                each row. Nothing else in the workbook needs to change — every other screen keeps reading
+                it exactly as it does now.
+              </p>
+            </>
+          )}
+          <button className="btn btn-primary" style={{ marginTop: 16 }}
+            onClick={() => nav(`/project/${projectId}?view=data`)}>
+            Upload the workbook
+          </button>
         </div>
       ) : shown.areas.length === 0 ? (
         <p className="sub">Nothing matches that filter.</p>
