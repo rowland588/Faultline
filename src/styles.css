@@ -3967,32 +3967,78 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 
 /* the board, on the report sheet. Three columns whatever the width — this is a
-   sheet of A3, not a responsive page, and the shape IS the message. */
-.exec-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 10px; }
-.exec-bcol { border-top: 3px solid var(--line-2); padding-top: 9px; }
-.exec-bcol.is-people  { border-top-color: var(--brand); }
-.exec-bcol.is-process { border-top-color: var(--blue); }
-.exec-bcol.is-plant   { border-top-color: var(--st-a); }
-.exec-bcol-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; margin-bottom: 8px; }
-.exec-bcol-t { font-size: 14px; font-weight: 800; color: var(--ink); }
-.exec-bcol-n { font-size: 11.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-.exec-bcol-s { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
+   sheet of A3, not a responsive page, and the shape IS the message.
+
+   EVERY VERTICAL MEASUREMENT HERE COMES FROM lib/pillars, injected as custom
+   properties by BoardPage. It is the same arithmetic the PDF draws with, in the
+   same unit, scaled by the same fill factor — so the preview is the file rather
+   than a near miss, and the page count can be trusted by both. Nothing in this
+   block may be given a height of its own. */
+.exec-areas { margin-top: 10px; }
+.exec-board {
+  display: grid; gap: 14px;
+  /* minmax(0,…), not 1fr. A card's text is one no-wrap line, and a plain 1fr
+     column refuses to shrink below its own min-content — so the three columns
+     grew to the width of the longest action and two of them walked off the
+     sheet. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.exec-bcol { border-top: none; padding-top: 0; min-width: 0; }
+.exec-bcol-h {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+  height: var(--ba-colhead); box-sizing: border-box;
+  padding-bottom: calc(var(--ba-colhead) * 0.2);
+  border-bottom: 2px solid var(--line-2);
+}
+.exec-bcol.is-people  .exec-bcol-h { border-bottom-color: var(--brand); }
+.exec-bcol.is-process .exec-bcol-h { border-bottom-color: var(--blue); }
+.exec-bcol.is-plant   .exec-bcol-h { border-bottom-color: var(--st-a); }
+.exec-bcol-t {
+  font-size: var(--ba-f-col); font-weight: 800; line-height: 1;
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink);
+}
+.exec-bcol.is-people  .exec-bcol-t { color: var(--brand); }
+.exec-bcol.is-process .exec-bcol-t { color: var(--blue); }
+.exec-bcol.is-plant   .exec-bcol-t { color: var(--st-a); }
+.exec-bcol-n {
+  font-size: calc(var(--ba-f-col) * 0.94); font-weight: 700; line-height: 1;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+/* A FIXED CARD, because the arithmetic that decided the board fits assumed one.
+   The action text is one line — the workbook's Action cells run to paragraphs
+   and the detail is a tap away in the app — and that is precisely what buys the
+   room to get every area onto one sheet. */
 .exec-bcard {
-  display: block; margin-bottom: 6px; padding: 7px 9px; border-radius: 8px;
-  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-n);
+  display: block; box-sizing: border-box; overflow: hidden;
+  height: var(--ba-card); margin-bottom: var(--ba-gap);
+  padding: calc(var(--ba-card) * 0.09) var(--ba-pad);
+  border-radius: 3px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 2px solid var(--st-n);
   break-inside: avoid;
 }
 .exec-bcard.is-w { border-left-color: var(--st-w); }
 .exec-bcard.is-a { border-left-color: var(--st-a); }
 .exec-bcard.is-r { border-left-color: var(--st-r); }
 .exec-bcard.is-g { border-left-color: var(--st-g); }
-.exec-bcard-t { display: block; font-size: 12px; line-height: 1.4; font-weight: 700; color: var(--ink); }
-.exec-bcard-f { display: block; margin-top: 3px; font-size: 10.5px; color: var(--ink-2); }
+.exec-bcard-t {
+  display: block; font-size: var(--ba-f-card); line-height: 1.25; font-weight: 700;
+  color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.exec-bcard-f {
+  display: block; margin-top: calc(var(--ba-card) * 0.05);
+  font-size: var(--ba-f-meta); line-height: 1.2; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .exec-bst { font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 6px; color: var(--st-n); }
 .exec-bst.is-w { color: var(--st-w); }
 .exec-bst.is-a { color: var(--st-a); }
 .exec-bst.is-r { color: var(--st-r); }
 .exec-bst.is-g { color: var(--st-g); }
+.exec-bcol .exec-empty {
+  height: var(--ba-card); margin: 0; padding: 0;
+  font-size: var(--ba-f-col); line-height: var(--ba-card); color: var(--muted);
+}
 
 /* the area blocks — one per line/area, three pillar columns inside each */
 .bd-area { margin-bottom: 22px; }
@@ -4002,11 +4048,23 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .bd-col.is-plant { border-top-color: var(--st-a); }
 .bd-col.is-process { border-top-color: var(--blue); }
 
-/* on the report sheet */
-.exec-area { margin-bottom: 12px; }
-.exec-area-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--line); }
-.exec-area-h b { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); }
-.exec-area-h span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* on the report sheet — heights from lib/pillars, never from here */
+.exec-area { margin-bottom: var(--ba-areagap); }
+.exec-area:last-child { margin-bottom: 0; }
+.exec-area-h {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  height: var(--ba-head); box-sizing: border-box; margin: 0;
+  padding-bottom: calc(var(--ba-head) * 0.18);
+  border-bottom: 1px solid var(--line);
+}
+.exec-area-h b {
+  font-size: var(--ba-f-area); font-weight: 800; line-height: 1;
+  text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink);
+}
+.exec-area-h span {
+  font-size: calc(var(--ba-f-area) * 0.75); line-height: 1;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
 .exec-bcol.is-plant { border-top-color: var(--st-a); }
 .exec-bcol.is-process { border-top-color: var(--blue); }
 

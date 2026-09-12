@@ -32,7 +32,8 @@ import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
-import { board as buildBoard, cardTitle, boardSheets } from '../lib/pillars';
+import { board as buildBoard, cardTitle, boardSheets, boardScale, runHeight,
+  BOARD_CARD_H, BOARD_CARD_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -118,11 +119,13 @@ function TreePage({ rows, title, scale, sheetH, of }: {
  * the SHAPE is the message. Three columns handed across a table say "these are
  * the three kinds of problem and here is where each stands"; the same cards as
  * a list say something much weaker. */
-function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet }: {
+function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet, fill }: {
   rows: PaceReportData['board']; unplaced: number; title: string;
   scale: number; sheetH: number; n: number; of: number;
   /** The areas this particular sheet carries — see boardSheets in lib/pillars. */
   areas: string[]; sheet: number;
+  /** How much the board is scaled to fill this sheet — see boardScale. */
+  fill: number;
 }) {
   if (rows.length === 0) return null;   // never a page with a heading and nothing under it
   const cols = [
@@ -134,6 +137,26 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
     n: 'Not started', w: 'In progress', a: 'Overdue', r: 'Blocked', g: 'Done',
   };
   const areas = plan;
+
+  /* THE SAME DRAWING AS THE PDF, AT THE SAME SIZE. Every measurement below is
+   * the PDF's own number in points, converted once to this sheet's pixels and
+   * multiplied by the fill scale — so the preview is not merely similar to the
+   * file, it is the file. One unit, one arithmetic, no second opinion. */
+  const u = BOARD_PX * fill;
+  const px = (pt: number) => `${pt * u}px`;
+  const geom = {
+    '--ba-head': px(16),
+    '--ba-colhead': px(14),
+    '--ba-card': px(BOARD_CARD_H),
+    '--ba-gap': px(BOARD_CARD_GAP),
+    '--ba-areagap': px(BOARD_AREA_GAP),
+    '--ba-pad': px(8),
+    '--ba-f-area': px(10),
+    '--ba-f-col': px(8),
+    '--ba-f-card': px(7.8),
+    '--ba-f-meta': px(6.5),
+  } as React.CSSProperties;
+
   return (
     <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
@@ -141,6 +164,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
           <section className="exec-box">
             <SectionHead n={String(n)} title={'3P Board — People · Plant · Process' + (sheet > 1 ? ' (continued)' : '')}
               sowhat="Every card off this week’s workbook — nothing typed, nothing stored" />
+            <div className="exec-areas" style={geom}>
             {areas.map(area => {
               const mine = rows.filter(r => r.area === area);
               return (
@@ -176,6 +200,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
                 </div>
               );
             })}
+            </div>
           </section>
         </div>
         <footer className="exec-foot">
@@ -234,7 +259,11 @@ export function PaceExecReport() {
     const el = root.current;
     if (!el || loading) return;
     const fit = () => {
-      const w = el.clientWidth;
+      /* The CONTENT box, not clientWidth — that includes the page's own side
+         padding, so the sheet was scaled 32px wider than the space it had and
+         every preview page lost its right-hand edge. */
+      const cs = getComputedStyle(el);
+      const w = el.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0');
       if (w > 0) setScale(Math.min(1, w / SHEET_W));
     };
     fit();
@@ -353,11 +382,10 @@ export function PaceExecReport() {
    * same way, in the same order. */
   const hasTree = !line && !!project?.leverTree && fullTree.length > 0;
   /* The identical rule the PDF uses — see lib/pillars. Two rules is how a
-   * four-page PDF ends up stamped "page 2 of 3". */
-  const BOARD_AVAIL = 1131 - 2 * 28 - 14 - 60;
+   * four-page PDF ends up stamped "page 2 of 3", and two units is how the same
+   * rule reaches two answers, so the available height lives there too. */
   const boardPlan = boardSheets(
     boardData.areas.map(a => ({ name: a.name, counts: a.columns.map(c => c.rows.length) })),
-    BOARD_AVAIL,
   );
   const pageCount = 2 + (hasTree ? 1 : 0) + boardPlan.length;
   const boardPageNo = 2 + (hasTree ? 1 : 0);
@@ -627,7 +655,8 @@ export function PaceExecReport() {
       {boardPlan.map((sheetAreas, i) => (
         <BoardPage key={i} rows={boardRows} unplaced={boardData.unplaced.length} title={title}
           scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount}
-          areas={sheetAreas.map(a => a.name)} sheet={i + 1} />
+          areas={sheetAreas.map(a => a.name)} sheet={i + 1}
+          fill={boardScale(runHeight(sheetAreas))} />
       ))}
 
       {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}

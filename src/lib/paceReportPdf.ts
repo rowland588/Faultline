@@ -16,7 +16,8 @@
  * The layout deliberately mirrors the on-screen report: the same sections in the
  * same order, the same palette, the same chart geometry. */
 import type { jsPDF } from 'jspdf';
-import { boardSheets, BOARD_CARD_H, BOARD_CARD_GAP } from './pillars';
+import { boardSheets, boardScale, runHeight, BOARD_CARD_H, BOARD_CARD_GAP,
+  BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 
 /* ---------- the app's palette, as the report uses it ---------- */
 const INK = '#0c1f26', INK2 = '#35505a', MUTED = '#6b8892', LINE = '#dbe8e6';
@@ -559,14 +560,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     chart(d, cx, cy, cW, cH, l);
   });
 
-  /* The drawable height of one board sheet, and the layout that follows from it.
-   * Measured once here and read by both the page count and the drawing. */
-  const BOARD_AVAIL = H - 2 * M - 14 - 60;
+  /* The areas, and how they fall across sheets. BOARD_AVAIL comes from
+   * lib/pillars and is in points — the same number the report screen measures
+   * against, so the two can never disagree about the page count. */
   const boardAreas = [...new Set(data.board.map(b => b.area))].map(area => ({
     area,
     counts: PILL_KEYS.map(k => data.board.filter(b => b.area === area && b.pillar === k).length),
   }));
-  const boardPlan = boardSheets(boardAreas, BOARD_AVAIL);
+  const boardPlan = boardSheets(boardAreas);
   const pages = 2 + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
@@ -634,10 +635,16 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     const colGap = 14;
     const colW = (CW - 24 - colGap * 2) / 3;
 
-    /* Never truncate. An area that will not fit starts a fresh sheet rather than
-       being cut off or dropped — on the first run of the real workbook this
-       page silently lost ALL LINES entirely and clipped CELLOX to "+1 more",
-       which is the one thing a board must never do. */
+    /* FIT AND FILL. The board is four or five area cards and it wants to be
+       taken in whole, across a table — so the whole drawing is scaled to the
+       sheet it is on, DOWN when there is a lot of work and UP when there is
+       not. A board that leaves the bottom third of an A3 blank is as wrong as
+       one that runs off the edge; it just fails more quietly.
+
+       Each sheet gets its own scale, because a spilled second sheet carrying
+       one area should fill itself rather than print a single card at the top.
+       Every vertical measurement and every type size below is multiplied by
+       it, so the page is the same drawing at a different size. */
     let ay = bpY + 14;
     let sheet = 1;
 
@@ -650,38 +657,42 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
           '3P Board — People · Plant · Process (continued)',
           'Every card off this week\u2019s workbook — nothing typed, nothing stored') + 14;
       }
+      const k = boardScale(runHeight(plan));
       for (const blk of plan) {
       const area = blk.area;
       const mine = data.board.filter(b => b.area === area);
 
       // the area's own heading, ruled across all three columns
-      setFont(d, 10, 'bold', '#141b26');
-      d.text(area.toUpperCase(), M + 12, ay);
-      setFont(d, 7.5, 'normal', MUTED);
+      setFont(d, 10 * k, 'bold', '#141b26');
+      d.text(area.toUpperCase(), M + 12, ay + 8 * k);
+      setFont(d, 7.5 * k, 'normal', MUTED);
       d.text(`${mine.length} action${mine.length === 1 ? '' : 's'} · ${mine.filter(b => b.rag === 'g').length} done`,
-        M + 12 + CW - 24, ay, { align: 'right' });
+        M + 12 + CW - 24, ay + 8 * k, { align: 'right' });
       d.setDrawColor(LINE); d.setLineWidth(0.8);
-      d.line(M + 12, ay + 4, M + 12 + CW - 24, ay + 4);
-      ay += 16;
+      d.line(M + 12, ay + 12 * k, M + 12 + CW - 24, ay + 12 * k);
 
-      /* Each area's block is as tall as its fullest column, so the next area
-         starts clear of all three rather than overlapping the longest one. */
-      let tallest = 0;
+      /* The area's block is exactly as tall as the arithmetic in lib/pillars
+         says it is — that is what makes the fit honest rather than hopeful. */
+      const headH = 16 * k;
+      const colHeadH = 14 * k;
+      const cardH = BOARD_CARD_H * k;
+      const cardGap = BOARD_CARD_GAP * k;
+
       PILL.forEach((p, i) => {
         const x = M + 12 + i * (colW + colGap);
         const rows = mine.filter(b => b.pillar === p.key);
-        setFont(d, 8, 'bold', p.c);
-        d.text(p.label, x, ay);
-        setFont(d, 7.5, 'normal', MUTED);
-        d.text(String(rows.length), x + colW, ay, { align: 'right' });
+        const hy = ay + headH + 8 * k;
+        setFont(d, 8 * k, 'bold', p.c);
+        d.text(p.label, x, hy);
+        setFont(d, 7.5 * k, 'normal', MUTED);
+        d.text(String(rows.length), x + colW, hy, { align: 'right' });
         d.setDrawColor(p.c); d.setLineWidth(1.2);
-        d.line(x, ay + 3, x + colW, ay + 3);
+        d.line(x, hy + 3 * k, x + colW, hy + 3 * k);
 
-        let y = ay + 14;
+        let y = ay + headH + colHeadH;
         if (rows.length === 0) {
-          setFont(d, 8, 'normal', MUTED);
-          d.text('\u2014', x, y);
-          tallest = Math.max(tallest, y + 4 - ay);
+          setFont(d, 8 * k, 'normal', MUTED);
+          d.text('\u2014', x, y + 8 * k);
           return;
         }
         for (const b of rows) {
@@ -691,33 +702,41 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
              about in the room. */
           const st = { ...(TREE_STATUS[b.rag] ?? TREE_STATUS.n) };
           if (b.rag === 'a') st.label = 'Overdue';
-          setFont(d, 7.8, 'bold', '#141b26');
-          const lines = d.splitTextToSize(b.title, colW - 16) as string[];
-          const shown = lines.slice(0, 2);
-          if (lines.length > 2) shown[1] = (shown[1] ?? '').replace(/\s*\S*$/, '\u2026');
-          /* FIXED, not measured — see BOARD_CARD_H. The pagination arithmetic
-             the page count relies on is only true if every card is this tall. */
-          const cardH = BOARD_CARD_H;
+
           const [wr, wg, wb] = wash(st.c, 0.06);
           d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);
           d.roundedRect(x, y, colW, cardH, 3, 3, 'FD');
           d.setFillColor(st.c); d.rect(x, y + 1, 2, cardH - 2, 'F');
 
-          setFont(d, 7.8, 'bold', '#141b26');
-          let ty = y + 11;
-          for (const ln of shown) { d.text(ln, x + 8, ty); ty += 9; }
+          /* ONE line of action text, not two. The workbook's Action cells run
+             to paragraphs — several dated updates in one cell — and a wall
+             board wants the gist with the detail a tap away in the app. That
+             one line is what buys the room to get every area onto one sheet. */
+          setFont(d, 7.8 * k, 'bold', '#141b26');
+          const lines = d.splitTextToSize(b.title, colW - 16) as string[];
+          const head = lines.length > 1
+            ? (lines[0] ?? '').replace(/\s*\S*$/, '\u2026')
+            : (lines[0] ?? '');
+          d.text(head, x + 8 * k, y + 11 * k);
 
-          setFont(d, 6.5, 'bold', st.c);
-          d.text(st.label.toUpperCase(), x + 8, ty);
+          const ty = y + 20 * k;
+          setFont(d, 6.5 * k, 'bold', st.c);
+          d.text(st.label.toUpperCase(), x + 8 * k, ty);
           const stW = d.getTextWidth(st.label.toUpperCase());
-          setFont(d, 6.5, 'normal', INK2);
-          d.text(fit(d, [b.owner, b.due && 'due ' + b.due].filter(Boolean).join(' \u00b7 '), colW - 20 - stW),
-            x + 8 + stW + 6, ty);
-          y += cardH + BOARD_CARD_GAP;
+          setFont(d, 6.5 * k, 'normal', INK2);
+          d.text(fit(d, [b.owner, b.due && 'due ' + b.due].filter(Boolean).join(' \u00b7 '), colW - 20 * k - stW),
+            x + 8 * k + stW + 6 * k, ty);
+          y += cardH + cardGap;
         }
-        tallest = Math.max(tallest, y - ay);
       });
-      ay += tallest + 14;
+
+      /* Advance by the SAME arithmetic the page count used, not by whatever the
+         drawing happened to reach — that is the difference between a board that
+         fits and one that is merely close. */
+      const tallest = Math.max(...blk.counts, 0);
+      ay += BOARD_AREA_CHROME * k
+        + (tallest ? tallest * (BOARD_CARD_H + BOARD_CARD_GAP) * k : 14 * k)
+        + BOARD_AREA_GAP * k;
       }
     }
 

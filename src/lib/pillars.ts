@@ -127,35 +127,78 @@ export const cardTitle = (a: PaceAction): string =>
   (a.action || a.problem || '').trim() || `Action ${a.ref}`;
 
 
-/* ---------- how the board paginates ----------
+/* ---------- how the board FITS ----------
  * ONE rule, shared by the on-screen report and the PDF, because two rules is
  * how a four-page PDF ends up stamped "page 2 of 3". It is pure arithmetic on
  * the card COUNTS rather than on measured text, which is what lets both media
  * reach the same answer without one of them running a typesetter.
  *
- * The cost is that every printed card is the same height whether its text runs
- * to one line or two. That is a price worth paying: a board of uniform cards
- * reads better across a table anyway, and a page number that is always right
- * is worth more than a few millimetres of paper. */
-export const BOARD_CARD_H = 42;      // one card, at its fixed printed height
+ * The aim is ONE SHEET. An area is a card and there are only ever a handful of
+ * them, so a board that spills onto a second page has failed at the one thing a
+ * board is for: being taken in whole, at a glance, across a table. Two things
+ * buy the room:
+ *
+ *   1. A printed card is ONE line of action text, not two. The workbook's
+ *      Action cells run to paragraphs — several dated updates in one cell — and
+ *      a wall board wants the gist with the detail a tap away in the app.
+ *   2. The whole drawing is then scaled to the page, DOWN to fit and UP to
+ *      fill. A board that leaves the bottom third of an A3 blank is as wrong as
+ *      one that runs off the edge; it just fails more quietly.
+ *
+ * Only when even the floor scale cannot hold it does it spill, and then it
+ * spills whole areas rather than cutting one in half.
+ */
+export const BOARD_CARD_H = 24;      // one line of action, plus its status row
 export const BOARD_CARD_GAP = 5;
 export const BOARD_AREA_CHROME = 30; // the area heading plus the column headings
 export const BOARD_AREA_GAP = 14;
 
-/** How tall one area's block prints. */
+/** How far the drawing may be squeezed before the type stops being readable
+ *  across a table, and how far it may be stretched before the cards stop
+ *  looking like cards. */
+export const BOARD_MIN_SCALE = 0.74;
+export const BOARD_MAX_SCALE = 1.5;
+
+/* THE SHEET, IN ONE UNIT. The PDF draws in points and the report screen draws
+ * in pixels, and for a while each worked out its own available height in its
+ * own unit — which meant the two could reach different answers about how many
+ * sheets the board needs, and the screen would show three pages while the file
+ * had two. So the geometry above is in POINTS, both media measure against the
+ * same available height, and the screen converts once, here. */
+export const BOARD_SHEET_H = 841.89;              // A3 landscape, points
+export const BOARD_SHEET_PX_H = 1131;             // the same sheet, on screen
+/** What is left for cards after the page margins, the panel head and the foot. */
+export const BOARD_AVAIL = BOARD_SHEET_H - 2 * 26 - 14 - 60;
+/** One point, in report-screen pixels. */
+export const BOARD_PX = BOARD_SHEET_PX_H / BOARD_SHEET_H;
+
+/** How tall one area's block is at scale 1. */
 export function areaBlockHeight(counts: number[]): number {
   const tallest = Math.max(...counts, 0);
   return BOARD_AREA_CHROME + (tallest ? tallest * (BOARD_CARD_H + BOARD_CARD_GAP) : 14);
 }
 
-/** Split the areas across sheets of `avail` height. Both media call this. */
-export function boardSheets<T extends { counts: number[] }>(areas: T[], avail: number): T[][] {
+/** The unscaled height of a run of areas. */
+export const runHeight = (areas: { counts: number[] }[]): number =>
+  areas.reduce((t, a) => t + areaBlockHeight(a.counts), 0)
+  + Math.max(0, areas.length - 1) * BOARD_AREA_GAP;
+
+/** Down to fit, up to fill — clamped so neither end is silly. */
+export const boardScale = (totalH: number, avail: number = BOARD_AVAIL): number =>
+  totalH <= 0 ? 1 : Math.min(BOARD_MAX_SCALE, Math.max(BOARD_MIN_SCALE, avail / totalH));
+
+/** Split the areas across sheets, but only when the floor scale cannot hold
+ *  them. Both media call this, so both agree on the page count. */
+export function boardSheets<T extends { counts: number[] }>(areas: T[], avail: number = BOARD_AVAIL): T[][] {
+  if (areas.length === 0) return [];
+  const roomAtFloor = avail / BOARD_MIN_SCALE;
+  if (runHeight(areas) <= roomAtFloor) return [areas];   // the whole board, one sheet
+
   const out: T[][] = [];
-  let cur: T[] = [], y = 0;
+  let cur: T[] = [];
   for (const a of areas) {
-    const h = areaBlockHeight(a.counts);
-    if (cur.length && y + h > avail) { out.push(cur); cur = []; y = 0; }
-    cur.push(a); y += h + BOARD_AREA_GAP;
+    if (cur.length && runHeight([...cur, a]) > roomAtFloor) { out.push(cur); cur = []; }
+    cur.push(a);
   }
   if (cur.length) out.push(cur);
   return out;
