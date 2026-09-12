@@ -98,8 +98,10 @@ function parseTracker(sheet: SheetData, warnings: string[]): PaceAction[] {
       flag: txt(at(row, 'flag')),
       /* People / Process / Plant. Several spellings because the column is new
          and whoever adds it will name it whatever reads best in the sheet. */
-      pillar: txt(at(row, 'pillar')) || txt(at(row, 'ppp'))
-        || txt(at(row, 'peopleprocessplant')) || txt(at(row, 'pillarppp')) || undefined,
+      /* "3P" is what the real workbook calls it; the others are spellings a
+         different sheet might reasonably use. */
+      pillar: txt(at(row, '3p')) || txt(at(row, 'pillar')) || txt(at(row, 'ppp'))
+        || txt(at(row, 'peopleplantprocess')) || txt(at(row, 'peopleprocessplant')) || undefined,
     });
   }
   if (!out.length) warnings.push(`"${sheet.name}" had headings but no action rows under them.`);

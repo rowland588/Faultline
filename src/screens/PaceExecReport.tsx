@@ -32,7 +32,7 @@ import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
-import { board as buildBoard, cardTitle } from '../lib/pillars';
+import { board as buildBoard, cardTitle, boardSheets } from '../lib/pillars';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -118,58 +118,70 @@ function TreePage({ rows, title, scale, sheetH, of }: {
  * the SHAPE is the message. Three columns handed across a table say "these are
  * the three kinds of problem and here is where each stands"; the same cards as
  * a list say something much weaker. */
-function BoardPage({ rows, unplaced, title, scale, sheetH, n, of }: {
+function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet }: {
   rows: PaceReportData['board']; unplaced: number; title: string;
   scale: number; sheetH: number; n: number; of: number;
+  /** The areas this particular sheet carries — see boardSheets in lib/pillars. */
+  areas: string[]; sheet: number;
 }) {
   if (rows.length === 0) return null;   // never a page with a heading and nothing under it
   const cols = [
-    { key: 'people' as const, label: 'People', blurb: 'who runs it, and whether they can' },
-    { key: 'process' as const, label: 'Process', blurb: 'the way of working itself' },
-    { key: 'plant' as const, label: 'Plant', blurb: 'the machine and everything on it' },
+    { key: 'people' as const, label: 'People' },
+    { key: 'plant' as const, label: 'Plant' },
+    { key: 'process' as const, label: 'Process' },
   ];
   const LABEL: Record<string, string> = {
     n: 'Not started', w: 'In progress', a: 'Overdue', r: 'Blocked', g: 'Done',
   };
+  const areas = plan;
   return (
     <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-1">
           <section className="exec-box">
-            <SectionHead n={String(n)} title="People · Process · Plant"
+            <SectionHead n={String(n)} title={'3P Board — People · Plant · Process' + (sheet > 1 ? ' (continued)' : '')}
               sowhat="Every card off this week’s workbook — nothing typed, nothing stored" />
-            <div className="exec-board">
-              {cols.map(c => {
-                const mine = rows.filter(r => r.pillar === c.key);
-                const done = mine.filter(r => r.rag === 'g').length;
-                return (
-                  <section key={c.key} className={'exec-bcol is-' + c.key}>
-                    <header className="exec-bcol-h">
-                      <span className="exec-bcol-t">{c.label}</span>
-                      <span className="exec-bcol-n">{mine.length}{mine.length ? ` · ${done} done` : ''}</span>
-                      <span className="exec-bcol-s">{c.blurb}</span>
-                    </header>
-                    {mine.length === 0
-                      ? <p className="exec-empty">Nothing here this week.</p>
-                      : mine.map((r, i) => (
-                        <article key={i} className={'exec-bcard is-' + r.rag}>
-                          <span className="exec-bcard-t">{r.title}</span>
-                          <span className="exec-bcard-f">
-                            <b className={'exec-bst is-' + r.rag}>{LABEL[r.rag]}</b>
-                            {[r.owner, r.line, r.due && 'due ' + r.due].filter(Boolean).join(' · ')}
-                          </span>
-                        </article>
-                      ))}
-                  </section>
-                );
-              })}
-            </div>
+            {areas.map(area => {
+              const mine = rows.filter(r => r.area === area);
+              return (
+                <div key={area} className="exec-area">
+                  <p className="exec-area-h">
+                    <b>{area}</b>
+                    <span>{mine.length} action{mine.length === 1 ? '' : 's'} · {mine.filter(r => r.rag === 'g').length} done</span>
+                  </p>
+                  <div className="exec-board">
+                    {cols.map(c => {
+                      const cr = mine.filter(r => r.pillar === c.key);
+                      return (
+                        <section key={c.key} className={'exec-bcol is-' + c.key}>
+                          <header className="exec-bcol-h">
+                            <span className="exec-bcol-t">{c.label}</span>
+                            <span className="exec-bcol-n">{cr.length}</span>
+                          </header>
+                          {cr.length === 0
+                            ? <p className="exec-empty">—</p>
+                            : cr.map((r, i) => (
+                              <article key={i} className={'exec-bcard is-' + r.rag}>
+                                <span className="exec-bcard-t">{r.title}</span>
+                                <span className="exec-bcard-f">
+                                  <b className={'exec-bst is-' + r.rag}>{LABEL[r.rag]}</b>
+                                  {[r.owner, r.due && 'due ' + r.due].filter(Boolean).join(' · ')}
+                                </span>
+                              </article>
+                            ))}
+                        </section>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {n} of {of} — people, process, plant</span>
+          <span>{title} · weekly executive report · page {n} of {of} — the 3P board{sheet > 1 ? ` (${sheet})` : ''}</span>
           <span>{unplaced > 0
-            ? `${unplaced} tracker row${unplaced === 1 ? '' : 's'} not placed in a pillar`
+            ? `${unplaced} tracker row${unplaced === 1 ? '' : 's'} with no 3P value`
             : 'Every tracker row is on the board.'}</span>
         </footer>
       </section>
@@ -329,17 +341,25 @@ export function PaceExecReport() {
    * the line when this is a line's own deck, so an owner's page shows only
    * their three columns. */
   const boardData = buildBoard(actions);
-  const boardRows: PaceReportData['board'] = boardData.columns.flatMap(c => c.rows.map(a => ({
-    pillar: c.key, title: cardTitle(a),
-    owner: (a.owner || a.who || '').trim(), line: a.line ?? '', due: a.due ?? '',
-    rag: statusOfAction(a),
-  })));
+  const boardRows: PaceReportData['board'] = boardData.areas.flatMap(ar =>
+    ar.columns.flatMap(c => c.rows.map(a => ({
+      area: ar.name, pillar: c.key, title: cardTitle(a),
+      owner: (a.owner || a.who || '').trim(), due: a.due ?? '',
+      rag: statusOfAction(a),
+    }))));
 
   /* Page numbers have to agree with the PDF's, because somebody will have one
    * on screen and the other in their hand. Both optional sheets are counted the
    * same way, in the same order. */
   const hasTree = !line && !!project?.leverTree && fullTree.length > 0;
-  const pageCount = 2 + (hasTree ? 1 : 0) + (boardRows.length > 0 ? 1 : 0);
+  /* The identical rule the PDF uses — see lib/pillars. Two rules is how a
+   * four-page PDF ends up stamped "page 2 of 3". */
+  const BOARD_AVAIL = 1131 - 2 * 28 - 14 - 60;
+  const boardPlan = boardSheets(
+    boardData.areas.map(a => ({ name: a.name, counts: a.columns.map(c => c.rows.length) })),
+    BOARD_AVAIL,
+  );
+  const pageCount = 2 + (hasTree ? 1 : 0) + boardPlan.length;
   const boardPageNo = 2 + (hasTree ? 1 : 0);
   // Which lines this report covers — one, or all of them.
   const reportLines = line ? [line] : ppm.lines;
@@ -604,8 +624,11 @@ export function PaceExecReport() {
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
       {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} of={pageCount} />}
-      <BoardPage rows={boardRows} unplaced={boardData.unplaced.length} title={title}
-        scale={scale} sheetH={SHEET_H} n={boardPageNo} of={pageCount} />
+      {boardPlan.map((sheetAreas, i) => (
+        <BoardPage key={i} rows={boardRows} unplaced={boardData.unplaced.length} title={title}
+          scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount}
+          areas={sheetAreas.map(a => a.name)} sheet={i + 1} />
+      ))}
 
       {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>

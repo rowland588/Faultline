@@ -25,9 +25,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
-import { actionsForLine } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
-import { board, cardTitle, type PillarKey } from '../lib/pillars';
+import { board, cardTitle } from '../lib/pillars';
 import { fmtRelative } from '../lib/format';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { NodeStatus } from '../db';
@@ -56,25 +55,24 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   const route = useRoute();
   const { loading, project } = useProject(projectId);
   const pace = usePaceSnapshots(projectId);
-  const [line, setLine] = useState('');
   const [hideDone, setHideDone] = useState(false);
 
   const source = pace.snapshots[0];
   const baseline = !!source?.fileName?.includes('(baseline)');
 
-  const lines = useMemo(
-    () => [...new Set(pace.actions.map(a => a.line).filter(Boolean))].sort(),
-    [pace.actions],
-  );
+  const [area, setArea] = useState('');
 
+  const full = useMemo(() => board(pace.actions), [pace.actions]);
+
+  /* Filtering narrows what is SHOWN, never what is counted as missing — the
+   * "not on the board" line has to keep telling the truth about the whole
+   * workbook whatever is on screen. */
   const shown = useMemo(() => {
-    let rows = line ? actionsForLine(pace.actions, line) : pace.actions;
+    let rows = pace.actions;
+    if (area) rows = rows.filter(a => (a.line ?? '').trim() === area);
     if (hideDone) rows = rows.filter(a => statusOfAction(a) !== 'g');
-    return rows;
-  }, [pace.actions, line, hideDone]);
-
-  const b = useMemo(() => board(shown), [shown]);
-  const total = b.columns.reduce((n, c) => n + c.rows.length, 0);
+    return board(rows);
+  }, [pace.actions, area, hideDone]);
 
   if (loading || pace.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
@@ -85,8 +83,6 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       </div>
     );
   }
-
-  const done = (k: PillarKey) => b.columns.find(c => c.key === k)!.rows.filter(a => statusOfAction(a) === 'g').length;
 
   return (
     <div className="wrap pace bd-screen">
@@ -119,15 +115,17 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         {baseline
           ? <><b>Your tracker as at 6 Aug</b> — the snapshot the app shipped with, not this week’s. Upload the current workbook and the board becomes live.</>
           : source
-            ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {total} card{total === 1 ? '' : 's'}</>
+            ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.total} card{full.total === 1 ? '' : 's'} across {full.areas.length} area{full.areas.length === 1 ? '' : 's'}</>
             : <>No tracker uploaded to this project yet.</>}
       </p>
 
-      {lines.length > 1 && (
+      {full.areas.length > 1 && (
         <div className="bd-filters">
-          <button className={'chip' + (line === '' ? ' on' : '')} onClick={() => setLine('')}>Every line</button>
-          {lines.map(l => (
-            <button key={l} className={'chip' + (line === l ? ' on' : '')} onClick={() => setLine(l)}>{l}</button>
+          <button className={'chip' + (area === '' ? ' on' : '')} onClick={() => setArea('')}>Every area</button>
+          {full.areas.map(a => (
+            <button key={a.name} className={'chip' + (area === a.name ? ' on' : '')} onClick={() => setArea(a.name)}>
+              {a.name} <span className="bs-n">{a.total}</span>
+            </button>
           ))}
           <button className={'chip' + (hideDone ? ' on' : '')} onClick={() => setHideDone(v => !v)}>
             {hideDone ? 'Hiding done' : 'Showing done'}
@@ -135,59 +133,71 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      {!b.hasPillarColumn ? (
+      {!full.hasPillarColumn ? (
         /* The column is missing rather than blank — a different job from a
            blank cell, and worth saying separately so nobody goes hunting
            through rows for something that was never there. */
         <div className="bd-empty">
-          <p className="bd-empty-t">The workbook hasn’t got a <b>Pillar</b> column yet</p>
+          <p className="bd-empty-t">The workbook hasn’t got a <b>3P</b> column yet</p>
           <p className="sub">
-            Add one column to the Tracker sheet, headed <b>Pillar</b> (or <b>PPP</b>), and put
-            <b> People</b>, <b>Process</b> or <b>Plant</b> against each row. Upload it and this board
+            Add one column to the Tracker sheet, headed <b>3P</b> (or <b>Pillar</b>), and put
+            <b> People</b>, <b>Plant</b> or <b>Process</b> against each row. Upload it and this board
             builds itself. Nothing else in the workbook needs to change — every other screen keeps
             reading it exactly as it does now.
           </p>
         </div>
+      ) : shown.areas.length === 0 ? (
+        <p className="sub">Nothing matches that filter.</p>
       ) : (
-        <div className="bd-cols">
-          {b.columns.map(c => (
-            <section key={c.key} className={'bd-col is-' + c.key}>
-              <header className="bd-col-h">
-                <h2 className="bd-col-t">{c.label}</h2>
-                <span className="bd-col-n">{c.rows.length}{c.rows.length ? ` · ${done(c.key)} done` : ''}</span>
-                <span className="bd-col-s">{c.blurb}</span>
-              </header>
-              <div className="bd-col-b">
-                {c.rows.length === 0
-                  ? <p className="sub bd-none">Nothing here this week.</p>
-                  : c.rows.map((a, i) => <Card key={a.uid || a.ref || i} a={a} />)}
-              </div>
-            </section>
-          ))}
-        </div>
+        /* One block per area, three columns inside it — the workbook's own 3P
+           Board sheet, drawn from the Tracker rows it is itself a view of. */
+        shown.areas.map(a => (
+          <section key={a.name} className="bd-area">
+            <header className="bd-area-h">
+              <h2 className="bd-area-t">{a.name}</h2>
+              <span className="bd-area-n">{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
+            </header>
+            <div className="bd-cols">
+              {a.columns.map(c => (
+                <section key={c.key} className={'bd-col is-' + c.key}>
+                  <header className="bd-col-h">
+                    <h3 className="bd-col-t">{c.label}</h3>
+                    <span className="bd-col-n">{c.rows.length}</span>
+                    <span className="bd-col-s">{c.blurb}</span>
+                  </header>
+                  <div className="bd-col-b">
+                    {c.rows.length === 0
+                      ? <p className="sub bd-none">—</p>
+                      : c.rows.map((x, i) => <Card key={x.uid || x.ref || i} a={x} />)}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </section>
+        ))
       )}
 
       {/* Never lose a row. Same promise the lever tree makes. */}
-      {b.unplaced.length > 0 && (
+      {full.unplaced.length > 0 && (
         <div className="lt-gap bd-gap">
           <span className="lt-gap-t">
-            <b>{b.unplaced.length}</b> action{b.unplaced.length === 1 ? '' : 's'} {b.unplaced.length === 1 ? 'is' : 'are'} not on the board —
-            {b.hasPillarColumn ? ' the Pillar cell is blank or says something else.' : ' there is no Pillar column yet.'}
+            <b>{full.unplaced.length}</b> action{full.unplaced.length === 1 ? '' : 's'} {full.unplaced.length === 1 ? 'is' : 'are'} not on the board —
+            {full.hasPillarColumn ? ' the 3P cell is blank or says something else.' : ' there is no 3P column yet.'}
           </span>
           <details className="bd-det">
             <summary>Which ones?</summary>
             <ul className="lt-gap-list">
-              {b.unplaced.slice(0, 20).map((a, i) => (
+              {full.unplaced.slice(0, 20).map((a, i) => (
                 <li key={a.uid || a.ref || i}>
                   <span className="lt-gap-w">{cardTitle(a)}</span>
                   <span className="lt-gap-y">
                     {(a.pillar ?? '').trim()
-                      ? `Pillar says “${a.pillar}” — not People, Process or Plant`
-                      : 'no Pillar on the tracker row'}
+                      ? `3P says “${a.pillar}” — not People, Plant or Process`
+                      : 'no 3P value on the tracker row'}
                   </span>
                 </li>
               ))}
-              {b.unplaced.length > 20 && <li className="sub">and {b.unplaced.length - 20} more</li>}
+              {full.unplaced.length > 20 && <li className="sub">and {full.unplaced.length - 20} more</li>}
             </ul>
           </details>
         </div>

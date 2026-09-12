@@ -16,6 +16,7 @@
  * The layout deliberately mirrors the on-screen report: the same sections in the
  * same order, the same palette, the same chart geometry. */
 import type { jsPDF } from 'jspdf';
+import { boardSheets, BOARD_CARD_H, BOARD_CARD_GAP } from './pillars';
 
 /* ---------- the app's palette, as the report uses it ---------- */
 const INK = '#0c1f26', INK2 = '#35505a', MUTED = '#6b8892', LINE = '#dbe8e6';
@@ -74,8 +75,8 @@ export interface PaceReportData {
   /* PEOPLE · PROCESS · PLANT, straight off the workbook. Its own sheet, because
      three columns of cards is the shape somebody is being handed — squeezed
      into a corner it stops being a board and becomes a list. */
-  board: { pillar: 'people' | 'process' | 'plant'; title: string; owner: string;
-           line: string; due: string; rag: string }[];
+  board: { area: string; pillar: 'people' | 'plant' | 'process'; title: string;
+           owner: string; due: string; rag: string }[];
   /** Rows the workbook did not place. Printed as a count, never hidden. */
   boardUnplaced: number;
   /** The project's lever tree, flat — parent ids, drawn into a page of its own.
@@ -300,6 +301,19 @@ function table(
  * Everything is drawn. A report that quietly dropped the bottom row would be
  * hiding the work, so when the tree is bigger than the sheet the whole thing is
  * scaled down instead. */
+const PILL_KEYS = ['people', 'plant', 'process'] as const;
+
+/** The 3P sheet's footer. Extracted because the board can spill onto a second
+ *  sheet, and both have to say the same thing about what is not on it. */
+function footBoard(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number): void {
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} · weekly executive report · page ${page} of ${pages} — the 3P board${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
+  d.text(data.boardUnplaced > 0
+    ? `${data.boardUnplaced} tracker row${data.boardUnplaced === 1 ? '' : 's'} with no 3P value`
+    : 'Every tracker row is on the board.', W - 28, H - 28 + 6, { align: 'right' });
+}
+
 const TREE_STATUS: Record<string, { c: string; label: string }> = {
   n: { c: MUTED,  label: 'Not started' },
   w: { c: '#1c6fb8', label: 'In progress' },
@@ -451,8 +465,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       who: san(w.who), where: san(w.where), verdict: w.verdict,
     })),
     board: raw.board.map(b => ({
-      pillar: b.pillar, title: san(b.title), owner: san(b.owner),
-      line: san(b.line), due: san(b.due), rag: b.rag,
+      area: san(b.area), pillar: b.pillar,
+      /* The workbook's Action cells carry hard line breaks — people write two
+         or three dated updates into one cell. jsPDF's splitTextToSize breaks on
+         \n FIRST and does not re-wrap what follows, so a 200-character second
+         line was drawn straight across the next column. Collapsed to one
+         stream of words before it is ever measured. */
+      title: san(b.title).replace(/\s+/g, ' ').trim(),
+      owner: san(b.owner), due: san(b.due), rag: b.rag,
     })),
     boardUnplaced: raw.boardUnplaced,
   };
@@ -539,7 +559,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     chart(d, cx, cy, cW, cH, l);
   });
 
-  const pages = 2 + (data.tree.length > 0 ? 1 : 0) + (data.board.length > 0 ? 1 : 0);
+  /* The drawable height of one board sheet, and the layout that follows from it.
+   * Measured once here and read by both the page count and the drawing. */
+  const BOARD_AVAIL = H - 2 * M - 14 - 60;
+  const boardAreas = [...new Set(data.board.map(b => b.area))].map(area => ({
+    area,
+    counts: PILL_KEYS.map(k => data.board.filter(b => b.area === area && b.pillar === k).length),
+  }));
+  const boardPlan = boardSheets(boardAreas, BOARD_AVAIL);
+  const pages = 2 + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
   d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
@@ -595,78 +623,105 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * has been handed different information. */
   if (data.board.length > 0) {
     d.addPage('a3', 'landscape');
-    const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), 'People · Process · Plant',
+    const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), '3P Board — People · Plant · Process',
       'Every card off this week\u2019s workbook — nothing typed, nothing stored');
 
-    const PILL: { key: 'people' | 'process' | 'plant'; label: string; c: string }[] = [
+    const PILL: { key: 'people' | 'plant' | 'process'; label: string; c: string }[] = [
       { key: 'people',  label: 'PEOPLE',  c: BRAND },
-      { key: 'process', label: 'PROCESS', c: BLUE },
       { key: 'plant',   label: 'PLANT',   c: WARN },
+      { key: 'process', label: 'PROCESS', c: BLUE },
     ];
-    const colGap = 16;
+    const colGap = 14;
     const colW = (CW - 24 - colGap * 2) / 3;
-    const top = bpY + 16;
-    const bottom = H - M - 22;
 
-    PILL.forEach((p, i) => {
-      const x = M + 12 + i * (colW + colGap);
-      const rows = data.board.filter(b => b.pillar === p.key);
-      const done = rows.filter(b => b.rag === 'g').length;
+    /* Never truncate. An area that will not fit starts a fresh sheet rather than
+       being cut off or dropped — on the first run of the real workbook this
+       page silently lost ALL LINES entirely and clipped CELLOX to "+1 more",
+       which is the one thing a board must never do. */
+    let ay = bpY + 14;
+    let sheet = 1;
 
-      // column heading, ruled in its own colour so the three read apart
-      setFont(d, 10, 'bold', p.c);
-      d.text(p.label, x, top);
-      setFont(d, 8, 'normal', MUTED);
-      d.text(`${rows.length}${rows.length ? ` · ${done} done` : ''}`, x + colW, top, { align: 'right' });
-      d.setDrawColor(p.c); d.setLineWidth(1.4);
-      d.line(x, top + 5, x + colW, top + 5);
-
-      let y = top + 20;
-      if (rows.length === 0) {
-        setFont(d, 8, 'normal', MUTED);
-        d.text('Nothing here this week.', x, y);
-        return;
+    for (const [si, plan] of boardPlan.entries()) {
+      if (si > 0) {
+        footBoard(d, data, boardPage + sheet - 1, pages, sheet);
+        d.addPage('a3', 'landscape');
+        sheet++;
+        ay = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage),
+          '3P Board — People · Plant · Process (continued)',
+          'Every card off this week\u2019s workbook — nothing typed, nothing stored') + 14;
       }
-      for (const b of rows) {
-        /* The tree's own words, except for amber. On the tree amber is a node
-           somebody judged at risk; on the board it is only ever set by the
-           workbook's Overdue flag, and "Overdue" is the word that gets asked
-           about in the room. */
-        const st = { ...(TREE_STATUS[b.rag] ?? TREE_STATUS.n) };
-        if (b.rag === 'a') st.label = 'Overdue';
-        const lines = d.splitTextToSize(b.title, colW - 18) as string[];
-        const shown = lines.slice(0, 3);
-        const cardH = 16 + shown.length * 10 + 12;
-        if (y + cardH > bottom) {
-          setFont(d, 7.5, 'bold', MUTED);
-          d.text(`+ ${rows.length - rows.indexOf(b)} more on the board`, x, y + 8);
-          break;
+      for (const blk of plan) {
+      const area = blk.area;
+      const mine = data.board.filter(b => b.area === area);
+
+      // the area's own heading, ruled across all three columns
+      setFont(d, 10, 'bold', '#141b26');
+      d.text(area.toUpperCase(), M + 12, ay);
+      setFont(d, 7.5, 'normal', MUTED);
+      d.text(`${mine.length} action${mine.length === 1 ? '' : 's'} · ${mine.filter(b => b.rag === 'g').length} done`,
+        M + 12 + CW - 24, ay, { align: 'right' });
+      d.setDrawColor(LINE); d.setLineWidth(0.8);
+      d.line(M + 12, ay + 4, M + 12 + CW - 24, ay + 4);
+      ay += 16;
+
+      /* Each area's block is as tall as its fullest column, so the next area
+         starts clear of all three rather than overlapping the longest one. */
+      let tallest = 0;
+      PILL.forEach((p, i) => {
+        const x = M + 12 + i * (colW + colGap);
+        const rows = mine.filter(b => b.pillar === p.key);
+        setFont(d, 8, 'bold', p.c);
+        d.text(p.label, x, ay);
+        setFont(d, 7.5, 'normal', MUTED);
+        d.text(String(rows.length), x + colW, ay, { align: 'right' });
+        d.setDrawColor(p.c); d.setLineWidth(1.2);
+        d.line(x, ay + 3, x + colW, ay + 3);
+
+        let y = ay + 14;
+        if (rows.length === 0) {
+          setFont(d, 8, 'normal', MUTED);
+          d.text('\u2014', x, y);
+          tallest = Math.max(tallest, y + 4 - ay);
+          return;
         }
-        const [wr, wg, wb] = wash(st.c, 0.06);
-        d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.5);
-        d.roundedRect(x, y, colW, cardH, 4, 4, 'FD');
-        // the status as a spine down the left edge, the way the screen draws it
-        d.setFillColor(st.c); d.rect(x, y + 1, 2.5, cardH - 2, 'F');
+        for (const b of rows) {
+          /* The tree's own words, except for amber. On the tree amber is a node
+             somebody judged at risk; on the board it is only ever set by the
+             workbook's Overdue flag, and Overdue is the word that gets asked
+             about in the room. */
+          const st = { ...(TREE_STATUS[b.rag] ?? TREE_STATUS.n) };
+          if (b.rag === 'a') st.label = 'Overdue';
+          setFont(d, 7.8, 'bold', '#141b26');
+          const lines = d.splitTextToSize(b.title, colW - 16) as string[];
+          const shown = lines.slice(0, 2);
+          if (lines.length > 2) shown[1] = (shown[1] ?? '').replace(/\s*\S*$/, '\u2026');
+          /* FIXED, not measured — see BOARD_CARD_H. The pagination arithmetic
+             the page count relies on is only true if every card is this tall. */
+          const cardH = BOARD_CARD_H;
+          const [wr, wg, wb] = wash(st.c, 0.06);
+          d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);
+          d.roundedRect(x, y, colW, cardH, 3, 3, 'FD');
+          d.setFillColor(st.c); d.rect(x, y + 1, 2, cardH - 2, 'F');
 
-        setFont(d, 8.5, 'bold', '#141b26');
-        let ty = y + 13;
-        for (const ln of shown) { d.text(ln, x + 9, ty); ty += 10; }
+          setFont(d, 7.8, 'bold', '#141b26');
+          let ty = y + 11;
+          for (const ln of shown) { d.text(ln, x + 8, ty); ty += 9; }
 
-        setFont(d, 7, 'bold', st.c);
-        d.text(st.label.toUpperCase(), x + 9, ty + 1);
-        const stW = d.getTextWidth(st.label.toUpperCase());
-        setFont(d, 7, 'normal', INK2);
-        d.text(fit(d, [b.owner, b.line, b.due && 'due ' + b.due].filter(Boolean).join(' · '), colW - 22 - stW),
-          x + 9 + stW + 8, ty + 1);
-        y += cardH + 7;
+          setFont(d, 6.5, 'bold', st.c);
+          d.text(st.label.toUpperCase(), x + 8, ty);
+          const stW = d.getTextWidth(st.label.toUpperCase());
+          setFont(d, 6.5, 'normal', INK2);
+          d.text(fit(d, [b.owner, b.due && 'due ' + b.due].filter(Boolean).join(' \u00b7 '), colW - 20 - stW),
+            x + 8 + stW + 6, ty);
+          y += cardH + BOARD_CARD_GAP;
+        }
+        tallest = Math.max(tallest, y - ay);
+      });
+      ay += tallest + 14;
       }
-    });
+    }
 
-    setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, `${data.title} · weekly executive report · page ${boardPage} of ${pages} — people, process, plant`, CW * 0.8), M, H - M + 6);
-    d.text(data.boardUnplaced > 0
-      ? `${data.boardUnplaced} tracker row${data.boardUnplaced === 1 ? '' : 's'} not placed in a pillar`
-      : 'Every tracker row is on the board.', W - M, H - M + 6, { align: 'right' });
+    footBoard(d, data, boardPage + sheet - 1, pages, sheet);
   }
 
   /* ================= TRACKER, ATTENTION & MOVEMENT ================= */

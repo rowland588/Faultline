@@ -3993,3 +3993,19 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-bst.is-a { color: var(--st-a); }
 .exec-bst.is-r { color: var(--st-r); }
 .exec-bst.is-g { color: var(--st-g); }
+
+/* the area blocks — one per line/area, three pillar columns inside each */
+.bd-area { margin-bottom: 22px; }
+.bd-area-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 9px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.bd-area-t { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); text-transform: uppercase; }
+.bd-area-n { font-size: 12.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bd-col.is-plant { border-top-color: var(--st-a); }
+.bd-col.is-process { border-top-color: var(--blue); }
+
+/* on the report sheet */
+.exec-area { margin-bottom: 12px; }
+.exec-area-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--line); }
+.exec-area-h b { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); }
+.exec-area-h span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.exec-bcol.is-plant { border-top-color: var(--st-a); }
+.exec-bcol.is-process { border-top-color: var(--blue); }
