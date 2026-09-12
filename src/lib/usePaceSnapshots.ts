@@ -14,6 +14,9 @@ const BASELINE: PaceSnapshot = {
   id: 'baseline',
   takenAt: PACE_BASELINE_AT,
   fileName: 'Project_Pace_Action_Tracker.xlsx (baseline)',
+  // ^ the workbook the app SHIPS with, re-cut from the real tracker whenever it
+  //   changes shape. It is last in the list, so the moment a real upload lands
+  //   it stops being what anybody sees.
   actions: PACE_ACTIONS,
   roster: PACE_ROSTER,
 };

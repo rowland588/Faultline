@@ -28,6 +28,13 @@ import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { statusOfAction } from '../lib/treeBind';
 import { board, cardTitle } from '../lib/pillars';
 import { fmtRelative } from '../lib/format';
+import { PACE_BASELINE_AT } from '../lib/projectPaceData';
+
+/* Read off the shipped extract itself rather than typed here. A date written
+   into a sentence is a date that goes wrong the first time the extract is
+   re-cut, and quietly — nobody reads a line they have seen a hundred times. */
+const fmtDay = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 import type { PaceAction } from '../lib/projectPaceData';
 import type { NodeStatus } from '../db';
 
@@ -114,7 +121,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           without a source is how somebody decides the app is broken. */}
       <p className={'bs-src bd-src' + (baseline ? ' is-base' : '')}>
         {baseline
-          ? <><b>Your tracker as at 6 Aug</b> — the snapshot the app shipped with, not this week’s. Upload the current workbook and the board becomes live.</>
+          ? <><b>Your tracker as at {fmtDay(PACE_BASELINE_AT)}</b> — the copy that ships with the app, so the board is here the moment you open it. Upload this week’s workbook and it takes over.</>
           : source
             ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.total} card{full.total === 1 ? '' : 's'} across {full.areas.length} area{full.areas.length === 1 ? '' : 's'}</>
             : <>No tracker uploaded to this project yet.</>}
