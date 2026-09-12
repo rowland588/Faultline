@@ -18,8 +18,10 @@
 import { useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
-import { actionsForBind, statusOfAction, bindActionText, type TrackerBind } from '../lib/treeBind';
-import { actionOnLine } from '../lib/paceLineMatch';
+import {
+  actionsForBind, statusOfAction, bindActionText, trackerLines, allLinesCount, ALL_LINES,
+  type TrackerBind,
+} from '../lib/treeBind';
 
 export function BindSheet({
   title, lines, actions, initial, onSave, onClear, onClose,
@@ -33,7 +35,15 @@ export function BindSheet({
   onClear: () => void;
   onClose: () => void;
 }) {
-  const [line, setLine] = useState(initial?.line ?? lines[0]?.key ?? '');
+  /* One entry per line THE TRACKER writes, not per line the app keys. The app
+     splits Line 2 into 2A and 2B because they are measured apart; the tracker
+     files both under "Line 2", so offering both would let the same 31 actions
+     be hung on the tree twice. */
+  const choices = useMemo(() => trackerLines(lines), [lines]);
+  const spanning = useMemo(() => allLinesCount(actions), [actions]);
+  const [line, setLine] = useState(
+    initial?.allLines ? ALL_LINES : initial?.line ?? choices[0]?.key ?? '');
+  const allLines = line === ALL_LINES;
   const [cats, setCats] = useState<string[]>(initial?.categories ?? []);
   const [keyword, setKeyword] = useState(initial?.keyword ?? '');
 
@@ -42,16 +52,15 @@ export function BindSheet({
      most of them have nothing on this line. */
   const available = useMemo(() => {
     const by = new Map<string, number>();
-    for (const a of actions) {
-      if (line && !actionOnLine(a, line)) continue;
+    for (const a of actionsForBind(actions, allLines ? { allLines: true } : { line })) {
       const c = (a.category ?? '').trim();
       if (c) by.set(c, (by.get(c) ?? 0) + 1);
     }
     return [...by.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]));
-  }, [actions, line]);
+  }, [actions, line, allLines]);
 
   const bind: TrackerBind = {
-    line: line || undefined,
+    ...(allLines ? { allLines: true } : { line: line || undefined }),
     categories: cats.length ? cats : undefined,
     keyword: keyword.trim() || undefined,
   };
@@ -72,10 +81,20 @@ export function BindSheet({
 
         <p className="wp-lbl">Which line</p>
         <div className="wp-chips">
-          {lines.map(l => (
+          {choices.map(l => (
             <button key={l.key} className={'chip' + (l.key === line ? ' on' : '')}
-              onClick={() => { setLine(l.key); setCats([]); }}>{l.name || l.key}</button>
+              onClick={() => { setLine(l.key); setCats([]); }}>{l.label}</button>
           ))}
+          {/* The tracker's "All lines" rows belong to the project, not to any
+              one branch — put under all three they read out three times in a
+              meeting and treble-count on the report. They get a box of their
+              own instead. */}
+          {spanning > 0 && (
+            <button className={'chip' + (allLines ? ' on' : '')}
+              onClick={() => { setLine(ALL_LINES); setCats([]); }}>
+              Across every line <span className="bs-n">{spanning}</span>
+            </button>
+          )}
         </div>
 
         <p className="wp-lbl">

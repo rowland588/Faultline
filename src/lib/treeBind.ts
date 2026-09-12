@@ -27,16 +27,45 @@
  * and would leave last week's deleted rows stranded on the tree forever.
  */
 import type { PaceAction } from './projectPaceData';
-import { actionOnLine } from './paceLineMatch';
-import type { TreeNodeRow, NodeStatus } from '../db';
+import type { PaceLineRow, TreeNodeRow, NodeStatus } from '../db';
+
+/* The tracker writes lines the way people say them ("Line 2", "Line 10") and
+ * marks the ones that belong to nobody in particular "All lines". Matching on
+ * the DIGITS bridges that to the app's own keys, and stops "Line 2" swallowing
+ * "Line 10" the way a substring test would. */
+const digits = (s: string): string => (s.match(/\d+/)?.[0] ?? '');
+const spansAll = (s: string): boolean => /\ball\b/i.test(s);
+
+/* NOT lib/paceLineMatch's actionOnLine, and the difference matters.
+ *
+ * On a line's own pack, an action the tracker marks "All lines" IS that line's
+ * to do, so it shows there — correct. On the tree it is not: three line
+ * branches each claiming the same four actions puts the same sentence on the
+ * wall three times and treble-counts it in the report. Measured on the real
+ * workbook, that was 4 actions appearing 12 times.
+ *
+ * So on the tree they are their own thing — work that belongs to the project
+ * rather than to any one line — and a condition says which of the two it wants. */
+function onLine(a: PaceAction, lineKey: string): boolean {
+  const l = (a.line ?? '').trim();
+  if (!l || spansAll(l)) return false;
+  const want = digits(lineKey);
+  return want !== '' && digits(l) === want;
+}
+const isAllLines = (a: PaceAction): boolean => spansAll((a.line ?? '').trim());
 
 /** Which tracker rows belong under a condition. Every field narrows; an empty
  *  binding would collect the whole tracker, so `line` is always set in practice
  *  (the editor fills it from the branch the node sits on). */
 export interface TrackerBind {
   /** Line key as the app spells it — '2A', '7', '10'. Matched on digits, so the
-   *  workbook's "Line 2" and rows marked "All lines" both land correctly. */
+   *  workbook's "Line 2" finds it. Rows the tracker marks "All lines" are NOT
+   *  included: see `allLines`. */
   line?: string;
+  /** Only the rows the tracker marks as spanning every line. These belong to
+   *  the project rather than to any one branch of it, so they hang off a
+   *  condition of their own instead of being repeated under all three. */
+  allLines?: boolean;
   /** Tracker categories, verbatim from the workbook's own list. Empty means
    *  every category on that line. */
   categories?: string[];
@@ -79,7 +108,8 @@ export function actionsForBind(actions: PaceAction[], bind: TrackerBind): PaceAc
   const cats = (bind.categories ?? []).map(c => c.trim().toLowerCase()).filter(Boolean);
   const needle = (bind.keyword ?? '').trim().toLowerCase();
   return actions.filter(a => {
-    if (bind.line && !actionOnLine(a, bind.line)) return false;
+    if (bind.allLines) { if (!isAllLines(a)) return false; }
+    else if (bind.line && !onLine(a, bind.line)) return false;
     if (cats.length && !cats.includes((a.category ?? '').trim().toLowerCase())) return false;
     if (needle && ![a.action, a.problem, a.owner, a.who].some(v => (v ?? '').toLowerCase().includes(needle))) return false;
     return true;
@@ -144,7 +174,8 @@ export function bindCount(bind: TrackerBind, actions: PaceAction[]): { total: nu
  *  are the point of the level, and a suggestion that cannot be changed would
  *  just be the category with a longer name. */
 export function suggestConditions(actions: PaceAction[], lineKey: string): { text: string; bind: TrackerBind; count: number }[] {
-  const mine = actions.filter(a => actionOnLine(a, lineKey));
+  const all = lineKey === ALL_LINES;
+  const mine = actions.filter(a => (all ? isAllLines(a) : onLine(a, lineKey)));
   const by = new Map<string, number>();
   for (const a of mine) {
     const c = (a.category ?? '').trim();
@@ -154,7 +185,7 @@ export function suggestConditions(actions: PaceAction[], lineKey: string): { tex
     .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
     .map(([category, count]) => ({
       text: intentFor(category),
-      bind: { line: lineKey, categories: [category] },
+      bind: all ? { allLines: true, categories: [category] } : { line: lineKey, categories: [category] },
       count,
     }));
 }
@@ -185,4 +216,34 @@ const INTENT: Record<string, string> = {
 };
 function intentFor(category: string): string {
   return INTENT[category.trim().toLowerCase()] ?? `${category} is not costing us the line`;
+}
+
+
+/** The sentinel the line pickers use for "the work that spans every line".
+ *  A key no real line can have, so it can travel through the same code paths
+ *  as a line without a second argument threaded through every call. */
+export const ALL_LINES = '*all*';
+
+/** How many actions the tracker marks as spanning every line. Zero means the
+ *  option is not worth offering. */
+export const allLinesCount = (actions: PaceAction[]): number => actions.filter(isAllLines).length;
+
+/** The lines AS THE TRACKER SEES THEM, one entry each, in the app's own order.
+ *
+ *  The app splits Line 2 into 2A and 2B because they are measured separately;
+ *  the tracker does not, and files everything under "Line 2". Building one
+ *  branch per APP line would therefore give two Line 2 branches holding an
+ *  identical copy of the same 31 actions. Grouped on the digits, the four lines
+ *  the app knows become the three the tracker writes — which is also the three
+ *  the tree wants. */
+export function trackerLines(lines: PaceLineRow[]): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = [];
+  const seen = new Set<string>();
+  for (const l of lines) {
+    const d = digits(l.key) || digits(l.name ?? '');
+    if (!d || seen.has(d)) continue;
+    seen.add(d);
+    out.push({ key: l.key, label: `Line ${d}` });
+  }
+  return out;
 }

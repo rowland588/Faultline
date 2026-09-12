@@ -33,7 +33,7 @@ import { parsePastedRows } from '../lib/pastedRows';
 import { TrackerPicker, actionText } from './TrackerPicker';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { usePaceLines } from '../lib/usePaceLines';
-import { withTrackerRows, isBoundNode, bindCount, type TrackerBind } from '../lib/treeBind';
+import { withTrackerRows, isBoundNode, bindCount, trackerLines, type TrackerBind } from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
 
@@ -407,6 +407,36 @@ export function LeverTree({ projectId }: { projectId: string }) {
     await load();
   };
 
+  /** Start the tree from the project's own lines.
+   *
+   *  The outcome and one "what needs to be true" per line, in one write. The
+   *  lines are the tracker's, NOT the app's: the app splits Line 2 into 2A and
+   *  2B because they are measured apart, the tracker files both under "Line 2",
+   *  and a branch each would put an identical copy of the same 31 actions on
+   *  the tree twice. Four lines in, three branches out — which is also the
+   *  three the tree wants.
+   *
+   *  Every box is ordinary and editable from the moment it lands. This saves
+   *  the typing, it does not decide the plan. */
+  const startFromLines = async () => {
+    const ls = trackerLines(ppm.lines);
+    if (!ls.length) return;
+    const t = now();
+    const rootId = uid();
+    await putTreeNodes([
+      {
+        id: rootId, projectId, text: `${ls.map(l => l.label.replace(/^Line /, '')).join(', ')} hold their ppm rate`,
+        rag: 'n' as NodeStatus, sort: 0, createdAt: t, updatedAt: t,
+      },
+      ...ls.map((l, i) => ({
+        id: uid(), projectId, parentId: rootId,
+        text: `${l.label} achieves its ppm rate`,
+        rag: 'n' as NodeStatus, sort: i, createdAt: t, updatedAt: t,
+      })),
+    ]);
+    await load();
+  };
+
   /** Build a row of linked conditions under one box, in one write. */
   const buildConditions = async (parent: TreeNodeRow, picked: { text: string; bind: TrackerBind }[]) => {
     const sibs = siblingsOf(parent.id);
@@ -653,7 +683,19 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <p className="sub">
             One box at the top — what this project has to deliver. Everything else hangs off it.
           </p>
-          <button className="btn btn-primary btn-lg" onClick={() => void addNode(undefined)}>
+          {/* The first two levels of this tree are the same on every project
+              that has lines: the outcome, then one box per line hitting its
+              rate. Typing that out is a tax on getting started, and the app
+              already knows the lines — so it offers, rather than making
+              somebody press ＋› three times and write the obvious. */}
+          {trackerLines(ppm.lines).length > 0 && (
+            <button className="btn btn-primary btn-lg" onClick={() => void startFromLines()}>
+              Start from the {trackerLines(ppm.lines).length} lines
+            </button>
+          )}
+          <button
+            className={'btn btn-lg ' + (trackerLines(ppm.lines).length ? 'btn-ghost' : 'btn-primary')}
+            onClick={() => void addNode(undefined)}>
             ＋ Add the desired outcome
           </button>
         </div>

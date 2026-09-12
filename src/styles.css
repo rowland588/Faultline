@@ -3176,6 +3176,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-empty { text-align: center; padding: 48px 20px; }
 .lt-empty-t { font-size: 19px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
 .lt-empty .sub { max-width: 46ch; margin: 0 auto 18px; }
+/* two ways in, side by side on a laptop and stacked on a phone */
+.lt-empty .btn + .btn { margin-left: 10px; }
+@media (max-width: 560px) {
+  .lt-empty .btn { display: block; width: 100%; }
+  .lt-empty .btn + .btn { margin: 10px 0 0; }
+}
 
 /* ---------- the action level: a list, not a row of cards ----------
  * The work at the bottom is a list and should read like one. Tight rows, a
