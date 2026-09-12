@@ -21,6 +21,7 @@
  * time the board is drawn, so next week's file simply appears.
  */
 import type { PaceAction } from './projectPaceData';
+import { statusOfAction } from './treeBind';
 
 export type PillarKey = 'people' | 'plant' | 'process';
 
@@ -85,6 +86,17 @@ export interface BoardResult {
 
 const isDone = (a: PaceAction): boolean => /^(done|complete|completed|closed)$/i.test((a.status ?? '').trim());
 
+/* THE ORDER A MEETING NEEDS. The board is what the meeting is now run off, so
+ * the card at the top of a column has to be the one worth a question: overdue
+ * first, then blocked — the two that need somebody in the room — then whatever
+ * the workbook's own Priority says, and done last because it is the answer
+ * rather than the question. It used to be Priority alone, which buried an
+ * overdue action under three that merely started life as a 1. */
+const MEETING_RANK: Record<string, number> = { a: 0, r: 1, w: 2, n: 3, g: 4 };
+const meetingOrder = (x: PaceAction, y: PaceAction): number =>
+  (MEETING_RANK[statusOfAction(x)] ?? 2) - (MEETING_RANK[statusOfAction(y)] ?? 2)
+  || (x.priority || 3) - (y.priority || 3);
+
 /** The whole board: every area, each with its three columns. */
 export function board(actions: PaceAction[]): BoardResult {
   const unplaced: PaceAction[] = [];
@@ -104,8 +116,7 @@ export function board(actions: PaceAction[]): BoardResult {
       name,
       columns: PILLARS.map(p => ({
         ...p,
-        rows: rows.filter(a => pillarOf(a) === p.key)
-          .sort((x, y) => (x.priority || 3) - (y.priority || 3)),
+        rows: rows.filter(a => pillarOf(a) === p.key).sort(meetingOrder),
       })),
       total: rows.length,
       done: rows.filter(isDone).length,

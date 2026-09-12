@@ -10,9 +10,8 @@
  *
  * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
  * into the meeting. */
-import { useRef, useState } from 'react';
-import { nav, useRoute } from '../state/useRoute';
-import { PaceMeeting } from './PaceMeeting';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
@@ -63,8 +62,8 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
         <h2 className="pace-sec-title">3P Board</h2>
         <p className="pace-sec-sub">
           {b.total > 0
-            ? <>People, Plant and Process across {b.areas.length} area{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} · {b.done} done — every card off the weekly workbook</>
-            : <>People, Plant and Process — every card off the weekly workbook, nothing typed</>}
+            ? <>The meeting agenda · {b.areas.length} area{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} · {b.done} done — overdue and blocked first in every column</>
+            : <>The meeting agenda — People, Plant and Process, every card off the weekly workbook</>}
         </p>
       </div>
 
@@ -127,7 +126,7 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
             </div>
           ))}
           <div className="pb-foot">
-            <button className="btn btn-primary" onClick={open}>Open the 3P board</button>
+            <button className="btn btn-primary" onClick={open}>Run the meeting off the board</button>
             {b.unplaced.length > 0 && (
               <span className="sub pb-gap">
                 {b.unplaced.length} action{b.unplaced.length === 1 ? '' : 's'} not on it — the 3P cell is blank
@@ -272,11 +271,21 @@ function LineCard({ line, pack, projectId }: { line: PaceLineRow; pack: LinePack
   );
 }
 
-type Lens = 'overview' | 'lines' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
+/* THE MEETING IS THE BOARD NOW.
+ *
+ * There used to be a 'meeting' lens here — the tracker by owner, a roster down
+ * the side, one name on the floor at a time. It was a good screen and it was
+ * the wrong one twice over: it asked "whose is it" when the meeting's question
+ * is "what is the state of the work", and it meant the project had two things
+ * both calling themselves the meeting. Every card on the board carries its
+ * owner, so nothing about a go-round is lost by walking the areas instead.
+ *
+ * The lens row is now the running order, not a drawer: where we are, the board
+ * we walk, then what came out of it. */
+type Lens = 'overview' | 'lines' | 'next' | 'wins' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
   { id: 'lines',    label: 'Lines',      sub: 'each owner\u2019s pack' },
-  { id: 'meeting',  label: 'Meeting',    sub: 'by owner' },
   { id: 'next',     label: 'Next steps', sub: 'to do & waiting' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
@@ -286,8 +295,15 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next'
+  const lens: Lens = raw === 'data' || raw === 'snags' || raw === 'next'
     || raw === 'wins' || raw === 'lines' ? raw : 'overview';
+
+  /* A link somebody saved to the meeting still opens the meeting — it is the
+     board now. Dropping them on the overview instead would look like the app
+     had forgotten the page rather than moved it. */
+  useEffect(() => {
+    if (raw === 'meeting') navReplace(`/project/${projectId}/board`);
+  }, [raw, projectId]);
 
   const { loading: projLoading, project } = useProject(projectId);
   const pace = usePaceSnapshots(projectId);
@@ -350,11 +366,18 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </div>
       </header>
 
-      {/* the lens picker — always visible, so no view is ever buried */}
+      {/* The row is the running order, left to right: where we are, the board
+          we walk, then everything that comes out of walking it. */}
       <nav className="pace-lenses" aria-label="View">
-        {LENSES.map(l => (
+        {LENSES.map((l, i) => (
+          <Fragment key={l.id}>
+          {i === 1 && (
+            <button className="pace-lens" onClick={() => nav(`/project/${projectId}/board`)}>
+              <span className="pace-lens-l">3P Board</span>
+              <span className="pace-lens-s">the meeting</span>
+            </button>
+          )}
           <button
-            key={l.id}
             className={'pace-lens' + (lens === l.id ? ' on' : '')}
             aria-current={lens === l.id ? 'page' : undefined}
             onClick={() => nav(l.id === 'overview' ? `/project/${projectId}` : `/project/${projectId}?view=${l.id}`)}
@@ -362,18 +385,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <span className="pace-lens-l">{l.label}</span>
             <span className="pace-lens-s">{l.sub}</span>
           </button>
+          </Fragment>
         ))}
-        {/* THE BOARD SITS IN THE ROW WITH EVERY OTHER VIEW, ALWAYS.
-            It used to appear only once the uploaded workbook already carried a
-            3P column — which hid the one screen that says what a 3P column is
-            and how to add one behind having already added it. The board is
-            reached from here whatever the workbook holds; if the column is not
-            there yet the board says so, in words, with the upload one tap
-            away. A view nobody can find is a view that does not exist. */}
-        <button className="pace-lens" onClick={() => nav(`/project/${projectId}/board`)}>
-          <span className="pace-lens-l">3P Board</span>
-          <span className="pace-lens-s">people · plant · process</span>
-        </button>
       </nav>
 
       {lens === 'overview' && (
@@ -443,16 +456,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               </div>
             </>
           )}
-        </section>
-      )}
-
-      {lens === 'meeting' && (
-        <section className="pace-sec">
-          <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Round the table</h2>
-            <p className="pace-sec-sub">Pick a name and work through their open actions · roster from the workbook's Lists sheet</p>
-          </div>
-          <PaceMeeting actions={actions} roster={pace.roster} />
         </section>
       )}
 

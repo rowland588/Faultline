@@ -97,8 +97,10 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">3P Board</h1>
           <p className="pace-lede">
-            Every card comes off the weekly workbook — nothing here is typed, and nothing here is
-            stored. Change a status in the tracker and it changes here on the next upload.
+            <b>This is the meeting.</b> Walk it area by area — People, Plant, Process — with the
+            overdue and the blocked at the top of each column, because those are the ones that need
+            somebody in the room. Every card carries its owner. Nothing here is typed and nothing
+            here is stored: change a status in the tracker and it changes here on the next upload.
           </p>
         </div>
         <div className="pace-head-actions">
