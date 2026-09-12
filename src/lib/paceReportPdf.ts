@@ -49,6 +49,10 @@ export interface PaceReportData {
   /** The roll-up: one row per line, each number coming from that line's own
    *  pack. On a line's own deck this is the single line it covers. */
   byLine: {
+    /** True for an area the tracker carries that no project line answers for —
+     *  drawn muted, because the columns only a line can fill are empty by
+     *  nature rather than by neglect. */
+    noLine?: boolean;
     name: string; owner: string;
     open: number; late: number; done: number; total: number;
     nextOpen: number; nextDone: number; snags: number; wins: number;
@@ -95,6 +99,20 @@ type Doc = jsPDF;
  *  ones the encoding has. (·, —, ’, “ ” and … are all in WinAnsi, so they stay.) */
 function san(t: string): string {
   return t
+    /* EVERY STRING ENTERING THE PDF LOSES ITS LINE BREAKS HERE.
+     *
+     * The workbook's Action cells are not one line — they are a running log,
+     * several dated updates typed into one cell with alt-enter between them.
+     * jsPDF's splitTextToSize breaks on those newlines FIRST and does not
+     * re-wrap what it finds, so a two-line cell drew its second line straight
+     * over the row beneath: on the overdue table it printed "08" through the
+     * next action's title and shunted the "+2 more" line under a sentence.
+     *
+     * Collapsing here rather than at each call site is the point: this is the
+     * one door every string comes through, and the board page had to learn this
+     * separately once already. */
+    .replace(/\s+/g, ' ')
+    .trim()
     .replace(/[\u2192\u27A1\u2794]/g, '->')
     .replace(/[\u2190]/g, '<-')
     .replace(/[\u2713\u2714]/g, 'v')
@@ -472,7 +490,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
          \n FIRST and does not re-wrap what follows, so a 200-character second
          line was drawn straight across the next column. Collapsed to one
          stream of words before it is ever measured. */
-      title: san(b.title).replace(/\s+/g, ' ').trim(),
+      title: san(b.title),   // san() collapses the log lines — see above
       owner: san(b.owner), due: san(b.due), rag: b.rag,
     })),
     boardUnplaced: raw.boardUnplaced,
@@ -786,7 +804,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      { head: 'Next', width: 0.11, align: 'right' }, { head: 'Evid.', width: 0.10, align: 'right' },
      { head: 'Wins', width: 0.10, align: 'right' }],
     data.byLine.map(r => [
-      { text: r.name, bold: true },
+      { text: r.name, bold: true, colour: r.noLine ? MUTED : INK },
       { text: r.owner, colour: MUTED },
       { text: r.ppm == null ? '--' : String(r.ppm), bold: true,
         colour: r.ppm == null ? MUTED : r.ppm >= r.target ? OK : DANGER },
@@ -797,6 +815,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       { text: String(r.wins), colour: r.wins > 0 ? OK : INK },
     ]),
     r1y + rowH1 - 10);
+
+  /* An em dash in the ppm column is a question a GM asks out loud, so the page
+     answers it before they have to. Only when there is one. */
+  const noLines = data.byLine.filter(r => r.noLine).map(r => r.name);
+  if (noLines.length > 0) {
+    setFont(d, 6.4, 'normal', MUTED);
+    d.text(fit(d, `${noLines.join(' \u00b7 ')} ${noLines.length === 1 ? 'is an area' : 'are areas'} on the tracker with no line on the project \u2014 actions counted, the rest needs a line adding.`, barW),
+      barX, r1y + rowH1 - 2);
+  }
 
   /* 3 — overdue & at risk (spans two columns) */
   const odX = M + colW + gap, odW = colW * 2 + gap;

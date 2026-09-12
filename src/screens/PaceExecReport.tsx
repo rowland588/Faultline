@@ -20,7 +20,7 @@ import { PaceLineChart } from '../charts/PaceLineChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
-import { actionsForLine } from '../lib/paceLineMatch';
+import { actionsForLine, uncoveredAreas } from '../lib/paceLineMatch';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import { TreeStatic, useTreeNodes } from './TreeStatic';
 import { Sweep } from '../ui/Sweep';
@@ -488,6 +488,31 @@ export function PaceExecReport() {
     };
   });
 
+  /* AREAS THE PROJECT HAS NO LINE FOR. The weekly upload can introduce work the
+   * project has never heard of — a line commissioned this week, an area like
+   * Cellox that was never a measured line. The board shows it at once because
+   * the board is drawn from the workbook; the roll-up is one row per line the
+   * project holds, so that work was appearing on the board and vanishing from
+   * the page the GM actually reads.
+   *
+   * They join the roll-up with an em dash where the numbers only a project line
+   * can have would be — no ppm target, no next steps, no walk, no wins — which
+   * says both things at once: here is the work, and here is what this area has
+   * not got yet. A line's own deck never shows them: it is that line's page. */
+  const extraAreas = line ? [] : uncoveredAreas(actions, reportLines.map(l => l.key));
+  const byArea = extraAreas.map(name => {
+    const mine = actions.filter(a => (a.line ?? '').trim() === name);
+    return {
+      name, owner: '—', total: mine.length,
+      done: mine.filter(isDone).length,
+      late: mine.filter(a => isLate(a, todayStart)).length,
+      open: mine.filter(a => !isDone(a)).length,
+      nextOpen: 0, nextDone: 0, snags: 0, wins: 0,
+      ppm: null as number | null, target: 0, noLine: true,
+    };
+  });
+  const rollup = [...byLine.map(r => ({ ...r, noLine: false })), ...byArea];
+
   const seg = (count: number) => (openTotal + complete ? (count / actions.length) * 100 : 0);
 
   /* Everything the PDF needs, as plain numbers and strings. The drawer never
@@ -513,7 +538,7 @@ export function PaceExecReport() {
     atTarget, pctDone,
     complete, total: actions.length, openTotal, openOnTrack, late,
     openSnags: openSnags.length, winsThisWeek: winsThisWeek.length,
-    byLine,
+    byLine: rollup,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -717,8 +742,8 @@ export function PaceExecReport() {
                 </tr>
               </thead>
               <tbody>
-                {byLine.map(r => (
-                  <tr key={r.name}>
+                {rollup.map(r => (
+                  <tr key={r.name} className={r.noLine ? 'is-noline' : undefined}>
                     <th scope="row">{r.name}</th>
                     <td className="exec-mowner">{r.owner}</td>
                     <td className={'exec-mppm ' + (r.ppm == null ? '' : r.ppm >= r.target ? 'is-good' : 'is-bad')}>
@@ -733,6 +758,13 @@ export function PaceExecReport() {
                 ))}
               </tbody>
             </table>
+            {extraAreas.length > 0 && (
+              <p className="exec-mnote">
+                {extraAreas.join(' · ')} {extraAreas.length === 1 ? 'is an area' : 'are areas'} on the tracker
+                with no line on the project — the actions are counted, the rest needs a line adding under
+                Lines &amp; people.
+              </p>
+            )}
           </section>
 
           <section className="exec-box exec-box-late">

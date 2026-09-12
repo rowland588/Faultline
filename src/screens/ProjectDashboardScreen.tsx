@@ -24,6 +24,7 @@ import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
+import { uncoveredAreas } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
@@ -144,9 +145,19 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
 const when = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 /* ---------- weekly upload ---------- */
-function UploadPanel({ state }: { state: PaceState }) {
+function UploadPanel({ state, projectId, lineKeys }: {
+  state: PaceState; projectId: string; lineKeys: string[];
+}) {
   const input = useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
+
+  /* WHAT THIS WEEK'S FILE BROUGHT WITH IT. An upload can introduce an area the
+     project has never heard of — a line commissioned this week, an area that
+     was never a measured line. The board picks it up on its own, because the
+     board is drawn from the workbook; everything keyed to a project LINE does
+     not, so it needs saying here, on the screen where the file just landed and
+     where the fix is one tap away. */
+  const uncovered = uncoveredAreas(state.actions, lineKeys);
 
   return (
     <section className="pace-upload">
@@ -191,6 +202,20 @@ function UploadPanel({ state }: { state: PaceState }) {
         </p>
       )}
       {state.warnings.map((w, i) => <p key={i} className="pace-upload-warn">{w}</p>)}
+
+      {uncovered.length > 0 && (
+        <p className="pace-upload-warn is-info">
+          The tracker has {uncovered.length === 1 ? 'an area' : 'areas'} this project has no line
+          for — {uncovered.map((a, i) => (
+            <Fragment key={a}>{i > 0 ? ', ' : ''}<b>{a}</b></Fragment>
+          ))}. The actions are on the board and counted on the
+          report; ppm, next steps, the walk and wins all hang off a line, so those stay empty until
+          one exists.{' '}
+          <button className="lt-gap-b" onClick={() => nav(`/project/${projectId}/setup`)}>
+            Add {uncovered.length === 1 ? 'the line' : 'the lines'}
+          </button>
+        </p>
+      )}
 
       {showHistory && (
         <ul className="pace-history">
@@ -495,7 +520,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
       {lens === 'data' && (
         <>
-          <UploadPanel state={pace} />
+          <UploadPanel state={pace} projectId={projectId} lineKeys={ppm.lines.map(l => l.key)} />
           <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">Packs per minute</h2>

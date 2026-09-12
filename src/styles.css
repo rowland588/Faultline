@@ -4147,3 +4147,16 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface); border: 1px dashed var(--line-2); border-radius: 12px;
 }
 .exec-note p { margin: 0; flex: 1 1 340px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+
+/* a roll-up row for an area the project has no LINE for — the work is real and
+   counted, the columns only a line can fill are not */
+.exec-matrix tr.is-noline th[scope="row"] { font-style: italic; }
+.exec-matrix tr.is-noline td { color: var(--muted); }
+.exec-mnote { margin: 8px 0 0; font-size: 10.5px; line-height: 1.45; color: var(--muted); }
+
+/* An upload warning that is NOT a fault. "This week brought a line you have not
+   set up" is news, not an error, and colouring it like a parse failure teaches
+   people to dismiss the ones that matter. */
+.pace-upload-warn.is-info {
+  background: var(--surface); border-color: var(--line-2); color: var(--ink-2);
+}

@@ -29,3 +29,32 @@ export function actionOnLine(a: PaceAction, lineKey: string): boolean {
 export function actionsForLine(actions: PaceAction[], lineKey?: string): PaceAction[] {
   return lineKey ? actions.filter(a => actionOnLine(a, lineKey)) : actions;
 }
+
+/** Tracker areas that NO line on the project answers for.
+ *
+ *  The weekly upload is allowed to introduce work the project has never heard
+ *  of — a new line commissioned, an area like Cellox that was never a measured
+ *  line — and the board shows it immediately, because the board is drawn from
+ *  the workbook. The roll-up is not: it is one row per line the project holds,
+ *  so that work was landing on the board and vanishing from the report the GM
+ *  actually reads. Work nobody can see is worse than work nobody has started.
+ *
+ *  Spanning rows ("All lines") are nobody's orphan — they already show against
+ *  every line — so they are never returned here.
+ */
+export function uncoveredAreas(actions: PaceAction[], lineKeys: string[]): string[] {
+  const seen = new Map<string, number>();
+  for (const a of actions) {
+    const name = (a.line ?? '').trim();
+    if (!name || spansAll(name)) continue;
+    if (lineKeys.some(k => actionOnLine(a, k))) continue;
+    seen.set(name, (seen.get(name) ?? 0) + 1);
+  }
+  return [...seen.keys()].sort((x, y) => {
+    const dx = digits(x), dy = digits(y);
+    if (dx && dy) return Number(dx) - Number(dy);
+    if (dx) return -1;
+    if (dy) return 1;
+    return x.localeCompare(y);
+  });
+}
