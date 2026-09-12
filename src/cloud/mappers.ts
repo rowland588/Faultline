@@ -178,6 +178,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         name: p.name, description: p.description ?? null, color: p.color,
         workspace_ids: p.workspaceIds,
         lead: p.lead ?? null, lead_email: p.leadEmail ?? null,
+        lever_tree: p.leverTree ?? false,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
@@ -187,6 +188,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       color: r.color as string,
       workspaceIds: (r.workspace_ids as string[]) ?? [],
       lead: (r.lead as string) ?? undefined, leadEmail: (r.lead_email as string) ?? undefined,
+      leverTree: r.lever_tree === true || undefined,
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),

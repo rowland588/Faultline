@@ -234,7 +234,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
+          {/* Offered only where the project asked for it — see Project.leverTree. */}
+          {project.leverTree && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
+          )}
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
           <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>

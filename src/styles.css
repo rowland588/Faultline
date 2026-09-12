@@ -3888,3 +3888,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-gap-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; }
 .lt-gap-w { color: var(--ink); font-weight: 600; }
 .lt-gap-y { color: var(--muted); }
+
+/* opt-in surfaces, on the project's own setup page */
+.pset-tools { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.pset-tool { display: flex; align-items: flex-start; gap: 11px; margin-top: 8px; cursor: pointer; }
+.pset-tool input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--brand); }
+.pset-tool-m { display: flex; flex-direction: column; gap: 3px; }
+.pset-tool-m b { font-size: 15px; color: var(--ink); }
+.pset-tool-m .sub { max-width: 64ch; }

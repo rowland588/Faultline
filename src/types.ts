@@ -208,6 +208,15 @@ export interface Project {
   lead?: string;          // "Rowland Glew"
   leadEmail?: string;     // so the lead is also a person who can be invited
 
+  /** OPT-IN TOOLS. Not every project wants every surface, and a door that
+   *  leads somewhere a team has decided not to use is a door in the way.
+   *
+   *  The lever tree suits an initiative with one measurable outcome and a
+   *  chain of conditions under it. Most projects are not shaped like that, so
+   *  it is off unless a project asks for it — the screen, the route and the
+   *  report page all stay built, they simply are not offered. */
+  leverTree?: boolean;
+
   createdAt: Millis;
   updatedAt: Millis;
   deletedAt?: Millis;     // soft delete

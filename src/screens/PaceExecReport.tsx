@@ -368,7 +368,7 @@ export function PaceExecReport() {
     // The lever tree, flat. Only on the PROJECT's report: a line's own deck is
     // that line's page, and the whole project's plan on it would be somebody
     // else's work printed under their name.
-    tree: line ? [] : fullTree.map(n => ({
+    tree: line || !project?.leverTree ? [] : fullTree.map(n => ({
       id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
     })),
     // A line's deck is titled for the LINE and led by its owner — it is that
@@ -520,7 +520,7 @@ export function PaceExecReport() {
       </div>
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
-      {!line && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} />}
+      {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} />}
 
       {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>

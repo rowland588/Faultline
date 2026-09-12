@@ -424,6 +424,25 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
             onSave={v => void rename(project, { description: v || undefined })} />
         </label>
       </div>
+
+      {/* OPT-IN TOOLS. A door that leads somewhere a team has decided not to
+          use is a door in the way, so the surfaces that only suit some projects
+          are asked for rather than assumed. */}
+      <div className="pset-tools">
+        <p className="field-label">Extra surfaces</p>
+        <label className="pset-tool">
+          <input type="checkbox" checked={!!project.leverTree}
+            onChange={e => void rename(project, { leverTree: e.target.checked || undefined })} />
+          <span className="pset-tool-m">
+            <b>Lever tree</b>
+            <span className="sub">
+              The outcome, what has to be true for it, the conditions and the work — on one landscape
+              page that also prints into the GM report. Suits an initiative with one measurable
+              outcome and a chain of conditions under it; most projects are not shaped like that.
+            </span>
+          </span>
+        </label>
+      </div>
     </section>
   );
 }
