@@ -94,8 +94,13 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 function Box({
   t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove,
   folded, onFold, drag, moving, onPickUp, onPutHere, onBind, boundCount,
+  onSuggest, suggestNew,
 }: {
   t: Tree;
+  /** Build this line's conditions off the tracker. Absent once they are linked. */
+  onSuggest?: () => void;
+  /** Nothing under it yet, so the wording is "build" rather than "add". */
+  suggestNew?: boolean;
   /** Open the tracker link for this box. Absent on a box that cannot carry one. */
   onBind?: () => void;
   /** What this box's binding is holding, when it has one. */
@@ -230,6 +235,15 @@ function Box({
       {canTake && (
         <button type="button" className="lt-take" onClick={onPutHere}>
           Put it here
+        </button>
+      )}
+
+      {onSuggest && (
+        /* At the foot of the box, not beside it. Rendered as a sibling of the
+           box it lands in the connector gap between two columns, reading as a
+           stray control belonging to neither. */
+        <button className="lt-suggest" onClick={onSuggest}>
+          {suggestNew ? 'Build the conditions from the tracker' : 'Add this line’s work from the tracker'} →
         </button>
       )}
 
@@ -608,6 +622,14 @@ export function LeverTree({ projectId }: { projectId: string }) {
            tracker itself put there. */
         onBind={isBoundNode(t.node.id) || t.depth === 0 ? undefined : () => setBinding(t.node)}
         boundCount={t.node.bind ? bindCount(t.node.bind, trackerActions) : undefined}
+        /* Offered on a line whose conditions are not linked yet — NOT only on an
+           empty one. Keyed to emptiness it vanished the moment somebody typed a
+           condition by hand, which is most trees, and left the chain glyph as
+           the only way in: 22 pixels, unlabelled, in a row of eight. */
+        onSuggest={t.depth === 1 && !isBoundNode(t.node.id) && trackerActions.length > 0
+          && !t.kids.some(k => k.node.bind)
+          ? () => setSuggesting(t.node) : undefined}
+        suggestNew={t.kids.length === 0}
         onDropText={text => { setPasteInto(t.node); setPasteText(text); setAddMode('type'); }}
         onMove={d => void move(t.node, d)}
         drag={dragApi}
@@ -617,11 +639,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
           the tracker has on that line and proposing a condition for each,
           already linked. It disappears the instant the branch has something in
           it, so it never becomes clutter. */}
-      {t.depth === 1 && t.kids.length === 0 && !isBoundNode(t.node.id) && trackerActions.length > 0 && (
-        <button className="lt-suggest" onClick={() => setSuggesting(t.node)}>
-          Build the conditions from the tracker →
-        </button>
-      )}
       {t.kids.length > 0 && !folded.has(t.node.id) && <ul className="lt-kids">{t.kids.map(render)}</ul>}
     </li>
   );
@@ -711,6 +728,25 @@ export function LeverTree({ projectId }: { projectId: string }) {
             }}
             onTouchEnd={() => { pinch.current = null; }}
           >
+            {/* Said once, out loud, until it has been used. The whole feature was
+                otherwise invisible on a tree that already had boxes in it, and
+                a thing nobody can find is a thing nobody has. */}
+            {trackerActions.length > 0 && !nodes.some(n => n.bind) && (
+              <div className="lt-prompt">
+                <span className="lt-prompt-t">
+                  This week’s tracker has <b>{trackerActions.length} actions</b> — none of them are on this tree yet.
+                </span>
+                <span className="lt-prompt-s">
+                  Link a box to the tracker once and its work arrives every week by itself. Nothing to copy.
+                </span>
+                <button className="btn btn-primary" onClick={() => {
+                  // the first "what needs to be true", which is where conditions live
+                  const line = tree[0]?.kids[0]?.node ?? tree[0]?.node;
+                  if (line) setSuggesting(line);
+                }}>Put them on the tree</button>
+              </div>
+            )}
+
             <div className="lt-scroll" ref={scroll} style={{ zoom }}>
               {/* the level names, on the same pitch as the columns below */}
               <div className="lt-legend">
