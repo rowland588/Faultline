@@ -30,6 +30,7 @@ import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEF
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
+import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -405,10 +406,20 @@ export function PaceExecReport() {
         status: s.status,
         line: snagLine.get(s.id) ?? '',
       })),
-    wins: showWins.map(w => ({
-      title: w.title || 'Win', impact: w.impact || '', story: w.story || '',
-      who: w.who || 'the team', where: w.where || '',
-    })),
+    /* A proved win reports its OWN sentence — both means, both week counts,
+       the verdict — and the typed impact is dropped rather than printed
+       alongside it. Two numbers claiming the same thing is how a report loses
+       a room, and only one of the two was measured. */
+    wins: showWins.map(w => {
+      const pr = w.proof ? proofFromWin(w.proof) : null;
+      return {
+        title: w.title || 'Win',
+        impact: pr ? proofSentence(pr) : (w.impact || ''),
+        verdict: pr?.verdict,
+        story: w.story || '',
+        who: w.who || 'the team', where: w.where || '',
+      };
+    }),
   });
 
   return (
@@ -646,7 +657,10 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-wins">
-            <SectionHead n="7" title="What worked" sowhat="Wins to build on — the proof the plan is landing" />
+            {/* Not "What worked" any more. This panel can now carry a WORSE verdict in
+                front of a GM, and a failure sitting under a heading that promises
+                success is the kind of small lie that costs a report its credibility. */}
+            <SectionHead n="7" title="What we tried" sowhat="What worked, what didn’t, and the weeks behind each" />
             {showWins.length === 0 ? (
               <p className="exec-empty">No wins logged yet.</p>
             ) : (
@@ -655,8 +669,15 @@ export function PaceExecReport() {
                   <li key={w.id}>
                     <div className="exec-win-top">
                       <span className="exec-win-t">{w.title || 'Win'}</span>
-                      {w.impact && <span className="exec-win-i">{w.impact}</span>}
+                      {w.proof
+                        ? <span className={'exec-win-v is-' + proofFromWin(w.proof).verdict}>
+                            {verdictLabel(proofFromWin(w.proof).verdict)}
+                          </span>
+                        : w.impact && <span className="exec-win-i">{w.impact}</span>}
                     </div>
+                    {w.proof && <p className={'exec-win-p is-' + proofFromWin(w.proof).verdict}>
+                      {proofSentence(proofFromWin(w.proof))}
+                    </p>}
                     {w.story && <p className="exec-win-s">{clip(w.story, 130)}</p>}
                     <p className="exec-win-by">{w.who || 'the team'}{w.where ? ` · ${w.where}` : ''}</p>
                   </li>

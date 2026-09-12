@@ -2150,6 +2150,78 @@ button.st-pill { cursor: pointer; }
 
 .win-top { display: flex; align-items: flex-start; gap: 10px; }
 
+/* A win wears its verdict. The card was green whatever it said, which is fine
+   while every win is a story and nonsense the moment one can come back "worse"
+   — a red result in a green card reads as a green result. */
+.win-card.is-proven { border-color: color-mix(in srgb, var(--ok) 38%, var(--line)); border-left-color: var(--ok); }
+.win-card.is-better { border-color: color-mix(in srgb, var(--blue) 32%, var(--line)); border-left-color: var(--blue); }
+.win-card.is-flat   { border-color: var(--line); border-left-color: var(--muted); }
+.win-card.is-worse  { border-color: color-mix(in srgb, var(--danger) 32%, var(--line)); border-left-color: var(--danger); }
+
+/* the invitation, on a win with no proof yet */
+.win-prove {
+  display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 2px;
+  padding: 7px 12px; min-height: 34px;
+  border: 1px dashed var(--line-2); background: transparent; border-radius: 999px;
+  color: var(--accent); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.win-prove:hover { background: var(--surface-2); border-style: solid; }
+
+/* the receipt, on a win that has been called */
+.win-proof {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 10px;
+  margin: 10px 0 2px; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.win-proof.is-proven { background: color-mix(in srgb, var(--ok) 9%, var(--surface)); border-color: color-mix(in srgb, var(--ok) 28%, var(--line)); }
+.win-proof.is-worse  { background: color-mix(in srgb, var(--danger) 8%, var(--surface)); border-color: color-mix(in srgb, var(--danger) 26%, var(--line)); }
+.win-proof-badge {
+  flex: none; padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--muted); color: #fff;
+}
+.win-proof.is-proven .win-proof-badge { background: var(--ok); }
+.win-proof.is-better .win-proof-badge { background: var(--blue); }
+.win-proof.is-worse  .win-proof-badge { background: var(--danger); }
+.win-proof-line { font-size: 14.5px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.win-proof-meta { font-size: 12px; color: var(--muted); }
+.win-proof-redo {
+  margin-left: auto; border: 0; background: none; padding: 2px 0;
+  color: var(--accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline;
+}
+
+/* ---- the proving sheet ---- */
+.wp {
+  width: min(560px, 100%); max-height: 88vh; overflow: auto;
+  background: var(--surface); border-radius: 18px; padding: 18px 18px 16px;
+  box-shadow: var(--shadow-lg, 0 18px 50px rgba(12, 31, 38, 0.22));
+}
+.wp-lede { margin: 2px 0 14px; }
+.wp-lbl {
+  margin: 14px 0 7px; font-size: 11.5px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.wp-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.wp-verdict {
+  display: flex; flex-direction: column; gap: 7px; align-items: flex-start;
+  margin-top: 16px; padding: 14px; border-radius: 14px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.wp-verdict.is-proven { background: color-mix(in srgb, var(--ok) 10%, var(--surface)); border-color: color-mix(in srgb, var(--ok) 30%, var(--line)); }
+.wp-verdict.is-worse  { background: color-mix(in srgb, var(--danger) 9%, var(--surface)); border-color: color-mix(in srgb, var(--danger) 28%, var(--line)); }
+.wp-badge {
+  padding: 3px 10px; border-radius: 999px; background: var(--muted); color: #fff;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.wp-verdict.is-proven .wp-badge { background: var(--ok); }
+.wp-verdict.is-better .wp-badge { background: var(--blue); }
+.wp-verdict.is-worse  .wp-badge { background: var(--danger); }
+.wp-sentence { font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.wp-note { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.wp-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.wp-fine { margin: 10px 0 0; font-size: 12px; }
+
+
 .win-in {
   width: 100%; border: 1px solid transparent; border-radius: var(--radius-sm);
   background: transparent; font: inherit; color: var(--ink);
@@ -2349,6 +2421,23 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-win-top { display: flex; align-items: baseline; gap: 8px; }
 .exec-win-t { font-weight: 800; font-size: 12.5px; color: #141b26; flex: 1; }
 .exec-win-i { font-size: 11px; font-weight: 800; color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, #fff); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+/* A typed impact is a claim; a proved one is a result. They must not look the
+   same on a page somebody is deciding from — so the typed pill is ink, and the
+   verdict pill carries the colour. */
+.exec-win-i { color: var(--ink-2); background: var(--surface-2); border-color: var(--line); }
+.exec-win-v {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  color: #fff; background: var(--muted); border-radius: 20px; padding: 2px 9px; white-space: nowrap;
+}
+.exec-win-v.is-proven { background: var(--ok); }
+.exec-win-v.is-better { background: var(--blue); }
+.exec-win-v.is-worse  { background: var(--danger); }
+.exec-win-p {
+  margin: 3px 0 0; font-size: 12px; font-weight: 700; color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.exec-win-p.is-proven { color: var(--ok); }
+.exec-win-p.is-worse  { color: var(--danger); }
 .exec-win-s { margin: 2px 0 0; font-size: 11px; line-height: 1.4; color: #4a5568; }
 .exec-win-by { margin: 2px 0 0; font-size: 10.5px; font-weight: 700; color: var(--accent); }
 
@@ -3643,3 +3732,22 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .sweep { display: none !important; }
   .fl-enter * { animation: none !important; }
 }
+
+
+/* THE DOOR TO THE BOARD.
+   The Pareto answers "why is this line behind", and for a long time nothing in
+   the project pointed at it — so the one screen that raises the question had no
+   way to ask it. Loud when the line is behind, quiet when it isn't. */
+.why-door {
+  display: block; width: 100%; margin-top: 14px; padding: 13px 16px;
+  text-align: left; cursor: pointer; font: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+}
+.why-door:hover { border-color: var(--line-2); background: var(--surface-2); }
+.why-door.is-behind {
+  background: color-mix(in srgb, var(--warn) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 34%, var(--line));
+}
+.why-door-t { display: block; font-size: 15px; font-weight: 800; color: var(--ink); }
+.why-door.is-behind .why-door-t { color: color-mix(in srgb, var(--warn) 82%, var(--ink)); }
+.why-door-s { display: block; margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--ink-2); max-width: 62ch; }

@@ -298,6 +298,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: w.id, owner_id: fallbackOwner, project_id: w.projectId ?? null, line_id: w.lineId ?? null,
         title: w.title, story: w.story, where_at: w.where, who: w.who, impact: w.impact,
+        proof: w.proof ?? null,
         created_at: w.createdAt, updated_at: w.updatedAt, deleted_at: null,
       };
     },
@@ -306,6 +307,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       lineId: (r.line_id as string) ?? undefined,
       title: (r.title as string) ?? '', story: (r.story as string) ?? '',
       where: (r.where_at as string) ?? '', who: (r.who as string) ?? '', impact: (r.impact as string) ?? '',
+      proof: (r.proof as PaceWinRow['proof']) ?? undefined,
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },

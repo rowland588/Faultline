@@ -38,6 +38,43 @@ it is what their winners have to reference.
 truer, fuller, or more readable? If it only makes the demo shinier, it's
 marketing, not product.**
 
+## The second measurement (owner decision, Sep 2026)
+
+**A factory that cannot feed the stopwatch can still be held to a
+number.** The proof layer was built on observations — somebody timing
+losses on the floor — and that is a measurement many sites cannot
+produce, because it needs the team to work differently and the team's way
+is already set. Meanwhile the project half had a Wins log whose `impact`
+was a typed string: a benefit DECLARED, which is the improvement theatre
+named above, shipping inside the product that exists to refuse it.
+
+So a win now carries a **ppm proof** derived from the line's own weekly
+rate — the number the team already produces without being asked to change
+anything. Same discipline as the Case study, same refusals: both means,
+both week counts, a significance test, frozen at the moment it is called,
+and a verdict allowed to come back *not yet proven* or *worse*. A "Worse"
+verdict prints on the GM report in the same type as a "Proven" one, which
+is why the report's section is called **What we tried**, not *What
+worked*. See `lib/ppmProof.ts`.
+
+Two measurements, one discipline: **observations answer *why* a line is
+losing; weekly rate answers *whether it moved*.** Neither is allowed to
+close with a claim.
+
+**The Pareto is a tool, not the headline.** It is what you open when a
+line is behind and nobody knows why, reached from the line that raises
+the question — not a top-level mode you have to already know about. The
+advert leads with what the product IS: the plan on one page, the work off
+the team's own tracker, the line filmed where it hurts, and every result
+checked against the weeks it claims to have changed. *"Every improvement
+plan looks good on a slide. Every win sounds good in a meeting. Faultline
+makes them prove it."*
+
+What did NOT change, and must not: the measurement is still the reason
+this is believed. Demoting the Pareto as the ADVERT is not permission to
+demote proving things. A release that makes a claim easier to state than
+to check has failed the test below, whichever half it came from.
+
 ## Who it's for, and the boundary (owner decision, Aug 2026)
 
 Underneath everything is ONE ATOM: *see a problem in its place, pin it

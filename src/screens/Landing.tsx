@@ -9,13 +9,19 @@ import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
 import { GuideChapters, GuideExpect } from './GuideContent';
 
-/* The four verbs — the whole system, in the order a week runs. One door
- * (the ops buyer's); the ledger's marketing rules live in PRODUCT.md. */
+/* The four steps, in the order a project actually runs. One door (the ops
+ * buyer's); the ledger's marketing rules live in PRODUCT.md.
+ *
+ * These used to lead with the Pareto — see the loss, price it in pounds — which
+ * described the measurement half and skipped the half people are bought by.
+ * The plan, the work, the evidence and the proof is what the product IS now;
+ * the Pareto is the tool you open when a line is behind and nobody knows why,
+ * which is a sentence about a screen, not about the product. */
 const POINTS = [
-  ['See it — both ways', 'Time the losses with a stopwatch; film the line and pin the faults on the footage. Two lenses, one workspace.'],
-  ['Price it in pounds', 'Every lost minute meets your crew cost. The Pareto ranks the pain in £/week — the language the board decides in.'],
-  ['Fix it — owned and dated', 'Every action carries a name and a due date, ages in red when it slips, and lands in a Monday meeting that runs itself.'],
-  ['Prove it held — or admit it didn\'t', 'A study re-measures the same scope the same way, both sample sizes shown. The verdict can be ✗ — which is exactly why a ✓ is a receipt, not a claim.'],
+  ['The plan, on one page', 'The outcome, what has to be true for it, the conditions underneath, and the work below that. A lever tree you can put on a wall — and it prints into the report.'],
+  ['The work, from where it already lives', 'Actions come off the tracker your team already fills in. Tap a box on the tree, tap the actions that belong under it. No retyping, no second list to keep.'],
+  ['The line, filmed where it hurts', 'Walk it with a phone and pin the faults on the footage. The evidence outlives the video — delete the film and the marked frames stay.'],
+  ['Proved against the weeks — or not', 'A win is checked against that line\'s own weekly rate: both means, both week counts, a significance test, frozen when you call it. The verdict is allowed to say not proven, or worse.'],
 ] as const;
 
 export function Landing() {
@@ -60,28 +66,28 @@ export function Landing() {
           </div>
 
           <h1 className="landing-h1 landing-tag">
-            <span className="lt-line">OEE systems have numbers and no eyes.</span>
-            <span className="lt-line">Audit apps have eyes and no numbers.</span>
-            <span className="lt-punch">Faultline has both.</span>
+            <span className="lt-line">Every improvement plan looks good on a slide.</span>
+            <span className="lt-line">Every win sounds good in a meeting.</span>
+            <span className="lt-punch">Faultline makes them prove it.</span>
           </h1>
 
           <p className="landing-lede">
-            One discipline for food-manufacturing ops teams: see the loss, price it
-            in pounds, fix it, and prove the fix held — with receipts a finance
-            director believes.
+            Run the whole initiative in one place — the plan, the owners, the filmed
+            evidence and the weekly numbers — and let every result be checked against
+            the weeks it claims to have changed.
           </p>
 
           <div className="landing-worlds" aria-hidden>
             <div className="lw-card">
               <span className="lw-ic">▤</span>
-              <b>The stopwatch</b>
-              <span className="sub">Pareto · £/week · proof by re-measure</span>
+              <b>Run the project</b>
+              <span className="sub">The lever tree · owners &amp; dates · the report you present</span>
             </div>
             <span className="lw-plus">+</span>
             <div className="lw-card">
               <span className="lw-ic">▣</span>
-              <b>The camera</b>
-              <span className="sub">Video walks · pinned faults · proof by re-look</span>
+              <b>Prove it moved</b>
+              <span className="sub">Filmed evidence · the weeks compared · a verdict that can say no</span>
             </div>
           </div>
 

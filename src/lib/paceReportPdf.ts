@@ -20,7 +20,7 @@ import type { jsPDF } from 'jspdf';
 /* ---------- the app's palette, as the report uses it ---------- */
 const INK = '#0c1f26', INK2 = '#35505a', MUTED = '#6b8892', LINE = '#dbe8e6';
 const ACCENT = '#0a6d5b', BRAND = '#0b7d68', SURF2 = '#e9f2f0';
-const OK = '#2e9e5b', WARN = '#b8721a', DANGER = '#cc4436';
+const OK = '#2e9e5b', WARN = '#b8721a', DANGER = '#cc4436', BLUE = '#1c6fb8';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
 const ACTUAL = '#1c6fb8', TARGET = '#b8721a';
@@ -65,7 +65,12 @@ export interface PaceReportData {
    *  with no idea whose they are. Empty on a line's own deck, where the answer
    *  is on the masthead. */
   snags: { problem: string; owner: string; days: number; status: string; line: string }[];
-  wins: { title: string; impact: string; story: string; who: string; where: string }[];
+  /* `impact` is the claim as it should read. When the win carries a proof it is
+     the derived sentence and `verdict` says which way it went; with no proof it
+     is whatever somebody typed and `verdict` is absent. The page draws the two
+     differently on purpose — a measured claim should not look like a typed one. */
+  wins: { title: string; impact: string; story: string; who: string; where: string;
+          verdict?: 'proven' | 'better' | 'flat' | 'worse' }[];
   /** The project's lever tree, flat — parent ids, drawn into a page of its own.
    *  Empty when nobody has drawn one, and then the page is not printed at all
    *  rather than printed blank. */
@@ -436,7 +441,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     snags: raw.snags.map(s2 => ({ ...s2, problem: san(s2.problem), owner: san(s2.owner), line: san(s2.line) })),
     wins: raw.wins.map(w => ({
       title: san(w.title), impact: san(w.impact), story: san(w.story),
-      who: san(w.who), where: san(w.where),
+      who: san(w.who), where: san(w.where), verdict: w.verdict,
     })),
   };
   const W = d.internal.pageSize.getWidth();        // 1190.55pt
@@ -712,27 +717,46 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* 6 — what worked */
   const wwX = M + (colW + gap) * 2;
-  const wwRule = panel(d, wwX, r2y, colW, rowH2, '6', 'What worked', 'Wins to build on');
+  const wwRule = panel(d, wwX, r2y, colW, rowH2, '6', 'What we tried', 'What worked, what didn\'t');
   let wy = wwRule + 18;
   if (data.wins.length === 0) {
     setFont(d, 8, 'normal', MUTED);
-    d.text('No wins logged yet.', wwX + 12, wy);
+    d.text('Nothing logged yet.', wwX + 12, wy);
   }
+  const VERDICT: Record<string, { label: string; c: string }> = {
+    proven: { label: 'PROVEN', c: OK },
+    better: { label: 'NOT YET PROVEN', c: BLUE },
+    flat:   { label: 'NO CHANGE', c: MUTED },
+    worse:  { label: 'WORSE', c: DANGER },
+  };
   for (const win of data.wins) {
     if (wy + 34 > r2y + rowH2 - 8) break;
-    // impact pill on the right, title takes what is left
+    /* A proved win wears its verdict as the pill and prints the derived
+       sentence on its own line — the sentence carries both means and both week
+       counts, so it is far too long to squeeze in beside a title. An unproved
+       one keeps the old typed pill, in ink rather than green: a number somebody
+       typed should not be dressed as a result. */
+    const v = win.verdict ? VERDICT[win.verdict] : null;
+    const pill = v ? v.label : win.impact;
+    const pillC = v ? v.c : INK2;
     let pillW = 0;
-    if (win.impact) {
-      setFont(d, 7, 'bold', OK);
-      pillW = d.getTextWidth(win.impact) + 12;
-      d.setFillColor('#eaf5ee'); d.setDrawColor(OK); d.setLineWidth(0.6);
+    if (pill) {
+      setFont(d, 7, 'bold', pillC);
+      pillW = d.getTextWidth(pill) + 12;
+      const [pr, pg, pb] = wash(pillC, 0.12);
+      d.setFillColor(pr, pg, pb); d.setDrawColor(pillC); d.setLineWidth(0.6);
       d.roundedRect(wwX + colW - 12 - pillW, wy - 8, pillW, 12, 6, 6, 'FD');
-      setFont(d, 7, 'bold', OK);
-      d.text(win.impact, wwX + colW - 12 - pillW / 2, wy, { align: 'center' });
+      setFont(d, 7, 'bold', pillC);
+      d.text(pill, wwX + colW - 12 - pillW / 2, wy, { align: 'center' });
     }
     setFont(d, 8.5, 'bold', '#141b26');
     d.text(fit(d, win.title, colW - 30 - pillW), wwX + 12, wy);
     wy += 11;
+    if (v && win.impact) {
+      setFont(d, 7.5, 'bold', pillC);
+      d.text(fit(d, win.impact, colW - 24), wwX + 12, wy);
+      wy += 10;
+    }
     if (win.story) {
       setFont(d, 7.5, 'normal', INK2);
       for (const ln of d.splitTextToSize(win.story, colW - 24).slice(0, 2)) {

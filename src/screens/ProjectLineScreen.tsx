@@ -26,6 +26,7 @@ import { PpmEditor } from './PpmEditor';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines, type PaceLinesState } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { actionsForLine } from '../lib/paceLineMatch';
 import { useLinePackCounts } from '../lib/useLinePack';
 import type { PaceLineRow } from '../db';
@@ -76,6 +77,14 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   }, [ppm, lineId]);
 
   const mine = useMemo(() => actionsForLine(pace.actions, line?.key ?? ''), [pace.actions, line?.key]);
+
+  /* The Pareto used to be a top-level mode you had to already know about, and
+   * nothing in the project ever pointed at it — so on the one screen that says
+   * "this line is behind", the tool that answers WHY was unreachable. It is a
+   * door off the line now, not a place you navigate to. The workspace is made
+   * on the way in, the same as the filmed walk's. */
+  const ws = useLineWorkspace(line?.workspaceId, line?.name ?? '', attach);
+  const findOutWhy = async () => { nav(`/w/${await ws.ensure()}/analyse`); };
 
   if (projLoading || ppm.loading || pace.loading) {
     return <div className="wrap pace"><p className="sub">Loading…</p></div>;
@@ -161,6 +170,23 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
             <div className="pace-charts is-one">
               <PaceLineChart line={line} />
             </div>
+
+            {/* The ppm figure says WHETHER the line is where it should be. It
+                can never say why — that needs the losses timed on the floor.
+                Offered loudly when the line is behind, and quietly when it is
+                not, because "why are we winning" is a fair question too. */}
+            <button className={'why-door' + (delta != null && delta < 0 ? ' is-behind' : '')}
+              onClick={() => void findOutWhy()}>
+              <span className="why-door-t">
+                {delta != null && delta < 0
+                  ? `${line.name} is ${Math.abs(delta)} ppm behind its Q1 target — find out why`
+                  : 'Where is this line’s time going?'}
+              </span>
+              <span className="why-door-s">
+                Time the losses on the floor and they rank themselves by what they cost —
+                the board that tells you which problem to spend the week on.
+              </span>
+            </button>
           </section>
         </>
       )}

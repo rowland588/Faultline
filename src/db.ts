@@ -9,6 +9,7 @@ import type { Segment, SnagAsset, Snag } from './snag/types';
 import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
 import { PACE_BASELINE_AT } from './lib/projectPaceData';
+import type { WinProof } from './lib/ppmProof';
 
 interface AppDB extends DBSchema {
   workspaces: { key: string; value: Workspace; indexes: { by_updatedAt: number } };
@@ -101,6 +102,11 @@ export interface PaceTodoRow {
 export interface PaceWinRow {
   id: string;
   title: string; story: string; where: string; who: string; impact: string;
+  /** The measured claim, frozen at the moment somebody called it: which line's
+   *  weeks, both means, both counts, and the significance. A win without one is
+   *  a story — which is allowed, and is what `impact` is for — but a win WITH
+   *  one is a receipt, and the report prints the receipt over the story. */
+  proof?: WinProof;
   /** Which project's success log this is in — see PaceTodoRow. */
   projectId?: string;
   /** Which line's win it is — see PaceTodoRow.lineId. */

@@ -14,10 +14,21 @@
  * seeing your own name against the thing that worked.
  *
  * IMPACT is the number that settles the argument — "44 → 49 ppm", "changeover
- * 40 → 28 min". Free text, because not every win is a ppm figure. */
-import { useCallback, useEffect, useRef, useState } from 'react';
+ * 40 → 28 min". Free text, because not every win is a ppm figure.
+ *
+ * And that free text was the hole. A typed impact is a benefit DECLARED, which
+ * is the one thing this product exists to refuse — the Case study has never
+ * allowed it, and the wins log quietly did. So a win can now carry a PROOF
+ * derived from the line's own weekly ppm: both means, both week counts, a
+ * significance test, frozen when it is called, and allowed to come back "not
+ * proven" or "worse". The story stays; the number stops being a claim.
+ * See lib/ppmProof.ts. */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, DEFAULT_PROJECT_ID, type PaceWinRow } from '../db';
 import { uid } from '../lib/ids';
+import { usePaceLines } from '../lib/usePaceLines';
+import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib/ppmProof';
+import { WinProofSheet } from './WinProofSheet';
 
 const when = (ms: number) =>
   new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -34,17 +45,39 @@ function Grow({ value, onChange, placeholder, label, cls }: {
   );
 }
 
-function Card({ win, onPatch, onDelete }: {
+function Card({ win, onPatch, onDelete, onProve }: {
   win: PaceWinRow; onPatch: (p: Partial<PaceWinRow>) => void; onDelete: () => void;
+  onProve: () => void;
 }) {
+  const proof = win.proof ? proofFromWin(win.proof) : null;
   return (
-    <article className="win-card">
+    <article className={'win-card' + (proof ? ' is-' + proof.verdict : '')}>
       <div className="win-top">
         <Grow cls="win-in win-title" label="What worked" value={win.title}
           placeholder="What worked" onChange={v => onPatch({ title: v })} />
-        <input className="win-in win-impact" aria-label="Impact" value={win.impact}
-          placeholder="44 → 49 ppm" onChange={e => onPatch({ impact: e.target.value })} />
+        {/* Typed impact only while there is no proof. Once the weeks have
+            spoken, the typed number stops being shown at all — two numbers
+            claiming the same thing is how a report loses a room. */}
+        {!proof && (
+          <input className="win-in win-impact" aria-label="Impact" value={win.impact}
+            placeholder="44 → 49 ppm" onChange={e => onPatch({ impact: e.target.value })} />
+        )}
       </div>
+
+      {proof ? (
+        <div className={'win-proof is-' + proof.verdict}>
+          <span className="win-proof-badge">{verdictLabel(proof.verdict)}</span>
+          <span className="win-proof-line">{proofSentence(proof)}</span>
+          <span className="win-proof-meta">
+            {win.proof!.lineName} · called {when(win.proof!.calledAt)}
+          </span>
+          <button className="win-proof-redo" onClick={onProve}>Recall it</button>
+        </div>
+      ) : (
+        <button className="win-prove" onClick={onProve}>
+          Prove it from the weeks →
+        </button>
+      )}
 
       <Grow cls="win-in win-story" label="What we did" value={win.story}
         placeholder="What we did — the story you'd tell the team" onChange={v => onPatch({ story: v })} />
@@ -65,7 +98,16 @@ function Card({ win, onPatch, onDelete }: {
 export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID, lineId }: { projectId?: string; lineId?: string } = {}) {
   const [wins, setWins] = useState<PaceWinRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [proving, setProving] = useState<string | null>(null);   // win id
   const root = useRef<HTMLDivElement>(null);
+  const { lines } = usePaceLines(projectId);
+
+  /* On a line's own wins tab, only that line's weeks can prove anything — so
+   * the picker is not offered a choice it would be wrong to take. */
+  const provable = useMemo(
+    () => (lineId ? lines.filter(l => l.key === lineId || l.id === lineId) : lines),
+    [lines, lineId],
+  );
 
   const load = useCallback(async () => { setWins(await listPaceWins(projectId, lineId)); setLoading(false); }, [projectId, lineId]);
 
@@ -96,7 +138,7 @@ export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID, lineId }: { projec
   };
 
   const remove = async (w: PaceWinRow) => {
-    const filled = [w.title, w.story, w.where, w.who, w.impact].some(v => v.trim());
+    const filled = [w.title, w.story, w.where, w.who, w.impact].some(v => v.trim()) || !!w.proof;
     if (filled && !window.confirm(`Delete this win?\n\n"${w.title || '(no title)'}"`)) return;
     setWins(wins.filter(x => x.id !== w.id));
     await deletePaceWin(w.id);
@@ -128,9 +170,19 @@ export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID, lineId }: { projec
           {wins.map(w => (
             <Card key={w.id} win={w}
               onPatch={p => void patch(w.id, p)}
-              onDelete={() => void remove(w)} />
+              onDelete={() => void remove(w)}
+              onProve={() => setProving(w.id)} />
           ))}
         </div>
+      )}
+
+      {proving && (
+        <WinProofSheet
+          lines={provable}
+          initial={wins.find(w => w.id === proving)?.proof}
+          onClose={() => setProving(null)}
+          onCall={(p: WinProof) => { void patch(proving, { proof: p }); setProving(null); }}
+        />
       )}
     </div>
   );
