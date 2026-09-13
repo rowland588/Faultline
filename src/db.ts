@@ -158,6 +158,10 @@ export interface PaceSnapshotRow {
   projectId?: string;
   actions: unknown[];
   roster?: unknown;
+  /** The Pareto sheet as this upload had it — see PaceParetoSheet. Optional
+   *  because most trackers carry no Pareto, and because snapshots taken before
+   *  the app read one simply have not got it. */
+  pareto?: unknown;
 }
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */

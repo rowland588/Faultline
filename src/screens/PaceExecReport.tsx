@@ -31,6 +31,8 @@ import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
+import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
+import type { PaceParetoSheet } from '../lib/paceWorkbook';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
@@ -90,8 +92,8 @@ function SectionHead({ n, title, sowhat }: { n: string; title: string; sowhat: s
 /* The tree gets its own sheet. It is the only thing in the report that says
  * WHY any of the rest is being done, and it needs the width of an A3 to say it
  * — squeezed into a corner of the pace page it would be a decoration. */
-function TreePage({ rows, title, scale, sheetH, of }: {
-  rows: TreeNodeRow[] | null; title: string; scale: number; sheetH: number; of: number;
+function TreePage({ rows, title, scale, sheetH, n, of }: {
+  rows: TreeNodeRow[] | null; title: string; scale: number; sheetH: number; n: number; of: number;
 }) {
   // No tree drawn yet: print nothing rather than a blank page with a heading on
   // it. A report should never contain an empty box.
@@ -101,14 +103,88 @@ function TreePage({ rows, title, scale, sheetH, of }: {
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-1">
           <section className="exec-box">
-            <SectionHead n="2" title="The plan"
+            <SectionHead n={String(n)} title="The plan"
               sowhat="What has to be true for the outcome, and where each part has got to" />
             <TreeStatic rows={rows} maxW={1520} maxH={860} />
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 2 of {of} — the plan</span>
+          <span>{title} · weekly executive report · page {n} of {of} — the plan</span>
           <span>Kept by hand on the project’s lever tree; the work under it comes off the tracker.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+/* WHERE THE TIME IS GOING — its own sheet, only when the project runs a Pareto.
+ *
+ * It sits straight after the pace, because it is the answer to the question the
+ * pace raises: the line is behind, so where is the time actually going? And
+ * when a second Pareto has been uploaded it carries the movement, which is the
+ * only thing on this report that says whether the work CHANGED anything rather
+ * than merely happened. */
+function ParetoPage({ view, title, scale, sheetH, n, of }: {
+  view: ParetoView; title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  const SHOWN = PARETO_SHEET_ROWS;   // shared with the PDF — see lib/paretoView
+  const rows = view.rows.filter(r => r.verdict !== 'gone').slice(0, SHOWN);
+  const gone = view.rows.filter(r => r.verdict === 'gone');
+  const max = rows[0]?.mins ?? 0;
+  const more = view.rows.filter(r => r.verdict !== 'gone').length - rows.length;
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="Where the time is going"
+              sowhat={view.comparable
+                ? `${view.period} against ${view.beforePeriod} — what moved`
+                : `${view.period ?? 'the measured period'} — ${Math.round(view.totalMins).toLocaleString()} minutes across ${view.totalStops} stops`} />
+            <p className="exec-pr-vital">
+              <b>{view.vitalCount}</b> categories carry <b>{Math.round(view.vitalShare * 100)}%</b> of
+              the lost time{view.headline ? ` · ${view.headline}` : ''}
+            </p>
+            <table className="exec-pr">
+              <thead>
+                <tr>
+                  <th scope="col">Category</th><th scope="col">Minutes</th>
+                  <th scope="col">Share</th><th scope="col">Stops</th><th scope="col">Min/stop</th>
+                  {view.comparable && <th scope="col">Change</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(m => (
+                  <tr key={m.category} className={m.vital ? 'is-vital' : ''}>
+                    <th scope="row">{m.category}</th>
+                    <td className="exec-pr-bar-c">
+                      <span className="exec-pr-bar" style={{ width: `${max > 0 ? (m.mins / max) * 100 : 0}%` }} aria-hidden />
+                      <span className="exec-pr-m">{Math.round(m.mins).toLocaleString()}</span>
+                    </td>
+                    <td className="c-num">{Math.round(m.share * 100)}%</td>
+                    <td className="c-num">{m.events}</td>
+                    <td className="c-num">{Math.round(m.minPerEvent * 10) / 10}</td>
+                    {view.comparable && (
+                      <td className={'exec-pr-mv is-' + (m.verdict ?? 'flat')}>{moveSentence(m)}</td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {(more > 0 || gone.length > 0) && (
+              <p className="exec-more">
+                {more > 0 && <>+{more} smaller categor{more === 1 ? 'y' : 'ies'} below these</>}
+                {more > 0 && gone.length > 0 && ' · '}
+                {gone.length > 0 && <>gone entirely: {gone.map(g => g.category).join(', ')}</>}
+              </p>
+            )}
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · weekly executive report · page {n} of {of} — where the time is going</span>
+          <span>{view.comparable
+            ? `Measured against the Pareto covering ${view.beforePeriod}.`
+            : 'One Pareto so far — no movement can be claimed from a single reading.'}</span>
         </footer>
       </section>
     </div>
@@ -381,14 +457,35 @@ export function PaceExecReport() {
    * on screen and the other in their hand. Both optional sheets are counted the
    * same way, in the same order. */
   const hasTree = !line && !!project?.leverTree && fullTree.length > 0;
+
+  /* The Pareto, when the project runs one and an upload has carried the sheet.
+     The comparison skips uploads that brought no Pareto with them: most weeks
+     the tracker changes and the loss analysis does not, and "nothing to compare"
+     the moment one file lacks the sheet would be wrong. */
+  const paretoSnaps = pace.snapshots.filter(s => !!s.pareto) as
+    (typeof pace.snapshots[number] & { pareto: PaceParetoSheet })[];
+  const pView: ParetoView | null = !line && project?.pareto && paretoSnaps[0]
+    ? paretoView(paretoSnaps[0].pareto, paretoSnaps[1]?.pareto)
+    : null;
+  const hasPareto = !!pView;
   /* The identical rule the PDF uses — see lib/pillars. Two rules is how a
    * four-page PDF ends up stamped "page 2 of 3", and two units is how the same
    * rule reaches two answers, so the available height lives there too. */
   const boardPlan = boardSheets(
     boardData.areas.map(a => ({ name: a.name, counts: a.columns.map(c => c.rows.length) })),
   );
-  const pageCount = 2 + (hasTree ? 1 : 0) + boardPlan.length;
-  const boardPageNo = 2 + (hasTree ? 1 : 0);
+  /* One order, counted once. Pace, then where the time is going, then the plan,
+     then the work, then the detail — and every page number falls out of the
+     same arithmetic the pages themselves are rendered from. */
+  const paretoPageNo = 2;
+  const treePageNo = 2 + (hasPareto ? 1 : 0);
+  const boardPageNo = treePageNo + (hasTree ? 1 : 0);
+  const pageCount = 2 + (hasPareto ? 1 : 0) + (hasTree ? 1 : 0) + boardPlan.length;
+  /* The panels on the last page carry on from the numbered pages before them.
+     They used to be typed 3 to 7, which was right only while there were exactly
+     two pages in front of them — add a Pareto and the report has two panels
+     called 3. */
+  const sec = boardPageNo + boardPlan.length;
   // Which lines this report covers — one, or all of them.
   const reportLines = line ? [line] : ppm.lines;
 
@@ -524,6 +621,21 @@ export function PaceExecReport() {
     // else's work printed under their name.
     board: boardRows,
     boardUnplaced: boardData.unplaced.length,
+    /* The same view the screen draws, flattened to numbers and sentences — the
+       drawer never looks at the DOM, so this is the whole contract. */
+    pareto: pView ? {
+      period: pView.period, beforePeriod: pView.beforePeriod, headline: pView.headline,
+      totalMins: pView.totalMins, totalStops: pView.totalStops,
+      vitalCount: pView.vitalCount, vitalShare: pView.vitalShare,
+      comparable: pView.comparable,
+      rows: pView.rows.filter(r => r.verdict !== 'gone').slice(0, PARETO_SHEET_ROWS).map(r => ({
+        category: r.category, mins: r.mins, share: r.share, events: r.events,
+        minPerEvent: r.minPerEvent, vital: r.vital,
+        move: r.verdict ? moveSentence(r) : '', verdict: r.verdict ?? 'flat',
+      })),
+      more: Math.max(0, pView.rows.filter(r => r.verdict !== 'gone').length - PARETO_SHEET_ROWS),
+      gone: pView.rows.filter(r => r.verdict === 'gone').map(r => r.category),
+    } : undefined,
     tree: line || !project?.leverTree ? [] : fullTree.map(n => ({
       id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
     })),
@@ -676,7 +788,8 @@ export function PaceExecReport() {
       </div>
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
-      {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} of={pageCount} />}
+      {pView && <ParetoPage view={pView} title={title} scale={scale} sheetH={SHEET_H} n={paretoPageNo} of={pageCount} />}
+      {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
       {/* WHY THE BOARD SHEET IS NOT IN THIS REPORT.
           A page with a heading and nothing under it has no place in something
           going to a General Manager, so when the workbook has no 3P column the
@@ -713,7 +826,7 @@ export function PaceExecReport() {
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-2">
           <section className="exec-box exec-box-actions">
-            <SectionHead n="3" title={line ? 'Action tracker' : 'Action tracker & the lines'}
+            <SectionHead n={String(sec + 0)} title={line ? 'Action tracker' : 'Action tracker & the lines'}
               sowhat={line
                 ? `${actions.length} actions on this line — where they stand`
                 : `${actions.length} actions — and what each line's own pack holds`} />
@@ -768,7 +881,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-late">
-            <SectionHead n="4" title="Overdue & at risk" sowhat="The actions past their date — where help is needed" />
+            <SectionHead n={String(sec + 1)} title="Overdue & at risk" sowhat="The actions past their date — where help is needed" />
             {lateActions.length === 0 ? (
               <p className="exec-empty">Nothing overdue. Every open action is within its date.</p>
             ) : (
@@ -790,7 +903,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-next">
-            <SectionHead n="5" title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
+            <SectionHead n={String(sec + 2)} title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
             {openTodos.length === 0 ? (
               <p className="exec-empty">Nothing outstanding logged.</p>
             ) : (
@@ -833,7 +946,7 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-snags">
-            <SectionHead n="6" title="Line walk" sowhat={`${openSnags.length} open snag${openSnags.length === 1 ? '' : 's'} filmed on the line`} />
+            <SectionHead n={String(sec + 3)} title="Line walk" sowhat={`${openSnags.length} open snag${openSnags.length === 1 ? '' : 's'} filmed on the line`} />
             {openSnags.length === 0 ? (
               <p className="exec-empty">{snags.length ? 'All logged snags are closed.' : 'No walk recorded this week.'}</p>
             ) : (
@@ -860,7 +973,7 @@ export function PaceExecReport() {
             {/* Not "What worked" any more. This panel can now carry a WORSE verdict in
                 front of a GM, and a failure sitting under a heading that promises
                 success is the kind of small lie that costs a report its credibility. */}
-            <SectionHead n="7" title="What we tried" sowhat="What worked, what didn’t, and the weeks behind each" />
+            <SectionHead n={String(sec + 4)} title="What we tried" sowhat="What worked, what didn’t, and the weeks behind each" />
             {showWins.length === 0 ? (
               <p className="exec-empty">No wins logged yet.</p>
             ) : (

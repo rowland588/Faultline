@@ -84,6 +84,19 @@ export interface PaceReportData {
            owner: string; due: string; rag: string }[];
   /** Rows the workbook did not place. Printed as a count, never hidden. */
   boardUnplaced: number;
+  /* WHERE THE TIME IS GOING. Present only when the project runs a Pareto and an
+     upload has carried the sheet; absent is the normal case, and an absent
+     Pareto costs the report a page rather than printing an empty one. */
+  pareto?: {
+    period?: string; beforePeriod?: string; headline?: string;
+    totalMins: number; totalStops: number;
+    vitalCount: number; vitalShare: number;
+    comparable: boolean;
+    rows: { category: string; mins: number; share: number; events: number;
+            minPerEvent: number; vital: boolean; move: string; verdict: string }[];
+    more: number;
+    gone: string[];
+  };
   /** The project's lever tree, flat — parent ids, drawn into a page of its own.
    *  Empty when nobody has drawn one, and then the page is not printed at all
    *  rather than printed blank. */
@@ -586,13 +599,112 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     counts: PILL_KEYS.map(k => data.board.filter(b => b.area === area && b.pillar === k).length),
   }));
   const boardPlan = boardSheets(boardAreas);
-  const pages = 2 + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
+  /* The same order the screen renders in, counted the same way: pace, where the
+     time is going, the plan, the work, the detail. */
+  const hasPareto = !!data.pareto;
+  const pages = 2 + (hasPareto ? 1 : 0) + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
   d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
 
-  const planPage = 2;
-  const boardPage = 2 + (data.tree.length > 0 ? 1 : 0);
+  const paretoPage = 2;
+  const planPage = 2 + (hasPareto ? 1 : 0);
+  const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
+
+  /* ============ WHERE THE TIME IS GOING — the Pareto, its own sheet ============
+   * A ranking is a shape before it is a table, so the bar is drawn and the
+   * numbers sit beside it. When a second Pareto has been uploaded the right
+   * hand column carries the movement — the only thing in this report that says
+   * whether the work CHANGED anything rather than merely happened. */
+  if (data.pareto) {
+    const pv = data.pareto;
+    d.addPage('a3', 'landscape');
+    const py = panel(d, M, M, CW, H - 2 * M - 14, String(paretoPage), 'Where the time is going',
+      pv.comparable && pv.beforePeriod
+        ? `${pv.period ?? 'this period'} against ${pv.beforePeriod} \u2014 what moved`
+        : `${pv.period ?? 'the measured period'} \u2014 ${Math.round(pv.totalMins).toLocaleString()} minutes across ${pv.totalStops} stops`);
+
+    setFont(d, 9, 'bold', '#141b26');
+    d.text(fit(d, `${pv.vitalCount} categories carry ${Math.round(pv.vitalShare * 100)}% of the lost time`, CW - 24), M + 12, py + 16);
+    if (pv.headline) {
+      setFont(d, 7.5, 'normal', MUTED);
+      d.text(fit(d, pv.headline, CW - 24), M + 12, py + 28);
+    }
+
+    const x0 = M + 12;
+    const wAll = CW - 24;
+    /* Column geometry as fractions of the panel, so the table cannot run off
+       the sheet when a category name is long. */
+    const cCat = wAll * 0.26, cBar = wAll * (pv.comparable ? 0.26 : 0.40);
+    const cNum = wAll * 0.07;
+    const xCat = x0, xBar = xCat + cCat;
+    const xShare = xBar + cBar + 8, xStops = xShare + cNum, xMps = xStops + cNum;
+    const xMove = xMps + cNum + 8;
+
+    let ry = py + 44;
+    setFont(d, 6.6, 'bold', MUTED);
+    d.text('CATEGORY', xCat, ry);
+    d.text('MINUTES LOST', xBar, ry);
+    d.text('SHARE', xShare + cNum - 2, ry, { align: 'right' });
+    d.text('STOPS', xStops + cNum - 2, ry, { align: 'right' });
+    d.text('MIN/STOP', xMps + cNum - 2, ry, { align: 'right' });
+    if (pv.comparable) d.text('CHANGE', xMove, ry);
+    d.setDrawColor(LINE); d.setLineWidth(0.8);
+    d.line(x0, ry + 4, x0 + wAll, ry + 4);
+    ry += 16;
+
+    const maxMins = pv.rows[0]?.mins ?? 0;
+    const rowH = 17;
+    const bottom = H - M - 14 - 26;
+    for (const r of pv.rows) {
+      if (ry + rowH > bottom) break;
+      if (r.vital) {
+        const [vr, vg, vb] = wash(BRAND, 0.05);
+        d.setFillColor(vr, vg, vb);
+        d.rect(x0, ry - 9, wAll, rowH - 2, 'F');
+        d.setFillColor(BRAND); d.rect(x0, ry - 9, 2, rowH - 2, 'F');
+      }
+      setFont(d, 7.6, 'bold', '#141b26');
+      d.text(fit(d, r.category, cCat - 10), xCat + 5, ry);
+
+      const bw = maxMins > 0 ? (r.mins / maxMins) * (cBar - 44) : 0;
+      const [br, bg, bb] = wash(BRAND, 0.55);
+      d.setFillColor(br, bg, bb);
+      d.roundedRect(xBar, ry - 6.5, Math.max(bw, 1), 8, 1.5, 1.5, 'F');
+      setFont(d, 7.6, 'bold', '#141b26');
+      d.text(Math.round(r.mins).toLocaleString(), xBar + cBar - 4, ry, { align: 'right' });
+
+      setFont(d, 7.2, 'normal', INK2);
+      d.text(`${Math.round(r.share * 100)}%`, xShare + cNum - 2, ry, { align: 'right' });
+      d.text(String(r.events), xStops + cNum - 2, ry, { align: 'right' });
+      d.text(String(Math.round(r.minPerEvent * 10) / 10), xMps + cNum - 2, ry, { align: 'right' });
+
+      if (pv.comparable) {
+        const c = r.verdict === 'down' || r.verdict === 'gone' ? OK
+          : r.verdict === 'up' ? DANGER
+          : r.verdict === 'new' ? WARN : MUTED;
+        setFont(d, 7, r.verdict === 'down' || r.verdict === 'up' ? 'bold' : 'normal', c);
+        d.text(fit(d, r.move, x0 + wAll - xMove), xMove, ry);
+      }
+      ry += rowH;
+    }
+
+    if (pv.more > 0 || pv.gone.length > 0) {
+      setFont(d, 6.8, 'normal', MUTED);
+      const bits = [
+        pv.more > 0 ? `+${pv.more} smaller categor${pv.more === 1 ? 'y' : 'ies'} below these` : '',
+        pv.gone.length > 0 ? `gone entirely: ${pv.gone.join(', ')}` : '',
+      ].filter(Boolean).join(' \u00b7 ');
+      d.text(fit(d, bits, wAll), x0, Math.min(ry + 6, bottom + 14));
+    }
+
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${paretoPage} of ${pages} \u2014 where the time is going`, CW * 0.8), M, H - M + 6);
+    d.text(pv.comparable && pv.beforePeriod
+      ? `Measured against the Pareto covering ${pv.beforePeriod}.`
+      : 'One Pareto so far \u2014 no movement can be claimed from a single reading.',
+      W - M, H - M + 6, { align: 'right' });
+  }
 
   /* ================= THE PLAN — the lever tree, its own sheet =================
    * Only when there is one. A page with a heading and nothing under it is worse

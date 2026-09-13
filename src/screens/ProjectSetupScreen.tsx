@@ -442,6 +442,20 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
             </span>
           </span>
         </label>
+        <label className="pset-tool">
+          <input type="checkbox" checked={!!project.pareto}
+            onChange={e => void rename(project, { pareto: e.target.checked || undefined })} />
+          <span className="pset-tool-m">
+            <b>Pareto</b>
+            <span className="sub">
+              Where the time is actually going, ranked, read off the Pareto sheet of the weekly
+              upload. At the start of a project it says where to aim; run again during it, the same
+              ranking is evidence of whether the category you went after got smaller. Needs a Pareto
+              sheet in the workbook — a project that measures its losses another way does not want
+              this page.
+            </span>
+          </span>
+        </label>
       </div>
     </section>
   );

@@ -179,6 +179,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         workspace_ids: p.workspaceIds,
         lead: p.lead ?? null, lead_email: p.leadEmail ?? null,
         lever_tree: p.leverTree ?? false,
+        pareto: p.pareto ?? false,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
@@ -189,6 +190,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       workspaceIds: (r.workspace_ids as string[]) ?? [],
       lead: (r.lead as string) ?? undefined, leadEmail: (r.lead_email as string) ?? undefined,
       leverTree: r.lever_tree === true || undefined,
+      pareto: r.pareto === true || undefined,
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
@@ -346,7 +348,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: s.id, owner_id: fallbackOwner, project_id: s.projectId ?? null,
         taken_at: s.takenAt, file_name: s.fileName,
-        actions: s.actions, roster: s.roster ?? null,
+        actions: s.actions, roster: s.roster ?? null, pareto: s.pareto ?? null,
         // the engine's LWW reads updated_at for every kind; a snapshot is never
         // edited, so it mirrors when it was taken
         updated_at: s.takenAt, deleted_at: null,
@@ -356,6 +358,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       id: r.id as string, projectId: (r.project_id as string) ?? undefined,
       takenAt: Number(r.taken_at), fileName: (r.file_name as string) ?? 'upload',
       actions: (r.actions as unknown[]) ?? [], roster: r.roster ?? undefined,
+      pareto: r.pareto ?? undefined,
     }),
   },
 };

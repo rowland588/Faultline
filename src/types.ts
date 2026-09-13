@@ -216,6 +216,10 @@ export interface Project {
    *  it is off unless a project asks for it — the screen, the route and the
    *  report page all stay built, they simply are not offered. */
   leverTree?: boolean;
+  /** Opt in to the Pareto surface — see ParetoScreen. Off unless the project
+   *  asks for it, the same as the lever tree: both are tools some projects run
+   *  on and most do not, and an unused door is a door in the way. */
+  pareto?: boolean;
 
   createdAt: Millis;
   updatedAt: Millis;

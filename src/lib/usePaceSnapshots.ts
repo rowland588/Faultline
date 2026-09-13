@@ -6,7 +6,7 @@
  * last resort underneath them all. */
 import { useCallback, useEffect, useState } from 'react';
 import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot, onDataChange, DEFAULT_PROJECT_ID } from '../db';
-import { readPaceWorkbook, type PaceSnapshot, type PaceRoster } from './paceWorkbook';
+import { readPaceWorkbook, type PaceSnapshot, type PaceRoster, type PaceParetoSheet } from './paceWorkbook';
 import { PACE_ACTIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
 import type { PaceAction } from './projectPaceData';
 
@@ -53,6 +53,7 @@ export function usePaceSnapshots(projectId: string = DEFAULT_PROJECT_ID): PaceSt
       id: r.id, takenAt: r.takenAt, fileName: r.fileName,
       actions: r.actions as PaceAction[],
       roster: (r as { roster?: PaceRoster }).roster,
+      pareto: (r as { pareto?: PaceParetoSheet }).pareto,
     })));
     setLoading(false);
   }, [projectId]);
@@ -71,6 +72,10 @@ export function usePaceSnapshots(projectId: string = DEFAULT_PROJECT_ID): PaceSt
         fileName: report.snapshot.fileName,
         actions: report.snapshot.actions,
         roster: report.snapshot.roster,
+        /* Written here or it is lost: this call names every field rather than
+           spreading the snapshot, so anything the parser learns to read has to
+           be added on this line too. */
+        pareto: report.snapshot.pareto,
       });
       setWarnings(report.warnings);
       await load();

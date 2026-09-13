@@ -381,7 +381,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
-          {/* Offered only where the project asked for it — see Project.leverTree. */}
+          {/* Offered only where the project asked for them — see Project.leverTree
+              and Project.pareto. Both are tools some projects run on; a door to
+              somewhere a team has decided not to go is a door in the way. */}
+          {project.pareto && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
+          )}
           {project.leverTree && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
           )}
