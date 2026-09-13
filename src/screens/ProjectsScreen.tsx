@@ -42,11 +42,21 @@ export function ProjectsScreen() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');
+  /* THE PLAN MODEL, ASKED FOR ONCE, AT THE START.
+   *
+   * A project runs its plan on the 3P board (People / Plant / Process, off the
+   * weekly tracker) or on the lever tree (outcome -> conditions -> work, kept by
+   * hand). Almost never both — they are two different ways of answering "what
+   * are we doing and why", not two features to switch on. Asking here, before
+   * the project has a single line in it, means nobody discovers the choice was
+   * ever made by tripping over a ticked box in Lines & people three weeks in.
+   * It stays changeable there afterwards; this is just where it starts. */
+  const [model, setModel] = useState<'board' | 'tree'>('board');
 
   const doCreate = async () => {
     if (!name.trim()) return;
-    const p = await create(name, lead.trim() || undefined);
-    setName(''); setLead(''); setAdding(false);
+    const p = await create(name, lead.trim() || undefined, model === 'tree');
+    setName(''); setLead(''); setAdding(false); setModel('board');
     // Straight into setting it up: a project with no lines is not yet a project,
     // and the next thing to do is add one.
     nav(`/project/${p.id}/setup`);
@@ -87,6 +97,22 @@ export function ProjectsScreen() {
                 placeholder="Who is accountable for it" onChange={e => setLead(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
             </label>
+          </div>
+          <div className="proj-model">
+            <span className="field-label">Plan model</span>
+            <div className="proj-model-grid">
+              <button type="button" className={'proj-model-opt' + (model === 'board' ? ' on' : '')}
+                onClick={() => setModel('board')}>
+                <span className="proj-model-t">3P board</span>
+                <span className="proj-model-s">People · Plant · Process, off the weekly tracker — the meeting runs on it directly</span>
+              </button>
+              <button type="button" className={'proj-model-opt' + (model === 'tree' ? ' on' : '')}
+                onClick={() => setModel('tree')}>
+                <span className="proj-model-t">Lever tree</span>
+                <span className="proj-model-s">Outcome, what has to be true for it, conditions and work — kept by hand, one page</span>
+              </button>
+            </div>
+            <p className="chip-hint">Changeable later under Lines &amp; people, if the project turns out to need the other one.</p>
           </div>
           <div className="row-inline" style={{ marginTop: 10 }}>
             <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>

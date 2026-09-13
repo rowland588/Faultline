@@ -4261,3 +4261,24 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-pr-mv.is-down, .exec-pr-mv.is-gone { color: var(--st-g); }
 .exec-pr-mv.is-up { color: var(--st-r); }
 .exec-pr-mv.is-new { color: var(--st-a); }
+
+/* ---------- the plan model: 3P board vs lever tree ----------
+   Two buttons, not a dropdown or a pair of checkboxes: a project runs one plan,
+   and this is a switch between the two, used both at creation and later under
+   Lines & people. */
+.proj-model { margin-top: 14px; }
+.proj-model-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px; margin-top: 8px;
+}
+.proj-model-opt {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 12px 14px; border-radius: 12px; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--line);
+  font: inherit; color: inherit;
+}
+.proj-model-opt:hover { border-color: var(--line-2); }
+.proj-model-opt.on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 6%, var(--surface)); }
+.proj-model-t { font-size: 14.5px; font-weight: 800; color: var(--ink); }
+.proj-model-opt.on .proj-model-t { color: var(--brand); }
+.proj-model-s { font-size: 12.5px; line-height: 1.45; color: var(--muted); }

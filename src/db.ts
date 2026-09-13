@@ -1002,10 +1002,18 @@ const byProjectOrder = (a: Project, b: Project) =>
 
 /** Create a project. Everything else about it — its lines, its people — is
  *  added afterwards, so this is deliberately just a name and a colour. */
-export async function createProject(name: string, color: string, lead?: string, leadEmail?: string): Promise<Project> {
+export async function createProject(
+  name: string, color: string, lead?: string, leadEmail?: string,
+  /** The plan model, chosen at the moment the project is started — see
+   *  ProjectsScreen. Not bolted on afterwards in a settings tab nobody visits:
+   *  a project either runs the 3P board (the default, and the only thing most
+   *  projects need) or the lever tree, and that is a decision worth asking for
+   *  up front rather than leaving as an unticked box under Lines & people. */
+  leverTree?: boolean,
+): Promise<Project> {
   const p: Project = {
     id: uid(), name: name.trim() || 'New project', color, workspaceIds: [],
-    lead, leadEmail, createdAt: now(), updatedAt: now(),
+    lead, leadEmail, leverTree: leverTree || undefined, createdAt: now(), updatedAt: now(),
   };
   await (await getDB()).put('projects', p);
   signalWrite();

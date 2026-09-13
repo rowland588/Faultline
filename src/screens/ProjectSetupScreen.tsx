@@ -425,23 +425,35 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
         </label>
       </div>
 
-      {/* OPT-IN TOOLS. A door that leads somewhere a team has decided not to
-          use is a door in the way, so the surfaces that only suit some projects
-          are asked for rather than assumed. */}
+      {/* THE PLAN MODEL — the same choice offered when the project was started
+          (see ProjectsScreen), kept changeable here for a project that turns
+          out to need the other one. Two buttons, not two checkboxes: a project
+          runs ONE plan, not zero or both, so this is a switch and not a pair of
+          independent opt-ins. */}
       <div className="pset-tools">
-        <p className="field-label">Extra surfaces</p>
-        <label className="pset-tool">
-          <input type="checkbox" checked={!!project.leverTree}
-            onChange={e => void rename(project, { leverTree: e.target.checked || undefined })} />
-          <span className="pset-tool-m">
-            <b>Lever tree</b>
-            <span className="sub">
-              The outcome, what has to be true for it, the conditions and the work — on one landscape
-              page that also prints into the GM report. Suits an initiative with one measurable
-              outcome and a chain of conditions under it; most projects are not shaped like that.
-            </span>
-          </span>
-        </label>
+        <p className="field-label">Plan model</p>
+        <div className="proj-model-grid">
+          <button type="button" className={'proj-model-opt' + (!project.leverTree ? ' on' : '')}
+            onClick={() => void rename(project, { leverTree: undefined })}>
+            <span className="proj-model-t">3P board</span>
+            <span className="proj-model-s">People · Plant · Process, off the weekly tracker — the meeting runs on it directly</span>
+          </button>
+          <button type="button" className={'proj-model-opt' + (project.leverTree ? ' on' : '')}
+            onClick={() => void rename(project, { leverTree: true })}>
+            <span className="proj-model-t">Lever tree</span>
+            <span className="proj-model-s">Outcome, what has to be true for it, conditions and work — kept by hand, one page</span>
+          </button>
+        </div>
+      </div>
+
+      {/* AN EXTRA TOOL, NOT PART OF THE MODEL CHOICE. The Pareto sits beside
+          whichever plan the project runs — it does not replace either one, so
+          it stays a plain opt-in rather than a third slot in the switch above.
+          Ticking it on does not use, publish or send anywhere any Pareto
+          reading already on file; it only turns on the surface so the NEXT
+          upload that carries a Pareto sheet has somewhere to be read. */}
+      <div className="pset-tools">
+        <p className="field-label">Extra tools</p>
         <label className="pset-tool">
           <input type="checkbox" checked={!!project.pareto}
             onChange={e => void rename(project, { pareto: e.target.checked || undefined })} />

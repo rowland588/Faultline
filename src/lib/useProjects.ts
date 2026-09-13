@@ -26,7 +26,7 @@ export const DEFAULT_PROJECT = {
 export interface ProjectsState {
   loading: boolean;
   projects: Project[];
-  create: (name: string, lead?: string) => Promise<Project>;
+  create: (name: string, lead?: string, leverTree?: boolean) => Promise<Project>;
   rename: (p: Project, patch: Partial<Project>) => Promise<void>;
   remove: (id: string) => Promise<void>;
 }
@@ -55,8 +55,8 @@ export function useProjects(): ProjectsState {
 
   return {
     loading, projects,
-    create: async (name: string, lead?: string) => {
-      const p = await createProject(name, COLORS[projects.length % COLORS.length], lead);
+    create: async (name: string, lead?: string, leverTree?: boolean) => {
+      const p = await createProject(name, COLORS[projects.length % COLORS.length], lead, undefined, leverTree);
       await refresh();
       return p;
     },
