@@ -142,12 +142,23 @@ alter table public.commission_items enable row level security;
 drop policy if exists commission_items_own on public.commission_items;
 drop policy if exists "project commission_items" on public.commission_items;
 
+-- auth.uid() is wrapped in (select ...) on purpose. Called bare, it is
+-- evaluated ONCE PER ROW; wrapped, the planner hoists it to an InitPlan and
+-- runs it once for the whole query. Supabase's own guidance puts that at 5-10x
+-- on a table of any size, and this one grows by a row per check, per asset, for
+-- the life of the commissioning.
+--
+-- is_project_member(project_id) cannot be hoisted the same way — it takes the
+-- row's own column, so it stays a per-row SubPlan. It is wrapped anyway for
+-- consistency, and the owner_id test is written FIRST so that the cheap
+-- comparison short-circuits it for the common case: your own rows on your own
+-- devices never call the function at all.
 do $rls$ begin
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where n.nspname = 'public' and p.proname = 'is_project_member') then
-    execute 'create policy "project commission_items" on public.commission_items for all to authenticated using (owner_id = auth.uid() or public.is_project_member(project_id)) with check (owner_id = auth.uid() or public.is_project_member(project_id))';
+    execute 'create policy "project commission_items" on public.commission_items for all to authenticated using (owner_id = (select auth.uid()) or (select public.is_project_member(project_id))) with check (owner_id = (select auth.uid()) or (select public.is_project_member(project_id)))';
   else
-    execute 'create policy "project commission_items" on public.commission_items for all to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid())';
+    execute 'create policy "project commission_items" on public.commission_items for all to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()))';
   end if;
 end $rls$;
 
