@@ -26,7 +26,7 @@ import { SNAG_STATUS_META } from '../snag/types';
 import type { CommissionReportData, CommissionReportRow } from '../lib/commissionPdf';
 import {
   readiness, readinessLine, stateOf, itemLine, STATE_LABEL, SUGGESTED_STREAMS,
-  openNextSteps,
+  openNextSteps, latestFinding,
   type CommissionItem, type ItemKind, type CheckStage, type TaskStage,
 } from '../lib/commissioning';
 
@@ -518,13 +518,25 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
       }
       if (got.length) shots.set(i.id, got);
     }
-    const row = (i: CommissionItem): CommissionReportRow => ({
-      stream: i.stream, kind: i.kind, title: i.title,
-      line: itemLine(i), target: i.target, result: i.result,
-      owner: i.owner, due: i.due, note: i.note,
-      state: stateOf(i), stateLabel: STATE_LABEL[stateOf(i)],
-      shots: shots.get(i.id),
-    });
+    const row = (i: CommissionItem): CommissionReportRow => {
+      const last = latestFinding(i);
+      const passes = i.findings ?? [];
+      /* The reading BEFORE the current one — the newest earlier pass that
+         actually measured something, not merely the previous entry, since a
+         pass can be all commentary and no number. */
+      const was = [...passes].slice(0, -1).reverse()
+        .find(f => f.happened?.trim())?.happened;
+      return {
+        stream: i.stream, kind: i.kind, title: i.title,
+        line: itemLine(i), target: i.target, result: i.result,
+        owner: i.owner, due: i.due, note: i.note,
+        state: stateOf(i), stateLabel: STATE_LABEL[stateOf(i)],
+        shots: shots.get(i.id),
+        next: last?.next, nextBy: last?.by, nextAt: last?.at,
+        passes: passes.length || undefined,
+        was: was && was !== i.result ? was : undefined,
+      };
+    };
     return {
       title: project?.name ?? 'Commissioning',
       lead: project?.lead,

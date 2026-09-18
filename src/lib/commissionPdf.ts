@@ -32,6 +32,16 @@ export interface CommissionReportRow {
   note?: string;
   state: 'n' | 'w' | 'a' | 'r' | 'g';
   stateLabel: string;
+  /** The very next move, decided on the last pass. */
+  next?: string;
+  /** Who decided it, and when — a next step with no name against it is a wish. */
+  nextBy?: string;
+  nextAt?: number;
+  /** How many passes this item has had. Two or more means it has been retested,
+   *  which is the single most useful thing a status sheet can say about it. */
+  passes?: number;
+  /** What it did the time BEFORE the current result, when there was one. */
+  was?: string;
   /** Pictures of this item, already decoded to data URLs and measured. Resolved
    *  before the drawer runs, because jsPDF cannot wait for a blob and a report
    *  that renders its text now and its photographs later is a report with holes
@@ -246,32 +256,58 @@ function drawStatus(d: Doc, data: CommissionReportData): number {
   });
 
   const nx = M + lw + gap;
+  /* WHAT IS NEXT — DECIDED FIRST, THEN UNDECIDED.
+   *
+   * The panel used to list whatever was red or amber, which reads as a list of
+   * complaints. A commissioning run ENDS in a decision, so the decided moves go
+   * first, each with the name of whoever took it: "OEM to re-align the former
+   * roller" is a different object from "400g tray is blocked", and a status
+   * sheet that cannot tell them apart makes the reader do the sorting.
+   *
+   * What is left underneath is the honest part — things in trouble that nobody
+   * has yet decided anything about. Those are the ones to ask about in the room. */
+  const decided = data.attention.filter(r => r.next?.trim());
+  const undecided = data.attention.filter(r => !r.next?.trim());
   const ny = panel(d, nx, py, rw, ph, '2', 'What is next',
-    'blocked and at risk — worst first, before the list they hide in');
+    decided.length > 0
+      ? 'decided on the last run, then anything still without a decision'
+      : 'blocked and at risk — worst first, before the list they hide in');
   let ay = ny + 20;
   const bottom = py + ph - 12;
   if (data.attention.length === 0) {
     setFont(d, 9, 'normal', MUTED);
     d.text('Nothing blocked and nothing at risk.', nx + 12, ay + 4);
   }
-  for (const r of data.attention) {
+
+  let shown = 0;
+  for (const r of [...decided, ...undecided]) {
     if (ay + 30 > bottom) break;
+    const isDecided = !!r.next?.trim();
     const col = STATE_COLOUR[r.state];
-    const [wr, wg, wb] = wash(col, 0.06);
+    // A decision is drawn in the brand colour and a bare problem in its own
+    // state colour, so the two are told apart before either is read.
+    const edge = isDecided ? BRAND : col;
+    const [wr, wg, wb] = wash(edge, 0.06);
     d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);
     d.roundedRect(nx + 12, ay - 9, rw - 24, 26, 3, 3, 'FD');
-    d.setFillColor(col); d.rect(nx + 12, ay - 9, 2.5, 26, 'F');
+    d.setFillColor(edge); d.rect(nx + 12, ay - 9, 2.5, 26, 'F');
 
     setFont(d, 9, 'bold', INK);
-    d.text(fit(d, san(r.title), rw - 130), nx + 21, ay);
-    setFont(d, 7, 'bold', col);
-    d.text(r.stateLabel.toUpperCase(), nx + rw - 24, ay, { align: 'right' });
+    d.text(fit(d, san(isDecided ? r.next! : r.title), rw - 130), nx + 21, ay);
+    setFont(d, 7, 'bold', isDecided ? BRAND : col);
+    d.text(isDecided ? 'DECIDED' : r.stateLabel.toUpperCase(), nx + rw - 24, ay, { align: 'right' });
+
     setFont(d, 7.4, 'normal', MUTED);
-    d.text(fit(d, san([r.stream, r.line, r.owner, r.due && `wanted ${r.due}`]
-      .filter(Boolean).join(' · ')), rw - 40), nx + 21, ay + 9);
+    const tail = isDecided
+      // The decision names the item it came out of, so it can be traced back.
+      ? [r.title, r.stream, r.nextBy,
+         r.nextAt ? new Date(r.nextAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '']
+          .filter(Boolean).join(' · ')
+      : [r.stream, r.line, r.owner, r.due && `wanted ${r.due}`].filter(Boolean).join(' · ');
+    d.text(fit(d, san(tail), rw - 40), nx + 21, ay + 9);
     ay += 30;
+    shown++;
   }
-  const shown = Math.max(0, Math.floor((bottom - (ny + 20)) / 30));
   if (data.attention.length > shown) {
     setFont(d, 7.4, 'bold', MUTED);
     d.text(`+${data.attention.length - shown} more, in the list below`, nx + 12, bottom + 4);
@@ -349,11 +385,23 @@ function drawDetail(
      * rectangle cannot be mis-encoded by anything. */
     const pics = r.shots?.length ?? 0;
     setFont(d, 7.8, 'bold', INK);
-    const titleW = cTitle - 18 - (pics > 0 ? 16 : 0);
+    const titleW = cTitle - 18 - (pics > 0 ? 16 : 0) - ((r.passes ?? 0) > 1 ? 14 : 0);
     const shown = fit(d, san(r.title), titleW);
     d.text(shown, xTitle + 9, ry);
+    /* MEASURE THE TITLE WHILE THE TITLE'S FONT IS STILL ACTIVE.
+     *
+     * getTextWidth reports against whatever font is set right now, so measuring
+     * after switching to the 6pt marker font returned the title's width at 6pt
+     * — about three quarters of the truth — and the retest marker printed
+     * inside the words: "250g tray - run at rx2ate". Both markers now hang off
+     * this one measurement, taken before anything else changes the font. */
+    const titleEnd = xTitle + 9 + d.getTextWidth(shown);
+    if ((r.passes ?? 0) > 1) {
+      setFont(d, 6, 'bold', BRAND);
+      d.text(`x${r.passes}`, titleEnd + (pics > 0 ? 18 : 5), ry);
+    }
     if (pics > 0) {
-      const mx = xTitle + 9 + d.getTextWidth(shown) + 5;
+      const mx = titleEnd + 5;
       d.setFillColor(MUTED);
       d.roundedRect(mx, ry - 5.4, 6, 6, 1, 1, 'F');
       d.setFillColor('#ffffff');
@@ -367,8 +415,21 @@ function drawDetail(
     d.text(fit(d, san(r.line || r.stateLabel), cLine - 8), xLine, ry);
     setFont(d, 7.2, 'normal', INK2);
     d.text(fit(d, san(r.target ?? '—'), cTarget - 8), xTarget, ry);
+    /* RESULT, AND WHAT IT DID BEFORE. A retested item is the only place on this
+       sheet that can show movement, and "76 ppm clean (was 61 ppm)" is an
+       argument where "76 ppm clean" is a number. It costs no extra row: the
+       earlier reading is drawn in the space the current one leaves. */
     setFont(d, 7.2, r.state === 'r' ? 'bold' : 'normal', r.state === 'r' ? DANGER : INK2);
-    d.text(fit(d, san(r.result ?? '—'), cResult - 8), xResult, ry);
+    const nowTxt = fit(d, san(r.result ?? '—'), cResult - 8);
+    d.text(nowTxt, xResult, ry);
+    if (r.was) {
+      const usedW = d.getTextWidth(nowTxt);
+      const room = cResult - 12 - usedW;
+      if (room > 34) {
+        setFont(d, 6.4, 'normal', MUTED);
+        d.text(fit(d, san(`was ${r.was}`), room), xResult + usedW + 5, ry);
+      }
+    }
     setFont(d, 7.2, 'normal', MUTED);
     d.text(fit(d, san([r.owner, r.due].filter(Boolean).join(' · ') || '—'), cWho - 6), xWho, ry);
     ry += ROW_H;
