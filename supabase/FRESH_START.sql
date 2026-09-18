@@ -32,7 +32,7 @@ create table public.allowed_emails (
 );
 alter table public.allowed_emails enable row level security;
 create policy "super manages invites" on public.allowed_emails
-  for all using (public.is_super()) with check (public.is_super());
+  for all using ((select public.is_super())) with check ((select public.is_super()));
 
 insert into public.allowed_emails (email) values (public.faultline_superadmin_email());
 
@@ -236,11 +236,11 @@ grant execute on function public.is_ws_member(uuid) to authenticated;
 create policy "member workspaces select" on public.workspaces
   for select to authenticated using (public.is_ws_member(id));
 create policy "member workspaces insert" on public.workspaces
-  for insert to authenticated with check (owner_id = auth.uid() or public.is_ws_member(id));
+  for insert to authenticated with check (owner_id = (select auth.uid()) or public.is_ws_member(id));
 create policy "member workspaces update" on public.workspaces
   for update to authenticated using (public.is_ws_member(id)) with check (public.is_ws_member(id));
 create policy "member workspaces delete" on public.workspaces
-  for delete to authenticated using (public.is_ws_owner(id) or public.is_super());
+  for delete to authenticated using (public.is_ws_owner(id) or (select public.is_super()));
 
 create policy "member observations" on public.observations for all to authenticated
   using (public.is_ws_member(workspace_id)) with check (public.is_ws_member(workspace_id));
@@ -257,8 +257,8 @@ create policy "members read" on public.workspace_members
   for select to authenticated using (public.is_ws_member(workspace_id));
 create policy "members manage" on public.workspace_members
   for all to authenticated
-  using (public.is_ws_owner(workspace_id) or public.is_super())
-  with check (public.is_ws_owner(workspace_id) or public.is_super());
+  using (public.is_ws_owner(workspace_id) or (select public.is_super()))
+  with check (public.is_ws_owner(workspace_id) or (select public.is_super()));
 
 -- Late-joiner history: when a member is added, no-op updates re-stamp every
 -- row of the workspace with fresh revs (the faultline_rev trigger below), so

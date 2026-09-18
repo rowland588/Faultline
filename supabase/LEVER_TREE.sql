@@ -36,7 +36,7 @@ alter table public.tree_nodes enable row level security;
 -- Visible to whoever owns the row, and to anyone invited into its project.
 drop policy if exists "project tree_nodes" on public.tree_nodes;
 
-create policy "project tree_nodes" on public.tree_nodes for all to authenticated using (owner_id = auth.uid() or public.is_project_member(project_id)) with check (owner_id = auth.uid() or public.is_project_member(project_id));
+create policy "project tree_nodes" on public.tree_nodes for all to authenticated using (owner_id = (select auth.uid()) or public.is_project_member(project_id)) with check (owner_id = (select auth.uid()) or public.is_project_member(project_id));
 
 -- The rev stamp, so devices can pull "everything newer than I have seen".
 drop trigger if exists faultline_rev on public.tree_nodes;

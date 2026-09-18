@@ -107,7 +107,7 @@ begin
     begin
       execute format(
         'create policy "own %s" on public.%I for all to authenticated
-           using (owner_id = auth.uid()) with check (owner_id = auth.uid())', t, t);
+           using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()))', t, t);
     exception when duplicate_object then null;
     end;
   end loop;

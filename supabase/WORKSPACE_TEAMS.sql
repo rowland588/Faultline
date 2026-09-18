@@ -54,11 +54,11 @@ create policy "member workspaces select" on public.workspaces
   for select to authenticated using (public.is_ws_member(id));
 -- insert: you create workspaces you own; is_ws_member covers upsert echoes
 create policy "member workspaces insert" on public.workspaces
-  for insert to authenticated with check (owner_id = auth.uid() or public.is_ws_member(id));
+  for insert to authenticated with check (owner_id = (select auth.uid()) or public.is_ws_member(id));
 create policy "member workspaces update" on public.workspaces
   for update to authenticated using (public.is_ws_member(id)) with check (public.is_ws_member(id));
 create policy "member workspaces delete" on public.workspaces
-  for delete to authenticated using (public.is_ws_owner(id) or public.is_super());
+  for delete to authenticated using (public.is_ws_owner(id) or (select public.is_super()));
 
 -- ---------- child data: visible/editable to that workspace's members ----------
 do $$
@@ -80,8 +80,8 @@ create policy "members read" on public.workspace_members
   for select to authenticated using (public.is_ws_member(workspace_id));
 create policy "members manage" on public.workspace_members
   for all to authenticated
-  using (public.is_ws_owner(workspace_id) or public.is_super())
-  with check (public.is_ws_owner(workspace_id) or public.is_super());
+  using (public.is_ws_owner(workspace_id) or (select public.is_super()))
+  with check (public.is_ws_owner(workspace_id) or (select public.is_super()));
 
 -- ---------- late-joiner history: re-stamp revs when a member is added ----------
 -- No-op updates fire the faultline_rev trigger, so every row of the workspace
