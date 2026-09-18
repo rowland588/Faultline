@@ -17,7 +17,14 @@ do $$
 declare t text;
 begin
   foreach t in array array['workspaces','observations','segments','snag_assets','snags'] loop
+    -- Both spellings. This dropped only the spaced form, so on a database where
+    -- the policy was created as "own snag_assets" the old owner-only policy
+    -- SURVIVED alongside the new team one — two permissive policies for the
+    -- same role and action, which Supabase's linter flags and which costs an
+    -- extra predicate on every query. Found on the live database: snag_assets
+    -- still carried both.
     execute format('drop policy if exists "own %s" on public.%I', replace(t, '_', ' '), t);
+    execute format('drop policy if exists "own %s" on public.%I', t, t);
     execute format('drop policy if exists "team %s" on public.%I', t, t);
     execute format('create policy "team %s" on public.%I for all to authenticated using (true) with check (true)', t, t);
   end loop;

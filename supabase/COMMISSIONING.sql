@@ -100,7 +100,13 @@ alter table public.commission_items add column if not exists rev bigint;
 -- not be able to fail into that state.
 create sequence if not exists public.faultline_rev_seq;
 
-create or replace function public.faultline_stamp_rev() returns trigger language plpgsql as $stamp$
+-- set search_path = '' because Supabase's own linter flags a SECURITY-relevant
+-- function without one (0011_function_search_path_mutable): a caller could
+-- otherwise shift what an unqualified name resolves to. Everything inside is
+-- schema-qualified already, so pinning it changes nothing but the warning.
+create or replace function public.faultline_stamp_rev() returns trigger language plpgsql
+set search_path = ''
+as $stamp$
 begin
   new.rev := nextval('public.faultline_rev_seq');
   return new;
