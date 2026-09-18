@@ -10,13 +10,15 @@
  * The consequence is that a stale item is nobody's fault but the person looking
  * at it, which is exactly the pressure that keeps a readiness list honest.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useCommission } from '../lib/useCommission';
+import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
+import type { CommissionReportData, CommissionReportRow } from '../lib/commissionPdf';
 import {
   readiness, readinessLine, stateOf, itemLine, STATE_LABEL, SUGGESTED_STREAMS,
   type CommissionItem, type ItemKind, type CheckStage, type TaskStage,
@@ -174,6 +176,59 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
   const [stream, setStream] = useState('');
   const [kind, setKind] = useState<ItemKind>('check');
   const [title, setTitle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<{ stale: boolean; msg: string } | null>(null);
+
+  /* Fetch the PDF library when the PAGE opens, not when the button is pressed.
+     It is a separate chunk, and an installed PWA keeps serving the build it
+     booted with — so after a deploy the page asks for a filename the server no
+     longer has and the button appears to do nothing. Loading it up front turns
+     a dead button into one that can say what is wrong. */
+  useEffect(() => { void loadPdfLib().catch(() => { /* reported when pressed */ }); }, []);
+
+  /* Everything the drawer needs, as plain numbers and sentences. It never looks
+     at the DOM, so this is the whole contract between the screen and the file —
+     and it is why the sheet is identical on a phone and a laptop. */
+  const reportData = (): CommissionReportData => {
+    const row = (i: CommissionItem): CommissionReportRow => ({
+      stream: i.stream, kind: i.kind, title: i.title,
+      line: itemLine(i), target: i.target, result: i.result,
+      owner: i.owner, due: i.due, note: i.note,
+      state: stateOf(i), stateLabel: STATE_LABEL[stateOf(i)],
+    });
+    return {
+      title: project?.name ?? 'Commissioning',
+      lead: project?.lead,
+      now: Date.now(),
+      pct: r.pct, done: r.done, total: r.total,
+      headline: readinessLine(r),
+      checks: r.checks,
+      streams: r.streams.map(s => ({ name: s.name, done: s.done, total: s.total, pct: s.pct, risk: s.risk })),
+      attention: r.attention.map(row),
+      // In workstream order, exactly as the page shows them, so the sheet reads
+      // as the same document rather than a second opinion.
+      rows: r.streams.flatMap(s => s.items.map(row)),
+    };
+  };
+
+  const download = async () => {
+    if (saving) return;
+    setSaving(true); setSaveErr(null);
+    try {
+      const { jsPDF } = await loadPdfLib();
+      const { drawCommissionReport } = await import('../lib/commissionPdf');
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+      drawCommissionReport(pdf, reportData());
+      const slug = (project?.name ?? 'Commissioning').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Commissioning';
+      const how = await deliverPdf(pdf, `${slug}-readiness-${new Date().toISOString().slice(0, 10)}.pdf`);
+      if (how === 'opened') setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });
+    } catch (err) {
+      console.error('commissioning PDF failed', err);
+      setSaveErr(isStaleBuildError(err)
+        ? { stale: true, msg: 'This tab is still running an older version of the app, so the part that draws the PDF could not load.' }
+        : { stale: false, msg: err instanceof Error ? err.message : 'The PDF could not be built.' });
+    } finally { setSaving(false); }
+  };
 
   const streams = useMemo(() => {
     const seen = r.streams.map(s => s.name);
@@ -220,10 +275,24 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
+          <span className="exec-bar-hint cm-hint">One click — an A3 you can send</span>
+          <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
+            {saving ? 'Building…' : 'Download A3'}
+          </button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>
           <AccountMenu />
         </div>
       </header>
+
+      {saveErr && (
+        <div className={'exec-saveerr no-print' + (saveErr.stale ? ' is-stale' : '')} role="alert">
+          <span>{saveErr.msg}</span>
+          {saveErr.stale && (
+            <button className="btn btn-primary" onClick={() => void reloadOntoNewBuild()}>Reload the app</button>
+          )}
+          <button className="exec-saveerr-x" onClick={() => setSaveErr(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
 
       {/* ---- WHERE WE ARE. One number and the sentence that stops it being
              nodded at: a readiness percentage with nothing blocking named
