@@ -17,6 +17,10 @@ export interface Route {
   query: URLSearchParams;
 }
 
+/** Screens whose whole subject is one record, named by the URL's last segment.
+ *  Without it there is nothing for them to be about. */
+const NEEDS_ID = new Set<RouteName>(['segment', 'asset', 'history', 'case']);
+
 const SCREENS: Record<string, RouteName> = {
   capture: 'capture',
   analyse: 'analyse',
@@ -66,8 +70,18 @@ export function parseRoute(hash: string): Route {
   }
   if (segs[0] === 'w' && segs[1]) {
     const wsId = decodeURIComponent(segs[1]);
-    const name = (segs[2] && SCREENS[segs[2]]) || 'resume';
+    const asked = (segs[2] && SCREENS[segs[2]]) || 'resume';
     const id = segs[3] ? decodeURIComponent(segs[3]) : undefined;
+    // A screen that is ABOUT one thing cannot render without knowing which one.
+    // #/w/:ws/history with no asset id reached AssetHistoryScreen with
+    // assetId={undefined} and IndexedDB threw "No key or key range specified",
+    // which trips the error boundary and takes the whole app down to a reload —
+    // from nothing worse than a truncated link or a stale bookmark.
+    //
+    // Degraded to capture rather than to 'resume': resume replays the
+    // workspace's SAVED route, and if the saved route is the incomplete one it
+    // would come straight back here and loop. Capture always renders.
+    const name = NEEDS_ID.has(asked) && !id ? 'capture' : asked;
     return { name, wsId, id, query };
   }
   return { name: 'home', query };
