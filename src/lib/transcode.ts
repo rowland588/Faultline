@@ -73,7 +73,7 @@ export async function toPortableVideo(
   const video = document.createElement('video') as Capturable;
   let recorder: MediaRecorder | null = null;
   const cleanup = () => {
-    try { recorder?.state !== 'inactive' && recorder?.stop(); } catch { /* already stopped */ }
+    try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch { /* already stopped */ }
     video.removeAttribute('src');
     video.load();
     URL.revokeObjectURL(url);

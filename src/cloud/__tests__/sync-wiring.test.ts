@@ -26,14 +26,14 @@ const src = readFileSync(join(__dirname, '..', 'mappers.ts'), 'utf8');
 const dbSrc = readFileSync(join(__dirname, '..', '..', 'db.ts'), 'utf8');
 
 const entryOf = (kind: string) => {
-  const m = new RegExp(`^  ${kind}:\\s*\\{([\\s\\S]*?)^  \\},`, 'm').exec(src);
+  const m = new RegExp(`^ {2}${kind}:\\s*\\{([\\s\\S]*?)^ {2}\\},`, 'm').exec(src);
   if (!m) throw new Error(`no mapper entry for ${kind}`);
   return m[1].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 };
 
 /** Columns toRow puts on the wire. */
 const written = (kind: string): Set<string> => {
-  const body = /toRow:[\s\S]*?(?=\n    fromRow:|\n  \},)/.exec(entryOf(kind))![0];
+  const body = /toRow:[\s\S]*?(?=\n {4}fromRow:|\n {2}\},)/.exec(entryOf(kind))![0];
   const out = new Set<string>();
   for (const m of body.matchAll(/(?:^|[{\s,])([a-z_][a-z0-9_]*)\s*:/g)) out.add(m[1]);
   out.delete('toRow');
@@ -55,7 +55,7 @@ const read = (kind: string): Set<string> => {
  *  kind, 'takenAt' for pace_snapshots, which is never edited. */
 const clockField = (kind: string): string => {
   const body = entryOf(kind);
-  const clock = /clock:[\s\S]*?(?=\n    mediaKeys:)/.exec(body);
+  const clock = /clock:[\s\S]*?(?=\n {4}mediaKeys:)/.exec(body);
   if (!clock) throw new Error(`no clock for ${kind}`);
   const field = /\.([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:;|$|\n|,)/.exec(clock[0].split('as ').pop() ?? '');
   if (!field) throw new Error(`could not read which field ${kind}'s clock uses`);

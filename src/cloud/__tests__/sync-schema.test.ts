@@ -74,9 +74,9 @@ function columnsFor(table: string): Set<string> {
  *  and a key that is only set on some branches would be missed. */
 function writtenColumns(kind: string): Set<string> {
   const src = readFileSync(join(__dirname, '..', 'mappers.ts'), 'utf8');
-  const entry = new RegExp(`^  ${kind}:\\s*\\{([\\s\\S]*?)^  \\},`, 'm').exec(src);
+  const entry = new RegExp(`^ {2}${kind}:\\s*\\{([\\s\\S]*?)^ {2}\\},`, 'm').exec(src);
   if (!entry) throw new Error(`no mapper entry for ${kind}`);
-  const toRow = /toRow:[\s\S]*?(?=\n    fromRow:|\n  \},)/.exec(entry[1]);
+  const toRow = /toRow:[\s\S]*?(?=\n {4}fromRow:|\n {2}\},)/.exec(entry[1]);
   if (!toRow) throw new Error(`no toRow for ${kind}`);
 
   // Strip comments first: the word "undefined:" appears in a comment in

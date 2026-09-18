@@ -57,7 +57,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
     // device), not just its asset list.
     // eslint-disable-next-line
   }, [segmentId, syncedAt]);
-  useEffect(() => { void listSegments(wsId).then(setSegs); void loadAssets(); /* eslint-disable-next-line */ }, [wsId, syncedAt]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void listSegments(wsId).then(setSegs); void loadAssets(); }, [wsId, syncedAt]);
 
   // Reset the decode verdict when the segment changes; name the codec only if
   // one of them actually failed, so the message can be specific.

@@ -116,7 +116,10 @@ export function MeetingScreen() {
     const [sn, as, cs, segs] = await Promise.all([snagsForWorkspace(workspace.id), listSnagAssets(workspace.id), listCases(workspace.id), listSegments(workspace.id)]);
     setSnags(sn); setAssetNames(new Map(as.map(a => [a.id, a.name]))); setCases(cs); setWalkTimes(segs.map(s => s.createdAt));
   };
-  useEffect(() => { void loadSnags(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadSnags(); }, [workspace.id, syncedAt]);
   const mutate = async (s: Snag) => { await updateSnag(s); await loadSnags(); };
 
   const weeks = useMemo(() => weeklyLoss(live, workspace, 12), [live, workspace]);

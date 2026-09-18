@@ -31,7 +31,10 @@ export function useSticky<T>(scope: string, name: string, fallback: T): [T, (v: 
 
   // Changing workspace changes the scope, so re-read rather than carrying the
   // previous line's filters across.
-  useEffect(() => { setValue(read(scope, name, fallback)); /* eslint-disable-next-line */ }, [scope, name]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setValue(read(scope, name, fallback)); }, [scope, name]);
 
   const set = useCallback((v: T) => {
     setValue(v);

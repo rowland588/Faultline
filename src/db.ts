@@ -1112,7 +1112,7 @@ export async function loadPaceLines(
   opts: { adoptOrphans?: boolean } = {},
 ): Promise<PaceLineRow[]> {
   const db = await getDB();
-  let rows = await db.getAll('pace_ppm');
+  const rows = await db.getAll('pace_ppm');
 
   // one-time lift out of the old line-name-keyed store
   if (db.objectStoreNames.contains('pace_lines')) {

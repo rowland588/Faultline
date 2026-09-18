@@ -57,6 +57,10 @@ const SLIP_FACTOR = 1.3;             // since-call mean drifts 30% above the rec
 
 function gammaln(x: number): number {
   // Lanczos approximation — plenty for p-values on factory sample sizes
+  /* eslint-disable-next-line no-loss-of-precision -- the published Lanczos
+     coefficients, quoted to the digit. A double cannot hold all of them; the
+     representation error is ~1e-16 and the p-values here are reported to two
+     decimal places. Rounding the source constants would be the real mistake. */
   const c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
     -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
   let y = x;
@@ -64,6 +68,7 @@ function gammaln(x: number): number {
   tmp -= (x + 0.5) * Math.log(tmp);
   let ser = 1.000000000190015;
   for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+  // eslint-disable-next-line no-loss-of-precision -- sqrt(2*pi) to the published digit
   return -tmp + Math.log((2.5066282746310005 * ser) / x);
 }
 

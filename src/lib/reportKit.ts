@@ -48,6 +48,10 @@ export function san(t: string): string {
     .replace(/[\u00A0\u202F\u2009]/g, ' ')
     // anything still outside Latin-1 would draw as noise; drop it rather than
     // print rubbish in a report going to the GM
+    /* eslint-disable no-control-regex -- stripping control
+       characters and exotic whitespace IS the job here: jsPDF encodes text as
+       WinAnsi, and a NUL or a narrow no-break space arriving from an Excel cell
+       prints as garbage and wrecks the letter spacing of the whole line. */
     .replace(/[^\u0000-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026]/g, '');
 }
 

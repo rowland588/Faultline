@@ -184,10 +184,14 @@ export async function syncNow(): Promise<void> {
   const uid = await userId();
   if (!uid) { set({ state: 'signedout' }); return; }
 
+  // Nothing may sit between this and the try. set() notifies listeners, and a
+  // listener that throws here would leave `running` true for ever — after which
+  // syncNow() early-returns on every call and the device silently stops syncing
+  // until the page is reloaded, while fullResync()'s wait below never ends.
   running = true;
-  set({ state: 'syncing', error: undefined });
   const startedAt = Date.now();
   try {
+    set({ state: 'syncing', error: undefined });
     const cursor = await getSyncCursor();       // push cursor: local clock vs local rows — self-consistent
     const uploaded = await keySet('uploaded');
     const wantedUploads = await keySet('pendingUploads');   // prior failures — retry first
@@ -370,7 +374,17 @@ export async function fullResync(): Promise<void> {
   await metaPut('pendingUploads', { keys: [] });
   await metaPut('pendingDownloads', { keys: [] });
   set({ state: 'syncing', error: undefined });
-  while (running) await new Promise(r => setTimeout(r, 300)); // let the in-flight pass finish
+  // Let the in-flight pass finish — but never wait for ever. The flag is cleared
+  // in that pass's finally, so this normally ends in well under a second; the
+  // ceiling is here so that a pass which somehow never clears it costs a
+  // duplicate sync rather than a full resync that never returns. Upserts are
+  // idempotent, so overlapping is safe; hanging is not.
+  const waitUntil = Date.now() + 10_000;
+  // `running` is cleared by the in-flight pass's own finally block, which the
+  // rule cannot see from here. The Date.now() ceiling above is what makes this
+  // safe, not the flag.
+  // eslint-disable-next-line no-unmodified-loop-condition
+  while (running && Date.now() < waitUntil) await new Promise(r => setTimeout(r, 300));
   await syncNow();
 }
 

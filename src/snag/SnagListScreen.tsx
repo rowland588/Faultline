@@ -80,7 +80,10 @@ export function SnagListScreen() {
     setRows(rs); setAssets(as);
   };
   const syncedAt = useSyncedAt();
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [workspace.id, syncedAt]);
 
   const owners = useMemo(() => [...new Set(rows.map(r => r.snag.owner).filter(Boolean))] as string[], [rows]);
   const counts = useMemo(() => {
@@ -140,7 +143,7 @@ export function SnagListScreen() {
     await updateSnag({ ...r.snag, latestUpdate: t || undefined, latestUpdateAt: t ? Date.now() : undefined }); void load();
   };
   const bulk = async (status: SnagStatus) => { if (!sel.size) return; await setSnagsStatus([...sel], status); setSel(new Set()); await load(); };
-  const toggleSel = (id: string) => setSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSel = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const exportCsv = () => {
     const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;

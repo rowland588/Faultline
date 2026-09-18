@@ -36,7 +36,6 @@ export interface Crumb {
 
 export function Crumbs({ trail }: { trail: Crumb[] }) {
   const steps = trail.filter(c => c.label);
-  if (steps.length === 0) return null;
   // The one directly above you — the step "back" means on any screen. Given its
   // own button because a 12px crumb is not a thumb target on a factory floor.
   const up = [...steps].reverse().find(c => c.to);
@@ -51,6 +50,15 @@ export function Crumbs({ trail }: { trail: Crumb[] }) {
     const el = trailRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
   }, [key]);
+
+  // AFTER the hooks, never before. This used to return early on an empty trail,
+  // which meant Crumbs called two hooks on some renders and none on others.
+  // React identifies hooks by call order, so an instance that flips between
+  // those paths — a trail whose labels arrive with the data, which is every
+  // screen that loads a name — corrupts its own hook state or throws
+  // "rendered fewer hooks than expected". This bar is on every screen in the
+  // app, so it was the widest-reach fault in it.
+  if (steps.length === 0) return null;
 
   return (
     <div className="spine">

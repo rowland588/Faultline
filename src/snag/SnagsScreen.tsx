@@ -98,7 +98,10 @@ export function SnagsScreen() {
     }
   };
   const syncedAt = useSyncedAt();
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, syncedAt]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [workspace.id, syncedAt]);
 
   /* A full device mustn't read as a mystery: name the actual problem and the
    * way out. (The footage was NOT saved — saying so beats implying maybe.) */

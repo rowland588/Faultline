@@ -44,7 +44,10 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
     setVideoKey(seg?.videoKey);
   };
   const syncedAt = useSyncedAt();
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [assetId, syncedAt]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [assetId, syncedAt]);
 
   const visible = snags.filter(s => showClosed || !(s.status === 'closed' && ageDays(s.closedAt ?? s.raisedAt) > 30));
   const hiddenClosed = snags.length - visible.length;

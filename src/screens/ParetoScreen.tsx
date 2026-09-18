@@ -60,8 +60,12 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
      and the loss analysis does not, so the comparison has to skip past the
      uploads that brought no Pareto with them rather than report "nothing to
      compare" the moment one week's file lacks the sheet. */
+  // Depends on pace.snapshots rather than pace: the narrower key is the correct
+  // one, since nothing here reads any other field, and `pace` is a fresh object
+  // on every render — depending on it would recompute this filter every time.
   const withPareto = useMemo(
     () => pace.snapshots.filter(s => !!s.pareto) as (typeof pace.snapshots[number] & { pareto: PaceParetoSheet })[],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pace.snapshots],
   );
   const now = withPareto[0];

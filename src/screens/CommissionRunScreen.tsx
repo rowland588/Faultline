@@ -154,9 +154,15 @@ export function CommissionRunScreen({ projectId }: { projectId: string }) {
   const item = items[at];
 
   // A fresh item means a fresh pass — never carry one item's finding onto the next.
+  //
+  // Keyed on item?.id and NOT on item: `stage` below holds what the person has
+  // chosen but not yet committed. If this re-ran whenever any field of the item
+  // changed, a background sync pulling the same row would reset their choice
+  // mid-pass. The narrow dependency is the behaviour, not an oversight.
   useEffect(() => {
     setDraft({}); setSupply({});
     setStage(item ? (item.kind === 'task' ? (item.taskStage ?? 'todo') : item.stage) : undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id]);
 
   if (loading || cm.loading || queue == null) {

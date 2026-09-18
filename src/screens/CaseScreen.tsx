@@ -261,7 +261,10 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     const [c, sn] = await Promise.all([getCase(caseId), snagsForWorkspace(workspace.id)]);
     setKase(c ?? null); setSnags(sn);
   };
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [workspace.id, caseId, syncedAt]);
+  // Deliberately narrow: this re-runs on the identity that matters, not on
+  // every reference it reads.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [workspace.id, caseId, syncedAt]);
 
   const scoped = useMemo(
     () => (kase ? applyDrill(observations, workspace.id, kase.path) : []),
