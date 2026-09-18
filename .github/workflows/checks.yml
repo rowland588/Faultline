@@ -1,0 +1,39 @@
+# Every push and every pull request. The repository had no CI at all, which is
+# how four separate schema drifts reached the live database unnoticed — each one
+# silently stopping a table from syncing, with nothing on screen to say so.
+name: checks
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Typecheck and tests are separate steps on purpose: when this goes red,
+      # the step name alone says whether it is a type error or a broken
+      # invariant, without opening the log.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npx vitest run
+
+      # The build also runs check-env, so a missing environment variable is
+      # caught here rather than by a white screen in production.
+      - name: Build
+        run: npx vite build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-key
