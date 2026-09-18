@@ -38,6 +38,8 @@
 /** The five states everything in the app already speaks, so a commissioning
  *  item wears the same colours as an action on the board and nobody has to
  *  learn a second vocabulary. */
+import type { MediaRef } from '../types';
+
 export type ReadyState = 'n' | 'w' | 'a' | 'r' | 'g';
 
 export type ItemKind = 'check' | 'supply' | 'task';
@@ -79,6 +81,18 @@ export interface CommissionItem {
 
   /* task */
   taskStage?: TaskStage;
+
+  /** PICTURES OF THE THING ITSELF.
+   *
+   *  A commissioning argument is settled by a photograph more often than by a
+   *  sentence: "film creasing at the infeed" is a claim, and a picture of the
+   *  crease is the end of the conversation. They hang off the ITEM rather than
+   *  the workstream because that is the grain an argument happens at.
+   *
+   *  Lightweight refs only — the blobs live in the media store, the same bag
+   *  the line-walk evidence uses, so they sync by the same route and nothing
+   *  heavy ever travels inside the item row. */
+  photos?: MediaRef[];
 
   owner?: string;
   /** ISO date this is wanted by. */

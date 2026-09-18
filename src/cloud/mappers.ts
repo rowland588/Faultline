@@ -344,7 +344,11 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   commission_items: {
     clock: l => (l as CommissionItem).updatedAt,
-    mediaKeys: () => [],
+    /* The blobs travel by the same route the line-walk evidence does, or a
+       photo taken on the phone at the OEM would never reach the laptop the
+       report is built on. */
+    mediaKeys: l => (l as CommissionItem).photos?.flatMap(m =>
+      [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')]) ?? [],
     toRow: (l, fallbackOwner) => {
       const i = l as CommissionItem;
       return {
@@ -370,6 +374,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       dueIn: (r.due_in as string) ?? undefined,
       owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
       note: (r.note as string) ?? undefined,
+      photos: (r.photos as CommissionItem['photos']) ?? undefined,
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),

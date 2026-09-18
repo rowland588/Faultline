@@ -32,6 +32,11 @@ export interface CommissionReportRow {
   note?: string;
   state: 'n' | 'w' | 'a' | 'r' | 'g';
   stateLabel: string;
+  /** Pictures of this item, already decoded to data URLs and measured. Resolved
+   *  before the drawer runs, because jsPDF cannot wait for a blob and a report
+   *  that renders its text now and its photographs later is a report with holes
+   *  in it. */
+  shots?: { data: string; w: number; h: number }[];
 }
 
 export interface CommissionReportData {
@@ -330,8 +335,29 @@ function drawDetail(
     }
     d.setFillColor(col); d.circle(xTitle + 2.5, ry - 2.5, 2.2, 'F');
 
+    /* THE PICTURE MARKER IS DRAWN, NOT TYPED.
+     *
+     * It started life as "▣" appended to the title — which is outside WinAnsi,
+     * so jsPDF rendered it as "%£" and threw the letter spacing of the whole
+     * run out with it: "C r i t i c a l  s p a r e s  k i t  %£". san() would
+     * have caught it, but the marker was concatenated AFTER san ran. A drawn
+     * rectangle cannot be mis-encoded by anything. */
+    const pics = r.shots?.length ?? 0;
     setFont(d, 7.8, 'bold', INK);
-    d.text(fit(d, san(r.title), cTitle - 18), xTitle + 9, ry);
+    const titleW = cTitle - 18 - (pics > 0 ? 16 : 0);
+    const shown = fit(d, san(r.title), titleW);
+    d.text(shown, xTitle + 9, ry);
+    if (pics > 0) {
+      const mx = xTitle + 9 + d.getTextWidth(shown) + 5;
+      d.setFillColor(MUTED);
+      d.roundedRect(mx, ry - 5.4, 6, 6, 1, 1, 'F');
+      d.setFillColor('#ffffff');
+      d.rect(mx + 1.6, ry - 3.8, 2.8, 2.8, 'F');
+      if (pics > 1) {
+        setFont(d, 6, 'bold', MUTED);
+        d.text(String(pics), mx + 8, ry);
+      }
+    }
     setFont(d, 7.2, 'bold', col);
     d.text(fit(d, san(r.line || r.stateLabel), cLine - 8), xLine, ry);
     setFont(d, 7.2, 'normal', INK2);
@@ -346,6 +372,73 @@ function drawDetail(
   foot(d, data, page, pages, sheet > 1 ? `every item (${sheet})` : 'every item');
 }
 
+/* ---------- the evidence sheet ----------
+ * Pictures get their own page rather than thumbnails wedged into a 13pt table
+ * row, because a photograph too small to show the crease in the film is not
+ * evidence, it is decoration. Captioned with the item and its state so the
+ * picture and the claim it settles are never separated.
+ *
+ * Only items that HAVE pictures appear, and the sheet only exists when at least
+ * one does — an empty "Evidence" page is worse than no page. */
+/** Columns chosen by how many pictures there are, not fixed.
+ *
+ *  Four columns is right for a dozen photographs and wrong for three — it makes
+ *  each one a stamp on an otherwise empty A3, which is the same failure the
+ *  status page had before the detail moved up under it. Few pictures means big
+ *  pictures; that is the entire reason they are on paper at all. */
+const shotCols = (n: number): number => (n <= 2 ? 2 : n <= 6 ? 3 : 4);
+
+function drawEvidence(
+  d: Doc, data: CommissionReportData,
+  shots: { row: CommissionReportRow; shot: NonNullable<CommissionReportRow['shots']>[number] }[],
+  page: number, pages: number,
+): void {
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+  const y0 = panel(d, M, M, CW, H - 2 * M - 14, '4', 'Pictures',
+    'the thing itself — captioned with the item it settles');
+
+  const gap = 14;
+  const SHOT_COLS = shotCols(shots.length);
+  const cellW = (CW - 24 - gap * (SHOT_COLS - 1)) / SHOT_COLS;
+  const capH = 26;
+  const cellH = cellW * 0.68 + capH;
+  const bottom = H - M - 14 - 16;
+
+  shots.forEach((s, n) => {
+    const col = n % SHOT_COLS, row = Math.floor(n / SHOT_COLS);
+    const x = M + 12 + col * (cellW + gap);
+    const y = y0 + 18 + row * (cellH + gap);
+    if (y + cellH > bottom) return;
+
+    const boxH = cellW * 0.68;
+    // Letterboxed inside its box, never stretched: a squashed photograph of a
+    // machine is the kind of detail that makes a reader distrust the numbers.
+    const k = Math.min(cellW / s.shot.w, boxH / s.shot.h);
+    const iw = s.shot.w * k, ih = s.shot.h * k;
+    const [gr, gg, gb] = wash(MUTED, 0.12);
+    d.setFillColor(gr, gg, gb);
+    d.roundedRect(x, y, cellW, boxH, 3, 3, 'F');
+    try {
+      d.addImage(s.shot.data, 'JPEG', x + (cellW - iw) / 2, y + (boxH - ih) / 2, iw, ih);
+    } catch { /* a picture that will not decode must not take the sheet with it */ }
+
+    const col2 = STATE_COLOUR[s.row.state];
+    setFont(d, 7.4, 'bold', INK);
+    d.text(fit(d, san(s.row.title), cellW), x, y + boxH + 11);
+    setFont(d, 6.6, 'bold', col2);
+    d.text(fit(d, san(`${s.row.stream} · ${s.row.stateLabel}`), cellW), x, y + boxH + 20);
+  });
+
+  const fits = Math.max(0, Math.floor((bottom - (y0 + 18)) / (cellH + gap))) * SHOT_COLS;
+  if (shots.length > fits) {
+    setFont(d, 7, 'bold', MUTED);
+    d.text(`+${shots.length - fits} more pictures in the app`, M + 12, bottom + 8);
+  }
+
+  foot(d, data, page, pages, 'pictures');
+}
+
 export function drawCommissionReport(d: Doc, data: CommissionReportData): void {
   const H = d.internal.pageSize.getHeight();
   const M = 26;
@@ -358,11 +451,16 @@ export function drawCommissionReport(d: Doc, data: CommissionReportData): void {
   const rest = roomFor(M);
 
   const sheets = commissionSheets(data.rows, first, rest);
-  const pages = sheets.length;   // the first sheet IS page 1
+  const shots = data.rows.flatMap(row => (row.shots ?? []).map(shot => ({ row, shot })));
+  const pages = sheets.length + (shots.length > 0 ? 1 : 0);
 
   const top = drawStatus(d, data);
   sheets.forEach((rows, i) => {
     if (i > 0) d.addPage('a3', 'landscape');
     drawDetail(d, data, rows, i + 1, pages, i + 1, i === 0 ? top : M);
   });
+  if (shots.length > 0) {
+    d.addPage('a3', 'landscape');
+    drawEvidence(d, data, shots, pages, pages);
+  }
 }

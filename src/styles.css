@@ -4399,3 +4399,34 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* the A3 hint beside the download, only where there is room for it */
 .cm-hint { font-size: 12px; color: var(--muted); }
 @media (max-width: 760px) { .cm-hint { display: none; } }
+
+/* ---------- pictures on a commissioning item ---------- */
+.cm-haspic {
+  display: inline-block; margin-left: 7px; padding: 0 5px; border-radius: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+  background: var(--line-2); color: var(--ink-2);
+}
+.cm-shots { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cm-shot { position: relative; display: inline-block; }
+.cm-shot-b {
+  display: block; width: 78px; height: 58px; padding: 0; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  background: var(--line-2);
+}
+.cm-shot-b img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cm-shot-wait { display: block; width: 100%; height: 100%; background: var(--line-2); }
+.cm-shot-x {
+  position: absolute; top: -6px; right: -6px; width: 20px; height: 20px;
+  display: grid; place-items: center; padding: 0; cursor: pointer;
+  font-size: 14px; line-height: 1; font-weight: 700;
+  background: var(--surface); color: var(--st-r);
+  border: 1px solid var(--line); border-radius: 50%;
+}
+.cm-shot-add {
+  padding: 8px 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  color: var(--accent); background: var(--surface);
+  border: 1px dashed var(--line-2); border-radius: 9px;
+}
+.cm-shot-add:hover:not(:disabled) { border-color: var(--brand); }
+.cm-shot-add:disabled { opacity: 0.55; cursor: default; }
+.cm-shot-add.is-pick { color: var(--ink-2); }

@@ -18,6 +18,9 @@ import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useCommission } from '../lib/useCommission';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
+import { captureMedia, pickExistingMedia } from '../lib/media';
+import { getBlob, deleteBlobs } from '../db';
+import type { MediaRef } from '../types';
 import type { CommissionReportData, CommissionReportRow } from '../lib/commissionPdf';
 import {
   readiness, readinessLine, stateOf, itemLine, STATE_LABEL, SUGGESTED_STREAMS,
@@ -57,12 +60,73 @@ function Num({ v, label, onSave }: { v?: number; label: string; onSave: (n: numb
   );
 }
 
+/** One photo. The blob lives in the media bag and is resolved to an object URL
+ *  here, then revoked on unmount — a page of twenty un-revoked photo URLs is a
+ *  tab that grows by forty megabytes and never gives it back. */
+function Shot({ m, onOpen, onRemove }: {
+  m: MediaRef; onOpen: () => void; onRemove: () => void;
+}) {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    let dead = false;
+    let made: string | undefined;
+    void (async () => {
+      // The thumb when there is one, the full frame when there is not — an
+      // import that failed to make a thumbnail must still show its picture.
+      const b = (m.thumbKey && await getBlob(m.thumbKey)) || await getBlob(m.blobKey);
+      if (!b || dead) return;
+      made = URL.createObjectURL(b);
+      setUrl(made);
+    })();
+    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
+  }, [m.thumbKey, m.blobKey]);
+
+  return (
+    <span className="cm-shot">
+      <button className="cm-shot-b" onClick={onOpen} title="Open full size">
+        {url
+          ? <img src={url} alt="" loading="lazy" />
+          : <span className="cm-shot-wait" aria-label="Loading photo" />}
+      </button>
+      <button className="cm-shot-x" onClick={onRemove} aria-label="Remove photo">×</button>
+    </span>
+  );
+}
+
 function Item({ i, onSave, onRemove }: {
   i: CommissionItem; onSave: (i: CommissionItem) => void; onRemove: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const st = stateOf(i);
   const set = (patch: Partial<CommissionItem>) => onSave({ ...i, ...patch });
+
+  const addPhoto = async (how: 'camera' | 'pick') => {
+    setBusy(true);
+    try {
+      const got = how === 'camera'
+        ? [await captureMedia('photo')].filter((x): x is MediaRef => !!x)
+        : (await pickExistingMedia()).filter(m => m.kind === 'photo');
+      if (got.length) set({ photos: [...(i.photos ?? []), ...got] });
+    } finally { setBusy(false); }
+  };
+
+  /* Removing a picture takes its blobs with it. Leaving them behind would mean
+     a phone quietly carrying the photographs of every item anybody ever
+     corrected, with no screen anywhere that could show them. */
+  const dropPhoto = async (m: MediaRef) => {
+    set({ photos: (i.photos ?? []).filter(p => p.id !== m.id) });
+    await deleteBlobs([m.blobKey, m.thumbKey].filter((x): x is string => !!x));
+  };
+
+  const openFull = async (m: MediaRef) => {
+    const b = await getBlob(m.blobKey);
+    if (!b) return;
+    const u = URL.createObjectURL(b);
+    window.open(u, '_blank', 'noopener');
+    // Long enough for the new tab to have taken its own reference.
+    window.setTimeout(() => URL.revokeObjectURL(u), 60_000);
+  };
 
   return (
     <article className={'cm-item is-' + st}>
@@ -76,6 +140,11 @@ function Item({ i, onSave, onRemove }: {
             {i.target && <> · target <b>{i.target}</b></>}
             {i.owner && <> · {i.owner}</>}
             {i.due && <> · wanted {i.due}</>}
+            {(i.photos?.length ?? 0) > 0 && (
+              <span className="cm-haspic" title={`${i.photos!.length} picture${i.photos!.length === 1 ? '' : 's'}`}>
+                ▣ {i.photos!.length}
+              </span>
+            )}
           </span>
         </span>
         <span className={'cm-state is-' + st}>{STATE_LABEL[st]}</span>
@@ -158,6 +227,30 @@ function Item({ i, onSave, onRemove }: {
               value={i.note ?? ''} onChange={e => set({ note: e.target.value || undefined })} />
           </label>
 
+          {/* PICTURES. Two buttons rather than one, because they are genuinely
+              two different acts: Take a photo sends a phone straight to the
+              camera, and a picker carrying that attribute will not offer the
+              gallery at all — so "add one I already have" has to be its own
+              door or it is simply broken on the device it matters most on. */}
+          <div className="cm-f">
+            <span>Pictures</span>
+            <div className="cm-shots">
+              {(i.photos ?? []).map(m => (
+                <Shot key={m.id} m={m}
+                  onOpen={() => void openFull(m)}
+                  onRemove={() => void dropPhoto(m)} />
+              ))}
+              <button className="cm-shot-add" disabled={busy}
+                onClick={() => void addPhoto('camera')}>
+                {busy ? '…' : '＋ Take a photo'}
+              </button>
+              <button className="cm-shot-add is-pick" disabled={busy}
+                onClick={() => void addPhoto('pick')}>
+                Choose files
+              </button>
+            </div>
+          </div>
+
           <div className="cm-item-foot">
             <button className="btn btn-ghost cm-del" onClick={onRemove}>Remove</button>
             <button className="btn btn-ghost" onClick={() => setOpen(false)}>Close</button>
@@ -189,12 +282,48 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
   /* Everything the drawer needs, as plain numbers and sentences. It never looks
      at the DOM, so this is the whole contract between the screen and the file —
      and it is why the sheet is identical on a phone and a laptop. */
-  const reportData = (): CommissionReportData => {
+  /* PICTURES, DECODED BEFORE THE DRAWER RUNS.
+   *
+   * jsPDF cannot await a blob mid-draw, so every photograph is read, shrunk and
+   * turned into a data URL up front. Shrunk because an A3 cell is about 260pt
+   * across and a modern phone photo is 4000px — embedding those whole makes a
+   * 40MB file that will not go through anybody's email, to print pictures at a
+   * size that cannot show the extra detail anyway. */
+  const SHOT_MAX = 900;
+  const shotFor = async (m: MediaRef): Promise<{ data: string; w: number; h: number } | null> => {
+    try {
+      const blob = await getBlob(m.blobKey);
+      if (!blob) return null;
+      const url = URL.createObjectURL(blob);
+      try {
+        const img = await new Promise<HTMLImageElement>((res, rej) => {
+          const i2 = new Image();
+          i2.onload = () => res(i2); i2.onerror = rej; i2.src = url;
+        });
+        const k = Math.min(1, SHOT_MAX / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(img.width * k));
+        cv.height = Math.max(1, Math.round(img.height * k));
+        cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
+        return { data: cv.toDataURL('image/jpeg', 0.72), w: cv.width, h: cv.height };
+      } finally { URL.revokeObjectURL(url); }
+    } catch { return null; }   // one bad photo must not cost the whole report
+  };
+
+  const reportData = async (): Promise<CommissionReportData> => {
+    const shots = new Map<string, { data: string; w: number; h: number }[]>();
+    for (const i of cm.items) {
+      if (!i.photos?.length) continue;
+      const got: { data: string; w: number; h: number }[] = [];
+      for (const m of i.photos) { const sh = await shotFor(m); if (sh) got.push(sh); }
+      if (got.length) shots.set(i.id, got);
+    }
     const row = (i: CommissionItem): CommissionReportRow => ({
       stream: i.stream, kind: i.kind, title: i.title,
       line: itemLine(i), target: i.target, result: i.result,
       owner: i.owner, due: i.due, note: i.note,
       state: stateOf(i), stateLabel: STATE_LABEL[stateOf(i)],
+      shots: shots.get(i.id),
     });
     return {
       title: project?.name ?? 'Commissioning',
@@ -218,7 +347,7 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
       const { jsPDF } = await loadPdfLib();
       const { drawCommissionReport } = await import('../lib/commissionPdf');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-      drawCommissionReport(pdf, reportData());
+      drawCommissionReport(pdf, await reportData());
       const slug = (project?.name ?? 'Commissioning').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Commissioning';
       const how = await deliverPdf(pdf, `${slug}-readiness-${new Date().toISOString().slice(0, 10)}.pdf`);
       if (how === 'opened') setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });
