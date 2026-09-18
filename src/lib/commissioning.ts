@@ -51,6 +51,39 @@ export type CheckStage = 'none' | 'have' | 'testing' | 'passed' | 'failed';
 
 export type TaskStage = 'todo' | 'doing' | 'waiting' | 'done';
 
+/* ONE PASS AT ONE ITEM — the unit the flow actually produces.
+ *
+ * A commissioning list is not filled in once. You run the 250g program, it does
+ * 61ppm, you write down why, you change the film, you run it again. Keeping only
+ * the latest result throws away the half that matters: a line is signed off on
+ * the STORY of how it got to rate, and "61 then 74 after the film change" is an
+ * argument where "74" on its own is only a number.
+ *
+ * So every pass is kept, in the order it happened. The item's current state is
+ * the newest one; the rest is how it got there. */
+export interface Finding {
+  id: string;
+  /** When this pass happened. */
+  at: number;
+  /** Who ran it — usually you and the OEM engineer. */
+  by?: string;
+  /** WHAT ACTUALLY HAPPENED. The measurement, in the units the target was set
+   *  in, so the two can be read against each other without arithmetic. */
+  happened?: string;
+  /** The finding itself — why it did that, what it means. Commentary. */
+  note?: string;
+  /** What this pass decided to do next. Not a task somebody else owns; the very
+   *  next move on this item. */
+  next?: string;
+  /** Pictures taken during this pass. */
+  photos?: MediaRef[];
+  /** Line-walk snags raised or pointed at during this pass. */
+  snagIds?: string[];
+  /** The state the item was moved to by this pass, so the timeline reads as a
+   *  progression rather than as a pile of notes. */
+  movedTo?: CheckStage | TaskStage;
+}
+
 export interface CommissionItem {
   id: string;
   projectId: string;
@@ -111,6 +144,11 @@ export interface CommissionItem {
   /** ISO date this is wanted by. */
   due?: string;
   note?: string;
+
+  /** Every pass at this item, oldest first. The current `result` is the newest
+   *  one's `happened`; this is the record of how it got there. */
+  findings?: Finding[];
+
   sort: number;
   createdAt: number;
   updatedAt: number;
@@ -264,6 +302,27 @@ export function readinessLine(r: Readiness): string {
 /** The workstreams a commissioning job usually has, offered on an empty board
  *  so the first item can be written without inventing a filing system first.
  *  Suggestions on a menu, not a schema — rename them, ignore them, add your own. */
+/** The newest pass, which is what the item currently says about itself. */
+export const latestFinding = (i: CommissionItem): Finding | undefined =>
+  i.findings?.length ? i.findings[i.findings.length - 1] : undefined;
+
+/** Every open next-step across the list, newest first — what the last run left
+ *  behind. These are not tasks somebody else owns; they are the moves this job
+ *  decided on and has not made yet. */
+export function openNextSteps(items: CommissionItem[]): {
+  item: CommissionItem; finding: Finding;
+}[] {
+  return items
+    .flatMap(item => (item.findings ?? []).map(finding => ({ item, finding })))
+    .filter(({ item, finding }) =>
+      !!finding.next?.trim()
+      // A next step on a finding that is not the latest has been overtaken by a
+      // later pass; only the most recent word on an item still stands.
+      && latestFinding(item)?.id === finding.id
+      && stateOf(item) !== 'g')
+    .sort((a, b) => b.finding.at - a.finding.at);
+}
+
 export const SUGGESTED_STREAMS = [
   'Programs', 'Film & materials', 'SAT & acceptance', 'Training',
   'Documentation', 'Spares', 'Safety',

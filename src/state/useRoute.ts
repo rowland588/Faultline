@@ -7,7 +7,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'commissioning';
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'commissioning' | 'commissionRun';
 
 export interface Route {
   name: RouteName;
@@ -59,7 +59,9 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'tree') return { name: 'leverTree', id, query };
     if (segs[2] === 'board') return { name: 'board', id, query };
     if (segs[2] === 'pareto') return { name: 'pareto', id, query };
-    if (segs[2] === 'commissioning') return { name: 'commissioning', id, query };
+    if (segs[2] === 'commissioning') {
+      return { name: segs[3] === 'run' ? 'commissionRun' : 'commissioning', id, query };
+    }
     return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
   }
   if (segs[0] === 'w' && segs[1]) {

@@ -26,6 +26,7 @@ import { SNAG_STATUS_META } from '../snag/types';
 import type { CommissionReportData, CommissionReportRow } from '../lib/commissionPdf';
 import {
   readiness, readinessLine, stateOf, itemLine, STATE_LABEL, SUGGESTED_STREAMS,
+  openNextSteps,
   type CommissionItem, type ItemKind, type CheckStage, type TaskStage,
 } from '../lib/commissioning';
 
@@ -264,6 +265,11 @@ function Item({ i, ev, projectId, onSave, onRemove }: {
             {i.target && <> · target <b>{i.target}</b></>}
             {i.owner && <> · {i.owner}</>}
             {i.due && <> · wanted {i.due}</>}
+            {(i.findings?.length ?? 0) > 0 && (
+              <span className="cm-haspic is-run" title={`${i.findings!.length} logged pass${i.findings!.length === 1 ? '' : 'es'}`}>
+                ↻ {i.findings!.length}
+              </span>
+            )}
             {(i.snagIds?.length ?? 0) > 0 && (
               <span className="cm-haspic is-ev" title="Linked to the line walk">
                 ⌗ {i.snagIds!.length}
@@ -405,6 +411,25 @@ function Item({ i, ev, projectId, onSave, onRemove }: {
             </div>
           </div>
 
+          {(i.findings?.length ?? 0) > 0 && (
+            <div className="cm-f">
+              <span>Passes</span>
+              <ol className="rn-hist-list cm-hist">
+                {[...i.findings!].reverse().map(f => (
+                  <li key={f.id}>
+                    <span className="rn-hist-when">
+                      {new Date(f.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {f.by && <> · {f.by}</>}
+                    </span>
+                    {f.happened && <span className="rn-hist-h">{f.happened}</span>}
+                    {f.note && <span className="rn-hist-n">{f.note}</span>}
+                    {f.next && <span className="rn-hist-x">next: {f.next}</span>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           <div className="cm-item-foot">
             <button className="btn btn-ghost cm-del" onClick={onRemove}>Remove</button>
             <button className="btn btn-ghost" onClick={() => setOpen(false)}>Close</button>
@@ -427,6 +452,7 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
   const cm = useCommission(projectId);
   const ev = useCommissionEvidence(projectId);
   const r = useMemo(() => readiness(cm.items), [cm.items]);
+  const nextSteps = useMemo(() => openNextSteps(cm.items), [cm.items]);
 
   const [stream, setStream] = useState('');
   const [kind, setKind] = useState<ItemKind>('check');
@@ -578,8 +604,14 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
+          {/* THE PRIMARY ACTION IS DOING THE JOB, not reporting on it. A page
+              whose loudest button is Download teaches people the app is a
+              reporting chore that happens after the real work, somewhere else. */}
+          <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/commissioning/run`)}>
+            Start a run
+          </button>
           <span className="exec-bar-hint cm-hint">One click — an A3 you can send</span>
-          <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
+          <button className="btn btn-ghost" disabled={saving} onClick={() => void download()}>
             {saving ? 'Building…' : 'Download A3'}
           </button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>
@@ -637,6 +669,29 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
           {r.attention.length > 8 && (
             <p className="sub">and {r.attention.length - 8} more below</p>
           )}
+        </section>
+      )}
+
+      {/* ---- WHAT THE LAST RUN DECIDED. The next steps are not a separate list
+             somebody maintains; they are what came OUT of walking the items, so
+             they sit between the blockers and the detail. ---- */}
+      {nextSteps.length > 0 && (
+        <section className="cm-next cm-steps">
+          <h2 className="cm-h">Next steps from the last run</h2>
+          <ul className="cm-next-list">
+            {nextSteps.slice(0, 6).map(({ item, finding }) => (
+              <li key={finding.id} className={'is-' + stateOf(item)}>
+                <span className={'cm-dot is-' + stateOf(item)} aria-hidden />
+                <span className="cm-next-t">{finding.next}</span>
+                <span className="cm-next-m">
+                  {item.title} · {item.stream}
+                  {' · '}{new Date(finding.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  {finding.by && <> · {finding.by}</>}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {nextSteps.length > 6 && <p className="sub">and {nextSteps.length - 6} more</p>}
         </section>
       )}
 
