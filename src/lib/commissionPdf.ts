@@ -65,6 +65,13 @@ export interface CommissionReportData {
   headline: string;
   checks: { total: number; passed: number; failed: number; untested: number };
   streams: { name: string; done: number; total: number; pct: number; risk: number }[];
+  /* ASSETS, when the line has any. A production line is made of machines and
+     each is commissioned in its own right, so "the bagger is 70% and the
+     palletiser has not started" is what a General Manager wants off the top of
+     this sheet — a single project percentage cannot say it. Falls back to the
+     workstreams when nothing names an asset, because a panel headed Assets
+     with one row called "the line itself" is worse than no panel. */
+  assets?: { name: string; done: number; total: number; pct: number; risk: number; isLine: boolean }[];
   /** Blocked and at-risk, worst first — the reason the sheet gets read. */
   attention: CommissionReportRow[];
   rows: CommissionReportRow[];
@@ -139,8 +146,12 @@ const streamRows = (n: number): number =>
  *  five of seven streams — a status report that had silently stopped listing
  *  two parts of the job. Any panel that can truncate must either be sized to
  *  its contents or say out loud that it did not fit. This one is sized. */
+/** Whichever list panel 1 is drawing — assets when the job has them. */
+const panelRows = (data: CommissionReportData) =>
+  data.assets?.length ? data.assets : data.streams;
+
 function panelsHeight(data: CommissionReportData): number {
-  const streams = PANEL_HEAD_H + 22 + streamRows(data.streams.length) * STREAM_ROW_H + 8;
+  const streams = PANEL_HEAD_H + 22 + streamRows(panelRows(data).length) * STREAM_ROW_H + 8;
   /* +16 rather than +10: the drawing stops when the NEXT card would not clear
      the panel floor, so the height has to hold the last card plus that check.
      Two points short of it and the panel dropped a blocker it had room for and
@@ -227,12 +238,16 @@ function drawStatus(d: Doc, data: CommissionReportData): number {
   const gap = 14;
   const lw = CW * 0.38, rw = CW - lw - gap;
 
-  const sy = panel(d, M, py, lw, ph, '1', 'Workstreams', 'where each part has got to');
-  const cols = data.streams.length > STREAMS_ONE_COL ? 2 : 1;
+  const rows1 = panelRows(data);
+  const byAsset = !!data.assets?.length;
+  const sy = panel(d, M, py, lw, ph, '1',
+    byAsset ? 'Assets' : 'Workstreams',
+    byAsset ? 'each machine on the line, and the line’s own work' : 'where each part has got to');
+  const cols = rows1.length > STREAMS_ONE_COL ? 2 : 1;
   const colGap = 14;
   const colW = (lw - 24 - (cols - 1) * colGap) / cols;
-  const perCol = streamRows(data.streams.length);
-  data.streams.forEach((s, i) => {
+  const perCol = streamRows(rows1.length);
+  rows1.forEach((s, i) => {
     const col = Math.floor(i / perCol);
     const sx = M + 12 + col * (colW + colGap);
     const ry = sy + 22 + (i % perCol) * STREAM_ROW_H;

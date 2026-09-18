@@ -14,7 +14,7 @@ import type { CommissionItem, ItemKind } from './commissioning';
 export interface CommissionState {
   loading: boolean;
   items: CommissionItem[];
-  add: (stream: string, kind: ItemKind, title: string) => Promise<void>;
+  add: (stream: string, kind: ItemKind, title: string, asset?: string) => Promise<void>;
   save: (i: CommissionItem) => Promise<void>;
   remove: (id: string) => Promise<void>;
   seed: (items: Omit<CommissionItem, 'id' | 'projectId' | 'sort' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
@@ -31,10 +31,10 @@ export function useCommission(projectId: string): CommissionState {
 
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load]);
 
-  const add = useCallback(async (stream: string, kind: ItemKind, title: string) => {
+  const add = useCallback(async (stream: string, kind: ItemKind, title: string, asset?: string) => {
     const t = now();
     await putCommissionItem({
-      id: uid(), projectId, stream, kind, title,
+      id: uid(), projectId, asset, stream, kind, title,
       // A new item starts in the state that means "we know about it and that is
       // all" — never a default that quietly claims progress nobody has made.
       ...(kind === 'check' ? { stage: 'none' as const } : {}),

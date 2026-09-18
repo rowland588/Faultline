@@ -353,18 +353,28 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const i = l as CommissionItem;
       return {
         id: i.id, owner_id: fallbackOwner, project_id: i.projectId,
-        stream: i.stream, kind: i.kind, title: i.title,
+        asset: i.asset ?? null, stream: i.stream, kind: i.kind, title: i.title,
         target: i.target ?? null, result: i.result ?? null,
         stage: i.stage ?? null, task_stage: i.taskStage ?? null,
         need: i.need ?? null, have: i.have ?? null,
         on_order: i.onOrder ?? null, due_in: i.dueIn ?? null,
         owner: i.owner ?? null, due: i.due ?? null, note: i.note ?? null,
+        /* EVERYTHING THE ITEM CARRIES, not only its scalar fields.
+           Photos, snag links and findings were each added to the model and to
+           the SQL and then missed here, and a field missing from this object
+           does not fail loudly — it simply never leaves the device. Pictures
+           taken at the OEM stayed on the phone. Anything added to
+           CommissionItem belongs on this list too. */
+        photos: i.photos ?? null,
+        snag_ids: i.snagIds ?? null,
+        findings: i.findings ?? null,
         sort: i.sort, created_at: i.createdAt,
         updated_at: i.updatedAt, deleted_at: i.deletedAt ?? null,
       };
     },
     fromRow: (r) => ({
       id: r.id as string, projectId: (r.project_id as string) ?? '',
+      asset: (r.asset as string) ?? undefined,
       stream: (r.stream as string) ?? '', kind: (r.kind as CommissionItem['kind']) ?? 'task',
       title: (r.title as string) ?? '',
       target: (r.target as string) ?? undefined, result: (r.result as string) ?? undefined,
@@ -376,6 +386,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       note: (r.note as string) ?? undefined,
       photos: (r.photos as CommissionItem['photos']) ?? undefined,
       snagIds: (r.snag_ids as string[]) ?? undefined,
+      findings: (r.findings as CommissionItem['findings']) ?? undefined,
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),

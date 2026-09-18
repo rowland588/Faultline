@@ -87,10 +87,29 @@ export interface Finding {
 export interface CommissionItem {
   id: string;
   projectId: string;
+  /** WHICH ASSET THIS BELONGS TO.
+   *
+   *  A production line is made of many assets and each asset is commissioned in
+   *  its own right — Line 2 has two new machines on it, both needing their own
+   *  programs, their own materials, their own acceptance run — and all of it
+   *  rolls back up to the line. So the asset is a real level, not a label: "the
+   *  bagger is 70% and the palletiser has not started" is the sentence somebody
+   *  running a line handover actually says, and a list that could only total
+   *  the whole project could not produce it.
+   *
+   *  ABSENT MEANS THE LINE ITSELF. The 72-hour run at rate, the signed
+   *  performance agreement, operator training across the line — those belong to
+   *  no single machine, and forcing them under one would be a lie about who
+   *  owns them. */
+  asset?: string;
+
   /** The workstream it sits under — Programs, Film, SAT, Training. A plain
    *  string, and the groups on screen are derived from it, exactly as the
    *  board's areas are derived from the tracker's Line column. One less thing
-   *  to set up before the first item can be written down. */
+   *  to set up before the first item can be written down.
+   *
+   *  Every asset has its OWN workstreams: the bagger's Programs and the
+   *  palletiser's Programs are different work that happen to share a name. */
   stream: string;
   kind: ItemKind;
   title: string;
@@ -228,7 +247,30 @@ export interface StreamRoll {
   risk: number;
 }
 
+/** What the line calls the work that belongs to no single machine. */
+export const LINE_LEVEL = 'The line itself';
+
+export interface AssetRoll {
+  name: string;
+  /** True for the work that belongs to the line rather than to a machine. */
+  isLine: boolean;
+  total: number;
+  done: number;
+  pct: number;
+  risk: number;
+  /** Its own workstreams — the bagger's Programs, not the project's. */
+  streams: StreamRoll[];
+}
+
 export interface Readiness {
+  /** One per asset, in the order they were first written down, with the
+   *  line-level work last: the machines are the job, and the line's own
+   *  acceptance is what happens once they are done. */
+  assets: AssetRoll[];
+  /** True once any item names an asset. Until then this is a single-machine
+   *  job and every screen should stay flat rather than growing a level with one
+   *  thing in it. */
+  hasAssets: boolean;
   streams: StreamRoll[];
   total: number;
   done: number;
@@ -244,7 +286,7 @@ const RANK: Record<ReadyState, number> = { r: 0, a: 1, w: 2, n: 3, g: 4 };
 
 /** Streams in the order they were first written down, not alphabetically: the
  *  order somebody enters the workstreams is the order they think about them. */
-export function readiness(items: CommissionItem[]): Readiness {
+function streamsOf(items: CommissionItem[]): StreamRoll[] {
   const order: string[] = [];
   const by = new Map<string, CommissionItem[]>();
   for (const i of items) {
@@ -252,8 +294,7 @@ export function readiness(items: CommissionItem[]): Readiness {
     if (!by.has(s)) { by.set(s, []); order.push(s); }
     by.get(s)!.push(i);
   }
-
-  const streams: StreamRoll[] = order.map(name => {
+  return order.map(name => {
     const list = [...by.get(name)!].sort((a, b) =>
       RANK[stateOf(a)] - RANK[stateOf(b)] || a.sort - b.sort);
     const done = list.filter(i => stateOf(i) === 'g').length;
@@ -263,11 +304,42 @@ export function readiness(items: CommissionItem[]): Readiness {
       risk: list.filter(i => { const s = stateOf(i); return s === 'r' || s === 'a'; }).length,
     };
   });
+}
+
+export function readiness(items: CommissionItem[]): Readiness {
+  const streams = streamsOf(items);
+
+  /* The same roll-up, one level up. Built from the same streamsOf helper so an
+     asset's numbers and the project's cannot be computed two different ways. */
+  const assetOrder: string[] = [];
+  const byAsset = new Map<string, CommissionItem[]>();
+  for (const i of items) {
+    const a = (i.asset ?? '').trim();
+    if (!byAsset.has(a)) { byAsset.set(a, []); assetOrder.push(a); }
+    byAsset.get(a)!.push(i);
+  }
+  const assets: AssetRoll[] = assetOrder
+    .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0))
+    .map(name => {
+      const list = byAsset.get(name)!;
+      const d = list.filter(i => stateOf(i) === 'g').length;
+      return {
+        name: name || LINE_LEVEL,
+        isLine: name === '',
+        total: list.length,
+        done: d,
+        pct: list.length ? d / list.length : 0,
+        risk: list.filter(i => { const st = stateOf(i); return st === 'r' || st === 'a'; }).length,
+        streams: streamsOf(list),
+      };
+    });
 
   const checks = items.filter(i => i.kind === 'check');
   const done = items.filter(i => stateOf(i) === 'g').length;
 
   return {
+    assets,
+    hasAssets: items.some(i => (i.asset ?? '').trim() !== ''),
     streams,
     total: items.length,
     done,

@@ -16,7 +16,11 @@ create table if not exists public.commission_items (
   owner_id    uuid not null default auth.uid(),
   project_id  text not null,
 
-  -- the workstream: Programs, Film & materials, SAT & acceptance...
+  -- Which asset on the line this belongs to. A production line is made of many
+  -- assets and each is commissioned in its own right; NULL means the work
+  -- belongs to the line itself rather than to any one machine.
+  asset       text,
+  -- the workstream, within that asset: Programs, Film & materials, SAT...
   stream      text not null default '',
   -- check (must be proven) | supply (need a quantity) | task (somebody does it)
   kind        text not null default 'task',
@@ -44,6 +48,10 @@ create table if not exists public.commission_items (
   -- the images themselves. The blobs go to storage by the same route the line
   -- walk's evidence does; what lives here is only which ones belong to this row.
   photos      jsonb,
+  -- Every pass at this item, oldest first: what happened, what we made of it,
+  -- what we decided next, who ran it and when. A retest must not overwrite the
+  -- test — the line is signed off on the story of how it got to rate.
+  findings    jsonb,
   -- Line-walk snags this item is proved by. Ids only: the snag itself lives in
   -- the snags table with its own lifecycle, so closing it on the walk closes it
   -- here rather than leaving two copies to drift apart.
@@ -61,6 +69,10 @@ alter table if exists public.commission_items
   add column if not exists photos jsonb;
 alter table if exists public.commission_items
   add column if not exists snag_ids jsonb;
+alter table if exists public.commission_items
+  add column if not exists asset text;
+alter table if exists public.commission_items
+  add column if not exists findings jsonb;
 
 create index if not exists commission_items_project_idx
   on public.commission_items (project_id);

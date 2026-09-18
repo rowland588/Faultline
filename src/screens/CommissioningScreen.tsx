@@ -454,6 +454,7 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
   const r = useMemo(() => readiness(cm.items), [cm.items]);
   const nextSteps = useMemo(() => openNextSteps(cm.items), [cm.items]);
 
+  const [asset, setAsset] = useState('');
   const [stream, setStream] = useState('');
   const [kind, setKind] = useState<ItemKind>('check');
   const [title, setTitle] = useState('');
@@ -545,10 +546,18 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
       headline: readinessLine(r),
       checks: r.checks,
       streams: r.streams.map(s => ({ name: s.name, done: s.done, total: s.total, pct: s.pct, risk: s.risk })),
+      assets: r.hasAssets
+        ? r.assets.map(a => ({ name: a.name, done: a.done, total: a.total, pct: a.pct, risk: a.risk, isLine: a.isLine }))
+        : undefined,
       attention: r.attention.map(row),
       // In workstream order, exactly as the page shows them, so the sheet reads
       // as the same document rather than a second opinion.
-      rows: r.streams.flatMap(s => s.items.map(row)),
+      // Asset, then workstream — the same order the screen shows, so the sheet
+      // reads as the same document rather than a second opinion.
+      rows: r.assets.flatMap(a => a.streams.flatMap(s2 => s2.items.map(i => ({
+        ...row(i),
+        stream: r.hasAssets ? `${a.name} · ${s2.name}` : s2.name,
+      })))),
     };
   };
 
@@ -576,10 +585,15 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
     return [...seen, ...SUGGESTED_STREAMS.filter(s => !seen.includes(s))];
   }, [r.streams]);
 
+  const assets = useMemo(
+    () => r.assets.filter(a => !a.isLine).map(a => a.name),
+    [r.assets],
+  );
+
   const addIt = async () => {
     const s = (stream || streams[0] || 'Programs').trim();
     if (!title.trim()) return;
-    await cm.add(s, kind, title.trim());
+    await cm.add(s, kind, title.trim(), asset.trim() || undefined);
     setTitle('');
     setStream(s);
   };
@@ -707,26 +721,52 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      {/* ---- THE LIST, by workstream ---- */}
-      {r.streams.map(s => (
-        <section key={s.name} className="cm-stream">
-          <header className="cm-stream-h">
-            <h2 className="cm-stream-t">{s.name}</h2>
-            <span className="cm-stream-n">
-              {s.done} of {s.total}
-              {s.risk > 0 && <b className="is-bad"> · {s.risk} need attention</b>}
-            </span>
-            <span className="cm-mini" aria-hidden>
-              <span style={{ width: `${Math.round(s.pct * 100)}%` }} />
-            </span>
-          </header>
-          <div className="cm-items">
-            {s.items.map(i => (
-              <Item key={i.id} i={i} ev={ev} projectId={projectId}
-                onSave={x => void cm.save(x)}
-                onRemove={() => void cm.remove(i.id)} />
-            ))}
-          </div>
+      {/* ---- THE LIST. Asset, then workstream, then items — because a line is
+             made of machines and each one is commissioned in its own right.
+             When nothing names an asset the asset level is not drawn at all: a
+             single-machine job should not grow a heading with one thing under
+             it. ---- */}
+      {r.assets.map(a => (
+        <section key={a.name} className={'cm-asset' + (a.isLine ? ' is-line' : '')}>
+          {r.hasAssets && (
+            <header className="cm-asset-h">
+              <div className="cm-asset-main">
+                <h2 className="cm-asset-t">{a.name}</h2>
+                <span className="cm-asset-n">
+                  {Math.round(a.pct * 100)}% · {a.done} of {a.total}
+                  {a.risk > 0 && <b className="is-bad"> · {a.risk} need attention</b>}
+                </span>
+              </div>
+              <span className="cm-asset-bar" aria-hidden>
+                <span style={{ width: `${Math.round(a.pct * 100)}%` }} />
+              </span>
+              <button className="btn btn-ghost cm-asset-run"
+                onClick={() => nav(`/project/${projectId}/commissioning/run?asset=${encodeURIComponent(a.isLine ? '' : a.name)}`)}>
+                Run {a.isLine ? 'line items' : 'this asset'}
+              </button>
+            </header>
+          )}
+          {a.streams.map(s2 => (
+            <section key={s2.name} className="cm-stream">
+              <header className="cm-stream-h">
+                <h3 className="cm-stream-t">{s2.name}</h3>
+                <span className="cm-stream-n">
+                  {s2.done} of {s2.total}
+                  {s2.risk > 0 && <b className="is-bad"> · {s2.risk} need attention</b>}
+                </span>
+                <span className="cm-mini" aria-hidden>
+                  <span style={{ width: `${Math.round(s2.pct * 100)}%` }} />
+                </span>
+              </header>
+              <div className="cm-items">
+                {s2.items.map(i => (
+                  <Item key={i.id} i={i} ev={ev} projectId={projectId}
+                    onSave={x => void cm.save(x)}
+                    onRemove={() => void cm.remove(i.id)} />
+                ))}
+              </div>
+            </section>
+          ))}
         </section>
       ))}
 
@@ -734,6 +774,18 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
       <section className="cm-add">
         <h2 className="cm-h">Add something</h2>
         <div className="cm-add-row">
+          <label className="cm-f">
+            {/* Blank on purpose. Most items belong to a machine, but the 72-hour
+                run and the signed performance agreement belong to the line, and
+                making somebody pick a machine for those would be a lie about
+                who owns them. */}
+            <span>Asset <span className="bs-hint">· blank = the line</span></span>
+            <input className="text-input" list="cm-assets" placeholder="Brillopack bagger"
+              value={asset} onChange={e => setAsset(e.target.value)} />
+            <datalist id="cm-assets">
+              {assets.map(a => <option key={a} value={a} />)}
+            </datalist>
+          </label>
           <label className="cm-f">
             <span>Workstream</span>
             <input className="text-input" list="cm-streams" placeholder="Programs"

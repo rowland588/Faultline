@@ -4547,3 +4547,30 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .rn-by { order: 3; flex: 1 1 100%; }
   .rn-by .text-input { flex: 1; max-width: none; }
 }
+
+/* ---------- assets: the level above a workstream ----------
+   A line is made of machines and each is commissioned in its own right, so an
+   asset gets a real heading with its own readiness, not a label on a row. */
+.cm-asset { margin-bottom: 30px; }
+.cm-asset-h {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 12px 16px; margin-bottom: 14px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--brand);
+}
+.cm-asset.is-line .cm-asset-h { border-left-color: var(--line-2); }
+.cm-asset-main { flex: 1 1 220px; min-width: 0; }
+.cm-asset-t { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.cm-asset.is-line .cm-asset-t { color: var(--ink-2); font-style: italic; }
+.cm-asset-n { font-size: 12.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cm-asset-bar { flex: 1 1 120px; max-width: 260px; height: 7px; border-radius: 4px;
+  background: var(--line-2); overflow: hidden; }
+.cm-asset-bar span { display: block; height: 100%; background: var(--brand); }
+.cm-asset.is-line .cm-asset-bar span { background: var(--muted); }
+.cm-asset-run { flex: none; white-space: nowrap; }
+/* inside an asset the workstream steps down a level */
+.cm-asset .cm-stream { margin-left: 4px; }
+.cm-asset .cm-stream-t { font-size: 14px; letter-spacing: 0.03em; color: var(--ink-2); }
+@media (max-width: 640px) {
+  .cm-asset-run { width: 100%; }
+  .cm-asset-t { font-size: 17px; }
+}

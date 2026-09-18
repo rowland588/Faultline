@@ -111,6 +111,10 @@ export function CommissionRunScreen({ projectId }: { projectId: string }) {
    * you were looking at it — a progress bar that goes 3 of 12 to 3 of 11 is a
    * progress bar nobody trusts. */
   const streamFilter = route.query.get('stream') ?? '';
+  /* An asset run. Present-but-empty means the LINE'S OWN items — which is a
+     third state, not a missing one, so it is read off has() rather than off
+     whether the string is truthy. */
+  const assetParam = route.query.has('asset') ? (route.query.get('asset') ?? '') : null;
   const [queue, setQueue] = useState<string[] | null>(null);
   const [at, setAt] = useState(0);
 
@@ -119,16 +123,18 @@ export function CommissionRunScreen({ projectId }: { projectId: string }) {
      screen is not remounted and a queue frozen on first mount would quietly
      replay the last workstream's items under the new heading. */
   const [ranFor, setRanFor] = useState<string | null>(null);
+  const runKey = `${assetParam ?? '*'}|${streamFilter}`;
   useEffect(() => {
     if (cm.loading) return;
-    if (queue && ranFor === streamFilter) return;
+    if (queue && ranFor === runKey) return;
     const pick = cm.items
+      .filter(i => assetParam == null || (i.asset ?? '') === assetParam)
       .filter(i => !streamFilter || i.stream === streamFilter)
       .filter(i => stateOf(i) !== 'g');
     setQueue(pick.map(i => i.id));
-    setRanFor(streamFilter);
+    setRanFor(runKey);
     setAt(0);
-  }, [cm.loading, cm.items, queue, ranFor, streamFilter]);
+  }, [cm.loading, cm.items, queue, ranFor, runKey, assetParam, streamFilter]);
 
   const [by, setBy] = useState('');
   const [logged, setLogged] = useState(0);
@@ -180,7 +186,8 @@ export function CommissionRunScreen({ projectId }: { projectId: string }) {
         <div className="bd-empty" style={{ marginTop: 20 }}>
           <p className="bd-empty-t">Nothing left to run</p>
           <p className="sub">
-            Every item {streamFilter ? `in ${streamFilter} ` : ''}is done. Add what is left, or go
+            Every item {assetParam ? `on ${assetParam} ` : assetParam === '' ? 'on the line itself ' : ''}
+            {streamFilter ? `in ${streamFilter} ` : ''}is done. Add what is left, or go
             back to the list to see where the job stands.
           </p>
           <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={back}>Back to the list</button>
@@ -302,7 +309,10 @@ export function CommissionRunScreen({ projectId }: { projectId: string }) {
       {/* where you are in the pass */}
       <header className="rn-head">
         <div>
-          <p className="pace-eyebrow">{project.name}{streamFilter && <> · {streamFilter}</>}</p>
+          <p className="pace-eyebrow">
+            {project.name}
+            {item.asset ? <> · {item.asset}</> : assetParam === '' ? <> · the line itself</> : null}
+          </p>
           <h1 className="rn-title">{item.stream}</h1>
         </div>
         <div className="rn-prog">
