@@ -40,12 +40,21 @@ create table if not exists public.commission_items (
   owner       text,
   due         text,
   note        text,
+  -- Pictures attached to this item: an array of lightweight MediaRefs, never
+  -- the images themselves. The blobs go to storage by the same route the line
+  -- walk's evidence does; what lives here is only which ones belong to this row.
+  photos      jsonb,
   sort        bigint not null default 0,
 
   created_at  bigint not null,
   updated_at  bigint not null,
   deleted_at  bigint
 );
+
+-- For a database that already ran an earlier cut of this file, before items
+-- could carry pictures. Additive and safe on a table that already has it.
+alter table if exists public.commission_items
+  add column if not exists photos jsonb;
 
 create index if not exists commission_items_project_idx
   on public.commission_items (project_id);
