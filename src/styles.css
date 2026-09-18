@@ -4430,3 +4430,51 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .cm-shot-add:hover:not(:disabled) { border-color: var(--brand); }
 .cm-shot-add:disabled { opacity: 0.55; cursor: default; }
 .cm-shot-add.is-pick { color: var(--ink-2); }
+
+/* ---------- filmed evidence linked onto a commissioning item ----------
+   Deliberately a different shape from the photo strip above it: a photo is a
+   thumbnail, a snag is a picture WITH a sentence, because the sentence is what
+   makes it evidence rather than a picture of a machine. */
+.cm-haspic.is-ev { background: color-mix(in srgb, var(--blue) 16%, transparent); color: var(--blue); }
+.cm-evs { display: grid; gap: 7px; }
+.cm-ev {
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  border-left: 3px solid var(--blue);
+}
+.cm-ev-b {
+  flex: none; width: 66px; height: 48px; padding: 0; cursor: pointer; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--line-2);
+}
+.cm-ev-b img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cm-ev-m { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cm-ev-t { font-size: 13px; font-weight: 700; color: var(--ink); }
+.cm-ev-s { font-size: 11.5px; color: var(--muted); }
+.cm-ev-x {
+  flex: none; width: 24px; height: 24px; padding: 0; cursor: pointer;
+  display: grid; place-items: center; font-size: 15px; line-height: 1;
+  color: var(--muted); background: none; border: 0; border-radius: 6px;
+}
+.cm-ev-x:hover { color: var(--st-r); background: var(--line-2); }
+.cm-ev-lost { font-size: 12.5px; }
+
+/* the picker */
+.cm-pick-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px;
+  max-height: 46vh; overflow-y: auto; }
+.cm-pick-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 9px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px;
+}
+.cm-pick-row:hover { border-color: var(--line-2); }
+.cm-pick-row.on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 6%, var(--surface)); }
+.cm-pick-img {
+  flex: none; width: 60px; height: 44px; overflow: hidden; border-radius: 6px;
+  background: var(--line-2); display: block;
+}
+.cm-pick-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cm-pick-m { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cm-pick-t { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.cm-pick-s { font-size: 11.5px; color: var(--muted); }
+.cm-pick-tick { flex: none; width: 20px; font-weight: 800; color: var(--brand); }
+.cm-pick-none { padding: 18px 0; text-align: center; }

@@ -21,6 +21,8 @@ import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '.
 import { captureMedia, pickExistingMedia } from '../lib/media';
 import { getBlob, deleteBlobs } from '../db';
 import type { MediaRef } from '../types';
+import { useCommissionEvidence, type WalkSnag, type CommissionEvidence } from '../lib/useCommissionEvidence';
+import { SNAG_STATUS_META } from '../snag/types';
 import type { CommissionReportData, CommissionReportRow } from '../lib/commissionPdf';
 import {
   readiness, readinessLine, stateOf, itemLine, STATE_LABEL, SUGGESTED_STREAMS,
@@ -60,26 +62,61 @@ function Num({ v, label, onSave }: { v?: number; label: string; onSave: (n: numb
   );
 }
 
+/** Any picture held in the media bag, resolved to an object URL and revoked on
+ *  unmount. Shared by the photos somebody took and the stills the walk froze:
+ *  both are blobs by key, and two components doing this separately is two
+ *  places to forget the revoke. */
+function useBlobUrl(key?: string): string | undefined {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    if (!key) { setUrl(undefined); return; }
+    let dead = false;
+    let made: string | undefined;
+    void (async () => {
+      const b = await getBlob(key);
+      if (!b || dead) return;
+      made = URL.createObjectURL(b);
+      setUrl(made);
+    })();
+    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
+  }, [key]);
+  return url;
+}
+
+/** One linked snag, shown on the item it proves. Reads as evidence rather than
+ *  as work: the walk owns its status, this only reports it. */
+function LinkedSnag({ w, onOpen, onUnlink }: {
+  w: WalkSnag; onOpen: () => void; onUnlink: () => void;
+}) {
+  const url = useBlobUrl(w.stillKey);
+  const meta = SNAG_STATUS_META[w.snag.status];
+  return (
+    <div className="cm-ev">
+      <button className="cm-ev-b" onClick={onOpen} title="Open on the walk">
+        {url ? <img src={url} alt="" loading="lazy" /> : <span className="cm-shot-wait" />}
+      </button>
+      <div className="cm-ev-m">
+        <span className="cm-ev-t">{w.snag.problem || 'Snag'}</span>
+        <span className="cm-ev-s">
+          <b style={{ color: meta.color }}>{meta.label}</b>
+          {w.asset?.name && <> · {w.asset.name}</>}
+          {w.snag.owner && <> · {w.snag.owner}</>}
+        </span>
+      </div>
+      <button className="cm-ev-x" onClick={onUnlink} aria-label="Unlink this evidence">×</button>
+    </div>
+  );
+}
+
 /** One photo. The blob lives in the media bag and is resolved to an object URL
  *  here, then revoked on unmount — a page of twenty un-revoked photo URLs is a
  *  tab that grows by forty megabytes and never gives it back. */
 function Shot({ m, onOpen, onRemove }: {
   m: MediaRef; onOpen: () => void; onRemove: () => void;
 }) {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    let dead = false;
-    let made: string | undefined;
-    void (async () => {
-      // The thumb when there is one, the full frame when there is not — an
-      // import that failed to make a thumbnail must still show its picture.
-      const b = (m.thumbKey && await getBlob(m.thumbKey)) || await getBlob(m.blobKey);
-      if (!b || dead) return;
-      made = URL.createObjectURL(b);
-      setUrl(made);
-    })();
-    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
-  }, [m.thumbKey, m.blobKey]);
+  // The thumb when there is one, the full frame when there is not — an import
+  // that failed to make a thumbnail must still show its picture.
+  const url = useBlobUrl(m.thumbKey ?? m.blobKey);
 
   return (
     <span className="cm-shot">
@@ -93,11 +130,98 @@ function Shot({ m, onOpen, onRemove }: {
   );
 }
 
-function Item({ i, onSave, onRemove }: {
-  i: CommissionItem; onSave: (i: CommissionItem) => void; onRemove: () => void;
+/** PICK FROM THE WALK. Shows what was actually filmed, with the still, because
+ *  a snag is recognised by its picture long before anybody reads its wording. */
+function EvidencePicker({ ev, chosen, onToggle, onClose, onGoFilm }: {
+  ev: CommissionEvidence; chosen: string[];
+  onToggle: (id: string) => void; onClose: () => void; onGoFilm: () => void;
+}) {
+  return (
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Link filmed evidence">
+      <div className="bs cm-pick">
+        <h2 className="lt-paste-t">Link filmed evidence</h2>
+        <p className="sub bs-lede">
+          Snags off this project’s line walk. Linking one points at it — it keeps its own status on
+          the walk, so closing it there closes it here rather than leaving two copies to drift apart.
+        </p>
+
+        {ev.snags.length === 0 ? (
+          <div className="cm-pick-none">
+            <p className="sub">
+              {ev.workspaceId
+                ? 'This project has a walk, but nothing has been pinned on it yet.'
+                : 'Nothing has been filmed on this project yet.'}
+            </p>
+            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={onGoFilm}>
+              Go to Evidence
+            </button>
+          </div>
+        ) : (
+          <ul className="cm-pick-list">
+            {ev.snags.map(w => (
+              <li key={w.snag.id}>
+                <button type="button"
+                  className={'cm-pick-row' + (chosen.includes(w.snag.id) ? ' on' : '')}
+                  aria-pressed={chosen.includes(w.snag.id)}
+                  onClick={() => onToggle(w.snag.id)}>
+                  <PickShot k={w.stillKey} />
+                  <span className="cm-pick-m">
+                    <span className="cm-pick-t">{w.snag.problem || 'Snag'}</span>
+                    <span className="cm-pick-s">
+                      <b style={{ color: SNAG_STATUS_META[w.snag.status].color }}>
+                        {SNAG_STATUS_META[w.snag.status].label}
+                      </b>
+                      {w.asset?.name && <> · {w.asset.name}</>}
+                      {w.snag.owner && <> · {w.snag.owner}</>}
+                    </span>
+                  </span>
+                  <span className="cm-pick-tick" aria-hidden>{chosen.includes(w.snag.id) ? '✓' : ''}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="wp-foot">
+          <button className="btn btn-ghost" onClick={onGoFilm}>Open Evidence</button>
+          <div style={{ flex: 1 }} />
+          <button className="btn btn-primary" onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PickShot({ k }: { k?: string }) {
+  const url = useBlobUrl(k);
+  return (
+    <span className="cm-pick-img">
+      {url ? <img src={url} alt="" loading="lazy" /> : <span className="cm-shot-wait" />}
+    </span>
+  );
+}
+
+function Item({ i, ev, projectId, onSave, onRemove }: {
+  i: CommissionItem; ev: CommissionEvidence; projectId: string;
+  onSave: (i: CommissionItem) => void; onRemove: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [picking, setPicking] = useState(false);
+
+  const linked = (i.snagIds ?? [])
+    .map(id => ev.byId.get(id))
+    .filter((w): w is WalkSnag => !!w);
+  /* A LINK WHOSE SNAG IS GONE. Deleting a snag on the walk leaves an id here
+     pointing at nothing. It is not shown as evidence, because it is not
+     evidence any more — but it IS counted, so an item does not quietly go from
+     "proved" to "unproved" with nothing said. */
+  const lost = (i.snagIds ?? []).length - linked.length;
+
+  const toggleSnag = (id: string) => {
+    const have = i.snagIds ?? [];
+    set({ snagIds: have.includes(id) ? have.filter(x => x !== id) : [...have, id] });
+  };
   const st = stateOf(i);
   const set = (patch: Partial<CommissionItem>) => onSave({ ...i, ...patch });
 
@@ -140,6 +264,11 @@ function Item({ i, onSave, onRemove }: {
             {i.target && <> · target <b>{i.target}</b></>}
             {i.owner && <> · {i.owner}</>}
             {i.due && <> · wanted {i.due}</>}
+            {(i.snagIds?.length ?? 0) > 0 && (
+              <span className="cm-haspic is-ev" title="Linked to the line walk">
+                ⌗ {i.snagIds!.length}
+              </span>
+            )}
             {(i.photos?.length ?? 0) > 0 && (
               <span className="cm-haspic" title={`${i.photos!.length} picture${i.photos!.length === 1 ? '' : 's'}`}>
                 ▣ {i.photos!.length}
@@ -251,11 +380,43 @@ function Item({ i, onSave, onRemove }: {
             </div>
           </div>
 
+          {/* FILMED EVIDENCE. Separate from the photos above because it IS
+              separate: a snag has its own problem statement, owner and status
+              on the walk, and this item only points at it. */}
+          <div className="cm-f">
+            <span>Filmed evidence</span>
+            <div className="cm-evs">
+              {linked.map(w => (
+                <LinkedSnag key={w.snag.id} w={w}
+                  onOpen={() => nav(`/w/${w.snag.workspaceId}/snag/${w.snag.id}`)}
+                  onUnlink={() => toggleSnag(w.snag.id)} />
+              ))}
+              {lost > 0 && (
+                <p className="sub cm-ev-lost">
+                  {lost} linked snag{lost === 1 ? '' : 's'} no longer on the walk — deleted there,
+                  so {lost === 1 ? 'it is' : 'they are'} no longer evidence for this.{' '}
+                  <button className="lt-gap-b"
+                    onClick={() => set({ snagIds: linked.map(w => w.snag.id) })}>Clear</button>
+                </p>
+              )}
+              <button className="cm-shot-add" onClick={() => setPicking(true)}>
+                ⌗ Link from the walk
+              </button>
+            </div>
+          </div>
+
           <div className="cm-item-foot">
             <button className="btn btn-ghost cm-del" onClick={onRemove}>Remove</button>
             <button className="btn btn-ghost" onClick={() => setOpen(false)}>Close</button>
           </div>
         </div>
+      )}
+
+      {picking && (
+        <EvidencePicker ev={ev} chosen={i.snagIds ?? []}
+          onToggle={toggleSnag}
+          onClose={() => setPicking(false)}
+          onGoFilm={() => nav(`/project/${projectId}?view=snags`)} />
       )}
     </article>
   );
@@ -264,6 +425,7 @@ function Item({ i, onSave, onRemove }: {
 export function CommissioningScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const cm = useCommission(projectId);
+  const ev = useCommissionEvidence(projectId);
   const r = useMemo(() => readiness(cm.items), [cm.items]);
 
   const [stream, setStream] = useState('');
@@ -290,9 +452,10 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
    * 40MB file that will not go through anybody's email, to print pictures at a
    * size that cannot show the extra detail anyway. */
   const SHOT_MAX = 900;
-  const shotFor = async (m: MediaRef): Promise<{ data: string; w: number; h: number } | null> => {
+  type Shot = { data: string; w: number; h: number; caption?: string };
+  const shotFor = async (key: string, caption?: string): Promise<Shot | null> => {
     try {
-      const blob = await getBlob(m.blobKey);
+      const blob = await getBlob(key);
       if (!blob) return null;
       const url = URL.createObjectURL(blob);
       try {
@@ -305,17 +468,28 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
         cv.width = Math.max(1, Math.round(img.width * k));
         cv.height = Math.max(1, Math.round(img.height * k));
         cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
-        return { data: cv.toDataURL('image/jpeg', 0.72), w: cv.width, h: cv.height };
+        return { data: cv.toDataURL('image/jpeg', 0.72), w: cv.width, h: cv.height, caption };
       } finally { URL.revokeObjectURL(url); }
     } catch { return null; }   // one bad photo must not cost the whole report
   };
 
   const reportData = async (): Promise<CommissionReportData> => {
-    const shots = new Map<string, { data: string; w: number; h: number }[]>();
+    /* Photographs first, then the stills off the walk. Same list, because on
+       paper they do the same job — the difference is only that a walk still
+       carries the snag's own wording with it. */
+    const shots = new Map<string, Shot[]>();
     for (const i of cm.items) {
-      if (!i.photos?.length) continue;
-      const got: { data: string; w: number; h: number }[] = [];
-      for (const m of i.photos) { const sh = await shotFor(m); if (sh) got.push(sh); }
+      const got: Shot[] = [];
+      for (const m of i.photos ?? []) {
+        const sh = await shotFor(m.blobKey);
+        if (sh) got.push(sh);
+      }
+      for (const id of i.snagIds ?? []) {
+        const w = ev.byId.get(id);
+        if (!w?.stillKey) continue;
+        const sh = await shotFor(w.stillKey, w.snag.problem || 'Snag');
+        if (sh) got.push(sh);
+      }
       if (got.length) shots.set(i.id, got);
     }
     const row = (i: CommissionItem): CommissionReportRow => ({
@@ -481,7 +655,7 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
           </header>
           <div className="cm-items">
             {s.items.map(i => (
-              <Item key={i.id} i={i}
+              <Item key={i.id} i={i} ev={ev} projectId={projectId}
                 onSave={x => void cm.save(x)}
                 onRemove={() => void cm.remove(i.id)} />
             ))}

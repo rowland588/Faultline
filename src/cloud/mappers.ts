@@ -375,6 +375,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
       note: (r.note as string) ?? undefined,
       photos: (r.photos as CommissionItem['photos']) ?? undefined,
+      snagIds: (r.snag_ids as string[]) ?? undefined,
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),

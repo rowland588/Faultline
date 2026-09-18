@@ -35,8 +35,13 @@ export interface CommissionReportRow {
   /** Pictures of this item, already decoded to data URLs and measured. Resolved
    *  before the drawer runs, because jsPDF cannot wait for a blob and a report
    *  that renders its text now and its photographs later is a report with holes
-   *  in it. */
-  shots?: { data: string; w: number; h: number }[];
+   *  in it.
+   *
+   *  Photographs somebody took and stills off the line walk arrive in the same
+   *  list, because on paper they do the same job — they are the thing itself.
+   *  A walk still carries its snag's own words as `caption`, which is what makes
+   *  it evidence rather than a picture of a machine. */
+  shots?: { data: string; w: number; h: number; caption?: string }[];
 }
 
 export interface CommissionReportData {
@@ -426,8 +431,13 @@ function drawEvidence(
     const col2 = STATE_COLOUR[s.row.state];
     setFont(d, 7.4, 'bold', INK);
     d.text(fit(d, san(s.row.title), cellW), x, y + boxH + 11);
+    /* A walk still says what the snag says; a photograph says which item it is
+       against. Both then name the workstream, so a picture lifted off the page
+       still knows where it came from. */
     setFont(d, 6.6, 'bold', col2);
-    d.text(fit(d, san(`${s.row.stream} · ${s.row.stateLabel}`), cellW), x, y + boxH + 20);
+    d.text(fit(d, san(s.shot.caption
+      ? `${s.shot.caption} — ${s.row.stream}`
+      : `${s.row.stream} · ${s.row.stateLabel}`), cellW), x, y + boxH + 20);
   });
 
   const fits = Math.max(0, Math.floor((bottom - (y0 + 18)) / (cellH + gap))) * SHOT_COLS;

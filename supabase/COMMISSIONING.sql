@@ -44,6 +44,10 @@ create table if not exists public.commission_items (
   -- the images themselves. The blobs go to storage by the same route the line
   -- walk's evidence does; what lives here is only which ones belong to this row.
   photos      jsonb,
+  -- Line-walk snags this item is proved by. Ids only: the snag itself lives in
+  -- the snags table with its own lifecycle, so closing it on the walk closes it
+  -- here rather than leaving two copies to drift apart.
+  snag_ids    jsonb,
   sort        bigint not null default 0,
 
   created_at  bigint not null,
@@ -55,6 +59,8 @@ create table if not exists public.commission_items (
 -- could carry pictures. Additive and safe on a table that already has it.
 alter table if exists public.commission_items
   add column if not exists photos jsonb;
+alter table if exists public.commission_items
+  add column if not exists snag_ids jsonb;
 
 create index if not exists commission_items_project_idx
   on public.commission_items (project_id);

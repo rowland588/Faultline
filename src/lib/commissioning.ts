@@ -94,6 +94,19 @@ export interface CommissionItem {
    *  heavy ever travels inside the item row. */
   photos?: MediaRef[];
 
+  /** FILMED EVIDENCE, LINKED RATHER THAN COPIED.
+   *
+   *  A picture you took is a photo on this item. A snag is something else: a
+   *  fault pinned on a frame of the line walk, with its own problem statement,
+   *  owner and lifecycle, living in the project's workspace. Linking by id
+   *  rather than copying the still means closing the snag on the walk closes it
+   *  here — two copies of the same fault drifting apart is precisely the mess
+   *  the app exists to stop.
+   *
+   *  A snag can be linked to more than one item, and an item to more than one
+   *  snag: one crease in the film can be the reason two programs failed. */
+  snagIds?: string[];
+
   owner?: string;
   /** ISO date this is wanted by. */
   due?: string;
