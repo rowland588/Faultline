@@ -6,6 +6,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { ID, Millis, MediaRef, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
+import type { CommissionItem } from './lib/commissioning';
+import type { PlanModel } from './lib/planModel';
 import { uid, now } from './lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from './lib/taxonomy';
 import { PACE_BASELINE_AT } from './lib/projectPaceData';
@@ -63,6 +65,10 @@ interface AppDB extends DBSchema {
    * named levels and a tree of nodes are the same thing and only one of them
    * can be reshaped without a migration. */
   tree_nodes: { key: string; value: TreeNodeRow; indexes: { by_project: string } };
+  /* Commissioning (v12): the readiness list for a line being handed over by an
+   * OEM. Typed in the app rather than read from a workbook — see
+   * lib/commissioning.ts for why that is the whole point rather than a detail. */
+  commission_items: { key: string; value: CommissionItem; indexes: { by_project: string } };
 }
 
 /** One line of "what we still need to do". `where` is the line or the machine,
@@ -167,7 +173,8 @@ export interface PaceSnapshotRow {
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
-  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins' | 'tree_nodes';
+  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins' | 'tree_nodes'
+  | 'commission_items';
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
  * the Faultline rebrand — read ONCE to migrate a device's existing data into the
@@ -175,7 +182,7 @@ export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 11; // v11: tree_nodes (the lever tree)
+const DB_VERSION = 12; // v12: commission_items (line commissioning)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -232,7 +239,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
   return db;
 }
 
-const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes'] as const;
+const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_items'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -260,6 +267,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   }
   if (!db.objectStoreNames.contains('tree_nodes')) {
     db.createObjectStore('tree_nodes', { keyPath: 'id' }).createIndex('by_project', 'projectId');
+  }
+  if (!db.objectStoreNames.contains('commission_items')) {
+    db.createObjectStore('commission_items', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
   if (!db.objectStoreNames.contains('pace_wins')) {
     db.createObjectStore('pace_wins', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
@@ -703,7 +713,8 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
       // can never win a push against a real edit made anywhere else
       : { id, key: id.replace(/^ppm-/, ''), name: '', q1: 0, q2: 0, q3: 0, q4: 0, weekly: [], deletedAt: now(), updatedAt: 0 });
   } else if (kind === 'pace_snapshots'
-    || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
+    || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'commission_items'
+    || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on
     // the laptop was never deleted on the phone — it just sat there.
@@ -1006,14 +1017,17 @@ export async function createProject(
   name: string, color: string, lead?: string, leadEmail?: string,
   /** The plan model, chosen at the moment the project is started — see
    *  ProjectsScreen. Not bolted on afterwards in a settings tab nobody visits:
-   *  a project either runs the 3P board (the default, and the only thing most
-   *  projects need) or the lever tree, and that is a decision worth asking for
-   *  up front rather than leaving as an unticked box under Lines & people. */
-  leverTree?: boolean,
+   *  a project runs the 3P board, the lever tree or a commissioning list, and
+   *  which one is a decision worth asking for up front rather than leaving as
+   *  an unticked box under Lines & people. */
+  model?: PlanModel,
 ): Promise<Project> {
   const p: Project = {
     id: uid(), name: name.trim() || 'New project', color, workspaceIds: [],
-    lead, leadEmail, leverTree: leverTree || undefined, createdAt: now(), updatedAt: now(),
+    lead, leadEmail,
+    leverTree: model === 'tree' || undefined,
+    commissioning: model === 'commissioning' || undefined,
+    createdAt: now(), updatedAt: now(),
   };
   await (await getDB()).put('projects', p);
   signalWrite();
@@ -1405,6 +1419,35 @@ export interface TreeNodeRow {
    *  wrote. See lib/treeBind.ts. */
   bind?: TrackerBind;
   createdAt: number; updatedAt: number; deletedAt?: number;
+}
+
+/* ---------- commissioning: the readiness list for a line handover ---------- */
+
+export async function listCommissionItems(projectId: string): Promise<CommissionItem[]> {
+  const all = await (await getDB()).getAllFromIndex('commission_items', 'by_project', projectId);
+  return all.filter(i => !i.deletedAt).sort((a, b) => a.sort - b.sort);
+}
+
+export async function putCommissionItem(i: CommissionItem): Promise<void> {
+  await (await getDB()).put('commission_items', { ...i, updatedAt: now() });
+  signalWrite();
+}
+
+/** Several at once — seeding a fresh list writes a dozen rows, and one write
+ *  each would fire the sync debounce a dozen times over. */
+export async function putCommissionItems(items: CommissionItem[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('commission_items', 'readwrite');
+  const t = now();
+  for (const i of items) await tx.store.put({ ...i, updatedAt: t });
+  await tx.done;
+  signalWrite();
+}
+
+export async function deleteCommissionItem(id: ID): Promise<void> {
+  await (await getDB()).delete('commission_items', id);
+  await recordTombstones('commission_items', [id]);
+  signalWrite();
 }
 
 export async function listTreeNodes(projectId: string): Promise<TreeNodeRow[]> {

@@ -15,6 +15,7 @@ import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { useProject, useProjects } from '../lib/useProjects';
+import { MODELS, planModel, setPlanModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
@@ -433,16 +434,14 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
       <div className="pset-tools">
         <p className="field-label">Plan model</p>
         <div className="proj-model-grid">
-          <button type="button" className={'proj-model-opt' + (!project.leverTree ? ' on' : '')}
-            onClick={() => void rename(project, { leverTree: undefined })}>
-            <span className="proj-model-t">3P board</span>
-            <span className="proj-model-s">People · Plant · Process, off the weekly tracker — the meeting runs on it directly</span>
-          </button>
-          <button type="button" className={'proj-model-opt' + (project.leverTree ? ' on' : '')}
-            onClick={() => void rename(project, { leverTree: true })}>
-            <span className="proj-model-t">Lever tree</span>
-            <span className="proj-model-s">Outcome, what has to be true for it, conditions and work — kept by hand, one page</span>
-          </button>
+          {MODELS.map(m => (
+            <button key={m.id} type="button"
+              className={'proj-model-opt' + (planModel(project) === m.id ? ' on' : '')}
+              onClick={() => void rename(project, setPlanModel(m.id))}>
+              <span className="proj-model-t">{m.label}</span>
+              <span className="proj-model-s">{m.blurb}</span>
+            </button>
+          ))}
         </div>
       </div>
 

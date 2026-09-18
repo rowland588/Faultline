@@ -15,6 +15,7 @@ import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
+import { MODELS, type PlanModel } from '../lib/planModel';
 import { allPaceLines, onDataChange, type PaceLineRow } from '../db';
 
 /** The lines, grouped by project — the counts and the names shown on each card. */
@@ -51,11 +52,11 @@ export function ProjectsScreen() {
    * the project has a single line in it, means nobody discovers the choice was
    * ever made by tripping over a ticked box in Lines & people three weeks in.
    * It stays changeable there afterwards; this is just where it starts. */
-  const [model, setModel] = useState<'board' | 'tree'>('board');
+  const [model, setModel] = useState<PlanModel>('board');
 
   const doCreate = async () => {
     if (!name.trim()) return;
-    const p = await create(name, lead.trim() || undefined, model === 'tree');
+    const p = await create(name, lead.trim() || undefined, model);
     setName(''); setLead(''); setAdding(false); setModel('board');
     // Straight into setting it up: a project with no lines is not yet a project,
     // and the next thing to do is add one.
@@ -101,16 +102,14 @@ export function ProjectsScreen() {
           <div className="proj-model">
             <span className="field-label">Plan model</span>
             <div className="proj-model-grid">
-              <button type="button" className={'proj-model-opt' + (model === 'board' ? ' on' : '')}
-                onClick={() => setModel('board')}>
-                <span className="proj-model-t">3P board</span>
-                <span className="proj-model-s">People · Plant · Process, off the weekly tracker — the meeting runs on it directly</span>
-              </button>
-              <button type="button" className={'proj-model-opt' + (model === 'tree' ? ' on' : '')}
-                onClick={() => setModel('tree')}>
-                <span className="proj-model-t">Lever tree</span>
-                <span className="proj-model-s">Outcome, what has to be true for it, conditions and work — kept by hand, one page</span>
-              </button>
+              {MODELS.map(m => (
+                <button key={m.id} type="button"
+                  className={'proj-model-opt' + (model === m.id ? ' on' : '')}
+                  onClick={() => setModel(m.id)}>
+                  <span className="proj-model-t">{m.label}</span>
+                  <span className="proj-model-s">{m.blurb}</span>
+                </button>
+              ))}
             </div>
             <p className="chip-hint">Changeable later under Lines &amp; people, if the project turns out to need the other one.</p>
           </div>

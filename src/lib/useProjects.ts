@@ -12,6 +12,7 @@ import {
   DEFAULT_PROJECT_ID,
 } from '../db';
 import type { Project } from '../types';
+import type { PlanModel } from './planModel';
 
 /** What the app shipped with. Only ever used to CREATE the default project the
  *  first time; after that the stored row is the truth and this is ignored, so
@@ -26,7 +27,7 @@ export const DEFAULT_PROJECT = {
 export interface ProjectsState {
   loading: boolean;
   projects: Project[];
-  create: (name: string, lead?: string, leverTree?: boolean) => Promise<Project>;
+  create: (name: string, lead?: string, model?: PlanModel) => Promise<Project>;
   rename: (p: Project, patch: Partial<Project>) => Promise<void>;
   remove: (id: string) => Promise<void>;
 }
@@ -55,8 +56,8 @@ export function useProjects(): ProjectsState {
 
   return {
     loading, projects,
-    create: async (name: string, lead?: string, leverTree?: boolean) => {
-      const p = await createProject(name, COLORS[projects.length % COLORS.length], lead, undefined, leverTree);
+    create: async (name: string, lead?: string, model?: PlanModel) => {
+      const p = await createProject(name, COLORS[projects.length % COLORS.length], lead, undefined, model);
       await refresh();
       return p;
     },

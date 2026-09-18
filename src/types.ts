@@ -220,6 +220,11 @@ export interface Project {
    *  asks for it, the same as the lever tree: both are tools some projects run
    *  on and most do not, and an unused door is a door in the way. */
   pareto?: boolean;
+  /** Run this project as a COMMISSIONING job — a line being handed over by an
+   *  OEM, tracked on readiness rather than on improvement actions. The third
+   *  plan model, picked when the project is started; see lib/commissioning.ts
+   *  for why a handover does not fit the 3P board. */
+  commissioning?: boolean;
 
   createdAt: Millis;
   updatedAt: Millis;

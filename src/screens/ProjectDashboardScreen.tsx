@@ -384,6 +384,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {/* Offered only where the project asked for them — see Project.leverTree
               and Project.pareto. Both are tools some projects run on; a door to
               somewhere a team has decided not to go is a door in the way. */}
+          {project.commissioning && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/commissioning`)}>Commissioning</button>
+          )}
           {project.pareto && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
           )}

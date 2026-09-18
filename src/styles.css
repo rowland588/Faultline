@@ -4282,3 +4282,116 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .proj-model-t { font-size: 14.5px; font-weight: 800; color: var(--ink); }
 .proj-model-opt.on .proj-model-t { color: var(--brand); }
 .proj-model-s { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+
+/* ---------- commissioning: readiness for a line handover ----------
+   The page answers four questions in order — where are we, what are we after,
+   what was the result, what is next — so the layout leads with the number and
+   the blockers and only then opens into the list. */
+.cm-h { margin: 0 0 8px; font-size: 13px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); }
+
+.cm-top {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 18px 26px;
+  padding: 18px 20px; margin-bottom: 16px; border-radius: 16px;
+  background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--brand);
+}
+.cm-ready { display: flex; flex-direction: column; line-height: 1; }
+.cm-ready-n { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; color: var(--brand); }
+.cm-ready-n i { font-size: 24px; font-style: normal; margin-left: 2px; }
+.cm-ready-l { margin-top: 4px; font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); }
+.cm-top-m { flex: 1 1 320px; min-width: 0; }
+.cm-top-line { margin: 0 0 9px; font-size: 16px; font-weight: 700; color: var(--ink); }
+.cm-bar { display: block; height: 10px; border-radius: 5px; background: var(--line-2); overflow: hidden; }
+.cm-bar-f { display: block; height: 100%; background: var(--brand); border-radius: 5px; }
+.cm-accept { margin: 10px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+.cm-accept .is-bad, .cm-stream-n .is-bad { color: var(--st-r); }
+
+/* what is next */
+.cm-next { margin-bottom: 20px; }
+.cm-next-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cm-next-list li {
+  display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; align-items: baseline;
+  padding: 9px 12px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--st-a);
+}
+.cm-next-list li.is-r { border-left-color: var(--st-r); }
+.cm-next-t { font-size: 14px; font-weight: 700; color: var(--ink); }
+.cm-next-m { grid-column: 2; font-size: 12px; color: var(--muted); }
+
+/* the five states, borrowed wholesale from the board so nobody learns a second
+   colour language */
+.cm-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--st-n); flex: none; }
+.cm-dot.is-w { background: var(--st-w); } .cm-dot.is-a { background: var(--st-a); }
+.cm-dot.is-r { background: var(--st-r); } .cm-dot.is-g { background: var(--st-g); }
+
+/* one workstream */
+.cm-stream { margin-bottom: 20px; }
+.cm-stream-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 9px; }
+.cm-stream-t { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em;
+  text-transform: uppercase; color: var(--ink); }
+.cm-stream-n { font-size: 12.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cm-mini { flex: 1 1 80px; max-width: 200px; height: 5px; border-radius: 3px; background: var(--line-2); overflow: hidden; }
+.cm-mini span { display: block; height: 100%; background: var(--brand); }
+
+.cm-items { display: grid; gap: 7px; }
+.cm-item { border-radius: 12px; background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--st-n); overflow: hidden; }
+.cm-item.is-w { border-left-color: var(--st-w); } .cm-item.is-a { border-left-color: var(--st-a); }
+.cm-item.is-r { border-left-color: var(--st-r); } .cm-item.is-g { border-left-color: var(--st-g); }
+.cm-item-head {
+  display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 11px 13px;
+  background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit;
+}
+.cm-item-head .cm-dot { margin-top: 5px; }
+.cm-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cm-item-t { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+.cm-item-s { font-size: 12px; line-height: 1.45; color: var(--muted); }
+.cm-kind { display: inline-block; margin-right: 7px; padding: 1px 6px; border-radius: 4px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--line-2); color: var(--ink-2); }
+.cm-state { flex: none; font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted); }
+.cm-state.is-g { color: var(--st-g); } .cm-state.is-r { color: var(--st-r); }
+.cm-state.is-a { color: var(--st-a); } .cm-state.is-w { color: var(--st-w); }
+
+.cm-item-body { padding: 4px 13px 13px; display: grid; gap: 10px; border-top: 1px solid var(--line); }
+.cm-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cm-f > span { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--muted); }
+.cm-f .text-input { width: 100%; }
+.cm-f-grow { flex: 1 1 260px; }
+.cm-row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.cm-stages { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+.cm-num { display: flex; flex-direction: column; gap: 4px; }
+.cm-num > span { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--muted); }
+.cm-num input {
+  width: 100%; padding: 8px 10px; border-radius: 9px; font: inherit; font-weight: 700;
+  background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
+}
+.cm-item-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px; }
+.cm-del { color: var(--st-r); }
+
+.cm-add { margin-top: 26px; padding: 16px 18px; border-radius: 16px;
+  background: var(--surface); border: 1px dashed var(--line-2); }
+.cm-add-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.cm-add-row .cm-f:first-child { flex: 0 1 200px; }
+.cm-add-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.cm-add-kinds .bs-hint { font-weight: 400; }
+
+@media (max-width: 640px) {
+  .cm-ready-n { font-size: 42px; }
+  .cm-item-head { gap: 9px; padding: 10px 11px; }
+  .cm-state { display: none; }   /* the coloured edge already says it */
+}
+
+/* SENDABLE ON PAPER. Print is the share button until the A3 report is built:
+   the controls go, the items open flat, and nothing is left behind a tap. */
+@media print {
+  .cm-screen .pace-head-actions, .cm-screen .cm-add, .cm-screen .crumbs { display: none !important; }
+  .cm-item-head { cursor: default; }
+  .cm-item, .cm-next-list li, .cm-stream { break-inside: avoid; }
+  .cm-top { border: 1px solid #ccc; }
+}

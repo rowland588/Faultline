@@ -4,6 +4,7 @@
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
+import type { CommissionItem } from '../lib/commissioning';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -180,6 +181,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         lead: p.lead ?? null, lead_email: p.leadEmail ?? null,
         lever_tree: p.leverTree ?? false,
         pareto: p.pareto ?? false,
+        commissioning: p.commissioning ?? false,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
@@ -191,6 +193,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       lead: (r.lead as string) ?? undefined, leadEmail: (r.lead_email as string) ?? undefined,
       leverTree: r.lever_tree === true || undefined,
       pareto: r.pareto === true || undefined,
+      commissioning: r.commissioning === true || undefined,
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
@@ -339,6 +342,39 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     }),
   },
 
+  commission_items: {
+    clock: l => (l as CommissionItem).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const i = l as CommissionItem;
+      return {
+        id: i.id, owner_id: fallbackOwner, project_id: i.projectId,
+        stream: i.stream, kind: i.kind, title: i.title,
+        target: i.target ?? null, result: i.result ?? null,
+        stage: i.stage ?? null, task_stage: i.taskStage ?? null,
+        need: i.need ?? null, have: i.have ?? null,
+        on_order: i.onOrder ?? null, due_in: i.dueIn ?? null,
+        owner: i.owner ?? null, due: i.due ?? null, note: i.note ?? null,
+        sort: i.sort, created_at: i.createdAt,
+        updated_at: i.updatedAt, deleted_at: i.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: (r.project_id as string) ?? '',
+      stream: (r.stream as string) ?? '', kind: (r.kind as CommissionItem['kind']) ?? 'task',
+      title: (r.title as string) ?? '',
+      target: (r.target as string) ?? undefined, result: (r.result as string) ?? undefined,
+      stage: (r.stage as CommissionItem['stage']) ?? undefined,
+      taskStage: (r.task_stage as CommissionItem['taskStage']) ?? undefined,
+      need: n(r.need), have: n(r.have), onOrder: n(r.on_order),
+      dueIn: (r.due_in as string) ?? undefined,
+      owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
+      note: (r.note as string) ?? undefined,
+      sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    }),
+  },
+
   pace_snapshots: {
     // A snapshot is never edited, so its clock is simply when it was taken.
     clock: l => (l as PaceSnapshotRow).takenAt,
@@ -371,6 +407,6 @@ export const SYNC_KINDS: SyncKind[] = [
   'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
   'projects', 'project_targets', 'project_actuals',
   'pace_ppm', 'pace_todos', 'pace_snapshots', 'pace_wins',
-  // after projects, because every node names one
-  'tree_nodes',
+  // after projects, because every node and every item names one
+  'tree_nodes', 'commission_items',
 ];
