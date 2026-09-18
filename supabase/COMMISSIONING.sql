@@ -79,13 +79,81 @@ create index if not exists commission_items_project_idx
 create index if not exists commission_items_owner_idx
   on public.commission_items (owner_id);
 
+-- ---------- sync transport: the rev stamp ----------
+--
+-- NOT optional, and not only this table's problem. Devices pull with
+-- "rev > the last rev I saw", which is server truth and cannot skip rows the
+-- way two devices' clocks can. A table WITHOUT this column answers that query
+-- with error 42703, and the app reads one 42703 as "this cloud is too old for
+-- rev cursors at all": it drops to the legacy clock cursor for EVERY table for
+-- the rest of the session and shows the upgrade nudge for good. So a
+-- commissioning table missing three lines degrades the sync of the snags, the
+-- tracker and the lever tree along with it.
+alter table public.commission_items add column if not exists rev bigint;
+
+-- The sequence and the stamp function belong to FRESH_START.sql, and normally
+-- they are already here. Created if missing anyway, because the alternative is
+-- this file ABORTING on the trigger below — which is three statements before
+-- "enable row level security", so the table would be left with no policy at
+-- all. On Supabase every signed-in user is granted on public tables, so a
+-- commissioning table without RLS is readable by all of them. A migration must
+-- not be able to fail into that state.
+create sequence if not exists public.faultline_rev_seq;
+
+create or replace function public.faultline_stamp_rev() returns trigger language plpgsql as $stamp$
+begin
+  new.rev := nextval('public.faultline_rev_seq');
+  return new;
+end $stamp$;
+
+drop trigger if exists faultline_rev on public.commission_items;
+
+create trigger faultline_rev before insert or update on public.commission_items for each row execute function public.faultline_stamp_rev();
+
+-- Rows written by an earlier run of this file have no rev, and a null rev is
+-- never greater than a cursor — they would be invisible to every pull until
+-- somebody happened to edit them.
+update public.commission_items set rev = nextval('public.faultline_rev_seq') where rev is null;
+
+create index if not exists idx_commission_items_rev on public.commission_items (rev);
+
+-- Realtime, so the second device shows a finding as it is written rather than
+-- at the next interval. Optional by design: if realtime is switched off on the
+-- project the sync interval still carries everything.
+do $realtime$ begin
+  execute 'alter publication supabase_realtime add table public.commission_items';
+exception
+  when duplicate_object then null;   -- already published
+  when undefined_object then null;   -- realtime disabled here
+end $realtime$;
+
 alter table public.commission_items enable row level security;
 
--- Same rule the rest of the app runs on: you see and change your own rows.
--- Written as drop-then-create so re-running this file cannot fail on a policy
--- that is already there.
+-- Who can see it: the owner, and anyone invited into the project.
+--
+-- Owner-only would have made commissioning the ONE thing a person invited into
+-- the project cannot see — they would open a line being handed over and find an
+-- empty board, with nothing on screen to say why. Every other project table
+-- (pace_ppm, pace_todos, tree_nodes) is already scoped this way.
+--
+-- Guarded, because is_project_member comes from PROJECT_TEAMS.sql and this file
+-- has to be safe on a database where that has not been run yet. Without it the
+-- policy is owner-only, which still syncs across that person's own devices.
 drop policy if exists commission_items_own on public.commission_items;
-create policy commission_items_own on public.commission_items
-  for all
-  using (owner_id = auth.uid())
-  with check (owner_id = auth.uid());
+drop policy if exists "project commission_items" on public.commission_items;
+
+do $rls$ begin
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname = 'is_project_member') then
+    execute 'create policy "project commission_items" on public.commission_items for all to authenticated using (owner_id = auth.uid() or public.is_project_member(project_id)) with check (owner_id = auth.uid() or public.is_project_member(project_id))';
+  else
+    execute 'create policy "project commission_items" on public.commission_items for all to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid())';
+  end if;
+end $rls$;
+
+-- CHECK: expect one row reading ready ✓. Anything else means re-run this file.
+select 'commission_items' as item,
+       case when exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'commission_items' and column_name = 'rev')
+             and exists (select 1 from pg_trigger where tgname = 'faultline_rev' and tgrelid = 'public.commission_items'::regclass)
+             and exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'commission_items')
+            then 'ready ✓' else 'MISSING — rerun' end as value;

@@ -84,9 +84,19 @@ async function advanceRev(kind: SyncKind, from: number, to: number): Promise<voi
   if ((cur[kind] ?? 0) === from) { cur[kind] = to; await metaPut(REV_KEY, cur); }
 }
 
-/** Does this Supabase project have the rev column yet? Flips false on the first
- *  42703 and stays false for the session — sync then runs in legacy mode. */
-let revSupported = true;
+/** Which kinds have no rev column yet — PER KIND, not one flag for the cloud.
+ *
+ *  It was one flag, and that made a single un-migrated table everyone's problem:
+ *  a new table whose SQL added no rev answered the pull with 42703, which was
+ *  read as "this whole cloud is too old for rev cursors", and every OTHER
+ *  table — snags, the tracker, the lever tree — silently dropped to the
+ *  device-clock cursor for the rest of the session. That cursor can skip rows
+ *  when two phones disagree about the time, so one missing column quietly
+ *  degraded the sync of everything that was already working.
+ *
+ *  A kind lands in here on its first 42703 and stays for the session: the
+ *  fallback is the same, its blast radius is one table. */
+const noRev = new Set<SyncKind>();
 const isMissingRev = (e: { code?: string; message?: string }) =>
   e.code === '42703' || /column .*\brev\b|(?:\brev\b).* does not exist/i.test(e.message ?? '');
 
@@ -240,15 +250,18 @@ export async function syncNow(): Promise<void> {
         await downloadMedia(uid, map.mediaKeys(merged as Record<string, unknown>), failedDownloads);
       };
 
-      if (revSupported) {
+      // Missing table is decided here so the legacy pass below doesn't ask again
+      // for a table that isn't there.
+      let absent = false;
+      if (!noRev.has(kind)) {
         const started = revs[kind] ?? 0;
         let since = started;
         for (;;) {
           const { data, error } = await supabase.from(kind).select('*')
             .gt('rev', since).order('rev', { ascending: true }).limit(PAGE);
           if (error) {
-            if (isMissingRev(error)) { revSupported = false; set({ schemaOutdated: true }); break; }
-            if (isMissingTable(error)) { set({ schemaOutdated: true }); break; } // its SQL not run yet — skip this kind
+            if (isMissingTable(error)) { absent = true; set({ schemaOutdated: true }); break; } // its SQL not run yet — skip this kind
+            if (isMissingRev(error)) { noRev.add(kind); set({ schemaOutdated: true }); break; }
             throw new Error(`pull ${kind}: ${error.message}`);
           }
           const remotes = (data ?? []) as Record<string, unknown>[];
@@ -256,9 +269,11 @@ export async function syncNow(): Promise<void> {
           if (remotes.length) since = Number(remotes[remotes.length - 1].rev) || since;
           if (remotes.length < PAGE) break;
         }
-        if (revSupported && since !== started) await advanceRev(kind, started, since);
+        // Only when the rev pass actually ran — advancing this kind's rev cursor
+        // after falling back would mark rows as seen that were never fetched.
+        if (!noRev.has(kind) && !absent && since !== started) await advanceRev(kind, started, since);
       }
-      if (!revSupported) {
+      if (noRev.has(kind) && !absent) {
         // Legacy pull (pre-upgrade cloud): device-clock cursor. Works, but clock
         // skew between devices can skip rows — hence the upgrade nudge in status.
         for (let from = 0; ; from += PAGE) {
