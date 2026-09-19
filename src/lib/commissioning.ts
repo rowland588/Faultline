@@ -339,10 +339,13 @@ export function byAsset(items: CommissionItem[]): { asset: string; items: Commis
  * and the date it is now expected, and the difference is the number the meeting
  * is actually about.
  *
- * A GATE CANNOT BE PASSED WITH SOMETHING OPEN. That is what makes this a
- * commissioning system rather than a list of dates somebody moves. Passing is
- * dated and named, and what has to be true first is derived from the records —
- * never a box somebody ticks.
+ * NO GATES. An earlier cut of this made each stage a gate with derived pass
+ * criteria, a rule set the stage imposed, and a dated sign-off ceremony. It was
+ * ceremony somebody had to feed, and it pushed every kind of work into every
+ * stage — open SAT and you got five tables whether or not any of them applied.
+ *
+ * A stage is now just a heading with a date and a count. It is done when the
+ * work under it is done. That is the whole of it.
  */
 
 export type PhaseKey = 'fat' | 'install' | 'mechanical' | 'sat' | 'rate' | 'handover';
@@ -393,10 +396,6 @@ export interface Phase {
   plannedAt?: string;
   /** When we now think it will happen. This is the one that moves. ISO date. */
   forecastAt?: string;
-  /** Set when the gate is passed. ISO date. */
-  passedAt?: string;
-  /** Who signed it off — a gate passed by nobody is not passed. */
-  passedBy?: string;
   owner?: string;
   note?: string;
   updatedAt: number;
@@ -415,25 +414,45 @@ export function daysBetween(a?: string, b?: string): number | undefined {
   return Math.round((y - x) / DAY);
 }
 
-/** How far a phase has moved from the date it was planned for. Positive is
+/** How far a stage has moved from the date it was planned for. Positive is
  *  late. Undefined when there is no baseline to measure against — which is
  *  honest, and quite different from zero. */
 export const slipOf = (p: Phase): number | undefined =>
-  daysBetween(p.plannedAt, p.passedAt ?? p.forecastAt);
+  daysBetween(p.plannedAt, p.forecastAt);
 
 /** What this stage is called: what somebody renamed it to, else the built-in
  *  name, else the key itself — which is what a custom stage has. */
 export const phaseName = (p: Phase): string =>
   p.name?.trim() || PHASE_NAME[p.key as PhaseKey] || p.key;
 
-/** Where a phase stands. `current` is the FIRST unpassed phase — a commissioning
- *  job is a queue, not a set of parallel workstreams, so exactly one phase is
- *  ever the one being worked on. */
-export function phaseStates(phases: Phase[]): Map<string, PhaseState> {
+/** The live work standing under a stage. */
+export const workOf = (phase: Phase, items: CommissionItem[]): CommissionItem[] =>
+  items.filter(i => !i.deletedAt && i.phaseId === phase.id).sort((a, b) => a.sort - b.sort);
+
+/** How much of a stage is done. A stage with nothing under it is not done — it
+ *  is empty, which is a different thing, and calling it finished would let a
+ *  whole programme read as complete because nobody had typed anything into it. */
+export function stageCount(phase: Phase, items: CommissionItem[]): { done: number; total: number } {
+  const mine = workOf(phase, items);
+  return { done: mine.filter(i => stateOf(i) === 'g').length, total: mine.length };
+}
+
+export const stageDone = (phase: Phase, items: CommissionItem[]): boolean => {
+  const { done, total } = stageCount(phase, items);
+  return total > 0 && done === total;
+};
+
+/** Where each stage stands. `current` is the FIRST stage not finished — a
+ *  commissioning job is a queue, not a set of parallel workstreams, so exactly
+ *  one stage is ever the one being worked on.
+ *
+ *  Nobody declares this. It falls out of whether the work under the stage is
+ *  done, which is what removing the sign-off ceremony left behind. */
+export function phaseStates(phases: Phase[], items: CommissionItem[] = []): Map<string, PhaseState> {
   const out = new Map<string, PhaseState>();
   let seenCurrent = false;
   for (const p of inOrder(phases)) {
-    if (p.passedAt) { out.set(p.id, 'passed'); continue; }
+    if (stageDone(p, items)) { out.set(p.id, 'passed'); continue; }
     out.set(p.id, seenCurrent ? 'upcoming' : 'current');
     seenCurrent = true;
   }
@@ -443,109 +462,41 @@ export function phaseStates(phases: Phase[]): Map<string, PhaseState> {
 export const inOrder = (phases: Phase[]): Phase[] =>
   phases.filter(p => !p.deletedAt).sort((a, b) => a.sort - b.sort);
 
-/** The phase being worked on now, if the job is not finished. */
-export const currentPhase = (phases: Phase[]): Phase | undefined =>
-  inOrder(phases).find(p => !p.passedAt);
+/** The stage being worked on now, if the job is not finished. */
+export const currentPhase = (phases: Phase[], items: CommissionItem[] = []): Phase | undefined =>
+  inOrder(phases).find(p => !stageDone(p, items));
 
-/** What has to be true before this gate can be passed, read off the records.
- *  Items carrying the phase, plus the rules the stage itself imposes — a gate
- *  whose conditions are only the rows somebody remembered to add is a gate that
- *  can be passed around. */
-export interface GateCriterion {
-  what: string;
-  met: boolean;
-  /** The record it came from, when it came from one. */
-  id?: string;
-  /** Why it is not met, in the words of the meeting. */
-  why?: string;
-}
-
-export function gateCriteria(phase: Phase, items: CommissionItem[]): GateCriterion[] {
-  const mine = items.filter(i => !i.deletedAt && i.phaseId === phase.id);
-  const out: GateCriterion[] = mine
-    .sort((a, b) => a.sort - b.sort)
-    .map(i => {
-      const s = stateOf(i);
-      return {
-        what: i.title,
-        met: s === 'g',
-        id: i.id,
-        why: s === 'g' ? undefined : whyNot(i),
-      };
-    });
-
-  /* THE RULES THE STAGE ITSELF IMPOSES, whatever anybody typed. These are the
-     ones that get argued about at five o'clock on a Friday, and they are not
-     negotiable by leaving a row off the list. */
-  const live = items.filter(i => !i.deletedAt);
-  /* The stage rules apply to the BUILT-IN stages they were written for. A
-     stage somebody invented carries its own work and nothing more — inventing
-     rules for a name we have never seen would be this system telling somebody
-     what their own process means. */
-  if (phase.key === 'mechanical' || phase.key === 'sat' || phase.key === 'rate' || phase.key === 'handover') {
-    const openA = live.filter((i): i is Punch => i.kind === 'punch' && isOpen(i) && i.severity === 'A');
-    out.push({
-      what: 'No open grade-A defects',
-      met: openA.length === 0,
-      why: openA.length ? `${openA.length} open — ${openA.map(p => p.title).join(', ')}` : undefined,
-    });
-  }
-  if (phase.key === 'rate' || phase.key === 'handover') {
-    const programs = live.filter((i): i is Program => i.kind === 'program');
-    const proven = programs.filter(p => programStatus(p) === 'proven').length;
-    out.push({
-      what: 'Every program proven at its agreed rate',
-      met: programs.length > 0 && proven === programs.length,
-      why: programs.length === 0 ? 'no programs listed yet'
-        : proven === programs.length ? undefined : `${proven} of ${programs.length} proven`,
-    });
-  }
-  if (phase.key === 'handover') {
-    const checks = live.filter((i): i is Check => i.kind === 'check');
-    const passed = checks.filter(c => c.outcome === 'pass').length;
-    out.push({
-      what: 'Every acceptance test passed',
-      met: checks.length > 0 && passed === checks.length,
-      why: checks.length === 0 ? 'no acceptance tests listed yet'
-        : passed === checks.length ? undefined : `${passed} of ${checks.length} passed`,
-    });
-    const owed = live.filter((i): i is Material => i.kind === 'material' && materialStatus(i) !== 'have');
-    out.push({
-      what: 'Material on site to run',
-      met: owed.length === 0,
-      why: owed.length ? `${owed.length} line${owed.length === 1 ? '' : 's'} short` : undefined,
-    });
-  }
-  /* WHAT IS OWED COMES FIRST. The list is read top-down by somebody deciding
-     whether to sign; burying the one open item under five ticks is how a gate
-     gets passed by a reader who ran out of patience three rows in. */
-  return out.sort((a, b) => Number(a.met) - Number(b.met));
-}
-
-/** Why a record is not done, said the way somebody would say it out loud. */
-function whyNot(i: CommissionItem): string | undefined {
+/** Where one piece of work stands, said the way somebody would say it out loud.
+ *  This is what a row shows instead of a status word: "51 ppm against 60
+ *  agreed", "10 of 40 rolls", "test failed". One line, its own kind's terms.
+ *
+ *  It replaced a derived gate-criteria machine. The machine was not wrong, it
+ *  was just more than anybody asked for — and it meant every kind of work
+ *  appeared under every stage whether or not it applied. */
+export function standsAt(i: CommissionItem): string {
   switch (i.kind) {
     case 'program': {
-      const st = programStatus(i);
-      return st === 'missing' ? 'no program written'
-        : st === 'untested' ? 'never run'
-          : `${bestRun(i)?.achieved ?? 0} against ${i.agreedRate} ${i.rateUnit ?? 'ppm'}`;
+      const unit = i.rateUnit ?? 'ppm';
+      if (!i.written) return `No program written · ${i.agreedRate} ${unit} agreed`;
+      const best = bestRun(i);
+      if (!best) return `Not run yet · ${i.agreedRate} ${unit} agreed`;
+      return `Ran ${best.achieved} ${unit} against ${i.agreedRate} agreed`;
     }
-    case 'material':
-      return `${i.have} of ${i.need}${i.unit ? ' ' + i.unit : ''}`;
+    case 'material': {
+      if (i.have >= i.need) return `All ${i.need}${i.unit ? ' ' + i.unit : ''} on site`;
+      const on = i.onOrder ?? 0;
+      return `${i.have} of ${i.need}${i.unit ? ' ' + i.unit : ''} here` + (on > 0 ? `, ${on} on order` : ', nothing on order');
+    }
     case 'check':
-      return i.outcome === 'fail' ? 'failed' : 'not run';
+      return i.outcome === 'pass' ? `Test passed${i.witnessedBy ? ` · witnessed by ${i.witnessedBy}` : ''}`
+        : i.outcome === 'fail' ? `Test failed${i.result ? ` · ${i.result}` : ''}`
+          : `Test not run${i.criterion ? ` · agreed: ${i.criterion}` : ''}`;
     case 'punch':
-      return `grade ${i.severity} open`;
+      return isOpen(i) ? `Defect, grade ${i.severity} · open` : `Defect, grade ${i.severity} · closed`;
     case 'task':
-      return { todo: 'not started', doing: 'in progress', waiting: 'waiting on somebody', done: undefined }[i.state];
+      return { todo: 'Not started', doing: 'In progress', waiting: 'Waiting on somebody', done: 'Done' }[i.state];
   }
 }
-
-export const canPass = (phase: Phase, items: CommissionItem[]): boolean => {
-  const cs = gateCriteria(phase, items);
-  return cs.length > 0 && cs.every(c => c.met);
-};
 
 /* ---------------------------- the programme view --------------------------- */
 
@@ -557,22 +508,19 @@ export interface Programme {
   handoverAt?: string;
   /** Days the handover has moved from its baseline. Positive is late. */
   handoverSlip?: number;
-  /** Everything standing in the way of the CURRENT gate, worst first. */
-  blocking: GateCriterion[];
 }
 
 export function programme(phases: Phase[], items: CommissionItem[]): Programme {
   const ordered = inOrder(phases);
-  const states = phaseStates(ordered);
-  const current = ordered.find(p => !p.passedAt);
-  const last = ordered[ordered.length - 1];
+  const states = phaseStates(ordered, items);
   return {
     phases: ordered,
     states,
-    current,
-    handoverAt: last?.passedAt ?? last?.forecastAt ?? last?.plannedAt,
-    handoverSlip: last ? slipOf(last) : undefined,
-    blocking: current ? gateCriteria(current, items).filter(c => !c.met) : [],
+    current: currentPhase(ordered, items),
+    handoverAt: ordered.length
+      ? (ordered[ordered.length - 1].forecastAt ?? ordered[ordered.length - 1].plannedAt)
+      : undefined,
+    handoverSlip: ordered.length ? slipOf(ordered[ordered.length - 1]) : undefined,
   };
 }
 
@@ -597,7 +545,7 @@ export function comingUp(phases: Phase[], items: CommissionItem[], days = 7, tod
 
   for (const p of inOrder(phases)) {
     const at = p.forecastAt ?? p.plannedAt;
-    if (!at || p.passedAt) continue;
+    if (!at || stageDone(p, items)) continue;
     if (at <= to) out.push({ at, what: phaseName(p), who: p.owner, late: at < from, kind: 'phase', id: p.id });
   }
   for (const i of items) {

@@ -4638,96 +4638,6 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .cmp-num b i { font-size: 13px; font-weight: 600; font-style: normal; color: var(--ink-2); }
 .cmp-num span { font-size: 12px; color: var(--ink-2); }
 
-/* ======================= a gate opened ======================= */
-.cmp-stage-n { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--muted); }
-.cmp-stage-n.is-current { color: #8f5a0e; }
-.cmp-stage-n.is-passed { color: #1f7a44; }
-
-.cmp-dates {
-  display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-  padding: 14px 16px; margin-bottom: 14px;
-}
-.cmp-date { display: flex; flex-direction: column; gap: 4px; }
-.cmp-date > span { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-2); }
-.cmp-date input {
-  padding: 7px 10px; font: inherit; font-size: 14px; color: var(--ink);
-  background: var(--surface); border: 1px solid var(--line); border-radius: 9px;
-}
-.cmp-date input:focus { border-color: var(--accent); outline: none; }
-.cmp-date-w { flex: 1 1 200px; }
-.cmp-date-w input { width: 100%; }
-.cmp-slip-box { display: flex; flex-direction: column; gap: 2px; padding-left: 4px; }
-.cmp-slip-box span { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-2); }
-.cmp-slip-box b { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
-.cmp-slip-box.is-a b { color: #8f5a0e; }
-.cmp-slip-box.is-r b { color: #b03528; }
-.cmp-slip-box.is-g b { color: #1f7a44; }
-
-/* The knock-on. The sentence that makes this a project rather than a list. */
-.cmp-knock {
-  margin: 0 0 22px; padding: 12px 14px; font-size: 13.5px; line-height: 1.5;
-  background: color-mix(in srgb, var(--st-r) 6%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--st-r) 22%, var(--line));
-  border-radius: 12px;
-}
-
-.cmp-crit { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.cmp-crit li { display: flex; gap: 11px; padding: 12px 14px; border-bottom: 1px solid var(--line); align-items: flex-start; }
-.cmp-crit li:last-child { border-bottom: 0; }
-.cmp-crit li.is-owed { background: #fdf1ef; }
-.cmp-crit-mark {
-  width: 18px; height: 18px; border-radius: 50%; flex: none; margin-top: 1px;
-  display: flex; align-items: center; justify-content: center; background: var(--st-g);
-}
-.cmp-crit li.is-owed .cmp-crit-mark { background: var(--st-r); }
-.cmp-crit-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.cmp-crit-t { font-size: 14.5px; font-weight: 600; }
-.cmp-crit li.is-owed .cmp-crit-t { font-weight: 700; }
-.cmp-crit-w { font-size: 12px; font-weight: 700; color: #b03528; }
-
-.cmp-pass { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 8px; }
-.cmp-pass-who {
-  flex: 1 1 200px; padding: 12px 14px; font: inherit; font-size: 15px;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink);
-}
-.cmp-pass-who:focus { border-color: var(--accent); outline: none; }
-.cmp-pass-who:disabled { background: var(--bg); color: var(--muted); }
-.cmp-pass-go { min-height: 48px; padding-inline: 20px; }
-.cmp-pass .sub { flex: 1 1 100%; margin: 0; font-size: 12.5px; }
-.cmp-passed {
-  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; width: 100%;
-  padding: 14px 16px; border-radius: 12px;
-  background: color-mix(in srgb, var(--st-g) 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--st-g) 30%, var(--line));
-}
-.cmp-passed b { flex-grow: 1; font-size: 15px; color: #1f7a44; }
-
-@media (max-width: 640px) {
-  .cmp-hero-d { font-size: 34px; }
-  .cmp-day-w { flex: 1 1 100%; order: 3; }
-}
-
-/* A DEAD BUTTON MUST LOOK DEAD. The pass button is the brand green, and
-   disabled it was still fully green and still looked pressable — so the one
-   control on the page that refuses to work looked exactly like the one that
-   does. Somebody taps it, nothing happens, and they conclude the app is broken
-   rather than that the gate is not ready. */
-.btn-primary:disabled,
-.btn-primary[disabled] {
-  background: var(--line-2); color: var(--surface);
-  border-color: var(--line-2); cursor: not-allowed; box-shadow: none;
-}
-
-/* ---- adding a stage ---- */
-.cmp-add-stage {
-  margin-top: 8px; padding: 10px 14px; width: 100%;
-  font: inherit; font-size: 13.5px; font-weight: 700; color: var(--accent); cursor: pointer;
-  background: var(--surface); border: 1px dashed var(--line-2); border-radius: 12px;
-}
-.cmp-add-stage:hover { border-color: var(--brand); }
-.cmp-stage-edit { display: flex; gap: 6px; flex: 0 0 auto; align-items: flex-start; }
-.cmp-stage-del { color: var(--st-r); }
 
 /* ---- the archive ---- */
 .proj-archive { color: var(--ink-2); }
@@ -4769,3 +4679,139 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ws-row .ws-card { flex: 1 1 auto; min-width: 0; }
 .ws-archive { flex: 0 0 auto; align-self: center; color: var(--ink-2); }
 @media (max-width: 560px) { .ws-archive { padding-inline: 12px; } }
+
+/* ================= COMMISSIONING — ONE SCREEN, ONE LIST ====================
+ * The programme, then the work under it. No gate, no pass button, no five
+ * tables per stage: every row is one line that says what its own kind needs.
+ * ========================================================================= */
+
+.cw-handover { margin: 2px 0 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 9px; font-size: 15px; }
+.cw-slip { font-size: 13.5px; font-weight: 700; }
+.cw-slip.is-a { color: #8f5a0e; }          /* darkened for contrast on white */
+.cw-slip.is-r { color: #b03528; }
+.cw-slip.is-g { color: #1f7a44; }
+
+.cw-sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.cw-link {
+  padding: 0; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--accent);
+  background: none; border: 0; cursor: pointer;
+}
+
+/* ---- the programme ---- */
+.cw-stages { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.cw-stage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+}
+.cw-stage:last-child { border-bottom: 0; }
+.cw-stage.is-current { background: #fdf6ec; padding-block: 12px; }
+.cw-bead { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--surface); border: 2px solid var(--line-2); box-sizing: border-box; }
+.cw-bead.is-passed { background: var(--st-g); border-color: var(--st-g); }
+.cw-bead.is-current { width: 11px; height: 11px; border: 3px solid var(--st-a); }
+.cw-stage-n { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.cw-stage.is-current .cw-stage-n { font-size: 15px; font-weight: 800; color: var(--ink); }
+.cw-stage-r { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
+.cw-count { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cw-count.is-now { font-weight: 800; color: #8f5a0e; }
+.cw-stage-d { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.cw-done { font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; color: #1f7a44; text-transform: uppercase; }
+.cw-stage-edit { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; flex: 1 1 100%; }
+.cw-stage-edit label { display: flex; flex-direction: column; gap: 3px; }
+.cw-stage-edit label span { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-2); }
+.cw-stage-edit input {
+  padding: 6px 9px; font: inherit; font-size: 13px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+}
+.cw-stage-edit input:focus { border-color: var(--accent); outline: none; }
+
+/* ---- the work: one list ---- */
+.cw-group { margin-bottom: 16px; }
+.cw-group-h { display: flex; align-items: baseline; gap: 10px; padding: 4px 2px 6px; }
+.cw-group-n { font-size: 12px; font-weight: 800; letter-spacing: 0.05em; }
+.cw-group-c { font-size: 11.5px; color: var(--ink-2); }
+.cw-list { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+
+.cw-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 13px; border-bottom: 1px solid var(--line);
+}
+.cw-row:last-of-type { border-bottom: 1px solid var(--line); }
+.cw-row.is-r { background: color-mix(in srgb, var(--st-r) 5%, var(--surface)); }
+.cw-row.is-a { background: color-mix(in srgb, var(--st-a) 6%, var(--surface)); }
+
+/* One glance down the left edge says what is outstanding without reading. */
+.cw-mark {
+  width: 20px; height: 20px; border-radius: 50%; flex: none; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: var(--on-brand);
+}
+.cw-mark.is-g { background: var(--st-g); }
+.cw-mark.is-r { background: var(--st-r); }
+/* A RING IS NOT A DISC. `.cw-mark.is-r` fills the mark for a failed test, and
+   a ring carrying the same state class picked the fill up too — so a program
+   nobody had written read as a completed one at a glance, in the only place on
+   the row you are meant to be able to read without words. */
+.cw-mark.is-ring { background: none; border: 2px solid var(--line-2); }
+.cw-mark.is-ring.is-a { border-color: var(--st-a); }
+.cw-mark.is-ring.is-r { border-color: var(--st-r); }
+.cw-mark.is-ring.is-w { border-color: var(--st-w); }
+.cw-mark.is-sev { background: var(--st-n); }
+.cw-mark.is-sev.is-r { background: var(--st-r); }
+.cw-mark.is-sev.is-a { background: var(--st-a); }
+.cw-mark.is-sev.is-w { background: var(--st-w); }
+
+.cw-open {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+  padding: 0; font: inherit; text-align: left; color: inherit;
+  background: none; border: 0; cursor: pointer;
+}
+.cw-t { font-size: 14.5px; font-weight: 600; }
+.cw-row.is-r .cw-t, .cw-row.is-a .cw-t { font-weight: 700; }
+.cw-s { font-size: 12px; color: var(--ink-2); }
+.cw-row.is-r .cw-s { font-weight: 700; color: #b03528; }
+.cw-who { flex: 0 0 auto; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.cw-when { flex: 0 0 auto; font-size: 12px; color: var(--ink-2); white-space: nowrap; min-width: 46px; text-align: right; }
+
+/* ---- the inline editor ---- */
+.cw-edit {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
+  padding: 12px 13px 14px; background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.cw-f { display: flex; flex-direction: column; gap: 3px; flex: 1 1 150px; min-width: 0; }
+.cw-f-wide { flex: 1 1 100%; }
+.cw-f-n { flex: 0 0 84px; }
+.cw-f > span { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-2); }
+.cw-f input, .cw-f select {
+  width: 100%; padding: 7px 10px; font: inherit; font-size: 13.5px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-sizing: border-box;
+}
+.cw-f input:focus, .cw-f select:focus { border-color: var(--accent); outline: none; }
+.cw-seg { display: flex; flex-wrap: wrap; gap: 5px; }
+.cw-edit-end { display: flex; gap: 6px; margin-left: auto; }
+.cw-del { color: var(--st-r); }
+
+/* ---- adding ---- */
+.cw-add {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 11px 13px; font: inherit; font-size: 13.5px; font-weight: 700;
+  text-align: left; color: var(--accent); background: none; border: 0; cursor: pointer;
+}
+.cw-add:hover { background: var(--surface-2); }
+.cw-add-p {
+  width: 20px; height: 20px; border-radius: 50%; flex: none; box-sizing: border-box;
+  border: 1px dashed var(--line-2); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1;
+}
+.cw-addf { display: flex; flex-wrap: wrap; gap: 8px; padding: 11px 13px; background: var(--bg); }
+.cw-addf select, .cw-addf input {
+  padding: 8px 10px; font: inherit; font-size: 13.5px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+}
+.cw-addf input { flex: 1 1 180px; min-width: 0; }
+.cw-addf .cw-num { flex: 0 0 76px; text-align: right; }
+.cw-addf select:focus, .cw-addf input:focus { border-color: var(--accent); outline: none; }
+
+@media (max-width: 560px) {
+  .cw-who { display: none; }         /* the owner is in the editor; the row keeps its date */
+  .cw-stage-r { flex: 1 1 100%; justify-content: flex-start; padding-left: 19px; }
+}

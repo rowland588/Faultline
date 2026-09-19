@@ -357,7 +357,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         id: p.id, owner_id: fallbackOwner, project_id: p.projectId, phase_key: p.key,
         phase_name: p.name ?? null, sort: p.sort,
         planned_at: p.plannedAt ?? null, forecast_at: p.forecastAt ?? null,
-        passed_at: p.passedAt ?? null, passed_by: p.passedBy ?? null,
         owner: p.owner ?? null, note: p.note ?? null,
         updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -369,8 +368,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       sort: Number(r.sort) || 0,
       plannedAt: (r.planned_at as string) ?? undefined,
       forecastAt: (r.forecast_at as string) ?? undefined,
-      passedAt: (r.passed_at as string) ?? undefined,
-      passedBy: (r.passed_by as string) ?? undefined,
       owner: (r.owner as string) ?? undefined,
       note: (r.note as string) ?? undefined,
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),

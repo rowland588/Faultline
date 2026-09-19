@@ -57,12 +57,19 @@ const machine = (asset: string, each = 1): CommissionItem[] =>
 const report = (items: CommissionItem[], phases: Phase[] = []) =>
   buildCommissionReport({ title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew', items, phases, now: NOW });
 
-/** A programme part-way through: two stages signed, one late and current. */
+/** A programme part-way through, with dates and a slip on every stage. */
 const programme = (): Phase[] => PHASE_ORDER.map((key, i) => ({
   id: `ph-${key}`, projectId: 'p1', key, sort: (i + 1) * 10, updatedAt: 1,
   plannedAt: `2026-09-${String(10 + i * 3).padStart(2, '0')}`,
   forecastAt: `2026-09-${String(14 + i * 3).padStart(2, '0')}`,
-  passedAt: i < 2 ? `2026-09-${String(12 + i * 3).padStart(2, '0')}` : undefined,
+}));
+
+/** The work that makes the first two stages DONE. A stage is finished when its
+ *  rows are, so a fixture that wants a passed stage has to say so in work —
+ *  which is the whole point of having removed the sign-off. */
+const finished = (keys: string[]): CommissionItem[] => keys.map((k, i) => ({
+  id: `done-${k}`, projectId: 'p1', phaseId: `ph-${k}`, kind: 'task',
+  title: `${k} work`, state: 'done', sort: i, createdAt: 1, updatedAt: 1,
 }));
 
 const render = (items: CommissionItem[], phases: Phase[] = []) => {
@@ -229,13 +236,14 @@ describe('the programme band', () => {
   });
 
   it('carries each stage\'s state and slip through to the sheet', () => {
-    const data = report([], programme());
+    const data = report(finished(['fat', 'install']), programme());
     expect(data.phases).toHaveLength(6);
     expect(data.phases[0].state).toBe('passed');
+    expect(data.phases[1].state).toBe('passed');
     expect(data.phases[2].state).toBe('current');
     expect(data.phases[5].state).toBe('upcoming');
-    // planned 10 Sep, passed 12 Sep — two days late, and it stays late.
-    expect(data.phases[0].slip).toBe(2);
+    // planned 10 Sep, forecast 14 Sep — four days late.
+    expect(data.phases[0].slip).toBe(4);
   });
 
   it('still draws a sheet for a job with no programme laid out', () => {

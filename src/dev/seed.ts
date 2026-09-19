@@ -123,21 +123,19 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      the seed never quietly becomes a job that finished last year. */
   const day = 86_400_000;
   const iso = (offset: number) => new Date(t + offset * day).toISOString().slice(0, 10);
-  const PLAN: Record<string, { planned: number; forecast: number; passed?: number; owner: string }> = {
-    fat:        { planned: -40, forecast: -40, passed: -38, owner: 'Dave Marsh' },
-    install:    { planned: -26, forecast: -24, passed: -24, owner: 'Dave Marsh' },
-    mechanical: { planned: -4,  forecast: 7,               owner: 'Dave Marsh' },
-    sat:        { planned: 7,   forecast: 17,              owner: 'Priya Shah' },
-    rate:       { planned: 21,  forecast: 29,              owner: 'Rowland' },
-    handover:   { planned: 30,  forecast: 38,              owner: 'Rowland' },
+  const PLAN: Record<string, { planned: number; forecast: number; owner: string }> = {
+    fat:        { planned: -40, forecast: -38, owner: 'Dave Marsh' },
+    install:    { planned: -26, forecast: -24, owner: 'Dave Marsh' },
+    mechanical: { planned: -4,  forecast: 7,   owner: 'Dave Marsh' },
+    sat:        { planned: 7,   forecast: 17,  owner: 'Priya Shah' },
+    rate:       { planned: 21,  forecast: 29,  owner: 'Rowland' },
+    handover:   { planned: 30,  forecast: 38,  owner: 'Rowland' },
   };
   const phases: Phase[] = PHASE_ORDER.map((key, i) => {
     const plan = PLAN[key];
     return {
       id: uid(), projectId: proj.id, key, sort: (i + 1) * 10,
       plannedAt: iso(plan.planned), forecastAt: iso(plan.forecast),
-      passedAt: plan.passed == null ? undefined : iso(plan.passed),
-      passedBy: plan.passed == null ? undefined : plan.owner,
       owner: plan.owner, updatedAt: t,
     };
   });
@@ -187,6 +185,15 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     { id: uid(), projectId: proj.id, kind: 'task',
       title: 'CE/UKCA file received', state: 'todo', owner: 'Brillopack (OEM)',
       due: iso(3), phaseId: ph('mechanical'), sort: 11, createdAt: t, updatedAt: t },
+    /* A stage is done when its work is done, so the two finished stages need
+       finished work under them — there is no sign-off flag to set any more. */
+    { id: uid(), projectId: proj.id, kind: 'check', asset: 'Brillopack bagger',
+      title: 'Ran at rate on the OEM floor', criterion: '75 ppm for 30 minutes',
+      result: '76 ppm', outcome: 'pass', witnessedBy: 'Dave Marsh', at: t - 38 * 86_400_000,
+      phaseId: ph('fat'), sort: 12, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, kind: 'task',
+      title: 'Bolted down and services on', state: 'done', owner: 'Dave Marsh',
+      phaseId: ph('install'), sort: 13, createdAt: t, updatedAt: t },
   ];
   for (const i of items) await putCommissionItem(i);
 

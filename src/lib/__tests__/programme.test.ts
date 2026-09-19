@@ -18,8 +18,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   PHASE_ORDER, PHASE_NAME, freshPhases, inOrder, phaseStates, currentPhase,
-  slipOf, daysBetween, gateCriteria, canPass, programme, comingUp,
-  phaseName, sortBetween, customPhaseKey,
+  slipOf, daysBetween, programme, comingUp, standsAt,
+  stageCount, stageDone, workOf, phaseName, sortBetween, customPhaseKey,
   type Phase, type PhaseKey, type CommissionItem, type Program, type Material,
   type Check, type Punch, type Task, type Run,
 } from '../commissioning';
@@ -57,7 +57,6 @@ describe('the six stages', () => {
     for (const p of freshPhases('p1', id, 100)) {
       expect(p.plannedAt).toBeUndefined();
       expect(p.forecastAt).toBeUndefined();
-      expect(p.passedAt).toBeUndefined();
     }
   });
 
@@ -75,31 +74,117 @@ describe('the six stages', () => {
   });
 });
 
-describe('exactly one stage is ever the current one', () => {
-  it('marks the first unpassed stage current and everything after it upcoming', () => {
-    const ps = six({ fat: { passedAt: '2026-09-12' }, install: { passedAt: '2026-09-28' } });
-    const st = phaseStates(ps);
+describe('a stage is done when its work is done — nothing declares it', () => {
+  /** A stage with `done` of `total` rows finished. */
+  const withWork = (key: PhaseKey, done: number, open: number) => {
+    const ph = phase(key);
+    const rows: CommissionItem[] = [
+      ...Array.from({ length: done }, () => task({ phaseId: ph.id, state: 'done' as const })),
+      ...Array.from({ length: open }, () => task({ phaseId: ph.id, state: 'todo' as const })),
+    ];
+    return { ph, rows };
+  };
+
+  it('counts only the rows standing under that stage', () => {
+    const a = withWork('mechanical', 2, 1);
+    const b = withWork('sat', 0, 3);
+    const all = [...a.rows, ...b.rows];
+    expect(stageCount(a.ph, all)).toEqual({ done: 2, total: 3 });
+    expect(stageCount(b.ph, all)).toEqual({ done: 0, total: 3 });
+    expect(workOf(a.ph, all)).toHaveLength(3);
+  });
+
+  it('is done only when every row under it is done', () => {
+    const part = withWork('mechanical', 2, 1);
+    expect(stageDone(part.ph, part.rows)).toBe(false);
+    const all = withWork('mechanical', 3, 0);
+    expect(stageDone(all.ph, all.rows)).toBe(true);
+  });
+
+  it('an EMPTY stage is not done — empty and finished are different things', () => {
+    // Otherwise a whole programme reads as complete because nobody has typed
+    // anything into it yet, which is the most flattering possible lie.
+    expect(stageDone(phase('sat'), [])).toBe(false);
+  });
+
+  it('marks the first unfinished stage current and everything after it upcoming', () => {
+    const ps = six();
+    const rows: CommissionItem[] = [
+      task({ phaseId: 'ph-fat', state: 'done' }),
+      task({ phaseId: 'ph-install', state: 'done' }),
+      task({ phaseId: 'ph-mechanical', state: 'todo' }),
+    ];
+    const st = phaseStates(ps, rows);
     expect(st.get('ph-fat')).toBe('passed');
     expect(st.get('ph-install')).toBe('passed');
     expect(st.get('ph-mechanical')).toBe('current');
     expect(st.get('ph-sat')).toBe('upcoming');
-    expect(st.get('ph-handover')).toBe('upcoming');
-    expect(currentPhase(ps)?.key).toBe('mechanical');
+    expect(currentPhase(ps, rows)?.key).toBe('mechanical');
   });
 
-  it('a later stage passed out of turn does not make an earlier one current twice', () => {
-    // Somebody signs SAT before mechanical completion. The queue still has one
-    // current stage — the earliest thing still owed — which is the honest read.
-    const ps = six({ sat: { passedAt: '2026-10-24' } });
-    const states = [...phaseStates(ps).values()];
-    expect(states.filter(s => s === 'current')).toHaveLength(1);
-    expect(currentPhase(ps)?.key).toBe('fat');
+  it('never has two current stages, whatever order the work was finished in', () => {
+    // Somebody completes SAT before mechanical completion. The queue still has
+    // exactly one current stage — the earliest thing still owed.
+    const ps = six();
+    const rows = [task({ phaseId: 'ph-sat', state: 'done' as const })];
+    const states = [...phaseStates(ps, rows).values()];
+    expect(states.filter(x => x === 'current')).toHaveLength(1);
+    expect(currentPhase(ps, rows)?.key).toBe('fat');
   });
 
-  it('nothing is current once every stage is passed', () => {
-    const ps = PHASE_ORDER.map(k => phase(k, { passedAt: '2026-11-14' }));
-    expect(currentPhase(ps)).toBeUndefined();
-    expect([...phaseStates(ps).values()].every(s => s === 'passed')).toBe(true);
+  it('nothing is current once every stage has its work done', () => {
+    const ps = six();
+    const rows = PHASE_ORDER.map(k => task({ phaseId: `ph-${k}`, state: 'done' as const }));
+    expect(currentPhase(ps, rows)).toBeUndefined();
+  });
+});
+
+describe('a row says where it stands in its own terms', () => {
+  /* This replaced a derived gate-criteria machine. The machine was not wrong —
+     it was more than anybody asked for, and it meant every kind of work turned
+     up under every stage whether or not it applied. */
+  it('a program reads as a rate against the agreed figure', () => {
+    expect(standsAt(program({ agreedRate: 60, rateUnit: 'ppm', runs: [run(51)] })))
+      .toBe('Ran 51 ppm against 60 agreed');
+  });
+
+  it('a program nobody wrote says so, and still shows what was agreed', () => {
+    expect(standsAt(program({ written: false, agreedRate: 45 }))).toBe('No program written · 45 ppm agreed');
+  });
+
+  it('a written but unrun program is a different sentence again', () => {
+    expect(standsAt(program({ agreedRate: 60, runs: [] }))).toBe('Not run yet · 60 ppm agreed');
+  });
+
+  it('material reads as what is here against what is needed', () => {
+    expect(standsAt(material({ need: 40, have: 10, onOrder: 20, unit: 'rolls' })))
+      .toBe('10 of 40 rolls here, 20 on order');
+    expect(standsAt(material({ need: 40, have: 10, unit: 'rolls' })))
+      .toBe('10 of 40 rolls here, nothing on order');
+    expect(standsAt(material({ need: 40, have: 40, unit: 'rolls' }))).toBe('All 40 rolls on site');
+  });
+
+  it('a test reads as its result, and an unrun one as what was agreed', () => {
+    expect(standsAt(check({ outcome: 'pass', witnessedBy: 'Dave' }))).toBe('Test passed · witnessed by Dave');
+    expect(standsAt(check({ outcome: 'fail', result: 'missed one in ten' }))).toBe('Test failed · missed one in ten');
+    expect(standsAt(check({ outcome: 'notRun', criterion: 'no leaks at 0.3 bar' })))
+      .toBe('Test not run · agreed: no leaks at 0.3 bar');
+  });
+
+  it('a defect carries its grade, open or closed', () => {
+    expect(standsAt(punch({ severity: 'A', closedAt: undefined }))).toBe('Defect, grade A · open');
+    expect(standsAt(punch({ severity: 'C', closedAt: 9 }))).toBe('Defect, grade C · closed');
+  });
+
+  it('never comes back empty, whatever the row is', () => {
+    const rows: CommissionItem[] = [
+      program({ written: false }), program({ runs: [] }), program({ runs: [run(1)] }),
+      material({ need: 1, have: 0 }), material({ need: 1, have: 1 }),
+      check({ outcome: 'notRun' }), check({ outcome: 'pass' }), check({ outcome: 'fail' }),
+      punch({ severity: 'A', closedAt: undefined }), punch({ severity: 'C', closedAt: 1 }),
+      task({ state: 'todo' }), task({ state: 'doing' }), task({ state: 'waiting' }), task({ state: 'done' }),
+    ];
+    for (const r of rows) expect(standsAt(r).length, r.kind).toBeGreaterThan(0);
   });
 });
 
@@ -112,15 +197,9 @@ describe('slip — the number the meeting is actually about', () => {
     expect(slipOf(phase('sat', { plannedAt: '2026-10-14', forecastAt: '2026-10-03' }))).toBe(-11);
   });
 
-  it('measures to the date it was PASSED once it has been', () => {
-    // A stage that passed late stays late for ever. Measuring a passed stage
-    // against its forecast would quietly forgive every overrun the moment it
-    // was signed.
-    const p = phase('sat', { plannedAt: '2026-10-03', forecastAt: '2026-10-14', passedAt: '2026-10-20' });
-    expect(slipOf(p)).toBe(17);
-  });
-
   it('is UNDEFINED with no baseline, which is not the same as zero', () => {
+    // Without a baseline nothing can be LATE, only due. Reporting zero would be
+    // reporting "on time" for a job nobody ever put a date against.
     expect(slipOf(phase('sat', { forecastAt: '2026-10-14' }))).toBeUndefined();
     expect(slipOf(phase('sat'))).toBeUndefined();
   });
@@ -128,82 +207,6 @@ describe('slip — the number the meeting is actually about', () => {
   it('daysBetween refuses to invent a number from a broken date', () => {
     expect(daysBetween('not a date', '2026-10-14')).toBeUndefined();
     expect(daysBetween('2026-10-03', undefined)).toBeUndefined();
-  });
-});
-
-describe('a gate is a set of things that must be TRUE', () => {
-  it('lists the records put against that stage, and says why each is not done', () => {
-    const ph = phase('mechanical');
-    const items: CommissionItem[] = [
-      task({ phaseId: ph.id, title: 'Guarding fitted', state: 'done' }),
-      task({ phaseId: ph.id, title: 'Guarding sign-off', state: 'todo' }),
-      material({ phaseId: ph.id, title: 'Interlocks', need: 4, have: 1 }),
-    ];
-    const cs = gateCriteria(ph, items);
-    expect(cs.find(c => c.what === 'Guarding fitted')?.met).toBe(true);
-    expect(cs.find(c => c.what === 'Guarding sign-off')?.met).toBe(false);
-    expect(cs.find(c => c.what === 'Interlocks')?.why).toBe('1 of 4');
-  });
-
-  it('ignores records belonging to another stage', () => {
-    const mech = phase('mechanical'), sat = phase('sat');
-    const items = [task({ phaseId: sat.id, title: 'Not mine', state: 'todo' })];
-    expect(gateCriteria(mech, items).map(c => c.what)).not.toContain('Not mine');
-  });
-
-  it('IMPOSES no open grade-A defects from mechanical completion onward', () => {
-    // Whatever anybody typed. A gate whose conditions are only the rows somebody
-    // remembered to add is a gate that can be passed around.
-    const open = [punch({ severity: 'A', closedAt: undefined, title: 'Former roller' })];
-    for (const key of ['mechanical', 'sat', 'rate', 'handover'] as const) {
-      const c = gateCriteria(phase(key), open).find(x => x.what === 'No open grade-A defects');
-      expect(c, `${key} does not impose the grade-A rule`).toBeTruthy();
-      expect(c!.met).toBe(false);
-      expect(c!.why).toContain('Former roller');
-    }
-    // …and not before the line is even built.
-    for (const key of ['fat', 'install'] as const) {
-      expect(gateCriteria(phase(key), open).find(x => x.what === 'No open grade-A defects')).toBeUndefined();
-    }
-  });
-
-  it('will not pass rate proving with a program short of its agreed rate', () => {
-    const items = [program({ agreedRate: 60, runs: [run(51)] })];
-    const c = gateCriteria(phase('rate'), items).find(x => x.what.startsWith('Every program proven'));
-    expect(c!.met).toBe(false);
-    expect(c!.why).toBe('0 of 1 proven');
-  });
-
-  it('will not pass rate proving with NO programs listed at all', () => {
-    // An empty list is not "all proven". This is the failure mode where a gate
-    // passes because nobody filled anything in.
-    const c = gateCriteria(phase('rate'), []).find(x => x.what.startsWith('Every program proven'));
-    expect(c!.met).toBe(false);
-    expect(c!.why).toBe('no programs listed yet');
-  });
-
-  it('handover also wants every test passed and the material on site', () => {
-    const items = [
-      program({ runs: [run(61)] }),
-      check({ outcome: 'notRun' }),
-      material({ need: 10, have: 2 }),
-    ];
-    const cs = gateCriteria(phase('handover'), items);
-    expect(cs.find(c => c.what === 'Every acceptance test passed')!.met).toBe(false);
-    expect(cs.find(c => c.what === 'Material on site to run')!.met).toBe(false);
-  });
-
-  it('canPass is false while anything is open, and true only when all of it is met', () => {
-    const ph = phase('mechanical');
-    const owed = [task({ phaseId: ph.id, state: 'todo' })];
-    expect(canPass(ph, owed)).toBe(false);
-
-    const met = [task({ phaseId: ph.id, state: 'done' })];
-    expect(canPass(ph, met)).toBe(true);
-  });
-
-  it('an EMPTY gate cannot be passed — nothing proved is not proof', () => {
-    expect(canPass(phase('fat'), [])).toBe(false);
   });
 });
 
@@ -219,21 +222,14 @@ describe('the programme, read whole', () => {
     expect(programme(six({ handover: { plannedAt: '2026-11-03' } }), []).handoverAt).toBe('2026-11-03');
   });
 
-  it('carries what is blocking the CURRENT gate, and nothing from later ones', () => {
-    const ps = six({ fat: { passedAt: '2026-09-12' }, install: { passedAt: '2026-09-28' } });
+  it('names the stage being worked on, from the work rather than a declaration', () => {
+    const ps = six();
     const items = [
+      task({ phaseId: 'ph-fat', state: 'done' }),
+      task({ phaseId: 'ph-install', state: 'done' }),
       task({ phaseId: 'ph-mechanical', title: 'Guarding sign-off', state: 'todo' }),
-      task({ phaseId: 'ph-sat', title: 'Much later', state: 'todo' }),
     ];
-    const p = programme(ps, items);
-    expect(p.current?.key).toBe('mechanical');
-    expect(p.blocking.map(b => b.what)).toContain('Guarding sign-off');
-    expect(p.blocking.map(b => b.what)).not.toContain('Much later');
-  });
-
-  it('has nothing blocking once the job is done', () => {
-    const ps = PHASE_ORDER.map(k => phase(k, { passedAt: '2026-11-14' }));
-    expect(programme(ps, []).blocking).toEqual([]);
+    expect(programme(ps, items).current?.key).toBe('mechanical');
   });
 });
 
@@ -271,9 +267,12 @@ describe('the next seven days', () => {
   it('includes a stage that is coming up, but not one already passed', () => {
     const ps = [
       phase('mechanical', { forecastAt: '2026-10-09' }),
-      phase('install', { forecastAt: '2026-10-08', passedAt: '2026-10-08' }),
+      phase('install', { forecastAt: '2026-10-08' }),
     ];
-    const week = comingUp(ps, [], 7, TODAY);
+    // Install is finished — its one row is done — so it drops out; mechanical
+    // completion is still owed and stays.
+    const rows = [task({ phaseId: 'ph-install', state: 'done' as const })];
+    const week = comingUp(ps, rows, 7, TODAY);
     expect(week.map(d => d.what)).toEqual([PHASE_NAME.mechanical]);
     expect(week[0].kind).toBe('phase');
   });
@@ -322,14 +321,6 @@ describe('the stages are yours to change', () => {
     expect(customPhaseKey('Trials', ['trials', 'trials-2'])).toBe('trials-3');
     // Punctuation only still has to produce something usable as an id.
     expect(customPhaseKey('!!!', []).length).toBeGreaterThan(0);
-  });
-
-  it('imposes no stage rules on a stage somebody invented', () => {
-    // Inventing rules for a name we have never seen would be the system telling
-    // somebody what their own process means.
-    const custom = { id: 'c', projectId: 'p1', key: 'trials', name: 'Trials', sort: 35, updatedAt: 1 };
-    const openA = [punch({ severity: 'A', closedAt: undefined })];
-    expect(gateCriteria(custom, openA).map(c => c.what)).not.toContain('No open grade-A defects');
   });
 
   it('a removed stage leaves the programme, and its rows are not destroyed', () => {

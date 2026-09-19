@@ -240,12 +240,11 @@ export function buildCommissionReport(input: CommissionReportInput): HandoverRep
      shortened here rather than in the drawer, because the drawer must not have
      to know what a date is. */
   const ordered = inOrder(input.phases ?? []);
-  const states = phaseStates(ordered);
+  const states = phaseStates(ordered, live);
   const phases: ReportPhase[] = ordered.map(p => ({
     name: phaseName(p),
     planned: p.plannedAt ? shortISO(p.plannedAt) : undefined,
     forecast: p.forecastAt ? shortISO(p.forecastAt) : undefined,
-    passed: p.passedAt ? shortISO(p.passedAt) : undefined,
     slip: slipOf(p),
     state: states.get(p.id) ?? 'upcoming',
   }));

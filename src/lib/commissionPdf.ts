@@ -93,7 +93,6 @@ export interface ReportPhase {
   name: string;
   planned?: string;
   forecast?: string;
-  passed?: string;
   /** Days moved from the baseline. Positive is late. */
   slip?: number;
   state: 'passed' | 'current' | 'upcoming';
@@ -351,7 +350,7 @@ function drawVerdict(d: Doc, data: HandoverReport): number {
       setFont(d, 7.6, p.state === 'current' ? 'bold' : 'normal', p.state === 'upcoming' ? MUTED : INK);
       d.text(fit(d, san(p.name), step - 8), x, py + 33);
       setFont(d, 6.8, 'normal', MUTED);
-      const when = p.passed ? `passed ${p.passed}` : p.forecast ?? p.planned ?? 'no date';
+      const when = p.state === 'passed' ? 'done' : p.forecast ?? p.planned ?? 'no date';
       d.text(fit(d, san(when), step - 8), x, py + 42);
       if (p.slip != null && p.slip > 0 && p.state !== 'upcoming') {
         setFont(d, 6.8, 'bold', p.slip > 7 ? DANGER : WARN);
