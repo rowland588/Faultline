@@ -21,7 +21,8 @@ import { jsPDF } from 'jspdf';
 import { drawCommissionReport, commissionSheets } from '../commissionPdf';
 import { panel } from '../reportKit';
 import { buildCommissionReport } from '../buildCommissionReport';
-import type { CommissionItem, Program, Material, Check, Punch, Task, Run } from '../commissioning';
+import type { CommissionItem, Program, Material, Check, Punch, Task, Run, Phase } from '../commissioning';
+import { PHASE_ORDER } from '../commissioning';
 
 const AT = Date.parse('2026-09-14T08:00:00Z');
 const NOW = Date.parse('2026-09-19T09:00:00Z');
@@ -53,12 +54,20 @@ const machine = (asset: string, each = 1): CommissionItem[] =>
     task({ asset, title: `${asset} obligation ${i + 1}` }),
   ]);
 
-const report = (items: CommissionItem[]) =>
-  buildCommissionReport({ title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew', items, now: NOW });
+const report = (items: CommissionItem[], phases: Phase[] = []) =>
+  buildCommissionReport({ title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew', items, phases, now: NOW });
 
-const render = (items: CommissionItem[]) => {
+/** A programme part-way through: two stages signed, one late and current. */
+const programme = (): Phase[] => PHASE_ORDER.map((key, i) => ({
+  id: `ph-${key}`, projectId: 'p1', key, updatedAt: 1,
+  plannedAt: `2026-09-${String(10 + i * 3).padStart(2, '0')}`,
+  forecastAt: `2026-09-${String(14 + i * 3).padStart(2, '0')}`,
+  passedAt: i < 2 ? `2026-09-${String(12 + i * 3).padStart(2, '0')}` : undefined,
+}));
+
+const render = (items: CommissionItem[], phases: Phase[] = []) => {
   const d = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-  drawCommissionReport(d, report(items));
+  drawCommissionReport(d, report(items, phases));
   const buf = d.output('arraybuffer');
   return {
     pages: d.getNumberOfPages(),
@@ -208,5 +217,39 @@ describe('a panel heading never prints on top of its own subtitle', () => {
     const title = drawn.find(t => t.text.includes('heading'))!;
     expect(title.text.endsWith('…')).toBe(true);
     expect(title.x + title.width).toBeLessThanOrEqual(26 + 200 - 14 + 0.5);
+  });
+});
+
+describe('the programme band', () => {
+  it('draws the stages across the top when there is a programme', () => {
+    const { head, bytes } = render([...machine('Bagger')], programme());
+    expect(head).toBe('%PDF-');
+    // The band costs real ink: the same job without a programme draws less.
+    expect(bytes).toBeGreaterThan(render([...machine('Bagger')]).bytes);
+  });
+
+  it('carries each stage\'s state and slip through to the sheet', () => {
+    const data = report([], programme());
+    expect(data.phases).toHaveLength(6);
+    expect(data.phases[0].state).toBe('passed');
+    expect(data.phases[2].state).toBe('current');
+    expect(data.phases[5].state).toBe('upcoming');
+    // planned 10 Sep, passed 12 Sep — two days late, and it stays late.
+    expect(data.phases[0].slip).toBe(2);
+  });
+
+  it('still draws a sheet for a job with no programme laid out', () => {
+    // Every commissioning file written before stages existed is in this state.
+    const data = report([...machine('Bagger')]);
+    expect(data.phases).toEqual([]);
+    expect(render([...machine('Bagger')]).head).toBe('%PDF-');
+  });
+
+  it('keeps the page count honest once the band is on the sheet', () => {
+    // The band eats into what page 1 has left for the detail. If the geometry
+    // the counter uses and the geometry the drawing uses ever disagree, the
+    // footer stamps "page 2 of 3" on a four-page report.
+    const busy = [...machine('Bagger', 3), ...machine('Multihead', 2)];
+    expect(render(busy, programme()).pages).toBeGreaterThanOrEqual(render(busy).pages);
   });
 });

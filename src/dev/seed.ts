@@ -18,13 +18,14 @@
 import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   ensureProjects, createProject, updateProject, addPaceLine, putPaceTodo,
-  putPaceWin, putTreeNode, putCommissionItem,
+  putPaceWin, putTreeNode, putCommissionItem, putCommissionPhases,
   listObservations, snagsForWorkspace, listCommissionItems,
 } from '../db';
 import type { Observation, Case } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
-import type { CommissionItem } from '../lib/commissioning';
+import type { CommissionItem, Phase } from '../lib/commissioning';
+import { PHASE_ORDER } from '../lib/commissioning';
 
 const uid = () => crypto.randomUUID();
 
@@ -38,6 +39,7 @@ export interface Seeded {
   observations: number;
   snags: number;
   commission: number;
+  phases: number;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -114,42 +116,77 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const node: TreeNodeRow = { id: uid(), projectId: proj.id, text: 'Output', rag: 'g', sort: 0, createdAt: t, updatedAt: t };
   await putTreeNode(node);
 
-  /* A handover part-way through, so the smoke test exercises every state the
-     readiness answer can be in: a program proven, one short of rate, one with no
-     program written at all, material short, a failed check and an open A defect. */
+  /* A COMMISSIONING JOB PART-WAY THROUGH, with the programme behind it.
+     FAT and install are signed, mechanical completion is where we are and it is
+     eleven days late, and everything after it has moved with that — which is
+     the whole shape the screen exists to show. Dates are relative to today, so
+     the seed never quietly becomes a job that finished last year. */
+  const day = 86_400_000;
+  const iso = (offset: number) => new Date(t + offset * day).toISOString().slice(0, 10);
+  const PLAN: Record<string, { planned: number; forecast: number; passed?: number; owner: string }> = {
+    fat:        { planned: -40, forecast: -40, passed: -38, owner: 'Dave Marsh' },
+    install:    { planned: -26, forecast: -24, passed: -24, owner: 'Dave Marsh' },
+    mechanical: { planned: -4,  forecast: 7,               owner: 'Dave Marsh' },
+    sat:        { planned: 7,   forecast: 17,              owner: 'Priya Shah' },
+    rate:       { planned: 21,  forecast: 29,              owner: 'Rowland' },
+    handover:   { planned: 30,  forecast: 38,              owner: 'Rowland' },
+  };
+  const phases: Phase[] = PHASE_ORDER.map(key => {
+    const plan = PLAN[key];
+    return {
+      id: uid(), projectId: proj.id, key,
+      plannedAt: iso(plan.planned), forecastAt: iso(plan.forecast),
+      passedAt: plan.passed == null ? undefined : iso(plan.passed),
+      passedBy: plan.passed == null ? undefined : plan.owner,
+      owner: plan.owner, updatedAt: t,
+    };
+  });
+  await putCommissionPhases(phases);
+  /* Keyed once rather than searched per item, and without a non-null assertion:
+     a fixture that lies to the compiler is how this seed manufactured two "app
+     bugs" that were really bugs in the harness. An unknown stage falls back to
+     no stage, which is a valid record rather than a crash. */
+  const phaseId = new Map(phases.map(p => [p.key as string, p.id]));
+  const ph = (key: string): string | undefined => phaseId.get(key);
   const items: CommissionItem[] = [
     { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'program',
       title: '250g tray', agreedRate: 75, rateUnit: 'ppm', written: true,
       runs: [{ id: uid(), at: t - 86_400_000, by: 'Rowland + OEM', achieved: 76, minutes: 30, wastePct: 1.2 }],
-      sort: 0, createdAt: t, updatedAt: t },
+      phaseId: ph('rate'), sort: 0, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'program',
       title: '500g tray', agreedRate: 60, rateUnit: 'ppm', written: true,
       runs: [{ id: uid(), at: t - 43_200_000, by: 'Rowland', achieved: 51, minutes: 20 }],
-      sort: 1, createdAt: t, updatedAt: t },
+      phaseId: ph('rate'), sort: 1, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'program',
       title: '1kg bag', agreedRate: 45, rateUnit: 'ppm', written: false,
-      sort: 2, createdAt: t, updatedAt: t },
+      phaseId: ph('rate'), sort: 2, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'material',
       title: '980mm film', need: 40, have: 10, onOrder: 20, unit: 'rolls',
-      due: '2026-09-24', sort: 3, createdAt: t, updatedAt: t },
+      due: iso(5), phaseId: ph('mechanical'), sort: 3, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, kind: 'material',
-      title: 'Outer cases', need: 500, have: 500, unit: 'cases', sort: 4, createdAt: t, updatedAt: t },
+      title: 'Outer cases', need: 500, have: 500, unit: 'cases', phaseId: ph('handover'), sort: 4, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'check',
       title: 'Emergency stops', criterion: 'every E-stop halts the line inside 2 s',
-      outcome: 'pass', witnessedBy: 'Dave', at: t - 172_800_000, sort: 5, createdAt: t, updatedAt: t },
+      outcome: 'pass', witnessedBy: 'Dave', at: t - 172_800_000, phaseId: ph('mechanical'), sort: 5, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'check',
       title: 'Metal detection', criterion: 'rejects 2.0mm Fe at full rate',
       result: 'missed one in ten at rate', outcome: 'fail', witnessedBy: 'Dave',
-      at: t - 86_400_000, sort: 6, createdAt: t, updatedAt: t },
+      at: t - 86_400_000, phaseId: ph('sat'), sort: 6, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'punch',
       title: 'Former roller misaligned', severity: 'A', raisedAt: t - 259_200_000,
-      fixBy: 'OEM', sort: 7, createdAt: t, updatedAt: t },
+      fixBy: 'OEM', phaseId: ph('mechanical'), sort: 7, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'punch',
       title: 'Guard rattles above 40 ppm', severity: 'C', raisedAt: t - 86_400_000,
-      fixBy: 'us', sort: 8, createdAt: t, updatedAt: t },
+      fixBy: 'us', phaseId: ph('handover'), sort: 8, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, kind: 'task',
       title: 'Operators trained on changeover', state: 'doing', owner: 'Dave',
-      sort: 9, createdAt: t, updatedAt: t },
+      due: iso(3), phaseId: ph('handover'), sort: 9, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'task',
+      title: 'Guarding sign-off', state: 'waiting', owner: 'Brillopack (OEM)',
+      due: iso(-8), phaseId: ph('mechanical'), sort: 10, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, kind: 'task',
+      title: 'CE/UKCA file received', state: 'todo', owner: 'Brillopack (OEM)',
+      due: iso(3), phaseId: ph('mechanical'), sort: 11, createdAt: t, updatedAt: t },
   ];
   for (const i of items) await putCommissionItem(i);
 
@@ -159,5 +196,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     observations: (await listObservations(ws.id)).length,
     snags: (await snagsForWorkspace(ws.id)).length,
     commission: (await listCommissionItems(proj.id)).length,
+    phases: phases.length,
   };
 }

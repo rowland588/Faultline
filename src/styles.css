@@ -4516,3 +4516,205 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    of the cell styling is above: it already looks like text until you touch it. */
 .cm-t .cm-num { max-width: 66px; }
 .cm-add-f .cm-unitin { flex: 0 0 82px; }
+
+/* ==================== COMMISSIONING — THE PROGRAMME =========================
+ * A commissioning job is a project, so this page is about TIME: when the line
+ * becomes ours, how far that has drifted, and which stage is holding it up.
+ * Everything here is bigger and quieter than the lists it sits above — the
+ * lists are detail inside a gate, this is the answer.
+ * ========================================================================== */
+
+.cmp-empty {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 28px 24px; margin-bottom: 20px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.cmp-empty h2 { margin: 0; font-size: 19px; font-weight: 800; }
+.cmp-empty p { margin: 0; max-width: 52ch; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.cmp-empty .btn { margin-top: 6px; }
+
+/* ---- the hero: the date, and whether it has moved ---- */
+.cmp-hero {
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 4px solid var(--st-n); border-radius: 16px;
+  padding: 18px 20px; margin-bottom: 22px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cmp-hero.is-g { border-left-color: var(--st-g); }
+.cmp-hero.is-a { border-left-color: var(--st-a); }
+.cmp-hero.is-r { border-left-color: var(--st-r); }
+.cmp-hero-l { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--ink-2); }
+.cmp-hero-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.cmp-hero-d { font-size: 40px; font-weight: 800; letter-spacing: -1.4px; line-height: 1; }
+.cmp-hero-out { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.cmp-hero-slip { margin: 0; font-size: 14px; font-weight: 700; }
+.cmp-hero-slip.is-g { color: var(--st-g); }
+.cmp-hero-slip.is-a { color: #8f5a0e; }      /* darkened for contrast on white */
+.cmp-hero-slip.is-r { color: #b03528; }
+.cmp-hero-slip.is-n { color: var(--muted); font-weight: 600; }
+.cmp-hero-why { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+
+/* ---- section headings, shared by both programme screens ---- */
+.cmp-sec { margin-bottom: 24px; }
+.cmp-h {
+  margin: 0 0 8px; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2);
+}
+.cmp-h-n { margin-left: 6px; font-weight: 700; color: var(--muted); letter-spacing: 0; text-transform: none; font-size: 12px; }
+.cmp-h-wide { margin-top: 30px; }
+
+/* ---- the stages ---- */
+.cmp-phases {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; overflow: hidden;
+}
+.cmp-phase {
+  display: flex; gap: 12px; width: 100%; padding: 13px 15px;
+  font: inherit; text-align: left; color: inherit; cursor: pointer;
+  background: none; border: 0; border-bottom: 1px solid var(--line);
+}
+.cmp-phase:last-child { border-bottom: 0; }
+.cmp-phase:hover { background: var(--surface-2); }
+.cmp-phase.is-current { background: #fdf6ec; padding-block: 15px; }
+.cmp-phase.is-current:hover { background: #fbeedd; }
+
+/* The rail: a bead per stage and a thread joining them, so the page reads as
+   one sequence rather than six unrelated rows. */
+.cmp-rail { display: flex; flex-direction: column; align-items: center; width: 14px; flex: none; padding-top: 3px; }
+.cmp-bead { width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line-2); box-sizing: border-box; flex: none; }
+.cmp-bead.is-passed { background: var(--st-g); border-color: var(--st-g); }
+.cmp-bead.is-current { width: 14px; height: 14px; border: 4px solid var(--st-a); }
+.cmp-thread { width: 2px; flex-grow: 1; background: var(--line); margin-top: 3px; }
+.cmp-phase:last-child .cmp-thread { display: none; }
+
+.cmp-phase-main { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cmp-now { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #8f5a0e; }
+.cmp-phase-n { font-size: 15px; font-weight: 700; }
+.cmp-phase.is-current .cmp-phase-n { font-size: 16.5px; font-weight: 800; }
+.cmp-phase.is-upcoming .cmp-phase-n { color: var(--ink-2); }
+.cmp-phase-d { font-size: 12.5px; color: var(--ink-2); }
+.cmp-phase-c { font-size: 12.5px; color: var(--ink-2); }
+.cmp-phase-c.is-owed { font-weight: 700; color: #8f5a0e; }
+.cmp-slip { font-size: 12.5px; font-weight: 700; }
+.cmp-slip.is-a { color: #8f5a0e; }
+.cmp-slip.is-r { color: #b03528; }
+/* A downstream stage has moved because of the one in front of it. That is a
+   consequence, not news, so it is said quietly. */
+.cmp-slip.is-knock { color: var(--muted); font-weight: 600; }
+.cmp-phase-tag { flex: none; font-size: 11px; font-weight: 800; padding-top: 2px; color: var(--muted); }
+.cmp-phase-tag.is-passed { color: #1f7a44; }
+.cmp-phase-tag.is-current { font-size: 20px; font-weight: 400; padding-top: 12px; }
+
+/* ---- what is in the way ---- */
+.cmp-block-list { display: grid; gap: 7px; }
+.cmp-block {
+  display: flex; flex-direction: column; gap: 2px; width: 100%;
+  padding: 12px 14px; font: inherit; text-align: left; color: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 4px solid var(--st-r); border-radius: 12px;
+}
+.cmp-block:hover { border-color: var(--line-2); border-left-color: var(--st-r); }
+.cmp-block-t { font-size: 14.5px; font-weight: 700; }
+.cmp-block-w { font-size: 12.5px; color: var(--ink-2); }
+
+/* ---- the week ---- */
+.cmp-week { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.cmp-day { display: flex; gap: 12px; align-items: baseline; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.cmp-day:last-child { border-bottom: 0; }
+.cmp-day-d { font-size: 12px; font-weight: 800; color: var(--ink-2); width: 56px; flex: none; }
+.cmp-day.is-late .cmp-day-d { color: #b03528; }
+.cmp-day-w { flex-grow: 1; font-size: 14px; font-weight: 600; min-width: 0; }
+.cmp-day-o { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+
+/* ---- the four numbers ---- */
+.cmp-nums {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+}
+.cmp-num { display: flex; flex-direction: column; gap: 2px; }
+.cmp-num b { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.cmp-num b.is-r { color: #b03528; }
+.cmp-num b.is-a { color: #8f5a0e; }
+.cmp-num b i { font-size: 13px; font-weight: 600; font-style: normal; color: var(--ink-2); }
+.cmp-num span { font-size: 12px; color: var(--ink-2); }
+
+/* ======================= a gate opened ======================= */
+.cmp-stage-n { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--muted); }
+.cmp-stage-n.is-current { color: #8f5a0e; }
+.cmp-stage-n.is-passed { color: #1f7a44; }
+
+.cmp-dates {
+  display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.cmp-date { display: flex; flex-direction: column; gap: 4px; }
+.cmp-date > span { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-2); }
+.cmp-date input {
+  padding: 7px 10px; font: inherit; font-size: 14px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 9px;
+}
+.cmp-date input:focus { border-color: var(--accent); outline: none; }
+.cmp-date-w { flex: 1 1 200px; }
+.cmp-date-w input { width: 100%; }
+.cmp-slip-box { display: flex; flex-direction: column; gap: 2px; padding-left: 4px; }
+.cmp-slip-box span { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-2); }
+.cmp-slip-box b { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+.cmp-slip-box.is-a b { color: #8f5a0e; }
+.cmp-slip-box.is-r b { color: #b03528; }
+.cmp-slip-box.is-g b { color: #1f7a44; }
+
+/* The knock-on. The sentence that makes this a project rather than a list. */
+.cmp-knock {
+  margin: 0 0 22px; padding: 12px 14px; font-size: 13.5px; line-height: 1.5;
+  background: color-mix(in srgb, var(--st-r) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--st-r) 22%, var(--line));
+  border-radius: 12px;
+}
+
+.cmp-crit { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.cmp-crit li { display: flex; gap: 11px; padding: 12px 14px; border-bottom: 1px solid var(--line); align-items: flex-start; }
+.cmp-crit li:last-child { border-bottom: 0; }
+.cmp-crit li.is-owed { background: #fdf1ef; }
+.cmp-crit-mark {
+  width: 18px; height: 18px; border-radius: 50%; flex: none; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center; background: var(--st-g);
+}
+.cmp-crit li.is-owed .cmp-crit-mark { background: var(--st-r); }
+.cmp-crit-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cmp-crit-t { font-size: 14.5px; font-weight: 600; }
+.cmp-crit li.is-owed .cmp-crit-t { font-weight: 700; }
+.cmp-crit-w { font-size: 12px; font-weight: 700; color: #b03528; }
+
+.cmp-pass { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 8px; }
+.cmp-pass-who {
+  flex: 1 1 200px; padding: 12px 14px; font: inherit; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink);
+}
+.cmp-pass-who:focus { border-color: var(--accent); outline: none; }
+.cmp-pass-who:disabled { background: var(--bg); color: var(--muted); }
+.cmp-pass-go { min-height: 48px; padding-inline: 20px; }
+.cmp-pass .sub { flex: 1 1 100%; margin: 0; font-size: 12.5px; }
+.cmp-passed {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; width: 100%;
+  padding: 14px 16px; border-radius: 12px;
+  background: color-mix(in srgb, var(--st-g) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--st-g) 30%, var(--line));
+}
+.cmp-passed b { flex-grow: 1; font-size: 15px; color: #1f7a44; }
+
+@media (max-width: 640px) {
+  .cmp-hero-d { font-size: 34px; }
+  .cmp-day-w { flex: 1 1 100%; order: 3; }
+}
+
+/* A DEAD BUTTON MUST LOOK DEAD. The pass button is the brand green, and
+   disabled it was still fully green and still looked pressable — so the one
+   control on the page that refuses to work looked exactly like the one that
+   does. Somebody taps it, nothing happens, and they conclude the app is broken
+   rather than that the gate is not ready. */
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  background: var(--line-2); color: var(--surface);
+  border-color: var(--line-2); cursor: not-allowed; box-shadow: none;
+}

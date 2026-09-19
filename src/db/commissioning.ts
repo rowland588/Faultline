@@ -1,6 +1,6 @@
 /* Commissioning — the readiness list for a line handover. */
 import type { ID } from '../types';
-import type { CommissionItem } from '../lib/commissioning';
+import type { CommissionItem, Phase } from '../lib/commissioning';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones } from './sync';
@@ -31,5 +31,26 @@ export async function putCommissionItems(items: CommissionItem[]): Promise<void>
 export async function deleteCommissionItem(id: ID): Promise<void> {
   await (await getDB()).delete('commission_items', id);
   await recordTombstones('commission_items', [id]);
+  signalWrite();
+}
+
+/* ---------- the programme: the stages the line goes through ---------- */
+
+export async function listCommissionPhases(projectId: string): Promise<Phase[]> {
+  const all = await (await getDB()).getAllFromIndex('commission_phases', 'by_project', projectId);
+  return all.filter(p => !p.deletedAt);
+}
+
+export async function putCommissionPhase(p: Phase): Promise<void> {
+  await (await getDB()).put('commission_phases', { ...p, updatedAt: now() });
+  signalWrite();
+}
+
+export async function putCommissionPhases(phases: Phase[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('commission_phases', 'readwrite');
+  const t = now();
+  for (const p of phases) await tx.store.put({ ...p, updatedAt: t });
+  await tx.done;
   signalWrite();
 }

@@ -25,9 +25,10 @@ import { getBlob } from '../db';
 import { loadPdfLib, deliverPdf } from './savePdf';
 import {
   LINE_ITSELF, byAsset, readiness, programStatus, materialStatus, bestRun, isOpen, stateOf,
-  type CommissionItem, type Program, type Readiness,
+  PHASE_NAME, inOrder, phaseStates, slipOf,
+  type CommissionItem, type Program, type Readiness, type Phase,
 } from './commissioning';
-import type { HandoverAsset, HandoverReport, HandoverRow, Shot } from './commissionPdf';
+import type { HandoverAsset, HandoverReport, HandoverRow, ReportPhase, Shot } from './commissionPdf';
 import type { WalkSnag } from './useCommissionEvidence';
 
 const MAX_EDGE = 1400;
@@ -181,6 +182,8 @@ export interface CommissionReportInput {
   title: string;
   lead?: string;
   items: CommissionItem[];
+  /** The programme, when one has been laid out. */
+  phases?: Phase[];
   now?: number;
   /** Line-walk snags, so an item linked to one carries the picture it was
    *  proved or disproved by. Optional: the sheet is worth sending without them. */
@@ -233,10 +236,25 @@ export function buildCommissionReport(input: CommissionReportInput): HandoverRep
       })),
   );
 
+  /* The programme, flattened for the band across the top of page 1. Dates are
+     shortened here rather than in the drawer, because the drawer must not have
+     to know what a date is. */
+  const ordered = inOrder(input.phases ?? []);
+  const states = phaseStates(ordered);
+  const phases: ReportPhase[] = ordered.map(p => ({
+    name: PHASE_NAME[p.key],
+    planned: p.plannedAt ? shortISO(p.plannedAt) : undefined,
+    forecast: p.forecastAt ? shortISO(p.forecastAt) : undefined,
+    passed: p.passedAt ? shortISO(p.passedAt) : undefined,
+    slip: slipOf(p),
+    state: states.get(p.id) ?? 'upcoming',
+  }));
+
   return {
     title: input.title,
     lead: input.lead,
     now: input.now ?? Date.now(),
+    phases,
     canSignOff: ready.canSignOff,
     blockers: ready.blockers.map(b => ({ what: b.what, asset: b.asset })),
     headline: headlineFor(ready, live.length > 0),

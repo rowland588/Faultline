@@ -3,17 +3,20 @@
  * survives a reload. No router library; just parse the hash. */
 import { useEffect, useMemo, useState } from 'react';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
+import { PHASE_ORDER, type PhaseKey } from '../lib/commissioning';
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'commissioning';
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'commissioning' | 'commissionGate';
 
 export interface Route {
   name: RouteName;
   wsId?: ID;
   id?: string;          // sub-entity id (segment/:id, asset/:id, project/:id)
   lineId?: string;      // the line within a project (project/:id/line/:lineId)
+  /** Which commissioning stage (project/:id/commissioning/:phaseKey). */
+  phaseKey?: PhaseKey;
   query: URLSearchParams;
 }
 
@@ -63,10 +66,19 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'tree') return { name: 'leverTree', id, query };
     if (segs[2] === 'board') return { name: 'board', id, query };
     if (segs[2] === 'pareto') return { name: 'pareto', id, query };
-    /* /commissioning/run was a separate step-by-step screen. Recording a run is
-       now two fields on the program's own row, so the old link lands on the
-       commissioning page rather than 404ing somebody's bookmark. */
-    if (segs[2] === 'commissioning') return { name: 'commissioning', id, query };
+    if (segs[2] === 'commissioning') {
+      /* /commissioning/:stage opens that gate. Checked against the real list
+         rather than passed straight through, so a typed or stale URL lands on
+         the programme instead of rendering a screen about a stage that does not
+         exist — which is how /w/:ws/history once took the whole app down.
+         /commissioning/run, the old step-by-step screen, falls in here too:
+         recording a run is now two fields on the program's own row. */
+      const stage = segs[3] ? decodeURIComponent(segs[3]) : undefined;
+      if (stage && (PHASE_ORDER as readonly string[]).includes(stage)) {
+        return { name: 'commissionGate', id, phaseKey: stage as PhaseKey, query };
+      }
+      return { name: 'commissioning', id, query };
+    }
     return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
   }
   if (segs[0] === 'w' && segs[1]) {

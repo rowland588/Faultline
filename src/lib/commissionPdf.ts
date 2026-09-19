@@ -88,10 +88,24 @@ export interface HandoverAsset {
   isLine: boolean;
 }
 
+/** One stage on the sheet's programme band. */
+export interface ReportPhase {
+  name: string;
+  planned?: string;
+  forecast?: string;
+  passed?: string;
+  /** Days moved from the baseline. Positive is late. */
+  slip?: number;
+  state: 'passed' | 'current' | 'upcoming';
+}
+
 export interface HandoverReport {
   title: string;
   lead?: string;
   now: number;
+  /** The stages, in order. Empty when no programme has been laid out — the
+   *  sheet then prints as it always did, about readiness alone. */
+  phases: ReportPhase[];
   /** The verdict, straight off readiness(). Never recomputed here. */
   canSignOff: boolean;
   /** Worst first, in the words somebody would use in the meeting. */
@@ -314,7 +328,39 @@ function drawVerdict(d: Doc, data: HandoverReport): number {
   });
 
   /* the two panels: the machines on the left, what stops sign-off on the right */
-  const py = topY + topH + 14;
+  /* THE PROGRAMME BAND. Where the job has got to, in time, across the sheet —
+     the one thing the earlier version of this report could not say at all. A
+     reader should see the shape of the job before any of its detail. */
+  let py = topY + topH + 14;
+  if (data.phases.length) {
+    const bh = 54;
+    d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
+    d.roundedRect(M, py, CW, bh, 6, 6, 'FD');
+    const inner = CW - 28;
+    const step = inner / data.phases.length;
+    data.phases.forEach((p, i) => {
+      const x = M + 14 + i * step;
+      const colour = p.state === 'passed' ? OK : p.state === 'current' ? WARN : MUTED;
+      // the thread, drawn first so the beads sit on top of it
+      if (i < data.phases.length - 1) {
+        d.setDrawColor(LINE); d.setLineWidth(1.4);
+        d.line(x + 5, py + 18, x + step - 5, py + 18);
+      }
+      d.setFillColor(colour);
+      d.circle(x + 4, py + 18, p.state === 'current' ? 5 : 3.4, 'F');
+      setFont(d, 7.6, p.state === 'current' ? 'bold' : 'normal', p.state === 'upcoming' ? MUTED : INK);
+      d.text(fit(d, san(p.name), step - 8), x, py + 33);
+      setFont(d, 6.8, 'normal', MUTED);
+      const when = p.passed ? `passed ${p.passed}` : p.forecast ?? p.planned ?? 'no date';
+      d.text(fit(d, san(when), step - 8), x, py + 42);
+      if (p.slip != null && p.slip > 0 && p.state !== 'upcoming') {
+        setFont(d, 6.8, 'bold', p.slip > 7 ? DANGER : WARN);
+        d.text(`+${p.slip} days`, x, py + 50);
+      }
+    });
+    py += bh + 12;
+  }
+
   const ph = panelsHeight(data);
   const gap = 14;
   const lw = CW * 0.34, rw = CW - lw - gap;
@@ -609,7 +655,7 @@ export function drawCommissionReport(d: Doc, data: HandoverReport): void {
   /* Both capacities from the same geometry the drawing uses. The verdict band is
      a fixed height, so what page 1 has left for detail is simply what is under
      it — and page 2 onward has the whole sheet. */
-  const detailTop = M + 66 + 96 + 14 + panelsHeight(data) + 16;
+  const detailTop = M + 66 + 96 + 14 + (data.phases.length ? 54 + 12 : 0) + panelsHeight(data) + 16;
   const roomFor = (top: number) => (H - M - 14 - 22) - (top + 30 + 20);
   const first = roomFor(detailTop);
   const rest = roomFor(M);

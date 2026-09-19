@@ -21,6 +21,7 @@ import { LeverTree } from './screens/LeverTree';
 import { BoardScreen } from './screens/BoardScreen';
 import { ParetoScreen } from './screens/ParetoScreen';
 import { CommissioningScreen } from './screens/CommissioningScreen';
+import { CommissionGateScreen } from './screens/CommissionGateScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
@@ -74,6 +75,12 @@ function app(route: Route) {
   if (route.name === 'board') return <BoardScreen projectId={route.id!} />;
   if (route.name === 'pareto') return <ParetoScreen projectId={route.id!} />;
   if (route.name === 'commissioning') return <CommissioningScreen projectId={route.id!} />;
+  /* Narrowed rather than asserted. `route.id!` is exactly the lie that crashed
+     the whole app from a truncated URL once already; a gate needs both a project
+     and a stage, and without either the programme is the right place to be. */
+  if (route.name === 'commissionGate' && route.id && route.phaseKey) {
+    return <CommissionGateScreen projectId={route.id} phaseKey={route.phaseKey} />;
+  }
   if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
   if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;
   if (route.name === 'projectDashboard') return <ProjectDashboardScreen projectId={route.id!} />;

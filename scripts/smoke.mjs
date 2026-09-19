@@ -64,6 +64,10 @@ const ROUTES = [
   ['3P board', `#/project/${seeded.projectId}/board`],
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['commissioning', `#/project/${seeded.projectId}/commissioning`],
+  ['commission gate', `#/project/${seeded.projectId}/commissioning/mechanical`],
+  // A stage that does not exist must land on the programme, not render a screen
+  // about nothing — the class of fault that took the whole app down once.
+  ['commission bad gate', `#/project/${seeded.projectId}/commissioning/nonsense`],
   ['project line', `#/project/${seeded.projectId}/line/${seeded.lineId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],

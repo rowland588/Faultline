@@ -9,19 +9,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   listCommissionItems, putCommissionItem, putCommissionItems,
-  deleteCommissionItem, onDataChange,
+  deleteCommissionItem, listCommissionPhases, putCommissionPhase, putCommissionPhases,
+  onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import type { CommissionItem, Program, Material, Check, Punch, Task, Run, Severity } from './commissioning';
+import { freshPhases } from './commissioning';
+import type { CommissionItem, Program, Material, Check, Punch, Task, Run, Severity, Phase } from './commissioning';
 
 export interface CommissionState {
   loading: boolean;
   items: CommissionItem[];
-  addProgram: (title: string, agreedRate: number, asset?: string, unit?: string) => Promise<void>;
-  addMaterial: (title: string, need: number, asset?: string, unit?: string) => Promise<void>;
-  addCheck: (title: string, criterion: string, asset?: string) => Promise<void>;
-  addPunch: (title: string, severity: Severity, asset?: string) => Promise<void>;
-  addTask: (title: string, asset?: string) => Promise<void>;
+  /** The stages this line goes through. Empty until the programme is started —
+   *  which is deliberate: six rows of blank dates on a project nobody has
+   *  planned yet is clutter pretending to be a plan. */
+  phases: Phase[];
+  /** Lay out the six stages for the first time. */
+  startProgramme: () => Promise<void>;
+  savePhase: (p: Phase) => Promise<void>;
+  addProgram: (title: string, agreedRate: number, asset?: string, unit?: string, phaseId?: string) => Promise<void>;
+  addMaterial: (title: string, need: number, asset?: string, unit?: string, phaseId?: string) => Promise<void>;
+  addCheck: (title: string, criterion: string, asset?: string, phaseId?: string) => Promise<void>;
+  addPunch: (title: string, severity: Severity, asset?: string, phaseId?: string) => Promise<void>;
+  addTask: (title: string, asset?: string, phaseId?: string) => Promise<void>;
   /** Record a run against a program — the evidence for its rate. */
   addRun: (programId: string, run: Omit<Run, 'id'>) => Promise<void>;
   save: (i: CommissionItem) => Promise<void>;
@@ -31,10 +40,13 @@ export interface CommissionState {
 
 export function useCommission(projectId: string): CommissionState {
   const [items, setItems] = useState<CommissionItem[]>([]);
+  const [phases, setPhases] = useState<Phase[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    setItems(await listCommissionItems(projectId));
+    const [i, p] = await Promise.all([listCommissionItems(projectId), listCommissionPhases(projectId)]);
+    setItems(i);
+    setPhases(p);
     setLoading(false);
   }, [projectId]);
 
@@ -44,33 +56,33 @@ export function useCommission(projectId: string): CommissionState {
    *  the person who just typed it is looking. */
   const nextSort = useCallback(() => items.reduce((n, i) => Math.max(n, i.sort), 0) + 1, [items]);
 
-  const base = useCallback((title: string, asset?: string) => {
+  const base = useCallback((title: string, asset?: string, phaseId?: string) => {
     const t = now();
-    return { id: uid(), projectId, title: title.trim(), asset, sort: nextSort(), createdAt: t, updatedAt: t };
+    return { id: uid(), projectId, title: title.trim(), asset, phaseId, sort: nextSort(), createdAt: t, updatedAt: t };
   }, [projectId, nextSort]);
 
-  const addProgram = useCallback(async (title: string, agreedRate: number, asset?: string, unit?: string) => {
-    const p: Program = { ...base(title, asset), kind: 'program', agreedRate, rateUnit: unit || 'ppm', written: false, runs: [] };
+  const addProgram = useCallback(async (title: string, agreedRate: number, asset?: string, unit?: string, phaseId?: string) => {
+    const p: Program = { ...base(title, asset, phaseId), kind: 'program', agreedRate, rateUnit: unit || 'ppm', written: false, runs: [] };
     await putCommissionItem(p);
   }, [base]);
 
-  const addMaterial = useCallback(async (title: string, need: number, asset?: string, unit?: string) => {
-    const m: Material = { ...base(title, asset), kind: 'material', need, have: 0, onOrder: 0, unit };
+  const addMaterial = useCallback(async (title: string, need: number, asset?: string, unit?: string, phaseId?: string) => {
+    const m: Material = { ...base(title, asset, phaseId), kind: 'material', need, have: 0, onOrder: 0, unit };
     await putCommissionItem(m);
   }, [base]);
 
-  const addCheck = useCallback(async (title: string, criterion: string, asset?: string) => {
-    const c: Check = { ...base(title, asset), kind: 'check', criterion: criterion.trim(), outcome: 'notRun' };
+  const addCheck = useCallback(async (title: string, criterion: string, asset?: string, phaseId?: string) => {
+    const c: Check = { ...base(title, asset, phaseId), kind: 'check', criterion: criterion.trim(), outcome: 'notRun' };
     await putCommissionItem(c);
   }, [base]);
 
-  const addPunch = useCallback(async (title: string, severity: Severity, asset?: string) => {
-    const p: Punch = { ...base(title, asset), kind: 'punch', severity, raisedAt: now() };
+  const addPunch = useCallback(async (title: string, severity: Severity, asset?: string, phaseId?: string) => {
+    const p: Punch = { ...base(title, asset, phaseId), kind: 'punch', severity, raisedAt: now() };
     await putCommissionItem(p);
   }, [base]);
 
-  const addTask = useCallback(async (title: string, asset?: string) => {
-    const t: Task = { ...base(title, asset), kind: 'task', state: 'todo' };
+  const addTask = useCallback(async (title: string, asset?: string, phaseId?: string) => {
+    const t: Task = { ...base(title, asset, phaseId), kind: 'task', state: 'todo' };
     await putCommissionItem(t);
   }, [base]);
 
@@ -98,5 +110,20 @@ export function useCommission(projectId: string): CommissionState {
 
   const seed = useCallback(async (rows: CommissionItem[]) => { await putCommissionItems(rows); }, []);
 
-  return { loading, items, addProgram, addMaterial, addCheck, addPunch, addTask, addRun, save, remove, seed };
+  /* The six stages, laid out with NO DATES. Inventing a baseline would put an
+     agreement in the file that nobody made, and a baseline nobody agreed is
+     worse than none — everything measures late or early against a fiction. */
+  const startProgramme = useCallback(async () => {
+    if (phases.length) return;
+    await putCommissionPhases(freshPhases(projectId, uid, now()));
+  }, [projectId, phases.length]);
+
+  const savePhase = useCallback(async (p: Phase) => {
+    await putCommissionPhase({ ...p, updatedAt: now() });
+  }, []);
+
+  return {
+    loading, items, phases, startProgramme, savePhase,
+    addProgram, addMaterial, addCheck, addPunch, addTask, addRun, save, remove, seed,
+  };
 }

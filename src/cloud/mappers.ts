@@ -4,7 +4,7 @@
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
-import type { CommissionItem, Program, Material, Check, Punch, Task } from '../lib/commissioning';
+import type { CommissionItem, Program, Material, Check, Punch, Task, Phase } from '../lib/commissioning';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -342,6 +342,35 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     }),
   },
 
+  /* THE PROGRAMME. Six rows a project: the stages, their baseline date and the
+     date they are now expected. `planned_at` is the one column on this table
+     that must never be quietly rewritten — it is the thing every slip on the
+     sheet is measured from. */
+  commission_phases: {
+    clock: l => (l as Phase).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const p = l as Phase;
+      return {
+        id: p.id, owner_id: fallbackOwner, project_id: p.projectId, phase_key: p.key,
+        planned_at: p.plannedAt ?? null, forecast_at: p.forecastAt ?? null,
+        passed_at: p.passedAt ?? null, passed_by: p.passedBy ?? null,
+        owner: p.owner ?? null, note: p.note ?? null,
+        updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      key: r.phase_key as Phase['key'],
+      plannedAt: (r.planned_at as string) ?? undefined,
+      forecastAt: (r.forecast_at as string) ?? undefined,
+      passedAt: (r.passed_at as string) ?? undefined,
+      passedBy: (r.passed_by as string) ?? undefined,
+      owner: (r.owner as string) ?? undefined,
+      note: (r.note as string) ?? undefined,
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Phase),
+  },
   commission_items: {
     clock: l => (l as CommissionItem).updatedAt,
     mediaKeys: l => {
@@ -361,7 +390,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const i = l as CommissionItem;
       const row: Record<string, unknown> = {
         id: i.id, owner_id: fallbackOwner, project_id: i.projectId,
-        asset: i.asset ?? null, kind: i.kind, title: i.title,
+        asset: i.asset ?? null, phase_id: i.phaseId ?? null, kind: i.kind, title: i.title,
         owner: i.owner ?? null, due: i.due ?? null, note: i.note ?? null,
         photos: i.photos ?? null, snag_ids: i.snagIds ?? null,
         sort: i.sort, created_at: i.createdAt, updated_at: i.updatedAt,
@@ -400,7 +429,9 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     fromRow: (r) => {
       const base = {
         id: r.id as string, projectId: r.project_id as string,
-        asset: (r.asset as string) ?? undefined, title: (r.title as string) ?? '',
+        asset: (r.asset as string) ?? undefined,
+        phaseId: (r.phase_id as string) ?? undefined,
+        title: (r.title as string) ?? '',
         owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
         note: (r.note as string) ?? undefined,
         photos: (r.photos as CommissionItem['photos']) ?? undefined,
@@ -468,5 +499,5 @@ export const SYNC_KINDS: SyncKind[] = [
   'projects', 'project_targets', 'project_actuals',
   'pace_ppm', 'pace_todos', 'pace_snapshots', 'pace_wins',
   // after projects, because every node and every item names one
-  'tree_nodes', 'commission_items',
+  'tree_nodes', 'commission_phases', 'commission_items',
 ];
