@@ -13,7 +13,7 @@ import {
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import { freshPhases } from './commissioning';
+import { freshPhases, sortBetween, customPhaseKey } from './commissioning';
 import type { CommissionItem, Program, Material, Check, Punch, Task, Run, Severity, Phase } from './commissioning';
 
 export interface CommissionState {
@@ -26,6 +26,12 @@ export interface CommissionState {
   /** Lay out the six stages for the first time. */
   startProgramme: () => Promise<void>;
   savePhase: (p: Phase) => Promise<void>;
+  /** Add a stage of your own, after the one given (or at the end). */
+  addPhase: (name: string, afterSort?: number) => Promise<void>;
+  /** Take a stage out. Its rows stay on the project and stop gating anything —
+   *  deleting somebody's work because they reorganised their process would be
+   *  the worst possible answer to "this stage does not apply to us". */
+  removePhase: (id: string) => Promise<void>;
   addProgram: (title: string, agreedRate: number, asset?: string, unit?: string, phaseId?: string) => Promise<void>;
   addMaterial: (title: string, need: number, asset?: string, unit?: string, phaseId?: string) => Promise<void>;
   addCheck: (title: string, criterion: string, asset?: string, phaseId?: string) => Promise<void>;
@@ -122,8 +128,25 @@ export function useCommission(projectId: string): CommissionState {
     await putCommissionPhase({ ...p, updatedAt: now() });
   }, []);
 
+  const addPhase = useCallback(async (name: string, afterSort?: number) => {
+    const clean = name.trim();
+    if (!clean) return;
+    await putCommissionPhase({
+      id: uid(), projectId, key: customPhaseKey(clean, phases.map(p => p.key)),
+      name: clean, sort: sortBetween(phases, afterSort), updatedAt: now(),
+    });
+  }, [projectId, phases]);
+
+  const removePhase = useCallback(async (id: string) => {
+    const p = phases.find(x => x.id === id);
+    if (!p) return;
+    // Soft, and the items keep their phaseId: putting the stage back restores
+    // every row that was on it, which a hard delete could not do.
+    await putCommissionPhase({ ...p, deletedAt: now(), updatedAt: now() });
+  }, [phases]);
+
   return {
-    loading, items, phases, startProgramme, savePhase,
+    loading, items, phases, startProgramme, savePhase, addPhase, removePhase,
     addProgram, addMaterial, addCheck, addPunch, addTask, addRun, save, remove, seed,
   };
 }

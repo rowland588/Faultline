@@ -131,10 +131,10 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     rate:       { planned: 21,  forecast: 29,              owner: 'Rowland' },
     handover:   { planned: 30,  forecast: 38,              owner: 'Rowland' },
   };
-  const phases: Phase[] = PHASE_ORDER.map(key => {
+  const phases: Phase[] = PHASE_ORDER.map((key, i) => {
     const plan = PLAN[key];
     return {
-      id: uid(), projectId: proj.id, key,
+      id: uid(), projectId: proj.id, key, sort: (i + 1) * 10,
       plannedAt: iso(plan.planned), forecastAt: iso(plan.forecast),
       passedAt: plan.passed == null ? undefined : iso(plan.passed),
       passedBy: plan.passed == null ? undefined : plan.owner,

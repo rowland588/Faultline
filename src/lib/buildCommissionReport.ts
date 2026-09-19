@@ -25,7 +25,7 @@ import { getBlob } from '../db';
 import { loadPdfLib, deliverPdf } from './savePdf';
 import {
   LINE_ITSELF, byAsset, readiness, programStatus, materialStatus, bestRun, isOpen, stateOf,
-  PHASE_NAME, inOrder, phaseStates, slipOf,
+  phaseName, inOrder, phaseStates, slipOf,
   type CommissionItem, type Program, type Readiness, type Phase,
 } from './commissioning';
 import type { HandoverAsset, HandoverReport, HandoverRow, ReportPhase, Shot } from './commissionPdf';
@@ -242,7 +242,7 @@ export function buildCommissionReport(input: CommissionReportInput): HandoverRep
   const ordered = inOrder(input.phases ?? []);
   const states = phaseStates(ordered);
   const phases: ReportPhase[] = ordered.map(p => ({
-    name: PHASE_NAME[p.key],
+    name: phaseName(p),
     planned: p.plannedAt ? shortISO(p.plannedAt) : undefined,
     forecast: p.forecastAt ? shortISO(p.forecastAt) : undefined,
     passed: p.passedAt ? shortISO(p.passedAt) : undefined,

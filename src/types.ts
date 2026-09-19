@@ -226,6 +226,13 @@ export interface Project {
    *  for why a handover does not fit the 3P board. */
   commissioning?: boolean;
 
+  /** PUT AWAY, NOT DESTROYED. A finished commissioning job should leave the
+   *  list without anybody having to decide whether they will ever want the
+   *  handover file again — that decision is the whole reason people keep dead
+   *  projects on screen for years. Archiving is reversible and loses nothing;
+   *  deleting from the archive is the separate, deliberate act. */
+  archivedAt?: Millis;
+
   createdAt: Millis;
   updatedAt: Millis;
   deletedAt?: Millis;     // soft delete

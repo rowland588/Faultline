@@ -136,3 +136,24 @@ select 'commission_phases' as item,
              and exists (select 1 from pg_trigger where tgname = 'faultline_rev' and tgrelid = 'public.commission_phases'::regclass)
              and exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'commission_phases')
             then 'ready ✓' else 'MISSING — rerun' end as value;
+
+-- ---------- stages you can change ----------
+--
+-- Six stages is how a packaging line is normally commissioned. It is a default,
+-- not a law: the first job that wants "Trials" or "Vertical start-up" between
+-- two of them must not need a migration and a deploy, and a system that insists
+-- on its own process gets abandoned for the spreadsheet it replaced.
+--
+-- phase_key was already text rather than an enum for exactly this reason. These
+-- two add the rest of it: a name somebody typed, and an explicit position so a
+-- stage can be inserted between two others without renumbering every row after
+-- it. Both additive; a stage that has never been renamed has phase_name null,
+-- which is what it means.
+alter table public.commission_phases add column if not exists phase_name text;
+alter table public.commission_phases add column if not exists sort numeric not null default 0;
+
+select 'commission_phases flexible' as item,
+       case when (select count(*) from information_schema.columns
+                  where table_schema = 'public' and table_name = 'commission_phases'
+                    and column_name in ('phase_name','sort')) = 2
+            then 'ready ✓' else 'MISSING — rerun' end as value;

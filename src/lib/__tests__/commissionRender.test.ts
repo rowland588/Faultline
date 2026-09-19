@@ -59,7 +59,7 @@ const report = (items: CommissionItem[], phases: Phase[] = []) =>
 
 /** A programme part-way through: two stages signed, one late and current. */
 const programme = (): Phase[] => PHASE_ORDER.map((key, i) => ({
-  id: `ph-${key}`, projectId: 'p1', key, updatedAt: 1,
+  id: `ph-${key}`, projectId: 'p1', key, sort: (i + 1) * 10, updatedAt: 1,
   plannedAt: `2026-09-${String(10 + i * 3).padStart(2, '0')}`,
   forecastAt: `2026-09-${String(14 + i * 3).padStart(2, '0')}`,
   passedAt: i < 2 ? `2026-09-${String(12 + i * 3).padStart(2, '0')}` : undefined,

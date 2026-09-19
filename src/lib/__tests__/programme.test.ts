@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import {
   PHASE_ORDER, PHASE_NAME, freshPhases, inOrder, phaseStates, currentPhase,
   slipOf, daysBetween, gateCriteria, canPass, programme, comingUp,
+  phaseName, sortBetween, customPhaseKey,
   type Phase, type PhaseKey, type CommissionItem, type Program, type Material,
   type Check, type Punch, type Task, type Run,
 } from '../commissioning';
@@ -27,7 +28,7 @@ let n = 0;
 const id = () => `x${++n}`;
 
 const phase = (key: PhaseKey, p: Partial<Phase> = {}): Phase =>
-  ({ id: `ph-${key}`, projectId: 'p1', key, updatedAt: 1, ...p });
+  ({ id: `ph-${key}`, projectId: 'p1', key, sort: (PHASE_ORDER.indexOf(key) + 1) * 10, updatedAt: 1, ...p });
 
 const six = (over: Partial<Record<PhaseKey, Partial<Phase>>> = {}): Phase[] =>
   PHASE_ORDER.map(k => phase(k, over[k]));
@@ -275,5 +276,67 @@ describe('the next seven days', () => {
     const week = comingUp(ps, [], 7, TODAY);
     expect(week.map(d => d.what)).toEqual([PHASE_NAME.mechanical]);
     expect(week[0].kind).toBe('phase');
+  });
+});
+
+describe('the stages are yours to change', () => {
+  it('names a stage what somebody called it, falling back to the built-in name', () => {
+    expect(phaseName(phase('sat'))).toBe(PHASE_NAME.sat);
+    expect(phaseName(phase('sat', { name: 'Customer trial' }))).toBe('Customer trial');
+    // A stage nobody has a built-in name for reads as its own key rather than
+    // as "undefined", which is what an unguarded lookup would print.
+    expect(phaseName({ id: 'x', projectId: 'p', key: 'vertical-start-up', sort: 70, updatedAt: 1 }))
+      .toBe('vertical-start-up');
+  });
+
+  it('runs in the order the SORT says, not the order the built-in list says', () => {
+    // The point of an explicit sort: a stage added later has to be able to sit
+    // between two others without renumbering everything after it.
+    const ps = [
+      phase('handover', { sort: 60 }),
+      { id: 'trials', projectId: 'p1', key: 'trials', name: 'Trials', sort: 35, updatedAt: 1 },
+      phase('mechanical', { sort: 30 }),
+    ];
+    expect(inOrder(ps).map(p => phaseName(p))).toEqual([
+      PHASE_NAME.mechanical, 'Trials', PHASE_NAME.handover,
+    ]);
+  });
+
+  it('drops a new stage in after the one it was added behind', () => {
+    const ps = six();
+    const mech = ps.find(p => p.key === 'mechanical')!;
+    const sat = ps.find(p => p.key === 'sat')!;
+    const s = sortBetween(ps, mech.sort);
+    expect(s).toBeGreaterThan(mech.sort);
+    expect(s).toBeLessThan(sat.sort);
+  });
+
+  it('puts a stage at the end when it is added behind nothing', () => {
+    const ps = six();
+    expect(sortBetween(ps)).toBeGreaterThan(Math.max(...ps.map(p => p.sort)));
+  });
+
+  it('makes a key from the name, and never two the same', () => {
+    expect(customPhaseKey('Vertical start-up', [])).toBe('vertical-start-up');
+    expect(customPhaseKey('Trials', ['trials'])).toBe('trials-2');
+    expect(customPhaseKey('Trials', ['trials', 'trials-2'])).toBe('trials-3');
+    // Punctuation only still has to produce something usable as an id.
+    expect(customPhaseKey('!!!', []).length).toBeGreaterThan(0);
+  });
+
+  it('imposes no stage rules on a stage somebody invented', () => {
+    // Inventing rules for a name we have never seen would be the system telling
+    // somebody what their own process means.
+    const custom = { id: 'c', projectId: 'p1', key: 'trials', name: 'Trials', sort: 35, updatedAt: 1 };
+    const openA = [punch({ severity: 'A', closedAt: undefined })];
+    expect(gateCriteria(custom, openA).map(c => c.what)).not.toContain('No open grade-A defects');
+  });
+
+  it('a removed stage leaves the programme, and its rows are not destroyed', () => {
+    // Deleting somebody's work because they reorganised their process is the
+    // worst possible answer to "this stage does not apply to us".
+    const ps = six({ sat: { deletedAt: 9 } });
+    expect(inOrder(ps).map(p => p.key)).not.toContain('sat');
+    expect(ps.find(p => p.key === 'sat')).toBeTruthy();
   });
 });

@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ensureProjects, createProject, updateProject, deleteProject, onDataChange,
+  archiveProject, restoreProject, purgeProject, projectContents,
   DEFAULT_PROJECT_ID,
 } from '../db';
 import type { Project } from '../types';
@@ -26,10 +27,21 @@ export const DEFAULT_PROJECT = {
 
 export interface ProjectsState {
   loading: boolean;
+  /** The live list — what the screen shows. Archived projects are not in it. */
   projects: Project[];
+  /** Put away, and gettable back. Kept separate so no screen has to remember
+   *  to filter: forgetting the filter is how an archive stops being one. */
+  archived: Project[];
   create: (name: string, lead?: string, model?: PlanModel) => Promise<Project>;
   rename: (p: Project, patch: Partial<Project>) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  archive: (id: string) => Promise<void>;
+  restore: (id: string) => Promise<void>;
+  /** Gone for good, with everything the project owns. Only ever offered from
+   *  the archive, so nothing can be destroyed in one step from the main list. */
+  purge: (id: string) => Promise<void>;
+  /** What a purge would take, counted so the confirm can say it out loud. */
+  contents: (id: string) => Promise<{ store: string; count: number }[]>;
 }
 
 /** The palette new projects take their accent from, in order — so two projects
@@ -37,11 +49,11 @@ export interface ProjectsState {
 const COLORS = ['#2b87d4', '#1f8a4c', '#b4632a', '#7a4fd0', '#0f766e', '#c0392b'];
 
 export function useProjects(): ProjectsState {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [all, setAll] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setProjects(await ensureProjects(DEFAULT_PROJECT));
+    setAll(await ensureProjects(DEFAULT_PROJECT));
     setLoading(false);
   }, []);
 
@@ -54,10 +66,17 @@ export function useProjects(): ProjectsState {
     });
   }, [refresh]);
 
+  /* Split once, here, rather than filtered at each call site. A screen that
+     forgets the filter shows archived projects in the live list, which makes
+     the archive pointless in the quietest possible way. */
+  const projects = all.filter(p => !p.archivedAt);
+  const archived = all.filter(p => p.archivedAt)
+    .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
+
   return {
-    loading, projects,
+    loading, projects, archived,
     create: async (name: string, lead?: string, model?: PlanModel) => {
-      const p = await createProject(name, COLORS[projects.length % COLORS.length], lead, undefined, model);
+      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model);
       await refresh();
       return p;
     },
@@ -72,6 +91,20 @@ export function useProjects(): ProjectsState {
       await deleteProject(id);
       await refresh();
     },
+    archive: async (id: string) => {
+      // The default project stays: its lines carry the ppm history, and an
+      // empty app with nothing to open is not a tidier app.
+      if (id === DEFAULT_PROJECT_ID) return;
+      await archiveProject(id);
+      await refresh();
+    },
+    restore: async (id: string) => { await restoreProject(id); await refresh(); },
+    purge: async (id: string) => {
+      if (id === DEFAULT_PROJECT_ID) return;
+      await purgeProject(id);
+      await refresh();
+    },
+    contents: (id: string) => projectContents(id),
   };
 }
 

@@ -373,7 +373,21 @@ export const PHASE_WHAT: Record<PhaseKey, string> = {
 export interface Phase {
   id: string;
   projectId: string;
-  key: PhaseKey;
+  /* WHY THIS IS A STRING AND NOT THE UNION.
+   *
+   * Six stages is how a packaging line is commissioned, and it is the right
+   * default. It is not a law. The first job that needs "Trials" or "Vertical
+   * start-up" between two of them should not need a migration and a deploy, and
+   * a system that says "your process is wrong, use mine" gets abandoned for the
+   * spreadsheet it replaced. So the six keys below are seeded, and anything
+   * else is allowed: the stage rules key off the known names and a custom stage
+   * simply carries its own work. */
+  key: string;
+  /** Renamed by somebody. Absent means the built-in name for `key`. */
+  name?: string;
+  /** Where it sits in the run. Explicit rather than derived from the key, so a
+   *  stage can be inserted between two others without renumbering the world. */
+  sort: number;
   /** The date this was agreed for at the start — the baseline. Never edited
    *  once the job is running; that is what makes a slip visible. ISO date. */
   plannedAt?: string;
@@ -407,6 +421,11 @@ export function daysBetween(a?: string, b?: string): number | undefined {
 export const slipOf = (p: Phase): number | undefined =>
   daysBetween(p.plannedAt, p.passedAt ?? p.forecastAt);
 
+/** What this stage is called: what somebody renamed it to, else the built-in
+ *  name, else the key itself — which is what a custom stage has. */
+export const phaseName = (p: Phase): string =>
+  p.name?.trim() || PHASE_NAME[p.key as PhaseKey] || p.key;
+
 /** Where a phase stands. `current` is the FIRST unpassed phase — a commissioning
  *  job is a queue, not a set of parallel workstreams, so exactly one phase is
  *  ever the one being worked on. */
@@ -422,8 +441,7 @@ export function phaseStates(phases: Phase[]): Map<string, PhaseState> {
 }
 
 export const inOrder = (phases: Phase[]): Phase[] =>
-  phases.filter(p => !p.deletedAt)
-    .sort((a, b) => PHASE_ORDER.indexOf(a.key) - PHASE_ORDER.indexOf(b.key));
+  phases.filter(p => !p.deletedAt).sort((a, b) => a.sort - b.sort);
 
 /** The phase being worked on now, if the job is not finished. */
 export const currentPhase = (phases: Phase[]): Phase | undefined =>
@@ -460,6 +478,10 @@ export function gateCriteria(phase: Phase, items: CommissionItem[]): GateCriteri
      ones that get argued about at five o'clock on a Friday, and they are not
      negotiable by leaving a row off the list. */
   const live = items.filter(i => !i.deletedAt);
+  /* The stage rules apply to the BUILT-IN stages they were written for. A
+     stage somebody invented carries its own work and nothing more — inventing
+     rules for a name we have never seen would be this system telling somebody
+     what their own process means. */
   if (phase.key === 'mechanical' || phase.key === 'sat' || phase.key === 'rate' || phase.key === 'handover') {
     const openA = live.filter((i): i is Punch => i.kind === 'punch' && isOpen(i) && i.severity === 'A');
     out.push({
@@ -576,7 +598,7 @@ export function comingUp(phases: Phase[], items: CommissionItem[], days = 7, tod
   for (const p of inOrder(phases)) {
     const at = p.forecastAt ?? p.plannedAt;
     if (!at || p.passedAt) continue;
-    if (at <= to) out.push({ at, what: PHASE_NAME[p.key], who: p.owner, late: at < from, kind: 'phase', id: p.id });
+    if (at <= to) out.push({ at, what: phaseName(p), who: p.owner, late: at < from, kind: 'phase', id: p.id });
   }
   for (const i of items) {
     if (i.deletedAt || !i.due || stateOf(i) === 'g') continue;
@@ -589,5 +611,25 @@ export function comingUp(phases: Phase[], items: CommissionItem[], days = 7, tod
  *  set — inventing them would put a baseline in the file that nobody agreed,
  *  and a baseline nobody agreed is worse than none. */
 export function freshPhases(projectId: string, mkId: () => string, at: number): Phase[] {
-  return PHASE_ORDER.map(key => ({ id: mkId(), projectId, key, updatedAt: at }));
+  return PHASE_ORDER.map((key, i) => ({ id: mkId(), projectId, key, sort: (i + 1) * 10, updatedAt: at }));
+}
+
+/** Where a new stage goes when it is dropped in after `afterSort`. Gaps of ten
+ *  mean an insert is one number, never a renumbering of every row after it —
+ *  which would be six writes and six sync pushes to add one stage. */
+export function sortBetween(phases: Phase[], afterSort?: number): number {
+  const sorts = inOrder(phases).map(p => p.sort);
+  if (afterSort == null) return (sorts[sorts.length - 1] ?? 0) + 10;
+  const next = sorts.find(x => x > afterSort);
+  return next == null ? afterSort + 10 : (afterSort + next) / 2;
+}
+
+/** A stage somebody adds themselves. The key is only an identifier here, so it
+ *  is derived from the name and made unique rather than chosen from a list. */
+export function customPhaseKey(name: string, taken: string[]): string {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'stage';
+  if (!taken.includes(base)) return base;
+  let n = 2;
+  while (taken.includes(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
 }

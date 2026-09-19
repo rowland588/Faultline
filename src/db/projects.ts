@@ -207,3 +207,85 @@ export async function deletePaceSnapshot(id: ID): Promise<void> {
   await recordTombstones('pace_snapshots', [id]);
   signalWrite();
 }
+
+/* ---------- putting a project away, and taking it out for good ----------
+ *
+ * Two different acts, deliberately not one control.
+ *
+ * ARCHIVE is reversible and loses nothing: the project leaves the list and
+ * every row it owns stays exactly where it is. That is what somebody wants
+ * ninety-nine times out of a hundred when a job finishes — and if the only
+ * option on offer is DELETE, they leave the dead project on screen for years
+ * rather than risk it.
+ *
+ * PURGE is the other one. It is reachable only from the archive, so nothing can
+ * be destroyed in one step from the main list, and it takes the project's whole
+ * file with it.
+ */
+
+export async function archiveProject(id: ID): Promise<void> {
+  const db = await getDB();
+  const p = await db.get('projects', id);
+  if (!p) return;
+  await db.put('projects', { ...p, archivedAt: now(), updatedAt: now() });
+  signalWrite();
+}
+
+export async function restoreProject(id: ID): Promise<void> {
+  const db = await getDB();
+  const p = await db.get('projects', id);
+  if (!p) return;
+  await db.put('projects', { ...p, archivedAt: undefined, updatedAt: now() });
+  signalWrite();
+}
+
+/** Everything a project owns, by the index each store keeps on projectId.
+ *
+ *  Kept as one list rather than eight calls so that adding a project-scoped
+ *  store and forgetting to purge it is a change in ONE visible place. An
+ *  orphaned row is not harmless: it still syncs, still counts, and shows up in
+ *  a total belonging to a project that no longer exists. */
+const PROJECT_OWNED = [
+  'commission_items', 'commission_phases', 'tree_nodes',
+  'project_targets', 'project_actuals',
+] as const;
+
+/** What a purge would take with it, counted before anybody is asked to confirm.
+ *  Nobody can consent to "delete everything" without being told what everything
+ *  is. */
+export async function projectContents(id: ID): Promise<{ store: string; count: number }[]> {
+  const db = await getDB();
+  const out: { store: string; count: number }[] = [];
+  for (const store of PROJECT_OWNED) {
+    const rows = await db.getAllFromIndex(store, 'by_project', id);
+    const live = rows.filter(r => !(r as { deletedAt?: number }).deletedAt);
+    if (live.length) out.push({ store, count: live.length });
+  }
+  return out;
+}
+
+/** Delete a project and everything it owns, for good.
+ *
+ *  Tombstoned as it goes, so the other devices follow rather than pushing their
+ *  copies back — a delete that only happens on the phone it was typed on is not
+ *  a delete, it is a disagreement that resolves itself by restoring the data.
+ *
+ *  A LINE IS NOT DELETED WITH ITS PROJECT. The walk, its videos and its snags
+ *  belong to the line and usually outlive the project that was looking at them;
+ *  taking them too would make deleting a finished handover destroy a year of
+ *  evidence about a machine that is still running. */
+export async function purgeProject(id: ID): Promise<void> {
+  const db = await getDB();
+  for (const store of PROJECT_OWNED) {
+    const rows = await db.getAllFromIndex(store, 'by_project', id);
+    if (!rows.length) continue;
+    const ids = rows.map(r => (r as { id: string }).id);
+    const tx = db.transaction(store, 'readwrite');
+    for (const rowId of ids) await tx.store.delete(rowId);
+    await tx.done;
+    await recordTombstones(store, ids);
+  }
+  await db.delete('projects', id);
+  await recordTombstones('projects', [id]);
+  signalWrite();
+}

@@ -4718,3 +4718,46 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--line-2); color: var(--surface);
   border-color: var(--line-2); cursor: not-allowed; box-shadow: none;
 }
+
+/* ---- adding a stage ---- */
+.cmp-add-stage {
+  margin-top: 8px; padding: 10px 14px; width: 100%;
+  font: inherit; font-size: 13.5px; font-weight: 700; color: var(--accent); cursor: pointer;
+  background: var(--surface); border: 1px dashed var(--line-2); border-radius: 12px;
+}
+.cmp-add-stage:hover { border-color: var(--brand); }
+.cmp-stage-edit { display: flex; gap: 6px; flex: 0 0 auto; align-items: flex-start; }
+.cmp-stage-del { color: var(--st-r); }
+
+/* ---- the archive ---- */
+.proj-archive { color: var(--ink-2); }
+.proj-arch { margin: 30px 0 40px; }
+.proj-arch-h {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 12px 14px; font: inherit; font-size: 13px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+  background: none; border: 0; border-top: 1px solid var(--line); cursor: pointer;
+}
+.proj-arch-h:hover { color: var(--ink); }
+.proj-arch-n {
+  font-size: 11px; padding: 1px 7px; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-2); letter-spacing: 0;
+}
+.proj-arch-x { margin-left: auto; font-size: 16px; }
+.proj-arch-list { display: grid; gap: 7px; padding-top: 4px; }
+.proj-arch-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 11px 14px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px;
+}
+.proj-arch-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; opacity: 0.55; }
+.proj-arch-main { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.proj-arch-t { font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
+.proj-arch-s { font-size: 12px; color: var(--muted); }
+/* Destructive, and it looks it — but only inside the archive, which is itself
+   behind a tap. Nothing on the main list can destroy anything in one step. */
+.proj-arch-del {
+  background: var(--surface); color: var(--st-r);
+  border: 1px solid color-mix(in srgb, var(--st-r) 35%, var(--line));
+}
+.proj-arch-del:hover:not(:disabled) { background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }

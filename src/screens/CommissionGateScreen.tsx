@@ -19,7 +19,7 @@ import { Crumbs } from '../ui/Crumbs';
 import { useProject } from '../lib/useProjects';
 import { useCommission } from '../lib/useCommission';
 import {
-  PHASE_NAME, PHASE_WHAT, PHASE_ORDER, inOrder, phaseStates, gateCriteria, canPass, slipOf,
+  PHASE_WHAT, phaseName, inOrder, phaseStates, gateCriteria, canPass, slipOf,
   type PhaseKey, type CommissionItem,
 } from '../lib/commissioning';
 import { Programs, Materials, Checks, PunchList, Tasks } from './commissioning/lists';
@@ -62,8 +62,13 @@ export function CommissionGateScreen({ projectId, phaseKey }: { projectId: strin
   const owed = criteria.length - done;
   const ready = canPass(phase, cm.items);
   const slip = slipOf(phase);
-  const next = PHASE_ORDER[PHASE_ORDER.indexOf(phase.key) + 1];
-  const n = PHASE_ORDER.indexOf(phase.key) + 1;
+  /* Position read from THIS PROJECT'S stages, not from the built-in list — a
+     job that added a stage of its own would otherwise be told it is on "stage 3
+     of 6" while looking at the seventh row. */
+  const at = phases.findIndex(p => p.id === phase.id);
+  const next = phases[at + 1];
+  const n = at + 1;
+  const what = PHASE_WHAT[phase.key as PhaseKey];
 
   const pass = () => {
     const by = who.trim();
@@ -79,16 +84,33 @@ export function CommissionGateScreen({ projectId, phaseKey }: { projectId: strin
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Commissioning', to: `/project/${projectId}/commissioning` },
-        { label: PHASE_NAME[phase.key] },
+        { label: phaseName(phase) },
       ]} />
 
       <header className="cm-head">
         <div>
           <span className={'cmp-stage-n is-' + state}>
-            STAGE {n} OF {PHASE_ORDER.length}{state === 'current' ? ' · WE ARE HERE' : state === 'passed' ? ' · PASSED' : ''}
+            STAGE {n} OF {phases.length}{state === 'current' ? ' · WE ARE HERE' : state === 'passed' ? ' · PASSED' : ''}
           </span>
-          <h1>{PHASE_NAME[phase.key]}</h1>
-          <p className="sub">{PHASE_WHAT[phase.key]}</p>
+          <h1>{phaseName(phase)}</h1>
+          {what && <p className="sub">{what}</p>}
+        </div>
+        {/* THE STAGES ARE YOURS TO CHANGE. Six is how a packaging line is
+            normally commissioned; it is a default, not a rule, and a system
+            that insists on its own process gets abandoned for the spreadsheet
+            it replaced. */}
+        <div className="cmp-stage-edit">
+          <button className="btn btn-ghost btn-sm" onClick={() => {
+            const name = prompt('What should this stage be called?', phaseName(phase))?.trim();
+            if (name && name !== phaseName(phase)) void cm.savePhase({ ...phase, name });
+          }}>Rename</button>
+          <button className="btn btn-ghost btn-sm cmp-stage-del" onClick={() => {
+            if (!confirm(`Remove the “${phaseName(phase)}” stage?\n\n${mine.length
+              ? `Its ${mine.length} row${mine.length === 1 ? '' : 's'} stay on the project but stop gating anything.`
+              : 'Nothing is recorded against it.'}`)) return;
+            void cm.removePhase(phase.id);
+            nav(`/project/${projectId}/commissioning`);
+          }}>Remove stage</button>
         </div>
       </header>
 
@@ -121,7 +143,7 @@ export function CommissionGateScreen({ projectId, phaseKey }: { projectId: strin
 
       {next && state !== 'passed' && (
         <p className="cmp-knock">
-          <b>{PHASE_NAME[next]} cannot start until this passes.</b> Every date after it moves with this one.
+          <b>{phaseName(next)} cannot start until this passes.</b> Every date after it moves with this one.
         </p>
       )}
 

@@ -13,7 +13,12 @@ import { nav } from '../state/useRoute';
 import type { Project } from '../types';
 import type { PaceLineRow } from '../db';
 
-export function ProjectCard({ p, lines, compact }: { p: Project; lines: PaceLineRow[]; compact?: boolean }) {
+export function ProjectCard({ p, lines, compact, onArchive }: {
+  p: Project; lines: PaceLineRow[]; compact?: boolean;
+  /** Put this project away. Absent means it cannot be archived — the default
+   *  project, whose lines carry the ppm history. */
+  onArchive?: () => void;
+}) {
   const withOwner = lines.filter(l => l.owner).length;
   return (
     <article className={'proj-card' + (compact ? ' is-compact' : '')} style={{ ['--proj' as string]: p.color }}>
@@ -43,6 +48,15 @@ export function ProjectCard({ p, lines, compact }: { p: Project; lines: PaceLine
           {lines.length > 0 && ` · ${withOwner} owned`}
         </span>
         <span className="proj-foot-actions">
+          {/* ARCHIVE, NOT DELETE, on the card. Nothing on the main list may
+              destroy anything in one step; the only way to delete is from
+              inside the archive, which is a second, deliberate journey. */}
+          {onArchive && !compact && (
+            <button className="btn btn-ghost proj-archive" title={`Archive ${p.name}`}
+              onClick={() => { if (confirm(`Archive “${p.name}”?\n\nIt leaves the list and loses nothing. You can restore it whenever you like.`)) onArchive(); }}>
+              Archive
+            </button>
+          )}
           <button className="btn btn-ghost" onClick={() => nav(`/project/${p.id}/setup`)}>Lines &amp; people</button>
           <button className="btn btn-primary" onClick={() => nav(`/project/${p.id}`)}>Open</button>
         </span>

@@ -182,6 +182,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         lever_tree: p.leverTree ?? false,
         pareto: p.pareto ?? false,
         commissioning: p.commissioning ?? false,
+        archived_at: p.archivedAt ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
@@ -194,6 +195,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       leverTree: r.lever_tree === true || undefined,
       pareto: r.pareto === true || undefined,
       commissioning: r.commissioning === true || undefined,
+      archivedAt: n(r.archived_at),
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
@@ -353,6 +355,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const p = l as Phase;
       return {
         id: p.id, owner_id: fallbackOwner, project_id: p.projectId, phase_key: p.key,
+        phase_name: p.name ?? null, sort: p.sort,
         planned_at: p.plannedAt ?? null, forecast_at: p.forecastAt ?? null,
         passed_at: p.passedAt ?? null, passed_by: p.passedBy ?? null,
         owner: p.owner ?? null, note: p.note ?? null,
@@ -361,7 +364,9 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     },
     fromRow: (r) => ({
       id: r.id as string, projectId: r.project_id as string,
-      key: r.phase_key as Phase['key'],
+      key: r.phase_key as string,
+      name: (r.phase_name as string) ?? undefined,
+      sort: Number(r.sort) || 0,
       plannedAt: (r.planned_at as string) ?? undefined,
       forecastAt: (r.forecast_at as string) ?? undefined,
       passedAt: (r.passed_at as string) ?? undefined,

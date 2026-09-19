@@ -26,7 +26,7 @@ import { useCommissionEvidence } from '../lib/useCommissionEvidence';
 import { saveCommissionReport } from '../lib/buildCommissionReport';
 import { isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import {
-  PHASE_NAME, programme, gateCriteria, comingUp, slipOf, readiness,
+  phaseName, programme, gateCriteria, comingUp, slipOf, readiness,
   type Phase, type PhaseState,
 } from '../lib/commissioning';
 
@@ -70,7 +70,7 @@ function PhaseRow({ phase, state, open, criteria }: {
       </span>
       <span className="cmp-phase-main">
         {state === 'current' && <span className="cmp-now">WE ARE HERE</span>}
-        <span className="cmp-phase-n">{PHASE_NAME[phase.key]}</span>
+        <span className="cmp-phase-n">{phaseName(phase)}</span>
         <span className="cmp-phase-d">
           {phase.passedAt
             ? `Passed ${nice(phase.passedAt)}${phase.passedBy ? ` · ${phase.passedBy}` : ''}`
@@ -159,7 +159,7 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
           <h1>{project.name}</h1>
           <p className="sub">
             Commissioning
-            {prog.current ? ` · ${PHASE_NAME[prog.current.key]}` : prog.phases.length ? ' · handed over' : ''}
+            {prog.current ? ` · ${phaseName(prog.current)}` : prog.phases.length ? ' · handed over' : ''}
             {project.lead ? ` · ${project.lead} leading` : ''}
           </p>
         </div>
@@ -207,7 +207,7 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
               : <p className="cmp-hero-slip is-n">No planned date set, so nothing can be measured against it yet.</p>}
             {prog.blocking.length > 0 && prog.current && (
               <p className="cmp-hero-why">
-                {PHASE_NAME[prog.current.key]} is waiting on {prog.blocking.length} thing{prog.blocking.length === 1 ? '' : 's'}, and everything after it moves with that.
+                {phaseName(prog.current)} is waiting on {prog.blocking.length} thing{prog.blocking.length === 1 ? '' : 's'}, and everything after it moves with that.
               </p>
             )}
           </section>
@@ -225,6 +225,11 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
                 />
               ))}
             </div>
+            {/* Six stages is the default, not the law. */}
+            <button className="cmp-add-stage" onClick={() => {
+              const name = prompt('What is the stage called?\n\ne.g. Trials, Vertical start-up, Dry goods trial')?.trim();
+              if (name) void cm.addPhase(name);
+            }}>+ Add a stage</button>
           </section>
 
           {prog.blocking.length > 0 && (
