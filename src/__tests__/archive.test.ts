@@ -134,3 +134,80 @@ describe('deleting for good takes the whole file with it', () => {
     expect(await db.getProject('bare')).toBeUndefined();
   });
 });
+
+describe('a line can be put away too, and its film is what makes deleting it different', () => {
+  /** A workspace with a walk, a pinned machine, a snag and a captured loss. */
+  async function lineWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
+    const ws = await db.createWorkspace('Line 7');
+    const t = 1;
+    await db.addSegment({
+      id: 'seg1', workspaceId: ws.id, name: 'walk 1', durationS: 90, sequence: 1,
+      videoKey: 'vid-1', posterKey: 'post-1', createdAt: t, updatedAt: t,
+    });
+    await db.addSnagAsset({
+      id: 'as1', workspaceId: ws.id, segmentId: 'seg1', name: 'Former roller',
+      timestampS: 12, stillKey: 'still-1', createdAt: t, updatedAt: t,
+    });
+    await db.addSnag({
+      id: 'sn1', workspaceId: ws.id, assetId: 'as1', problem: 'Roller misaligned',
+      status: 'open', raisedAt: t, updatedAt: t,
+    });
+    return ws;
+  }
+
+  it('archiving takes it out of the list and leaves everything in place', async () => {
+    const db = await freshDb();
+    const ws = await lineWithEverything(db);
+
+    await db.archiveWorkspace(ws.id);
+    expect((await db.listWorkspaces()).map(w => w.id)).not.toContain(ws.id);
+    expect((await db.listArchivedWorkspaces()).map(w => w.id)).toEqual([ws.id]);
+
+    // The whole point of archiving: it is the SAFE one.
+    expect(await db.listSegments(ws.id)).toHaveLength(1);
+    expect(await db.snagsForWorkspace(ws.id)).toHaveLength(1);
+  });
+
+  it('restores it to the live list', async () => {
+    const db = await freshDb();
+    const ws = await lineWithEverything(db);
+    await db.archiveWorkspace(ws.id);
+    await db.restoreWorkspace(ws.id);
+
+    expect((await db.listWorkspaces()).map(w => w.id)).toContain(ws.id);
+    expect(await db.listArchivedWorkspaces()).toEqual([]);
+  });
+
+  it('counts what a delete would destroy, in words rather than table names', async () => {
+    const db = await freshDb();
+    const ws = await lineWithEverything(db);
+
+    const owned = await db.workspaceContents(ws.id);
+    const by = Object.fromEntries(owned.map(c => [c.what, c.count]));
+    // Singular at one. "1 filmed walks" in the sentence asking somebody to
+    // destroy a year of film reads as carelessness.
+    expect(by['filmed walk']).toBe(1);
+    expect(by['pinned machine']).toBe(1);
+    expect(by.snag).toBe(1);
+    expect(owned.map(c => c.what)).not.toContain('filmed walks');
+    // Nothing that is empty is listed — "0 cases (A3s)" is noise in a warning.
+    expect(owned.every(c => c.count > 0)).toBe(true);
+  });
+
+  it('deleting takes the video and the photographs with it', async () => {
+    // This is what makes a line different from a project: the blobs exist
+    // nowhere else, so there is no getting them back from the cloud either.
+    const db = await freshDb();
+    const ws = await lineWithEverything(db);
+    await db.putBlob('vid-1', new Blob(['film']));
+    await db.putBlob('still-1', new Blob(['frame']));
+
+    await db.deleteWorkspace(ws.id);
+
+    expect(await db.getWorkspace(ws.id)).toBeUndefined();
+    expect(await db.listSegments(ws.id)).toEqual([]);
+    expect(await db.snagsForWorkspace(ws.id)).toEqual([]);
+    expect(await db.getBlob('vid-1')).toBeUndefined();
+    expect(await db.getBlob('still-1')).toBeUndefined();
+  });
+});

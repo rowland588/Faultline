@@ -117,3 +117,66 @@ export async function deleteWorkspace(id: ID): Promise<void> {
   await recordTombstones('snags', snags.map(s => s.id));
   await recordTombstones('cases', cases.map(c => c.id));
 }
+
+/* ---------- putting a line away, and taking it out for good ----------
+ *
+ * The same two acts as a project, for the same reason: `deleteWorkspace` above
+ * destroys a line's whole history — every observation, the walk, the videos,
+ * the snags and their photographs — and that is not what somebody wants when a
+ * line simply stops being worked on. Offering only the destructive option is
+ * how a list fills with things nobody dares touch.
+ *
+ * `archived` has been on the Workspace record all along and listWorkspaces has
+ * always filtered on it. Nothing ever set it, so the flag existed and the
+ * feature did not.
+ */
+
+export async function archiveWorkspace(id: ID): Promise<void> {
+  const db = await getDB();
+  const ws = await db.get('workspaces', id);
+  if (!ws) return;
+  await db.put('workspaces', { ...ws, archived: true, updatedAt: now() });
+  signalWrite();
+}
+
+export async function restoreWorkspace(id: ID): Promise<void> {
+  const db = await getDB();
+  const ws = await db.get('workspaces', id);
+  if (!ws) return;
+  await db.put('workspaces', { ...ws, archived: false, updatedAt: now() });
+  signalWrite();
+}
+
+/** Put away, newest first. Separate from listWorkspaces so no screen has to
+ *  remember to filter — forgetting is how an archive stops being one. */
+export async function listArchivedWorkspaces(): Promise<Workspace[]> {
+  const all = await (await getDB()).getAll('workspaces');
+  return all.filter(w => w.archived).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** What deleting this line would destroy, counted before anybody is asked to
+ *  agree to it. "Delete everything" is not something anybody can consent to
+ *  without being told what everything is — and here everything includes
+ *  video that exists nowhere else. */
+export async function workspaceContents(id: ID): Promise<{ what: string; count: number }[]> {
+  const db = await getDB();
+  const [obs, segs, assets, snags, cases] = await Promise.all([
+    db.getAllFromIndex('observations', 'by_workspace', id),
+    db.getAllFromIndex('segments', 'by_workspace', id),
+    db.getAllFromIndex('snag_assets', 'by_workspace', id),
+    db.getAllFromIndex('snags', 'by_workspace', id),
+    db.getAllFromIndex('cases', 'by_workspace', id),
+  ]);
+  /* Pluralised HERE rather than at the call site. "1 filmed walks" in a
+     delete warning reads as carelessness, and carelessness is not what you want
+     somebody feeling about the sentence that is asking them to destroy a year
+     of film. */
+  const say = (n: number, one: string, many: string) => ({ what: n === 1 ? one : many, count: n });
+  return [
+    say(obs.length, 'captured loss', 'captured losses'),
+    say(segs.length, 'filmed walk', 'filmed walks'),
+    say(assets.length, 'pinned machine', 'pinned machines'),
+    say(snags.length, 'snag', 'snags'),
+    say(cases.length, 'case (A3)', 'cases (A3s)'),
+  ].filter(r => r.count > 0);
+}

@@ -2,7 +2,10 @@
  * tools). Tapping one resumes exactly where you left it. */
 import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../types';
-import { listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, createWorkspace, deleteWorkspace } from '../db';
+import {
+  listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, createWorkspace, deleteWorkspace,
+  archiveWorkspace, restoreWorkspace, listArchivedWorkspaces, workspaceContents,
+} from '../db';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
 import { Wordmark } from '../ui/Logo';
@@ -69,6 +72,9 @@ export function WorkspaceHome() {
   // treated as CANCELLED: losing an intent beats losing a workspace.
   const [pendingDel, setPendingDel] = useState<{ id: string; name: string } | null>(null);
   const [delTick, setDelTick] = useState(0);
+  const [archived, setArchived] = useState<Awaited<ReturnType<typeof listArchivedWorkspaces>>>([]);
+  const [showArchive, setShowArchive] = useState(false);
+  useEffect(() => { void listArchivedWorkspaces().then(setArchived); }, [delTick]);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem('faultline-pending-delete');
@@ -282,29 +288,90 @@ export function WorkspaceHome() {
               <button className="btn" data-tour="new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
             )}
           </div>
+          {/* An empty list is not always an empty app: archive the lot and the
+              old text said there was "nothing to do here" with the archive
+              holding all of it directly underneath. */}
           {list.length === 0 ? (
             <p className="sub home-sec-sub">
-              A workspace is the container under a line — its captures, its walk and its evidence.
-              Filming a line makes one by itself, so there is usually nothing to do here.
+              {archived.length > 0
+                ? `Nothing here — ${archived.length === 1 ? 'one line is' : `all ${archived.length} lines are`} in the archive below, with everything they hold. Restore whichever you want back.`
+                : 'A workspace is the container under a line — its captures, its walk and its evidence. Filming a line makes one by itself, so there is usually nothing to do here.'}
             </p>
           ) : (
             <div className="ws-list">
+              {/* A ROW, NOT A CARD-SHAPED BUTTON. Archiving needs its own
+                  control beside the open one, and a button inside a button is
+                  invalid HTML that browsers disagree about. */}
               {list.filter(w => w.id !== pendingDel?.id).map(w => (
-                <button key={w.id} className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
-                  <span className="ws-card-dot" style={{ background: w.color }} />
-                  <span className="ws-card-main">
-                    <span className="ws-card-name">{w.name}</span>
-                    {/* WHOSE it is, first. A list of bare workspace names is
-                        unreadable once every line has one of its own. */}
-                    {belongs[w.id] && <span className="ws-card-own">{belongs[w.id]}</span>}
-                    <span className="ws-card-meta">
-                      {contentsLabel(counts[w.id])}
-                      {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
+                <div key={w.id} className="ws-row">
+                  <button className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
+                    <span className="ws-card-dot" style={{ background: w.color }} />
+                    <span className="ws-card-main">
+                      <span className="ws-card-name">{w.name}</span>
+                      {/* WHOSE it is, first. A list of bare workspace names is
+                          unreadable once every line has one of its own. */}
+                      {belongs[w.id] && <span className="ws-card-own">{belongs[w.id]}</span>}
+                      <span className="ws-card-meta">
+                        {contentsLabel(counts[w.id])}
+                        {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
+                      </span>
                     </span>
-                  </span>
-                  <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
-                </button>
+                    <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
+                  </button>
+                  <button className="btn btn-ghost ws-archive" title={`Archive ${w.name}`}
+                    onClick={() => {
+                      if (!confirm(`Archive “${w.name}”?\n\nIt leaves this list and loses nothing — the captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
+                      void archiveWorkspace(w.id).then(() => setDelTick(t => t + 1));
+                    }}>Archive</button>
+                </div>
               ))}
+            </div>
+          )}
+          {/* THE ARCHIVE. Behind one tap and closed by default — it is where
+              things go to stop being looked at, so it must not take up room in
+              the list it was meant to shorten. */}
+          {archived.length > 0 && (
+            <div className="proj-arch">
+              <button className="proj-arch-h" onClick={() => setShowArchive(v => !v)} aria-expanded={showArchive}>
+                <span>Archived lines</span>
+                <span className="proj-arch-n">{archived.length}</span>
+                <span className="proj-arch-x" aria-hidden>{showArchive ? '−' : '+'}</span>
+              </button>
+              {showArchive && (
+                <div className="proj-arch-list">
+                  {archived.map(w => (
+                    <div key={w.id} className="proj-arch-row">
+                      <span className="proj-arch-dot" style={{ background: w.color }} aria-hidden />
+                      <span className="proj-arch-main">
+                        <span className="proj-arch-t">{w.name}</span>
+                        <span className="proj-arch-s">Archived · {fmtRelative(w.updatedAt)}</span>
+                      </span>
+                      <button className="btn btn-ghost btn-sm"
+                        onClick={() => void restoreWorkspace(w.id).then(() => setDelTick(t => t + 1))}>
+                        Restore
+                      </button>
+                      {/* DELETING A LINE DESTROYS FILM THAT EXISTS NOWHERE ELSE,
+                          so the confirm counts it out loud first. */}
+                      <button className="btn btn-sm proj-arch-del"
+                        onClick={() => void (async () => {
+                          const owned = await workspaceContents(w.id);
+                          const what = owned.length
+                            ? owned.map(c => `${c.count} ${c.what}`).join('\n  ')
+                            : 'nothing — it is empty';
+                          if (!confirm(
+                            `Delete “${w.name}” for ever?\n\nThis also deletes:\n  ${what}\n\n` +
+                            'The videos and photographs go with it, and they exist nowhere else.\n\n' +
+                            'This cannot be undone, on any device.',
+                          )) return;
+                          await deleteWorkspace(w.id);
+                          setDelTick(t => t + 1);
+                        })()}>
+                        Delete for ever
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </section>

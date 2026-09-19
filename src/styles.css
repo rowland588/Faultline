@@ -4761,3 +4761,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border: 1px solid color-mix(in srgb, var(--st-r) 35%, var(--line));
 }
 .proj-arch-del:hover:not(:disabled) { background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
+
+/* A workspace row: the open button, and archiving beside it rather than inside
+   it — a button inside a button is invalid HTML and browsers disagree about
+   which one was pressed. */
+.ws-row { display: flex; align-items: stretch; gap: 8px; }
+.ws-row .ws-card { flex: 1 1 auto; min-width: 0; }
+.ws-archive { flex: 0 0 auto; align-self: center; color: var(--ink-2); }
+@media (max-width: 560px) { .ws-archive { padding-inline: 12px; } }
