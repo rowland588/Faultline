@@ -116,12 +116,34 @@ const one = (q) => { const r = sql(q); return Array.isArray(r) ? r[0] : r; };
 check('table exists',
   one(`select count(*) n from information_schema.tables where table_schema='public' and table_name='commission_items';`)?.n == 1);
 
-// Every column the mapper writes. A single missing one makes the push fail and
-// the item never leaves the phone — which is exactly how photos, snag_ids and
-// findings were lost before.
-const need = ['id','owner_id','project_id','asset','stream','kind','title','target','result',
-  'stage','task_stage','need','have','on_order','due_in','owner','due','note',
-  'photos','findings','snag_ids','sort','created_at','updated_at','deleted_at','rev'];
+/* Every column the mapper writes, READ OUT OF THE MAPPER rather than typed
+ * here. A single missing column makes the push fail and the item never leaves
+ * the phone — which is exactly how photos, snag_ids and findings were lost.
+ *
+ * This list used to be hardcoded, and by the time commissioning was rebuilt it
+ * was describing a table shape the app had stopped using: it still asked for
+ * stream, target, stage, due_in and findings, and asked for none of the thirteen
+ * columns the five kinds actually write. It passed, cheerfully, while checking
+ * nothing that mattered. A check that can silently start describing the wrong
+ * thing is worse than no check, so it now reads the same file the app ships.
+ *
+ * (src/cloud/__tests__/sync-schema.test.ts does this properly, against every
+ * migration, and runs on every commit. This is the same question asked of the
+ * LIVE database, which the test cannot reach.) */
+const mapper = fs.readFileSync(new URL('../src/cloud/mappers.ts', import.meta.url), 'utf8');
+const entry = /^ {2}commission_items:\s*\{([\s\S]*?)^ {2}\},/m.exec(mapper)?.[1] ?? '';
+const toRow = /toRow:[\s\S]*?(?=\n {4}fromRow:|\n {2}\},)/.exec(entry)?.[0] ?? '';
+const need = [...new Set(
+  [...toRow
+      // A LOCAL DECLARATION IS NOT A COLUMN. The row is built in
+      // `const row: Record<string, unknown> = {` and the item is read out of
+      // `const i = l as CommissionItem`, so both forms have to go — leaving the
+      // second in produced a column called `i`, which no table has.
+      .replace(/^\s*(?:const|let)\s+\w+\s*(?::[^=]*)?=/gm, '')
+      .matchAll(/(?:^|[{\s,.])([a-z_][a-z0-9_]*)\s*[:=][^=]/g)]
+    .map(m => m[1])
+    .filter(c => c !== 'toRow'),
+)].concat('rev');
 const have = sql(`select column_name from information_schema.columns where table_schema='public' and table_name='commission_items';`)
   .map(r => r.column_name);
 const missing = need.filter(c => !have.includes(c));
