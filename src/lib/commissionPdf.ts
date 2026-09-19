@@ -111,7 +111,15 @@ const PANEL_HEAD_H = 30;
 
 /** How the detail splits: whole workstreams, never half of one, because a
  *  stream cut in two reads as two different streams to anybody skimming. A
- *  stream longer than a whole sheet is the one exception — it has to break. */
+ *  stream longer than a whole sheet is the one exception — it has to break.
+ *
+ *  THAT EXCEPTION USED TO BE A COMMENT AND NOT CODE. An oversized block was
+ *  pushed onto the sheet whole, so sixty items on one workstream produced a
+ *  single sheet costing 826pt against a 200pt budget. The drawing loop stops at
+ *  the page bottom rather than running off it, so the surplus was not drawn
+ *  badly — it was not drawn at all, and nothing on the page said forty-six
+ *  items were missing. A commissioning report that has quietly stopped listing
+ *  most of a workstream is worse than one that runs to three sheets. */
 export function commissionSheets(
   rows: CommissionReportRow[], first: number, rest: number,
 ): CommissionReportRow[][] {
@@ -120,14 +128,39 @@ export function commissionSheets(
   let cap = first;
   let i = 0;
   const cost = (block: CommissionReportRow[]) => block.length * ROW_H + STREAM_HEAD_H;
+  /** The most rows of one stream a sheet of this budget can actually draw. At
+   *  least one, always: a budget too small for a single row would otherwise
+   *  loop for ever emitting empty sheets. */
+  const fitRows = (budget: number) => Math.max(1, Math.floor((budget - STREAM_HEAD_H) / ROW_H));
   let used = 0;
+
   while (i < rows.length) {
     const stream = rows[i].stream;
     const block: CommissionReportRow[] = [];
     while (i < rows.length && rows[i].stream === stream) { block.push(rows[i]); i++; }
+
     if (cur.length && used + cost(block) > cap) {
       out.push(cur); cur = []; used = 0; cap = rest;
     }
+
+    // Still too big for a sheet of its own? Then it is the documented exception.
+    // Break it into sheet-sized pieces; each piece redraws the stream heading,
+    // because the drawing resets its heading tracker per sheet.
+    if (cost(block) > cap) {
+      let at = 0;
+      while (at < block.length) {
+        const room = cur.length ? cap - used : cap;
+        const take = Math.min(fitRows(room), block.length - at);
+        if (take <= 0) { out.push(cur); cur = []; used = 0; cap = rest; continue; }
+        const piece = block.slice(at, at + take);
+        cur.push(...piece);
+        used += cost(piece);
+        at += take;
+        if (at < block.length) { out.push(cur); cur = []; used = 0; cap = rest; }
+      }
+      continue;
+    }
+
     cur.push(...block);
     used += cost(block);
   }

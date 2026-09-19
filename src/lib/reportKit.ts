@@ -39,20 +39,26 @@ export function san(t: string): string {
      * Collapsing here rather than at each call site is the point: this is the
      * one door every string comes through, and the board page had to learn this
      * separately once already. */
+    /* Whitespace to single spaces FIRST, so a line break becomes a word gap
+       rather than vanishing and welding two sentences together. */
     .replace(/\s+/g, ' ')
-    .trim()
     .replace(/[\u2192\u27A1\u2794]/g, '->')
     .replace(/[\u2190]/g, '<-')
     .replace(/[\u2713\u2714]/g, 'v')
     .replace(/[\u2022]/g, '·')
     .replace(/[\u00A0\u202F\u2009]/g, ' ')
-    // anything still outside Latin-1 would draw as noise; drop it rather than
-    // print rubbish in a report going to the GM
-    /* eslint-disable no-control-regex -- stripping control
-       characters and exotic whitespace IS the job here: jsPDF encodes text as
-       WinAnsi, and a NUL or a narrow no-break space arriving from an Excel cell
-       prints as garbage and wrecks the letter spacing of the whole line. */
-    .replace(/[^\u0000-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026]/g, '');
+    /* Then drop everything the encoding cannot draw — INCLUDING the C0 and C1
+       control characters, which this used to keep. The old range started at
+       \u0000, so a NUL, a BEL or an ESC out of an Excel cell went straight into
+       the PDF. That is not a wrong word on the page: a control character inside
+       a text object corrupts the stream, and the damage shows up as a file that
+       will not open at all. Excel cells really do carry them, out of CSV
+       imports and copy-paste. */
+    .replace(/[^\u0020-\u007E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026]/g, '')
+    /* Collapse again at the end, because dropping a character leaves the spaces
+       that were around it: "rate 😀 ok" came out as "rate  ok". */
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export const setFont = (d: Doc, size: number, weight: 'normal' | 'bold', colour: string) => {
