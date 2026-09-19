@@ -267,9 +267,14 @@ function parsePareto(sheet: SheetData): PaceParetoSheet | undefined {
   };
 }
 
-/** Read an uploaded workbook. Throws only when the file isn't a workbook at
- *  all; a workbook missing a sheet comes back as a warning so the user can see
- *  what was and wasn't picked up. */
+/** Read an uploaded workbook.
+ *
+ *  Throws on a file that is not a workbook, and on a workbook with NO readable
+ *  actions — the second is deliberate: accepting a snapshot of zero actions
+ *  would replace a working tracker view with an empty one and call it success.
+ *
+ *  Everything else is a warning, so a partly-read upload says what it did and
+ *  did not pick up rather than failing whole. */
 export function readPaceWorkbook(buf: ArrayBuffer, fileName: string): ParseReport {
   const sheets = readXlsx(buf);
   const warnings: string[] = [];
@@ -299,9 +304,16 @@ export function readPaceWorkbook(buf: ArrayBuffer, fileName: string): ParseRepor
   // floor belongs in the Snag list — filmed, pinned on the frame — not as notes
   // copied out of a spreadsheet.
   if (!actions.length) {
+    /* The warnings above name the ACTUAL reason — a renamed sheet, headings
+       present with nothing under them — and they were being computed and then
+       thrown away, leaving the person with a generic sentence and a workbook
+       they cannot see anything wrong with. Carried into the message, along with
+       the sheet names, so an upload that fails says which sheets it looked at. */
+    const why = warnings.length ? ` ${warnings.join(' ')}` : '';
+    const seen = sheets.length ? ` Sheets in this file: ${sheets.map(s => s.name).join(', ')}.` : '';
     throw new Error(
       'That workbook had no actions this app recognises. Expected a "Tracker" '
-      + 'sheet with Ref / Line / Status columns.',
+      + `sheet with Ref / Line / Status columns.${why}${seen}`,
     );
   }
 

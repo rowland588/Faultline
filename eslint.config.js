@@ -56,4 +56,20 @@ export default ts.config(
       eqeqeq: ['warn', 'smart'],
     },
   },
+  {
+    /* TESTS. A non-null assertion means something different here.
+     *
+     * In app code the rule earns its keep — route.id! was a lie to the compiler
+     * and it crashed the whole app from a truncated URL. In a test, `pareto!`
+     * failing throws and the test fails loudly with the line number, which is
+     * exactly the intended outcome; writing it out longhand would only bury the
+     * assertion the test is actually making. Scoped off here so the warning
+     * ceiling keeps measuring the app rather than the suite.
+     *
+     * Everything else stays on, including rules-of-hooks and exhaustive-deps. */
+    files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
 );

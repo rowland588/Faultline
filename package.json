@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-env.mjs && tsc --noEmit && eslint src --max-warnings 126 && vitest run && vite build",
+    "build": "node scripts/check-env.mjs && tsc --noEmit && eslint src --max-warnings 123 && vitest run && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke.mjs",
-    "lint": "eslint src --max-warnings 126"
+    "lint": "eslint src --max-warnings 123"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.1",
@@ -21,6 +21,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
@@ -28,6 +29,7 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^17.12.0",
+    "jsdom": "^30.1.0",
     "playwright": "^1.63.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.70.0",
