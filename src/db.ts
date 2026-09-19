@@ -3,7 +3,7 @@
  * in their own store so aggregation never deserializes them. The UI touches raw
  * stores ONLY through the functions here, and every observation path is
  * workspaceId-scoped — that is the whole isolation guarantee. */
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
 import type { ID, Millis, MediaRef, Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from './types';
 import type { Segment, SnagAsset, Snag } from './snag/types';
 import type { CommissionItem } from './lib/commissioning';
@@ -308,6 +308,60 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   }
 }
 
+/** EVERY INDEX THE APP RELIES ON, AS DATA.
+ *
+ *  ensureStores above creates these when it creates the store — and only then,
+ *  because each block is guarded by `if (!contains(store))`. That makes the store
+ *  list self-healing and the INDEX list not: a store that already exists never
+ *  gets a new index, however many versions go by. Nothing is broken by that
+ *  today, since no shipped build made a store without its indexes. The hazard is
+ *  the next one. Adding an index to an existing store would work perfectly on
+ *  every fresh install and silently do nothing on every device that already has
+ *  the app, and the failure lands as a thrown query on somebody's phone rather
+ *  than anywhere a developer would see it.
+ *
+ *  So the indexes are declared here as well, and repaired on every upgrade. This
+ *  table and the blocks above must agree; the test suite asserts that they do. */
+export const INDEXES: [StoreNames<AppDB>, string, string | string[]][] = [
+  ['workspaces', 'by_updatedAt', 'updatedAt'],
+  ['observations', 'by_workspace', 'workspaceId'],
+  ['observations', 'by_ws_started', ['workspaceId', 'startedAt']],
+  ['observations', 'by_updatedAt', 'updatedAt'],
+  ['pace_snapshots', 'by_takenAt', 'takenAt'],
+  ['pace_todos', 'by_createdAt', 'createdAt'],
+  ['pace_ppm', 'by_key', 'key'],
+  ['tree_nodes', 'by_project', 'projectId'],
+  ['commission_items', 'by_project', 'projectId'],
+  ['pace_wins', 'by_createdAt', 'createdAt'],
+  ['segments', 'by_workspace', 'workspaceId'],
+  ['snag_assets', 'by_workspace', 'workspaceId'],
+  ['snag_assets', 'by_segment', 'segmentId'],
+  ['snags', 'by_workspace', 'workspaceId'],
+  ['snags', 'by_asset', 'assetId'],
+  ['cases', 'by_workspace', 'workspaceId'],
+  ['projects', 'by_updatedAt', 'updatedAt'],
+  ['project_targets', 'by_project', 'projectId'],
+  ['project_targets', 'by_workspace', 'workspaceId'],
+  ['project_actuals', 'by_project', 'projectId'],
+  ['project_actuals', 'by_workspace', 'workspaceId'],
+  ['project_actuals', 'by_date', ['projectId', 'date']],
+];
+
+/** Add any index a store is missing. Idempotent, and safe on a store this very
+ *  upgrade just created — the index is already there and gets skipped.
+ *
+ *  Needs the versionchange transaction rather than the database, because that is
+ *  the only place createIndex is legal. */
+function ensureIndexes(tx: IDBPTransaction<AppDB, ArrayLike<StoreNames<AppDB>>, 'versionchange'>): void {
+  for (const [store, name, keyPath] of INDEXES) {
+    if (!tx.db.objectStoreNames.contains(store)) continue;
+    const os = tx.objectStore(store);
+    if ((os.indexNames as DOMStringList).contains(name)) continue;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- idb types index names per store; this table is generic over all of them
+    (os as any).createIndex(name, keyPath);
+  }
+}
+
 async function openMain(): Promise<IDBPDatabase<AppDB>> {
   // Probe the CURRENT version first so we never request a LOWER one — IndexedDB
   // throws VersionError for that and wedges the whole app (a foreign or newer
@@ -331,7 +385,7 @@ async function openMain(): Promise<IDBPDatabase<AppDB>> {
       OPEN_TIMEOUT_MS,
     );
     openDB<AppDB>(DB_NAME, target, {
-      upgrade(db) { ensureStores(db); },
+      upgrade(db, _oldVersion, _newVersion, tx) { ensureStores(db); ensureIndexes(tx); },
       blocked() { console.warn('[faultline] storage upgrade is waiting for another open tab; will time out if it never releases.'); },
       blocking() { opened?.close(); opened = null; dbp = null; },
       terminated() { opened = null; dbp = null; },
