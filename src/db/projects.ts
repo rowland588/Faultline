@@ -1,0 +1,209 @@
+/* Projects, and the quarterly numbers that hang off them.
+ *
+ * Targets and actuals live here rather than in pace.ts because they belong to the
+ * PROJECT: a line can be renamed or removed and its targets still have to be
+ * findable.
+ */
+import { type IDBPDatabase } from 'idb';
+import type { ID, Millis, Project, ProjectLineTarget, ProjectLineActual } from '../types';
+import type { PlanModel } from '../lib/planModel';
+import { uid, now } from '../lib/ids';
+import { PACE_BASELINE_AT } from '../lib/projectPaceData';
+import { getDB, signalWrite } from './core';
+import type { PaceSnapshotRow } from './rows';
+import { recordTombstones } from './sync';
+import type { AppDB } from './core';
+
+export async function allProjects(): Promise<Project[]> {
+  const db = await getDB();
+  const projects = await db.getAll('projects');
+  return projects.filter(p => !p.deletedAt);
+}
+export async function getProject(id: ID): Promise<Project | undefined> {
+  const p = await (await getDB()).get('projects', id);
+  return p?.deletedAt == null ? p : undefined;
+}
+export async function addProject(p: Project): Promise<void> {
+  await (await getDB()).put('projects', p);
+  signalWrite();
+}
+export async function updateProject(p: Project): Promise<void> {
+  await (await getDB()).put('projects', { ...p, updatedAt: now() });
+  signalWrite();
+}
+export async function deleteProject(id: ID): Promise<void> {
+  const db = await getDB();
+  const p = await db.get('projects', id);
+  if (!p) return;
+  await db.put('projects', { ...p, deletedAt: now() });
+  signalWrite();
+}
+
+/** The project the app has always had. Its id is fixed rather than random for
+ *  the same reason the line ids are: two devices must land on ONE project, not
+ *  two rivals, and the lines already on those devices have to find their way
+ *  home to it. */
+export const DEFAULT_PROJECT_ID = 'project-pace';
+
+/** True when this device is holding Project Pace's data from before projects
+ *  became plural — lines, next steps, wins or an uploaded tracker with no
+ *  project against them. That data needs a project to live in; a device with
+ *  none does not, and must not invent one.
+ *
+ *  This is what keeps the fixed id safe now that other people are being invited
+ *  in. If every device minted `project-pace` on sight, the second person to
+ *  sign in would push a project row whose id already belongs to someone else's
+ *  — a primary key they cannot even see, so the write fails and their sync
+ *  stalls. A new person starts with no projects and is given one by being
+ *  invited, which is what actually happens. */
+async function hasLegacyPaceData(db: IDBPDatabase<AppDB>): Promise<boolean> {
+  for (const store of ['pace_ppm', 'pace_todos', 'pace_wins', 'pace_snapshots'] as const) {
+    const rows = await db.getAll(store);
+    if (rows.some(r => !(r as { projectId?: string }).projectId)) return true;
+  }
+  return false;
+}
+
+/** Make sure there is at least one project to open, and that it is the same
+ *  project on every one of THIS user's devices. Returns every project, the one
+ *  the app shipped with first. */
+export async function ensureProjects(defaults: {
+  name: string; description?: string; color: string; lead?: string; leadEmail?: string;
+}): Promise<Project[]> {
+  const db = await getDB();
+  const existing = (await db.getAll('projects')).filter(p => !p.deletedAt);
+  const hasLegacy = await hasLegacyPaceData(db);
+  if (!existing.some(p => p.id === DEFAULT_PROJECT_ID) && hasLegacy) {
+    // A fixed old clock, exactly like the line seed: this is shipped scaffolding,
+    // not an edit, so a project someone has since renamed always wins over it.
+    const project: Project = {
+      id: DEFAULT_PROJECT_ID, name: defaults.name, description: defaults.description,
+      color: defaults.color, workspaceIds: [], lead: defaults.lead, leadEmail: defaults.leadEmail,
+      createdAt: PACE_BASELINE_AT, updatedAt: PACE_BASELINE_AT,
+    };
+    await db.put('projects', project);
+    existing.push(project);
+    signalWrite();
+  }
+  // Now that the default project exists, everything written before projects
+  // became plural belongs to it. (Lines are adopted inside loadPaceLines, which
+  // is where the rest of the line merging happens — one pass, one decision.)
+  if (existing.some(p => p.id === DEFAULT_PROJECT_ID)) await adoptOrphanPaceRows(db);
+
+  return existing.sort(byProjectOrder);
+}
+
+/** Stamp the default project onto next steps, wins and uploads that predate
+ *  projects. Reading them already treats a missing project as the default, so
+ *  this changes nothing on screen — it matters because the row PUSHES what it
+ *  holds. Left unstamped, the first edit to an old next step would send
+ *  project_id: null and undo what the migration set on the server, and the
+ *  people invited to the project would stop seeing it.
+ *
+ *  The clock is deliberately untouched: this is bookkeeping, not an edit, and a
+ *  new clock here would let a stale device's copy beat a real change made
+ *  somewhere else. */
+async function adoptOrphanPaceRows(db: IDBPDatabase<AppDB>): Promise<void> {
+  let touched = false;
+  for (const store of ['pace_todos', 'pace_wins', 'pace_snapshots'] as const) {
+    for (const row of await db.getAll(store)) {
+      if ((row as { projectId?: string }).projectId) continue;
+      await db.put(store, { ...row, projectId: DEFAULT_PROJECT_ID } as never);
+      touched = true;
+    }
+  }
+  if (touched) signalWrite();
+}
+
+/** The default first, then the rest by name — a list that reads the same on
+ *  every device rather than in creation order, which no two devices share. */
+const byProjectOrder = (a: Project, b: Project) =>
+  (a.id === DEFAULT_PROJECT_ID ? 0 : 1) - (b.id === DEFAULT_PROJECT_ID ? 0 : 1)
+  || a.name.localeCompare(b.name);
+
+/** Create a project. Everything else about it — its lines, its people — is
+ *  added afterwards, so this is deliberately just a name and a colour. */
+export async function createProject(
+  name: string, color: string, lead?: string, leadEmail?: string,
+  /** The plan model, chosen at the moment the project is started — see
+   *  ProjectsScreen. Not bolted on afterwards in a settings tab nobody visits:
+   *  a project runs the 3P board, the lever tree or a commissioning list, and
+   *  which one is a decision worth asking for up front rather than leaving as
+   *  an unticked box under Lines & people. */
+  model?: PlanModel,
+): Promise<Project> {
+  const p: Project = {
+    id: uid(), name: name.trim() || 'New project', color, workspaceIds: [],
+    lead, leadEmail,
+    leverTree: model === 'tree' || undefined,
+    commissioning: model === 'commissioning' || undefined,
+    createdAt: now(), updatedAt: now(),
+  };
+  await (await getDB()).put('projects', p);
+  signalWrite();
+  return p;
+}
+
+/* Project targets — quarterly PPM goals for each line */
+export async function getProjectTargets(projectId: ID): Promise<ProjectLineTarget[]> {
+  const db = await getDB();
+  const targets = await db.getAllFromIndex('project_targets', 'by_project', projectId);
+  return targets.filter(t => !t.deletedAt);
+}
+export async function addProjectTarget(t: ProjectLineTarget): Promise<void> {
+  await (await getDB()).put('project_targets', t);
+  signalWrite();
+}
+export async function updateProjectTarget(t: ProjectLineTarget): Promise<void> {
+  await (await getDB()).put('project_targets', { ...t, updatedAt: now() });
+  signalWrite();
+}
+
+/* Project actuals — daily/weekly PPM measurements */
+export async function getProjectActuals(projectId: ID, startDate?: Millis, endDate?: Millis): Promise<ProjectLineActual[]> {
+  const db = await getDB();
+  const actuals = await db.getAllFromIndex('project_actuals', 'by_project', projectId);
+  const filtered = actuals.filter(a => !a.deletedAt);
+  if (startDate || endDate) {
+    return filtered.filter(a => (!startDate || a.date >= startDate) && (!endDate || a.date <= endDate));
+  }
+  return filtered;
+}
+export async function addProjectActual(a: ProjectLineActual): Promise<void> {
+  await (await getDB()).put('project_actuals', a);
+  signalWrite();
+}
+export async function getProjectActualsByWorkspace(projectId: ID, workspaceId: ID): Promise<ProjectLineActual[]> {
+  const db = await getDB();
+  const actuals = await db.getAllFromIndex('project_actuals', 'by_workspace', workspaceId);
+  return actuals.filter(a => a.projectId === projectId && !a.deletedAt).sort((a, b) => a.date - b.date);
+}
+
+
+/* ============ PACE SNAPSHOTS — weekly uploads of the tracker workbook ============
+ * Newest first. Local to this device by design (see the schema note above). */
+export async function listPaceSnapshots(projectId: string = DEFAULT_PROJECT_ID): Promise<PaceSnapshotRow[]> {
+  const all = await (await getDB()).getAll('pace_snapshots');
+  return all.filter(inProject(projectId)).sort((a, b) => b.takenAt - a.takenAt);
+}
+
+/** A row belongs to a project if it says so — and if it says nothing, it is the
+ *  default project's. That is what carries every next step, win and upload the
+ *  user already has into Project Pace rather than into nothing. */
+/** Exported for pace.ts, which keys everything the same way. */
+export const inProject = (projectId: string) => (r: { projectId?: string }) =>
+  (r.projectId ?? DEFAULT_PROJECT_ID) === projectId;
+
+/** Filter to one line's own items. No line asked for means the project view —
+ *  everything, whether it names a line or not, because the project is the sum
+ *  of its lines plus whatever spans them. */
+export const onLine = (lineId?: string) => (r: { lineId?: string }) => !lineId || r.lineId === lineId;
+export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
+  await (await getDB()).put('pace_snapshots', s);
+  signalWrite();
+}
+export async function deletePaceSnapshot(id: ID): Promise<void> {
+  await (await getDB()).delete('pace_snapshots', id);
+  await recordTombstones('pace_snapshots', [id]);
+  signalWrite();
+}

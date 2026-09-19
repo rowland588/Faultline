@@ -21,9 +21,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MAPS, SYNC_KINDS } from '../mappers';
+import { REQUIRED_STORES } from '../../db';
 
 const src = readFileSync(join(__dirname, '..', 'mappers.ts'), 'utf8');
-const dbSrc = readFileSync(join(__dirname, '..', '..', 'db.ts'), 'utf8');
 
 const entryOf = (kind: string) => {
   const m = new RegExp(`^ {2}${kind}:\\s*\\{([\\s\\S]*?)^ {2}\\},`, 'm').exec(src);
@@ -81,9 +81,14 @@ describe('every synced kind is fully wired', () => {
 
     it(`${kind} has a local store to sync into`, () => {
       // A kind with no on-device store throws inside rawAll() on the first pass.
+      //
+      // Asserted against the app's OWN store list, not by grepping a file for the
+      // name. The grep version passed for months and then broke the day db.ts
+      // became a barrel — it was testing where the code lived rather than what it
+      // declared, which is the weakest possible version of this check.
       expect(
-        new RegExp(`'${kind}'`).test(dbSrc),
-        `${kind} is in SYNC_KINDS but never named in src/db.ts, so it has no local store`,
+        (REQUIRED_STORES as readonly string[]).includes(kind),
+        `${kind} is in SYNC_KINDS but not in REQUIRED_STORES, so it has no local store`,
       ).toBe(true);
     });
   }
