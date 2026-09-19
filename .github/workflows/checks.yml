@@ -30,7 +30,7 @@ jobs:
       # --max-warnings pins the ceiling: 0 errors, and no NEW warnings. The
       # existing ones are a backlog (mostly non-null assertions), not a gate.
       - name: Lint
-        run: npx eslint src --max-warnings 123
+        run: npx eslint src --max-warnings 109
 
       - name: Tests
         run: npx vitest run

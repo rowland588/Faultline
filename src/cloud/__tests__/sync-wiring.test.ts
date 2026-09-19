@@ -33,7 +33,11 @@ const entryOf = (kind: string) => {
 
 /** Columns toRow puts on the wire. */
 const written = (kind: string): Set<string> => {
-  const body = /toRow:[\s\S]*?(?=\n {4}fromRow:|\n {2}\},)/.exec(entryOf(kind))![0];
+  // A TYPED LOCAL DECLARATION IS NOT A COLUMN. commission_items builds its row
+  // in `const row: Record<string, unknown> = {` and fills it per kind, which
+  // otherwise reads as a column called `row`.
+  const body = /toRow:[\s\S]*?(?=\n {4}fromRow:|\n {2}\},)/.exec(entryOf(kind))![0]
+    .replace(/^\s*(?:const|let)\s+\w+\s*:[^=]*=/gm, '');
   const out = new Set<string>();
   for (const m of body.matchAll(/(?:^|[{\s,])([a-z_][a-z0-9_]*)\s*:/g)) out.add(m[1]);
   out.delete('toRow');

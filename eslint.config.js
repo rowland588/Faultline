@@ -17,6 +17,16 @@ export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   {
+    /* NODE SCRIPTS. supabase/apply.mjs runs under node with no DOM at all, so
+     * `console` and `process` are globals rather than undefined names. Without
+     * this, js.configs.recommended reports 22 no-undef errors against a file
+     * that is perfectly correct — and an error count that is always non-zero
+     * teaches everyone to ignore the lint step, which is worse than no lint.
+     * scripts/** is ignored outright above; this covers .mjs anywhere else. */
+    files: ['**/*.mjs'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },

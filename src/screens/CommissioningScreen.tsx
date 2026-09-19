@@ -1,834 +1,469 @@
-/* COMMISSIONING — the loop, on one page.
+/* CAN THIS LINE BE SIGNED OFF, AND IF NOT, WHAT IS STOPPING IT.
  *
- * Where are we · what are we after · what is the result · what is next. Those
- * four questions in that order, because that is how somebody running a handover
- * actually thinks, and because a page that answers them in order can be sent to
- * a General Manager without a covering note explaining how to read it.
+ * That is the only question a commissioning sheet exists to answer, so it is the
+ * first thing on the page and it is DERIVED — nobody ticks "ready". Underneath
+ * it, the five lists it is derived from, each as short as the thing it describes.
  *
- * Everything is editable in place. There is no upload here and no workbook
- * underneath: a commissioning job has no system of record yet, so this is it.
- * The consequence is that a stale item is nobody's fault but the person looking
- * at it, which is exactly the pressure that keeps a readiness list honest.
+ * One asset at a time. A line is made of machines, each accepted in its own
+ * right, and "the bagger is proven and the palletiser has not started" is a
+ * sentence a single project percentage cannot say.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
-import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useCommission } from '../lib/useCommission';
-import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
-import { captureMedia, pickExistingMedia } from '../lib/media';
-import { getBlob, deleteBlobs } from '../db';
-import type { MediaRef } from '../types';
-import { useCommissionEvidence, type WalkSnag, type CommissionEvidence } from '../lib/useCommissionEvidence';
-import { SNAG_STATUS_META } from '../snag/types';
-import type { CommissionReportData, CommissionReportRow } from '../lib/commissionPdf';
 import {
-  readiness, readinessLine, stateOf, itemLine, STATE_LABEL, SUGGESTED_STREAMS,
-  openNextSteps, latestFinding,
-  type CommissionItem, type ItemKind, type CheckStage, type TaskStage,
+  LINE_ITSELF, byAsset, readiness, programStatus, materialStatus, bestRun, isOpen,
+  stateOf, STATE_WORD,
+  type CommissionItem, type Program, type Material, type Check, type Punch, type Task,
+  type Severity, type ReadyState,
 } from '../lib/commissioning';
 
-const KINDS: { id: ItemKind; label: string; hint: string }[] = [
-  { id: 'check', label: 'Check', hint: 'must be proven against a number' },
-  { id: 'supply', label: 'Supply', hint: 'we need a quantity of it' },
-  { id: 'task', label: 'Task', hint: 'somebody has to do it' },
-];
+const dot = (s: ReadyState) => <span className={'cm-dot is-' + s} title={STATE_WORD[s]} />;
+const num = (v: string): number => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; };
 
-const CHECK_STAGES: { id: CheckStage; label: string }[] = [
-  { id: 'none', label: 'Not written' },
-  { id: 'have', label: 'Written' },
-  { id: 'testing', label: 'Testing' },
-  { id: 'passed', label: 'Passed' },
-  { id: 'failed', label: 'Failed' },
-];
-
-const TASK_STAGES: { id: TaskStage; label: string }[] = [
-  { id: 'todo', label: 'To do' },
-  { id: 'doing', label: 'In hand' },
-  { id: 'waiting', label: 'Waiting' },
-  { id: 'done', label: 'Done' },
-];
-
-/** A number field that writes back only real numbers, and shows empty rather
- *  than 0 — "0 reels" and "nobody has said yet" are different facts. */
-function Num({ v, label, onSave }: { v?: number; label: string; onSave: (n: number) => void }) {
+/** A section that only appears once it has something in it, plus its add row.
+ *  An empty list with a heading is a page telling you about work you have not
+ *  started; the add row is enough. */
+function Section({ title, sub, count, children, add }: {
+  title: string; sub: string; count: number; children?: React.ReactNode; add: React.ReactNode;
+}) {
   return (
-    <label className="cm-num">
-      <span>{label}</span>
-      <input type="number" min={0} inputMode="numeric" value={v ?? ''}
-        onChange={e => onSave(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} />
-    </label>
+    <section className="cm-sec">
+      <header className="cm-sec-h">
+        <h2>{title} {count > 0 && <span className="cm-sec-n">{count}</span>}</h2>
+        <p className="sub">{sub}</p>
+      </header>
+      {children}
+      <div className="cm-add">{add}</div>
+    </section>
   );
 }
 
-/** Any picture held in the media bag, resolved to an object URL and revoked on
- *  unmount. Shared by the photos somebody took and the stills the walk froze:
- *  both are blobs by key, and two components doing this separately is two
- *  places to forget the revoke. */
-function useBlobUrl(key?: string): string | undefined {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    if (!key) { setUrl(undefined); return; }
-    let dead = false;
-    let made: string | undefined;
-    void (async () => {
-      const b = await getBlob(key);
-      if (!b || dead) return;
-      made = URL.createObjectURL(b);
-      setUrl(made);
-    })();
-    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
-  }, [key]);
-  return url;
-}
+/* ---------------------------------- programs --------------------------------- */
 
-/** One linked snag, shown on the item it proves. Reads as evidence rather than
- *  as work: the walk owns its status, this only reports it. */
-function LinkedSnag({ w, onOpen, onUnlink }: {
-  w: WalkSnag; onOpen: () => void; onUnlink: () => void;
-}) {
-  const url = useBlobUrl(w.stillKey);
-  const meta = SNAG_STATUS_META[w.snag.status];
+function Programs({ rows, cm, asset }: { rows: Program[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
+  const [title, setTitle] = useState('');
+  const [rate, setRate] = useState('');
+  const [runFor, setRunFor] = useState<string | null>(null);
+
+  const STATUS = { missing: 'No program', untested: 'Not run', below: 'Below rate', proven: 'Proven at rate' };
+
   return (
-    <div className="cm-ev">
-      <button className="cm-ev-b" onClick={onOpen} title="Open on the walk">
-        {url ? <img src={url} alt="" loading="lazy" /> : <span className="cm-shot-wait" />}
-      </button>
-      <div className="cm-ev-m">
-        <span className="cm-ev-t">{w.snag.problem || 'Snag'}</span>
-        <span className="cm-ev-s">
-          <b style={{ color: meta.color }}>{meta.label}</b>
-          {w.asset?.name && <> · {w.asset.name}</>}
-          {w.snag.owner && <> · {w.snag.owner}</>}
-        </span>
-      </div>
-      <button className="cm-ev-x" onClick={onUnlink} aria-label="Unlink this evidence">×</button>
-    </div>
+    <Section
+      title="Programs" count={rows.length}
+      sub="Every product the line must run, and the rate it was agreed at. Proven means a witnessed run at or above it."
+      add={
+        <form className="cm-add-f" onSubmit={e => {
+          e.preventDefault();
+          if (!title.trim() || num(rate) <= 0) return;
+          void cm.addProgram(title, num(rate), asset);
+          setTitle(''); setRate('');
+        }}>
+          <input placeholder="Product or format — 250g tray" value={title} onChange={e => setTitle(e.target.value)} />
+          <input className="cm-num" placeholder="rate" inputMode="decimal" value={rate} onChange={e => setRate(e.target.value)} />
+          <span className="cm-unit">ppm</span>
+          <button className="btn" type="submit">Add program</button>
+        </form>
+      }
+    >
+      {rows.length > 0 && (
+        <table className="cm-t">
+          <thead><tr><th /><th>Product</th><th className="r">Agreed</th><th className="r">Best run</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {rows.map(p => {
+              const st = programStatus(p);
+              const best = bestRun(p);
+              return (
+                <Fragment key={p.id}>
+                  <tr>
+                    <td>{dot(stateOf(p))}</td>
+                    <td><b>{p.title}</b>{p.runs?.length ? <span className="cm-sub"> · {p.runs.length} run{p.runs.length > 1 ? 's' : ''}</span> : null}</td>
+                    <td className="r">{p.agreedRate} {p.rateUnit ?? 'ppm'}</td>
+                    <td className="r">{best ? `${best.achieved}` : '—'}</td>
+                    <td><span className={'cm-tag is-' + st}>{STATUS[st]}</span></td>
+                    <td className="r">
+                      <button className="btn btn-ghost btn-sm" onClick={() => setRunFor(runFor === p.id ? null : p.id)}>
+                        Record a run
+                      </button>
+                    </td>
+                  </tr>
+                  {runFor === p.id && (
+                    <tr className="cm-runrow">
+                      <td />
+                      <td colSpan={5}><RunForm p={p} cm={cm} done={() => setRunFor(null)} /></td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </Section>
   );
 }
 
-/** One photo. The blob lives in the media bag and is resolved to an object URL
- *  here, then revoked on unmount — a page of twenty un-revoked photo URLs is a
- *  tab that grows by forty megabytes and never gives it back. */
-function Shot({ m, onOpen, onRemove }: {
-  m: MediaRef; onOpen: () => void; onRemove: () => void;
-}) {
-  // The thumb when there is one, the full frame when there is not — an import
-  // that failed to make a thumbnail must still show its picture.
-  const url = useBlobUrl(m.thumbKey ?? m.blobKey);
+/** "We ran it and achieved this." The whole point of ppm on a commissioning
+ *  project — evidence against an agreed figure, not a quarterly trajectory. */
+function RunForm({ p, cm, done }: { p: Program; cm: ReturnType<typeof useCommission>; done: () => void }) {
+  const [achieved, setAchieved] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [waste, setWaste] = useState('');
+  const [by, setBy] = useState('');
+  const hit = num(achieved) >= p.agreedRate && num(achieved) > 0;
 
   return (
-    <span className="cm-shot">
-      <button className="cm-shot-b" onClick={onOpen} title="Open full size">
-        {url
-          ? <img src={url} alt="" loading="lazy" />
-          : <span className="cm-shot-wait" aria-label="Loading photo" />}
-      </button>
-      <button className="cm-shot-x" onClick={onRemove} aria-label="Remove photo">×</button>
-    </span>
-  );
-}
-
-/** PICK FROM THE WALK. Shows what was actually filmed, with the still, because
- *  a snag is recognised by its picture long before anybody reads its wording. */
-function EvidencePicker({ ev, chosen, onToggle, onClose, onGoFilm }: {
-  ev: CommissionEvidence; chosen: string[];
-  onToggle: (id: string) => void; onClose: () => void; onGoFilm: () => void;
-}) {
-  return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Link filmed evidence">
-      <div className="bs cm-pick">
-        <h2 className="lt-paste-t">Link filmed evidence</h2>
-        <p className="sub bs-lede">
-          Snags off this project’s line walk. Linking one points at it — it keeps its own status on
-          the walk, so closing it there closes it here rather than leaving two copies to drift apart.
+    <form className="cm-run" onSubmit={e => {
+      e.preventDefault();
+      if (num(achieved) <= 0) return;
+      void cm.addRun(p.id, {
+        at: Date.now(), by: by.trim() || undefined,
+        achieved: num(achieved),
+        minutes: num(minutes) || undefined,
+        wastePct: waste.trim() ? num(waste) : undefined,
+      });
+      done();
+    }}>
+      <label>Achieved<input className="cm-num" inputMode="decimal" autoFocus value={achieved} onChange={e => setAchieved(e.target.value)} /></label>
+      <label>For (min)<input className="cm-num" inputMode="numeric" value={minutes} onChange={e => setMinutes(e.target.value)} /></label>
+      <label>Waste %<input className="cm-num" inputMode="decimal" value={waste} onChange={e => setWaste(e.target.value)} /></label>
+      <label>Witnessed by<input value={by} onChange={e => setBy(e.target.value)} placeholder="Dave + OEM" /></label>
+      {achieved.trim() && (
+        <p className={'cm-verdict is-' + (hit ? 'g' : 'a')}>
+          {hit
+            ? `At rate — ${num(achieved)} against ${p.agreedRate} agreed.`
+            : `Short — ${num(achieved)} against ${p.agreedRate} agreed.`}
         </p>
+      )}
+      <button className="btn" type="submit">Save the run</button>
+      <button className="btn btn-ghost" type="button" onClick={done}>Cancel</button>
+    </form>
+  );
+}
 
-        {ev.snags.length === 0 ? (
-          <div className="cm-pick-none">
-            <p className="sub">
-              {ev.workspaceId
-                ? 'This project has a walk, but nothing has been pinned on it yet.'
-                : 'Nothing has been filmed on this project yet.'}
-            </p>
-            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={onGoFilm}>
-              Go to Evidence
-            </button>
-          </div>
-        ) : (
-          <ul className="cm-pick-list">
-            {ev.snags.map(w => (
-              <li key={w.snag.id}>
-                <button type="button"
-                  className={'cm-pick-row' + (chosen.includes(w.snag.id) ? ' on' : '')}
-                  aria-pressed={chosen.includes(w.snag.id)}
-                  onClick={() => onToggle(w.snag.id)}>
-                  <PickShot k={w.stillKey} />
-                  <span className="cm-pick-m">
-                    <span className="cm-pick-t">{w.snag.problem || 'Snag'}</span>
-                    <span className="cm-pick-s">
-                      <b style={{ color: SNAG_STATUS_META[w.snag.status].color }}>
-                        {SNAG_STATUS_META[w.snag.status].label}
-                      </b>
-                      {w.asset?.name && <> · {w.asset.name}</>}
-                      {w.snag.owner && <> · {w.snag.owner}</>}
-                    </span>
-                  </span>
-                  <span className="cm-pick-tick" aria-hidden>{chosen.includes(w.snag.id) ? '✓' : ''}</span>
-                </button>
-              </li>
+/* --------------------------------- materials -------------------------------- */
+
+function Materials({ rows, cm, asset }: { rows: Material[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
+  const [title, setTitle] = useState('');
+  const [need, setNeed] = useState('');
+  const WORD = { have: 'Have it', awaited: 'On order', short: 'Nothing ordered', late: 'Overdue' };
+
+  return (
+    <Section
+      title="Materials" count={rows.length}
+      sub="What the line cannot run without. Needed, have, on order, when."
+      add={
+        <form className="cm-add-f" onSubmit={e => {
+          e.preventDefault();
+          if (!title.trim()) return;
+          void cm.addMaterial(title, num(need), asset);
+          setTitle(''); setNeed('');
+        }}>
+          <input placeholder="Item — 980mm film" value={title} onChange={e => setTitle(e.target.value)} />
+          <input className="cm-num" placeholder="need" inputMode="numeric" value={need} onChange={e => setNeed(e.target.value)} />
+          <button className="btn" type="submit">Add material</button>
+        </form>
+      }
+    >
+      {rows.length > 0 && (
+        <table className="cm-t">
+          <thead><tr><th /><th>Item</th><th className="r">Need</th><th className="r">Have</th><th className="r">On order</th><th>Due</th><th>Status</th></tr></thead>
+          <tbody>
+            {rows.map(m => (
+              <tr key={m.id}>
+                <td>{dot(stateOf(m))}</td>
+                <td><b>{m.title}</b></td>
+                <td className="r">{m.need}{m.unit ? ' ' + m.unit : ''}</td>
+                <td className="r">
+                  <input className="cm-cell" inputMode="numeric" value={String(m.have)}
+                    onChange={e => void cm.save({ ...m, have: num(e.target.value) })} />
+                </td>
+                <td className="r">
+                  <input className="cm-cell" inputMode="numeric" value={String(m.onOrder ?? 0)}
+                    onChange={e => void cm.save({ ...m, onOrder: num(e.target.value) })} />
+                </td>
+                <td>
+                  <input className="cm-cell cm-date" type="date" value={m.due ?? ''}
+                    onChange={e => void cm.save({ ...m, due: e.target.value || undefined })} />
+                </td>
+                <td><span className={'cm-tag is-' + stateOf(m)}>{WORD[materialStatus(m)]}</span></td>
+              </tr>
             ))}
-          </ul>
-        )}
-
-        <div className="wp-foot">
-          <button className="btn btn-ghost" onClick={onGoFilm}>Open Evidence</button>
-          <div style={{ flex: 1 }} />
-          <button className="btn btn-primary" onClick={onClose}>Done</button>
-        </div>
-      </div>
-    </div>
+          </tbody>
+        </table>
+      )}
+    </Section>
   );
 }
 
-function PickShot({ k }: { k?: string }) {
-  const url = useBlobUrl(k);
-  return (
-    <span className="cm-pick-img">
-      {url ? <img src={url} alt="" loading="lazy" /> : <span className="cm-shot-wait" />}
-    </span>
-  );
-}
+/* ---------------------------- acceptance checks ----------------------------- */
 
-function Item({ i, ev, projectId, onSave, onRemove }: {
-  i: CommissionItem; ev: CommissionEvidence; projectId: string;
-  onSave: (i: CommissionItem) => void; onRemove: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [picking, setPicking] = useState(false);
-
-  const linked = (i.snagIds ?? [])
-    .map(id => ev.byId.get(id))
-    .filter((w): w is WalkSnag => !!w);
-  /* A LINK WHOSE SNAG IS GONE. Deleting a snag on the walk leaves an id here
-     pointing at nothing. It is not shown as evidence, because it is not
-     evidence any more — but it IS counted, so an item does not quietly go from
-     "proved" to "unproved" with nothing said. */
-  const lost = (i.snagIds ?? []).length - linked.length;
-
-  const toggleSnag = (id: string) => {
-    const have = i.snagIds ?? [];
-    set({ snagIds: have.includes(id) ? have.filter(x => x !== id) : [...have, id] });
-  };
-  const st = stateOf(i);
-  const set = (patch: Partial<CommissionItem>) => onSave({ ...i, ...patch });
-
-  const addPhoto = async (how: 'camera' | 'pick') => {
-    setBusy(true);
-    try {
-      const got = how === 'camera'
-        ? [await captureMedia('photo')].filter((x): x is MediaRef => !!x)
-        : (await pickExistingMedia()).filter(m => m.kind === 'photo');
-      if (got.length) set({ photos: [...(i.photos ?? []), ...got] });
-    } finally { setBusy(false); }
-  };
-
-  /* Removing a picture takes its blobs with it. Leaving them behind would mean
-     a phone quietly carrying the photographs of every item anybody ever
-     corrected, with no screen anywhere that could show them. */
-  const dropPhoto = async (m: MediaRef) => {
-    set({ photos: (i.photos ?? []).filter(p => p.id !== m.id) });
-    await deleteBlobs([m.blobKey, m.thumbKey].filter((x): x is string => !!x));
-  };
-
-  const openFull = async (m: MediaRef) => {
-    const b = await getBlob(m.blobKey);
-    if (!b) return;
-    const u = URL.createObjectURL(b);
-    window.open(u, '_blank', 'noopener');
-    // Long enough for the new tab to have taken its own reference.
-    window.setTimeout(() => URL.revokeObjectURL(u), 60_000);
-  };
+function Checks({ rows, cm, asset }: { rows: Check[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
+  const [title, setTitle] = useState('');
+  const [criterion, setCriterion] = useState('');
 
   return (
-    <article className={'cm-item is-' + st}>
-      <button className="cm-item-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className={'cm-dot is-' + st} aria-hidden />
-        <span className="cm-item-main">
-          <span className="cm-item-t">{i.title || 'Untitled'}</span>
-          <span className="cm-item-s">
-            <span className="cm-kind">{i.kind}</span>
-            {itemLine(i)}
-            {i.target && <> · target <b>{i.target}</b></>}
-            {i.owner && <> · {i.owner}</>}
-            {i.due && <> · wanted {i.due}</>}
-            {(i.findings?.length ?? 0) > 0 && (
-              <span className="cm-haspic is-run" title={`${i.findings!.length} logged pass${i.findings!.length === 1 ? '' : 'es'}`}>
-                ↻ {i.findings!.length}
-              </span>
-            )}
-            {(i.snagIds?.length ?? 0) > 0 && (
-              <span className="cm-haspic is-ev" title="Linked to the line walk">
-                ⌗ {i.snagIds!.length}
-              </span>
-            )}
-            {(i.photos?.length ?? 0) > 0 && (
-              <span className="cm-haspic" title={`${i.photos!.length} picture${i.photos!.length === 1 ? '' : 's'}`}>
-                ▣ {i.photos!.length}
-              </span>
-            )}
-          </span>
-        </span>
-        <span className={'cm-state is-' + st}>{STATE_LABEL[st]}</span>
-      </button>
-
-      {open && (
-        <div className="cm-item-body">
-          <label className="cm-f">
-            <span>What it is</span>
-            <input className="text-input" value={i.title}
-              onChange={e => set({ title: e.target.value })} />
-          </label>
-
-          {i.kind === 'check' && (
-            <>
-              <div className="cm-stages">
-                {CHECK_STAGES.map(s => (
-                  <button key={s.id} className={'chip' + (i.stage === s.id ? ' on' : '')}
-                    onClick={() => set({ stage: s.id })}>{s.label}</button>
-                ))}
-              </div>
-              <label className="cm-f">
-                <span>Target — what it has to hit</span>
-                <input className="text-input" placeholder="75 ppm at 98% OEE, 30 min run"
-                  value={i.target ?? ''} onChange={e => set({ target: e.target.value || undefined })} />
-              </label>
-              <label className="cm-f">
-                <span>Result — what it actually did</span>
-                <input className="text-input" placeholder="72 ppm at 94%, 12 Sep with OEM"
-                  value={i.result ?? ''} onChange={e => set({ result: e.target.value || undefined })} />
-              </label>
-            </>
-          )}
-
-          {i.kind === 'supply' && (
-            <>
-              <div className="cm-nums">
-                <Num v={i.need} label="Need" onSave={n => set({ need: n })} />
-                <Num v={i.have} label="Have" onSave={n => set({ have: n })} />
-                <Num v={i.onOrder} label="On order" onSave={n => set({ onOrder: n })} />
-                <label className="cm-num">
-                  <span>Due in</span>
-                  <input type="date" value={i.dueIn ?? ''}
-                    onChange={e => set({ dueIn: e.target.value || undefined })} />
-                </label>
-              </div>
-              <label className="cm-f">
-                <span>Spec — so the right thing turns up</span>
-                <input className="text-input" placeholder="35µm, 420mm, matt lacquer"
-                  value={i.target ?? ''} onChange={e => set({ target: e.target.value || undefined })} />
-              </label>
-            </>
-          )}
-
-          {i.kind === 'task' && (
-            <div className="cm-stages">
-              {TASK_STAGES.map(s => (
-                <button key={s.id} className={'chip' + ((i.taskStage ?? 'todo') === s.id ? ' on' : '')}
-                  onClick={() => set({ taskStage: s.id })}>{s.label}</button>
-              ))}
-            </div>
-          )}
-
-          <div className="cm-row2">
-            <label className="cm-f">
-              <span>Who</span>
-              <input className="text-input" placeholder="OEM · engineering · you"
-                value={i.owner ?? ''} onChange={e => set({ owner: e.target.value || undefined })} />
-            </label>
-            <label className="cm-f">
-              <span>Wanted by</span>
-              <input className="text-input" type="date" value={i.due ?? ''}
-                onChange={e => set({ due: e.target.value || undefined })} />
-            </label>
-          </div>
-
-          <label className="cm-f">
-            <span>Note</span>
-            <input className="text-input" placeholder="Anything the next person needs to know"
-              value={i.note ?? ''} onChange={e => set({ note: e.target.value || undefined })} />
-          </label>
-
-          {/* PICTURES. Two buttons rather than one, because they are genuinely
-              two different acts: Take a photo sends a phone straight to the
-              camera, and a picker carrying that attribute will not offer the
-              gallery at all — so "add one I already have" has to be its own
-              door or it is simply broken on the device it matters most on. */}
-          <div className="cm-f">
-            <span>Pictures</span>
-            <div className="cm-shots">
-              {(i.photos ?? []).map(m => (
-                <Shot key={m.id} m={m}
-                  onOpen={() => void openFull(m)}
-                  onRemove={() => void dropPhoto(m)} />
-              ))}
-              <button className="cm-shot-add" disabled={busy}
-                onClick={() => void addPhoto('camera')}>
-                {busy ? '…' : '＋ Take a photo'}
-              </button>
-              <button className="cm-shot-add is-pick" disabled={busy}
-                onClick={() => void addPhoto('pick')}>
-                Choose files
-              </button>
-            </div>
-          </div>
-
-          {/* FILMED EVIDENCE. Separate from the photos above because it IS
-              separate: a snag has its own problem statement, owner and status
-              on the walk, and this item only points at it. */}
-          <div className="cm-f">
-            <span>Filmed evidence</span>
-            <div className="cm-evs">
-              {linked.map(w => (
-                <LinkedSnag key={w.snag.id} w={w}
-                  onOpen={() => nav(`/w/${w.snag.workspaceId}/snag/${w.snag.id}`)}
-                  onUnlink={() => toggleSnag(w.snag.id)} />
-              ))}
-              {lost > 0 && (
-                <p className="sub cm-ev-lost">
-                  {lost} linked snag{lost === 1 ? '' : 's'} no longer on the walk — deleted there,
-                  so {lost === 1 ? 'it is' : 'they are'} no longer evidence for this.{' '}
-                  <button className="lt-gap-b"
-                    onClick={() => set({ snagIds: linked.map(w => w.snag.id) })}>Clear</button>
-                </p>
-              )}
-              <button className="cm-shot-add" onClick={() => setPicking(true)}>
-                ⌗ Link from the walk
-              </button>
-            </div>
-          </div>
-
-          {(i.findings?.length ?? 0) > 0 && (
-            <div className="cm-f">
-              <span>Passes</span>
-              <ol className="rn-hist-list cm-hist">
-                {[...i.findings!].reverse().map(f => (
-                  <li key={f.id}>
-                    <span className="rn-hist-when">
-                      {new Date(f.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {f.by && <> · {f.by}</>}
-                    </span>
-                    {f.happened && <span className="rn-hist-h">{f.happened}</span>}
-                    {f.note && <span className="rn-hist-n">{f.note}</span>}
-                    {f.next && <span className="rn-hist-x">next: {f.next}</span>}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-
-          <div className="cm-item-foot">
-            <button className="btn btn-ghost cm-del" onClick={onRemove}>Remove</button>
-            <button className="btn btn-ghost" onClick={() => setOpen(false)}>Close</button>
-          </div>
-        </div>
+    <Section
+      title="Acceptance checks" count={rows.length}
+      sub="The site acceptance tests, each with what good looks like and who witnessed it."
+      add={
+        <form className="cm-add-f" onSubmit={e => {
+          e.preventDefault();
+          if (!title.trim()) return;
+          void cm.addCheck(title, criterion, asset);
+          setTitle(''); setCriterion('');
+        }}>
+          <input placeholder="Test — emergency stops" value={title} onChange={e => setTitle(e.target.value)} />
+          <input placeholder="What good looks like" value={criterion} onChange={e => setCriterion(e.target.value)} />
+          <button className="btn" type="submit">Add check</button>
+        </form>
+      }
+    >
+      {rows.length > 0 && (
+        <table className="cm-t">
+          <thead><tr><th /><th>Test</th><th>Criterion</th><th>Result</th><th>Witnessed</th><th /></tr></thead>
+          <tbody>
+            {rows.map(c => (
+              <tr key={c.id}>
+                <td>{dot(stateOf(c))}</td>
+                <td><b>{c.title}</b></td>
+                <td className="cm-sub">{c.criterion || '—'}</td>
+                <td>
+                  <input className="cm-cell cm-wide" placeholder="what happened" value={c.result ?? ''}
+                    onChange={e => void cm.save({ ...c, result: e.target.value || undefined })} />
+                </td>
+                <td>
+                  <input className="cm-cell" placeholder="who" value={c.witnessedBy ?? ''}
+                    onChange={e => void cm.save({ ...c, witnessedBy: e.target.value || undefined })} />
+                </td>
+                <td className="r cm-outcome">
+                  {(['pass', 'fail', 'notRun'] as const).map(o => (
+                    <button key={o} className={'btn btn-sm' + (c.outcome === o ? ' on' : ' btn-ghost')}
+                      onClick={() => void cm.save({ ...c, outcome: o, at: o === 'notRun' ? undefined : Date.now() })}>
+                      {o === 'pass' ? 'Pass' : o === 'fail' ? 'Fail' : 'Not run'}
+                    </button>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-
-      {picking && (
-        <EvidencePicker ev={ev} chosen={i.snagIds ?? []}
-          onToggle={toggleSnag}
-          onClose={() => setPicking(false)}
-          onGoFilm={() => nav(`/project/${projectId}?view=snags`)} />
-      )}
-    </article>
+    </Section>
   );
 }
+
+/* -------------------------------- punch list -------------------------------- */
+
+const SEV_WORD: Record<Severity, string> = {
+  A: 'A — blocks sign-off', B: 'B — before production', C: 'C — can follow',
+};
+
+function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
+  const [title, setTitle] = useState('');
+  const [sev, setSev] = useState<Severity>('B');
+
+  return (
+    <Section
+      title="Punch list" count={rows.filter(isOpen).length}
+      sub="Defects handed to whoever owns them. A blocks sign-off, B is fixed before production, C can follow."
+      add={
+        <form className="cm-add-f" onSubmit={e => {
+          e.preventDefault();
+          if (!title.trim()) return;
+          void cm.addPunch(title, sev, asset);
+          setTitle('');
+        }}>
+          <input placeholder="Defect — former roller misaligned" value={title} onChange={e => setTitle(e.target.value)} />
+          <select value={sev} onChange={e => setSev(e.target.value as Severity)}>
+            {(['A', 'B', 'C'] as const).map(s => <option key={s} value={s}>{SEV_WORD[s]}</option>)}
+          </select>
+          <button className="btn" type="submit">Add defect</button>
+        </form>
+      }
+    >
+      {rows.length > 0 && (
+        <table className="cm-t">
+          <thead><tr><th /><th>Sev</th><th>Defect</th><th>Fix by</th><th /></tr></thead>
+          <tbody>
+            {rows.map(p => (
+              <tr key={p.id} className={isOpen(p) ? '' : 'cm-closed'}>
+                <td>{dot(stateOf(p))}</td>
+                <td>
+                  <select className="cm-cell" value={p.severity}
+                    onChange={e => void cm.save({ ...p, severity: e.target.value as Severity })}>
+                    {(['A', 'B', 'C'] as const).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </td>
+                <td><b>{p.title}</b></td>
+                <td>
+                  <input className="cm-cell" placeholder="OEM / us" value={p.fixBy ?? ''}
+                    onChange={e => void cm.save({ ...p, fixBy: e.target.value || undefined })} />
+                </td>
+                <td className="r">
+                  <button className={'btn btn-sm' + (isOpen(p) ? ' btn-ghost' : ' on')}
+                    onClick={() => void cm.save({ ...p, closedAt: isOpen(p) ? Date.now() : undefined })}>
+                    {isOpen(p) ? 'Close' : 'Closed'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Section>
+  );
+}
+
+/* ----------------------------------- tasks ---------------------------------- */
+
+function Tasks({ rows, cm, asset }: { rows: Task[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
+  const [title, setTitle] = useState('');
+  const STATES = ['todo', 'doing', 'waiting', 'done'] as const;
+  const WORD = { todo: 'To do', doing: 'Doing', waiting: 'Waiting', done: 'Done' };
+
+  return (
+    <Section
+      title="Everything else" count={rows.filter(t => t.state !== 'done').length}
+      sub="Training, manuals, the spares list, the safety file — dull, and it holds up sign-off just as hard."
+      add={
+        <form className="cm-add-f" onSubmit={e => {
+          e.preventDefault();
+          if (!title.trim()) return;
+          void cm.addTask(title, asset);
+          setTitle('');
+        }}>
+          <input placeholder="Obligation — operators trained on changeover" value={title} onChange={e => setTitle(e.target.value)} />
+          <button className="btn" type="submit">Add</button>
+        </form>
+      }
+    >
+      {rows.length > 0 && (
+        <table className="cm-t">
+          <thead><tr><th /><th>What</th><th>Who</th><th /></tr></thead>
+          <tbody>
+            {rows.map(t => (
+              <tr key={t.id} className={t.state === 'done' ? 'cm-closed' : ''}>
+                <td>{dot(stateOf(t))}</td>
+                <td><b>{t.title}</b></td>
+                <td>
+                  <input className="cm-cell" placeholder="who" value={t.owner ?? ''}
+                    onChange={e => void cm.save({ ...t, owner: e.target.value || undefined })} />
+                </td>
+                <td className="r cm-outcome">
+                  {STATES.map(s => (
+                    <button key={s} className={'btn btn-sm' + (t.state === s ? ' on' : ' btn-ghost')}
+                      onClick={() => void cm.save({ ...t, state: s })}>{WORD[s]}</button>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Section>
+  );
+}
+
+/* ==================================== page =================================== */
 
 export function CommissioningScreen({ projectId }: { projectId: string }) {
-  const { loading, project } = useProject(projectId);
+  const { project, loading } = useProject(projectId);
   const cm = useCommission(projectId);
-  const ev = useCommissionEvidence(projectId);
-  const r = useMemo(() => readiness(cm.items), [cm.items]);
-  const nextSteps = useMemo(() => openNextSteps(cm.items), [cm.items]);
+  const [asset, setAsset] = useState<string | null>(null);
 
-  const [asset, setAsset] = useState('');
-  const [stream, setStream] = useState('');
-  const [kind, setKind] = useState<ItemKind>('check');
-  const [title, setTitle] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saveErr, setSaveErr] = useState<{ stale: boolean; msg: string } | null>(null);
+  const assets = useMemo(() => byAsset(cm.items), [cm.items]);
+  const whole = useMemo(() => readiness(cm.items), [cm.items]);
 
-  /* Fetch the PDF library when the PAGE opens, not when the button is pressed.
-     It is a separate chunk, and an installed PWA keeps serving the build it
-     booted with — so after a deploy the page asks for a filename the server no
-     longer has and the button appears to do nothing. Loading it up front turns
-     a dead button into one that can say what is wrong. */
-  useEffect(() => { void loadPdfLib().catch(() => { /* reported when pressed */ }); }, []);
+  /* Default to the first asset that has something wrong with it. Opening on a
+     machine that is finished is a page that has hidden the news. */
+  const current = asset ?? assets.find(a => !a.ready.canSignOff)?.asset ?? assets[0]?.asset ?? null;
+  const shown = current == null ? cm.items : (assets.find(a => a.asset === current)?.items ?? []);
+  const forAsset = current === LINE_ITSELF ? undefined : current ?? undefined;
+  const nothingYet = cm.items.filter(i => !i.deletedAt).length === 0;
 
-  /* Everything the drawer needs, as plain numbers and sentences. It never looks
-     at the DOM, so this is the whole contract between the screen and the file —
-     and it is why the sheet is identical on a phone and a laptop. */
-  /* PICTURES, DECODED BEFORE THE DRAWER RUNS.
-   *
-   * jsPDF cannot await a blob mid-draw, so every photograph is read, shrunk and
-   * turned into a data URL up front. Shrunk because an A3 cell is about 260pt
-   * across and a modern phone photo is 4000px — embedding those whole makes a
-   * 40MB file that will not go through anybody's email, to print pictures at a
-   * size that cannot show the extra detail anyway. */
-  const SHOT_MAX = 900;
-  type Shot = { data: string; w: number; h: number; caption?: string };
-  const shotFor = async (key: string, caption?: string): Promise<Shot | null> => {
-    try {
-      const blob = await getBlob(key);
-      if (!blob) return null;
-      const url = URL.createObjectURL(blob);
-      try {
-        const img = await new Promise<HTMLImageElement>((res, rej) => {
-          const i2 = new Image();
-          i2.onload = () => res(i2); i2.onerror = rej; i2.src = url;
-        });
-        const k = Math.min(1, SHOT_MAX / Math.max(img.width, img.height));
-        const cv = document.createElement('canvas');
-        cv.width = Math.max(1, Math.round(img.width * k));
-        cv.height = Math.max(1, Math.round(img.height * k));
-        cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
-        return { data: cv.toDataURL('image/jpeg', 0.72), w: cv.width, h: cv.height, caption };
-      } finally { URL.revokeObjectURL(url); }
-    } catch { return null; }   // one bad photo must not cost the whole report
-  };
-
-  const reportData = async (): Promise<CommissionReportData> => {
-    /* Photographs first, then the stills off the walk. Same list, because on
-       paper they do the same job — the difference is only that a walk still
-       carries the snag's own wording with it. */
-    const shots = new Map<string, Shot[]>();
-    for (const i of cm.items) {
-      const got: Shot[] = [];
-      for (const m of i.photos ?? []) {
-        const sh = await shotFor(m.blobKey);
-        if (sh) got.push(sh);
-      }
-      for (const id of i.snagIds ?? []) {
-        const w = ev.byId.get(id);
-        if (!w?.stillKey) continue;
-        const sh = await shotFor(w.stillKey, w.snag.problem || 'Snag');
-        if (sh) got.push(sh);
-      }
-      if (got.length) shots.set(i.id, got);
-    }
-    const row = (i: CommissionItem): CommissionReportRow => {
-      const last = latestFinding(i);
-      const passes = i.findings ?? [];
-      /* The reading BEFORE the current one — the newest earlier pass that
-         actually measured something, not merely the previous entry, since a
-         pass can be all commentary and no number. */
-      const was = [...passes].slice(0, -1).reverse()
-        .find(f => f.happened?.trim())?.happened;
-      return {
-        stream: i.stream, kind: i.kind, title: i.title,
-        line: itemLine(i), target: i.target, result: i.result,
-        owner: i.owner, due: i.due, note: i.note,
-        state: stateOf(i), stateLabel: STATE_LABEL[stateOf(i)],
-        shots: shots.get(i.id),
-        next: last?.next, nextBy: last?.by, nextAt: last?.at,
-        passes: passes.length || undefined,
-        was: was && was !== i.result ? was : undefined,
-      };
-    };
-    return {
-      title: project?.name ?? 'Commissioning',
-      lead: project?.lead,
-      now: Date.now(),
-      pct: r.pct, done: r.done, total: r.total,
-      headline: readinessLine(r),
-      checks: r.checks,
-      streams: r.streams.map(s => ({ name: s.name, done: s.done, total: s.total, pct: s.pct, risk: s.risk })),
-      assets: r.hasAssets
-        ? r.assets.map(a => ({ name: a.name, done: a.done, total: a.total, pct: a.pct, risk: a.risk, isLine: a.isLine }))
-        : undefined,
-      attention: r.attention.map(row),
-      // In workstream order, exactly as the page shows them, so the sheet reads
-      // as the same document rather than a second opinion.
-      // Asset, then workstream — the same order the screen shows, so the sheet
-      // reads as the same document rather than a second opinion.
-      rows: r.assets.flatMap(a => a.streams.flatMap(s2 => s2.items.map(i => ({
-        ...row(i),
-        stream: r.hasAssets ? `${a.name} · ${s2.name}` : s2.name,
-      })))),
-    };
-  };
-
-  const download = async () => {
-    if (saving) return;
-    setSaving(true); setSaveErr(null);
-    try {
-      const { jsPDF } = await loadPdfLib();
-      const { drawCommissionReport } = await import('../lib/commissionPdf');
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-      drawCommissionReport(pdf, await reportData());
-      const slug = (project?.name ?? 'Commissioning').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Commissioning';
-      const how = await deliverPdf(pdf, `${slug}-readiness-${new Date().toISOString().slice(0, 10)}.pdf`);
-      if (how === 'opened') setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });
-    } catch (err) {
-      console.error('commissioning PDF failed', err);
-      setSaveErr(isStaleBuildError(err)
-        ? { stale: true, msg: 'This tab is still running an older version of the app, so the part that draws the PDF could not load.' }
-        : { stale: false, msg: err instanceof Error ? err.message : 'The PDF could not be built.' });
-    } finally { setSaving(false); }
-  };
-
-  const streams = useMemo(() => {
-    const seen = r.streams.map(s => s.name);
-    return [...seen, ...SUGGESTED_STREAMS.filter(s => !seen.includes(s))];
-  }, [r.streams]);
-
-  const assets = useMemo(
-    () => r.assets.filter(a => !a.isLine).map(a => a.name),
-    [r.assets],
-  );
-
-  const addIt = async () => {
-    const s = (stream || streams[0] || 'Programs').trim();
-    if (!title.trim()) return;
-    await cm.add(s, kind, title.trim(), asset.trim() || undefined);
-    setTitle('');
-    setStream(s);
-  };
+  const of = <K extends CommissionItem['kind']>(k: K) =>
+    shown.filter((i): i is Extract<CommissionItem, { kind: K }> => i.kind === k)
+      .sort((a, b) => a.sort - b.sort);
 
   if (loading || cm.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
-    return (
-      <div className="wrap pace">
-        <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
-      </div>
-    );
+    return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
   }
-
-  const pct = Math.round(r.pct * 100);
 
   return (
     <div className="wrap pace cm-screen">
-      <Sweep id={'cm:' + projectId} />
+      <AccountMenu />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Commissioning' },
       ]} />
 
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Commissioning</h1>
-          <p className="pace-lede">
-            Where we are, what we are after, what the result was, and what is next — the four
-            questions a handover turns on. Everything here is typed in the app: there is no workbook
-            underneath, because a commissioning job has no system of record until somebody makes one.
-          </p>
-        </div>
-        <div className="pace-head-actions">
-          {/* THE PRIMARY ACTION IS DOING THE JOB, not reporting on it. A page
-              whose loudest button is Download teaches people the app is a
-              reporting chore that happens after the real work, somewhere else. */}
-          <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/commissioning/run`)}>
-            Start a run
-          </button>
-          <span className="exec-bar-hint cm-hint">One click — an A3 you can send</span>
-          <button className="btn btn-ghost" disabled={saving} onClick={() => void download()}>
-            {saving ? 'Building…' : 'Download A3'}
-          </button>
-          <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>
-          <AccountMenu />
-        </div>
+      <header className="cm-head">
+        <h1>{project.name}</h1>
+        <p className="sub">Handover — {whole.programs.total} program{whole.programs.total === 1 ? '' : 's'}, {assets.length} asset{assets.length === 1 ? '' : 's'}</p>
       </header>
 
-      {saveErr && (
-        <div className={'exec-saveerr no-print' + (saveErr.stale ? ' is-stale' : '')} role="alert">
-          <span>{saveErr.msg}</span>
-          {saveErr.stale && (
-            <button className="btn btn-primary" onClick={() => void reloadOntoNewBuild()}>Reload the app</button>
-          )}
-          <button className="exec-saveerr-x" onClick={() => setSaveErr(null)} aria-label="Dismiss">×</button>
-        </div>
-      )}
-
-      {/* ---- WHERE WE ARE. One number and the sentence that stops it being
-             nodded at: a readiness percentage with nothing blocking named
-             beside it is the easiest thing in the world to agree with. ---- */}
-      <section className="cm-top">
-        <div className="cm-ready">
-          <span className="cm-ready-n">{pct}<i>%</i></span>
-          <span className="cm-ready-l">ready</span>
-        </div>
-        <div className="cm-top-m">
-          <p className="cm-top-line">{readinessLine(r)}</p>
-          <div className="cm-bar" role="img" aria-label={`${pct}% ready`}>
-            <span className="cm-bar-f" style={{ width: `${pct}%` }} />
-          </div>
-          {r.checks.total > 0 && (
-            <p className="cm-accept">
-              <b>Acceptance</b> — {r.checks.passed} of {r.checks.total} checks passed
-              {r.checks.failed > 0 && <>, <b className="is-bad">{r.checks.failed} failed</b></>}
-              {r.checks.untested > 0 && <>, {r.checks.untested} still to run</>}
-            </p>
-          )}
-        </div>
+      {/* THE ANSWER, and it is about THE LINE — not whichever machine happens to
+          be open below. "Can we sign off Line 2" is the question being asked in
+          the room; the per-asset count lives on the asset's own tab. The first
+          version of this card read off the current asset and so quietly answered
+          a question nobody had asked. */}
+      <section className={'cm-verdict-card is-' + (whole.canSignOff ? 'g' : 'r')}>
+        <p className="cm-verdict-h">
+          {nothingYet
+            ? 'Nothing recorded yet'
+            : whole.canSignOff
+              ? 'Ready to sign off'
+              : `Not ready — ${whole.blockers.length} thing${whole.blockers.length === 1 ? '' : 's'} in the way`}
+        </p>
+        {whole.blockers.length > 0 && (
+          <ol className="cm-blockers">
+            {whole.blockers.slice(0, 8).map(b => (
+              <li key={b.id}>
+                <b>{b.what}</b>
+                {b.asset ? <span className="cm-sub"> · {b.asset}</span> : null}
+              </li>
+            ))}
+            {whole.blockers.length > 8 && <li className="cm-sub">and {whole.blockers.length - 8} more</li>}
+          </ol>
+        )}
+        <p className="cm-counts">
+          Programs {whole.programs.proven}/{whole.programs.total} proven
+          {whole.programs.missing > 0 && <> · <b>{whole.programs.missing} with no program written</b></>}
+          {' · '}Materials {whole.materials.have}/{whole.materials.total} in
+          {' · '}Checks {whole.checks.pass}/{whole.checks.total} passed
+          {' · '}Punch {whole.punch.openA}A {whole.punch.openB}B {whole.punch.openC}C open
+        </p>
       </section>
 
-      {/* ---- WHAT IS NEXT, before the full list, because the full list is
-             where a blocker goes to hide. ---- */}
-      {r.attention.length > 0 && (
-        <section className="cm-next">
-          <h2 className="cm-h">What is next</h2>
-          <ul className="cm-next-list">
-            {r.attention.slice(0, 8).map(i => (
-              <li key={i.id} className={'is-' + stateOf(i)}>
-                <span className={'cm-dot is-' + stateOf(i)} aria-hidden />
-                <span className="cm-next-t">{i.title}</span>
-                <span className="cm-next-m">{i.stream} · {itemLine(i)}{i.owner ? ` · ${i.owner}` : ''}</span>
-              </li>
-            ))}
-          </ul>
-          {r.attention.length > 8 && (
-            <p className="sub">and {r.attention.length - 8} more below</p>
-          )}
-        </section>
-      )}
-
-      {/* ---- WHAT THE LAST RUN DECIDED. The next steps are not a separate list
-             somebody maintains; they are what came OUT of walking the items, so
-             they sit between the blockers and the detail. ---- */}
-      {nextSteps.length > 0 && (
-        <section className="cm-next cm-steps">
-          <h2 className="cm-h">Next steps from the last run</h2>
-          <ul className="cm-next-list">
-            {nextSteps.slice(0, 6).map(({ item, finding }) => (
-              <li key={finding.id} className={'is-' + stateOf(item)}>
-                <span className={'cm-dot is-' + stateOf(item)} aria-hidden />
-                <span className="cm-next-t">{finding.next}</span>
-                <span className="cm-next-m">
-                  {item.title} · {item.stream}
-                  {' · '}{new Date(finding.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                  {finding.by && <> · {finding.by}</>}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {nextSteps.length > 6 && <p className="sub">and {nextSteps.length - 6} more</p>}
-        </section>
-      )}
-
-      {/* ---- THE LIST. Asset, then workstream, then items — because a line is
-             made of machines and each one is commissioned in its own right.
-             When nothing names an asset the asset level is not drawn at all: a
-             single-machine job should not grow a heading with one thing under
-             it. ---- */}
-      {r.assets.map(a => (
-        <section key={a.name} className={'cm-asset' + (a.isLine ? ' is-line' : '')}>
-          {r.hasAssets && (
-            <header className="cm-asset-h">
-              <div className="cm-asset-main">
-                <h2 className="cm-asset-t">{a.name}</h2>
-                <span className="cm-asset-n">
-                  {Math.round(a.pct * 100)}% · {a.done} of {a.total}
-                  {a.risk > 0 && <b className="is-bad"> · {a.risk} need attention</b>}
-                </span>
-              </div>
-              <span className="cm-asset-bar" aria-hidden>
-                <span style={{ width: `${Math.round(a.pct * 100)}%` }} />
-              </span>
-              <button className="btn btn-ghost cm-asset-run"
-                onClick={() => nav(`/project/${projectId}/commissioning/run?asset=${encodeURIComponent(a.isLine ? '' : a.name)}`)}>
-                Run {a.isLine ? 'line items' : 'this asset'}
-              </button>
-            </header>
-          )}
-          {a.streams.map(s2 => (
-            <section key={s2.name} className="cm-stream">
-              <header className="cm-stream-h">
-                <h3 className="cm-stream-t">{s2.name}</h3>
-                <span className="cm-stream-n">
-                  {s2.done} of {s2.total}
-                  {s2.risk > 0 && <b className="is-bad"> · {s2.risk} need attention</b>}
-                </span>
-                <span className="cm-mini" aria-hidden>
-                  <span style={{ width: `${Math.round(s2.pct * 100)}%` }} />
-                </span>
-              </header>
-              <div className="cm-items">
-                {s2.items.map(i => (
-                  <Item key={i.id} i={i} ev={ev} projectId={projectId}
-                    onSave={x => void cm.save(x)}
-                    onRemove={() => void cm.remove(i.id)} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </section>
-      ))}
-
-      {/* ---- ADD ---- */}
-      <section className="cm-add">
-        <h2 className="cm-h">Add something</h2>
-        <div className="cm-add-row">
-          <label className="cm-f">
-            {/* Blank on purpose. Most items belong to a machine, but the 72-hour
-                run and the signed performance agreement belong to the line, and
-                making somebody pick a machine for those would be a lie about
-                who owns them. */}
-            <span>Asset <span className="bs-hint">· blank = the line</span></span>
-            <input className="text-input" list="cm-assets" placeholder="Brillopack bagger"
-              value={asset} onChange={e => setAsset(e.target.value)} />
-            <datalist id="cm-assets">
-              {assets.map(a => <option key={a} value={a} />)}
-            </datalist>
-          </label>
-          <label className="cm-f">
-            <span>Workstream</span>
-            <input className="text-input" list="cm-streams" placeholder="Programs"
-              value={stream} onChange={e => setStream(e.target.value)} />
-            <datalist id="cm-streams">
-              {streams.map(s => <option key={s} value={s} />)}
-            </datalist>
-          </label>
-          <label className="cm-f cm-f-grow">
-            <span>What it is</span>
-            <input className="text-input" placeholder="250g tray — run at rate"
-              value={title} onChange={e => setTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') void addIt(); }} />
-          </label>
-        </div>
-        <div className="cm-add-kinds">
-          {KINDS.map(k => (
-            <button key={k.id} className={'chip' + (kind === k.id ? ' on' : '')}
-              onClick={() => setKind(k.id)} title={k.hint}>
-              {k.label} <span className="bs-hint">{k.hint}</span>
+      {/* One machine at a time. */}
+      {assets.length > 1 && (
+        <nav className="cm-assets" aria-label="Asset">
+          {assets.map(a => (
+            <button key={a.asset}
+              className={'cm-asset' + (a.asset === current ? ' on' : '')}
+              onClick={() => setAsset(a.asset)}>
+              <span className="cm-asset-n">{a.asset}</span>
+              <span className="cm-asset-s">{a.ready.canSignOff ? 'ready' : `${a.ready.blockers.length} open`}</span>
             </button>
           ))}
-          <div style={{ flex: 1 }} />
-          <button className="btn btn-primary" disabled={!title.trim()} onClick={() => void addIt()}>
-            Add
-          </button>
-        </div>
-      </section>
-
-      {r.total === 0 && (
-        <div className="bd-empty" style={{ marginTop: 16 }}>
-          <p className="bd-empty-t">Nothing on the list yet</p>
-          <p className="sub">
-            Start with what you already know you are waiting on — a program that has to run at rate,
-            the film you are short of, the test the OEM owes you. A commissioning list is most useful
-            when it is written before anybody asks for it.
-          </p>
-        </div>
+        </nav>
       )}
 
-      <footer className="pace-foot">
-        <p>{project.name} · commissioning readiness · kept in the app, not in a workbook</p>
-      </footer>
+      <Programs rows={of('program')} cm={cm} asset={forAsset} />
+      <Materials rows={of('material')} cm={cm} asset={forAsset} />
+      <Checks rows={of('check')} cm={cm} asset={forAsset} />
+      <PunchList rows={of('punch')} cm={cm} asset={forAsset} />
+      <Tasks rows={of('task')} cm={cm} asset={forAsset} />
+
+      <div className="cm-foot">
+        <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>Back to the project</button>
+      </div>
     </div>
   );
 }

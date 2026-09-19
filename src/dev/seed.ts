@@ -114,13 +114,42 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const node: TreeNodeRow = { id: uid(), projectId: proj.id, text: 'Output', rag: 'g', sort: 0, createdAt: t, updatedAt: t };
   await putTreeNode(node);
 
+  /* A handover part-way through, so the smoke test exercises every state the
+     readiness answer can be in: a program proven, one short of rate, one with no
+     program written at all, material short, a failed check and an open A defect. */
   const items: CommissionItem[] = [
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', stream: 'Programs', kind: 'check',
-      title: '250g tray at rate', target: '75 ppm @ 98% OEE', stage: 'testing', sort: 0, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', stream: 'Film & materials', kind: 'supply',
-      title: '980mm film', need: 40, have: 10, onOrder: 20, dueIn: 'week 3', sort: 1, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, stream: 'SAT', kind: 'task',
-      title: 'sign off the SAT pack', taskStage: 'doing', sort: 2, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'program',
+      title: '250g tray', agreedRate: 75, rateUnit: 'ppm', written: true,
+      runs: [{ id: uid(), at: t - 86_400_000, by: 'Rowland + OEM', achieved: 76, minutes: 30, wastePct: 1.2 }],
+      sort: 0, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'program',
+      title: '500g tray', agreedRate: 60, rateUnit: 'ppm', written: true,
+      runs: [{ id: uid(), at: t - 43_200_000, by: 'Rowland', achieved: 51, minutes: 20 }],
+      sort: 1, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'program',
+      title: '1kg bag', agreedRate: 45, rateUnit: 'ppm', written: false,
+      sort: 2, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'material',
+      title: '980mm film', need: 40, have: 10, onOrder: 20, unit: 'rolls',
+      due: '2026-09-24', sort: 3, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, kind: 'material',
+      title: 'Outer cases', need: 500, have: 500, unit: 'cases', sort: 4, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'check',
+      title: 'Emergency stops', criterion: 'every E-stop halts the line inside 2 s',
+      outcome: 'pass', witnessedBy: 'Dave', at: t - 172_800_000, sort: 5, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'check',
+      title: 'Metal detection', criterion: 'rejects 2.0mm Fe at full rate',
+      result: 'missed one in ten at rate', outcome: 'fail', witnessedBy: 'Dave',
+      at: t - 86_400_000, sort: 6, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'punch',
+      title: 'Former roller misaligned', severity: 'A', raisedAt: t - 259_200_000,
+      fixBy: 'OEM', sort: 7, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'punch',
+      title: 'Guard rattles above 40 ppm', severity: 'C', raisedAt: t - 86_400_000,
+      fixBy: 'us', sort: 8, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, kind: 'task',
+      title: 'Operators trained on changeover', state: 'doing', owner: 'Dave',
+      sort: 9, createdAt: t, updatedAt: t },
   ];
   for (const i of items) await putCommissionItem(i);
 

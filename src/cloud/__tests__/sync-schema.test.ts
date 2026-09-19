@@ -81,7 +81,14 @@ function writtenColumns(kind: string): Set<string> {
 
   // Strip comments first: the word "undefined:" appears in a comment in
   // tree_nodes and would otherwise read as a column called undefined.
-  const body = toRow[0].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  //
+  // Then strip TYPED LOCAL DECLARATIONS. commission_items builds its row in a
+  // variable and fills it per kind, so `const row: Record<string, unknown> = {`
+  // otherwise reads as a column called `row`. A declaration is not a key.
+  const body = toRow[0]
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+    .replace(/^\s*(?:const|let)\s+\w+\s*:[^=]*=/gm, '');
 
   const cols = new Set<string>();
   for (const m of body.matchAll(/(?:^|[{\s,])([a-z_][a-z0-9_]*)\s*:/g)) cols.add(m[1]);

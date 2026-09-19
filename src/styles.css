@@ -4574,3 +4574,147 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .cm-asset-run { width: 100%; }
   .cm-asset-t { font-size: 17px; }
 }
+
+
+/* ======================= COMMISSIONING — THE HANDOVER SHEET ==================
+ * One question at the top, five short lists under it, one machine at a time.
+ * Reuses the five state colours (--st-*) so a dot means the same thing here as
+ * it does on the walk and on the board.
+ * ========================================================================== */
+
+.cm-head { margin: 4px 0 14px; }
+.cm-head h1 { margin: 0 0 2px; font-size: 22px; letter-spacing: -0.2px; }
+
+/* ---- the answer ---- */
+.cm-verdict-card {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--st-r);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 0 0 16px;
+}
+.cm-verdict-card.is-g { border-left-color: var(--st-g); }
+.cm-verdict-h { margin: 0 0 8px; font-size: 17px; font-weight: 650; color: var(--ink); }
+.cm-verdict-card.is-r .cm-verdict-h { color: var(--st-r); }
+.cm-verdict-card.is-g .cm-verdict-h { color: var(--st-g); }
+
+.cm-blockers { margin: 0 0 10px; padding-left: 20px; }
+.cm-blockers li { margin: 3px 0; font-size: 14px; line-height: 1.4; }
+.cm-blockers li b { font-weight: 550; }
+
+.cm-counts { margin: 0; font-size: 12.5px; color: var(--muted); }
+.cm-counts b { color: var(--st-a); font-weight: 600; }
+.cm-sub { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+
+/* ---- one machine at a time ---- */
+.cm-assets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.cm-asset {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 8px 14px; min-width: 0;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink-2);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.cm-asset:hover { border-color: var(--line-2); }
+.cm-asset.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.cm-asset-n { font-size: 14px; font-weight: 600; }
+.cm-asset-s { font-size: 11.5px; color: var(--muted); }
+
+/* ---- a list ---- */
+.cm-sec { margin: 0 0 22px; }
+.cm-sec-h { margin: 0 0 8px; }
+.cm-sec-h h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: 0.2px; }
+.cm-sec-n {
+  display: inline-block; margin-left: 6px; padding: 0 7px;
+  border-radius: 9px; background: var(--surface-2); color: var(--ink-2);
+  font-size: 12px; font-weight: 600; vertical-align: 1px;
+}
+.cm-sec-h .sub { margin: 2px 0 0; font-size: 12.5px; }
+
+.cm-t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.cm-t thead th {
+  text-align: left; padding: 6px 8px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--muted); border-bottom: 1px solid var(--line);
+}
+.cm-t td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.cm-t .r, .cm-t th.r { text-align: right; }
+.cm-t tbody tr:hover { background: var(--bg); }
+.cm-t td b { font-weight: 550; }
+.cm-closed td { opacity: 0.55; }
+.cm-closed td b { text-decoration: line-through; }
+
+/* the state dot, same five colours as everywhere else */
+.cm-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--st-n); }
+.cm-dot.is-n { background: var(--st-n); }
+.cm-dot.is-w { background: var(--st-w); }
+.cm-dot.is-a { background: var(--st-a); }
+.cm-dot.is-r { background: var(--st-r); }
+.cm-dot.is-g { background: var(--st-g); }
+
+/* a status word, carrying its own colour so it never relies on the dot */
+.cm-tag {
+  display: inline-block; padding: 1px 8px; border-radius: 9px;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.cm-tag.is-proven, .cm-tag.is-g, .cm-tag.is-have { background: #e4f4ea; color: #1d6f3e; }
+.cm-tag.is-below, .cm-tag.is-a, .cm-tag.is-short { background: #fdf1de; color: #8a5710; }
+.cm-tag.is-missing, .cm-tag.is-r, .cm-tag.is-late { background: #fdeae8; color: #9c2f24; }
+.cm-tag.is-untested, .cm-tag.is-n { background: var(--surface-2); color: var(--muted); }
+.cm-tag.is-w, .cm-tag.is-awaited { background: #e6f0fa; color: #17548c; }
+
+/* editable cells: they look like text until you touch them, so a dense table
+   does not read as a form */
+.cm-cell {
+  width: 100%; min-width: 48px; max-width: 120px;
+  padding: 3px 5px; font: inherit; font-size: 13px; color: var(--ink);
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+}
+.cm-cell:hover { border-color: var(--line); }
+.cm-cell:focus { border-color: var(--accent); background: var(--surface); outline: none; }
+.cm-cell.cm-wide { max-width: 100%; }
+.cm-cell.cm-date { max-width: 140px; }
+.cm-t .r .cm-cell { text-align: right; }
+
+.cm-outcome { white-space: nowrap; }
+.cm-outcome .btn { margin-left: 4px; }
+.btn.btn-sm { padding: 3px 9px; font-size: 12px; border-radius: 7px; }
+.btn.on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+
+/* ---- adding one ---- */
+.cm-add { margin-top: 10px; }
+.cm-add-f { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cm-add-f input, .cm-add-f select {
+  padding: 7px 10px; font: inherit; font-size: 13.5px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink);
+  min-width: 0; flex: 1 1 200px;
+}
+.cm-add-f input:focus, .cm-add-f select:focus { border-color: var(--accent); outline: none; }
+.cm-add-f .cm-num { flex: 0 0 74px; text-align: right; }
+.cm-unit { font-size: 12.5px; color: var(--muted); margin-left: -4px; }
+
+/* ---- recording a run: the evidence for a rate ---- */
+.cm-runrow td { background: var(--bg); }
+.cm-run { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 4px 0; }
+.cm-run label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
+.cm-run input {
+  padding: 6px 9px; font: inherit; font-size: 13.5px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink);
+}
+.cm-run input:focus { border-color: var(--accent); outline: none; }
+.cm-run .cm-num { width: 84px; text-align: right; }
+.cm-verdict { flex: 1 1 100%; margin: 0; font-size: 13px; font-weight: 600; }
+.cm-verdict.is-g { color: var(--st-g); }
+.cm-verdict.is-a { color: var(--st-a); }
+
+.cm-foot { margin: 26px 0 40px; }
+
+/* On a phone the tables scroll rather than squash: a rate and the figure it is
+   measured against must stay on the same line to be worth reading. */
+@media (max-width: 720px) {
+  .cm-sec { overflow-x: auto; }
+  .cm-t { min-width: 560px; }
+  .cm-add-f input { flex: 1 1 100%; }
+}

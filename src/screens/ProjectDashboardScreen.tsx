@@ -28,6 +28,7 @@ import { uncoveredAreas } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
+import { planModel } from '../lib/planModel';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -319,6 +320,9 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
 ];
 
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
+  /* Which lenses this project even has. A commissioning job keeps the evidence
+     (the walk is how a defect gets proved) and drops the quarterly ppm, the
+     per-line packs and the weekly tracker upload, none of which a handover has. */
   const route = useRoute();
   const raw = route.query.get('view');
   const lens: Lens = raw === 'data' || raw === 'snags' || raw === 'next'
@@ -363,6 +367,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   // "Line 2A · 2B · 7 · 10" — read off the project's own lines rather than
   // written into the page, so adding a line changes what the page says it covers.
   const lineList = ppm.lines.map(l => l.key).join(' · ');
+  const model = project ? planModel(project) : 'board';
+  const shownLenses = model === 'commissioning'
+    ? LENSES.filter(l => l.id === 'overview' || l.id === 'snags')
+    : LENSES;
 
   return (
     <div className={'wrap pace is-' + lens}>
@@ -401,11 +409,21 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       </header>
 
       {/* The row is the running order, left to right: where we are, the board
-          we walk, then everything that comes out of walking it. */}
+          we walk, then everything that comes out of walking it.
+          ON A COMMISSIONING PROJECT IT IS A DIFFERENT ROW. A handover has no 3P
+          board and no quarterly ppm — the rate is agreed once and either proven
+          or not — so offering those lenses was the whole reason commissioning
+          read as the tracker wearing a different hat. */}
       <nav className="pace-lenses" aria-label="View">
-        {LENSES.map((l, i) => (
+        {model === 'commissioning' && (
+          <button className="pace-lens on" onClick={() => nav(`/project/${projectId}/commissioning`)}>
+            <span className="pace-lens-l">Handover</span>
+            <span className="pace-lens-s">can we sign it off</span>
+          </button>
+        )}
+        {shownLenses.map((l, i) => (
           <Fragment key={l.id}>
-          {i === 1 && (
+          {i === 1 && model === 'board' && (
             <button className="pace-lens" onClick={() => nav(`/project/${projectId}/board`)}>
               <span className="pace-lens-l">3P Board</span>
               <span className="pace-lens-s">the meeting</span>

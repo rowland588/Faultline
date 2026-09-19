@@ -4,7 +4,7 @@
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
-import type { CommissionItem } from '../lib/commissioning';
+import type { CommissionItem, Program, Material, Check, Punch, Task } from '../lib/commissioning';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -344,52 +344,95 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   commission_items: {
     clock: l => (l as CommissionItem).updatedAt,
-    /* The blobs travel by the same route the line-walk evidence does, or a
-       photo taken on the phone at the OEM would never reach the laptop the
-       report is built on. */
-    mediaKeys: l => (l as CommissionItem).photos?.flatMap(m =>
-      [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')]) ?? [],
+    mediaKeys: l => {
+      const i = l as CommissionItem;
+      const own = i.photos?.flatMap(m => [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')]) ?? [];
+      // a run can carry its own pictures, and they are the proof of the rate
+      const runs = i.kind === 'program'
+        ? (i.runs ?? []).flatMap(r => r.photos?.flatMap(m => [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')]) ?? [])
+        : [];
+      return [...own, ...runs];
+    },
+    /* One table, five shapes. Each kind writes only its own columns and leaves
+       the rest null, which is why every column here is nullable — a program has
+       no severity and a punch item has no agreed rate. The alternative was five
+       tables and five mappers for records that are always read together. */
     toRow: (l, fallbackOwner) => {
       const i = l as CommissionItem;
-      return {
+      const row: Record<string, unknown> = {
         id: i.id, owner_id: fallbackOwner, project_id: i.projectId,
-        asset: i.asset ?? null, stream: i.stream, kind: i.kind, title: i.title,
-        target: i.target ?? null, result: i.result ?? null,
-        stage: i.stage ?? null, task_stage: i.taskStage ?? null,
-        need: i.need ?? null, have: i.have ?? null,
-        on_order: i.onOrder ?? null, due_in: i.dueIn ?? null,
+        asset: i.asset ?? null, kind: i.kind, title: i.title,
         owner: i.owner ?? null, due: i.due ?? null, note: i.note ?? null,
-        /* EVERYTHING THE ITEM CARRIES, not only its scalar fields.
-           Photos, snag links and findings were each added to the model and to
-           the SQL and then missed here, and a field missing from this object
-           does not fail loudly — it simply never leaves the device. Pictures
-           taken at the OEM stayed on the phone. Anything added to
-           CommissionItem belongs on this list too. */
-        photos: i.photos ?? null,
-        snag_ids: i.snagIds ?? null,
-        findings: i.findings ?? null,
-        sort: i.sort, created_at: i.createdAt,
-        updated_at: i.updatedAt, deleted_at: i.deletedAt ?? null,
+        photos: i.photos ?? null, snag_ids: i.snagIds ?? null,
+        sort: i.sort, created_at: i.createdAt, updated_at: i.updatedAt,
+        deleted_at: i.deletedAt ?? null,
+        // every kind-specific column, cleared unless this kind owns it
+        agreed_rate: null, rate_unit: null, written: null, runs: null,
+        need: null, have: null, on_order: null, unit: null,
+        criterion: null, result: null, outcome: null, witnessed_by: null, witnessed_at: null,
+        severity: null, raised_at: null, closed_at: null, fix_by: null,
+        task_stage: null,
       };
+      switch (i.kind) {
+        case 'program':
+          row.agreed_rate = i.agreedRate; row.rate_unit = i.rateUnit ?? null;
+          row.written = i.written; row.runs = i.runs ?? null;
+          break;
+        case 'material':
+          row.need = i.need; row.have = i.have;
+          row.on_order = i.onOrder ?? null; row.unit = i.unit ?? null;
+          break;
+        case 'check':
+          row.criterion = i.criterion; row.result = i.result ?? null;
+          row.outcome = i.outcome; row.witnessed_by = i.witnessedBy ?? null;
+          row.witnessed_at = i.at ?? null;
+          break;
+        case 'punch':
+          row.severity = i.severity; row.raised_at = i.raisedAt;
+          row.closed_at = i.closedAt ?? null; row.fix_by = i.fixBy ?? null;
+          break;
+        case 'task':
+          row.task_stage = i.state;
+          break;
+      }
+      return row;
     },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: (r.project_id as string) ?? '',
-      asset: (r.asset as string) ?? undefined,
-      stream: (r.stream as string) ?? '', kind: (r.kind as CommissionItem['kind']) ?? 'task',
-      title: (r.title as string) ?? '',
-      target: (r.target as string) ?? undefined, result: (r.result as string) ?? undefined,
-      stage: (r.stage as CommissionItem['stage']) ?? undefined,
-      taskStage: (r.task_stage as CommissionItem['taskStage']) ?? undefined,
-      need: n(r.need), have: n(r.have), onOrder: n(r.on_order),
-      dueIn: (r.due_in as string) ?? undefined,
-      owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
-      note: (r.note as string) ?? undefined,
-      photos: (r.photos as CommissionItem['photos']) ?? undefined,
-      snagIds: (r.snag_ids as string[]) ?? undefined,
-      findings: (r.findings as CommissionItem['findings']) ?? undefined,
-      sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
-      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    }),
+    fromRow: (r) => {
+      const base = {
+        id: r.id as string, projectId: r.project_id as string,
+        asset: (r.asset as string) ?? undefined, title: (r.title as string) ?? '',
+        owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
+        note: (r.note as string) ?? undefined,
+        photos: (r.photos as CommissionItem['photos']) ?? undefined,
+        snagIds: (r.snag_ids as string[]) ?? undefined,
+        sort: Number(r.sort) || 0,
+        createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+        deletedAt: n(r.deleted_at),
+      };
+      switch (r.kind as CommissionItem['kind']) {
+        case 'program':
+          return { ...base, kind: 'program', agreedRate: Number(r.agreed_rate) || 0,
+            rateUnit: (r.rate_unit as string) ?? undefined, written: r.written === true,
+            runs: (r.runs as Program['runs']) ?? undefined } satisfies Program;
+        case 'material':
+          return { ...base, kind: 'material', need: Number(r.need) || 0, have: Number(r.have) || 0,
+            onOrder: r.on_order == null ? undefined : Number(r.on_order),
+            unit: (r.unit as string) ?? undefined } satisfies Material;
+        case 'check':
+          return { ...base, kind: 'check', criterion: (r.criterion as string) ?? '',
+            result: (r.result as string) ?? undefined,
+            outcome: ((r.outcome as Check['outcome']) ?? 'notRun'),
+            witnessedBy: (r.witnessed_by as string) ?? undefined,
+            at: n(r.witnessed_at) } satisfies Check;
+        case 'punch':
+          return { ...base, kind: 'punch', severity: ((r.severity as Punch['severity']) ?? 'B'),
+            raisedAt: Number(r.raised_at) || Number(r.created_at) || 0,
+            closedAt: n(r.closed_at), fixBy: (r.fix_by as string) ?? undefined } satisfies Punch;
+        default:
+          return { ...base, kind: 'task',
+            state: ((r.task_stage as Task['state']) ?? 'todo') } satisfies Task;
+      }
+    },
   },
 
   pace_snapshots: {

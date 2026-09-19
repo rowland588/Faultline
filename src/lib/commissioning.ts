@@ -1,401 +1,312 @@
-/* COMMISSIONING — is the line ready, and what is stopping it?
+/* A LINE BEING HANDED OVER BY AN OEM.
  *
- * A commissioning job is not an improvement project and it does not fit the 3P
- * board. Nothing is "in progress" in a useful sense: a thing either exists or
- * it does not, and if it exists it has either been proven against a number or
- * it has not. Handing that to a Kanban turns every real question — have we got
- * the film? has the 250g program run at rate? — into a card that says
- * "in progress" and answers neither.
+ * This is not a project plan with a commissioning label on it, and the first cut
+ * of this file was exactly that: one generic "item" with a `kind` string, a
+ * free-text `target`, and quarterly Q1–Q4 numbers inherited from the tracker.
+ * Quarterly targets are meaningless here. A rate is agreed ONCE, in writing,
+ * before the machine ships — you either prove it or you do not, and the only
+ * question anybody asks is whether the line can be accepted.
  *
- * So the model is the four questions an OEM handover actually turns on, which
- * are also the loop somebody runs the job by:
+ * So the five things a handover is actually made of each get their own shape:
  *
- *   where are we      -> readiness, counted
- *   what are we after -> the acceptance target on each check
- *   what is the result-> passed, failed, or not yet run
- *   what is next      -> the shortest list of things blocking the next step
+ *   PROGRAM   a product or format that must run at an AGREED RATE. The rate is a
+ *             number because it is a contractual figure, not a note. Proven by
+ *             runs, which are the evidence: we ran this for so long and achieved
+ *             this. A program that has not been written yet is MISSING, and that
+ *             is a distinct state from written-but-untested — one is the OEM's
+ *             job, the other is ours.
+ *   MATERIAL  what the line needs to run at all: film, cartons, labels, tooling.
+ *             Needed, have, on order, due. Nothing more; a materials list that
+ *             wants a paragraph per row does not get filled in.
+ *   CHECK     a site acceptance test. A criterion, a result, and a witness —
+ *             an acceptance test nobody signed is not acceptance.
+ *   PUNCH     a defect on the punch list, severity A/B/C as every handover in
+ *             the industry grades them: A blocks sign-off, B is fixed before
+ *             production, C is cosmetic and can follow. The severity is what
+ *             makes the list actionable rather than a pile of complaints.
+ *   TASK      the rest of the obligation: training, manuals, spares list, LOTO,
+ *             the CE/UKCA file. Dull, and it holds up sign-off just as hard.
  *
- * THREE KINDS OF ITEM, because the job has three kinds of question in it and
- * flattening them loses the answer:
+ * ASSETS ARE THE SPINE. A production line is made of machines and each is
+ * accepted in its own right; the line is signed off when all of them are. Every
+ * record names its asset, and `undefined` means the line itself.
  *
- *   check   a thing that must be PROVEN against a number. A product program at
- *           75ppm and 98% efficiency. It runs none -> have -> testing ->
- *           passed/failed, which is the real vocabulary: "what programs do we
- *           have" and "which have passed" are different questions and a single
- *           done/not-done flag cannot hold both.
- *   supply  a thing you need a QUANTITY of. Film, spares, pallets. Need, have,
- *           on order, when it lands. Short is not the same as ordered.
- *   task    a thing somebody must DO. The ordinary next step.
- *
- * Everything is typed in the app, not read from a workbook. That is the whole
- * difference between this and Project Pace: Pace reports on a system the
- * business already runs in Excel, so the app can only ever be a viewer of it.
- * The commissioning of a line has no system yet — so this IS the system, and
- * the file somebody sends round is drawn from it rather than the other way
- * about.
+ * SIGN-OFF IS DERIVED, NEVER TYPED. Nobody ticks "ready". It falls out of the
+ * records: an open A defect, a program short of its rate, a failed or unrun
+ * acceptance test, or material that has not landed. That is the whole point of
+ * keeping the five shapes honest — the answer assembles itself from them, so it
+ * cannot flatter the job.
  */
-
-/** The five states everything in the app already speaks, so a commissioning
- *  item wears the same colours as an action on the board and nobody has to
- *  learn a second vocabulary. */
 import type { MediaRef } from '../types';
 
+/** Where the line itself is meant, rather than a machine on it. */
+export const LINE_ITSELF = 'The line itself';
+
+export type CommissionKind = 'program' | 'material' | 'check' | 'punch' | 'task';
+
+/** The five colours the whole surface reads in. Same letters the walk uses, so
+ *  a status means the same thing everywhere in the app.
+ *  n not started · w in progress · a at risk · r blocked/failed · g done/proven */
 export type ReadyState = 'n' | 'w' | 'a' | 'r' | 'g';
 
-export type ItemKind = 'check' | 'supply' | 'task';
-
-/** A check's own progression. Deliberately NOT a boolean: "we have written the
- *  program" and "the program has run at rate" are different facts and a
- *  commissioning meeting asks for both. */
-export type CheckStage = 'none' | 'have' | 'testing' | 'passed' | 'failed';
-
-export type TaskStage = 'todo' | 'doing' | 'waiting' | 'done';
-
-/* ONE PASS AT ONE ITEM — the unit the flow actually produces.
- *
- * A commissioning list is not filled in once. You run the 250g program, it does
- * 61ppm, you write down why, you change the film, you run it again. Keeping only
- * the latest result throws away the half that matters: a line is signed off on
- * the STORY of how it got to rate, and "61 then 74 after the film change" is an
- * argument where "74" on its own is only a number.
- *
- * So every pass is kept, in the order it happened. The item's current state is
- * the newest one; the rest is how it got there. */
-export interface Finding {
-  id: string;
-  /** When this pass happened. */
-  at: number;
-  /** Who ran it — usually you and the OEM engineer. */
-  by?: string;
-  /** WHAT ACTUALLY HAPPENED. The measurement, in the units the target was set
-   *  in, so the two can be read against each other without arithmetic. */
-  happened?: string;
-  /** The finding itself — why it did that, what it means. Commentary. */
-  note?: string;
-  /** What this pass decided to do next. Not a task somebody else owns; the very
-   *  next move on this item. */
-  next?: string;
-  /** Pictures taken during this pass. */
-  photos?: MediaRef[];
-  /** Line-walk snags raised or pointed at during this pass. */
-  snagIds?: string[];
-  /** The state the item was moved to by this pass, so the timeline reads as a
-   *  progression rather than as a pile of notes. */
-  movedTo?: CheckStage | TaskStage;
-}
-
-export interface CommissionItem {
+interface Base {
   id: string;
   projectId: string;
-  /** WHICH ASSET THIS BELONGS TO.
-   *
-   *  A production line is made of many assets and each asset is commissioned in
-   *  its own right — Line 2 has two new machines on it, both needing their own
-   *  programs, their own materials, their own acceptance run — and all of it
-   *  rolls back up to the line. So the asset is a real level, not a label: "the
-   *  bagger is 70% and the palletiser has not started" is the sentence somebody
-   *  running a line handover actually says, and a list that could only total
-   *  the whole project could not produce it.
-   *
-   *  ABSENT MEANS THE LINE ITSELF. The 72-hour run at rate, the signed
-   *  performance agreement, operator training across the line — those belong to
-   *  no single machine, and forcing them under one would be a lie about who
-   *  owns them. */
+  /** Which machine. Absent means the line itself. */
   asset?: string;
-
-  /** The workstream it sits under — Programs, Film, SAT, Training. A plain
-   *  string, and the groups on screen are derived from it, exactly as the
-   *  board's areas are derived from the tracker's Line column. One less thing
-   *  to set up before the first item can be written down.
-   *
-   *  Every asset has its OWN workstreams: the bagger's Programs and the
-   *  palletiser's Programs are different work that happen to share a name. */
-  stream: string;
-  kind: ItemKind;
   title: string;
-  /** What "good" looks like, in the units it will be argued about in: "75 ppm
-   *  @ 98% OEE", "12 reels", "signed off by QA". Free text on purpose — an OEM
-   *  acceptance criterion is a sentence, not a number, and forcing it into
-   *  fields loses the half that matters. */
-  target?: string;
-  /** What actually happened. Only meaningful once it has been run. */
-  result?: string;
-
-  /* check */
-  stage?: CheckStage;
-
-  /* supply */
-  need?: number;
-  have?: number;
-  onOrder?: number;
-  /** ISO date the outstanding quantity is promised for. */
-  dueIn?: string;
-
-  /* task */
-  taskStage?: TaskStage;
-
-  /** PICTURES OF THE THING ITSELF.
-   *
-   *  A commissioning argument is settled by a photograph more often than by a
-   *  sentence: "film creasing at the infeed" is a claim, and a picture of the
-   *  crease is the end of the conversation. They hang off the ITEM rather than
-   *  the workstream because that is the grain an argument happens at.
-   *
-   *  Lightweight refs only — the blobs live in the media store, the same bag
-   *  the line-walk evidence uses, so they sync by the same route and nothing
-   *  heavy ever travels inside the item row. */
-  photos?: MediaRef[];
-
-  /** FILMED EVIDENCE, LINKED RATHER THAN COPIED.
-   *
-   *  A picture you took is a photo on this item. A snag is something else: a
-   *  fault pinned on a frame of the line walk, with its own problem statement,
-   *  owner and lifecycle, living in the project's workspace. Linking by id
-   *  rather than copying the still means closing the snag on the walk closes it
-   *  here — two copies of the same fault drifting apart is precisely the mess
-   *  the app exists to stop.
-   *
-   *  A snag can be linked to more than one item, and an item to more than one
-   *  snag: one crease in the film can be the reason two programs failed. */
-  snagIds?: string[];
-
   owner?: string;
   /** ISO date this is wanted by. */
   due?: string;
   note?: string;
-
-  /** Every pass at this item, oldest first. The current `result` is the newest
-   *  one's `happened`; this is the record of how it got there. */
-  findings?: Finding[];
-
+  photos?: MediaRef[];
+  /** Line-walk evidence this is proved by — ids only; the snag keeps its own
+   *  lifecycle so closing it on the walk closes it here. */
+  snagIds?: string[];
   sort: number;
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
 }
 
-const todayISO = (): string => new Date().toISOString().slice(0, 10);
-const overdue = (iso?: string): boolean => !!iso && iso < todayISO();
+/* ---------- PROGRAM: a product that must run at an agreed rate ---------- */
 
-/** One item's state, by its own rules. This is the only place that decides,
- *  because a screen and a report that each work it out separately is how a page
- *  ends up saying 7 of 12 beside a list with eight ticks on it. */
+/** One attempt at rate. THE evidence a commissioning file is built on: we ran
+ *  this product for this long and achieved this. */
+export interface Run {
+  id: string;
+  at: number;
+  /** Who witnessed it. A rate nobody watched is a claim, not a result. */
+  by?: string;
+  minutes?: number;
+  packs?: number;
+  /** Achieved rate, in the same unit as the agreed rate. */
+  achieved: number;
+  /** Give-away waste as a percentage, when it was measured. */
+  wastePct?: number;
+  note?: string;
+  photos?: MediaRef[];
+}
+
+export interface Program extends Base {
+  kind: 'program';
+  /** The contractual figure, agreed before the machine shipped. */
+  agreedRate: number;
+  /** Packs per minute unless somebody says otherwise. */
+  rateUnit?: string;
+  /** Has the recipe been written on the machine at all? False is MISSING, and
+   *  it is usually the OEM's to fix rather than ours. */
+  written: boolean;
+  runs?: Run[];
+}
+
+/* ---------- MATERIAL: what the line needs to run ---------- */
+
+export interface Material extends Base {
+  kind: 'material';
+  need: number;
+  have: number;
+  onOrder?: number;
+  /** Rolls, cases, kg — whatever it is counted in. */
+  unit?: string;
+}
+
+/* ---------- CHECK: a site acceptance test ---------- */
+
+export interface Check extends Base {
+  kind: 'check';
+  /** What good looks like, agreed in advance. */
+  criterion: string;
+  result?: string;
+  outcome: 'notRun' | 'pass' | 'fail';
+  witnessedBy?: string;
+  at?: number;
+}
+
+/* ---------- PUNCH: a defect on the handover list ---------- */
+
+/** A blocks sign-off · B before production · C can follow. */
+export type Severity = 'A' | 'B' | 'C';
+
+export interface Punch extends Base {
+  kind: 'punch';
+  severity: Severity;
+  raisedAt: number;
+  closedAt?: number;
+  /** Whose to fix — usually the OEM or us. */
+  fixBy?: string;
+}
+
+/* ---------- TASK: the rest of the obligation ---------- */
+
+export interface Task extends Base {
+  kind: 'task';
+  state: 'todo' | 'doing' | 'waiting' | 'done';
+}
+
+export type CommissionItem = Program | Material | Check | Punch | Task;
+
+/* ================================ derived ================================ */
+
+const todayISO = (): string => new Date().toISOString().slice(0, 10);
+const late = (iso?: string): boolean => !!iso && iso < todayISO();
+
+/** The best rate ever achieved for a program, and the run it came from. */
+export const bestRun = (p: Program): Run | undefined =>
+  (p.runs ?? []).reduce<Run | undefined>((b, r) => (!b || r.achieved > b.achieved ? r : b), undefined);
+
+export type ProgramStatus = 'missing' | 'untested' | 'below' | 'proven';
+
+/** Where a program has got to.
+ *
+ *  `missing` is deliberately separate from `untested`: a program nobody has
+ *  written is a different conversation, with a different person, than one that
+ *  exists and has not been run. Rolling them together is how "we're waiting on
+ *  the OEM" becomes invisible. */
+export function programStatus(p: Program): ProgramStatus {
+  if (!p.written) return 'missing';
+  const best = bestRun(p);
+  if (!best) return 'untested';
+  return best.achieved >= p.agreedRate ? 'proven' : 'below';
+}
+
+export type MaterialStatus = 'have' | 'awaited' | 'short' | 'late';
+
+/** Have we got the stuff. `short` means nothing is even on order. */
+export function materialStatus(m: Material): MaterialStatus {
+  if (m.have >= m.need) return 'have';
+  const coming = m.onOrder ?? 0;
+  if (coming <= 0) return 'short';
+  return late(m.due) ? 'late' : 'awaited';
+}
+
+export const isOpen = (p: Punch): boolean => p.closedAt == null;
+
+/** One record's colour, whatever kind it is. */
 export function stateOf(i: CommissionItem): ReadyState {
-  if (i.kind === 'check') {
-    switch (i.stage ?? 'none') {
-      case 'passed': return 'g';
-      case 'failed': return 'r';
-      case 'testing': return 'w';
-      // We have it but it is unproven. Amber once the date has gone by, because
-      // an untested program the week of handover is a risk, not a to-do.
-      case 'have': return overdue(i.due) ? 'a' : 'w';
-      default: return overdue(i.due) ? 'a' : 'n';
-    }
-  }
-  if (i.kind === 'supply') {
-    const need = i.need ?? 0, have = i.have ?? 0, onOrder = i.onOrder ?? 0;
-    if (need > 0 && have >= need) return 'g';
-    // Covered on paper, but only until the promised date passes. After that
-    // "it is on order" is the problem rather than the answer.
-    if (have + onOrder >= need && need > 0) return overdue(i.dueIn) ? 'a' : 'w';
-    // Short with nothing coming is the one thing on a commissioning list that
-    // genuinely stops the line, so it is red rather than merely unstarted.
-    return onOrder > 0 ? 'a' : 'r';
-  }
-  switch (i.taskStage ?? 'todo') {
-    case 'done': return 'g';
-    case 'doing': return overdue(i.due) ? 'a' : 'w';
-    case 'waiting': return overdue(i.due) ? 'r' : 'a';
-    default: return overdue(i.due) ? 'a' : 'n';
+  switch (i.kind) {
+    case 'program':
+      return { missing: 'r', untested: 'n', below: 'a', proven: 'g' }[programStatus(i)] as ReadyState;
+    case 'material':
+      return { have: 'g', awaited: 'w', short: 'a', late: 'r' }[materialStatus(i)] as ReadyState;
+    case 'check':
+      return i.outcome === 'pass' ? 'g' : i.outcome === 'fail' ? 'r' : late(i.due) ? 'a' : 'n';
+    case 'punch':
+      return !isOpen(i) ? 'g' : i.severity === 'A' ? 'r' : i.severity === 'B' ? 'a' : 'w';
+    case 'task':
+      return i.state === 'done' ? 'g' : i.state === 'waiting' ? 'a'
+        : i.state === 'doing' ? 'w' : late(i.due) ? 'a' : 'n';
   }
 }
 
-export const STATE_LABEL: Record<ReadyState, string> = {
-  n: 'Not started', w: 'In hand', a: 'At risk', r: 'Blocked', g: 'Done',
+export const STATE_WORD: Record<ReadyState, string> = {
+  n: 'not started', w: 'in progress', a: 'at risk', r: 'blocked', g: 'done',
 };
 
-/** What an item says about itself in one line, in its own units. */
-export function itemLine(i: CommissionItem): string {
-  if (i.kind === 'supply') {
-    const need = i.need ?? 0, have = i.have ?? 0, onOrder = i.onOrder ?? 0;
-    const short = Math.max(0, need - have - onOrder);
-    const bits = [`${have} of ${need}`];
-    if (onOrder > 0) bits.push(`${onOrder} on order${i.dueIn ? ` for ${i.dueIn}` : ''}`);
-    if (short > 0) bits.push(`${short} not ordered`);
-    return bits.join(' · ');
-  }
-  if (i.kind === 'check') {
-    const stage = i.stage ?? 'none';
-    const word = stage === 'none' ? 'not written'
-      : stage === 'have' ? 'written, not run'
-      : stage === 'testing' ? 'under test'
-      : stage === 'passed' ? 'passed' : 'failed';
-    return [word, i.result].filter(Boolean).join(' · ');
-  }
-  const t = i.taskStage ?? 'todo';
-  return t === 'done' ? 'done' : t === 'doing' ? 'in hand' : t === 'waiting' ? 'waiting' : 'to do';
-}
+/* ---------- the only question that matters ---------- */
 
-export interface StreamRoll {
-  name: string;
-  items: CommissionItem[];
-  total: number;
-  done: number;
-  /** 0-1. Plain count of finished over total: a commissioning percentage that
-   *  weights items by some notion of size is a percentage nobody can check. */
-  pct: number;
-  risk: number;
-}
-
-/** What the line calls the work that belongs to no single machine. */
-export const LINE_LEVEL = 'The line itself';
-
-export interface AssetRoll {
-  name: string;
-  /** True for the work that belongs to the line rather than to a machine. */
-  isLine: boolean;
-  total: number;
-  done: number;
-  pct: number;
-  risk: number;
-  /** Its own workstreams — the bagger's Programs, not the project's. */
-  streams: StreamRoll[];
+export interface Blocker {
+  /** What is in the way, in the words somebody would use in the meeting. */
+  what: string;
+  /** Which asset it sits on, for a line made of several machines. */
+  asset?: string;
+  /** The record it came from, so the page can link straight to it. */
+  id: string;
+  kind: CommissionKind;
 }
 
 export interface Readiness {
-  /** One per asset, in the order they were first written down, with the
-   *  line-level work last: the machines are the job, and the line's own
-   *  acceptance is what happens once they are done. */
-  assets: AssetRoll[];
-  /** True once any item names an asset. Until then this is a single-machine
-   *  job and every screen should stay flat rather than growing a level with one
-   *  thing in it. */
-  hasAssets: boolean;
-  streams: StreamRoll[];
-  total: number;
-  done: number;
+  /** Can this be accepted today. */
+  canSignOff: boolean;
+  /** Everything standing in the way, worst first. */
+  blockers: Blocker[];
+  programs: { total: number; proven: number; below: number; untested: number; missing: number };
+  materials: { total: number; have: number; short: number; awaited: number; late: number };
+  checks: { total: number; pass: number; fail: number; notRun: number };
+  punch: { openA: number; openB: number; openC: number; closed: number };
+  tasks: { total: number; done: number };
+  /** How far through, 0–1: everything that can be finished, that is. */
   pct: number;
-  /** Acceptance — of the CHECKS only, because that is what the line is signed
-   *  off against. Tasks and film are how you get there; they are not the test. */
-  checks: { total: number; passed: number; failed: number; untested: number };
-  /** Anything red or amber, worst first — "what is next" without being asked. */
-  attention: CommissionItem[];
 }
 
-const RANK: Record<ReadyState, number> = { r: 0, a: 1, w: 2, n: 3, g: 4 };
+const only = <K extends CommissionKind>(items: CommissionItem[], kind: K) =>
+  items.filter((i): i is Extract<CommissionItem, { kind: K }> => i.kind === kind);
 
-/** Streams in the order they were first written down, not alphabetically: the
- *  order somebody enters the workstreams is the order they think about them. */
-function streamsOf(items: CommissionItem[]): StreamRoll[] {
-  const order: string[] = [];
-  const by = new Map<string, CommissionItem[]>();
-  for (const i of items) {
-    const s = i.stream.trim() || 'Unassigned';
-    if (!by.has(s)) { by.set(s, []); order.push(s); }
-    by.get(s)!.push(i);
-  }
-  return order.map(name => {
-    const list = [...by.get(name)!].sort((a, b) =>
-      RANK[stateOf(a)] - RANK[stateOf(b)] || a.sort - b.sort);
-    const done = list.filter(i => stateOf(i) === 'g').length;
-    return {
-      name, items: list, total: list.length, done,
-      pct: list.length ? done / list.length : 0,
-      risk: list.filter(i => { const s = stateOf(i); return s === 'r' || s === 'a'; }).length,
-    };
-  });
-}
-
+/** Read the whole picture off the records.
+ *
+ *  Order matters: the blockers come out worst first, because this list is read
+ *  from the top in a meeting and whatever is at the bottom does not get said.
+ *  An open A defect outranks an unproven program, which outranks material. */
 export function readiness(items: CommissionItem[]): Readiness {
-  const streams = streamsOf(items);
+  const live = items.filter(i => !i.deletedAt);
+  const programs = only(live, 'program');
+  const materials = only(live, 'material');
+  const checks = only(live, 'check');
+  const punch = only(live, 'punch');
+  const tasks = only(live, 'task');
 
-  /* The same roll-up, one level up. Built from the same streamsOf helper so an
-     asset's numbers and the project's cannot be computed two different ways. */
-  const assetOrder: string[] = [];
-  const byAsset = new Map<string, CommissionItem[]>();
-  for (const i of items) {
-    const a = (i.asset ?? '').trim();
-    if (!byAsset.has(a)) { byAsset.set(a, []); assetOrder.push(a); }
-    byAsset.get(a)!.push(i);
-  }
-  const assets: AssetRoll[] = assetOrder
-    .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0))
-    .map(name => {
-      const list = byAsset.get(name)!;
-      const d = list.filter(i => stateOf(i) === 'g').length;
-      return {
-        name: name || LINE_LEVEL,
-        isLine: name === '',
-        total: list.length,
-        done: d,
-        pct: list.length ? d / list.length : 0,
-        risk: list.filter(i => { const st = stateOf(i); return st === 'r' || st === 'a'; }).length,
-        streams: streamsOf(list),
-      };
-    });
+  const ps = { total: programs.length, proven: 0, below: 0, untested: 0, missing: 0 };
+  for (const p of programs) ps[programStatus(p)]++;
 
-  const checks = items.filter(i => i.kind === 'check');
-  const done = items.filter(i => stateOf(i) === 'g').length;
+  const ms = { total: materials.length, have: 0, short: 0, awaited: 0, late: 0 };
+  for (const m of materials) ms[materialStatus(m)]++;
+
+  const cs = { total: checks.length, pass: 0, fail: 0, notRun: 0 };
+  for (const c of checks) cs[c.outcome === 'pass' ? 'pass' : c.outcome === 'fail' ? 'fail' : 'notRun']++;
+
+  const open = punch.filter(isOpen);
+  const pu = {
+    openA: open.filter(p => p.severity === 'A').length,
+    openB: open.filter(p => p.severity === 'B').length,
+    openC: open.filter(p => p.severity === 'C').length,
+    closed: punch.length - open.length,
+  };
+
+  const ts = { total: tasks.length, done: tasks.filter(t => t.state === 'done').length };
+
+  const blockers: Blocker[] = [
+    ...open.filter(p => p.severity === 'A')
+      .map(p => ({ what: `A defect open: ${p.title}`, asset: p.asset, id: p.id, kind: 'punch' as const })),
+    ...checks.filter(c => c.outcome === 'fail')
+      .map(c => ({ what: `Acceptance test failed: ${c.title}`, asset: c.asset, id: c.id, kind: 'check' as const })),
+    ...programs.filter(p => programStatus(p) === 'missing')
+      .map(p => ({ what: `No program written for ${p.title}`, asset: p.asset, id: p.id, kind: 'program' as const })),
+    ...programs.filter(p => programStatus(p) === 'below')
+      .map(p => ({
+        what: `${p.title} short of rate — ${bestRun(p)?.achieved ?? 0} against ${p.agreedRate} ${p.rateUnit ?? 'ppm'}`,
+        asset: p.asset, id: p.id, kind: 'program' as const,
+      })),
+    ...materials.filter(m => materialStatus(m) === 'late' || materialStatus(m) === 'short')
+      .map(m => ({ what: `${m.title}: ${m.have} of ${m.need} ${m.unit ?? ''}`.trim(), asset: m.asset, id: m.id, kind: 'material' as const })),
+    ...programs.filter(p => programStatus(p) === 'untested')
+      .map(p => ({ what: `${p.title} not yet run at rate`, asset: p.asset, id: p.id, kind: 'program' as const })),
+    ...checks.filter(c => c.outcome === 'notRun')
+      .map(c => ({ what: `Acceptance test not run: ${c.title}`, asset: c.asset, id: c.id, kind: 'check' as const })),
+    ...tasks.filter(t => t.state !== 'done')
+      .map(t => ({ what: t.title, asset: t.asset, id: t.id, kind: 'task' as const })),
+  ];
+
+  const done = ps.proven + ms.have + cs.pass + pu.closed + ts.done;
+  const total = ps.total + ms.total + cs.total + punch.length + ts.total;
 
   return {
-    assets,
-    hasAssets: items.some(i => (i.asset ?? '').trim() !== ''),
-    streams,
-    total: items.length,
-    done,
-    pct: items.length ? done / items.length : 0,
-    checks: {
-      total: checks.length,
-      passed: checks.filter(i => i.stage === 'passed').length,
-      failed: checks.filter(i => i.stage === 'failed').length,
-      untested: checks.filter(i => i.stage !== 'passed' && i.stage !== 'failed').length,
-    },
-    attention: items
-      .filter(i => { const s = stateOf(i); return s === 'r' || s === 'a'; })
-      .sort((a, b) => RANK[stateOf(a)] - RANK[stateOf(b)]
-        || (a.due ?? a.dueIn ?? '9999').localeCompare(b.due ?? b.dueIn ?? '9999')),
+    // A C-grade defect does not stop a handover, and neither does a closed one.
+    canSignOff: total > 0 && blockers.length === 0,
+    blockers,
+    programs: ps, materials: ms, checks: cs, punch: pu, tasks: ts,
+    pct: total ? done / total : 0,
   };
 }
 
-/** The one sentence at the top of the page and the top of the report. It leads
- *  with what is WRONG when anything is, because a readiness number on its own
- *  is the easiest thing in the world to nod at. */
-export function readinessLine(r: Readiness): string {
-  if (r.total === 0) return 'Nothing on the list yet.';
-  const pct = Math.round(r.pct * 100);
-  const blocked = r.attention.filter(i => stateOf(i) === 'r').length;
-  const risk = r.attention.length - blocked;
-  const tail = blocked > 0
-    ? `${blocked} blocked${risk > 0 ? `, ${risk} at risk` : ''}`
-    : risk > 0 ? `${risk} at risk` : 'nothing blocked';
-  return `${pct}% ready · ${r.done} of ${r.total} done · ${tail}`;
+/** The assets on this line, each with its own readiness, plus the line itself
+ *  last. A single project percentage cannot say "the bagger is ready and the
+ *  palletiser has not started", which is the sentence a GM actually wants. */
+export function byAsset(items: CommissionItem[]): { asset: string; items: CommissionItem[]; ready: Readiness }[] {
+  const live = items.filter(i => !i.deletedAt);
+  const names = [...new Set(live.map(i => i.asset ?? LINE_ITSELF))]
+    .sort((a, b) => (a === LINE_ITSELF ? 1 : b === LINE_ITSELF ? -1 : a.localeCompare(b)));
+  return names.map(asset => {
+    const mine = live.filter(i => (i.asset ?? LINE_ITSELF) === asset);
+    return { asset, items: mine, ready: readiness(mine) };
+  });
 }
-
-/** The workstreams a commissioning job usually has, offered on an empty board
- *  so the first item can be written without inventing a filing system first.
- *  Suggestions on a menu, not a schema — rename them, ignore them, add your own. */
-/** The newest pass, which is what the item currently says about itself. */
-export const latestFinding = (i: CommissionItem): Finding | undefined =>
-  i.findings?.length ? i.findings[i.findings.length - 1] : undefined;
-
-/** Every open next-step across the list, newest first — what the last run left
- *  behind. These are not tasks somebody else owns; they are the moves this job
- *  decided on and has not made yet. */
-export function openNextSteps(items: CommissionItem[]): {
-  item: CommissionItem; finding: Finding;
-}[] {
-  return items
-    .flatMap(item => (item.findings ?? []).map(finding => ({ item, finding })))
-    .filter(({ item, finding }) =>
-      !!finding.next?.trim()
-      // A next step on a finding that is not the latest has been overtaken by a
-      // later pass; only the most recent word on an item still stands.
-      && latestFinding(item)?.id === finding.id
-      && stateOf(item) !== 'g')
-    .sort((a, b) => b.finding.at - a.finding.at);
-}
-
-export const SUGGESTED_STREAMS = [
-  'Programs', 'Film & materials', 'SAT & acceptance', 'Training',
-  'Documentation', 'Spares', 'Safety',
-];
