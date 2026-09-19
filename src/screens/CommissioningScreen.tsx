@@ -8,7 +8,7 @@
  * right, and "the bagger is proven and the palletiser has not started" is a
  * sentence a single project percentage cannot say.
  */
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
@@ -27,6 +27,95 @@ import {
 const dot = (s: ReadyState) => <span className={'cm-dot is-' + s} title={STATE_WORD[s]} />;
 const num = (v: string): number => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; };
 
+/* A CELL YOU CAN ACTUALLY TYPE IN.
+ *
+ * These were bound straight to the record — value={String(m.have)} with a save
+ * on every keystroke — and both halves of that were wrong.
+ *
+ * The number boxes could not be cleared: emptying one ran the text through a
+ * parser that turns "" into 0, so the 0 came straight back, and the next digits
+ * landed around it. Typing 12 into a box showing 0 produced ONE HUNDRED AND TWO,
+ * in the file the line is accepted on. Nobody would ever have reported that as a
+ * bug in the box; they would have reported that Faultline had the wrong number.
+ *
+ * And a save per keystroke is a write per keystroke: the clock moves, the row
+ * pushes, and a two-device team syncs eleven versions of a word being typed.
+ *
+ * So the cell holds its own text while it has focus and commits once, on blur or
+ * Enter — with Escape to put it back. Which is also what every spreadsheet on
+ * earth does, and this is a screen full of people who live in spreadsheets. */
+function useDraft(value: string) {
+  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(false);
+  // While somebody is typing, their text wins. The moment they leave, the record
+  // wins again — including a change that arrived from another device mid-edit.
+  useEffect(() => { if (!editing) setDraft(value); }, [value, editing]);
+  return { draft, setDraft, editing, setEditing };
+}
+
+function TextCell({ value, onCommit, placeholder, className = '' }: {
+  value: string; onCommit: (v: string) => void; placeholder?: string; className?: string;
+}) {
+  const { draft, setDraft, setEditing } = useDraft(value);
+  return (
+    <input
+      className={'cm-cell ' + className} placeholder={placeholder} value={draft}
+      onFocus={() => setEditing(true)}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { setEditing(false); if (draft !== value) onCommit(draft); }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') { setDraft(value); setEditing(false); e.currentTarget.blur(); }
+      }}
+    />
+  );
+}
+
+function NumCell({ value, onCommit, className = '' }: {
+  value: number; onCommit: (v: number) => void; className?: string;
+}) {
+  const { draft, setDraft, setEditing } = useDraft(String(value));
+  return (
+    <input
+      className={'cm-cell cm-num ' + className} inputMode="decimal" value={draft}
+      onFocus={e => { setEditing(true); e.currentTarget.select(); }}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => {
+        setEditing(false);
+        // An emptied box means zero once you leave it, not while you are typing.
+        const next = draft.trim() === '' ? 0 : num(draft);
+        if (next !== value) onCommit(next);
+        setDraft(String(next));
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') { setDraft(String(value)); setEditing(false); e.currentTarget.blur(); }
+      }}
+    />
+  );
+}
+
+/** ADDING TEN OF SOMETHING SHOULD COST TEN TYPES, NOT TEN MOUSE TRIPS.
+ *
+ * Every add form used to leave focus wherever the submit put it — usually the
+ * rate box — so the second program meant reaching for the mouse again. Somebody
+ * entering a machine's twelve formats off a sheet of paper does that eleven
+ * times. The cursor goes back to the first field instead. */
+function useAddAgain() {
+  const first = useRef<HTMLInputElement>(null);
+  return { first, again: () => first.current?.focus() };
+}
+
+/** The one destructive control on the page, so it asks. A record typed by
+ *  mistake has to be removable — until now nothing on this screen could be
+ *  deleted, and a fat-fingered row counted against the verdict for ever. */
+function Bin({ what, onGo }: { what: string; onGo: () => void }) {
+  return (
+    <button className="cm-bin" title={`Delete ${what}`} aria-label={`Delete ${what}`}
+      onClick={() => { if (confirm(`Delete “${what}”? This cannot be undone.`)) onGo(); }}>×</button>
+  );
+}
+
 /** A section that only appears once it has something in it, plus its add row.
  *  An empty list with a heading is a page telling you about work you have not
  *  started; the add row is enough. */
@@ -39,7 +128,11 @@ function Section({ title, sub, count, children, add }: {
         <h2>{title} {count > 0 && <span className="cm-sec-n">{count}</span>}</h2>
         <p className="sub">{sub}</p>
       </header>
-      {children}
+      {/* Only the TABLE scrolls sideways on a phone, never the section. When the
+          whole section was the scroller, pushing the table across took the
+          heading and its one-line explanation with it, so you ended up reading
+          an unlabelled grid of numbers. */}
+      {children && <div className="cm-scroll">{children}</div>}
       <div className="cm-add">{add}</div>
     </section>
   );
@@ -51,6 +144,7 @@ function Programs({ rows, cm, asset }: { rows: Program[]; cm: ReturnType<typeof 
   const [title, setTitle] = useState('');
   const [rate, setRate] = useState('');
   const [runFor, setRunFor] = useState<string | null>(null);
+  const { first, again } = useAddAgain();
 
   const STATUS = { missing: 'No program', untested: 'Not run', below: 'Below rate', proven: 'Proven at rate' };
 
@@ -63,9 +157,9 @@ function Programs({ rows, cm, asset }: { rows: Program[]; cm: ReturnType<typeof 
           e.preventDefault();
           if (!title.trim() || num(rate) <= 0) return;
           void cm.addProgram(title, num(rate), asset);
-          setTitle(''); setRate('');
+          setTitle(''); setRate(''); again();
         }}>
-          <input placeholder="Product or format — 250g tray" value={title} onChange={e => setTitle(e.target.value)} />
+          <input ref={first} placeholder="Product or format — 250g tray" value={title} onChange={e => setTitle(e.target.value)} />
           <input className="cm-num" placeholder="rate" inputMode="decimal" value={rate} onChange={e => setRate(e.target.value)} />
           <span className="cm-unit">ppm</span>
           <button className="btn" type="submit">Add program</button>
@@ -74,7 +168,7 @@ function Programs({ rows, cm, asset }: { rows: Program[]; cm: ReturnType<typeof 
     >
       {rows.length > 0 && (
         <table className="cm-t">
-          <thead><tr><th /><th>Product</th><th className="r">Agreed</th><th className="r">Best run</th><th>Status</th><th /></tr></thead>
+          <thead><tr><th /><th>Product</th><th className="r">Agreed</th><th className="r">Best run</th><th>Status</th><th /><th /></tr></thead>
           <tbody>
             {rows.map(p => {
               const st = programStatus(p);
@@ -83,8 +177,17 @@ function Programs({ rows, cm, asset }: { rows: Program[]; cm: ReturnType<typeof 
                 <Fragment key={p.id}>
                   <tr>
                     <td>{dot(stateOf(p))}</td>
-                    <td><b>{p.title}</b>{p.runs?.length ? <span className="cm-sub"> · {p.runs.length} run{p.runs.length > 1 ? 's' : ''}</span> : null}</td>
-                    <td className="r">{p.agreedRate} {p.rateUnit ?? 'ppm'}</td>
+                    <td>
+                      <TextCell className="cm-wide" value={p.title} onCommit={v => v.trim() && void cm.save({ ...p, title: v.trim() })} />
+                      {p.runs?.length ? <span className="cm-sub"> · {p.runs.length} run{p.runs.length > 1 ? 's' : ''}</span> : null}
+                    </td>
+                    <td className="r">
+                      {/* The agreed rate is contractual, and it was static text — so a
+                          6 typed for a 60 was permanent and every run after it read
+                          as proven. */}
+                      <NumCell value={p.agreedRate} onCommit={v => void cm.save({ ...p, agreedRate: v })} />
+                      <span className="cm-unit">{p.rateUnit ?? 'ppm'}</span>
+                    </td>
                     <td className="r">{best ? `${best.achieved}` : '—'}</td>
                     <td><span className={'cm-tag is-' + st}>{STATUS[st]}</span></td>
                     <td className="r">
@@ -92,11 +195,12 @@ function Programs({ rows, cm, asset }: { rows: Program[]; cm: ReturnType<typeof 
                         Record a run
                       </button>
                     </td>
+                    <td className="r"><Bin what={p.title} onGo={() => void cm.remove(p.id)} /></td>
                   </tr>
                   {runFor === p.id && (
                     <tr className="cm-runrow">
                       <td />
-                      <td colSpan={5}><RunForm p={p} cm={cm} done={() => setRunFor(null)} /></td>
+                      <td colSpan={6}><RunForm p={p} cm={cm} done={() => setRunFor(null)} /></td>
                     </tr>
                   )}
                 </Fragment>
@@ -152,6 +256,8 @@ function RunForm({ p, cm, done }: { p: Program; cm: ReturnType<typeof useCommiss
 function Materials({ rows, cm, asset }: { rows: Material[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
   const [title, setTitle] = useState('');
   const [need, setNeed] = useState('');
+  const [unit, setUnit] = useState('');
+  const { first, again } = useAddAgain();
   const WORD = { have: 'Have it', awaited: 'On order', short: 'Nothing ordered', late: 'Overdue' };
 
   return (
@@ -162,37 +268,40 @@ function Materials({ rows, cm, asset }: { rows: Material[]; cm: ReturnType<typeo
         <form className="cm-add-f" onSubmit={e => {
           e.preventDefault();
           if (!title.trim()) return;
-          void cm.addMaterial(title, num(need), asset);
-          setTitle(''); setNeed('');
+          // The unit was never askable, so every material read as a bare number —
+          // "40" of something, on the sheet handed to the OEM. Rolls, cases, kg:
+          // it is one word and it is the difference between a quantity and a
+          // number.
+          void cm.addMaterial(title, num(need), asset, unit.trim() || undefined);
+          setTitle(''); setNeed(''); again();
         }}>
-          <input placeholder="Item — 980mm film" value={title} onChange={e => setTitle(e.target.value)} />
+          <input ref={first} placeholder="Item — 980mm film" value={title} onChange={e => setTitle(e.target.value)} />
           <input className="cm-num" placeholder="need" inputMode="numeric" value={need} onChange={e => setNeed(e.target.value)} />
+          <input className="cm-unitin" placeholder="rolls" value={unit} onChange={e => setUnit(e.target.value)} />
           <button className="btn" type="submit">Add material</button>
         </form>
       }
     >
       {rows.length > 0 && (
         <table className="cm-t">
-          <thead><tr><th /><th>Item</th><th className="r">Need</th><th className="r">Have</th><th className="r">On order</th><th>Due</th><th>Status</th></tr></thead>
+          <thead><tr><th /><th>Item</th><th className="r">Need</th><th className="r">Have</th><th className="r">On order</th><th>Due</th><th>Status</th><th /></tr></thead>
           <tbody>
             {rows.map(m => (
               <tr key={m.id}>
                 <td>{dot(stateOf(m))}</td>
-                <td><b>{m.title}</b></td>
-                <td className="r">{m.need}{m.unit ? ' ' + m.unit : ''}</td>
+                <td><TextCell className="cm-wide" value={m.title} onCommit={v => v.trim() && void cm.save({ ...m, title: v.trim() })} /></td>
                 <td className="r">
-                  <input className="cm-cell" inputMode="numeric" value={String(m.have)}
-                    onChange={e => void cm.save({ ...m, have: num(e.target.value) })} />
+                  <NumCell value={m.need} onCommit={v => void cm.save({ ...m, need: v })} />
+                  <span className="cm-unit">{m.unit ?? ''}</span>
                 </td>
-                <td className="r">
-                  <input className="cm-cell" inputMode="numeric" value={String(m.onOrder ?? 0)}
-                    onChange={e => void cm.save({ ...m, onOrder: num(e.target.value) })} />
-                </td>
+                <td className="r"><NumCell value={m.have} onCommit={v => void cm.save({ ...m, have: v })} /></td>
+                <td className="r"><NumCell value={m.onOrder ?? 0} onCommit={v => void cm.save({ ...m, onOrder: v })} /></td>
                 <td>
                   <input className="cm-cell cm-date" type="date" value={m.due ?? ''}
                     onChange={e => void cm.save({ ...m, due: e.target.value || undefined })} />
                 </td>
                 <td><span className={'cm-tag is-' + stateOf(m)}>{WORD[materialStatus(m)]}</span></td>
+                <td className="r"><Bin what={m.title} onGo={() => void cm.remove(m.id)} /></td>
               </tr>
             ))}
           </tbody>
@@ -207,6 +316,7 @@ function Materials({ rows, cm, asset }: { rows: Material[]; cm: ReturnType<typeo
 function Checks({ rows, cm, asset }: { rows: Check[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
   const [title, setTitle] = useState('');
   const [criterion, setCriterion] = useState('');
+  const { first, again } = useAddAgain();
 
   return (
     <Section
@@ -217,9 +327,9 @@ function Checks({ rows, cm, asset }: { rows: Check[]; cm: ReturnType<typeof useC
           e.preventDefault();
           if (!title.trim()) return;
           void cm.addCheck(title, criterion, asset);
-          setTitle(''); setCriterion('');
+          setTitle(''); setCriterion(''); again();
         }}>
-          <input placeholder="Test — emergency stops" value={title} onChange={e => setTitle(e.target.value)} />
+          <input ref={first} placeholder="Test — emergency stops" value={title} onChange={e => setTitle(e.target.value)} />
           <input placeholder="What good looks like" value={criterion} onChange={e => setCriterion(e.target.value)} />
           <button className="btn" type="submit">Add check</button>
         </form>
@@ -227,20 +337,23 @@ function Checks({ rows, cm, asset }: { rows: Check[]; cm: ReturnType<typeof useC
     >
       {rows.length > 0 && (
         <table className="cm-t">
-          <thead><tr><th /><th>Test</th><th>Criterion</th><th>Result</th><th>Witnessed</th><th /></tr></thead>
+          <thead><tr><th /><th>Test</th><th>Criterion</th><th>Result</th><th>Witnessed</th><th /><th /></tr></thead>
           <tbody>
             {rows.map(c => (
               <tr key={c.id}>
                 <td>{dot(stateOf(c))}</td>
-                <td><b>{c.title}</b></td>
-                <td className="cm-sub">{c.criterion || '—'}</td>
+                <td><TextCell value={c.title} onCommit={v => v.trim() && void cm.save({ ...c, title: v.trim() })} /></td>
                 <td>
-                  <input className="cm-cell cm-wide" placeholder="what happened" value={c.result ?? ''}
-                    onChange={e => void cm.save({ ...c, result: e.target.value || undefined })} />
+                  <TextCell className="cm-wide" placeholder="what good looks like" value={c.criterion}
+                    onCommit={v => void cm.save({ ...c, criterion: v })} />
                 </td>
                 <td>
-                  <input className="cm-cell" placeholder="who" value={c.witnessedBy ?? ''}
-                    onChange={e => void cm.save({ ...c, witnessedBy: e.target.value || undefined })} />
+                  <TextCell className="cm-wide" placeholder="what happened" value={c.result ?? ''}
+                    onCommit={v => void cm.save({ ...c, result: v || undefined })} />
+                </td>
+                <td>
+                  <TextCell placeholder="who" value={c.witnessedBy ?? ''}
+                    onCommit={v => void cm.save({ ...c, witnessedBy: v || undefined })} />
                 </td>
                 <td className="r cm-outcome">
                   {(['pass', 'fail', 'notRun'] as const).map(o => (
@@ -250,6 +363,7 @@ function Checks({ rows, cm, asset }: { rows: Check[]; cm: ReturnType<typeof useC
                     </button>
                   ))}
                 </td>
+                <td className="r"><Bin what={c.title} onGo={() => void cm.remove(c.id)} /></td>
               </tr>
             ))}
           </tbody>
@@ -268,6 +382,7 @@ const SEV_WORD: Record<Severity, string> = {
 function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
   const [title, setTitle] = useState('');
   const [sev, setSev] = useState<Severity>('B');
+  const { first, again } = useAddAgain();
 
   return (
     <Section
@@ -278,9 +393,9 @@ function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof u
           e.preventDefault();
           if (!title.trim()) return;
           void cm.addPunch(title, sev, asset);
-          setTitle('');
+          setTitle(''); again();
         }}>
-          <input placeholder="Defect — former roller misaligned" value={title} onChange={e => setTitle(e.target.value)} />
+          <input ref={first} placeholder="Defect — former roller misaligned" value={title} onChange={e => setTitle(e.target.value)} />
           <select value={sev} onChange={e => setSev(e.target.value as Severity)}>
             {(['A', 'B', 'C'] as const).map(s => <option key={s} value={s}>{SEV_WORD[s]}</option>)}
           </select>
@@ -290,7 +405,7 @@ function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof u
     >
       {rows.length > 0 && (
         <table className="cm-t">
-          <thead><tr><th /><th>Sev</th><th>Defect</th><th>Fix by</th><th /></tr></thead>
+          <thead><tr><th /><th>Sev</th><th>Defect</th><th>Fix by</th><th /><th /></tr></thead>
           <tbody>
             {rows.map(p => (
               <tr key={p.id} className={isOpen(p) ? '' : 'cm-closed'}>
@@ -301,10 +416,10 @@ function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof u
                     {(['A', 'B', 'C'] as const).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </td>
-                <td><b>{p.title}</b></td>
+                <td><TextCell className="cm-wide" value={p.title} onCommit={v => v.trim() && void cm.save({ ...p, title: v.trim() })} /></td>
                 <td>
-                  <input className="cm-cell" placeholder="OEM / us" value={p.fixBy ?? ''}
-                    onChange={e => void cm.save({ ...p, fixBy: e.target.value || undefined })} />
+                  <TextCell placeholder="OEM / us" value={p.fixBy ?? ''}
+                    onCommit={v => void cm.save({ ...p, fixBy: v || undefined })} />
                 </td>
                 <td className="r">
                   <button className={'btn btn-sm' + (isOpen(p) ? ' btn-ghost' : ' on')}
@@ -312,6 +427,7 @@ function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof u
                     {isOpen(p) ? 'Close' : 'Closed'}
                   </button>
                 </td>
+                <td className="r"><Bin what={p.title} onGo={() => void cm.remove(p.id)} /></td>
               </tr>
             ))}
           </tbody>
@@ -325,6 +441,7 @@ function PunchList({ rows, cm, asset }: { rows: Punch[]; cm: ReturnType<typeof u
 
 function Tasks({ rows, cm, asset }: { rows: Task[]; cm: ReturnType<typeof useCommission>; asset?: string }) {
   const [title, setTitle] = useState('');
+  const { first, again } = useAddAgain();
   const STATES = ['todo', 'doing', 'waiting', 'done'] as const;
   const WORD = { todo: 'To do', doing: 'Doing', waiting: 'Waiting', done: 'Done' };
 
@@ -337,24 +454,24 @@ function Tasks({ rows, cm, asset }: { rows: Task[]; cm: ReturnType<typeof useCom
           e.preventDefault();
           if (!title.trim()) return;
           void cm.addTask(title, asset);
-          setTitle('');
+          setTitle(''); again();
         }}>
-          <input placeholder="Obligation — operators trained on changeover" value={title} onChange={e => setTitle(e.target.value)} />
+          <input ref={first} placeholder="Obligation — operators trained on changeover" value={title} onChange={e => setTitle(e.target.value)} />
           <button className="btn" type="submit">Add</button>
         </form>
       }
     >
       {rows.length > 0 && (
         <table className="cm-t">
-          <thead><tr><th /><th>What</th><th>Who</th><th /></tr></thead>
+          <thead><tr><th /><th>What</th><th>Who</th><th /><th /></tr></thead>
           <tbody>
             {rows.map(t => (
               <tr key={t.id} className={t.state === 'done' ? 'cm-closed' : ''}>
                 <td>{dot(stateOf(t))}</td>
-                <td><b>{t.title}</b></td>
+                <td><TextCell className="cm-wide" value={t.title} onCommit={v => v.trim() && void cm.save({ ...t, title: v.trim() })} /></td>
                 <td>
-                  <input className="cm-cell" placeholder="who" value={t.owner ?? ''}
-                    onChange={e => void cm.save({ ...t, owner: e.target.value || undefined })} />
+                  <TextCell placeholder="who" value={t.owner ?? ''}
+                    onCommit={v => void cm.save({ ...t, owner: v || undefined })} />
                 </td>
                 <td className="r cm-outcome">
                   {STATES.map(s => (
@@ -362,6 +479,7 @@ function Tasks({ rows, cm, asset }: { rows: Task[]; cm: ReturnType<typeof useCom
                       onClick={() => void cm.save({ ...t, state: s })}>{WORD[s]}</button>
                   ))}
                 </td>
+                <td className="r"><Bin what={t.title} onGo={() => void cm.remove(t.id)} /></td>
               </tr>
             ))}
           </tbody>
@@ -384,12 +502,54 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
   const assets = useMemo(() => byAsset(cm.items), [cm.items]);
   const whole = useMemo(() => readiness(cm.items), [cm.items]);
 
-  /* Default to the first asset that has something wrong with it. Opening on a
+  /* MACHINES YOU HAVE NAMED BUT NOT YET PUT ANYTHING ON.
+   *
+   * An asset is not a record of its own — it is the name its items carry, which
+   * is why there is no machine table, no migration and nothing extra to sync. It
+   * also meant there was NO WAY TO CREATE ONE: on a fresh project the bar was
+   * empty, every add landed on "the line itself", and the spine of the whole
+   * model was unreachable. You could read a handover organised by machine and
+   * never write one.
+   *
+   * So a machine can exist here for as long as it takes to type the first thing
+   * onto it. Nothing is stored: name it, add a program, and from then on the
+   * items carry it themselves. */
+  const [named, setNamed] = useState<string[]>([]);
+  const tabs = useMemo(() => {
+    const real = assets.map(a => a.asset);
+    const extra = named.filter(n => !real.includes(n));
+    // The line's own work sits last, after the machines, exactly as it does on
+    // the A3 — and it is always offered, so there is always somewhere to put the
+    // training and the safety file.
+    return [...real.filter(a => a !== LINE_ITSELF), ...extra, LINE_ITSELF];
+  }, [assets, named]);
+
+  /* Default to the first machine that has something wrong with it. Opening on a
      machine that is finished is a page that has hidden the news. */
-  const current = asset ?? assets.find(a => !a.ready.canSignOff)?.asset ?? assets[0]?.asset ?? null;
-  const shown = current == null ? cm.items : (assets.find(a => a.asset === current)?.items ?? []);
-  const forAsset = current === LINE_ITSELF ? undefined : current ?? undefined;
+  const current = asset ?? assets.find(a => !a.ready.canSignOff)?.asset ?? tabs[0];
+  const here = assets.find(a => a.asset === current);
+  const shown = here?.items ?? [];
+  const forAsset = current === LINE_ITSELF ? undefined : current;
   const nothingYet = cm.items.filter(i => !i.deletedAt).length === 0;
+
+  const addMachine = () => {
+    const name = prompt('What is the machine called?\n\ne.g. Brillopack bagger, Ishida multihead')?.trim();
+    if (!name || name === LINE_ITSELF) return;
+    setNamed(n => (n.includes(name) ? n : [...n, name]));
+    setAsset(name);
+  };
+
+  /** Renaming a machine moves everything standing on it, because the name IS the
+   *  link. Typing it wrong once and living with it for the whole handover is not
+   *  a reasonable thing to ask. */
+  const renameMachine = async () => {
+    if (!current || current === LINE_ITSELF) return;
+    const name = prompt('Rename this machine', current)?.trim();
+    if (!name || name === current) return;
+    for (const i of cm.items.filter(i => i.asset === current)) await cm.save({ ...i, asset: name });
+    setNamed(n => n.map(x => (x === current ? name : x)));
+    setAsset(name);
+  };
 
   /* THE SHEET. Built from the records, never from this page — see
      lib/buildCommissionReport. Rasterising the DOM made the output depend on a
@@ -496,19 +656,37 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
         </p>
       </section>
 
-      {/* One machine at a time. */}
-      {assets.length > 1 && (
-        <nav className="cm-assets" aria-label="Asset">
-          {assets.map(a => (
-            <button key={a.asset}
-              className={'cm-asset' + (a.asset === current ? ' on' : '')}
-              onClick={() => setAsset(a.asset)}>
-              <span className="cm-asset-n">{a.asset}</span>
-              <span className="cm-asset-s">{a.ready.canSignOff ? 'ready' : `${a.ready.blockers.length} open`}</span>
+      {/* ONE MACHINE AT A TIME, AND ALWAYS VISIBLE.
+          The bar used to appear only once a second machine existed, so on the
+          way to having one it was invisible — and it is the control that decides
+          where everything you type lands. A page whose most consequential choice
+          is hidden until you have already made it is not a choice. */}
+      <nav className="cm-assets" aria-label="Machine">
+        {tabs.map(name => {
+          const a = assets.find(x => x.asset === name);
+          return (
+            <button key={name}
+              className={'cm-asset' + (name === current ? ' on' : '') + (name === LINE_ITSELF ? ' is-line' : '')}
+              onClick={() => setAsset(name)}>
+              <span className="cm-asset-n">{name}</span>
+              <span className="cm-asset-s">
+                {!a ? 'nothing on it yet' : a.ready.canSignOff ? 'ready' : `${a.ready.blockers.length} open`}
+              </span>
             </button>
-          ))}
-        </nav>
-      )}
+          );
+        })}
+        <button className="cm-asset cm-asset-add" onClick={addMachine}>
+          <span className="cm-asset-n">+ Machine</span>
+          <span className="cm-asset-s">bagger, checkweigher…</span>
+        </button>
+      </nav>
+
+      {/* What you are about to type onto, said in words rather than left to the
+          highlighted tab — this is the line everything below it inherits. */}
+      <p className="cm-where">
+        Adding to <b>{current}</b>
+        {current !== LINE_ITSELF && <> · <button className="cm-link" onClick={() => void renameMachine()}>rename</button></>}
+      </p>
 
       <Programs rows={of('program')} cm={cm} asset={forAsset} />
       <Materials rows={of('material')} cm={cm} asset={forAsset} />

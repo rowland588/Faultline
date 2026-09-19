@@ -2941,6 +2941,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
 }
 .spine-trail::-webkit-scrollbar { display: none; }
+/* The trail is scrolled to its END, so on a narrow screen the leftmost crumb is
+   usually cut mid-word — "nissioning › Commissioning", which reads as a bug
+   rather than as more text off to the left. A few pixels of fade says "clipped".
+   Harmless on a trail short enough not to scroll. */
+.spine-trail {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px);
+  mask-image: linear-gradient(to right, transparent 0, #000 12px);
+}
 .spine-w { display: inline-flex; align-items: center; gap: 2px; flex: none; }
 .spine-sep { color: var(--muted); opacity: 0.55; font-size: 12px; padding: 0 1px; }
 .spine-crumb {
@@ -4444,9 +4452,23 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* On a phone the tables scroll rather than squash: a rate and the figure it is
    measured against must stay on the same line to be worth reading. */
 @media (max-width: 720px) {
-  .cm-sec { overflow-x: auto; }
+  .cm-scroll { overflow-x: auto; }
   .cm-t { min-width: 560px; }
   .cm-add-f input { flex: 1 1 100%; }
+
+  /* THE NAME COMES WITH YOU. Scrolling a table sideways on a phone takes the
+     item's name off the left edge, so you end up reading a rate, a status and a
+     Record-a-run button with no idea which product they belong to — on a factory
+     floor, next to the machine, which is exactly where this gets used. The dot
+     and the name stay pinned; everything else slides under them. */
+  .cm-t th:first-child, .cm-t td:first-child,
+  .cm-t th:nth-child(2), .cm-t td:nth-child(2) {
+    position: sticky; z-index: 1; background: var(--bg);
+  }
+  .cm-t th:first-child, .cm-t td:first-child { left: 0; }
+  .cm-t th:nth-child(2), .cm-t td:nth-child(2) { left: 24px; }
+  /* A hairline so the pinned name reads as pinned rather than as overlap. */
+  .cm-t th:nth-child(2), .cm-t td:nth-child(2) { box-shadow: 1px 0 0 var(--line); }
 }
 
 /* PRINTED FROM THE BROWSER, which is not the same thing as the A3.
@@ -4466,3 +4488,31 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   /* A verdict split across a page break is a verdict somebody reads half of. */
   .cm-screen .cm-verdict-card, .cm-screen .cm-sec { break-inside: avoid; }
 }
+
+/* ---- the machine bar, the bin, and the cells you type in ---- */
+.cm-asset.is-line .cm-asset-n { font-style: italic; color: var(--ink-2); }
+.cm-asset-add { border-style: dashed; color: var(--accent); }
+.cm-asset-add .cm-asset-n { color: var(--accent); }
+
+.cm-where { margin: -8px 0 16px; font-size: 12.5px; color: var(--muted); }
+.cm-where b { color: var(--ink); }
+.cm-link {
+  padding: 0; font: inherit; font-size: inherit; color: var(--accent);
+  background: none; border: 0; cursor: pointer; text-decoration: underline;
+}
+
+/* The bin is deliberately quiet until you are on the row: a delete that catches
+   the eye is a delete somebody eventually presses by accident. */
+.cm-bin {
+  padding: 0 6px; font: inherit; font-size: 16px; line-height: 1;
+  color: var(--line-2); background: none; border: 0; cursor: pointer; border-radius: 6px;
+}
+.cm-t tr:hover .cm-bin { color: var(--muted); }
+.cm-bin:hover { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 10%, transparent); }
+.cm-bin:focus-visible { color: var(--st-r); outline: 2px solid var(--st-r); outline-offset: 1px; }
+
+/* The figures that are now editable — an agreed rate, a quantity — are narrower
+   than a name and read right-aligned, the way a number column should. The rest
+   of the cell styling is above: it already looks like text until you touch it. */
+.cm-t .cm-num { max-width: 66px; }
+.cm-add-f .cm-unitin { flex: 0 0 82px; }
