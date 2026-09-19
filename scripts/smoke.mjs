@@ -64,7 +64,6 @@ const ROUTES = [
   ['3P board', `#/project/${seeded.projectId}/board`],
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['commissioning', `#/project/${seeded.projectId}/commissioning`],
-  ['commission run', `#/project/${seeded.projectId}/commissioning/run`],
   ['project line', `#/project/${seeded.projectId}/line/${seeded.lineId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],

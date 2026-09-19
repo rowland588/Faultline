@@ -1,15 +1,21 @@
-/* THE COMMISSIONING A3 — the sheet you send round.
+/* THE HANDOVER SHEET — the A3 you send round, and hand over at sign-off.
  *
- * One job: somebody who was not in the room opens this and understands where
- * the line is, without a covering note. So it runs the same four questions the
- * screen does, in the same order, and it leads with the two numbers that decide
- * whether the handover happens — how ready, and how many acceptance checks have
- * actually passed.
+ * One job: somebody who was not on the line opens this and knows whether it can
+ * be accepted, and if not, exactly what is stopping it. So page 1 answers that
+ * question in the first two inches and the rest of the sheet is the evidence for
+ * the answer — never the other way round.
  *
- * Page 1 is the answer. Page 2 onward is the evidence for it: every item, by
- * workstream, with its target beside its result so nobody has to take the
- * summary on trust. Splitting it that way means page 1 can be photographed and
- * sent on its own, which is what actually happens to a status sheet.
+ * THIS IS NOT A STATUS REPORT. The first version of this file was: a readiness
+ * percentage as the hero, workstreams down the side, quarterly progress. A
+ * percentage is the easiest thing in the world to nod at, and a handover is not
+ * a percentage — it is a yes or a no with a list attached. So the hero is the
+ * VERDICT, the panel beside it is what stands in the way in the order it will be
+ * said out loud, and the number is demoted to a bar underneath.
+ *
+ * EVERY WORD ON PAGE 1 COMES OUT OF readiness(). Nothing here re-derives a
+ * verdict, re-counts a check or re-decides what blocks sign-off: the screen and
+ * this sheet read the same function, so they cannot disagree in front of an OEM.
+ * That is the whole reason the builder is separate from the drawer.
  *
  * Drawn from numbers, never from the DOM — same rule as the GM report. What is
  * on screen is a preview OF this, not the source of it.
@@ -18,66 +24,87 @@ import {
   INK, INK2, MUTED, LINE, BRAND, OK, WARN, DANGER, BLUE,
   san, setFont, fit, panel, wash, type Doc,
 } from './reportKit';
+import type { CommissionKind, ReadyState, Readiness } from './commissioning';
 
-export interface CommissionReportRow {
-  stream: string;
-  kind: 'check' | 'supply' | 'task';
+/** One picture, decoded and measured before the drawer ever runs.
+ *
+ *  Photographs somebody took and stills off the line walk arrive as the same
+ *  thing, because on paper they do the same job — they are the thing itself. A
+ *  walk still carries its snag's own words as `caption`, which is what makes it
+ *  evidence rather than a picture of a machine. */
+export interface Shot { data: string; w: number; h: number; caption?: string }
+
+/** One record, flattened to what the sheet prints. Built by
+ *  buildCommissionReport — nothing assembles one of these by hand. */
+export interface HandoverRow {
+  /** The machine this sits on. The sheet is grouped by it and the grouping is
+   *  never broken mid-asset, because a machine split across two headings reads
+   *  as two machines. */
+  asset: string;
+  kind: CommissionKind;
+  /** 'Program' · 'Material' · 'Check' · 'Defect A' · 'Task'. The severity is part
+   *  of the word, because "Defect" on its own says nothing about whether it
+   *  stops the handover. */
+  kindLabel: string;
   title: string;
-  /** The item's own one-liner — "4 of 12, 8 on order for 2026-09-24". */
-  line: string;
-  target?: string;
-  result?: string;
-  owner?: string;
+  /** WHAT WAS AGREED, before the machine shipped: the rate, the quantity, the
+   *  acceptance criterion, the grade. The left half of every argument. */
+  agreed: string;
+  /** WHAT ACTUALLY HAPPENED: the best witnessed run, what is on site, the test
+   *  result, when the defect was closed. The right half. Printing them side by
+   *  side is the entire point of the sheet — a result with nothing to measure it
+   *  against is a number, and an agreed figure with no result is a hope. */
+  evidence: string;
+  who?: string;
   due?: string;
-  note?: string;
-  state: 'n' | 'w' | 'a' | 'r' | 'g';
+  state: ReadyState;
+  /** The domain word, not the colour: 'Proven', 'Below rate', 'No program'. */
   stateLabel: string;
-  /** The very next move, decided on the last pass. */
-  next?: string;
-  /** Who decided it, and when — a next step with no name against it is a wish. */
-  nextBy?: string;
-  nextAt?: number;
-  /** How many passes this item has had. Two or more means it has been retested,
-   *  which is the single most useful thing a status sheet can say about it. */
+  /** Whether this row is one of the things stopping sign-off. Marked on the row
+   *  as well as listed on page 1, so the detail sheet can be read on its own. */
+  blocking?: boolean;
+  /** How many runs a program has had. Two or more means it has been retested,
+   *  which is the single most useful thing this sheet can say about it. */
   passes?: number;
-  /** What it did the time BEFORE the current result, when there was one. */
+  /** What it did the time BEFORE the current best, when there was one. */
   was?: string;
   /** Pictures of this item, already decoded to data URLs and measured. Resolved
    *  before the drawer runs, because jsPDF cannot wait for a blob and a report
    *  that renders its text now and its photographs later is a report with holes
-   *  in it.
-   *
-   *  Photographs somebody took and stills off the line walk arrive in the same
-   *  list, because on paper they do the same job — they are the thing itself.
-   *  A walk still carries its snag's own words as `caption`, which is what makes
-   *  it evidence rather than a picture of a machine. */
-  shots?: { data: string; w: number; h: number; caption?: string }[];
+   *  in it. */
+  shots?: Shot[];
 }
 
-export interface CommissionReportData {
+/** One machine's own verdict. A line is accepted one machine at a time and
+ *  "the bagger is proven, the palletiser has not started" is the sentence a
+ *  single project percentage cannot say. */
+export interface HandoverAsset {
+  name: string;
+  canSignOff: boolean;
+  blockers: number;
+  /** 0–1. */
+  pct: number;
+  /** True for the line's own work rather than a machine on it. */
+  isLine: boolean;
+}
+
+export interface HandoverReport {
   title: string;
   lead?: string;
   now: number;
-  /** 0-1. */
-  pct: number;
-  done: number;
-  total: number;
+  /** The verdict, straight off readiness(). Never recomputed here. */
+  canSignOff: boolean;
+  /** Worst first, in the words somebody would use in the meeting. */
+  blockers: { what: string; asset?: string }[];
+  /** One line summarising what the blockers are made of. */
   headline: string;
-  checks: { total: number; passed: number; failed: number; untested: number };
-  streams: { name: string; done: number; total: number; pct: number; risk: number }[];
-  /* ASSETS, when the line has any. A production line is made of machines and
-     each is commissioned in its own right, so "the bagger is 70% and the
-     palletiser has not started" is what a General Manager wants off the top of
-     this sheet — a single project percentage cannot say it. Falls back to the
-     workstreams when nothing names an asset, because a panel headed Assets
-     with one row called "the line itself" is worse than no panel. */
-  assets?: { name: string; done: number; total: number; pct: number; risk: number; isLine: boolean }[];
-  /** Blocked and at-risk, worst first — the reason the sheet gets read. */
-  attention: CommissionReportRow[];
-  rows: CommissionReportRow[];
+  /** Every count on the sheet. */
+  ready: Readiness;
+  assets: HandoverAsset[];
+  rows: HandoverRow[];
 }
 
-const STATE_COLOUR: Record<CommissionReportRow['state'], string> = {
+const STATE_COLOUR: Record<ReadyState, string> = {
   n: MUTED, w: BLUE, a: WARN, r: DANGER, g: OK,
 };
 
@@ -86,9 +113,9 @@ const fmtDate = (ms: number) =>
 
 /* HOW MUCH FITS, AND WHY PAGE 1 IS DIFFERENT.
  *
- * The detail starts on page 1, underneath the status, rather than on a sheet of
- * its own. The first cut of this report gave the status a whole A3 and the
- * result was two thirds of a sheet of white paper — which on a status report is
+ * The detail starts on page 1, underneath the verdict, rather than on a sheet of
+ * its own. The first cut of this report gave the verdict a whole A3 and the
+ * result was two thirds of a sheet of white paper — which on a handover sheet is
  * not restraint, it is a page that failed to say anything with the room it had.
  * So page 1 carries the answer AND as much of the evidence as fits, and only
  * what is left over starts a second sheet.
@@ -98,53 +125,52 @@ const fmtDate = (ms: number) =>
  * disagree with the pages — the fault that once stamped a four-page GM report
  * "page 2 of 3". */
 const ROW_H = 13.5;
-const STREAM_HEAD_H = 16;
+const GROUP_HEAD_H = 16;
 
-/* The workstream list goes two-up past this many. A commissioning job with
-   seven workstreams is normal, and a single column of seven made the status
-   panels 250pt tall — which pushed the detail onto a second sheet that was
-   then nine tenths white paper. Two short columns say the same thing in half
-   the height and leave the evidence where it belongs, under the summary. */
-const STREAMS_ONE_COL = 5;
-const STREAM_ROW_H = 22;
+/* The asset list goes two-up past this many. A line of seven machines is
+   ordinary, and a single column of seven made the panels 250pt tall — which
+   pushed the detail onto a second sheet that was then nine tenths white paper.
+   Two short columns say the same thing in half the height. */
+const ASSETS_ONE_COL = 5;
+const ASSET_ROW_H = 22;
 const PANEL_HEAD_H = 30;
 
-/** How the detail splits: whole workstreams, never half of one, because a
- *  stream cut in two reads as two different streams to anybody skimming. A
- *  stream longer than a whole sheet is the one exception — it has to break.
+/** How the detail splits: whole assets, never half of one, because a machine cut
+ *  in two reads as two different machines to anybody skimming. A machine with
+ *  more items than fit on a whole sheet is the one exception — it has to break.
  *
  *  THAT EXCEPTION USED TO BE A COMMENT AND NOT CODE. An oversized block was
- *  pushed onto the sheet whole, so sixty items on one workstream produced a
- *  single sheet costing 826pt against a 200pt budget. The drawing loop stops at
- *  the page bottom rather than running off it, so the surplus was not drawn
- *  badly — it was not drawn at all, and nothing on the page said forty-six
- *  items were missing. A commissioning report that has quietly stopped listing
- *  most of a workstream is worse than one that runs to three sheets. */
+ *  pushed onto the sheet whole, so sixty items on one machine produced a single
+ *  sheet costing 826pt against a 200pt budget. The drawing loop stops at the
+ *  page bottom rather than running off it, so the surplus was not drawn badly —
+ *  it was not drawn at all, and nothing on the page said forty-six items were
+ *  missing. A handover sheet that has quietly stopped listing most of a machine
+ *  is worse than one that runs to three sheets. */
 export function commissionSheets(
-  rows: CommissionReportRow[], first: number, rest: number,
-): CommissionReportRow[][] {
-  const out: CommissionReportRow[][] = [];
-  let cur: CommissionReportRow[] = [];
+  rows: HandoverRow[], first: number, rest: number,
+): HandoverRow[][] {
+  const out: HandoverRow[][] = [];
+  let cur: HandoverRow[] = [];
   let cap = first;
   let i = 0;
-  const cost = (block: CommissionReportRow[]) => block.length * ROW_H + STREAM_HEAD_H;
-  /** The most rows of one stream a sheet of this budget can actually draw. At
+  const cost = (block: HandoverRow[]) => block.length * ROW_H + GROUP_HEAD_H;
+  /** The most rows of one asset a sheet of this budget can actually draw. At
    *  least one, always: a budget too small for a single row would otherwise
    *  loop for ever emitting empty sheets. */
-  const fitRows = (budget: number) => Math.max(1, Math.floor((budget - STREAM_HEAD_H) / ROW_H));
+  const fitRows = (budget: number) => Math.max(1, Math.floor((budget - GROUP_HEAD_H) / ROW_H));
   let used = 0;
 
   while (i < rows.length) {
-    const stream = rows[i].stream;
-    const block: CommissionReportRow[] = [];
-    while (i < rows.length && rows[i].stream === stream) { block.push(rows[i]); i++; }
+    const asset = rows[i].asset;
+    const block: HandoverRow[] = [];
+    while (i < rows.length && rows[i].asset === asset) { block.push(rows[i]); i++; }
 
     if (cur.length && used + cost(block) > cap) {
       out.push(cur); cur = []; used = 0; cap = rest;
     }
 
     // Still too big for a sheet of its own? Then it is the documented exception.
-    // Break it into sheet-sized pieces; each piece redraws the stream heading,
+    // Break it into sheet-sized pieces; each piece redraws the asset heading,
     // because the drawing resets its heading tracker per sheet.
     if (cost(block) > cap) {
       let at = 0;
@@ -168,43 +194,40 @@ export function commissionSheets(
   return out.length ? out : [[]];
 }
 
-/** How many rows down the workstream list runs, once it has gone two-up. */
-const streamRows = (n: number): number =>
-  n <= STREAMS_ONE_COL ? n : Math.ceil(n / 2);
+/** How many rows down the asset list runs, once it has gone two-up. */
+const assetRows = (n: number): number =>
+  n <= ASSETS_ONE_COL ? n : Math.ceil(n / 2);
 
 /** How tall the two panels need to be to hold what goes in them.
  *
  *  This mirrors the drawing below EXACTLY, and that is the whole point: the
- *  first cut guessed at it, guessed low, and the workstreams panel quietly drew
- *  five of seven streams — a status report that had silently stopped listing
- *  two parts of the job. Any panel that can truncate must either be sized to
- *  its contents or say out loud that it did not fit. This one is sized. */
-/** Whichever list panel 1 is drawing — assets when the job has them. */
-const panelRows = (data: CommissionReportData) =>
-  data.assets?.length ? data.assets : data.streams;
-
-function panelsHeight(data: CommissionReportData): number {
-  const streams = PANEL_HEAD_H + 22 + streamRows(panelRows(data).length) * STREAM_ROW_H + 8;
+ *  first cut guessed at it, guessed low, and the list panel quietly drew five of
+ *  seven rows — a sheet that had silently stopped listing two parts of the job.
+ *  Any panel that can truncate must either be sized to its contents or say out
+ *  loud that it did not fit. This one is sized. */
+function panelsHeight(data: HandoverReport): number {
+  const assets = PANEL_HEAD_H + 22 + assetRows(Math.max(1, data.assets.length)) * ASSET_ROW_H + 8;
   /* +16 rather than +10: the drawing stops when the NEXT card would not clear
      the panel floor, so the height has to hold the last card plus that check.
      Two points short of it and the panel dropped a blocker it had room for and
      announced "+1 more" underneath the gap. */
-  const attention = PANEL_HEAD_H + 20 + Math.max(1, data.attention.length) * 30 + 16;
-  return Math.min(330, Math.max(126, Math.max(streams, attention)));
+  const blockers = PANEL_HEAD_H + 20 + Math.max(1, data.blockers.length) * 26 + 16;
+  return Math.min(330, Math.max(126, Math.max(assets, blockers)));
 }
 
-/* ---------- page 1: where we are, then as much of the evidence as fits ------- */
-function drawStatus(d: Doc, data: CommissionReportData): number {
+/* ---------- page 1: the verdict, then as much of the evidence as fits ------- */
+function drawVerdict(d: Doc, data: HandoverReport): number {
   const W = d.internal.pageSize.getWidth();
   const M = 26, CW = W - 2 * M;
+  const r = data.ready;
 
   /* masthead */
   setFont(d, 8.5, 'bold', BRAND);
-  d.text('COMMISSIONING · READINESS', M, M + 10);
+  d.text('COMMISSIONING · SIGN-OFF', M, M + 10);
   setFont(d, 26, 'bold', INK);
   d.text(fit(d, san(data.title), CW * 0.62), M, M + 38);
   setFont(d, 9, 'normal', MUTED);
-  d.text(`Status as at ${fmtDate(data.now)}`, W - M, M + 14, { align: 'right' });
+  d.text(`Handover status as at ${fmtDate(data.now)}`, W - M, M + 14, { align: 'right' });
   if (data.lead) {
     setFont(d, 9, 'bold', INK2);
     d.text(san(data.lead), W - M, M + 28, { align: 'right' });
@@ -214,211 +237,231 @@ function drawStatus(d: Doc, data: CommissionReportData): number {
   d.setDrawColor(BRAND); d.setLineWidth(1.6);
   d.line(M, M + 50, W - M, M + 50);
 
-  /* THE NUMBER, and the sentence that stops it being nodded at. A readiness
-     percentage on its own is the easiest thing in the world to agree with. */
+  /* THE VERDICT BAND.
+   *
+   * The left third is a stamp: READY, or the number of things in the way. It is
+   * the only thing on the sheet set in 40pt, because it is the only thing on the
+   * sheet that decides anything. The right two thirds say what that is made of,
+   * and only then comes the percentage — demoted on purpose. */
   const topY = M + 66, topH = 96;
+  const verdict = data.canSignOff ? OK : DANGER;
   d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
   d.roundedRect(M, topY, CW, topH, 6, 6, 'FD');
-  d.setFillColor(BRAND); d.rect(M, topY + 1, 4, topH - 2, 'F');
+  d.setFillColor(verdict); d.rect(M, topY + 1, 4, topH - 2, 'F');
 
-  const pct = Math.round(data.pct * 100);
-  setFont(d, 54, 'bold', BRAND);
-  d.text(String(pct), M + 26, topY + 58);
-  const pw = d.getTextWidth(String(pct));
-  setFont(d, 20, 'bold', BRAND);
-  d.text('%', M + 26 + pw + 3, topY + 58);
-  setFont(d, 8.5, 'bold', MUTED);
-  d.text('READY', M + 26, topY + 76);
+  const stampW = 168;
+  if (data.canSignOff) {
+    setFont(d, 34, 'bold', OK);
+    d.text('READY', M + 26, topY + 50);
+    setFont(d, 8.5, 'bold', MUTED);
+    d.text('FOR SIGN-OFF', M + 26, topY + 68);
+  } else {
+    const n = data.blockers.length;
+    setFont(d, 44, 'bold', DANGER);
+    d.text(String(n), M + 26, topY + 54);
+    const nw = d.getTextWidth(String(n));
+    setFont(d, 13, 'bold', DANGER);
+    d.text(n === 1 ? 'thing' : 'things', M + 26 + nw + 6, topY + 54);
+    setFont(d, 8.5, 'bold', MUTED);
+    d.text('IN THE WAY OF SIGN-OFF', M + 26, topY + 72);
+  }
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(M + stampW, topY + 16, M + stampW, topY + topH - 16);
 
-  const bx = M + 150, bw = CW - 150 - 26;
-  setFont(d, 14, 'bold', INK);
-  d.text(fit(d, san(data.headline), bw), bx, topY + 30);
+  const bx = M + stampW + 22, bw = CW - stampW - 22 - 26;
+  setFont(d, 13, 'bold', INK);
+  d.text(fit(d, san(data.headline), bw), bx, topY + 28);
 
-  /* the bar */
+  /* The bar, and the words that stop it being read as the answer. */
+  const pct = Math.round(r.pct * 100);
   const barY = topY + 42;
+  const barW = bw - 74;
   const [lr, lg, lb] = wash(MUTED, 0.22);
   d.setFillColor(lr, lg, lb);
-  d.roundedRect(bx, barY, bw, 9, 4.5, 4.5, 'F');
+  d.roundedRect(bx, barY, barW, 9, 4.5, 4.5, 'F');
   if (pct > 0) {
-    d.setFillColor(BRAND);
-    d.roundedRect(bx, barY, Math.max(6, (bw * pct) / 100), 9, 4.5, 4.5, 'F');
+    d.setFillColor(data.canSignOff ? OK : BRAND);
+    d.roundedRect(bx, barY, Math.max(6, (barW * pct) / 100), 9, 4.5, 4.5, 'F');
   }
+  setFont(d, 9, 'bold', INK2);
+  d.text(`${pct}% done`, bx + barW + 8, barY + 8);
 
-  /* ACCEPTANCE, counted off the checks only — the film and the training are how
-     you get there, they are not the test the line is signed off against. */
-  const c = data.checks;
-  if (c.total > 0) {
-    setFont(d, 9.5, 'bold', INK2);
-    d.text('ACCEPTANCE', bx, topY + 70);
-    const ax = bx + d.getTextWidth('ACCEPTANCE') + 10;
-    setFont(d, 9.5, 'bold', OK);
-    d.text(`${c.passed} of ${c.total} checks passed`, ax, topY + 70);
-    let cx = ax + d.getTextWidth(`${c.passed} of ${c.total} checks passed`);
-    if (c.failed > 0) {
-      setFont(d, 9.5, 'bold', DANGER);
-      d.text(`  ·  ${c.failed} failed`, cx, topY + 70);
-      cx += d.getTextWidth(`  ·  ${c.failed} failed`);
-    }
-    if (c.untested > 0) {
-      setFont(d, 9.5, 'normal', MUTED);
-      d.text(`  ·  ${c.untested} still to run`, cx, topY + 70);
-    }
-  }
-
-  /* the two panels: workstreams on the left, what is next on the right */
-  const py = topY + topH + 14;
-  const ph = panelsHeight(data);
-  const gap = 14;
-  const lw = CW * 0.38, rw = CW - lw - gap;
-
-  const rows1 = panelRows(data);
-  const byAsset = !!data.assets?.length;
-  const sy = panel(d, M, py, lw, ph, '1',
-    byAsset ? 'Assets' : 'Workstreams',
-    byAsset ? 'each machine on the line, and the line’s own work' : 'where each part has got to');
-  const cols = rows1.length > STREAMS_ONE_COL ? 2 : 1;
-  const colGap = 14;
-  const colW = (lw - 24 - (cols - 1) * colGap) / cols;
-  const perCol = streamRows(rows1.length);
-  rows1.forEach((s, i) => {
-    const col = Math.floor(i / perCol);
-    const sx = M + 12 + col * (colW + colGap);
-    const ry = sy + 22 + (i % perCol) * STREAM_ROW_H;
-    setFont(d, cols === 1 ? 9.5 : 8.4, 'bold', INK);
-    // The count is drawn first and the name fitted to what is LEFT, so a long
-    // workstream name shortens itself rather than running through the numbers.
-    setFont(d, cols === 1 ? 8 : 7.2, 'normal', MUTED);
-    const tail = `${s.done} of ${s.total}${s.risk > 0 ? ` · ${s.risk} need attention` : ''}`;
-    const tw = d.getTextWidth(tail);
-    d.text(tail, sx + colW, ry, { align: 'right' });
-    setFont(d, cols === 1 ? 9.5 : 8.4, 'bold', INK);
-    d.text(fit(d, san(s.name).toUpperCase(), colW - tw - 10), sx, ry);
-    // the bar reads before the numbers do, which is the point of having one
-    const y2 = ry + 5;
-    const [ar, ag, ab] = wash(MUTED, 0.2);
-    d.setFillColor(ar, ag, ab); d.roundedRect(sx, y2, colW, 4.5, 2.2, 2.2, 'F');
-    if (s.pct > 0) {
-      d.setFillColor(s.risk > 0 ? WARN : BRAND);
-      d.roundedRect(sx, y2, Math.max(3, colW * s.pct), 4.5, 2.2, 2.2, 'F');
+  /* WHAT IS PROVEN, COUNTED PER KIND. Four numbers, each the answer to a
+     question somebody actually asks: are the programs proven, is the material
+     here, has it passed, what is still open. */
+  const cy = topY + 72;
+  const parts: [string, string, string][] = [
+    ['PROGRAMS', `${r.programs.proven} of ${r.programs.total} proven`,
+      r.programs.missing > 0 ? `${r.programs.missing} not written` : r.programs.below > 0 ? `${r.programs.below} short of rate` : ''],
+    ['MATERIAL', `${r.materials.have} of ${r.materials.total} in`,
+      r.materials.short + r.materials.late > 0 ? `${r.materials.short + r.materials.late} not landed` : ''],
+    ['ACCEPTANCE', `${r.checks.pass} of ${r.checks.total} passed`,
+      r.checks.fail > 0 ? `${r.checks.fail} failed` : r.checks.notRun > 0 ? `${r.checks.notRun} to run` : ''],
+    ['PUNCH LIST', `${r.punch.openA}A · ${r.punch.openB}B · ${r.punch.openC}C open`,
+      r.punch.closed > 0 ? `${r.punch.closed} closed` : ''],
+  ];
+  const colW = bw / parts.length;
+  parts.forEach(([head, value, tail], i) => {
+    const x = bx + i * colW;
+    setFont(d, 6.6, 'bold', MUTED);
+    d.text(head, x, cy);
+    setFont(d, 9.2, 'bold', INK);
+    d.text(fit(d, value, colW - 8), x, cy + 12);
+    if (tail) {
+      setFont(d, 7.2, 'bold', WARN);
+      d.text(fit(d, tail, colW - 8), x, cy + 22);
     }
   });
 
+  /* the two panels: the machines on the left, what stops sign-off on the right */
+  const py = topY + topH + 14;
+  const ph = panelsHeight(data);
+  const gap = 14;
+  const lw = CW * 0.34, rw = CW - lw - gap;
+
+  const sy = panel(d, M, py, lw, ph, '1', 'Machine by machine',
+    'each accepted in its own right');
+  const cols = data.assets.length > ASSETS_ONE_COL ? 2 : 1;
+  const colGap = 14;
+  const aw = (lw - 24 - (cols - 1) * colGap) / cols;
+  const perCol = assetRows(data.assets.length);
+  if (data.assets.length === 0) {
+    setFont(d, 9, 'normal', MUTED);
+    d.text('Nothing recorded against any machine yet.', M + 12, sy + 22);
+  }
+  data.assets.forEach((a, i) => {
+    const col = Math.floor(i / perCol);
+    const ax = M + 12 + col * (aw + colGap);
+    const ry = sy + 22 + (i % perCol) * ASSET_ROW_H;
+    // The verdict is drawn first and the name fitted to what is LEFT, so a long
+    // machine name shortens itself rather than running through the words.
+    setFont(d, cols === 1 ? 8 : 7.2, 'bold', a.canSignOff ? OK : DANGER);
+    const tail = a.canSignOff ? 'ready' : `${a.blockers} open`;
+    const tw = d.getTextWidth(tail);
+    d.text(tail, ax + aw, ry, { align: 'right' });
+    setFont(d, cols === 1 ? 9.5 : 8.4, 'bold', a.isLine ? INK2 : INK);
+    d.text(fit(d, san(a.name).toUpperCase(), aw - tw - 10), ax, ry);
+    // the bar reads before the words do, which is the point of having one
+    const y2 = ry + 5;
+    const [br, bg, bb] = wash(MUTED, 0.2);
+    d.setFillColor(br, bg, bb); d.roundedRect(ax, y2, aw, 4.5, 2.2, 2.2, 'F');
+    if (a.pct > 0) {
+      d.setFillColor(a.canSignOff ? OK : a.blockers > 0 ? WARN : BRAND);
+      d.roundedRect(ax, y2, Math.max(3, aw * a.pct), 4.5, 2.2, 2.2, 'F');
+    }
+  });
+
+  /* WHAT STANDS IN THE WAY — worst first, and in that order for a reason.
+   *
+   * This list is read from the top in a meeting and whatever is at the bottom
+   * does not get said, so the order is the judgement: an open A defect outranks
+   * a failed test, which outranks a program nobody has written, which outranks
+   * one short of rate, then material, then what is merely untested. It is the
+   * same order the screen shows, off the same function, because a sheet that
+   * ranked them differently would start an argument about the sheet. */
   const nx = M + lw + gap;
-  /* WHAT IS NEXT — DECIDED FIRST, THEN UNDECIDED.
-   *
-   * The panel used to list whatever was red or amber, which reads as a list of
-   * complaints. A commissioning run ENDS in a decision, so the decided moves go
-   * first, each with the name of whoever took it: "OEM to re-align the former
-   * roller" is a different object from "400g tray is blocked", and a status
-   * sheet that cannot tell them apart makes the reader do the sorting.
-   *
-   * What is left underneath is the honest part — things in trouble that nobody
-   * has yet decided anything about. Those are the ones to ask about in the room. */
-  const decided = data.attention.filter(r => r.next?.trim());
-  const undecided = data.attention.filter(r => !r.next?.trim());
-  const ny = panel(d, nx, py, rw, ph, '2', 'What is next',
-    decided.length > 0
-      ? 'decided on the last run, then anything still without a decision'
-      : 'blocked and at risk — worst first, before the list they hide in');
+  const ny = panel(d, nx, py, rw, ph, '2',
+    data.canSignOff ? 'Nothing stands in the way' : 'What stands in the way',
+    'worst first — the order it will be said in the room');
   let ay = ny + 20;
   const bottom = py + ph - 12;
-  if (data.attention.length === 0) {
-    setFont(d, 9, 'normal', MUTED);
-    d.text('Nothing blocked and nothing at risk.', nx + 12, ay + 4);
+  if (data.blockers.length === 0) {
+    setFont(d, 9.5, 'bold', OK);
+    d.text('Every program proven, every check passed, nothing open that blocks acceptance.', nx + 12, ay + 4);
+    setFont(d, 8, 'normal', MUTED);
+    d.text('This line can be signed off.', nx + 12, ay + 18);
   }
 
   let shown = 0;
-  for (const r of [...decided, ...undecided]) {
-    if (ay + 30 > bottom) break;
-    const isDecided = !!r.next?.trim();
-    const col = STATE_COLOUR[r.state];
-    // A decision is drawn in the brand colour and a bare problem in its own
-    // state colour, so the two are told apart before either is read.
-    const edge = isDecided ? BRAND : col;
-    const [wr, wg, wb] = wash(edge, 0.06);
+  for (const b of data.blockers) {
+    if (ay + 26 > bottom) break;
+    const [wr, wg, wb] = wash(DANGER, 0.05);
     d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);
-    d.roundedRect(nx + 12, ay - 9, rw - 24, 26, 3, 3, 'FD');
-    d.setFillColor(edge); d.rect(nx + 12, ay - 9, 2.5, 26, 'F');
-
+    d.roundedRect(nx + 12, ay - 9, rw - 24, 22, 3, 3, 'FD');
+    d.setFillColor(DANGER); d.rect(nx + 12, ay - 9, 2.5, 22, 'F');
+    setFont(d, 7.6, 'bold', MUTED);
+    d.text(String(shown + 1), nx + 20, ay + 1);
     setFont(d, 9, 'bold', INK);
-    d.text(fit(d, san(isDecided ? r.next! : r.title), rw - 130), nx + 21, ay);
-    setFont(d, 7, 'bold', isDecided ? BRAND : col);
-    d.text(isDecided ? 'DECIDED' : r.stateLabel.toUpperCase(), nx + rw - 24, ay, { align: 'right' });
-
-    setFont(d, 7.4, 'normal', MUTED);
-    const tail = isDecided
-      // The decision names the item it came out of, so it can be traced back.
-      ? [r.title, r.stream, r.nextBy,
-         r.nextAt ? new Date(r.nextAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '']
-          .filter(Boolean).join(' · ')
-      : [r.stream, r.line, r.owner, r.due && `wanted ${r.due}`].filter(Boolean).join(' · ');
-    d.text(fit(d, san(tail), rw - 40), nx + 21, ay + 9);
-    ay += 30;
+    const nw = rw - 24 - 20 - (b.asset ? 120 : 10);
+    d.text(fit(d, san(b.what), nw), nx + 30, ay + 1);
+    if (b.asset) {
+      setFont(d, 7.4, 'bold', MUTED);
+      d.text(fit(d, san(b.asset).toUpperCase(), 112), nx + rw - 24, ay + 1, { align: 'right' });
+    }
+    ay += 26;
     shown++;
   }
-  if (data.attention.length > shown) {
+  if (data.blockers.length > shown) {
     setFont(d, 7.4, 'bold', MUTED);
-    d.text(`+${data.attention.length - shown} more, in the list below`, nx + 12, bottom + 4);
+    d.text(`+${data.blockers.length - shown} more, all listed below`, nx + 12, bottom + 4);
   }
 
   return py + ph + 16;
 }
 
-function foot(d: Doc, data: CommissionReportData, page: number, pages: number, what: string): void {
+function foot(d: Doc, data: HandoverReport, page: number, pages: number, what: string): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const r = data.ready;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${san(data.title)} · commissioning readiness · page ${page} of ${pages} — ${what}`, (W - 56) * 0.8),
+  d.text(fit(d, `${san(data.title)} · commissioning sign-off · page ${page} of ${pages} — ${what}`, (W - 56) * 0.8),
     26, H - 26 + 6);
-  d.text(`${data.done} of ${data.total} complete · generated ${fmtDate(data.now)}`,
-    W - 26, H - 26 + 6, { align: 'right' });
+  d.text(
+    (data.canSignOff ? 'Ready for sign-off' : `${data.blockers.length} in the way`) +
+    ` · ${Math.round(r.pct * 100)}% complete · generated ${fmtDate(data.now)}`,
+    W - 26, H - 26 + 6, { align: 'right' },
+  );
 }
 
 /* ---------- the detail sheets ---------- */
 function drawDetail(
-  d: Doc, data: CommissionReportData, rows: CommissionReportRow[],
+  d: Doc, data: HandoverReport, rows: HandoverRow[],
   page: number, pages: number, sheet: number, top: number,
 ): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
   const y0 = panel(d, M, top, CW, H - M - 14 - top, '3',
-    'Every item' + (sheet > 1 ? ' (continued)' : ''),
-    'target beside result, so the summary can be checked rather than taken on trust');
+    'Every obligation' + (sheet > 1 ? ' (continued)' : ''),
+    'what was agreed beside what was achieved, so the verdict can be checked rather than taken on trust');
 
   const x = M + 12, w = CW - 24;
   /* Column geometry as fractions, so a long OEM part number cannot push the
      owner off the edge of the sheet. */
-  const cTitle = w * 0.30, cLine = w * 0.17, cTarget = w * 0.20, cResult = w * 0.19, cWho = w * 0.14;
-  const xTitle = x, xLine = x + cTitle, xTarget = xLine + cLine,
-        xResult = xTarget + cTarget, xWho = xResult + cResult;
+  const cTitle = w * 0.27, cKind = w * 0.09, cAgreed = w * 0.16,
+        cEvidence = w * 0.23, cState = w * 0.11, cWho = w * 0.14;
+  const xTitle = x, xKind = xTitle + cTitle, xAgreed = xKind + cKind,
+        xEvidence = xAgreed + cAgreed, xState = xEvidence + cEvidence, xWho = xState + cState;
 
   let ry = y0 + 20;
   setFont(d, 6.4, 'bold', MUTED);
   d.text('ITEM', xTitle, ry);
-  d.text('STATE', xLine, ry);
-  d.text('TARGET', xTarget, ry);
-  d.text('RESULT', xResult, ry);
+  d.text('WHAT', xKind, ry);
+  d.text('AGREED', xAgreed, ry);
+  d.text('EVIDENCE', xEvidence, ry);
+  d.text('WHERE IT STANDS', xState, ry);
   d.text('WHO · WANTED BY', xWho, ry);
   d.setDrawColor(LINE); d.setLineWidth(0.8);
   d.line(x, ry + 4, x + w, ry + 4);
   ry += 15;
 
   const bottom = H - M - 14 - 22;
-  let stream = '';
+  let asset = '';
   for (const r of rows) {
     if (ry + ROW_H + 3 > bottom) break;
-    if (r.stream !== stream) {
-      stream = r.stream;
-      if (ry + STREAM_HEAD_H + ROW_H > bottom) break;
+    if (r.asset !== asset) {
+      asset = r.asset;
+      if (ry + GROUP_HEAD_H + ROW_H > bottom) break;
       ry += 4;
       setFont(d, 8.5, 'bold', INK);
-      d.text(san(stream).toUpperCase(), xTitle, ry);
+      d.text(san(asset).toUpperCase(), xTitle, ry);
       d.setDrawColor(LINE); d.setLineWidth(0.5);
       d.line(x, ry + 3.5, x + w, ry + 3.5);
-      ry += STREAM_HEAD_H - 4;
+      ry += GROUP_HEAD_H - 4;
     }
     const col = STATE_COLOUR[r.state];
-    if (r.state === 'r' || r.state === 'a') {
-      const [br, bg, bb] = wash(col, 0.05);
+    // A row that is stopping sign-off is washed, so the detail sheet can be read
+    // on its own without cross-referencing page 1.
+    if (r.blocking) {
+      const [br, bg, bb] = wash(DANGER, 0.05);
       d.setFillColor(br, bg, bb);
       d.rect(x, ry - 8, w, 15, 'F');
     }
@@ -459,37 +502,39 @@ function drawDetail(
         d.text(String(pics), mx + 8, ry);
       }
     }
-    setFont(d, 7.2, 'bold', col);
-    d.text(fit(d, san(r.line || r.stateLabel), cLine - 8), xLine, ry);
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, san(r.kindLabel), cKind - 6), xKind, ry);
     setFont(d, 7.2, 'normal', INK2);
-    d.text(fit(d, san(r.target ?? '—'), cTarget - 8), xTarget, ry);
-    /* RESULT, AND WHAT IT DID BEFORE. A retested item is the only place on this
-       sheet that can show movement, and "76 ppm clean (was 61 ppm)" is an
-       argument where "76 ppm clean" is a number. It costs no extra row: the
-       earlier reading is drawn in the space the current one leaves. */
+    d.text(fit(d, san(r.agreed || '—'), cAgreed - 8), xAgreed, ry);
+    /* EVIDENCE, AND WHAT IT DID BEFORE. A retested program is the only place on
+       this sheet that can show movement, and "76 ppm (was 61 ppm)" is an
+       argument where "76 ppm" is a number. It costs no extra row: the earlier
+       reading is drawn in the space the current one leaves. */
     setFont(d, 7.2, r.state === 'r' ? 'bold' : 'normal', r.state === 'r' ? DANGER : INK2);
-    const nowTxt = fit(d, san(r.result ?? '—'), cResult - 8);
-    d.text(nowTxt, xResult, ry);
+    const nowTxt = fit(d, san(r.evidence || '—'), cEvidence - 8);
+    d.text(nowTxt, xEvidence, ry);
     if (r.was) {
       const usedW = d.getTextWidth(nowTxt);
-      const room = cResult - 12 - usedW;
+      const room = cEvidence - 12 - usedW;
       if (room > 34) {
         setFont(d, 6.4, 'normal', MUTED);
-        d.text(fit(d, san(`was ${r.was}`), room), xResult + usedW + 5, ry);
+        d.text(fit(d, san(`was ${r.was}`), room), xEvidence + usedW + 5, ry);
       }
     }
+    setFont(d, 7.2, 'bold', col);
+    d.text(fit(d, san(r.stateLabel), cState - 8), xState, ry);
     setFont(d, 7.2, 'normal', MUTED);
-    d.text(fit(d, san([r.owner, r.due].filter(Boolean).join(' · ') || '—'), cWho - 6), xWho, ry);
+    d.text(fit(d, san([r.who, r.due].filter(Boolean).join(' · ') || '—'), cWho - 6), xWho, ry);
     ry += ROW_H;
   }
 
-  foot(d, data, page, pages, sheet > 1 ? `every item (${sheet})` : 'every item');
+  foot(d, data, page, pages, sheet > 1 ? `every obligation (${sheet})` : 'every obligation');
 }
 
 /* ---------- the evidence sheet ----------
  * Pictures get their own page rather than thumbnails wedged into a 13pt table
  * row, because a photograph too small to show the crease in the film is not
- * evidence, it is decoration. Captioned with the item and its state so the
+ * evidence, it is decoration. Captioned with the item and where it stands so the
  * picture and the claim it settles are never separated.
  *
  * Only items that HAVE pictures appear, and the sheet only exists when at least
@@ -498,19 +543,19 @@ function drawDetail(
  *
  *  Four columns is right for a dozen photographs and wrong for three — it makes
  *  each one a stamp on an otherwise empty A3, which is the same failure the
- *  status page had before the detail moved up under it. Few pictures means big
+ *  verdict page had before the detail moved up under it. Few pictures means big
  *  pictures; that is the entire reason they are on paper at all. */
 const shotCols = (n: number): number => (n <= 2 ? 2 : n <= 6 ? 3 : 4);
 
 function drawEvidence(
-  d: Doc, data: CommissionReportData,
-  shots: { row: CommissionReportRow; shot: NonNullable<CommissionReportRow['shots']>[number] }[],
+  d: Doc, data: HandoverReport,
+  shots: { row: HandoverRow; shot: Shot }[],
   page: number, pages: number,
 ): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
   const y0 = panel(d, M, M, CW, H - 2 * M - 14, '4', 'Pictures',
-    'the thing itself — captioned with the item it settles');
+    'the thing itself — captioned with the obligation it settles');
 
   const gap = 14;
   const SHOT_COLS = shotCols(shots.length);
@@ -541,12 +586,12 @@ function drawEvidence(
     setFont(d, 7.4, 'bold', INK);
     d.text(fit(d, san(s.row.title), cellW), x, y + boxH + 11);
     /* A walk still says what the snag says; a photograph says which item it is
-       against. Both then name the workstream, so a picture lifted off the page
+       against. Both then name the machine, so a picture lifted off the page
        still knows where it came from. */
     setFont(d, 6.6, 'bold', col2);
     d.text(fit(d, san(s.shot.caption
-      ? `${s.shot.caption} — ${s.row.stream}`
-      : `${s.row.stream} · ${s.row.stateLabel}`), cellW), x, y + boxH + 20);
+      ? `${s.shot.caption} — ${s.row.asset}`
+      : `${s.row.asset} · ${s.row.stateLabel}`), cellW), x, y + boxH + 20);
   });
 
   const fits = Math.max(0, Math.floor((bottom - (y0 + 18)) / (cellH + gap))) * SHOT_COLS;
@@ -558,10 +603,10 @@ function drawEvidence(
   foot(d, data, page, pages, 'pictures');
 }
 
-export function drawCommissionReport(d: Doc, data: CommissionReportData): void {
+export function drawCommissionReport(d: Doc, data: HandoverReport): void {
   const H = d.internal.pageSize.getHeight();
   const M = 26;
-  /* Both capacities from the same geometry the drawing uses. The status band is
+  /* Both capacities from the same geometry the drawing uses. The verdict band is
      a fixed height, so what page 1 has left for detail is simply what is under
      it — and page 2 onward has the whole sheet. */
   const detailTop = M + 66 + 96 + 14 + panelsHeight(data) + 16;
@@ -573,7 +618,7 @@ export function drawCommissionReport(d: Doc, data: CommissionReportData): void {
   const shots = data.rows.flatMap(row => (row.shots ?? []).map(shot => ({ row, shot })));
   const pages = sheets.length + (shots.length > 0 ? 1 : 0);
 
-  const top = drawStatus(d, data);
+  const top = drawVerdict(d, data);
   sheets.forEach((rows, i) => {
     if (i > 0) d.addPage('a3', 'landscape');
     drawDetail(d, data, rows, i + 1, pages, i + 1, i === 0 ? top : M);

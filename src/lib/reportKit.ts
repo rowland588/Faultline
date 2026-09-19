@@ -91,10 +91,26 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
   setFont(d, 8, 'bold', '#ffffff');
   d.text(n, x + 22, cy + 2.8, { align: 'center' });
 
+  /* THE HEADING AND ITS SO-WHAT SHARE ONE LINE, so they have to be measured
+     against each other. Drawn blind, a long title ran straight through the
+     right-aligned line beside it and the two printed on top of one another —
+     "The line, machine by machineeach accepted in its own right". Neither
+     string was wrong; nothing truncated; the page was simply unreadable at
+     exactly the width that panel happened to be.
+
+     So: the title is fitted to the panel first, then the so-what gets whatever
+     is left after it, and when what is left is too narrow to say anything it is
+     dropped rather than drawn into the title. A panel that loses its subtitle
+     is still a panel. */
   setFont(d, 11.5, 'bold', '#141b26');
-  d.text(title, x + 36, cy + 3.5);
-  setFont(d, 8, 'normal', MUTED);
-  d.text(sowhat, x + w - 14, cy + 3, { align: 'right' });
+  const shownTitle = fit(d, title, w - 36 - 14);
+  d.text(shownTitle, x + 36, cy + 3.5);
+  const titleEnd = x + 36 + d.getTextWidth(shownTitle);
+  const room = (x + w - 14) - (titleEnd + 12);
+  if (room > 40) {
+    setFont(d, 8, 'normal', MUTED);
+    d.text(fit(d, sowhat, room), x + w - 14, cy + 3, { align: 'right' });
+  }
 
   const ruleY = y + 30;
   d.setDrawColor(LINE); d.setLineWidth(0.6);

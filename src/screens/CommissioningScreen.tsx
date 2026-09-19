@@ -14,6 +14,9 @@ import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { useProject } from '../lib/useProjects';
 import { useCommission } from '../lib/useCommission';
+import { useCommissionEvidence } from '../lib/useCommissionEvidence';
+import { saveCommissionReport } from '../lib/buildCommissionReport';
+import { isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import {
   LINE_ITSELF, byAsset, readiness, programStatus, materialStatus, bestRun, isOpen,
   stateOf, STATE_WORD,
@@ -373,7 +376,10 @@ function Tasks({ rows, cm, asset }: { rows: Task[]; cm: ReturnType<typeof useCom
 export function CommissioningScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const cm = useCommission(projectId);
+  const walk = useCommissionEvidence(projectId);
   const [asset, setAsset] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<{ stale: boolean; msg: string } | null>(null);
 
   const assets = useMemo(() => byAsset(cm.items), [cm.items]);
   const whole = useMemo(() => readiness(cm.items), [cm.items]);
@@ -384,6 +390,37 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
   const shown = current == null ? cm.items : (assets.find(a => a.asset === current)?.items ?? []);
   const forAsset = current === LINE_ITSELF ? undefined : current ?? undefined;
   const nothingYet = cm.items.filter(i => !i.deletedAt).length === 0;
+
+  /* THE SHEET. Built from the records, never from this page — see
+     lib/buildCommissionReport. Rasterising the DOM made the output depend on a
+     browser finishing a stylesheet fetch inside a hidden clone, which failed on
+     real devices in four different ways. The A3 is the deliverable at sign-off,
+     so it has to come out identical on every device. */
+  const download = async () => {
+    if (saving || cm.loading) return;
+    setSaving(true);
+    setSaveErr(null);
+    try {
+      const how = await saveCommissionReport({
+        title: project?.name ?? 'Commissioning',
+        lead: project?.lead,
+        items: cm.items,
+        walk: walk.byId,
+      });
+      // Downloading is invisible on a phone, and "opened in a tab" needs saying
+      // or it looks like nothing happened at all.
+      if (how === 'opened') {
+        setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });
+      }
+    } catch (err) {
+      console.error('Handover sheet failed', err);
+      setSaveErr(isStaleBuildError(err)
+        ? { stale: true, msg: 'This tab is still running an older version of the app, so the part that draws the PDF could not load.' }
+        : { stale: false, msg: err instanceof Error ? err.message : 'The sheet could not be built.' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const of = <K extends CommissionItem['kind']>(k: K) =>
     shown.filter((i): i is Extract<CommissionItem, { kind: K }> => i.kind === k)
@@ -404,9 +441,27 @@ export function CommissioningScreen({ projectId }: { projectId: string }) {
       ]} />
 
       <header className="cm-head">
-        <h1>{project.name}</h1>
-        <p className="sub">Handover — {whole.programs.total} program{whole.programs.total === 1 ? '' : 's'}, {assets.length} asset{assets.length === 1 ? '' : 's'}</p>
+        <div>
+          <h1>{project.name}</h1>
+          <p className="sub">Handover — {whole.programs.total} program{whole.programs.total === 1 ? '' : 's'}, {assets.length} asset{assets.length === 1 ? '' : 's'}</p>
+        </div>
+        {/* THE SHEET IS THE POINT OF THE SCREEN, not an afterthought at the
+            bottom. A handover ends with a document somebody signs; a page that
+            can only be read on a phone is not a handover system. */}
+        <button className="btn btn-primary" onClick={() => void download()} disabled={saving || nothingYet}>
+          {saving ? 'Building the sheet…' : 'Handover sheet (A3 PDF)'}
+        </button>
       </header>
+
+      {saveErr && (
+        <div className={'exec-saveerr' + (saveErr.stale ? ' is-stale' : '')} role="alert">
+          <span>{saveErr.msg}</span>
+          {saveErr.stale && (
+            <button className="btn btn-primary" onClick={() => void reloadOntoNewBuild()}>Reload the app</button>
+          )}
+          <button className="exec-saveerr-x" onClick={() => setSaveErr(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
 
       {/* THE ANSWER, and it is about THE LINE — not whichever machine happens to
           be open below. "Can we sign off Line 2" is the question being asked in

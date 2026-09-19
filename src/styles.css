@@ -4582,8 +4582,17 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
  * it does on the walk and on the board.
  * ========================================================================== */
 
-.cm-head { margin: 4px 0 14px; }
+.cm-head {
+  margin: 4px 0 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;            /* the button drops under the title on a phone
+                                 rather than squeezing it to two words */
+}
 .cm-head h1 { margin: 0 0 2px; font-size: 22px; letter-spacing: -0.2px; }
+.cm-head > button { flex: 0 0 auto; }
 
 /* ---- the answer ---- */
 .cm-verdict-card {
