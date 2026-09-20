@@ -31,7 +31,7 @@
  * latest upload each time the board is drawn, so next week's file simply
  * appears.
  */
-import type { PaceAction } from './projectPaceData';
+import type { PaceAction } from './tracker';
 import { statusOfAction } from './treeBind';
 
 export type PillarKey = 'people' | 'plant' | 'process';

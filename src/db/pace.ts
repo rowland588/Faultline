@@ -6,27 +6,21 @@
  */
 import type { ID } from '../types';
 import { uid, now } from '../lib/ids';
-import { PACE_BASELINE_AT } from '../lib/projectPaceData';
 import { getDB, signalWrite } from './core';
 import type { PaceTodoRow, PaceWinRow, PaceLineRow } from './rows';
 import { recordTombstones } from './sync';
 import { getWorkspace } from './workspaces';
 import { DEFAULT_PROJECT_ID, inProject, onLine } from './projects';
 
-/* ---------- project lines (the ppm numbers, and who owns them) ----------
- * `seed` is the shipped starting point, used only for a line this device has no
- * row for. Every device derives the same id from the line name, so seeding on a
- * second device tops up the SAME cloud row rather than making a rival one, and
- * the seed carries a fixed old clock so it can never overwrite a real reading
- * somebody typed. Older rows on random ids are folded onto the shared id.
+/* ---------- a project's lines, and who owns them ----------
+ * Every device derives the same row id from project + line key, so a line added
+ * on the laptop and one added on the phone are the SAME cloud row rather than
+ * two rivals. Older rows on random ids are folded onto that shared id.
  *
- * Lines are now per PROJECT, so the collapse is keyed on project+line: two
- * projects are each allowed a "Line 2A" without one eating the other. */
-export async function loadPaceLines(
-  projectId: string,
-  seed: Omit<PaceLineRow, 'id'>[] = [],
-  opts: { adoptOrphans?: boolean } = {},
-): Promise<PaceLineRow[]> {
+ * Nothing is seeded. Four lines of one factory's used to be filled in here for
+ * the first project on every device; a project's lines are the ones somebody
+ * added to it. */
+export async function loadPaceLines(projectId: string): Promise<PaceLineRow[]> {
   const db = await getDB();
   const rows = await db.getAll('pace_ppm');
 
@@ -36,19 +30,6 @@ export async function loadPaceLines(
     if (old.length) {
       for (const r of old) { const row = { ...r, id: r.id || ppmId(r.key) }; await db.put('pace_ppm', row); rows.push(row); }
       await db.clear('pace_lines');           // migrated, not duplicated
-    }
-  }
-
-  // Rows written before projects became plural have no projectId. They are the
-  // original four Pace lines, so the default project adopts them — in place, at
-  // their existing clock, because adoption is bookkeeping and must not look
-  // like an edit that could beat a real reading from another device.
-  if (opts.adoptOrphans) {
-    for (const r of rows) {
-      if (r.projectId) continue;
-      const adopted = { ...r, projectId };
-      await db.put('pace_ppm', adopted);
-      Object.assign(r, adopted);
     }
   }
 
@@ -63,6 +44,8 @@ export async function loadPaceLines(
   // instead of one killing the other.
   const best = new Map<string, PaceLineRow>();
   const losers: string[] = [];
+  /** Keys that TWO rows claimed. Only those get re-keyed below. */
+  const contested = new Set<string>();
   const canonical = (r: PaceLineRow) => ppmId(r.key, projectId);
   const better = (a: PaceLineRow, b: PaceLineRow) => {
     const ta = a.updatedAt ?? 0, tb = b.updatedAt ?? 0;
@@ -72,20 +55,23 @@ export async function loadPaceLines(
   for (const r of mine) {
     const cur = best.get(r.key);
     if (!cur) { best.set(r.key, r); continue; }
+    contested.add(r.key);
     const win = better(cur, r);
     best.set(r.key, win);
     losers.push(win === cur ? r.id : cur.id);
   }
 
-  // Re-key the survivor onto the canonical id, keeping its clock so a typed
-  // number still beats another device's untouched seed. A line somebody ADDED
-  // by hand keeps its own id — only two rows fighting over one key get moved,
-  // because that is the only case where a shared id is what settles it.
+  /* Re-key the survivor of a FIGHT onto the canonical id, keeping its clock so a
+     typed number still beats another device's untouched copy.
+   *
+   * A line nobody is fighting over keeps the id it was created with. That rule
+   * used to be expressed as "not in the seed", and deleting the seed took the
+   * rule with it — so every hand-added line was silently re-keyed on load, and
+   * every link to one ("that line isn't on this project any more") broke. */
   const out: PaceLineRow[] = [];
   for (const [key, r] of best) {
     const want = ppmId(key, projectId);
-    const seedKeys = new Set(seed.map(x => x.key));
-    if (r.id === want || !seedKeys.has(key)) { out.push(r); continue; }
+    if (r.id === want || !contested.has(key)) { out.push(r); continue; }
     // A new clock, because the re-key IS a change the cloud has to hear about:
     // keeping the old one would leave the row below this device's push cursor,
     // so the canonical row would never leave the laptop.
@@ -100,23 +86,7 @@ export async function loadPaceLines(
     await recordTombstones('pace_ppm', losers);
   }
 
-  // Seed only the lines that are missing, at a FIXED clock — shipped baseline
-  // data, not an edit. A fresh device's seed must lose to a real reading typed
-  // on another device, and it does, because that reading's clock is later.
-  //
-  // A line the user DELETED must stay deleted, so a tombstoned key is never
-  // re-seeded: otherwise removing Line 7 would bring it straight back.
-  const seen = new Set(out.map(r => r.key));
-  const buried = new Set(rows.filter(r => r.projectId === projectId && r.deletedAt).map(r => r.key));
-  let seeded = false;
-  for (const s of seed) {
-    if (seen.has(s.key) || buried.has(s.key)) continue;
-    const row = { ...s, projectId, id: ppmId(s.key, projectId), updatedAt: PACE_BASELINE_AT };
-    await db.put('pace_ppm', row);
-    out.push(row);
-    seeded = true;
-  }
-  if (seeded || losers.length || opts.adoptOrphans) signalWrite();
+  if (losers.length) signalWrite();
   return out.sort(byLineOrder);
 }
 
@@ -246,7 +216,7 @@ export async function projectWorkspaceIds(projectId: string): Promise<ID[]> {
 }
 
 /* ---------- next steps ---------- */
-export async function listPaceTodos(projectId: string = DEFAULT_PROJECT_ID, lineId?: string): Promise<PaceTodoRow[]> {
+export async function listPaceTodos(projectId: string, lineId?: string): Promise<PaceTodoRow[]> {
   const all = await (await getDB()).getAll('pace_todos');
   return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => a.createdAt - b.createdAt);
 }
@@ -266,7 +236,7 @@ export async function deletePaceTodo(id: ID): Promise<void> {
 }
 
 /* ---------- the success log ---------- */
-export async function listPaceWins(projectId: string = DEFAULT_PROJECT_ID, lineId?: string): Promise<PaceWinRow[]> {
+export async function listPaceWins(projectId: string, lineId?: string): Promise<PaceWinRow[]> {
   const all = await (await getDB()).getAll('pace_wins');
   return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => b.createdAt - a.createdAt);   // newest win on top
 }

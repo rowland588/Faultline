@@ -11,7 +11,7 @@
  *
  * Anything the workbook marks as spanning everything ("All lines", "All") shows
  * on every line, because it is every line's to do. */
-import type { PaceAction } from './projectPaceData';
+import type { PaceAction } from './tracker';
 
 const digits = (s: string): string => (s.match(/\d+/)?.[0] ?? '');
 const spansAll = (s: string): boolean => /\ball\b/i.test(s);

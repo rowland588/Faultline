@@ -11,7 +11,7 @@
  * Anyone owning an action but missing from Lists is added, so nobody's work is
  * hidden by a list that was never updated. */
 import { useEffect, useMemo, useState } from 'react';
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import type { PaceRoster } from '../lib/paceWorkbook';
 
 const isDone = (a: PaceAction) => /^done$/i.test(a.status.trim());

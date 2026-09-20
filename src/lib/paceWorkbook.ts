@@ -7,7 +7,7 @@
  * Anything it cannot make sense of is reported rather than guessed at: a bad
  * upload should say what was wrong with it, not quietly import half a file. */
 import { readXlsx, type CellValue, type SheetData } from './xlsxRead';
-import type { PaceAction } from './projectPaceData';
+import type { PaceAction } from './tracker';
 
 export interface PaceSnapshot {
   id: string;

@@ -16,7 +16,7 @@ import { Crumbs } from '../ui/Crumbs';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
-import { allPaceLines, onDataChange, DEFAULT_PROJECT_ID, type PaceLineRow } from '../db';
+import { allPaceLines, onDataChange, STORE_WORDS, type PaceLineRow } from '../db';
 
 /** The lines, grouped by project — the counts and the names shown on each card. */
 function useLinesByProject(): Map<string, PaceLineRow[]> {
@@ -159,7 +159,7 @@ export function ProjectsScreen() {
         <div className="proj-grid">
           {projects.map(p => (
             <ProjectCard key={p.id} p={p} lines={byProject.get(p.id) ?? []}
-              onArchive={p.id === DEFAULT_PROJECT_ID ? undefined : () => void archive(p.id)} />
+              onArchive={() => void archive(p.id)} />
           ))}
         </div>
       )}
@@ -197,11 +197,12 @@ export function ProjectsScreen() {
                       try {
                         const owned = await contents(p.id);
                         const what = owned.length
-                          ? owned.map(c => `${c.count} ${LABEL[c.store] ?? c.store}`).join('\n  ')
+                          ? owned.map(c => `${c.count} ${STORE_WORDS[c.store] ?? c.store}`).join('\n  ')
                           : 'nothing else — it is empty';
                         const ok = confirm(
                           `Delete “${p.name}” for ever?\n\nThis also deletes:\n  ${what}\n\n` +
-                          'Its LINES and their walk evidence are not deleted — those belong to the line and outlive the project.\n\n' +
+                          'The filmed walks are NOT deleted — a workspace belongs to the machine, not to the project, ' +
+                          'and stays in the workspace list.\n\n' +
                           'This cannot be undone, on any device.',
                         );
                         if (ok) await purge(p.id);
@@ -219,13 +220,4 @@ export function ProjectsScreen() {
   );
 }
 
-/** What each store is called when somebody is being asked to destroy it.
- *  "5 commission_items" is not something anybody can consent to. */
-const LABEL: Record<string, string> = {
-  tests: 'tests',
-  test_items: 'things found and next steps',
-  commission_assets: 'machines',
-  tree_nodes: 'lever-tree nodes',
-  project_targets: 'quarterly targets',
-  project_actuals: 'weekly actuals',
-};
+

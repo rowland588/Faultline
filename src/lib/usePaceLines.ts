@@ -6,10 +6,9 @@
  * is the business's to name now — lib/useMeasures.ts holds the measures, the
  * periods, the targets and the readings.
  *
- * The default project is seeded with the line NAMES the app shipped with, and
- * only ever fills a line this device has no row for, so a reload can never undo
- * an edit somebody made. A project somebody creates starts empty: its lines are
- * the ones they add.
+ * NOTHING IS SEEDED. Four lines of one factory's used to be compiled in and
+ * filled into the first project on every device. A project's lines are the ones
+ * somebody added to it, and a project with none says so.
  *
  * Every device derives the same row id from the line name (see loadPaceLines),
  * which is what lets the figures be entered on a laptop and presented from a
@@ -17,10 +16,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   loadPaceLines, putPaceLine, addPaceLine, deletePaceLine, onDataChange,
-  DEFAULT_PROJECT_ID, type PaceLineRow,
+  type PaceLineRow,
 } from '../db';
-import { PACE_LINES } from './projectPaceData';
-
 /** What a line needs to exist: what the team calls it, and nothing else. The
  *  people and the targets can all be filled in afterwards. */
 export interface NewLine {
@@ -39,27 +36,14 @@ export interface PaceLinesState {
   moveLine: (id: string, delta: -1 | 1) => Promise<void>;
 }
 
-export function usePaceLines(projectId: string = DEFAULT_PROJECT_ID): PaceLinesState {
+export function usePaceLines(projectId: string): PaceLinesState {
   const [lines, setLines] = useState<PaceLineRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    // db does the migrating, folding onto the shared id and (only for a line
-    // this device has no row for) the seeding — one place, so two callers
-    // cannot disagree. `updatedAt` is set there, deliberately old.
-    //
-    // Only the default project is seeded, and only it adopts the line rows
-    // written before projects became plural: a project someone creates today
-    // must not quietly inherit Project Pace's four lines.
-    const isDefault = projectId === DEFAULT_PROJECT_ID;
-    const rows = await loadPaceLines(
-      projectId,
-      isDefault ? PACE_LINES.map((l, i) => ({
-        key: l.key, name: l.name, variant: l.variant, sort: i, updatedAt: 0,
-      })) : [],
-      { adoptOrphans: isDefault },
-    );
-    setLines(rows);
+    // db does the migrating and the folding onto the shared id — one place, so
+    // two callers cannot disagree about which row is which line.
+    setLines(await loadPaceLines(projectId));
     setLoading(false);
   }, [projectId]);
 

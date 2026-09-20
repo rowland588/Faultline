@@ -2,30 +2,22 @@
  *
  * The newest upload IS the picture — the app reads the workbook and shows it,
  * nothing more. Earlier uploads are kept only so a bad one can be removed and
- * the previous file take over again. The workbook shipped with the app is the
- * last resort underneath them all. */
+ * the previous file take over again.
+ *
+ * THERE IS NO BASELINE UNDERNEATH THEM. One factory's tracker used to ship
+ * inside the app and sit at the bottom of this chain, so a project with no
+ * upload showed somebody else's 28 actions and called them yours. A project
+ * with no upload now shows nothing and says so. */
 import { useCallback, useEffect, useState } from 'react';
-import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot, onDataChange, DEFAULT_PROJECT_ID } from '../db';
+import { listPaceSnapshots, addPaceSnapshot, deletePaceSnapshot, onDataChange } from '../db';
 import { readPaceWorkbook, type PaceSnapshot, type PaceRoster, type PaceParetoSheet } from './paceWorkbook';
-import { PACE_ACTIONS, PACE_BASELINE_AT, PACE_ROSTER } from './projectPaceData';
-import type { PaceAction } from './projectPaceData';
-
-const BASELINE: PaceSnapshot = {
-  id: 'baseline',
-  takenAt: PACE_BASELINE_AT,
-  fileName: 'Project_Pace_Action_Tracker.xlsx (baseline)',
-  // ^ the workbook the app SHIPS with, re-cut from the real tracker whenever it
-  //   changes shape. It is last in the list, so the moment a real upload lands
-  //   it stops being what anybody sees.
-  actions: PACE_ACTIONS,
-  roster: PACE_ROSTER,
-};
+import type { PaceAction } from './tracker';
 
 export interface PaceState {
   loading: boolean;
-  /** Newest first, baseline last. */
+  /** Newest first. Empty until somebody uploads. */
   snapshots: PaceSnapshot[];
-  /** The current picture — the newest upload, or the baseline. */
+  /** The current picture — the newest upload, and nothing at all before that. */
   actions: PaceAction[];
   /** The team's own owner/status lists, from the newest upload that carried them. */
   roster?: PaceRoster;
@@ -37,10 +29,9 @@ export interface PaceState {
   dismissError: () => void;
 }
 
-/** Uploads for ONE project. The workbook the app shipped with belongs to
- *  Project Pace, so only Project Pace falls back to it — a project someone
- *  creates starts with no actions until they upload their own tracker. */
-export function usePaceSnapshots(projectId: string = DEFAULT_PROJECT_ID): PaceState {
+/** Uploads for ONE project. Every project starts with no actions until
+ *  somebody uploads its own tracker — there is nothing to inherit. */
+export function usePaceSnapshots(projectId: string): PaceState {
   const [rows, setRows] = useState<PaceSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -91,10 +82,8 @@ export function usePaceSnapshots(projectId: string = DEFAULT_PROJECT_ID): PaceSt
     await load();
   }, [load]);
 
-  // newest first, with the baseline always last — and only for the project the
-  // baseline actually describes.
-  const sorted = [...rows].sort((a, b) => b.takenAt - a.takenAt);
-  const chain = projectId === DEFAULT_PROJECT_ID ? sorted.concat(BASELINE) : sorted;
+  // newest first
+  const chain = [...rows].sort((a, b) => b.takenAt - a.takenAt);
   const current = chain[0];
 
   return {

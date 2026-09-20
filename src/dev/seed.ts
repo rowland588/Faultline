@@ -17,7 +17,7 @@
  */
 import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
-  ensureProjects, createProject, updateProject, addPaceLine, putPaceTodo,
+  createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
   putTarget, putReadings,
   listObservations, snagsForWorkspace, listTests, listAssets,
@@ -96,7 +96,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   };
   await addCase(kase);
 
-  await ensureProjects({ name: 'Smoke test project', color: '#2b87d4' });
   const proj = await createProject('Line 2 commissioning', '#2b87d4', 'Rowland', 'r@example.com', 'commissioning');
   await updateProject({ ...proj, workspaceIds: [ws.id] });
 

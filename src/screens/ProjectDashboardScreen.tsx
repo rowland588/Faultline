@@ -28,7 +28,7 @@ import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
 import { uncoveredAreas } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';

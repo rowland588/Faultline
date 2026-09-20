@@ -24,7 +24,7 @@
  * allowed to come back "not proven" or "worse". The story stays; the number
  * stops being a claim. See lib/measureProof.ts. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, DEFAULT_PROJECT_ID, type PaceWinRow } from '../db';
+import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, type PaceWinRow } from '../db';
 import { uid } from '../lib/ids';
 import { usePaceLines } from '../lib/usePaceLines';
 import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib/measureProof';
@@ -97,7 +97,7 @@ function Card({ win, onPatch, onDelete, onProve }: {
 }
 
 /** `lineId` narrows the log to one line's own wins — see PaceNextSteps. */
-export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID, lineId }: { projectId?: string; lineId?: string } = {}) {
+export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?: string }) {
   const [wins, setWins] = useState<PaceWinRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [proving, setProving] = useState<string | null>(null);   // win id

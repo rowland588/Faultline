@@ -16,7 +16,7 @@
  * not in the tracker yet. It is the exception now rather than the route.
  */
 import { useMemo, useRef, useState } from 'react';
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import { fmtRelative } from '../lib/format';
 
 /** Past this, the week on screen is last week's. Said out loud rather than left

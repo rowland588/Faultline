@@ -43,6 +43,23 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
     sort: 1, createdAt: t, updatedAt: t,
   });
   await db.putTreeNode({ id: 'tn1', projectId: id, text: 'Output', rag: 'g', sort: 0, createdAt: t, updatedAt: t });
+
+  /* The four that predate the by_project index and are scanned instead — the
+     line itself, the work written against it, and the tracker uploaded to the
+     project. These were kept when a project was deleted, which is how "delete
+     for ever" quietly meant "most of it". */
+  await db.putPaceLine({ id: 'ppm-5', projectId: id, key: '5', name: 'Line 5', updatedAt: t });
+  await db.putTarget({ id: 'tg1', projectId: id, lineId: 'ppm-5', measureId: 'm1', periodId: 'p1', value: 60, updatedAt: t });
+  await db.putReading({ id: 'rd1', projectId: id, lineId: 'ppm-5', measureId: 'm1', at: '2026-09-15', value: 61, createdAt: t, updatedAt: t });
+  await db.putPaceTodo({
+    id: 'td1', projectId: id, lineId: 'ppm-5', what: 'order the film', where: 'Line 5',
+    why: 'rate', who: 'Dave', when: 'Friday', state: 'todo', createdAt: t, updatedAt: t,
+  });
+  await db.putPaceWin({
+    id: 'wn1', projectId: id, lineId: 'ppm-5', title: 'it got faster', story: '', impact: '',
+    where: 'Line 5', who: 'Dave', createdAt: t, updatedAt: t,
+  });
+  await db.addPaceSnapshot({ id: 'sn1', projectId: id, takenAt: t, fileName: 'tracker.xlsx', actions: [] });
   return id;
 }
 
@@ -86,6 +103,13 @@ describe('deleting for good takes the whole file with it', () => {
     expect(by.test_items).toBe(1);
     expect(by.commission_assets).toBe(1);
     expect(by.tree_nodes).toBe(1);
+    // and the four that are scanned rather than indexed
+    expect(by.pace_ppm, 'its lines').toBe(1);
+    expect(by.pace_todos, 'its next steps').toBe(1);
+    expect(by.pace_wins, 'its wins').toBe(1);
+    expect(by.pace_snapshots, 'its uploads').toBe(1);
+    expect(by.readings).toBe(1);
+    expect(by.targets).toBe(1);
   });
 
   it('leaves no orphans in any store the project owned', async () => {
@@ -99,6 +123,12 @@ describe('deleting for good takes the whole file with it', () => {
     expect(await db.listTestItems(id)).toEqual([]);
     expect(await db.listAssets(id)).toEqual([]);
     expect(await db.listTreeNodes(id)).toEqual([]);
+    expect(await db.loadPaceLines(id), 'its lines go with it').toEqual([]);
+    expect(await db.listPaceTodos(id)).toEqual([]);
+    expect(await db.listPaceWins(id)).toEqual([]);
+    expect(await db.listPaceSnapshots(id)).toEqual([]);
+    expect(await db.listReadings(id)).toEqual([]);
+    expect(await db.listTargets(id)).toEqual([]);
     expect(await db.projectContents(id)).toEqual([]);
   });
 
@@ -114,6 +144,10 @@ describe('deleting for good takes the whole file with it', () => {
     expect(kinds.has('test_items'), 'what was found on them').toBe(true);
     expect(kinds.has('commission_assets'), 'its machines').toBe(true);
     expect(kinds.has('tree_nodes'), 'its lever tree').toBe(true);
+    expect(kinds.has('pace_ppm'), 'its lines').toBe(true);
+    expect(kinds.has('pace_todos'), 'its next steps').toBe(true);
+    expect(kinds.has('pace_wins'), 'its wins').toBe(true);
+    expect(kinds.has('readings'), 'its readings').toBe(true);
     expect(stones.map(s => s.id)).toContain(id);
   });
 
@@ -128,11 +162,15 @@ describe('deleting for good takes the whole file with it', () => {
       id: 'safe1', projectId: 'keeper', title: 'Still mine',
       outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1,
     });
+    // a line with the SAME human key on the other project — the scan must go by
+    // projectId, not by anything that looks like the line
+    await db.putPaceLine({ id: 'ppm-keeper-5', projectId: 'keeper', key: '5', name: 'Line 5', updatedAt: 1 });
 
     await db.purgeProject(doomed);
 
     expect(await db.getProject('keeper')).toBeTruthy();
     expect((await db.listTests('keeper')).map(t => t.title)).toEqual(['Still mine']);
+    expect((await db.loadPaceLines('keeper')).map(l => l.name)).toEqual(['Line 5']);
   });
 
   it('is safe on a project that owns nothing at all', async () => {

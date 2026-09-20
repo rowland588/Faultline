@@ -28,14 +28,8 @@ import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { statusOfAction } from '../lib/treeBind';
 import { board, actionTitle } from '../lib/pillars';
 import { fmtRelative } from '../lib/format';
-import { PACE_BASELINE_AT } from '../lib/projectPaceData';
 
-/* Read off the shipped extract itself rather than typed here. A date written
-   into a sentence is a date that goes wrong the first time the extract is
-   re-cut, and quietly — nobody reads a line they have seen a hundred times. */
-const fmtDay = (ms: number) =>
-  new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import type { NodeStatus } from '../db';
 
 const STATUS: Record<NodeStatus, string> = {
@@ -64,7 +58,6 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   const [hideDone, setHideDone] = useState(false);
 
   const source = pace.snapshots[0];
-  const baseline = !!source?.fileName?.includes('(baseline)');
 
   const [area, setArea] = useState('');
 
@@ -119,12 +112,10 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
       {/* WHICH workbook, and how old. The same rule as everywhere else: a count
           without a source is how somebody decides the app is broken. */}
-      <p className={'bs-src bd-src' + (baseline ? ' is-base' : '')}>
-        {baseline
-          ? <><b>Your tracker as at {fmtDay(PACE_BASELINE_AT)}</b> — the copy that ships with the app, so the board is here the moment you open it. Upload this week’s workbook and it takes over.</>
-          : source
-            ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.areas.length} card{full.areas.length === 1 ? '' : 's'} · {full.total} action{full.total === 1 ? '' : 's'} across them</>
-            : <>No tracker uploaded to this project yet.</>}
+      <p className="bs-src bd-src">
+        {source
+          ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.areas.length} card{full.areas.length === 1 ? '' : 's'} · {full.total} action{full.total === 1 ? '' : 's'} across them</>
+          : <>No tracker uploaded to this project yet.</>}
       </p>
 
       {full.areas.length > 1 && (

@@ -25,10 +25,10 @@ import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '.
 import { TreeStatic, useTreeNodes } from './TreeStatic';
 import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
-import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEFAULT_PROJECT_ID,
+import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   type PaceTodoRow, type PaceWinRow } from '../db';
 import type { Snag } from '../snag/types';
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
@@ -293,10 +293,11 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
 }
 
 export function PaceExecReport() {
-  // Which project this is a report on. Defaults to the one the app shipped
-  // with, so the link that has always been #/pace-report still works.
+  /* Which project this is a report on. There is no default: a deck with no
+     project named is a bad link, and it says so below rather than reporting on
+     whichever project the app happened to invent. */
   const route = useRoute();
-  const projectId = route.query.get('project') || DEFAULT_PROJECT_ID;
+  const projectId = route.query.get('project') ?? '';
   // ?line= turns this into ONE LINE'S deck — the owner's own A3, same drawer,
   // same layout, scoped to their line. Without it, it is the GM's, which is the
   // roll-up of every line's.
@@ -420,15 +421,21 @@ export function PaceExecReport() {
     );
   }
 
-  // A report on a project that isn't here is a page of empty boxes with
-  // "Project" at the top — say so and offer the way out instead.
+  /* A report on a project that isn't here is a page of empty boxes with
+     "Project" at the top — say so and offer the way out instead. A link with no
+     project named at all is a different sentence: this deck used to default to
+     the one project the app invented, and there is no such thing now. */
   if (!project) {
     return (
       <div className="exec-report">
         <div className="exec-bar no-print">
           <button className="btn btn-ghost" onClick={() => nav('/projects')}>← Projects</button>
         </div>
-        <p className="sub" style={{ padding: '40px' }}>That project isn’t here any more, so there is nothing to report on.</p>
+        <p className="sub" style={{ padding: '40px' }}>
+          {projectId
+            ? 'That project isn’t here any more, so there is nothing to report on.'
+            : 'A deck is a report on one project. Pick which, and it opens on its own.'}
+        </p>
       </div>
     );
   }

@@ -4,7 +4,7 @@
  * The front door is invite-only and there is no way around it: signed out means
  * the Landing (sign in / create account, and only invited emails can register).
  * Once signed in the session is cached locally, so the app still works offline. */
-import { useRoute, navReplace } from './state/useRoute';
+import { useRoute } from './state/useRoute';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
@@ -26,7 +26,6 @@ import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
-import { DEFAULT_PROJECT_ID } from './db';
 import { useSession } from './cloud/session';
 import { AutoConvert } from './snag/AutoConvert';
 import type { Route } from './state/useRoute';
@@ -63,14 +62,13 @@ function app(route: Route) {
   if (route.name === 'portfolio') return <PortfolioScreen />;
 
   // Projects span several lines each, so like the portfolio they live outside
-  // any single WorkspaceProvider scope. The door opens on the LIST now that
-  // there can be more than one — but a link saved when there was only Project
-  // Pace (#/projects?view=next) still lands where it always did.
-  if (route.name === 'projects') {
-    const view = route.query.get('view');
-    if (view) { navReplace(`/project/${DEFAULT_PROJECT_ID}?view=${encodeURIComponent(view)}`); return <BootSplash />; }
-    return <ProjectsScreen />;
-  }
+  // any single WorkspaceProvider scope. The door opens on the LIST.
+  //
+  // A link saved when there was only one project (#/projects?view=next) used to
+  // be sent straight into it. There is no "the" project any more, so the view
+  // is dropped and the list is shown — a list is a fair answer to "which one?",
+  // and a redirect into a project that may not exist is not.
+  if (route.name === 'projects') return <ProjectsScreen />;
   if (route.name === 'leverTree') return <LeverTree projectId={route.id!} />;
   if (route.name === 'board') return <BoardScreen projectId={route.id!} />;
   if (route.name === 'pareto') return <ParetoScreen projectId={route.id!} />;

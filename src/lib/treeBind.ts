@@ -26,7 +26,7 @@
  * every upload would mean merging two versions of the same action every week,
  * and would leave last week's deleted rows stranded on the tree forever.
  */
-import type { PaceAction } from './projectPaceData';
+import type { PaceAction } from './tracker';
 import type { PaceLineRow, PaceTodoRow, TreeNodeRow, NodeStatus } from '../db';
 
 /* The tracker writes lines the way people say them ("Line 2", "Line 10") and

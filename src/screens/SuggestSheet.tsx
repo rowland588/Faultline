@@ -15,7 +15,7 @@
  * want to improve rather than one they would leave alone.
  */
 import { useMemo, useState } from 'react';
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { suggestConditions, trackerLines, allLinesCount, ALL_LINES, type TrackerBind } from '../lib/treeBind';
 import { SourceStrip } from './BindSheet';

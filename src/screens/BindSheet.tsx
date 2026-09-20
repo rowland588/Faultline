@@ -16,7 +16,7 @@
  * headings is the day it stops being worth putting on a wall.
  */
 import { useMemo, useState } from 'react';
-import type { PaceAction } from '../lib/projectPaceData';
+import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { fmtRelative } from '../lib/format';
 import {

@@ -16,7 +16,7 @@
  * that a date picker cannot hold, and forcing a date would make people invent
  * one. */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, DEFAULT_PROJECT_ID, type PaceTodoRow } from '../db';
+import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
 import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -144,7 +144,7 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
 /** `lineId` narrows the list to one line's own next steps, which is what makes
  *  a line's pack a pack rather than a filtered view of the project's. Left off,
  *  the project sees everything — its lines' items and anything spanning them. */
-export function PaceNextSteps({ projectId = DEFAULT_PROJECT_ID, lineId }: { projectId?: string; lineId?: string } = {}) {
+export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId?: string }) {
   const [rows, setRows] = useState<PaceTodoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<MediaRef | null>(null);

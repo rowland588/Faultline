@@ -1,8 +1,8 @@
 /* The projects list — every improvement initiative this person can open.
  *
- * There is always at least one, because the app shipped with Project Pace and
- * the lines already on the user's devices belong to it. Everything else is
- * created here.
+ * There may be none. The app used to mint one called Project Pace on every
+ * device, seeded with one factory's lines and undeletable; a person's first
+ * project is now the one they start, or the one they are invited to.
  *
  * Like the lines, this re-reads on any data change, so a project created on the
  * laptop shows up on the phone without a reload. */
@@ -10,20 +10,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ensureProjects, createProject, updateProject, deleteProject, onDataChange,
   archiveProject, restoreProject, purgeProject, projectContents,
-  DEFAULT_PROJECT_ID,
 } from '../db';
 import type { Project } from '../types';
 import type { PlanModel } from './planModel';
-
-/** What the app shipped with. Only ever used to CREATE the default project the
- *  first time; after that the stored row is the truth and this is ignored, so
- *  renaming it in the app sticks. */
-export const DEFAULT_PROJECT = {
-  name: 'Project Pace',
-  description: 'The lines, the numbers they are judged on, and the work in flight.',
-  color: '#2b87d4',
-  lead: 'Rowland Glew',
-};
 
 export interface ProjectsState {
   loading: boolean;
@@ -53,7 +42,7 @@ export function useProjects(): ProjectsState {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setAll(await ensureProjects(DEFAULT_PROJECT));
+    setAll(await ensureProjects());
     setLoading(false);
   }, []);
 
@@ -84,26 +73,13 @@ export function useProjects(): ProjectsState {
       await updateProject({ ...p, ...patch });
       await refresh();
     },
-    remove: async (id: string) => {
-      // The one project the app ships with stays: its lines carry the ppm
-      // history, and there would be nothing to open with it gone.
-      if (id === DEFAULT_PROJECT_ID) return;
-      await deleteProject(id);
-      await refresh();
-    },
-    archive: async (id: string) => {
-      // The default project stays: its lines carry the ppm history, and an
-      // empty app with nothing to open is not a tidier app.
-      if (id === DEFAULT_PROJECT_ID) return;
-      await archiveProject(id);
-      await refresh();
-    },
+    /* EVERY project can be archived and deleted, including the one the app used
+       to ship with. It was exempted from all three of these, which meant the one
+       project nobody chose was the one project nobody could get rid of. */
+    remove: async (id: string) => { await deleteProject(id); await refresh(); },
+    archive: async (id: string) => { await archiveProject(id); await refresh(); },
     restore: async (id: string) => { await restoreProject(id); await refresh(); },
-    purge: async (id: string) => {
-      if (id === DEFAULT_PROJECT_ID) return;
-      await purgeProject(id);
-      await refresh();
-    },
+    purge: async (id: string) => { await purgeProject(id); await refresh(); },
     contents: (id: string) => projectContents(id),
   };
 }
