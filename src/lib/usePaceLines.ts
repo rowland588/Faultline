@@ -1,10 +1,15 @@
-/* The lines in a project — their people, their targets and their ppm numbers,
- * owned by the app rather than by the source file.
+/* The lines in a project, and the people against them.
  *
- * The default project is seeded from the figures the app shipped with, then
- * edited in place — and the seed only ever fills a line this device has no row
- * for, so a reload can never undo a number somebody typed. A project somebody
- * creates starts empty: its lines are the ones they add.
+ * THE NUMBERS ARE NOT HERE. A line used to carry four quarterly ppm targets and
+ * a weekly array indexed from one fixed Monday, and this hook was how they were
+ * typed in. Both described one factory's spreadsheet. What a line is measured on
+ * is the business's to name now — lib/useMeasures.ts holds the measures, the
+ * periods, the targets and the readings.
+ *
+ * The default project is seeded with the line NAMES the app shipped with, and
+ * only ever fills a line this device has no row for, so a reload can never undo
+ * an edit somebody made. A project somebody creates starts empty: its lines are
+ * the ones they add.
  *
  * Every device derives the same row id from the line name (see loadPaceLines),
  * which is what lets the figures be entered on a laptop and presented from a
@@ -14,44 +19,19 @@ import {
   loadPaceLines, putPaceLine, addPaceLine, deletePaceLine, onDataChange,
   DEFAULT_PROJECT_ID, type PaceLineRow,
 } from '../db';
-import { PACE_LINES, PACE_START } from './projectPaceData';
-
-const WEEK_MS = 7 * 86_400_000;
-
-/** Monday of the week at `index`, counted from the first measured week. */
-export function weekStart(index: number): Date {
-  return new Date(PACE_START + index * WEEK_MS);
-}
-export function weekLabel(index: number): string {
-  return weekStart(index).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-}
-
-/** Which week we are in right now, counted from PACE_START (0-based). The grid
- *  always runs up to here, so the week in progress is always there to type into
- *  and nobody has to remember to add one every Monday. */
-export function currentWeekIndex(now = Date.now()): number {
-  return Math.max(0, Math.floor((now - PACE_START) / WEEK_MS));
-}
+import { PACE_LINES } from './projectPaceData';
 
 /** What a line needs to exist: what the team calls it, and nothing else. The
- *  targets and the people can all be filled in afterwards. */
+ *  people and the targets can all be filled in afterwards. */
 export interface NewLine {
   key: string; name?: string; variant?: string;
   owner?: string; ownerEmail?: string;
   sponsor?: string; sponsorEmail?: string;
-  q1?: number; q2?: number; q3?: number; q4?: number;
 }
 
 export interface PaceLinesState {
   loading: boolean;
   lines: PaceLineRow[];
-  weeks: number;
-  /** 0-based index of the week in progress — the grid never stops short of it. */
-  thisWeek: number;
-  setPpm: (key: string, week: number, value: number | null) => Promise<void>;
-  setTarget: (key: string, q: 'q1' | 'q2' | 'q3' | 'q4', value: number) => Promise<void>;
-  addWeek: () => Promise<void>;
-  removeLastWeek: () => Promise<void>;
   /** Setting up the project: the lines themselves, and who is against them. */
   addLine: (line: NewLine) => Promise<void>;
   editLine: (id: string, patch: Partial<PaceLineRow>) => Promise<void>;
@@ -75,9 +55,7 @@ export function usePaceLines(projectId: string = DEFAULT_PROJECT_ID): PaceLinesS
     const rows = await loadPaceLines(
       projectId,
       isDefault ? PACE_LINES.map((l, i) => ({
-        key: l.key, name: l.name, variant: l.variant,
-        q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4,
-        weekly: [...l.weekly], sort: i, updatedAt: 0,
+        key: l.key, name: l.name, variant: l.variant, sort: i, updatedAt: 0,
       })) : [],
       { adoptOrphans: isDefault },
     );
@@ -98,52 +76,6 @@ export function usePaceLines(projectId: string = DEFAULT_PROJECT_ID): PaceLinesS
     });
   }, [refresh]);
 
-  const write = useCallback(async (next: PaceLineRow[]) => {
-    setLines(next);                                // optimistic: typing stays responsive
-    for (const r of next) await putPaceLine(r);
-  }, []);
-
-  const patch = useCallback(async (key: string, fn: (r: PaceLineRow) => PaceLineRow) => {
-    const before = lines.find(r => r.key === key);
-    if (!before) return;
-    const after = fn(before);
-    setLines(lines.map(r => (r.key === key ? after : r)));
-    await putPaceLine(after);          // one row, not all of them
-  }, [lines]);
-
-  // Always reach the current week, even if nothing has been typed into it yet.
-  // Padding is for display only — nothing is written until a number is entered.
-  const thisWeek = currentWeekIndex();
-  const weeks = Math.max(lines.reduce((m, l) => Math.max(m, l.weekly.length), 0), thisWeek + 1);
-  const padded = lines.map(l => (l.weekly.length >= weeks
-    ? l
-    : { ...l, weekly: [...l.weekly, ...Array(weeks - l.weekly.length).fill(null)] as (number | null)[] }));
-
-  const setPpm = useCallback(async (key: string, week: number, value: number | null) => {
-    await patch(key, r => {
-      const weekly = [...r.weekly];
-      while (weekly.length <= week) weekly.push(null);
-      weekly[week] = value;
-      return { ...r, weekly };
-    });
-  }, [patch]);
-
-  const setTarget = useCallback(async (key: string, q: 'q1' | 'q2' | 'q3' | 'q4', value: number) => {
-    await patch(key, r => ({ ...r, [q]: value }));
-  }, [patch]);
-
-  const addWeek = useCallback(async () => {
-    await write(lines.map(r => ({ ...r, weekly: [...r.weekly, null] })));
-  }, [lines, write]);
-
-  /** Only ever drops a trailing week that holds no readings. */
-  const removeLastWeek = useCallback(async () => {
-    const last = weeks - 1;
-    if (last < 0) return;
-    if (lines.some(l => l.weekly[last] != null)) return;
-    await write(lines.map(r => ({ ...r, weekly: r.weekly.slice(0, last) })));
-  }, [lines, weeks, write]);
-
   /* ---------- setting the project up ---------- */
 
   const addLine = useCallback(async (l: NewLine) => {
@@ -153,20 +85,16 @@ export function usePaceLines(projectId: string = DEFAULT_PROJECT_ID): PaceLinesS
     // second row — silently adding a duplicate "2A" is the one outcome nobody
     // wants, because both then claim the same numbers.
     if (lines.some(r => r.key.toLowerCase() === key.toLowerCase())) return;
-    // A new line starts with as many empty weeks as the project already has, so
-    // it lines up under the same week headings instead of starting at week 1.
     await addPaceLine({
       projectId, key,
       name: (l.name ?? '').trim() || `Line ${key}`,
       variant: l.variant?.trim() || undefined,
       owner: l.owner?.trim() || undefined, ownerEmail: l.ownerEmail?.trim().toLowerCase() || undefined,
       sponsor: l.sponsor?.trim() || undefined, sponsorEmail: l.sponsorEmail?.trim().toLowerCase() || undefined,
-      q1: l.q1 ?? 0, q2: l.q2 ?? 0, q3: l.q3 ?? 0, q4: l.q4 ?? 0,
-      weekly: Array(weeks).fill(null) as (number | null)[],
       sort: lines.reduce((m, r) => Math.max(m, r.sort ?? 0), 0) + 1,
     });
     await refresh();
-  }, [lines, projectId, weeks, refresh]);
+  }, [lines, projectId, refresh]);
 
   const editLine = useCallback(async (id: string, p: Partial<PaceLineRow>) => {
     const before = lines.find(r => r.id === id);
@@ -195,9 +123,5 @@ export function usePaceLines(projectId: string = DEFAULT_PROJECT_ID): PaceLinesS
     for (const r of stamped) await putPaceLine(r);
   }, [lines]);
 
-  return {
-    loading, lines: padded, weeks, thisWeek,
-    setPpm, setTarget, addWeek, removeLastWeek,
-    addLine, editLine, removeLine, moveLine,
-  };
+  return { loading, lines, addLine, editLine, removeLine, moveLine };
 }

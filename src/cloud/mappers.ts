@@ -5,6 +5,7 @@ import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
+import type { Reading, Target } from '../lib/measures';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -183,6 +184,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         pareto: p.pareto ?? false,
         commissioning: p.commissioning ?? false,
         planned_at: p.plannedAt ?? null, expected_at: p.expectedAt ?? null,
+        measures: p.measures ?? null, periods: p.periods ?? null,
         archived_at: p.archivedAt ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -198,6 +200,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       commissioning: r.commissioning === true || undefined,
       plannedAt: (r.planned_at as string) ?? undefined,
       expectedAt: (r.expected_at as string) ?? undefined,
+      measures: (r.measures as Project['measures']) ?? undefined,
+      periods: (r.periods as Project['periods']) ?? undefined,
       archivedAt: n(r.archived_at),
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
@@ -257,8 +261,11 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         line_owner: p.owner ?? null, line_owner_email: p.ownerEmail ?? null,
         sponsor: p.sponsor ?? null, sponsor_email: p.sponsorEmail ?? null,
         workspace_id: p.workspaceId ?? null, sort: p.sort ?? 0,
-        q1: p.q1, q2: p.q2, q3: p.q3, q4: p.q4,
-        weekly: p.weekly, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
+        /* q1..q4 and weekly are still columns on this table and are no longer
+           written: the numbers moved to `targets` and `readings`. They default
+           to 0 and [] in the cloud, so an insert without them is accepted —
+           which is why removing them needed no migration. */
+        updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
     fromRow: (r) => ({
@@ -268,9 +275,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       owner: (r.line_owner as string) ?? undefined, ownerEmail: (r.line_owner_email as string) ?? undefined,
       sponsor: (r.sponsor as string) ?? undefined, sponsorEmail: (r.sponsor_email as string) ?? undefined,
       workspaceId: (r.workspace_id as string) ?? undefined, sort: Number(r.sort) || 0,
-      q1: Number(r.q1) || 0, q2: Number(r.q2) || 0, q3: Number(r.q3) || 0, q4: Number(r.q4) || 0,
-      // nulls inside the array are meaningful: a week that was never measured
-      weekly: (r.weekly as (number | null)[]) ?? [],
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
@@ -451,6 +455,52 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies TestItem),
   },
 
+  /* WHAT A LINE IS AIMING AT. One row per line x measure x period. The measures
+     and the periods themselves ride on the project row, because they are small
+     lists owned entirely by it and are always read with it. */
+  targets: {
+    clock: l => (l as Target).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const t = l as Target;
+      return {
+        id: t.id, owner_id: fallbackOwner, project_id: t.projectId,
+        line_id: t.lineId, measure_id: t.measureId, period_id: t.periodId,
+        value: t.value, updated_at: t.updatedAt, deleted_at: t.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      lineId: (r.line_id as string) ?? '', measureId: (r.measure_id as string) ?? '',
+      periodId: (r.period_id as string) ?? '', value: Number(r.value) || 0,
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Target),
+  },
+
+  /* WHAT IT ACTUALLY DID. One row per line x measure x date. `at` is an ISO
+     date rather than a timestamp: a reading is taken on a DAY, and a midnight
+     in some zone shows in Manchester as the day before. */
+  readings: {
+    clock: l => (l as Reading).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const r = l as Reading;
+      return {
+        id: r.id, owner_id: fallbackOwner, project_id: r.projectId,
+        line_id: r.lineId, measure_id: r.measureId, at: r.at, value: r.value,
+        note: r.note ?? null, created_at: r.createdAt,
+        updated_at: r.updatedAt, deleted_at: r.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      lineId: (r.line_id as string) ?? '', measureId: (r.measure_id as string) ?? '',
+      at: (r.at as string) ?? '', value: Number(r.value) || 0,
+      note: (r.note as string) ?? undefined,
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Reading),
+  },
+
   pace_snapshots: {
     // A snapshot is never edited, so its clock is simply when it was taken.
     clock: l => (l as PaceSnapshotRow).takenAt,
@@ -486,4 +536,7 @@ export const SYNC_KINDS: SyncKind[] = [
   // after projects, because every node and every item names one
   // machines, then the tests that name them, then what hangs off a test
   'tree_nodes', 'commission_assets', 'tests', 'test_items',
+  // after projects, because a target and a reading both name a measure that
+  // lives on the project row
+  'targets', 'readings',
 ];

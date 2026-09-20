@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
-import { PaceLineChart } from '../charts/PaceLineChart';
+import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
@@ -30,8 +30,10 @@ import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace, DEF
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceReportData } from '../lib/paceReportPdf';
-import { proofFromWin, proofSentence, verdictLabel } from '../lib/ppmProof';
+import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
+import { useMeasures } from '../lib/useMeasures';
+import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import type { PaceParetoSheet } from '../lib/paceWorkbook';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
@@ -303,6 +305,7 @@ export function PaceExecReport() {
 
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
+  const nums = useMeasures(projectId);
   const line = lineId ? ppm.lines.find(l => l.id === lineId) : undefined;
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
@@ -495,10 +498,14 @@ export function PaceExecReport() {
   const openTotal = openOnTrack + late;
   const pctDone = actions.length ? Math.round((complete / actions.length) * 100) : 0;
 
-  const atTarget = reportLines.filter(l => {
-    const seen = l.weekly.filter((v): v is number => v != null);
-    return seen.length > 0 && seen[seen.length - 1] >= l.q1;
-  }).length;
+  /* WHERE EVERY LINE STANDS on the measure this project leads on — one series
+     per line, read by the page, the roll-up and the PDF, so all three say the
+     same thing. `meeting` is only true when there is both a reading and a target
+     to judge it against: a line with nothing recorded is not "at target". */
+  const seriesByLine = new Map<string, LineSeries | undefined>(reportLines.map(l => [
+    l.id, lineSeries(nums.measures, nums.periods, nums.targets, nums.readings, l.id),
+  ]));
+  const atTarget = reportLines.filter(l => seriesByLine.get(l.id)?.meeting === true).length;
 
   // The lines this report actually covers, read off the project rather than
   // written into the page — so adding a line changes what the report says it covers.
@@ -517,9 +524,8 @@ export function PaceExecReport() {
   const subtitle = line
     ? [line.owner && `Owner ${line.owner}`, line.sponsor && `Sponsor ${line.sponsor}`,
        `part of ${project?.name ?? 'the project'}`].filter(Boolean).join(' · ')
-    : lineList
-      ? `${lineList} — packs per minute, the action tracker, the line walk`
-      : 'Packs per minute, the action tracker, the line walk';
+    : [lineList, nums.measures[0]?.name ?? 'the numbers', 'the action tracker', 'the line walk']
+        .filter(Boolean).join(' — ').replace(/ — (?=the action)/, ', ').replace(/ — (?=the line walk)/, ', ');
 
   const openSnags = snags.filter(s => s.status !== 'closed');
   /* Which line each snag came off. The project's report merges every line's
@@ -568,7 +574,7 @@ export function PaceExecReport() {
   const byLine = reportLines.map(l => {
     const mine = actionsForLine(pace.actions, l.key);
     const lineTodos = todos.filter(t => t.lineId === l.id);
-    const seen = l.weekly.filter((v): v is number => v != null);
+    const ser = seriesByLine.get(l.id);
     return {
       name: l.name,
       owner: l.owner ?? '—',
@@ -580,8 +586,9 @@ export function PaceExecReport() {
       nextDone: lineTodos.filter(t => t.state === 'done').length,
       snags: (snagsByLine.get(l.id) ?? []).filter(s => s.status !== 'closed').length,
       wins: wins.filter(w => w.lineId === l.id).length,
-      ppm: seen.length ? seen[seen.length - 1] : null,
-      target: l.q1,
+      latest: ser?.latest ?? null,
+      meeting: ser?.meeting,
+      unit: ser?.measure.unit,
     };
   });
 
@@ -593,7 +600,7 @@ export function PaceExecReport() {
    * the page the GM actually reads.
    *
    * They join the roll-up with an em dash where the numbers only a project line
-   * can have would be — no ppm target, no next steps, no walk, no wins — which
+   * can have would be — no reading, no next steps, no walk, no wins — which
    * says both things at once: here is the work, and here is what this area has
    * not got yet. A line's own deck never shows them: it is that line's page. */
   const extraAreas = line ? [] : uncoveredAreas(actions, reportLines.map(l => l.key));
@@ -605,7 +612,8 @@ export function PaceExecReport() {
       late: mine.filter(a => isLate(a, todayStart)).length,
       open: mine.filter(a => !isDone(a)).length,
       nextOpen: 0, nextDone: 0, snags: 0, wins: 0,
-      ppm: null as number | null, target: 0, noLine: true,
+      latest: null as number | null, meeting: undefined as boolean | undefined,
+      unit: undefined as string | undefined, noLine: true,
     };
   });
   const rollup = [...byLine.map(r => ({ ...r, noLine: false })), ...byArea];
@@ -645,7 +653,7 @@ export function PaceExecReport() {
     lines: reportLines.map(l => ({
       key: l.key, name: l.name, variant: l.variant,
       owner: l.owner, sponsor: l.sponsor,
-      q1: l.q1, q2: l.q2, q3: l.q3, q4: l.q4, weekly: l.weekly,
+      series: seriesByLine.get(l.id),
     })),
     atTarget, pctDone,
     complete, total: actions.length, openTotal, openOnTrack, late,
@@ -754,13 +762,14 @@ export function PaceExecReport() {
               the owner is judged on is the reading itself, against target. */}
           {line
             ? (() => {
-                const last = [...line.weekly].reverse().find((v): v is number => v != null) ?? null;
-                const d = last == null ? null : last - line.q1;
-                return <Stat n={last == null ? '—' : String(last)} label="ppm latest"
-                  sub={d == null ? `Q1 target ${line.q1}` : `${d >= 0 ? '+' : ''}${d} vs Q1 target ${line.q1}`}
-                  tone={d == null ? 'flat' : d >= 0 ? 'good' : 'bad'} />;
+                const ser = seriesByLine.get(line.id);
+                if (!ser) return <Stat n="—" label="No measures set" sub="set them up on the project" tone="flat" />;
+                return <Stat n={ser.latest == null ? '—' : say(ser.latest)}
+                  label={`${ser.measure.name} latest`}
+                  sub={vsTarget(ser)}
+                  tone={ser.meeting == null ? 'flat' : ser.meeting ? 'good' : 'bad'} />;
               })()
-            : <Stat n={`${atTarget}/${reportLines.length}`} label="Lines at target" sub="latest week vs Q1"
+            : <Stat n={`${atTarget}/${reportLines.length}`} label="Lines at target" sub="latest reading vs target"
                 tone={atTarget === reportLines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />}
           <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="good" />
           <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
@@ -771,17 +780,26 @@ export function PaceExecReport() {
 
         <div className="exec-body-1">
           <section className="exec-box exec-box-lines">
-            <SectionHead n="1" title="Line pace" sowhat="Weekly packs per minute against the quarterly targets" />
+            <SectionHead n="1" title={nums.measures[0]?.name ?? 'The numbers'}
+              sowhat={nums.measures[0]
+                ? `Every reading against the target for the period it falls in${nums.measures[0].unit ? ` · ${nums.measures[0].unit}` : ''}`
+                : 'This project has not said what it measures yet'} />
             {/* one line's deck gets one full-width chart rather than one
                 quarter of a grid built for four — same rule the PDF follows */}
             <div className={'exec-charts' + (reportLines.length === 1 ? ' is-one' : reportLines.length === 2 ? ' is-two' : '')}>
-              {reportLines.map(l => <PaceLineChart key={l.key} line={l} />)}
+              {reportLines.map(l => {
+                const ser = seriesByLine.get(l.id);
+                return ser
+                  ? <MeasureChart key={l.key} series={ser}
+                      who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} />
+                  : null;
+              })}
             </div>
           </section>
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 1 of {pageCount} — line pace</span>
+          <span>{title} · weekly executive report · page 1 of {pageCount} — the numbers</span>
           <span>The tracker workbook is the system of record; this report reads it.</span>
         </footer>
       </section>
@@ -850,7 +868,8 @@ export function PaceExecReport() {
               <thead>
                 <tr>
                   <th scope="col">Line</th><th scope="col">Owner</th>
-                  <th scope="col">ppm</th><th scope="col">Open</th><th scope="col">Late</th>
+                  <th scope="col">{rollup.find(r => r.unit)?.unit ?? 'Latest'}</th>
+                  <th scope="col">Open</th><th scope="col">Late</th>
                   <th scope="col">Next</th><th scope="col">Evidence</th><th scope="col">Wins</th>
                 </tr>
               </thead>
@@ -859,8 +878,8 @@ export function PaceExecReport() {
                   <tr key={r.name} className={r.noLine ? 'is-noline' : undefined}>
                     <th scope="row">{r.name}</th>
                     <td className="exec-mowner">{r.owner}</td>
-                    <td className={'exec-mppm ' + (r.ppm == null ? '' : r.ppm >= r.target ? 'is-good' : 'is-bad')}>
-                      {r.ppm == null ? '—' : r.ppm}
+                    <td className={'exec-mppm ' + (r.meeting == null ? '' : r.meeting ? 'is-good' : 'is-bad')}>
+                      {r.latest == null ? '—' : say(r.latest)}
                     </td>
                     <td>{r.open}</td>
                     <td className={r.late > 0 ? 'is-bad' : ''}>{r.late}</td>

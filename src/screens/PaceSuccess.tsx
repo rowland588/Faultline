@@ -19,15 +19,15 @@
  * And that free text was the hole. A typed impact is a benefit DECLARED, which
  * is the one thing this product exists to refuse — the Case study has never
  * allowed it, and the wins log quietly did. So a win can now carry a PROOF
- * derived from the line's own weekly ppm: both means, both week counts, a
- * significance test, frozen when it is called, and allowed to come back "not
- * proven" or "worse". The story stays; the number stops being a claim.
- * See lib/ppmProof.ts. */
+ * derived from the line's own readings, on whichever measure the business keeps:
+ * both means, both counts, a significance test, frozen when it is called, and
+ * allowed to come back "not proven" or "worse". The story stays; the number
+ * stops being a claim. See lib/measureProof.ts. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, DEFAULT_PROJECT_ID, type PaceWinRow } from '../db';
 import { uid } from '../lib/ids';
 import { usePaceLines } from '../lib/usePaceLines';
-import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib/ppmProof';
+import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib/measureProof';
 import { WinProofSheet } from './WinProofSheet';
 
 const when = (ms: number) =>
@@ -67,15 +67,17 @@ function Card({ win, onPatch, onDelete, onProve }: {
       {proof ? (
         <div className={'win-proof is-' + proof.verdict}>
           <span className="win-proof-badge">{verdictLabel(proof.verdict)}</span>
-          <span className="win-proof-line">{proofSentence(proof)}</span>
+          <span className="win-proof-line">{proofSentence(proof, win.proof!.unit)}</span>
           <span className="win-proof-meta">
-            {win.proof!.lineName} · called {when(win.proof!.calledAt)}
+            {win.proof!.lineName}
+            {win.proof!.measureName && <> · {win.proof!.measureName}</>}
+            {' · called '}{when(win.proof!.calledAt)}
           </span>
           <button className="win-proof-redo" onClick={onProve}>Recall it</button>
         </div>
       ) : (
         <button className="win-prove" onClick={onProve}>
-          Prove it from the weeks →
+          Prove it from the readings →
         </button>
       )}
 
@@ -178,6 +180,7 @@ export function PaceSuccess({ projectId = DEFAULT_PROJECT_ID, lineId }: { projec
 
       {proving && (
         <WinProofSheet
+          projectId={projectId}
           lines={provable}
           initial={wins.find(w => w.id === proving)?.proof}
           onClose={() => setProving(null)}

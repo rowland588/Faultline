@@ -95,6 +95,10 @@ export interface Observation {
   deletedAt?: Millis; // soft delete — tombstone for future sync
 }
 
+/* Aliased on the way in: `Measure` is already taken here by the engine's
+   count | time | cost, and that one is older and used in more places. */
+import type { Measure as LineMeasure, Period as LinePeriod } from './lib/measures';
+
 /* Lightweight — NO blob. Blob & thumb live in the `media` store by these keys. */
 export interface MediaRef {
   id: ID;
@@ -236,6 +240,15 @@ export interface Project {
    *  moves. */
   plannedAt?: string;
   expectedAt?: string;
+
+  /** WHAT THIS BUSINESS MEASURES, and what it calls its periods.
+   *
+   *  Both are small lists owned entirely by the project, edited rarely and
+   *  always read with it, so they live on the row rather than in tables of
+   *  their own. They replaced `q1..q4` packs-per-minute welded into the line
+   *  type — see lib/measures.ts. */
+  measures?: LineMeasure[];
+  periods?: LinePeriod[];
 
   /** PUT AWAY, NOT DESTROYED. A finished commissioning job should leave the
    *  list without anybody having to decide whether they will ever want the

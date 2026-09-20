@@ -21,6 +21,8 @@ import {
 } from './reportKit';
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
+import { vsTarget } from './measures';
+import type { LineSeries } from './measures';
 
 
 export interface PaceReportData {
@@ -37,7 +39,11 @@ export interface PaceReportData {
   lines: {
     key: string; name: string; variant?: string;
     owner?: string; sponsor?: string;
-    q1: number; q2: number; q3: number; q4: number; weekly: (number | null)[];
+    /** WHAT THIS LINE IS MEASURED ON, and where it stands — the same series the
+     *  screen's chart takes, so the page and the file cannot disagree about
+     *  which period is in play or which way is good. Absent on a project that
+     *  has not said what it measures yet, and the panel says so. */
+    series?: LineSeries;
   }[];
   atTarget: number;
   pctDone: number; complete: number; total: number; openTotal: number; openOnTrack: number; late: number;
@@ -52,7 +58,10 @@ export interface PaceReportData {
     name: string; owner: string;
     open: number; late: number; done: number; total: number;
     nextOpen: number; nextDone: number; snags: number; wins: number;
-    ppm: number | null; target: number;
+    /** The latest reading on the measure the project leads on, and whether it is
+     *  on the good side of its target — worked out where the direction is known
+     *  rather than by comparing two numbers here. */
+    latest: number | null; meeting?: boolean; unit?: string;
   }[];
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
@@ -102,119 +111,151 @@ export interface PaceReportData {
 /* ---------- small drawing helpers ---------- */
 
 /** Trim to fit a column, with an ellipsis — the exec cut, never a wrapped essay. */
-/* ---------- one line chart, same geometry as the on-screen SVG ---------- */
+/* ---------- one line chart, same geometry as the on-screen SVG ----------
+ *
+ * Takes the measure's own series rather than four quarters of packs per minute.
+ * The x axis is TIME: a fortnight between two readings is drawn as a fortnight,
+ * which the week-indexed version could not do.
+ */
 function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReportData['lines'][number]) {
   d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
   d.roundedRect(x, y, w, h, 5, 5, 'FD');
 
-  const target = l.q1;
-  const vals = l.weekly.filter((v): v is number => v != null);
-  const last = vals.length ? vals[vals.length - 1] : null;
-  const delta = last == null ? null : last - target;
-
-  /* head: name + variant on the left, latest reading and delta on the right */
+  /* head: name + people on the left, latest reading and margin on the right */
   setFont(d, 11.5, 'bold', INK);
   d.text(san(l.name), x + 12, y + 18);
-  // Who is against this line. It sits where the variant used to on its own,
-  // because a chart with a name on it is somebody's number rather than just a
-  // number — and the sub-line is read before the plot is.
+  // Who is against this line. A chart with a name on it is somebody's number
+  // rather than just a number — and the sub-line is read before the plot is.
   const people = [l.owner && `Owner ${l.owner}`, l.sponsor && `Sponsor ${l.sponsor}`]
-    .filter(Boolean).join('  ·  ');
-  const sub = [people, l.variant].filter(Boolean).join('  ·  ');
+    .filter(Boolean).join('  \u00b7  ');
+  const sub = [people, l.variant].filter(Boolean).join('  \u00b7  ');
   if (sub) { setFont(d, 7, 'normal', MUTED); d.text(fit(d, sub, w * 0.6), x + 12, y + 28); }
 
-  if (last != null) {
-    setFont(d, 17, 'bold', INK);
-    d.text(String(last), x + w - 12, y + 20, { align: 'right' });
-    setFont(d, 6.5, 'normal', MUTED);
-    d.text('ppm latest', x + w - 12, y + 28, { align: 'right' });
-    setFont(d, 7.5, 'bold', delta! >= 0 ? OK : DANGER);
-    d.text(`${delta! >= 0 ? '+' : ''}${delta} vs Q1 target`, x + w - 12, y + 37, { align: 'right' });
+  const s = l.series;
+  const nice = (v: number) => String(Math.round(v * 100) / 100);
+
+  /* A project that has not said what it measures, or a line with nothing
+     recorded, gets a panel that says which — never an empty axis. */
+  if (!s || s.points.length === 0) {
+    setFont(d, 8, 'normal', MUTED);
+    d.text(fit(d, s
+      ? `No ${s.measure.name.toLowerCase()} recorded yet`
+        + (s.target != null ? ` \u00b7 target ${nice(s.target)}${s.measure.unit ? ' ' + s.measure.unit : ''}` : '')
+      : 'This project has not said what it measures yet', w - 24), x + 12, y + h / 2);
+    return;
   }
 
-  /* legend — always present, both series named */
+  const unit = s.measure.unit ?? '';
+  const target = s.target;
+  const vals = s.points.map(p => p.value);
+  const last = vals[vals.length - 1];
+
+  setFont(d, 17, 'bold', INK);
+  d.text(nice(last), x + w - 12, y + 20, { align: 'right' });
+  setFont(d, 6.5, 'normal', MUTED);
+  d.text(fit(d, unit ? `${unit} latest` : 'latest', w * 0.3), x + w - 12, y + 28, { align: 'right' });
+  if (s.margin != null) {
+    setFont(d, 7.5, 'bold', s.margin >= 0 ? OK : DANGER);
+    d.text(`${s.margin >= 0 ? '+' : ''}${nice(s.margin)} vs ${s.period?.name ?? 'target'}`,
+      x + w - 12, y + 37, { align: 'right' });
+  }
+
+  /* legend — the measure by name, and the target when there is one */
   const lgY = y + 46;
   d.setDrawColor(ACTUAL); d.setLineWidth(1.6);
   d.setLineDashPattern([], 0);
   d.line(x + 12, lgY, x + 26, lgY);
-  setFont(d, 7, 'normal', INK2); d.text('Actual', x + 30, lgY + 2.4);
-  const t0 = x + 30 + d.getTextWidth('Actual') + 10;
-  d.setDrawColor(TARGET); d.setLineDashPattern([3, 2], 0);
-  d.line(t0, lgY, t0 + 14, lgY);
-  d.setLineDashPattern([], 0);
   setFont(d, 7, 'normal', INK2);
-  d.text(`Q1 target · ${target} ppm`, t0 + 18, lgY + 2.4);
+  const nameLab = fit(d, s.measure.name, w * 0.4);
+  d.text(nameLab, x + 30, lgY + 2.4);
+  if (target != null) {
+    const tx = x + 30 + d.getTextWidth(nameLab) + 10;
+    d.setDrawColor(TARGET); d.setLineDashPattern([3, 2], 0);
+    d.line(tx, lgY, tx + 14, lgY);
+    d.setLineDashPattern([], 0);
+    setFont(d, 7, 'normal', INK2);
+    d.text(fit(d, `${s.period?.name ?? 'Target'} \u00b7 ${nice(target)}${unit ? ' ' + unit : ''}`, w * 0.4),
+      tx + 18, lgY + 2.4);
+  }
 
-  /* plot area */
-  const qH = 26;                                   // quarterly cells at the foot
+  /* plot area — the period strip at the foot only when there are targets to show */
+  const strip = s.across.some(a => a.value != null);
+  const qH = strip ? 26 : 0;
   const pL = x + 34, pR = x + w - 52;
   const pT = y + 58, pB = y + h - qH - 20;
-  const n = l.weekly.length;
 
-  const lo = Math.min(target, ...vals), hi = Math.max(target, ...vals);
-  const pad = Math.max(4, (hi - lo) * 0.35);
-  const yMin = Math.floor(lo - pad), yMax = Math.ceil(hi + pad);
-  const px = (i: number) => pL + (i * (pR - pL)) / Math.max(1, n - 1);
-  const py = (v: number) => pT + ((yMax - v) / (yMax - yMin)) * (pB - pT);
+  const withTarget = target != null ? [...vals, target] : vals;
+  const lo = Math.min(...withTarget), hi = Math.max(...withTarget);
+  const span = hi - lo;
+  const pad = span > 0 ? span * 0.35 : Math.max(Math.abs(hi) * 0.1, 1);
+  const yMin = lo >= 0 ? Math.max(0, lo - pad) : lo - pad;
+  const yMax = hi + pad;
+
+  const ts = s.points.map(p => Date.parse(p.at + 'T12:00:00'));
+  const t0ms = ts[0], t1ms = ts[ts.length - 1];
+  const px = (i: number) => (t1ms === t0ms ? (pL + pR) / 2 : pL + ((ts[i] - t0ms) / (t1ms - t0ms)) * (pR - pL));
+  const py = (v: number) => pT + ((yMax - v) / (yMax - yMin || 1)) * (pB - pT);
 
   // recessive gridlines + y labels
-  const grid = [yMin, Math.round((yMin + yMax) / 2), yMax];
+  const grid = [yMin, (yMin + yMax) / 2, yMax];
   d.setLineWidth(0.4);
   for (const g of grid) {
     d.setDrawColor('#eef3f8'); d.setLineDashPattern([2, 2], 0);
     d.line(pL, py(g), pR, py(g));
     d.setLineDashPattern([], 0);
     setFont(d, 6, 'normal', MUTED);
-    d.text(String(g), pL - 5, py(g) + 2, { align: 'right' });
+    d.text(nice(g), pL - 5, py(g) + 2, { align: 'right' });
   }
-  // week labels
+  // date labels: the ends and the middle, never one per reading
+  const dayLab = (iso: string) =>
+    new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   setFont(d, 6, 'normal', MUTED);
-  for (let i = 0; i < n; i++) d.text(`W${i + 1}`, px(i), pB + 11, { align: 'center' });
+  const ticks = s.points.length <= 2
+    ? s.points.map((_, i) => i)
+    : [0, Math.floor((s.points.length - 1) / 2), s.points.length - 1];
+  for (const i of ticks) {
+    d.text(dayLab(s.points[i].at), px(i), pB + 11,
+      { align: i === 0 ? 'left' : i === s.points.length - 1 ? 'right' : 'center' });
+  }
 
   // target line, dashed, labelled at the right
-  d.setDrawColor(TARGET); d.setLineWidth(1.2); d.setLineDashPattern([4, 3], 0);
-  d.line(pL, py(target), pR, py(target));
-  d.setLineDashPattern([], 0);
-  setFont(d, 6.5, 'bold', TARGET);
-  d.text('Target', pR + 5, py(target) + 2);
-
-  // actual: contiguous runs only — a missing week breaks the line rather than
-  // inventing a reading across it
-  d.setDrawColor(ACTUAL); d.setLineWidth(1.8);
-  let run: number[] = [];
-  const flush = () => {
-    for (let k = 1; k < run.length; k++) {
-      d.line(px(run[k - 1]), py(l.weekly[run[k - 1]]!), px(run[k]), py(l.weekly[run[k]]!));
-    }
-    run = [];
-  };
-  l.weekly.forEach((v, i) => { if (v == null) flush(); else run.push(i); });
-  flush();
-  d.setFillColor(ACTUAL);
-  l.weekly.forEach((v, i) => { if (v != null) d.circle(px(i), py(v), 2.2, 'F'); });
-  if (last != null) {
-    const li = l.weekly.lastIndexOf(last);
-    setFont(d, 6.5, 'bold', ACTUAL);
-    d.text(String(last), px(li) + 5, py(last) + 2);
+  if (target != null) {
+    d.setDrawColor(TARGET); d.setLineWidth(1.2); d.setLineDashPattern([4, 3], 0);
+    d.line(pL, py(target), pR, py(target));
+    d.setLineDashPattern([], 0);
+    setFont(d, 6.5, 'bold', TARGET);
+    d.text('Target', pR + 5, py(target) + 2);
   }
 
-  /* quarterly targets, Q1 highlighted as the one in play */
-  const qs: [string, number][] = [['Q1', l.q1], ['Q2', l.q2], ['Q3', l.q3], ['Q4', l.q4]];
-  const qW = (w - 24 - 3 * 5) / 4;
-  qs.forEach(([lab, val], i) => {
-    const qx = x + 12 + i * (qW + 5), qy = y + h - qH - 6;
-    const now = i === 0;
-    d.setFillColor(now ? '#fdf0e0' : SURF2);
-    d.setDrawColor(now ? WARN : SURF2); d.setLineWidth(0.8);
-    d.roundedRect(qx, qy, qW, qH, 4, 4, 'FD');
-    setFont(d, 6, 'bold', now ? WARN : MUTED);
-    d.text(lab, qx + qW / 2, qy + 10, { align: 'center' });
-    setFont(d, 9.5, 'bold', now ? WARN : INK);
-    d.text(String(val), qx + qW / 2, qy + 21, { align: 'center' });
-  });
+  // the readings, in the order they were taken
+  d.setDrawColor(ACTUAL); d.setLineWidth(1.8);
+  for (let i = 1; i < s.points.length; i++) {
+    d.line(px(i - 1), py(vals[i - 1]), px(i), py(vals[i]));
+  }
+  d.setFillColor(ACTUAL);
+  s.points.forEach((_, i) => d.circle(px(i), py(vals[i]), 2.2, 'F'));
+  setFont(d, 6.5, 'bold', ACTUAL);
+  d.text(nice(last), px(s.points.length - 1) + 5, py(last) + 2);
+
+  /* every period's target, the one in play highlighted — however many periods
+     this business runs, not four. */
+  if (strip) {
+    const cells = s.across.slice(0, 6);
+    const qW = (w - 24 - (cells.length - 1) * 5) / cells.length;
+    cells.forEach((cell, i) => {
+      const qx = x + 12 + i * (qW + 5), qy = y + h - qH - 6;
+      const now = s.period?.name === cell.name;
+      d.setFillColor(now ? '#fdf0e0' : SURF2);
+      d.setDrawColor(now ? WARN : SURF2); d.setLineWidth(0.8);
+      d.roundedRect(qx, qy, qW, qH, 4, 4, 'FD');
+      setFont(d, 6, 'bold', now ? WARN : MUTED);
+      d.text(fit(d, cell.name, qW - 4), qx + qW / 2, qy + 10, { align: 'center' });
+      setFont(d, 9.5, 'bold', now ? WARN : INK);
+      d.text(cell.value == null ? '--' : nice(cell.value), qx + qW / 2, qy + 21, { align: 'center' });
+    });
+  }
 }
 
-/* ============================================================ */
 /* ---------- the lever tree ----------
  * Laid out left to right, exactly as it is on screen: the outcome on the left,
  * each level a column to its right, children stacked and their parent centred
@@ -420,13 +461,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   // On a line's own deck "0/1 lines at target" is a riddle; the number the
   // owner is judged on is the reading itself, against their target.
   const only = data.lines.length === 1 ? data.lines[0] : null;
-  const onlyLast = only ? [...only.weekly].reverse().find((v): v is number => v != null) ?? null : null;
+  const solo = only?.series;
+  const r2 = (v: number) => String(Math.round(v * 100) / 100);
   const tiles: [string, string, string, string][] = [
-    only
-      ? [onlyLast == null ? '--' : String(onlyLast), 'ppm latest',
-         onlyLast == null ? `Q1 target ${only.q1}` : `${onlyLast - only.q1 >= 0 ? '+' : ''}${onlyLast - only.q1} vs Q1 target ${only.q1}`,
-         onlyLast == null ? MUTED : onlyLast >= only.q1 ? OK : DANGER]
-      : [`${data.atTarget}/${data.lines.length}`, 'Lines at target', 'latest week vs Q1',
+    only && solo
+      ? [solo.latest == null ? '--' : r2(solo.latest),
+         (solo.measure.unit ? `${solo.measure.unit} latest` : 'latest'),
+         vsTarget(solo),
+         solo.meeting == null ? MUTED : solo.meeting ? OK : DANGER]
+      : [`${data.atTarget}/${data.lines.length}`, 'Lines at target', 'latest reading vs target',
          data.atTarget === data.lines.length ? OK : data.atTarget === 0 ? DANGER : WARN],
     [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, OK],
     [String(data.openTotal), 'Still open', 'in flight', BRAND],
@@ -452,7 +495,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* line pace */
   const lpY = tY + tH + 12;
   const lpH = H - M - lpY - 18;
-  const ruleY = panel(d, M, lpY, CW, lpH, '1', 'Line pace', 'Weekly packs per minute against the quarterly targets');
+  /* Titled for whatever this business measures, read off the first line's own
+     series — the page and the file have to say the same words. */
+  const lead = data.lines.find(l => l.series)?.series?.measure;
+  const ruleY = panel(d, M, lpY, CW, lpH, '1', lead ? lead.name : 'The numbers',
+    lead
+      ? `Every reading against the target for the period it falls in${lead.unit ? ` \u00b7 ${lead.unit}` : ''}`
+      : 'This project has not said what it measures yet');
   /* The grid follows how many lines there actually are. A line's own deck has
    * one chart, and one chart drawn in a quarter of the page leaves three
    * quarters of an A3 blank — so one line gets the whole panel, two get a row
@@ -789,15 +838,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * here: their actions, their next steps, their walk, their wins. */
   table(d, barX, barY + 46, barW,
     [{ head: 'Line', width: 0.19 }, { head: 'Owner', width: 0.19 },
-     { head: 'ppm', width: 0.11, align: 'right' },
+     { head: data.byLine.find(r => r.unit)?.unit ?? 'Latest', width: 0.11, align: 'right' },
      { head: 'Open', width: 0.10, align: 'right' }, { head: 'Late', width: 0.10, align: 'right' },
      { head: 'Next', width: 0.11, align: 'right' }, { head: 'Evid.', width: 0.10, align: 'right' },
      { head: 'Wins', width: 0.10, align: 'right' }],
     data.byLine.map(r => [
       { text: r.name, bold: true, colour: r.noLine ? MUTED : INK },
       { text: r.owner, colour: MUTED },
-      { text: r.ppm == null ? '--' : String(r.ppm), bold: true,
-        colour: r.ppm == null ? MUTED : r.ppm >= r.target ? OK : DANGER },
+      { text: r.latest == null ? '--' : String(Math.round(r.latest * 100) / 100), bold: true,
+        colour: r.meeting == null ? MUTED : r.meeting ? OK : DANGER },
       { text: String(r.open) },
       { text: String(r.late), colour: r.late > 0 ? DANGER : INK, bold: r.late > 0 },
       { text: String(r.nextOpen) },
@@ -806,7 +855,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     ]),
     r1y + rowH1 - 10);
 
-  /* An em dash in the ppm column is a question a GM asks out loud, so the page
+  /* An em dash in the reading column is a question a GM asks out loud, so the page
      answers it before they have to. Only when there is one. */
   const noLines = data.byLine.filter(r => r.noLine).map(r => r.name);
   if (noLines.length > 0) {

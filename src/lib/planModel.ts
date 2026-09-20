@@ -7,8 +7,11 @@
  *   board         improvement work, grouped People / Plant / Process off a
  *                 weekly tracker. The default, and what most projects are.
  *   tree          one measurable outcome with a chain of conditions under it.
- *   commissioning a line being handed over by an OEM: readiness, acceptance
- *                 checks and what is blocking the next step.
+ *   commissioning TESTING — what we plan to run, what happened on the day, what
+ *                 we found and what we do next, round the loop with the OEM.
+ *                 The id stays `commissioning` because it is stored on devices
+ *                 and in the cloud; what people SEE is "Testing", which is the
+ *                 word Rowland used for it.
  *
  * Stored as two booleans on Project rather than one field, because both of them
  * already existed and shipped to devices; a third state is cheaper to add than
@@ -34,6 +37,6 @@ export const MODELS: { id: PlanModel; label: string; blurb: string }[] = [
     blurb: 'People · Plant · Process, off the weekly tracker — the meeting runs on it directly' },
   { id: 'tree', label: 'Lever tree',
     blurb: 'Outcome, what has to be true for it, conditions and work — kept by hand, one page' },
-  { id: 'commissioning', label: 'Commissioning',
-    blurb: 'A line being handed over: programs, materials, acceptance checks and what is blocking sign-off' },
+  { id: 'commissioning', label: 'Testing',
+    blurb: 'What we plan to run, what happened on the day, what we found, what we do next — with the OEM' },
 ];

@@ -5,7 +5,7 @@
  * a cycle. Types only: nothing in this file runs.
  */
 import type { ID, MediaRef } from '../types';
-import type { WinProof } from '../lib/ppmProof';
+import type { WinProof } from '../lib/measureProof';
 import type { TrackerBind } from '../lib/treeBind';
 
 export interface PaceTodoRow {
@@ -54,15 +54,18 @@ export interface PaceWinRow {
   createdAt: number; updatedAt: number;
 }
 
-/** One production line inside a project: who runs it, who sponsors it, where
- *  its own work is kept, its quarterly targets and its weekly ppm readings.
- *  `weekly` is indexed from PACE_START; null is a week that was never measured.
+/** One production line inside a project: who runs it, who sponsors it, and where
+ *  its own work is kept.
+ *
+ *  IT HOLDS NO NUMBERS. It used to carry `q1..q4` and a weekly array of packs per
+ *  minute, which described one factory's spreadsheet and nobody else's. The
+ *  numbers live in `targets` and `readings` now, against measures the business
+ *  names itself — see lib/measures.ts.
  *
  *  This started as Project Pace's four fixed lines and grew into the general
  *  case — any project, any number of lines, each with people against it. The
  *  store is still called pace_ppm because the rows in it are the same rows: a
- *  rename would have meant a migration, and migrating the numbers somebody has
- *  already typed is exactly the risk not worth taking. */
+ *  rename would have meant a migration for no gain. */
 export interface PaceLineRow {
   /** Sync identity. `key` ('2A') stays the human one. */
   id: string;
@@ -81,8 +84,6 @@ export interface PaceLineRow {
    *  Created on first use, never on first view. */
   workspaceId?: string;
 
-  q1: number; q2: number; q3: number; q4: number;
-  weekly: (number | null)[];
   /** Display order within the project. Lines are added and reordered by hand,
    *  so the order is data, not the order they happened to be created in. */
   sort?: number;
@@ -107,7 +108,7 @@ export interface PaceSnapshotRow {
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
   | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins' | 'tree_nodes'
-  | 'commission_assets' | 'tests' | 'test_items';
+  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings';
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.
  *

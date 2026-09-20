@@ -19,12 +19,15 @@ import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   ensureProjects, createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
+  putTarget, putReadings,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
+import type { Measure, Period, Reading, Target } from '../lib/measures';
+import { quarters } from '../lib/measures';
 
 const uid = () => crypto.randomUUID();
 
@@ -42,6 +45,14 @@ export interface Seeded {
   tests: number;
   assets: number;
   testId: string;
+  /** A project on the BOARD model, with measures its own business defined,
+   *  targets per period and real readings behind them — so the charts, the
+   *  numbers panel and the deck are all driven by data rather than by an empty
+   *  state. A commissioning job has none of that surface. */
+  pacedProjectId: string;
+  pacedLineId: string;
+  measures: number;
+  readings: number;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -94,11 +105,11 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   // warning that looks like an app bug and is not one.
   const line = await addPaceLine({
     projectId: proj.id, workspaceId: ws.id, key: 'L7', name: 'Line 7',
-    variant: 'A', q1: 60, q2: 65, q3: 70, q4: 75, weekly: [], sort: 0,
+    variant: 'A', sort: 0,
   });
   await addPaceLine({
     projectId: proj.id, workspaceId: ws.id, key: 'L8', name: 'Line 8',
-    variant: 'B', q1: 50, q2: 55, q3: 60, q4: 65, weekly: [], sort: 1,
+    variant: 'B', sort: 1,
   });
 
   const todo: PaceTodoRow = {
@@ -210,6 +221,54 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     item(estop.id, 'found', 'E-stop label peeling on the infeed', { owner: 'us', doneAt: t - 5 * day, sort: 1 }),
   ]) await putTestItem(i);
 
+  /* A PROJECT ON THE BOARD MODEL, MEASURED THE WAY ITS OWN BUSINESS MEASURES.
+   *
+   * Two measures, deliberately pulling in opposite directions — packs per minute
+   * where up is good, waste where down is good. A seed with only "up is good"
+   * measures in it cannot catch the bug this whole model exists to prevent: the
+   * app congratulating somebody for making more waste. */
+  const paced = await createProject('Line 7 pace', '#1b7f5a', 'Rowland', 'r@example.com', 'board');
+  const ppm: Measure = { id: uid(), name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 10 };
+  const waste: Measure = { id: uid(), name: 'Waste', unit: '%', direction: 'down', sort: 20 };
+  const periods: Period[] = quarters(iso(-40), uid);
+  await updateProject({ ...paced, measures: [ppm, waste], periods, updatedAt: t });
+
+  const pacedLine = await addPaceLine({
+    projectId: paced.id, key: '2A', name: 'Line 2A', variant: 'measured independently',
+    owner: 'Rob Scott', sponsor: 'Tanya', sort: 0,
+  });
+  const otherLine = await addPaceLine({
+    projectId: paced.id, key: '7', name: 'Line 7', owner: 'Lee Carty', sponsor: 'Tanya', sort: 1,
+  });
+
+  const target = (lineId: string, measureId: string, periodId: string, value: number): Target =>
+    ({ id: uid(), projectId: paced.id, lineId, measureId, periodId, value, updatedAt: t });
+
+  /* Rising quarterly targets on the rate, one flat target on the waste. */
+  const rates = [44, 50, 52, 55];
+  for (const [q, p] of periods.entries()) {
+    await putTarget(target(pacedLine.id, ppm.id, p.id, rates[q]));
+    await putTarget(target(otherLine.id, ppm.id, p.id, rates[q] - 5));
+    await putTarget(target(pacedLine.id, waste.id, p.id, 2));
+  }
+
+  /* Eight weeks of readings on each line, one of them ABOVE target and one
+     below, so both the good and the bad branch of every chart is drawn. */
+  const reading = (lineId: string, measureId: string, at: string, value: number): Reading =>
+    ({ id: uid(), projectId: paced.id, lineId, measureId, at, value, createdAt: t, updatedAt: t });
+
+  const weekly = [42, 41, 35, 47, 44, 46, 49, 52];
+  const rows: Reading[] = [];
+  weekly.forEach((v, i) => {
+    const at = iso(-7 * (weekly.length - i));
+    rows.push(reading(pacedLine.id, ppm.id, at, v));
+    rows.push(reading(otherLine.id, ppm.id, at, v - 8));
+    // waste is read less often than the rate, which is the normal case and the
+    // reason the chart plots against dates rather than a week index
+    if (i % 2 === 0) rows.push(reading(pacedLine.id, waste.id, at, 2.8 - i * 0.2));
+  });
+  await putReadings(rows);
+
   return {
     wsId: ws.id, projectId: proj.id, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
@@ -218,5 +277,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     tests: (await listTests(proj.id)).length,
     assets: (await listAssets(proj.id)).length,
     testId: seal.id,
+    pacedProjectId: paced.id, pacedLineId: pacedLine.id,
+    measures: 2, readings: rows.length,
   };
 }

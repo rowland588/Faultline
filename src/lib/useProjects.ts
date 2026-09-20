@@ -20,7 +20,7 @@ import type { PlanModel } from './planModel';
  *  renaming it in the app sticks. */
 export const DEFAULT_PROJECT = {
   name: 'Project Pace',
-  description: 'Packs per minute against quarterly targets, line by line.',
+  description: 'The lines, the numbers they are judged on, and the work in flight.',
   color: '#2b87d4',
   lead: 'Rowland Glew',
 };

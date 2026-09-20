@@ -4,7 +4,7 @@
  * for it and the page BODIES underneath never were, so the front page of a
  * handover opened on "0/2 lines at target — latest week vs Q1", a 3P board
  * asking for a weekly workbook, and a Line pace chart per line. Typing
- * ?view=data straight into the URL brought the ppm grid back even after the row
+ * ?view=data straight into the URL brought the numbers panel back even after the row
  * hid it, because the body read the URL rather than the row.
  *
  * So the rule is written down once, here, and both screens resolve their lens
@@ -47,7 +47,7 @@ describe('a commissioning job has none of the tracker', () => {
     expect(job.leverTree).toBeUndefined();
   });
 
-  it('drops the quarterly ppm, the per-line packs and the weekly upload', () => {
+  it('drops the measures, the per-line packs and the weekly upload', () => {
     const lenses = projectLensesFor(job);
     expect(lenses).toEqual(['overview', 'snags']);
     // The three that only exist because of the weekly tracker.
@@ -59,15 +59,15 @@ describe('a commissioning job has none of the tracker', () => {
     expect(lineLensesFor(job)).toContain('snags');
   });
 
-  it('drops the tracker slice and the ppm grid from a line, keeping its own work', () => {
+  it('drops the tracker slice and the numbers from a line, keeping its own work', () => {
     const lenses = lineLensesFor(job);
     expect(lenses).toEqual(['overview', 'next', 'wins', 'snags']);
     expect(lenses).not.toContain('meeting');   // this line's slice of the tracker
-    expect(lenses).not.toContain('data');      // the weekly ppm reading
+    expect(lenses).not.toContain('data');      // the readings
   });
 
   it('SENDS A HIDDEN LENS TO THE OVERVIEW rather than rendering it anyway', () => {
-    /* The actual bug. ?view=data drew the workbook upload and the ppm editor on
+    /* The actual bug. ?view=data drew the workbook upload and the numbers panel on
        a handover for as long as the body read the URL instead of the row. */
     for (const asked of ['data', 'lines', 'meeting']) {
       expect(resolve(asked, projectLensesFor(job)), `project ?view=${asked}`).toBe('overview');

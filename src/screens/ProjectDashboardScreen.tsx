@@ -5,7 +5,7 @@
  *   Meeting  — the tracker by OWNER, because that is how the meeting is run:
  *              each person reports their own workload. Sections fold, so one
  *              person is on screen at a time.
- *   Data     — the mechanics: upload this week's tracker, type the ppm. Its own
+ *   Data     — the mechanics: upload this week's tracker, record the readings. Its own
  *              tab so it is never buried inside a page you have to scroll.
  *
  * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
@@ -17,9 +17,11 @@ import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
-import { PaceLineChart } from '../charts/PaceLineChart';
+import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
-import { PpmEditor } from './PpmEditor';
+import { useMeasures } from '../lib/useMeasures';
+import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
+import { ProjectNumbers } from './NumbersPanel';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
@@ -212,7 +214,7 @@ function UploadPanel({ state, projectId, lineKeys }: {
           for — {uncovered.map((a, i) => (
             <Fragment key={a}>{i > 0 ? ', ' : ''}<b>{a}</b></Fragment>
           ))}. The actions are on the board and counted on the
-          report; ppm, next steps, the walk and wins all hang off a line, so those stay empty until
+          report; the readings, next steps, the walk and wins all hang off a line, so those stay empty until
           one exists.{' '}
           <button className="lt-gap-b" onClick={() => nav(`/project/${projectId}/setup`)}>
             Add {uncovered.length === 1 ? 'the line' : 'the lines'}
@@ -257,10 +259,13 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId }: { line: PaceLineRow; pack: LinePack; projectId: string }) {
-  const seen = line.weekly.filter((v): v is number => v != null);
-  const last = seen.length ? seen[seen.length - 1] : null;
-  const delta = last == null ? null : last - line.q1;
+function LineCard({ line, pack, projectId, series }: {
+  line: PaceLineRow; pack: LinePack; projectId: string;
+  /** Where this line stands on the measure the project leads on — the first one
+   *  its own list names. Absent on a project that has not named one yet, and the
+   *  card then simply carries no number rather than a dash meaning nothing. */
+  series?: LineSeries;
+}) {
   const open = pack.openTodos + pack.waitingTodos;
 
   return (
@@ -269,10 +274,12 @@ function LineCard({ line, pack, projectId }: { line: PaceLineRow; pack: LinePack
         <header className="lc-head">
           <span className="lc-key">{line.key}</span>
           <span className="lc-name">{line.name}</span>
-          <span className={'lc-ppm' + (delta == null ? '' : delta >= 0 ? ' is-good' : ' is-bad')}>
-            {last == null ? '—' : last}
-            <span className="lc-ppm-u">ppm</span>
-          </span>
+          {series && (
+            <span className={'lc-ppm' + (series.meeting == null ? '' : series.meeting ? ' is-good' : ' is-bad')}>
+              {series.latest == null ? '—' : say(series.latest)}
+              {series.measure.unit && <span className="lc-ppm-u">{series.measure.unit}</span>}
+            </span>
+          )}
         </header>
         <p className="lc-people">
           {line.owner
@@ -280,11 +287,9 @@ function LineCard({ line, pack, projectId }: { line: PaceLineRow; pack: LinePack
             : <span className="sub">No owner yet</span>}
           {line.sponsor && <> <span className="lc-role">Sponsor</span> {line.sponsor}</>}
         </p>
-        <p className="lc-target">
-          {delta == null
-            ? <>Q1 target {line.q1} ppm · nothing measured yet</>
-            : <>{delta >= 0 ? '+' : ''}{delta} against the Q1 target of {line.q1} ppm</>}
-        </p>
+        {series && (
+          <p className="lc-target">{series.measure.name} · {vsTarget(series)}</p>
+        )}
         <div className="lc-pips">
           <span className="lc-pip">{open}<span className="lc-pip-l">next steps open</span></span>
           <span className="lc-pip">{pack.doneTodos}<span className="lc-pip-l">finished</span></span>
@@ -318,7 +323,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'next',     label: 'Next steps', sub: 'to do & waiting' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
-  { id: 'data',     label: 'Data',       sub: 'upload & ppm' },
+  { id: 'data',     label: 'Data',       sub: 'upload & readings' },
 ];
 
 /** WHERE THE TESTING STANDS, on the project's own front page.
@@ -396,7 +401,7 @@ function TestingOverview({ projectId }: { projectId: string }) {
 
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   /* Which lenses this project even has. A commissioning job keeps the evidence
-     (the walk is how a defect gets proved) and drops the quarterly ppm, the
+     (the walk is how a defect gets proved) and drops the measures, the
      per-line packs and the weekly tracker upload, none of which a handover has. */
   const route = useRoute();
   const raw = route.query.get('view');
@@ -413,6 +418,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const { loading: projLoading, project } = useProject(projectId);
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
+  const nums = useMeasures(projectId);
   const { actions } = pace;
   // Every line's own pack, counted. This is the roll-up: each number below was
   // typed by a line owner into their own pack, not entered again here.
@@ -421,13 +427,18 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
   const overdue = actions.filter(a => /overdue/i.test(a.flag ?? '')).length;
   const live = actions.length - done;
-  // "at target" = the most recent week actually measured on that line
-  const atTarget = ppm.lines.filter(l => {
-    const seen = l.weekly.filter((v): v is number => v != null);
-    return seen.length > 0 && seen[seen.length - 1] >= l.q1;
-  }).length;
 
-  if (pace.loading || ppm.loading || projLoading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+  /* WHERE EVERY LINE STANDS on the measure this project leads on — worked out
+     once, read by the cards, the charts and the count above them. A line with no
+     reading yet is not "at target": `meeting` is only true when there is both a
+     reading and a target to judge it against. */
+  const standing = new Map(ppm.lines.map(l => [
+    l.id, lineSeries(nums.measures, nums.periods, nums.targets, nums.readings, l.id),
+  ]));
+  const headline = nums.measures[0];
+  const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
+
+  if (pace.loading || ppm.loading || projLoading || nums.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
   // A link to a project that has since been deleted is a dead end, not a crash.
   if (!project) {
@@ -467,7 +478,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               ? <>Plan a test, run it, record what you found, agree what happens next — and the next test
                   comes out of that. The walk is here too, because filming is how a defect gets proved.</>
               : <>{ppm.lines.length > 0 && <>{lineList} — </>}
-                  packs per minute against quarterly targets, every action in flight, and the snag walk of the line.</>}
+                  {headline
+                    ? <>{headline.name.toLowerCase()} against the target for the period, </>
+                    : <>the numbers you choose to keep, </>}
+                  every action in flight, and the snag walk of the line.</>}
           </p>
         </div>
         <div className="pace-head-actions">
@@ -541,7 +555,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'overview' && model !== 'commissioning' && (
         <>
           <div className="pace-kpis">
-            <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target" sub="latest week vs Q1"
+            <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target"
+              sub={headline ? `latest ${headline.name.toLowerCase()} vs target` : 'no measures set yet'}
               tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
             <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
             <Kpi n={String(live)} label="still live" sub="open or in progress" />
@@ -552,8 +567,14 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
               <section className="pace-sec">
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">Line pace</h2>
-              <p className="pace-sec-sub">Weekly packs per minute against the Q1 target · {ppm.weeks} week{ppm.weeks === 1 ? '' : 's'} from w/c 27 Jul 2026</p>
+              <h2 className="pace-sec-title">{headline ? headline.name : 'The numbers'}</h2>
+              <p className="pace-sec-sub">
+                {headline
+                  ? <>Every line’s readings against the target for the period they fall in
+                      {headline.unit && <> · {headline.unit}</>}
+                      {' · '}{headline.direction === 'up' ? 'higher is better' : 'lower is better'}</>
+                  : <>This project hasn’t said what it measures yet</>}
+              </p>
             </div>
             {ppm.lines.length === 0 ? (
               <div className="pace-empty">
@@ -561,14 +582,26 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                 <button className="btn btn-primary" style={{ marginTop: 10 }}
                   onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
               </div>
+            ) : !headline ? (
+              <div className="pace-empty">
+                <p className="sub">
+                  Say what this project measures — a name, a unit and which way is good — and every
+                  line’s chart draws itself from the readings.
+                </p>
+                <button className="btn btn-primary" style={{ marginTop: 10 }}
+                  onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up</button>
+              </div>
             ) : (
               <div className="pace-charts">
-                {ppm.lines.map(l => (
-                  <div key={l.key} className="pace-chart-cell">
-                    <PaceLineChart line={l} />
-                    <LinePeople line={l} projectId={projectId} />
-                  </div>
-                ))}
+                {ppm.lines.map(l => {
+                  const series = standing.get(l.id);
+                  return series ? (
+                    <div key={l.key} className="pace-chart-cell">
+                      <MeasureChart series={series} who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} />
+                      <LinePeople line={l} projectId={projectId} />
+                    </div>
+                  ) : null;
+                })}
               </div>
             )}
           </section>
@@ -595,7 +628,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <>
               <div className="lc-grid">
                 {ppm.lines.map(l => (
-                  <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId} />
+                  <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
+              series={standing.get(l.id)} />
                 ))}
               </div>
               <div className="pace-lines-foot">
@@ -646,10 +680,13 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           <UploadPanel state={pace} projectId={projectId} lineKeys={ppm.lines.map(l => l.key)} />
           <section className="pace-sec">
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">Packs per minute</h2>
-              <p className="pace-sec-sub">The one thing not in the workbook — type it here · saves as you go</p>
+              <h2 className="pace-sec-title">The numbers</h2>
+              <p className="pace-sec-sub">
+                Your own measures · record one reading, or paste a block from whatever spreadsheet you
+                already keep · saves as you go
+              </p>
             </div>
-            <PpmEditor state={ppm} startOpen />
+            <ProjectNumbers projectId={projectId} lines={ppm.lines} />
           </section>
         </>
       )}

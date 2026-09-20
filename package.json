@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-env.mjs && tsc --noEmit && eslint src --max-warnings 107 && vitest run && vite build",
+    "build": "node scripts/check-env.mjs && tsc --noEmit && eslint src --max-warnings 100 && vitest run && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke.mjs",
-    "lint": "eslint src --max-warnings 107"
+    "lint": "eslint src --max-warnings 100"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.1",

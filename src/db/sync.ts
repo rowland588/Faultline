@@ -156,7 +156,7 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
       ? { ...row, deletedAt: now() }
       // no local row to mark — a minimal marker, on a clock old enough that it
       // can never win a push against a real edit made anywhere else
-      : { id, key: id.replace(/^ppm-/, ''), name: '', q1: 0, q2: 0, q3: 0, q4: 0, weekly: [], deletedAt: now(), updatedAt: 0 });
+      : { id, key: id.replace(/^ppm-/, ''), name: '', deletedAt: now(), updatedAt: 0 });
   } else if (kind === 'pace_snapshots'
     || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'tests' || kind === 'test_items'
     || kind === 'commission_assets'

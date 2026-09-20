@@ -25,14 +25,29 @@ type Board = PaceReportData['board'];
 type Tree = PaceReportData['tree'];
 type Pareto = NonNullable<PaceReportData['pareto']>;
 
+/* A line with the series the chart actually takes: a measure, its readings by
+   date, the period in play and every period's target. Built here rather than
+   imported from the app so the drawer's contract is what is under test. */
+const measure = { id: 'm1', name: 'Packs per minute', unit: 'ppm', direction: 'up' as const, sort: 10 };
+const q1 = { id: 'p1', name: 'Q1', from: '2026-08-01', to: '2026-10-31', sort: 10 };
+
 const line = (key: string): PaceReportData['lines'][number] => ({
   key, name: `Line ${key}`, variant: 'A', owner: 'Dave', sponsor: 'Rowland',
-  q1: 60, q2: 65, q3: 70, q4: 75, weekly: [52, 55, 58, 61],
+  series: {
+    measure, period: q1, target: 60,
+    points: [
+      { at: '2026-08-03', value: 52 }, { at: '2026-08-10', value: 55 },
+      { at: '2026-08-24', value: 58 }, { at: '2026-08-31', value: 61 },
+    ],
+    across: [{ name: 'Q1', value: 60 }, { name: 'Q2', value: 65 },
+             { name: 'Q3', value: 70 }, { name: 'Q4', value: 75 }],
+    latest: 61, margin: 1, meeting: true,
+  },
 });
 
 const byLine = (name: string): PaceReportData['byLine'][number] => ({
   name, owner: 'Dave', open: 4, late: 1, done: 6, total: 10,
-  nextOpen: 2, nextDone: 1, snags: 3, wins: 1, ppm: 61, target: 60,
+  nextOpen: 2, nextDone: 1, snags: 3, wins: 1, latest: 61, meeting: true, unit: 'ppm',
 });
 
 /** n areas, each with three pillars' worth of actions. More areas means more
@@ -73,7 +88,7 @@ const data = (over: Partial<PaceReportData> = {}): PaceReportData => ({
   atTarget: 1, pctDone: 0.42, complete: 12, total: 28,
   openTotal: 16, openOnTrack: 11, late: 5,
   openSnags: 6, winsThisWeek: 2,
-  byLine: [byLine('Line 2'), byLine('Line 7'), { ...byLine('Cellox'), noLine: true, ppm: null }],
+  byLine: [byLine('Line 2'), byLine('Line 7'), { ...byLine('Cellox'), noLine: true, latest: null, meeting: undefined, unit: undefined }],
   lateActions: [{ line: 'Line 7', what: 'align the former roller', owner: 'Dave', due: '2026-09-05' }],
   lateMore: 3,
   todos: [{ state: 'todo', what: 'order the film', who: 'Dave', when: 'Friday' }],

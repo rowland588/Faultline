@@ -72,6 +72,19 @@ const ROUTES = [
   ['old commissioning link', `#/project/${seeded.projectId}/commissioning`],
   ['old deep link', `#/project/${seeded.projectId}/commissioning/asset/whatever`],
   ['project line', `#/project/${seeded.projectId}/line/${seeded.lineId}`],
+  /* THE MEASURED PROJECT — the one on the board model, with the measures its own
+     business defined, targets per period and real readings behind them. Every
+     screen that draws a number is here rather than on the commissioning job,
+     which has none of that surface. */
+  ['measured project', `#/project/${seeded.pacedProjectId}`],
+  ['measured setup', `#/project/${seeded.pacedProjectId}/setup`],
+  ['measured numbers', `#/project/${seeded.pacedProjectId}?view=data`],
+  ['measured lines', `#/project/${seeded.pacedProjectId}?view=lines`],
+  ['measured line', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}`],
+  ['line numbers', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=data`],
+  ['line success', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=wins`],
+  ['measured deck', `#/pace-report?project=${seeded.pacedProjectId}`],
+  ['line deck', `#/pace-report?project=${seeded.pacedProjectId}&line=${seeded.pacedLineId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],
   ['present', `#/w/${seeded.wsId}/present`],

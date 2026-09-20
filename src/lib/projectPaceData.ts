@@ -13,7 +13,10 @@
  * refreshing could have fixed that. Current cut: the 3P tracker, 28 actions,
  * every row carrying its People / Plant / Process column. */
 
-export interface PaceLine { key: string; name: string; variant?: string; q1: number; q2: number; q3: number; q4: number; weekly: (number | null)[]; }
+/** A line as the shipped baseline names it. NO NUMBERS: what a line is measured
+ *  on, and what good looks like, are the business's to say — see lib/measures.ts.
+ *  This is a list of names, so the default project opens with something in it. */
+export interface PaceLine { key: string; name: string; variant?: string; }
 export interface ParetoRow { category: string; mins: number; events: number; minPerEvent: number; profile: string; l2: number; l7: number; l10: number; }
 export interface PaceAction { /** A stable id from an ID/UID column, when the sheet has one. Unlike Ref
  *  (a formula off ROW()) this survives inserts, sorting and row reuse. */
@@ -51,10 +54,10 @@ export const PACE_ROSTER: PaceRosterData = {
 };
 
 export const PACE_LINES: PaceLine[] = [
-  { key: "2A", name: "Line 2A", variant: "Line 2 \u2014 measured independently", q1: 44, q2: 50, q3: 52, q4: 55, weekly: [42, 41, 35, 47, 44, 46] },
-  { key: "2B", name: "Line 2B", variant: "Line 2 \u2014 measured independently", q1: 44, q2: 50, q3: 52, q4: 55, weekly: [28, 30, 29, null, 28, 34] },
-  { key: "7", name: "Line 7", variant: undefined, q1: 39, q2: 42, q3: 44, q4: 46, weekly: [37, 44, 37, 35, 35, 38] },
-  { key: "10", name: "Line 10", variant: undefined, q1: 48, q2: 51, q3: 53, q4: 55, weekly: [56, 59, 52, 57, 54, 52] },
+  { key: "2A", name: "Line 2A", variant: "Line 2 \u2014 measured independently" },
+  { key: "2B", name: "Line 2B", variant: "Line 2 \u2014 measured independently" },
+  { key: "7", name: "Line 7", variant: undefined },
+  { key: "10", name: "Line 10", variant: undefined },
 ];
 
 export const PACE_PARETO: ParetoRow[] = [

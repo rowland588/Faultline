@@ -1,15 +1,15 @@
 /* SET THE PROJECT UP — its lines, and the people against them.
  *
- * Three things, in the order you actually do them:
+ * Four things, in the order you actually do them:
  *   1. the project    — what it is called and who leads it
  *   2. the lines      — add, rename, reorder, remove; owner and sponsor on each
- *   3. the people     — who is invited, so they see it on their own device
+ *   3. the measures   — what this business judges a line on, and its targets
+ *   4. the people     — who is invited, so they see it on their own device
  *
  * Deliberately one page rather than a wizard: setting a project up is not a
  * one-off, it is something you come back to every time a line changes hands.
  *
- * Everything saves as you type (on blur), the same as the ppm grid — there is
- * no Save button to forget. */
+ * Everything saves as you type (on blur). There is no Save button to forget. */
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
@@ -20,31 +20,13 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
 import { LineTidyPanel } from './LineTidyPanel';
+import { MeasuresSetup } from './MeasuresSetup';
 import { displayName } from '../cloud/team';
 import { supabase } from '../cloud/client';
+import { DraftText as Cell } from '../ui/Draft';
 
-/** A text cell that keeps its own draft and writes on blur — so a slow save can
- *  never eat a keystroke, and one letter typed is not one row written. */
-function Cell({ value, placeholder, onSave, wide }: {
-  value: string; placeholder: string; onSave: (v: string) => void; wide?: boolean;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const shown = draft ?? value;
-  return (
-    <input
-      className={'pset-cell' + (wide ? ' is-wide' : '')}
-      value={shown}
-      placeholder={placeholder}
-      maxLength={120}
-      onChange={e => setDraft(e.target.value)}
-      onBlur={() => { if (draft != null && draft !== value) onSave(draft.trim()); setDraft(null); }}
-      onKeyDown={e => {
-        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-        if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); }
-      }}
-    />
-  );
-}
+/* The write-on-blur inputs are shared — see ui/Draft.tsx for why a cell owns its
+   draft while it has focus. */
 
 /** Who is against a line, as a real person rather than a word.
  *
@@ -113,32 +95,10 @@ function PersonPicker({ name, email, members, onChange }: {
   );
 }
 
-/** A quarterly target — a number, so it gets a number field and its own draft. */
-function NumCell({ value, onSave }: { value: number; onSave: (v: number) => void }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  return (
-    <input
-      className="pset-cell is-num" inputMode="numeric" type="number" min={0} max={999}
-      value={draft ?? (value || '')}
-      placeholder="—"
-      onChange={e => setDraft(e.target.value)}
-      onBlur={() => {
-        if (draft != null) { const n = Number(draft); if (Number.isFinite(n) && n >= 0) onSave(n); }
-        setDraft(null);
-      }}
-      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-    />
-  );
-}
-
-function LineRow({ line, first, last, state, projectId, members, paced }: {
+function LineRow({ line, first, last, state, projectId, members }: {
   line: PaceLineRow; first: boolean; last: boolean; projectId: string;
   state: ReturnType<typeof usePaceLines>;
   members: { email: string }[];
-  /** Whether this project is run on quarterly ppm targets at all. A
-   *  commissioning job is not: a rate there is agreed once, per pack, and either
-   *  proved or not — see lib/commissioning. */
-  paced: boolean;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -157,7 +117,7 @@ function LineRow({ line, first, last, state, projectId, members, paced }: {
 
   const remove = () => {
     if (!window.confirm(
-      `Remove ${line.name} from this project?\n\nIts ppm readings go with it. Anything captured in its workspace stays where it is.`
+      `Remove ${line.name} from this project?\n\nIts readings and targets go with it. Anything captured in its workspace stays where it is.`
     )) return;
     void state.removeLine(line.id);
   };
@@ -177,14 +137,6 @@ function LineRow({ line, first, last, state, projectId, members, paced }: {
         onChange={(n, e) => void state.editLine(line.id, { owner: n || undefined, ownerEmail: e || undefined })} /></td>
       <td><PersonPicker name={line.sponsor ?? ''} email={line.sponsorEmail ?? ''} members={members}
         onChange={(n, e) => void state.editLine(line.id, { sponsor: n || undefined, sponsorEmail: e || undefined })} /></td>
-      {paced && (
-        <>
-          <td className="pset-q"><NumCell value={line.q1} onSave={v => void state.setTarget(line.key, 'q1', v)} /></td>
-          <td className="pset-q"><NumCell value={line.q2} onSave={v => void state.setTarget(line.key, 'q2', v)} /></td>
-          <td className="pset-q"><NumCell value={line.q3} onSave={v => void state.setTarget(line.key, 'q3', v)} /></td>
-          <td className="pset-q"><NumCell value={line.q4} onSave={v => void state.setTarget(line.key, 'q4', v)} /></td>
-        </>
-      )}
       <td className="pset-actions">
         {/* The pack is where this line's owner actually works, so it leads. The
             workspace is inside it too, but a direct way in is worth keeping for
@@ -316,9 +268,10 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
 export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
-  /* Quarterly targets belong to an improvement initiative, not to a handover.
-     Asking somebody commissioning a line for its Q3 packs-per-minute target is
-     asking a question the job does not have an answer to. */
+  /* Measures and targets belong to an improvement initiative, not to a handover.
+     A commissioning job's rate is agreed once, per pack, and either proved or
+     not — asking it for a quarterly target is asking a question the job has no
+     answer to. */
   const paced = !!project && planModel(project) !== 'commissioning';
   // One people list, read by the invite box AND by the owner/sponsor pickers on
   // every line — so the moment somebody is invited they are assignable.
@@ -365,7 +318,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <h2 className="pace-sec-title">Lines</h2>
           <p className="pace-sec-sub">
             Each line has an owner who runs it and a sponsor who carries it — and a workspace of its own for its snag list, captures and reports
-            {paced && ' · targets are packs per minute per quarter'}
           </p>
         </div>
 
@@ -378,15 +330,12 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
                   <tr>
                     <th className="pset-order"><span className="sr-only">Order</span></th>
                     <th>Line</th><th>Name</th><th>Owner</th><th>Sponsor</th>
-                    {paced && <>
-                      <th className="pset-q">Q1</th><th className="pset-q">Q2</th><th className="pset-q">Q3</th><th className="pset-q">Q4</th>
-                    </>}
                     <th className="pset-actions">Its work</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lines.lines.map((l, i) => (
-                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable} paced={paced}
+                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable}
                       first={i === 0} last={i === lines.lines.length - 1} />
                   ))}
                 </tbody>
@@ -400,6 +349,11 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
             placing, once, and gone from the page as soon as it is placed. */}
         <LineTidyPanel projectId={project.id} lines={lines.lines} />
       </section>
+
+      {/* WHAT THIS BUSINESS MEASURES. Only on a project that runs a plan — a
+          commissioning job proves a rate once, per pack, and has no periods to
+          set targets across. */}
+      {paced && <MeasuresSetup projectId={project.id} lines={lines.lines} />}
 
       <section className="pace-sec">
         <div className="pace-sec-head">

@@ -25,14 +25,12 @@ import { openDB } from 'idb';
 
 const DB_NAME = 'faultline';
 
-/** The stores db.ts declares it cannot run without. Read from the source so this
- *  list can never fall behind the one the app enforces. */
-const REQUIRED: Parameters<Awaited<ReturnType<typeof import('../db').getDB>>['objectStoreNames']['contains']>[0][] = [
-  'workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags',
-  'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals',
-  'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes',
-  'commission_assets', 'tests', 'test_items',
-];
+/** The stores db.ts declares it cannot run without — READ FROM THE SOURCE, not
+ *  copied. This was a hand-written copy of the list once, described in this very
+ *  comment as read from the source, and it fell behind the app the first time a
+ *  store was added: the test failed for its own staleness rather than for
+ *  anything wrong with the database. */
+const required = async () => (await import('../db/core')).REQUIRED_STORES;
 
 /** A fresh IndexedDB per test, and a fresh module registry so db.ts's cached
  *  connection does not leak from one case into the next. */
@@ -52,15 +50,16 @@ const freshDb = async () => {
 describe('a fresh device', () => {
   it('opens at the current version with every store the app needs', async () => {
     const db = await freshDb();
-    for (const store of REQUIRED) {
+    for (const store of await required()) {
       expect(db.objectStoreNames.contains(store), `missing store: ${store}`).toBe(true);
     }
   });
 
   it('declares the same store list the test asserts', async () => {
-    // Guards against this test rotting: if db.ts adds a store, the count moves.
+    // A store created but left out of REQUIRED_STORES would never be repaired on
+    // a device that upgraded past it, so the two lists have to be the same list.
     const db = await freshDb();
-    expect([...db.objectStoreNames].sort()).toEqual([...REQUIRED].sort());
+    expect([...db.objectStoreNames].sort()).toEqual([...await required()].sort());
   });
 });
 
@@ -85,7 +84,7 @@ describe('a device that already has data', () => {
     expect(await db.get('workspaces', 'ws-1')).toMatchObject({ name: 'Line 7' });
     expect((await db.getAll('observations')).map(o => o.id).sort()).toEqual(['o-1', 'o-2']);
     // and the stores that did not exist before are there now
-    for (const store of REQUIRED) {
+    for (const store of await required()) {
       expect(db.objectStoreNames.contains(store), `missing store: ${store}`).toBe(true);
     }
   });
@@ -119,9 +118,10 @@ describe('a database left at a HIGHER version by another build', () => {
     // Requesting a lower version than exists throws, and there is no screen to
     // show for it. A foreign or newer build sharing the database name has done
     // this for real.
+    const stores = await required();
     const foreign = await openDB(DB_NAME, 99, {
       upgrade(d) {
-        for (const s of REQUIRED) d.createObjectStore(s, { keyPath: s === 'meta' || s === 'media' ? undefined : 'id' });
+        for (const s of stores) d.createObjectStore(s, { keyPath: s === 'meta' || s === 'media' ? undefined : 'id' });
       },
     });
     await foreign.put('workspaces', { id: 'ws-1', name: 'from the newer build' });
@@ -135,7 +135,7 @@ describe('a database left at a HIGHER version by another build', () => {
   it('adds a store missing from it, by going one version past', async () => {
     // Already at or beyond our version, so a plain open would not upgrade at all
     // and the missing store would stay missing for ever.
-    const short = REQUIRED.filter(s => s !== 'tests');
+    const short = (await required()).filter(s => s !== 'tests');
     const foreign = await openDB(DB_NAME, 99, {
       upgrade(d) {
         for (const s of short) d.createObjectStore(s, { keyPath: s === 'meta' || s === 'media' ? undefined : 'id' });
