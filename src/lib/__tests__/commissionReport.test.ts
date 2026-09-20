@@ -5,7 +5,7 @@
  * and read out in front of the OEM, and the argument that follows is about the
  * paperwork rather than the line. That is why buildCommissionReport is allowed to
  * FORMAT and not to decide — and why the first test below compares its verdict,
- * blocker list and every count against readiness() itself rather than against a
+ * blocker list and every count against standing() itself rather than against a
  * hardcoded expectation. A hardcoded expectation would pass happily while the two
  * drifted apart.
  *
@@ -18,8 +18,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildCommissionReport, headlineFor, whereItStands } from '../buildCommissionReport';
 import {
-  LINE_ITSELF, readiness,
-  type CommissionItem, type Program, type Material, type Check, type Punch, type Task, type Run,
+  LINE_ITSELF, standing,
+  type Asset, type Blocker, type CommissionItem, type Program, type Material,
+  type Check, type Punch, type Task, type Run,
 } from '../commissioning';
 
 const AT = Date.parse('2026-09-14T08:00:00Z');
@@ -39,39 +40,54 @@ const check = (c: Partial<Check> = {}): Check => ({ ...base(), kind: 'check', cr
 const punch = (p: Partial<Punch> = {}): Punch => ({ ...base(), kind: 'punch', severity: 'C', raisedAt: AT, ...p });
 const task = (t: Partial<Task> = {}): Task => ({ ...base(), kind: 'task', state: 'done', ...t });
 
+/** The machine records behind whatever the items name, built FROM the items so a
+ *  test can never describe a machine the report cannot see. The id doubles as the
+ *  name, which keeps every assertion about machine names readable. */
+const assetsFor = (items: CommissionItem[]): Asset[] =>
+  [...new Set(items.map(i => i.assetId).filter((a): a is string => !!a))]
+    .map((id, k): Asset => ({ id, projectId: 'p1', name: id, state: 'running', sort: (k + 1) * 10, updatedAt: 1 }));
+
+const assetName = (id: string) => id;
+
 const build = (items: CommissionItem[]) =>
-  buildCommissionReport({ title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew', items, now: NOW });
+  buildCommissionReport({
+    title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew',
+    items, assets: assetsFor(items), now: NOW,
+  });
 
 /** One item of each kind, mid-handover: two blockers, a bit of everything. */
 const realistic = (): CommissionItem[] => [
-  program({ asset: 'Brillopack bagger', title: '500g tray', agreedRate: 60, rateUnit: 'ppm', runs: [run(51, { by: 'A. Shaw', minutes: 30 })] }),
-  program({ asset: 'Ishida multihead', title: '1kg bag', written: false, agreedRate: 40 }),
-  material({ asset: 'Brillopack bagger', title: 'Film 320mm', need: 12, have: 4, onOrder: 8, unit: 'rolls', due: iso(5) }),
-  check({ asset: 'Ishida multihead', title: 'Metal detection', outcome: 'fail', result: '2.5mm ferrous passed', witnessedBy: 'QA', at: AT }),
-  punch({ asset: 'Brillopack bagger', title: 'Former roller misaligned', severity: 'A' }),
+  program({ assetId: 'Brillopack bagger', title: '500g tray', agreedRate: 60, rateUnit: 'ppm', runs: [run(51, { by: 'A. Shaw', minutes: 30 })] }),
+  program({ assetId: 'Ishida multihead', title: '1kg bag', written: false, agreedRate: 40 }),
+  material({ assetId: 'Brillopack bagger', title: 'Film 320mm', need: 12, have: 4, onOrder: 8, unit: 'rolls', due: iso(5) }),
+  check({ assetId: 'Ishida multihead', title: 'Metal detection', outcome: 'fail', result: '2.5mm ferrous passed', witnessedBy: 'QA', at: AT }),
+  punch({ assetId: 'Brillopack bagger', title: 'Former roller misaligned', severity: 'A' }),
   task({ title: 'Operators trained on changeover', state: 'todo', owner: 'Rowland' }),
 ];
 
 describe('the sheet reads the app’s verdict, never its own', () => {
-  it('carries canSignOff, the blockers and every count straight off readiness()', () => {
+  it('carries canSignOff, the blockers and every count straight off standing()', () => {
     const items = realistic();
-    const truth = readiness(items);
+    const truth = standing(items);
     const report = build(items);
 
-    expect(report.canSignOff).toBe(truth.canSignOff);
-    expect(report.ready).toEqual(truth);
+    expect(report.canSignOff).toBe(truth.clear);
+    expect(report.counts).toEqual(truth.counts);
+    expect(report.pct).toBe(truth.pct);
+    expect(report.stale).toBe(truth.stale);
     // Same blockers, same order. The order IS the judgement — worst first,
     // because the list is read from the top in a meeting.
-    expect(report.blockers.map(b => b.what)).toEqual(truth.blockers.map(b => b.what));
-    expect(report.blockers.map(b => b.asset)).toEqual(truth.blockers.map(b => b.asset));
+    expect(report.blockers.map(b => b.what)).toEqual(truth.blockers.map((b: Blocker) => b.what));
+    expect(report.blockers.map(b => b.asset))
+      .toEqual(truth.blockers.map((b: Blocker) => (b.assetId ? assetName(b.assetId) : LINE_ITSELF)));
   });
 
-  it('agrees with readiness() on a job that IS ready', () => {
+  it('agrees with standing() on a job that IS ready', () => {
     const items = [program({ runs: [run(61) ] }), check({ outcome: 'pass' }), material()];
     const report = build(items);
     expect(report.canSignOff).toBe(true);
     expect(report.blockers).toEqual([]);
-    expect(report.ready.pct).toBe(1);
+    expect(report.pct).toBe(1);
   });
 
   it('never reads an empty file as ready', () => {
@@ -210,32 +226,35 @@ describe('every row prints what was agreed beside what happened', () => {
 });
 
 describe('the sheet is laid out the way a handover meeting runs', () => {
-  it('groups by machine, alphabetically, with the line’s own work last', () => {
+  it('groups by machine, in the machines’ own order, with the line’s work last', () => {
+    /* Their own order, not alphabetical. A line runs in a direction and the
+       machines are listed in it; sorting them by name would put the palletiser
+       before the bagger on a sheet somebody reads standing at the infeed. */
     const report = build([
       task({ asset: undefined, title: 'Safety file' }),
-      program({ asset: 'Palletiser', runs: [run(61)] }),
-      program({ asset: 'Bagger', runs: [run(61)] }),
+      program({ assetId: 'Palletiser', runs: [run(61)] }),
+      program({ assetId: 'Bagger', runs: [run(61)] }),
     ]);
-    expect(report.rows.map(r => r.asset)).toEqual(['Bagger', 'Palletiser', LINE_ITSELF]);
-    expect(report.assets.map(a => a.name)).toEqual(['Bagger', 'Palletiser', LINE_ITSELF]);
+    expect(report.rows.map(r => r.asset)).toEqual(['Palletiser', 'Bagger', LINE_ITSELF]);
+    expect(report.assets.map(a => a.name)).toEqual(['Palletiser', 'Bagger', LINE_ITSELF]);
     expect(report.assets[report.assets.length - 1].isLine).toBe(true);
   });
 
   it('orders within a machine: what it must run, what it needs, tests, defects, paperwork', () => {
     const report = build([
-      task({ asset: 'Bagger', title: 'T' }),
-      punch({ asset: 'Bagger', title: 'P' }),
-      check({ asset: 'Bagger', title: 'C' }),
-      material({ asset: 'Bagger', title: 'M' }),
-      program({ asset: 'Bagger', title: 'G' }),
+      task({ assetId: 'Bagger', title: 'T' }),
+      punch({ assetId: 'Bagger', title: 'P' }),
+      check({ assetId: 'Bagger', title: 'C' }),
+      material({ assetId: 'Bagger', title: 'M' }),
+      program({ assetId: 'Bagger', title: 'G' }),
     ]);
     expect(report.rows.map(r => r.title)).toEqual(['G', 'M', 'C', 'P', 'T']);
   });
 
   it('gives each machine its own verdict rather than one number for the line', () => {
     const report = build([
-      program({ asset: 'Bagger', runs: [run(61)] }),
-      program({ asset: 'Palletiser', written: false }),
+      program({ assetId: 'Bagger', runs: [run(61)] }),
+      program({ assetId: 'Palletiser', written: false }),
     ]);
     const bagger = report.assets.find(a => a.name === 'Bagger')!;
     const pal = report.assets.find(a => a.name === 'Palletiser')!;
@@ -256,30 +275,30 @@ describe('the sheet is laid out the way a handover meeting runs', () => {
 
 describe('the headline says what the problem is MADE of', () => {
   it('leads with the grades that stop a handover', () => {
-    const r = readiness([
+    const r = standing([
       punch({ severity: 'A' }), punch({ severity: 'A' }),
       check({ outcome: 'fail' }),
       program({ written: false }),
     ]);
-    expect(headlineFor(r, true)).toBe('2 grade-A defects open · 1 acceptance test failed · 1 program not written');
+    expect(headlineFor(r, true)).toBe('2 grade-A defects open · 1 test failed · 1 program not written');
   });
 
   it('says it plainly when the line can be accepted', () => {
-    expect(headlineFor(readiness([program({ runs: [run(61)] })]), true))
-      .toBe('Every obligation met. This line can be accepted.');
+    expect(headlineFor(standing([program({ runs: [run(61)] })]), true))
+      .toBe('Every claim met. This line can be accepted.');
   });
 
   it('says the file is empty rather than implying the job is done', () => {
-    expect(headlineFor(readiness([]), false)).toContain('empty');
+    expect(headlineFor(standing([]), false)).toContain('empty');
   });
 
   it('counts outstanding obligations, which is what actually holds most handovers up', () => {
-    const r = readiness([task({ state: 'todo' }), task({ state: 'doing' }), task({ state: 'done' })]);
+    const r = standing([task({ state: 'todo' }), task({ state: 'doing' }), task({ state: 'done' })]);
     expect(headlineFor(r, true)).toBe('2 obligations outstanding');
   });
 
   it('stops at four, because the panel beside it carries the rest', () => {
-    const r = readiness([
+    const r = standing([
       punch({ severity: 'A' }), check({ outcome: 'fail' }), program({ written: false }),
       program({ agreedRate: 60, runs: [run(10)] }), material({ need: 2, have: 0 }),
       program({ runs: [] }), check({ outcome: 'notRun' }), task({ state: 'todo' }),
@@ -301,7 +320,7 @@ describe('whereItStands uses the domain word, not the colour', () => {
       check({ outcome: 'pass' }), check({ outcome: 'fail' }), check({ outcome: 'notRun' }),
       punch({ severity: 'A' }), punch({ severity: 'A', closedAt: NOW }),
       task({ state: 'todo' }), task({ state: 'doing' }), task({ state: 'waiting' }), task({ state: 'done' }),
-    ].map(whereItStands);
+    ].map(i => whereItStands(i));
     expect(words.every(w => w.length > 0)).toBe(true);
     expect(new Set(words).size).toBe(words.length - 1);   // only the two 'Open (A)' repeat
   });

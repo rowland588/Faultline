@@ -4,7 +4,7 @@
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
-import type { CommissionItem, Program, Material, Check, Punch, Task, Phase } from '../lib/commissioning';
+import type { Asset, CommissionItem, Pack, Program, Material, Check, Punch, Task } from '../lib/commissioning';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -182,6 +182,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         lever_tree: p.leverTree ?? false,
         pareto: p.pareto ?? false,
         commissioning: p.commissioning ?? false,
+        planned_at: p.plannedAt ?? null, expected_at: p.expectedAt ?? null,
         archived_at: p.archivedAt ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -195,6 +196,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       leverTree: r.lever_tree === true || undefined,
       pareto: r.pareto === true || undefined,
       commissioning: r.commissioning === true || undefined,
+      plannedAt: (r.planned_at as string) ?? undefined,
+      expectedAt: (r.expected_at as string) ?? undefined,
       archivedAt: n(r.archived_at),
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
@@ -344,35 +347,60 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     }),
   },
 
-  /* THE PROGRAMME. Six rows a project: the stages, their baseline date and the
-     date they are now expected. `planned_at` is the one column on this table
-     that must never be quietly rewritten — it is the thing every slip on the
-     sheet is measured from. */
-  commission_phases: {
-    clock: l => (l as Phase).updatedAt,
+  /* THE MACHINES. One row per asset on the line, carrying its state, who
+     supplied it, and the OEM's paperwork.
+
+     `docs` is the whole reason this is a table rather than a string: the OEM is
+     never going to log in, so their FAT report and their film spec have to live
+     where the work does. The metadata rides this row and the BYTES ride the
+     media pipeline, exactly like a snag photo — which is what makes a PDF
+     openable on a factory floor with no signal. */
+  commission_assets: {
+    clock: l => (l as Asset).updatedAt,
+    mediaKeys: l => ((l as Asset).docs ?? []).flatMap(d => k(d.blobKey, d.mime)),
+    toRow: (l, fallbackOwner) => {
+      const a = l as Asset;
+      return {
+        id: a.id, owner_id: fallbackOwner, project_id: a.projectId,
+        name: a.name, oem: a.oem ?? null, state: a.state,
+        arrived_at: a.arrivedAt ?? null, installed_at: a.installedAt ?? null,
+        docs: a.docs ?? null, note: a.note ?? null, sort: a.sort,
+        updated_at: a.updatedAt, deleted_at: a.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      name: (r.name as string) ?? '', oem: (r.oem as string) ?? undefined,
+      state: ((r.state as Asset['state']) ?? 'onSite'),
+      arrivedAt: (r.arrived_at as string) ?? undefined,
+      installedAt: (r.installed_at as string) ?? undefined,
+      docs: (r.docs as Asset['docs']) ?? undefined,
+      note: (r.note as string) ?? undefined,
+      sort: Number(r.sort) || 0,
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Asset),
+  },
+
+  /* THE PACKS. A name and a position, and that is all it ever needs to be: the
+     other axis of the programs grid. */
+  commission_packs: {
+    clock: l => (l as Pack).updatedAt,
     mediaKeys: () => [],
     toRow: (l, fallbackOwner) => {
-      const p = l as Phase;
+      const p = l as Pack;
       return {
-        id: p.id, owner_id: fallbackOwner, project_id: p.projectId, phase_key: p.key,
-        phase_name: p.name ?? null, sort: p.sort,
-        planned_at: p.plannedAt ?? null, forecast_at: p.forecastAt ?? null,
-        owner: p.owner ?? null, note: p.note ?? null,
+        id: p.id, owner_id: fallbackOwner, project_id: p.projectId,
+        name: p.name, sort: p.sort,
         updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
     fromRow: (r) => ({
       id: r.id as string, projectId: r.project_id as string,
-      key: r.phase_key as string,
-      name: (r.phase_name as string) ?? undefined,
-      sort: Number(r.sort) || 0,
-      plannedAt: (r.planned_at as string) ?? undefined,
-      forecastAt: (r.forecast_at as string) ?? undefined,
-      owner: (r.owner as string) ?? undefined,
-      note: (r.note as string) ?? undefined,
+      name: (r.name as string) ?? '', sort: Number(r.sort) || 0,
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    } satisfies Phase),
+    } satisfies Pack),
   },
+
   commission_items: {
     clock: l => (l as CommissionItem).updatedAt,
     mediaKeys: l => {
@@ -392,15 +420,18 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const i = l as CommissionItem;
       const row: Record<string, unknown> = {
         id: i.id, owner_id: fallbackOwner, project_id: i.projectId,
-        asset: i.asset ?? null, phase_id: i.phaseId ?? null, kind: i.kind, title: i.title,
+        asset_id: i.assetId ?? null, pack_id: i.packId ?? null,
+        asset: i.asset ?? null, kind: i.kind, title: i.title,
+        grade: i.grade ?? null,
         owner: i.owner ?? null, due: i.due ?? null, note: i.note ?? null,
         photos: i.photos ?? null, snag_ids: i.snagIds ?? null,
         sort: i.sort, created_at: i.createdAt, updated_at: i.updatedAt,
         deleted_at: i.deletedAt ?? null,
         // every kind-specific column, cleared unless this kind owns it
         agreed_rate: null, rate_unit: null, written: null, runs: null,
-        need: null, have: null, on_order: null, unit: null,
+        need: null, have: null, on_order: null, unit: null, spec: null, supersedes: null,
         criterion: null, result: null, outcome: null, witnessed_by: null, witnessed_at: null,
+        proven_on: null,
         severity: null, raised_at: null, closed_at: null, fix_by: null,
         task_stage: null,
       };
@@ -412,11 +443,12 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         case 'material':
           row.need = i.need; row.have = i.have;
           row.on_order = i.onOrder ?? null; row.unit = i.unit ?? null;
+          row.spec = i.spec ?? null; row.supersedes = i.supersedes ?? null;
           break;
         case 'check':
           row.criterion = i.criterion; row.result = i.result ?? null;
           row.outcome = i.outcome; row.witnessed_by = i.witnessedBy ?? null;
-          row.witnessed_at = i.at ?? null;
+          row.witnessed_at = i.at ?? null; row.proven_on = i.provenOn ?? null;
           break;
         case 'punch':
           row.severity = i.severity; row.raised_at = i.raisedAt;
@@ -431,8 +463,10 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     fromRow: (r) => {
       const base = {
         id: r.id as string, projectId: r.project_id as string,
+        assetId: (r.asset_id as string) ?? undefined,
+        packId: (r.pack_id as string) ?? undefined,
         asset: (r.asset as string) ?? undefined,
-        phaseId: (r.phase_id as string) ?? undefined,
+        grade: (r.grade as CommissionItem['grade']) ?? undefined,
         title: (r.title as string) ?? '',
         owner: (r.owner as string) ?? undefined, due: (r.due as string) ?? undefined,
         note: (r.note as string) ?? undefined,
@@ -450,13 +484,16 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         case 'material':
           return { ...base, kind: 'material', need: Number(r.need) || 0, have: Number(r.have) || 0,
             onOrder: r.on_order == null ? undefined : Number(r.on_order),
-            unit: (r.unit as string) ?? undefined } satisfies Material;
+            unit: (r.unit as string) ?? undefined,
+            spec: (r.spec as string) ?? undefined,
+            supersedes: (r.supersedes as string) ?? undefined } satisfies Material;
         case 'check':
           return { ...base, kind: 'check', criterion: (r.criterion as string) ?? '',
             result: (r.result as string) ?? undefined,
             outcome: ((r.outcome as Check['outcome']) ?? 'notRun'),
             witnessedBy: (r.witnessed_by as string) ?? undefined,
-            at: n(r.witnessed_at) } satisfies Check;
+            at: n(r.witnessed_at),
+            provenOn: (r.proven_on as string) ?? undefined } satisfies Check;
         case 'punch':
           return { ...base, kind: 'punch', severity: ((r.severity as Punch['severity']) ?? 'B'),
             raisedAt: Number(r.raised_at) || Number(r.created_at) || 0,
@@ -501,5 +538,6 @@ export const SYNC_KINDS: SyncKind[] = [
   'projects', 'project_targets', 'project_actuals',
   'pace_ppm', 'pace_todos', 'pace_snapshots', 'pace_wins',
   // after projects, because every node and every item names one
-  'tree_nodes', 'commission_phases', 'commission_items',
+  // assets and packs before the items that name them
+  'tree_nodes', 'commission_assets', 'commission_packs', 'commission_items',
 ];

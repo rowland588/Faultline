@@ -1,7 +1,7 @@
 /* THE HANDOVER VERDICT.
  *
  * Every number on the commissioning screen, and every line of the A3 report, is
- * derived from readiness(). Nobody types "ready" anywhere in this app, which is
+ * derived from standing(). Nobody types "ready" anywhere in this app, which is
  * the point — but it also means a single wrong comparison here does not look like
  * a bug. It looks like a line that is ready to accept.
  *
@@ -19,8 +19,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  LINE_ITSELF, bestRun, programStatus, materialStatus, isOpen, stateOf, readiness, byAsset,
-  type Program, type Material, type Check, type Punch, type Task, type Run, type CommissionItem,
+  LINE_ITSELF, bestRun, programStatus, materialStatus, isOpen, stateOf, standing, byAsset,
+  type Asset, type Program, type Material, type Check, type Punch, type Task, type Run,
+  type CommissionItem, type Blocker,
 } from '../commissioning';
 
 const DAY = 86_400_000;
@@ -47,6 +48,11 @@ const punch = (p: Partial<Punch> = {}): Punch =>
   ({ ...base(), kind: 'punch', severity: 'C', raisedAt: 1, closedAt: 2, ...p });
 const task = (t: Partial<Task> = {}): Task =>
   ({ ...base(), kind: 'task', state: 'done', ...t });
+
+/** A machine record. Assets used to be a typed-in string on each item; they are
+ *  rows now, so a test that groups by machine has to make the rows. */
+const asset = (id: string, name: string, sort = 0): Asset =>
+  ({ id, projectId: 'p1', name, state: 'running', sort, updatedAt: 1 });
 
 describe('programStatus — four states, and the gap between two of them', () => {
   it('a program nobody has written is missing, runs or no runs', () => {
@@ -142,16 +148,16 @@ describe('isOpen and stateOf', () => {
   });
 });
 
-describe('readiness — the verdict', () => {
+describe('standing — the verdict', () => {
   it('an empty list cannot be signed off: nothing proved is not the same as proved', () => {
-    const r = readiness([]);
-    expect(r.canSignOff).toBe(false);
+    const r = standing([]);
+    expect(r.clear).toBe(false);
     expect(r.blockers).toEqual([]);
     expect(r.pct).toBe(0);
   });
 
   it('signs off when everything is proven, in, passed and closed', () => {
-    const r = readiness([
+    const r = standing([
       program({ runs: [run(61)] }),
       material(),
       check({ outcome: 'pass' }),
@@ -159,32 +165,35 @@ describe('readiness — the verdict', () => {
       task({ state: 'done' }),
     ]);
     expect(r.blockers).toEqual([]);
-    expect(r.canSignOff).toBe(true);
+    expect(r.clear).toBe(true);
     expect(r.pct).toBe(1);
   });
 
   it('ignores deleted records entirely — a soft delete must not block sign-off', () => {
-    const r = readiness([
+    const r = standing([
       program({ runs: [run(61)] }),
       punch({ severity: 'A', closedAt: undefined, deletedAt: 5 }),
     ]);
-    expect(r.canSignOff).toBe(true);
-    expect(r.punch).toEqual({ openA: 0, openB: 0, openC: 0, closed: 0 });
+    expect(r.clear).toBe(true);
+    expect(r.counts.punch).toEqual({ openA: 0, openB: 0, openC: 0, closed: 0 });
   });
 
-  it('an open A defect blocks; an open B or C does not', () => {
-    const withA = readiness([program({ runs: [run(61)] }), punch({ severity: 'A', closedAt: undefined })]);
-    expect(withA.canSignOff).toBe(false);
+  it('an open A or B defect blocks; an open C does not', () => {
+    const withA = standing([program({ runs: [run(61)] }), punch({ severity: 'A', closedAt: undefined })]);
+    expect(withA.clear).toBe(false);
     expect(withA.blockers[0].kind).toBe('punch');
 
+    /* B is in the way too, and the cut before this one said it was not — it let a
+       line read as clear with a defect somebody had written down as "must be
+       fixed before handover". A and B block; C is cosmetic and follows. */
     for (const severity of ['B', 'C'] as const) {
-      const r = readiness([program({ runs: [run(61)] }), punch({ severity, closedAt: undefined })]);
-      expect(r.canSignOff, `open ${severity} must not block sign-off`).toBe(true);
+      const r = standing([program({ runs: [run(61)] }), punch({ severity, closedAt: undefined })]);
+      expect(r.clear, `open ${severity}`).toBe(severity === 'C');
     }
   });
 
   it('counts each kind separately and does not double-count', () => {
-    const r = readiness([
+    const r = standing([
       program({ written: false }),
       program({ runs: [] }),
       program({ runs: [run(50)] }),
@@ -203,16 +212,16 @@ describe('readiness — the verdict', () => {
       task({ state: 'done' }),
       task({ state: 'todo' }),
     ]);
-    expect(r.programs).toEqual({ total: 4, missing: 1, untested: 1, below: 1, proven: 1 });
-    expect(r.materials).toEqual({ total: 4, have: 1, short: 1, awaited: 1, late: 1 });
-    expect(r.checks).toEqual({ total: 3, pass: 1, fail: 1, notRun: 1 });
-    expect(r.punch).toEqual({ openA: 1, openB: 1, openC: 1, closed: 1 });
-    expect(r.tasks).toEqual({ total: 2, done: 1 });
+    expect(r.counts.programs).toEqual({ total: 4, missing: 1, untested: 1, below: 1, proven: 1, stale: 0 });
+    expect(r.counts.materials).toEqual({ total: 4, have: 1, short: 1, awaited: 1, late: 1 });
+    expect(r.counts.checks).toEqual({ total: 3, pass: 1, fail: 1, notRun: 1 });
+    expect(r.counts.punch).toEqual({ openA: 1, openB: 1, openC: 1, closed: 1 });
+    expect(r.counts.tasks).toEqual({ total: 2, done: 1 });
   });
 
   it('pct is proven + in + passed + closed over everything', () => {
     // 1 proven program, 1 material in, 2 checks of which 1 passed = 3 of 4.
-    const r = readiness([
+    const r = standing([
       program({ runs: [run(60)] }),
       material(),
       check({ outcome: 'pass' }),
@@ -233,61 +242,82 @@ describe('readiness — the verdict', () => {
       punch({ severity: 'A', closedAt: undefined, title: 'Roller misaligned' }),
     ];
     // Shuffled input must not change the order of the verdict.
-    const order = readiness([...items].reverse()).blockers.map(b => b.kind + ':' + b.what.split(' ')[0]);
+    const order = standing([...items].reverse()).blockers.map((b: Blocker) => b.kind + ':' + b.what.split(' ')[0]);
     expect(order).toEqual([
-      'punch:A',            // open A defect
-      'check:Acceptance',   // failed test
+      'punch:Grade',        // open A defect
+      'check:Failed:',      // failed test
       'program:No',         // no program written
-      'program:Below',      // below rate
       'material:Film:',     // short of material
+      'program:Below',      // short of rate
       'program:Untested',   // written, never run
-      'check:Acceptance',   // not run
+      'check:Not',          // not run
       'task:Operator',      // everything else
     ]);
   });
 
   it('says the numbers in a below-rate blocker, because that is the argument', () => {
-    const r = readiness([program({ title: '500g tray', agreedRate: 60, rateUnit: 'ppm', runs: [run(51)] })]);
-    expect(r.blockers[0].what).toBe('500g tray short of rate — 51 against 60 ppm');
+    const r = standing([program({ title: '500g tray', agreedRate: 60, rateUnit: 'ppm', runs: [run(51)] })]);
+    expect(r.blockers[0].what).toBe('500g tray short of rate — 51 ppm against 60 agreed');
   });
 
   it('defaults the rate unit to ppm when nobody set one', () => {
-    const r = readiness([program({ title: '1kg bag', agreedRate: 40, runs: [run(30)] })]);
-    expect(r.blockers[0].what).toContain('30 against 40 ppm');
+    const r = standing([program({ title: '1kg bag', agreedRate: 40, runs: [run(30)] })]);
+    expect(r.blockers[0].what).toContain('30 ppm against 40 agreed');
   });
 
-  it('carries the asset onto every blocker, so a line of machines is readable', () => {
-    const r = readiness([punch({ severity: 'A', closedAt: undefined, asset: 'Ishida multihead' })]);
-    expect(r.blockers[0].asset).toBe('Ishida multihead');
+  it('carries the machine onto every blocker, so a line of machines is readable', () => {
+    const r = standing([punch({ severity: 'A', closedAt: undefined, assetId: 'as-ishida' })]);
+    expect(r.blockers[0].assetId).toBe('as-ishida');
   });
 });
 
 describe('byAsset — a line is accepted one machine at a time', () => {
-  it('groups by asset, sorts by name, and puts the line itself last', () => {
-    const rows = byAsset([
-      task({ asset: undefined }),
-      program({ asset: 'Palletiser', runs: [run(61)] }),
-      program({ asset: 'Bagger', runs: [run(61)] }),
+  const bagger = asset('a1', 'Bagger', 10);
+  const pal = asset('a2', 'Palletiser', 20);
+
+  it('groups by machine, in the order the machines are sorted, line itself last', () => {
+    const rows = byAsset([bagger, pal], [
+      task({ assetId: undefined }),
+      program({ assetId: pal.id, runs: [run(61)] }),
+      program({ assetId: bagger.id, runs: [run(61)] }),
     ]);
-    expect(rows.map(r => r.asset)).toEqual(['Bagger', 'Palletiser', LINE_ITSELF]);
+    expect(rows.map(r => r.name)).toEqual(['Bagger', 'Palletiser', LINE_ITSELF]);
   });
 
-  it('gives each asset its own verdict rather than one number for the line', () => {
-    const rows = byAsset([
-      program({ asset: 'Bagger', runs: [run(61)] }),
-      program({ asset: 'Palletiser', written: false }),
+  it('counts each machine on its own rather than one number for the line', () => {
+    const rows = byAsset([bagger, pal], [
+      program({ assetId: bagger.id, runs: [run(61)] }),
+      program({ assetId: pal.id, written: false }),
     ]);
-    const bagger = rows.find(r => r.asset === 'Bagger')!;
-    const pal = rows.find(r => r.asset === 'Palletiser')!;
-    expect(bagger.ready.canSignOff).toBe(true);
-    expect(pal.ready.canSignOff).toBe(false);
+    expect(rows.find(r => r.name === 'Bagger')!.done).toBe(1);
+    expect(rows.find(r => r.name === 'Palletiser')!.open).toBe(1);
   });
 
-  it('drops deleted records from the asset list as well as from the counts', () => {
-    const rows = byAsset([
-      program({ asset: 'Bagger', runs: [run(61)] }),
-      program({ asset: 'Ghost machine', deletedAt: 3 }),
+  it('shows a machine with nothing on it rather than hiding it', () => {
+    // A machine that has arrived and been given nothing to prove is exactly the
+    // thing somebody needs to see. Hiding empty groups would hide it.
+    const rows = byAsset([bagger, pal], [program({ assetId: bagger.id, runs: [run(61)] })]);
+    expect(rows.map(r => r.name)).toEqual(['Bagger', 'Palletiser']);
+  });
+
+  it('never loses a row whose machine has been deleted', () => {
+    /* It goes to the line rather than vanishing: a row nobody can see is worse
+       than a row under the wrong heading, and this used to be the shape of it —
+       items kept a machine NAME, so deleting the machine orphaned them silently. */
+    const rows = byAsset([bagger], [
+      program({ assetId: bagger.id, runs: [run(61)] }),
+      punch({ assetId: 'gone', severity: 'A', closedAt: undefined, title: 'Orphan' }),
     ]);
-    expect(rows.map(r => r.asset)).toEqual(['Bagger']);
+    expect(rows.map(r => r.name)).toEqual(['Bagger', LINE_ITSELF]);
+    expect(rows[1].items.map(i => i.title)).toEqual(['Orphan']);
+  });
+
+  it('drops deleted records from the counts', () => {
+    const rows = byAsset([bagger], [
+      program({ assetId: bagger.id, runs: [run(61)] }),
+      program({ assetId: bagger.id, written: false, deletedAt: 3 }),
+    ]);
+    expect(rows[0].items).toHaveLength(1);
+    expect(rows[0].open).toBe(0);
   });
 });

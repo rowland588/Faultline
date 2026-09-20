@@ -246,7 +246,7 @@ export async function restoreProject(id: ID): Promise<void> {
  *  orphaned row is not harmless: it still syncs, still counts, and shows up in
  *  a total belonging to a project that no longer exists. */
 const PROJECT_OWNED = [
-  'commission_items', 'commission_phases', 'tree_nodes',
+  'commission_items', 'commission_assets', 'commission_packs', 'tree_nodes',
   'project_targets', 'project_actuals',
 ] as const;
 

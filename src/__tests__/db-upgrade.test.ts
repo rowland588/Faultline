@@ -31,7 +31,7 @@ const REQUIRED: Parameters<Awaited<ReturnType<typeof import('../db').getDB>>['ob
   'workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags',
   'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals',
   'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes',
-  'commission_items', 'commission_phases',
+  'commission_items', 'commission_assets', 'commission_packs',
 ];
 
 /** A fresh IndexedDB per test, and a fresh module registry so db.ts's cached

@@ -12,7 +12,7 @@
 import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
-import type { CommissionItem, Phase } from '../lib/commissioning';
+import type { Asset, CommissionItem, Pack } from '../lib/commissioning';
 import type {
   Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow,
 } from './rows';
@@ -76,11 +76,15 @@ export interface AppDB extends DBSchema {
    * OEM. Typed in the app rather than read from a workbook — see
    * lib/commissioning.ts for why that is the whole point rather than a detail. */
   commission_items: { key: string; value: CommissionItem; indexes: { by_project: string } };
-  /* THE PROGRAMME. Six rows per commissioning project — the stages a line goes
-     through, each with the date it was planned for and the date it is now
-     expected. Separate from the items because a phase outlives every row on it:
-     the stage exists before anybody has typed a single check against it. */
-  commission_phases: { key: string; value: Phase; indexes: { by_project: string } };
+  /* THE MACHINES (v14). An asset used to be a typed-in name on each item, which
+     meant it could not carry a state, a supplier or the OEM's paperwork, and two
+     spellings of the same machine were two machines. It is a record now: two on
+     a line today, and the third one is a button rather than a deploy. */
+  commission_assets: { key: string; value: Asset; indexes: { by_project: string } };
+  /* THE PACKS (v14). What the line has to run, named by whoever owns the line.
+     The other axis of the programs grid: a rate, a seal and a weight check are
+     proved per pack, never once for a line. */
+  commission_packs: { key: string; value: Pack; indexes: { by_project: string } };
 }
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
@@ -89,7 +93,7 @@ export interface AppDB extends DBSchema {
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 13; // v13: commission_phases (the commissioning programme)
+const DB_VERSION = 14; // v14: commission_assets + commission_packs (machines and packs are records)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -149,7 +153,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
 /** Every store the app cannot run without. Exported so the sync tests can
  *  assert against this list rather than grepping a file for store names — which
  *  broke the moment db.ts became a barrel. */
-export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_items', 'commission_phases'] as const;
+export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_items', 'commission_assets', 'commission_packs'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -178,8 +182,11 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   if (!db.objectStoreNames.contains('tree_nodes')) {
     db.createObjectStore('tree_nodes', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
-  if (!db.objectStoreNames.contains('commission_phases')) {
-    db.createObjectStore('commission_phases', { keyPath: 'id' }).createIndex('by_project', 'projectId');
+  if (!db.objectStoreNames.contains('commission_assets')) {
+    db.createObjectStore('commission_assets', { keyPath: 'id' }).createIndex('by_project', 'projectId');
+  }
+  if (!db.objectStoreNames.contains('commission_packs')) {
+    db.createObjectStore('commission_packs', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
   if (!db.objectStoreNames.contains('commission_items')) {
     db.createObjectStore('commission_items', { keyPath: 'id' }).createIndex('by_project', 'projectId');
@@ -245,7 +252,8 @@ export const INDEXES: [StoreNames<AppDB>, string, string | string[]][] = [
   ['pace_ppm', 'by_key', 'key'],
   ['tree_nodes', 'by_project', 'projectId'],
   ['commission_items', 'by_project', 'projectId'],
-  ['commission_phases', 'by_project', 'projectId'],
+  ['commission_assets', 'by_project', 'projectId'],
+  ['commission_packs', 'by_project', 'projectId'],
   ['pace_wins', 'by_createdAt', 'createdAt'],
   ['segments', 'by_workspace', 'workspaceId'],
   ['snag_assets', 'by_workspace', 'workspaceId'],

@@ -24,7 +24,7 @@ import {
   INK, INK2, MUTED, LINE, BRAND, OK, WARN, DANGER, BLUE,
   san, setFont, fit, panel, wash, type Doc,
 } from './reportKit';
-import type { CommissionKind, ReadyState, Readiness } from './commissioning';
+import type { CommissionKind, Counts, ReadyState } from './commissioning';
 
 /** One picture, decoded and measured before the drawer ever runs.
  *
@@ -88,23 +88,28 @@ export interface HandoverAsset {
   isLine: boolean;
 }
 
-/** One stage on the sheet's programme band. */
-export interface ReportPhase {
-  name: string;
-  planned?: string;
-  forecast?: string;
-  /** Days moved from the baseline. Positive is late. */
-  slip?: number;
-  state: 'passed' | 'current' | 'upcoming';
+/** One cell on the band across the top of page 1.
+ *
+ *  It used to be a stage on a programme, drawn as beads on a thread. There are no
+ *  stages any more, and the band now carries what the job is actually judged on:
+ *  the date it was agreed for, the date it is now expected, and every material
+ *  changeover with the price of it. A reader should see the shape of the job —
+ *  and what is about to stop counting — before any of its detail. */
+export interface ReportBand {
+  label: string;
+  value: string;
+  /** The consequence, when there is one: '+8 days', '6 results stop counting'. */
+  note?: string;
+  state: 'good' | 'warn' | 'bad' | 'plain';
 }
 
 export interface HandoverReport {
   title: string;
   lead?: string;
   now: number;
-  /** The stages, in order. Empty when no programme has been laid out — the
-   *  sheet then prints as it always did, about readiness alone. */
-  phases: ReportPhase[];
+  /** The dates and the changeovers. Empty when neither has been set — the sheet
+   *  then prints about the claims alone. */
+  band: ReportBand[];
   /** The verdict, straight off readiness(). Never recomputed here. */
   canSignOff: boolean;
   /** Worst first, in the words somebody would use in the meeting. */
@@ -112,7 +117,11 @@ export interface HandoverReport {
   /** One line summarising what the blockers are made of. */
   headline: string;
   /** Every count on the sheet. */
-  ready: Readiness;
+  counts: Counts;
+  /** How far through, 0–1, and how many results were got on a withdrawn spec.
+   *  Both come straight off standing() — this file never recomputes a verdict. */
+  pct: number;
+  stale: number;
   assets: HandoverAsset[];
   rows: HandoverRow[];
 }
@@ -232,7 +241,7 @@ function panelsHeight(data: HandoverReport): number {
 function drawVerdict(d: Doc, data: HandoverReport): number {
   const W = d.internal.pageSize.getWidth();
   const M = 26, CW = W - 2 * M;
-  const r = data.ready;
+  const r = data.counts;
 
   /* masthead */
   setFont(d, 8.5, 'bold', BRAND);
@@ -286,7 +295,7 @@ function drawVerdict(d: Doc, data: HandoverReport): number {
   d.text(fit(d, san(data.headline), bw), bx, topY + 28);
 
   /* The bar, and the words that stop it being read as the answer. */
-  const pct = Math.round(r.pct * 100);
+  const pct = Math.round(data.pct * 100);
   const barY = topY + 42;
   const barW = bw - 74;
   const [lr, lg, lb] = wash(MUTED, 0.22);
@@ -305,7 +314,9 @@ function drawVerdict(d: Doc, data: HandoverReport): number {
   const cy = topY + 72;
   const parts: [string, string, string][] = [
     ['PROGRAMS', `${r.programs.proven} of ${r.programs.total} proven`,
-      r.programs.missing > 0 ? `${r.programs.missing} not written` : r.programs.below > 0 ? `${r.programs.below} short of rate` : ''],
+      r.programs.missing > 0 ? `${r.programs.missing} not written`
+        : r.programs.stale > 0 ? `${r.programs.stale} need re-proving`
+          : r.programs.below > 0 ? `${r.programs.below} short of rate` : ''],
     ['MATERIAL', `${r.materials.have} of ${r.materials.total} in`,
       r.materials.short + r.materials.late > 0 ? `${r.materials.short + r.materials.late} not landed` : ''],
     ['ACCEPTANCE', `${r.checks.pass} of ${r.checks.total} passed`,
@@ -331,30 +342,28 @@ function drawVerdict(d: Doc, data: HandoverReport): number {
      the one thing the earlier version of this report could not say at all. A
      reader should see the shape of the job before any of its detail. */
   let py = topY + topH + 14;
-  if (data.phases.length) {
+  if (data.band.length) {
     const bh = 54;
     d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
     d.roundedRect(M, py, CW, bh, 6, 6, 'FD');
     const inner = CW - 28;
-    const step = inner / data.phases.length;
-    data.phases.forEach((p, i) => {
+    const step = inner / data.band.length;
+    data.band.forEach((c, i) => {
       const x = M + 14 + i * step;
-      const colour = p.state === 'passed' ? OK : p.state === 'current' ? WARN : MUTED;
-      // the thread, drawn first so the beads sit on top of it
-      if (i < data.phases.length - 1) {
-        d.setDrawColor(LINE); d.setLineWidth(1.4);
-        d.line(x + 5, py + 18, x + step - 5, py + 18);
+      const colour = c.state === 'good' ? OK : c.state === 'warn' ? WARN : c.state === 'bad' ? DANGER : MUTED;
+      // a rule between cells rather than a thread between beads: these are not
+      // stages in a sequence and drawing them as one said they were
+      if (i > 0) {
+        d.setDrawColor(LINE); d.setLineWidth(0.8);
+        d.line(x - 7, py + 10, x - 7, py + bh - 10);
       }
-      d.setFillColor(colour);
-      d.circle(x + 4, py + 18, p.state === 'current' ? 5 : 3.4, 'F');
-      setFont(d, 7.6, p.state === 'current' ? 'bold' : 'normal', p.state === 'upcoming' ? MUTED : INK);
-      d.text(fit(d, san(p.name), step - 8), x, py + 33);
-      setFont(d, 6.8, 'normal', MUTED);
-      const when = p.state === 'passed' ? 'done' : p.forecast ?? p.planned ?? 'no date';
-      d.text(fit(d, san(when), step - 8), x, py + 42);
-      if (p.slip != null && p.slip > 0 && p.state !== 'upcoming') {
-        setFont(d, 6.8, 'bold', p.slip > 7 ? DANGER : WARN);
-        d.text(`+${p.slip} days`, x, py + 50);
+      setFont(d, 6.8, 'bold', MUTED);
+      d.text(fit(d, san(c.label.toUpperCase()), step - 10), x, py + 17);
+      setFont(d, 10.5, 'bold', c.state === 'plain' ? INK : colour);
+      d.text(fit(d, san(c.value), step - 10), x, py + 33);
+      if (c.note) {
+        setFont(d, 7, 'bold', c.state === 'plain' ? MUTED : colour);
+        d.text(fit(d, san(c.note), step - 10), x, py + 45);
       }
     });
     py += bh + 12;
@@ -446,13 +455,12 @@ function drawVerdict(d: Doc, data: HandoverReport): number {
 
 function foot(d: Doc, data: HandoverReport, page: number, pages: number, what: string): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
-  const r = data.ready;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${san(data.title)} · commissioning sign-off · page ${page} of ${pages} — ${what}`, (W - 56) * 0.8),
     26, H - 26 + 6);
   d.text(
     (data.canSignOff ? 'Ready for sign-off' : `${data.blockers.length} in the way`) +
-    ` · ${Math.round(r.pct * 100)}% complete · generated ${fmtDate(data.now)}`,
+    ` · ${Math.round(data.pct * 100)}% complete · generated ${fmtDate(data.now)}`,
     W - 26, H - 26 + 6, { align: 'right' },
   );
 }
@@ -654,7 +662,7 @@ export function drawCommissionReport(d: Doc, data: HandoverReport): void {
   /* Both capacities from the same geometry the drawing uses. The verdict band is
      a fixed height, so what page 1 has left for detail is simply what is under
      it — and page 2 onward has the whole sheet. */
-  const detailTop = M + 66 + 96 + 14 + (data.phases.length ? 54 + 12 : 0) + panelsHeight(data) + 16;
+  const detailTop = M + 66 + 96 + 14 + (data.band.length ? 54 + 12 : 0) + panelsHeight(data) + 16;
   const roomFor = (top: number) => (H - M - 14 - 22) - (top + 30 + 20);
   const first = roomFor(detailTop);
   const rest = roomFor(M);

@@ -24,11 +24,11 @@
 import { getBlob } from '../db';
 import { loadPdfLib, deliverPdf } from './savePdf';
 import {
-  LINE_ITSELF, byAsset, readiness, programStatus, materialStatus, bestRun, isOpen, stateOf,
-  phaseName, inOrder, phaseStates, slipOf,
-  type CommissionItem, type Program, type Readiness, type Phase,
+  byAsset, standing, programStatus, materialStatus, bestRun, isOpen, stateOf,
+  conditionOf, daysBetween, isStale, materialsOf, supersededIds, transitions,
+  type Asset, type CommissionItem, type Material, type Pack, type Program, type Standing,
 } from './commissioning';
-import type { HandoverAsset, HandoverReport, HandoverRow, ReportPhase, Shot } from './commissionPdf';
+import type { HandoverAsset, HandoverReport, HandoverRow, ReportBand, Shot } from './commissionPdf';
 import type { WalkSnag } from './useCommissionEvidence';
 
 const MAX_EDGE = 1400;
@@ -47,14 +47,19 @@ const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? o
  *  'blocked / at risk' the colours use: on a handover sheet "No program" and
  *  "Below rate" are two different conversations and both would otherwise print
  *  as "blocked". */
-export function whereItStands(i: CommissionItem): string {
+export function whereItStands(i: CommissionItem, superseded: Set<string> = new Set()): string {
   switch (i.kind) {
     case 'program':
-      return { missing: 'No program', untested: 'Not run', below: 'Below rate', proven: 'Proven' }[programStatus(i)];
+      return ({
+        missing: 'No program', untested: 'Not run', below: 'Below rate',
+        proven: 'Proven', stale: 'Re-prove',
+      } as const)[programStatus(i, superseded)];
     case 'material':
       return { have: 'On site', awaited: 'On order', short: 'Not ordered', late: 'Overdue' }[materialStatus(i)];
     case 'check':
-      return i.outcome === 'pass' ? 'Passed' : i.outcome === 'fail' ? 'FAILED' : 'Not run';
+      return i.outcome === 'fail' ? 'FAILED'
+        : i.outcome === 'pass' ? (isStale(i, superseded) ? 'Re-test' : 'Passed')
+          : 'Not run';
     case 'punch':
       return isOpen(i) ? `Open (${i.severity})` : 'Closed';
     case 'task':
@@ -88,7 +93,16 @@ function agreedOf(i: CommissionItem): string {
 /** WHAT ACTUALLY HAPPENED — the right half. Empty is never printed as a blank:
  *  "not run" and "nothing on order" are findings, and a blank cell reads as an
  *  oversight by whoever filled the sheet in rather than a gap in the handover. */
-function evidenceOf(i: CommissionItem): string {
+function evidenceOf(i: CommissionItem, materials: Material[] = [], superseded: Set<string> = new Set()): string {
+  const said = evidenceWords(i);
+  /* THE CONDITIONS, ON PAPER. A rate with no spec beside it is the number an OEM
+     quotes back at you six weeks later. When the spec has been withdrawn the row
+     has to say so in the same breath, or the sheet is the thing that lies. */
+  const cond = conditionOf(i, materials, superseded);
+  return cond ? `${said} \u00b7 ${cond}` : said;
+}
+
+function evidenceWords(i: CommissionItem): string {
   switch (i.kind) {
     case 'program': {
       if (!i.written) return 'Not written on the machine';
@@ -121,9 +135,10 @@ function evidenceOf(i: CommissionItem): string {
       ].filter(Boolean).join(' · ');
     }
     case 'punch':
-      return isOpen(i)
-        ? `Open since ${short(i.raisedAt)}`
-        : `Closed ${short(i.closedAt!)}`;
+      if (isOpen(i)) return `Open since ${short(i.raisedAt)}`;
+      // A closed defect always has a date; asking rather than asserting it means
+      // one written by an older build still prints as closed instead of crashing.
+      return i.closedAt ? `Closed ${short(i.closedAt)}` : 'Closed';
     case 'task':
       return i.note?.trim() || whereItStands(i);
   }
@@ -150,23 +165,27 @@ function previousBest(p: Program): string | undefined {
 /** What the blockers are MADE OF, in one line. The list beside it says which
  *  ones; this says the shape of the problem, which is what somebody repeats when
  *  they are asked how commissioning is going. */
-export function headlineFor(r: Readiness, anything: boolean): string {
+export function headlineFor(st: Standing, anything: boolean): string {
   if (!anything) return 'Nothing recorded yet — this handover file is empty.';
-  if (r.canSignOff) return 'Every obligation met. This line can be accepted.';
+  if (st.clear) return 'Every claim met. This line can be accepted.';
+  const r = st.counts;
   const bits: string[] = [];
   if (r.punch.openA) bits.push(`${plural(r.punch.openA, 'grade-A defect')} open`);
-  if (r.checks.fail) bits.push(`${plural(r.checks.fail, 'acceptance test')} failed`);
+  if (r.checks.fail) bits.push(`${plural(r.checks.fail, 'test')} failed`);
   if (r.programs.missing) bits.push(`${plural(r.programs.missing, 'program')} not written`);
-  if (r.programs.below) bits.push(`${plural(r.programs.below, 'program')} short of rate`);
   const owed = r.materials.short + r.materials.late;
   if (owed) bits.push(`${plural(owed, 'material line')} not landed`);
+  // Ahead of "short of rate" on purpose: a result that no longer counts is the
+  // one somebody in the room still believes, and it has to be said out loud.
+  if (st.stale) bits.push(`${plural(st.stale, 'result')} got on a withdrawn spec`);
+  if (r.programs.below) bits.push(`${plural(r.programs.below, 'program')} short of rate`);
   if (r.programs.untested) bits.push(`${plural(r.programs.untested, 'program')} never run`);
   if (r.checks.notRun) bits.push(`${plural(r.checks.notRun, 'test')} still to run`);
   const open = r.tasks.total - r.tasks.done;
   if (open) bits.push(`${plural(open, 'obligation')} outstanding`);
   // Four is what fits at 13pt across two thirds of an A3; the panel beside it
   // carries the rest, so truncating here loses nothing.
-  return bits.slice(0, 4).join(' · ');
+  return bits.slice(0, 4).join(' \u00b7 ');
 }
 
 /* ------------------------------- the report ------------------------------- */
@@ -182,8 +201,14 @@ export interface CommissionReportInput {
   title: string;
   lead?: string;
   items: CommissionItem[];
-  /** The programme, when one has been laid out. */
-  phases?: Phase[];
+  /** The machines, so a row can name the one it sits on and the sheet can be
+   *  grouped the way the job is argued. */
+  assets?: Asset[];
+  /** The packs, so a program prints the pack it belongs to. */
+  packs?: Pack[];
+  /** The two dates the job is judged on. ISO. */
+  plannedAt?: string;
+  expectedAt?: string;
   now?: number;
   /** Line-walk snags, so an item linked to one carries the picture it was
    *  proved or disproved by. Optional: the sheet is worth sending without them. */
@@ -200,67 +225,114 @@ export interface CommissionReportInput {
  *  liability. */
 export function buildCommissionReport(input: CommissionReportInput): HandoverReport {
   const live = input.items.filter(i => !i.deletedAt);
-  const ready = readiness(live);
-  const groups = byAsset(live);
+  const st = standing(live);
+  const superseded = supersededIds(live);
+  const materials = materialsOf(live);
+  const groups = byAsset(input.assets ?? [], live);
+  const packName = new Map((input.packs ?? []).map(p => [p.id, p.name]));
 
-  const assets: HandoverAsset[] = groups.map(g => ({
-    name: g.asset,
-    canSignOff: g.ready.canSignOff,
-    blockers: g.ready.blockers.length,
-    pct: g.ready.pct,
-    isLine: g.asset === LINE_ITSELF,
-  }));
+  /* Each machine's own verdict, from the same function as the whole line's. A
+     line is accepted one machine at a time, and "the checkweigher is proved and
+     the wrapper is on the wrong film" is the sentence a single project
+     percentage cannot say. */
+  const assets: HandoverAsset[] = groups.map(g => {
+    const own = standing(g.items);
+    return {
+      name: g.name,
+      canSignOff: own.clear,
+      blockers: own.blockers.length,
+      pct: own.pct,
+      isLine: !g.asset,
+    };
+  });
 
   // Which records are in the way, so the detail sheet can mark its own rows
   // without forming a second opinion about what "in the way" means.
-  const blocking = new Set(ready.blockers.map(b => b.id));
+  const blocking = new Set(st.blockers.map(b => b.id));
 
   const rows: HandoverRow[] = groups.flatMap(g =>
     [...g.items]
       .sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.sort - b.sort)
-      .map((i): HandoverRow => ({
-        asset: g.asset,
-        kind: i.kind,
-        kindLabel: kindLabel(i),
-        title: i.title,
-        agreed: agreedOf(i),
-        evidence: evidenceOf(i),
-        who: whoOf(i),
-        due: i.due ? shortISO(i.due) : undefined,
-        state: stateOf(i),
-        stateLabel: whereItStands(i),
-        blocking: blocking.has(i.id),
-        passes: i.kind === 'program' ? i.runs?.length : undefined,
-        was: i.kind === 'program' ? previousBest(i) : undefined,
-        shots: input.shots?.get(i.id),
-      })),
+      .map((i): HandoverRow => {
+        const pack = i.packId ? packName.get(i.packId) : undefined;
+        return {
+          asset: g.name,
+          kind: i.kind,
+          kindLabel: kindLabel(i),
+          /* The pack is part of the name on paper. "400g" on its own reads as a
+             product; "400g on the flow wrapper" is the claim. */
+          title: pack && pack !== i.title ? `${i.title} — ${pack}` : i.title,
+          agreed: agreedOf(i),
+          evidence: evidenceOf(i, materials, superseded),
+          who: whoOf(i),
+          due: i.due ? shortISO(i.due) : undefined,
+          state: stateOf(i, superseded),
+          stateLabel: whereItStands(i, superseded),
+          blocking: blocking.has(i.id),
+          passes: i.kind === 'program' ? i.runs?.length : undefined,
+          was: i.kind === 'program' ? previousBest(i) : undefined,
+          shots: input.shots?.get(i.id),
+        };
+      }),
   );
-
-  /* The programme, flattened for the band across the top of page 1. Dates are
-     shortened here rather than in the drawer, because the drawer must not have
-     to know what a date is. */
-  const ordered = inOrder(input.phases ?? []);
-  const states = phaseStates(ordered, live);
-  const phases: ReportPhase[] = ordered.map(p => ({
-    name: phaseName(p),
-    planned: p.plannedAt ? shortISO(p.plannedAt) : undefined,
-    forecast: p.forecastAt ? shortISO(p.forecastAt) : undefined,
-    slip: slipOf(p),
-    state: states.get(p.id) ?? 'upcoming',
-  }));
 
   return {
     title: input.title,
     lead: input.lead,
     now: input.now ?? Date.now(),
-    phases,
-    canSignOff: ready.canSignOff,
-    blockers: ready.blockers.map(b => ({ what: b.what, asset: b.asset })),
-    headline: headlineFor(ready, live.length > 0),
-    ready,
+    band: bandFor(input, live),
+    canSignOff: st.clear,
+    blockers: st.blockers.map(b => ({
+      what: b.what,
+      /* The machine's name when there is one, and the line's own heading when
+         there is not. Written as an explicit branch because the obvious
+         one-liner — matching g.asset?.id against b.assetId — quietly matches
+         undefined to undefined, so it only looked right by accident. */
+      asset: b.assetId
+        ? groups.find(g => g.asset?.id === b.assetId)?.name
+        : groups.find(g => !g.asset)?.name,
+    })),
+    headline: headlineFor(st, live.length > 0),
+    counts: st.counts,
+    pct: st.pct,
+    stale: st.stale,
     assets,
     rows,
   };
+}
+
+/** The band across the top of page 1: the two dates, then every changeover with
+ *  the price of it.
+ *
+ *  It replaced a programme of stages drawn as beads on a thread. There are no
+ *  stages, and the band now says the two things a reader needs before any
+ *  detail — whether the job has moved, and what is about to stop counting. */
+function bandFor(input: CommissionReportInput, live: CommissionItem[]): ReportBand[] {
+  const out: ReportBand[] = [];
+  const slip = daysBetween(input.plannedAt, input.expectedAt);
+
+  if (input.plannedAt) out.push({ label: 'Planned', value: shortISO(input.plannedAt), state: 'plain' });
+  if (input.expectedAt) {
+    out.push({
+      label: 'Now expecting',
+      value: shortISO(input.expectedAt),
+      note: slip && slip > 0 ? `${plural(slip, 'day')} later` : slip && slip < 0 ? `${plural(-slip, 'day')} earlier` : undefined,
+      state: slip == null || slip === 0 ? 'plain' : slip < 0 ? 'good' : slip > 7 ? 'bad' : 'warn',
+    });
+  }
+
+  for (const t of transitions(live)) {
+    const pct = Math.round(t.landed * 100);
+    out.push({
+      label: t.from ? `${t.from.spec ?? t.from.title} \u2192 ${t.to.spec ?? t.to.title}` : `Moving to ${t.to.spec ?? t.to.title}`,
+      value: `${t.to.have} of ${t.to.need}${t.to.unit ? ' ' + t.to.unit : ''} here`,
+      note: t.invalidated.length
+        ? `${plural(t.invalidated.length, 'result')} stop${t.invalidated.length === 1 ? 's' : ''} counting`
+        : `${pct}% delivered`,
+      state: t.invalidated.length ? 'bad' : pct >= 100 ? 'good' : 'warn',
+    });
+  }
+  return out;
 }
 
 /* ------------------------------- the pictures ------------------------------- */

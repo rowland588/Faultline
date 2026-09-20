@@ -226,6 +226,17 @@ export interface Project {
    *  for why a handover does not fit the 3P board. */
   commissioning?: boolean;
 
+  /** THE TWO DATES A COMMISSIONING JOB IS JUDGED ON. ISO dates.
+   *
+   *  `plannedAt` is the date the line was agreed to be ours by, written once and
+   *  never quietly rewritten — it is what every slip is measured from. A system
+   *  that lets the baseline follow the forecast around always reports that
+   *  everything is on time, which is how an earlier cut watched a handover slip
+   *  three weeks and had nothing to say about it. `expectedAt` is the one that
+   *  moves. */
+  plannedAt?: string;
+  expectedAt?: string;
+
   /** PUT AWAY, NOT DESTROYED. A finished commissioning job should leave the
    *  list without anybody having to decide whether they will ever want the
    *  handover file again — that decision is the whole reason people keep dead

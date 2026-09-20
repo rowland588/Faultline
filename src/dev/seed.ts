@@ -18,14 +18,14 @@
 import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   ensureProjects, createProject, updateProject, addPaceLine, putPaceTodo,
-  putPaceWin, putTreeNode, putCommissionItem, putCommissionPhases,
-  listObservations, snagsForWorkspace, listCommissionItems,
+  putPaceWin, putTreeNode, putCommissionItems,
+  putCommissionAsset, putCommissionPack, putBlob,
+  listObservations, snagsForWorkspace, listCommissionItems, listCommissionAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
-import type { CommissionItem, Phase } from '../lib/commissioning';
-import { PHASE_ORDER } from '../lib/commissioning';
+import type { Asset, CommissionItem, Pack } from '../lib/commissioning';
 
 const uid = () => crypto.randomUUID();
 
@@ -39,7 +39,11 @@ export interface Seeded {
   observations: number;
   snags: number;
   commission: number;
-  phases: number;
+  /** The machines on the commissioning job, and the packs they must run. */
+  assets: number;
+  packs: number;
+  /** The id of the first machine, so the smoke test can open its own screen. */
+  commissionAssetId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -123,79 +127,130 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      the seed never quietly becomes a job that finished last year. */
   const day = 86_400_000;
   const iso = (offset: number) => new Date(t + offset * day).toISOString().slice(0, 10);
-  const PLAN: Record<string, { planned: number; forecast: number; owner: string }> = {
-    fat:        { planned: -40, forecast: -38, owner: 'Dave Marsh' },
-    install:    { planned: -26, forecast: -24, owner: 'Dave Marsh' },
-    mechanical: { planned: -4,  forecast: 7,   owner: 'Dave Marsh' },
-    sat:        { planned: 7,   forecast: 17,  owner: 'Priya Shah' },
-    rate:       { planned: 21,  forecast: 29,  owner: 'Rowland' },
-    handover:   { planned: 30,  forecast: 38,  owner: 'Rowland' },
+
+  /* THE COMMISSIONING JOB, SHAPED LIKE THE REAL ONE.
+   *
+   * Two machines on site, a film changeover part-delivered, a program nobody has
+   * written, and results got on the spec that is being withdrawn. That last one
+   * is the whole reason this fixture exists in TypeScript: the stale rule is
+   * derived from pointers between rows, and a fixture that got those pointers
+   * wrong would make the app look broken when it was reporting correctly. */
+  await updateProject({ ...proj, plannedAt: iso(19), expectedAt: iso(27), updatedAt: t });
+
+  const wrapper: Asset = {
+    id: uid(), projectId: proj.id, name: 'Ilapak flow wrapper', oem: 'Ilapak UK',
+    state: 'running', arrivedAt: iso(-30), installedAt: iso(-26), sort: 10, updatedAt: t,
   };
-  const phases: Phase[] = PHASE_ORDER.map((key, i) => {
-    const plan = PLAN[key];
-    return {
-      id: uid(), projectId: proj.id, key, sort: (i + 1) * 10,
-      plannedAt: iso(plan.planned), forecastAt: iso(plan.forecast),
-      owner: plan.owner, updatedAt: t,
-    };
-  });
-  await putCommissionPhases(phases);
-  /* Keyed once rather than searched per item, and without a non-null assertion:
-     a fixture that lies to the compiler is how this seed manufactured two "app
-     bugs" that were really bugs in the harness. An unknown stage falls back to
-     no stage, which is a valid record rather than a crash. */
-  const phaseId = new Map(phases.map(p => [p.key as string, p.id]));
-  const ph = (key: string): string | undefined => phaseId.get(key);
+  const checkweigher: Asset = {
+    id: uid(), projectId: proj.id, name: 'Ishida checkweigher', oem: 'Ishida Europe',
+    state: 'running', arrivedAt: iso(-30), installedAt: iso(-25), sort: 20, updatedAt: t,
+  };
+
+  /* A document the OEM sent, bytes and all, so the asset screen renders a real
+     row rather than an empty state — and so a broken read path shows up here
+     rather than on somebody's phone on a factory floor. */
+  const docKey = `doc-${uid()}`;
+  await putBlob(docKey, new Blob(['%PDF-1.4 seeded FAT report'], { type: 'application/pdf' }));
+  wrapper.docs = [{
+    id: uid(), name: 'FAT report — Ilapak, Aug 2026', blobKey: docKey,
+    mime: 'application/pdf', bytes: 2_411_008, savedAt: t - 30 * day,
+  }];
+
+  await putCommissionAsset(wrapper);
+  await putCommissionAsset(checkweigher);
+
+  const packs: Pack[] = [
+    { id: uid(), projectId: proj.id, name: '200g pack', sort: 10, updatedAt: t },
+    { id: uid(), projectId: proj.id, name: '400g pack', sort: 20, updatedAt: t },
+    { id: uid(), projectId: proj.id, name: '1kg catering', sort: 30, updatedAt: t },
+  ];
+  for (const p of packs) await putCommissionPack(p);
+
+  /* The two film rows first, because the results below point AT them: the new
+     spec carries `supersedes`, and every run got on the old one is stale the
+     moment that pointer exists. */
+  const oldFilm: CommissionItem = {
+    id: uid(), projectId: proj.id, assetId: wrapper.id, kind: 'material',
+    title: 'Film', spec: '40\u00b5 old spec', need: 40, have: 40, unit: 'rolls',
+    sort: 30, createdAt: t, updatedAt: t,
+  };
+  const newFilm: CommissionItem = {
+    id: uid(), projectId: proj.id, assetId: wrapper.id, kind: 'material',
+    title: 'Film', spec: '35\u00b5 modified', need: 40, have: 10, onOrder: 30, unit: 'rolls',
+    supersedes: oldFilm.id, due: iso(12), grade: 'A',
+    sort: 31, createdAt: t, updatedAt: t,
+  };
+
   const items: CommissionItem[] = [
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'program',
-      title: '250g tray', agreedRate: 75, rateUnit: 'ppm', written: true,
-      runs: [{ id: uid(), at: t - 86_400_000, by: 'Rowland + OEM', achieved: 76, minutes: 30, wastePct: 1.2 }],
-      phaseId: ph('rate'), sort: 0, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'program',
-      title: '500g tray', agreedRate: 60, rateUnit: 'ppm', written: true,
-      runs: [{ id: uid(), at: t - 43_200_000, by: 'Rowland', achieved: 51, minutes: 20 }],
-      phaseId: ph('rate'), sort: 1, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'program',
-      title: '1kg bag', agreedRate: 45, rateUnit: 'ppm', written: false,
-      phaseId: ph('rate'), sort: 2, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'material',
-      title: '980mm film', need: 40, have: 10, onOrder: 20, unit: 'rolls',
-      due: iso(5), phaseId: ph('mechanical'), sort: 3, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, kind: 'material',
-      title: 'Outer cases', need: 500, have: 500, unit: 'cases', phaseId: ph('handover'), sort: 4, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'check',
-      title: 'Emergency stops', criterion: 'every E-stop halts the line inside 2 s',
-      outcome: 'pass', witnessedBy: 'Dave', at: t - 172_800_000, phaseId: ph('mechanical'), sort: 5, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'check',
+    oldFilm, newFilm,
+    /* 200g and 400g ran fine — on the film that is going away. Both come back as
+       needing a re-run, which is the app doing the remembering. */
+    { id: uid(), projectId: proj.id, assetId: wrapper.id, packId: packs[0].id, kind: 'program',
+      title: '200g pack', agreedRate: 80, rateUnit: 'ppm', written: true,
+      runs: [{ id: uid(), at: t - 6 * day, by: 'Rowland + OEM', achieved: 82, minutes: 30, wastePct: 1.2, provenOn: oldFilm.id }],
+      sort: 0, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: wrapper.id, packId: packs[1].id, kind: 'program',
+      title: '400g pack', agreedRate: 65, rateUnit: 'ppm', written: true,
+      runs: [{ id: uid(), at: t - 2 * day, by: 'Rowland', achieved: 58, minutes: 30, provenOn: oldFilm.id }],
+      sort: 1, createdAt: t, updatedAt: t },
+    /* Nobody has written this one at all — a different conversation, with a
+       different person, from one that exists and has not been run. */
+    { id: uid(), projectId: proj.id, assetId: wrapper.id, packId: packs[2].id, kind: 'program',
+      title: '1kg catering', agreedRate: 45, rateUnit: 'ppm', written: false, grade: 'A',
+      owner: 'Ilapak UK', sort: 2, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: checkweigher.id, packId: packs[2].id, kind: 'program',
+      title: '1kg catering', agreedRate: 45, rateUnit: 'ppm', written: false, grade: 'A',
+      owner: 'Ishida Europe', sort: 3, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: checkweigher.id, packId: packs[1].id, kind: 'program',
+      title: '400g pack', agreedRate: 65, rateUnit: 'ppm', written: true,
+      runs: [{ id: uid(), at: t - 4 * day, by: 'Rowland', achieved: 66, minutes: 30 }],
+      sort: 4, createdAt: t, updatedAt: t },
+
+    /* An e-stop test names no material on purpose: film makes no difference to
+       it, so a changeover must not invalidate the safety tests. */
+    { id: uid(), projectId: proj.id, assetId: wrapper.id, kind: 'check',
+      title: 'Emergency stops', criterion: 'every e-stop halts the machine inside 2 s',
+      result: '1.4 s', outcome: 'pass', witnessedBy: 'Dave', at: t - 9 * day,
+      sort: 5, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: wrapper.id, kind: 'check',
+      title: 'Seal integrity — 400g', criterion: '0 leaks in 20',
+      result: '3 leaked', outcome: 'fail', witnessedBy: 'Priya Shah', at: t - 2 * day,
+      provenOn: oldFilm.id, grade: 'B', owner: 'Ilapak UK', due: iso(6),
+      sort: 6, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: checkweigher.id, kind: 'check',
+      title: 'Weight accuracy — 400g', criterion: '\u00b11.5 g over 200 packs',
+      result: '\u00b10.9 g', outcome: 'pass', witnessedBy: 'Rowland', at: t - 4 * day,
+      sort: 7, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: checkweigher.id, kind: 'check',
       title: 'Metal detection', criterion: 'rejects 2.0mm Fe at full rate',
-      result: 'missed one in ten at rate', outcome: 'fail', witnessedBy: 'Dave',
-      at: t - 86_400_000, phaseId: ph('sat'), sort: 6, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'punch',
-      title: 'Former roller misaligned', severity: 'A', raisedAt: t - 259_200_000,
-      fixBy: 'OEM', phaseId: ph('mechanical'), sort: 7, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Ishida multihead', kind: 'punch',
-      title: 'Guard rattles above 40 ppm', severity: 'C', raisedAt: t - 86_400_000,
-      fixBy: 'us', phaseId: ph('handover'), sort: 8, createdAt: t, updatedAt: t },
+      outcome: 'notRun', due: iso(9), sort: 8, createdAt: t, updatedAt: t },
+
+    { id: uid(), projectId: proj.id, assetId: wrapper.id, kind: 'punch',
+      title: 'Former roller misaligned', severity: 'A', raisedAt: t - 5 * day,
+      fixBy: 'Ilapak UK', sort: 9, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, assetId: checkweigher.id, kind: 'punch',
+      title: 'Guard rattles above 40 ppm', severity: 'C', raisedAt: t - 1 * day,
+      fixBy: 'us', sort: 10, createdAt: t, updatedAt: t },
+
+    /* The line itself, not a machine on it: hygiene clearance and the paperwork
+       hold up a handover exactly as hard as a broken guard does. */
+    { id: uid(), projectId: proj.id, kind: 'check',
+      title: 'Hygiene clearance before first product', criterion: 'swabs clear after a full clean-down',
+      outcome: 'notRun', owner: 'Technical', due: iso(16), grade: 'A',
+      sort: 11, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, kind: 'material',
+      title: 'Outer cases', need: 500, have: 500, unit: 'cases', sort: 12, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, kind: 'task',
       title: 'Operators trained on changeover', state: 'doing', owner: 'Dave',
-      due: iso(3), phaseId: ph('handover'), sort: 9, createdAt: t, updatedAt: t },
-    { id: uid(), projectId: proj.id, asset: 'Brillopack bagger', kind: 'task',
-      title: 'Guarding sign-off', state: 'waiting', owner: 'Brillopack (OEM)',
-      due: iso(-8), phaseId: ph('mechanical'), sort: 10, createdAt: t, updatedAt: t },
+      due: iso(-2), sort: 13, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, kind: 'task',
-      title: 'CE/UKCA file received', state: 'todo', owner: 'Brillopack (OEM)',
-      due: iso(3), phaseId: ph('mechanical'), sort: 11, createdAt: t, updatedAt: t },
-    /* A stage is done when its work is done, so the two finished stages need
-       finished work under them — there is no sign-off flag to set any more. */
-    { id: uid(), projectId: proj.id, kind: 'check', asset: 'Brillopack bagger',
-      title: 'Ran at rate on the OEM floor', criterion: '75 ppm for 30 minutes',
-      result: '76 ppm', outcome: 'pass', witnessedBy: 'Dave Marsh', at: t - 38 * 86_400_000,
-      phaseId: ph('fat'), sort: 12, createdAt: t, updatedAt: t },
+      title: 'Spares list agreed', state: 'todo', owner: 'Engineering',
+      due: iso(24), sort: 14, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, kind: 'task',
-      title: 'Bolted down and services on', state: 'done', owner: 'Dave Marsh',
-      phaseId: ph('install'), sort: 13, createdAt: t, updatedAt: t },
+      title: 'CE/UKCA file received', state: 'done', owner: 'Ilapak UK',
+      sort: 15, createdAt: t, updatedAt: t },
   ];
-  for (const i of items) await putCommissionItem(i);
+  await putCommissionItems(items);
 
   return {
     wsId: ws.id, projectId: proj.id, lineId: line.id, caseId: kase.id,
@@ -203,6 +258,8 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     observations: (await listObservations(ws.id)).length,
     snags: (await snagsForWorkspace(ws.id)).length,
     commission: (await listCommissionItems(proj.id)).length,
-    phases: phases.length,
+    assets: (await listCommissionAssets(proj.id)).length,
+    packs: packs.length,
+    commissionAssetId: wrapper.id,
   };
 }

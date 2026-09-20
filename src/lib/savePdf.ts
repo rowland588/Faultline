@@ -66,8 +66,18 @@ export async function reloadOntoNewBuild(): Promise<void> {
  *  Returns how it went out, so the caller can say something true afterwards
  *  ("opened in a new tab" is worth saying; a silent nothing is not). */
 export async function deliverPdf(doc: jsPDF, filename: string): Promise<'shared' | 'downloaded' | 'opened'> {
-  const blob = doc.output('blob') as Blob;
-  const file = new File([blob], filename, { type: 'application/pdf' });
+  return deliverBlob(doc.output('blob') as Blob, filename);
+}
+
+/** The same three routes out, for a PDF the app did not draw.
+ *
+ *  A document the OEM emailed — a FAT report, a film spec — is saved in the blob
+ *  store and has to be openable on a factory floor. That is the identical
+ *  problem as getting a generated report out, including iOS ignoring `<a
+ *  download>` for a blob, so it is the identical code rather than a second
+ *  attempt at it. */
+export async function deliverBlob(blob: Blob, filename: string): Promise<'shared' | 'downloaded' | 'opened'> {
+  const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
 
   // The share sheet first on anything that has one: on a phone this is Mail,
   // WhatsApp, Files — which is what "send it to the GM" actually means. Desktop

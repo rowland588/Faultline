@@ -33,7 +33,8 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
     id, name: 'Line 5 — Brillopack', color: '#0b7d68', workspaceIds: [],
     commissioning: true, createdAt: t, updatedAt: t,
   });
-  await db.putCommissionPhase({ id: 'ph1', projectId: id, key: 'fat', sort: 10, updatedAt: t });
+  await db.putCommissionAsset({ id: 'as1', projectId: id, name: 'Ilapak flow wrapper', state: 'running', sort: 10, updatedAt: t });
+  await db.putCommissionPack({ id: 'pk1', projectId: id, name: '400g pack', sort: 10, updatedAt: t });
   await db.putCommissionItem({
     id: 'it1', projectId: id, kind: 'task', title: 'Guarding sign-off',
     state: 'todo', sort: 1, createdAt: t, updatedAt: t,
@@ -63,7 +64,8 @@ describe('archiving is reversible and loses nothing', () => {
     await db.archiveProject(id);
 
     expect(await db.listCommissionItems(id)).toHaveLength(1);
-    expect(await db.listCommissionPhases(id)).toHaveLength(1);
+    expect(await db.listCommissionAssets(id)).toHaveLength(1);
+    expect(await db.listCommissionPacks(id)).toHaveLength(1);
     expect(await db.listTreeNodes(id)).toHaveLength(1);
   });
 });
@@ -78,7 +80,8 @@ describe('deleting for good takes the whole file with it', () => {
     const owned = await db.projectContents(id);
     const by = Object.fromEntries(owned.map(c => [c.store, c.count]));
     expect(by.commission_items).toBe(1);
-    expect(by.commission_phases).toBe(1);
+    expect(by.commission_assets).toBe(1);
+    expect(by.commission_packs).toBe(1);
     expect(by.tree_nodes).toBe(1);
   });
 
@@ -90,7 +93,8 @@ describe('deleting for good takes the whole file with it', () => {
 
     expect(await db.getProject(id)).toBeUndefined();
     expect(await db.listCommissionItems(id)).toEqual([]);
-    expect(await db.listCommissionPhases(id)).toEqual([]);
+    expect(await db.listCommissionAssets(id)).toEqual([]);
+    expect(await db.listCommissionPacks(id)).toEqual([]);
     expect(await db.listTreeNodes(id)).toEqual([]);
     expect(await db.projectContents(id)).toEqual([]);
   });
@@ -104,7 +108,8 @@ describe('deleting for good takes the whole file with it', () => {
     const kinds = new Set(stones.map(s => s.kind));
     expect(kinds.has('projects'), 'the project itself').toBe(true);
     expect(kinds.has('commission_items'), 'its commissioning rows').toBe(true);
-    expect(kinds.has('commission_phases'), 'its stages').toBe(true);
+    expect(kinds.has('commission_assets'), 'its machines').toBe(true);
+    expect(kinds.has('commission_packs'), 'its packs').toBe(true);
     expect(kinds.has('tree_nodes'), 'its lever tree').toBe(true);
     expect(stones.map(s => s.id)).toContain(id);
   });

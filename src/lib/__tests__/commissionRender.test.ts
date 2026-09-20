@@ -21,8 +21,7 @@ import { jsPDF } from 'jspdf';
 import { drawCommissionReport, commissionSheets } from '../commissionPdf';
 import { panel } from '../reportKit';
 import { buildCommissionReport } from '../buildCommissionReport';
-import type { CommissionItem, Program, Material, Check, Punch, Task, Run, Phase } from '../commissioning';
-import { PHASE_ORDER } from '../commissioning';
+import type { Asset, CommissionItem, Material, Pack, Program, Punch, Run, Task, Check } from '../commissioning';
 
 const AT = Date.parse('2026-09-14T08:00:00Z');
 const NOW = Date.parse('2026-09-19T09:00:00Z');
@@ -30,8 +29,16 @@ const NOW = Date.parse('2026-09-19T09:00:00Z');
 let n = 0;
 const base = (asset?: string) => {
   n += 1;
-  return { id: `i${n}`, projectId: 'p1', title: `Item ${n}`, asset, sort: n, createdAt: 1, updatedAt: 1 };
+  return { id: `i${n}`, projectId: 'p1', title: `Item ${n}`, assetId: asset, sort: n, createdAt: 1, updatedAt: 1 };
 };
+
+/** The machine records behind whatever the items name. Assets used to be a
+ *  string on each row; they are rows of their own now, so the fixture has to
+ *  make them — and it makes them FROM the items, so a test can never describe a
+ *  machine the report cannot see. */
+const assetsFor = (items: CommissionItem[]): Asset[] =>
+  [...new Set(items.map(i => i.assetId).filter((a): a is string => !!a))]
+    .map((id, k): Asset => ({ id, projectId: 'p1', name: id, state: 'running', sort: (k + 1) * 10, updatedAt: 1 }));
 const run = (achieved: number, extra: Partial<Run> = {}): Run => ({ id: `r${n}`, at: AT, achieved, ...extra });
 const program = (p: Partial<Program> & { asset?: string } = {}): Program =>
   ({ ...base(p.asset), kind: 'program', agreedRate: 60, written: true, ...p });
@@ -54,27 +61,29 @@ const machine = (asset: string, each = 1): CommissionItem[] =>
     task({ asset, title: `${asset} obligation ${i + 1}` }),
   ]);
 
-const report = (items: CommissionItem[], phases: Phase[] = []) =>
-  buildCommissionReport({ title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew', items, phases, now: NOW });
+interface Job { plannedAt?: string; expectedAt?: string; packs?: Pack[] }
 
-/** A programme part-way through, with dates and a slip on every stage. */
-const programme = (): Phase[] => PHASE_ORDER.map((key, i) => ({
-  id: `ph-${key}`, projectId: 'p1', key, sort: (i + 1) * 10, updatedAt: 1,
-  plannedAt: `2026-09-${String(10 + i * 3).padStart(2, '0')}`,
-  forecastAt: `2026-09-${String(14 + i * 3).padStart(2, '0')}`,
-}));
+const report = (items: CommissionItem[], job: Job = {}) =>
+  buildCommissionReport({
+    title: 'Line 2 — Brillopack upgrade', lead: 'Rowland Glew',
+    items, assets: assetsFor(items), now: NOW, ...job,
+  });
 
-/** The work that makes the first two stages DONE. A stage is finished when its
- *  rows are, so a fixture that wants a passed stage has to say so in work —
- *  which is the whole point of having removed the sign-off. */
-const finished = (keys: string[]): CommissionItem[] => keys.map((k, i) => ({
-  id: `done-${k}`, projectId: 'p1', phaseId: `ph-${k}`, kind: 'task',
-  title: `${k} work`, state: 'done', sort: i, createdAt: 1, updatedAt: 1,
-}));
+/** The band's inputs: the two dates the job is judged on, eight days apart. */
+const dated = (): Job => ({ plannedAt: '2026-09-19', expectedAt: '2026-09-27' });
 
-const render = (items: CommissionItem[], phases: Phase[] = []) => {
+/** A film changeover with a rate proved on the spec that is going away. Two rows
+ *  and a pointer; the sheet has to work out the rest. */
+const filmRows = (asset: string): CommissionItem[] => {
+  const oldFilm: Material = { ...base(asset), kind: 'material', title: 'Film', spec: '40u', need: 40, have: 40, unit: 'rolls' };
+  const newFilm: Material = { ...base(asset), kind: 'material', title: 'Film', spec: '35u modified', need: 40, have: 10, onOrder: 30, unit: 'rolls', supersedes: oldFilm.id };
+  const rate: Program = { ...base(asset), kind: 'program', title: '400g', agreedRate: 60, written: true, runs: [{ id: 'r-old', at: AT, achieved: 66, provenOn: oldFilm.id }] };
+  return [oldFilm, newFilm, rate];
+};
+
+const render = (items: CommissionItem[], job: Job = {}) => {
   const d = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-  drawCommissionReport(d, report(items, phases));
+  drawCommissionReport(d, report(items, job));
   const buf = d.output('arraybuffer');
   return {
     pages: d.getNumberOfPages(),
@@ -229,27 +238,45 @@ describe('a panel heading never prints on top of its own subtitle', () => {
 
 describe('the programme band', () => {
   it('draws the stages across the top when there is a programme', () => {
-    const { head, bytes } = render([...machine('Bagger')], programme());
+    const { head, bytes } = render([...machine('Bagger')], dated());
     expect(head).toBe('%PDF-');
-    // The band costs real ink: the same job without a programme draws less.
+    // The band costs real ink: the same job without dates draws less.
     expect(bytes).toBeGreaterThan(render([...machine('Bagger')]).bytes);
   });
 
-  it('carries each stage\'s state and slip through to the sheet', () => {
-    const data = report(finished(['fat', 'install']), programme());
-    expect(data.phases).toHaveLength(6);
-    expect(data.phases[0].state).toBe('passed');
-    expect(data.phases[1].state).toBe('passed');
-    expect(data.phases[2].state).toBe('current');
-    expect(data.phases[5].state).toBe('upcoming');
-    // planned 10 Sep, forecast 14 Sep — four days late.
-    expect(data.phases[0].slip).toBe(4);
+  it('puts the slip on the band, and calls a big one bad rather than amber', () => {
+    const data = report([...machine('Bagger')], dated());
+    expect(data.band.map(c => c.label)).toEqual(['Planned', 'Now expecting']);
+    expect(data.band[1].value).toBe('27 Sept');
+    expect(data.band[1].note).toBe('8 days later');
+    expect(data.band[1].state).toBe('bad');
   });
 
-  it('still draws a sheet for a job with no programme laid out', () => {
-    // Every commissioning file written before stages existed is in this state.
+  it('puts the changeover on the band, with the results it costs us', () => {
+    /* The single most important thing this sheet can say, and the thing four
+       earlier versions could not say at all: the number in the detail was got on
+       something that is being taken away. */
+    const data = report(filmRows('Bagger'), dated());
+    const film = data.band.find(c => c.label.includes('35u'));
+    expect(film, 'the changeover has to reach the band').toBeDefined();
+    expect(film?.label).toBe('40u \u2192 35u modified');
+    expect(film?.value).toBe('10 of 40 rolls here');
+    expect(film?.note).toBe('1 result stops counting');
+    expect(film?.state).toBe('bad');
+    expect(data.stale).toBe(1);
+  });
+
+  it('marks the row itself as needing re-proving, not as proven', () => {
+    const data = report(filmRows('Bagger'));
+    const row = data.rows.find(r => r.title.startsWith('400g'))!;
+    expect(row.stateLabel).toBe('Re-prove');
+    expect(row.evidence).toContain('withdrawn, not proof');
+  });
+
+  it('still draws a sheet for a job with no dates and no changeover', () => {
+    // Every commissioning file written before either existed is in this state.
     const data = report([...machine('Bagger')]);
-    expect(data.phases).toEqual([]);
+    expect(data.band).toEqual([]);
     expect(render([...machine('Bagger')]).head).toBe('%PDF-');
   });
 
@@ -258,6 +285,6 @@ describe('the programme band', () => {
     // the counter uses and the geometry the drawing uses ever disagree, the
     // footer stamps "page 2 of 3" on a four-page report.
     const busy = [...machine('Bagger', 3), ...machine('Multihead', 2)];
-    expect(render(busy, programme()).pages).toBeGreaterThanOrEqual(render(busy).pages);
+    expect(render(busy, dated()).pages).toBeGreaterThanOrEqual(render(busy).pages);
   });
 });

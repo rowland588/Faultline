@@ -64,10 +64,14 @@ const ROUTES = [
   ['3P board', `#/project/${seeded.projectId}/board`],
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['commissioning', `#/project/${seeded.projectId}/commissioning`],
-  ['commission gate', `#/project/${seeded.projectId}/commissioning/mechanical`],
-  // A stage that does not exist must land on the programme, not render a screen
-  // about nothing — the class of fault that took the whole app down once.
-  ['commission bad gate', `#/project/${seeded.projectId}/commissioning/nonsense`],
+  ['commission programs', `#/project/${seeded.projectId}/commissioning/programs`],
+  ['commission materials', `#/project/${seeded.projectId}/commissioning/materials`],
+  ['commission machine', `#/project/${seeded.projectId}/commissioning/asset/${seeded.commissionAssetId}`],
+  // A face that does not exist must land on the front of commissioning, not
+  // render a screen about nothing — the class of fault that took the whole app
+  // down once. Same for a machine id that is not there any more.
+  ['commission bad face', `#/project/${seeded.projectId}/commissioning/nonsense`],
+  ['commission gone machine', `#/project/${seeded.projectId}/commissioning/asset/no-such-machine`],
   ['project line', `#/project/${seeded.projectId}/line/${seeded.lineId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],

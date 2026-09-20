@@ -14,6 +14,11 @@ export interface Route {
   wsId?: ID;
   id?: string;          // sub-entity id (segment/:id, asset/:id, project/:id)
   lineId?: string;      // the line within a project (project/:id/line/:lineId)
+  /** Which face of a screen that has several. Commissioning has four — the
+   *  answer, one machine, the materials, the programs grid — and they are path
+   *  segments rather than tabs in component state so that the phone's back
+   *  button walks back out of a machine instead of leaving the app. */
+  view?: string;
   query: URLSearchParams;
 }
 
@@ -66,7 +71,14 @@ export function parseRoute(hash: string): Route {
     /* Commissioning is ONE screen now. /commissioning/:anything — the old
        per-stage gate pages, and /commissioning/run before them — lands on it
        rather than 404ing somebody's bookmark. */
-    if (segs[2] === 'commissioning') return { name: 'commissioning', id, query };
+    /* Commissioning is one subject with four faces: /commissioning, then
+       /programs, /materials, or /asset/:assetId. Anything else under it — the
+       old per-stage gate pages, and /commissioning/run before them — lands on
+       the front of it rather than 404ing somebody's bookmark. */
+    if (segs[2] === 'commissioning') {
+      const view = segs[3] === 'programs' || segs[3] === 'materials' || segs[3] === 'asset' ? segs[3] : undefined;
+      return { name: 'commissioning', id, view, lineId: view === 'asset' ? decodeURIComponent(segs[4] ?? '') || undefined : undefined, query };
+    }
     return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
   }
   if (segs[0] === 'w' && segs[1]) {

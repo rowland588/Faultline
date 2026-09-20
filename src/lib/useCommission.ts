@@ -1,43 +1,73 @@
-/* The commissioning records for one project, and the five ways to add one.
+/* The commissioning records for one project: the machines, the packs, and the
+ * claims about them.
  *
  * A separate maker per kind rather than one `add(kind, title)`: a program needs
- * an agreed rate the moment it exists, a material needs a quantity, a punch item
- * needs a severity. A single generic add is what produced records with nothing
- * in them but a title, which is how the first version of this ended up unable to
- * answer whether the line could be signed off.
+ * an agreed rate the moment it exists, a material needs a quantity, a defect
+ * needs a grade. A single generic add is what produced records with nothing in
+ * them but a title, which is how the first version of this ended up unable to
+ * answer whether the line could be accepted.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  listCommissionItems, putCommissionItem, putCommissionItems,
-  deleteCommissionItem, listCommissionPhases, putCommissionPhase, putCommissionPhases,
+  listCommissionItems, putCommissionItem, putCommissionItems, deleteCommissionItem,
+  listCommissionAssets, putCommissionAsset, deleteCommissionAsset, assetContents,
+  listCommissionPacks, putCommissionPack, deleteCommissionPack, packContents,
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import { freshPhases, sortBetween, customPhaseKey } from './commissioning';
-import type { CommissionItem, Program, Material, Check, Punch, Task, Run, Severity, Phase } from './commissioning';
+import { grid, sortBetween, standing, STARTER_CHECKS } from './commissioning';
+import type {
+  Asset, AssetState, Check, CommissionItem, DocRef, Grid, Material, Pack,
+  Program, Punch, Run, Severity, Standing, Task,
+} from './commissioning';
+
+/** What every maker needs to know: which machine, which pack, how badly. */
+export interface Where {
+  assetId?: string;
+  packId?: string;
+  grade?: Severity;
+  owner?: string;
+  due?: string;
+}
 
 export interface CommissionState {
   loading: boolean;
   items: CommissionItem[];
-  /** The stages this line goes through. Empty until the programme is started —
-   *  which is deliberate: six rows of blank dates on a project nobody has
-   *  planned yet is clutter pretending to be a plan. */
-  phases: Phase[];
-  /** Lay out the six stages for the first time. */
-  startProgramme: () => Promise<void>;
-  savePhase: (p: Phase) => Promise<void>;
-  /** Add a stage of your own, after the one given (or at the end). */
-  addPhase: (name: string, afterSort?: number) => Promise<void>;
-  /** Take a stage out. Its rows stay on the project and stop gating anything —
-   *  deleting somebody's work because they reorganised their process would be
-   *  the worst possible answer to "this stage does not apply to us". */
-  removePhase: (id: string) => Promise<void>;
-  addProgram: (title: string, agreedRate: number, asset?: string, unit?: string, phaseId?: string) => Promise<void>;
-  addMaterial: (title: string, need: number, asset?: string, unit?: string, phaseId?: string) => Promise<void>;
-  addCheck: (title: string, criterion: string, asset?: string, phaseId?: string) => Promise<void>;
-  addPunch: (title: string, severity: Severity, asset?: string, phaseId?: string) => Promise<void>;
-  addTask: (title: string, asset?: string, phaseId?: string) => Promise<void>;
-  /** Record a run against a program — the evidence for its rate. */
+  assets: Asset[];
+  packs: Pack[];
+  /** The whole answer, derived. Never assembled by a screen. */
+  standing: Standing;
+  /** Every asset against every pack. */
+  grid: Grid;
+
+  /* ---- the machines ---- */
+  addAsset: (name: string, oem?: string, state?: AssetState) => Promise<string>;
+  saveAsset: (a: Asset) => Promise<void>;
+  removeAsset: (id: string) => Promise<void>;
+  /** What removing a machine would take with it, so the warning says a number. */
+  assetCost: (id: string) => Promise<{ items: number }>;
+  /** Attach a file the OEM sent. The bytes are already in the blob store. */
+  addDoc: (assetId: string, doc: Omit<DocRef, 'id' | 'savedAt'>) => Promise<void>;
+  markDocRead: (assetId: string, docId: string) => Promise<void>;
+  removeDoc: (assetId: string, docId: string) => Promise<void>;
+
+  /* ---- the packs ---- */
+  addPack: (name: string, afterSort?: number) => Promise<string>;
+  savePack: (p: Pack) => Promise<void>;
+  removePack: (id: string) => Promise<void>;
+  packCost: (id: string) => Promise<{ items: number }>;
+
+  /* ---- the claims ---- */
+  addProgram: (title: string, agreedRate: number, where?: Where, unit?: string) => Promise<void>;
+  addMaterial: (title: string, need: number, where?: Where, unit?: string, spec?: string) => Promise<void>;
+  addCheck: (title: string, criterion: string, where?: Where) => Promise<void>;
+  addPunch: (title: string, severity: Severity, where?: Where) => Promise<void>;
+  addTask: (title: string, where?: Where) => Promise<void>;
+  /** Give a new machine the four things an acceptance usually turns on. Every
+   *  one of them can then be renamed, deleted or added to. */
+  addStarterChecks: (assetId: string) => Promise<void>;
+  /** Record a run against a program — the evidence for its rate, including the
+   *  material spec it was got on. */
   addRun: (programId: string, run: Omit<Run, 'id'>) => Promise<void>;
   save: (i: CommissionItem) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -46,13 +76,15 @@ export interface CommissionState {
 
 export function useCommission(projectId: string): CommissionState {
   const [items, setItems] = useState<CommissionItem[]>([]);
-  const [phases, setPhases] = useState<Phase[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [i, p] = await Promise.all([listCommissionItems(projectId), listCommissionPhases(projectId)]);
-    setItems(i);
-    setPhases(p);
+    const [i, a, p] = await Promise.all([
+      listCommissionItems(projectId), listCommissionAssets(projectId), listCommissionPacks(projectId),
+    ]);
+    setItems(i); setAssets(a); setPacks(p);
     setLoading(false);
   }, [projectId]);
 
@@ -62,43 +94,110 @@ export function useCommission(projectId: string): CommissionState {
    *  the person who just typed it is looking. */
   const nextSort = useCallback(() => items.reduce((n, i) => Math.max(n, i.sort), 0) + 1, [items]);
 
-  const base = useCallback((title: string, asset?: string, phaseId?: string) => {
+  const base = useCallback((title: string, w: Where = {}) => {
     const t = now();
-    return { id: uid(), projectId, title: title.trim(), asset, phaseId, sort: nextSort(), createdAt: t, updatedAt: t };
+    return {
+      id: uid(), projectId, title: title.trim(),
+      assetId: w.assetId, packId: w.packId, grade: w.grade, owner: w.owner, due: w.due,
+      sort: nextSort(), createdAt: t, updatedAt: t,
+    };
   }, [projectId, nextSort]);
 
-  const addProgram = useCallback(async (title: string, agreedRate: number, asset?: string, unit?: string, phaseId?: string) => {
-    const p: Program = { ...base(title, asset, phaseId), kind: 'program', agreedRate, rateUnit: unit || 'ppm', written: false, runs: [] };
+  /* ------------------------------ machines ------------------------------- */
+
+  const addAsset = useCallback(async (name: string, oem?: string, state: AssetState = 'onSite') => {
+    const id = uid();
+    const sort = assets.reduce((n, a) => Math.max(n, a.sort), 0) + 1;
+    await putCommissionAsset({ id, projectId, name: name.trim(), oem: oem?.trim() || undefined, state, sort, updatedAt: now() });
+    return id;
+  }, [projectId, assets]);
+
+  const saveAsset = useCallback(async (a: Asset) => { await putCommissionAsset({ ...a, updatedAt: now() }); }, []);
+
+  const removeAsset = useCallback(async (id: string) => { await deleteCommissionAsset(id, projectId); }, [projectId]);
+
+  const assetCost = useCallback((id: string) => assetContents(id, projectId), [projectId]);
+
+  /* A document is metadata on the asset; its bytes are already in the blob store
+     and travel by the media pipeline, the same as a snag photo. That is the
+     whole reason a PDF the OEM emailed can be opened on the floor with no
+     signal. */
+  const withDocs = useCallback(async (assetId: string, f: (docs: DocRef[]) => DocRef[]) => {
+    const a = assets.find(x => x.id === assetId);
+    if (!a) return;
+    await putCommissionAsset({ ...a, docs: f(a.docs ?? []), updatedAt: now() });
+  }, [assets]);
+
+  const addDoc = useCallback(async (assetId: string, doc: Omit<DocRef, 'id' | 'savedAt'>) => {
+    await withDocs(assetId, docs => [...docs, { ...doc, id: uid(), savedAt: now() }]);
+  }, [withDocs]);
+
+  const markDocRead = useCallback(async (assetId: string, docId: string) => {
+    await withDocs(assetId, docs => docs.map(d => (d.id === docId && !d.readAt ? { ...d, readAt: now() } : d)));
+  }, [withDocs]);
+
+  const removeDoc = useCallback(async (assetId: string, docId: string) => {
+    await withDocs(assetId, docs => docs.filter(d => d.id !== docId));
+  }, [withDocs]);
+
+  /* -------------------------------- packs -------------------------------- */
+
+  const addPack = useCallback(async (name: string, afterSort?: number) => {
+    const id = uid();
+    await putCommissionPack({ id, projectId, name: name.trim(), sort: sortBetween(packs, afterSort), updatedAt: now() });
+    return id;
+  }, [projectId, packs]);
+
+  const savePack = useCallback(async (p: Pack) => { await putCommissionPack({ ...p, updatedAt: now() }); }, []);
+
+  const removePack = useCallback(async (id: string) => { await deleteCommissionPack(id, projectId); }, [projectId]);
+
+  const packCost = useCallback((id: string) => packContents(id, projectId), [projectId]);
+
+  /* -------------------------------- claims -------------------------------- */
+
+  const addProgram = useCallback(async (title: string, agreedRate: number, w?: Where, unit?: string) => {
+    const p: Program = { ...base(title, w), kind: 'program', agreedRate, rateUnit: unit || 'ppm', written: false, runs: [] };
     await putCommissionItem(p);
   }, [base]);
 
-  const addMaterial = useCallback(async (title: string, need: number, asset?: string, unit?: string, phaseId?: string) => {
-    const m: Material = { ...base(title, asset, phaseId), kind: 'material', need, have: 0, onOrder: 0, unit };
+  const addMaterial = useCallback(async (title: string, need: number, w?: Where, unit?: string, spec?: string) => {
+    const m: Material = { ...base(title, w), kind: 'material', need, have: 0, onOrder: 0, unit, spec: spec?.trim() || undefined };
     await putCommissionItem(m);
   }, [base]);
 
-  const addCheck = useCallback(async (title: string, criterion: string, asset?: string, phaseId?: string) => {
-    const c: Check = { ...base(title, asset, phaseId), kind: 'check', criterion: criterion.trim(), outcome: 'notRun' };
+  const addCheck = useCallback(async (title: string, criterion: string, w?: Where) => {
+    const c: Check = { ...base(title, w), kind: 'check', criterion: criterion.trim(), outcome: 'notRun' };
     await putCommissionItem(c);
   }, [base]);
 
-  const addPunch = useCallback(async (title: string, severity: Severity, asset?: string, phaseId?: string) => {
-    const p: Punch = { ...base(title, asset, phaseId), kind: 'punch', severity, raisedAt: now() };
+  const addPunch = useCallback(async (title: string, severity: Severity, w?: Where) => {
+    const p: Punch = { ...base(title, w), kind: 'punch', severity, raisedAt: now() };
     await putCommissionItem(p);
   }, [base]);
 
-  const addTask = useCallback(async (title: string, asset?: string, phaseId?: string) => {
-    const t: Task = { ...base(title, asset, phaseId), kind: 'task', state: 'todo' };
+  const addTask = useCallback(async (title: string, w?: Where) => {
+    const t: Task = { ...base(title, w), kind: 'task', state: 'todo' };
     await putCommissionItem(t);
   }, [base]);
 
-  const save = useCallback(async (i: CommissionItem) => {
-    await putCommissionItem({ ...i, updatedAt: now() });
-  }, []);
+  const addStarterChecks = useCallback(async (assetId: string) => {
+    const t = now();
+    let sort = nextSort();
+    const rows: CommissionItem[] = STARTER_CHECKS.map(s => ({
+      id: uid(), projectId, assetId, title: s.title, criterion: s.criterion,
+      kind: 'check' as const, outcome: 'notRun' as const,
+      sort: sort++, createdAt: t, updatedAt: t,
+    }));
+    await putCommissionItems(rows);
+  }, [projectId, nextSort]);
+
+  const save = useCallback(async (i: CommissionItem) => { await putCommissionItem({ ...i, updatedAt: now() }); }, []);
 
   /* A run is appended to the program it proves. Kept on the program rather than
-     in a list of its own because a rate means nothing without the product it was
-     run on, and every question anybody asks starts from the product. */
+     in a list of its own because a rate means nothing without the pack it was
+     run on — and, since the film transition, nothing without the material
+     either. `provenOn` comes in with the run for exactly that reason. */
   const addRun = useCallback(async (programId: string, run: Omit<Run, 'id'>) => {
     const p = items.find(i => i.id === programId);
     if (!p || p.kind !== 'program') return;
@@ -116,37 +215,16 @@ export function useCommission(projectId: string): CommissionState {
 
   const seed = useCallback(async (rows: CommissionItem[]) => { await putCommissionItems(rows); }, []);
 
-  /* The six stages, laid out with NO DATES. Inventing a baseline would put an
-     agreement in the file that nobody made, and a baseline nobody agreed is
-     worse than none — everything measures late or early against a fiction. */
-  const startProgramme = useCallback(async () => {
-    if (phases.length) return;
-    await putCommissionPhases(freshPhases(projectId, uid, now()));
-  }, [projectId, phases.length]);
-
-  const savePhase = useCallback(async (p: Phase) => {
-    await putCommissionPhase({ ...p, updatedAt: now() });
-  }, []);
-
-  const addPhase = useCallback(async (name: string, afterSort?: number) => {
-    const clean = name.trim();
-    if (!clean) return;
-    await putCommissionPhase({
-      id: uid(), projectId, key: customPhaseKey(clean, phases.map(p => p.key)),
-      name: clean, sort: sortBetween(phases, afterSort), updatedAt: now(),
-    });
-  }, [projectId, phases]);
-
-  const removePhase = useCallback(async (id: string) => {
-    const p = phases.find(x => x.id === id);
-    if (!p) return;
-    // Soft, and the items keep their phaseId: putting the stage back restores
-    // every row that was on it, which a hard delete could not do.
-    await putCommissionPhase({ ...p, deletedAt: now(), updatedAt: now() });
-  }, [phases]);
+  /* Derived once per change, in one place, so the screens cannot each compose a
+     slightly different answer to the same question. */
+  const answer = useMemo(() => standing(items), [items]);
+  const board = useMemo(() => grid(assets, packs, items), [assets, packs, items]);
 
   return {
-    loading, items, phases, startProgramme, savePhase, addPhase, removePhase,
-    addProgram, addMaterial, addCheck, addPunch, addTask, addRun, save, remove, seed,
+    loading, items, assets, packs, standing: answer, grid: board,
+    addAsset, saveAsset, removeAsset, assetCost, addDoc, markDocRead, removeDoc,
+    addPack, savePack, removePack, packCost,
+    addProgram, addMaterial, addCheck, addPunch, addTask, addStarterChecks,
+    addRun, save, remove, seed,
   };
 }
