@@ -13,8 +13,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  CELL_WORD, grid, isStale, isSettled, programStatus, standing, supersededIds, transitions,
-  conditionOf, materialsOf, provenOnOf, weeksTo, sortBetween,
+  ALL_SUGGESTIONS, CELL_WORD, SUGGESTED_CHECKS, grid, isStale, isSettled, programStatus,
+  standing, supersededIds, transitions, conditionOf, materialsOf, provenOnOf, weeksTo, sortBetween,
   type Asset, type Check, type CommissionItem, type Material, type Pack, type Program, type Run,
 } from '../commissioning';
 
@@ -214,5 +214,36 @@ describe('the small arithmetic the headings are made of', () => {
     expect(sortBetween(rows, 30)).toBe(31);
     expect(sortBetween(rows)).toBe(9);
     expect(sortBetween([])).toBe(0);
+  });
+});
+
+describe('what a machine has to prove is picked, never defaulted', () => {
+  it('offers a real library rather than four things somebody assumed', () => {
+    /* The cut before this put e-stops, guarding, changeover and clean-down on
+       every new machine automatically. A checkweigher has no seal integrity and
+       a wrapper has no weight accuracy: guessing for somebody just gives them a
+       shorter list to delete. */
+    expect(SUGGESTED_CHECKS.length).toBeGreaterThanOrEqual(5);
+    expect(ALL_SUGGESTIONS.length).toBeGreaterThanOrEqual(25);
+  });
+
+  it('gives every suggestion a criterion — a claim with no test is not a claim', () => {
+    for (const s of ALL_SUGGESTIONS) {
+      expect(s.title.trim(), 'a suggestion with no name').not.toBe('');
+      expect(s.criterion.trim(), `${s.title} has nothing to measure it by`).not.toBe('');
+    }
+  });
+
+  it('never offers the same thing twice, which would read as two claims', () => {
+    const titles = ALL_SUGGESTIONS.map(s => s.title.toLowerCase());
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+
+  it('leaves rate out: a rate is proved per pack, on the grid', () => {
+    /* A machine can hit the rate on one pack and miss it on another, so a
+       single "runs at rate" check on the machine would be a claim nobody could
+       answer honestly. */
+    const rateish = ALL_SUGGESTIONS.filter(s => /\bppm\b|packs per minute|runs at rate/i.test(s.title));
+    expect(rateish).toEqual([]);
   });
 });

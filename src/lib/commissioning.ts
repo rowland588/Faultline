@@ -741,16 +741,92 @@ export function sortBetween(rows: { sort: number }[], afterSort?: number): numbe
   return next === undefined ? afterSort + 1 : (afterSort + next) / 2;
 }
 
-/** What a new asset should be asked to prove. A starting point, not a standard:
- *  every one of these can be renamed, deleted or added to, and a list that
- *  cannot be edited is a list somebody keeps in a spreadsheet instead.
+/** SOMETHING A MACHINE MIGHT HAVE TO PROVE.
  *
- *  They are the four questions an OEM acceptance actually turns on — is it safe,
- *  does it hit the rate, does it hold the quality, can we change it over — and
- *  they came from how commissioning is run everywhere, not from this app. */
-export const STARTER_CHECKS: { title: string; criterion: string }[] = [
-  { title: 'Emergency stops', criterion: 'Every e-stop halts the machine inside 2 seconds' },
-  { title: 'Guarding and interlocks', criterion: 'All guards fitted, interlocks proved, nothing defeatable' },
-  { title: 'Changeover time', criterion: 'Agreed changeover achieved by our own people, twice' },
-  { title: 'Clean-down', criterion: 'Strip, clean and rebuild inside the agreed time, swabs clear' },
+ *  A suggestion, never a default. The cut before this one put four of these on
+ *  every new machine automatically and called it a starting point, which is the
+ *  same mistake as the six stages and the five gates before them: deciding
+ *  somebody else's process for them and making them delete the half that does
+ *  not apply. A checkweigher has no seal integrity and a wrapper has no weight
+ *  accuracy.
+ *
+ *  So nothing is ever added by the app. This is a list to PICK from, every entry
+ *  is editable once it is on the machine, and typing your own is always the
+ *  shortest route to a claim this list has never heard of. */
+export interface Suggestion {
+  title: string;
+  criterion: string;
+}
+
+export interface SuggestionGroup {
+  /** The question the group answers, in the words of the job. */
+  name: string;
+  items: Suggestion[];
+}
+
+/** The library, grouped the way an acceptance is actually argued.
+ *
+ *  Drawn from how commissioning is run rather than invented here: the safety and
+ *  guarding checks that gate any product going through, the running behaviour an
+ *  OEM is held to, the quality checks a food site cannot start without, the
+ *  hygiene clearance that comes before first product, and the paperwork that
+ *  holds up a handover exactly as hard as a broken guard does. */
+export const SUGGESTED_CHECKS: SuggestionGroup[] = [
+  {
+    name: 'Safe to run',
+    items: [
+      { title: 'Emergency stops', criterion: 'Every e-stop halts the machine inside 2 seconds' },
+      { title: 'Guarding and interlocks', criterion: 'All guards fitted, interlocks proved, nothing defeatable' },
+      { title: 'Lock-off (LOTO)', criterion: 'Every energy source isolates and locks off, points labelled' },
+      { title: 'Noise at the operator position', criterion: 'Inside the agreed dB(A) at full rate' },
+      { title: 'Guard-open restart', criterion: 'Opening a guard mid-run stops it and needs a deliberate restart' },
+    ],
+  },
+  {
+    name: 'Runs the way it was sold',
+    items: [
+      { title: 'Changeover time', criterion: 'Agreed changeover achieved by our own people, twice' },
+      { title: 'Start-up and shutdown', criterion: 'Starts, runs and stops to the agreed sequence with no manual help' },
+      { title: 'Micro-stops over a full run', criterion: 'Under the agreed number of stops across an uninterrupted run' },
+      { title: 'Waste and giveaway', criterion: 'Within the agreed percentage over a measured run' },
+      { title: 'Runs unattended between interventions', criterion: 'The agreed minutes with nobody touching it' },
+    ],
+  },
+  {
+    name: 'Makes good product',
+    items: [
+      { title: 'Seal integrity', criterion: '0 leaks in 20, tested off the running machine' },
+      { title: 'Weight accuracy', criterion: 'Within the agreed tolerance over 200 packs' },
+      { title: 'Metal detection', criterion: 'Rejects the agreed test pieces at full rate' },
+      { title: 'X-ray / foreign body', criterion: 'Rejects the agreed test pieces at full rate' },
+      { title: 'Date code and label accuracy', criterion: 'Right code, right place, readable, on every pack checked' },
+      { title: 'Reject verification', criterion: 'A rejected pack actually leaves the line, and it is recorded' },
+      { title: 'Pack presentation', criterion: 'Meets the agreed standard sample at full rate' },
+    ],
+  },
+  {
+    name: 'Clean and safe to eat',
+    items: [
+      { title: 'Clean-down time', criterion: 'Strip, clean and rebuild inside the agreed time' },
+      { title: 'Swabs clear after a full clean', criterion: 'Food-contact surfaces clear on the agreed test' },
+      { title: 'Allergen changeover', criterion: 'The agreed clean between allergens proves clear' },
+      { title: 'CIP coverage', criterion: 'Every food-contact surface is actually reached' },
+      { title: 'Drainage and standing water', criterion: 'No standing water anywhere after a wash' },
+    ],
+  },
+  {
+    name: 'Ours to run',
+    items: [
+      { title: 'Operators trained', criterion: 'Named operators signed off on running it and changing it over' },
+      { title: 'Engineers trained', criterion: 'Named engineers signed off on maintaining and fault-finding it' },
+      { title: 'Spares list agreed and on site', criterion: 'The critical spares list agreed, ordered and racked' },
+      { title: 'O&M manuals received', criterion: 'Operating and maintenance manuals, as-built, in our hands' },
+      { title: 'CE/UKCA file received', criterion: 'Declaration of conformity and the technical file received' },
+      { title: 'Maintenance schedule loaded', criterion: 'Planned maintenance written into the system with intervals' },
+    ],
+  },
 ];
+
+/** Every suggestion, flat — for counting, and for asking whether a machine
+ *  already has one so the picker never offers a duplicate. */
+export const ALL_SUGGESTIONS: Suggestion[] = SUGGESTED_CHECKS.flatMap(g => g.items);

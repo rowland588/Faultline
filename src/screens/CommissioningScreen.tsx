@@ -31,10 +31,10 @@ import { deliverBlob, isStaleBuildError, reloadOntoNewBuild } from '../lib/saveP
 import { getBlob, putBlob, updateProject } from '../db';
 import { uid } from '../lib/ids';
 import {
-  ASSET_STATE_ORDER, ASSET_STATE_WORD, CELL_WORD, LINE_ITSELF, SEVERITY_WHAT,
+  ASSET_STATE_ORDER, ASSET_STATE_WORD, CELL_WORD, LINE_ITSELF, SEVERITY_WHAT, SUGGESTED_CHECKS,
   byAsset, conditionOf, daysBetween, gradeOf, isOpen, isStale, materialsOf,
   provenOnOf, standsAt, stateOf, supersededIds, transitions, weeksTo,
-  type Asset, type CommissionItem, type DocRef, type Material, type Severity,
+  type Asset, type CommissionItem, type DocRef, type Material, type Severity, type Suggestion,
 } from '../lib/commissioning';
 
 type CM = ReturnType<typeof useCommission>;
@@ -633,12 +633,11 @@ function AddAsset({ cm, projectId }: { cm: CM; projectId: string }) {
       if (!n) return;
       void (async () => {
         const id = await cm.addAsset(n, oem);
-        /* A new machine arrives with the four things an acceptance usually turns
-           on, so it is never an empty page. Every one can be renamed or deleted:
-           a list that cannot be edited is a list somebody keeps in a spreadsheet
-           instead of here. */
-        await cm.addStarterChecks(id);
-        nav(`/project/${projectId}/commissioning/asset/${encodeURIComponent(id)}`);
+        /* Nothing is put on it. The machine opens with the picker up, so the
+           first thing somebody does is CHOOSE what this machine has to prove —
+           a wrapper and a checkweigher do not prove the same things, and the
+           version that guessed four for you was just a shorter list to delete. */
+        nav(`/project/${projectId}/commissioning/asset/${encodeURIComponent(id)}?pick=1`);
       })();
       setName(''); setOem(''); setOpen(false);
     }}>
@@ -659,6 +658,9 @@ function AddAsset({ cm, projectId }: { cm: CM; projectId: string }) {
 function AssetFace({ projectId, cm, assetId }: { projectId: string; cm: CM; assetId: string }) {
   const { project } = useProject(projectId);
   const [details, setDetails] = useState(false);
+  /* Opened by ?pick=1 straight after the machine is made, so the first screen is
+     the choosing rather than an empty list with a + on it. */
+  const [picking, setPicking] = useState(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('pick') === '1');
   const asset = cm.assets.find(a => a.id === assetId);
   const superseded = useMemo(() => supersededIds(cm.items), [cm.items]);
   const materials = useMemo(() => materialsOf(cm.items), [cm.items]);
@@ -741,8 +743,12 @@ function AssetFace({ projectId, cm, assetId }: { projectId: string; cm: CM; asse
         </div>
         <div className="cw-list">
           {mine.map(i => <Row key={i.id} item={i} cm={cm} />)}
-          <Add cm={cm} assetId={assetId} label="Add something it must prove" />
+          <button className="cw-add" onClick={() => setPicking(p => !p)}>
+            <span className="cw-add-p" aria-hidden>+</span> {picking ? 'Close the list' : 'Pick from a list'}
+          </button>
+          <Add cm={cm} assetId={assetId} label="Or type your own" />
         </div>
+        {picking && <Picker cm={cm} assetId={assetId} have={mine} done={() => setPicking(false)} />}
       </section>
 
       <Docs cm={cm} asset={asset} />
@@ -755,6 +761,93 @@ function AssetFace({ projectId, cm, assetId }: { projectId: string; cm: CM; asse
         if (confirm(warn)) { await cm.removeAsset(asset.id); nav(`/project/${projectId}/commissioning`); }
       })()}>Remove this machine</button>
     </Shell>
+  );
+}
+
+/** PICK WHAT THIS MACHINE HAS TO PROVE.
+ *
+ *  A list to choose from, and nothing is chosen for you. The version before this
+ *  put four checks on every new machine automatically — e-stops, guarding,
+ *  changeover, clean-down — which is the same mistake as the six stages and the
+ *  five gates: deciding somebody else's process and leaving them to delete the
+ *  half that does not apply. A checkweigher has no seal integrity.
+ *
+ *  Anything already on the machine is shown ticked and cannot be added twice.
+ *  Typing your own is right there, because the list will never have heard of
+ *  half of what a real line needs. */
+function Picker({ cm, assetId, have, done }: {
+  cm: CM; assetId: string; have: CommissionItem[]; done: () => void;
+}) {
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [busy, setBusy] = useState(false);
+
+  // Matched on the title as somebody would read it, so a renamed row still
+  // counts as "already on here" rather than being offered again.
+  const already = useMemo(
+    () => new Set(have.map(i => i.title.trim().toLowerCase())),
+    [have],
+  );
+
+  const toggle = (title: string) => setPicked(p => {
+    const next = new Set(p);
+    if (next.has(title)) next.delete(title); else next.add(title);
+    return next;
+  });
+
+  const add = async () => {
+    const chosen: Suggestion[] = SUGGESTED_CHECKS
+      .flatMap(g => g.items)
+      .filter(i => picked.has(i.title));
+    if (!chosen.length) return;
+    setBusy(true);
+    try {
+      await cm.addChecks(assetId, chosen);
+      setPicked(new Set());
+      done();
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="cx-pick">
+      <div className="cx-pick-head">
+        <span className="cmp-h-n">WHAT DOES THIS MACHINE HAVE TO PROVE?</span>
+        <p className="sub">
+          Tick what applies to this machine. Nothing is added until you do, and everything you add can be
+          renamed or deleted afterwards.
+        </p>
+      </div>
+
+      {SUGGESTED_CHECKS.map(group => (
+        <div key={group.name} className="cx-pick-group">
+          <span className="cx-pick-g">{group.name}</span>
+          {group.items.map(item => {
+            const on = already.has(item.title.trim().toLowerCase());
+            return (
+              <label key={item.title} className={'cx-pick-row' + (on ? ' is-on' : '')}>
+                <input type="checkbox" checked={on || picked.has(item.title)} disabled={on}
+                  onChange={() => toggle(item.title)} />
+                <span className="cx-pick-m">
+                  <span className="cx-pick-t">{item.title}</span>
+                  <span className="cx-pick-s">{on ? 'already on this machine' : item.criterion}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      ))}
+
+      <p className="sub cx-pick-note">
+        A rate is not here on purpose — that is proved per pack, on the programs grid, because a machine can hit
+        it on one pack and miss it on another.
+      </p>
+
+      <div className="cx-pick-foot">
+        <button className="btn btn-primary" disabled={!picked.size || busy} onClick={() => void add()}>
+          {busy ? 'Adding…' : picked.size ? `Add ${picked.size}` : 'Nothing ticked'}
+        </button>
+        <button className="btn btn-ghost" onClick={done}>Done</button>
+      </div>
+    </div>
   );
 }
 
@@ -1083,7 +1176,13 @@ export function CommissioningScreen({ projectId, view, assetId }: {
   if (loading || cm.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
 
-  if (view === 'asset' && assetId) return <AssetFace projectId={projectId} cm={cm} assetId={assetId} />;
+  /* Keyed on the machine so moving between two of them REMOUNTS the face.
+     Without it the per-machine state survived the switch, and the picker that
+     opens on a machine you just made stayed open on the next one you looked at
+     — which is the app deciding something for you all over again. */
+  if (view === 'asset' && assetId) {
+    return <AssetFace key={assetId} projectId={projectId} cm={cm} assetId={assetId} />;
+  }
   if (view === 'materials') return <MaterialsFace projectId={projectId} cm={cm} />;
   if (view === 'programs') return <ProgramsFace projectId={projectId} cm={cm} />;
 

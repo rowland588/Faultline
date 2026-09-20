@@ -15,10 +15,10 @@ import {
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import { grid, sortBetween, standing, STARTER_CHECKS } from './commissioning';
+import { grid, sortBetween, standing } from './commissioning';
 import type {
   Asset, AssetState, Check, CommissionItem, DocRef, Grid, Material, Pack,
-  Program, Punch, Run, Severity, Standing, Task,
+  Program, Punch, Run, Severity, Standing, Suggestion, Task,
 } from './commissioning';
 
 /** What every maker needs to know: which machine, which pack, how badly. */
@@ -63,9 +63,9 @@ export interface CommissionState {
   addCheck: (title: string, criterion: string, where?: Where) => Promise<void>;
   addPunch: (title: string, severity: Severity, where?: Where) => Promise<void>;
   addTask: (title: string, where?: Where) => Promise<void>;
-  /** Give a new machine the four things an acceptance usually turns on. Every
-   *  one of them can then be renamed, deleted or added to. */
-  addStarterChecks: (assetId: string) => Promise<void>;
+  /** Put the picked suggestions on a machine. Nothing is ever added without
+   *  somebody ticking it — see SUGGESTED_CHECKS for why. */
+  addChecks: (assetId: string, picked: Suggestion[]) => Promise<void>;
   /** Record a run against a program — the evidence for its rate, including the
    *  material spec it was got on. */
   addRun: (programId: string, run: Omit<Run, 'id'>) => Promise<void>;
@@ -181,11 +181,12 @@ export function useCommission(projectId: string): CommissionState {
     await putCommissionItem(t);
   }, [base]);
 
-  const addStarterChecks = useCallback(async (assetId: string) => {
+  const addChecks = useCallback(async (assetId: string, picked: Suggestion[]) => {
+    if (!picked.length) return;
     const t = now();
     let sort = nextSort();
-    const rows: CommissionItem[] = STARTER_CHECKS.map(s => ({
-      id: uid(), projectId, assetId, title: s.title, criterion: s.criterion,
+    const rows: CommissionItem[] = picked.map(p => ({
+      id: uid(), projectId, assetId, title: p.title, criterion: p.criterion,
       kind: 'check' as const, outcome: 'notRun' as const,
       sort: sort++, createdAt: t, updatedAt: t,
     }));
@@ -224,7 +225,7 @@ export function useCommission(projectId: string): CommissionState {
     loading, items, assets, packs, standing: answer, grid: board,
     addAsset, saveAsset, removeAsset, assetCost, addDoc, markDocRead, removeDoc,
     addPack, savePack, removePack, packCost,
-    addProgram, addMaterial, addCheck, addPunch, addTask, addStarterChecks,
+    addProgram, addMaterial, addCheck, addPunch, addTask, addChecks,
     addRun, save, remove, seed,
   };
 }

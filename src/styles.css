@@ -5037,3 +5037,33 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .cx-block { flex-wrap: wrap; }
   .cx-block-a { flex: 1 1 100%; padding-left: 32px; white-space: normal; }
 }
+
+/* PICKING WHAT A MACHINE HAS TO PROVE.
+   A list to choose from, never a list that chose for you — the rows are real
+   checkboxes with real labels, so the whole thing works by tapping the words. */
+.cx-pick {
+  margin-top: 10px; padding: 14px 15px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+}
+.cx-pick-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.cx-pick-head .sub { margin: 0; font-size: 12.5px; line-height: 1.5; }
+.cx-pick-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.cx-pick-g {
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; color: var(--accent);
+  padding: 8px 2px 6px; border-bottom: 1px solid var(--line);
+}
+.cx-pick-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 2px; border-bottom: 1px solid var(--line);
+  cursor: pointer; min-height: 44px;
+}
+.cx-pick-row:last-child { border-bottom: 0; }
+.cx-pick-row:hover { background: var(--bg); }
+.cx-pick-row input { width: 20px; height: 20px; flex: none; margin-top: 2px; accent-color: var(--brand); }
+.cx-pick-row.is-on { cursor: default; opacity: 0.62; }
+.cx-pick-row.is-on:hover { background: none; }
+.cx-pick-m { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cx-pick-t { font-size: 14px; font-weight: 600; }
+.cx-pick-s { font-size: 12px; line-height: 1.45; color: var(--ink-2); }
+.cx-pick-note { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
+.cx-pick-foot { display: flex; gap: 8px; align-items: center; }
