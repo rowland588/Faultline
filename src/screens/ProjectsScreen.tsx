@@ -222,8 +222,9 @@ export function ProjectsScreen() {
 /** What each store is called when somebody is being asked to destroy it.
  *  "5 commission_items" is not something anybody can consent to. */
 const LABEL: Record<string, string> = {
-  commission_items: 'commissioning rows',
-  commission_phases: 'commissioning stages',
+  tests: 'tests',
+  test_items: 'things found and next steps',
+  commission_assets: 'machines',
   tree_nodes: 'lever-tree nodes',
   project_targets: 'quarterly targets',
   project_actuals: 'weekly actuals',
