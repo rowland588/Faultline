@@ -28,6 +28,7 @@ import { usePaceLines, type PaceLinesState } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
 import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { actionsForLine } from '../lib/paceLineMatch';
+import { planModel } from '../lib/planModel';
 import { useLinePackCounts } from '../lib/useLinePack';
 import type { PaceLineRow } from '../db';
 
@@ -40,6 +41,17 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Data',       sub: 'the ppm numbers' },
 ];
+
+/* WHAT A LINE ON A COMMISSIONING JOB HAS.
+ *
+ * Not this. A handover has no weekly tracker to slice, no quarterly target to
+ * measure a week against and no ppm reading to type in: the rate is agreed once,
+ * per pack, and either proved or not. What it does have is the walk — filming is
+ * how a defect gets proved — and the things somebody writes down while doing it.
+ *
+ * Leaving the rest on was the whole reason commissioning still read as the
+ * tracker wearing a different hat. */
+const COMMISSIONING_LENSES: Lens[] = ['overview', 'next', 'wins', 'snags'];
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -61,7 +73,7 @@ function oneLine(state: PaceLinesState, line: PaceLineRow): PaceLinesState {
 export function ProjectLineScreen({ projectId, lineId }: { projectId: string; lineId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const lens: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' ? raw : 'overview';
+  const asked: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' ? raw : 'overview';
 
   const { loading: projLoading, project } = useProject(projectId);
   const ppm = usePaceLines(projectId);
@@ -98,6 +110,12 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
     );
   }
 
+  const paced = planModel(project) !== 'commissioning';
+  const shownLenses = paced ? LENSES : LENSES.filter(l => COMMISSIONING_LENSES.includes(l.id));
+  /* A lens this line has not got lands on its overview rather than on a blank
+     page — hiding it from the row never stopped the URL reaching the body. */
+  const lens: Lens = shownLenses.some(l => l.id === asked) ? asked : 'overview';
+
   const isDone = (s: string) => /^done$/i.test(s.trim());
   const done = mine.filter(a => isDone(a.status)).length;
   const overdue = mine.filter(a => /overdue/i.test(a.flag ?? '') && !isDone(a.status)).length;
@@ -125,20 +143,33 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           </p>
           <h1 className="pace-title">{line.name}</h1>
           <p className="pace-lede">
-            This line’s own pack — its pace, its actions, what is next, what worked and what the walk found.
-            Everything here rolls up into the {project.name} report.
+            {paced
+              ? <>This line’s own pack — its pace, its actions, what is next, what worked and what the walk found.
+                  Everything here rolls up into the {project.name} report.</>
+              : <>This line’s own pack — what is next, what worked, and what the walk found. The rate it has to hit
+                  lives in commissioning, agreed once per pack.</>}
           </p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => nav(`/pace-report?project=${projectId}&line=${lineId}`)}>
-            This line’s deck
-          </button>
+          {/* The deck is drawn from the weekly tracker — quarterly targets,
+              weekly ppm, tracker actions. A handover has none of them, and its
+              own A3 is printed from commissioning. */}
+          {paced && (
+            <button className="btn btn-primary" onClick={() => nav(`/pace-report?project=${projectId}&line=${lineId}`)}>
+              This line’s deck
+            </button>
+          )}
+          {!paced && (
+            <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/commissioning`)}>
+              Commissioning
+            </button>
+          )}
           <AccountMenu />
         </div>
       </header>
 
       <nav className="pace-lenses" aria-label="View">
-        {LENSES.map(l => (
+        {shownLenses.map(l => (
           <button key={l.id} className={'pace-lens' + (lens === l.id ? ' on' : '')}
             aria-current={lens === l.id ? 'page' : undefined} onClick={() => go(l.id)}>
             <span className="pace-lens-l">{l.label}</span>
@@ -150,11 +181,13 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
       {lens === 'overview' && (
         <>
           <div className="pace-kpis">
-            <Kpi n={last == null ? '—' : String(last)} label="ppm latest"
-              sub={delta == null ? `Q1 target ${line.q1}` : `${delta >= 0 ? '+' : ''}${delta} vs Q1 target ${line.q1}`}
-              tone={delta == null ? undefined : delta >= 0 ? 'good' : 'bad'} />
-            <Kpi n={String(mine.length - done)} label="actions live" sub={`${done} of ${mine.length} closed`} />
-            <Kpi n={String(overdue)} label="overdue" sub="past their date" tone={overdue > 0 ? 'bad' : 'good'} />
+            {paced && <>
+              <Kpi n={last == null ? '—' : String(last)} label="ppm latest"
+                sub={delta == null ? `Q1 target ${line.q1}` : `${delta >= 0 ? '+' : ''}${delta} vs Q1 target ${line.q1}`}
+                tone={delta == null ? undefined : delta >= 0 ? 'good' : 'bad'} />
+              <Kpi n={String(mine.length - done)} label="actions live" sub={`${done} of ${mine.length} closed`} />
+              <Kpi n={String(overdue)} label="overdue" sub="past their date" tone={overdue > 0 ? 'bad' : 'good'} />
+            </>}
             <Kpi n={String(counts.openTodos)} label="next steps open" sub={`${counts.doneTodos} finished`} />
             <Kpi n={String(counts.openSnags)} label="open evidence" sub="on this line’s walk" tone={counts.openSnags > 0 ? 'warn' : 'good'} />
             {/* green only when there is something to be pleased about — a
@@ -162,6 +195,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
             <Kpi n={String(counts.wins)} label="wins logged" sub="what worked" tone={counts.wins > 0 ? 'good' : undefined} />
           </div>
 
+          {paced && (
           <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">Pace</h2>
@@ -188,6 +222,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               </span>
             </button>
           </section>
+          )}
         </>
       )}
 

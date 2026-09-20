@@ -131,10 +131,14 @@ function NumCell({ value, onSave }: { value: number; onSave: (v: number) => void
   );
 }
 
-function LineRow({ line, first, last, state, projectId, members }: {
+function LineRow({ line, first, last, state, projectId, members, paced }: {
   line: PaceLineRow; first: boolean; last: boolean; projectId: string;
   state: ReturnType<typeof usePaceLines>;
   members: { email: string }[];
+  /** Whether this project is run on quarterly ppm targets at all. A
+   *  commissioning job is not: a rate there is agreed once, per pack, and either
+   *  proved or not — see lib/commissioning. */
+  paced: boolean;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -173,10 +177,14 @@ function LineRow({ line, first, last, state, projectId, members }: {
         onChange={(n, e) => void state.editLine(line.id, { owner: n || undefined, ownerEmail: e || undefined })} /></td>
       <td><PersonPicker name={line.sponsor ?? ''} email={line.sponsorEmail ?? ''} members={members}
         onChange={(n, e) => void state.editLine(line.id, { sponsor: n || undefined, sponsorEmail: e || undefined })} /></td>
-      <td className="pset-q"><NumCell value={line.q1} onSave={v => void state.setTarget(line.key, 'q1', v)} /></td>
-      <td className="pset-q"><NumCell value={line.q2} onSave={v => void state.setTarget(line.key, 'q2', v)} /></td>
-      <td className="pset-q"><NumCell value={line.q3} onSave={v => void state.setTarget(line.key, 'q3', v)} /></td>
-      <td className="pset-q"><NumCell value={line.q4} onSave={v => void state.setTarget(line.key, 'q4', v)} /></td>
+      {paced && (
+        <>
+          <td className="pset-q"><NumCell value={line.q1} onSave={v => void state.setTarget(line.key, 'q1', v)} /></td>
+          <td className="pset-q"><NumCell value={line.q2} onSave={v => void state.setTarget(line.key, 'q2', v)} /></td>
+          <td className="pset-q"><NumCell value={line.q3} onSave={v => void state.setTarget(line.key, 'q3', v)} /></td>
+          <td className="pset-q"><NumCell value={line.q4} onSave={v => void state.setTarget(line.key, 'q4', v)} /></td>
+        </>
+      )}
       <td className="pset-actions">
         {/* The pack is where this line's owner actually works, so it leads. The
             workspace is inside it too, but a direct way in is worth keeping for
@@ -308,6 +316,10 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
 export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
+  /* Quarterly targets belong to an improvement initiative, not to a handover.
+     Asking somebody commissioning a line for its Q3 packs-per-minute target is
+     asking a question the job does not have an answer to. */
+  const paced = !!project && planModel(project) !== 'commissioning';
   // One people list, read by the invite box AND by the owner/sponsor pickers on
   // every line — so the moment somebody is invited they are assignable.
   const people = useProjectMembers(projectId);
@@ -352,8 +364,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         <div className="pace-sec-head">
           <h2 className="pace-sec-title">Lines</h2>
           <p className="pace-sec-sub">
-            Each line has an owner who runs it and a sponsor who carries it — and a workspace of its own for its snag list, captures and reports ·
-            targets are packs per minute per quarter
+            Each line has an owner who runs it and a sponsor who carries it — and a workspace of its own for its snag list, captures and reports
+            {paced && ' · targets are packs per minute per quarter'}
           </p>
         </div>
 
@@ -366,13 +378,15 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
                   <tr>
                     <th className="pset-order"><span className="sr-only">Order</span></th>
                     <th>Line</th><th>Name</th><th>Owner</th><th>Sponsor</th>
-                    <th className="pset-q">Q1</th><th className="pset-q">Q2</th><th className="pset-q">Q3</th><th className="pset-q">Q4</th>
+                    {paced && <>
+                      <th className="pset-q">Q1</th><th className="pset-q">Q2</th><th className="pset-q">Q3</th><th className="pset-q">Q4</th>
+                    </>}
                     <th className="pset-actions">Its work</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lines.lines.map((l, i) => (
-                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable}
+                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable} paced={paced}
                       first={i === 0} last={i === lines.lines.length - 1} />
                   ))}
                 </tbody>
@@ -406,6 +420,7 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
   const { project } = useProject(projectId);
   const { rename } = useProjects();
   if (!project) return null;
+  const paced = planModel(project) !== 'commissioning';
   return (
     <section className="card pset-identity">
       <div className="pset-identity-grid">
@@ -451,6 +466,10 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           Ticking it on does not use, publish or send anywhere any Pareto
           reading already on file; it only turns on the surface so the NEXT
           upload that carries a Pareto sheet has somewhere to be read. */}
+      {/* Pareto is read off the Pareto sheet of the weekly workbook upload, and
+          a commissioning job has no workbook to upload. Offering it there is a
+          door to a page that can only ever be empty. */}
+      {paced && (
       <div className="pset-tools">
         <p className="field-label">Extra tools</p>
         <label className="pset-tool">
@@ -468,6 +487,7 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           </span>
         </label>
       </div>
+      )}
     </section>
   );
 }

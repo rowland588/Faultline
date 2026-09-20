@@ -29,6 +29,8 @@ import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/projectPaceData';
 import type { PaceLineRow } from '../db';
 import { planModel } from '../lib/planModel';
+import { useCommission } from '../lib/useCommission';
+import { ASSET_STATE_WORD } from '../lib/commissioning';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -319,13 +321,70 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'data',     label: 'Data',       sub: 'upload & ppm' },
 ];
 
+/** WHERE THE HANDOVER STANDS, on the project's own front page.
+ *
+ *  The same sentence the commissioning screen leads with and the same sentence
+ *  the A3 prints — composed once in lib/commissioning, so this page cannot form
+ *  a second opinion about a job it is only summarising. */
+function CommissioningOverview({ projectId }: { projectId: string }) {
+  const cm = useCommission(projectId);
+  if (cm.loading) return <p className="sub">Loading…</p>;
+
+  const st = cm.standing;
+  const open = cm.assets.length === 0 && cm.items.length === 0;
+
+  return (
+    <section className="pace-sec">
+      {open ? (
+        <div className="pace-empty">
+          <p className="sub">Nothing recorded on this handover yet — start with the machines on the line.</p>
+          <button className="btn btn-primary" style={{ marginTop: 10 }}
+            onClick={() => nav(`/project/${projectId}/commissioning`)}>Open commissioning</button>
+        </div>
+      ) : (
+        <>
+          <div className="cx-answer">
+            <span className="cmp-h-n">WHERE WE ARE</span>
+            <p className="cx-said">{st.sentence}</p>
+            <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round(st.pct * 100)}%` }} /></span>
+            <span className="cx-tally">
+              {st.done} of {st.total} done
+              {st.counts.punch.openA > 0 && <> · <b className="is-r">{st.counts.punch.openA} grade A</b></>}
+              {st.stale > 0 && <> · <b className="is-a">{st.stale} need{st.stale === 1 ? 's' : ''} re-proving</b></>}
+              {cm.grid.holes > 0 && <> · <b className="is-r">{cm.grid.holes} program{cm.grid.holes === 1 ? '' : 's'} missing</b></>}
+            </span>
+          </div>
+
+          {cm.assets.length > 0 && (
+            <div className="cx-assets" style={{ marginTop: 12 }}>
+              {cm.assets.map(a => (
+                <button key={a.id} className="cx-asset"
+                  onClick={() => nav(`/project/${projectId}/commissioning/asset/${encodeURIComponent(a.id)}`)}>
+                  <span className="cx-asset-n">{a.name}</span>
+                  <span className="cx-asset-s">{ASSET_STATE_WORD[a.state]}{a.oem ? ` · ${a.oem}` : ''}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="pace-lines-foot" style={{ marginTop: 14 }}>
+            <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/commissioning`)}>
+              Open commissioning
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   /* Which lenses this project even has. A commissioning job keeps the evidence
      (the walk is how a defect gets proved) and drops the quarterly ppm, the
      per-line packs and the weekly tracker upload, none of which a handover has. */
   const route = useRoute();
   const raw = route.query.get('view');
-  const lens: Lens = raw === 'data' || raw === 'snags' || raw === 'next'
+  const asked: Lens = raw === 'data' || raw === 'snags' || raw === 'next'
     || raw === 'wins' || raw === 'lines' ? raw : 'overview';
 
   /* A link somebody saved to the meeting still opens the meeting — it is the
@@ -371,6 +430,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const shownLenses = model === 'commissioning'
     ? LENSES.filter(l => l.id === 'overview' || l.id === 'snags')
     : LENSES;
+  /* A LENS THIS PROJECT HAS NOT GOT FALLS BACK TO THE OVERVIEW.
+     Hiding a lens from the row was never enough on its own: ?view=data still
+     rendered the weekly-tracker upload and the ppm grid on a handover, because
+     the body below reads the URL rather than the row. Resolve it once, here. */
+  const lens: Lens = shownLenses.some(l => l.id === asked) ? asked : 'overview';
 
   return (
     <div className={'wrap pace is-' + lens}>
@@ -378,13 +442,16 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">
-            Improvement initiative
+            {model === 'commissioning' ? 'Commissioning' : 'Improvement initiative'}
             {project.lead && <> · led by <b>{project.lead}</b></>}
           </p>
           <h1 className="pace-title">{project.name}</h1>
           <p className="pace-lede">
-            {ppm.lines.length > 0 && <>{lineList} — </>}
-            packs per minute against quarterly targets, every action in flight, and the snag walk of the line.
+            {model === 'commissioning'
+              ? <>A line being handed over — the machines, what each has to prove, the materials, and what is
+                  stopping it. The walk is here too, because filming is how a defect gets proved.</>
+              : <>{ppm.lines.length > 0 && <>{lineList} — </>}
+                  packs per minute against quarterly targets, every action in flight, and the snag walk of the line.</>}
           </p>
         </div>
         <div className="pace-head-actions">
@@ -402,8 +469,13 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
           )}
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
-          <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
-          <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
+          {/* The GM report and this page's A3 are both drawn from the weekly
+              tracker, which a handover has not got. Commissioning prints its own
+              A3 from its own records, inside commissioning. */}
+          {model !== 'commissioning' && <>
+            <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
+            <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
+          </>}
           <AccountMenu />
         </div>
       </header>
@@ -441,7 +513,16 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         ))}
       </nav>
 
-      {lens === 'overview' && (
+      {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.
+          It used to be the tracker's: lines at target against Q1, the 3P board
+          asking for a weekly workbook upload, and a "Line pace" chart per line.
+          None of it belongs to a handover, and every one of them was the first
+          thing somebody saw on opening the project. */}
+      {lens === 'overview' && model === 'commissioning' && (
+        <CommissioningOverview projectId={projectId} />
+      )}
+
+      {lens === 'overview' && model !== 'commissioning' && (
         <>
           <div className="pace-kpis">
             <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target" sub="latest week vs Q1"
@@ -562,7 +643,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {project.name}
           {lineList && <> · {lineList}</>}
           {project.lead && <> · led by {project.lead}</>}
-          {' '}· actions from the team’s tracker · the line walk filmed in the app
+          {model === 'commissioning'
+            ? <> · the machines, what each must prove, and the walk filmed in the app</>
+            : <> · actions from the team’s tracker · the line walk filmed in the app</>}
         </p>
       </footer>
     </div>
