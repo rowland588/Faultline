@@ -20,7 +20,8 @@ import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { LeverTree } from './screens/LeverTree';
 import { BoardScreen } from './screens/BoardScreen';
 import { ParetoScreen } from './screens/ParetoScreen';
-import { CommissioningScreen } from './screens/CommissioningScreen';
+import { TestsScreen } from './screens/TestsScreen';
+import { TestScreen } from './screens/TestScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 import { BootSplash } from './ui/Logo';
@@ -73,7 +74,14 @@ function app(route: Route) {
   if (route.name === 'leverTree') return <LeverTree projectId={route.id!} />;
   if (route.name === 'board') return <BoardScreen projectId={route.id!} />;
   if (route.name === 'pareto') return <ParetoScreen projectId={route.id!} />;
-  if (route.name === 'commissioning') return <CommissioningScreen projectId={route.id!} view={route.view} assetId={route.lineId} />;
+  /* Narrowed once rather than asserted three times: a test route without a
+     project is not a screen, it is a bad link, and it falls through to the
+     project list below. */
+  if ((route.name === 'testing' || route.name === 'test') && route.id) {
+    return route.name === 'test' && route.lineId
+      ? <TestScreen key={route.lineId} projectId={route.id} testId={route.lineId} />
+      : <TestsScreen projectId={route.id} />;
+  }
   if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
   if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;
   if (route.name === 'projectDashboard') return <ProjectDashboardScreen projectId={route.id!} />;

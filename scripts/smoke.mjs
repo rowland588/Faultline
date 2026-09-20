@@ -63,15 +63,14 @@ const ROUTES = [
   ['lever tree', `#/project/${seeded.projectId}/tree`],
   ['3P board', `#/project/${seeded.projectId}/board`],
   ['pareto', `#/project/${seeded.projectId}/pareto`],
-  ['commissioning', `#/project/${seeded.projectId}/commissioning`],
-  ['commission programs', `#/project/${seeded.projectId}/commissioning/programs`],
-  ['commission materials', `#/project/${seeded.projectId}/commissioning/materials`],
-  ['commission machine', `#/project/${seeded.projectId}/commissioning/asset/${seeded.commissionAssetId}`],
-  // A face that does not exist must land on the front of commissioning, not
-  // render a screen about nothing — the class of fault that took the whole app
-  // down once. Same for a machine id that is not there any more.
-  ['commission bad face', `#/project/${seeded.projectId}/commissioning/nonsense`],
-  ['commission gone machine', `#/project/${seeded.projectId}/commissioning/asset/no-such-machine`],
+  ['testing', `#/project/${seeded.projectId}/testing`],
+  ['one test', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
+  // A test that is not there any more must say so, not render a screen about
+  // nothing — the class of fault that took the whole app down once. And every
+  // old /commissioning bookmark still lands on the list.
+  ['test gone', `#/project/${seeded.projectId}/testing/no-such-test`],
+  ['old commissioning link', `#/project/${seeded.projectId}/commissioning`],
+  ['old deep link', `#/project/${seeded.projectId}/commissioning/asset/whatever`],
   ['project line', `#/project/${seeded.projectId}/line/${seeded.lineId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],

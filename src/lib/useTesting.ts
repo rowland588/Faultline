@@ -1,0 +1,130 @@
+/* The tests for one project, and the few things you can do to them.
+ *
+ * Deliberately small. There is one record and two lists under it, so there are
+ * makers for exactly those and nothing else — no kinds to choose between, no
+ * grades, no conditions. If this file starts growing a vocabulary, the model
+ * has drifted back towards the five rebuilds that came before it.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  listAssets, putAsset, deleteAsset,
+  listTests, putTest, deleteTest, testContents,
+  listTestItems, putTestItem, deleteTestItem,
+  onDataChange,
+} from '../db';
+import { uid, now } from './ids';
+import { nextFrom, standing } from './testing';
+import type { Asset, AssetState, ItemKind, Standing, Test, TestItem } from './testing';
+
+export interface TestingState {
+  loading: boolean;
+  assets: Asset[];
+  tests: Test[];
+  items: TestItem[];
+  /** The whole answer, derived in one place. */
+  standing: Standing;
+
+  /* ---- machines ---- */
+  addAsset: (name: string, oem?: string, state?: AssetState) => Promise<string>;
+  saveAsset: (a: Asset) => Promise<void>;
+  removeAsset: (id: string) => Promise<void>;
+
+  /* ---- tests ---- */
+  planTest: (title: string, assetId?: string) => Promise<string>;
+  saveTest: (t: Test) => Promise<void>;
+  removeTest: (id: string) => Promise<void>;
+  /** What deleting one would take with it. */
+  testCost: (id: string) => Promise<{ found: number; next: number }>;
+  /** THE LOOP. A new test carrying this one's machine, product and expectation
+   *  forward, and the next step that prompted it marked as having become it. */
+  planNextFrom: (t: Test, fromItemId?: string, title?: string) => Promise<string>;
+
+  /* ---- what we found, what we do next ---- */
+  addItem: (testId: string, kind: ItemKind, what: string) => Promise<void>;
+  saveItem: (i: TestItem) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+}
+
+export function useTesting(projectId: string): TestingState {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
+  const [items, setItems] = useState<TestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const [a, t, i] = await Promise.all([listAssets(projectId), listTests(projectId), listTestItems(projectId)]);
+    setAssets(a); setTests(t); setItems(i);
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load]);
+
+  const nextSort = useCallback(() => tests.reduce((n, t) => Math.max(n, t.sort), 0) + 1, [tests]);
+
+  /* ------------------------------- machines ------------------------------- */
+
+  const addAsset = useCallback(async (name: string, oem?: string, state: AssetState = 'onSite') => {
+    const id = uid();
+    const sort = assets.reduce((n, a) => Math.max(n, a.sort), 0) + 1;
+    await putAsset({ id, projectId, name: name.trim(), oem: oem?.trim() || undefined, state, sort, updatedAt: now() });
+    return id;
+  }, [projectId, assets]);
+
+  const saveAsset = useCallback(async (a: Asset) => { await putAsset({ ...a, updatedAt: now() }); }, []);
+  const removeAsset = useCallback(async (id: string) => { await deleteAsset(id, projectId); }, [projectId]);
+
+  /* --------------------------------- tests -------------------------------- */
+
+  const planTest = useCallback(async (title: string, assetId?: string) => {
+    const id = uid();
+    const t = now();
+    await putTest({
+      id, projectId, title: title.trim(), assetId,
+      outcome: 'planned', sort: nextSort(), createdAt: t, updatedAt: t,
+    });
+    return id;
+  }, [projectId, nextSort]);
+
+  const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);
+  const removeTest = useCallback(async (id: string) => { await deleteTest(id, projectId); }, [projectId]);
+  const testCost = useCallback((id: string) => testContents(id, projectId), [projectId]);
+
+  const planNextFrom = useCallback(async (t: Test, fromItemId?: string, title?: string) => {
+    const at = now();
+    const next = { ...nextFrom(t, uid, at, title), sort: nextSort() };
+    await putTest(next);
+    /* The next step that prompted it points at the test it became, so the chain
+       reads forwards as well as backwards and nobody plans the same re-test twice. */
+    if (fromItemId) {
+      const item = items.find(i => i.id === fromItemId);
+      if (item) await putTestItem({ ...item, becameTestId: next.id, updatedAt: at });
+    }
+    return next.id;
+  }, [nextSort, items]);
+
+  /* ------------------------ found, and what's next ------------------------ */
+
+  const addItem = useCallback(async (testId: string, kind: ItemKind, what: string) => {
+    const clean = what.trim();
+    if (!clean) return;
+    const t = now();
+    const mine = items.filter(i => i.testId === testId && i.kind === kind);
+    await putTestItem({
+      id: uid(), projectId, testId, kind, what: clean,
+      sort: mine.reduce((n, i) => Math.max(n, i.sort), 0) + 1,
+      createdAt: t, updatedAt: t,
+    });
+  }, [projectId, items]);
+
+  const saveItem = useCallback(async (i: TestItem) => { await putTestItem({ ...i, updatedAt: now() }); }, []);
+  const removeItem = useCallback(async (id: string) => { await deleteTestItem(id); }, []);
+
+  const answer = useMemo(() => standing(tests, items), [tests, items]);
+
+  return {
+    loading, assets, tests, items, standing: answer,
+    addAsset, saveAsset, removeAsset,
+    planTest, saveTest, removeTest, testCost, planNextFrom,
+    addItem, saveItem, removeItem,
+  };
+}

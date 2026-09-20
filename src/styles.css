@@ -4816,60 +4816,87 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .cw-stage-r { flex: 1 1 100%; justify-content: flex-start; padding-left: 19px; }
 }
 
-/* ============================ COMMISSIONING, REBUILT ========================
+/* ================================= TESTING ==================================
  *
- * Four faces of one subject: the answer, one machine, the materials, the grid.
- * These sit alongside the cw-* row and editor rules above rather than replacing
- * them — a row is a row on every face, and the day they stop being the same
- * component is the day the four faces start disagreeing.
+ * Two screens: the line and its tests, and one test in four blocks. These sit
+ * alongside the cw-* row and field rules above rather than replacing them — a
+ * field is a field everywhere in this app.
  */
 
-/* THE ANSWER. One sentence, read off the records. It gets the room a sentence
-   needs, because a tile says "6" and a sentence says what the 6 means. */
+/* THE ANSWER. One sentence, read off the tests. It gets the room a sentence
+   needs, because a tile says "4" and a sentence says what the 4 means. */
 .cx-answer {
   display: flex; flex-direction: column; gap: 9px;
   padding: 14px 16px; margin-bottom: 14px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
 }
 .cx-said { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink); }
-.cx-bar {
-  display: block; height: 7px; border-radius: 4px;
-  background: var(--line); overflow: hidden;
-}
+.cx-bar { display: block; height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .cx-bar-in { display: block; height: 100%; background: var(--brand); border-radius: 4px; }
 .cx-tally { font-size: 12.5px; color: var(--ink-2); }
 .cx-tally .is-r { color: var(--danger); }
 .cx-tally .is-a { color: var(--warn); }
-
-/* WHAT IS STOPPING IT. The grade leads, because A / B / C is what turns a list
-   of complaints into a list of work. */
-.cx-blocks {
-  display: flex; flex-direction: column;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 13px; overflow: hidden;
+.cx-dates {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;
+  padding: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
 }
-.cx-block {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 11px 13px; font: inherit; text-align: left; color: inherit;
+
+/* NEXT UP. On any given week there is one thing you are about to do. */
+.tw-next {
+  display: flex; flex-direction: column; gap: 5px; align-items: flex-start; width: 100%;
+  margin-bottom: 8px; padding: 13px 14px;
+  font: inherit; text-align: left; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
+  cursor: pointer; min-height: 44px;
+}
+.tw-next.is-now { border-color: var(--brand); border-width: 1.5px; }
+.tw-next.is-late { background: #fdf1ef; border-color: #f0c9c3; }
+.tw-next-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; }
+.tw-next-h b { font-size: 15px; }
+.tw-when { font-size: 12px; font-weight: 800; color: var(--accent); white-space: nowrap; }
+.tw-when.is-late { color: var(--danger); }
+.tw-passes {
+  font-size: 12.5px; line-height: 1.45; color: var(--ink);
+  background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box;
+}
+
+/* ONE TEST IN THE LIST. */
+.tw-row {
+  display: flex; align-items: flex-start; gap: 11px; width: 100%;
+  padding: 12px 13px; font: inherit; text-align: left; color: inherit;
   background: none; border: 0; border-bottom: 1px solid var(--line);
   cursor: pointer; min-height: 44px;
 }
-.cx-block:last-child { border-bottom: 0; }
-.cx-block:hover { background: var(--surface-2); }
-.cx-block.is-A { background: #fdf1ef; }
-.cx-block.is-B { background: #fdf6ec; }
-.cx-grade {
-  width: 22px; height: 22px; border-radius: 6px; flex: none;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; font-weight: 800;
-  background: var(--surface-2); color: var(--muted);
+.tw-row:last-child { border-bottom: 0; }
+.tw-row:hover { background: var(--surface-2); }
+.tw-row.is-failed { background: #fdf1ef; }
+.tw-row.is-notRun { background: #fdf6ec; }
+.tw-row-m { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-grow: 1; }
+.tw-row-m b { font-size: 14.5px; }
+.tw-row-m .is-r { color: var(--danger); }
+.tw-res { font-size: 12.5px; }
+.tw-res.is-passed { color: #1f7a44; }
+.tw-res.is-failed { color: #8d2b20; }
+.tw-res.is-notRun { color: #8f5a0e; }
+.tw-mark {
+  width: 22px; height: 22px; border-radius: 50%; flex: none; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
 }
-.cx-grade.is-A { background: var(--danger); color: #fff; }
-.cx-grade.is-B { background: #f6e2c4; color: #8f5a0e; }
-.cx-grade.is-C { background: var(--surface-2); color: var(--ink-2); }
-.cx-block-w { flex-grow: 1; min-width: 0; font-size: 14px; font-weight: 600; }
-.cx-block-a { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.tw-mark.is-g { background: var(--st-g); }
+.tw-mark.is-r { background: var(--danger); }
+.tw-mark.is-ring { border: 2px solid var(--line-2); background: none; }
+.tw-mark.is-ring.is-a { border-color: var(--st-a); }
 
-/* THE MACHINES. Two today, and the third one is a button. */
+/* THE MACHINES. A name you can edit and nothing else — what a machine has to
+   prove is whatever tests name it. */
+.tw-asset {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+}
+.tw-asset input {
+  flex: 1 1 150px; min-width: 0; padding: 8px 10px; font: inherit; font-size: 14px;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+}
 .cx-assets { display: flex; flex-direction: column; gap: 8px; }
 .cx-asset {
   display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
@@ -4877,91 +4904,83 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
   cursor: pointer; min-height: 44px;
 }
-.cx-asset:hover { border-color: var(--line-2); }
-.cx-asset:disabled { cursor: default; opacity: 1; }
 .cx-asset-n { font-size: 14.5px; font-weight: 700; }
 .cx-asset-s { font-size: 12px; color: var(--ink-2); }
-.cx-asset-s .is-a { color: var(--warn); }
-.cx-asset-d { font-size: 11.5px; font-weight: 700; color: var(--accent); }
-.cx-asset-edit {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
-  padding: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
-}
-.cx-remove { margin-top: 6px; align-self: flex-start; }
 
-/* THE CONDITIONS. The line under a row that says what it was proved ON — the
-   whole film problem, said once per row. */
-.cx-cond {
-  display: inline-block; align-self: flex-start; margin-top: 2px;
-  padding: 1px 7px; border-radius: 6px;
-  font-size: 11px; font-weight: 700;
-  background: var(--accent-soft); color: var(--accent);
-}
-.cx-cond.is-stale { background: #f6dad5; color: #8d2b20; }
-.cx-runs { display: flex; flex-direction: column; gap: 4px; flex: 1 1 100%; }
-.cx-run { font-size: 12px; color: var(--ink-2); }
-
-/* A CHANGEOVER, AND WHAT IT COSTS. Loud on purpose: it is the one thing on the
-   screen that somebody in the room still believes. */
-.cx-warn {
-  display: flex; flex-direction: column; gap: 5px; align-items: flex-start; width: 100%;
-  padding: 12px 14px; margin-bottom: 10px;
-  font: inherit; text-align: left;
-  background: #fdf1ef; border: 1px solid #f0c9c3; border-radius: 13px;
-  cursor: pointer;
-}
-.cx-warn.is-flat { cursor: default; }
-.cx-warn-h { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; color: #8d2b20; }
-.cx-warn-b { font-size: 13px; line-height: 1.5; color: var(--ink); }
-.cx-inv { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
-
-.cx-trans {
-  display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;
+/* ONE TEST — FOUR BLOCKS, in the order the day runs. */
+.tw-block {
+  display: flex; flex-wrap: wrap; gap: 11px; margin-bottom: 13px;
   padding: 14px 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
 }
-.cx-trans-pair { display: flex; flex-wrap: wrap; gap: 12px; }
-.cx-trans-side {
-  flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; gap: 3px;
-  padding: 11px 12px; background: var(--bg); border-radius: 10px;
+.tw-block-h {
+  flex: 1 1 100%; display: flex; align-items: baseline; gap: 9px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.04em; color: var(--accent);
 }
-.cx-trans-side.is-old { background: var(--surface-2); }
-.cx-trans-side b { font-size: 15px; }
-.cx-trans-l { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: var(--muted); }
-.cx-trans-w { font-size: 12px; font-weight: 700; color: var(--warn); }
+.tw-block.is-found .tw-block-h { color: #8d2b20; }
+.tw-block-n { font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.tw-note { flex: 1 1 100%; margin: 0; font-size: 12px; line-height: 1.5; }
+.tw-block .cw-f { flex: 1 1 150px; min-width: 0; }
+.tw-block .cw-f-wide { flex: 1 1 100%; }
+.tw-block textarea {
+  font: inherit; font-size: 14.5px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line-2); border-radius: 9px; padding: 9px 11px;
+  width: 100%; box-sizing: border-box; resize: vertical;
+}
 
-/* THE DOORS. Four questions about the same rows, not four systems. */
-.cx-doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
-.cx-door {
-  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
-  padding: 12px 13px; font: inherit; text-align: left; color: inherit;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
-  cursor: pointer; min-height: 62px;
+/* PASSED / DIDN'T PASS / DIDN'T RUN. Three real answers about a real day. */
+.tw-seg { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.tw-seg-b {
+  flex: 1 1 88px; padding: 10px 6px; font: inherit; font-size: 13px; font-weight: 700;
+  color: var(--ink-2); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 9px; cursor: pointer; min-height: 44px;
 }
-.cx-door:hover { border-color: var(--line-2); }
-.cx-door:disabled { opacity: 0.55; cursor: default; }
-.cx-door b { font-size: 13.5px; }
-.cx-door span { font-size: 12px; color: var(--ink-2); }
+.tw-seg-b.on.is-passed { background: var(--st-g); border-color: var(--st-g); color: #fff; }
+.tw-seg-b.on.is-failed { background: var(--danger); border-color: var(--danger); color: #fff; }
+.tw-seg-b.on.is-notRun { background: var(--st-a); border-color: var(--st-a); color: #fff; }
+.tw-seg-b.on.is-planned { background: var(--surface-2); border-color: var(--line-2); color: var(--ink); }
 
-.cx-dates {
-  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;
-  padding: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
+/* WHAT WE FOUND / WHAT WE DO NEXT. */
+.tw-item {
+  display: flex; align-items: flex-start; gap: 9px; flex-wrap: wrap;
+  flex: 1 1 100%; padding: 9px 0; border-top: 1px solid var(--line);
 }
-.cx-dates .sub { flex: 1 1 100%; margin: 0; font-size: 12px; line-height: 1.5; }
+.tw-item.is-done { opacity: 0.6; }
+.tw-tick {
+  width: 24px; height: 24px; flex: none; margin-top: 2px; border-radius: 50%;
+  border: 2px solid var(--line-2); background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.tw-item.is-done .tw-tick { background: var(--st-g); border-color: var(--st-g); }
+.tw-item-m {
+  flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  font: inherit; text-align: left; color: inherit; background: none; border: 0;
+  cursor: pointer; padding: 0; min-height: 40px;
+}
+.tw-item-m b { font-size: 14px; }
+.tw-item.is-done .tw-item-m b { text-decoration: line-through; }
+.tw-item-edit { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 0 2px; }
+.tw-addrow { flex: 1 1 100%; display: flex; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.tw-addrow input {
+  flex-grow: 1; min-width: 0; padding: 9px 11px; font: inherit; font-size: 14px;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 9px;
+}
 
-/* THE OEM'S PAPERWORK. */
-.cx-docs {
-  display: flex; flex-direction: column;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 13px; overflow: hidden;
+/* PHOTOS, VIDEO AND FILES. */
+.tw-media { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.tw-att {
+  padding: 9px 13px; font: inherit; font-size: 13px; font-weight: 700; color: var(--accent);
+  background: var(--surface); border: 1px dashed var(--line-2); border-radius: 9px;
+  cursor: pointer; min-height: 40px;
 }
-.cx-doc { display: flex; align-items: center; gap: 8px; padding-right: 10px; border-bottom: 1px solid var(--line); }
-.cx-doc:last-of-type { border-bottom: 0; }
-.cx-doc.is-new { background: #fdf9f4; }
+.tw-att:hover { background: var(--accent-soft); }
+.tw-loop { width: 100%; margin-top: 4px; min-height: 48px; font-size: 15px; }
+
+.cx-doc { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; border-top: 1px solid var(--line); }
 .cx-doc-open {
   display: flex; align-items: center; gap: 10px; flex-grow: 1; min-width: 0;
-  padding: 11px 13px; font: inherit; text-align: left; color: inherit;
+  padding: 10px 0; font: inherit; text-align: left; color: inherit;
   background: none; border: 0; cursor: pointer; min-height: 44px;
 }
-.cx-doc-open:hover { background: var(--surface-2); }
 .cx-pdf {
   width: 26px; height: 32px; flex: none; border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
@@ -4970,100 +4989,3 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .cx-doc-n { flex-grow: 1; min-width: 0; font-size: 14px; font-weight: 600; }
 .cx-doc-s { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-
-/* THE GRID. Every machine against every pack; a hole you can see. */
-.cx-grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 10px; }
-.cx-grid {
-  width: 100%; border-collapse: collapse;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-}
-.cx-grid th, .cx-grid td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
-.cx-grid th:last-child, .cx-grid td:last-child { border-right: 0; }
-.cx-grid tr:last-child th, .cx-grid tr:last-child td { border-bottom: 0; }
-.cx-grid thead th {
-  padding: 9px 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
-  text-align: center; color: var(--chrome-ink); background: var(--chrome);
-  border-bottom: 1px solid var(--chrome-line);
-}
-.cx-grid thead th:first-child { text-align: left; }
-.cx-grid tbody th { padding: 0; text-align: left; font-weight: 700; min-width: 150px; }
-.cx-glabel {
-  display: block; width: 100%; padding: 11px 12px;
-  font: inherit; font-size: 13.5px; font-weight: 700; text-align: left; color: var(--accent);
-  background: none; border: 0; cursor: pointer; min-height: 44px;
-}
-.cx-glabel:hover { background: var(--surface-2); }
-.cx-gcell { padding: 8px 6px; text-align: center; min-width: 96px; height: 52px; }
-.cx-gword { font-size: 11.5px; font-weight: 700; }
-.cx-gcell.is-proven { background: #e9f6ee; }
-.cx-gcell.is-proven .cx-gword { color: #1f7a44; }
-.cx-gcell.is-untested .cx-gword { color: var(--ink-2); }
-.cx-gcell.is-below { background: #fdf6ec; }
-.cx-gcell.is-below .cx-gword { color: #8f5a0e; }
-.cx-gcell.is-stale { background: #fdf6ec; }
-.cx-gcell.is-stale .cx-gword { color: #8f5a0e; }
-.cx-gcell.is-missing { background: #fdf1ef; }
-.cx-gcell.is-missing .cx-gword { color: #8d2b20; }
-.cx-gcell.is-na { background: var(--bg); }
-.cx-gadd {
-  width: 32px; height: 32px; border-radius: 8px;
-  font: inherit; font-size: 17px; line-height: 1; color: var(--accent);
-  background: var(--surface); border: 1px dashed var(--line-2); cursor: pointer;
-}
-.cx-gadd:hover { background: var(--accent-soft); }
-.cx-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 0 0 10px; font-size: 12px; color: var(--ink-2); }
-.cx-leg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.cx-key { width: 13px; height: 13px; border-radius: 4px; flex: none; }
-.cx-scroll { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
-.cx-key.is-proven { background: #2e9e5b; }
-.cx-key.is-untested { background: var(--surface); border: 1px solid var(--line-2); }
-.cx-key.is-stale { background: #f6e2c4; border: 1px solid var(--st-a); }
-.cx-key.is-missing { background: var(--surface); border: 1px dashed var(--danger); }
-.cx-key.is-na { background: var(--bg); border: 1px solid var(--line); }
-
-.cx-packrow { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-bottom: 1px solid var(--line); }
-.cx-packrow:last-of-type { border-bottom: 0; }
-.cx-packrow input {
-  flex-grow: 1; min-width: 0; padding: 8px 10px; font: inherit; font-size: 14px;
-  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-}
-
-@media (max-width: 560px) {
-  .cx-doors { grid-template-columns: 1fr 1fr; }
-  /* THE MACHINE NAME STAYS. Hiding it on a phone made two blockers read
-     identically — "No program written — 1kg catering" on the wrapper and on the
-     checkweigher — which is exactly when the name is the only thing that
-     distinguishes them. It wraps under the text instead. */
-  .cx-block { flex-wrap: wrap; }
-  .cx-block-a { flex: 1 1 100%; padding-left: 32px; white-space: normal; }
-}
-
-/* PICKING WHAT A MACHINE HAS TO PROVE.
-   A list to choose from, never a list that chose for you — the rows are real
-   checkboxes with real labels, so the whole thing works by tapping the words. */
-.cx-pick {
-  margin-top: 10px; padding: 14px 15px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-}
-.cx-pick-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.cx-pick-head .sub { margin: 0; font-size: 12.5px; line-height: 1.5; }
-.cx-pick-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-.cx-pick-g {
-  font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; color: var(--accent);
-  padding: 8px 2px 6px; border-bottom: 1px solid var(--line);
-}
-.cx-pick-row {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 10px 2px; border-bottom: 1px solid var(--line);
-  cursor: pointer; min-height: 44px;
-}
-.cx-pick-row:last-child { border-bottom: 0; }
-.cx-pick-row:hover { background: var(--bg); }
-.cx-pick-row input { width: 20px; height: 20px; flex: none; margin-top: 2px; accent-color: var(--brand); }
-.cx-pick-row.is-on { cursor: default; opacity: 0.62; }
-.cx-pick-row.is-on:hover { background: none; }
-.cx-pick-m { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.cx-pick-t { font-size: 14px; font-weight: 600; }
-.cx-pick-s { font-size: 12px; line-height: 1.45; color: var(--ink-2); }
-.cx-pick-note { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
-.cx-pick-foot { display: flex; gap: 8px; align-items: center; }

@@ -12,7 +12,7 @@
 import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
-import type { Asset, CommissionItem, Pack } from '../lib/commissioning';
+import type { Asset, Test, TestItem } from '../lib/testing';
 import type {
   Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow,
 } from './rows';
@@ -72,19 +72,18 @@ export interface AppDB extends DBSchema {
    * named levels and a tree of nodes are the same thing and only one of them
    * can be reshaped without a migration. */
   tree_nodes: { key: string; value: TreeNodeRow; indexes: { by_project: string } };
-  /* Commissioning (v12): the readiness list for a line being handed over by an
-   * OEM. Typed in the app rather than read from a workbook — see
-   * lib/commissioning.ts for why that is the whole point rather than a detail. */
-  commission_items: { key: string; value: CommissionItem; indexes: { by_project: string } };
-  /* THE MACHINES (v14). An asset used to be a typed-in name on each item, which
-     meant it could not carry a state, a supplier or the OEM's paperwork, and two
-     spellings of the same machine were two machines. It is a record now: two on
-     a line today, and the third one is a button rather than a deploy. */
+  /* THE MACHINES on a line being tested. Still keyed commission_assets: the
+     store is on every device and in the cloud already, and renaming a table
+     nobody ever sees would cost a migration to buy nothing. */
   commission_assets: { key: string; value: Asset; indexes: { by_project: string } };
-  /* THE PACKS (v14). What the line has to run, named by whoever owns the line.
-     The other axis of the programs grid: a rate, a seal and a weight check are
-     proved per pack, never once for a line. */
-  commission_packs: { key: string; value: Pack; indexes: { by_project: string } };
+  /* THE TESTS (v15), and the whole model with them. One record per test: what we
+     planned to do, what actually happened on the day, and the outcome. See
+     lib/testing.ts for why there is only one. */
+  tests: { key: string; value: Test; indexes: { by_project: string } };
+  /* What hangs off a test: what we found on the day, and what we agreed to do
+     next. One store for both — they are the same shape, and two would have
+     bought a second mapper and a second migration and nothing else. */
+  test_items: { key: string; value: TestItem; indexes: { by_project: string } };
 }
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
@@ -93,7 +92,7 @@ export interface AppDB extends DBSchema {
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 14; // v14: commission_assets + commission_packs (machines and packs are records)
+const DB_VERSION = 15; // v15: tests + test_items (the testing cycle)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -153,7 +152,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
 /** Every store the app cannot run without. Exported so the sync tests can
  *  assert against this list rather than grepping a file for store names — which
  *  broke the moment db.ts became a barrel. */
-export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_items', 'commission_assets', 'commission_packs'] as const;
+export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_assets', 'tests', 'test_items'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -185,11 +184,11 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   if (!db.objectStoreNames.contains('commission_assets')) {
     db.createObjectStore('commission_assets', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
-  if (!db.objectStoreNames.contains('commission_packs')) {
-    db.createObjectStore('commission_packs', { keyPath: 'id' }).createIndex('by_project', 'projectId');
+  if (!db.objectStoreNames.contains('tests')) {
+    db.createObjectStore('tests', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
-  if (!db.objectStoreNames.contains('commission_items')) {
-    db.createObjectStore('commission_items', { keyPath: 'id' }).createIndex('by_project', 'projectId');
+  if (!db.objectStoreNames.contains('test_items')) {
+    db.createObjectStore('test_items', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
   if (!db.objectStoreNames.contains('pace_wins')) {
     db.createObjectStore('pace_wins', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
@@ -251,9 +250,9 @@ export const INDEXES: [StoreNames<AppDB>, string, string | string[]][] = [
   ['pace_todos', 'by_createdAt', 'createdAt'],
   ['pace_ppm', 'by_key', 'key'],
   ['tree_nodes', 'by_project', 'projectId'],
-  ['commission_items', 'by_project', 'projectId'],
   ['commission_assets', 'by_project', 'projectId'],
-  ['commission_packs', 'by_project', 'projectId'],
+  ['tests', 'by_project', 'projectId'],
+  ['test_items', 'by_project', 'projectId'],
   ['pace_wins', 'by_createdAt', 'createdAt'],
   ['segments', 'by_workspace', 'workspaceId'],
   ['snag_assets', 'by_workspace', 'workspaceId'],

@@ -31,7 +31,7 @@ const REQUIRED: Parameters<Awaited<ReturnType<typeof import('../db').getDB>>['ob
   'workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags',
   'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals',
   'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes',
-  'commission_items', 'commission_assets', 'commission_packs',
+  'commission_assets', 'tests', 'test_items',
 ];
 
 /** A fresh IndexedDB per test, and a fresh module registry so db.ts's cached
@@ -135,7 +135,7 @@ describe('a database left at a HIGHER version by another build', () => {
   it('adds a store missing from it, by going one version past', async () => {
     // Already at or beyond our version, so a plain open would not upgrade at all
     // and the missing store would stay missing for ever.
-    const short = REQUIRED.filter(s => s !== 'commission_items');
+    const short = REQUIRED.filter(s => s !== 'tests');
     const foreign = await openDB(DB_NAME, 99, {
       upgrade(d) {
         for (const s of short) d.createObjectStore(s, { keyPath: s === 'meta' || s === 'media' ? undefined : 'id' });
@@ -145,7 +145,7 @@ describe('a database left at a HIGHER version by another build', () => {
     foreign.close();
 
     const db = await freshDb();
-    expect(db.objectStoreNames.contains('commission_items')).toBe(true);
+    expect(db.objectStoreNames.contains('tests')).toBe(true);
     expect(db.version).toBeGreaterThan(99);
     expect(await db.get('workspaces', 'ws-1')).toMatchObject({ name: 'kept' });
   });

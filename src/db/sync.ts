@@ -158,7 +158,8 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
       // can never win a push against a real edit made anywhere else
       : { id, key: id.replace(/^ppm-/, ''), name: '', q1: 0, q2: 0, q3: 0, q4: 0, weekly: [], deletedAt: now(), updatedAt: 0 });
   } else if (kind === 'pace_snapshots'
-    || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'commission_items'
+    || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'tests' || kind === 'test_items'
+    || kind === 'commission_assets'
     || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on

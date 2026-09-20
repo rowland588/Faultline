@@ -49,11 +49,15 @@ describe('the ordinary routes still parse', () => {
     ['#/project/p1/tree',           { name: 'leverTree', id: 'p1' }],
     ['#/project/p1/board',          { name: 'board', id: 'p1' }],
     ['#/project/p1/pareto',         { name: 'pareto', id: 'p1' }],
-    ['#/project/p1/commissioning',  { name: 'commissioning', id: 'p1' }],
+    ['#/project/p1/testing',  { name: 'testing', id: 'p1' }],
+    ['#/project/p1/testing/t9', { name: 'test', id: 'p1', lineId: 't9' }],
+    // Every /commissioning link this feature ever had lands on the list rather
+    // than nowhere — the shape changed five times and bookmarks outlive it.
+    ['#/project/p1/commissioning',  { name: 'testing', id: 'p1' }],
     // /commissioning/run used to be a separate step-by-step screen. Recording a
     // run is now two fields on the program's own row, so an old bookmark lands
     // on the commissioning page rather than nowhere.
-    ['#/project/p1/commissioning/run', { name: 'commissioning', id: 'p1' }],
+    ['#/project/p1/commissioning/run', { name: 'testing', id: 'p1' }],
     ['#/project/p1/line/L7',        { name: 'projectLine', id: 'p1', lineId: 'L7' }],
     [`#/w/${WS}`,                   { name: 'resume', wsId: WS }],
     [`#/w/${WS}/capture`,           { name: 'capture', wsId: WS }],

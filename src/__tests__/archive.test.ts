@@ -33,11 +33,14 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
     id, name: 'Line 5 — Brillopack', color: '#0b7d68', workspaceIds: [],
     commissioning: true, createdAt: t, updatedAt: t,
   });
-  await db.putCommissionAsset({ id: 'as1', projectId: id, name: 'Ilapak flow wrapper', state: 'running', sort: 10, updatedAt: t });
-  await db.putCommissionPack({ id: 'pk1', projectId: id, name: '400g pack', sort: 10, updatedAt: t });
-  await db.putCommissionItem({
-    id: 'it1', projectId: id, kind: 'task', title: 'Guarding sign-off',
-    state: 'todo', sort: 1, createdAt: t, updatedAt: t,
+  await db.putAsset({ id: 'as1', projectId: id, name: 'Ilapak flow wrapper', state: 'running', sort: 10, updatedAt: t });
+  await db.putTest({
+    id: 'ts1', projectId: id, title: 'Seal integrity', assetId: 'as1',
+    outcome: 'planned', sort: 1, createdAt: t, updatedAt: t,
+  });
+  await db.putTestItem({
+    id: 'ti1', projectId: id, testId: 'ts1', kind: 'found', what: 'Jaw temperature drifting',
+    sort: 1, createdAt: t, updatedAt: t,
   });
   await db.putTreeNode({ id: 'tn1', projectId: id, text: 'Output', rag: 'g', sort: 0, createdAt: t, updatedAt: t });
   return id;
@@ -63,9 +66,9 @@ describe('archiving is reversible and loses nothing', () => {
     const id = await projectWithEverything(db);
     await db.archiveProject(id);
 
-    expect(await db.listCommissionItems(id)).toHaveLength(1);
-    expect(await db.listCommissionAssets(id)).toHaveLength(1);
-    expect(await db.listCommissionPacks(id)).toHaveLength(1);
+    expect(await db.listTests(id)).toHaveLength(1);
+    expect(await db.listTestItems(id)).toHaveLength(1);
+    expect(await db.listAssets(id)).toHaveLength(1);
     expect(await db.listTreeNodes(id)).toHaveLength(1);
   });
 });
@@ -79,9 +82,9 @@ describe('deleting for good takes the whole file with it', () => {
 
     const owned = await db.projectContents(id);
     const by = Object.fromEntries(owned.map(c => [c.store, c.count]));
-    expect(by.commission_items).toBe(1);
+    expect(by.tests).toBe(1);
+    expect(by.test_items).toBe(1);
     expect(by.commission_assets).toBe(1);
-    expect(by.commission_packs).toBe(1);
     expect(by.tree_nodes).toBe(1);
   });
 
@@ -92,9 +95,9 @@ describe('deleting for good takes the whole file with it', () => {
     await db.purgeProject(id);
 
     expect(await db.getProject(id)).toBeUndefined();
-    expect(await db.listCommissionItems(id)).toEqual([]);
-    expect(await db.listCommissionAssets(id)).toEqual([]);
-    expect(await db.listCommissionPacks(id)).toEqual([]);
+    expect(await db.listTests(id)).toEqual([]);
+    expect(await db.listTestItems(id)).toEqual([]);
+    expect(await db.listAssets(id)).toEqual([]);
     expect(await db.listTreeNodes(id)).toEqual([]);
     expect(await db.projectContents(id)).toEqual([]);
   });
@@ -107,9 +110,9 @@ describe('deleting for good takes the whole file with it', () => {
     const stones = await db.listTombstones();
     const kinds = new Set(stones.map(s => s.kind));
     expect(kinds.has('projects'), 'the project itself').toBe(true);
-    expect(kinds.has('commission_items'), 'its commissioning rows').toBe(true);
+    expect(kinds.has('tests'), 'its tests').toBe(true);
+    expect(kinds.has('test_items'), 'what was found on them').toBe(true);
     expect(kinds.has('commission_assets'), 'its machines').toBe(true);
-    expect(kinds.has('commission_packs'), 'its packs').toBe(true);
     expect(kinds.has('tree_nodes'), 'its lever tree').toBe(true);
     expect(stones.map(s => s.id)).toContain(id);
   });
@@ -121,15 +124,15 @@ describe('deleting for good takes the whole file with it', () => {
       id: 'keeper', name: 'Line 7', color: '#1c6fb8', workspaceIds: [],
       createdAt: 1, updatedAt: 1,
     });
-    await db.putCommissionItem({
-      id: 'safe1', projectId: 'keeper', kind: 'task', title: 'Still mine',
-      state: 'todo', sort: 1, createdAt: 1, updatedAt: 1,
+    await db.putTest({
+      id: 'safe1', projectId: 'keeper', title: 'Still mine',
+      outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1,
     });
 
     await db.purgeProject(doomed);
 
     expect(await db.getProject('keeper')).toBeTruthy();
-    expect((await db.listCommissionItems('keeper')).map(i => i.title)).toEqual(['Still mine']);
+    expect((await db.listTests('keeper')).map(t => t.title)).toEqual(['Still mine']);
   });
 
   it('is safe on a project that owns nothing at all', async () => {

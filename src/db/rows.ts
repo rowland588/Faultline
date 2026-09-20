@@ -107,7 +107,7 @@ export interface PaceSnapshotRow {
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
   | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins' | 'tree_nodes'
-  | 'commission_items' | 'commission_assets' | 'commission_packs';
+  | 'commission_assets' | 'tests' | 'test_items';
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.
  *

@@ -7,7 +7,8 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'commissioning';
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
+  | 'testing' | 'test';
 
 export interface Route {
   name: RouteName;
@@ -71,13 +72,13 @@ export function parseRoute(hash: string): Route {
     /* Commissioning is ONE screen now. /commissioning/:anything — the old
        per-stage gate pages, and /commissioning/run before them — lands on it
        rather than 404ing somebody's bookmark. */
-    /* Commissioning is one subject with four faces: /commissioning, then
-       /programs, /materials, or /asset/:assetId. Anything else under it — the
-       old per-stage gate pages, and /commissioning/run before them — lands on
-       the front of it rather than 404ing somebody's bookmark. */
-    if (segs[2] === 'commissioning') {
-      const view = segs[3] === 'programs' || segs[3] === 'materials' || segs[3] === 'asset' ? segs[3] : undefined;
-      return { name: 'commissioning', id, view, lineId: view === 'asset' ? decodeURIComponent(segs[4] ?? '') || undefined : undefined, query };
+    /* TESTING. /testing is the list; /testing/:testId is one of them. Anything
+       else under it — every shape this feature took before the cycle, and the
+       old /commissioning links with them — lands on the list rather than
+       404ing somebody's bookmark. */
+    if (segs[2] === 'testing' || segs[2] === 'commissioning') {
+      const testId = segs[2] === 'testing' && segs[3] ? decodeURIComponent(segs[3]) : undefined;
+      return testId ? { name: 'test', id, lineId: testId, query } : { name: 'testing', id, query };
     }
     return { name: segs[2] === 'setup' ? 'projectSetup' : 'projectDashboard', id, query };
   }

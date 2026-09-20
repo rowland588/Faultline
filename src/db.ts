@@ -34,4 +34,4 @@ export * from './db/cases';
 export * from './db/projects';
 export * from './db/pace';
 export * from './db/tree';
-export * from './db/commissioning';
+export * from './db/testing';
