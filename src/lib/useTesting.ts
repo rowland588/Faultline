@@ -30,7 +30,10 @@ export interface TestingState {
   removeAsset: (id: string) => Promise<void>;
 
   /* ---- tests ---- */
-  planTest: (title: string, assetId?: string) => Promise<string>;
+  /** Plan the same test on one machine or several. Picking two machines makes
+   *  two tests, same plan, one each — because each asset wants the same sort of
+   *  stages and typing them out per machine is the job the app should do. */
+  planTest: (title: string, assetIds?: (string | undefined)[]) => Promise<string>;
   saveTest: (t: Test) => Promise<void>;
   removeTest: (id: string) => Promise<void>;
   /** What deleting one would take with it. */
@@ -75,14 +78,19 @@ export function useTesting(projectId: string): TestingState {
 
   /* --------------------------------- tests -------------------------------- */
 
-  const planTest = useCallback(async (title: string, assetId?: string) => {
-    const id = uid();
+  const planTest = useCallback(async (title: string, assetIds: (string | undefined)[] = [undefined]) => {
+    const clean = title.trim();
     const t = now();
-    await putTest({
-      id, projectId, title: title.trim(), assetId,
-      outcome: 'planned', sort: nextSort(), createdAt: t, updatedAt: t,
-    });
-    return id;
+    let sort = nextSort();
+    /* One test per machine, same plan on each. They are separate tests from the
+       moment they exist — the wrapper can pass and the checkweigher fail on the
+       same day, and a single shared record could not say that. */
+    const made = (assetIds.length ? assetIds : [undefined]).map(assetId => ({
+      id: uid(), projectId, title: clean, assetId,
+      outcome: 'planned' as const, sort: sort++, createdAt: t, updatedAt: t,
+    }));
+    for (const test of made) await putTest(test);
+    return made[0].id;
   }, [projectId, nextSort]);
 
   const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);

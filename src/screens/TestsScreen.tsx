@@ -59,6 +59,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const [dates, setDates] = useState(false);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
+  /* Which machines this test is for. Empty means the line itself. Several means
+     several tests — the same stages, one per machine, which is how a line is
+     actually worked through. */
+  const [on, setOn] = useState<string[]>([]);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -77,9 +81,11 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const plan = () => {
     const clean = title.trim();
     if (!clean) return;
-    void (async () => { open(await tt.planTest(clean)); })();
-    setTitle(''); setAdding(false);
+    void (async () => { open(await tt.planTest(clean, on.length ? on : [undefined])); })();
+    setTitle(''); setOn([]); setAdding(false);
   };
+
+  const toggle = (id: string) => setOn(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
 
   return (
     <div className="wrap pace cm-screen">
@@ -154,10 +160,31 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         ))}
 
         {adding ? (
-          <form className="cw-addf" onSubmit={e => { e.preventDefault(); plan(); }}>
+          <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
             <input autoFocus placeholder="What do we plan to do?" value={title} onChange={e => setTitle(e.target.value)} />
-            <button className="btn" type="submit" disabled={!title.trim()}>Plan it</button>
-            <button className="btn btn-ghost" type="button" onClick={() => setAdding(false)}>Cancel</button>
+            {tt.assets.length > 0 && (
+              <>
+                <span className="tw-plan-l">Which machines? Pick as many as it applies to.</span>
+                <span className="tw-chips">
+                  {tt.assets.map(a => (
+                    <button key={a.id} type="button" className={'tw-chip' + (on.includes(a.id) ? ' on' : '')}
+                      aria-pressed={on.includes(a.id)} onClick={() => toggle(a.id)}>
+                      {a.name}
+                    </button>
+                  ))}
+                  <button type="button" className={'tw-chip' + (on.length === 0 ? ' on' : '')}
+                    aria-pressed={on.length === 0} onClick={() => setOn([])}>
+                    The line itself
+                  </button>
+                </span>
+              </>
+            )}
+            <span className="tw-plan-go">
+              <button className="btn" type="submit" disabled={!title.trim()}>
+                {on.length > 1 ? `Plan ${on.length} tests` : 'Plan it'}
+              </button>
+              <button className="btn btn-ghost" type="button" onClick={() => { setAdding(false); setOn([]); }}>Cancel</button>
+            </span>
           </form>
         ) : (
           <button className="cw-add" onClick={() => setAdding(true)}>
@@ -216,9 +243,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
                 <input value={a.name} aria-label="Machine name"
                   onChange={e => void tt.saveAsset({ ...a, name: e.target.value })} />
                 <span className="sub">{ASSET_STATE_WORD[a.state]}{ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}</span>
-                <button className="btn btn-ghost btn-sm cw-del" onClick={() => {
+                <button className="tw-x" aria-label={`Remove ${a.name}`} onClick={() => {
                   if (confirm(`Remove “${a.name}”?\n\nIts tests stay — they just stop naming a machine.`)) void tt.removeAsset(a.id);
-                }}>Remove</button>
+                }}>×</button>
               </div>
             );
           })}

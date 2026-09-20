@@ -213,3 +213,42 @@ describe('the arithmetic a heading is made of', () => {
     expect(weeksTo(undefined, today)).toBeUndefined();
   });
 });
+
+
+describe('the same stages repeat down the line', () => {
+  /* Rowland: "each asset is likely going to want the same sort of commissioning
+     stages". The first cut of this made a test name one machine and left
+     somebody to type the whole set again for the second one — and then claimed
+     the opposite in as many words. Planning across machines is the correction,
+     and these pin down what it has to do. */
+  it('makes one test per machine, same plan on each', () => {
+    const made = planAcross('Emergency stops', ['a1', 'a2', 'a3']);
+    expect(made.map(t => t.assetId)).toEqual(['a1', 'a2', 'a3']);
+    expect(new Set(made.map(t => t.title))).toEqual(new Set(['Emergency stops']));
+    // Separate records from the moment they exist: the wrapper can pass and the
+    // checkweigher fail on the same day, and one shared row could not say that.
+    expect(new Set(made.map(t => t.id)).size).toBe(3);
+    expect(made.every(t => t.outcome === 'planned')).toBe(true);
+  });
+
+  it('keeps them in the order the machines were given', () => {
+    expect(planAcross('Clean-down', ['a2', 'a1']).map(t => t.sort)).toEqual([1, 2]);
+  });
+
+  it('plans one test against the line itself when no machine is named', () => {
+    const made = planAcross('Hygiene clearance', [undefined]);
+    expect(made).toHaveLength(1);
+    expect(made[0].assetId).toBeUndefined();
+  });
+});
+
+/** The maker, as useTesting runs it — kept here so the rule can be tested
+ *  without React. */
+function planAcross(title: string, assetIds: (string | undefined)[]): Test[] {
+  let sort = 1;
+  let k = 0;
+  return (assetIds.length ? assetIds : [undefined]).map(assetId => ({
+    id: `made-${k++}`, projectId: 'p1', title: title.trim(), assetId,
+    outcome: 'planned' as const, sort: sort++, createdAt: 1, updatedAt: 1,
+  }));
+}

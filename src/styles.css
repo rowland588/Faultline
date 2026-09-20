@@ -4887,12 +4887,40 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tw-mark.is-ring { border: 2px solid var(--line-2); background: none; }
 .tw-mark.is-ring.is-a { border-color: var(--st-a); }
 
-/* THE MACHINES. A name you can edit and nothing else — what a machine has to
-   prove is whatever tests name it. */
+/* PLANNING A TEST. The title, then which machines it is for — several makes
+   several tests, because each machine wants the same sort of stages and typing
+   them out one machine at a time is the job the app should be doing. */
+.tw-plan {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
+}
+.tw-plan input {
+  padding: 10px 12px; font: inherit; font-size: 15px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px;
+}
+.tw-plan-l { font-size: 12px; color: var(--ink-2); }
+.tw-plan-go { display: flex; gap: 8px; }
+.tw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tw-chip {
+  padding: 9px 13px; font: inherit; font-size: 13px; font-weight: 700;
+  color: var(--ink-2); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; cursor: pointer; min-height: 40px;
+}
+.tw-chip.on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+
+/* THE MACHINES. A name you can edit, and the × where a × belongs — as a small
+   thing at the end of the row, not a red button wrapped onto a line of its own. */
 .tw-asset {
-  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 9px;
   padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
 }
+.tw-asset .sub { white-space: nowrap; }
+.tw-x {
+  width: 32px; height: 32px; flex: none; border-radius: 8px;
+  font: inherit; font-size: 17px; line-height: 1; color: var(--muted);
+  background: none; border: 1px solid var(--line); cursor: pointer;
+}
+.tw-x:hover { color: var(--danger); border-color: #f0c9c3; background: #fdf1ef; }
 .tw-asset input {
   flex: 1 1 150px; min-width: 0; padding: 8px 10px; font: inherit; font-size: 14px;
   color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
