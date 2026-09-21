@@ -1,9 +1,24 @@
-/* Home — the workspaces. Each is a clean, isolated split (its own data, its own
- * tools). Tapping one resumes exactly where you left it. */
+/* Home — ONE front door: the projects.
+ *
+ * It used to offer two. A Projects section at the top, and a "＋ New workspace"
+ * button below it with its own name field and its own starter picker. Two ways
+ * in for one job, and Rowland went through Projects — "which I also think is a
+ * little bit strange when I come to think of it" — while the other door sat
+ * there looking equally official.
+ *
+ * They were never the same thing. A workspace is the container UNDER a line: its
+ * captures, its walk, its evidence. Every route that needs one makes it by
+ * itself (see lib/usePaceWorkspace and ProjectSetupScreen), so the only reason
+ * to type a workspace name by hand was that this screen predates projects.
+ *
+ * So there is one way to start: a project, then a line. Workspaces that hang off
+ * a line are already one tap away on the project card and are not listed here a
+ * second time; the ones attached to nothing still are, because they hold film
+ * that exists nowhere else and must never become unreachable. */
 import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import {
-  listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, createWorkspace, deleteWorkspace,
+  listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, deleteWorkspace,
   archiveWorkspace, restoreWorkspace, listArchivedWorkspaces, workspaceContents,
 } from '../db';
 import { Toast } from '../ui/Toast';
@@ -15,10 +30,9 @@ import { AdminPanel } from '../cloud/AdminPanel';
 import { useProfile } from '../cloud/admin';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
-import { TAXONOMIES, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
-import { allPaceLines, chainForWorkspace, type PaceLineRow } from '../db';
+import { allPaceLines, chainForWorkspace, onDataChange, type PaceLineRow } from '../db';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 
 /* An installed PWA keeps serving its cached shell until the service worker
@@ -59,14 +73,13 @@ function contentsLabel(c: WsContents | undefined): string {
     c.videos > 0 ? plural(c.videos, 'video') : '',
     c.openSnags > 0 ? `${c.openSnags} open on the walk` : '',
   ].filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'empty — tap to start';
+  return parts.length ? parts.join(' · ') : 'empty';
 }
 
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
   const [casesTotal, setCasesTotal] = useState(0);
-  const [creating, setCreating] = useState(false);
   // A deleted workspace sits in limbo here for a few seconds with an Undo —
   // committed only when the toast expires. A flag left by a closed app is
   // treated as CANCELLED: losing an intent beats losing a workspace.
@@ -74,7 +87,25 @@ export function WorkspaceHome() {
   const [delTick, setDelTick] = useState(0);
   const [archived, setArchived] = useState<Awaited<ReturnType<typeof listArchivedWorkspaces>>>([]);
   const [showArchive, setShowArchive] = useState(false);
-  useEffect(() => { void listArchivedWorkspaces().then(setArchived); }, [delTick]);
+
+  /* RE-READ WHEN ANYTHING IS WRITTEN. This screen used to re-read only after a
+     sync or a delete of its own, which was survivable while it was one list
+     among several. It is the only door now: add a line on the project screen,
+     come back here, and the card kept saying "0 lines · ＋ Add a line" — the one
+     tap that matters, missing — until the app happened to be reloaded.
+     Coalesced, because one save is often dozens of writes and filling these
+     cards means counting the contents of every workspace. */
+  const [dataTick, setDataTick] = useState(0);
+  useEffect(() => {
+    let t: number | undefined;
+    const off = onDataChange(() => {
+      window.clearTimeout(t);
+      t = window.setTimeout(() => setDataTick(n => n + 1), 150);
+    });
+    return () => { window.clearTimeout(t); off(); };
+  }, []);
+
+  useEffect(() => { void listArchivedWorkspaces().then(setArchived); }, [delTick, dataTick]);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem('faultline-pending-delete');
@@ -97,9 +128,6 @@ export function WorkspaceHome() {
     setPendingDel(null);
     if (target) { await deleteWorkspace(target.id); setDelTick(t => t + 1); }
   };
-  const [busy, setBusy] = useState(false);
-  const [name, setName] = useState('');
-  const [taxId, setTaxId] = useState(DEFAULT_TAXONOMY_ID);
   const [error, setError] = useState('');
   const [seeding, setSeeding] = useState<string | null>(null);
   const seedDemo = async () => {
@@ -130,12 +158,15 @@ export function WorkspaceHome() {
 
   // Which line (and project) each workspace sits under, so the list below can
   // say so instead of showing a bare name that means nothing on its own.
-  const [belongs, setBelongs] = useState<Record<string, string>>({});
+  /* NULL UNTIL READ, not {}. The list below hides a workspace that belongs to a
+     line, and an empty map says every one of them is loose — so an empty map
+     used as "not read yet" would flash the whole list on every load. */
+  const [belongs, setBelongs] = useState<Record<string, string> | null>(null);
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
   const syncedAt = useSyncedAt();
-  useEffect(() => { void allPaceLines().then(setLines); }, [syncedAt, delTick]);
+  useEffect(() => { void allPaceLines().then(setLines); }, [syncedAt, delTick, dataTick]);
   const dedupedDemos = useRef(false);
   useEffect(() => {
     let alive = true;
@@ -171,7 +202,7 @@ export function WorkspaceHome() {
       }
     })();
     return () => { alive = false; };
-  }, [syncedAt, delTick]);
+  }, [syncedAt, delTick, dataTick]);
 
   useEffect(() => {
     let alive = true;
@@ -186,19 +217,13 @@ export function WorkspaceHome() {
     return () => { alive = false; };
   }, [list]);
 
-  const create = async () => {
-    if (busy || !name.trim()) return; // guard double Enter / double-tap → no duplicate workspaces
-    setBusy(true); setError('');
-    try {
-      const w = await createWorkspace(name, taxId);
-      nav(`/w/${w.id}`); // unmounts this screen on success
-    } catch (e) {
-      // Never leave the button stuck on "Creating…": surface the real reason and
-      // let them retry. (A storage/upgrade fault used to hang here silently.)
-      setError(e instanceof Error ? e.message : 'Could not create the workspace. Try again.');
-      setBusy(false);
-    }
-  };
+  /* WHAT IS LEFT OVER. A workspace that hangs off a line is one tap away on its
+     project card, so listing it again here is the second door in list form —
+     the same place under two names. These are the ones attached to nothing:
+     from before there were projects, or a walk that never got a line. They hold
+     film that exists nowhere else, so they are never hidden, only demoted.
+     (`belongs === null` means not read yet — show none rather than all.) */
+  const loose = belongs === null ? [] : (list ?? []).filter(w => !belongs[w.id] && w.id !== pendingDel?.id);
 
   return (
     <div className="wrap home">
@@ -218,11 +243,9 @@ export function WorkspaceHome() {
         </>
       )}
 
-      {/* THE WORK, first. This screen used to open on "＋ New workspace" with
-          "No workspaces yet" filling the page — the model from before there
-          were projects, lines and owners. What he opens the app to do is go to
-          a project, then to his line; so that is what the front door shows,
-          and a line is one tap from here. */}
+      {/* THE DOOR. Not "first" among several — the only one. What he opens the
+          app to do is go to a project, then to his line, and a line is one tap
+          from here. */}
       <section className="home-projects">
         <div className="home-sec-head">
           <h2 className="home-sec-title">Projects</h2>
@@ -232,8 +255,9 @@ export function WorkspaceHome() {
         </div>
         {projects.length === 0 ? (
           <p className="sub home-sec-sub">
-            A project runs a set of lines. Each line gets an owner, a sponsor and a pack of its
-            own — its pace, its actions, its walk and the evidence off it.
+            Start here. A project runs a set of lines; each line gets an owner, a sponsor and a
+            pack of its own — its pace, its actions, its walk and the evidence off it. Nothing
+            else needs setting up: a line makes everything underneath it as you go.
           </p>
         ) : (
           <div className="home-proj-list">
@@ -241,36 +265,6 @@ export function WorkspaceHome() {
           </div>
         )}
       </section>
-
-      {creating ? (
-        <div className="card create-card">
-          <label className="field-label">Name this workspace</label>
-          <input
-            className="text-input" autoFocus value={name} maxLength={60}
-            placeholder="e.g. Packing hall — August"
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && name.trim()) void create(); if (e.key === 'Escape') setCreating(false); }}
-          />
-          {/* the domain moat, offered as a seed: pick the vocabulary your line
-              already speaks — every string stays editable afterwards */}
-          <label className="field-label" style={{ marginTop: 12 }}>Start from</label>
-          <div className="tax-pick" role="radiogroup" aria-label="Loss categories to start from">
-            {TAXONOMIES.map(t => (
-              <button key={t.id} role="radio" aria-checked={taxId === t.id}
-                className={'tax-opt' + (taxId === t.id ? ' on' : '')} onClick={() => setTaxId(t.id)}>
-                <span className="tax-name">{t.name}</span>
-                <span className="tax-sub">{t.sub}</span>
-              </button>
-            ))}
-          </div>
-          <p className="sub" style={{ marginTop: 8 }}>A workspace keeps its own data and tools — a clean, separate space for one line, one project, one investigation. Categories and assets from the starter are suggestions — rename, add or delete any of them in Settings.</p>
-          {error && <p className="sub" style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
-          <div className="row-end">
-            <button className="btn btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
-            <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>{busy ? 'Creating…' : 'Create'}</button>
-          </div>
-        </div>
-      ) : null}
 
       {casesTotal > 0 && (
         <button className="admin-row pf-door" onClick={() => nav('/portfolio')}>
@@ -280,52 +274,53 @@ export function WorkspaceHome() {
         </button>
       )}
 
-      {list === null ? null : (
+      {/* NOT A DOOR. There is no "＋ New workspace" here any more: a line makes
+          its own, and a second way to make one by hand is the thing he tripped
+          over. This is a shelf for what is attached to nothing, and it is not
+          on screen at all when there is nothing on it. */}
+      {(loose.length > 0 || archived.length > 0) && (
         <section className="home-spaces">
           <div className="home-sec-head">
-            <h2 className="home-sec-title">Workspaces</h2>
-            {!creating && (
-              <button className="btn" data-tour="new-ws" onClick={() => setCreating(true)}>＋ New workspace</button>
-            )}
+            <h2 className="home-sec-title">Not on a project</h2>
           </div>
-          {/* An empty list is not always an empty app: archive the lot and the
-              old text said there was "nothing to do here" with the archive
-              holding all of it directly underneath. */}
-          {list.length === 0 ? (
+          {loose.length === 0 ? (
             <p className="sub home-sec-sub">
-              {archived.length > 0
-                ? `Nothing here — ${archived.length === 1 ? 'one line is' : `all ${archived.length} lines are`} in the archive below, with everything they hold. Restore whichever you want back.`
-                : 'A workspace is the container under a line — its captures, its walk and its evidence. Filming a line makes one by itself, so there is usually nothing to do here.'}
+              Everything is on a project. {archived.length === 1 ? 'One line is' : `All ${archived.length} lines are`} in
+              the archive below, with everything it holds — restore whichever you want back.
             </p>
           ) : (
-            <div className="ws-list">
-              {/* A ROW, NOT A CARD-SHAPED BUTTON. Archiving needs its own
-                  control beside the open one, and a button inside a button is
-                  invalid HTML that browsers disagree about. */}
-              {list.filter(w => w.id !== pendingDel?.id).map(w => (
-                <div key={w.id} className="ws-row">
-                  <button className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
-                    <span className="ws-card-dot" style={{ background: w.color }} />
-                    <span className="ws-card-main">
-                      <span className="ws-card-name">{w.name}</span>
-                      {/* WHOSE it is, first. A list of bare workspace names is
-                          unreadable once every line has one of its own. */}
-                      {belongs[w.id] && <span className="ws-card-own">{belongs[w.id]}</span>}
-                      <span className="ws-card-meta">
-                        {contentsLabel(counts[w.id])}
-                        {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
+            <>
+              <p className="sub home-sec-sub">
+                These hold captures, film or evidence but hang off no line — from before there were
+                projects, or a walk that never got one. Open one to read it, or archive it. Anything
+                on a project is on its project card above.
+              </p>
+              <div className="ws-list">
+                {/* A ROW, NOT A CARD-SHAPED BUTTON. Archiving needs its own
+                    control beside the open one, and a button inside a button is
+                    invalid HTML that browsers disagree about. */}
+                {loose.map(w => (
+                  <div key={w.id} className="ws-row">
+                    <button className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
+                      <span className="ws-card-dot" style={{ background: w.color }} />
+                      <span className="ws-card-main">
+                        <span className="ws-card-name">{w.name}</span>
+                        <span className="ws-card-meta">
+                          {contentsLabel(counts[w.id])}
+                          {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
+                        </span>
                       </span>
-                    </span>
-                    <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
-                  </button>
-                  <button className="btn btn-ghost ws-archive" title={`Archive ${w.name}`}
-                    onClick={() => {
-                      if (!confirm(`Archive “${w.name}”?\n\nIt leaves this list and loses nothing — the captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
-                      void archiveWorkspace(w.id).then(() => setDelTick(t => t + 1));
-                    }}>Archive</button>
-                </div>
-              ))}
-            </div>
+                      <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
+                    </button>
+                    <button className="btn btn-ghost ws-archive" title={`Archive ${w.name}`}
+                      onClick={() => {
+                        if (!confirm(`Archive “${w.name}”?\n\nIt leaves this list and loses nothing — the captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
+                        void archiveWorkspace(w.id).then(() => setDelTick(t => t + 1));
+                      }}>Archive</button>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
           {/* THE ARCHIVE. Behind one tap and closed by default — it is where
               things go to stop being looked at, so it must not take up room in
@@ -380,9 +375,16 @@ export function WorkspaceHome() {
       {/* the showcase builder, tucked at the bottom — a superadmin tool, not a
           headline. 14 weeks of story-shaped data; replaces any existing demo. */}
       {profile?.is_super && (
-        <button className="home-guide-link" onClick={() => void seedDemo()} disabled={!!seeding}>
-          ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace ›'}
-        </button>
+        <>
+          <button className="home-guide-link" onClick={() => void seedDemo()} disabled={!!seeding}>
+            ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace ›'}
+          </button>
+          {/* The demo build is the only thing on this screen that can fail with
+              something worth reading. It used to report into the create card's
+              error line, which no longer exists — so a failure said nothing at
+              all and the button simply came back. */}
+          {error && <p className="sub" style={{ color: 'var(--danger)' }}>{error}</p>}
+        </>
       )}
 
       {/* Signing in and installing are settings, not destinations. They used to
