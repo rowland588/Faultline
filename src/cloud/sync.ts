@@ -154,6 +154,51 @@ async function downloadMedia(uid: string, keys: MediaKey[], failed: Map<string, 
   }
 }
 
+/* ---------- WHAT HAS ACTUALLY BEEN SENT ----------
+ *
+ * The push used to choose its rows by comparing each row's own clock against a
+ * single wall-clock cursor: `clock(row) > cursor`. That is wrong in a way that
+ * is silent, permanent, and invisible from the app: any row whose clock is
+ * BELOW the cursor is skipped, and skipped again on every pass afterwards, for
+ * ever.
+ *
+ * And the app deliberately wrote rows with old clocks. Seeded and adopted rows
+ * carried a fixed old timestamp precisely so they could never overwrite a real
+ * edit made on another device — which also guaranteed they could never be
+ * pushed. The result on a real account: every project sat on one phone while
+ * the lines, next steps and wins hanging off it synced perfectly, and nothing
+ * anywhere said so. It took reading the cloud to find it.
+ *
+ * So the push does not guess from clocks any more. It REMEMBERS, per row, the
+ * clock it last got accepted. A row is sent when its current clock differs from
+ * that — true for a row never sent, a row edited, and a row whose clock moved
+ * BACKWARDS, and false only for a row genuinely already up there.
+ *
+ * The map is pruned each pass to the rows that still exist, so hard deletes
+ * cannot make it grow for ever. */
+const SENT_KEY = 'pushedClocks';
+export type Sent = Record<string, number>;
+export const sentKey = (kind: SyncKind, id: string) => `${kind}:${id}`;
+const readSent = async (): Promise<Sent> => ((await metaGet(SENT_KEY)) as Sent | undefined) ?? {};
+
+/** Does this row still have to go up?
+ *
+ *  Exported because it is the whole decision, and the whole decision is what
+ *  went wrong: the old one was `clock > cursor`, which answered NO for ever to
+ *  anything written with an old clock. This answers it from what was actually
+ *  accepted, so the only row it skips is one already up there at this exact
+ *  clock. A clock that moved backwards still counts as a change. */
+export const needsPush = (sent: Sent, kind: SyncKind, id: string, clock: number): boolean =>
+  sent[sentKey(kind, id)] !== clock;
+
+/** Drop what no longer exists, so a lifetime of deletes cannot grow the record
+ *  without bound. `alive` must hold every row of every kind — the pass visits
+ *  them all, so anything missing from it is genuinely gone. */
+export function pruneSent(sent: Sent, alive: Set<string>): Sent {
+  for (const key of Object.keys(sent)) if (!alive.has(key)) delete sent[key];
+  return sent;
+}
+
 /* ---------- one-time re-baseline per engine version ----------
  * Devices that synced under the old engine carry cursors advanced past rows
  * the old clock-skew bug silently skipped — new code alone doesn't heal them.
@@ -161,7 +206,10 @@ async function downloadMedia(uid: string, keys: MediaKey[], failed: Map<string, 
  * re-pulls and re-pushes EVERYTHING once, automatically. (The `uploaded` set
  * is kept: media already in the cloud isn't re-sent; upserts are idempotent.)
  * Nobody should ever be told to press a repair button for our migration. */
-const ENGINE_VERSION = 3; // v3: shared team workspaces — re-pull the world once so teammates' rows appear
+/* v4: the push tracks what it sent instead of trusting a clock. Every device
+   re-baselines once, which is what finally lifts the rows the old filter had
+   stranded — including projects that had never reached the cloud at all. */
+const ENGINE_VERSION = 4;
 let migrationDone: Promise<void> | null = null;
 function ensureMigrated(): Promise<void> {
   migrationDone ??= (async () => {
@@ -192,7 +240,8 @@ export async function syncNow(): Promise<void> {
   const startedAt = Date.now();
   try {
     set({ state: 'syncing', error: undefined });
-    const cursor = await getSyncCursor();       // push cursor: local clock vs local rows — self-consistent
+    const cursor = await getSyncCursor();       // the LEGACY PULL cursor only — the push no longer reads it
+    const sent = await readSent();
     const uploaded = await keySet('uploaded');
     const wantedUploads = await keySet('pendingUploads');   // prior failures — retry first
     const failedDownloads = new Map<string, string | undefined>(
@@ -296,36 +345,49 @@ export async function syncNow(): Promise<void> {
       }
     }
 
-    // ---- PUSH: local changes since the cursor, upsert to cloud ----
-    let pushIncomplete = false; // a kind was skipped (its SQL not run) — don't advance the cursor past its rows
+    // ---- PUSH: every row whose clock differs from the one we last got
+    //      accepted for it. Never a comparison against a wall clock. ----
     const wanted = new Set<string>(wantedUploads);
+    const alive = new Set<string>();          // every row still here, for the prune
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
-      const changed = (await rawAll(kind)).filter(row => map.clock(row) > cursor);
-      if (!changed.length) continue;
-      // media first, so a row never points at a blob the cloud doesn't have yet
-      for (const row of changed) await uploadMedia(uid, map.mediaKeys(row), uploaded, wanted);
-      const rows = changed.map(row => map.toRow(row, uid));
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const { error } = await supabase.from(kind).upsert(rows.slice(i, i + CHUNK), { onConflict: 'id' });
-        if (error) {
-          // rows for this kind wait for their SQL — holding the cursor back
-          // keeps them "changed", so they retry until the table exists
-          if (isMissingTable(error) || isMissingColumn(error)) {
-            pushIncomplete = true; set({ schemaOutdated: true }); break;
-          }
-          throw new Error(`push ${kind}: ${error.message}`);
+      const batch: { key: string; clock: number; row: Record<string, unknown>; local: Record<string, unknown> }[] = [];
+      for (const local of await rawAll(kind)) {
+        const key = sentKey(kind, local.id as string);
+        alive.add(key);
+        const clock = map.clock(local);
+        if (needsPush(sent, kind, local.id as string, clock)) {
+          batch.push({ key, clock, row: map.toRow(local, uid), local });
         }
       }
+      if (!batch.length) continue;
+
+      // media first, so a row never points at a blob the cloud doesn't have yet
+      for (const b of batch) await uploadMedia(uid, map.mediaKeys(b.local), uploaded, wanted);
+
+      for (let i = 0; i < batch.length; i += CHUNK) {
+        const slice = batch.slice(i, i + CHUNK);
+        const { error } = await supabase.from(kind).upsert(slice.map(b => b.row), { onConflict: 'id' });
+        if (error) {
+          // rows for this kind wait for their SQL. Nothing is recorded as sent,
+          // so they simply go again next pass — no cursor to hold back.
+          if (isMissingTable(error) || isMissingColumn(error)) { set({ schemaOutdated: true }); break; }
+          throw new Error(`push ${kind}: ${error.message}`);
+        }
+        // Recorded ONLY on an accepted write, and persisted per kind so a later
+        // kind throwing cannot lose the work the earlier ones just did.
+        for (const b of slice) sent[b.key] = b.clock;
+      }
+      await metaPut(SENT_KEY, sent);
     }
 
-    // Compare-and-set: only advance the push cursor if nobody reset it while we
-    // ran (a Full re-sync tapped mid-sync must not be clobbered), and never past
-    // rows a missing table made us skip.
-    if (!pushIncomplete && (await getSyncCursor()) === cursor) {
-      await metaPut('uploaded', { keys: [...uploaded] });
-      await setSyncCursor(startedAt);
-    }
+    await metaPut(SENT_KEY, pruneSent(sent, alive));
+
+    /* The cursor is now ONLY the legacy pull's (a cloud too old for rev
+       cursors). Compare-and-set so a Full re-sync tapped mid-pass is not
+       clobbered. What the push has sent is recorded per row, above. */
+    await metaPut('uploaded', { keys: [...uploaded] });
+    if ((await getSyncCursor()) === cursor) await setSyncCursor(startedAt);
     // Retry queues persist regardless — an extra retry is harmless, a lost one isn't.
     const stillUp = new Set([...wanted].filter(k => !uploaded.has(k)));
     const stillDown = new Set([...failedDownloads].map(([k, o]) => (o ? `${k}|${o}` : k)));
@@ -347,9 +409,12 @@ let debounceTimer: number | undefined;
 /** Truthful backup state for one item: its row pushed AND its media in cloud
  *  storage. Drives the quiet "backed up ✓" on walks — a fact, never a guess.
  *  (A key with no local blob came FROM the cloud, so it counts as backed up.) */
-export async function backedUp(updatedAt: number, keys: Array<string | undefined>): Promise<boolean> {
+export async function backedUp(kind: SyncKind, id: string, clock: number, keys: Array<string | undefined>): Promise<boolean> {
   if (!cloudConfigured) return false;
-  if (updatedAt > await getSyncCursor()) return false;   // the row itself hasn't pushed
+  // The row itself: read from the record of what was accepted, not from a clock
+  // comparison — the same question the push asks, so the tick and the truth
+  // cannot disagree.
+  if ((await readSent())[sentKey(kind, id)] !== clock) return false;
   const uploaded = await keySet('uploaded');
   for (const k of keys) {
     if (k && !uploaded.has(k) && await hasBlob(k)) return false;
@@ -370,6 +435,7 @@ export function requestSync(delayMs = 1200): void {
 export async function fullResync(): Promise<void> {
   await setSyncCursor(0);
   await metaPut(REV_KEY, {});
+  await metaPut(SENT_KEY, {});
   await metaPut('uploaded', { keys: [] });
   await metaPut('pendingUploads', { keys: [] });
   await metaPut('pendingDownloads', { keys: [] });

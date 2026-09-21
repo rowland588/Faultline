@@ -93,7 +93,7 @@ export function SnagsScreen() {
     setSegs(ss); setNamesBySeg(names); setOpenSnags(snags.filter(s => s.status !== 'closed').length);
     if (cloudConfigured) {
       const entries = await Promise.all(ss.map(async sg =>
-        [sg.id, await backedUp(sg.updatedAt ?? sg.createdAt, [sg.videoKey, sg.posterKey])] as const));
+        [sg.id, await backedUp('segments', sg.id, sg.updatedAt ?? sg.createdAt, [sg.videoKey, sg.posterKey])] as const));
       setBacked(new Map(entries));
     }
   };

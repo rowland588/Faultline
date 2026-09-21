@@ -44,7 +44,7 @@ export function ConvertBanner({ wsId, tick, onDone }: { wsId: string; tick?: unk
     setStuck(s);
     setCanHere(s.length > 0 ? await canRepairHere(s) : false);
     if (!cloudConfigured || s.length === 0) { setSafe(null); return; }
-    const flags = await Promise.all(s.map(sg => backedUp(sg.updatedAt ?? sg.createdAt, [sg.videoKey, sg.posterKey])));
+    const flags = await Promise.all(s.map(sg => backedUp('segments', sg.id, sg.updatedAt ?? sg.createdAt, [sg.videoKey, sg.posterKey])));
     setSafe(flags.every(Boolean));
   }, [wsId]);
 
