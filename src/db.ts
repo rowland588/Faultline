@@ -36,3 +36,4 @@ export * from './db/pace';
 export * from './db/tree';
 export * from './db/testing';
 export * from './db/measures';
+export * from './db/materials';

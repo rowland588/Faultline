@@ -6,6 +6,7 @@ import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectL
 import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
+import type { Material } from '../lib/materials';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -501,6 +502,35 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Reading),
   },
 
+  materials: {
+    clock: l => (l as Material).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const m = l as Material;
+      return {
+        id: m.id, owner_id: fallbackOwner, project_id: m.projectId,
+        what: m.what, how_much: m.howMuch ?? null, line_id: m.lineId ?? null,
+        supplier: m.from ?? null, due: m.due ?? null,
+        here: !!m.here, in_on: m.inOn ?? null, note: m.note ?? null,
+        sort: m.sort, created_at: m.createdAt,
+        updated_at: m.updatedAt, deleted_at: m.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      what: (r.what as string) ?? '',
+      howMuch: (r.how_much as string) ?? undefined,
+      lineId: (r.line_id as string) ?? undefined,
+      from: (r.supplier as string) ?? undefined,
+      due: (r.due as string) ?? undefined,
+      here: r.here === true || undefined,
+      inOn: (r.in_on as string) ?? undefined,
+      note: (r.note as string) ?? undefined,
+      sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Material),
+  },
+
   pace_snapshots: {
     // A snapshot is never edited, so its clock is simply when it was taken.
     clock: l => (l as PaceSnapshotRow).takenAt,
@@ -539,4 +569,6 @@ export const SYNC_KINDS: SyncKind[] = [
   // after projects, because a target and a reading both name a measure that
   // lives on the project row
   'targets', 'readings',
+  // after the lines, because a material can name the line it is for
+  'materials',
 ];

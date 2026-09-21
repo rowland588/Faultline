@@ -19,7 +19,7 @@ import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
-  putTarget, putReadings,
+  putTarget, putReadings, putMaterials,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
@@ -28,6 +28,7 @@ import type { PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Measure, Period, Reading, Target } from '../lib/measures';
 import { quarters } from '../lib/measures';
+import type { Material } from '../lib/materials';
 
 const uid = () => crypto.randomUUID();
 
@@ -53,6 +54,9 @@ export interface Seeded {
   pacedLineId: string;
   measures: number;
   readings: number;
+  /** What that project is waiting on — one of every state, so the grid, the
+   *  list order and the late banner are all exercised. */
+  materials: number;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -268,6 +272,25 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   });
   await putReadings(rows);
 
+  /* WHAT THE JOB IS WAITING ON — one of each state, because the grid, the list
+     order and the "late" banner all read differently per state and a fixture
+     that is all one thing proves none of them. */
+  const material = (what: string, m: Partial<Material>): Material =>
+    ({ id: uid(), projectId: paced.id, what, sort: 0, createdAt: t, updatedAt: t, ...m });
+
+  await putMaterials([
+    material('Perforated film — 2kg, 60 micron', {
+      howMuch: '10 reels', lineId: pacedLine.id, from: 'Sealed Air',
+      due: iso(-3), note: 'New perforation plan — the old film drops the bagger', sort: 10,
+    }),
+    material('Upgraded jaw heater', { howMuch: '1 off', from: 'Ilapak UK', due: iso(-1), sort: 20 }),
+    material('Perforated film — 1.25kg', { howMuch: '6 reels', lineId: pacedLine.id, due: iso(4), sort: 30 }),
+    material('Changeover kit — 2kg to 1.25kg', { howMuch: '1 set', from: 'Ilapak UK', due: iso(11), sort: 40 }),
+    material('Labels — export run', { howMuch: '20 rolls', sort: 50 }),
+    material('Trial reel', { howMuch: '2 reels', lineId: pacedLine.id, here: true, inOn: iso(-9), sort: 60 }),
+    material('Sealing jaw — spare', { howMuch: '1 off', from: 'Ilapak UK', here: true, sort: 70 }),
+  ]);
+
   return {
     wsId: ws.id, projectId: proj.id, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
@@ -277,6 +300,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     assets: (await listAssets(proj.id)).length,
     testId: seal.id,
     pacedProjectId: paced.id, pacedLineId: pacedLine.id,
-    measures: 2, readings: rows.length,
+    measures: 2, readings: rows.length, materials: 7,
   };
 }

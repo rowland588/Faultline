@@ -45,6 +45,25 @@ const line = (key: string): PaceReportData['lines'][number] => ({
   },
 });
 
+/* What the job is waiting on, in the shape the sheet is drawn from: a row per
+   thing, one flag per week. One of every state — in stock, late, on its way,
+   and nobody has given a date — because each one draws differently. */
+const materials = (): NonNullable<PaceReportData['materials']> => ({
+  total: 4, here: 1, waiting: 3, late: 1, nextDue: '2026-09-28',
+  weeks: [
+    { start: '2026-09-21', label: 'WK3', month: 'September' },
+    { start: '2026-09-28', label: 'WK4', month: 'September' },
+    { start: '2026-10-05', label: 'WK1', month: 'October' },
+    { start: '2026-10-12', label: 'WK2', month: 'October' },
+  ],
+  rows: [
+    { what: 'Perforated film — 2kg, 60 micron', due: '18 Sep', here: false, late: 3, covered: [false, false, false, false] },
+    { what: 'Perforated film — 1.25kg', due: '28 Sep', here: false, covered: [false, true, true, true] },
+    { what: 'Labels — export run', here: false, covered: [false, false, false, false] },
+    { what: 'Sealing jaw — spare', here: true, covered: [true, true, true, true] },
+  ],
+});
+
 const byLine = (name: string): PaceReportData['byLine'][number] => ({
   name, owner: 'Dave', open: 4, late: 1, done: 6, total: 10,
   nextOpen: 2, nextDone: 1, snags: 3, wins: 1, latest: 61, meeting: true, unit: 'ppm',
@@ -89,6 +108,7 @@ const data = (over: Partial<PaceReportData> = {}): PaceReportData => ({
   openTotal: 16, openOnTrack: 11, late: 5,
   openSnags: 6, winsThisWeek: 2,
   byLine: [byLine('Line 2'), byLine('Line 7'), { ...byLine('Cellox'), noLine: true, latest: null, meeting: undefined, unit: undefined }],
+  materials: materials(),
   lateActions: [{ line: 'Line 7', what: 'align the former roller', owner: 'Dave', due: '2026-09-05' }],
   lateMore: 3,
   todos: [{ state: 'todo', what: 'order the film', who: 'Dave', when: 'Friday' }],
@@ -174,6 +194,16 @@ describe('the optional sheets each cost exactly one page', () => {
 
   it('a lever tree adds one', () => {
     expect(pagesFor({ tree: tree() })).toBe(pagesFor({}) + 1);
+  });
+
+  it('what we are waiting on adds one', () => {
+    // the base fixture carries it, so this removes it rather than adding it
+    expect(pagesFor({ materials: undefined })).toBe(pagesFor({}) - 1);
+  });
+
+  it('an EMPTY materials list adds none — a grid of nothing is not a page', () => {
+    const none = { total: 0, here: 0, waiting: 0, late: 0, weeks: [], rows: [] };
+    expect(pagesFor({ materials: none })).toBe(pagesFor({ materials: undefined }));
   });
 
   it('an empty board adds none — an absent sheet must not be counted', () => {

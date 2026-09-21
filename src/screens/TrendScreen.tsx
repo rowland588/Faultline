@@ -127,8 +127,14 @@ function TrendChart({ weeks, flags }: { weeks: WeekPoint[]; flags: ClosedEvent[]
   }).filter(Boolean) as Array<{ i: number; label: string }>;
   const labelFrom = Math.max(0, flagPts.length - 2);
 
-  // sparse x labels: first, middle, last
-  const ticks = weeks.length > 1 ? [0, Math.floor((weeks.length - 1) / 2), weeks.length - 1] : [0];
+  /* Sparse x labels: first, middle, last — DEDUPED, because with exactly two
+     weeks the middle is the first ([0, 0, 1]) and React was handed the same key
+     twice. That drew one label over another and warned about it, and it only
+     ever happened on a Monday with a fortnight of data, which is why it sat
+     here unseen: the smoke test walked into it the first time it ran on one. */
+  const ticks = [...new Set(weeks.length > 1
+    ? [0, Math.floor((weeks.length - 1) / 2), weeks.length - 1]
+    : [0])];
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%' }} role="img" aria-label="Lost hours by week">

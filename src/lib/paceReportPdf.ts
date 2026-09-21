@@ -63,6 +63,19 @@ export interface PaceReportData {
      *  rather than by comparing two numbers here. */
     latest: number | null; meeting?: boolean; unit?: string;
   }[];
+  /* WHAT THE JOB IS WAITING ON, drawn as the sheet it comes off: a row per
+     thing, a column per week, green from the week it lands. `covered` is worked
+     out by lib/materials alongside the screen's own grid, so the page and the
+     file cannot disagree about which cells are green. Absent when the project
+     is waiting on nothing, and then the sheet is not printed at all. */
+  materials?: {
+    total: number; here: number; waiting: number; late: number; nextDue?: string;
+    weeks: { start: string; label: string; month: string }[];
+    /* `due` arrives already written for print ("21 Sep"), the same as every
+       other date in this contract: the drawer never looks at the DOM and never
+       parses a date either. */
+    rows: { what: string; due?: string; here: boolean; late?: number; covered: boolean[] }[];
+  };
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
@@ -254,6 +267,124 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
       d.text(cell.value == null ? '--' : nice(cell.value), qx + qW / 2, qy + 21, { align: 'center' });
     });
   }
+}
+
+/* ---------- what we are waiting on, as the sheet draws it ----------
+ *
+ * Rowland asked for this one by pointing at the spreadsheet: "ensure it renders
+ * on the pdf gm report like the picture does". The picture is not a list — it is
+ * a grid, rows of film down the side and weeks across the top, green from the
+ * week each one lands. A GM reads coverage off it in one look, which is the
+ * whole reason it is kept that way.
+ *
+ * So this draws the grid, not a table of dates. The columns come from the data
+ * and the green cells are worked out by lib/materials — the same call the screen
+ * makes, so the page and the file can never shade a different week.
+ */
+function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: number): void {
+  const m = data.materials;
+  if (!m) return;
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+
+  const late = m.late > 0
+    ? `${m.late} late \u00b7 ${m.waiting} still to come \u00b7 ${m.here} of ${m.total} in`
+    : `${m.waiting} still to come \u00b7 ${m.here} of ${m.total} in`;
+
+  const rows = m.rows.slice(0, 26);          // a sheet nobody can read is not a picture
+  const weeks = m.weeks;
+
+  /* THE PANEL IS AS TALL AS THE PLAN, not as tall as the page.
+   *
+   * Drawn full height first, seven rows of film sat in the top quarter of an A3
+   * inside a box three times their height, which reads as a page that failed to
+   * finish rather than as a short list. A box that stops where its content stops
+   * leaves the white space OUTSIDE it, where white space is just paper. */
+  const PANEL_HEAD = 44, GRID_HEAD = 36, FOOT_PAD = 22;
+  const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
+  const panelH = Math.min(
+    H - 2 * M - 14,
+    Math.max(150, PANEL_HEAD + GRID_HEAD + rows.length * rowH + FOOT_PAD),
+  );
+  const top = panel(d, M, M, CW, panelH, String(page), 'What we are waiting on', late);
+
+  /* Columns: the thing, when it is planned for, then one narrow cell per week.
+     The week cells get whatever is left, so a long plan squeezes rather than
+     running off the page. */
+  const x0 = M + 14;
+  const right = M + CW - 14;
+  const whenW = 62;
+  const wkW = Math.min(34, Math.max(14, (right - x0 - 300 - whenW) / Math.max(1, weeks.length)));
+  const itemW = right - x0 - whenW - wkW * weeks.length;
+  const gridX = x0 + itemW + whenW;
+
+  const bodyTop = top + 10 + 26;
+
+  /* ---- the head: the months over their weeks, then the week names ---- */
+  let runFrom = 0;
+  weeks.forEach((w, i) => {
+    const lastOfRun = i === weeks.length - 1 || weeks[i + 1].month !== w.month;
+    if (!lastOfRun) return;
+    const x = gridX + runFrom * wkW;
+    const width = (i - runFrom + 1) * wkW;
+    d.setFillColor(SURF2); d.setDrawColor(LINE); d.setLineWidth(0.5);
+    d.rect(x, top + 10, width, 12, 'FD');
+    setFont(d, 6.5, 'bold', INK2);
+    d.text(fit(d, w.month.toUpperCase(), width - 4), x + width / 2, top + 18.5, { align: 'center' });
+    runFrom = i + 1;
+  });
+
+  setFont(d, 6.5, 'bold', MUTED);
+  d.text('WHAT WE NEED', x0, top + 18.5);
+  d.text('PLANNED FOR', x0 + itemW, top + 18.5);
+  weeks.forEach((w, i) => {
+    setFont(d, 6, 'bold', MUTED);
+    d.text(fit(d, w.label, wkW - 2), gridX + i * wkW + wkW / 2, top + 30, { align: 'center' });
+  });
+
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(x0, bodyTop - 4, right, bodyTop - 4);
+
+  /* ---- the rows ---- */
+  rows.forEach((r, i) => {
+    const y = bodyTop + i * rowH;
+
+    if (i % 2 === 1) {
+      d.setFillColor('#fafcfc');
+      d.rect(x0 - 4, y - rowH + 5, right - x0 + 8, rowH, 'F');
+    }
+
+    setFont(d, Math.min(8, rowH * 0.5), r.late != null ? 'bold' : 'normal', r.here ? MUTED : INK);
+    d.text(fit(d, san(r.what), itemW - 6), x0, y);
+
+    /* The arrival column says one of three things, and each one is a different
+       fact: it is here, it is due on a date, or nobody has given a date. */
+    setFont(d, Math.min(7, rowH * 0.45), 'bold',
+      r.here ? OK : r.late != null ? DANGER : r.due ? INK2 : MUTED);
+    d.text(r.here ? 'In stock' : r.due ? r.due : 'no date', x0 + itemW, y);
+    if (r.late != null) {
+      setFont(d, 5.5, 'normal', DANGER);
+      d.text(`${r.late}d late`, x0 + itemW, y + 6);
+    }
+
+    /* The green. A covered week is filled; an uncovered one is left as the
+       faintest wash, so the eye reads the BLOCK of green rather than counting
+       cells — which is exactly how the spreadsheet is read. */
+    r.covered.forEach((on, c) => {
+      const cx = gridX + c * wkW;
+      d.setFillColor(on ? '#2e9e5b' : '#eef3f5');
+      d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
+      d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
+    });
+  });
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
+  d.text(
+    m.rows.length > rows.length
+      ? `${m.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
+      : 'Green from the week it lands, the same as the plan it comes off.',
+    W - M, H - M + 6, { align: 'right' });
 }
 
 /* ---------- the lever tree ----------
@@ -529,13 +660,18 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* The same order the screen renders in, counted the same way: pace, where the
      time is going, the plan, the work, the detail. */
   const hasPareto = !!data.pareto;
-  const pages = 2 + (hasPareto ? 1 : 0) + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
+  /* A project waiting on nothing prints no materials sheet — an empty grid is a
+     page that tells the reader off for having nothing outstanding. */
+  const hasMaterials = !!data.materials && data.materials.rows.length > 0;
+  const pages = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0)
+    + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
   d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
 
   const paretoPage = 2;
-  const planPage = 2 + (hasPareto ? 1 : 0);
+  const materialsPage = 2 + (hasPareto ? 1 : 0);
+  const planPage = materialsPage + (hasMaterials ? 1 : 0);
   const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
 
   /* ============ WHERE THE TIME IS GOING — the Pareto, its own sheet ============
@@ -633,12 +769,24 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       W - M, H - M + 6, { align: 'right' });
   }
 
+  /* ============ WHAT WE ARE WAITING ON — the plan, as a grid ============
+   * Its own sheet, because it is the one page a GM can read coverage off in a
+   * look: rows of what we need, weeks across the top, green from the week each
+   * one lands. Only when there IS something outstanding. */
+  if (hasMaterials) {
+    d.addPage('a3', 'landscape');
+    materialsSheet(d, data, materialsPage, pages);
+  }
+
   /* ================= THE PLAN — the lever tree, its own sheet =================
    * Only when there is one. A page with a heading and nothing under it is worse
    * than no page. */
   if (data.tree.length > 0) {
     d.addPage('a3', 'landscape');
-    const tpY = panel(d, M, M, CW, H - 2 * M - 14, "2", "The plan",
+    /* The number in the panel's disc is the PAGE, so it has to be the computed
+       one. It was the literal "2", which was true only while the tree was
+       always the second sheet — a Pareto in front of it already made it lie. */
+    const tpY = panel(d, M, M, CW, H - 2 * M - 14, String(planPage), 'The plan',
       'What has to be true for the outcome, and where each part has got to');
 
     const roots = treeShape(data.tree);

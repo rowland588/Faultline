@@ -33,6 +33,8 @@ import type { PaceReportData } from '../lib/paceReportPdf';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
 import { useMeasures } from '../lib/useMeasures';
+import { useMaterials } from '../lib/useMaterials';
+import { coveredIn, daysLate, isHere, todayISO } from '../lib/materials';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import type { PaceParetoSheet } from '../lib/paceWorkbook';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
@@ -193,6 +195,81 @@ function ParetoPage({ view, title, scale, sheetH, n, of }: {
   );
 }
 
+/* WHAT WE ARE WAITING ON gets its own sheet, drawn the way the plan it comes
+ * off is drawn: rows of what we need, weeks across the top, green from the week
+ * each one lands. A list of dates would fit in a corner of another page — the
+ * grid is here because coverage is a SHAPE, and a GM reads the block of green
+ * without reading a single date.
+ *
+ * It takes the same block the PDF does, so the page and the file cannot shade
+ * different weeks. */
+function MaterialsPage({ m, title, scale, sheetH, n, of }: {
+  m: NonNullable<PaceReportData['materials']>;
+  title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  const SHOWN = 26;
+  const rows = m.rows.slice(0, SHOWN);
+  const more = m.rows.length - rows.length;
+
+  /* Each month printed once, over the run of weeks that share it. */
+  const months: { month: string; span: number }[] = [];
+  for (const w of m.weeks) {
+    const last = months[months.length - 1];
+    if (last && last.month === w.month) last.span += 1;
+    else months.push({ month: w.month, span: 1 });
+  }
+
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="What we are waiting on"
+              sowhat={m.late > 0
+                ? `${m.late} late · ${m.waiting} still to come · ${m.here} of ${m.total} in`
+                : `${m.waiting} still to come · ${m.here} of ${m.total} in`} />
+            <div className="mt-grid-wrap">
+              <table className="mt-grid">
+                <thead>
+                  <tr>
+                    <th className="mt-grid-item" rowSpan={2} scope="col">What we need</th>
+                    <th className="mt-grid-when" rowSpan={2} scope="col">Planned for arrival</th>
+                    {months.map(x => (
+                      <th key={x.month} colSpan={x.span} scope="colgroup" className="mt-grid-month">{x.month}</th>
+                    ))}
+                  </tr>
+                  <tr>
+                    {m.weeks.map(w => <th key={w.start} scope="col" className="mt-grid-wk">{w.label}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.what}>
+                      <th scope="row" className="mt-grid-item">{r.what}</th>
+                      <td className={'mt-grid-when is-' + (r.here ? 'here' : r.late != null ? 'late' : r.due ? 'waiting' : 'undated')}>
+                        {r.here ? 'In stock' : r.due ? r.due : '—'}
+                        {r.late != null && <span className="mt-grid-late">{r.late}d late</span>}
+                      </td>
+                      {r.covered.map((on, i) => (
+                        <td key={m.weeks[i]?.start ?? i} className={'mt-cell' + (on ? ' is-on' : '')} />
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {more > 0 && <p className="exec-more">+{more} more on the list than fit this sheet</p>}
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · weekly executive report · page {n} of {of} — what we are waiting on</span>
+          <span>Green from the week it lands, the same as the plan it comes off.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 /* PEOPLE · PROCESS · PLANT gets its own sheet, for the same reason the tree did:
  * the SHAPE is the message. Three columns handed across a table say "these are
  * the three kinds of problem and here is where each stands"; the same actions as
@@ -307,6 +384,7 @@ export function PaceExecReport() {
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
+  const mats = useMaterials(projectId);
   const line = lineId ? ppm.lines.find(l => l.id === lineId) : undefined;
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
@@ -484,13 +562,34 @@ export function PaceExecReport() {
   const boardPlan = boardSheets(
     boardData.areas.map(a => ({ name: a.name, counts: a.columns.map(c => c.rows.length) })),
   );
+  /* WHAT WE ARE WAITING ON, in the shape the sheet is drawn from — and worked
+     out HERE rather than in the drawer, so the grid on the page and the grid in
+     the file shade the same weeks. A line's own deck leaves it out: materials
+     belong to the job, not to one line's A3. */
+  const today = todayISO();
+  const materialsBlock: PaceReportData['materials'] = line || mats.materials.length === 0 ? undefined : {
+    total: mats.tally.total, here: mats.tally.here,
+    waiting: mats.tally.waiting, late: mats.tally.late, nextDue: mats.tally.nextDue,
+    weeks: mats.weeks.map(w => ({ start: w.start, label: w.label, month: w.month })),
+    rows: mats.materials.map(m => ({
+      what: m.what,
+      due: m.due ? fmtShort(m.due) : undefined,
+      here: isHere(m),
+      late: daysLate(m, today),
+      covered: mats.weeks.map(w => coveredIn(m, w, today)),
+    })),
+  };
+
   /* One order, counted once. Pace, then where the time is going, then the plan,
      then the work, then the detail — and every page number falls out of the
      same arithmetic the pages themselves are rendered from. */
   const paretoPageNo = 2;
-  const treePageNo = 2 + (hasPareto ? 1 : 0);
+  const hasMaterials = !!materialsBlock && materialsBlock.rows.length > 0;
+  const materialsPageNo = 2 + (hasPareto ? 1 : 0);
+  const treePageNo = materialsPageNo + (hasMaterials ? 1 : 0);
   const boardPageNo = treePageNo + (hasTree ? 1 : 0);
-  const pageCount = 2 + (hasPareto ? 1 : 0) + (hasTree ? 1 : 0) + boardPlan.length;
+  const pageCount = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0)
+    + (hasTree ? 1 : 0) + boardPlan.length;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
      two pages in front of them — add a Pareto and the report has two panels
@@ -666,6 +765,7 @@ export function PaceExecReport() {
     complete, total: actions.length, openTotal, openOnTrack, late,
     openSnags: openSnags.length, winsThisWeek: winsThisWeek.length,
     byLine: rollup,
+    materials: materialsBlock,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -814,6 +914,10 @@ export function PaceExecReport() {
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
       {pView && <ParetoPage view={pView} title={title} scale={scale} sheetH={SHEET_H} n={paretoPageNo} of={pageCount} />}
+      {materialsBlock && (
+        <MaterialsPage m={materialsBlock} title={title} scale={scale} sheetH={SHEET_H}
+          n={materialsPageNo} of={pageCount} />
+      )}
       {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
       {/* WHY THE BOARD SHEET IS NOT IN THIS REPORT.
           A page with a heading and nothing under it has no place in something

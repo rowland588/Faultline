@@ -8,7 +8,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
-  | 'testing' | 'test';
+  | 'testing' | 'test' | 'materials';
 
 export interface Route {
   name: RouteName;
@@ -69,6 +69,8 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'tree') return { name: 'leverTree', id, query };
     if (segs[2] === 'board') return { name: 'board', id, query };
     if (segs[2] === 'pareto') return { name: 'pareto', id, query };
+    // What the job is waiting on — the films, the parts, the kit.
+    if (segs[2] === 'materials') return { name: 'materials', id, query };
     /* Commissioning is ONE screen now. /commissioning/:anything — the old
        per-stage gate pages, and /commissioning/run before them — lands on it
        rather than 404ing somebody's bookmark. */

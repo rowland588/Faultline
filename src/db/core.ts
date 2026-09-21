@@ -14,6 +14,7 @@ import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectL
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
+import type { Material } from '../lib/materials';
 import type {
   Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow,
 } from './rows';
@@ -91,6 +92,11 @@ export interface AppDB extends DBSchema {
      for why one factory's quarters had no business being in the schema. */
   targets: { key: string; value: Target; indexes: { by_project: string } };
   readings: { key: string; value: Reading; indexes: { by_project: string } };
+
+  /* WHAT THE JOB IS WAITING ON (v17) — the films, the parts, the kit. One row
+     per thing needed: what it is, when it is due, whether it is here. See
+     lib/materials.ts; it is the sheet the line is actually run off. */
+  materials: { key: string; value: Material; indexes: { by_project: string } };
 }
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before
@@ -99,7 +105,7 @@ export interface AppDB extends DBSchema {
  * versions of that name belonged to an unrelated app and are left alone.) */
 const DB_NAME = 'faultline';
 const LEGACY_DBS = ['finder-qc', 'finder'] as const;
-const DB_VERSION = 16; // v16: targets + readings (measures a business names)
+const DB_VERSION = 17; // v17: materials (what the job is waiting on)
 const OPEN_TIMEOUT_MS = 12_000;
 
 let dbp: Promise<IDBPDatabase<AppDB>> | null = null;
@@ -159,7 +165,7 @@ async function openAndImport(): Promise<IDBPDatabase<AppDB>> {
 /** Every store the app cannot run without. Exported so the sync tests can
  *  assert against this list rather than grepping a file for store names — which
  *  broke the moment db.ts became a barrel. */
-export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_assets', 'tests', 'test_items', 'targets', 'readings'] as const;
+export const REQUIRED_STORES = ['workspaces', 'observations', 'media', 'meta', 'segments', 'snag_assets', 'snags', 'tombstones', 'cases', 'projects', 'project_targets', 'project_actuals', 'pace_snapshots', 'pace_lines', 'pace_todos', 'pace_ppm', 'pace_wins', 'tree_nodes', 'commission_assets', 'tests', 'test_items', 'targets', 'readings', 'materials'] as const;
 
 /** Create any store our schema needs that the DB lacks. Version-agnostic and
  *  idempotent, so it works whether we open a fresh DB or one another build left
@@ -202,6 +208,9 @@ function ensureStores(db: IDBPDatabase<AppDB>): void {
   }
   if (!db.objectStoreNames.contains('readings')) {
     db.createObjectStore('readings', { keyPath: 'id' }).createIndex('by_project', 'projectId');
+  }
+  if (!db.objectStoreNames.contains('materials')) {
+    db.createObjectStore('materials', { keyPath: 'id' }).createIndex('by_project', 'projectId');
   }
   if (!db.objectStoreNames.contains('pace_wins')) {
     db.createObjectStore('pace_wins', { keyPath: 'id' }).createIndex('by_createdAt', 'createdAt');
@@ -268,6 +277,7 @@ export const INDEXES: [StoreNames<AppDB>, string, string | string[]][] = [
   ['test_items', 'by_project', 'projectId'],
   ['targets', 'by_project', 'projectId'],
   ['readings', 'by_project', 'projectId'],
+  ['materials', 'by_project', 'projectId'],
   ['pace_wins', 'by_createdAt', 'createdAt'],
   ['segments', 'by_workspace', 'workspaceId'],
   ['snag_assets', 'by_workspace', 'workspaceId'],

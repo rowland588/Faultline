@@ -20,6 +20,7 @@ import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { LeverTree } from './screens/LeverTree';
 import { BoardScreen } from './screens/BoardScreen';
 import { ParetoScreen } from './screens/ParetoScreen';
+import { MaterialsScreen } from './screens/MaterialsScreen';
 import { TestsScreen } from './screens/TestsScreen';
 import { TestScreen } from './screens/TestScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
@@ -72,6 +73,7 @@ function app(route: Route) {
   if (route.name === 'leverTree') return <LeverTree projectId={route.id!} />;
   if (route.name === 'board') return <BoardScreen projectId={route.id!} />;
   if (route.name === 'pareto') return <ParetoScreen projectId={route.id!} />;
+  if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   /* Narrowed once rather than asserted three times: a test route without a
      project is not a screen, it is a bad link, and it falls through to the
      project list below. */

@@ -83,6 +83,8 @@ const ROUTES = [
   ['measured line', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}`],
   ['line numbers', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=data`],
   ['line success', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=wins`],
+  ['materials', `#/project/${seeded.pacedProjectId}/materials`],
+  ['materials — none yet', `#/project/${seeded.projectId}/materials`],
   ['measured deck', `#/pace-report?project=${seeded.pacedProjectId}`],
   ['line deck', `#/pace-report?project=${seeded.pacedProjectId}&line=${seeded.pacedLineId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],

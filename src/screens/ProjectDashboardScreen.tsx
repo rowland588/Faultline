@@ -20,6 +20,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
+import { useMaterials } from '../lib/useMaterials';
+import { daysLate } from '../lib/materials';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
@@ -419,6 +421,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
+  const mats = useMaterials(projectId);
   const { actions } = pace;
   // Every line's own pack, counted. This is the roll-up: each number below was
   // typed by a line owner into their own pack, not entered again here.
@@ -492,6 +495,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {project.commissioning && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing`)}>Testing</button>
           )}
+          {/* Materials is offered on every project, not behind an opt-in: every
+              job waits on something, and a list you have to switch on first is a
+              list nobody starts. It costs nothing when it is empty. */}
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/materials`)}>Materials</button>
           {project.pareto && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
           )}
@@ -542,6 +549,24 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           </Fragment>
         ))}
       </nav>
+
+      {/* WHAT IS HOLDING THE JOB UP, said on the way in — and ONLY when
+          something actually is. A banner that is always there is furniture;
+          this one appearing means news, so it earns being read. It is on both
+          models, because every job waits on something. */}
+      {lens === 'overview' && mats.tally.late > 0 && (
+        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/materials`)}>
+          <span className="mt-alarm-t">
+            {mats.tally.late === 1 ? '1 material is late' : `${mats.tally.late} materials are late`}
+          </span>
+          <span className="mt-alarm-s">
+            {mats.materials.filter(m => daysLate(m) != null).slice(0, 3)
+              .map(m => `${m.what} — ${daysLate(m)} day${daysLate(m) === 1 ? '' : 's'}`).join('  ·  ')}
+            {mats.tally.late > 3 && `  ·  and ${mats.tally.late - 3} more`}
+          </span>
+          <span className="mt-alarm-go" aria-hidden>›</span>
+        </button>
+      )}
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.
           It used to be the tracker's: lines at target against Q1, the 3P board
