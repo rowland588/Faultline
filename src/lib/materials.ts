@@ -144,6 +144,24 @@ export function coveredIn(m: Material, w: Week, today = todayISO()): boolean {
   return m.due <= w.end;
 }
 
+/** THE WEEK IT LANDS IN — the one cell that carries the date.
+ *
+ *  The grid told you WHETHER a week was covered and never WHEN, so a reader
+ *  who wanted the day had to break off, find the row in the side column, and
+ *  come back. On the report that column is 62pt wide and easy to miss
+ *  altogether, which is how a sheet ends up reading as a row of grey squares.
+ *
+ *  So the date is printed in the cell of the week it falls in. Exactly one
+ *  cell per row, and only for something still coming: a film already in needs
+ *  no date (it is green all the way across and the column says In stock), and
+ *  a late one has no column to print in — its week is behind the grid's first
+ *  Monday, which is why the side column keeps saying it in red. */
+export function landsIn(m: Material, w: Week, today = todayISO()): boolean {
+  if (isHere(m) || !m.due) return false;
+  if (m.due < today) return false;                  // already late: no column for it
+  return m.due >= w.start && m.due <= w.end;
+}
+
 /* ============================ pasting the sheet ============================
  *
  * The sheet is pasted in rather than retyped, and it arrives exactly as messy

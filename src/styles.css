@@ -5093,7 +5093,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .mt-grid-month {
   border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2) !important;
 }
-.mt-grid-wk { width: 34px; }
+.mt-grid-wk { width: 42px; }
 .mt-grid th.mt-grid-item, .mt-grid td.mt-grid-item {
   text-align: left; font-weight: 700; color: var(--ink); white-space: nowrap;
   padding-right: 12px; position: sticky; left: 0; background: var(--surface); z-index: 1;
@@ -5107,8 +5107,16 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .mt-grid tbody tr:nth-child(even) .mt-grid-item { background: #fafcfc; }
 /* the cells: filled means covered that week. A white gap between them so the
    eye reads the run of green rather than counting boxes. */
-.mt-cell { height: 20px; border: 2px solid var(--surface); background: #eef3f5; }
+.mt-cell { height: 20px; border: 2px solid var(--surface); background: #eef3f5; padding: 0; text-align: center; }
 .mt-cell.is-on { background: var(--ok); }
+/* THE DAY, IN THE WEEK IT LANDS. The grid used to say only whether a week was
+   covered, so the date lived in a column at the side that is easy to read past
+   — and the sheet ended up reading as a row of grey squares. White on the green
+   it sits on, so it belongs to the block rather than sitting over it. */
+.mt-cell-d { font-size: 9px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink-2); white-space: nowrap; }
+.mt-cell.is-on .mt-cell-d { color: #fff; }
+/* the landing week needs room for "28 Sep" — the rest stay narrow */
+.mt-grid .mt-cell.is-lands { min-width: 42px; }
 
 /* ---- the list: what is holding us up ---- */
 .mt-list { display: flex; flex-direction: column; gap: 8px; }

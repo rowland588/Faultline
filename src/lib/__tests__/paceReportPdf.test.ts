@@ -57,10 +57,17 @@ const materials = (): NonNullable<PaceReportData['materials']> => ({
     { start: '2026-10-12', label: 'WK2', month: 'October' },
   ],
   rows: [
-    { what: 'Perforated film — 2kg, 60 micron', due: '18 Sep', here: false, late: 3, covered: [false, false, false, false] },
-    { what: 'Perforated film — 1.25kg', due: '28 Sep', here: false, covered: [false, true, true, true] },
-    { what: 'Labels — export run', here: false, covered: [false, false, false, false] },
-    { what: 'Sealing jaw — spare', here: true, covered: [true, true, true, true] },
+    /* `lands` is the week the date falls in, and at most one per row carries it:
+       the late one has no column left to print in, the undated one has no date,
+       and the one already in needs none. */
+    { what: 'Perforated film — 2kg, 60 micron', due: '18 Sep', here: false, late: 3,
+      covered: [false, false, false, false], lands: [undefined, undefined, undefined, undefined] },
+    { what: 'Perforated film — 1.25kg', due: '28 Sep', here: false,
+      covered: [false, true, true, true], lands: [undefined, '28 Sep', undefined, undefined] },
+    { what: 'Labels — export run', here: false,
+      covered: [false, false, false, false], lands: [undefined, undefined, undefined, undefined] },
+    { what: 'Sealing jaw — spare', here: true,
+      covered: [true, true, true, true], lands: [undefined, undefined, undefined, undefined] },
   ],
 });
 

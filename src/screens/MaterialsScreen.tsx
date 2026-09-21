@@ -22,7 +22,7 @@ import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMaterials } from '../lib/useMaterials';
 import {
-  coveredIn, daysLate, isHere, readMaterialPaste, stateOf, todayISO,
+  coveredIn, daysLate, isHere, landsIn, readMaterialPaste, stateOf, todayISO,
   type Material, type Week,
 } from '../lib/materials';
 
@@ -87,13 +87,21 @@ function Grid({ rows, weeks, today }: { rows: Material[]; weeks: Week[]; today: 
               <td className={'mt-grid-when is-' + stateOf(m, today)}>
                 {isHere(m) ? 'In stock' : m.due ? nice(m.due) : '—'}
               </td>
-              {weeks.map(w => (
-                <td key={w.start}
-                  className={'mt-cell' + (coveredIn(m, w, today) ? ' is-on' : '')}
-                  aria-label={coveredIn(m, w, today)
-                    ? `${m.what}: covered in the week of ${nice(w.start)}`
-                    : `${m.what}: not covered in the week of ${nice(w.start)}`} />
-              ))}
+              {weeks.map(w => {
+                const on = coveredIn(m, w, today);
+                const lands = landsIn(m, w, today);
+                return (
+                  /* The date goes IN the week it lands, not only in the column
+                     at the side. The grid said whether a week was covered and
+                     never when, so anybody wanting the day had to break off,
+                     find the row in the side column and come back. */
+                  <td key={w.start} className={'mt-cell' + (on ? ' is-on' : '') + (lands ? ' is-lands' : '')}
+                    aria-label={`${m.what}: ${on ? 'covered' : 'not covered'} in the week of ${nice(w.start)}${
+                      lands ? `, due ${nice(m.due)}` : ''}`}>
+                    {lands && <span className="mt-cell-d">{nice(m.due)}</span>}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

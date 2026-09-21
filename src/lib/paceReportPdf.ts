@@ -74,7 +74,14 @@ export interface PaceReportData {
     /* `due` arrives already written for print ("21 Sep"), the same as every
        other date in this contract: the drawer never looks at the DOM and never
        parses a date either. */
-    rows: { what: string; due?: string; here: boolean; late?: number; covered: boolean[] }[];
+    rows: {
+      what: string; due?: string; here: boolean; late?: number; covered: boolean[];
+      /* The week it lands in, one entry per column and at most one of them set.
+         The date is printed IN that cell: the side column is 62pt wide and easy
+         to read past, which is how a sheet ends up looking like a row of grey
+         squares to the person it was drawn for. */
+      lands: (string | undefined)[];
+    }[];
   };
   /* WHAT THE MACHINE CAN RUN, drawn the same way and for the same reason. The
      one difference is the fill: a film is green or it is not, a program is
@@ -320,7 +327,12 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
    * inside a box three times their height, which reads as a page that failed to
    * finish rather than as a short list. A box that stops where its content stops
    * leaves the white space OUTSIDE it, where white space is just paper. */
-  const PANEL_HEAD = 44, GRID_HEAD = 36, FOOT_PAD = 22;
+  /* GRID_HEAD was 36 and the week labels sat inside it at top+30 — but the
+     first row's cells are drawn from `bodyTop - rowH + 6`, which on a tall row
+     began at top+20 and painted straight over them. The grid printed with a
+     month band, no week names, and an unlabelled column axis: the reader could
+     see a block of green and not which weeks it covered. */
+  const PANEL_HEAD = 44, GRID_HEAD = 50, FOOT_PAD = 22;
   const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
   const panelH = Math.min(
     H - 2 * M - 14,
@@ -338,7 +350,9 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
   const itemW = right - x0 - whenW - wkW * weeks.length;
   const gridX = x0 + itemW + whenW;
 
-  const bodyTop = top + 10 + 26;
+  /* The first row begins BELOW the week names, whatever the row height. */
+  const headBottom = top + 34;
+  const bodyTop = headBottom + rowH - 6;
 
   /* ---- the head: the months over their weeks, then the week names ---- */
   let runFrom = 0;
@@ -363,16 +377,21 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
   });
 
   d.setDrawColor(LINE); d.setLineWidth(0.6);
-  d.line(x0, bodyTop - 4, right, bodyTop - 4);
+  d.line(x0, headBottom - 2, right, headBottom - 2);
 
-  /* ---- the rows ---- */
+  /* ---- the rows ----
+     THE BANDS FIRST, ALL OF THEM, then the text. Drawn row by row, a shaded
+     row's background began at the previous row's baseline + 5 and painted over
+     its second line — so "3d late" under a date came out sliced in half on a
+     sheet going to a General Manager. */
+  rows.forEach((_r, i) => {
+    if (i % 2 !== 1) return;
+    d.setFillColor('#fafcfc');
+    d.rect(x0 - 4, bodyTop + i * rowH - rowH + 5, right - x0 + 8, rowH, 'F');
+  });
+
   rows.forEach((r, i) => {
     const y = bodyTop + i * rowH;
-
-    if (i % 2 === 1) {
-      d.setFillColor('#fafcfc');
-      d.rect(x0 - 4, y - rowH + 5, right - x0 + 8, rowH, 'F');
-    }
 
     setFont(d, Math.min(8, rowH * 0.5), r.late != null ? 'bold' : 'normal', r.here ? MUTED : INK);
     d.text(fit(d, san(r.what), itemW - 6), x0, y);
@@ -395,6 +414,14 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
       d.setFillColor(on ? '#2e9e5b' : '#eef3f5');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
+
+      /* THE DAY, IN THE WEEK IT LANDS. White on the green it sits on, so it
+         reads as part of the block rather than as something stuck over it. */
+      const on_date = r.lands[c];
+      if (on_date) {
+        setFont(d, Math.min(6, wkW * 0.19), 'bold', on ? '#ffffff' : INK2);
+        d.text(fit(d, on_date, wkW - 2), cx + wkW / 2, y - rowH / 2 + 8, { align: 'center' });
+      }
     });
   });
 
@@ -430,7 +457,12 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   const rows = pg.rows.slice(0, 26);          // a sheet nobody can read is not a picture
   const weeks = pg.weeks;
 
-  const PANEL_HEAD = 44, GRID_HEAD = 36, FOOT_PAD = 22;
+  /* GRID_HEAD was 36 and the week labels sat inside it at top+30 — but the
+     first row's cells are drawn from `bodyTop - rowH + 6`, which on a tall row
+     began at top+20 and painted straight over them. The grid printed with a
+     month band, no week names, and an unlabelled column axis: the reader could
+     see a block of green and not which weeks it covered. */
+  const PANEL_HEAD = 44, GRID_HEAD = 50, FOOT_PAD = 22;
   const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
   const panelH = Math.min(
     H - 2 * M - 14,
@@ -445,7 +477,9 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   const itemW = right - x0 - whenW - wkW * weeks.length;
   const gridX = x0 + itemW + whenW;
 
-  const bodyTop = top + 10 + 26;
+  /* The first row begins BELOW the week names, whatever the row height. */
+  const headBottom = top + 34;
+  const bodyTop = headBottom + rowH - 6;
 
   /* ---- the head: the months over their weeks, then the week names ---- */
   let runFrom = 0;
@@ -470,18 +504,19 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   });
 
   d.setDrawColor(LINE); d.setLineWidth(0.6);
-  d.line(x0, bodyTop - 4, right, bodyTop - 4);
+  d.line(x0, headBottom - 2, right, headBottom - 2);
 
   const FILL = { proved: '#2e9e5b', machine: '#e8bf78', none: '#eef3f5' };
 
-  /* ---- the rows ---- */
+  /* ---- the rows ---- bands first, for the reason the materials sheet gives */
+  rows.forEach((_r, i) => {
+    if (i % 2 !== 1) return;
+    d.setFillColor('#fafcfc');
+    d.rect(x0 - 4, bodyTop + i * rowH - rowH + 5, right - x0 + 8, rowH, 'F');
+  });
+
   rows.forEach((r, i) => {
     const y = bodyTop + i * rowH;
-
-    if (i % 2 === 1) {
-      d.setFillColor('#fafcfc');
-      d.rect(x0 - 4, y - rowH + 5, right - x0 + 8, rowH, 'F');
-    }
 
     setFont(d, Math.min(8, rowH * 0.5), r.overdue != null ? 'bold' : 'normal',
       r.state === 'proved' ? MUTED : INK);

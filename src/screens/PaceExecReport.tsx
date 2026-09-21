@@ -34,7 +34,7 @@ import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
-import { coveredIn, daysLate, isHere, todayISO } from '../lib/materials';
+import { coveredIn, daysLate, isHere, landsIn, todayISO } from '../lib/materials';
 import { usePrograms } from '../lib/usePrograms';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
@@ -59,10 +59,16 @@ const isLate = (a: PaceAction, todayStart: number) =>
  *  vocabulary. 10 is checked before 2 so "Line 10" never falls into "Line 2". */
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+/* en-GB, not the viewer's locale. Every date the app writes elsewhere is
+   British (see `nice` on the materials and programs screens), and this one was
+   the machine's guess — so the same film read "25 Sept" on the screen and
+   "Sep 25" on the report drawn from the very same row. Worse, a PDF carries
+   whatever the machine that generated it happened to think, to a reader who
+   had no say in it. */
 const fmtShort = (s?: string) => {
   if (!s) return '—';
   const d = Date.parse(s);
-  return Number.isNaN(d) ? s : new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  return Number.isNaN(d) ? s : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 const dayMs = 86_400_000;
 /** The exec cut: one line per row, not the full workbook essay. */
@@ -253,7 +259,10 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
                         {r.late != null && <span className="mt-grid-late">{r.late}d late</span>}
                       </td>
                       {r.covered.map((on, i) => (
-                        <td key={m.weeks[i]?.start ?? i} className={'mt-cell' + (on ? ' is-on' : '')} />
+                        <td key={m.weeks[i]?.start ?? i}
+                          className={'mt-cell' + (on ? ' is-on' : '') + (r.lands[i] ? ' is-lands' : '')}>
+                          {r.lands[i] && <span className="mt-cell-d">{r.lands[i]}</span>}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -685,6 +694,9 @@ export function PaceExecReport() {
       here: isHere(m),
       late: daysLate(m, today),
       covered: mats.weeks.map(w => coveredIn(m, w, today)),
+      /* The week it lands in, already written for print. One entry per column,
+         at most one of them set — see landsIn. */
+      lands: mats.weeks.map(w => (landsIn(m, w, today) ? fmtShort(m.due) : undefined)),
     })),
   };
 
