@@ -514,10 +514,21 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
           )}
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
-          {/* The GM report and this page's A3 are both drawn from the weekly
-              tracker, which a handover has not got. Commissioning prints its own
-              A3 from its own records, inside commissioning. */}
-          {model !== 'commissioning' && <>
+          {/* THE REPORT IS NO LONGER ONLY THE TRACKER.
+              This used to be hidden on every commissioning project, and the
+              reasoning was sound at the time: the report was drawn from the
+              weekly tracker, and a handover has not got one, so the button led
+              to blank paper.
+              It stopped being true the moment the materials sheet went in, and
+              again when the programs sheet followed. Both are things a
+              commissioning job has in abundance — and the result was a project
+              carrying fifteen films and seventeen programs with no way to print
+              either, because the one report that draws them was hidden by a rule
+              about a tracker it no longer needs.
+              So the test is what there is to print, not which kind of project it
+              is. A bare handover with nothing on either list still gets no
+              button, which is all the old rule was ever protecting. */}
+          {(model !== 'commissioning' || mats.tally.total > 0 || progs.tally.total > 0) && <>
             <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
             <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
           </>}

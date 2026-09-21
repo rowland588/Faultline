@@ -543,7 +543,22 @@ export function PaceExecReport() {
       if (lineId) { setSnags(byLineSnags.get(lineId) ?? []); return; }
       const wsId = await getPaceWorkspaceId(projectId);
       const walk = wsId ? await snagsForWorkspace(wsId) : [];
-      setSnags([...walk, ...[...byLineSnags.values()].flat()]);
+
+      /* ONE SNAG, ONCE — even when the same walk is reachable twice.
+       *
+       * A snag belongs to a WORKSPACE, and a workspace can be reached by more
+       * than one route: the project's own line-walk workspace is very often
+       * also a line's, and two lines set up together can share one. Merging the
+       * lists straight meant the same snag arrived two or three times.
+       *
+       * It showed up as a duplicate React key, which is the harmless half. The
+       * half that matters is that every count downstream reads off this list —
+       * "6 open snags filmed on the line" on a sheet going to a General
+       * Manager, when there were two. A report that inflates its own numbers is
+       * worse than one that omits them. */
+      const byId = new Map<string, Snag>();
+      for (const sn of [...walk, ...[...byLineSnags.values()].flat()]) byId.set(sn.id, sn);
+      setSnags([...byId.values()]);
     })();
   }, [projectId, lineId, walkSig]);
 
