@@ -14,6 +14,8 @@
  * — an old clock — is asserted to have been skipped by it. If somebody ever
  * reintroduces a clock comparison, THAT assertion is what fails. */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { needsPush, pruneSent, sentKey, type Sent } from '../sync';
 
 /** The rule this replaced, written out so it can be held to the same cases. */
@@ -95,5 +97,57 @@ describe('pruning the record', () => {
     pruneSent(sent, new Set([key]));
 
     expect(needsPush(sent, 'projects', 'p1', FRESH)).toBe(false);
+  });
+});
+
+/* ---------------------------------------------------------------------------
+ * ROWS BEFORE BLOBS.
+ *
+ * The second half of the same failure, and the one that actually kept a real
+ * account from syncing for a day. A pass used to re-upload every blob that had
+ * failed before as its FIRST act, and, inside the push, send a kind's media
+ * before that kind's rows. A walk is tens of megabytes and a project row is a
+ * few hundred bytes, so one video that would not go up — mobile data, an app
+ * backgrounded half a minute in — spent the whole pass. The rows were never
+ * reached, nothing was recorded as sent, and the next pass began on the same
+ * video. The app reported itself as backing up the entire time, truthfully:
+ * it was backing up a film.
+ *
+ * The order is the fix, so the order is what is tested. It is read out of the
+ * source because the alternative is a fake Supabase, a fake storage bucket and
+ * a fake IndexedDB for an assertion about two lines' positions.
+ * ------------------------------------------------------------------------- */
+describe('the order of a pass', () => {
+  const src = readFileSync(join(__dirname, '..', 'sync.ts'), 'utf8');
+  const body = src.slice(src.indexOf('export async function syncNow'));
+  const at = (needle: string) => {
+    const i = body.indexOf(needle);
+    expect(i, `not found in syncNow: ${needle}`).toBeGreaterThan(-1);
+    return i;
+  };
+
+  const PUSH_ROWS = '.upsert(slice.map(b => b.row)';
+  const PUSH_MEDIA = 'for (const b of batch) await uploadMedia(';
+  const RETRY_UPLOADS = 'if (wantedUploads.size) await uploadMedia(';
+
+  it('sends a kind’s rows before that kind’s media', () => {
+    expect(at(PUSH_ROWS)).toBeLessThan(at(PUSH_MEDIA));
+  });
+
+  it('retries the failed-media queue only after every row is up', () => {
+    expect(at(PUSH_ROWS)).toBeLessThan(at(RETRY_UPLOADS));
+  });
+
+  /* The queue must still run. Moving it to the end and quietly dropping it
+     would trade a stall for silent data loss on the films. */
+  it('still retries the failed-media queue', () => {
+    expect(body).toContain(RETRY_UPLOADS);
+    expect(body).toContain('if (failedDownloads.size) await downloadMedia(');
+  });
+
+  /* Tombstones stay in front of everything: a delete this device has already
+     made must reach the cloud before the pull can hand the row back. */
+  it('still pushes tombstones before the pull', () => {
+    expect(at('const tombs = await listTombstones()')).toBeLessThan(at('---- PULL'));
   });
 });

@@ -243,14 +243,27 @@ export async function syncNow(): Promise<void> {
     const cursor = await getSyncCursor();       // the LEGACY PULL cursor only — the push no longer reads it
     const sent = await readSent();
     const uploaded = await keySet('uploaded');
-    const wantedUploads = await keySet('pendingUploads');   // prior failures — retry first
+    const wantedUploads = await keySet('pendingUploads');   // prior failures — retried AFTER the rows
     const failedDownloads = new Map<string, string | undefined>(
       [...await keySet('pendingDownloads')].map(s => { const i = s.indexOf('|'); return i < 0 ? [s, undefined] : [s.slice(0, i), s.slice(i + 1) || undefined]; }),
     );
 
-    // ---- retry media that failed on earlier passes, before anything else ----
-    if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, new Set());
-    if (failedDownloads.size) await downloadMedia(uid, [...failedDownloads].map(([key, owner]) => ({ key, owner })), failedDownloads);
+    /* ROWS BEFORE BLOBS — and the media retry queue LAST.
+     *
+     * This used to be the first thing a pass did: re-upload every blob that had
+     * failed before, then get on with the data. It reads like politeness to the
+     * retry queue and it is actually a hostage situation. A walk is tens of
+     * megabytes; a project row is a few hundred bytes. One video that will not
+     * go up — a phone on mobile data, an app backgrounded thirty seconds in —
+     * spends the entire pass, the pass never reaches the rows, nothing is
+     * recorded as sent, and the next pass starts again on the same video.
+     *
+     * That is a device that syncs for a day and pushes nothing, while the app
+     * says it is backing up, truthfully, because it is: it is backing up a film.
+     *
+     * A blob can wait. A row that exists on one phone and nowhere else cannot.
+     * The retry queue now runs at the END of the pass, after every row is up.
+     */
 
     // ---- PUSH tombstones FIRST ----
     // A local delete is a decision this device has already made, so it has to
@@ -362,9 +375,6 @@ export async function syncNow(): Promise<void> {
       }
       if (!batch.length) continue;
 
-      // media first, so a row never points at a blob the cloud doesn't have yet
-      for (const b of batch) await uploadMedia(uid, map.mediaKeys(b.local), uploaded, wanted);
-
       for (let i = 0; i < batch.length; i += CHUNK) {
         const slice = batch.slice(i, i + CHUNK);
         const { error } = await supabase.from(kind).upsert(slice.map(b => b.row), { onConflict: 'id' });
@@ -379,9 +389,21 @@ export async function syncNow(): Promise<void> {
         for (const b of slice) sent[b.key] = b.clock;
       }
       await metaPut(SENT_KEY, sent);
+
+      /* The blobs this kind's rows point at, once the rows themselves are safe.
+         It used to run before the upsert, so that a row never named a blob the
+         cloud did not have yet. The cost of that ordering was the whole pass
+         (see above); the cost of this one is a device that pulls the row first
+         seeing a placeholder for a few minutes, which `pendingDownloads`
+         already retries on every sync until the file lands. */
+      for (const b of batch) await uploadMedia(uid, map.mediaKeys(b.local), uploaded, wanted);
     }
 
     await metaPut(SENT_KEY, pruneSent(sent, alive));
+
+    // ---- and only now, what failed on earlier passes ----
+    if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, new Set());
+    if (failedDownloads.size) await downloadMedia(uid, [...failedDownloads].map(([key, owner]) => ({ key, owner })), failedDownloads);
 
     /* The cursor is now ONLY the legacy pull's (a cloud too old for rev
        cursors). Compare-and-set so a Full re-sync tapped mid-pass is not
