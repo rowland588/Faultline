@@ -107,6 +107,9 @@ const pareto = (): Pareto => ({
 });
 
 const data = (over: Partial<PaceReportData> = {}): PaceReportData => ({
+  /* A tracker project by default — that is what every existing case is about.
+     The commissioning shape is asserted by passing `tracker: false`. */
+  tracker: true,
   now: Date.parse('2026-09-19T09:00:00Z'),
   title: 'Project Pace', lead: 'Rowland', leadRole: 'Project lead',
   subtitle: 'Week 38 — four lines, two at target',

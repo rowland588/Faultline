@@ -26,7 +26,8 @@ import { TreeStatic, useTreeNodes } from './TreeStatic';
 import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
-  type PaceTodoRow, type PaceWinRow } from '../db';
+  listTests, listAssets, type PaceTodoRow, type PaceWinRow } from '../db';
+import { OUTCOME_WORD, type Asset, type Test } from '../lib/testing';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceReportData } from '../lib/paceReportPdf';
@@ -281,6 +282,66 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
   );
 }
 
+/* THE TRIALS — the front page of a job that runs on them.
+ *
+ * Not a grid: a trial is a sentence, not a state. What we plan to do, on which
+ * machine, what it passes on, who with — and once the day has happened, what
+ * actually ran and what came of it. The plan and the day stay two columns,
+ * because the difference between what you meant to run and what you ran is
+ * usually the story.
+ */
+function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
+  if (!t || t.rows.length === 0) {
+    return (
+      <section className="exec-box">
+        <SectionHead n="1" title="The trials" sowhat="nothing planned yet" />
+        <p className="exec-empty">No trial has been booked on this job yet.</p>
+      </section>
+    );
+  }
+  const SHOWN = 14;
+  const rows = t.rows.slice(0, SHOWN);
+  return (
+    <section className="exec-box">
+      <SectionHead n="1" title="The trials"
+        sowhat={`${t.planned} booked · ${t.passed} passed${t.failed ? ` · ${t.failed} didn’t` : ''}${
+          t.notRun ? ` · ${t.notRun} didn’t run` : ''}`} />
+      <table className="exec-trials">
+        <thead>
+          <tr>
+            <th scope="col">What we are proving</th>
+            <th scope="col">Machine</th>
+            <th scope="col">Product</th>
+            <th scope="col">Passes if</th>
+            <th scope="col">With</th>
+            <th scope="col">When</th>
+            <th scope="col">Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={`${r.title}-${i}`}>
+              <th scope="row" className="tr-what">{r.title}</th>
+              <td>{r.machine}</td>
+              <td>{r.product || '—'}</td>
+              <td className="tr-pass">{r.passesIf || '—'}</td>
+              <td>{r.withWhom || '—'}</td>
+              <td className="tr-when">{r.when}</td>
+              <td>
+                <span className={'tr-out is-' + r.outcome}>{r.outcomeWord}</span>
+                {r.result && <span className="tr-res">{r.result}</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {t.rows.length > rows.length && (
+        <p className="exec-more">+{t.rows.length - rows.length} more than fit this sheet</p>
+      )}
+    </section>
+  );
+}
+
 /* WHAT THE MACHINE CAN RUN — the materials grid's twin, drawn the same way.
  *
  * The one thing it does differently is write the state in words beside the
@@ -491,6 +552,8 @@ export function PaceExecReport() {
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
   const [snags, setSnags] = useState<Snag[] | null>(null);
+  const [tests, setTests] = useState<Test[]>([]);
+  const [machines, setMachines] = useState<Asset[]>([]);
   /** Open snags per line, so the roll-up can say WHOSE they are. */
   const [snagsByLine, setSnagsByLine] = useState<Map<string, Snag[]>>(new Map());
 
@@ -540,6 +603,12 @@ export function PaceExecReport() {
     void (async () => {
       setTodos(await listPaceTodos(projectId, lineId));
       setWins(await listPaceWins(projectId, lineId));
+      /* THE TRIALS. A commissioning job's whole story is here — what is planned,
+         what it passes on, and what happened on the day — and the report had no
+         page for it, which is why a project with two trials booked printed a 3P
+         board and an empty action list instead. */
+      setTests(await listTests(projectId));
+      setMachines(await listAssets(projectId));
 
       const byLineSnags = new Map<string, Snag[]>();
       for (const part of walkSig.split(',').filter(Boolean)) {
@@ -726,6 +795,47 @@ export function PaceExecReport() {
     }),
   };
 
+  /* THE TRIALS, for a job that runs on them. Ordered the way the screen orders
+     them: what is booked and still ahead first, soonest first, then what has
+     already happened, most recent first. A GM wants "what is coming" before
+     "what we did". */
+  const trialRows = tests
+    .filter(t => !t.deletedAt)
+    .slice()
+    .sort((a, b) => {
+      const ap = a.outcome === 'planned', bp = b.outcome === 'planned';
+      if (ap !== bp) return ap ? -1 : 1;
+      if (ap) return (a.plannedFor ?? '9999').localeCompare(b.plannedFor ?? '9999');
+      return (b.ranOn ?? '').localeCompare(a.ranOn ?? '');
+    });
+  const machineName = (id?: string) => machines.find(m => m.id === id)?.name;
+  const trialsBlock: PaceReportData['trials'] = line || trialRows.length === 0 ? undefined : {
+    planned: trialRows.filter(t => t.outcome === 'planned').length,
+    passed: trialRows.filter(t => t.outcome === 'passed').length,
+    failed: trialRows.filter(t => t.outcome === 'failed').length,
+    notRun: trialRows.filter(t => t.outcome === 'notRun').length,
+    rows: trialRows.map(t => ({
+      title: t.title,
+      machine: machineName(t.assetId) ?? 'the line',
+      /* The plan and the day are two fields, never one — the difference between
+         what you meant to run and what you ran is usually the story. */
+      when: t.outcome === 'planned' ? fmtShort(t.plannedFor) : fmtShort(t.ranOn ?? t.plannedFor),
+      passesIf: t.passesIf ?? '',
+      withWhom: t.withWhom ?? '',
+      product: (t.outcome === 'planned' ? t.planned : t.product ?? t.planned) ?? '',
+      result: t.result ?? '',
+      outcome: t.outcome,
+      outcomeWord: OUTCOME_WORD[t.outcome],
+    })),
+  };
+
+  /* A JOB WITH NO TRACKER IS NOT A TRACKER JOB.
+     The report was Project Pace's, and every project got its shape: a ppm sheet,
+     a 3P board, an action tracker. A commissioning job has none of those, so it
+     printed three pages of empty scaffolding and buried the two things it does
+     carry behind them. What prints is now what the project HAS. */
+  const hasTracker = actions.length > 0 || nums.measures.length > 0;
+
   /* One order, counted once. Pace, then where the time is going, then the plan,
      then the work, then the detail — and every page number falls out of the
      same arithmetic the pages themselves are rendered from. */
@@ -736,7 +846,10 @@ export function PaceExecReport() {
   const programsPageNo = materialsPageNo + (hasMaterials ? 1 : 0);
   const treePageNo = programsPageNo + (hasPrograms ? 1 : 0);
   const boardPageNo = treePageNo + (hasTree ? 1 : 0);
-  const pageCount = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
+  /* The detail page carries the tracker, the next steps, the walk and the wins.
+     With none of them it is a page of headings, so it is not printed. */
+  const hasDetail = hasTracker || (todos?.length ?? 0) > 0 || wins.length > 0 || snags.length > 0;
+  const pageCount = 1 + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
     + (hasTree ? 1 : 0) + boardPlan.length;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
@@ -778,8 +891,14 @@ export function PaceExecReport() {
   const subtitle = line
     ? [line.owner && `Owner ${line.owner}`, line.sponsor && `Sponsor ${line.sponsor}`,
        `part of ${project?.name ?? 'the project'}`].filter(Boolean).join(' · ')
-    : [lineList, nums.measures[0]?.name ?? 'the numbers', 'the action tracker', 'the line walk']
-        .filter(Boolean).join(' — ').replace(/ — (?=the action)/, ', ').replace(/ — (?=the line walk)/, ', ');
+    /* The masthead names what is actually in the report. On a job with no
+       tracker it used to promise "the numbers, the action tracker, the line
+       walk" over a front page carrying none of the three. */
+    : !hasTracker
+      ? [lineList, 'the trials', 'what we are waiting on', 'what the machine can run']
+          .filter(Boolean).join(' — ').replace(/ — (?=what we)/, ', ').replace(/ — (?=what the)/, ', ')
+      : [lineList, nums.measures[0]?.name ?? 'the numbers', 'the action tracker', 'the line walk']
+          .filter(Boolean).join(' — ').replace(/ — (?=the action)/, ', ').replace(/ — (?=the line walk)/, ', ');
 
   const openSnags = snags.filter(s => s.status !== 'closed');
   /* Which line each snag came off. The project's report merges every line's
@@ -915,6 +1034,8 @@ export function PaceExecReport() {
     byLine: rollup,
     materials: materialsBlock,
     programs: programsBlock,
+    trials: trialsBlock,
+    tracker: hasTracker,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -1000,7 +1121,11 @@ export function PaceExecReport() {
         <header className="exec-head">
           <div>
             <p className="exec-eyebrow">
-              {line ? `${project?.name ?? 'Project'} · line report` : 'Improvement initiative · weekly executive report'}
+              {line
+                ? `${project?.name ?? 'Project'} · line report`
+                : hasTracker
+                  ? 'Improvement initiative · weekly executive report'
+                  : 'Commissioning · weekly executive report'}
             </p>
             <h1 className="exec-title">{title}</h1>
             <p className="exec-lede">{subtitle}</p>
@@ -1014,9 +1139,17 @@ export function PaceExecReport() {
         </header>
 
         <div className="exec-stats">
-          {/* On a line's own deck "0/1 lines at target" is a riddle; the number
-              the owner is judged on is the reading itself, against target. */}
-          {line
+          {/* A JOB WITH NO TRACKER GETS ITS OWN NUMBERS. "0% actions complete"
+              and "0/2 lines at target" are not facts about a commissioning job,
+              they are facts about a spreadsheet it does not keep. */}
+          {!hasTracker ? (<>
+            <Stat n={String(trialsBlock?.planned ?? 0)} label="Trials booked" sub="still to run" tone="flat" />
+            <Stat n={String(trialsBlock?.passed ?? 0)} label="Trials passed" sub={`of ${trialRows.length} run or booked`} tone="good" />
+            <Stat n={String(trialsBlock?.failed ?? 0)} label="Didn’t pass" sub="and what came of it" tone={(trialsBlock?.failed ?? 0) > 0 ? 'bad' : 'good'} />
+            <Stat n={String(progs.tally.proved)} label="Programs proved" sub={`of ${progs.tally.total} on the machine`} tone={progs.tally.proved > 0 ? 'good' : 'flat'} />
+            <Stat n={String(mats.tally.late)} label="Films late" sub="past the date, still not here" tone={mats.tally.late > 0 ? 'bad' : 'good'} />
+            <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
+          </>) : line
             ? (() => {
                 const ser = seriesByLine.get(line.id);
                 if (!ser) return <Stat n="—" label="No measures set" sub="set them up on the project" tone="flat" />;
@@ -1027,14 +1160,19 @@ export function PaceExecReport() {
               })()
             : <Stat n={`${atTarget}/${reportLines.length}`} label="Lines at target" sub="latest reading vs target"
                 tone={atTarget === reportLines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />}
-          <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="good" />
-          <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
-          <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'good'} />
-          <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
-          <Stat n={String(winsThisWeek.length)} label="Wins this week" sub="what worked" tone="good" />
+          {hasTracker && <>
+            <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="good" />
+            <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
+            <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'good'} />
+            <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
+            <Stat n={String(winsThisWeek.length)} label="Wins this week" sub="what worked" tone="good" />
+          </>}
         </div>
 
         <div className="exec-body-1">
+          {!hasTracker ? (
+            <TrialsBox t={trialsBlock} />
+          ) : (
           <section className="exec-box exec-box-lines">
             <SectionHead n="1" title={nums.measures[0]?.name ?? 'The numbers'}
               sowhat={nums.measures[0]
@@ -1052,11 +1190,14 @@ export function PaceExecReport() {
               })}
             </div>
           </section>
+          )}
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 1 of {pageCount} — the numbers</span>
-          <span>The tracker workbook is the system of record; this report reads it.</span>
+          <span>{title} · weekly executive report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'the trials'}</span>
+          <span>{hasTracker
+            ? 'The tracker workbook is the system of record; this report reads it.'
+            : 'A trial is planned, then run, and what it found becomes the next one.'}</span>
         </footer>
       </section>
       </div>
@@ -1080,7 +1221,9 @@ export function PaceExecReport() {
           board, find nothing, and have no way to tell which of the two it is.
           So the report SCREEN says it, and the file stays clean: this note does
           not print and is not in the PDF. */}
-      {boardRows.length === 0 && (
+      {/* And the note about the missing board only where a board was ever
+          expected — it is a note about the TRACKER's 3P column. */}
+      {hasTracker && boardRows.length === 0 && (
         <div className="exec-note no-print">
           <p>
             <b>No 3P board sheet in this report.</b>{' '}
@@ -1103,10 +1246,21 @@ export function PaceExecReport() {
           fill={boardScale(runHeight(sheetAreas))} />
       ))}
 
-      {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT ================= */}
+      {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT =================
+          Only when there is something on it. On a commissioning job it was an
+          action tracker with no actions, a next-steps list with no next steps
+          and a wins list with no wins — a page of headings saying nothing,
+          printed because the report was built for a project that always had
+          them. */}
+      {hasDetail && (<>
       <div className="exec-pagewrap" style={{ height: SHEET_H * scale }}>
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-2">
+          {/* THE TRACKER BOX ONLY WHERE THERE IS A TRACKER. On a job that
+              keeps none, this printed "0 actions" over an empty bar and a
+              heading about lines that have no actions against them. The
+              walk and the wins below it are real, so the page stays. */}
+          {hasTracker && (
           <section className="exec-box exec-box-actions">
             <SectionHead n={String(sec + 0)} title={line ? 'Action tracker' : 'Action tracker & the lines'}
               sowhat={line
@@ -1162,7 +1316,10 @@ export function PaceExecReport() {
               </p>
             )}
           </section>
+          )}
 
+          {/* Same rule: "the actions past their date" is a tracker sentence. */}
+          {hasTracker && (
           <section className="exec-box exec-box-late">
             <SectionHead n={String(sec + 1)} title="Overdue & at risk" sowhat="The actions past their date — where help is needed" />
             {lateActions.length === 0 ? (
@@ -1184,6 +1341,7 @@ export function PaceExecReport() {
             )}
             {lateMore > 0 && <p className="exec-more">+{lateMore} more overdue — see the tracker</p>}
           </section>
+          )}
 
           <section className="exec-box exec-box-next">
             <SectionHead n={String(sec + 2)} title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
@@ -1289,6 +1447,7 @@ export function PaceExecReport() {
         </footer>
       </section>
       </div>
+      </>)}
     </div>
   );
 }

@@ -5241,3 +5241,30 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* the test date under the state in the grid — the second half of the question
    this screen exists to answer, so it is on the picture and not only the list */
 .mt-grid-test { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+
+/* ---- the trials, on the report ----
+   A trial is a sentence, not a state, so this is a table and not a grid: what
+   we plan to prove, on which machine, what it passes on, who with, when — and
+   once the day has happened, what came of it. The plan and the day stay apart,
+   because the difference between what you meant to run and what you ran is
+   usually the story. */
+.exec-trials { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 6px; }
+.exec-trials thead th {
+  text-align: left; font-size: 9px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted); padding: 0 8px 5px 0;
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.exec-trials tbody td, .exec-trials tbody th {
+  text-align: left; vertical-align: top; padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--line); font-weight: 400; color: var(--ink-2);
+}
+.exec-trials .tr-what { font-weight: 700; color: var(--ink); width: 28%; }
+.exec-trials .tr-pass { width: 20%; }
+.exec-trials .tr-when { white-space: nowrap; font-weight: 700; color: var(--ink); }
+.exec-trials tbody tr:nth-child(even) td, .exec-trials tbody tr:nth-child(even) th { background: #fafcfc; }
+.tr-out { display: block; font-weight: 800; white-space: nowrap; }
+.tr-out.is-planned { color: var(--blue); }
+.tr-out.is-passed  { color: var(--ok); }
+.tr-out.is-failed  { color: var(--danger); }
+.tr-out.is-notRun  { color: var(--warn); }
+.tr-res { display: block; font-size: 10px; color: var(--muted); }

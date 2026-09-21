@@ -103,6 +103,23 @@ export interface PaceReportData {
       fill: ('proved' | 'machine' | 'none')[]; booked: boolean[];
     }[];
   };
+  /* THE TRIALS — a commissioning job's whole story, and the report had no page
+     for it. Planned, which machine, what it passes on, who with; and for one
+     that has happened, the day and what came of it. Absent on a line's own deck
+     and on a project with none, and then no sheet is printed. */
+  trials?: {
+    planned: number; passed: number; failed: number; notRun: number;
+    rows: {
+      title: string; machine: string; when: string; passesIf: string;
+      withWhom: string; product: string; result: string;
+      outcome: 'planned' | 'passed' | 'failed' | 'notRun';
+      outcomeWord: string;
+    }[];
+  };
+  /** Does this project keep a weekly tracker at all? A commissioning job does
+   *  not, and printing it a ppm sheet, a 3P board and an action list is three
+   *  pages of scaffolding in front of the two it does carry. */
+  tracker: boolean;
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
@@ -432,6 +449,68 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
       ? `${m.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
       : 'Green from the week it lands, the same as the plan it comes off.',
     W - M, H - M + 6, { align: 'right' });
+}
+
+/* ---------- the trials ----------
+ * A trial is a sentence, not a state, so this is a table and not a grid: what
+ * we plan to prove, on which machine, on what product, what it passes on, who
+ * with, when — and once the day has happened, what came of it.
+ *
+ * The plan and the day stay separate columns. The difference between what you
+ * meant to run and what you ran is usually the story.
+ */
+function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number): void {
+  const t = data.trials;
+  const sub = t
+    ? `${t.planned} booked \u00b7 ${t.passed} passed${t.failed ? ` \u00b7 ${t.failed} didn\u2019t` : ''}${
+        t.notRun ? ` \u00b7 ${t.notRun} didn\u2019t run` : ''}`
+    : 'nothing booked yet';
+  const top = panel(d, M, top0, CW, panelH, '1', 'The trials', sub);
+
+  if (!t || t.rows.length === 0) {
+    setFont(d, 8, 'normal', MUTED);
+    d.text('No trial has been booked on this job yet.', M + 14, top + 22);
+    return;
+  }
+
+  const x0 = M + 14, right = M + CW - 14;
+  /* what we are proving | machine | product | passes if | with | when | outcome */
+  const w = [0.30, 0.10, 0.14, 0.20, 0.09, 0.07, 0.10].map(f => (right - x0) * f);
+  const at = (i: number) => x0 + w.slice(0, i).reduce((a, b) => a + b, 0);
+  const HEADS = ['WHAT WE ARE PROVING', 'MACHINE', 'PRODUCT', 'PASSES IF', 'WITH', 'WHEN', 'OUTCOME'];
+
+  setFont(d, 6.5, 'bold', MUTED);
+  HEADS.forEach((h, i) => d.text(fit(d, h, w[i] - 4), at(i), top + 16));
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(x0, top + 20, right, top + 20);
+
+  const rows = t.rows.slice(0, 16);
+  const rowH = Math.max(14, Math.min(26, (panelH - 40 - (top - top0)) / Math.max(1, rows.length)));
+
+  rows.forEach((r, i) => {
+    const y = top + 34 + i * rowH;
+    if (i % 2 === 1) {
+      d.setFillColor('#fafcfc');
+      d.rect(x0 - 4, y - rowH + 5, right - x0 + 8, rowH, 'F');
+    }
+    const cells = [r.title, r.machine, r.product || '\u2014', r.passesIf || '\u2014', r.withWhom || '\u2014', r.when];
+    cells.forEach((c, k) => {
+      setFont(d, Math.min(7.5, rowH * 0.42), k === 0 ? 'bold' : 'normal', k === 0 ? INK : INK2);
+      d.text(fit(d, san(c), w[k] - 5), at(k), y);
+    });
+    const tone = r.outcome === 'passed' ? OK : r.outcome === 'failed' ? DANGER : r.outcome === 'notRun' ? WARN : BRAND;
+    setFont(d, Math.min(7, rowH * 0.4), 'bold', tone);
+    d.text(fit(d, r.outcomeWord, w[6] - 5), at(6), y);
+    if (r.result) {
+      setFont(d, 5.5, 'normal', MUTED);
+      d.text(fit(d, san(r.result), w[6] - 5), at(6), y + 6);
+    }
+  });
+
+  if (t.rows.length > rows.length) {
+    setFont(d, 6, 'normal', MUTED);
+    d.text(`+${t.rows.length - rows.length} more than fit this sheet`, x0, top + 34 + rows.length * rowH + 4);
+  }
 }
 
 /* ---------- what the machine can run ----------
@@ -800,8 +879,21 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
     [String(data.winsThisWeek), 'Wins this week', 'what worked', OK],
   ];
+
+  /* A COMMISSIONING JOB'S OWN NUMBERS. "0% actions complete" is not a fact
+     about this job, it is a fact about a spreadsheet it does not keep. */
+  const tr = data.trials, mt = data.materials, pg = data.programs;
+  const commTiles: [string, string, string, string][] = [
+    [String(tr?.planned ?? 0), 'Trials booked', 'still to run', BRAND],
+    [String(tr?.passed ?? 0), 'Trials passed', `of ${tr?.rows.length ?? 0} on the job`, OK],
+    [String(tr?.failed ?? 0), 'Didn\u2019t pass', 'and what came of it', (tr?.failed ?? 0) > 0 ? DANGER : OK],
+    [String(pg?.proved ?? 0), 'Programs proved', `of ${pg?.total ?? 0} on the machine`, (pg?.proved ?? 0) > 0 ? OK : MUTED],
+    [String(mt?.late ?? 0), 'Films late', 'past the date, still not here', (mt?.late ?? 0) > 0 ? DANGER : OK],
+    [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
+  ];
+  const headTiles = data.tracker ? tiles : commTiles;
   const tGap = 8, tW = (CW - tGap * 5) / 6, tY = M + 68, tH = 54;
-  tiles.forEach(([n, label, sub, colour], i) => {
+  headTiles.forEach(([n, label, sub, colour], i) => {
     const tx = M + i * (tW + tGap);
     d.setFillColor('#ffffff'); d.setDrawColor(LINE); d.setLineWidth(0.8);
     d.roundedRect(tx, tY, tW, tH, 5, 5, 'FD');
@@ -821,6 +913,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* Titled for whatever this business measures, read off the first line's own
      series — the page and the file have to say the same words. */
   const lead = data.lines.find(l => l.series)?.series?.measure;
+
+  if (!data.tracker) {
+    /* NO TRACKER, NO PPM SHEET. What this job is actually doing is running
+       trials, so that is the front page: what we are proving, on which machine,
+       what it passes on, who with, and when. */
+    trialsPanel(d, data, M, lpY, CW, lpH);
+  } else {
   const ruleY = panel(d, M, lpY, CW, lpH, '1', lead ? lead.name : 'The numbers',
     lead
       ? `Every reading against the target for the period it falls in${lead.unit ? ` \u00b7 ${lead.unit}` : ''}`
@@ -840,6 +939,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     const cy = ruleY + 10 + Math.floor(i / cols) * (cH + cGap);
     chart(d, cx, cy, cW, cH, l);
   });
+  }
 
   /* The areas, and how they fall across sheets. BOARD_AVAIL comes from
    * lib/pillars and is in points — the same number the report screen measures
@@ -857,11 +957,18 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const hasMaterials = !!data.materials && data.materials.rows.length > 0;
   /* Same rule for programs: a project with none prints no sheet. */
   const hasPrograms = !!data.programs && data.programs.rows.length > 0;
-  const pages = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
+  /* The detail sheet carries the tracker, the next steps, the walk and the
+     wins. With none of them it is a page of headings, so it is not printed —
+     which on a commissioning job it never had any of. */
+  const hasDetail = data.tracker || data.todos.length > 0 || data.wins.length > 0 || data.snags.length > 0;
+  const pages = 1 + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
-  d.text('The tracker workbook is the system of record; this report reads it.', W - M, H - M + 6, { align: 'right' });
+  d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'the trials'}`, CW * 0.8), M, H - M + 6);
+  d.text(data.tracker
+    ? 'The tracker workbook is the system of record; this report reads it.'
+    : 'A trial is planned, then run, and what it found becomes the next one.',
+    W - M, H - M + 6, { align: 'right' });
 
   const paretoPage = 2;
   const materialsPage = 2 + (hasPareto ? 1 : 0);
@@ -1153,6 +1260,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   /* ================= TRACKER, ATTENTION & MOVEMENT ================= */
+  if (!hasDetail) return;
   d.addPage('a3', 'landscape');
 
   const gap = 12;
