@@ -76,6 +76,26 @@ export interface PaceReportData {
        parses a date either. */
     rows: { what: string; due?: string; here: boolean; late?: number; covered: boolean[] }[];
   };
+  /* WHAT THE MACHINE CAN RUN, drawn the same way and for the same reason. The
+     one difference is the fill: a film is green or it is not, a program is
+     green (proved), amber (on the machine, unproved) or hollow (not written),
+     with a ring on the week its test is booked. `fill` and `booked` are worked
+     out by lib/programs beside the screen's own grid, so the page and the file
+     cannot shade a different week. Absent when there are no programs, and then
+     the sheet is not printed at all. */
+  programs?: {
+    total: number; proved: number; onMachine: number; needed: number;
+    overdue: number; nextTest?: string;
+    weeks: { start: string; label: string; month: string }[];
+    /* `when` arrives already written for print ("proved 14 Sep", "29 Sep",
+       "no date"), the same as every other date in this contract: the drawer
+       never parses one. */
+    rows: {
+      what: string; runs?: string; when: string;
+      state: 'needed' | 'onMachine' | 'proved'; overdue?: number;
+      fill: ('proved' | 'machine' | 'none')[]; booked: boolean[];
+    }[];
+  };
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
@@ -387,6 +407,143 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
     W - M, H - M + 6, { align: 'right' });
 }
 
+/* ---------- what the machine can run ----------
+ * The materials sheet's twin, and drawn by the same hand: rows down the side,
+ * weeks across the top, and a block of colour a GM reads in one look.
+ *
+ * What differs is that a program has three states, so the grid has three fills
+ * — and at A3 across a meeting table nobody is going to tell amber from green
+ * by hue alone under a strip light. So the state is written in words in its own
+ * column as well, and the ring marking the week of a test is a shape, not a
+ * tint. Nothing on this page relies on colour to be read.
+ */
+function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number): void {
+  const pg = data.programs;
+  if (!pg) return;
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+
+  const sub = pg.overdue > 0
+    ? `${pg.overdue} past its test date \u00b7 ${pg.proved} of ${pg.total} proved`
+    : `${pg.proved} of ${pg.total} proved \u00b7 ${pg.onMachine} on the machine \u00b7 ${pg.needed} not written`;
+
+  const rows = pg.rows.slice(0, 26);          // a sheet nobody can read is not a picture
+  const weeks = pg.weeks;
+
+  const PANEL_HEAD = 44, GRID_HEAD = 36, FOOT_PAD = 22;
+  const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
+  const panelH = Math.min(
+    H - 2 * M - 14,
+    Math.max(150, PANEL_HEAD + GRID_HEAD + rows.length * rowH + FOOT_PAD),
+  );
+  const top = panel(d, M, M, CW, panelH, String(page), 'What the machine can run', sub);
+
+  const x0 = M + 14;
+  const right = M + CW - 14;
+  const whenW = 78;                            // wider than materials: it carries a state AND a date
+  const wkW = Math.min(34, Math.max(14, (right - x0 - 300 - whenW) / Math.max(1, weeks.length)));
+  const itemW = right - x0 - whenW - wkW * weeks.length;
+  const gridX = x0 + itemW + whenW;
+
+  const bodyTop = top + 10 + 26;
+
+  /* ---- the head: the months over their weeks, then the week names ---- */
+  let runFrom = 0;
+  weeks.forEach((w, i) => {
+    const lastOfRun = i === weeks.length - 1 || weeks[i + 1].month !== w.month;
+    if (!lastOfRun) return;
+    const x = gridX + runFrom * wkW;
+    const width = (i - runFrom + 1) * wkW;
+    d.setFillColor(SURF2); d.setDrawColor(LINE); d.setLineWidth(0.5);
+    d.rect(x, top + 10, width, 12, 'FD');
+    setFont(d, 6.5, 'bold', INK2);
+    d.text(fit(d, w.month.toUpperCase(), width - 4), x + width / 2, top + 18.5, { align: 'center' });
+    runFrom = i + 1;
+  });
+
+  setFont(d, 6.5, 'bold', MUTED);
+  d.text('PROGRAM', x0, top + 18.5);
+  d.text("WHERE IT'S GOT TO", x0 + itemW, top + 18.5);
+  weeks.forEach((w, i) => {
+    setFont(d, 6, 'bold', MUTED);
+    d.text(fit(d, w.label, wkW - 2), gridX + i * wkW + wkW / 2, top + 30, { align: 'center' });
+  });
+
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(x0, bodyTop - 4, right, bodyTop - 4);
+
+  const FILL = { proved: '#2e9e5b', machine: '#e8bf78', none: '#eef3f5' };
+
+  /* ---- the rows ---- */
+  rows.forEach((r, i) => {
+    const y = bodyTop + i * rowH;
+
+    if (i % 2 === 1) {
+      d.setFillColor('#fafcfc');
+      d.rect(x0 - 4, y - rowH + 5, right - x0 + 8, rowH, 'F');
+    }
+
+    setFont(d, Math.min(8, rowH * 0.5), r.overdue != null ? 'bold' : 'normal',
+      r.state === 'proved' ? MUTED : INK);
+    d.text(fit(d, san(r.what), itemW - 6), x0, y);
+    /* What it runs, under the name and only when the row is tall enough to
+       carry it — a second line crammed into 12pt is a smudge, not a fact. */
+    if (r.runs && rowH >= 16) {
+      setFont(d, 5.5, 'normal', MUTED);
+      d.text(fit(d, san(r.runs), itemW - 6), x0, y + 6);
+    }
+
+    /* THE WORD, not just the colour. This column is what makes the sheet
+       readable photocopied, faxed to an OEM, or by anybody who cannot separate
+       red from green. */
+    setFont(d, Math.min(7, rowH * 0.45), 'bold',
+      r.state === 'proved' ? OK : r.overdue != null ? DANGER : r.state === 'onMachine' ? INK2 : MUTED);
+    d.text(fit(d, r.when, whenW - 6), x0 + itemW, y);
+    if (r.overdue != null) {
+      setFont(d, 5.5, 'normal', DANGER);
+      d.text(`${r.overdue}d ago`, x0 + itemW, y + 6);
+    }
+
+    /* The block of colour, and the ring over it. */
+    r.fill.forEach((f, c) => {
+      const cx = gridX + c * wkW;
+      d.setFillColor(FILL[f]);
+      d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
+      d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
+      if (r.booked[c]) {
+        /* The week the test is booked: drawn as an outline OVER whatever is
+           under it, so it survives being read in black and white. */
+        d.setDrawColor('#1c6fb8'); d.setLineWidth(1.2);
+        d.rect(cx + 1.2, y - rowH + 6.7, wkW - 2.4, rowH - 3.9, 'S');
+      }
+    });
+  });
+
+  /* ---- the key. Four fills and a ring are worth four words at the bottom of
+     a page somebody is reading across a table. ---- */
+  const keyY = top + panelH - 26;
+  let kx = x0;
+  ([['proved', 'Proved'], ['machine', 'On the machine'], ['none', 'Not written']] as const).forEach(([f, label]) => {
+    d.setFillColor(FILL[f]); d.setDrawColor(LINE); d.setLineWidth(0.4);
+    d.rect(kx, keyY - 4.5, 12, 6, 'FD');
+    setFont(d, 6, 'normal', INK2);
+    d.text(label, kx + 16, keyY);
+    kx += 24 + d.getTextWidth(label);
+  });
+  d.setDrawColor('#1c6fb8'); d.setLineWidth(1.2);
+  d.rect(kx, keyY - 4.5, 12, 6, 'S');
+  setFont(d, 6, 'normal', INK2);
+  d.text('Test booked that week', kx + 16, keyY);
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${page} of ${pages} \u2014 what the machine can run`, CW * 0.8), M, H - M + 6);
+  d.text(
+    pg.rows.length > rows.length
+      ? `${pg.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
+      : 'Proved carries the day it was proved. The word on its own is an opinion.',
+    W - M, H - M + 6, { align: 'right' });
+}
+
 /* ---------- the lever tree ----------
  * Laid out left to right, exactly as it is on screen: the outcome on the left,
  * each level a column to its right, children stacked and their parent centred
@@ -663,7 +820,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* A project waiting on nothing prints no materials sheet — an empty grid is a
      page that tells the reader off for having nothing outstanding. */
   const hasMaterials = !!data.materials && data.materials.rows.length > 0;
-  const pages = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0)
+  /* Same rule for programs: a project with none prints no sheet. */
+  const hasPrograms = !!data.programs && data.programs.rows.length > 0;
+  const pages = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — line pace`, CW * 0.8), M, H - M + 6);
@@ -671,7 +830,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   const paretoPage = 2;
   const materialsPage = 2 + (hasPareto ? 1 : 0);
-  const planPage = materialsPage + (hasMaterials ? 1 : 0);
+  /* Programs sit directly behind materials, because the two answer one question
+     between them: what is this line waiting on. */
+  const programsPage = materialsPage + (hasMaterials ? 1 : 0);
+  const planPage = programsPage + (hasPrograms ? 1 : 0);
   const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
 
   /* ============ WHERE THE TIME IS GOING — the Pareto, its own sheet ============
@@ -776,6 +938,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   if (hasMaterials) {
     d.addPage('a3', 'landscape');
     materialsSheet(d, data, materialsPage, pages);
+  }
+
+  /* ============ WHAT THE MACHINE CAN RUN — the programs, as a grid ============
+   * Behind the films, and read the same way. Only when there are any. */
+  if (hasPrograms) {
+    d.addPage('a3', 'landscape');
+    programsSheet(d, data, programsPage, pages);
   }
 
   /* ================= THE PLAN — the lever tree, its own sheet =================

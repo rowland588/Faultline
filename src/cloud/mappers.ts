@@ -7,6 +7,7 @@ import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
+import type { Program, ProgramState } from '../lib/programs';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -502,6 +503,42 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Reading),
   },
 
+  programs: {
+    clock: l => (l as Program).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const p = l as Program;
+      return {
+        id: p.id, owner_id: fallbackOwner, project_id: p.projectId,
+        what: p.what, runs: p.runs ?? null,
+        asset_id: p.assetId ?? null, line_id: p.lineId ?? null,
+        state: p.state,
+        test_on: p.testOn ?? null, proved_on: p.provedOn ?? null, test_id: p.testId ?? null,
+        supplier: p.from ?? null, note: p.note ?? null,
+        sort: p.sort, created_at: p.createdAt,
+        updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      what: (r.what as string) ?? '',
+      runs: (r.runs as string) ?? undefined,
+      assetId: (r.asset_id as string) ?? undefined,
+      lineId: (r.line_id as string) ?? undefined,
+      // A cloud row written by a build that knows a state this one does not
+      // reads as needed rather than as undefined, which would crash a screen.
+      state: (['needed', 'onMachine', 'proved'].includes(r.state as string)
+        ? r.state as ProgramState : 'needed'),
+      testOn: (r.test_on as string) ?? undefined,
+      provedOn: (r.proved_on as string) ?? undefined,
+      testId: (r.test_id as string) ?? undefined,
+      from: (r.supplier as string) ?? undefined,
+      note: (r.note as string) ?? undefined,
+      sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Program),
+  },
+
   materials: {
     clock: l => (l as Material).updatedAt,
     mediaKeys: () => [],
@@ -571,4 +608,6 @@ export const SYNC_KINDS: SyncKind[] = [
   'targets', 'readings',
   // after the lines, because a material can name the line it is for
   'materials',
+  // after the machines and the tests, because a program names both
+  'programs',
 ];

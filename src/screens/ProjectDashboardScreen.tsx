@@ -22,6 +22,8 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { daysLate } from '../lib/materials';
+import { usePrograms } from '../lib/usePrograms';
+import { daysOverdue } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
@@ -422,6 +424,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const mats = useMaterials(projectId);
+  const progs = usePrograms(projectId);
   const { actions } = pace;
   // Every line's own pack, counted. This is the roll-up: each number below was
   // typed by a line owner into their own pack, not entered again here.
@@ -499,6 +502,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               job waits on something, and a list you have to switch on first is a
               list nobody starts. It costs nothing when it is empty. */}
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/materials`)}>Materials</button>
+          {/* Beside Materials, deliberately, and on every project for the same
+              reason: the two answer one question between them — what is this
+              line waiting on. A machine with no program is as stopped as a
+              machine with no film. */}
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
           {project.pareto && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
           )}
@@ -563,6 +571,26 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             {mats.materials.filter(m => daysLate(m) != null).slice(0, 3)
               .map(m => `${m.what} — ${daysLate(m)} day${daysLate(m) === 1 ? '' : 's'}`).join('  ·  ')}
             {mats.tally.late > 3 && `  ·  and ${mats.tally.late - 3} more`}
+          </span>
+          <span className="mt-alarm-go" aria-hidden>›</span>
+        </button>
+      )}
+
+      {/* And the same for a test day that has been and gone. Kept separate
+          from the materials banner rather than merged into one "things are
+          late" line: they are owed by different people and fixed in different
+          ways, and a merged count tells you neither. */}
+      {lens === 'overview' && progs.tally.overdue > 0 && (
+        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/programs`)}>
+          <span className="mt-alarm-t">
+            {progs.tally.overdue === 1
+              ? '1 program is past its test date'
+              : `${progs.tally.overdue} programs are past their test date`}
+          </span>
+          <span className="mt-alarm-s">
+            {progs.programs.filter(p => daysOverdue(p) != null).slice(0, 3)
+              .map(p => `${p.what} — ${daysOverdue(p)} day${daysOverdue(p) === 1 ? '' : 's'}`).join('  ·  ')}
+            {progs.tally.overdue > 3 && `  ·  and ${progs.tally.overdue - 3} more`}
           </span>
           <span className="mt-alarm-go" aria-hidden>›</span>
         </button>

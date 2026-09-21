@@ -5174,3 +5174,62 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .mt-when { text-align: left; align-items: flex-start; }
   .mt-alarm { flex-wrap: wrap; }
 }
+
+/* ============================ PROGRAMS =====================================
+ *
+ * The materials screen's twin, so it borrows the whole of mt-*. What is added
+ * here is the one thing that differs: a program has three states where a film
+ * has two, and the grid has to tell them apart at a glance and at 34% zoom —
+ * so each one carries a shape as well as a colour, and the list carries the
+ * word. Nothing here relies on colour alone.
+ */
+
+/* the grid: green proved, amber on the machine, hollow not written */
+.mt-cell.pg-cell.is-none { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.mt-cell.pg-cell.is-machine { background: #e8bf78; }
+.mt-cell.pg-cell.is-proved { background: var(--ok); }
+/* the week its test is booked, drawn OVER whatever fill is under it */
+.mt-cell.pg-cell.is-booked { box-shadow: inset 0 0 0 2px var(--blue); }
+
+.pg-grid-runs { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+.mt-grid tbody .mt-grid-when.is-pg-proved { color: var(--ok); }
+.mt-grid tbody .mt-grid-when.is-pg-onMachine { color: var(--warn); }
+.mt-grid tbody .mt-grid-when.is-pg-needed { color: var(--muted); font-weight: 600; }
+
+/* the key under the grid — three fills and a ring are worth four words */
+.pg-key { display: flex; flex-wrap: wrap; gap: 16px; margin: 8px 0 0; font-size: 11.5px; color: var(--ink-2); }
+.pg-key-i { display: inline-flex; align-items: center; gap: 6px; }
+.pg-sw { width: 20px; height: 10px; border-radius: 3px; background: #eef3f5; }
+.pg-sw.is-proved { background: var(--ok); }
+.pg-sw.is-machine { background: #e8bf78; }
+.pg-sw.is-none { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); }
+.pg-ring { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--blue); }
+
+/* the list: the left edge says when it settles, the pill says what we have */
+.mt-row.is-pg-overdue { border-left-color: var(--danger); }
+.mt-row.is-pg-booked { border-left-color: var(--blue); }
+.mt-row.is-pg-undated { border-left-color: var(--warn); }
+.mt-row.is-pg-proved { background: var(--surface-2); border-left-color: var(--ok); }
+.mt-when-n.is-pg-overdue { color: var(--danger); }
+.mt-when-n.is-pg-proved { color: var(--ok); }
+.mt-when-n.is-pg-undated { color: var(--warn); }
+
+.pg-state { flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px; }
+.pg-state-sel {
+  width: 158px; padding: 6px 8px; font-size: 12.5px; font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.pg-state-sel.is-pg-proved { color: var(--ok); border-color: var(--ok); }
+.pg-state-sel.is-pg-onMachine { color: var(--warn); border-color: var(--warn); }
+.pg-state-sel.is-pg-needed { color: var(--ink-2); }
+
+/* said out loud rather than left to be inferred from an empty link */
+.pg-byhand { font-style: italic; }
+
+@media (max-width: 720px) {
+  .pg-state { width: 100%; }
+  .pg-state-sel { width: 100%; }
+}
+/* the test date under the state in the grid — the second half of the question
+   this screen exists to answer, so it is on the picture and not only the list */
+.mt-grid-test { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }

@@ -22,6 +22,11 @@
  * is whether the thing it is waiting for has turned up yet.
  */
 import type { ID } from '../types';
+/* The columns, the Mondays and the day arithmetic are shared with Programs —
+   see lib/weeks.ts. Re-exported here because every caller of this file already
+   asks it for `todayISO`, and moving a name is a worse trade than keeping it. */
+import { daysBetween, todayISO, weeksFrom, type Week } from './weeks';
+export { daysBetween, mondayOf, todayISO, monthSpans, type Week } from './weeks';
 
 export interface Material {
   id: ID;
@@ -59,13 +64,6 @@ export interface Material {
 
 export const live = (rows: Material[]): Material[] => rows.filter(m => !m.deletedAt);
 
-/** Today, as an ISO date, in the reader's own zone — a delivery lands on a DAY,
- *  and `toISOString()` in Manchester rolls to tomorrow all summer evening. */
-export function todayISO(d: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
 /* ================================ where it is =============================== */
 
 export type MaterialState =
@@ -81,13 +79,6 @@ export function stateOf(m: Material, today = todayISO()): MaterialState {
 }
 
 export const isHere = (m: Material): boolean => !!(m.here || m.inOn);
-
-/** Whole days between two ISO dates. Dates, not timestamps: a delivery is late
- *  by days, and an hour either side of midnight must not change the answer. */
-export function daysBetween(fromISO: string, toISO: string): number {
-  const d = (s: string) => Date.parse(s + 'T12:00:00');
-  return Math.round((d(toISO) - d(fromISO)) / 86_400_000);
-}
 
 /** How many days late, or undefined when it is not. */
 export function daysLate(m: Material, today = todayISO()): number | undefined {
@@ -130,63 +121,13 @@ export function tally(rows: Material[], today = todayISO()): Tally {
   };
 }
 
-/* ========================= the weeks, across the top ========================
- *
- * What makes the sheet readable is not the list — it is the grid: the weeks
- * across the top, and each row going green from the week its film lands. This
- * is that, worked out rather than coloured in by hand.
- */
+/* ========================= the weeks, across the top ======================== */
 
-export interface Week {
-  /** ISO date of the Monday. */
-  start: string;
-  /** ISO date of the Sunday — a date on it is inside this week. */
-  end: string;
-  /** "WK3" — which Monday of its month this is. */
-  label: string;
-  /** "September" — printed once, over the run of weeks that share it. */
-  month: string;
-}
-
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-
-/** The Monday of the week an ISO date falls in. */
-export function mondayOf(iso: string): string {
-  const d = new Date(iso + 'T12:00:00');
-  const back = (d.getDay() + 6) % 7;                 // Sunday is 0, and starts no week
-  d.setDate(d.getDate() - back);
-  return todayISO(d);
-}
-
-const addDays = (iso: string, n: number): string => {
-  const d = new Date(iso + 'T12:00:00');
-  d.setDate(d.getDate() + n);
-  return todayISO(d);
-};
-
-/** Which Monday of its month a Monday is: the first Monday of that month is 1. */
-function weekOfMonth(mondayISO: string): number {
-  const d = new Date(mondayISO + 'T12:00:00');
-  return Math.floor((d.getDate() - 1) / 7) + 1;
-}
-
-/** The columns: from the week we are in now, far enough to cover the last thing
- *  anybody is waiting for. Bounded at both ends — a grid nobody can read across
- *  is not a picture, and one date typed with the wrong year must not produce a
- *  thousand columns. */
+/** The columns for the materials grid: from this week, far enough to cover the
+ *  last thing anybody is still waiting for. Things already here need no column
+ *  of their own — they are green all the way across. */
 export function weeksFor(rows: Material[], today = todayISO(), least = 6, most = 14): Week[] {
-  const start = mondayOf(today);
-  const dues = live(rows).flatMap(m => (!isHere(m) && m.due ? [m.due] : []));
-  const last = dues.sort().slice(-1)[0];
-  const needed = last ? Math.floor(daysBetween(start, mondayOf(last)) / 7) + 1 : 0;
-  const n = Math.max(least, Math.min(most, needed));
-
-  return Array.from({ length: n }, (_, i) => {
-    const s = addDays(start, i * 7);
-    const d = new Date(s + 'T12:00:00');
-    return { start: s, end: addDays(s, 6), label: `WK${weekOfMonth(s)}`, month: MONTHS[d.getMonth()] };
-  });
+  return weeksFrom(live(rows).flatMap(m => (!isHere(m) && m.due ? [m.due] : [])), today, least, most);
 }
 
 /** Is this material available in this week — the green cell.

@@ -35,6 +35,8 @@ import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '..
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { coveredIn, daysLate, isHere, todayISO } from '../lib/materials';
+import { usePrograms } from '../lib/usePrograms';
+import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import type { PaceParetoSheet } from '../lib/paceWorkbook';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
@@ -270,6 +272,96 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
   );
 }
 
+/* WHAT THE MACHINE CAN RUN — the materials grid's twin, drawn the same way.
+ *
+ * The one thing it does differently is write the state in words beside the
+ * colour. Three fills read fine on a screen; across a meeting table, on a
+ * photocopy, or to somebody who cannot separate red from green, a column that
+ * says "On the machine" is the only reason the sheet still works.
+ *
+ * It takes the same block the PDF does, so the page and the file cannot shade
+ * different weeks. */
+/** The three states in the words the sheet prints. Kept beside the page that
+ *  prints them rather than imported from the model: this is presentation, and
+ *  the model's own STATE_WORD is for the screen. */
+const STATE_LABEL = { needed: 'Not written', onMachine: 'On the machine', proved: 'Proved' } as const;
+
+function ProgramsPage({ p, title, scale, sheetH, n, of }: {
+  p: NonNullable<PaceReportData['programs']>;
+  title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  const SHOWN = 26;
+  const rows = p.rows.slice(0, SHOWN);
+  const more = p.rows.length - rows.length;
+
+  const months: { month: string; span: number }[] = [];
+  for (const w of p.weeks) {
+    const last = months[months.length - 1];
+    if (last && last.month === w.month) last.span += 1;
+    else months.push({ month: w.month, span: 1 });
+  }
+
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="What the machine can run"
+              sowhat={p.overdue > 0
+                ? `${p.overdue} past its test date · ${p.proved} of ${p.total} proved`
+                : `${p.proved} of ${p.total} proved · ${p.onMachine} on the machine · ${p.needed} not written`} />
+            <div className="mt-grid-wrap">
+              <table className="mt-grid">
+                <thead>
+                  <tr>
+                    <th className="mt-grid-item" rowSpan={2} scope="col">Program</th>
+                    <th className="mt-grid-when" rowSpan={2} scope="col">Where it&rsquo;s got to</th>
+                    {months.map(x => (
+                      <th key={x.month} colSpan={x.span} scope="colgroup" className="mt-grid-month">{x.month}</th>
+                    ))}
+                  </tr>
+                  <tr>
+                    {p.weeks.map(w => <th key={w.start} scope="col" className="mt-grid-wk">{w.label}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.what}>
+                      <th scope="row" className="mt-grid-item">
+                        {r.what}
+                        {r.runs && <span className="pg-grid-runs">{r.runs}</span>}
+                      </th>
+                      <td className={'mt-grid-when is-pg-' + r.state}>
+                        {r.when}
+                        {r.overdue != null && <span className="mt-grid-late">{r.overdue}d ago</span>}
+                      </td>
+                      {r.fill.map((f, i) => (
+                        <td key={p.weeks[i]?.start ?? i}
+                          className={`mt-cell pg-cell is-${f}` + (r.booked[i] ? ' is-booked' : '')} />
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="pg-key">
+                <span className="pg-key-i"><span className="pg-sw is-proved" aria-hidden /> Proved</span>
+                <span className="pg-key-i"><span className="pg-sw is-machine" aria-hidden /> On the machine</span>
+                <span className="pg-key-i"><span className="pg-sw is-none" aria-hidden /> Not written</span>
+                <span className="pg-key-i"><span className="pg-ring" aria-hidden /> Test booked</span>
+              </p>
+            </div>
+            {more > 0 && <p className="exec-more">+{more} more on the list than fit this sheet</p>}
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · weekly executive report · page {n} of {of} — what the machine can run</span>
+          <span>Proved carries the day it was proved. The word on its own is an opinion.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 /* PEOPLE · PROCESS · PLANT gets its own sheet, for the same reason the tree did:
  * the SHAPE is the message. Three columns handed across a table say "these are
  * the three kinds of problem and here is where each stands"; the same actions as
@@ -385,6 +477,7 @@ export function PaceExecReport() {
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const mats = useMaterials(projectId);
+  const progs = usePrograms(projectId);
   const line = lineId ? ppm.lines.find(l => l.id === lineId) : undefined;
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
@@ -580,15 +673,43 @@ export function PaceExecReport() {
     })),
   };
 
+  /* The programs block, worked out beside the grid the screen draws, for the
+     same reason as materials: one call, so the page and the file cannot
+     disagree. `when` is written for print here — the drawer never parses a
+     date, and it carries the STATE in words as well, which is what keeps the
+     sheet readable in black and white. */
+  const programsBlock: PaceReportData['programs'] = line || progs.programs.length === 0 ? undefined : {
+    total: progs.tally.total, proved: progs.tally.proved,
+    onMachine: progs.tally.onMachine, needed: progs.tally.needed,
+    overdue: progs.tally.overdue, nextTest: progs.tally.nextTest,
+    weeks: progs.weeks.map(w => ({ start: w.start, label: w.label, month: w.month })),
+    rows: progs.programs.map(p => {
+      const state = stateOf(p);
+      return {
+        what: p.what,
+        runs: p.runs,
+        state,
+        when: state === 'proved' ? `Proved ${p.provedOn ? fmtShort(p.provedOn) : ''}`.trim()
+          : p.testOn ? `${STATE_LABEL[state]} · test ${fmtShort(p.testOn)}`
+            : STATE_LABEL[state],
+        overdue: daysOverdue(p, today),
+        fill: progs.weeks.map(w => fillIn(p, w)),
+        booked: progs.weeks.map(w => testedIn(p, w)),
+      };
+    }),
+  };
+
   /* One order, counted once. Pace, then where the time is going, then the plan,
      then the work, then the detail — and every page number falls out of the
      same arithmetic the pages themselves are rendered from. */
   const paretoPageNo = 2;
   const hasMaterials = !!materialsBlock && materialsBlock.rows.length > 0;
   const materialsPageNo = 2 + (hasPareto ? 1 : 0);
-  const treePageNo = materialsPageNo + (hasMaterials ? 1 : 0);
+  const hasPrograms = !!programsBlock && programsBlock.rows.length > 0;
+  const programsPageNo = materialsPageNo + (hasMaterials ? 1 : 0);
+  const treePageNo = programsPageNo + (hasPrograms ? 1 : 0);
   const boardPageNo = treePageNo + (hasTree ? 1 : 0);
-  const pageCount = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0)
+  const pageCount = 2 + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
     + (hasTree ? 1 : 0) + boardPlan.length;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
@@ -766,6 +887,7 @@ export function PaceExecReport() {
     openSnags: openSnags.length, winsThisWeek: winsThisWeek.length,
     byLine: rollup,
     materials: materialsBlock,
+    programs: programsBlock,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -917,6 +1039,10 @@ export function PaceExecReport() {
       {materialsBlock && (
         <MaterialsPage m={materialsBlock} title={title} scale={scale} sheetH={SHEET_H}
           n={materialsPageNo} of={pageCount} />
+      )}
+      {programsBlock && (
+        <ProgramsPage p={programsBlock} title={title} scale={scale} sheetH={SHEET_H}
+          n={programsPageNo} of={pageCount} />
       )}
       {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
       {/* WHY THE BOARD SHEET IS NOT IN THIS REPORT.

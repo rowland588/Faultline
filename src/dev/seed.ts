@@ -19,7 +19,7 @@ import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
-  putTarget, putReadings, putMaterials,
+  putTarget, putReadings, putMaterials, putPrograms,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
@@ -29,6 +29,7 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Measure, Period, Reading, Target } from '../lib/measures';
 import { quarters } from '../lib/measures';
 import type { Material } from '../lib/materials';
+import type { Program } from '../lib/programs';
 
 const uid = () => crypto.randomUUID();
 
@@ -57,6 +58,8 @@ export interface Seeded {
   /** What that project is waiting on — one of every state, so the grid, the
    *  list order and the late banner are all exercised. */
   materials: number;
+  /** What the machine can run — one of every state, for the same reason. */
+  programs: number;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -291,6 +294,39 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     material('Sealing jaw — spare', { howMuch: '1 off', from: 'Ilapak UK', here: true, sort: 70 }),
   ]);
 
+  /* WHAT THE MACHINE CAN RUN — one of every state and every standing, because
+     the grid's three fills, the ring, the list order and the "past its test
+     date" banner all read differently and a fixture that is all one thing
+     proves none of them. Including the row the model exists to catch: a
+     program that SAYS proved and has no date to show for it. */
+  const program = (what: string, p: Partial<Program>): Program =>
+    ({ id: uid(), projectId: paced.id, what, state: 'needed', sort: 0, createdAt: t, updatedAt: t, ...p });
+
+  await putPrograms([
+    program('P-104 perforation — 2kg', {
+      runs: 'Finest Red 2kg', lineId: pacedLine.id, state: 'proved', provedOn: iso(-7),
+      testId: seal.id, sort: 10,
+    }),
+    program('P-106 perforation — 2kg', {
+      runs: 'Finest Nemo 2kg', state: 'proved', provedOn: iso(-3), sort: 20,
+    }),  // proved with no test behind it — signed off by hand
+    program('P-121 perforation — 2kg', {
+      runs: 'All Rounder 2kg', lineId: pacedLine.id, state: 'onMachine',
+      testOn: iso(8), from: 'Ilapak UK', sort: 30,
+    }),
+    program('P-130 perforation — 2kg', {
+      runs: 'Baking Potatoes 2kg', state: 'onMachine', sort: 40,
+    }),  // on the machine, nobody has said when
+    program('P-141 perforation — 1.25kg', {
+      runs: 'Express Piper 1.25kg', state: 'needed', testOn: iso(15), from: 'Ilapak UK', sort: 50,
+    }),
+    program('P-150 perforation — 2kg', {
+      runs: 'Jacks Piper 2kg', state: 'onMachine', testOn: iso(-6), from: 'Ilapak UK', sort: 60,
+    }),  // the day came and went
+    program('P-160 perforation — 2kg', { state: 'proved', sort: 70 }),
+    // ^ the word and nothing behind it: the app must read this as on the machine
+  ]);
+
   return {
     wsId: ws.id, projectId: proj.id, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
@@ -300,6 +336,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     assets: (await listAssets(proj.id)).length,
     testId: seal.id,
     pacedProjectId: paced.id, pacedLineId: pacedLine.id,
-    measures: 2, readings: rows.length, materials: 7,
+    measures: 2, readings: rows.length, materials: 7, programs: 7,
   };
 }
