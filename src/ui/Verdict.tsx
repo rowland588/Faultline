@@ -13,7 +13,7 @@
  * the card. See :root in styles.css for why green appears on it nowhere — the
  * only colour is the two numbers that mean something.
  */
-import type { Standing } from '../lib/standing';
+import { slipWords, type Standing } from '../lib/standing';
 
 /** One number and its word. Charcoal, with colour only where colour is a fact. */
 function Tile({ n, label, tone }: { n: string; label: string; tone?: 'warn' | 'bad' }) {
@@ -32,19 +32,16 @@ export function Verdict({ st, eyebrow = 'Where the job is' }: { st: Standing; ey
   if (!st.sentence) return null;
 
   const late = st.daysToGo != null && st.daysToGo < 0;
+  const slip = slipWords(st.slipDays);
 
   return (
     <section className="vd">
       <div className="vd-said">
         <span className="vd-eyebrow">{eyebrow}</span>
         <h2 className="vd-sentence">{st.sentence}</h2>
-        {st.slipDays != null && st.slipDays !== 0 && (
-          <p className="vd-slip">
-            {st.slipDays > 0
-              ? `The date has moved ${st.slipDays} day${st.slipDays === 1 ? '' : 's'} from what was agreed.`
-              : `${-st.slipDays} day${st.slipDays === -1 ? '' : 's'} ahead of what was agreed.`}
-          </p>
-        )}
+        {/* The words come from lib/standing so the client report's own sheet
+            says them identically — see slipWords. */}
+        {slip && <p className="vd-slip">{slip}</p>}
       </div>
 
       <div className="vd-tiles">

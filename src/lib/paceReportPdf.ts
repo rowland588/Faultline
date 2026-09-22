@@ -21,6 +21,7 @@ import {
 } from './reportKit';
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
+import type { PlanAxis, PlanLane, PlacedMark } from './plan';
 import { vsTarget } from './measures';
 import type { LineSeries } from './measures';
 
@@ -102,6 +103,30 @@ export interface PaceReportData {
       state: 'needed' | 'onMachine' | 'proved'; overdue?: number;
       fill: ('proved' | 'machine' | 'none')[]; booked: boolean[];
     }[];
+  };
+  /* WHERE THE JOB IS, and WHEN — the sheet the report never had.
+   *
+   * The screen leads on a verdict card, a timeline and a table of what is
+   * outstanding; until this existed the client got none of the three, and the
+   * footer under the screen's table promised "the client report prints this
+   * same table" while it did not. Same call, same numbers: `standing()` for
+   * the sentence and the rows, `layoutPlan()` for the marks — laid out with
+   * the SHEET's own minGap, because an A3 fits far more across than a phone
+   * and should therefore stack fewer lines.
+   *
+   * Everything arrives drawn-ready, as everywhere else in this contract:
+   * positions are fractions of the axis and dates are already words. */
+  plan?: {
+    /** The verdict, in the words the screen's card uses. */
+    says: string;
+    /** "The date has moved 8 days from what was agreed." Absent when it hasn't. */
+    slip?: string;
+    /** "4 of 13 done · 4 still ahead · 2 past the day" */
+    counted: string;
+    axis: PlanAxis;
+    lanes: PlanLane[];
+    /** The five rows of the screen's table, unchanged. */
+    outstanding: { what: string; open: number; late: number; whose?: string }[];
   };
   /* THE TRIALS — a commissioning job's whole story, and the report had no page
      for it. Planned, which machine, what it passes on, who with; and for one
@@ -342,6 +367,232 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
 /* The two sheet heights, as arithmetic rather than as a side effect of drawing.
    Pulled out so the caller can ask "do these two fit one sheet?" before it
    commits a page to either of them — see drawPaceReport. */
+/* ===================== WHERE THE JOB IS — the plan, on paper ================
+ *
+ * The same three things the project screen leads with, in the same order and
+ * off the same two calls: the verdict sentence, the dated work on an axis, and
+ * the table of what is outstanding with a name against it.
+ *
+ * THIS IS THE SHEET THE REPORT WAS MISSING. Every other page here answers a
+ * narrower question — which film, which program, which trial — and a client
+ * reading them in sequence had to assemble the position themselves. Rowland:
+ * "this software has to have the ability for me to show the business a formal
+ * process, to show that I am in control of the project." A page that says the
+ * position in one sentence, draws the days it has left, and then names who owes
+ * what, IS that. It goes directly behind the front page for the same reason.
+ *
+ * NOTHING IS COMPUTED HERE. Positions arrived as fractions and dates arrived as
+ * words; this file only decides where ink goes.
+ */
+const PLAN_LANE_W = 74;
+
+/** A mark's colour, and whether it is filled. The rule the screen draws by:
+ *  filled means it happened, and the colour says whether that was good. */
+function planInk(tone: PlacedMark['tone']): { colour: string; filled: boolean } {
+  switch (tone) {
+    case 'done': return { colour: OK, filled: true };
+    case 'failed': return { colour: DANGER, filled: true };
+    case 'late': return { colour: DANGER, filled: false };
+    case 'booked': return { colour: BLUE, filled: false };
+    default: return { colour: MUTED, filled: false };
+  }
+}
+
+function planSheet(d: Doc, data: PaceReportData, page: number, pages: number): void {
+  const pl = data.plan;
+  if (!pl) return;
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+
+  /* THE PANEL IS AS TALL AS WHAT IS IN IT, the same rule the materials sheet
+     keeps: a box three times the height of its content reads as a page that
+     failed to finish rather than as a short list. Arithmetic, because the box
+     has to be drawn before the things that go in it. */
+  const rowsTotal = pl.lanes.reduce((n, l) => n + l.rows.length, 0);
+  const ROW_H = 15, LANE_GAP = 7;
+  const chartOnly = rowsTotal * ROW_H + pl.lanes.length * LANE_GAP + 4;
+  /* Measured in the same order the drawing happens, because the box is drawn
+     before anything that goes in it. panel() returns y + 30, so that header is
+     part of the height and was the 30pt this first got wrong: the bottom rule
+     cut through the last two rows of the table. */
+  const PANEL_HEAD = 30;
+  const beforeChart = 24 + (pl.slip ? 11 : 0) + 26;      // verdict, slip, month labels
+  const afterChart = 26 + 22 + 8;                         // date tags, key, table heading
+  const tableH = 5 + 13 * pl.outstanding.length + 8;
+  const panelH = Math.min(
+    H - 2 * M - 14,
+    Math.max(220, PANEL_HEAD + beforeChart + chartOnly + afterChart + tableH + 16),
+  );
+  const panelBottom = M + panelH;
+  const top = panel(d, M, M, CW, panelH, String(page), 'Where the job is', pl.counted);
+  const x0 = M + 14, right = M + CW - 14;
+
+  /* ---- the verdict, in the words the screen says it in --------------------- */
+  setFont(d, 13, 'bold', INK);
+  d.text(fit(d, san(pl.says), right - x0), x0, top + 18);
+  let y = top + 24;
+  if (pl.slip) {
+    setFont(d, 8.5, 'normal', WARN);
+    d.text(fit(d, san(pl.slip), right - x0), x0, y + 10);
+    y += 11;
+  }
+
+  /* ---- the axis ----------------------------------------------------------- */
+  const trackX = x0 + PLAN_LANE_W, trackW = right - trackX;
+  const at = (f: number) => trackX + f * trackW;
+
+  const rowH = ROW_H, laneGap = LANE_GAP, chartH = chartOnly;
+  const chartTop = y + 26;
+  const chartBottom = chartTop + chartH;
+
+  /* months, behind everything */
+  pl.axis.ticks.forEach(t => {
+    d.setDrawColor(LINE); d.setLineWidth(0.5);
+    d.line(at(t.at), chartTop - 12, at(t.at), chartBottom);
+    setFont(d, 6.5, 'bold', MUTED);
+    d.text(t.label.toUpperCase(), at(t.at) + 3, chartTop - 15);
+  });
+
+  /* the slip: the ground between the day agreed and the day now expected */
+  if (pl.axis.agreed && pl.axis.expected) {
+    const a = Math.min(pl.axis.agreed.at, pl.axis.expected.at);
+    const b = Math.max(pl.axis.agreed.at, pl.axis.expected.at);
+    d.setFillColor(...wash(WARN, 0.12));
+    d.rect(at(a), chartTop - 12, at(b) - at(a), chartH + 12, 'F');
+  }
+
+  /* today, and the two dates */
+  const rule = (f: number, colour: string, width: number) => {
+    d.setDrawColor(colour); d.setLineWidth(width);
+    d.line(at(f), chartTop - 12, at(f), chartBottom);
+  };
+  if (pl.axis.today != null) rule(pl.axis.today, INK2, 1);
+  if (pl.axis.agreed) rule(pl.axis.agreed.at, MUTED, 1);
+  if (pl.axis.expected) rule(pl.axis.expected.at, BRAND, 1.4);
+
+  /* ---- the lanes ---------------------------------------------------------- */
+  let ly = chartTop;
+  for (const lane of pl.lanes) {
+    setFont(d, 6.5, 'bold', INK2);
+    d.text(fit(d, lane.label.toUpperCase(), PLAN_LANE_W - 6), x0, ly + 9);
+
+    for (const row of lane.rows) {
+      const cy = ly + rowH / 2;
+      for (const m of row) {
+        const { colour, filled } = planInk(m.tone);
+        const mx = at(m.at);
+
+        /* a machine occupies time: arriving and running are different days */
+        if (m.until != null && m.until > m.at) {
+          d.setFillColor(...wash(colour, 0.3));
+          d.rect(mx, cy - 1.6, at(m.until) - mx, 3.2, 'F');
+        }
+
+        d.setDrawColor(colour); d.setLineWidth(1.1);
+        if (filled) { d.setFillColor(colour); d.circle(mx, cy, 2.6, 'FD'); }
+        else { d.setFillColor(255, 255, 255); d.circle(mx, cy, 2.6, 'FD'); }
+
+        /* The label goes right of the dot, or back towards the middle when the
+           dot is near the edge — the last mark on a plan is the one a client
+           looks for, and clipping it is the one thing this must not do. */
+        const words = san(m.label), when = m.when;
+        setFont(d, 7.5, 'bold', INK);
+        const wWords = d.getTextWidth(words);
+        setFont(d, 6.5, 'normal', MUTED);
+        const wWhen = d.getTextWidth(when) + 4;
+        const flip = mx + 6 + wWords + wWhen > right;
+
+        if (flip) {
+          setFont(d, 6.5, 'normal', MUTED);
+          d.text(when, mx - 6, cy + 2.4, { align: 'right' });
+          setFont(d, 7.5, 'bold', INK);
+          d.text(fit(d, words, mx - 6 - wWhen - trackX + PLAN_LANE_W), mx - 6 - wWhen, cy + 2.4, { align: 'right' });
+        } else {
+          setFont(d, 7.5, 'bold', INK);
+          d.text(fit(d, words, right - mx - 6 - wWhen), mx + 6, cy + 2.4);
+          setFont(d, 6.5, 'normal', MUTED);
+          d.text(when, mx + 6 + Math.min(wWords, right - mx - 6 - wWhen) + 4, cy + 2.4);
+        }
+      }
+      ly += rowH;
+    }
+    ly += laneGap;
+    if (lane !== pl.lanes[pl.lanes.length - 1]) {
+      d.setDrawColor(SURF2); d.setLineWidth(0.5);
+      d.line(x0, ly - laneGap / 2, right, ly - laneGap / 2);
+    }
+  }
+
+  /* the two dates, named under the axis */
+  const tag = (f: number, text: string, bg: string, fg: string) => {
+    setFont(d, 6.5, 'bold', fg);
+    const w = d.getTextWidth(text) + 8;
+    const x = Math.max(trackX, Math.min(at(f) - w / 2, right - w));
+    d.setFillColor(bg); d.roundedRect(x, chartBottom + 3, w, 10, 5, 5, 'F');
+    setFont(d, 6.5, 'bold', fg);
+    d.text(text, x + w / 2, chartBottom + 10, { align: 'center' });
+  };
+  if (pl.axis.today != null) tag(pl.axis.today, 'TODAY', INK, '#ffffff');
+  if (pl.axis.agreed) tag(pl.axis.agreed.at, `${pl.axis.agreed.label.toUpperCase()} · ${pl.axis.agreed.when}`, SURF2, INK2);
+  if (pl.axis.expected) tag(pl.axis.expected.at, `${pl.axis.expected.label.toUpperCase()} · ${pl.axis.expected.when}`, BRAND, '#ffffff');
+
+  /* the key — the one rule, said once */
+  const keyY = chartBottom + 26;
+  let kx = x0;
+  const key = (tone: PlacedMark['tone'], words: string) => {
+    const { colour, filled } = planInk(tone);
+    d.setDrawColor(colour); d.setLineWidth(1.1);
+    if (filled) d.setFillColor(colour); else d.setFillColor(255, 255, 255);
+    d.circle(kx + 3, keyY - 2, 2.6, 'FD');
+    setFont(d, 6.5, 'normal', INK2);
+    d.text(words, kx + 9, keyY);
+    kx += 9 + d.getTextWidth(words) + 14;
+  };
+  key('done', 'done');
+  key('failed', 'ran, didn’t pass');
+  key('late', 'the day has gone');
+  key('booked', 'still ahead');
+  setFont(d, 6.5, 'normal', MUTED);
+  d.text('Filled means it happened.', right, keyY, { align: 'right' });
+
+  /* ---- what we are waiting on, and whose it is ---------------------------- */
+  const tY = keyY + 22;
+  /* MEASURE BEFORE SWITCHING. getTextWidth reads whatever font is CURRENTLY
+     set, so measuring the 9pt bold title after setting 7pt normal returned a
+     width for the wrong face and printed "and whose it is" straight through
+     the heading. */
+  setFont(d, 9, 'bold', INK);
+  const headW = d.getTextWidth('What we are waiting on');
+  d.text('What we are waiting on', x0, tY);
+  setFont(d, 7, 'normal', MUTED);
+  d.text('and whose it is', x0 + headW + 8, tY);
+
+  table(d, x0, tY + 8, right - x0,
+    [
+      { head: '', width: 0.46 },
+      { head: 'Open', width: 0.1, align: 'right' },
+      { head: 'Late', width: 0.1, align: 'right' },
+      { head: 'Mostly whose', width: 0.34 },
+    ],
+    pl.outstanding.map(r => [
+      { text: san(r.what), bold: true },
+      { text: String(r.open), bold: true },
+      /* A dash rather than a nought: a column of noughts is a column the eye
+         learns to skip, and the one row carrying a number has to survive it. */
+      { text: r.late ? String(r.late) : '—', colour: r.late ? DANGER : MUTED, bold: !!r.late },
+      { text: r.whose ? san(r.whose) : '—', colour: INK2 },
+    ]),
+    /* The panel, not the page: a row that does not fit is dropped rather than
+       printed through the bottom rule. The height above is worked out so that
+       never happens, and this is the belt to that pair of braces. */
+    panelBottom - 8);
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — where the job is`, CW * 0.8), M, H - M + 6);
+  d.text('Worked out from the lists the job already keeps — nothing typed twice.',
+    W - M, H - M + 6, { align: 'right' });
+}
+
 export const MAT_ROWS = 26;
 export function materialsHeight(data: PaceReportData, H: number, M: number): number {
   const m = data.materials;
@@ -1129,7 +1380,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      before either of them is drawn. */
   const shareSheet = hasMaterials && hasPrograms
     && materialsHeight(data, H, M) + 14 + programsHeight(data, H, M) <= H - 2 * M - 14;
-  const pages = 1 + (hasMoreTrials ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+  /* WHERE THE JOB IS goes directly behind the front page. Every other sheet
+     here answers a narrower question, and a reader who had to assemble the
+     position out of four of them was doing the report's job for it. */
+  const hasPlan = !!data.plan && data.plan.lanes.length > 0;
+  const pages = 1 + (hasPlan ? 1 : 0) + (hasMoreTrials ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
     + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
@@ -1139,7 +1394,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     : 'A trial is planned, then run, and what it found becomes the next one.',
     W - M, H - M + 6, { align: 'right' });
 
-  const trialsPage = 2;
+  const wherePage = 2;
+  const trialsPage = wherePage + (hasPlan ? 1 : 0);
   const paretoPage = trialsPage + (hasMoreTrials ? 1 : 0);
   const materialsPage = paretoPage + (hasPareto ? 1 : 0);
   /* Programs sit directly behind materials, because the two answer one question
@@ -1147,6 +1403,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const programsPage = shareSheet ? materialsPage : materialsPage + (hasMaterials ? 1 : 0);
   const planPage = programsPage + (hasPrograms && !shareSheet ? 1 : 0);
   const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
+
+  /* ============== WHERE THE JOB IS — the verdict, the plan, the table =======
+   * The same three things the project screen leads with, in the same order and
+   * off the same two calls. Only when something carries a date: an axis with
+   * nothing on it reads as a fault rather than as an absence. */
+  if (hasPlan) {
+    d.addPage('a3', 'landscape');
+    planSheet(d, data, wherePage, pages);
+  }
 
   /* ================= THE REST OF THE TRIALS, on a sheet of their own ========
    * Only when there are any. Six cards fit the front page; a job running ten

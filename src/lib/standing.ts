@@ -73,6 +73,20 @@ export interface Standing {
   plan: PlanMark[];
 }
 
+/** "The date has moved 8 days from what was agreed." Absent when it has not.
+ *
+ *  Lives here rather than in the card that first drew it, because the client
+ *  report says the same thing on its own sheet and two copies of a sentence is
+ *  how the screen and the page start disagreeing about a job. */
+export function slipWords(slipDays?: number): string | undefined {
+  if (slipDays == null || slipDays === 0) return undefined;
+  const n = Math.abs(slipDays);
+  const days = `${n} day${n === 1 ? '' : 's'}`;
+  return slipDays > 0
+    ? `The date has moved ${days} from what was agreed.`
+    : `${days} ahead of what was agreed.`;
+}
+
 export const todayISO = (): string => new Date().toISOString().slice(0, 10);
 
 const daysBetween = (a: string, b: string): number =>
@@ -134,9 +148,16 @@ export function standing(input: StandingInput): Standing {
   const actions = items.filter(i => i.kind === 'next' && isOpen(i));
   const actionsLate = actions.filter(a => !!a.due && a.due < today);
 
-  /* A machine is outstanding until it is RUNNING — installed is not the job. */
+  /* A machine is outstanding until it is RUNNING — installed is not the job.
+     LATE IS A DIFFERENT QUESTION, and this used to get it wrong: `dueOn` is
+     the day it was expected ON SITE, so a machine that landed and is being
+     commissioned has met that date and is not late against it, however far
+     off running it still is. Counting it late put a machine that arrived
+     three weeks ago into the verdict's "past the day it was wanted", and
+     into the client report under the OEM's name. The plan drew it correctly
+     while the table did not — the same record, two answers. */
   const machOpen = assets.filter(a => a.state !== 'running');
-  const machLate = machOpen.filter(a => !!a.dueOn && a.dueOn < today);
+  const machLate = machOpen.filter(a => !!a.dueOn && a.dueOn < today && !a.onSiteOn);
 
   const rows: OutstandingRow[] = ([
     { key: 'trials', what: 'Trials still to run', open: trialsOpen.length, late: trialsLate.length,

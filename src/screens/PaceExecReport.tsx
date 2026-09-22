@@ -39,6 +39,8 @@ import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { coveredIn, daysLate, isHere, landsIn, todayISO } from '../lib/materials';
 import { usePrograms } from '../lib/usePrograms';
+import { standing, slipWords } from '../lib/standing';
+import { layoutPlan, labelGap, planSays } from '../lib/plan';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import type { PaceParetoSheet } from '../lib/paceWorkbook';
@@ -1031,6 +1033,40 @@ export function PaceExecReport() {
 
   /* Everything the PDF needs, as plain numbers and strings. The drawer never
    * looks at the DOM, so this is the whole contract between screen and file. */
+  /* WHERE THE JOB IS — the sheet that leads the report, off the same two calls
+     the project screen makes. Not a second opinion assembled here: standing()
+     gives the sentence and the rows, layoutPlan() gives the marks, and the only
+     thing this decides is the minGap, which is the width of a label — an A3
+     fits far more across than a phone, so it stacks fewer lines.
+
+     Left off a line's own deck, like materials and programs: the position
+     belongs to the job, not to one line's page. */
+  const planStanding = line ? undefined : standing({
+    tests, items: testItems, assets: machines,
+    materials: mats.materials, programs: progs.programs,
+    expectedAt: project?.expectedAt, plannedAt: project?.plannedAt, today,
+  });
+  const planLayout = layoutPlan(planStanding?.plan ?? [], {
+    today, expectedAt: project?.expectedAt, plannedAt: project?.plannedAt,
+    /* The A3's own geometry: 1190pt wide, 26pt margins, 14pt inset each side
+       and a 74pt lane column leave ~1036pt of track. A label is drawn at 7.5pt
+       bold with its date beside it, so ~3.9pt a character plus 46pt of date
+       and padding. See labelGap — an estimate on purpose, and a generous one. */
+    widthOf: m => labelGap(m.label, 3.9, 46, 1036),
+  });
+  const planBlock: PaceReportData['plan'] = !planStanding || planStanding.plan.length === 0
+    ? undefined
+    : {
+      says: planStanding.sentence,
+      slip: slipWords(planStanding.slipDays),
+      counted: planSays(planStanding.plan, today),
+      axis: planLayout.axis,
+      lanes: planLayout.lanes,
+      outstanding: planStanding.rows.map(r => ({
+        what: r.what, open: r.open, late: r.late, whose: r.whose,
+      })),
+    };
+
   const reportData = (): PaceReportData => ({
     now,
     // The lever tree, flat. Only on the PROJECT's report: a line's own deck is
@@ -1071,6 +1107,7 @@ export function PaceExecReport() {
     materials: materialsBlock,
     programs: programsBlock,
     trials: trialsBlock,
+    plan: planBlock,
     tracker: hasTracker,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',

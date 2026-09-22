@@ -171,6 +171,29 @@ describe('the plan', () => {
   });
 });
 
+describe('a machine and the day it was wanted', () => {
+  /* `dueOn` is the day it was expected ON SITE. The plan and the table read
+     the same record, and for a while they disagreed about this one. */
+  it('is not late once it has landed, however far off running it is', () => {
+    const s = at({ assets: [asset({ state: 'installed', dueOn: '2026-09-01', onSiteOn: '2026-09-03' })] });
+    const row = s.rows.find(r => r.key === 'machines')!;
+    expect(row.open).toBe(1);
+    expect(row.late).toBe(0);
+    expect(s.late).toBe(0);
+  });
+
+  it('is late when the day has gone and it has not arrived', () => {
+    const s = at({ assets: [asset({ state: 'awaited', dueOn: '2026-09-01' })] });
+    expect(s.rows.find(r => r.key === 'machines')!.late).toBe(1);
+  });
+
+  it('draws it on the plan the same way the table counts it', () => {
+    const s = at({ assets: [asset({ state: 'installed', dueOn: '2026-09-01', onSiteOn: '2026-09-03' })] });
+    expect(s.plan.find(m => m.kind === 'machine')!.tone).toBe('booked');
+    expect(s.rows.find(r => r.key === 'machines')!.late).toBe(0);
+  });
+});
+
 describe('the sentence', () => {
   it('leads on the date, because that is the question that was asked', () => {
     const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-10-06' });

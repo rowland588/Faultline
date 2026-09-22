@@ -19,6 +19,12 @@ export interface StandingState {
    *  Same numbers, same source — a row that disagreed with the page beneath it
    *  would be the whole problem back again. */
   counts: Record<string, { n: number; late: number }>;
+  /** The day the job is expected to be at rate, and what that was agreed to be.
+   *  The standing sentence folds them into "27 days to go" and a slip count;
+   *  the timeline needs the dates themselves, to draw the two markers and the
+   *  ground between them. */
+  expectedAt?: string;
+  plannedAt?: string;
 }
 
 const EMPTY: Standing = { sentence: '', outstanding: 0, late: 0, rows: [], plan: [] };
@@ -55,5 +61,5 @@ export function useStanding(projectId: string): StandingState {
     };
   }, [answer.rows]);
 
-  return { loading, standing: answer, counts };
+  return { loading, standing: answer, counts, expectedAt, plannedAt };
 }

@@ -39,6 +39,8 @@ import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
 import { Outstanding } from '../ui/Outstanding';
+import { Timeline } from '../ui/Timeline';
+import { todayISO } from '../lib/standing';
 import { ASSET_STATE_WORD } from '../lib/testing';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
@@ -418,8 +420,13 @@ function TestingOverview({ projectId }: { projectId: string }) {
               alone; this says it off all five lists, which is the difference
               between a summary and an answer. */}
           <Verdict st={all.standing} />
-          {/* The position, then the sore point by name, then the whole list. */}
+          {/* The position, then the sore point by name, then WHEN, then the
+              whole list. The plan goes above the table on purpose: the table
+              answers "what is not done", and the only honest way to read that
+              is against the days there are left to do it in. */}
           <LateAlarms projectId={projectId} />
+          <Timeline marks={all.standing.plan} today={todayISO()}
+            expectedAt={all.expectedAt} plannedAt={all.plannedAt} />
           <Outstanding rows={all.standing.rows} projectId={projectId} />
 
           {st.total > 0 && (
