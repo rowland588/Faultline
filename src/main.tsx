@@ -2,6 +2,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { startSync } from './cloud/sync';
+/* The type is bundled, not fetched: this app has to look like itself on a
+   factory floor with no signal. Variable weight axis only — one file a family. */
+import '@fontsource-variable/instrument-sans/wght.css';
+import '@fontsource-variable/schibsted-grotesk/wght.css';
 import './styles.css';
 
 // Boot the cloud sync loop. No-ops unless Supabase is configured AND a session

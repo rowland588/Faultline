@@ -428,7 +428,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
        cells — which is exactly how the spreadsheet is read. */
     r.covered.forEach((on, c) => {
       const cx = gridX + c * wkW;
-      d.setFillColor(on ? '#2e9e5b' : '#eef3f5');
+      d.setFillColor(on ? OK : '#edf1ea');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
 
@@ -585,7 +585,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   d.setDrawColor(LINE); d.setLineWidth(0.6);
   d.line(x0, headBottom - 2, right, headBottom - 2);
 
-  const FILL = { proved: '#2e9e5b', machine: '#e8bf78', none: '#eef3f5' };
+  const FILL = { proved: OK, machine: '#e6cda1', none: '#edf1ea' };
 
   /* ---- the rows ---- bands first, for the reason the materials sheet gives */
   rows.forEach((_r, i) => {
@@ -627,7 +627,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
       if (r.booked[c]) {
         /* The week the test is booked: drawn as an outline OVER whatever is
            under it, so it survives being read in black and white. */
-        d.setDrawColor('#1c6fb8'); d.setLineWidth(1.2);
+        d.setDrawColor(BLUE); d.setLineWidth(1.2);
         d.rect(cx + 1.2, y - rowH + 6.7, wkW - 2.4, rowH - 3.9, 'S');
       }
     });
@@ -644,7 +644,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
     d.text(label, kx + 16, keyY);
     kx += 24 + d.getTextWidth(label);
   });
-  d.setDrawColor('#1c6fb8'); d.setLineWidth(1.2);
+  d.setDrawColor(BLUE); d.setLineWidth(1.2);
   d.rect(kx, keyY - 4.5, 12, 6, 'S');
   setFont(d, 6, 'normal', INK2);
   d.text('Test booked that week', kx + 16, keyY);
@@ -682,7 +682,7 @@ function footBoard(d: Doc, data: PaceReportData, page: number, pages: number, sh
 
 const TREE_STATUS: Record<string, { c: string; label: string }> = {
   n: { c: MUTED,  label: 'Not started' },
-  w: { c: '#1c6fb8', label: 'In progress' },
+  w: { c: BLUE, label: 'In progress' },
   a: { c: WARN,   label: 'At risk' },
   r: { c: DANGER, label: 'Blocked' },
   g: { c: OK,     label: 'Done' },
@@ -840,14 +840,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* ================= PAGE 1 — LINE PACE ================= */
   setFont(d, 8, 'bold', BRAND);
   d.text('IMPROVEMENT INITIATIVE · WEEKLY EXECUTIVE REPORT', M, M + 8);
-  setFont(d, 24, 'bold', '#141b26');
+  setFont(d, 24, 'bold', INK);
   d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);
   d.text(fit(d, data.subtitle, CW * 0.62), M, M + 48);
 
   setFont(d, 7, 'bold', MUTED);
   d.text('STATUS AS AT', W - M, M + 8, { align: 'right' });
-  setFont(d, 11, 'bold', '#141b26');
+  setFont(d, 11, 'bold', INK);
   d.text(dateLong, W - M, M + 24, { align: 'right' });
   setFont(d, 8, 'normal', MUTED);
   d.text('Prepared for the General Manager', W - M, M + 37, { align: 'right' });
@@ -856,7 +856,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     d.text(fit(d, `${data.leadRole} · ${data.lead}`, CW * 0.35), W - M, M + 48, { align: 'right' });
   }
 
-  d.setDrawColor('#141b26'); d.setLineWidth(1.4);
+  d.setDrawColor(INK); d.setLineWidth(1.4);
   d.line(M, M + 56, W - M, M + 56);
 
   /* KPI tiles */
@@ -899,9 +899,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     d.roundedRect(tx, tY, tW, tH, 5, 5, 'FD');
     d.setFillColor(colour);                                  // the status band
     d.roundedRect(tx, tY, tW, 3, 1.5, 1.5, 'F');
-    setFont(d, 19, 'bold', colour === BRAND ? '#141b26' : colour);
+    setFont(d, 19, 'bold', colour === BRAND ? INK : colour);
     d.text(n, tx + 10, tY + 26);
-    setFont(d, 8, 'bold', '#141b26');
+    setFont(d, 8, 'bold', INK);
     d.text(label, tx + 10, tY + 38);
     setFont(d, 6.5, 'normal', MUTED);
     d.text(sub, tx + 10, tY + 47);
@@ -991,7 +991,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         ? `${pv.period ?? 'this period'} against ${pv.beforePeriod} \u2014 what moved`
         : `${pv.period ?? 'the measured period'} \u2014 ${Math.round(pv.totalMins).toLocaleString()} minutes across ${pv.totalStops} stops`);
 
-    setFont(d, 9, 'bold', '#141b26');
+    setFont(d, 9, 'bold', INK);
     d.text(fit(d, `${pv.vitalCount} categories carry ${Math.round(pv.vitalShare * 100)}% of the lost time`, CW - 24), M + 12, py + 16);
     if (pv.headline) {
       setFont(d, 7.5, 'normal', MUTED);
@@ -1031,14 +1031,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         d.rect(x0, ry - 9, wAll, rowH - 2, 'F');
         d.setFillColor(BRAND); d.rect(x0, ry - 9, 2, rowH - 2, 'F');
       }
-      setFont(d, 7.6, 'bold', '#141b26');
+      setFont(d, 7.6, 'bold', INK);
       d.text(fit(d, r.category, cCat - 10), xCat + 5, ry);
 
       const bw = maxMins > 0 ? (r.mins / maxMins) * (cBar - 44) : 0;
       const [br, bg, bb] = wash(BRAND, 0.55);
       d.setFillColor(br, bg, bb);
       d.roundedRect(xBar, ry - 6.5, Math.max(bw, 1), 8, 1.5, 1.5, 'F');
-      setFont(d, 7.6, 'bold', '#141b26');
+      setFont(d, 7.6, 'bold', INK);
       d.text(Math.round(r.mins).toLocaleString(), xBar + cBar - 4, ry, { align: 'right' });
 
       setFont(d, 7.2, 'normal', INK2);
@@ -1179,7 +1179,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       const mine = data.board.filter(b => b.area === area);
 
       // the area's own heading, ruled across all three columns
-      setFont(d, 10 * k, 'bold', '#141b26');
+      setFont(d, 10 * k, 'bold', INK);
       d.text(area.toUpperCase(), M + 12, ay + 8 * k);
       setFont(d, 7.5 * k, 'normal', MUTED);
       d.text(`${mine.length} action${mine.length === 1 ? '' : 's'} · ${mine.filter(b => b.rag === 'g').length} done`,
@@ -1228,7 +1228,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
              to paragraphs — several dated updates in one cell — and a wall
              board wants the gist with the detail a tap away in the app. That
              one line is what buys the room to get every area onto one sheet. */
-          setFont(d, 7.8 * k, 'bold', '#141b26');
+          setFont(d, 7.8 * k, 'bold', INK);
           const lines = d.splitTextToSize(b.title, colW - 16) as string[];
           const head = lines.length > 1
             ? (lines[0] ?? '').replace(/\s*\S*$/, '\u2026')
@@ -1286,10 +1286,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   ([['Complete', data.complete, OK], ['Open', data.openOnTrack, BRAND], ['Overdue', data.late, DANGER]] as [string, number, string][])
     .forEach(([lab, v, c]) => {
       d.setFillColor(c); d.roundedRect(lx, barY + 22, 7, 7, 1.5, 1.5, 'F');
-      setFont(d, 7.5, 'normal', '#141b26');
+      setFont(d, 7.5, 'normal', INK);
       d.text(lab, lx + 11, barY + 28.5);
       const lw = d.getTextWidth(lab);
-      setFont(d, 7.5, 'bold', '#141b26');
+      setFont(d, 7.5, 'bold', INK);
       d.text(String(v), lx + 14 + lw, barY + 28.5);
       lx += 14 + lw + d.getTextWidth(String(v)) + 12;
     });
@@ -1367,7 +1367,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     for (const c of data.completed) {
       if (ny + 24 > nsBottom) break;
       ny += 12;
-      setFont(d, 8, 'bold', '#141b26');
+      setFont(d, 8, 'bold', INK);
       d.text(fit(d, c.what, colW - 70), M + 12, ny);
       if (c.who) {
         setFont(d, 7, 'normal', ACCENT);
@@ -1400,7 +1400,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     if (sy + 14 > r2y + rowH2 - 10) break;
     d.setFillColor(s.status === 'in_progress' ? WARN : DANGER);
     d.circle(lwX + 16, sy - 2.5, 3, 'F');
-    setFont(d, 8, 'normal', '#141b26');
+    setFont(d, 8, 'normal', INK);
     d.text(fit(d, s.problem, colW - 118), lwX + 24, sy);
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, [s.line, s.owner, `${s.days}d`].filter(Boolean).join(' · '), 94),
@@ -1444,7 +1444,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       setFont(d, 7, 'bold', pillC);
       d.text(pill, wwX + colW - 12 - pillW / 2, wy, { align: 'center' });
     }
-    setFont(d, 8.5, 'bold', '#141b26');
+    setFont(d, 8.5, 'bold', INK);
     d.text(fit(d, win.title, colW - 30 - pillW), wwX + 12, wy);
     wy += 11;
     if (v && win.impact) {

@@ -43,7 +43,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
         // the guide's screenshots and the social share card are first-visit
         // assets, not floor tools — don't make every install download them
         globIgnores: ['**/guide/**', '**/og.png', '**/demo/**'],
