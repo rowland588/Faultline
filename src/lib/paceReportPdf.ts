@@ -435,7 +435,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
      sheet going to a client. */
   rows.forEach((_r, i) => {
     if (i % 2 !== 1) return;
-    d.setFillColor('#fafcfc');
+    d.setFillColor('#faf9f5');
     d.rect(x0 - 4, bodyTop + i * rowH - rowH + 5, right - x0 + 8, rowH, 'F');
   });
 
@@ -460,7 +460,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
        cells — which is exactly how the spreadsheet is read. */
     r.covered.forEach((on, c) => {
       const cx = gridX + c * wkW;
-      d.setFillColor(on ? OK : '#edf1ea');
+      d.setFillColor(on ? OK : '#eae7de');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
 
@@ -727,7 +727,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
       const y = bodyTop + i * rowH;
 
       if (i % 2 === 1) {
-        d.setFillColor('#fafbf8');
+        d.setFillColor('#faf9f5');
         d.rect(cx - 4, y - 13, colW + 8, rowH, 'F');
       }
 

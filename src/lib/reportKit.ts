@@ -14,13 +14,15 @@ import type { jsPDF } from 'jspdf';
 export type Doc = jsPDF;
 
 /* ---------- the app's palette, as the report uses it ---------- */
-export const INK = '#0b1a16', INK2 = '#34453e', MUTED = '#6d7c74', LINE = '#e2e6dd';
-export const ACCENT = '#0a5c44', BRAND = '#0c6b4e', SURF2 = '#edf1ea';
-export const GOLD = '#a9762c';
-export const OK = '#2f8f5b', WARN = '#a9762c', DANGER = '#b5392c', BLUE = '#1f6a92';
+export const INK = '#17181a', INK2 = '#4c4f52', MUTED = '#84878c', LINE = '#e4e1d8';
+export const ACCENT = '#1e6b4b', BRAND = '#1e6b4b', SURF2 = '#eae7de';
+export const GOLD = '#a97822';
+/** The dark frame a masthead or a verdict block is drawn on. */
+export const SHELL = '#1a1c1a', SHELL_2 = '#232624', SHELL_MUTED = '#9a9e98';
+export const OK = '#1e6b4b', WARN = '#a97822', DANGER = '#9b3227', BLUE = '#2b4e7e';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
-export const ACTUAL = '#1f6a92', TARGET = '#a9762c';
+export const ACTUAL = '#2b4e7e', TARGET = '#a97822';
 
 /** jsPDF's built-in fonts are WinAnsi-encoded, which has no arrows and no
  *  general Unicode: an impact typed as "44 → 49 ppm" came out as "44 !' 49 ppm"
@@ -93,7 +95,7 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
   const cy = y + 18;
   const tx = n ? x + 36 : x + 16;
   if (n) {
-    d.setFillColor('#0b1a16');
+    d.setFillColor(INK);
     d.circle(x + 22, cy, 8, 'F');
     setFont(d, 8, 'bold', '#ffffff');
     d.text(n, x + 22, cy + 2.8, { align: 'center' });
@@ -110,7 +112,7 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
      is left after it, and when what is left is too narrow to say anything it is
      dropped rather than drawn into the title. A panel that loses its subtitle
      is still a panel. */
-  setFont(d, 11.5, 'bold', '#0b1a16');
+  setFont(d, 11.5, 'bold', INK);
   const shownTitle = fit(d, title, w - (tx - x) - 14);
   d.text(shownTitle, tx, cy + 3.5);
   const titleEnd = tx + d.getTextWidth(shownTitle);
@@ -156,7 +158,7 @@ export function table(
       const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i];
       d.text(fit(d, cell.text, c.width * w - 10), tx, cy, { align: c.align === 'right' ? 'right' : 'left' });
     });
-    d.setDrawColor('#eef1ea'); d.setLineWidth(0.4);
+    d.setDrawColor('#efede6'); d.setLineWidth(0.4);
     d.line(x, cy + 4, x + w, cy + 4);
   }
   return cy;
