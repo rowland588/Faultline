@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
+import { DraftField } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
@@ -240,8 +241,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
             const ran = tt.tests.filter(t => t.assetId === a.id && t.outcome !== 'planned').length;
             return (
               <div key={a.id} className="tw-asset">
-                <input value={a.name} aria-label="Machine name"
-                  onChange={e => void tt.saveAsset({ ...a, name: e.target.value })} />
+                <DraftField value={a.name} ariaLabel="Machine name"
+                  onSave={v => v.trim() && void tt.saveAsset({ ...a, name: v.trim() })} />
                 <span className="sub">{ASSET_STATE_WORD[a.state]}{ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}</span>
                 <button className="tw-x" aria-label={`Remove ${a.name}`} onClick={() => {
                   if (confirm(`Remove “${a.name}”?\n\nIts tests stay — they just stop naming a machine.`)) void tt.removeAsset(a.id);
