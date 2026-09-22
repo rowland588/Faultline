@@ -114,6 +114,20 @@ export interface PaceReportData {
       withWhom: string; product: string; result: string;
       outcome: 'planned' | 'passed' | 'failed' | 'notRun';
       outcomeWord: string;
+      /* ---- the fundamentals the GM acts on, lifted out of the whole day ----
+       * The trial card prints everything. This prints the loop: what it was
+       * meant to do, what it actually did, what that turned up, and what
+       * happens next with a name and a date on it. */
+      /** What happened, against what it was meant to do — never the outcome
+       *  word alone, which is a verdict nobody in the room can check. */
+      verdict: string;
+      found: { written: number; actioned: number; undecided: number };
+      /** The first next step still outstanding. */
+      next?: { what: string; owner: string; due: string; done: boolean };
+      /** How many more there are after that one. */
+      nextMore: number;
+      follows?: string;
+      ledTo: string[];
     }[];
   };
   /** Does this project keep a weekly tracker at all? A commissioning job does
@@ -325,9 +339,22 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
  * and the green cells are worked out by lib/materials — the same call the screen
  * makes, so the page and the file can never shade a different week.
  */
-function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: number): void {
+/* The two sheet heights, as arithmetic rather than as a side effect of drawing.
+   Pulled out so the caller can ask "do these two fit one sheet?" before it
+   commits a page to either of them — see drawPaceReport. */
+export const MAT_ROWS = 26;
+export function materialsHeight(data: PaceReportData, H: number, M: number): number {
   const m = data.materials;
-  if (!m) return;
+  if (!m) return 0;
+  const rows = Math.min(m.rows.length, MAT_ROWS);
+  const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - 44 - 50 - 22) / Math.max(1, rows)));
+  return Math.min(H - 2 * M - 14, Math.max(150, 44 + 50 + rows * rowH + 22));
+}
+
+function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: number,
+  yTop?: number, withFoot = true): number {
+  const m = data.materials;
+  if (!m) return 0;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
 
@@ -335,8 +362,9 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
     ? `${m.late} late \u00b7 ${m.waiting} still to come \u00b7 ${m.here} of ${m.total} in`
     : `${m.waiting} still to come \u00b7 ${m.here} of ${m.total} in`;
 
-  const rows = m.rows.slice(0, 26);          // a sheet nobody can read is not a picture
+  const rows = m.rows.slice(0, MAT_ROWS);    // a sheet nobody can read is not a picture
   const weeks = m.weeks;
+  const y0 = yTop ?? M;
 
   /* THE PANEL IS AS TALL AS THE PLAN, not as tall as the page.
    *
@@ -355,7 +383,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
     H - 2 * M - 14,
     Math.max(150, PANEL_HEAD + GRID_HEAD + rows.length * rowH + FOOT_PAD),
   );
-  const top = panel(d, M, M, CW, panelH, String(page), 'What we are waiting on', late);
+  const top = panel(d, M, y0, CW, panelH, String(page), 'What we are waiting on', late);
 
   /* Columns: the thing, when it is planned for, then one narrow cell per week.
      The week cells get whatever is left, so a long plan squeezes rather than
@@ -363,7 +391,11 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
   const x0 = M + 14;
   const right = M + CW - 14;
   const whenW = 62;
-  const wkW = Math.min(34, Math.max(14, (right - x0 - 300 - whenW) / Math.max(1, weeks.length)));
+  /* THE WEEK CELLS TAKE THE SHEET. Capped at 34 they drew a grid six inches
+     wide in the middle of an A3 and left the rest white — "we've got the
+     calendar all the way under the size". The cap is now generous enough that
+     a short plan fills the paper it is printed on. */
+  const wkW = Math.min(58, Math.max(14, (right - x0 - 320 - whenW) / Math.max(1, weeks.length)));
   const itemW = right - x0 - whenW - wkW * weeks.length;
   const gridX = x0 + itemW + whenW;
 
@@ -442,13 +474,16 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
     });
   });
 
-  setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
-  d.text(
-    m.rows.length > rows.length
-      ? `${m.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
-      : 'Green from the week it lands, the same as the plan it comes off.',
-    W - M, H - M + 6, { align: 'right' });
+  if (withFoot) {
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
+    d.text(
+      m.rows.length > rows.length
+        ? `${m.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
+        : 'Green from the week it lands, the same as the plan it comes off.',
+      W - M, H - M + 6, { align: 'right' });
+  }
+  return y0 + panelH;
 }
 
 /* ---------- the trials ----------
@@ -459,203 +494,291 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
  * The plan and the day stay separate columns. The difference between what you
  * meant to run and what you ran is usually the story.
  */
-function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number): void {
+/* ---------- THE TRIALS, AS CARDS ----------
+ *
+ * "I'm happy with a card each."
+ *
+ * A seven-column table was the wrong shape for this. It printed the outcome
+ * word and, in 5.5pt grey underneath it, whatever commentary would fit — which
+ * is how "run the BU at 75 packs a minute for an hour" came out as "didn't
+ * pass" with a clipped sentence beside it and nothing a GM could act on.
+ *
+ * A card holds the loop instead, in the order the day runs it:
+ *
+ *   EXPECTED   what it was agreed it passes on, before the day
+ *   HAPPENED   what it actually did, against that
+ *   FOUND      what the day turned up, and how much of it became an action
+ *   NEXT       the step still outstanding, with a name and a date on it
+ *
+ * The outcome word alone is a verdict nobody in the room can check. The
+ * expectation beside it is what makes it an argument.
+ */
+
+/** One card. Fixed height, because a grid of cards that each size themselves
+ *  reads as a mess from across a table — the point of a card is that the eye
+ *  knows where the next line is. */
+const CARD_H = 122;
+
+function trialCardBox(d: Doc, r: PaceReportData['trials'] extends undefined ? never
+  : NonNullable<PaceReportData['trials']>['rows'][number], x: number, y: number, w: number): void {
+  const tone = r.outcome === 'passed' ? OK : r.outcome === 'failed' ? DANGER
+    : r.outcome === 'notRun' ? WARN : BLUE;
+
+  d.setDrawColor(LINE); d.setLineWidth(0.7);
+  d.setFillColor('#ffffff');
+  d.roundedRect(x, y, w, CARD_H, 5, 5, 'FD');
+  /* The verdict as a spine down the left edge, not a tint behind the words:
+     a fill under text is the thing that fails under a strip light. */
+  d.setFillColor(tone);
+  d.roundedRect(x, y, 3.5, CARD_H, 2, 2, 'F');
+
+  /* ---- the head: what we are proving, and how it went ---- */
+  const word = r.outcomeWord.toUpperCase();
+  setFont(d, 6.5, 'bold', tone);
+  const pw = d.getTextWidth(word) + 14;
+  d.setFillColor(...wash(tone, 0.14));
+  d.roundedRect(x + w - 12 - pw, y + 9, pw, 14, 7, 7, 'F');
+  d.text(word, x + w - 12 - pw / 2, y + 18.5, { align: 'center' });
+
+  setFont(d, 10, 'bold', INK);
+  d.text(fit(d, r.title, w - 30 - pw), x + 12, y + 20);
+
+  setFont(d, 7, 'normal', MUTED);
+  const meta = [r.machine, r.withWhom && `with ${r.withWhom}`, r.when, r.product]
+    .filter(Boolean).join(' · ');
+  d.text(fit(d, meta, w - 24), x + 12, y + 31);
+
+  d.setDrawColor(LINE); d.setLineWidth(0.5);
+  d.line(x + 12, y + 37, x + w - 12, y + 37);
+
+  /* ---- the loop, four labelled lines ---- */
+  const lx = x + 12, vx = x + 66, vw = w - 78;
+  const row = (i: number, label: string, text: string, colour: string, bold = false) => {
+    const ly = y + 50 + i * 15;
+    setFont(d, 6, 'bold', MUTED);
+    d.text(label, lx, ly);
+    setFont(d, 8, bold ? 'bold' : 'normal', colour);
+    d.text(fit(d, text, vw), vx, ly);
+  };
+
+  row(0, 'EXPECTED', r.passesIf || 'nothing agreed in advance', r.passesIf ? INK2 : MUTED);
+  row(1, 'HAPPENED', r.verdict || '—', r.outcome === 'planned' ? MUTED : INK, r.outcome !== 'planned');
+
+  const found = r.found.written
+    ? `${r.found.written} written down · ${r.found.actioned} actioned${r.found.undecided ? ` · ${r.found.undecided} to decide` : ''}`
+    : 'nothing written down';
+  row(2, 'FOUND', found, r.found.undecided ? WARN : INK2);
+
+  const next = r.next
+    ? [r.next.what, r.next.owner || 'nobody yet', r.next.due].filter(Boolean).join(' · ')
+      + (r.nextMore ? ` (+${r.nextMore} more)` : '')
+    : 'nothing agreed yet';
+  row(3, 'NEXT', next, r.next ? (r.next.owner ? INK : DANGER) : MUTED, !!r.next && !r.next.done);
+}
+
+/** Cards laid out two to a row, as many as fit the box. Returns how many it
+ *  drew, so the caller knows whether a second sheet is owed. */
+function trialCardGrid(
+  d: Doc, rows: NonNullable<PaceReportData['trials']>['rows'],
+  x: number, y: number, w: number, maxY: number, from: number,
+): number {
+  const gap = 12;
+  const cw = (w - gap) / 2;
+  let drawn = 0;
+  for (let i = from; i < rows.length; i++) {
+    const k = drawn >> 1, col = drawn & 1;
+    const cy = y + k * (CARD_H + gap);
+    if (cy + CARD_H > maxY) break;
+    trialCardBox(d, rows[i], x + col * (cw + gap), cy, cw);
+    drawn++;
+  }
+  return drawn;
+}
+
+/** The trials on the front page. Returns how many did NOT fit, so the caller
+ *  can decide whether the rest earn a sheet of their own. */
+function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number): number {
   const t = data.trials;
   const sub = t
-    ? `${t.planned} booked \u00b7 ${t.passed} passed${t.failed ? ` \u00b7 ${t.failed} didn\u2019t` : ''}${
-        t.notRun ? ` \u00b7 ${t.notRun} didn\u2019t run` : ''}`
+    ? `${t.planned} booked · ${t.passed} passed${t.failed ? ` · ${t.failed} didn’t` : ''}${
+        t.notRun ? ` · ${t.notRun} didn’t run` : ''}`
     : 'nothing booked yet';
   const top = panel(d, M, top0, CW, panelH, '1', 'The trials', sub);
 
   if (!t || t.rows.length === 0) {
     setFont(d, 8, 'normal', MUTED);
     d.text('No trial has been booked on this job yet.', M + 14, top + 22);
-    return;
+    return 0;
   }
 
-  const x0 = M + 14, right = M + CW - 14;
-  /* what we are proving | machine | product | passes if | with | when | outcome */
-  const w = [0.30, 0.10, 0.14, 0.20, 0.09, 0.07, 0.10].map(f => (right - x0) * f);
-  const at = (i: number) => x0 + w.slice(0, i).reduce((a, b) => a + b, 0);
-  const HEADS = ['WHAT WE ARE PROVING', 'MACHINE', 'PRODUCT', 'PASSES IF', 'WITH', 'WHEN', 'OUTCOME'];
-
-  setFont(d, 6.5, 'bold', MUTED);
-  HEADS.forEach((h, i) => d.text(fit(d, h, w[i] - 4), at(i), top + 16));
-  d.setDrawColor(LINE); d.setLineWidth(0.6);
-  d.line(x0, top + 20, right, top + 20);
-
-  const rows = t.rows.slice(0, 16);
-  const rowH = Math.max(14, Math.min(26, (panelH - 40 - (top - top0)) / Math.max(1, rows.length)));
-
-  rows.forEach((r, i) => {
-    const y = top + 34 + i * rowH;
-    if (i % 2 === 1) {
-      d.setFillColor('#fafcfc');
-      d.rect(x0 - 4, y - rowH + 5, right - x0 + 8, rowH, 'F');
-    }
-    const cells = [r.title, r.machine, r.product || '\u2014', r.passesIf || '\u2014', r.withWhom || '\u2014', r.when];
-    cells.forEach((c, k) => {
-      setFont(d, Math.min(7.5, rowH * 0.42), k === 0 ? 'bold' : 'normal', k === 0 ? INK : INK2);
-      d.text(fit(d, san(c), w[k] - 5), at(k), y);
-    });
-    const tone = r.outcome === 'passed' ? OK : r.outcome === 'failed' ? DANGER : r.outcome === 'notRun' ? WARN : BRAND;
-    setFont(d, Math.min(7, rowH * 0.4), 'bold', tone);
-    d.text(fit(d, r.outcomeWord, w[6] - 5), at(6), y);
-    if (r.result) {
-      setFont(d, 5.5, 'normal', MUTED);
-      d.text(fit(d, san(r.result), w[6] - 5), at(6), y + 6);
-    }
-  });
-
-  if (t.rows.length > rows.length) {
-    setFont(d, 6, 'normal', MUTED);
-    d.text(`+${t.rows.length - rows.length} more than fit this sheet`, x0, top + 34 + rows.length * rowH + 4);
-  }
+  const drawn = trialCardGrid(d, t.rows, M + 14, top + 14, CW - 28, top0 + panelH - 12, 0);
+  return t.rows.length - drawn;
 }
 
-/* ---------- what the machine can run ----------
- * The materials sheet's twin, and drawn by the same hand: rows down the side,
- * weeks across the top, and a block of colour a GM reads in one look.
+/** The rest of them, on a sheet of their own. */
+function trialsSheet(d: Doc, data: PaceReportData, from: number, page: number, pages: number): void {
+  const t = data.trials;
+  if (!t) return;
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+
+  setFont(d, 8, 'bold', BRAND);
+  d.text('THE TRIALS — CONTINUED', M, M + 8);
+  setFont(d, 18, 'bold', INK);
+  d.text(fit(d, `${data.title} · what we are proving`, CW * 0.7), M, M + 30);
+  setFont(d, 8.5, 'normal', INK2);
+  d.text(`Trials ${from + 1} to ${t.rows.length} of ${t.rows.length}`, M, M + 44);
+  d.setDrawColor(INK); d.setLineWidth(1.2);
+  d.line(M, M + 52, W - M, M + 52);
+
+  trialCardGrid(d, t.rows, M, M + 66, CW, H - M - 24, from);
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} · weekly executive report · page ${page} of ${pages} — the trials`, CW * 0.8), M, H - M + 6);
+}
+
+
+/* ---------- WHAT THE MACHINE CAN RUN ----------
  *
- * What differs is that a program has three states, so the grid has three fills
- * — and at A3 across a meeting table nobody is going to tell amber from green
- * by hue alone under a strip light. So the state is written in words in its own
- * column as well, and the ring marking the week of a test is a shape, not a
- * tint. Nothing on this page relies on colour to be read.
+ * Rowland: "on the GM report we, for some reason, have what the machine can run
+ * for the programs, and then we have a calendar — September, October, week
+ * three, week four, week one, week two, week three, week four. Makes no sense.
+ * We don't need that."
+ *
+ * He is right, and the reason is worth keeping written down. A program is not a
+ * thing that ARRIVES. Materials earn a calendar because each one lands on a
+ * date and the question is coverage over time — is the week we want to run in
+ * green yet. A program is written, loaded and proved, and once it is proved it
+ * stays proved; painting that across eight week columns produced eight columns
+ * of one colour and a single ring, which is a great deal of ink to say "tested
+ * on the 6th".
+ *
+ * So this is a LIST, two columns across the sheet, answering the four things
+ * somebody actually asks: what it is, what it runs, where it has got to, and
+ * when we find out. The state is a word as well as a colour, because this page
+ * gets photocopied and faxed to an OEM.
  */
-function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number): void {
+export function programsHeight(data: PaceReportData, H: number, M: number): number {
+  const pg = data.programs;
+  if (!pg) return 0;
+  const maxRows = Math.floor((H - 2 * M - 14 - 34 - 30 - 12) / 22);
+  const perCol = pg.rows.length > 16
+    ? Math.min(maxRows, Math.ceil(pg.rows.length / 2))
+    : Math.min(maxRows, pg.rows.length);
+  return Math.min(H - 2 * M - 14, Math.max(130, 34 + perCol * 22 + 30 + 12));
+}
+
+function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number,
+  yTop?: number, withFoot = true): void {
   const pg = data.programs;
   if (!pg) return;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
 
   const sub = pg.overdue > 0
-    ? `${pg.overdue} past its test date \u00b7 ${pg.proved} of ${pg.total} proved`
-    : `${pg.proved} of ${pg.total} proved \u00b7 ${pg.onMachine} on the machine \u00b7 ${pg.needed} not written`;
+    ? `${pg.overdue} past its test date · ${pg.proved} of ${pg.total} proved`
+    : `${pg.proved} of ${pg.total} proved · ${pg.onMachine} on the machine · ${pg.needed} not written`;
 
-  const rows = pg.rows.slice(0, 26);          // a sheet nobody can read is not a picture
-  const weeks = pg.weeks;
+  /* THE SHEET IS AS TALL AS THE LIST, and as wide as it needs to be.
+     A panel given the whole A3 whatever is in it printed seven programs in the
+     top-left corner of an otherwise empty sheet — the same "be a bit smarter
+     with size" complaint the calendar earned. */
+  const rowH = 22;
+  const HEAD = 34, KEY = 30, PAD = 12;
+  const maxRows = Math.floor((H - 2 * M - 14 - HEAD - KEY - PAD) / rowH);
 
-  /* GRID_HEAD was 36 and the week labels sat inside it at top+30 — but the
-     first row's cells are drawn from `bodyTop - rowH + 6`, which on a tall row
-     began at top+20 and painted straight over them. The grid printed with a
-     month band, no week names, and an unlabelled column axis: the reader could
-     see a block of green and not which weeks it covered. */
-  const PANEL_HEAD = 44, GRID_HEAD = 50, FOOT_PAD = 22;
-  const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
-  const panelH = Math.min(
-    H - 2 * M - 14,
-    Math.max(150, PANEL_HEAD + GRID_HEAD + rows.length * rowH + FOOT_PAD),
-  );
-  const top = panel(d, M, M, CW, panelH, String(page), 'What the machine can run', sub);
+  /* One column while the list is short enough to read down; two once it is long
+     enough that a second column saves a sheet rather than splitting a glance. */
+  const twoCols = pg.rows.length > 16;
+  const perCol = twoCols ? Math.min(maxRows, Math.ceil(pg.rows.length / 2)) : Math.min(maxRows, pg.rows.length);
+  const rows = pg.rows.slice(0, perCol * (twoCols ? 2 : 1));
 
+  const panelH = Math.min(H - 2 * M - 14, Math.max(130, HEAD + perCol * rowH + KEY + PAD));
+  const y0 = yTop ?? M;
+  /* Sharing a sheet with materials: no badge, because the badge is the page
+     number and the page already has one. */
+  const top = panel(d, M, y0, CW, panelH, withFoot ? String(page) : '', 'What the machine can run', sub);
+
+  const gap = 34;
+  const inner = CW - 28;
+  /* A single column stops well short of the full A3 width: a three-word program
+     name with 800pt of rule after it reads as a mistake. */
+  const colW = twoCols ? (inner - gap) / 2 : Math.min(inner, 620);
   const x0 = M + 14;
-  const right = M + CW - 14;
-  const whenW = 78;                            // wider than materials: it carries a state AND a date
-  const wkW = Math.min(34, Math.max(14, (right - x0 - 300 - whenW) / Math.max(1, weeks.length)));
-  const itemW = right - x0 - whenW - wkW * weeks.length;
-  const gridX = x0 + itemW + whenW;
+  const bodyTop = top + HEAD;
 
-  /* The first row begins BELOW the week names, whatever the row height. */
-  const headBottom = top + 34;
-  const bodyTop = headBottom + rowH - 6;
+  const wRuns = colW * 0.28, wWhen = colW * 0.32;
+  const wWhat = colW - wRuns - wWhen;
 
-  /* ---- the head: the months over their weeks, then the week names ---- */
-  let runFrom = 0;
-  weeks.forEach((w, i) => {
-    const lastOfRun = i === weeks.length - 1 || weeks[i + 1].month !== w.month;
-    if (!lastOfRun) return;
-    const x = gridX + runFrom * wkW;
-    const width = (i - runFrom + 1) * wkW;
-    d.setFillColor(SURF2); d.setDrawColor(LINE); d.setLineWidth(0.5);
-    d.rect(x, top + 10, width, 12, 'FD');
-    setFont(d, 6.5, 'bold', INK2);
-    d.text(fit(d, w.month.toUpperCase(), width - 4), x + width / 2, top + 18.5, { align: 'center' });
-    runFrom = i + 1;
-  });
+  for (let c = 0; c < (twoCols ? 2 : 1); c++) {
+    const cx = x0 + c * (colW + gap);
+    if (c * perCol >= rows.length) break;
 
-  setFont(d, 6.5, 'bold', MUTED);
-  d.text('PROGRAM', x0, top + 18.5);
-  d.text("WHERE IT'S GOT TO", x0 + itemW, top + 18.5);
-  weeks.forEach((w, i) => {
-    setFont(d, 6, 'bold', MUTED);
-    d.text(fit(d, w.label, wkW - 2), gridX + i * wkW + wkW / 2, top + 30, { align: 'center' });
-  });
+    setFont(d, 6.5, 'bold', MUTED);
+    d.text('PROGRAM', cx, top + 20);
+    d.text('WHAT IT RUNS', cx + wWhat, top + 20);
+    d.text('WHERE IT HAS GOT TO', cx + wWhat + wRuns, top + 20);
+    d.setDrawColor(LINE); d.setLineWidth(0.6);
+    d.line(cx, top + 24, cx + colW, top + 24);
 
-  d.setDrawColor(LINE); d.setLineWidth(0.6);
-  d.line(x0, headBottom - 2, right, headBottom - 2);
+    for (let i = 0; i < perCol; i++) {
+      const r = rows[c * perCol + i];
+      if (!r) break;
+      const y = bodyTop + i * rowH;
 
-  const FILL = { proved: OK, machine: '#e6cda1', none: '#edf1ea' };
-
-  /* ---- the rows ---- bands first, for the reason the materials sheet gives */
-  rows.forEach((_r, i) => {
-    if (i % 2 !== 1) return;
-    d.setFillColor('#fafcfc');
-    d.rect(x0 - 4, bodyTop + i * rowH - rowH + 5, right - x0 + 8, rowH, 'F');
-  });
-
-  rows.forEach((r, i) => {
-    const y = bodyTop + i * rowH;
-
-    setFont(d, Math.min(8, rowH * 0.5), r.overdue != null ? 'bold' : 'normal',
-      r.state === 'proved' ? MUTED : INK);
-    d.text(fit(d, san(r.what), itemW - 6), x0, y);
-    /* What it runs, under the name and only when the row is tall enough to
-       carry it — a second line crammed into 12pt is a smudge, not a fact. */
-    if (r.runs && rowH >= 16) {
-      setFont(d, 5.5, 'normal', MUTED);
-      d.text(fit(d, san(r.runs), itemW - 6), x0, y + 6);
-    }
-
-    /* THE WORD, not just the colour. This column is what makes the sheet
-       readable photocopied, faxed to an OEM, or by anybody who cannot separate
-       red from green. */
-    setFont(d, Math.min(7, rowH * 0.45), 'bold',
-      r.state === 'proved' ? OK : r.overdue != null ? DANGER : r.state === 'onMachine' ? INK2 : MUTED);
-    d.text(fit(d, r.when, whenW - 6), x0 + itemW, y);
-    if (r.overdue != null) {
-      setFont(d, 5.5, 'normal', DANGER);
-      d.text(`${r.overdue}d ago`, x0 + itemW, y + 6);
-    }
-
-    /* The block of colour, and the ring over it. */
-    r.fill.forEach((f, c) => {
-      const cx = gridX + c * wkW;
-      d.setFillColor(FILL[f]);
-      d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
-      d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
-      if (r.booked[c]) {
-        /* The week the test is booked: drawn as an outline OVER whatever is
-           under it, so it survives being read in black and white. */
-        d.setDrawColor(BLUE); d.setLineWidth(1.2);
-        d.rect(cx + 1.2, y - rowH + 6.7, wkW - 2.4, rowH - 3.9, 'S');
+      if (i % 2 === 1) {
+        d.setFillColor('#fafbf8');
+        d.rect(cx - 4, y - 13, colW + 8, rowH, 'F');
       }
-    });
-  });
 
-  /* ---- the key. Four fills and a ring are worth four words at the bottom of
-     a page somebody is reading across a table. ---- */
-  const keyY = top + panelH - 26;
+      /* A dot carries the state as colour; the words beside it carry it
+         without. Neither is load-bearing on its own — this page gets
+         photocopied and faxed to an OEM. */
+      const dot = r.state === 'proved' ? OK : r.overdue != null ? DANGER
+        : r.state === 'onMachine' ? WARN : MUTED;
+      d.setFillColor(dot);
+      d.circle(cx + 3, y - 3, 3, 'F');
+
+      setFont(d, 9, r.overdue != null ? 'bold' : 'normal', r.state === 'proved' ? INK2 : INK);
+      d.text(fit(d, san(r.what), wWhat - 18), cx + 11, y);
+
+      setFont(d, 8, 'normal', MUTED);
+      d.text(fit(d, san(r.runs ?? '\u2014'), wRuns - 8), cx + wWhat, y);
+
+      /* "6 days ago" goes on the SAME line, not under it. Underneath, it fell
+         into the rule between the rows and read as a smudge. */
+      const when = r.overdue != null
+        ? `${r.when} \u00b7 ${r.overdue} day${r.overdue === 1 ? '' : 's'} ago`
+        : r.when;
+      setFont(d, 8, 'bold',
+        r.state === 'proved' ? OK : r.overdue != null ? DANGER : r.state === 'onMachine' ? INK2 : MUTED);
+      d.text(fit(d, when, wWhen - 8), cx + wWhat + wRuns, y);
+
+      d.setDrawColor('#eef1ea'); d.setLineWidth(0.4);
+      d.line(cx, y + 7, cx + colW, y + 7);
+    }
+  }
+
+  /* ---- the key: four dots and what they mean ---- */
+  const keyY = y0 + panelH - 13;
   let kx = x0;
-  ([['proved', 'Proved'], ['machine', 'On the machine'], ['none', 'Not written']] as const).forEach(([f, label]) => {
-    d.setFillColor(FILL[f]); d.setDrawColor(LINE); d.setLineWidth(0.4);
-    d.rect(kx, keyY - 4.5, 12, 6, 'FD');
-    setFont(d, 6, 'normal', INK2);
-    d.text(label, kx + 16, keyY);
-    kx += 24 + d.getTextWidth(label);
-  });
-  d.setDrawColor(BLUE); d.setLineWidth(1.2);
-  d.rect(kx, keyY - 4.5, 12, 6, 'S');
-  setFont(d, 6, 'normal', INK2);
-  d.text('Test booked that week', kx + 16, keyY);
+  ([[OK, 'Proved'], [WARN, 'On the machine, not proved'], [DANGER, 'Test date gone'], [MUTED, 'Not written yet']] as const)
+    .forEach(([c, label]) => {
+      d.setFillColor(c); d.circle(kx + 3, keyY - 2, 3, 'F');
+      setFont(d, 6.5, 'normal', INK2);
+      d.text(label, kx + 10, keyY);
+      kx += 26 + d.getTextWidth(label);
+    });
 
-  setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${page} of ${pages} \u2014 what the machine can run`, CW * 0.8), M, H - M + 6);
-  d.text(
-    pg.rows.length > rows.length
-      ? `${pg.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
-      : 'Proved carries the day it was proved. The word on its own is an opinion.',
-    W - M, H - M + 6, { align: 'right' });
+  if (withFoot) {
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, `${data.title} · weekly executive report · page ${page} of ${pages} — what the machine can run`, CW * 0.8), M, H - M + 6);
+    d.text(
+      pg.rows.length > rows.length
+        ? `${pg.rows.length - rows.length} more on the list than fit this sheet — the app has them all`
+        : 'Proved carries the day it was proved. The word on its own is an opinion.',
+      W - M, H - M + 6, { align: 'right' });
+  }
 }
 
 /* ---------- the lever tree ----------
@@ -828,6 +951,39 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       owner: san(b.owner), due: san(b.due), rag: b.rag,
     })),
     boardUnplaced: raw.boardUnplaced,
+    /* THE TRIALS WERE NOT COMING THROUGH THIS DOOR.
+     *
+     * Every other list is sanitised here and the trials were not, because when
+     * they were added they went into a table of short cells and nothing in the
+     * seed had a character WinAnsi lacks. The first real title with an arrow in
+     * it — "Changeover 2kg -> 1.25kg" — printed as "Changeover 2kg !'", with
+     * the letter spacing wrecked, because jsPDF's built-in fonts are
+     * WinAnsi-encoded and mis-measure what they cannot draw.
+     *
+     * san() is the ONE door. Anything that skips it is a rendering bug waiting
+     * for somebody to type a real character. */
+    trials: raw.trials && {
+      ...raw.trials,
+      rows: raw.trials.rows.map(r => ({
+        ...r,
+        title: san(r.title), machine: san(r.machine), passesIf: san(r.passesIf),
+        withWhom: san(r.withWhom), product: san(r.product), result: san(r.result),
+        verdict: san(r.verdict),
+        next: r.next && { ...r.next, what: san(r.next.what), owner: san(r.next.owner) },
+        follows: r.follows ? san(r.follows) : undefined,
+        ledTo: r.ledTo.map(san),
+      })),
+    },
+    materials: raw.materials && {
+      ...raw.materials,
+      rows: raw.materials.rows.map(r => ({ ...r, what: san(r.what) })),
+    },
+    programs: raw.programs && {
+      ...raw.programs,
+      rows: raw.programs.rows.map(r => ({
+        ...r, what: san(r.what), runs: r.runs ? san(r.runs) : undefined, when: san(r.when),
+      })),
+    },
   };
   const W = d.internal.pageSize.getWidth();        // 1190.55pt
   const H = d.internal.pageSize.getHeight();       // 841.89pt
@@ -914,11 +1070,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      series — the page and the file have to say the same words. */
   const lead = data.lines.find(l => l.series)?.series?.measure;
 
+  /* How many trials did not fit the front page. Counted here, used below to
+     decide whether they have earned a sheet of their own — and the page
+     arithmetic for the whole report falls out of the same number. */
+  let trialsOver = 0;
   if (!data.tracker) {
     /* NO TRACKER, NO PPM SHEET. What this job is actually doing is running
-       trials, so that is the front page: what we are proving, on which machine,
-       what it passes on, who with, and when. */
-    trialsPanel(d, data, M, lpY, CW, lpH);
+       trials, so that is the front page — a card each, carrying the loop. */
+    trialsOver = trialsPanel(d, data, M, lpY, CW, lpH);
   } else {
   const ruleY = panel(d, M, lpY, CW, lpH, '1', lead ? lead.name : 'The numbers',
     lead
@@ -961,7 +1120,17 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      wins. With none of them it is a page of headings, so it is not printed —
      which on a commissioning job it never had any of. */
   const hasDetail = data.tracker || data.todos.length > 0 || data.wins.length > 0 || data.snags.length > 0;
-  const pages = 1 + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
+  /* The trials that did not fit the front page get a sheet, and it goes
+     directly behind it: the rest of the same thought, not an appendix. */
+  const hasMoreTrials = trialsOver > 0;
+  /* The two "what are we waiting on" panels share a sheet when both are short
+     enough to sit on one, which is the usual case. Measured rather than
+     guessed: both heights are arithmetic, so the page count below can be right
+     before either of them is drawn. */
+  const shareSheet = hasMaterials && hasPrograms
+    && materialsHeight(data, H, M) + 14 + programsHeight(data, H, M) <= H - 2 * M - 14;
+  const pages = 1 + (hasMoreTrials ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+    + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'the trials'}`, CW * 0.8), M, H - M + 6);
@@ -970,13 +1139,23 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     : 'A trial is planned, then run, and what it found becomes the next one.',
     W - M, H - M + 6, { align: 'right' });
 
-  const paretoPage = 2;
-  const materialsPage = 2 + (hasPareto ? 1 : 0);
+  const trialsPage = 2;
+  const paretoPage = trialsPage + (hasMoreTrials ? 1 : 0);
+  const materialsPage = paretoPage + (hasPareto ? 1 : 0);
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
-  const programsPage = materialsPage + (hasMaterials ? 1 : 0);
-  const planPage = programsPage + (hasPrograms ? 1 : 0);
+  const programsPage = shareSheet ? materialsPage : materialsPage + (hasMaterials ? 1 : 0);
+  const planPage = programsPage + (hasPrograms && !shareSheet ? 1 : 0);
   const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
+
+  /* ================= THE REST OF THE TRIALS, on a sheet of their own ========
+   * Only when there are any. Six cards fit the front page; a job running ten
+   * trials should not have four of them silently dropped, which is what the
+   * table it replaced did with "+4 more than fit this sheet". */
+  if (hasMoreTrials && data.trials) {
+    d.addPage('a3', 'landscape');
+    trialsSheet(d, data, data.trials.rows.length - trialsOver, trialsPage, pages);
+  }
 
   /* ============ WHERE THE TIME IS GOING — the Pareto, its own sheet ============
    * A ranking is a shape before it is a table, so the bar is drawn and the
@@ -1079,12 +1258,22 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * one lands. Only when there IS something outstanding. */
   if (hasMaterials) {
     d.addPage('a3', 'landscape');
-    materialsSheet(d, data, materialsPage, pages);
+    const bottom = materialsSheet(d, data, materialsPage, pages, M, !shareSheet);
+    /* WHAT WE ARE WAITING ON AND WHAT THE MACHINE CAN RUN, ONE SHEET.
+       They answer one question between them, and two short panels on two A3s
+       is the "be a bit smarter with size" complaint in its plainest form. */
+    if (shareSheet) {
+      programsSheet(d, data, programsPage, pages, bottom + 14, false);
+      setFont(d, 7, 'normal', MUTED);
+      d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${materialsPage} of ${pages} \u2014 what we are waiting on, and what the machine can run`, CW * 0.8), M, H - M + 6);
+      d.text('Green from the week it lands. Proved carries the day it was proved.',
+        W - M, H - M + 6, { align: 'right' });
+    }
   }
 
   /* ============ WHAT THE MACHINE CAN RUN — the programs, as a grid ============
    * Behind the films, and read the same way. Only when there are any. */
-  if (hasPrograms) {
+  if (hasPrograms && !shareSheet) {
     d.addPage('a3', 'landscape');
     programsSheet(d, data, programsPage, pages);
   }

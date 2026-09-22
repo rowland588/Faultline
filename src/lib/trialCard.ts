@@ -138,17 +138,15 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
  *  and whether it did it. Deliberately not the outcome word on its own — "didn't
  *  pass" without the expectation beside it is a verdict nobody can check. */
 export function verdictLine(c: TrialCard): string {
-  if (c.outcome === 'planned') {
-    return c.passesIf ? `Passes if ${lower(c.passesIf)}` : 'Not run yet';
-  }
+  /* A trial that has not happened has no result, and saying "passes if ..."
+     here repeats the line directly above it on the card — which read as the
+     report having nothing to say twice. The day it is booked for is on the
+     card's own meta line. */
+  if (c.outcome === 'planned') return 'Not run yet';
   if (c.outcome === 'notRun') return 'The day came and it did not happen';
   if (!c.result) return c.outcomeWord;
   return c.result;
 }
-
-const lower = (s: string): string => (s && s[0] === s[0].toUpperCase() && s[1] !== s[1]?.toUpperCase()
-  ? s[0].toLowerCase() + s.slice(1)
-  : s);
 
 /** The agreed next step a GM should read, of however many there are: the first
  *  one still outstanding, because a done one is not what happens next. */
