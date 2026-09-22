@@ -437,6 +437,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         test_id: i.testId, kind: i.kind, what: i.what, note: i.note ?? null,
         owner: i.owner ?? null, due: i.due ?? null, done_at: i.doneAt ?? null,
         media: i.media ?? null, became_test_id: i.becameTestId ?? null,
+        became_item_id: i.becameItemId ?? null, from_item_id: i.fromItemId ?? null,
         sort: i.sort, created_at: i.createdAt,
         updated_at: i.updatedAt, deleted_at: i.deletedAt ?? null,
       };
@@ -452,6 +453,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       doneAt: n(r.done_at),
       media: (r.media as TestItem['media']) ?? undefined,
       becameTestId: (r.became_test_id as string) ?? undefined,
+      becameItemId: (r.became_item_id as string) ?? undefined,
+      fromItemId: (r.from_item_id as string) ?? undefined,
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies TestItem),

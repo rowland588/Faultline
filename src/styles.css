@@ -4896,6 +4896,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .cx-tally { font-size: 12.5px; color: var(--ink-2); }
 .cx-tally .is-r { color: var(--danger); }
 .cx-tally .is-a { color: var(--warn); }
+.cx-tally .is-w { color: var(--warn); }
 .cx-dates {
   display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;
   padding: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
@@ -5299,3 +5300,25 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* On any screen, a box that holds prose starts at a readable height and grows
    with the text rather than scrolling inside two lines. */
 .tw-block textarea { min-height: 76px; line-height: 1.5; }
+
+/* ---------------------------------------------------------------------------
+ * AN OBSERVATION, AND WHAT SOMEBODY DECIDED ABOUT IT.
+ *
+ * The tick on an observation does not mean "done" — it means "yes, this one
+ * needs doing", and pressing it makes an action below. So it is blue, the
+ * colour this app uses for something planned, not green, which everywhere else
+ * means finished. A row somebody decided needs nothing fades back instead of
+ * striking through: it was seen, and it was let go, which is not a failure.
+ * ------------------------------------------------------------------------- */
+.tw-item.is-actioned .tw-tick { background: var(--blue); border-color: var(--blue); }
+.tw-item.is-noted { opacity: 0.6; }
+.tw-item.is-noted .tw-tick { border-style: dashed; }
+.tw-obs-note { margin: -2px 0 6px; }
+.tw-decide { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 100%; }
+.tw-decide .sub { font-size: 12px; }
+
+@media (max-width: 720px) {
+  /* A tick you press on the floor, with a glove on. */
+  .tw-tick { width: 30px; height: 30px; }
+  .tw-item-m { min-height: 44px; }
+}

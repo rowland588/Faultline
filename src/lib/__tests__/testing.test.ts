@@ -11,6 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+  actionOf, foundTally, standingOfItem,
   OUTCOME_WORD, byWhenPlanned, byWhenRun, hasRun, isOpen, isOverdue, itemsOf,
   nextFrom, standing, standsAt, weeksTo,
   type Test, type TestItem,
@@ -129,9 +130,14 @@ describe('where are we — the sentence, derived', () => {
       item(t.id, { kind: 'next' }),
       item(t.id, { kind: 'next', doneAt: 5 }),
     ]);
-    expect(st.openFindings).toHaveLength(1);
+    /* Two observations were written down. One has been decided on (noted, no
+       action needed); one is still waiting on somebody to say. Neither is an
+       "open issue" — that reading is what made five observations read as five
+       problems on the report. */
+    expect(st.observations).toHaveLength(2);
+    expect(st.undecided).toHaveLength(1);
     expect(st.openNext).toHaveLength(1);
-    expect(st.sentence).toBe('1 issue still open and 1 next step outstanding are in the way. 1 of 1 tests have run.');
+    expect(st.sentence).toBe('1 next step outstanding, and 1 observation to decide on. 1 of 1 tests have run.');
   });
 
   it('says nothing is outstanding when nothing is', () => {
@@ -148,7 +154,7 @@ describe('where are we — the sentence, derived', () => {
        forever, with no screen that can show them. */
     const gone = test({ deletedAt: 3, outcome: 'failed' });
     const st = standing([gone], [item(gone.id, { kind: 'found' })]);
-    expect(st.openFindings).toEqual([]);
+    expect(st.observations).toEqual([]);
     expect(st.total).toBe(0);
   });
 
@@ -252,3 +258,67 @@ function planAcross(title: string, assetIds: (string | undefined)[]): Test[] {
     outcome: 'planned' as const, sort: sort++, createdAt: 1, updatedAt: 1,
   }));
 }
+
+/* AN OBSERVATION IS NOT AN ACTION UNTIL SOMEBODY SAYS SO.
+ *
+ * Rowland, on "5 open of 5": "what's taking place here is an immediate
+ * interpretation that this is like an action. However what I am actually doing
+ * is recording observations. I need to decide whether or not there's an action
+ * to take place out of it."
+ *
+ * Every rule below exists so that a list of things noticed on the floor cannot
+ * be read as a list of things going wrong. */
+describe('observations, and the ones somebody decides to action', () => {
+  it('is new until somebody decides anything about it', () => {
+    const o = item('t1');
+    expect(standingOfItem(o, [o])).toBe('new');
+  });
+
+  it('is actioned once it has become a next step', () => {
+    const next = item('t1', { id: 'n1', kind: 'next', fromItemId: 'o1' });
+    const obs = item('t1', { id: 'o1', becameItemId: 'n1' });
+    expect(standingOfItem(obs, [obs, next])).toBe('actioned');
+    expect(actionOf(obs, [obs, next])?.id).toBe('n1');
+  });
+
+  /* THE RULE THE WHOLE THING RESTS ON. The link is only worth what the row at
+     the other end of it is worth: delete the action and the observation is
+     undecided again, not quietly still claiming somebody is on it. */
+  it('goes back to undecided when the action it became is deleted', () => {
+    const next = item('t1', { id: 'n1', kind: 'next', fromItemId: 'o1', deletedAt: 9 });
+    const obs = item('t1', { id: 'o1', becameItemId: 'n1' });
+    expect(standingOfItem(obs, [obs, next])).toBe('new');
+    expect(actionOf(obs, [obs, next])).toBeUndefined();
+  });
+
+  it('is noted when somebody decided it needs nothing', () => {
+    const o = item('t1', { doneAt: 5 });
+    expect(standingOfItem(o, [o])).toBe('noted');
+  });
+
+  /* Both decisions at once is not a state anybody meant. The action is the
+     louder claim, so it wins — and useTesting clears doneAt when it actions
+     one, so this is the belt to that braces. */
+  it('reads as actioned when a row somehow says both', () => {
+    const next = item('t1', { id: 'n1', kind: 'next' });
+    const obs = item('t1', { id: 'o1', becameItemId: 'n1', doneAt: 5 });
+    expect(standingOfItem(obs, [obs, next])).toBe('actioned');
+  });
+
+  it('counts what was written down, not what is open', () => {
+    const next = item('t1', { id: 'n1', kind: 'next' });
+    const rows = [
+      item('t1', { id: 'o1', becameItemId: 'n1' }),
+      item('t1', { id: 'o2', doneAt: 5 }),
+      item('t1', { id: 'o3' }),
+      item('t1', { id: 'o4' }),
+    ];
+    const t = foundTally(rows, [...rows, next]);
+    expect(t).toEqual({ written: 4, actioned: 1, noted: 1, undecided: 2 });
+  });
+
+  it('leaves a deleted observation out of the count entirely', () => {
+    const rows = [item('t1', { id: 'o1' }), item('t1', { id: 'o2', deletedAt: 3 })];
+    expect(foundTally(rows, rows).written).toBe(1);
+  });
+});

@@ -25,7 +25,10 @@ import { useTesting } from '../lib/useTesting';
 import { getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
-import { OUTCOME_WORD, itemsOf, type DocRef, type ItemKind, type Outcome, type Test, type TestItem } from '../lib/testing';
+import {
+  OUTCOME_WORD, actionOf, foundTally, itemsOf, standingOfItem,
+  type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
+} from '../lib/testing';
 import type { MediaRef } from '../types';
 
 const kb = (b?: number): string =>
@@ -149,17 +152,20 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         <Media test={test} tt={tt} onView={setViewing} />
       </section>
 
-      {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part */}
+      {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
+          These are OBSERVATIONS: written down live, while it is running. Whether
+          any of them is an action is a decision somebody makes afterwards. */}
       <Items kind="found" test={test} tt={tt} onView={setViewing}
         heading="3 · What we found on the day"
-        placeholder="What did you find?"
-        empty="Nothing recorded yet. This is the part that matters most." />
+        placeholder="What did you see?"
+        empty="Nothing written down yet. This is the part that matters most." />
 
-      {/* 4 · WHAT'S NEXT */}
+      {/* 4 · WHAT'S NEXT — the actions. Some typed straight in, some promoted
+          from an observation above. */}
       <Items kind="next" test={test} tt={tt} onView={setViewing}
         heading="4 · What we do next"
         placeholder="What do we do next?"
-        empty="Agree the next steps and they go here." />
+        empty="Nothing agreed yet. Tick an observation above to make it an action, or type one in." />
 
       <Docs test={test} tt={tt} />
 
@@ -199,14 +205,38 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
 }) {
   const [what, setWhat] = useState('');
   const rows = itemsOf(tt.items, test.id, kind);
-  const open = rows.filter(r => r.doneAt == null).length;
+
+  /* THE COUNT IS THE WHOLE POINT OF THIS BLOCK'S HONESTY.
+   *
+   * "5 open of 5" on a list of observations told the room five things were
+   * going wrong, when what had happened was that five things were noticed. An
+   * observation is written down; it is not open. */
+  const count = kind === 'found'
+    ? (() => {
+        const t = foundTally(rows, tt.items);
+        const bits = [`${t.written} written down`];
+        if (t.actioned) bits.push(`${t.actioned} actioned`);
+        if (t.undecided) bits.push(`${t.undecided} to decide`);
+        return bits.join(' · ');
+      })()
+    : (() => {
+        const open = rows.filter(r => r.doneAt == null).length;
+        return open > 0 ? `${open} to do of ${rows.length}` : `${rows.length} done`;
+      })();
 
   return (
     <section className={'tw-block is-' + kind}>
       <span className="tw-block-h">
         {heading}
-        {rows.length > 0 && <span className="tw-block-n">{open > 0 ? `${open} open of ${rows.length}` : `${rows.length} done`}</span>}
+        {rows.length > 0 && <span className="tw-block-n">{count}</span>}
       </span>
+
+      {kind === 'found' && rows.length > 0 && (
+        <p className="sub tw-note tw-obs-note">
+          What you saw, as you saw it. Tick one to decide it needs doing — it becomes an action below,
+          with somebody's name on it.
+        </p>
+      )}
 
       {rows.length === 0 && <p className="sub tw-note">{empty}</p>}
 
@@ -225,24 +255,50 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
   );
 }
 
+const TICK = (
+  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+    <path d="M2.5 6.2 L5 8.5 L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: TT; onView: (m: MediaRef) => void }) {
   const [open, setOpen] = useState(false);
   const done = item.doneAt != null;
 
+  /* AN OBSERVATION IS NOT DONE OR NOT DONE. It is written down, and then
+     somebody decides: it needs doing (it becomes an action below), or it needs
+     nothing. A next step is the ordinary open/done row it always was. */
+  const observation = item.kind === 'found';
+  const st = observation ? standingOfItem(item, tt.items) : undefined;
+  const action = observation ? actionOf(item, tt.items) : undefined;
+
+  const tick = observation
+    ? () => {
+        if (st === 'actioned') return;              // undo by deleting the action
+        void tt.actionItem(item);
+      }
+    : () => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() });
+
   return (
-    <div className={'tw-item' + (done ? ' is-done' : '')}>
-      <button className="tw-tick" aria-label={done ? 'Re-open' : 'Mark done'}
-        onClick={() => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() })}>
-        {done
-          ? <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.2 L5 8.5 L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          : null}
+    <div className={'tw-item' + (done && !observation ? ' is-done' : '') + (st ? ' is-' + st : '')}>
+      <button
+        className={'tw-tick' + (st === 'actioned' ? ' is-on' : '')}
+        aria-label={observation
+          ? (st === 'actioned' ? 'Already an action' : 'Make this an action')
+          : (done ? 'Re-open' : 'Mark done')}
+        onClick={tick}
+      >
+        {(observation ? st === 'actioned' : done) ? TICK : null}
       </button>
       <button className="tw-item-m" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <b>{item.what}</b>
         <span className="sub">
           {item.owner ?? (item.kind === 'next' ? 'nobody yet' : '')}
           {item.due && ` · by ${nice(item.due)}`}
-          {done && ' · done'}
+          {!observation && done && ' · done'}
+          {st === 'actioned' && ' · actioned'}
+          {st === 'noted' && ' · no action needed'}
+          {item.fromItemId && ' · from an observation'}
           {item.becameTestId && ' · became a test'}
         </span>
       </button>
@@ -259,6 +315,21 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
               <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>
           )}
           <ItemMedia item={item} tt={tt} onView={onView} />
+          {observation && (
+            <span className="tw-decide">
+              {st === 'actioned'
+                ? <span className="sub">Actioned — it is “{action?.what}” under what we do next.</span>
+                : (
+                  <>
+                    <button className="btn btn-sm" onClick={() => void tt.actionItem(item)}>Make this an action</button>
+                    <button className="btn btn-ghost btn-sm"
+                      onClick={() => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() })}>
+                      {done ? 'Still deciding' : 'No action needed'}
+                    </button>
+                  </>
+                )}
+            </span>
+          )}
           <span className="cw-edit-end">
             {item.kind === 'next' && !item.becameTestId && (
               <button className="btn btn-sm" onClick={() => void (async () => {

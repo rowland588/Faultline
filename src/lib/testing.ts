@@ -148,6 +148,20 @@ export interface TestItem {
   media?: MediaRef[];
   /** For a next step that became the next test. */
   becameTestId?: ID;
+
+  /* ---- an observation, and the action somebody decided to take out of it ----
+   *
+   * A finding is written down live, on the floor, while the trial is running.
+   * Most of them are not actions and were never meant to be: they are what you
+   * saw. Deciding one IS an action is a separate act, done later, by a person —
+   * and it makes a next step, which is the row that carries an owner and a date
+   * and gets chased.
+   *
+   * Both ends of the link are stored so either row reads on its own. */
+  /** On an observation: the next step it was turned into. */
+  becameItemId?: ID;
+  /** On a next step: the observation it came out of. */
+  fromItemId?: ID;
   sort: number;
   createdAt: number;
   updatedAt: number;
@@ -163,6 +177,55 @@ export interface TestItem {
 export const live = <T extends { deletedAt?: number }>(rows: T[]): T[] => rows.filter(r => !r.deletedAt);
 
 export const isOpen = (i: TestItem): boolean => i.doneAt == null;
+
+/* ===================== AN OBSERVATION, AND WHAT YOU DECIDE ==================
+ *
+ * "What we found on the day" is not a list of actions. It is what somebody
+ * wrote down while the line was running, and most of it is not an action and
+ * was never meant to be. Reading it as one — "5 open of 5" — tells the room
+ * that five things are going wrong when what actually happened is that five
+ * things were noticed.
+ *
+ * So an observation has three standings, and two of them are decisions a
+ * person makes afterwards:
+ *
+ *   NEW       written down. Nobody has decided anything about it yet.
+ *   ACTIONED  somebody decided it needs doing, so it became a next step —
+ *             the row that carries an owner and a date and gets chased.
+ *   NOTED     somebody decided it needs nothing. Seen, and let go.
+ *
+ * ACTIONED is derived from the next step still being there rather than from a
+ * flag, so deleting the action puts the observation back among the undecided
+ * instead of leaving a claim behind that nothing supports. */
+
+export type Standing2 = 'new' | 'actioned' | 'noted';
+
+/** The next step an observation became, if it still exists. */
+export const actionOf = (obs: TestItem, items: TestItem[]): TestItem | undefined =>
+  obs.becameItemId ? live(items).find(i => i.id === obs.becameItemId) : undefined;
+
+export const standingOfItem = (obs: TestItem, items: TestItem[]): Standing2 =>
+  actionOf(obs, items) ? 'actioned' : obs.doneAt != null ? 'noted' : 'new';
+
+export interface FoundTally {
+  /** Everything written down. */
+  written: number;
+  actioned: number;
+  noted: number;
+  /** Written down, and nobody has said yet whether it needs doing. */
+  undecided: number;
+}
+
+export function foundTally(found: TestItem[], items: TestItem[]): FoundTally {
+  const rows = live(found);
+  let actioned = 0, noted = 0;
+  for (const r of rows) {
+    const st = standingOfItem(r, items);
+    if (st === 'actioned') actioned++;
+    else if (st === 'noted') noted++;
+  }
+  return { written: rows.length, actioned, noted, undecided: rows.length - actioned - noted };
+}
 
 /** Has the day happened yet. */
 export const hasRun = (t: Test): boolean => t.outcome !== 'planned';
@@ -188,8 +251,10 @@ export interface Standing {
   upcoming: Test[];
   /** Run, newest first. */
   done: Test[];
-  /** Everything found and still open, across every test. */
-  openFindings: TestItem[];
+  /** Everything written down on every trial. Observations, not actions. */
+  observations: TestItem[];
+  /** The ones nobody has yet said needs doing or needs nothing. */
+  undecided: TestItem[];
   /** Everything agreed and still outstanding. */
   openNext: TestItem[];
   ran: number;
@@ -210,18 +275,20 @@ export function standing(tests: Test[], items: TestItem[]): Standing {
 
   const upcoming = ts.filter(t => !hasRun(t)).sort(byWhenPlanned);
   const done = ts.filter(hasRun).sort(byWhenRun);
-  const openFindings = mine.filter(i => i.kind === 'found' && isOpen(i));
+  const observations = mine.filter(i => i.kind === 'found');
+  const undecided = observations.filter(i => standingOfItem(i, mine) === 'new');
   const openNext = mine.filter(i => i.kind === 'next' && isOpen(i));
 
   return {
     upcoming,
     done,
-    openFindings,
+    observations,
+    undecided,
     openNext,
     ran: done.length,
     total: ts.length,
     passed: done.filter(t => t.outcome === 'passed').length,
-    sentence: sentenceFor(ts, done.length, openFindings.length, openNext.length),
+    sentence: sentenceFor(ts, done.length, undecided.length, openNext.length),
   };
 }
 
@@ -234,17 +301,22 @@ function sentenceFor(tests: Test[], ran: number, found: number, next: number): s
   if (!tests.length) return 'Nothing planned yet. Plan the first test.';
 
   const bits: string[] = [];
-  if (found) bits.push(`${plural(found, 'issue')} still open`);
+  /* An observation nobody has decided on is not "in the way" — it is waiting on
+     somebody to say whether it matters. That is a different sentence, and
+     saying it the old way reported five problems where five things had merely
+     been noticed. */
   if (next) bits.push(`${plural(next, 'next step')} outstanding`);
+  if (found) bits.push(`${plural(found, 'observation')} to decide on`);
 
   const tally = ran ? `${ran} of ${tests.length} tests have run.` : `${plural(tests.length, 'test')} planned, none run yet.`;
   // "Nothing outstanding" before anything has run is technically true and says
   // nothing; the tally alone is the honest sentence there.
   if (!bits.length) return ran ? `Nothing outstanding. ${tally}` : tally;
 
-  const list = bits.length === 1 ? bits[0] : bits.join(' and ');
-  const verb = bits.length === 1 && /^1 /.test(bits[0]) ? 'is' : 'are';
-  return `${list[0].toUpperCase()}${list.slice(1)} ${verb} in the way. ${tally}`;
+  /* Stated, not dramatised. "In the way" was fair of an open issue and is not
+     fair of an observation somebody has yet to look at. */
+  const list = bits.length === 1 ? bits[0] : bits.join(', and ');
+  return `${list[0].toUpperCase()}${list.slice(1)}. ${tally}`;
 }
 
 /** What one test stands at, in its own terms: the result when there is one, the
