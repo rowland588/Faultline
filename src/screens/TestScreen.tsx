@@ -24,7 +24,7 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
-import { deliverBlob, deliverPdf, isStaleBuildError, loadPdfLib } from '../lib/savePdf';
+import { deliverBlob } from '../lib/savePdf';
 import {
   OUTCOME_WORD, actionOf, foundTally, itemsOf, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
@@ -169,7 +169,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       <Docs test={test} tt={tt} />
 
-      <TrialCardButton test={test} tt={tt} project={project.name} lead={project.lead} />
+      <TrialCardButton test={test} project={projectId} />
 
       <button className="btn btn-primary tw-loop" onClick={() => void (async () => {
         const id = await tt.planNextFrom(test);
@@ -197,56 +197,29 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   );
 }
 
-/** THE CARD FOR THIS DAY, as a PDF somebody can send.
+/** THE WAY TO THE TRIAL CARD — a door, not a send button.
  *
- *  "Another PDF report that I can send out to show all the finite detail,
- *  because there's a lot of detail that you pick up."  This is that one. The client
- *  report lifts four lines out of each trial; this is the whole of one.
+ *  This used to build the PDF and hand it straight to deliverPdf, which offers
+ *  the share sheet first on any device that has one. On a phone that put a send
+ *  dialog in front of a document nobody had seen. Rowland: "it gives you the
+ *  direct opportunity just to send it, but I can't view it."
  *
- *  jsPDF is loaded on demand, the way every other document in this app is — it
- *  is most of the bundle, and a phone on a factory wifi should not be made to
- *  fetch it to look at a test. */
-function TrialCardButton({ test, tt, project, lead }: {
-  test: Test; tt: TT; project: string; lead?: string;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  const make = async () => {
-    if (busy) return;
-    setBusy(true); setErr(null);
-    try {
-      const { jsPDF } = await loadPdfLib();
-      const [{ trialCard }, { drawTrialCard }] = await Promise.all([
-        import('../lib/trialCard'), import('../lib/trialCardPdf'),
-      ]);
-      const card = trialCard(test, tt.tests, tt.items, tt.assets);
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-      drawTrialCard(pdf, card, { project, lead, builtAt: Date.now() });
-      /* The file lands in somebody's inbox on its own, so the name has to say
-         which trial on which job — "trial.pdf" from three days is three files
-         nobody can tell apart. */
-      const slug = `${project} ${test.title}`.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Trial';
-      const how = await deliverPdf(pdf, `${slug}-${(test.ranOn ?? test.plannedFor ?? today())}.pdf`);
-      if (how === 'opened') setErr('Your browser would not save it, so it is open in a new tab — share or print it from there.');
-    } catch (e) {
-      console.error('Trial card failed', e);
-      setErr(isStaleBuildError(e)
-        ? 'This tab is still running an older version of the app, so the part that draws the PDF could not load. Reload and try again.'
-        : (e instanceof Error ? e.message : 'The trial card could not be built.'));
-    } finally { setBusy(false); }
-  };
-
+ *  Nothing about the drawing changed and nothing was taken away — the same PDF
+ *  is built by the same call. It is built from the card SCREEN now, which you
+ *  read first, the way the client report has always worked.
+ */
+function TrialCardButton({ test, project }: { test: Test; project: string }) {
   return (
     <div className="tw-card-out">
-      <button className="btn btn-primary" onClick={() => void make()} disabled={busy}>
-        {busy ? 'Building…' : 'Trial card — the whole day, as a PDF'}
+      <button className="btn btn-primary"
+        onClick={() => nav(`/project/${project}/testing/${encodeURIComponent(test.id)}/card`)}>
+        Trial card — read it, then send it
       </button>
       <p className="sub tw-note">
-        Everything on this screen on a page you can send: what we planned, what happened, every
-        observation and what was decided about it, and what we do next with names and dates.
+        Everything on this screen on one page: what we planned, what happened, every observation
+        and what was decided about it, and what we do next with names and dates. You see it before
+        anybody else does.
       </p>
-      {err && <p className="sub tw-err">{err}</p>}
     </div>
   );
 }

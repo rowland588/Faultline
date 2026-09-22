@@ -65,6 +65,8 @@ const ROUTES = [
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['testing', `#/project/${seeded.projectId}/testing`],
   ['one test', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
+  /* The trial read back whole — the screen the PDF is sent from. */
+  ['trial card', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],
   // A test that is not there any more must say so, not render a screen about
   // nothing — the class of fault that took the whole app down once. And every
   // old /commissioning bookmark still lands on the list.

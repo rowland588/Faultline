@@ -23,6 +23,7 @@ import { ParetoScreen } from './screens/ParetoScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsScreen } from './screens/ProgramsScreen';
 import { TestsScreen } from './screens/TestsScreen';
+import { TrialCardScreen } from './screens/TrialCardScreen';
 import { TestScreen } from './screens/TestScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
@@ -96,6 +97,10 @@ function app(route: Route) {
   /* Narrowed once rather than asserted three times: a test route without a
      project is not a screen, it is a bad link, and it falls through to the
      project list below. */
+  /* The trial read back whole, before it is sent. See TrialCardScreen. */
+  if (route.name === 'trialCard' && route.id && route.lineId) {
+    return <TrialCardScreen projectId={route.id} testId={route.lineId} />;
+  }
   if ((route.name === 'testing' || route.name === 'test') && route.id) {
     return route.name === 'test' && route.lineId
       ? <TestScreen key={route.lineId} projectId={route.id} testId={route.lineId} />

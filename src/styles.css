@@ -5786,3 +5786,97 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .tl-ag-item.is-none   { color: var(--line-2); }
   .tl-ag-item.is-done .tl-ag-dot, .tl-ag-item.is-failed .tl-ag-dot { background: currentColor; }
 }
+
+/* ===================== THE TRIAL CARD, ON SCREEN =========================
+ * See screens/TrialCardScreen.tsx. The same four numbered blocks the A4
+ * carries, set for a screen instead of for a sheet: the two halves of the loop
+ * sit side by side where there is width and stack on a phone, because the
+ * whole reason the plan and the day are two records is that somebody can see
+ * the gap between them — and a gap you have to scroll between is not one.
+ */
+.tc-screen { padding-bottom: 40px; }
+
+.tc-send {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 18px;
+}
+.tc-send.is-foot { margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
+.tc-ok { font-size: 12.5px; font-weight: 700; color: var(--ok); }
+
+.tc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.tc-block {
+  padding: 16px 18px 14px; margin-bottom: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.tc-two .tc-block { margin-bottom: 0; }
+.tc-block-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.tc-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; flex: none;
+  background: var(--ink); color: var(--on-brand);
+  font-size: 11px; font-weight: 800;
+}
+.tc-title {
+  margin: 0; font-family: var(--display); font-size: 15px; font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.tc-f + .tc-f { margin-top: 12px; }
+.tc-f-l {
+  display: block; margin-bottom: 3px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.tc-f-t { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.tc-f-t.is-none { color: var(--muted); }
+
+.tc-empty { margin: 0; }
+
+.tc-list { margin: 0; padding: 0; list-style: none; }
+.tc-row { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 9px 0; }
+.tc-row + .tc-row { border-top: 1px solid var(--surface-2); }
+.tc-row-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface-2); color: var(--ink-2);
+  font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.tc-row.is-done .tc-row-n { background: var(--ok); color: var(--on-brand); }
+.tc-row.is-done .tc-row-t { color: var(--ink-2); }
+.tc-row-b { min-width: 0; }
+.tc-row-t { margin: 0; font-size: 13.5px; line-height: 1.45; font-weight: 600; color: var(--ink); }
+.tc-row-m { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 3px 0 0; font-size: 11.5px; }
+.tc-row-m .is-none { color: var(--line-2); }
+.tc-row-a { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-2); }
+
+/* what somebody decided about an observation, in the app's own state colours */
+.tc-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.tc-tag.is-to-decide { background: var(--gold-soft); color: var(--warn); }
+.tc-tag.is-actioned { background: var(--blue-soft); color: var(--blue); }
+
+.tc-loop {
+  padding: 14px 18px; margin-bottom: 12px;
+  background: var(--surface-2); border-radius: var(--radius);
+}
+.tc-loop-t { margin: 2px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+
+@media (max-width: 720px) {
+  /* The plan and the day stack, and the send button goes full width — it is
+     the one thing on this page a gloved thumb has to hit. */
+  .tc-two { grid-template-columns: 1fr; gap: 12px; }
+  .tc-two .tc-block { margin-bottom: 0; }
+  .tc-send .btn { width: 100%; min-height: var(--tap); }
+  .tc-send.is-foot { flex-direction: column; align-items: stretch; }
+}
+
+/* The trial's own title, under the screen's heading rather than as it — see
+   the header note in TrialCardScreen. */
+.tc-which {
+  margin: 4px 0 0; font-family: var(--display); font-size: 18px; font-weight: 700;
+  letter-spacing: -0.015em; color: var(--ink);
+}

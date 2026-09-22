@@ -64,6 +64,7 @@ const ROUTES = [
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['testing list', `#/project/${seeded.projectId}/testing`],
   ['one trial', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
+  ['trial card', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],
   ['materials', `#/project/${seeded.pacedProjectId}/materials`],
   ['programs', `#/project/${seeded.pacedProjectId}/programs`],
   ['project line', `#/project/${seeded.projectId}/line/${seeded.lineId}`],
