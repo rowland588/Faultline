@@ -247,11 +247,14 @@ function sentenceFor(x: {
   const head = x.daysToGo == null
     ? `${plural(x.outstanding, 'thing')} outstanding`
     : x.daysToGo < 0
-      ? `${Math.abs(x.daysToGo)} days past the date, with ${plural(x.outstanding, 'thing')} outstanding`
+      ? `${plural(Math.abs(x.daysToGo), 'day')} past the date, with ${plural(x.outstanding, 'thing')} outstanding`
       : `${plural(x.daysToGo, 'day')} to go, with ${plural(x.outstanding, 'thing')} outstanding`;
 
+  /* NOT `plural` here. `plural` always prints the number, and a single late
+     thing read "1 one is past the day it was wanted" on the dashboard. At one,
+     the count is the word. */
   const tail = x.late > 0
-    ? ` — ${plural(x.late, 'one is', 'of them are')} past the day it was wanted${blame}.`
+    ? ` — ${x.late === 1 ? 'one is' : `${x.late} of them are`} past the day it was wanted${blame}.`
     : ' — none of it late.';
 
   return `${head[0].toUpperCase()}${head.slice(1)}${tail}`;

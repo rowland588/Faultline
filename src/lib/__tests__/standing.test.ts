@@ -187,6 +187,22 @@ describe('the sentence', () => {
     );
   });
 
+  /* A whole-string assertion on purpose. Every late case here was written with
+     `toContain`, and that is exactly how the dashboard came to read "1 one is
+     past the day it was wanted" without a test going red. */
+  it('counts one late thing in words, not "1 one"', () => {
+    const s = at({ materials: [mat({ due: '2026-09-01', from: 'Brilopak' })], expectedAt: '2026-10-06' });
+    expect(s.sentence).toBe(
+      '14 days to go, with 1 thing outstanding — one is past the day it was wanted, and it is Brilopak’s.',
+    );
+  });
+
+  it('is one day past the date, not "1 days"', () => {
+    const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-21' });
+    expect(s.sentence).toContain('1 day past the date');
+    expect(s.sentence).not.toContain('1 days');
+  });
+
   it('does not name anybody when the late work is spread between them', () => {
     const s = at({
       materials: [mat({ due: '2026-09-01', from: 'Brilopak' })],

@@ -18,6 +18,7 @@ import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
+import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -315,6 +316,10 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
   const state = useMaterials(projectId);
+  /* The numbers on the peers row come from lib/standing.ts, the same call the
+     dashboard and the client report make — a row that said something different
+     from the page under it would be the whole problem back again. */
+  const stand = useStanding(projectId);
   const today = todayISO();
 
   if (loading || state.loading || lines.loading) {
@@ -339,7 +344,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Materials' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'materials')} />
+      <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
 
       <header className="pace-head">
         <div className="pace-head-main">
