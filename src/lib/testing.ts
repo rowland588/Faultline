@@ -65,6 +65,29 @@ export interface Asset {
   state: AssetState;
   note?: string;
   docs?: DocRef[];
+
+  /* ---------------- WHEN, not just WHERE IT HAS GOT TO ----------------
+   *
+   * Rowland: "a date of an asset coming to site, for example — it will happen."
+   *
+   * A machine was the one record in this app carrying a state and no date,
+   * which is exactly why it was the one thing that could not go on the plan.
+   * Shaped like a material's `due` and `inOn` for the same reason they are
+   * shaped that way: what was promised and what actually happened are two
+   * facts, and a system that lets one follow the other around always reports
+   * that everything went to plan.
+   *
+   * All optional. A machine already on site when the job started has no due
+   * date and never needed one, and an invented date reads as a fact. */
+  /** ISO date it is expected on site. */
+  dueOn?: string;
+  /** ISO dates it actually reached each state. A machine is the only thing on
+   *  the plan drawn as a BAR rather than a point, because arriving and running
+   *  are different days and the gap between them is the commissioning. */
+  onSiteOn?: string;
+  installedOn?: string;
+  runningOn?: string;
+
   sort: number;
   updatedAt: number;
   deletedAt?: number;

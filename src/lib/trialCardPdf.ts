@@ -216,7 +216,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
     const rowH = Math.max(18, 8 + lines.length * 11);
     if (cy + rowH > maxY) break;
 
-    if (drawn % 2 === 1) { d.setFillColor('#fafbf8'); d.rect(x - 4, cy + 2, w + 8, rowH, 'F'); }
+    if (drawn % 2 === 1) { d.setFillColor('#faf9f5'); d.rect(x - 4, cy + 2, w + 8, rowH, 'F'); }
 
     lines.slice(0, 3).forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
 
@@ -236,7 +236,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
     }
 
     cy += rowH;
-    d.setDrawColor('#eef1ea'); d.setLineWidth(0.4);
+    d.setDrawColor('#efede6'); d.setLineWidth(0.4);
     d.line(x, cy + 1, x + w, cy + 1);
     drawn++;
   }
@@ -245,7 +245,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
 
 /* The decided-blue is the app's "planned/in progress" slate. Named here so the
    table reads without a colour lookup in the middle of it. */
-const BLUE_DECIDED = '#1f6a92';
+const BLUE_DECIDED = '#2b4e7e';
 
 function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: number): number {
   const cols = [0.5, 0.15, 0.15, 0.2];
@@ -275,7 +275,7 @@ function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: 
     d.text(fit(d, from + (n.done ? ' · done' : ''), cols[3] * w - 10), at(3), cy + 13);
 
     cy += rowH;
-    d.setDrawColor('#eef1ea'); d.setLineWidth(0.4);
+    d.setDrawColor('#efede6'); d.setLineWidth(0.4);
     d.line(x, cy + 1, x + w, cy + 1);
     drawn++;
   }

@@ -19,83 +19,101 @@
 
 :root {
   /* =========================================================================
-   * THE PALETTE.
+   * THE SCHEME — charcoal, bone, and green with one job.
    *
-   * "I like green but I want to impress tomorrow."
+   * Rowland: "I want a fresh, engaging, classic looking colour scheme. Green
+   * can stay, but at the moment everything is green."
    *
-   * The green was a teal — cool, a bit medical, the colour of a dashboard
-   * template. This one is a deep forest emerald: the same family, further down,
-   * with enough saturation left in it to read as a decision rather than a
-   * default. It sits on warm paper rather than cold white, because a warm
-   * ground is what stops a green interface looking clinical, and it is paired
-   * with brass instead of a second blue — two cool hues argue, a cool and a
-   * warm one hold a page together.
+   * He was right, and the diagnosis is the fix. Green was doing TEN jobs — the
+   * chrome, the paper tint, the buttons, the links, the small-caps labels, the
+   * today marker, the done state, the verdict panel, the mark, the rules. A
+   * colour that means everything means nothing, which is why it read as a wash
+   * rather than as a brand.
    *
-   * Every one of these is a token because the whole app, and both PDFs, read
-   * from here. Nothing below this block should name a colour of its own.
+   * So the jobs were redistributed. Charcoal takes the frame. Bone takes the
+   * paper. Green keeps THREE: the mark, the one action you came to take, and
+   * anything genuinely done — passed, proved, running.
+   *
+   * THE RULE THAT KEEPS IT HONEST: no colour gets a second job. If something
+   * needs to stand out and none of these fits, the answer is weight or space,
+   * not a seventh hue. That is the difference between a scheme and a palette.
    * ========================================================================= */
-  --bg: #f6f7f3;          /* warm paper, the faintest green cast */
+  --bg: #f5f3ee;          /* bone. Warm, so a page reads as printed, not lit */
   --surface: #ffffff;
-  --surface-2: #edf1ea;
-  --ink: #0b1a16;         /* near-black, green-cast — deeper than a grey */
-  --ink-2: #34453e;
-  --muted: #6d7c74;
-  --line: #e2e6dd;
-  --line-2: #c2cbc1;      /* a stronger rule: tree connectors, crumb outlines */
+  --surface-2: #eae7de;
+  --ink: #17181a;         /* a true near-black. NOT green-black */
+  --ink-2: #4c4f52;
+  --muted: #84878c;
+  --line: #e4e1d8;
+  --line-2: #ccc8bb;      /* a stronger rule: tree connectors, crumb outlines */
 
   /* WHERE A BOX HAS GOT TO — five states, told apart at a glance and at 34%
      zoom, and each one carries its name so none of them relies on colour. */
-  --st-n: #7b887f;   /* not started — deliberately quiet */
-  --st-w: #1f6a92;   /* in progress — slate blue, the only cool companion */
-  --st-a: #b8873a;   /* at risk — brass */
-  --st-r: #b5392c;   /* blocked */
-  --st-g: #2f8f5b;   /* done — lighter and grassier than the brand */
+  --st-n: #a9aca8;   /* not started — deliberately quiet */
+  --st-w: #2b4e7e;   /* in progress — ink blue: booked, still ahead of us */
+  --st-a: #a97822;   /* at risk — ochre: waiting on somebody, not yet wrong */
+  --st-r: #9b3227;   /* blocked — oxblood: the day has gone */
+  --st-g: #1e6b4b;   /* done — the one green */
 
-  /* THE IDENTITY. --brand fills (buttons, the mark); --accent is the readable
-     one for text and links; --sweep is the gradient, used sparingly. */
-  --accent: #0a5c44;      /* deep emerald, 7.4:1 on white */
-  --accent-soft: #e3efe9;
-  --accent-rgb: 12, 107, 78;
-  --brand: #0c6b4e;       /* forest emerald — fills */
-  --brand-2: #084f3a;     /* pressed/hover */
+  /* THE IDENTITY. One green, one job each for the rest. --brand fills the
+     primary action; --accent is the same green where text must carry it. */
+  --accent: #1e6b4b;
+  --accent-soft: #e7f0ea;
+  --accent-rgb: 30, 107, 75;
+  --brand: #1e6b4b;
+  --brand-2: #17543b;     /* pressed/hover */
   --on-brand: #ffffff;
-  --blue: #1f6a92;        /* planned, in progress — never a second identity */
-  --blue-soft: #e4eef4;
-  /* BRASS. The warm half. A highlight, a key number, the spark on the mark —
-     never a fill behind text, and never a state on its own. */
-  --gold: #a9762c;
-  --gold-soft: #f6ecd9;
-  --sweep: linear-gradient(135deg, #0c6b4e 0%, #0a5c44 42%, #103c43 100%);
-  --sweep-soft: linear-gradient(135deg, #e6f2ec 0%, #eef1e8 100%);
+  /* BRIGHT GREEN IS THE MARK AND NOTHING ELSE. It only works on charcoal, and
+     the moment it is used for a second thing the wash comes back. */
+  --brand-mark: #3fbf8a;
+  --blue: #2b4e7e;        /* booked, planned — never a second identity */
+  --blue-soft: #e9edf4;
+  --gold: #a97822;        /* outstanding */
+  --gold-soft: #f7efdf;
 
-  /* chrome — the light cockpit frame (top bar, tab bar, the meeting room) */
-  --chrome: #eaf1ea;
-  --chrome-2: #dde8dd;
-  --chrome-ink: #0b1a16;
-  --chrome-muted: #5d6f66;
-  --chrome-line: #c8d6c9;
+  /* THE SHELL — the dark frame: the spine, a project's top bar, the verdict
+     card. Its own tokens rather than --chrome, which is the LIGHT cockpit the
+     meeting screen and the workspace bar are built on and must stay light. */
+  --shell: #1a1c1a;
+  --shell-2: #232624;
+  --shell-ink: #ffffff;
+  --shell-muted: #9a9e98;
+  --shell-dim: #b9bcb6;
+  --shell-line: #343835;
+  /* the two numbers allowed to carry colour on a dark card */
+  --shell-warn: #e0a94a;
+  --shell-bad: #e2796b;
 
-  --ok: #2f8f5b;          /* good news — matches --st-g, never the brand */
-  --warn: #a9762c;        /* kept readable on white — matches --gold */
-  --danger: #b5392c;      /* deep warm red */
-  --freq: #6d7f76;        /* frequency series — slate, pairs with any hue */
+  --sweep: linear-gradient(135deg, #1a1c1a 0%, #232624 58%, #1e6b4b 100%);
+  --sweep-soft: linear-gradient(135deg, #f0ece1 0%, #eae7de 100%);
+
+  /* chrome — the LIGHT cockpit frame (workspace bar, tab bar, meeting room) */
+  --chrome: #efece3;
+  --chrome-2: #e6e1d5;
+  --chrome-ink: #17181a;
+  --chrome-muted: #6e7176;
+  --chrome-line: #ddd8ca;
+
+  --ok: #1e6b4b;          /* good news — the same green, never a second one */
+  --warn: #a97822;
+  --danger: #9b3227;
+  --freq: #84878c;        /* frequency series — neutral, pairs with any hue */
   --radius: 14px;
   --radius-sm: 10px;
-  --radius-lg: 22px;      /* the one big surface on a screen, not every card */
-  /* Shadow carries the ink's hue rather than pure black: a grey shadow under a
-     green interface is what makes it look printed on rather than part of it. */
-  --shadow: 0 1px 2px rgba(11, 26, 22, 0.05), 0 8px 24px rgba(11, 26, 22, 0.07);
-  --shadow-lift: 0 2px 6px rgba(11, 26, 22, 0.07), 0 18px 44px rgba(11, 26, 22, 0.13);
+  --radius-lg: 22px;
+  /* Shadow carries the ink rather than pure black, and stays shallow: a heavy
+     drop shadow is the other thing that makes software look dated. */
+  --shadow: 0 1px 2px rgba(23, 24, 26, 0.05), 0 8px 24px rgba(23, 24, 26, 0.06);
+  --shadow-lift: 0 2px 6px rgba(23, 24, 26, 0.07), 0 18px 44px rgba(23, 24, 26, 0.12);
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 
-  /* THE TYPE. Two faces, both variable, both bundled — not fetched, because
-     this app has to look like itself on a factory floor with no signal.
-     Instrument Sans carries everything you read; Schibsted Grotesk carries the
-     things you look at — headings, the mark, a number somebody reads out. */
+  /* THE TYPE. Two variable faces, both bundled — not fetched, because this app
+     has to look like itself on a factory floor with no signal. */
   --font: "Instrument Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --display: "Schibsted Grotesk Variable", var(--font);
-  --tap: 52px;            /* minimum touch target — floor thumbs, sometimes gloved */
+  --tap: 52px;            /* minimum touch target — floor thumbs, often gloved */
 }
+
 
 /* HEADINGS ARE SET, NOT JUST BIGGER. The display face, tracked in, so a screen
    has a voice at a glance. Numbers line up in a column wherever they are
