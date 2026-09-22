@@ -5365,3 +5365,19 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .tw-tick { width: 30px; height: 30px; }
   .tw-item-m { min-height: 44px; }
 }
+
+/* The day, as a document somebody can send. Sits between the trial and the
+   loop button, because sending it out is what you do at the end of the day and
+   planning the next one is what you do after that. */
+.tw-card-out {
+  display: flex; flex-direction: column; gap: 7px; align-items: flex-start;
+  padding: 15px 17px; margin: 14px 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.tw-card-out .sub { margin: 0; max-width: 62ch; }
+.tw-err { color: var(--danger); }
+@media (max-width: 720px) {
+  .tw-card-out { align-items: stretch; }
+  .tw-card-out .btn { width: 100%; min-height: var(--tap); }
+}

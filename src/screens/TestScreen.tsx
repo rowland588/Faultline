@@ -24,7 +24,7 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
-import { deliverBlob } from '../lib/savePdf';
+import { deliverBlob, deliverPdf, isStaleBuildError, loadPdfLib } from '../lib/savePdf';
 import {
   OUTCOME_WORD, actionOf, foundTally, itemsOf, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
@@ -169,6 +169,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       <Docs test={test} tt={tt} />
 
+      <TrialCardButton test={test} tt={tt} project={project.name} lead={project.lead} />
+
       <button className="btn btn-primary tw-loop" onClick={() => void (async () => {
         const id = await tt.planNextFrom(test);
         nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
@@ -192,6 +194,60 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       </div>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
+    </div>
+  );
+}
+
+/** THE CARD FOR THIS DAY, as a PDF somebody can send.
+ *
+ *  "Another PDF report that I can send out to show all the finite detail,
+ *  because there's a lot of detail that you pick up."  This is that one. The GM
+ *  report lifts four lines out of each trial; this is the whole of one.
+ *
+ *  jsPDF is loaded on demand, the way every other document in this app is — it
+ *  is most of the bundle, and a phone on a factory wifi should not be made to
+ *  fetch it to look at a test. */
+function TrialCardButton({ test, tt, project, lead }: {
+  test: Test; tt: TT; project: string; lead?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const make = async () => {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try {
+      const { jsPDF } = await loadPdfLib();
+      const [{ trialCard }, { drawTrialCard }] = await Promise.all([
+        import('../lib/trialCard'), import('../lib/trialCardPdf'),
+      ]);
+      const card = trialCard(test, tt.tests, tt.items, tt.assets);
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      drawTrialCard(pdf, card, { project, lead, builtAt: Date.now() });
+      /* The file lands in somebody's inbox on its own, so the name has to say
+         which trial on which job — "trial.pdf" from three days is three files
+         nobody can tell apart. */
+      const slug = `${project} ${test.title}`.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Trial';
+      const how = await deliverPdf(pdf, `${slug}-${(test.ranOn ?? test.plannedFor ?? today())}.pdf`);
+      if (how === 'opened') setErr('Your browser would not save it, so it is open in a new tab — share or print it from there.');
+    } catch (e) {
+      console.error('Trial card failed', e);
+      setErr(isStaleBuildError(e)
+        ? 'This tab is still running an older version of the app, so the part that draws the PDF could not load. Reload and try again.'
+        : (e instanceof Error ? e.message : 'The trial card could not be built.'));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="tw-card-out">
+      <button className="btn btn-primary" onClick={() => void make()} disabled={busy}>
+        {busy ? 'Building…' : 'Trial card — the whole day, as a PDF'}
+      </button>
+      <p className="sub tw-note">
+        Everything on this screen on a page you can send: what we planned, what happened, every
+        observation and what was decided about it, and what we do next with names and dates.
+      </p>
+      {err && <p className="sub tw-err">{err}</p>}
     </div>
   );
 }
