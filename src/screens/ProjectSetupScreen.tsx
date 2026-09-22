@@ -15,6 +15,7 @@ import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
+import { useStanding } from '../lib/useStanding';
 import { useProject, useProjects } from '../lib/useProjects';
 import { MODELS, planModel, setPlanModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -269,6 +270,10 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
 export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
+  /* The numbers on the peers row come from lib/standing.ts, the same call the
+     dashboard and the client report make — a row that said something different
+     from the page under it would be the whole problem back again. */
+  const stand = useStanding(projectId);
   /* Measures and targets belong to an improvement initiative, not to a handover.
      A commissioning job's rate is agreed once, per pack, and either proved or
      not — asking it for a quarterly target is asking a question the job has no
@@ -300,7 +305,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${project.id}` },
         { label: 'Lines & people' },
       ]} />
-      <Peers peers={projectPeers(project.id, 'setup')} />
+      <Peers peers={projectPeers(project.id, 'setup', stand.counts)} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>

@@ -14,6 +14,7 @@ import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
+import { useStanding } from '../lib/useStanding';
 import { DraftField } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -58,6 +59,10 @@ function Mark({ t }: { t: Test }) {
 export function TestsScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
+  /* The numbers on the peers row come from lib/standing.ts, the same call the
+     dashboard and the client report make — a row that said something different
+     from the page under it would be the whole problem back again. */
+  const stand = useStanding(projectId);
   const [dates, setDates] = useState(false);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
@@ -97,7 +102,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Testing' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'testing')} />
+      <Peers peers={projectPeers(projectId, 'testing', stand.counts)} />
 
       <header className="cm-head">
         <div>

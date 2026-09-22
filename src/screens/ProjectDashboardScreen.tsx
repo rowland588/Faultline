@@ -36,6 +36,9 @@ import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
+import { useStanding } from '../lib/useStanding';
+import { Verdict } from '../ui/Verdict';
+import { Outstanding } from '../ui/Outstanding';
 import { ASSET_STATE_WORD } from '../lib/testing';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
@@ -335,9 +338,67 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
  *  The same sentence the testing screen leads with and the same sentence the A3
  *  prints — composed once in lib/testing, so this page cannot form a second
  *  opinion about a job it is only summarising. */
+/* WHAT IS HOLDING THE JOB UP, named — and ONLY when something actually is. A
+ * banner that is always there is furniture; this one appearing means news, so
+ * it earns being read.
+ *
+ * IT USED TO BE THE FIRST THING ON THE PAGE, and that was right when it was the
+ * only thing on the page that knew anything was late. The verdict card now says
+ * how much is late, whose it is, and what it does to the date — so the page
+ * opens on the position rather than on an alarm, and these follow it carrying
+ * the one thing the verdict cannot: WHICH ONE, and HOW MANY DAYS.
+ *
+ * The two are kept apart rather than merged into one "things are late" line:
+ * they are owed by different people and fixed in different ways, and a merged
+ * count tells you neither.
+ */
+function LateAlarms({ projectId }: { projectId: string }) {
+  const mats = useMaterials(projectId);
+  const progs = usePrograms(projectId);
+
+  return (
+    <>
+      {mats.tally.late > 0 && (
+        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/materials`)}>
+          <span className="mt-alarm-t">
+            {mats.tally.late === 1 ? '1 material is late' : `${mats.tally.late} materials are late`}
+          </span>
+          <span className="mt-alarm-s">
+            {mats.materials.filter(m => daysLate(m) != null).slice(0, 3)
+              .map(m => `${m.what} — ${daysLate(m)} day${daysLate(m) === 1 ? '' : 's'}`).join('  ·  ')}
+            {mats.tally.late > 3 && `  ·  and ${mats.tally.late - 3} more`}
+          </span>
+          <span className="mt-alarm-go" aria-hidden>›</span>
+        </button>
+      )}
+
+      {progs.tally.overdue > 0 && (
+        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/programs`)}>
+          <span className="mt-alarm-t">
+            {progs.tally.overdue === 1
+              ? '1 program is past its test date'
+              : `${progs.tally.overdue} programs are past their test date`}
+          </span>
+          <span className="mt-alarm-s">
+            {progs.programs.filter(p => daysOverdue(p) != null).slice(0, 3)
+              .map(p => `${p.what} — ${daysOverdue(p)} day${daysOverdue(p) === 1 ? '' : 's'}`).join('  ·  ')}
+            {progs.tally.overdue > 3 && `  ·  and ${progs.tally.overdue - 3} more`}
+          </span>
+          <span className="mt-alarm-go" aria-hidden>›</span>
+        </button>
+      )}
+    </>
+  );
+}
+
 function TestingOverview({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
-  if (tt.loading) return <p className="sub">Loading…</p>;
+  /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
+     to form its own opinion from the trials alone, which meant it could say
+     "nothing outstanding" while four materials were late and two programs were
+     past their test date. Same call the client report makes. */
+  const all = useStanding(projectId);
+  if (tt.loading || all.loading) return <p className="sub">Loading…</p>;
 
   const st = tt.standing;
   const empty = tt.tests.length === 0 && tt.assets.length === 0;
@@ -352,21 +413,25 @@ function TestingOverview({ projectId }: { projectId: string }) {
         </div>
       ) : (
         <>
-          <div className="cx-answer">
-            <span className="cmp-h-n">WHERE WE ARE</span>
-            <p className="cx-said">{st.sentence}</p>
-            {st.total > 0 && (
-              <>
-                <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
-                <span className="cx-tally">
-                  {st.ran} of {st.total} run
-                  {st.passed > 0 && <> · {st.passed} passed</>}
-                  {st.undecided.length > 0 && <> · <b className="is-w">{st.undecided.length} to decide</b></>}
-                  {st.openNext.length > 0 && <> · <b className="is-r">{st.openNext.length} to do</b></>}
-                </span>
-              </>
-            )}
-          </div>
+          {/* THE VERDICT, then what is waiting on somebody, then the work.
+              The old block here said the same kind of thing off the trials
+              alone; this says it off all five lists, which is the difference
+              between a summary and an answer. */}
+          <Verdict st={all.standing} />
+          {/* The position, then the sore point by name, then the whole list. */}
+          <LateAlarms projectId={projectId} />
+          <Outstanding rows={all.standing.rows} projectId={projectId} />
+
+          {st.total > 0 && (
+            <div className="cx-answer">
+              <span className="cmp-h-n">THE TRIALS</span>
+              <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
+              <span className="cx-tally">
+                {st.ran} of {st.total} run
+                {st.passed > 0 && <> · {st.passed} passed</>}
+              </span>
+            </div>
+          )}
 
           {st.upcoming[0] && (
             <button className="tw-next is-now" style={{ marginTop: 12 }}
@@ -570,43 +635,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         ))}
       </nav>
 
-      {/* WHAT IS HOLDING THE JOB UP, said on the way in — and ONLY when
-          something actually is. A banner that is always there is furniture;
-          this one appearing means news, so it earns being read. It is on both
-          models, because every job waits on something. */}
-      {lens === 'overview' && mats.tally.late > 0 && (
-        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/materials`)}>
-          <span className="mt-alarm-t">
-            {mats.tally.late === 1 ? '1 material is late' : `${mats.tally.late} materials are late`}
-          </span>
-          <span className="mt-alarm-s">
-            {mats.materials.filter(m => daysLate(m) != null).slice(0, 3)
-              .map(m => `${m.what} — ${daysLate(m)} day${daysLate(m) === 1 ? '' : 's'}`).join('  ·  ')}
-            {mats.tally.late > 3 && `  ·  and ${mats.tally.late - 3} more`}
-          </span>
-          <span className="mt-alarm-go" aria-hidden>›</span>
-        </button>
-      )}
-
-      {/* And the same for a test day that has been and gone. Kept separate
-          from the materials banner rather than merged into one "things are
-          late" line: they are owed by different people and fixed in different
-          ways, and a merged count tells you neither. */}
-      {lens === 'overview' && progs.tally.overdue > 0 && (
-        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/programs`)}>
-          <span className="mt-alarm-t">
-            {progs.tally.overdue === 1
-              ? '1 program is past its test date'
-              : `${progs.tally.overdue} programs are past their test date`}
-          </span>
-          <span className="mt-alarm-s">
-            {progs.programs.filter(p => daysOverdue(p) != null).slice(0, 3)
-              .map(p => `${p.what} — ${daysOverdue(p)} day${daysOverdue(p) === 1 ? '' : 's'}`).join('  ·  ')}
-            {progs.tally.overdue > 3 && `  ·  and ${progs.tally.overdue - 3} more`}
-          </span>
-          <span className="mt-alarm-go" aria-hidden>›</span>
-        </button>
-      )}
+      {/* On a commissioning job these are drawn UNDER the verdict instead — see
+          LateAlarms. Here, where there is no verdict card, they stay first. */}
+      {lens === 'overview' && model !== 'commissioning' && <LateAlarms projectId={projectId} />}
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.
           It used to be the tracker's: lines at target against Q1, the 3P board
