@@ -17,6 +17,7 @@ import { useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
+import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useProject } from '../lib/useProjects';
@@ -109,7 +110,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       <section className="tw-block">
         <span className="tw-block-h">1 · What we planned to do</span>
         <label className="cw-f cw-f-wide"><span>What we plan to do</span>
-          <input value={test.title} onChange={e => save({ title: e.target.value })} /></label>
+          <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
         <label className="cw-f"><span>Machine</span>
           <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
             <option value="">The line itself</option>
@@ -118,12 +119,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         <label className="cw-f"><span>Planned for</span>
           <input type="date" value={test.plannedFor ?? ''} onChange={e => save({ plannedFor: e.target.value || undefined })} /></label>
         <label className="cw-f"><span>With</span>
-          <input value={test.withWhom ?? ''} placeholder="Ilapak UK" onChange={e => save({ withWhom: e.target.value || undefined })} /></label>
+          <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
         <label className="cw-f"><span>Product we plan to run</span>
-          <input value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onChange={e => save({ planned: e.target.value || undefined })} /></label>
+          <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
         <label className="cw-f cw-f-wide"><span>Passes if — the expectation</span>
-          <textarea rows={2} value={test.passesIf ?? ''} placeholder="65 ppm held for 30 minutes, under 2% waste"
-            onChange={e => save({ passesIf: e.target.value || undefined })} /></label>
+          <DraftArea value={test.passesIf ?? ''} placeholder="65 ppm held for 30 minutes, under 2% waste"
+            onSave={v => save({ passesIf: v.trim() || undefined })} /></label>
         <p className="sub tw-note">Agreed before the day. It is what the result gets measured against.</p>
       </section>
 
@@ -131,13 +132,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       <section className="tw-block">
         <span className="tw-block-h">2 · What actually happened</span>
         <label className="cw-f"><span>Product we ran</span>
-          <input value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
-            onChange={e => save({ product: e.target.value || undefined })} /></label>
+          <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
+            onSave={v => save({ product: v.trim() || undefined })} /></label>
         <label className="cw-f"><span>On the day</span>
           <input type="date" value={test.ranOn ?? ''} onChange={e => save({ ranOn: e.target.value || undefined })} /></label>
         <label className="cw-f cw-f-wide"><span>What happened</span>
-          <textarea rows={2} value={test.result ?? ''} placeholder="61 ppm, 3 leaked in 20"
-            onChange={e => save({ result: e.target.value || undefined })} /></label>
+          <DraftArea rows={5} value={test.result ?? ''} placeholder="61 ppm, 3 leaked in 20"
+            onSave={v => save({ result: v.trim() || undefined })} /></label>
         <span className="tw-seg">
           {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
             <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')} onClick={() => setOutcome(o)}>
@@ -250,9 +251,9 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
       {open && (
         <div className="tw-item-edit">
           <label className="cw-f cw-f-wide"><span>What</span>
-            <input value={item.what} onChange={e => void tt.saveItem({ ...item, what: e.target.value })} /></label>
+            <DraftArea rows={2} value={item.what} onSave={v => v.trim() && void tt.saveItem({ ...item, what: v.trim() })} /></label>
           <label className="cw-f"><span>Whose</span>
-            <input value={item.owner ?? ''} placeholder="Ilapak UK" onChange={e => void tt.saveItem({ ...item, owner: e.target.value || undefined })} /></label>
+            <DraftField value={item.owner ?? ''} placeholder="Ilapak UK" onSave={v => void tt.saveItem({ ...item, owner: v.trim() || undefined })} /></label>
           {item.kind === 'next' && (
             <label className="cw-f"><span>By when</span>
               <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>

@@ -23,6 +23,7 @@
  * both means, both counts, a significance test, frozen when it is called, and
  * allowed to come back "not proven" or "worse". The story stays; the number
  * stops being a claim. See lib/measureProof.ts. */
+import { DraftArea, DraftField } from '../ui/Draft';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, type PaceWinRow } from '../db';
 import { uid } from '../lib/ids';
@@ -33,18 +34,6 @@ import { WinProofSheet } from './WinProofSheet';
 const when = (ms: number) =>
   new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** Grows with the text, so a long story is never a one-line slot. */
-function Grow({ value, onChange, placeholder, label, cls }: {
-  value: string; onChange: (v: string) => void; placeholder: string; label: string; cls: string;
-}) {
-  return (
-    <textarea
-      className={cls} rows={1} value={value} placeholder={placeholder} aria-label={label}
-      onChange={e => onChange(e.target.value)}
-    />
-  );
-}
-
 function Card({ win, onPatch, onDelete, onProve }: {
   win: PaceWinRow; onPatch: (p: Partial<PaceWinRow>) => void; onDelete: () => void;
   onProve: () => void;
@@ -53,14 +42,14 @@ function Card({ win, onPatch, onDelete, onProve }: {
   return (
     <article className={'win-card' + (proof ? ' is-' + proof.verdict : '')}>
       <div className="win-top">
-        <Grow cls="win-in win-title" label="What worked" value={win.title}
-          placeholder="What worked" onChange={v => onPatch({ title: v })} />
+        <DraftArea className="win-in win-title" rows={1} ariaLabel="What worked" value={win.title}
+          placeholder="What worked" onSave={v => onPatch({ title: v })} />
         {/* Typed impact only while there is no proof. Once the weeks have
             spoken, the typed number stops being shown at all — two numbers
             claiming the same thing is how a report loses a room. */}
         {!proof && (
-          <input className="win-in win-impact" aria-label="Impact" value={win.impact}
-            placeholder="44 → 49 ppm" onChange={e => onPatch({ impact: e.target.value })} />
+          <DraftField className="win-in win-impact" ariaLabel="Impact" value={win.impact}
+            placeholder="44 → 49 ppm" onSave={v => onPatch({ impact: v })} />
         )}
       </div>
 
@@ -81,14 +70,14 @@ function Card({ win, onPatch, onDelete, onProve }: {
         </button>
       )}
 
-      <Grow cls="win-in win-story" label="What we did" value={win.story}
-        placeholder="What we did — the story you'd tell the team" onChange={v => onPatch({ story: v })} />
+      <DraftArea className="win-in win-story" rows={2} ariaLabel="What we did" value={win.story}
+        placeholder="What we did — the story you'd tell the team" onSave={v => onPatch({ story: v })} />
 
       <div className="win-foot">
-        <input className="win-in win-who" aria-label="Who to credit" value={win.who}
-          placeholder="Who made it happen" onChange={e => onPatch({ who: e.target.value })} />
-        <input className="win-in win-where" aria-label="Where" value={win.where}
-          placeholder="Line 10" onChange={e => onPatch({ where: e.target.value })} />
+        <DraftField className="win-in win-who" ariaLabel="Who to credit" value={win.who}
+          placeholder="Who made it happen" onSave={v => onPatch({ who: v })} />
+        <DraftField className="win-in win-where" ariaLabel="Where" value={win.where}
+          placeholder="Line 10" onSave={v => onPatch({ where: v })} />
         <span className="win-date">{when(win.createdAt)}</span>
         <button className="win-del" onClick={onDelete} aria-label="Delete this win">Delete</button>
       </div>

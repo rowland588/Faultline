@@ -15,6 +15,7 @@
  * WHEN is free text. "Before the Tesco launch" and "w/c 22nd" are real answers
  * that a date picker cannot hold, and forcing a date would make people invent
  * one. */
+import { DraftArea, DraftField } from '../ui/Draft';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
@@ -29,18 +30,6 @@ const GROUPS: { id: State; title: string; blurb: string }[] = [
   { id: 'waiting', title: 'Waiting for', blurb: 'on someone else' },
   { id: 'done', title: 'Done', blurb: '' },
 ];
-
-/** Grows with what is typed, so a long "why" is never a one-line slot. */
-function Grow({ value, onChange, placeholder, label }: {
-  value: string; onChange: (v: string) => void; placeholder: string; label: string;
-}) {
-  return (
-    <textarea
-      className="ns-in ns-grow" rows={2} value={value} placeholder={placeholder} aria-label={label}
-      onChange={e => onChange(e.target.value)}
-    />
-  );
-}
 
 function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
   row: PaceTodoRow; onPatch: (p: Partial<PaceTodoRow>) => void; onDelete: () => void;
@@ -75,16 +64,16 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
   return (
     <>
     <tr className={'ns-row is-' + row.state}>
-      <td data-h="What"><Grow value={row.what} label="What" placeholder="Trial the Tesco Express trays"
-        onChange={v => onPatch({ what: v })} /></td>
-      <td data-h="Where"><textarea className="ns-in ns-grow" rows={1} value={row.where} aria-label="Where" placeholder="Line 10 robot"
-        onChange={e => onPatch({ where: e.target.value })} /></td>
-      <td data-h="Why"><Grow value={row.why} label="Why" placeholder="Prove the robot can pack them at speed"
-        onChange={v => onPatch({ why: v })} /></td>
-      <td data-h="Who"><textarea className="ns-in ns-grow" rows={1} value={row.who} aria-label="Who" placeholder="Name"
-        onChange={e => onPatch({ who: e.target.value })} /></td>
-      <td data-h="When"><input className="ns-in" value={row.when} aria-label="When" placeholder="w/c 22nd"
-        onChange={e => onPatch({ when: e.target.value })} /></td>
+      <td data-h="What"><DraftArea className="ns-in ns-grow" rows={2} value={row.what} ariaLabel="What"
+        placeholder="Trial the Tesco Express trays" onSave={v => onPatch({ what: v })} /></td>
+      <td data-h="Where"><DraftArea className="ns-in ns-grow" rows={1} value={row.where} ariaLabel="Where"
+        placeholder="Line 10 robot" onSave={v => onPatch({ where: v })} /></td>
+      <td data-h="Why"><DraftArea className="ns-in ns-grow" rows={2} value={row.why} ariaLabel="Why"
+        placeholder="Prove the robot can pack them at speed" onSave={v => onPatch({ why: v })} /></td>
+      <td data-h="Who"><DraftArea className="ns-in ns-grow" rows={1} value={row.who} ariaLabel="Who"
+        placeholder="Name" onSave={v => onPatch({ who: v })} /></td>
+      <td data-h="When"><DraftField className="ns-in" value={row.when} ariaLabel="When"
+        placeholder="w/c 22nd" onSave={v => onPatch({ when: v })} /></td>
       <td data-h="Photos">
         <div className="ns-pics">
           {media.map(m => (
@@ -100,11 +89,11 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
       </td>
       <td data-h="Outcome" className="ns-outcome-cell">
         {done ? (
-          <textarea
-            ref={outcomeRef}
-            className="ns-in ns-grow ns-outcome" rows={2} value={row.outcome ?? ''} aria-label="Outcome"
+          <DraftArea
+            areaRef={outcomeRef}
+            className="ns-in ns-grow ns-outcome" rows={2} value={row.outcome ?? ''} ariaLabel="Outcome"
             placeholder="How did it end? Worked / didn't / needs another go"
-            onChange={e => onPatch({ outcome: e.target.value })}
+            onSave={v => onPatch({ outcome: v })}
           />
         ) : (
           <span className="ns-outcome-wait" title="Mark this line Done to record the outcome">

@@ -5268,3 +5268,34 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tr-out.is-failed  { color: var(--danger); }
 .tr-out.is-notRun  { color: var(--warn); }
 .tr-res { display: block; font-size: 10px; color: var(--muted); }
+
+/* ===========================================================================
+ * TYPING ON A PHONE.
+ *
+ * Two things were wrong and they compound. The caret one is fixed in
+ * ui/Draft.tsx — the field owns what you are typing. This is the other half:
+ * the box was too small to read back what you had written, so you could not
+ * see the mistake you were trying to correct.
+ *
+ * Below 16px, iOS zooms the page the moment a field takes focus, and then
+ * leaves you zoomed in — which is most of why the app "feels" wrong to type
+ * in on a phone. So every field goes to 16px on a phone, and every box that
+ * holds a sentence gets real room.
+ * =========================================================================== */
+@media (max-width: 720px) {
+  .cw-f input, .cw-f select, .cw-f textarea,
+  .tw-block input, .tw-block select, .tw-block textarea,
+  .text-input, .ns-in, .win-in, .pset-cell {
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  .cw-f input, .cw-f select { padding: 11px 12px; min-height: var(--tap, 52px); }
+  .tw-block textarea { padding: 12px 13px; }
+  .tw-addrow input { font-size: 16px; padding: 12px 13px; min-height: var(--tap, 52px); }
+  /* The observation you are writing on the floor: room for a sentence, not a slot. */
+  .tw-block .cw-f-wide textarea { min-height: 110px; }
+}
+
+/* On any screen, a box that holds prose starts at a readable height and grows
+   with the text rather than scrolling inside two lines. */
+.tw-block textarea { min-height: 76px; line-height: 1.5; }
