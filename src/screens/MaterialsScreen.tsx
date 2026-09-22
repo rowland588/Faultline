@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
+import { Peers, projectPeers } from '../ui/Peers';
 import { DraftText } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -338,6 +339,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Materials' },
       ]} />
+      <Peers peers={projectPeers(projectId, 'materials')} />
 
       <header className="pace-head">
         <div className="pace-head-main">
@@ -349,7 +351,6 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}`)}>Open project</button>
           <AccountMenu />
         </div>
       </header>

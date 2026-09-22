@@ -5470,3 +5470,51 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media (max-width: 720px) {
   .tr-cards, .pg-cols { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------------------
+ * THE PEERS ROW — moving ACROSS, not just up.
+ * See ui/Peers.tsx. The one you are on stays in place and is marked, because a
+ * row that changes shape as you move through it gives the eye no anchor.
+ * ------------------------------------------------------------------------- */
+.peers {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin: 0 0 16px;
+}
+.peer {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 38px; padding: 0 14px;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  cursor: pointer;
+}
+.peer:hover { border-color: var(--line-2); color: var(--ink); }
+.peer.is-on {
+  background: var(--ink); border-color: var(--ink); color: var(--on-brand);
+  cursor: default;
+}
+.peer-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.peer.is-on .peer-n { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.peer-n.is-late { background: var(--gold-soft); color: var(--warn); }
+.peer.is-on .peer-n.is-late { background: var(--warn); color: #fff; }
+
+@media (max-width: 720px) {
+  /* On a phone it scrolls sideways rather than wrapping to three rows. */
+  .peers {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin-inline: -16px; padding-inline: 16px;
+  }
+  .peers::-webkit-scrollbar { display: none; }
+  .peer { flex: 0 0 auto; min-height: 42px; }
+}
+
+/* The project's name sits ABOVE the heading now, small — the heading itself
+   says which screen you are on. Four screens used to share one h1. */
+.cm-eyebrow {
+  margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted);
+}

@@ -190,7 +190,6 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             : `Delete “${test.title}”?`;
           if (confirm(warn)) { await tt.removeTest(test.id); nav(`/project/${projectId}/testing`); }
         })()}>Delete this test</button>
-        <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing`)}>Back to the tests</button>
       </div>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}

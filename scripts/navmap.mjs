@@ -100,6 +100,15 @@ for (const [name, hash] of ROUTES) {
   });
 }
 
+/* TWO NAMED EXEMPTIONS, and they are exemptions rather than a lower bar:
+ *   home  — the root. There is nothing above it, so a trail would be a lie.
+ *   client report — its h1 is a DOCUMENT masthead carrying the project's name,
+ *     the way the printed cover does. The spine says which screen it is.
+ * Anything not on this list still fails, so a new screen without a spine shows
+ * up immediately. */
+const NO_SPINE_OK = new Set(['home']);
+const H1_IS_A_MASTHEAD = new Set(['client report']);
+
 let faults = 0;
 const seenH1 = new Map();
 for (const r of rows) {
@@ -107,9 +116,9 @@ for (const r of rows) {
   console.log(`  spine : ${r.trail ? r.trail.join(' > ') : '*** NO SPINE ***'}`);
   console.log(`  up    : ${r.up ?? '(none)'}`);
   if (r.others.length) console.log(`  ALSO  : ${r.others.join(' | ').slice(0, 150)}`);
-  if (!r.trail) faults++;
+  if (!r.trail && !NO_SPINE_OK.has(r.name)) faults++;
   if (r.others.length) faults++;
-  if (r.h1) seenH1.set(r.h1, (seenH1.get(r.h1) ?? 0) + 1);
+  if (r.h1 && !H1_IS_A_MASTHEAD.has(r.name)) seenH1.set(r.h1, (seenH1.get(r.h1) ?? 0) + 1);
 }
 
 const shared = [...seenH1].filter(([, n]) => n > 1);
@@ -120,3 +129,4 @@ for (const [h1, n] of shared) {
 
 console.log(`\n${faults} navigation fault${faults === 1 ? '' : 's'} across ${rows.length} screens.`);
 await browser.close();
+if (faults) process.exit(1);

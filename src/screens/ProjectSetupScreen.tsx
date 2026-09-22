@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
+import { Peers, projectPeers } from '../ui/Peers';
 import { useProject, useProjects } from '../lib/useProjects';
 import { MODELS, planModel, setPlanModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -299,14 +300,14 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${project.id}` },
         { label: 'Lines & people' },
       ]} />
+      <Peers peers={projectPeers(project.id, 'setup')} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">Set up</p>
-          <h1 className="pace-title">{project.name}</h1>
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">Lines &amp; people</h1>
           <p className="pace-lede">The lines this project runs, who owns each one, and who is invited to see it.</p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => nav(`/project/${project.id}`)}>Open project</button>
           <AccountMenu />
         </div>
       </header>
