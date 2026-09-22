@@ -1,6 +1,6 @@
 /* PROJECT PACE — three lenses on one set of data.
  *
- *   Overview — the arc, for the GM: are we at pace, what moved, what the walk
+ *   Overview — the arc, for the client: are we at pace, what moved, what the walk
  *              found. Compact enough to take in at a glance, and what prints.
  *   Meeting  — the tracker by OWNER, because that is how the meeting is run:
  *              each person reports their own workload. Sections fold, so one
@@ -530,7 +530,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               is. A bare handover with nothing on either list still gets no
               button, which is all the old rule was ever protecting. */}
           {(model !== 'commissioning' || mats.tally.total > 0 || progs.tally.total > 0) && <>
-            <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>GM report</button>
+            <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>Client report</button>
             <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
           </>}
           <AccountMenu />

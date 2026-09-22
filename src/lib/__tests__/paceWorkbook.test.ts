@@ -68,7 +68,7 @@ describe('the action tracker', () => {
   });
 
   it('defaults an absent or nonsense priority to 3 rather than 0 or NaN', () => {
-    // Priority sorts the board. A 0 would jump a blank to the top of the GM's
+    // Priority sorts the board. A 0 would jump a blank to the top of the client's
     // page; a NaN would put it somewhere undefined.
     const { snapshot } = read({
       'Action Tracker': [TRACKER_HEAD,

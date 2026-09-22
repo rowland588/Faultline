@@ -36,7 +36,7 @@ export function actionsForLine(actions: PaceAction[], lineKey?: string): PaceAct
  *  of — a new line commissioned, an area like Cellox that was never a measured
  *  line — and the board shows it immediately, because the board is drawn from
  *  the workbook. The roll-up is not: it is one row per line the project holds,
- *  so that work was landing on the board and vanishing from the report the GM
+ *  so that work was landing on the board and vanishing from the report the client
  *  actually reads. Work nobody can see is worse than work nobody has started.
  *
  *  Spanning rows ("All lines") are nobody's orphan — they already show against

@@ -1,6 +1,6 @@
 /* THE ENTRANCE — the two screens that go up in front of a room.
  *
- * The GM report and the lever tree are the surfaces that get put on a wall, and
+ * The client report and the lever tree are the surfaces that get put on a wall, and
  * the second before they appear is the second everybody looks up. The first
  * version of this was a pale wipe: polite, and far too timid for the moment.
  *

@@ -80,7 +80,7 @@ export async function deliverBlob(blob: Blob, filename: string): Promise<'shared
   const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
 
   // The share sheet first on anything that has one: on a phone this is Mail,
-  // WhatsApp, Files — which is what "send it to the GM" actually means. Desktop
+  // WhatsApp, Files — which is what "send it to the client" actually means. Desktop
   // browsers mostly do not offer it, and fall through to the download.
   try {
     const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };

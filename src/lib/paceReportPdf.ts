@@ -1,4 +1,4 @@
-/* THE GM REPORT, DRAWN AS A REAL PDF.
+/* THE CLIENT REPORT, DRAWN AS A REAL PDF.
  *
  * Not a screenshot. Earlier versions rasterised the live page with html2canvas,
  * which renders a CLONE of the document in a hidden iframe — and that clone has
@@ -114,7 +114,7 @@ export interface PaceReportData {
       withWhom: string; product: string; result: string;
       outcome: 'planned' | 'passed' | 'failed' | 'notRun';
       outcomeWord: string;
-      /* ---- the fundamentals the GM acts on, lifted out of the whole day ----
+      /* ---- the fundamentals the client acts on, lifted out of the whole day ----
        * The trial card prints everything. This prints the loop: what it was
        * meant to do, what it actually did, what that turned up, and what
        * happens next with a name and a date on it. */
@@ -139,11 +139,11 @@ export interface PaceReportData {
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
   /** Finished lines and what came of them. A Next step marked Done used to drop
    *  out of the report entirely, taking its outcome with it — which is the one
-   *  part the GM most wants to read. */
+   *  part the client most wants to read. */
   completed: { what: string; who: string; outcome: string }[];
   completedMore: number;
   /** `line` is which line's walk it came off. On the project's report the
-   *  snags are merged from every line, so without it the GM reads six problems
+   *  snags are merged from every line, so without it the client reads six problems
    *  with no idea whose they are. Empty on a line's own deck, where the answer
    *  is on the masthead. */
   snags: { problem: string; owner: string; days: number; status: string; line: string }[];
@@ -332,7 +332,7 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
  * Rowland asked for this one by pointing at the spreadsheet: "ensure it renders
  * on the pdf gm report like the picture does". The picture is not a list — it is
  * a grid, rows of film down the side and weeks across the top, green from the
- * week each one lands. A GM reads coverage off it in one look, which is the
+ * week each one lands. A client reads coverage off it in one look, which is the
  * whole reason it is kept that way.
  *
  * So this draws the grid, not a table of dates. The columns come from the data
@@ -432,7 +432,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
      THE BANDS FIRST, ALL OF THEM, then the text. Drawn row by row, a shaded
      row's background began at the previous row's baseline + 5 and painted over
      its second line — so "3d late" under a date came out sliced in half on a
-     sheet going to a General Manager. */
+     sheet going to a client. */
   rows.forEach((_r, i) => {
     if (i % 2 !== 1) return;
     d.setFillColor('#fafcfc');
@@ -476,7 +476,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
 
   if (withFoot) {
     setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
+    d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
     d.text(
       m.rows.length > rows.length
         ? `${m.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
@@ -501,7 +501,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
  * A seven-column table was the wrong shape for this. It printed the outcome
  * word and, in 5.5pt grey underneath it, whatever commentary would fit — which
  * is how "run the BU at 75 packs a minute for an hour" came out as "didn't
- * pass" with a clipped sentence beside it and nothing a GM could act on.
+ * pass" with a clipped sentence beside it and nothing a client could act on.
  *
  * A card holds the loop instead, in the order the day runs it:
  *
@@ -634,13 +634,13 @@ function trialsSheet(d: Doc, data: PaceReportData, from: number, page: number, p
   trialCardGrid(d, t.rows, M, M + 66, CW, H - M - 24, from);
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page ${page} of ${pages} — the trials`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the trials`, CW * 0.8), M, H - M + 6);
 }
 
 
 /* ---------- WHAT THE MACHINE CAN RUN ----------
  *
- * Rowland: "on the GM report we, for some reason, have what the machine can run
+ * Rowland: "on the client report we, for some reason, have what the machine can run
  * for the programs, and then we have a calendar — September, October, week
  * three, week four, week one, week two, week three, week four. Makes no sense.
  * We don't need that."
@@ -772,7 +772,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
 
   if (withFoot) {
     setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, `${data.title} · weekly executive report · page ${page} of ${pages} — what the machine can run`, CW * 0.8), M, H - M + 6);
+    d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — what the machine can run`, CW * 0.8), M, H - M + 6);
     d.text(
       pg.rows.length > rows.length
         ? `${pg.rows.length - rows.length} more on the list than fit this sheet — the app has them all`
@@ -797,7 +797,7 @@ const PILL_KEYS = ['people', 'plant', 'process'] as const;
 function footBoard(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page ${page} of ${pages} — the 3P board${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the 3P board${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
   d.text(data.boardUnplaced > 0
     ? `${data.boardUnplaced} tracker row${data.boardUnplaced === 1 ? '' : 's'} with no 3P value`
     : 'Every tracker row is on the board.', W - 28, H - 28 + 6, { align: 'right' });
@@ -995,7 +995,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* ================= PAGE 1 — LINE PACE ================= */
   setFont(d, 8, 'bold', BRAND);
-  d.text('IMPROVEMENT INITIATIVE · WEEKLY EXECUTIVE REPORT', M, M + 8);
+  d.text('IMPROVEMENT INITIATIVE · CLIENT REPORT', M, M + 8);
   setFont(d, 24, 'bold', INK);
   d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);
@@ -1006,7 +1006,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   setFont(d, 11, 'bold', INK);
   d.text(dateLong, W - M, M + 24, { align: 'right' });
   setFont(d, 8, 'normal', MUTED);
-  d.text('Prepared for the General Manager', W - M, M + 37, { align: 'right' });
+  d.text('Prepared for the client', W - M, M + 37, { align: 'right' });
   if (data.lead) {
     setFont(d, 8, 'bold', BRAND);
     d.text(fit(d, `${data.leadRole} · ${data.lead}`, CW * 0.35), W - M, M + 48, { align: 'right' });
@@ -1133,7 +1133,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'the trials'}`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'the trials'}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
     ? 'The tracker workbook is the system of record; this report reads it.'
     : 'A trial is planned, then run, and what it found becomes the next one.',
@@ -1245,7 +1245,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     }
 
     setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${paretoPage} of ${pages} \u2014 where the time is going`, CW * 0.8), M, H - M + 6);
+    d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${paretoPage} of ${pages} \u2014 where the time is going`, CW * 0.8), M, H - M + 6);
     d.text(pv.comparable && pv.beforePeriod
       ? `Measured against the Pareto covering ${pv.beforePeriod}.`
       : 'One Pareto so far \u2014 no movement can be claimed from a single reading.',
@@ -1253,7 +1253,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   /* ============ WHAT WE ARE WAITING ON — the plan, as a grid ============
-   * Its own sheet, because it is the one page a GM can read coverage off in a
+   * Its own sheet, because it is the one page a client can read coverage off in a
    * look: rows of what we need, weeks across the top, green from the week each
    * one lands. Only when there IS something outstanding. */
   if (hasMaterials) {
@@ -1265,7 +1265,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     if (shareSheet) {
       programsSheet(d, data, programsPage, pages, bottom + 14, false);
       setFont(d, 7, 'normal', MUTED);
-      d.text(fit(d, `${data.title} \u00b7 weekly executive report \u00b7 page ${materialsPage} of ${pages} \u2014 what we are waiting on, and what the machine can run`, CW * 0.8), M, H - M + 6);
+      d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${materialsPage} of ${pages} \u2014 what we are waiting on, and what the machine can run`, CW * 0.8), M, H - M + 6);
       d.text('Green from the week it lands. Proved carries the day it was proved.',
         W - M, H - M + 6, { align: 'right' });
     }
@@ -1318,7 +1318,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     });
 
     setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, `${data.title} · weekly executive report · page ${planPage} of ${pages} — the plan`, CW * 0.8), M, H - M + 6);
+    d.text(fit(d, `${data.title} · client report · page ${planPage} of ${pages} — the plan`, CW * 0.8), M, H - M + 6);
     d.text('Kept by hand on the project\u2019s lever tree; the work under it comes off the tracker.',
       W - M, H - M + 6, { align: 'right' });
   }
@@ -1504,7 +1504,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     ]),
     r1y + rowH1 - 10);
 
-  /* An em dash in the reading column is a question a GM asks out loud, so the page
+  /* An em dash in the reading column is a question a client asks out loud, so the page
      answers it before they have to. Only when there is one. */
   const noLines = data.byLine.filter(r => r.noLine).map(r => r.name);
   if (noLines.length > 0) {
@@ -1654,7 +1654,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · weekly executive report · page ${pages} of ${pages} — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${pages} of ${pages} — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
   d.text(`Generated ${new Date(data.now).toLocaleString(undefined,
     { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     W - M, H - M + 6, { align: 'right' });

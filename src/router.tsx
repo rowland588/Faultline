@@ -88,7 +88,7 @@ function app(route: Route) {
   if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;
   if (route.name === 'projectDashboard') return <ProjectDashboardScreen projectId={route.id!} />;
 
-  // The GM's weekly report — its own route so the print output carries no app
+  // The client report — its own route so the print output carries no app
   // chrome, only the two A3 pages.
   if (route.name === 'paceReport') return <PaceExecReport />;
 

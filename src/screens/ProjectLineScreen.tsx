@@ -10,8 +10,8 @@
  * project already uses, handed a line instead of a project, which is what makes
  * "each line has a full pack" true rather than approximately true.
  *
- * What rolls upward: the project's GM report reads every line's next steps,
- * wins and snags, so the owners filling these in ARE what the GM ends up
+ * What rolls upward: the project's client report reads every line's next steps,
+ * wins and snags, so the owners filling these in ARE what the client ends up
  * reading. One source at the top, fed from underneath. */
 import { useCallback, useMemo } from 'react';
 import { nav, useRoute } from '../state/useRoute';

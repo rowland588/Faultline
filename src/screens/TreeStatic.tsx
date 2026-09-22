@@ -6,7 +6,7 @@
  * one, because a report that redraws the tree in its own style is a report
  * people stop trusting the moment the two disagree.
  *
- * Everything is shown. A GM report that quietly drops the bottom row is hiding
+ * Everything is shown. A client report that quietly drops the bottom row is hiding
  * the work, and the work is the half the tree exists to hold; so when the tree
  * outgrows the sheet it is scaled down rather than trimmed.
  */

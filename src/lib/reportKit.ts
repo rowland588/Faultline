@@ -1,10 +1,10 @@
 /* THE REPORT KIT — the primitives every printed sheet in this app is drawn with.
  *
- * Pulled out of the GM report the moment a SECOND report needed them. They are
+ * Pulled out of the client report the moment a SECOND report needed them. They are
  * not Pace-specific and never were: a palette, a panel, a table, a text fitter
  * and the two jsPDF workarounds that cost real time to find (WinAnsi has no
  * arrows; setFillColor has no alpha). Copying them would have meant the
- * commissioning sheet drifting a shade of green away from the GM report within
+ * commissioning sheet drifting a shade of green away from the client report within
  * a month, and both of them re-learning the same two traps separately.
  *
  * Everything here draws; nothing here decides what to draw.

@@ -57,7 +57,7 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
-  if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the GM's weekly download
+  if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the client report
   if (segs[0] === 'project' && segs[1]) {
     // /project/:id            the project itself
     // /project/:id/setup      where its lines and people are managed
