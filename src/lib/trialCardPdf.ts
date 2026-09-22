@@ -1,21 +1,21 @@
 /* THE TRIAL CARD — one day on the line, whole, on a page you can send.
  *
- * Rowland: "A GM report usually consists of an overview — what's happened
+ * Rowland: "A client report usually consists of an overview — what's happened
  * today. Is this possibly like a trial card? Another PDF report that I can send
  * out to show all the finite detail, because there's a lot of detail that you
  * pick up. And then what happens is, we take out the fundamentals, the things
- * that are important, and present that on the GM report."
+ * that are important, and present that on the client report."
  *
  * That is the split, and it is the right one. TWO DOCUMENTS, TWO ROOMS:
  *
  *   THE TRIAL CARD   one trial, everything. Sent to the people who were there,
  *                    or should have been: the OEM, the engineers, the shift.
  *                    It has to stand on its own with nobody to explain it.
- *   THE GM REPORT    the whole job, and out of each trial only the four lines a
- *                    GM acts on — the expectation, what happened against it,
+ *   THE CLIENT REPORT    the whole job, and out of each trial only the four lines a
+ *                    client acts on — the expectation, what happened against it,
  *                    what it turned up, and what happens next.
  *
- * A4 LANDSCAPE, not A3. The GM report is A3 because it is read on a table with
+ * A4 LANDSCAPE, not A3. The client report is A3 because it is read on a table with
  * people standing round it. This is read on a phone in a car park and forwarded
  * from there, and A3 on a phone is a document nobody opens twice.
  *

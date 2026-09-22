@@ -1,7 +1,7 @@
-/* THE WEEKLY EXECUTIVE REPORT — one download, sent to the General Manager.
+/* THE CLIENT REPORT — one download, sent to the client.
  *
  * Not the meeting A3 (that stays on the dashboard, worked through live). This is
- * a self-contained double-sided A3 the GM reads on their own: a visual status,
+ * a self-contained double-sided A3 the client reads on their own: a visual status,
  * the exec cut — summaries and the exceptions that need attention, never the
  * full 40-row tracker. It reads the same synced data every other view does, so
  * each week's download is simply the current state.
@@ -123,7 +123,7 @@ function TreePage({ rows, title, scale, sheetH, n, of }: {
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {n} of {of} — the plan</span>
+          <span>{title} · client report · page {n} of {of} — the plan</span>
           <span>Kept by hand on the project’s lever tree; the work under it comes off the tracker.</span>
         </footer>
       </section>
@@ -195,7 +195,7 @@ function ParetoPage({ view, title, scale, sheetH, n, of }: {
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {n} of {of} — where the time is going</span>
+          <span>{title} · client report · page {n} of {of} — where the time is going</span>
           <span>{view.comparable
             ? `Measured against the Pareto covering ${view.beforePeriod}.`
             : 'One Pareto so far — no movement can be claimed from a single reading.'}</span>
@@ -208,7 +208,7 @@ function ParetoPage({ view, title, scale, sheetH, n, of }: {
 /* WHAT WE ARE WAITING ON gets its own sheet, drawn the way the plan it comes
  * off is drawn: rows of what we need, weeks across the top, green from the week
  * each one lands. A list of dates would fit in a corner of another page — the
- * grid is here because coverage is a SHAPE, and a GM reads the block of green
+ * grid is here because coverage is a SHAPE, and a client reads the block of green
  * without reading a single date.
  *
  * It takes the same block the PDF does, so the page and the file cannot shade
@@ -275,7 +275,7 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {n} of {of} — what we are waiting on</span>
+          <span>{title} · client report · page {n} of {of} — what we are waiting on</span>
           <span>Green from the week it lands, the same as the plan it comes off.</span>
         </footer>
       </section>
@@ -428,7 +428,7 @@ function ProgramsPage({ p, title, scale, sheetH, n, of }: {
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {n} of {of} — what the machine can run</span>
+          <span>{title} · client report · page {n} of {of} — what the machine can run</span>
           <span>Proved carries the day it was proved. The word on its own is an opinion.</span>
         </footer>
       </section>
@@ -525,7 +525,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {n} of {of} — the 3P board{sheet > 1 ? ` (${sheet})` : ''}</span>
+          <span>{title} · client report · page {n} of {of} — the 3P board{sheet > 1 ? ` (${sheet})` : ''}</span>
           <span>{unplaced > 0
             ? `${unplaced} tracker row${unplaced === 1 ? '' : 's'} with no 3P value`
             : 'Every tracker row is on the board.'}</span>
@@ -542,7 +542,7 @@ export function PaceExecReport() {
   const route = useRoute();
   const projectId = route.query.get('project') ?? '';
   // ?line= turns this into ONE LINE'S deck — the owner's own A3, same drawer,
-  // same layout, scoped to their line. Without it, it is the GM's, which is the
+  // same layout, scoped to their line. Without it, it is the client's, which is the
   // roll-up of every line's.
   const lineId = route.query.get('line') || undefined;
   const { loading: projLoading, project } = useProject(projectId);
@@ -807,7 +807,7 @@ export function PaceExecReport() {
 
   /* THE TRIALS, for a job that runs on them. Ordered the way the screen orders
      them: what is booked and still ahead first, soonest first, then what has
-     already happened, most recent first. A GM wants "what is coming" before
+     already happened, most recent first. A client wants "what is coming" before
      "what we did". */
   const trialRows = tests
     .filter(t => !t.deletedAt)
@@ -824,7 +824,7 @@ export function PaceExecReport() {
    * It's not good... you'll see, run the BU at 75 packs per minute for one hour
    * — just says didn't pass with my commentary."
    *
-   * The whole of a day is the trial card's job. What a GM acts on is four
+   * The whole of a day is the trial card's job. What a client acts on is four
    * lines, and they are the four the loop is made of: what it was meant to do,
    * what it actually did, what that turned up, and what happens next with
    * somebody's name on it. Read through the same lib/trialCard.ts the card
@@ -937,7 +937,7 @@ export function PaceExecReport() {
 
   const openSnags = snags.filter(s => s.status !== 'closed');
   /* Which line each snag came off. The project's report merges every line's
-   * walk, so a snag with no line against it is a problem the GM cannot route.
+   * walk, so a snag with no line against it is a problem the client cannot route.
    * On a line's own deck it stays blank — the masthead already said whose. */
   const snagLine = new Map<string, string>();
   if (!line) {
@@ -973,7 +973,7 @@ export function PaceExecReport() {
 
   /* THE ROLL-UP. One row per line, and every number in it comes from that
    * line's own pack — the actions its owner is carrying, the next steps they
-   * typed, the walk they filmed, the wins they logged. The GM reads one page;
+   * typed, the walk they filmed, the wins they logged. The client reads one page;
    * it is fed by everybody else's.
    *
    * It used to bucket tracker actions into three fixed names ('Line 2', 'Line
@@ -1005,7 +1005,7 @@ export function PaceExecReport() {
    * Cellox that was never a measured line. The board shows it at once because
    * the board is drawn from the workbook; the roll-up is one row per line the
    * project holds, so that work was appearing on the board and vanishing from
-   * the page the GM actually reads.
+   * the page the client actually reads.
    *
    * They join the roll-up with an em dash where the numbers only a project line
    * can have would be — no reading, no next steps, no walk, no wins — which
@@ -1159,8 +1159,8 @@ export function PaceExecReport() {
               {line
                 ? `${project?.name ?? 'Project'} · line report`
                 : hasTracker
-                  ? 'Improvement initiative · weekly executive report'
-                  : 'Commissioning · weekly executive report'}
+                  ? 'Improvement initiative · client report'
+                  : 'Commissioning · client report'}
             </p>
             <h1 className="exec-title">{title}</h1>
             <p className="exec-lede">{subtitle}</p>
@@ -1168,7 +1168,7 @@ export function PaceExecReport() {
           <div className="exec-head-meta">
             <span className="exec-asat">Status as at</span>
             <span className="exec-asat-d">{fmtDate(now)}</span>
-            <span className="exec-forwhom">Prepared for the General Manager</span>
+            <span className="exec-forwhom">Prepared for the client</span>
             {lead && <span className="exec-lead">{leadRole} · {lead}</span>}
           </div>
         </header>
@@ -1229,7 +1229,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'the trials'}</span>
+          <span>{title} · client report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'the trials'}</span>
           <span>{hasTracker
             ? 'The tracker workbook is the system of record; this report reads it.'
             : 'A trial is planned, then run, and what it found becomes the next one.'}</span>
@@ -1250,7 +1250,7 @@ export function PaceExecReport() {
       {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
       {/* WHY THE BOARD SHEET IS NOT IN THIS REPORT.
           A page with a heading and nothing under it has no place in something
-          going to a General Manager, so when the workbook has no 3P column the
+          going to a client, so when the workbook has no 3P column the
           board sheet is simply not built. But silence at this end reads as a
           missing feature rather than as missing data — you go looking for the
           board, find nothing, and have no way to tell which of the two it is.
@@ -1316,7 +1316,7 @@ export function PaceExecReport() {
 
             {/* The roll-up. Every column after the owner is that person's own
                 pack, read from here — which is what makes this one page the
-                GM needs rather than one page per line. */}
+                client needs rather than one page per line. */}
             <table className="exec-matrix is-rollup">
               <thead>
                 <tr>
@@ -1447,7 +1447,7 @@ export function PaceExecReport() {
 
           <section className="exec-box exec-box-wins">
             {/* Not "What worked" any more. This panel can now carry a WORSE verdict in
-                front of a GM, and a failure sitting under a heading that promises
+                front of a client, and a failure sitting under a heading that promises
                 success is the kind of small lie that costs a report its credibility. */}
             <SectionHead n={String(sec + 4)} title="What we tried" sowhat="What worked, what didn’t, and the weeks behind each" />
             {showWins.length === 0 ? (
@@ -1477,7 +1477,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · weekly executive report · page {pageCount} of {pageCount} — tracker, attention &amp; movement</span>
+          <span>{title} · client report · page {pageCount} of {pageCount} — tracker, attention &amp; movement</span>
           <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>

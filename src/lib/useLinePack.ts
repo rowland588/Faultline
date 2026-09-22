@@ -2,7 +2,7 @@
  *
  * The project's roll-up and a line's own header ask the same question — how
  * much is open here, what has landed, what did the walk find — so it is
- * answered once. Reading it in one place is also what keeps the GM report and
+ * answered once. Reading it in one place is also what keeps the client report and
  * the line's own deck from ever disagreeing about the same line.
  *
  * Snags live in the line's workspace rather than in a pace_* table, so they are
@@ -57,7 +57,7 @@ export function useLinePackCounts(projectId: string, lineId: string, workspaceId
 }
 
 /** Every line's counts at once, keyed by line id — the project's roll-up.
- *  This is the GM's "one source, fed from all the others": each number in it
+ *  This is the client's "one source, fed from all the others": each number in it
  *  was typed by a line owner into their own pack. */
 export function useAllLinePacks(projectId: string, lines: PaceLineRow[]): Map<string, LinePack> {
   const [packs, setPacks] = useState<Map<string, LinePack>>(new Map());

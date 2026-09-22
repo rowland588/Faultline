@@ -1,6 +1,6 @@
 /* READING ONE TRIAL BACK, WHOLE.
  *
- * The card and the GM report both draw from this, so a mistake here is a
+ * The card and the client report both draw from this, so a mistake here is a
  * mistake in two documents that go to two different rooms. Every rule below is
  * one the drawing cannot check for itself.
  */
@@ -143,7 +143,7 @@ describe('the loop', () => {
   });
 });
 
-describe('the one line a GM reads', () => {
+describe('the one line a client reads', () => {
   /* "Didn't pass" on its own is a verdict nobody can check. What it was meant
      to do, or what it actually did, is the line that means something. */
   /* The card already prints the expectation on the line above, and the day it

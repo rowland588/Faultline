@@ -201,7 +201,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 /** THE CARD FOR THIS DAY, as a PDF somebody can send.
  *
  *  "Another PDF report that I can send out to show all the finite detail,
- *  because there's a lot of detail that you pick up."  This is that one. The GM
+ *  because there's a lot of detail that you pick up."  This is that one. The client
  *  report lifts four lines out of each trial; this is the whole of one.
  *
  *  jsPDF is loaded on demand, the way every other document in this app is — it

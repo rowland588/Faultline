@@ -1,6 +1,6 @@
 /* WHAT ONE TRIAL LOOKS LIKE WHEN SOMEBODY READS IT BACK.
  *
- * Rowland, on the GM report: "you'll see, run the BU at 75 packs per minute for
+ * Rowland, on the client report: "you'll see, run the BU at 75 packs per minute for
  * one hour — just says didn't pass with my commentary. Not any sort of loop,
  * you know, to show the structure of it."
  *
@@ -13,7 +13,7 @@
  *
  * Printing the outcome word and one line of commentary throws three of those
  * four away. So one shape is read here, once, and both documents draw from it:
- * the TRIAL CARD, which is the whole of one day and gets sent out, and the GM
+ * the TRIAL CARD, which is the whole of one day and gets sent out, and the client
  * REPORT, which lifts the fundamentals out of each one.
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
@@ -134,7 +134,7 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
   };
 }
 
-/** The one line a GM reads instead of the whole card: what it was meant to do,
+/** The one line a client reads instead of the whole card: what it was meant to do,
  *  and whether it did it. Deliberately not the outcome word on its own — "didn't
  *  pass" without the expectation beside it is a verdict nobody can check. */
 export function verdictLine(c: TrialCard): string {
@@ -148,7 +148,7 @@ export function verdictLine(c: TrialCard): string {
   return c.result;
 }
 
-/** The agreed next step a GM should read, of however many there are: the first
+/** The agreed next step a client should read, of however many there are: the first
  *  one still outstanding, because a done one is not what happens next. */
 export function headlineNext(c: TrialCard): CardNext | undefined {
   return c.next.find(n => !n.done) ?? c.next[0];

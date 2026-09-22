@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom
  *
- * THE GM's WEEKLY REPORT. The thing Rowland sends out.
+ * THE client's WEEKLY REPORT. The thing Rowland sends out.
  *
  * Its page count is assembled twice: once as a NUMBER stamped on page 1 —
  * "page 1 of 5" — and once as a sequence of addPage calls whose conditions have
