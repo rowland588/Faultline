@@ -26,6 +26,7 @@ import { TestsScreen } from './screens/TestsScreen';
 import { TestScreen } from './screens/TestScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
+import { RequireModel } from './ui/RequireModel';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
@@ -71,9 +72,25 @@ function app(route: Route) {
   // is dropped and the list is shown — a list is a fair answer to "which one?",
   // and a redirect into a project that may not exist is not.
   if (route.name === 'projects') return <ProjectsScreen />;
-  if (route.name === 'leverTree') return <LeverTree projectId={route.id!} />;
-  if (route.name === 'board') return <BoardScreen projectId={route.id!} />;
-  if (route.name === 'pareto') return <ParetoScreen projectId={route.id!} />;
+  /* THE PACED SURFACES, each behind the model it belongs to. Binding the id
+     once keeps the assertion count where it was — the ratchet only ever comes
+     down; see CLAUDE.md. */
+  if (route.name === 'leverTree' && route.id) {
+    const id = route.id;
+    return <RequireModel projectId={id} model="tree"><LeverTree projectId={id} /></RequireModel>;
+  }
+  if (route.name === 'board' && route.id) {
+    const id = route.id;
+    return <RequireModel projectId={id} model="board"><BoardScreen projectId={id} /></RequireModel>;
+  }
+  if (route.name === 'pareto' && route.id) {
+    const id = route.id;
+    return (
+      <RequireModel projectId={id} model={['board', 'tree']}>
+        <ParetoScreen projectId={id} />
+      </RequireModel>
+    );
+  }
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsScreen projectId={route.id} />;
   /* Narrowed once rather than asserted three times: a test route without a
