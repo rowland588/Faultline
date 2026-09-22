@@ -26,8 +26,9 @@ import { TreeStatic, useTreeNodes } from './TreeStatic';
 import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
-  listTests, listAssets, type PaceTodoRow, type PaceWinRow } from '../db';
-import { OUTCOME_WORD, type Asset, type Test } from '../lib/testing';
+  listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
+import { type Asset, type Test, type TestItem } from '../lib/testing';
+import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceReportData } from '../lib/paceReportPdf';
@@ -299,44 +300,48 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
       </section>
     );
   }
-  const SHOWN = 14;
+  const SHOWN = 6;
   const rows = t.rows.slice(0, SHOWN);
   return (
     <section className="exec-box">
       <SectionHead n="1" title="The trials"
-        sowhat={`${t.planned} booked · ${t.passed} passed${t.failed ? ` · ${t.failed} didn’t` : ''}${
-          t.notRun ? ` · ${t.notRun} didn’t run` : ''}`} />
-      <table className="exec-trials">
-        <thead>
-          <tr>
-            <th scope="col">What we are proving</th>
-            <th scope="col">Machine</th>
-            <th scope="col">Product</th>
-            <th scope="col">Passes if</th>
-            <th scope="col">With</th>
-            <th scope="col">When</th>
-            <th scope="col">Outcome</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={`${r.title}-${i}`}>
-              <th scope="row" className="tr-what">{r.title}</th>
-              <td>{r.machine}</td>
-              <td>{r.product || '—'}</td>
-              <td className="tr-pass">{r.passesIf || '—'}</td>
-              <td>{r.withWhom || '—'}</td>
-              <td className="tr-when">{r.when}</td>
-              <td>
-                <span className={'tr-out is-' + r.outcome}>{r.outcomeWord}</span>
-                {r.result && <span className="tr-res">{r.result}</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        sowhat={`${t.planned} booked \u00b7 ${t.passed} passed${t.failed ? ` \u00b7 ${t.failed} didn\u2019t` : ''}${
+          t.notRun ? ` \u00b7 ${t.notRun} didn\u2019t run` : ''}`} />
+      <div className="tr-cards">
+        {rows.map((r, i) => (
+          <article className={'tr-card is-' + r.outcome} key={`${r.title}-${i}`}>
+            <header>
+              <h4>{r.title}</h4>
+              <span className={'tr-out is-' + r.outcome}>{r.outcomeWord}</span>
+            </header>
+            <p className="tr-meta">
+              {[r.machine, r.withWhom && `with ${r.withWhom}`, r.when, r.product].filter(Boolean).join(' \u00b7 ')}
+            </p>
+            <dl className="tr-loop">
+              <dt>Expected</dt>
+              <dd className={r.passesIf ? '' : 'is-none'}>{r.passesIf || 'nothing agreed in advance'}</dd>
+              <dt>Happened</dt>
+              <dd className={r.outcome === 'planned' ? 'is-none' : 'is-strong'}>{r.verdict || '\u2014'}</dd>
+              <dt>Found</dt>
+              <dd className={r.found.undecided ? 'is-warn' : ''}>
+                {r.found.written
+                  ? `${r.found.written} written down \u00b7 ${r.found.actioned} actioned${
+                    r.found.undecided ? ` \u00b7 ${r.found.undecided} to decide` : ''}`
+                  : 'nothing written down'}
+              </dd>
+              <dt>Next</dt>
+              <dd className={r.next ? (r.next.owner ? 'is-strong' : 'is-bad') : 'is-none'}>
+                {r.next
+                  ? [r.next.what, r.next.owner || 'nobody yet', r.next.due].filter(Boolean).join(' \u00b7 ')
+                    + (r.nextMore ? ` (+${r.nextMore} more)` : '')
+                  : 'nothing agreed yet'}
+              </dd>
+            </dl>
+          </article>
+        ))}
+      </div>
       {t.rows.length > rows.length && (
-        <p className="exec-more">+{t.rows.length - rows.length} more than fit this sheet</p>
+        <p className="exec-more">+{t.rows.length - rows.length} on the sheet behind this one</p>
       )}
     </section>
   );
@@ -380,46 +385,45 @@ function ProgramsPage({ p, title, scale, sheetH, n, of }: {
               sowhat={p.overdue > 0
                 ? `${p.overdue} past its test date · ${p.proved} of ${p.total} proved`
                 : `${p.proved} of ${p.total} proved · ${p.onMachine} on the machine · ${p.needed} not written`} />
-            <div className="mt-grid-wrap">
-              <table className="mt-grid">
-                <thead>
-                  <tr>
-                    <th className="mt-grid-item" rowSpan={2} scope="col">Program</th>
-                    <th className="mt-grid-when" rowSpan={2} scope="col">Where it&rsquo;s got to</th>
-                    {months.map(x => (
-                      <th key={x.month} colSpan={x.span} scope="colgroup" className="mt-grid-month">{x.month}</th>
-                    ))}
-                  </tr>
-                  <tr>
-                    {p.weeks.map(w => <th key={w.start} scope="col" className="mt-grid-wk">{w.label}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(r => (
-                    <tr key={r.what}>
-                      <th scope="row" className="mt-grid-item">
-                        {r.what}
-                        {r.runs && <span className="pg-grid-runs">{r.runs}</span>}
-                      </th>
-                      <td className={'mt-grid-when is-pg-' + r.state}>
-                        {r.when}
-                        {r.overdue != null && <span className="mt-grid-late">{r.overdue}d ago</span>}
-                      </td>
-                      {r.fill.map((f, i) => (
-                        <td key={p.weeks[i]?.start ?? i}
-                          className={`mt-cell pg-cell is-${f}` + (r.booked[i] ? ' is-booked' : '')} />
-                      ))}
+            {/* NO CALENDAR HERE. See paceReportPdf.ts, programsSheet, for why:
+                a program is not a thing that arrives, so painting its state
+                across eight week columns produced eight columns of one colour.
+                Two lists across the sheet instead, saying the four things
+                somebody actually asks. */}
+            <div className="pg-cols">
+              {[0, 1].map(col => (
+                <table className="pg-list" key={col}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Program</th>
+                      <th scope="col">What it runs</th>
+                      <th scope="col">Where it&rsquo;s got to</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="pg-key">
-                <span className="pg-key-i"><span className="pg-sw is-proved" aria-hidden /> Proved</span>
-                <span className="pg-key-i"><span className="pg-sw is-machine" aria-hidden /> On the machine</span>
-                <span className="pg-key-i"><span className="pg-sw is-none" aria-hidden /> Not written</span>
-                <span className="pg-key-i"><span className="pg-ring" aria-hidden /> Test booked</span>
-              </p>
+                  </thead>
+                  <tbody>
+                    {rows.filter((_, i) => i % 2 === col).map(r => (
+                      <tr key={r.what}>
+                        <th scope="row">
+                          <span className={'pg-dot is-' + (r.overdue != null ? 'late' : r.state)} aria-hidden />
+                          {r.what}
+                        </th>
+                        <td className="pg-runs">{r.runs ?? '\u2014'}</td>
+                        <td className={'pg-when is-pg-' + (r.overdue != null ? 'late' : r.state)}>
+                          {r.when}
+                          {r.overdue != null && <span className="mt-grid-late">{r.overdue} days ago</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
             </div>
+            <p className="pg-key">
+              <span className="pg-key-i"><span className="pg-dot is-proved" aria-hidden /> Proved</span>
+              <span className="pg-key-i"><span className="pg-dot is-onMachine" aria-hidden /> On the machine, not proved</span>
+              <span className="pg-key-i"><span className="pg-dot is-late" aria-hidden /> Test date gone</span>
+              <span className="pg-key-i"><span className="pg-dot is-needed" aria-hidden /> Not written yet</span>
+            </p>
             {more > 0 && <p className="exec-more">+{more} more on the list than fit this sheet</p>}
           </section>
         </div>
@@ -553,6 +557,7 @@ export function PaceExecReport() {
   const [wins, setWins] = useState<PaceWinRow[] | null>(null);
   const [snags, setSnags] = useState<Snag[] | null>(null);
   const [tests, setTests] = useState<Test[]>([]);
+  const [testItems, setTestItems] = useState<TestItem[]>([]);
   const [machines, setMachines] = useState<Asset[]>([]);
   /** Open snags per line, so the roll-up can say WHOSE they are. */
   const [snagsByLine, setSnagsByLine] = useState<Map<string, Snag[]>>(new Map());
@@ -609,6 +614,11 @@ export function PaceExecReport() {
          board and an empty action list instead. */
       setTests(await listTests(projectId));
       setMachines(await listAssets(projectId));
+      /* And what each one turned up. Without the items a trial prints as an
+         outcome word and one line of commentary, which is what made the report
+         "not sufficient enough of the detail" — the four parts of the loop were
+         all in the database and none of them on the page. */
+      setTestItems(await listTestItems(projectId));
 
       const byLineSnags = new Map<string, Snag[]>();
       for (const part of walkSig.split(',').filter(Boolean)) {
@@ -808,25 +818,50 @@ export function PaceExecReport() {
       if (ap) return (a.plannedFor ?? '9999').localeCompare(b.plannedFor ?? '9999');
       return (b.ranOn ?? '').localeCompare(a.ranOn ?? '');
     });
-  const machineName = (id?: string) => machines.find(m => m.id === id)?.name;
+  /* THE FUNDAMENTALS, LIFTED OUT OF EACH TRIAL.
+   *
+   * "At the moment it's just not sufficient enough of the detail, the format.
+   * It's not good... you'll see, run the BU at 75 packs per minute for one hour
+   * — just says didn't pass with my commentary."
+   *
+   * The whole of a day is the trial card's job. What a GM acts on is four
+   * lines, and they are the four the loop is made of: what it was meant to do,
+   * what it actually did, what that turned up, and what happens next with
+   * somebody's name on it. Read through the same lib/trialCard.ts the card
+   * uses, so the two documents cannot disagree about what a trial says. */
   const trialsBlock: PaceReportData['trials'] = line || trialRows.length === 0 ? undefined : {
     planned: trialRows.filter(t => t.outcome === 'planned').length,
     passed: trialRows.filter(t => t.outcome === 'passed').length,
     failed: trialRows.filter(t => t.outcome === 'failed').length,
     notRun: trialRows.filter(t => t.outcome === 'notRun').length,
-    rows: trialRows.map(t => ({
-      title: t.title,
-      machine: machineName(t.assetId) ?? 'the line',
-      /* The plan and the day are two fields, never one — the difference between
-         what you meant to run and what you ran is usually the story. */
-      when: t.outcome === 'planned' ? fmtShort(t.plannedFor) : fmtShort(t.ranOn ?? t.plannedFor),
-      passesIf: t.passesIf ?? '',
-      withWhom: t.withWhom ?? '',
-      product: (t.outcome === 'planned' ? t.planned : t.product ?? t.planned) ?? '',
-      result: t.result ?? '',
-      outcome: t.outcome,
-      outcomeWord: OUTCOME_WORD[t.outcome],
-    })),
+    rows: trialRows.map(t => {
+      const c = trialCard(t, tests, testItems, machines);
+      const nx = headlineNext(c);
+      return {
+        title: c.title,
+        machine: c.machine,
+        /* The plan and the day are two fields, never one — the difference
+           between what you meant to run and what you ran is usually the story. */
+        when: c.outcome === 'planned' ? fmtShort(c.plannedFor) : fmtShort(c.ranOn ?? c.plannedFor),
+        passesIf: c.passesIf ?? '',
+        withWhom: c.withWhom ?? '',
+        product: c.product ?? '',
+        result: c.result ?? '',
+        outcome: c.outcome,
+        outcomeWord: c.outcomeWord,
+        verdict: verdictLine(c),
+        found: c.found,
+        next: nx ? {
+          what: nx.what,
+          owner: nx.owner ?? '',
+          due: nx.due ? fmtShort(nx.due) : '',
+          done: nx.done,
+        } : undefined,
+        nextMore: Math.max(0, c.next.length - 1),
+        follows: c.follows,
+        ledTo: c.ledTo,
+      };
+    }),
   };
 
   /* A JOB WITH NO TRACKER IS NOT A TRACKER JOB.

@@ -5381,3 +5381,74 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .tw-card-out { align-items: stretch; }
   .tw-card-out .btn { width: 100%; min-height: var(--tap); }
 }
+
+/* ---------------------------------------------------------------------------
+ * WHAT THE MACHINE CAN RUN — a list, not a calendar.
+ * A program is written, loaded and proved; it does not arrive on a date, so
+ * there is nothing for week columns to say. See paceReportPdf.ts.
+ * ------------------------------------------------------------------------- */
+.pg-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 34px; align-items: start; }
+.pg-list { width: 100%; border-collapse: collapse; }
+.pg-list th, .pg-list td { text-align: left; padding: 5px 6px; vertical-align: baseline; }
+.pg-list thead th {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); border-bottom: 1px solid var(--line-2);
+}
+.pg-list tbody th { font-size: 12px; font-weight: 600; color: var(--ink); }
+.pg-list tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+.pg-list tbody tr + tr th, .pg-list tbody tr + tr td { border-top: 1px solid var(--line); }
+.pg-runs { font-size: 11px; color: var(--muted); }
+.pg-when { font-size: 11px; font-weight: 700; }
+.pg-when.is-pg-proved { color: var(--ok); }
+.pg-when.is-pg-onMachine { color: var(--ink-2); }
+.pg-when.is-pg-needed { color: var(--muted); }
+.pg-when.is-pg-late { color: var(--danger); }
+.pg-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 7px; vertical-align: 1px;
+}
+.pg-dot.is-proved { background: var(--ok); }
+.pg-dot.is-onMachine { background: var(--warn); }
+.pg-dot.is-needed { background: var(--muted); }
+.pg-dot.is-late { background: var(--danger); }
+
+/* ---------------------------------------------------------------------------
+ * THE TRIALS, AS CARDS — "I'm happy with a card each."
+ *
+ * The table this replaced printed the outcome word and whatever commentary
+ * would fit in grey underneath. The card carries the loop instead: what it was
+ * agreed it passes on, what it actually did against that, what the day turned
+ * up, and the step still outstanding with a name on it. The outcome word alone
+ * is a verdict nobody in the room can check.
+ * ------------------------------------------------------------------------- */
+.tr-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tr-card {
+  border: 1px solid var(--line); border-left: 4px solid var(--st-n);
+  border-radius: 10px; background: var(--surface); padding: 11px 13px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.tr-card.is-passed  { border-left-color: var(--ok); }
+.tr-card.is-failed  { border-left-color: var(--danger); }
+.tr-card.is-notRun  { border-left-color: var(--warn); }
+.tr-card.is-planned { border-left-color: var(--blue); }
+.tr-card header { display: flex; align-items: flex-start; gap: 10px; }
+.tr-card h4 { margin: 0; flex-grow: 1; font-size: 13.5px; line-height: 1.25; }
+.tr-meta { margin: 0; font-size: 10.5px; color: var(--muted); }
+
+.tr-loop {
+  display: grid; grid-template-columns: 62px 1fr; gap: 3px 10px;
+  margin: 4px 0 0; padding-top: 6px; border-top: 1px solid var(--line);
+}
+.tr-loop dt {
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted); padding-top: 1px;
+}
+.tr-loop dd { margin: 0; font-size: 11.5px; line-height: 1.35; color: var(--ink-2); }
+.tr-loop dd.is-strong { color: var(--ink); font-weight: 600; }
+.tr-loop dd.is-none { color: var(--muted); font-style: italic; }
+.tr-loop dd.is-warn { color: var(--warn); }
+.tr-loop dd.is-bad  { color: var(--danger); font-weight: 600; }
+
+@media (max-width: 720px) {
+  .tr-cards, .pg-cols { grid-template-columns: 1fr; }
+}

@@ -146,9 +146,12 @@ describe('the loop', () => {
 describe('the one line a GM reads', () => {
   /* "Didn't pass" on its own is a verdict nobody can check. What it was meant
      to do, or what it actually did, is the line that means something. */
-  it('gives the expectation while it is still only planned', () => {
+  /* The card already prints the expectation on the line above, and the day it
+     is booked for on its own meta line. Repeating the expectation here read as
+     the report having nothing to say, twice. */
+  it('says a trial that has not happened has not happened', () => {
     expect(verdictLine(trialCard(test({ passesIf: 'Holds 75 ppm for an hour' }), [], [], [])))
-      .toBe('Passes if holds 75 ppm for an hour');
+      .toBe('Not run yet');
   });
 
   it('gives what happened once the day has happened', () => {
@@ -166,10 +169,4 @@ describe('the one line a GM reads', () => {
       .toBe('Passed');
   });
 
-  /* An expectation typed as a proper noun keeps its capital: lowercasing
-     "BU holds 75" to "bU holds 75" would look like a bug in the report. */
-  it('leaves an acronym alone when it folds the expectation into a sentence', () => {
-    expect(verdictLine(trialCard(test({ passesIf: 'BU holds 75 ppm' }), [], [], [])))
-      .toBe('Passes if BU holds 75 ppm');
-  });
 });

@@ -86,11 +86,18 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
   d.setFillColor('#ffffff');
   d.roundedRect(x, y, w, h, 6, 6, 'FD');
 
+  /* An EMPTY `n` draws no badge and pulls the title left. Two panels can share
+     a sheet — what we are waiting on, and what the machine can run — and two
+     circles both reading "2" on one page looks like a numbering bug rather
+     than one page with two panels on it. */
   const cy = y + 18;
-  d.setFillColor('#0b1a16');
-  d.circle(x + 22, cy, 8, 'F');
-  setFont(d, 8, 'bold', '#ffffff');
-  d.text(n, x + 22, cy + 2.8, { align: 'center' });
+  const tx = n ? x + 36 : x + 16;
+  if (n) {
+    d.setFillColor('#0b1a16');
+    d.circle(x + 22, cy, 8, 'F');
+    setFont(d, 8, 'bold', '#ffffff');
+    d.text(n, x + 22, cy + 2.8, { align: 'center' });
+  }
 
   /* THE HEADING AND ITS SO-WHAT SHARE ONE LINE, so they have to be measured
      against each other. Drawn blind, a long title ran straight through the
@@ -104,9 +111,9 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
      dropped rather than drawn into the title. A panel that loses its subtitle
      is still a panel. */
   setFont(d, 11.5, 'bold', '#0b1a16');
-  const shownTitle = fit(d, title, w - 36 - 14);
-  d.text(shownTitle, x + 36, cy + 3.5);
-  const titleEnd = x + 36 + d.getTextWidth(shownTitle);
+  const shownTitle = fit(d, title, w - (tx - x) - 14);
+  d.text(shownTitle, tx, cy + 3.5);
+  const titleEnd = tx + d.getTextWidth(shownTitle);
   const room = (x + w - 14) - (titleEnd + 12);
   if (room > 40) {
     setFont(d, 8, 'normal', MUTED);
