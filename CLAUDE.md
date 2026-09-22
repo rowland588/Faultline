@@ -76,3 +76,41 @@ one-glance answer to "is the fix actually live", and it is why it exists.
 - **Supabase env vars are baked in at build time.** `scripts/check-env.mjs` prints
   whether both were present, in the host's build log. A build missing them ships
   a working-looking app with no sign-in.
+
+## How a change gets made here
+
+Rowland, after a run of work where each piece was good on its own and the app
+still read like a workbook:
+
+> "When we build things, we must be cohesive with the entire app. We don't
+> build something without any regard for anything else. These rules we must
+> follow. We must incorporate what we have and then fully understand what
+> we're trying to build, before we remove something that was perfectly fine."
+
+So, four rules, and they apply to every change from here:
+
+1. **Nothing is removed until we can say why it was there.** If it was fine, it
+   stays until there is a replacement AND a sentence saying why the replacement
+   is better. "It looked dated" is not that sentence.
+2. **Every change states its effect on the screen AND on the PDF, together.**
+   Not one and then the other. A person types into a box and then watches what
+   it becomes — that is one job, and designing the two halves apart is how the
+   report ended up not carrying what the screen held.
+3. **Additions connect; they do not sit beside.** If a new thing neither reads
+   from nor feeds what is already here, it is a bolt-on and it is wrong. The
+   test: name the existing record it hangs off, and the document it reaches.
+4. **The whole shape is designed before any of it is built**, then built in
+   slices that each ship live on their own.
+
+A FIFTH CONCEPT IS ALMOST ALWAYS THE WRONG ANSWER. `src/lib/testing.ts` says it
+about tests and it holds everywhere: if something needs a new noun to explain
+it, look again — four of this app's five lists already carry dates, owners and
+states, and most "we need to store X" turns out to be "we have never drawn X".
+
+## The word is CLIENT, not GM
+
+The report goes to whoever is being reported to — Rowland's General Manager by
+default, and sometimes the OEM. `GM` was parochial and made the document sound
+internal. It is the **client report**, and the person is the **client**,
+whichever of them is reading it. When you find an older `GM` in the code or on
+a screen, change it.
