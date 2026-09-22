@@ -44,6 +44,9 @@ export interface TestingState {
 
   /* ---- what we found, what we do next ---- */
   addItem: (testId: string, kind: ItemKind, what: string) => Promise<void>;
+  /** Decide an observation needs doing: it becomes a next step, and the two are
+   *  linked. Returns the new next step's id. */
+  actionItem: (obs: TestItem) => Promise<string>;
   saveItem: (i: TestItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
 }
@@ -124,6 +127,28 @@ export function useTesting(projectId: string): TestingState {
     });
   }, [projectId, items]);
 
+  /* "I'm live, taking observations, writing stuff down... and I'd appreciate
+     then the ability to go yes, let's action this, and then it becomes an
+     action."  So the observation stays exactly as written — it is the record of
+     what was seen — and a NEXT STEP is made from it, which is the row that
+     carries an owner and a date and gets chased. The two point at each other so
+     the report can read the chain either way. */
+  const actionItem = useCallback(async (obs: TestItem) => {
+    const t = now();
+    const mine = items.filter(i => i.testId === obs.testId && i.kind === 'next');
+    const id = uid();
+    await putTestItem({
+      id, projectId, testId: obs.testId, kind: 'next', what: obs.what,
+      owner: obs.owner, media: obs.media, fromItemId: obs.id,
+      sort: mine.reduce((n, i) => Math.max(n, i.sort), 0) + 1,
+      createdAt: t, updatedAt: t,
+    });
+    /* `doneAt` comes off: an observation somebody has decided to act on is not
+       also one they decided needed nothing. */
+    await putTestItem({ ...obs, becameItemId: id, doneAt: undefined, updatedAt: t });
+    return id;
+  }, [projectId, items]);
+
   const saveItem = useCallback(async (i: TestItem) => { await putTestItem({ ...i, updatedAt: now() }); }, []);
   const removeItem = useCallback(async (id: string) => { await deleteTestItem(id); }, []);
 
@@ -133,6 +158,6 @@ export function useTesting(projectId: string): TestingState {
     loading, assets, tests, items, standing: answer,
     addAsset, saveAsset, removeAsset,
     planTest, saveTest, removeTest, testCost, planNextFrom,
-    addItem, saveItem, removeItem,
+    addItem, actionItem, saveItem, removeItem,
   };
 }

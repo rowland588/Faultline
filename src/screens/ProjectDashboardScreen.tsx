@@ -361,7 +361,8 @@ function TestingOverview({ projectId }: { projectId: string }) {
                 <span className="cx-tally">
                   {st.ran} of {st.total} run
                   {st.passed > 0 && <> · {st.passed} passed</>}
-                  {st.openFindings.length > 0 && <> · <b className="is-r">{st.openFindings.length} open</b></>}
+                  {st.undecided.length > 0 && <> · <b className="is-w">{st.undecided.length} to decide</b></>}
+                  {st.openNext.length > 0 && <> · <b className="is-r">{st.openNext.length} to do</b></>}
                 </span>
               </>
             )}
