@@ -18,55 +18,98 @@
  */
 
 :root {
-  --bg: #f3f8f7;          /* cool white, the faintest green cast */
+  /* =========================================================================
+   * THE PALETTE.
+   *
+   * "I like green but I want to impress tomorrow."
+   *
+   * The green was a teal — cool, a bit medical, the colour of a dashboard
+   * template. This one is a deep forest emerald: the same family, further down,
+   * with enough saturation left in it to read as a decision rather than a
+   * default. It sits on warm paper rather than cold white, because a warm
+   * ground is what stops a green interface looking clinical, and it is paired
+   * with brass instead of a second blue — two cool hues argue, a cool and a
+   * warm one hold a page together.
+   *
+   * Every one of these is a token because the whole app, and both PDFs, read
+   * from here. Nothing below this block should name a colour of its own.
+   * ========================================================================= */
+  --bg: #f6f7f3;          /* warm paper, the faintest green cast */
   --surface: #ffffff;
-  --surface-2: #e9f2f0;
-  --ink: #0c1f26;         /* deep blue-green black */
-  --ink-2: #35505a;
-  --muted: #6b8892;
-  --line: #dbe8e6;
-  --line-2: #b5cbc7;      /* a stronger rule: tree connectors, crumb outlines */
+  --surface-2: #edf1ea;
+  --ink: #0b1a16;         /* near-black, green-cast — deeper than a grey */
+  --ink-2: #34453e;
+  --muted: #6d7c74;
+  --line: #e2e6dd;
+  --line-2: #c2cbc1;      /* a stronger rule: tree connectors, crumb outlines */
 
   /* WHERE A BOX HAS GOT TO — five states, told apart at a glance and at 34%
      zoom, and each one carries its name so none of them relies on colour. */
-  --st-n: #78909a;   /* not started — deliberately quiet */
-  --st-w: #1c6fb8;   /* in progress — the identity's blue */
-  --st-a: #d5891c;   /* at risk */
-  --st-r: #cc4436;   /* blocked */
-  --st-g: #2e9e5b;   /* done — grassier and lighter than the brand */
+  --st-n: #7b887f;   /* not started — deliberately quiet */
+  --st-w: #1f6a92;   /* in progress — slate blue, the only cool companion */
+  --st-a: #b8873a;   /* at risk — brass */
+  --st-r: #b5392c;   /* blocked */
+  --st-g: #2f8f5b;   /* done — lighter and grassier than the brand */
 
   /* THE IDENTITY. --brand fills (buttons, the mark); --accent is the readable
      one for text and links; --sweep is the gradient, used sparingly. */
-  --accent: #0a6d5b;      /* readable sea-green on white */
-  --accent-soft: #e2f1ee;
-  --accent-rgb: 11, 125, 104;
-  --brand: #0b7d68;       /* deep sea-green — fills */
-  --brand-2: #08604f;     /* pressed/hover */
+  --accent: #0a5c44;      /* deep emerald, 7.4:1 on white */
+  --accent-soft: #e3efe9;
+  --accent-rgb: 12, 107, 78;
+  --brand: #0c6b4e;       /* forest emerald — fills */
+  --brand-2: #084f3a;     /* pressed/hover */
   --on-brand: #ffffff;
-  --blue: #1c6fb8;        /* the blue half of the identity */
-  --blue-soft: #e4eff9;
-  --sweep: linear-gradient(135deg, #0b7d68 0%, #13727f 45%, #1c6fb8 100%);
-  --sweep-soft: linear-gradient(135deg, #e6f4f0 0%, #e8f1f8 100%);
+  --blue: #1f6a92;        /* planned, in progress — never a second identity */
+  --blue-soft: #e4eef4;
+  /* BRASS. The warm half. A highlight, a key number, the spark on the mark —
+     never a fill behind text, and never a state on its own. */
+  --gold: #a9762c;
+  --gold-soft: #f6ecd9;
+  --sweep: linear-gradient(135deg, #0c6b4e 0%, #0a5c44 42%, #103c43 100%);
+  --sweep-soft: linear-gradient(135deg, #e6f2ec 0%, #eef1e8 100%);
 
   /* chrome — the light cockpit frame (top bar, tab bar, the meeting room) */
-  --chrome: #eaf4f1;
-  --chrome-2: #ddeeea;
-  --chrome-ink: #0c1f26;
-  --chrome-muted: #5f7d86;
-  --chrome-line: #c6ded8;
+  --chrome: #eaf1ea;
+  --chrome-2: #dde8dd;
+  --chrome-ink: #0b1a16;
+  --chrome-muted: #5d6f66;
+  --chrome-line: #c8d6c9;
 
-  --ok: #2e9e5b;          /* good news — matches --st-g, never the brand */
-  --warn: #b8721a;        /* kept readable on white */
-  --danger: #cc4436;      /* clear warm red */
-  --freq: #6b8895;        /* frequency series — slate, pairs with any hue */
+  --ok: #2f8f5b;          /* good news — matches --st-g, never the brand */
+  --warn: #a9762c;        /* kept readable on white — matches --gold */
+  --danger: #b5392c;      /* deep warm red */
+  --freq: #6d7f76;        /* frequency series — slate, pairs with any hue */
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow: 0 1px 2px rgba(12, 31, 38, 0.04), 0 8px 24px rgba(12, 31, 38, 0.07);
-  --shadow-lift: 0 2px 6px rgba(12, 31, 38, 0.06), 0 18px 44px rgba(12, 31, 38, 0.12);
+  --radius-lg: 22px;      /* the one big surface on a screen, not every card */
+  /* Shadow carries the ink's hue rather than pure black: a grey shadow under a
+     green interface is what makes it look printed on rather than part of it. */
+  --shadow: 0 1px 2px rgba(11, 26, 22, 0.05), 0 8px 24px rgba(11, 26, 22, 0.07);
+  --shadow-lift: 0 2px 6px rgba(11, 26, 22, 0.07), 0 18px 44px rgba(11, 26, 22, 0.13);
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* THE TYPE. Two faces, both variable, both bundled — not fetched, because
+     this app has to look like itself on a factory floor with no signal.
+     Instrument Sans carries everything you read; Schibsted Grotesk carries the
+     things you look at — headings, the mark, a number somebody reads out. */
+  --font: "Instrument Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --display: "Schibsted Grotesk Variable", var(--font);
   --tap: 52px;            /* minimum touch target — floor thumbs, sometimes gloved */
 }
+
+/* HEADINGS ARE SET, NOT JUST BIGGER. The display face, tracked in, so a screen
+   has a voice at a glance. Numbers line up in a column wherever they are
+   compared, which on this app is most places. */
+h1, h2, h3, .cm-head h1, .pk-title {
+  font-family: var(--display);
+  letter-spacing: -0.021em;
+  font-feature-settings: "ss01";
+}
+h1 { letter-spacing: -0.028em; }
+.cx-tally, .tw-block-n, .mt-cell, .pg-cell, td, th, .sw-time, .kpi-n, .stat-n {
+  font-variant-numeric: tabular-nums;
+}
+
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }

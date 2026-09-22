@@ -14,12 +14,13 @@ import type { jsPDF } from 'jspdf';
 export type Doc = jsPDF;
 
 /* ---------- the app's palette, as the report uses it ---------- */
-export const INK = '#0c1f26', INK2 = '#35505a', MUTED = '#6b8892', LINE = '#dbe8e6';
-export const ACCENT = '#0a6d5b', BRAND = '#0b7d68', SURF2 = '#e9f2f0';
-export const OK = '#2e9e5b', WARN = '#b8721a', DANGER = '#cc4436', BLUE = '#1c6fb8';
+export const INK = '#0b1a16', INK2 = '#34453e', MUTED = '#6d7c74', LINE = '#e2e6dd';
+export const ACCENT = '#0a5c44', BRAND = '#0c6b4e', SURF2 = '#edf1ea';
+export const GOLD = '#a9762c';
+export const OK = '#2f8f5b', WARN = '#a9762c', DANGER = '#b5392c', BLUE = '#1f6a92';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
-export const ACTUAL = '#1c6fb8', TARGET = '#b8721a';
+export const ACTUAL = '#1f6a92', TARGET = '#a9762c';
 
 /** jsPDF's built-in fonts are WinAnsi-encoded, which has no arrows and no
  *  general Unicode: an impact typed as "44 → 49 ppm" came out as "44 !' 49 ppm"
@@ -86,7 +87,7 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
   d.roundedRect(x, y, w, h, 6, 6, 'FD');
 
   const cy = y + 18;
-  d.setFillColor('#141b26');
+  d.setFillColor('#0b1a16');
   d.circle(x + 22, cy, 8, 'F');
   setFont(d, 8, 'bold', '#ffffff');
   d.text(n, x + 22, cy + 2.8, { align: 'center' });
@@ -102,7 +103,7 @@ export function panel(d: Doc, x: number, y: number, w: number, h: number, n: str
      is left after it, and when what is left is too narrow to say anything it is
      dropped rather than drawn into the title. A panel that loses its subtitle
      is still a panel. */
-  setFont(d, 11.5, 'bold', '#141b26');
+  setFont(d, 11.5, 'bold', '#0b1a16');
   const shownTitle = fit(d, title, w - 36 - 14);
   d.text(shownTitle, x + 36, cy + 3.5);
   const titleEnd = x + 36 + d.getTextWidth(shownTitle);
@@ -148,7 +149,7 @@ export function table(
       const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i];
       d.text(fit(d, cell.text, c.width * w - 10), tx, cy, { align: c.align === 'right' ? 'right' : 'left' });
     });
-    d.setDrawColor('#eef3f8'); d.setLineWidth(0.4);
+    d.setDrawColor('#eef1ea'); d.setLineWidth(0.4);
     d.line(x, cy + 4, x + w, cy + 4);
   }
   return cy;
