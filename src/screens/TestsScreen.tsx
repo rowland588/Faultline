@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
+import { Peers, projectPeers } from '../ui/Peers';
 import { DraftField } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -96,10 +97,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Testing' },
       ]} />
+      <Peers peers={projectPeers(projectId, 'testing')} />
 
       <header className="cm-head">
         <div>
-          <h1>{project.name}</h1>
+          <p className="cm-eyebrow">{project.name}</p>
+          <h1>Testing</h1>
           <p className="cw-handover">
             {project.expectedAt
               ? <><b>Ours by {nice(project.expectedAt)}</b>{weeks != null && <span className="sub">{weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'}` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}</span>}</>
@@ -255,9 +258,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </div>
       </section>
 
-      <div className="cm-foot">
-        <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>Back to the project</button>
-      </div>
     </div>
   );
 }

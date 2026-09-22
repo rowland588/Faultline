@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
+import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
@@ -1122,10 +1123,16 @@ export function PaceExecReport() {
       {/* the second before it goes up on the wall */}
       <Sweep id={'report:' + projectId + (lineId ?? '')} />
       <div className="exec-bar no-print">
-        <button className="btn btn-ghost"
-          onClick={() => nav(line ? `/project/${projectId}/line/${line.id}` : `/project/${projectId}`)}>
-          ← Back to {line ? line.name : (project?.name ?? 'the project')}
-        </button>
+        {/* THE SPINE, NOT A LONE BACK BUTTON. This screen and the walk were the
+            only two in the app with no trail at all — and they are the two you
+            most need to get out of, because both fill the window. A back button
+            that knows one destination cannot tell you where you are. */}
+        <Crumbs trail={[
+          { label: 'Projects', to: '/projects' },
+          ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
+          ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
+          { label: 'Client report' },
+        ]} />
         <div className="exec-bar-r">
           <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
           <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>

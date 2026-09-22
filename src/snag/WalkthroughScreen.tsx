@@ -1,6 +1,6 @@
+import { Crumbs } from '../ui/Crumbs';
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav } from '../state/useRoute';
 import { useOwningProject } from '../lib/usePaceWorkspace';
 import { listSegments, listSnagAssets, snagsForAsset } from '../db';
 import { useSyncedAt } from '../cloud/session';
@@ -54,11 +54,17 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
   return (
     <div className="walk-stage">
       <div className="walk-stage-head">
-        <button className="btn btn-ghost"
-          onClick={() => nav(project ? `/project/${project.id}?view=snags` : `/w/${wsId}/snags`)}>
-          ‹ {project ? project.name : 'Exit'}
-        </button>
-        <span className="walk-stage-title">{workspace.name}{curSeg ? ` · ${sectionLabel(curSeg, inSeg.map(f => f.asset.name))}` : ''}</span>
+        {/* The walk had neither a trail NOR a heading, so it offered no answer
+            to "where am I" and one guess at "where do I go". It fills the
+            window, which is exactly why it needs the spine more than a screen
+            you can see past. */}
+        <Crumbs trail={[
+          { label: 'Projects', to: '/projects' },
+          ...(project ? [{ label: project.name, to: `/project/${project.id}` }] : []),
+          { label: workspace.name, to: `/w/${wsId}/snaglist` },
+          { label: 'Walk' },
+        ]} />
+        <span className="walk-stage-title">{curSeg ? sectionLabel(curSeg, inSeg.map(f => f.asset.name)) : 'The line, filmed'}</span>
       </div>
       <div className="walk-stage-body">
         <div className="walk-video-col">
