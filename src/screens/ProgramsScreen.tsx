@@ -23,6 +23,8 @@ import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
+import { useAssets } from '../lib/useTesting';
+import type { Asset } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
 import {
   daysOverdue, fillIn, isProved, monthSpans, readProgramPaste, standingOf,
@@ -122,8 +124,8 @@ function Grid({ rows, weeks, today }: { rows: Program[]; weeks: Week[]; today: s
 
 /* ================================== the list ================================ */
 
-function Row({ p, today, lineName, state }: {
-  p: Program; today: string; lineName?: string;
+function Row({ p, today, lineName, assets, state }: {
+  p: Program; today: string; lineName?: string; assets: Asset[];
   state: ReturnType<typeof usePrograms>;
 }) {
   const [proving, setProving] = useState(false);
@@ -131,7 +133,12 @@ function Row({ p, today, lineName, state }: {
   const where = standingOf(p, today);
   const got = stateOf(p);
 
-  const facts = [p.runs && `runs ${p.runs}`, lineName, p.from && `from ${p.from}`].filter(Boolean).join(' · ');
+  const machine = assets.find(a => a.id === p.assetId)?.name;
+  /* The machine leads the facts line: with several machines each running
+     several programs, WHICH ONE is the first thing that tells two rows of the
+     same name apart. */
+  const facts = [machine, p.runs && `runs ${p.runs}`, lineName, p.from && `from ${p.from}`]
+    .filter(Boolean).join(' · ');
 
   return (
     <div className={'mt-row is-pg-' + where}>
@@ -140,6 +147,20 @@ function Row({ p, today, lineName, state }: {
           onSave={v => void state.save({ ...p, what: v || p.what })} />
         {facts && <div className="mt-facts">{facts}</div>}
         {p.note && <div className="mt-facts">{p.note}</div>}
+        {/* Changing it here rather than only on the way in: a list pasted from
+            the OEM arrives with no machine on any row, and re-typing them was
+            the alternative. */}
+        {assets.length > 0 && (
+          <label className="pg-machine">
+            <span className="field-label">Machine</span>
+            <select className="text-input" value={p.assetId ?? ''}
+              aria-label={`Which machine ${p.what} is for`}
+              onChange={e => void state.save({ ...p, assetId: e.target.value || undefined })}>
+              <option value="">The line itself</option>
+              {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </label>
+        )}
         {isProved(p) && !p.testId && (
           <div className="mt-facts pg-byhand">signed off by hand — no test behind it</div>
         )}
@@ -194,21 +215,45 @@ function Row({ p, today, lineName, state }: {
   );
 }
 
-function AddProgram({ state, lines }: {
+function AddProgram({ state, lines, assets }: {
   state: ReturnType<typeof usePrograms>;
   lines: { id: string; name: string }[];
+  assets: Asset[];
 }) {
   const [what, setWhat] = useState('');
   const [runs, setRuns] = useState('');
   const [testOn, setTestOn] = useState('');
   const [lineId, setLineId] = useState('');
+  const [assetId, setAssetId] = useState('');
   const [from, setFrom] = useState('');
 
   const add = async () => {
     if (!what.trim()) return;
-    await state.add({ what, runs, testOn, lineId, from });
+    await state.add({ what, runs, testOn, lineId, assetId, from });
     setWhat(''); setRuns(''); setTestOn(''); setFrom('');
+    /* The machine and the line STAY. Adding programs is done in runs — five
+       for the pick and place, then five for the wrapper — and clearing the
+       machine after each one makes you set it five times. */
   };
+
+  /* NAMES ALREADY IN USE, on any machine. Rowland: "I can pick from what is
+     existing in another program from another asset, because there could be a
+     correlation — or it might be a completely new one. I need the ability to
+     do both."
+     The same product runs on more than one machine, so the same program name
+     turns up against more than one asset. Tapping one fills the box; typing
+     over it is still typing. Only names NOT already on the machine being added
+     to are offered — the same name twice on one machine is the mistake this
+     would otherwise help you make. */
+  const taken = new Set(state.programs.filter(p => (p.assetId ?? '') === assetId).map(p => p.what.trim().toLowerCase()));
+  const seen = new Map<string, string>();
+  for (const p of state.programs) {
+    const key = p.what.trim().toLowerCase();
+    if (!key || taken.has(key) || seen.has(key)) continue;
+    const on = assets.find(a => a.id === p.assetId)?.name;
+    seen.set(key, on ? `${p.what} · ${on}` : p.what);
+  }
+  const reuse = [...seen.entries()].slice(0, 12);
 
   return (
     <div className="card mt-add-card">
@@ -219,6 +264,20 @@ function AddProgram({ state, lines }: {
           <input className="text-input" value={what} maxLength={160} placeholder="P-104 perforation"
             onChange={e => setWhat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
         </label>
+        {/* WHICH MACHINE. Several machines each need several programs, and
+            until now a program could not say which one it was for — so the
+            list read as one pile and the same name on two machines was
+            indistinguishable. The field was always on the record; nothing on
+            screen ever set it. */}
+        {assets.length > 0 && (
+          <label className="proj-field">
+            <span className="field-label">Machine</span>
+            <select className="text-input" value={assetId} onChange={e => setAssetId(e.target.value)}>
+              <option value="">The line itself</option>
+              {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </label>
+        )}
         <label className="proj-field mt-add-much">
           <span className="field-label">What it runs</span>
           <input className="text-input" value={runs} maxLength={80} placeholder="Finest Red 2kg"
@@ -244,6 +303,18 @@ function AddProgram({ state, lines }: {
         </label>
         <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => void add()}>Add it</button>
       </div>
+      {reuse.length > 0 && (
+        <div className="pg-reuse">
+          <span className="field-label">Same one as</span>
+          <span className="tw-chips">
+            {reuse.map(([key, label]) => (
+              <button key={key} type="button" className="tw-chip"
+                onClick={() => setWhat(label.split(' · ')[0] ?? label)}>{label}</button>
+            ))}
+          </span>
+        </div>
+      )}
+
       <p className="chip-hint">
         Only the first box is needed. A new program starts as <b>not written</b>, and a program nobody has
         booked a test for says so rather than being given a date it has not got.
@@ -351,6 +422,8 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
   const state = usePrograms(projectId);
+  /* The machines, so a program can say which one it is for. */
+  const { assets } = useAssets(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
@@ -404,8 +477,6 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
               already lives.
             </p>
           </div>
-          <PasteList state={state} />
-          <AddProgram state={state} lines={lines.lines} />
         </>
       ) : (
         <>
@@ -460,15 +531,22 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
             </div>
             <div className="mt-list">
               {state.programs.map(p => (
-                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} state={state} />
+                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} />
               ))}
             </div>
           </section>
 
-          <PasteList state={state} />
-          <AddProgram state={state} lines={lines.lines} />
         </>
       )}
+
+      {/* OUTSIDE THE BRANCH ON PURPOSE. These sat inside both arms of the
+          empty/not-empty conditional, so adding the FIRST program swapped
+          React from one arm to the other, unmounted the form and threw away
+          what was in it — which meant the machine you had just picked was
+          gone by the time you typed the second program for it. Rendered once,
+          in one position, it keeps its state across that change. */}
+      <PasteList state={state} />
+      <AddProgram state={state} lines={lines.lines} assets={assets} />
 
       <footer className="pace-foot">
         <p>{project.name} · what the machine can run</p>

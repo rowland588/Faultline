@@ -59,6 +59,24 @@ export interface TestingState {
   removeItem: (id: string) => Promise<void>;
 }
 
+/** JUST THE MACHINES.
+ *
+ *  A screen that only wants to name a machine — Programs, say — should not have
+ *  to mount the whole testing tree to get one, and certainly should not run the
+ *  action-to-fix conversion as a side effect of drawing a dropdown. */
+export function useAssets(projectId: string): { assets: Asset[]; loading: boolean } {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setAssets(await listAssets(projectId));
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load]);
+  return { assets, loading };
+}
+
 export function useTesting(projectId: string): TestingState {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tests, setTests] = useState<Test[]>([]);

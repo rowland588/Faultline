@@ -5908,3 +5908,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .tw-add-two { flex-direction: column; gap: 8px; }
   .tw-add-two .cw-add { width: 100%; min-height: var(--tap); }
 }
+
+/* WHICH MACHINE A PROGRAM IS FOR. Several machines each need several programs,
+   so the list needs a way to tell two rows of the same name apart — and a way
+   to set it on a row that arrived from a pasted list with no machine on it. */
+.pg-machine { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; }
+.pg-machine .field-label { margin: 0; }
+.pg-machine .text-input { width: auto; min-width: 150px; padding: 4px 8px; font-size: 12.5px; }
+
+/* Names already in use on another machine. The same product runs on more than
+   one, so the same program name turns up more than once — tapping one fills
+   the box, and typing over it is still typing. */
+.pg-reuse { margin-top: 10px; }
+.pg-reuse .tw-chips { margin-top: 4px; }
+
+@media (max-width: 720px) {
+  .pg-machine { display: flex; width: 100%; }
+  .pg-machine .text-input { flex: 1; min-height: var(--tap); }
+}
