@@ -399,33 +399,74 @@ function planInk(tone: PlacedMark['tone']): { colour: string; filled: boolean } 
   }
 }
 
-function planSheet(d: Doc, data: PaceReportData, page: number, pages: number): void {
+/* THE PANEL IS AS TALL AS WHAT IS IN IT, the same rule the materials sheet
+ * keeps: a box three times the height of its content reads as a page that
+ * failed to finish rather than as a short list.
+ *
+ * Out here as its own function so the front page can ASK how tall it would be
+ * before deciding whether to carry it — see "where the job is, under the tests"
+ * below. Measured in the same order the drawing happens, because the box is
+ * drawn before anything that goes in it. panel() returns y + 30, so that header
+ * is part of the height and was the 30pt this first got wrong: the bottom rule
+ * cut through the last two rows of the table. */
+const PLAN_ROW_H = 15, PLAN_LANE_GAP = 7;
+
+export function planPanelHeight(pl: NonNullable<PaceReportData['plan']>, ceiling: number,
+  rowH = PLAN_ROW_H): number {
+  const rowsTotal = pl.lanes.reduce((n, l) => n + l.rows.length, 0);
+  const chartOnly = rowsTotal * rowH + pl.lanes.length * PLAN_LANE_GAP + 4;
+  const PANEL_HEAD = 30;
+  const beforeChart = 24 + (pl.slip ? 11 : 0) + 26;      // verdict, slip, month labels
+  const afterChart = 26 + 22 + 8;                         // date tags, key, table heading
+  const tableH = 5 + 13 * pl.outstanding.length + 8;
+  return Math.min(ceiling, Math.max(220, PANEL_HEAD + beforeChart + chartOnly + afterChart + tableH + 16));
+}
+
+/** `at` puts the panel somewhere other than the top of a sheet of its own —
+ *  the front page, under the tests — and then there is no footer to write,
+ *  because the sheet it is riding on has its own. */
+function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
+  place?: { top: number; n: string }): void {
   const pl = data.plan;
   if (!pl) return;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
 
-  /* THE PANEL IS AS TALL AS WHAT IS IN IT, the same rule the materials sheet
-     keeps: a box three times the height of its content reads as a page that
-     failed to finish rather than as a short list. Arithmetic, because the box
-     has to be drawn before the things that go in it. */
+  const panelTop = place?.top ?? M;
+  const room = H - M - panelTop - 14;
+  const need = planPanelHeight(pl, room);
+
+  /* ---- ON ITS OWN SHEET, THE PLAN FILLS THE SHEET ----
+   *
+   * Rowland: "expand and make the pdf dynamic, make use of the space better."
+   *
+   * The panel took only the height it needed, which is right — but on its own
+   * A3 that left the timeline squeezed into a 90pt band with five hundred
+   * points of white underneath it, and the marks so close together that their
+   * labels ran into one another. The one drawing on this page that is worth
+   * looking at was the smallest thing on it.
+   *
+   * So the slack goes into the LANES: the rows get taller, the marks separate,
+   * and the labels stop colliding. This is growth that buys legibility rather
+   * than air — which is why it is right here and was wrong on the test cards,
+   * where the words would have stayed put and only the boxes grown. Capped,
+   * because a plan with two marks should not print them an inch apart.
+   *
+   * Riding on the front page it takes what it needs and no more; the sheet
+   * under it belongs to the tests. */
   const rowsTotal = pl.lanes.reduce((n, l) => n + l.rows.length, 0);
-  const ROW_H = 15, LANE_GAP = 7;
-  const chartOnly = rowsTotal * ROW_H + pl.lanes.length * LANE_GAP + 4;
-  /* Measured in the same order the drawing happens, because the box is drawn
-     before anything that goes in it. panel() returns y + 30, so that header is
-     part of the height and was the 30pt this first got wrong: the bottom rule
-     cut through the last two rows of the table. */
-  const PANEL_HEAD = 30;
-  const beforeChart = 24 + (pl.slip ? 11 : 0) + 26;      // verdict, slip, month labels
-  const afterChart = 26 + 22 + 8;                         // date tags, key, table heading
-  const tableH = 5 + 13 * pl.outstanding.length + 8;
-  const panelH = Math.min(
-    H - 2 * M - 14,
-    Math.max(220, PANEL_HEAD + beforeChart + chartOnly + afterChart + tableH + 16),
-  );
-  const panelBottom = M + panelH;
-  const top = panel(d, M, M, CW, panelH, String(page), 'Where the job is', pl.counted);
+  const slack = Math.max(0, room - need);
+  /* 30pt is about as far apart as two marks on a timeline can sit and still
+     read as one line of work rather than as a list. Past that the growth is
+     only air, and air inside a frame is worse than a page that ends. */
+  const ROW_H = rowsTotal > 0 ? Math.min(30, PLAN_ROW_H + slack / rowsTotal) : PLAN_ROW_H;
+  const LANE_GAP = PLAN_LANE_GAP;
+  /* And then the panel ends where its content ends. Filling the sheet by
+     stretching the frame was the first attempt and it just moved the white
+     inside the box — the same mistake the test cards taught, in a new place. */
+  const panelH = Math.min(room, planPanelHeight(pl, room, ROW_H));
+  const panelBottom = panelTop + panelH;
+  const top = panel(d, M, panelTop, CW, panelH, place?.n ?? String(page), 'Where the job is', pl.counted);
   const x0 = M + 14, right = M + CW - 14;
 
   /* ---- the verdict, in the words the screen says it in --------------------- */
@@ -442,7 +483,8 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number): v
   const trackX = x0 + PLAN_LANE_W, trackW = right - trackX;
   const at = (f: number) => trackX + f * trackW;
 
-  const rowH = ROW_H, laneGap = LANE_GAP, chartH = chartOnly;
+  const rowH = ROW_H, laneGap = LANE_GAP;
+  const chartH = rowsTotal * ROW_H + pl.lanes.length * LANE_GAP + 4;
   const chartTop = y + 26;
   const chartBottom = chartTop + chartH;
 
@@ -588,6 +630,10 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number): v
        never happens, and this is the belt to that pair of braces. */
     panelBottom - 8);
 
+  /* Riding on the front page, the sheet it is on has already written its own
+     footer — and a second one stamped over the first is how a report comes out
+     claiming to be two different pages at once. */
+  if (place) return;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — where the job is`, CW * 0.8), M, H - M + 6);
   d.text('Worked out from the lists the job already keeps — nothing typed twice.',
@@ -1559,12 +1605,30 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* WHERE THE JOB IS goes directly behind the front page. Every other sheet
      here answers a narrower question, and a reader who had to assemble the
      position out of four of them was doing the report's job for it. */
-  const hasPlan = !!data.plan && data.plan.lanes.length > 0;
+  /* ---- WHERE THE JOB IS, UNDER THE TESTS WHEN IT FITS ----
+   *
+   * Rowland: "do the client report pages 2 and 3." Page 2's panel already took
+   * only the height it needed — the waste was the empty SHEET around it. On a
+   * commissioning job with a handful of tests the front page stopped two thirds
+   * of the way down and the position went on a sheet of its own that was itself
+   * a third full: two short pages where one full one says more.
+   *
+   * So when the two fit together, the client opens one sheet and reads the
+   * tests and where the job is without turning it over. When there are enough
+   * tests to fill the front page it keeps its own sheet, which is the case the
+   * separate sheet was designed for. Measured, not assumed — the page count
+   * below reads the same boolean. */
+  const planUnder = !data.tracker && !!data.plan && data.plan.lanes.length > 0
+    && lpY + split.panelH + 12 + planPanelHeight(data.plan, H - 2 * M) <= H - M - 18;
+  const hasPlan = !!data.plan && data.plan.lanes.length > 0 && !planUnder;
   const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
     + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
+  if (planUnder) planSheet(d, data, 1, pages, { top: lpY + split.panelH + 12, n: '2' });
+
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'tests and fixes'}`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${
+    planUnder ? 'tests and where the job is' : data.tracker ? 'line pace' : 'tests and fixes'}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
     ? 'The tracker workbook is the system of record; this report reads it.'
     : 'A test is planned, then run, and what it found becomes the next one.',
@@ -1900,8 +1964,58 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   const gap = 12;
   const colW = (CW - gap * 2) / 3;
-  const rowH1 = (H - 2 * M - 18 - gap) * 0.56;
-  const rowH2 = (H - 2 * M - 18 - gap) - rowH1;
+
+  /* ---------- THE TWO ROWS TAKE THE HEIGHT THEIR CONTENT NEEDS ----------
+   *
+   * Rowland, having seen the trials fixed: "do the client report pages 2 and 3."
+   *
+   * The six panels sat on a rigid grid — the top row 56% of the sheet and the
+   * bottom row the other 44%, whatever was in them. On a job with two lines,
+   * one overdue action and one win, that is six frames each sized for a full
+   * A3 holding two rows, and the sheet reads as five things that failed to
+   * load rather than a short week.
+   *
+   * THE SHAPE STAYS. The 3×2 is not decoration: tracker beside overdue on top,
+   * then next steps, the walk and what we tried underneath, is the order
+   * somebody reads them in and it is the same order as the screen. What
+   * changes is only how tall each row is — and when the two together do not
+   * fit, they share the sheet in the proportion they asked for rather than in
+   * a proportion decided in advance.
+   *
+   * Measured in the same units the drawing uses: panel() returns y + 30, a
+   * table row is 13pt on a 5pt header rule, and a floor of 150 keeps a panel
+   * that is genuinely empty from collapsing to its own heading. */
+  const PANEL_HEAD = 30, ROW = 13, TABLE_HEAD = 5, PAD = 12, FLOOR = 150;
+  const tableH = (n: number) => TABLE_HEAD + ROW * n + 8;
+
+  const noLines = data.byLine.filter(r => r.noLine).map(r => r.name);
+  /* 14 to the bar, the bar itself, its key, then the roll-up table. */
+  const trackerH = PANEL_HEAD + 14 + 14 + 32 + tableH(data.byLine.length)
+    + (noLines.length > 0 ? 12 : 0) + PAD;
+  const overdueH = PANEL_HEAD + 14 + tableH(data.lateActions.length)
+    + (data.lateMore > 0 ? 22 : 0) + PAD;
+
+  /* The finished-with-an-outcome block under next steps: a heading, its rule,
+     then a line each and a second one wherever somebody wrote the outcome. */
+  const doneH = data.completed.length === 0 ? 0
+    : 22 + data.completed.reduce((n, c) => n + 16 + (c.outcome ? 9 : 0), 0)
+      + (data.completedMore > 0 ? 11 : 0);
+  const nextH = PANEL_HEAD + 14 + tableH(data.todos.length) + doneH + PAD;
+  const walkH = PANEL_HEAD + 18 + 17 * Math.max(1, data.snags.length) + PAD;
+  /* A win is a title, the impact line a proved one carries, up to two lines of
+     story, and whose it was. */
+  const winsH = PANEL_HEAD + 18 + PAD + data.wins.reduce(
+    (n, w) => n + 11 + (w.verdict && w.impact ? 10 : 0) + (w.story ? 18 : 0) + 15, 0)
+    + (data.wins.length === 0 ? 14 : 0);
+
+  const want1 = Math.max(FLOOR, trackerH, overdueH);
+  const want2 = Math.max(FLOOR, nextH, walkH, winsH);
+  const avail = H - 2 * M - 18 - gap;
+  /* Only ever shrink. A row that wants less than its share keeps less than its
+     share — that is the whole point — and the sheet simply ends sooner. */
+  const k = Math.min(1, avail / (want1 + want2));
+  const rowH1 = want1 * k;
+  const rowH2 = want2 * k;
   const r1y = M, r2y = M + rowH1 + gap;
 
   /* 2 — action tracker */
@@ -1951,8 +2065,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     r1y + rowH1 - 10);
 
   /* An em dash in the reading column is a question a client asks out loud, so the page
-     answers it before they have to. Only when there is one. */
-  const noLines = data.byLine.filter(r => r.noLine).map(r => r.name);
+     answers it before they have to. Only when there is one. Measured above,
+     because the panel's height depends on whether this line is printed. */
   if (noLines.length > 0) {
     setFont(d, 6.4, 'normal', MUTED);
     d.text(fit(d, `${noLines.join(' \u00b7 ')} ${noLines.length === 1 ? 'is an area' : 'are areas'} on the tracker with no line on the project \u2014 actions counted, the rest needs a line adding.`, barW),

@@ -131,6 +131,30 @@ const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> 
   })),
 });
 
+/** A timeline with `lanes` lanes of one row each. What matters here is only
+ *  how tall it measures: the front page carries it under the tests when the
+ *  two fit and gives it a sheet of its own when they do not, and that decision
+ *  and the page count have to be the same decision. */
+const plan = (lanes = 2, outstanding = 2): NonNullable<PaceReportData['plan']> => ({
+  says: '27 days to go, with 4 things outstanding — none of it late.',
+  slip: 'The date has moved 8 days from what was agreed.',
+  counted: '2 of 5 done · 1 still ahead',
+  axis: {
+    from: '2026-09-01', to: '2026-11-01', today: 0.4,
+    ticks: [{ at: 0, label: 'Sep' }, { at: 0.5, label: 'Oct' }],
+    expected: { at: 0.8, label: 'At rate', when: '20 Oct' },
+    agreed: { at: 0.68, label: 'Agreed', when: '12 Oct' },
+  },
+  lanes: Array.from({ length: lanes }, (_, i) => ({
+    kind: (['test', 'fix', 'material', 'program', 'machine'] as const)[i % 5],
+    label: `Lane ${i + 1}`,
+    rows: [[{ kind: 'test' as const, at: 0.3, label: `Seal integrity ${i + 1}`, when: '21 Sep', tone: 'done' as const }]],
+  })),
+  outstanding: Array.from({ length: outstanding }, (_, i) => ({
+    what: `Thing ${i + 1} still to run`, open: i + 1, late: 0, whose: 'Ilapak UK',
+  })),
+});
+
 const data = (over: Partial<PaceReportData> = {}): PaceReportData => ({
   /* A tracker project by default — that is what every existing case is about.
      The commissioning shape is asserted by passing `tracker: false`. */
@@ -209,6 +233,20 @@ const SHAPES: [string, Partial<PaceReportData>][] = [
     { tracker: false, trials: trials(24, true) }],
   ['spilling tests AND every optional sheet behind them',
     { tracker: false, trials: trials(30, true), pareto: pareto(), tree: tree(), board: board(4) }],
+  /* WHERE THE JOB IS, WHICH NOW RIDES ON THE FRONT PAGE WHEN IT FITS. That is
+     a page that exists or does not depending on two measurements, which is
+     precisely the arithmetic the footer has drifted away from before. */
+  ['a short plan and few tests — both on one sheet',
+    { tracker: false, trials: trials(2), plan: plan(2, 2) }],
+  ['a plan with nothing but one lane', { tracker: false, trials: trials(1), plan: plan(1, 0) }],
+  ['a tall plan that cannot fit under the tests', { tracker: false, trials: trials(6), plan: plan(6, 6) }],
+  ['enough tests to fill the front page, so the plan keeps its own sheet',
+    { tracker: false, trials: trials(20, true), plan: plan(3, 3) }],
+  ['a plan on a tracker project, which never merges',
+    { tracker: true, plan: plan(3, 3) }],
+  ['a plan, spilling tests and every optional sheet',
+    { tracker: false, trials: trials(24, true), plan: plan(4, 4),
+      pareto: pareto(), tree: tree(), board: board(3) }],
 ];
 
 describe('the footer never lies about the document it is printed on', () => {
@@ -260,6 +298,29 @@ describe('the optional sheets each cost exactly one page', () => {
     // no sheets for no areas; if that ever returned one empty sheet instead, the
     // footer would promise a page that does not exist.
     expect(pagesFor({ board: [] })).toBe(pagesFor({}));
+  });
+
+  /* WHERE THE JOB IS COSTS A SHEET ONLY WHEN IT CANNOT SHARE ONE.
+     On a commissioning job with a handful of tests the front page used to stop
+     two thirds of the way down and the position went on a sheet that was itself
+     a third full — two short pages where one full one says more. */
+  it('a short plan rides on the front page instead of costing a sheet', () => {
+    const few = { tracker: false, trials: trials(2) };
+    expect(pagesFor({ ...few, plan: plan(2, 2) })).toBe(pagesFor(few));
+  });
+
+  it('but a tall one still gets its own', () => {
+    const few = { tracker: false, trials: trials(2) };
+    expect(pagesFor({ ...few, plan: plan(14, 12) })).toBe(pagesFor(few) + 1);
+  });
+
+  it('and so does one on a page already full of tests', () => {
+    const many = { tracker: false, trials: trials(20, true) };
+    expect(pagesFor({ ...many, plan: plan(2, 2) })).toBe(pagesFor(many) + 1);
+  });
+
+  it('a tracker project never merges it — that front page is the numbers', () => {
+    expect(pagesFor({ plan: plan(2, 2) })).toBe(pagesFor({}) + 1);
   });
 
   it('a bigger board costs more sheets, and the footer keeps up', () => {

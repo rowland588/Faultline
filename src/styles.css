@@ -5947,8 +5947,13 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .pg-onto-row .btn { flex: 1 1 100%; }
 }
 
-.pg-reuse { margin-top: 10px; }
-.pg-reuse .tw-chips { margin-top: 4px; }
+/* "Same one as" — under the name box it fills, not at the foot of the card. */
+.pg-reuse { display: block; margin-top: 8px; }
+.pg-reuse .field-label { margin: 0 0 4px; }
+.pg-reuse .tw-chips { margin-top: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.pg-reuse .tw-chip { display: inline-flex; align-items: baseline; gap: 6px; }
+/* Which machine that name is borrowed from, quieter than the name itself. */
+.pg-reuse-on { font-weight: 500; font-size: 11px; opacity: .72; }
 
 @media (max-width: 720px) {
   .pg-machine { display: flex; width: 100%; }

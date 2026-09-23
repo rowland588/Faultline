@@ -236,6 +236,39 @@ const PROVED = /^(proved|validated|signed off|signed-off|approved|passed|done|ye
 const ON_MACHINE = /^(on machine|on the machine|loaded|written|exists|in place|built|have it|untested|unproved|unvalidated)$/i;
 const NEEDED = /^(needed|not written|none|no|missing|to write|required|outstanding|tbc)$/i;
 
+/** WHICH MACHINE A NEW PROGRAM SHOULD START ON.
+ *
+ *  Rowland: "same one as — I press the node and it doesn't work."
+ *
+ *  It did fill the name in. What it did not do was land anywhere: the machine
+ *  on the add form started at "the line itself" even on a job with machines, so
+ *  reusing a name off Pick and place added a SECOND copy of it belonging to no
+ *  machine at all. The chip was fine; the box under it was wrong, and the two
+ *  together made a control that looked broken.
+ *
+ *  The machine most programs are already on, because that is where the next one
+ *  is going: they are added in runs — five for the pick and place, then five
+ *  for the wrapper. With none assigned yet it is simply the first machine, and
+ *  with no machines at all it is the line itself, which is what it always was.
+ *  "The line itself" stays selectable; it is no longer the default answer to a
+ *  question the job has machines for. */
+export const busiestMachine = (rows: Program[], assets: { id: string }[]): string => {
+  if (assets.length === 0) return '';
+  const count = new Map<string, number>();
+  for (const p of rows) {
+    if (!p.assetId || !assets.some(a => a.id === p.assetId)) continue;
+    count.set(p.assetId, (count.get(p.assetId) ?? 0) + 1);
+  }
+  let best = '', most = 0;
+  /* Ties go to the machine listed first, so the answer does not move about
+     between renders on a job where two machines carry the same number. */
+  for (const a of assets) {
+    const n = count.get(a.id) ?? 0;
+    if (n > most) { most = n; best = a.id; }
+  }
+  return best || assets[0].id;
+};
+
 /** THE ROWS A "PUT THEM ALL ON THAT MACHINE" WRITES, and no others.
  *
  *  Rowland: "all the current existing programs set to the machine called pick

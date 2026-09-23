@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  byUrgency, daysOverdue, fillIn, isProved, ontoMachine, readProgramPaste, standingOf,
+  busiestMachine, byUrgency, daysOverdue, fillIn, isProved, ontoMachine, readProgramPaste, standingOf,
   stateOf, tally, testedIn, weeksFor,
   type Program, type ProgramState,
 } from '../programs';
@@ -304,5 +304,43 @@ describe('putting programs onto a machine', () => {
     const rows = [prog({ id: 'a' })];
     ontoMachine(rows, ['a'], 'pnp');
     expect(rows[0].assetId).toBeUndefined();
+  });
+});
+
+/* WHICH MACHINE A NEW PROGRAM STARTS ON.
+ *
+ * Rowland: "same one as — I press the node and it doesn't work." The chip did
+ * fill the name in; the machine box under it said "the line itself" even on a
+ * job with two machines, so reusing a name added a second copy belonging to no
+ * machine. The chip was fine and the box was wrong, and together they made a
+ * control that looked broken.
+ */
+describe('which machine the add form starts on', () => {
+  const m = (id: string) => ({ id });
+
+  it('is the one most programs are already on', () => {
+    const rows = [prog({ assetId: 'pnp' }), prog({ assetId: 'pnp' }), prog({ assetId: 'wrp' })];
+    expect(busiestMachine(rows, [m('wrp'), m('pnp')])).toBe('pnp');
+  });
+
+  it('is the first machine when nothing has been assigned yet', () => {
+    expect(busiestMachine([prog(), prog()], [m('pnp'), m('wrp')])).toBe('pnp');
+  });
+
+  it('is the line itself when the job has no machines — which is what it always was', () => {
+    expect(busiestMachine([prog()], [])).toBe('');
+  });
+
+  it('ignores a machine that has been deleted since', () => {
+    /* Deleting a machine leaves its programs pointing at an id nothing
+       answers to; starting the form on one would show an empty select. */
+    const rows = [prog({ assetId: 'gone' }), prog({ assetId: 'gone' }), prog({ assetId: 'pnp' })];
+    expect(busiestMachine(rows, [m('pnp')])).toBe('pnp');
+  });
+
+  it('settles ties by the order the machines are listed, not by chance', () => {
+    const rows = [prog({ assetId: 'a' }), prog({ assetId: 'b' })];
+    expect(busiestMachine(rows, [m('a'), m('b')])).toBe('a');
+    expect(busiestMachine(rows, [m('b'), m('a')])).toBe('b');
   });
 });

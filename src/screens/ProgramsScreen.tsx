@@ -27,7 +27,7 @@ import { useAssets } from '../lib/useTesting';
 import type { Asset } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
 import {
-  daysOverdue, fillIn, isProved, monthSpans, readProgramPaste, standingOf,
+  busiestMachine, daysOverdue, fillIn, isProved, monthSpans, readProgramPaste, standingOf,
   STATE_WORD, stateOf, testedIn, todayISO,
   type Program, type Week,
 } from '../lib/programs';
@@ -321,12 +321,19 @@ function AddProgram({ state, lines, assets }: {
   const [runs, setRuns] = useState('');
   const [testOn, setTestOn] = useState('');
   const [lineId, setLineId] = useState('');
-  const [assetId, setAssetId] = useState('');
+  /* null means NOBODY HAS CHOSEN YET, which is not the same as '' — that is a
+     real choice meaning the line itself. Until somebody picks, the form sits on
+     the machine most programs are already on, because the machines arrive from
+     their own hook a beat after this mounts and a value captured at mount would
+     have been '' for ever. */
+  const [assetId, setAssetId] = useState<string | null>(null);
   const [from, setFrom] = useState('');
+
+  const onMachine = assetId ?? busiestMachine(state.programs, assets);
 
   const add = async () => {
     if (!what.trim()) return;
-    await state.add({ what, runs, testOn, lineId, assetId, from });
+    await state.add({ what, runs, testOn, lineId, assetId: onMachine, from });
     setWhat(''); setRuns(''); setTestOn(''); setFrom('');
     /* The machine and the line STAY. Adding programs is done in runs — five
        for the pick and place, then five for the wrapper — and clearing the
@@ -342,13 +349,15 @@ function AddProgram({ state, lines, assets }: {
      over it is still typing. Only names NOT already on the machine being added
      to are offered — the same name twice on one machine is the mistake this
      would otherwise help you make. */
-  const taken = new Set(state.programs.filter(p => (p.assetId ?? '') === assetId).map(p => p.what.trim().toLowerCase()));
-  const seen = new Map<string, string>();
+  const taken = new Set(state.programs.filter(p => (p.assetId ?? '') === onMachine).map(p => p.what.trim().toLowerCase()));
+  const seen = new Map<string, { name: string; on?: string }>();
   for (const p of state.programs) {
     const key = p.what.trim().toLowerCase();
     if (!key || taken.has(key) || seen.has(key)) continue;
-    const on = assets.find(a => a.id === p.assetId)?.name;
-    seen.set(key, on ? `${p.what} · ${on}` : p.what);
+    /* The NAME is kept, not a display string to be taken apart again. It used
+       to split the label on ' · ' to get it back, which quietly truncated any
+       program whose own name had one in it. */
+    seen.set(key, { name: p.what, on: assets.find(a => a.id === p.assetId)?.name });
   }
   const reuse = [...seen.entries()].slice(0, 12);
 
@@ -360,6 +369,25 @@ function AddProgram({ state, lines, assets }: {
           <span className="field-label">Name or number</span>
           <input className="text-input" value={what} maxLength={160} placeholder="P-104 perforation"
             onChange={e => setWhat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+          {/* DIRECTLY UNDER THE BOX THEY FILL. They used to sit at the foot of
+              the card, 350px below it on a phone — so tapping one filled a box
+              that was off the top of the screen and the whole thing read as
+              having done nothing. A control that fills a box belongs beside
+              the box. */}
+          {reuse.length > 0 && (
+            <span className="pg-reuse">
+              <span className="field-label">Same one as</span>
+              <span className="tw-chips">
+                {reuse.map(([key, r]) => (
+                  <button key={key} type="button" className={'tw-chip' + (what === r.name ? ' on' : '')}
+                    aria-pressed={what === r.name}
+                    onClick={() => setWhat(r.name)}>
+                    {r.name}{r.on && <span className="pg-reuse-on">{r.on}</span>}
+                  </button>
+                ))}
+              </span>
+            </span>
+          )}
         </label>
         {/* WHICH MACHINE. Several machines each need several programs, and
             until now a program could not say which one it was for — so the
@@ -369,7 +397,7 @@ function AddProgram({ state, lines, assets }: {
         {assets.length > 0 && (
           <label className="proj-field">
             <span className="field-label">Machine</span>
-            <select className="text-input" value={assetId} onChange={e => setAssetId(e.target.value)}>
+            <select className="text-input" value={onMachine} onChange={e => setAssetId(e.target.value)}>
               <option value="">The line itself</option>
               {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
@@ -400,18 +428,6 @@ function AddProgram({ state, lines, assets }: {
         </label>
         <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => void add()}>Add it</button>
       </div>
-      {reuse.length > 0 && (
-        <div className="pg-reuse">
-          <span className="field-label">Same one as</span>
-          <span className="tw-chips">
-            {reuse.map(([key, label]) => (
-              <button key={key} type="button" className="tw-chip"
-                onClick={() => setWhat(label.split(' · ')[0] ?? label)}>{label}</button>
-            ))}
-          </span>
-        </div>
-      )}
-
       <p className="chip-hint">
         Only the first box is needed. A new program starts as <b>not written</b>, and a program nobody has
         booked a test for says so rather than being given a date it has not got.
