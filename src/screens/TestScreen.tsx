@@ -26,6 +26,7 @@ import { useTesting } from '../lib/useTesting';
 import { getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
+import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
   WORDS, outcomeWord, foundTally, itemsOf, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
@@ -197,7 +198,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             </button>
           ))}
         </span>
-        <Media test={test} tt={tt} onView={setViewing} />
+        <MediaStrip media={test.media ?? []} size={54} onView={setViewing}
+          onAdd={refs => tt.saveTest({ ...test, media: [...(test.media ?? []), ...refs] })} />
       </section>
 
       {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
@@ -452,7 +454,8 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
             <label className="cw-f"><span>By when</span>
               <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>
           )}
-          <ItemMedia item={item} tt={tt} onView={onView} />
+          <MediaStrip media={item.media ?? []} size={44} onView={onView}
+            onAdd={refs => tt.saveItem({ ...item, media: [...(item.media ?? []), ...refs] })} />
           {/* WHAT YOU DECIDE AN OBSERVATION IS. Rowland: "what we found on the
               day is observations — I then decide if they go to an action or go
               to a fix." Three doors, because there are three answers: it needs
@@ -507,50 +510,76 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
 
 /* ------------------------------ what's attached ---------------------------- */
 
-/** Photos and video of the day itself. The same capture path the line walk uses,
- *  so a clip filmed here behaves like every other clip in the app. */
-function Media({ test, tt, onView }: { test: Test; tt: TT; onView: (m: MediaRef) => void }) {
-  const pick = useRef<HTMLInputElement>(null);
+/** Photos and video, on a test, on a fix, or on a single thing we found.
+ *
+ *  THREE DOORS, THE SAME THREE THE LINE WALK HAS. Shoot a photo, film a clip,
+ *  or upload what is already on the device — and upload takes VIDEO as well as
+ *  photos, which is the whole point of it. Most footage of a fix was filmed on
+ *  somebody else's phone and arrives afterwards; before this, the only way to
+ *  get a clip onto a test was to stand there and film it live, and the picker
+ *  said `image/*`, so the phone would not even offer a video it already had.
+ *
+ *  IT GOES THROUGH lib/media, which is the door the line walk and next steps
+ *  already use. That matters more than the button: a clip taken that way is
+ *  sniffed for its real type, converted so it plays on the other devices too,
+ *  and a photo gets a thumbnail — none of which the hand-rolled copy that used
+ *  to live here did. One door, so a clip on a fix behaves like every other clip
+ *  in the app.
+ *
+ *  ONE COMPONENT, NOT TWO. There were two of these, identical apart from the
+ *  record they saved onto, which is exactly how the video gap came to exist in
+ *  two places at once. The caller says what it is saving onto. */
+function MediaStrip({ media, size, onAdd, onView }: {
+  media: MediaRef[];
+  size: number;
+  onAdd: (refs: MediaRef[]) => Promise<void>;
+  onView: (m: MediaRef) => void;
+}) {
   const [filming, setFilming] = useState(false);
+  const [busy, setBusy] = useState<'' | 'photo' | 'upload'>('');
+  const [note, setNote] = useState<string | null>(null);
 
-  const add = async (blob: Blob, kind: MediaRef['kind']) => {
-    const blobKey = `test-${uid()}`;
-    await putBlob(blobKey, blob);
-    const m: MediaRef = { id: uid(), kind, blobKey, mime: blob.type || (kind === 'photo' ? 'image/jpeg' : 'video/webm'), capturedAt: Date.now() };
-    await tt.saveTest({ ...test, media: [...(test.media ?? []), m] });
+  const take = async (what: '' | 'photo' | 'upload', get: () => Promise<MediaRef[]>) => {
+    setBusy(what);
+    setNote(null);
+    try {
+      const refs = await get();
+      if (refs.length) await onAdd(refs);
+    } catch {
+      setNote('That wouldn’t attach — the device may be out of room.');
+    } finally {
+      setBusy('');
+    }
   };
 
   return (
     <div className="tw-media">
-      {(test.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={54} onClick={() => onView(m)} />)}
-      <button className="tw-att" onClick={() => pick.current?.click()}>+ Photo</button>
-      {videoCaptureSupported() && <button className="tw-att" onClick={() => setFilming(true)}>+ Video</button>}
-      <input ref={pick} type="file" accept="image/*" hidden
-        onChange={e => { const f = e.target.files?.[0]; if (f) void add(f, 'photo'); e.target.value = ''; }} />
-      {filming && <VideoRecorder onCapture={b => { void add(b, 'video'); setFilming(false); }} onClose={() => setFilming(false)} />}
-    </div>
-  );
-}
+      {media.map(m => <EvidenceThumb key={m.id} media={m} size={size} onClick={() => onView(m)} />)}
 
-function ItemMedia({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: MediaRef) => void }) {
-  const pick = useRef<HTMLInputElement>(null);
-  const [filming, setFilming] = useState(false);
+      <button className="tw-att" disabled={busy !== ''}
+        onClick={() => void take('photo', async () => { const r = await captureMedia('photo'); return r ? [r] : []; })}>
+        📷 Photo
+      </button>
 
-  const add = async (blob: Blob, kind: MediaRef['kind']) => {
-    const blobKey = `item-${uid()}`;
-    await putBlob(blobKey, blob);
-    const m: MediaRef = { id: uid(), kind, blobKey, mime: blob.type || (kind === 'photo' ? 'image/jpeg' : 'video/webm'), capturedAt: Date.now() };
-    await tt.saveItem({ ...item, media: [...(item.media ?? []), m] });
-  };
+      {/* Filming stays in the app rather than handing off to the camera app, so
+          several clips can be shot back to back — see VideoRecorder for why. */}
+      {videoCaptureSupported() && (
+        <button className="tw-att" disabled={busy !== ''} onClick={() => setFilming(true)}>🎥 Video</button>
+      )}
 
-  return (
-    <div className="tw-media">
-      {(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={44} onClick={() => onView(m)} />)}
-      <button className="tw-att" onClick={() => pick.current?.click()}>+ Photo</button>
-      {videoCaptureSupported() && <button className="tw-att" onClick={() => setFilming(true)}>+ Video</button>}
-      <input ref={pick} type="file" accept="image/*" hidden
-        onChange={e => { const f = e.target.files?.[0]; if (f) void add(f, 'photo'); e.target.value = ''; }} />
-      {filming && <VideoRecorder onCapture={b => { void add(b, 'video'); setFilming(false); }} onClose={() => setFilming(false)} />}
+      {/* Photos AND video, several at once, from the gallery or a laptop. */}
+      <button className="tw-att" disabled={busy !== ''}
+        onClick={() => void take('upload', () => pickExistingMedia())}>
+        {busy === 'upload' ? 'Adding…' : '⬆ Upload'}
+      </button>
+
+      {note && <span className="sub is-r" role="alert">{note}</span>}
+
+      {filming && (
+        <VideoRecorder
+          onCapture={b => { void take('', async () => [await saveVideoBlob(b)]); setFilming(false); }}
+          onClose={() => setFilming(false)} />
+      )}
     </div>
   );
 }

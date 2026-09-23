@@ -83,15 +83,15 @@ export async function pickExistingMedia(
   return refs;
 }
 
-/** Attach photos only — the phone gallery, Files, or a laptop's disk. Several
- *  at once. Used by Next steps, where the attachment is a picture of the thing
- *  being discussed rather than footage of the line. */
-export async function pickExistingPhotos(): Promise<MediaRef[]> {
-  const files = await pickFiles('image/*', { multiple: true });
-  const refs: MediaRef[] = [];
-  for (const f of files) refs.push(await saveEvidence('photo', f));
-  return refs;
-}
+/* There was a photos-only picker here as well, for Next steps, on the reasoning
+ * that the attachment there is a picture of the thing being discussed rather
+ * than footage of the line. Next steps moved onto pickExistingMedia above and
+ * nothing else ever called it. It is gone rather than kept, because the reason
+ * it existed — "video does not belong on this one" — turned out to be wrong
+ * everywhere: Rowland wants to upload a clip wherever evidence is attached, and
+ * a second picker that silently cannot is how a phone comes to hide the video
+ * you are trying to attach.
+ */
 
 async function saveEvidence(kind: 'photo' | 'video', raw: Blob): Promise<MediaRef> {
   // Store it already carrying a type the browser can dispatch on — files

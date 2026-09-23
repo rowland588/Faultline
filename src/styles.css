@@ -5129,6 +5129,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   cursor: pointer; min-height: 40px;
 }
 .tw-att:hover { background: var(--accent-soft); }
+/* Picking, converting and saving a clip takes a moment on a phone; the strip
+   says so rather than looking like the tap missed. */
+.tw-att:disabled { opacity: .55; cursor: default; }
+.tw-att:disabled:hover { background: none; }
 .tw-loop { width: 100%; margin-top: 4px; min-height: 48px; font-size: 15px; }
 
 .cx-doc { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; border-top: 1px solid var(--line); }
