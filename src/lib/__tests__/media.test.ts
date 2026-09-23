@@ -11,7 +11,7 @@
  * exactly why they are asserted here rather than left to the eye.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { pickFiles } from '../media';
+import { captureMedia, pickFiles } from '../media';
 
 /** The input pickFiles just put in the document. It is attached on purpose —
  *  iOS Safari ignores .click() on a detached one — which is what lets us read
@@ -38,6 +38,22 @@ describe('the file picker', () => {
 
   it('goes straight to the camera when the user did ask to shoot', () => {
     void pickFiles('image/*', { camera: true });
+    expect(openedPicker().getAttribute('capture')).toBe('environment');
+  });
+
+  /* Rowland: "make photo offer the gallery too." On a test or a fix the
+     close-up has usually been taken already, and `capture` is what stops the
+     phone listing it. */
+  it('lets the camera be offered alongside the gallery, not instead of it', async () => {
+    void captureMedia('photo', { gallery: true });
+    await Promise.resolve();
+    expect(openedPicker().getAttribute('capture')).toBeNull();
+    expect(openedPicker().accept).toBe('image/*');
+  });
+
+  it('still goes straight to the lens when nothing says otherwise', async () => {
+    void captureMedia('photo');
+    await Promise.resolve();
     expect(openedPicker().getAttribute('capture')).toBe('environment');
   });
 

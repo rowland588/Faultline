@@ -61,9 +61,23 @@ async function makePhotoThumb(blob: Blob): Promise<Blob | null> {
   }
 }
 
-/** Shoot one piece of evidence with the device camera; null if cancelled. */
-export async function captureMedia(kind: 'photo' | 'video'): Promise<MediaRef | null> {
-  const [file] = await pickFiles(kind === 'photo' ? 'image/*' : 'video/*', { camera: true });
+/** One piece of evidence; null if cancelled.
+ *
+ *  `gallery: true` drops the capture attribute, so the phone offers its own
+ *  chooser — camera, or a picture already on the device — instead of going
+ *  straight to the lens.
+ *
+ *  WHY IT IS A CHOICE AND NOT ONE ANSWER. Rowland, on the testing screen:
+ *  "make photo offer the gallery too." A line walk is filmed as you walk it, so
+ *  the camera is the only thing that button can sensibly mean there. A test or
+ *  a fix is written up after the fact, often from a close-up somebody already
+ *  took — so on those screens, refusing to show it is refusing the ordinary
+ *  case. Same door, and the screen says which it is standing in front of. */
+export async function captureMedia(
+  kind: 'photo' | 'video',
+  opts: { gallery?: boolean } = {},
+): Promise<MediaRef | null> {
+  const [file] = await pickFiles(kind === 'photo' ? 'image/*' : 'video/*', { camera: !opts.gallery });
   if (!file) return null;
   return saveEvidence(kind, file);
 }

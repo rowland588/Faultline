@@ -583,8 +583,16 @@ function MediaStrip({ media, size, onAdd, onView }: {
     <div className="tw-media">
       {media.map(m => <EvidenceThumb key={m.id} media={m} size={size} onClick={() => onView(m)} />)}
 
+      {/* CAMERA *OR* THE GALLERY, the phone's own chooser deciding. Rowland:
+          "make photo offer the gallery too." A close-up of the fault has
+          usually been taken already by the time the test is written up, and a
+          button that goes straight to the lens cannot reach it. Upload below is
+          still the door for several at once, and for video. */}
       <button className="tw-att"
-        onClick={() => void take(null, async () => { const r = await captureMedia('photo'); return r ? [r] : []; })}>
+        onClick={() => void take(null, async () => {
+          const r = await captureMedia('photo', { gallery: true });
+          return r ? [r] : [];
+        })}>
         📷 Photo
       </button>
 
