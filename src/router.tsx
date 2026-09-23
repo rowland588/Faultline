@@ -24,6 +24,7 @@ import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsScreen } from './screens/ProgramsScreen';
 import { TestsScreen } from './screens/TestsScreen';
 import { TrialCardScreen } from './screens/TrialCardScreen';
+import { FixesScreen } from './screens/FixesScreen';
 import { TestScreen } from './screens/TestScreen';
 import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
@@ -92,6 +93,7 @@ function app(route: Route) {
       </RequireModel>
     );
   }
+  if (route.name === 'fixes' && route.id) return <FixesScreen projectId={route.id} />;
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsScreen projectId={route.id} />;
   /* Narrowed once rather than asserted three times: a test route without a

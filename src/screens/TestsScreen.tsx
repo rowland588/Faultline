@@ -20,7 +20,7 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, outcomeWord, isOverdue, itemsOf, weeksTo,
+  ASSET_STATE_WORD, WORDS, outcomeWord, isOverdue, itemsOf, standing, weeksTo,
   type Test, type TestKind,
 } from '../lib/testing';
 
@@ -100,7 +100,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
 
-  const st = tt.standing;
+  /* TESTS ONLY. A fix has its own screen — see FixesScreen — because a fix is
+     not part of testing and plenty of them never came out of a test. The same
+     `standing` call, over half the records. */
+  const st = standing(tt.tests.filter(t => t.kind !== 'fix'), tt.items);
   const weeks = weeksTo(project.expectedAt);
   const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
 
@@ -229,17 +232,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
             </span>
           </form>
         ) : (
-          /* TWO DOORS INTO ONE FORM. Rowland: "we don't actually have any way
-             of just pure fixes — everything's a test." Both write the same
-             record; the kind decides the words. */
-          <span className="tw-add-two">
-            <button className="cw-add" onClick={() => setAdding('test')}>
-              <span className="cw-add-p" aria-hidden>+</span> Plan a test
-            </button>
-            <button className="cw-add" onClick={() => setAdding('fix')}>
-              <span className="cw-add-p" aria-hidden>+</span> Plan a fix
-            </button>
-          </span>
+          /* ONE DOOR. Planning a fix moved to the Fixes screen with the fixes
+             themselves — two "add" buttons on a page that only lists one of
+             the two was a door leading off the page it was on. */
+          <button className="cw-add" onClick={() => setAdding('test')}>
+            <span className="cw-add-p" aria-hidden>+</span> Plan a test
+          </button>
         )}
       </section>
 
@@ -248,7 +246,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       {st.done.length > 0 && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
-            <h2 className="cmp-h">Tests and fixes so far</h2>
+            <h2 className="cmp-h">Tests so far</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="cw-list">

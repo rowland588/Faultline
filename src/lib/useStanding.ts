@@ -49,12 +49,13 @@ export function useStanding(projectId: string): StandingState {
      AND what they turned up, because that is where you go to deal with either. */
   const counts = useMemo(() => {
     const by = (k: string) => answer.rows.find(r => r.key === k);
-    const trials = by('trials'), obs = by('observations'), acts = by('actions');
+    const tests = by('tests'), obs = by('observations'), fixes = by('fixes');
     return {
-      testing: {
-        n: (trials?.open ?? 0) + (obs?.open ?? 0) + (acts?.open ?? 0),
-        late: (trials?.late ?? 0) + (acts?.late ?? 0),
-      },
+      /* Testing covers the tests AND what they turned up, because that is where
+         you go to deal with either. Fixes are their own screen now and so are
+         their own count. */
+      testing: { n: (tests?.open ?? 0) + (obs?.open ?? 0), late: tests?.late ?? 0 },
+      fixes: { n: fixes?.open ?? 0, late: fixes?.late ?? 0 },
       materials: { n: by('materials')?.open ?? 0, late: by('materials')?.late ?? 0 },
       programs: { n: by('programs')?.open ?? 0, late: by('programs')?.late ?? 0 },
       setup: { n: 0, late: 0 },

@@ -64,6 +64,10 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
   });
   return [
     p('testing', 'Testing', `/project/${projectId}/testing`),
+    /* Beside Testing, because deciding an observation is a fix is the one move
+       that crosses between them — and a fix is not part of testing, which is
+       why it stopped living inside it. */
+    p('fixes', 'Fixes', `/project/${projectId}/fixes`),
     p('materials', 'Materials', `/project/${projectId}/materials`),
     p('programs', 'Programs', `/project/${projectId}/programs`),
     p('setup', 'Lines & people', `/project/${projectId}/setup`),

@@ -571,6 +571,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {project.commissioning && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing`)}>Testing</button>
           )}
+          {/* Beside Testing, its own door — see FixesScreen. A fix is not part
+              of testing, and it is the list somebody works off on the floor. */}
+          {project.commissioning && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/fixes`)}>Fixes</button>
+          )}
           {/* Materials is offered on every project, not behind an opt-in: every
               job waits on something, and a list you have to switch on first is a
               list nobody starts. It costs nothing when it is empty. */}

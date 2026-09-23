@@ -64,6 +64,7 @@ const ROUTES = [
   ['3P board', `#/project/${seeded.projectId}/board`],
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['testing', `#/project/${seeded.projectId}/testing`],
+  ['fixes', `#/project/${seeded.projectId}/fixes`],
   ['one test', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
   /* The trial read back whole — the screen the PDF is sent from. */
   ['trial card', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],
