@@ -56,8 +56,17 @@ function when(p: Program, today: string): string {
 /* `today` is used for ONE thing here: whether a booked test date has gone. The
    colours themselves come off the program's own two dates, not off a comparison
    with now — something proved in March is green in March. */
-function Grid({ rows, weeks, today }: { rows: Program[]; weeks: Week[]; today: string }) {
+function Grid({ rows, weeks, today, assets }: { rows: Program[]; weeks: Week[]; today: string; assets: Asset[] }) {
   if (!rows.length || !weeks.length) return null;
+  /* WHICH MACHINE, but only once there is more than one in play. Rowland, on
+     giving a second machine the programs the first one has: "a lot of them
+     could be real correlated with the same name." Two rows reading "P-104
+     perforation" with nothing between them is a grid nobody can use — and on a
+     job with one machine, printing its name against every row is noise. The
+     list below has always said it; the grid is the same picture and must not
+     say less than the thing beside it. */
+  const machineOf = (p: Program) => assets.find(a => a.id === p.assetId)?.name;
+  const several = new Set(rows.map(p => p.assetId ?? '')).size > 1;
   return (
     <div className="mt-grid-wrap">
       <table className="mt-grid">
@@ -82,6 +91,7 @@ function Grid({ rows, weeks, today }: { rows: Program[]; weeks: Week[]; today: s
             <tr key={p.id}>
               <th scope="row" className="mt-grid-item">
                 {p.what}
+                {several && <span className="pg-grid-on">{machineOf(p) ?? 'the line itself'}</span>}
                 {p.runs && <span className="pg-grid-runs">{p.runs}</span>}
               </th>
               {/* The state AND its date. The word alone cannot answer "when are
@@ -123,6 +133,93 @@ function Grid({ rows, weeks, today }: { rows: Program[]; weeks: Week[]; today: s
 }
 
 /* ================================== the list ================================ */
+
+/* ================= EVERY PROGRAM ONTO A MACHINE, IN ONE GO =================
+ *
+ * Rowland: "when I go on program, I want the ability to pick the machine,
+ * because different machines have different programs. And all the current
+ * existing programs set to the machine called pick and place."
+ *
+ * The per-row picker was already here, and it was invisible, because it draws
+ * only when the project HAS machines — and a project whose programs were pasted
+ * from the OEM has a full list of programs and no machines typed in at all. So
+ * the one screen that wants to say which machine a program is for was the one
+ * screen with no way to get a machine, and nothing on it said why. It read
+ * exactly as "you never updated the programs", which is what it was.
+ *
+ * TWO THINGS, ONE STRIP, and it only exists while there is something to fix:
+ *   · a machine can be NAMED from here, so an empty project is not a dead end;
+ *   · every program still on no machine goes onto it in ONE tap, because doing
+ *     thirty of them a dropdown at a time is the job the app is supposed to be
+ *     doing.
+ *
+ * It disappears the moment every program says which machine it is for, so it is
+ * a way through rather than a permanent fixture.
+ */
+function PutAllOn({ state, assets, addAsset }: {
+  state: ReturnType<typeof usePrograms>;
+  assets: Asset[];
+  addAsset: (name: string) => Promise<string>;
+}) {
+  const [pick, setPick] = useState('');
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+
+  const loose = state.programs.filter(p => !p.assetId);
+  if (loose.length === 0) return null;
+
+  const go = async () => {
+    const typed = name.trim();
+    if (!typed && !pick) return;
+    setBusy(true);
+    try {
+      /* A typed name wins over the dropdown: somebody who has just written one
+         means that one, whatever was left selected behind it. */
+      const id = typed ? await addAsset(typed) : pick;
+      await state.putAllOn(loose.map(p => p.id), id);
+      const on = typed || assets.find(a => a.id === pick)?.name || 'the machine';
+      setSaid(`${loose.length} ${loose.length === 1 ? 'program is' : 'programs are'} on ${on}.`);
+      setName(''); setPick('');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="pg-onto">
+      <p className="pg-onto-h">
+        <b>{loose.length} {loose.length === 1 ? 'program does' : 'programs do'} not say which machine</b>
+        <span className="sub">
+          {assets.length === 0
+            ? 'No machines on this project yet — name one and they all go onto it.'
+            : 'Put them all on one, then change the odd one on its own row.'}
+        </span>
+      </p>
+      <div className="pg-onto-row">
+        {assets.length > 0 && (
+          <label className="pg-onto-f">
+            <span className="field-label">A machine you have</span>
+            <select className="text-input" value={pick} aria-label="Which machine to put them all on"
+              onChange={e => { setPick(e.target.value); setName(''); }}>
+              <option value="">Pick one…</option>
+              {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </label>
+        )}
+        <label className="pg-onto-f">
+          <span className="field-label">{assets.length > 0 ? 'Or a new one' : 'Name the machine'}</span>
+          <input className="text-input" value={name} placeholder="Pick and place"
+            aria-label="Name a machine to put them all on"
+            onChange={e => { setName(e.target.value); if (e.target.value) setPick(''); }} />
+        </label>
+        <button className="btn btn-primary" disabled={busy || (!name.trim() && !pick)}
+          onClick={() => void go()}>
+          {busy ? 'Putting them on…' : `Put all ${loose.length} on it`}
+        </button>
+      </div>
+      {said && <p className="sub pg-onto-said" role="status">{said}</p>}
+    </div>
+  );
+}
 
 function Row({ p, today, lineName, assets, state }: {
   p: Program; today: string; lineName?: string; assets: Asset[];
@@ -423,7 +520,7 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
   const lines = usePaceLines(projectId);
   const state = usePrograms(projectId);
   /* The machines, so a program can say which one it is for. */
-  const { assets } = useAssets(projectId);
+  const { assets, addAsset } = useAssets(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
@@ -521,7 +618,7 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
                 Every row a program, every column a week · green from the week it was proved · this prints on the report
               </p>
             </div>
-            <Grid rows={state.programs} weeks={state.weeks} today={today} />
+            <Grid rows={state.programs} weeks={state.weeks} today={today} assets={assets} />
           </section>
 
           <section className="pace-sec">
@@ -529,6 +626,7 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
               <h2 className="pace-sec-title">What is going to bite</h2>
               <p className="pace-sec-sub">Test dates that have gone first, then what is booked, then what nobody has dated, then what is proved</p>
             </div>
+            <PutAllOn state={state} assets={assets} addAsset={addAsset} />
             <div className="mt-list">
               {state.programs.map(p => (
                 <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} />

@@ -71,7 +71,15 @@ export interface TestingState {
  *  A screen that only wants to name a machine — Programs, say — should not have
  *  to mount the whole testing tree to get one, and certainly should not run the
  *  action-to-fix conversion as a side effect of drawing a dropdown. */
-export function useAssets(projectId: string): { assets: Asset[]; loading: boolean } {
+export function useAssets(projectId: string): {
+  assets: Asset[]; loading: boolean;
+  /** Name a machine from wherever you are standing. Programs needs this: a
+   *  project whose machines were never typed in shows no machine picker at all,
+   *  so the one screen that wants to say which machine a program is for is also
+   *  the screen with no way to get one. Same record the Testing screen makes —
+   *  a second door onto it, not a second kind of machine. */
+  addAsset: (name: string) => Promise<string>;
+} {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -81,7 +89,15 @@ export function useAssets(projectId: string): { assets: Asset[]; loading: boolea
   }, [projectId]);
 
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load]);
-  return { assets, loading };
+
+  const addAsset = useCallback(async (name: string) => {
+    const id = uid();
+    const sort = assets.reduce((n, a) => Math.max(n, a.sort), 0) + 1;
+    await putAsset({ id, projectId, name: name.trim(), state: 'onSite', sort, updatedAt: now() });
+    return id;
+  }, [projectId, assets]);
+
+  return { assets, loading, addAsset };
 }
 
 export function useTesting(projectId: string): TestingState {

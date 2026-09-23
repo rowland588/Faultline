@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  byUrgency, daysOverdue, fillIn, isProved, readProgramPaste, standingOf,
+  byUrgency, daysOverdue, fillIn, isProved, ontoMachine, readProgramPaste, standingOf,
   stateOf, tally, testedIn, weeksFor,
   type Program, type ProgramState,
 } from '../programs';
@@ -259,5 +259,50 @@ describe('pasting a list', () => {
     const states = rows.slice(1).map(r => r.state as ProgramState);
     expect(states).toEqual(['proved', 'needed', 'needed']);
     expect(rows[2].testOn).toBe('2026-09-29');
+  });
+});
+
+/* PUTTING THE WHOLE LIST ON ONE MACHINE.
+ *
+ * Rowland: "all the current existing programs set to the machine called pick
+ * and place." A list pasted from the OEM lands with no machine on any row, and
+ * before this the only way through was the per-row dropdown, one tap each.
+ *
+ * The risk is arithmetic rather than anything on screen: a bulk write that
+ * catches a row it was not asked for, or loses a test date on the way past, is
+ * wrong in a way nobody sees until the grid reads wrong a week later.
+ */
+describe('putting programs onto a machine', () => {
+  it('writes exactly the rows it was asked for', () => {
+    const rows = [prog({ id: 'a' }), prog({ id: 'b' }), prog({ id: 'c' })];
+    const out = ontoMachine(rows, ['a', 'c'], 'pnp');
+    expect(out.map(p => p.id)).toEqual(['a', 'c']);
+    expect(out.every(p => p.assetId === 'pnp')).toBe(true);
+  });
+
+  it('leaves everything else on the row exactly as it was', () => {
+    const rows = [prog({ id: 'a', what: 'P-104', testOn: '2026-10-01', state: 'onMachine', runs: 'Finest Red 2kg' })];
+    expect(ontoMachine(rows, ['a'], 'pnp')[0]).toEqual({ ...rows[0], assetId: 'pnp' });
+  });
+
+  it('moves a program already on another machine when it is named', () => {
+    /* Picking the wrong machine and putting them all on it again has to be
+       recoverable, or the one-tap door is a trap. */
+    const rows = [prog({ id: 'a', assetId: 'wrong' })];
+    expect(ontoMachine(rows, ['a'], 'right')[0].assetId).toBe('right');
+  });
+
+  it('writes nothing when nothing was named', () => {
+    expect(ontoMachine([prog({ id: 'a' })], [], 'pnp')).toEqual([]);
+  });
+
+  it('ignores an id that is not on the list rather than inventing a row', () => {
+    expect(ontoMachine([prog({ id: 'a' })], ['a', 'ghost'], 'pnp')).toHaveLength(1);
+  });
+
+  it('does not mutate the rows it was given', () => {
+    const rows = [prog({ id: 'a' })];
+    ontoMachine(rows, ['a'], 'pnp');
+    expect(rows[0].assetId).toBeUndefined();
   });
 });

@@ -5272,6 +5272,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .mt-cell.pg-cell.is-booked { box-shadow: inset 0 0 0 2px var(--blue); }
 
 .pg-grid-runs { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+/* Which machine a grid row is for — shown only when the job has more than one,
+   because two rows of the same program name are otherwise identical. */
+.pg-grid-on { display: block; font-size: 10px; font-weight: 600; color: var(--accent); }
 .mt-grid tbody .mt-grid-when.is-pg-proved { color: var(--ok); }
 .mt-grid tbody .mt-grid-when.is-pg-onMachine { color: var(--warn); }
 .mt-grid tbody .mt-grid-when.is-pg-needed { color: var(--muted); font-weight: 600; }
@@ -5923,6 +5926,27 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* Names already in use on another machine. The same product runs on more than
    one, so the same program name turns up more than once — tapping one fills
    the box, and typing over it is still typing. */
+/* PUT THEM ALL ON ONE MACHINE. A way through rather than a fixture: it is only
+   on the page while some program still does not say which machine it is for,
+   so it is allowed to be the loudest thing in the list. */
+.pg-onto {
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 10px; background: var(--accent-soft);
+  padding: 12px 14px; margin-bottom: 12px;
+}
+.pg-onto-h { margin: 0 0 10px; display: flex; flex-direction: column; gap: 2px; }
+.pg-onto-h b { font-size: 14px; }
+.pg-onto-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.pg-onto-f { display: flex; flex-direction: column; gap: 3px; flex: 1 1 160px; min-width: 0; }
+.pg-onto-f .field-label { margin: 0; }
+.pg-onto-f .text-input { width: 100%; }
+.pg-onto-said { margin-top: 8px; }
+/* On a phone the button gets its own line rather than being squeezed to the
+   width of the word inside it. */
+@media (max-width: 720px) {
+  .pg-onto-row .btn { flex: 1 1 100%; }
+}
+
 .pg-reuse { margin-top: 10px; }
 .pg-reuse .tw-chips { margin-top: 4px; }
 

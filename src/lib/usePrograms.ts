@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange } from '../db';
 import { uid, now } from './ids';
 import {
-  byUrgency, tally, todayISO, weeksFor,
+  byUrgency, ontoMachine, tally, todayISO, weeksFor,
   type Program, type ProgramState, type Tally, type Week,
 } from './programs';
 
@@ -32,6 +32,13 @@ export interface ProgramsState {
   importRows: (rows: {
     what: string; runs?: string; state: ProgramState; testOn?: string; provedOn?: string;
   }[]) => Promise<void>;
+  /** EVERY ONE OF THESE, ON THAT MACHINE. Rowland: "all the current existing
+   *  programs set to the machine called pick and place."
+   *
+   *  A list arrives from the OEM with no machine on any row, and the per-row
+   *  picker means one tap per program — which for thirty of them is the job the
+   *  app is supposed to be doing. One write, so it is one sync and one undo. */
+  putAllOn: (ids: string[], assetId: string) => Promise<void>;
 }
 
 export function usePrograms(projectId: string): ProgramsState {
@@ -68,6 +75,10 @@ export function usePrograms(projectId: string): ProgramsState {
   }, [projectId, nextSort]);
 
   const save = useCallback(async (p: Program) => { await putProgram(p); }, []);
+
+  const putAllOn = useCallback(async (ids: string[], assetId: string) => {
+    await putPrograms(ontoMachine(rows, ids, assetId));
+  }, [rows]);
   const remove = useCallback(async (id: string) => { await deleteProgram(id); }, []);
 
   const markProved = useCallback(async (id: string, on = todayISO(), testId?: string) => {
@@ -103,6 +114,6 @@ export function usePrograms(projectId: string): ProgramsState {
     programs: byUrgency(rows, today),
     tally: tally(rows, today),
     weeks: weeksFor(rows, today),
-    add, save, remove, markProved, markUnproved, importRows,
+    add, save, remove, markProved, markUnproved, importRows, putAllOn,
   };
 }

@@ -236,6 +236,23 @@ const PROVED = /^(proved|validated|signed off|signed-off|approved|passed|done|ye
 const ON_MACHINE = /^(on machine|on the machine|loaded|written|exists|in place|built|have it|untested|unproved|unvalidated)$/i;
 const NEEDED = /^(needed|not written|none|no|missing|to write|required|outstanding|tbc)$/i;
 
+/** THE ROWS A "PUT THEM ALL ON THAT MACHINE" WRITES, and no others.
+ *
+ *  Rowland: "all the current existing programs set to the machine called pick
+ *  and place." A list pasted from the OEM lands with no machine on any row, and
+ *  the per-row picker means one tap per program — thirty of them is the job the
+ *  app is supposed to be doing.
+ *
+ *  Here rather than in the hook because the risk is arithmetic, not React: it
+ *  must touch exactly the rows asked for and change exactly one field on them.
+ *  A bulk write that quietly caught a row it should not have, or dropped a test
+ *  date on the way past, is the kind of fault nobody notices until the grid is
+ *  wrong a week later. */
+export const ontoMachine = (rows: Program[], ids: string[], assetId: string): Program[] => {
+  const want = new Set(ids);
+  return rows.filter(p => want.has(p.id)).map(p => ({ ...p, assetId }));
+};
+
 export function readProgramPaste(text: string, today = todayISO()): PastedProgram[] {
   const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim() !== '');
   if (!lines.length) return [];
