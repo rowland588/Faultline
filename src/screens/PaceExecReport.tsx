@@ -28,7 +28,7 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { foundWords, type Asset, type Test, type TestItem } from '../lib/testing';
+import { foundWords, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
@@ -838,6 +838,21 @@ export function PaceExecReport() {
       const c = trialCard(t, tests, testItems, machines);
       const nx = headlineNext(c);
       return {
+        id: t.id,
+        fromId: t.fromTestId,
+        kind: c.kind,
+        /* STILL OWED, AND THE DAY HAS GONE.
+           Not lib/testing's isOverdue, and the difference matters: there, a
+           test whose day came and went is SETTLED — the day happened, whatever
+           came of it — which is right for the screen's late count. Here the
+           question is a different one. The client is owed a changeover
+           demonstration; the 17th has been and gone and they still have not
+           had it. Both readings are true and this page needs this one. */
+        late: (() => {
+          if (c.outcome !== 'planned' && c.outcome !== 'notRun') return false;
+          const end = plannedEnd(t);
+          return !!end && end < todayISO();
+        })(),
         title: c.title,
         machine: c.machine,
         /* The plan and the day are two fields, never one — the difference

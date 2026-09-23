@@ -22,7 +22,6 @@ import {
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
-import { foundWords } from './testing';
 import { vsTarget } from './measures';
 import type { LineSeries } from './measures';
 
@@ -136,6 +135,18 @@ export interface PaceReportData {
   trials?: {
     planned: number; passed: number; failed: number; notRun: number;
     rows: {
+      /* THE CHAIN NEEDS IDS, not titles. `follows`/`ledTo` carry the NAMES of
+         the neighbours, which is enough to print a line about them and not
+         enough to group by — two re-tests of the same thing share a title. */
+      id: string;
+      /** The test or fix this one was planned out of, when it was. */
+      fromId?: string;
+      kind: 'test' | 'fix';
+      /** Past the day it was wanted and still not settled — by lib/testing's
+       *  own rule, not a second comparison made here. A client report that
+       *  prints an overdue date without saying it has gone is the report
+       *  failing at the one thing it is for. */
+      late: boolean;
       title: string; machine: string; when: string; passesIf: string;
       withWhom: string; product: string; result: string;
       outcome: 'planned' | 'passed' | 'failed' | 'notRun';
@@ -812,150 +823,393 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
  * expectation beside it is what makes it an argument.
  */
 
-/* ---------- HOW BIG A CARD WANTS TO BE ----------
+/* ======================= WHAT WE ARE PROVING, AS A STORY =====================
  *
- * Rowland: "PDF messy because you are trying to put everything on one sheet —
- * the trials. Expand and make the PDF dynamic, it will grow, make use of the
- * space better."
+ * Rowland, looking at the finished report: "when I look at the PDF I see just
+ * loads of things on it. What we really should say is — this is the trial that
+ * took place, these are the things that are connected to that trial, because
+ * there can be multiple trials. We need to show the STORY, not just
+ * information. This is a presentation to the client. It must be of high quality
+ * and make complete sense to them."
  *
- * The cards were a FIXED 122pt in a fixed two-column grid, and every value
- * inside was clipped to one line by fit(). Those are the same fault twice: a
- * guessed height cannot be right for the content, so it was too tall for the
- * five short cards a seeded job has — bottom third of an A3 white — and would
- * have cut a long expectation off mid-sentence on a real one.
+ * THE UNIT OF THIS REPORT WAS THE WRONG ONE. It was a TEST — one card each,
+ * four labelled lines, laid out in a grid. Six of those side by side is six
+ * islands, and the reader is left to work out that the third one is the
+ * re-test of the first, after the fix in the second. Everything needed to say
+ * so was in the data and none of it was drawn.
  *
- * So a card MEASURES ITSELF and takes the room it needs, and the sheet is
- * filled rather than partly used. It is the argument the 3P board already makes
- * on its own sheet, for the same reason: a panel leaving the bottom third of an
- * A3 blank is as wrong as one running off the edge, it just fails more quietly.
+ * So the unit is now a STRAND: one thing the job set out to prove, and every
+ * attempt at it. A test that failed, the fix that came out of it, and the
+ * re-test booked behind that are ONE story with three steps — not three
+ * records. That is what "there can be multiple trials" means, and it is the
+ * difference between a list and a presentation.
  *
- * THREE THINGS FALL OUT OF IT, in this order:
+ * A strand reads top to bottom the way the work happened:
  *
- *   1  A FEW TESTS GET THE FULL WIDTH.  Four or fewer and the cards run one to
- *      a row, which roughly doubles the room a sentence has. That is the whole
- *      point of the extra space: more of what somebody wrote, not the same
- *      words printed larger.
- *   2  VALUES WRAP RATHER THAN CLIP.  Up to three lines, and up to five when
- *      the sheet has room going spare — the slack is spent on the text before
- *      it is spent on air.
- *   3  WHAT IS LEFT OVER IS SHARED OUT.  Rows stretch so the stack finishes at
- *      the foot of the panel, capped, because one card on an empty sheet should
- *      not become a half-page box.
+ *     SEAL INTEGRITY — FINEST RED 2KG                        NOT YET PROVED
+ *     Ilapak flow wrapper · with Ilapak UK · 2 attempts
+ *     To prove   0 leaks in 20 packs, tested off the running machine
+ *       1  21 Sep   Ran   3 leaked in 20. Held 61 ppm while it ran.  DIDN'T PASS
+ *                         turned up 3 things · 2 still to decide
+ *       ·  24 Sep   Fix   Re-cut the jaw profile                     DONE
+ *       2  28 Sep   Test  Booked
+ *     Still owed   Re-cut the jaw profile · Ilapak UK · by 26 Sep
  *
- * splitTextToSize is pure, so measuring costs nothing and cannot disagree with
- * the drawing: both ask the same question of the same document, and the draw
- * takes the very lines the measure produced.
+ * GROUPED BY ID, NOT BY NAME. `follows` and `ledTo` carry the neighbours'
+ * titles, which is enough to print a line about them and not enough to group
+ * by: two re-tests of one thing share a title, and two machines running the
+ * same program share one as well.
  */
 
 type TrialRow = NonNullable<PaceReportData['trials']>['rows'][number];
 
-const CARD_HEAD = 43;        // the title, the meta line, and the rule under them
-const CARD_LEAD = 10.5;      // one wrapped line inside a value
-const CARD_ROWGAP = 6;       // between EXPECTED and HAPPENED
-const CARD_PAD = 12;         // under the last line
-const CARD_GAP = 12;         // between cards, across and down
-const LABEL_W = 54;          // the label gutter down the left of the rows
+export type StrandState = 'proved' | 'notYet' | 'notProved' | 'booked';
 
-interface CardRow { label: string; lines: string[]; colour: string; bold: boolean }
-interface CardPlan { rows: CardRow[]; meta: string; tone: string; word: string; h: number }
+/** The word a client reads. Not "stuck": the report says what is true, and
+ *  what is true is that nothing has been booked yet. */
+export const STRAND_WORD: Record<StrandState, string> = {
+  proved: 'PROVED',
+  notYet: 'NOT YET',
+  notProved: 'NOT PROVED',
+  booked: 'BOOKED',
+};
 
-/** Everything the card will put on the page, already wrapped to its column, and
- *  therefore its height. Measure and draw both read this — there is no second
- *  arithmetic to drift out of step with the first. */
-function planTrialCard(d: Doc, r: TrialRow, w: number, maxLines: number): CardPlan {
-  const tone = r.outcome === 'passed' ? OK : r.outcome === 'failed' ? DANGER
-    : r.outcome === 'notRun' ? WARN : BLUE;
-  const vw = w - LABEL_W - 24;
+export interface StrandStep {
+  /** The attempt number for a test; absent on a fix, which is not an attempt
+   *  at proving anything — it is what was done between two of them. */
+  n?: number;
+  kind: 'test' | 'fix';
+  when: string;
+  /** What it was. Blank on the first attempt, whose title is the strand's. */
+  what: string;
+  verdict: string;
+  outcome: TrialRow['outcome'];
+  outcomeWord: string;
+  /** "turned up 3 things · 2 still to decide", when it turned up anything. */
+  found: string;
+}
 
-  const wrap = (text: string, bold: boolean): string[] => {
-    setFont(d, 8, bold ? 'bold' : 'normal', INK);
-    const all = d.splitTextToSize(san(text), vw) as string[];
+export interface Strand {
+  /** The thing being proved — the first attempt's name. */
+  name: string;
+  machine: string;
+  withWhom: string;
+  /** What it was agreed it passes on, from the attempt that set out to do it. */
+  provesIf: string;
+  state: StrandState;
+  attempts: number;
+  steps: StrandStep[];
+  /** What is still owed on this strand, with a name and a date on it. */
+  owed: { what: string; owner: string; due: string; late: boolean }[];
+}
+
+/** Every row that came out of `id`, in the order the work happened, depth
+ *  first — a fix off attempt one belongs before attempt two, not after it. */
+const descend = (id: string, byParent: Map<string, TrialRow[]>, out: TrialRow[]): void => {
+  for (const child of byParent.get(id) ?? []) {
+    out.push(child);
+    descend(child.id, byParent, out);
+  }
+};
+
+/** The tests and fixes of a job, grouped into the things they set out to prove.
+ *
+ *  Pure, and exported, because the shape of this report is now an argument
+ *  about which record belongs with which — and that is worth asserting as data
+ *  rather than looking at a sheet and deciding it seems about right. */
+export function strandsOf(rows: TrialRow[]): Strand[] {
+  const byId = new Map(rows.map(r => [r.id, r]));
+  const byParent = new Map<string, TrialRow[]>();
+  for (const r of rows) {
+    /* A parent that is not in this report — deleted, or on another line — makes
+       an orphan a root. Hanging it off nothing would lose it altogether, and a
+       test nobody can see is the one fault this must not have. */
+    const parent = r.fromId && byId.has(r.fromId) ? r.fromId : undefined;
+    if (!parent) continue;
+    const kids = byParent.get(parent) ?? [];
+    kids.push(r);
+    byParent.set(parent, kids);
+  }
+  /* Children in the order they were planned, so the chain reads forwards. */
+  for (const kids of byParent.values()) kids.sort((a, b) => a.when.localeCompare(b.when));
+
+  const roots = rows.filter(r => !(r.fromId && byId.has(r.fromId)));
+
+  return roots.map(root => {
+    const chain = [root];
+    descend(root.id, byParent, chain);
+
+    let n = 0;
+    const steps: StrandStep[] = chain.map(r => ({
+      n: r.kind === 'test' ? ++n : undefined,
+      kind: r.kind,
+      when: r.when,
+      /* The first attempt's title IS the strand's name, so repeating it as the
+         step would print the same words twice one under the other. */
+      what: r === root ? '' : r.title,
+      verdict: r.verdict,
+      outcome: r.outcome,
+      outcomeWord: r.outcomeWord,
+      found: r.found.written
+        ? `turned up ${r.found.written} thing${r.found.written === 1 ? '' : 's'}${
+            r.found.undecided ? ` · ${r.found.undecided} still to decide` : ''}`
+        : '',
+    }));
+
+    /* WHERE IT HAS GOT TO, off the tests alone. A fix is work done towards the
+       answer; it is not the answer, and a strand whose fix is done but whose
+       re-test has not run is NOT proved. */
+    const tests = chain.filter(r => r.kind === 'test');
+    const ran = tests.filter(t => t.outcome !== 'planned');
+    const last = ran[ran.length - 1];
+    const booked = tests.some(t => t.outcome === 'planned');
+    const state: StrandState = !last ? 'booked'
+      : last.outcome === 'passed' ? 'proved'
+        : booked ? 'notYet'
+          : 'notProved';
+
+    /* What is still owed: every step not settled, plus the agreed next step
+       hanging off any of them. Named and dated, because "outstanding" without
+       a name on it is the thing a client asks about in the meeting. */
+    const owed: Strand['owed'] = [];
+    for (const r of chain) {
+      if (r.outcome === 'planned' || r.outcome === 'notRun') {
+        /* Saying the strand's own name back under its own heading reads as
+           the page having nothing to add. What is owed on a test nobody has
+           run is that somebody runs it. */
+        owed.push({
+          what: r.title === root.title ? (r.kind === 'fix' ? 'Do it' : 'Run it') : r.title,
+          owner: r.withWhom, due: r.when, late: r.late,
+        });
+      }
+      if (r.next && !r.next.done) {
+        owed.push({ what: r.next.what, owner: r.next.owner, due: r.next.due, late: r.late });
+      }
+    }
+
+    return {
+      name: root.title,
+      machine: root.machine,
+      withWhom: root.withWhom,
+      provesIf: root.passesIf,
+      state,
+      attempts: tests.length,
+      steps,
+      /* The same thing twice — a booked re-test IS the next step off the one
+         before it — reads as two jobs. Kept once, by its words. */
+      owed: owed.filter((o, i) => owed.findIndex(x => x.what === o.what) === i).slice(0, 4),
+    };
+  });
+}
+
+/* THE ORDER A PRESENTATION READS IN.
+ *
+ * Alphabetical, or by date added, puts a test booked for next month above the
+ * one that failed last week — which is the report choosing for the client what
+ * to look at, and choosing wrong. What needs attention leads, then what is
+ * coming, then what is finished. Rowland, on the same argument for the tests
+ * list: "a client wants what is coming before what we did." */
+const STRAND_ORDER: Record<StrandState, number> = { notProved: 0, notYet: 1, booked: 2, proved: 3 };
+
+export const orderStrands = (strands: Strand[]): Strand[] =>
+  [...strands].sort((a, b) =>
+    STRAND_ORDER[a.state] - STRAND_ORDER[b.state]
+    /* Within a state, whatever is owed soonest — and a strand with nothing
+       owed sorts after the ones that do. */
+    || (a.owed[0]?.due ?? '\uffff').localeCompare(b.owed[0]?.due ?? '\uffff')
+    || a.name.localeCompare(b.name));
+
+/** One line under the heading that says what the whole section amounts to. */
+export function strandsSay(strands: Strand[]): string {
+  if (strands.length === 0) return 'nothing booked yet';
+  const n = (s: StrandState) => strands.filter(x => x.state === s).length;
+  const bits = [`${strands.length} thing${strands.length === 1 ? '' : 's'} to prove`];
+  if (n('proved')) bits.push(`${n('proved')} proved`);
+  if (n('notYet')) bits.push(`${n('notYet')} not yet`);
+  if (n('notProved')) bits.push(`${n('notProved')} not proved`);
+  if (n('booked')) bits.push(`${n('booked')} still to run`);
+  return bits.join(' · ');
+}
+
+/* ---------- HOW BIG A STRAND WANTS TO BE ----------
+ *
+ * It measures itself and takes the room it needs, then the sheet is packed with
+ * as many as fit and the rest flow onto sheets behind it. That much is what the
+ * fixed 122pt card grid taught: a guessed height is too tall for a short one
+ * and too short for a long one at the same time.
+ *
+ * What is different is what is being measured. A strand is a story with a
+ * variable number of steps, so its height IS its content — three attempts and
+ * two fixes is genuinely taller than one test that passed first time, and
+ * printing them the same size was the report claiming they were the same thing.
+ */
+
+const S_HEAD = 46;           // the name, the machine line, and the rule under them
+const S_LEAD = 10.5;         // one wrapped line
+const S_STEP_GAP = 5;
+const S_PAD = 12;
+const S_GAP = 12;            // between strands
+const S_NUM_W = 30;          // the attempt number, or FIX, and its dot
+const S_DATE_W = 44;
+
+interface StrandRow { lines: string[]; colour: string; bold: boolean }
+interface StepPlan {
+  n: string; when: string; word: string; tone: string;
+  rows: StrandRow[]; h: number;
+}
+interface StrandPlan {
+  s: Strand; tone: string; meta: string;
+  proves: string[]; steps: StepPlan[]; owed: { text: string; late: boolean }[]; h: number;
+}
+
+const strandTone = (st: StrandState): string =>
+  st === 'proved' ? OK : st === 'notProved' ? DANGER : st === 'notYet' ? WARN : BLUE;
+
+const stepTone = (o: TrialRow['outcome']): string =>
+  o === 'passed' ? OK : o === 'failed' ? DANGER : o === 'notRun' ? WARN : BLUE;
+
+/** Everything the strand will put on the page, already wrapped, and therefore
+ *  its height. Measure and draw read this one list. */
+function planStrand(d: Doc, s: Strand, w: number, maxLines: number): StrandPlan {
+  const bodyW = w - 24;
+  const stepW = bodyW - S_NUM_W - S_DATE_W - 8;
+
+  const wrap = (text: string, width: number, size: number, bold: boolean): string[] => {
+    setFont(d, size, bold ? 'bold' : 'normal', INK);
+    const all = d.splitTextToSize(san(text), width) as string[];
     if (all.length <= maxLines) return all.length ? all : [''];
-    /* Over the limit, the last line it keeps carries the ellipsis, so the page
-       says "there is more of this" rather than stopping mid-word as if that
-       were the end of the sentence. The trial card prints the rest in full. */
     const cut = all.slice(0, maxLines);
-    cut[maxLines - 1] = fit(d, `${cut[maxLines - 1]} ${all[maxLines] ?? ''}`, vw);
+    cut[maxLines - 1] = fit(d, `${cut[maxLines - 1]} ${all[maxLines] ?? ''}`, width);
     return cut;
   };
 
-  const next = r.next
-    ? [r.next.what, r.next.owner || 'nobody yet', r.next.due].filter(Boolean).join(' · ')
-      + (r.nextMore ? ` (+${r.nextMore} more)` : '')
-    : 'nothing agreed yet';
+  const proves = wrap(s.provesIf || 'nothing agreed in advance', bodyW - 52, 8, false);
 
-  const rows: CardRow[] = [
-    { label: 'EXPECTED', lines: wrap(r.passesIf || 'nothing agreed in advance', false),
-      colour: r.passesIf ? INK2 : MUTED, bold: false },
-    { label: 'HAPPENED', lines: wrap(r.verdict || '—', r.outcome !== 'planned'),
-      colour: r.outcome === 'planned' ? MUTED : INK, bold: r.outcome !== 'planned' },
-    { label: 'FOUND', lines: wrap(foundWords(r.found), false),
-      colour: r.found.undecided ? WARN : INK2, bold: false },
-    { label: 'NEXT', lines: wrap(next, !!r.next && !r.next.done),
-      colour: r.next ? (r.next.owner ? INK : DANGER) : MUTED, bold: !!r.next && !r.next.done },
-  ];
+  const steps: StepPlan[] = s.steps.map(st => {
+    const rows: StrandRow[] = [];
+    /* A fix says WHAT was done; an attempt says what happened, because its
+       "what" is the strand's own name at the top of the block. */
+    const headline = st.kind === 'fix' ? (st.what || st.verdict) : st.verdict;
+    rows.push({ lines: wrap(headline || '—', stepW, 8, st.outcome !== 'planned'),
+      colour: st.outcome === 'planned' ? MUTED : INK, bold: st.outcome !== 'planned' });
+    if (st.kind === 'fix' && st.verdict && st.what) {
+      rows.push({ lines: wrap(st.verdict, stepW, 7.5, false), colour: INK2, bold: false });
+    }
+    if (st.found) rows.push({ lines: wrap(st.found, stepW, 7.5, false), colour: WARN, bold: false });
+    const h = rows.reduce((a, r) => a + r.lines.length * S_LEAD, 0) + S_STEP_GAP;
+    return {
+      n: st.n ? String(st.n) : '·',
+      when: st.when || '—',
+      word: st.outcomeWord.toUpperCase(),
+      tone: stepTone(st.outcome),
+      rows, h,
+    };
+  });
 
-  /* THE LOOP, when there is one. It was in the data all along and no card ever
-     drew it — the client report kept saying a test leads to the next test and
-     then printed nothing that showed it. The room to say so is exactly what
-     measuring the card instead of guessing it buys. */
-  const sits = [
-    r.follows && `follows “${san(r.follows)}”`,
-    r.ledTo.length && `led to ${r.ledTo.map(t => `“${san(t)}”`).join(', ')}`,
-  ].filter(Boolean).join('   ·   ');
-  if (sits) rows.push({ label: 'WHERE IT SITS', lines: wrap(sits, false), colour: MUTED, bold: false });
+  /* A date that has gone says so, in the words the screen uses for it. A
+     client report printing "by 17 Sept" six days after the 17th, in the same
+     ink as everything else, is the report failing at the one thing it is for. */
+  const owed = s.owed.map(o => ({
+    text: fit(d, san([o.what, o.owner || 'nobody yet',
+      o.due && (o.late ? `WAS ${o.due}` : `by ${o.due}`)].filter(Boolean).join('  ·  ')), bodyW - 46),
+    late: o.late,
+  }));
 
-  const h = CARD_HEAD + rows.reduce((a, row) => a + row.lines.length * CARD_LEAD + CARD_ROWGAP, 0) + CARD_PAD;
+  const provesH = 11 + proves.length * S_LEAD + 4;
+  const owedH = owed.length ? 12 + owed.length * 10 + 4 : 0;
+  const h = S_HEAD + provesH + steps.reduce((a, st) => a + st.h, 0) + owedH + S_PAD;
+
   return {
-    rows, tone, word: r.outcomeWord.toUpperCase(), h,
-    meta: [r.machine, r.withWhom && `with ${r.withWhom}`, r.when, r.product].filter(Boolean).join(' · '),
+    s, tone: strandTone(s.state), proves, steps, owed, h,
+    meta: [s.machine, s.withWhom && `with ${s.withWhom}`,
+      s.attempts > 1 ? `${s.attempts} attempts` : '']
+      .filter(Boolean).join('  ·  '),
   };
 }
 
-/** Draw a planned card. `h` is what the ROW settled on, which may be more than
- *  the card asked for — the box takes it so the row has one bottom edge rather
- *  than a ragged one, and the words stay where they were measured. */
-function drawTrialCard(d: Doc, p: CardPlan, title: string, x: number, y: number, w: number, h: number): void {
+function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number, h: number): void {
   d.setDrawColor(LINE); d.setLineWidth(0.7);
   d.setFillColor('#ffffff');
   d.roundedRect(x, y, w, h, 5, 5, 'FD');
-  /* The verdict as a spine down the left edge, not a tint behind the words:
-     a fill under text is the thing that fails under a strip light. */
   d.setFillColor(p.tone);
   d.roundedRect(x, y, 3.5, h, 2, 2, 'F');
 
-  setFont(d, 6.5, 'bold', p.tone);
-  const pw = d.getTextWidth(p.word) + 14;
+  /* The verdict on the whole strand, top right — the one thing somebody looks
+     for before they read a word of it. */
+  const word = STRAND_WORD[p.s.state];
+  setFont(d, 7, 'bold', p.tone);
+  const pw = d.getTextWidth(word) + 16;
   d.setFillColor(...wash(p.tone, 0.14));
-  d.roundedRect(x + w - 12 - pw, y + 9, pw, 14, 7, 7, 'F');
-  d.text(p.word, x + w - 12 - pw / 2, y + 18.5, { align: 'center' });
+  d.roundedRect(x + w - 12 - pw, y + 10, pw, 15, 7.5, 7.5, 'F');
+  d.text(word, x + w - 12 - pw / 2, y + 20.5, { align: 'center' });
 
-  setFont(d, 10, 'bold', INK);
-  d.text(fit(d, title, w - 30 - pw), x + 12, y + 20);
-
+  setFont(d, 10.5, 'bold', INK);
+  d.text(fit(d, san(p.s.name), w - 30 - pw), x + 12, y + 21);
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, p.meta, w - 24), x + 12, y + 31);
+  d.text(fit(d, san(p.meta), w - 24), x + 12, y + 32);
 
   d.setDrawColor(LINE); d.setLineWidth(0.5);
-  d.line(x + 12, y + 37, x + w - 12, y + 37);
+  d.line(x + 12, y + 39, x + w - 12, y + 39);
 
-  let ry = y + CARD_HEAD + 5;
-  for (const row of p.rows) {
+  /* ---- what it set out to prove ---- */
+  let cy = y + S_HEAD + 5;
+  setFont(d, 6, 'bold', MUTED);
+  d.text('TO PROVE', x + 12, cy);
+  setFont(d, 8, 'normal', p.s.provesIf ? INK2 : MUTED);
+  p.proves.forEach((l, i) => d.text(l, x + 12 + 52, cy + i * S_LEAD));
+  cy += Math.max(11, p.proves.length * S_LEAD) + 4;
+
+  /* ---- the steps, in the order the work happened ---- */
+  const nx = x + 12, dx = nx + S_NUM_W, sx = dx + S_DATE_W + 8;
+  const stepW = w - 24 - S_NUM_W - S_DATE_W - 8;
+  p.steps.forEach((st, i) => {
+    /* A thread down the gutter, so three steps read as one chain rather than
+       three rows that happen to be near each other. */
+    if (i < p.steps.length - 1) {
+      d.setDrawColor(SURF2); d.setLineWidth(1);
+      d.line(nx + 4, cy - 1, nx + 4, cy + st.h + 2);
+    }
+    d.setFillColor(st.tone);
+    d.circle(nx + 4, cy - 3, 2.6, 'F');
+    setFont(d, 6.5, 'bold', st.n === '·' ? MUTED : INK);
+    d.text(st.n === '·' ? 'FIX' : st.n, nx + 10, cy - 1);
+
+    setFont(d, 7, 'normal', MUTED);
+    d.text(fit(d, st.when, S_DATE_W), dx, cy - 1);
+
+    let ry = cy - 1;
+    st.rows.forEach((r, k) => {
+      setFont(d, k === 0 ? 8 : 7.5, r.bold ? 'bold' : 'normal', r.colour);
+      r.lines.forEach((l, j) => d.text(l, sx, ry + j * S_LEAD));
+      ry += r.lines.length * S_LEAD;
+    });
+
+    /* The step's own word, right-aligned against the strand's verdict above. */
+    setFont(d, 6.5, 'bold', st.tone);
+    d.text(fit(d, st.word, 70), x + w - 12, cy - 1, { align: 'right' });
+    cy += st.h;
+  });
+
+  /* ---- and what is still owed on it ---- */
+  if (p.owed.length) {
+    cy += 4;
     setFont(d, 6, 'bold', MUTED);
-    d.text(row.label, x + 12, ry);
-    setFont(d, 8, row.bold ? 'bold' : 'normal', row.colour);
-    row.lines.forEach((l, i) => d.text(l, x + 12 + LABEL_W, ry + i * CARD_LEAD));
-    ry += row.lines.length * CARD_LEAD + CARD_ROWGAP;
+    d.text('STILL OWED', x + 12, cy);
+    p.owed.forEach((o, i) => {
+      setFont(d, 7.5, o.late ? 'bold' : 'normal', o.late ? DANGER : INK);
+      d.text(o.text, x + 12 + 46, cy + i * 10);
+    });
   }
+  void stepW;
 }
 
-/* ---------- WHERE THE CARDS FALL ----------
+/* ---------- WHERE THE STRANDS FALL ----------
  *
  * Pure arithmetic over measured heights, drawing nothing, because the footer
- * says "page 2 of 5" and cannot know the 5 until every card has been measured.
- * Exported so the packing can be tested as numbers rather than looked at. */
+ * says "page 2 of 5" and cannot know the 5 until every block has been
+ * measured. Exported so the packing can be tested as numbers. */
 
-/** The height of each ROW of cards — a row is as tall as the taller of its
+/** The height of each ROW of blocks — a row is as tall as the taller of its
  *  pair, so the two have one bottom edge. */
 export function cardRowHeights(heights: number[], cols: number): number[] {
   const rows: number[] = [];
@@ -965,8 +1219,8 @@ export function cardRowHeights(heights: number[], cols: number): number[] {
   return rows;
 }
 
-/** How many CARDS land on each sheet: the front panel first, then sheets of
- *  their own. A card taller than an empty sheet goes on one by itself — without
+/** How many BLOCKS land on each sheet: the front panel first, then sheets of
+ *  their own. One taller than an empty sheet goes on one by itself — without
  *  that guard the loop never ends, which is the only way this can fail badly. */
 export function packCards(heights: number[], cols: number, frontRoom: number, sheetRoom: number): number[] {
   if (heights.length === 0) return [0];
@@ -977,7 +1231,7 @@ export function packCards(heights: number[], cols: number, frontRoom: number, sh
     let used = 0, n = 0;
     while (i + n < heights.length) {
       const rowH = Math.max(...heights.slice(i + n, i + n + cols));
-      const need = used + (n ? CARD_GAP : 0) + rowH;
+      const need = used + (n ? S_GAP : 0) + rowH;
       if (need > room) break;
       used = need;
       n += Math.min(cols, heights.length - i - n);
@@ -989,66 +1243,57 @@ export function packCards(heights: number[], cols: number, frontRoom: number, sh
   return out;
 }
 
-/** THE STACK, AND THEREFORE THE PANEL. A panel is as tall as its cards plus its
- *  own chrome — it does not take the sheet and leave the rest white.
+/** THE STACK, AND THEREFORE THE PANEL. A panel is as tall as its blocks plus
+ *  its own chrome — it does not take the sheet and leave the rest white.
  *
  *  The first attempt at this shared the leftover room out across the rows so
  *  the stack finished at the foot of the panel. It filled the sheet and it read
  *  worse: the words stay where they were measured, so all it did was move the
- *  white inside the boxes and make five short tests look like five things with
- *  something missing. A page that ENDS where its content ends looks deliberate;
- *  a page of half-empty frames looks broken. Growth is for when there is more
- *  to say, and that is what the sheets after this one are for. */
+ *  white inside the boxes. A page that ENDS where its content ends looks
+ *  deliberate; a page of half-empty frames looks broken. */
 export function stackHeight(rowHeights: number[]): number {
   if (rowHeights.length === 0) return 0;
-  return rowHeights.reduce((a, b) => a + b, 0) + CARD_GAP * (rowHeights.length - 1);
+  return rowHeights.reduce((a, b) => a + b, 0) + S_GAP * (rowHeights.length - 1);
 }
 
 /** One column when there are few enough that the width is better spent on the
- *  sentences than on a second card beside them. */
-const columnsFor = (n: number): number => (n <= 4 ? 1 : 2);
+ *  story than on a second block beside it. */
+const columnsFor = (n: number): number => (n <= 3 ? 1 : 2);
 
-/** Measure every card once, at the width the column count gives it, and raise
- *  the wrap limit when the whole set would leave the front panel with room
- *  going spare. The slack is spent on words before it is spent on air. */
-function planTrials(d: Doc, rows: TrialRow[], cw: number, frontRoom: number): CardPlan[] {
-  const tight = rows.map(r => planTrialCard(d, r, cw, 3));
-  const cols = columnsFor(rows.length);
+/** Measure every strand once, and raise the wrap limit when the whole set
+ *  would leave the front panel with room going spare. */
+function planTrials(d: Doc, strands: Strand[], cw: number, frontRoom: number): StrandPlan[] {
+  const tight = strands.map(s => planStrand(d, s, cw, 3));
+  const cols = columnsFor(strands.length);
   const stack = cardRowHeights(tight.map(p => p.h), cols);
-  const used = stack.reduce((a, b) => a + b, 0) + CARD_GAP * Math.max(0, stack.length - 1);
+  const used = stackHeight(stack);
   if (used > frontRoom * 0.8) return tight;
-  return rows.map(r => planTrialCard(d, r, cw, 5));
+  return strands.map(s => planStrand(d, s, cw, 5));
 }
 
-/** Draw `count` cards from `from`, each at the height it measured. Returns how
- *  many it drew. */
+/** Draw `count` strands from `from`, each at the height it measured. */
 function trialCardGrid(
-  d: Doc, rows: TrialRow[], plans: CardPlan[], cols: number,
+  d: Doc, plans: StrandPlan[], cols: number,
   x: number, y: number, w: number, from: number, count: number,
 ): number {
-  const cw = cols === 1 ? w : (w - CARD_GAP) / 2;
+  const cw = cols === 1 ? w : (w - S_GAP) / 2;
   const mine = plans.slice(from, from + count);
   const heights = cardRowHeights(mine.map(p => p.h), cols);
 
   let cy = y;
   mine.forEach((p, k) => {
     const rowH = heights[Math.floor(k / cols)] ?? p.h;
-    if (k % cols === 0 && k > 0) cy += (heights[Math.floor(k / cols) - 1] ?? 0) + CARD_GAP;
-    drawTrialCard(d, p, rows[from + k].title, x + (k % cols) * (cw + CARD_GAP), cy, cw, rowH);
+    if (k % cols === 0 && k > 0) cy += (heights[Math.floor(k / cols) - 1] ?? 0) + S_GAP;
+    drawStrand(d, p, x + (k % cols) * (cw + S_GAP), cy, cw, rowH);
   });
   return mine.length;
 }
 
-/** The trials on the front page. Returns how many did NOT fit, so the caller
- *  can decide how many sheets the rest have earned. */
+/** The strands on the front page. Returns how many did NOT fit. */
 function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number,
-  split: { plans: CardPlan[]; cols: number; pages: number[] }): number {
+  split: { plans: StrandPlan[]; strands: Strand[]; cols: number; pages: number[] }): number {
   const t = data.trials;
-  const sub = t
-    ? `${t.planned} booked · ${t.passed} passed${t.failed ? ` · ${t.failed} didn’t` : ''}${
-        t.notRun ? ` · ${t.notRun} didn’t run` : ''}`
-    : 'nothing booked yet';
-  const top = panel(d, M, top0, CW, panelH, '1', 'Tests and fixes', sub);
+  const top = panel(d, M, top0, CW, panelH, '1', 'What we are proving', strandsSay(split.strands));
 
   if (!t || t.rows.length === 0) {
     setFont(d, 8, 'normal', MUTED);
@@ -1056,33 +1301,29 @@ function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: 
     return 0;
   }
 
-  const drawn = trialCardGrid(d, t.rows, split.plans, split.cols, M + 14, top + 14, CW - 28, 0, split.pages[0] ?? 0);
-  return t.rows.length - drawn;
+  const drawn = trialCardGrid(d, split.plans, split.cols, M + 14, top + 14, CW - 28, 0, split.pages[0] ?? 0);
+  return split.strands.length - drawn;
 }
 
-/** The rest of them, a sheet each until there are none left. It used to be one
- *  extra sheet and whatever fell off it was gone — a job running twenty tests
- *  silently lost the last eight. */
+/** The rest of them, a sheet each until there are none left. */
 function trialsSheet(d: Doc, data: PaceReportData, from: number, count: number, sheet: number, sheets: number,
-  page: number, pages: number, split: { plans: CardPlan[]; cols: number }): void {
-  const t = data.trials;
-  if (!t) return;
+  page: number, pages: number, split: { plans: StrandPlan[]; strands: Strand[]; cols: number }): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
 
   setFont(d, 8, 'bold', BRAND);
-  d.text('TESTS AND FIXES — CONTINUED', M, M + 8);
+  d.text('WHAT WE ARE PROVING — CONTINUED', M, M + 8);
   setFont(d, 18, 'bold', INK);
-  d.text(fit(d, `${data.title} · what we are proving`, CW * 0.7), M, M + 30);
+  d.text(fit(d, `${data.title}`, CW * 0.7), M, M + 30);
   setFont(d, 8.5, 'normal', INK2);
-  d.text(`${from + 1} to ${from + count} of ${t.rows.length}${sheets > 1 ? ` · sheet ${sheet} of ${sheets}` : ''}`, M, M + 44);
+  d.text(`${from + 1} to ${from + count} of ${split.strands.length}${sheets > 1 ? ` · sheet ${sheet} of ${sheets}` : ''}`, M, M + 44);
   d.setDrawColor(INK); d.setLineWidth(1.2);
   d.line(M, M + 52, W - M, M + 52);
 
-  trialCardGrid(d, t.rows, split.plans, split.cols, M, M + 66, CW, from, count);
+  trialCardGrid(d, split.plans, split.cols, M, M + 66, CW, from, count);
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — tests and fixes`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — what we are proving`, CW * 0.8), M, H - M + 6);
 }
 
 
@@ -1487,10 +1728,20 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* A COMMISSIONING JOB'S OWN NUMBERS. "0% actions complete" is not a fact
      about this job, it is a fact about a spreadsheet it does not keep. */
   const tr = data.trials, mt = data.materials, pg = data.programs;
+  /* THE TILES COUNT WHAT THE SECTION UNDER THEM COUNTS. They counted TESTS —
+     "2 booked · 2 passed" — over a section that talks about the four things the
+     job is proving, so the two halves of one page disagreed about how big the
+     job was. A failed test and its re-test are one thing to prove, not two, and
+     the number a client repeats in a meeting has to be the one the page argues
+     for underneath it. */
+  const headStrands = data.tracker ? [] : orderStrands(strandsOf(tr?.rows ?? []));
+  const nStrand = (st: StrandState) => headStrands.filter(x => x.state === st).length;
   const commTiles: [string, string, string, string][] = [
-    [String(tr?.planned ?? 0), 'Booked', 'still to do', BRAND],
-    [String(tr?.passed ?? 0), 'Passed or fixed', `of ${tr?.rows.length ?? 0} on the job`, OK],
-    [String(tr?.failed ?? 0), 'Didn\u2019t pass', 'and what came of it', (tr?.failed ?? 0) > 0 ? DANGER : OK],
+    [String(headStrands.length), 'To prove', 'on this line', BRAND],
+    [String(nStrand('proved')), 'Proved', `of ${headStrands.length}`, nStrand('proved') > 0 ? OK : MUTED],
+    [String(nStrand('notProved') + nStrand('notYet')), 'Not proved yet',
+      nStrand('notYet') ? `${nStrand('notYet')} with a re-test booked` : 'nothing booked behind them',
+      nStrand('notProved') > 0 ? DANGER : nStrand('notYet') > 0 ? WARN : OK],
     [String(pg?.proved ?? 0), 'Programs proved', `of ${pg?.total ?? 0} on the machine`, (pg?.proved ?? 0) > 0 ? OK : MUTED],
     [String(mt?.late ?? 0), 'Films late', 'past the date, still not here', (mt?.late ?? 0) > 0 ? DANGER : OK],
     [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
@@ -1527,19 +1778,24 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      so the three cannot disagree about where a card went. */
   const split = (() => {
     const rows = data.trials?.rows ?? [];
-    if (data.tracker || rows.length === 0) return { plans: [] as CardPlan[], cols: 1, pages: [0], panelH: lpH };
-    const cols = columnsFor(rows.length);
-    const cw = cols === 1 ? CW - 28 : (CW - 28 - CARD_GAP) / 2;
-    /* The room a panel's cards actually get: the front one sits under the
+    const none = { plans: [] as StrandPlan[], strands: [] as Strand[], cols: 1, pages: [0], panelH: lpH };
+    if (data.tracker || rows.length === 0) return none;
+    /* THE TESTS BECOME THE THINGS THEY SET OUT TO PROVE, before anything is
+       measured — a strand is what this section draws, so it is what the page
+       count and the packing have to be about. */
+    const strands = orderStrands(strandsOf(rows));
+    const cols = columnsFor(strands.length);
+    const cw = cols === 1 ? CW - 28 : (CW - 28 - 12) / 2;
+    /* The room a panel's blocks actually get: the front one sits under the
        tiles and behind a numbered head, a continuation sheet is bare. */
     const frontRoom = lpH - 30 - 14 - 12;
     const sheetRoom = H - M - 24 - (M + 66);
-    const plans = planTrials(d, rows, cw, frontRoom);
+    const plans = planTrials(d, strands, cw, frontRoom);
     const pages = packCards(plans.map(p => p.h), cols, frontRoom, sheetRoom);
-    /* What the front panel is actually drawn at: its own chrome plus the cards
+    /* What the front panel is actually drawn at: its own chrome plus the blocks
        that landed on it. It stops where they stop. */
     const front = stackHeight(cardRowHeights(plans.slice(0, pages[0]).map(p => p.h), cols));
-    return { plans, cols, pages, panelH: Math.min(lpH, 30 + 14 + front + 14) };
+    return { plans, strands, cols, pages, panelH: Math.min(lpH, 30 + 14 + front + 14) };
   })();
 
   let trialsOver = 0;
@@ -1628,7 +1884,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${
-    planUnder ? 'tests and where the job is' : data.tracker ? 'line pace' : 'tests and fixes'}`, CW * 0.8), M, H - M + 6);
+    planUnder ? 'what we are proving, and where the job is'
+      : data.tracker ? 'line pace' : 'what we are proving'}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
     ? 'The tracker workbook is the system of record; this report reads it.'
     : 'A test is planned, then run, and what it found becomes the next one.',

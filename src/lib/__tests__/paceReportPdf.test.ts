@@ -19,7 +19,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
-import { cardRowHeights, drawPaceReport, packCards, stackHeight, type PaceReportData } from '../paceReportPdf';
+import {
+  cardRowHeights, drawPaceReport, orderStrands, packCards, stackHeight, strandsOf, strandsSay,
+  type PaceReportData,
+} from '../paceReportPdf';
 
 type Board = PaceReportData['board'];
 type Tree = PaceReportData['tree'];
@@ -113,6 +116,13 @@ const pareto = (): Pareto => ({
 const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> => ({
   planned: n, passed: 0, failed: 0, notRun: 0,
   rows: Array.from({ length: n }, (_, i) => ({
+    id: `t${i}`,
+    /* EVERY THIRD ONE HANGS OFF THE ONE BEFORE IT, so the fixture produces real
+       chains — a test, the fix that came out of it, and the re-test behind
+       that — rather than n things that happen to be unrelated. */
+    fromId: i % 3 === 0 ? undefined : `t${i - 1}`,
+    kind: (i % 3 === 1 ? 'fix' : 'test') as 'test' | 'fix',
+    late: i % 5 === 0,
     title: `Seal integrity ${i + 1} — Finest Red 2kg`,
     machine: 'Ilapak flow wrapper', when: '21 Sept',
     passesIf: long && i % 2 === 0
@@ -411,5 +421,165 @@ describe('the test cards across the sheets', () => {
 
   it('says one empty page when there is nothing to place', () => {
     expect(packCards([], 2, 400, 700)).toEqual([0]);
+  });
+});
+
+/* ================== THE TESTS, GROUPED INTO WHAT THEY PROVE ==================
+ *
+ * Rowland: "when I look at the PDF I see just loads of things on it. What we
+ * really should say is — this is the trial that took place, these are the
+ * things that are connected to that trial, because there can be multiple
+ * trials. We need to show the STORY, not just information."
+ *
+ * So the unit of the report is no longer a test. It is a STRAND: one thing the
+ * job set out to prove, and every attempt at it. Which record belongs with
+ * which is now an argument the page makes, and an argument is worth asserting
+ * as data rather than looking at a sheet and deciding it seems about right.
+ */
+type Row = NonNullable<PaceReportData['trials']>['rows'][number];
+
+const row = (o: Partial<Row> & { id: string }): Row => ({
+  kind: 'test', late: false, title: `Test ${o.id}`, machine: 'Ilapak flow wrapper',
+  when: '21 Sept', passesIf: 'Zero leaks in twenty.', withWhom: 'Ilapak UK',
+  product: 'Finest Red 2kg', result: '', outcome: 'planned', outcomeWord: 'Planned',
+  verdict: 'Not run yet', found: { written: 0, actioned: 0, undecided: 0 },
+  nextMore: 0, ledTo: [], ...o,
+});
+
+describe('grouping the tests into what they prove', () => {
+  it('keeps a test, its fix and its re-test as ONE thing being proved', () => {
+    const st = strandsOf([
+      row({ id: 'a', title: 'Seal integrity', outcome: 'failed' }),
+      row({ id: 'b', fromId: 'a', kind: 'fix', title: 'Re-cut the jaw', outcome: 'passed' }),
+      row({ id: 'c', fromId: 'b', title: 'Seal integrity — re-test' }),
+    ]);
+    expect(st).toHaveLength(1);
+    expect(st[0]!.name).toBe('Seal integrity');
+    expect(st[0]!.steps).toHaveLength(3);
+  });
+
+  it('numbers the ATTEMPTS and does not number the fixes between them', () => {
+    const st = strandsOf([
+      row({ id: 'a', outcome: 'failed' }),
+      row({ id: 'b', fromId: 'a', kind: 'fix' }),
+      row({ id: 'c', fromId: 'b' }),
+    ]);
+    expect(st[0]!.steps.map(s => s.n)).toEqual([1, undefined, 2]);
+    expect(st[0]!.attempts).toBe(2);
+  });
+
+  it('reads the chain in the order the work happened, not the order stored', () => {
+    const st = strandsOf([
+      row({ id: 'c', fromId: 'a', when: '28 Sept', title: 'third' }),
+      row({ id: 'a', when: '21 Sept', title: 'first' }),
+      row({ id: 'b', fromId: 'a', when: '24 Sept', title: 'second' }),
+    ]);
+    expect(st[0]!.steps.map(s => s.when)).toEqual(['21 Sept', '24 Sept', '28 Sept']);
+  });
+
+  it('never loses a record whose parent is not in this report', () => {
+    /* A test planned off one that was deleted, or that belongs to another
+       line. Hanging it off nothing would drop it from the page altogether,
+       which is the one fault this must not have. */
+    const st = strandsOf([row({ id: 'a', fromId: 'gone' })]);
+    expect(st).toHaveLength(1);
+    expect(st[0]!.name).toBe('Test a');
+  });
+
+  it('treats every unconnected test as its own thing to prove', () => {
+    expect(strandsOf([row({ id: 'a' }), row({ id: 'b' }), row({ id: 'c' })])).toHaveLength(3);
+  });
+});
+
+describe('where a strand has got to', () => {
+  const state = (rows: Row[]) => strandsOf(rows)[0]!.state;
+
+  it('is proved when the latest attempt passed', () => {
+    expect(state([row({ id: 'a', outcome: 'failed' }),
+      row({ id: 'b', fromId: 'a', outcome: 'passed' })])).toBe('proved');
+  });
+
+  it('is not yet when it failed and a re-test is booked', () => {
+    expect(state([row({ id: 'a', outcome: 'failed' }),
+      row({ id: 'b', fromId: 'a', outcome: 'planned' })])).toBe('notYet');
+  });
+
+  it('is NOT PROVED when it failed and nothing is booked behind it', () => {
+    expect(state([row({ id: 'a', outcome: 'failed' })])).toBe('notProved');
+  });
+
+  it('is booked when nothing has run at all', () => {
+    expect(state([row({ id: 'a', outcome: 'planned' })])).toBe('booked');
+  });
+
+  it('a done fix does not make it proved — only a passing test does', () => {
+    /* A fix is work towards the answer, not the answer. A strand whose fix is
+       done and whose re-test has not run is not proved, and saying otherwise
+       on a client report is the worst thing this page could do. */
+    expect(state([row({ id: 'a', outcome: 'failed' }),
+      row({ id: 'b', fromId: 'a', kind: 'fix', outcome: 'passed' })])).toBe('notProved');
+  });
+});
+
+describe('what is still owed on a strand', () => {
+  it('does not say the strand\u2019s own name back under its own heading', () => {
+    const st = strandsOf([row({ id: 'a', title: 'Changeover', outcome: 'notRun' })]);
+    expect(st[0]!.owed[0]!.what).toBe('Run it');
+  });
+
+  it('carries the date and whether it has gone', () => {
+    const st = strandsOf([row({ id: 'a', outcome: 'notRun', when: '17 Sept', late: true })]);
+    expect(st[0]!.owed[0]).toMatchObject({ due: '17 Sept', late: true, owner: 'Ilapak UK' });
+  });
+
+  it('does not list the same job twice when a booked re-test is also the next step', () => {
+    const st = strandsOf([
+      row({ id: 'a', outcome: 'failed', next: { what: 'Seal integrity — re-test', owner: 'Ilapak UK', due: '28 Sept', done: false } }),
+      row({ id: 'b', fromId: 'a', title: 'Seal integrity — re-test', when: '28 Sept' }),
+    ]);
+    expect(st[0]!.owed.map(o => o.what)).toEqual(['Seal integrity — re-test']);
+  });
+
+  it('says nothing is owed on one that is finished', () => {
+    expect(strandsOf([row({ id: 'a', outcome: 'passed' })])[0]!.owed).toEqual([]);
+  });
+});
+
+describe('the order a presentation reads in', () => {
+  it('leads with what needs attention and finishes with what is done', () => {
+    const st = orderStrands(strandsOf([
+      row({ id: 'p', title: 'proved', outcome: 'passed' }),
+      row({ id: 'b', title: 'booked', outcome: 'planned' }),
+      row({ id: 'n', title: 'not proved', outcome: 'failed' }),
+      row({ id: 'y1', title: 'not yet', outcome: 'failed' }),
+      row({ id: 'y2', fromId: 'y1', outcome: 'planned' }),
+    ]));
+    expect(st.map(s => s.state)).toEqual(['notProved', 'notYet', 'booked', 'proved']);
+  });
+
+  it('puts what is owed soonest first within the same state', () => {
+    const st = orderStrands(strandsOf([
+      row({ id: 'a', title: 'later', outcome: 'planned', when: '2026-10-06' }),
+      row({ id: 'b', title: 'sooner', outcome: 'planned', when: '2026-09-28' }),
+    ]));
+    expect(st.map(s => s.name)).toEqual(['sooner', 'later']);
+  });
+});
+
+describe('what the section says about itself', () => {
+  it('counts the things being proved, not the records behind them', () => {
+    /* Three records — a test, its fix, its re-test — are ONE thing to prove.
+       The tiles above this section count the same way, because a page whose
+       two halves disagree about how big the job is has already lost. */
+    const st = strandsOf([
+      row({ id: 'a', outcome: 'failed' }),
+      row({ id: 'b', fromId: 'a', kind: 'fix', outcome: 'passed' }),
+      row({ id: 'c', fromId: 'b', outcome: 'planned' }),
+    ]);
+    expect(strandsSay(st)).toBe('1 thing to prove · 1 not yet');
+  });
+
+  it('says plainly when there is nothing', () => {
+    expect(strandsSay([])).toBe('nothing booked yet');
   });
 });
