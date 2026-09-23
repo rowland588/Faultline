@@ -29,11 +29,11 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  hasRun, isOpen, isOverdue, live, standingOfItem,
+  hasRun, isOverdue, live, standingOfItem,
   type Asset, type Test, type TestItem,
 } from './testing';
 
-export type Strand = 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'actions' | 'machines';
+export type Strand = 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
 
 /** One line of "what are we waiting on". */
 export interface OutstandingRow {
@@ -152,14 +152,10 @@ export function standing(input: StandingInput): Standing {
   const obs = items.filter(i => i.kind === 'found');
   const undecided = obs.filter(i => standingOfItem(i, items) === 'new');
 
-  /* AN ACTION THAT BECAME ITS OWN RECORD IS NOT STILL OUTSTANDING AS AN ACTION.
-     Once "re-track the film" is a fix with its own days and its own page, the
-     fix carries it — counting the line as well put the same obligation in two
-     rows of this table, and told a client there were four things to do when
-     there were three. The record it became is where it lives now; `isOpen`
-     alone could not know that. */
-  const actions = items.filter(i => i.kind === 'next' && isOpen(i) && !i.becameTestId);
-  const actionsLate = actions.filter(a => !!a.due && a.due < today);
+  /* THERE IS NO ACTIONS ROW ANY MORE. An agreed next step IS a fix — see
+     db/testing's actionsBecomeFixes — so it is counted under "fixes still to
+     do" with everything else somebody has to do. Two rows for one job was how
+     the same obligation ended up in the table twice. */
 
   /* A machine is outstanding until it is RUNNING — installed is not the job.
      LATE IS A DIFFERENT QUESTION, and this used to get it wrong: `dueOn` is
@@ -187,8 +183,6 @@ export function standing(input: StandingInput): Standing {
        on somebody to say whether it matters, which is a different thing. */
     { key: 'observations', what: 'Observations to decide on', open: undecided.length, late: 0,
       whose: undefined },
-    { key: 'actions', what: 'Actions agreed, not done', open: actions.length, late: actionsLate.length,
-      whose: mostlyWhose(actions.map(a => a.owner)) },
   ] as OutstandingRow[]).filter(r => r.open > 0);
 
   const outstanding = rows.reduce((n, r) => n + r.open, 0);

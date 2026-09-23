@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { actionOf, foundTally, live, outcomeWord, type Asset, type Test, type TestItem, type TestKind } from './testing';
+import { actionOf, foundTally, hasRun, live, outcomeWord, standingOfItem, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
   what: string;
@@ -81,8 +81,10 @@ export interface TrialCard {
   docs: number;
 }
 
+/* The three answers, in the words the buttons use — there is no "actioned"
+   any more, there is a fix. */
 const DECISION: Record<string, string> = {
-  new: 'to decide', actioned: 'actioned', noted: 'no action needed',
+  new: 'to decide', actioned: 'a fix', noted: 'not a problem',
 };
 
 /** One trial, read whole. `tests` and `items` are the project's, not the
@@ -91,7 +93,14 @@ const DECISION: Record<string, string> = {
 export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: Asset[]): TrialCard {
   const mine = live(items).filter(i => i.testId === test.id);
   const findings = mine.filter(i => i.kind === 'found').sort((a, b) => a.sort - b.sort);
-  const nexts = mine.filter(i => i.kind === 'next').sort((a, b) => a.sort - b.sort);
+  /* WHAT COMES NEXT IS A LIST OF RECORDS, NOT A LIST OF LINES. An agreed next
+     step is a FIX — its own days, its own findings, its own card — so the card
+     reads them off the tests that came out of this one rather than off items
+     underneath it. See db/testing's actionsBecomeFixes for why there is no
+     longer a second word for a line. */
+  const nexts = live(tests)
+    .filter(t => t.fromTestId === test.id)
+    .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
 
   const tally = foundTally(findings, items);
 
@@ -115,26 +124,31 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
     result: test.result,
 
     findings: findings.map(f => {
-      const action = actionOf(f, items);
+      /* What it became, when it became something — a fix with its own page,
+         or (on a device that has not converted yet) the old line. */
+      const became = f.becameTestId ? live(tests).find(t => t.id === f.becameTestId)?.title : undefined;
       return {
         what: f.what,
         owner: f.owner,
-        decision: DECISION[action ? 'actioned' : f.doneAt != null ? 'noted' : 'new'],
-        action: action?.what,
+        decision: DECISION[standingOfItem(f, items)],
+        action: became ?? actionOf(f, items)?.what,
         photos: (f.media ?? []).length,
       };
     }),
     found: { written: tally.written, actioned: tally.actioned, undecided: tally.undecided },
 
     next: nexts.map(n => ({
-      what: n.what,
-      owner: n.owner,
-      due: n.due,
-      done: n.doneAt != null,
-      fromFinding: !!n.fromItemId,
-      becameTest: !!n.becameTestId,
+      what: n.title,
+      owner: n.withWhom,
+      /* The day it is wanted BY, which on a block of days is the last of them. */
+      due: n.plannedTo ?? n.plannedFor,
+      done: hasRun(n),
+      /* True when an observation on this card points at it — the chain from
+         "I saw this" to "so we are doing this", readable on the page. */
+      fromFinding: mine.some(i => i.becameTestId === n.id),
+      becameTest: (n.kind ?? 'test') === 'test',
     })),
-    openNext: nexts.filter(n => n.doneAt == null).length,
+    openNext: nexts.filter(n => !hasRun(n)).length,
 
     follows: test.fromTestId ? live(tests).find(t => t.id === test.fromTestId)?.title : undefined,
     ledTo: live(tests).filter(t => t.fromTestId === test.id).map(t => t.title),

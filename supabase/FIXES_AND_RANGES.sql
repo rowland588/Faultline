@@ -40,3 +40,14 @@ end $$;
 -- window, and now filter by face as well.
 create index if not exists tests_project_kind_idx
   on public.tests (project_id, kind);
+
+-- WHICH PROGRAM A TEST OR A FIX IS ABOUT.
+--
+-- Rowland: "you can have a setup of a program, a test of a program, then a fix
+-- of a program, or a fix of an asset."
+--
+-- programs.test_id has always pointed at the test that proved a program; this
+-- is that same link read from the other end, so a fix can say which program it
+-- is about instead of only saying it in its title. Optional, and absent is the
+-- ordinary case.
+alter table public.tests add column if not exists program_id text;

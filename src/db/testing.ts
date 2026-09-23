@@ -72,6 +72,84 @@ export async function testContents(id: ID, projectId: string): Promise<{ found: 
   };
 }
 
+/* ---------- ONE NOUN: THE ACTION BECOMES A FIX ----------
+ *
+ * Rowland: "what's the difference between an action and a fix? I don't think
+ * there is. Action could be something to do with training, a fix is usually a
+ * physical object — but as a matter of fact they're just fixes. I think we only
+ * need fix."
+ *
+ * He is right, and it is the fifth-concept rule doing its work: two nouns for
+ * one job means choosing between them every time, and then the numbers split
+ * across two rows of the table a client reads.
+ *
+ * So an agreed next step is no longer a line under a test. It is a FIX — the
+ * same record a test is, with its own days, its own findings and its own card.
+ * The words, whose it is and the date it was wanted all carry across; nothing
+ * is thrown away.
+ *
+ * WHY THIS RUNS IN THE APP RATHER THAN AS SQL. The rows live on the device
+ * first and in the cloud second, and a phone can be carrying one that has never
+ * been pushed. Converting here means every device fixes its own and the result
+ * syncs like any other edit.
+ *
+ * IT NEEDS NO FLAG TO SAY IT HAS RUN. Once a next step has become a fix there
+ * is no next step left to find, so calling it twice does nothing — which is the
+ * only kind of migration worth trusting. */
+export async function actionsBecomeFixes(projectId: ID): Promise<number> {
+  const db = await getDB();
+  const items = (await db.getAllFromIndex('test_items', 'by_project', projectId))
+    .filter(i => !i.deletedAt && i.kind === 'next');
+  if (items.length === 0) return 0;
+
+  const tests = (await db.getAllFromIndex('tests', 'by_project', projectId)).filter(t => !t.deletedAt);
+  const topSort = tests.reduce((n, t) => Math.max(n, t.sort), 0);
+  const at = now();
+  let made = 0;
+
+  for (const i of items) {
+    /* An action that already became a test or a fix is accounted for by that
+       record — converting it again would make a second one saying the same. */
+    if (!i.becameTestId) {
+      const parent = tests.find(t => t.id === i.testId);
+      const fix: Test = {
+        id: `${i.id}-fix`,
+        projectId,
+        kind: 'fix',
+        title: i.what,
+        assetId: parent?.assetId,
+        /* Whose it was, and the day it was wanted — an action's two facts. */
+        withWhom: i.owner,
+        plannedFor: i.due,
+        /* What it came out of, so the chain still reads: the observation that
+           prompted it, or the note somebody left on the line. */
+        passesIf: i.note,
+        fromTestId: i.testId,
+        outcome: i.doneAt ? 'passed' : 'planned',
+        ranOn: i.doneAt ? new Date(i.doneAt).toISOString().slice(0, 10) : undefined,
+        sort: topSort + 1 + made,
+        createdAt: i.createdAt,
+        updatedAt: at,
+      };
+      await db.put('tests', fix);
+      /* The observation it came from points at the fix now, not at a line. */
+      if (i.fromItemId) {
+        const obs = await db.get('test_items', i.fromItemId);
+        if (obs && !obs.deletedAt) {
+          await db.put('test_items', { ...obs, becameItemId: undefined, becameTestId: fix.id, updatedAt: at });
+        }
+      }
+      made++;
+    }
+    /* The line goes: soft-deleted, so the deletion travels to every device
+       rather than the row reappearing on the next pull. */
+    await db.put('test_items', { ...i, deletedAt: at, updatedAt: at });
+  }
+
+  signalWrite();
+  return made;
+}
+
 /* ---------- what we found, and what happens next ---------- */
 
 export async function listTestItems(projectId: string): Promise<TestItem[]> {

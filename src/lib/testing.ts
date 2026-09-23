@@ -164,6 +164,17 @@ export interface Test {
   title: string;
   /** Which machine. Absent means the line itself. */
   assetId?: ID;
+  /** WHICH PROGRAM IT IS ABOUT, when it is about one.
+   *
+   *  Rowland: "you can have a setup of a program, a test of a program, then a
+   *  fix of a program, or a fix of an asset."
+   *
+   *  A program was already able to point at the test that proved it; this is
+   *  the same link read from the other end, so a fix can say "this is the
+   *  Tesco Express program" rather than only saying it in its title. Optional,
+   *  and absent is the ordinary case — most work is about a machine or about
+   *  the line. */
+  programId?: ID;
   /** ISO date it is planned for — the FIRST day when it is a block. */
   plannedFor?: string;
   /** THE LAST DAY OF THE PLANNED WINDOW, when it is not a single day.
@@ -293,8 +304,16 @@ export type Standing2 = 'new' | 'actioned' | 'noted';
 export const actionOf = (obs: TestItem, items: TestItem[]): TestItem | undefined =>
   obs.becameItemId ? live(items).find(i => i.id === obs.becameItemId) : undefined;
 
+/** WHAT SOMEBODY DECIDED ABOUT AN OBSERVATION.
+ *
+ *  `becameTestId` is checked FIRST and is the usual answer now: an observation
+ *  you decide is a fix becomes its own record, and this only followed the old
+ *  line-under-a-test link — so a finding you had already dealt with went on
+ *  being counted under "observations to decide on", on the screen and in the
+ *  client report. `actionOf` stays for any device that has not yet converted
+ *  its lines; see db/testing's actionsBecomeFixes. */
 export const standingOfItem = (obs: TestItem, items: TestItem[]): Standing2 =>
-  actionOf(obs, items) ? 'actioned' : obs.doneAt != null ? 'noted' : 'new';
+  obs.becameTestId || actionOf(obs, items) ? 'actioned' : obs.doneAt != null ? 'noted' : 'new';
 
 export interface FoundTally {
   /** Everything written down. */

@@ -21,12 +21,13 @@ import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useProject } from '../lib/useProjects';
+import { usePrograms } from '../lib/usePrograms';
 import { useTesting } from '../lib/useTesting';
 import { getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import {
-  WORDS, outcomeWord, actionOf, foundTally, itemsOf, standingOfItem,
+  WORDS, outcomeWord, foundTally, itemsOf, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -45,6 +46,10 @@ type TT = ReturnType<typeof useTesting>;
 export function TestScreen({ projectId, testId }: { projectId: string; testId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
+  /* Programs, so a test or a fix can say which one it is about. Read here and
+     passed down rather than fetched inside the block: one subscription, and
+     the dropdown cannot be a beat behind the Programs screen. */
+  const { programs } = usePrograms(projectId);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
@@ -123,6 +128,17 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             <option value="">The line itself</option>
             {tt.assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select></label>
+        {/* WHICH PROGRAM, when it is about one. Rowland: "you can have a setup
+            of a program, a test of a program, then a fix of a program, or a fix
+            of an asset." Offered only when the job HAS programs — an empty
+            dropdown is a question with no answers. */}
+        {programs.length > 0 && (
+          <label className="cw-f"><span>Program</span>
+            <select value={test.programId ?? ''} onChange={e => save({ programId: e.target.value || undefined })}>
+              <option value="">Not about one</option>
+              {programs.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}
+            </select></label>
+        )}
         {/* PLANNED FOR A DAY, OR FOR A BLOCK OF THEM. Rowland: "sometimes it's
             a block, it's like a week commencing." The second date is empty by
             default and empty means one day — so nothing that already exists
@@ -181,18 +197,18 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
           These are OBSERVATIONS: written down live, while it is running. Whether
-          any of them is an action is a decision somebody makes afterwards. */}
+          any of them is a fix is a decision somebody makes afterwards. */}
       <Items kind="found" test={test} tt={tt} onView={setViewing}
         heading="3 · What we found on the day"
         placeholder="What did you see?"
         empty="Nothing written down yet. This is the part that matters most." />
 
-      {/* 4 · WHAT'S NEXT — the actions. Some typed straight in, some promoted
-          from an observation above. */}
-      <Items kind="next" test={test} tt={tt} onView={setViewing}
-        heading="4 · What we do next"
-        placeholder="What do we do next?"
-        empty="Nothing agreed yet. Tick an observation above to make it an action, or type one in." />
+      {/* 4 · WHAT'S NEXT — THE FIXES THAT CAME OUT OF THIS ONE.
+          There is no such thing as an action any more: Rowland, on the two
+          words, "I don't think there is a difference — as a matter of fact
+          they're just fixes." So what comes next is a list of records, each
+          with its own days and its own page, not a list of lines. */}
+      <NextFixes test={test} tt={tt} />
 
       <Docs test={test} tt={tt} />
 
@@ -249,6 +265,53 @@ function TrialCardButton({ test, project }: { test: Test; project: string }) {
         anybody else does.
       </p>
     </div>
+  );
+}
+
+/** WHAT COMES OUT OF THIS ONE — the fixes, and the next test if there is one.
+ *
+ *  This was a list of typed-in lines. It is a list of RECORDS now: a fix has
+ *  its own days, its own findings and its own card, which is the whole reason
+ *  there is no longer a separate word for a line. Each row opens its own page.
+ *
+ *  There is no "add" here on purpose. A fix comes out of something you saw —
+ *  you write the observation, then you decide it is a fix. Typing one straight
+ *  in would be a fix with nothing behind it, which is how a list stops being
+ *  evidence and starts being a wish list.
+ */
+function NextFixes({ test, tt }: { test: Test; tt: TT }) {
+  const out = tt.tests
+    .filter(t => t.fromTestId === test.id && !t.deletedAt)
+    .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
+
+  return (
+    <section className="tw-block">
+      <span className="tw-block-h">4 · What we do next</span>
+      {out.length === 0 ? (
+        <p className="sub tw-note">
+          Nothing agreed yet. Decide an observation above is a fix and it will appear here,
+          with its own days and its own page.
+        </p>
+      ) : (
+        <div className="cw-list">
+          {out.map(t => (
+            <button key={t.id} className={'tw-row is-' + t.outcome}
+              onClick={() => nav(`/project/${test.projectId}/testing/${encodeURIComponent(t.id)}`)}>
+              <span className="tw-row-m">
+                <b>{(t.kind ?? 'test') === 'fix' ? <><span className="tw-face">Fix</span>{t.title}</> : t.title}</b>
+                <span className="sub">
+                  {t.withWhom ? t.withWhom : 'nobody named'}
+                  {t.plannedFor && ` · ${nice(t.plannedFor)}${t.plannedTo && t.plannedTo > t.plannedFor ? ` – ${nice(t.plannedTo)}` : ''}`}
+                </span>
+                <span className={'tw-res is-' + t.outcome}>
+                  <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -326,7 +389,6 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
      nothing. A next step is the ordinary open/done row it always was. */
   const observation = item.kind === 'found';
   const st = observation ? standingOfItem(item, tt.items) : undefined;
-  const action = observation ? actionOf(item, tt.items) : undefined;
 
   const tick = observation
     ? () => {
@@ -380,20 +442,17 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
               somebody has to close. */}
           {observation && (
             <span className="tw-decide">
-              {st === 'actioned'
-                ? <span className="sub">Actioned — it is “{action?.what}” under what we do next.</span>
-                : item.becameTestId
+              {item.becameTestId
                   ? <span className="sub">It became its own record — open it from the link above.</span>
                   : (
                     <>
-                      <button className="btn btn-sm" onClick={() => void tt.actionItem(item)}>Make this an action</button>
                       <button className="btn btn-sm" onClick={() => void (async () => {
                         const id = await tt.planNextFrom(test, item.id, item.what, 'fix', item.what);
                         nav(`/project/${test.projectId}/testing/${encodeURIComponent(id)}`);
                       })()}>Make this a fix</button>
                       <button className="btn btn-ghost btn-sm"
                         onClick={() => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() })}>
-                        {done ? 'Still deciding' : 'No action needed'}
+                        {done ? 'Still deciding' : 'Not a problem'}
                       </button>
                     </>
                   )}

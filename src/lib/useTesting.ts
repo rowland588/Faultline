@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   listAssets, putAsset, deleteAsset,
   listTests, putTest, deleteTest, testContents,
-  listTestItems, putTestItem, deleteTestItem,
+  listTestItems, putTestItem, deleteTestItem, actionsBecomeFixes,
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
@@ -66,6 +66,11 @@ export function useTesting(projectId: string): TestingState {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    /* One noun. Any agreed next step still stored as a line becomes a fix, once,
+       on whichever device still has it — see actionsBecomeFixes, which is a
+       no-op the moment there are none left. Done before the read so the screen
+       never draws the old shape and then blinks. */
+    await actionsBecomeFixes(projectId);
     const [a, t, i] = await Promise.all([listAssets(projectId), listTests(projectId), listTestItems(projectId)]);
     setAssets(a); setTests(t); setItems(i);
     setLoading(false);

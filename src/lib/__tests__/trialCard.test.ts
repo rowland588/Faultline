@@ -63,13 +63,24 @@ describe('what a trial card carries', () => {
 });
 
 describe('what somebody decided about each observation', () => {
-  it('says which action an observation became, by name', () => {
-    const next = item({ id: 'n1', kind: 'next', what: 'Fit the new jaw heater' });
-    const obs = item({ id: 'o1', what: 'Jaw running cold', becameItemId: 'n1' });
-    const c = trialCard(test(), [], [obs, next], []);
+  it('says which FIX an observation became, by name', () => {
+    const mine = test({ id: 't1' });
+    const fix = test({ id: 'f1', kind: 'fix', title: 'Fit the new jaw heater', fromTestId: 't1' });
+    const obs = item({ id: 'o1', testId: 't1', what: 'Jaw running cold', becameTestId: 'f1' });
+    const c = trialCard(mine, [mine, fix], [obs], []);
     const f = c.findings.find(x => x.what === 'Jaw running cold')!;
-    expect(f.decision).toBe('actioned');
+    expect(f.decision).toBe('a fix');
     expect(f.action).toBe('Fit the new jaw heater');
+  });
+
+  /* An observation you turned into a fix is DECIDED. It only ever followed the
+     old line-under-a-test link, so a finding already dealt with went on being
+     counted under "observations to decide on". */
+  it('does not still call it undecided once it became a fix', () => {
+    const mine = test({ id: 't1' });
+    const fix = test({ id: 'f1', kind: 'fix', title: 'Fit it', fromTestId: 't1' });
+    const obs = item({ id: 'o1', testId: 't1', becameTestId: 'f1' });
+    expect(trialCard(mine, [mine, fix], [obs], []).found.undecided).toBe(0);
   });
 
   it('calls an undecided one what it is, rather than open', () => {
@@ -77,9 +88,9 @@ describe('what somebody decided about each observation', () => {
       .toBe('to decide');
   });
 
-  it('says no action needed when somebody decided that', () => {
+  it('says it was not a problem when somebody decided that', () => {
     expect(trialCard(test(), [], [item({ doneAt: 5 })], []).findings[0].decision)
-      .toBe('no action needed');
+      .toBe('not a problem');
   });
 
   it('counts what was written down, not what is open', () => {
@@ -95,34 +106,57 @@ describe('what somebody decided about each observation', () => {
 });
 
 describe('what we do next', () => {
-  it('says where each one came from', () => {
-    const rows = [
-      item({ id: 'n1', kind: 'next', what: 'Typed in', sort: 1 }),
-      item({ id: 'n2', kind: 'next', what: 'From a finding', fromItemId: 'o1', sort: 2 }),
-      item({ id: 'n3', kind: 'next', what: 'Became a trial', becameTestId: 't9', sort: 3 }),
-    ];
-    const c = trialCard(test(), [], rows, []);
-    expect(c.next.map(x => [x.fromFinding, x.becameTest]))
-      .toEqual([[false, false], [true, false], [false, true]]);
+  /* WHAT COMES NEXT IS A LIST OF RECORDS NOW. An agreed next step is a FIX with
+     its own days and its own page, so the card reads the tests that came out of
+     this one rather than lines underneath it. */
+  it('says where each one came from, and which are fixes', () => {
+    const mine = test({ id: 't1' });
+    const typed = test({ id: 'f1', kind: 'fix', title: 'Typed in', fromTestId: 't1', sort: 1 });
+    const found = test({ id: 'f2', kind: 'fix', title: 'From a finding', fromTestId: 't1', sort: 2 });
+    const retest = test({ id: 't2', title: 'Became a test', fromTestId: 't1', sort: 3 });
+    const obs = item({ id: 'o1', kind: 'found', testId: 't1', becameTestId: 'f2' });
+    const c = trialCard(mine, [mine, typed, found, retest], [obs], []);
+    expect(c.next.map(x => [x.what, x.fromFinding, x.becameTest])).toEqual([
+      ['Typed in', false, false],
+      ['From a finding', true, false],
+      ['Became a test', false, true],
+    ]);
   });
 
   it('counts only what is still to do', () => {
-    const rows = [item({ kind: 'next' }), item({ kind: 'next', doneAt: 5 })];
-    expect(trialCard(test(), [], rows, []).openNext).toBe(1);
+    const mine = test({ id: 't1' });
+    const out = [
+      test({ id: 'f1', kind: 'fix', fromTestId: 't1' }),
+      test({ id: 'f2', kind: 'fix', fromTestId: 't1', ranOn: '2026-09-10', outcome: 'passed' }),
+    ];
+    expect(trialCard(mine, [mine, ...out], [], []).openNext).toBe(1);
   });
 
-  /* The headline is what HAPPENS next, so a step already done is not it. */
-  it('leads on the first step still outstanding', () => {
-    const rows = [
-      item({ kind: 'next', what: 'Already done', doneAt: 5, sort: 1 }),
-      item({ kind: 'next', what: 'Still to do', sort: 2 }),
+  it('carries whose it is and the day it is wanted by', () => {
+    const mine = test({ id: 't1' });
+    const fix = test({
+      id: 'f1', kind: 'fix', fromTestId: 't1',
+      withWhom: 'Ilapak UK', plannedFor: '2026-10-05', plannedTo: '2026-10-09',
+    });
+    /* The day it is wanted BY is the LAST of a block, not the first. */
+    expect(trialCard(mine, [mine, fix], [], []).next[0])
+      .toMatchObject({ owner: 'Ilapak UK', due: '2026-10-09' });
+  });
+
+  /* The headline is what HAPPENS next, so one already done is not it. */
+  it('leads on the first one still outstanding', () => {
+    const mine = test({ id: 't1' });
+    const out = [
+      test({ id: 'f1', kind: 'fix', title: 'Already done', fromTestId: 't1', ranOn: '2026-09-01', outcome: 'passed', sort: 1 }),
+      test({ id: 'f2', kind: 'fix', title: 'Still to do', fromTestId: 't1', sort: 2 }),
     ];
-    expect(headlineNext(trialCard(test(), [], rows, []))?.what).toBe('Still to do');
+    expect(headlineNext(trialCard(mine, [mine, ...out], [], []))?.what).toBe('Still to do');
   });
 
   it('falls back to a done one rather than saying nothing is next', () => {
-    const rows = [item({ kind: 'next', what: 'Already done', doneAt: 5 })];
-    expect(headlineNext(trialCard(test(), [], rows, []))?.what).toBe('Already done');
+    const mine = test({ id: 't1' });
+    const done = test({ id: 'f1', kind: 'fix', title: 'Already done', fromTestId: 't1', ranOn: '2026-09-01', outcome: 'passed' });
+    expect(headlineNext(trialCard(mine, [mine, done], [], []))?.what).toBe('Already done');
   });
 });
 

@@ -400,7 +400,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: t.id, owner_id: fallbackOwner, project_id: t.projectId,
         kind: t.kind ?? 'test',
-        title: t.title, asset_id: t.assetId ?? null,
+        title: t.title, asset_id: t.assetId ?? null, program_id: t.programId ?? null,
         planned_for: t.plannedFor ?? null, planned_to: t.plannedTo ?? null,
         passes_if: t.passesIf ?? null,
         with_whom: t.withWhom ?? null, planned: t.planned ?? null,
@@ -419,6 +419,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       kind: ((r.kind as Test['kind']) ?? 'test'),
       title: (r.title as string) ?? '',
       assetId: (r.asset_id as string) ?? undefined,
+      programId: (r.program_id as string) ?? undefined,
       plannedFor: (r.planned_for as string) ?? undefined,
       plannedTo: (r.planned_to as string) ?? undefined,
       passesIf: (r.passes_if as string) ?? undefined,

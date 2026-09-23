@@ -24,12 +24,11 @@ const WHERE: Record<Strand, { go: string; to: (p: string) => string }> = {
   programs: { go: 'Programs', to: p => `/project/${p}/programs` },
   machines: { go: 'Testing', to: p => `/project/${p}/testing` },
   observations: { go: 'Decide', to: p => `/project/${p}/testing` },
-  actions: { go: 'Testing', to: p => `/project/${p}/testing` },
 };
 
 const TONE: Record<Strand, string> = {
   tests: 'is-booked', fixes: 'is-late', materials: 'is-waiting', programs: 'is-waiting',
-  machines: 'is-waiting', observations: 'is-quiet', actions: 'is-late',
+  machines: 'is-waiting', observations: 'is-quiet',
 };
 
 export function Outstanding({ rows, projectId }: { rows: OutstandingRow[]; projectId: string }) {
