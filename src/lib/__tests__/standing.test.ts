@@ -45,9 +45,9 @@ const at = (o: Partial<StandingInput> = {}) => standing({ ...IN, ...o });
 const row = (s: ReturnType<typeof standing>, key: string) => s.rows.find(r => r.key === key);
 
 describe('what is outstanding', () => {
-  it('counts a trial as open until the day has actually happened', () => {
+  it('counts a test as open until the day has actually happened', () => {
     const s = at({ tests: [test(), test({ outcome: 'passed' })] });
-    expect(row(s, 'trials')?.open).toBe(1);
+    expect(row(s, 'tests')?.open).toBe(1);
   });
 
   it('counts a machine as outstanding until it is RUNNING, not merely installed', () => {
@@ -142,7 +142,7 @@ describe('the plan', () => {
       programs: [prog({ testOn: '2026-10-06' })],
       assets: [asset({ dueOn: '2026-09-20' })],
     });
-    expect(s.plan.map(p => p.kind)).toEqual(['machine', 'material', 'trial', 'program']);
+    expect(s.plan.map(p => p.kind)).toEqual(['machine', 'material', 'test', 'program']);
   });
 
   it('leaves out anything with no date rather than inventing one', () => {
@@ -168,6 +168,60 @@ describe('the plan', () => {
   it('calls a trial that did not run what it is, rather than still booked', () => {
     const s = at({ tests: [test({ ranOn: '2026-09-16', outcome: 'notRun' })] });
     expect(s.plan[0].tone).toBe('failed');
+  });
+});
+
+describe('a fix is the same record wearing different words', () => {
+  it('is counted apart from a test, because it is owed by different people', () => {
+    const s = at({ tests: [
+      test({ plannedFor: '2026-10-06', withWhom: 'Ilapak UK' }),
+      test({ kind: 'fix', plannedFor: '2026-10-06', withWhom: 'Brilopak' }),
+    ] });
+    expect(row(s, 'tests')?.open).toBe(1);
+    expect(row(s, 'fixes')?.open).toBe(1);
+    expect(row(s, 'tests')?.whose).toBe('Ilapak UK');
+    expect(row(s, 'fixes')?.whose).toBe('Brilopak');
+  });
+
+  it('goes on the plan in its own lane', () => {
+    const s = at({ tests: [test({ kind: 'fix', plannedFor: '2026-10-06' })] });
+    expect(s.plan.map(p => p.kind)).toEqual(['fix']);
+  });
+});
+
+describe('a plan that is a block of days, not one day', () => {
+  /* Rowland: "sometimes it's a block, it's like a week commencing." */
+  it('is not late until the LAST day has gone', () => {
+    const inside = at({ tests: [test({ plannedFor: '2026-09-21', plannedTo: '2026-09-25' })] });
+    expect(row(inside, 'tests')?.late).toBe(0);
+
+    const past = at({ tests: [test({ plannedFor: '2026-09-15', plannedTo: '2026-09-19' })] });
+    expect(row(past, 'tests')?.late).toBe(1);
+  });
+
+  it('would have been late on the old single-date rule, and is not now', () => {
+    /* today is 2026-09-22 in these tests: the 21st has gone, the 25th has not. */
+    const s = at({ tests: [test({ plannedFor: '2026-09-21', plannedTo: '2026-09-25' })] });
+    expect(s.late).toBe(0);
+    expect(s.sentence).toContain('none of it late');
+  });
+
+  it('draws as a bar on the plan — the shape a machine already uses', () => {
+    const s = at({ tests: [test({ plannedFor: '2026-09-21', plannedTo: '2026-09-25' })] });
+    expect(s.plan[0]).toMatchObject({ at: '2026-09-21', until: '2026-09-25' });
+  });
+
+  it('draws the days it TOOK once it has run, not the ones it was booked for', () => {
+    const s = at({ tests: [test({
+      plannedFor: '2026-09-01', plannedTo: '2026-09-05',
+      ranOn: '2026-09-08', ranTo: '2026-09-10', outcome: 'passed',
+    })] });
+    expect(s.plan[0]).toMatchObject({ at: '2026-09-08', until: '2026-09-10' });
+  });
+
+  it('is a point, not a bar, when the window is one day', () => {
+    const s = at({ tests: [test({ plannedFor: '2026-09-21', plannedTo: '2026-09-21' })] });
+    expect(s.plan[0]!.until).toBeUndefined();
   });
 });
 

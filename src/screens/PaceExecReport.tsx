@@ -933,7 +933,7 @@ export function PaceExecReport() {
        tracker it used to promise "the numbers, the action tracker, the line
        walk" over a front page carrying none of the three. */
     : !hasTracker
-      ? [lineList, 'the trials', 'what we are waiting on', 'what the machine can run']
+      ? [lineList, 'tests and fixes', 'what we are waiting on', 'what the machine can run']
           .filter(Boolean).join(' — ').replace(/ — (?=what we)/, ', ').replace(/ — (?=what the)/, ', ')
       : [lineList, nums.measures[0]?.name ?? 'the numbers', 'the action tracker', 'the line walk']
           .filter(Boolean).join(' — ').replace(/ — (?=the action)/, ', ').replace(/ — (?=the line walk)/, ', ');
@@ -1222,8 +1222,8 @@ export function PaceExecReport() {
               and "0/2 lines at target" are not facts about a commissioning job,
               they are facts about a spreadsheet it does not keep. */}
           {!hasTracker ? (<>
-            <Stat n={String(trialsBlock?.planned ?? 0)} label="Trials booked" sub="still to run" tone="flat" />
-            <Stat n={String(trialsBlock?.passed ?? 0)} label="Trials passed" sub={`of ${trialRows.length} run or booked`} tone="good" />
+            <Stat n={String(trialsBlock?.planned ?? 0)} label="Booked" sub="still to do" tone="flat" />
+            <Stat n={String(trialsBlock?.passed ?? 0)} label="Passed or fixed" sub={`of ${trialRows.length} run or booked`} tone="good" />
             <Stat n={String(trialsBlock?.failed ?? 0)} label="Didn’t pass" sub="and what came of it" tone={(trialsBlock?.failed ?? 0) > 0 ? 'bad' : 'good'} />
             <Stat n={String(progs.tally.proved)} label="Programs proved" sub={`of ${progs.tally.total} on the machine`} tone={progs.tally.proved > 0 ? 'good' : 'flat'} />
             <Stat n={String(mats.tally.late)} label="Films late" sub="past the date, still not here" tone={mats.tally.late > 0 ? 'bad' : 'good'} />

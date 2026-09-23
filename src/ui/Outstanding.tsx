@@ -18,7 +18,8 @@ import type { OutstandingRow, Strand } from '../lib/standing';
 
 /** Where each row goes when you tap it, and what the button says. */
 const WHERE: Record<Strand, { go: string; to: (p: string) => string }> = {
-  trials: { go: 'Testing', to: p => `/project/${p}/testing` },
+  tests: { go: 'Testing', to: p => `/project/${p}/testing` },
+  fixes: { go: 'Testing', to: p => `/project/${p}/testing` },
   materials: { go: 'Materials', to: p => `/project/${p}/materials` },
   programs: { go: 'Programs', to: p => `/project/${p}/programs` },
   machines: { go: 'Testing', to: p => `/project/${p}/testing` },
@@ -27,7 +28,7 @@ const WHERE: Record<Strand, { go: string; to: (p: string) => string }> = {
 };
 
 const TONE: Record<Strand, string> = {
-  trials: 'is-booked', materials: 'is-waiting', programs: 'is-waiting',
+  tests: 'is-booked', fixes: 'is-late', materials: 'is-waiting', programs: 'is-waiting',
   machines: 'is-waiting', observations: 'is-quiet', actions: 'is-late',
 };
 

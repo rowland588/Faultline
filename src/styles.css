@@ -5713,6 +5713,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   position: relative; z-index: 1;
 }
 .tl-lab { display: flex; align-items: baseline; gap: 6px; padding-left: 7px; white-space: nowrap; }
+/* A BAR'S WORDS GO AFTER THE BAR, NOT ON TOP OF IT. The label sat at the dot
+   with the bar running underneath it, which on a dark enough bar reads as the
+   text having been struck through. The bar occupies the days; the words come
+   once the days are done with. */
+.tl-m.is-bar .tl-lab { position: absolute; left: 100%; margin-left: 7px; padding-left: 0; }
 .tl-lab-t { font-size: 11.5px; font-weight: 600; color: var(--ink); }
 .tl-lab-d { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
@@ -5720,7 +5725,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    on the plan — the one a client looks for — is never the one that gets cut */
 .tl-m.is-flip { flex-direction: row-reverse; }
 .tl-m.is-flip .tl-lab { flex-direction: row-reverse; padding-left: 0; padding-right: 7px; }
-.tl-m.is-flip.is-bar { transform: translateX(-100%); }
+/* Near the right edge the words go back down the axis — for a bar that means
+   to the left of where the bar STARTS, so they never sit over it either. The
+   bar itself never moves: shifting it would put the mark on the wrong days. */
+.tl-m.is-flip.is-bar .tl-lab { left: auto; right: 100%; margin-left: 0; margin-right: 7px; }
 
 .tl-m.is-done   { color: var(--ok); }
 .tl-m.is-failed { color: var(--danger); }
@@ -5879,4 +5887,24 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tc-which {
   margin: 4px 0 0; font-family: var(--display); font-size: 18px; font-weight: 700;
   letter-spacing: -0.015em; color: var(--ink);
+}
+
+/* A FIX, MARKED AS ONE. Same record as a test, so the list has to say which
+   face a row is wearing or the two read as one pile. Deliberately quiet: it is
+   a label, not an alarm. */
+.tw-face {
+  display: inline-flex; align-items: center;
+  margin-right: 7px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  background: var(--blue-soft); color: var(--blue);
+}
+
+/* Two doors into one form — plan a test, or plan a fix. */
+.tw-add-two { display: flex; gap: 10px; flex-wrap: wrap; }
+.tw-add-two .cw-add { flex: 1 1 200px; }
+
+@media (max-width: 720px) {
+  /* On a phone they stack, and each keeps a thumb-sized target. */
+  .tw-add-two { flex-direction: column; gap: 8px; }
+  .tw-add-two .cw-add { width: 100%; min-height: var(--tap); }
 }

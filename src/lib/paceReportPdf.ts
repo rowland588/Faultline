@@ -854,11 +854,11 @@ function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: 
     ? `${t.planned} booked · ${t.passed} passed${t.failed ? ` · ${t.failed} didn’t` : ''}${
         t.notRun ? ` · ${t.notRun} didn’t run` : ''}`
     : 'nothing booked yet';
-  const top = panel(d, M, top0, CW, panelH, '1', 'The trials', sub);
+  const top = panel(d, M, top0, CW, panelH, '1', 'Tests and fixes', sub);
 
   if (!t || t.rows.length === 0) {
     setFont(d, 8, 'normal', MUTED);
-    d.text('No trial has been booked on this job yet.', M + 14, top + 22);
+    d.text('Nothing has been booked on this job yet.', M + 14, top + 22);
     return 0;
   }
 
@@ -878,14 +878,14 @@ function trialsSheet(d: Doc, data: PaceReportData, from: number, page: number, p
   setFont(d, 18, 'bold', INK);
   d.text(fit(d, `${data.title} · what we are proving`, CW * 0.7), M, M + 30);
   setFont(d, 8.5, 'normal', INK2);
-  d.text(`Trials ${from + 1} to ${t.rows.length} of ${t.rows.length}`, M, M + 44);
+  d.text(`${from + 1} to ${t.rows.length} of ${t.rows.length}`, M, M + 44);
   d.setDrawColor(INK); d.setLineWidth(1.2);
   d.line(M, M + 52, W - M, M + 52);
 
   trialCardGrid(d, t.rows, M, M + 66, CW, H - M - 24, from);
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the trials`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — tests and fixes`, CW * 0.8), M, H - M + 6);
 }
 
 
@@ -1291,8 +1291,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      about this job, it is a fact about a spreadsheet it does not keep. */
   const tr = data.trials, mt = data.materials, pg = data.programs;
   const commTiles: [string, string, string, string][] = [
-    [String(tr?.planned ?? 0), 'Trials booked', 'still to run', BRAND],
-    [String(tr?.passed ?? 0), 'Trials passed', `of ${tr?.rows.length ?? 0} on the job`, OK],
+    [String(tr?.planned ?? 0), 'Booked', 'still to do', BRAND],
+    [String(tr?.passed ?? 0), 'Passed or fixed', `of ${tr?.rows.length ?? 0} on the job`, OK],
     [String(tr?.failed ?? 0), 'Didn\u2019t pass', 'and what came of it', (tr?.failed ?? 0) > 0 ? DANGER : OK],
     [String(pg?.proved ?? 0), 'Programs proved', `of ${pg?.total ?? 0} on the machine`, (pg?.proved ?? 0) > 0 ? OK : MUTED],
     [String(mt?.late ?? 0), 'Films late', 'past the date, still not here', (mt?.late ?? 0) > 0 ? DANGER : OK],
@@ -1388,10 +1388,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'the trials'}`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${data.tracker ? 'line pace' : 'tests and fixes'}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
     ? 'The tracker workbook is the system of record; this report reads it.'
-    : 'A trial is planned, then run, and what it found becomes the next one.',
+    : 'A test is planned, then run, and what it found becomes the next one.',
     W - M, H - M + 6, { align: 'right' });
 
   const wherePage = 2;

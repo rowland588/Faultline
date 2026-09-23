@@ -100,34 +100,100 @@ export interface Asset {
  *  the same as still being planned. */
 export type Outcome = 'planned' | 'passed' | 'failed' | 'notRun';
 
+/* A TEST AND A FIX ARE THE SAME RECORD WITH DIFFERENT WORDS.
+ *
+ * Rowland: "fix — literally what we're fixing, the same thing, same sort of
+ * format: what's the problem, who's doing it, what was the end result."
+ *
+ * He is describing this record. A test asks a question of the machine and
+ * writes down the answer; a fix states a problem and writes down what was done
+ * about it. Both are planned for a day, belong to a machine, are done with
+ * somebody, and end in an outcome — and both carry observations and actions
+ * underneath. So this is a SECOND FACE, not a second table: no new mapper, no
+ * second migration, and every derived thing in the app — the verdict, the
+ * plan, what we are waiting on, the client report, the card — reads a fix the
+ * day it is added, with nothing new written to draw it. */
+export type TestKind = 'test' | 'fix';
+
 export const OUTCOME_WORD: Record<Outcome, string> = {
   planned: 'Planned', passed: 'Passed', failed: 'Didn’t pass', notRun: 'Didn’t run',
+};
+
+/** The same four outcomes, said the way a fix says them. "Passed" is a word
+ *  about a question; a fix either got done or it did not. */
+export const FIX_OUTCOME_WORD: Record<Outcome, string> = {
+  planned: 'Planned', passed: 'Fixed', failed: 'Didn’t fix it', notRun: 'Didn’t happen',
+};
+
+export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'>): string =>
+  (t.kind === 'fix' ? FIX_OUTCOME_WORD : OUTCOME_WORD)[t.outcome];
+
+/** What each field is CALLED depends on which face you are looking at. One
+ *  record, two vocabularies, and the screens and both documents take the words
+ *  from here rather than each deciding for themselves. */
+export const WORDS: Record<TestKind, {
+  one: string; many: string; expectation: string; happened: string;
+  withWhom: string; plan: string; day: string;
+}> = {
+  test: {
+    one: 'Test', many: 'Tests',
+    expectation: 'Passes if — the expectation',
+    happened: 'What happened',
+    withWhom: 'Done with',
+    plan: 'What we planned', day: 'What happened',
+  },
+  fix: {
+    one: 'Fix', many: 'Fixes',
+    expectation: 'The problem',
+    happened: 'The end result',
+    withWhom: 'Who is doing it',
+    plan: 'What we are fixing', day: 'What was done',
+  },
 };
 
 export interface Test {
   id: ID;
   projectId: ID;
 
+  /** Which face. Absent means a test — every row written before fixes existed
+   *  is a test, and reading it that way needs no migration of the data. */
+  kind?: TestKind;
+
   /* ---- the plan, written before the day ---- */
-  /** What we plan to do. */
+  /** What we plan to do. On a fix, what we are fixing. */
   title: string;
   /** Which machine. Absent means the line itself. */
   assetId?: ID;
-  /** ISO date it is planned for. */
+  /** ISO date it is planned for — the FIRST day when it is a block. */
   plannedFor?: string;
-  /** What it passes on — the expectation, agreed in advance. */
+  /** THE LAST DAY OF THE PLANNED WINDOW, when it is not a single day.
+   *
+   *  Rowland: "sometimes it's a block, it's like a week commencing... we plan
+   *  the test from X date to another date."
+   *
+   *  Absent is the normal case and means one day. The plan already knows how to
+   *  draw a window — a machine is a bar because arriving and running are
+   *  different days — so a test or a fix with one becomes a bar with nothing
+   *  new to draw, on the screen and on the A3 alike. */
+  plannedTo?: string;
+  /** What it passes on — the expectation, agreed in advance. On a fix, the
+   *  problem being fixed. */
   passesIf?: string;
-  /** Who it is being done with. Usually the OEM. */
+  /** Who it is being done with. Usually the OEM; on a fix, whose job it is. */
   withWhom?: string;
   /** The product we plan to run. */
   planned?: string;
 
   /* ---- the day ---- */
-  /** ISO date it actually happened, which is often not the planned one. */
+  /** ISO date it actually happened, which is often not the planned one. The
+   *  FIRST day when it took more than one. */
   ranOn?: string;
+  /** The last day it actually ran. Absent means it was one day. */
+  ranTo?: string;
   /** What we actually put down the machine. */
   product?: string;
-  /** What happened, in whatever terms that test is measured in. */
+  /** What happened, in whatever terms that test is measured in. On a fix, the
+   *  end result. */
   result?: string;
   outcome: Outcome;
 
@@ -256,8 +322,22 @@ export const hasRun = (t: Test): boolean => t.outcome !== 'planned';
 const todayISO = (): string => new Date().toISOString().slice(0, 10);
 
 /** Planned for a date that has been and gone, and still not run. */
-export const isOverdue = (t: Test): boolean =>
-  !hasRun(t) && !!t.plannedFor && t.plannedFor < todayISO();
+/** The last day of the planned window, which on a single-day plan IS the
+ *  planned day. Everything that asks "has the day gone" asks this. */
+export const plannedEnd = (t: Test): string | undefined => t.plannedTo ?? t.plannedFor;
+
+/** The last day it actually ran. */
+export const ranEnd = (t: Test): string | undefined => t.ranTo ?? t.ranOn;
+
+/** LATE IS THE END OF THE WINDOW, NOT THE START. A test booked for the 5th to
+ *  the 9th is not late on the 6th — it is in progress, which is the whole point
+ *  of being able to book a block. This one line decides the verdict's late
+ *  count, the row in what-we-are-waiting-on and the colour on the plan, so it
+ *  is the only place the question is asked. */
+export const isOverdue = (t: Test): boolean => {
+  const end = plannedEnd(t);
+  return !hasRun(t) && !!end && end < todayISO();
+};
 
 /** Newest first for what has happened; soonest first for what has not. A list
  *  of past tests reads backwards from today, and a list of planned ones reads
@@ -347,7 +427,7 @@ function sentenceFor(tests: Test[], ran: number, found: number, next: number): s
 export function standsAt(t: Test): string {
   if (t.outcome === 'planned') return t.passesIf?.trim() ? `Passes if: ${t.passesIf}` : 'Planned';
   if (t.outcome === 'notRun') return t.result?.trim() || 'The day came and it did not happen';
-  return t.result?.trim() || OUTCOME_WORD[t.outcome];
+  return t.result?.trim() || outcomeWord(t);
 }
 
 /** The findings and next steps belonging to one test, in their own order. */

@@ -14,7 +14,7 @@ import {
 } from '../db';
 import { uid, now } from './ids';
 import { nextFrom, standing } from './testing';
-import type { Asset, AssetState, ItemKind, Standing, Test, TestItem } from './testing';
+import type { Asset, AssetState, ItemKind, Standing, Test, TestItem, TestKind } from './testing';
 
 export interface TestingState {
   loading: boolean;
@@ -33,7 +33,9 @@ export interface TestingState {
   /** Plan the same test on one machine or several. Picking two machines makes
    *  two tests, same plan, one each — because each asset wants the same sort of
    *  stages and typing them out per machine is the job the app should do. */
-  planTest: (title: string, assetIds?: (string | undefined)[]) => Promise<string>;
+  /** `kind` picks which face the new record wears — see lib/testing. A fix is
+   *  the same record and the same call; nothing needed a second one. */
+  planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind) => Promise<string>;
   saveTest: (t: Test) => Promise<void>;
   removeTest: (id: string) => Promise<void>;
   /** What deleting one would take with it. */
@@ -81,7 +83,7 @@ export function useTesting(projectId: string): TestingState {
 
   /* --------------------------------- tests -------------------------------- */
 
-  const planTest = useCallback(async (title: string, assetIds: (string | undefined)[] = [undefined]) => {
+  const planTest = useCallback(async (title: string, assetIds: (string | undefined)[] = [undefined], kind: TestKind = 'test') => {
     const clean = title.trim();
     const t = now();
     let sort = nextSort();
@@ -89,7 +91,7 @@ export function useTesting(projectId: string): TestingState {
        moment they exist — the wrapper can pass and the checkweigher fail on the
        same day, and a single shared record could not say that. */
     const made = (assetIds.length ? assetIds : [undefined]).map(assetId => ({
-      id: uid(), projectId, title: clean, assetId,
+      id: uid(), projectId, kind, title: clean, assetId,
       outcome: 'planned' as const, sort: sort++, createdAt: t, updatedAt: t,
     }));
     for (const test of made) await putTest(test);

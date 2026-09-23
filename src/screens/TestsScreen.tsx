@@ -20,8 +20,8 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, OUTCOME_WORD, isOverdue, itemsOf, weeksTo,
-  type Test,
+  ASSET_STATE_WORD, WORDS, outcomeWord, isOverdue, itemsOf, weeksTo,
+  type Test, type TestKind,
 } from '../lib/testing';
 
 const nice = (iso?: string): string => {
@@ -35,6 +35,29 @@ const loud = (iso?: string): string => {
   return Number.isFinite(t)
     ? new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
     : iso;
+};
+
+/** A day, or a block of them. "MON 5 – FRI 9 JAN" reads as the week it is, and
+ *  a single date is still a single date — the second one is absent on almost
+ *  every record and absent means one day.
+ *
+ *  NOT CALLED `window`. It was, for about ten minutes, and a module-scope const
+ *  of that name shadows the global one — every reference to `window` before
+ *  this line then hits the temporal dead zone and the whole app fails to boot
+ *  with "Cannot access 'window' before initialization". */
+const plannedWindow = (t: Test): string => {
+  const from = t.plannedFor, to = t.plannedTo;
+  if (!from) return 'NO DATE';
+  if (!to || to <= from) return loud(from);
+  return `${loud(from)} – ${loud(to)}`;
+};
+
+/** The same, for the days it actually took. */
+const ranWindow = (t: Test): string => {
+  const from = t.ranOn ?? t.plannedFor, to = t.ranOn ? t.ranTo : t.plannedTo;
+  if (!from) return '—';
+  if (!to || to <= from) return nice(from);
+  return `${nice(from)} – ${nice(to)}`;
 };
 
 /** The mark at the head of a test: how it went, at a glance, down the left edge. */
@@ -64,7 +87,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
      from the page under it would be the whole problem back again. */
   const stand = useStanding(projectId);
   const [dates, setDates] = useState(false);
-  const [adding, setAdding] = useState(false);
+  /* `adding` is which FACE is being planned, not merely whether the form is
+     open — a fix and a test are the same record and the same form, and the only
+     difference is the word on the button and what it saves. */
+  const [adding, setAdding] = useState<TestKind | null>(null);
   const [title, setTitle] = useState('');
   /* Which machines this test is for. Empty means the line itself. Several means
      several tests — the same stages, one per machine, which is how a line is
@@ -87,9 +113,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   const plan = () => {
     const clean = title.trim();
-    if (!clean) return;
-    void (async () => { open(await tt.planTest(clean, on.length ? on : [undefined])); })();
-    setTitle(''); setOn([]); setAdding(false);
+    if (!clean || !adding) return;
+    const kind = adding;
+    void (async () => { open(await tt.planTest(clean, on.length ? on : [undefined], kind)); })();
+    setTitle(''); setOn([]); setAdding(null);
   };
 
   const toggle = (id: string) => setOn(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
@@ -157,8 +184,11 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         {st.upcoming.map((t, i) => (
           <button key={t.id} className={'tw-next' + (i === 0 ? ' is-now' : '') + (isOverdue(t) ? ' is-late' : '')} onClick={() => open(t.id)}>
             <span className="tw-next-h">
+              {t.kind === 'fix' && <span className="tw-face">Fix</span>}
               <b>{t.title}</b>
-              <span className={'tw-when' + (isOverdue(t) ? ' is-late' : '')}>{isOverdue(t) ? 'WAS ' + loud(t.plannedFor) : loud(t.plannedFor)}</span>
+              <span className={'tw-when' + (isOverdue(t) ? ' is-late' : '')}>
+                {isOverdue(t) ? 'WAS ' + plannedWindow(t) : plannedWindow(t)}
+              </span>
             </span>
             <span className="sub">
               {assetName(t.assetId) ?? 'The line'}
@@ -171,7 +201,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
         {adding ? (
           <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
-            <input autoFocus placeholder="What do we plan to do?" value={title} onChange={e => setTitle(e.target.value)} />
+            <input autoFocus
+              placeholder={adding === 'fix' ? 'What are we fixing?' : 'What do we plan to do?'}
+              value={title} onChange={e => setTitle(e.target.value)} />
             {tt.assets.length > 0 && (
               <>
                 <span className="tw-plan-l">Which machines? Pick as many as it applies to.</span>
@@ -191,15 +223,23 @@ export function TestsScreen({ projectId }: { projectId: string }) {
             )}
             <span className="tw-plan-go">
               <button className="btn" type="submit" disabled={!title.trim()}>
-                {on.length > 1 ? `Plan ${on.length} tests` : 'Plan it'}
+                {on.length > 1 ? `Plan ${on.length} ${WORDS[adding].many.toLowerCase()}` : 'Plan it'}
               </button>
-              <button className="btn btn-ghost" type="button" onClick={() => { setAdding(false); setOn([]); }}>Cancel</button>
+              <button className="btn btn-ghost" type="button" onClick={() => { setAdding(null); setOn([]); }}>Cancel</button>
             </span>
           </form>
         ) : (
-          <button className="cw-add" onClick={() => setAdding(true)}>
-            <span className="cw-add-p" aria-hidden>+</span> Plan a test
-          </button>
+          /* TWO DOORS INTO ONE FORM. Rowland: "we don't actually have any way
+             of just pure fixes — everything's a test." Both write the same
+             record; the kind decides the words. */
+          <span className="tw-add-two">
+            <button className="cw-add" onClick={() => setAdding('test')}>
+              <span className="cw-add-p" aria-hidden>+</span> Plan a test
+            </button>
+            <button className="cw-add" onClick={() => setAdding('fix')}>
+              <span className="cw-add-p" aria-hidden>+</span> Plan a fix
+            </button>
+          </span>
         )}
       </section>
 
@@ -208,7 +248,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       {st.done.length > 0 && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
-            <h2 className="cmp-h">Tests so far</h2>
+            <h2 className="cmp-h">Tests and fixes so far</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="cw-list">
@@ -219,9 +259,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
                   <Mark t={t} />
                   <span className="tw-row-m">
                     <b>{t.title}</b>
-                    <span className="sub">{nice(t.ranOn ?? t.plannedFor)} · {assetName(t.assetId) ?? 'The line'}{t.product ? ` · ${t.product}` : ''}</span>
+                    <span className="sub">
+                      {t.kind === 'fix' && <span className="tw-face">Fix</span>}
+                      {ranWindow(t)} · {assetName(t.assetId) ?? 'The line'}{t.product ? ` · ${t.product}` : ''}
+                    </span>
                     <span className={'tw-res is-' + t.outcome}>
-                      <b>{OUTCOME_WORD[t.outcome]}</b>{t.result ? ` — ${t.result}` : ''}
+                      <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
                     </span>
                     {(c.found > 0 || c.next > 0) && (
                       <span className="sub">

@@ -28,6 +28,7 @@ import {
   fit, san, setFont, wash, type Doc,
 } from './reportKit';
 import type { TrialCard } from './trialCard';
+import { WORDS } from './testing';
 
 const M = 30;                       // the margin, A4 landscape
 const nice = (iso?: string): string => {
@@ -36,6 +37,15 @@ const nice = (iso?: string): string => {
   return Number.isFinite(t)
     ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : iso;
+};
+
+/** "5 Jan" or "5 – 9 Jan". A window prints as a window on the page the client
+ *  reads, because "planned for 5 Jan" on a job booked for that whole week is
+ *  the sort of small wrongness that gets argued about in a meeting. */
+const span = (from?: string, to?: string): string => {
+  if (!from) return '';
+  if (!to || to <= from) return nice(from);
+  return `${nice(from)} \u2013 ${nice(to)}`;
 };
 
 const toneOf = (o: TrialCard['outcome']): string =>
@@ -59,7 +69,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   d.rect(0, 0, W, page === 1 ? 74 : 44, 'F');
 
   setFont(d, 7, 'bold', '#9fc3b4');
-  d.text('TRIAL CARD', M, 20);
+  d.text(`${WORDS[c.kind].one.toUpperCase()} CARD`, M, 20);
   setFont(d, 7, 'normal', '#8fae9f');
   d.text(fit(d, san(meta.project), W / 2), M + 58, 20);
 
@@ -297,17 +307,28 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const half = (CW - 14) / 2;
   const planTop = y;
 
-  let by = box(d, M, y, half, 128, '1', 'What we planned') + 12;
-  by = field(d, M + 14, by, half - 28, 'Passes if — the expectation', c.passesIf ?? '', { empty: 'Nothing agreed in advance' }) + 8;
-  field(d, M + 14, by, half - 28, 'Product we planned to run', c.plannedProduct ?? '', { size: 8.5 });
-  setFont(d, 7.5, 'normal', MUTED);
-  d.text(`Planned for ${nice(c.plannedFor) || '—'}`, M + 14, planTop + 118);
+  /* THE WORDS COME FROM lib/testing, not from here. A fix is the same record
+     wearing a different vocabulary, and the screen takes its labels from the
+     same table — so the page a client reads and the page they are sent cannot
+     call the same field two different things. */
+  const w = WORDS[c.kind];
 
-  let dy = box(d, M + half + 14, y, half, 128, '2', 'What actually happened') + 12;
-  dy = field(d, M + half + 28, dy, half - 28, 'What happened', c.result ?? '', { empty: 'Nothing written down yet' }) + 8;
-  field(d, M + half + 28, dy, half - 28, 'Product we ran', c.product ?? '', { size: 8.5 });
+  let by = box(d, M, y, half, 128, '1', w.plan) + 12;
+  by = field(d, M + 14, by, half - 28, w.expectation, c.passesIf ?? '',
+    { empty: c.kind === 'fix' ? 'The problem was not written down' : 'Nothing agreed in advance' }) + 8;
+  if (c.kind === 'test') {
+    field(d, M + 14, by, half - 28, 'Product we planned to run', c.plannedProduct ?? '', { size: 8.5 });
+  }
+  setFont(d, 7.5, 'normal', MUTED);
+  d.text(`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, M + 14, planTop + 118);
+
+  let dy = box(d, M + half + 14, y, half, 128, '2', c.kind === 'fix' ? 'What was done' : 'What actually happened') + 12;
+  dy = field(d, M + half + 28, dy, half - 28, w.happened, c.result ?? '', { empty: 'Nothing written down yet' }) + 8;
+  if (c.kind === 'test') {
+    field(d, M + half + 28, dy, half - 28, 'Product we ran', c.product ?? '', { size: 8.5 });
+  }
   setFont(d, 7.5, 'normal', c.ranOn ? MUTED : WARN);
-  d.text(c.ranOn ? `Ran on ${nice(c.ranOn)}` : 'Not run yet', M + half + 28, planTop + 118);
+  d.text(c.ranOn ? `Ran ${span(c.ranOn, c.ranTo)}` : 'Not run yet', M + half + 28, planTop + 118);
 
   y = planTop + 128 + 12;
   y = loopStrip(d, c, M, y, CW);
@@ -337,7 +358,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const bothFit = wantFound + 12 + wantNext <= room;
   const foundH = bothFit ? wantFound : Math.min(wantFound, room);
 
-  const fTop = box(d, M, y, CW, foundH, '3', 'What we found on the day', foundSub);
+  const fTop = box(d, M, y, CW, foundH, '3', c.kind === 'fix' ? 'What we found doing it' : 'What we found on the day', foundSub);
   let drawn = 0;
   if (c.findings.length === 0) {
     setFont(d, 8.5, 'normal', MUTED);
@@ -359,7 +380,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
     page++;
     const top = head(d, c, meta, page) + 14;
     const h = bottom - top;
-    const fT = box(d, M, top, CW, h, '3', 'What we found on the day',
+    const fT = box(d, M, top, CW, h, '3', c.kind === 'fix' ? 'What we found doing it' : 'What we found on the day',
       `continued · from ${from + 1} of ${c.findings.length}`);
     const more = findingsTable(d, c, M + 14, fT, CW - 28, top + h - 10, from);
     if (more === 0) break;

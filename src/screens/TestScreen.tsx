@@ -26,7 +26,7 @@ import { getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import {
-  OUTCOME_WORD, actionOf, foundTally, itemsOf, standingOfItem,
+  WORDS, outcomeWord, actionOf, foundTally, itemsOf, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -76,6 +76,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   }
 
   const save = (patch: Partial<Test>) => void tt.saveTest({ ...test, ...patch });
+  /* Which face this record is wearing — every label on the screen comes from
+     lib/testing's WORDS rather than being decided here. */
+  const kind = test.kind ?? 'test';
+  const words = WORDS[kind];
   const from = test.fromTestId ? tt.tests.find(t => t.id === test.fromTestId) : undefined;
 
   /* Setting the outcome stamps the day it happened, if nobody has said
@@ -98,7 +102,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         <div>
           <h1>{test.title}</h1>
           <p className="cw-handover">
-            <b>{OUTCOME_WORD[test.outcome]}</b>
+            <b>{outcomeWord(test)}</b>
             {test.ranOn && <span className="sub">{nice(test.ranOn)}</span>}
             {from && (
               <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(from.id)}`)}>
@@ -111,41 +115,64 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       {/* 1 · THE PLAN */}
       <section className="tw-block">
-        <span className="tw-block-h">1 · What we planned to do</span>
-        <label className="cw-f cw-f-wide"><span>What we plan to do</span>
+        <span className="tw-block-h">1 · {words.plan}</span>
+        <label className="cw-f cw-f-wide"><span>{kind === 'fix' ? 'What we are fixing' : 'What we plan to do'}</span>
           <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
         <label className="cw-f"><span>Machine</span>
           <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
             <option value="">The line itself</option>
             {tt.assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select></label>
-        <label className="cw-f"><span>Planned for</span>
+        {/* PLANNED FOR A DAY, OR FOR A BLOCK OF THEM. Rowland: "sometimes it's
+            a block, it's like a week commencing." The second date is empty by
+            default and empty means one day — so nothing that already exists
+            reads any differently, and the extra box only matters to somebody
+            who needs it. */}
+        <label className="cw-f"><span>Planned from</span>
           <input type="date" value={test.plannedFor ?? ''} onChange={e => save({ plannedFor: e.target.value || undefined })} /></label>
-        <label className="cw-f"><span>With</span>
+        <label className="cw-f"><span>to <span className="sub">leave blank for one day</span></span>
+          <input type="date" value={test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
+            onChange={e => save({ plannedTo: e.target.value || undefined })} /></label>
+        <label className="cw-f"><span>{words.withWhom}</span>
           <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
-        <label className="cw-f"><span>Product we plan to run</span>
-          <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
-        <label className="cw-f cw-f-wide"><span>Passes if — the expectation</span>
-          <DraftArea value={test.passesIf ?? ''} placeholder="65 ppm held for 30 minutes, under 2% waste"
+        {/* A fix does not run a product down the machine, so the box is not
+            offered — it is not hidden state, there is simply nothing to say. */}
+        {kind === 'test' && (
+          <label className="cw-f"><span>Product we plan to run</span>
+            <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
+        )}
+        <label className="cw-f cw-f-wide"><span>{words.expectation}</span>
+          <DraftArea value={test.passesIf ?? ''}
+            placeholder={kind === 'fix' ? 'Film creases as the web enters the former' : '65 ppm held for 30 minutes, under 2% waste'}
             onSave={v => save({ passesIf: v.trim() || undefined })} /></label>
-        <p className="sub tw-note">Agreed before the day. It is what the result gets measured against.</p>
+        <p className="sub tw-note">
+          {kind === 'fix'
+            ? 'Written before the work. It is what the end result gets measured against.'
+            : 'Agreed before the day. It is what the result gets measured against.'}
+        </p>
       </section>
 
       {/* 2 · THE DAY */}
       <section className="tw-block">
-        <span className="tw-block-h">2 · What actually happened</span>
-        <label className="cw-f"><span>Product we ran</span>
-          <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
-            onSave={v => save({ product: v.trim() || undefined })} /></label>
+        <span className="tw-block-h">2 · {kind === 'fix' ? 'What was done' : 'What actually happened'}</span>
+        {kind === 'test' && (
+          <label className="cw-f"><span>Product we ran</span>
+            <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
+              onSave={v => save({ product: v.trim() || undefined })} /></label>
+        )}
         <label className="cw-f"><span>On the day</span>
           <input type="date" value={test.ranOn ?? ''} onChange={e => save({ ranOn: e.target.value || undefined })} /></label>
-        <label className="cw-f cw-f-wide"><span>What happened</span>
-          <DraftArea rows={5} value={test.result ?? ''} placeholder="61 ppm, 3 leaked in 20"
+        <label className="cw-f"><span>to <span className="sub">if it took more than one</span></span>
+          <input type="date" value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
+            onChange={e => save({ ranTo: e.target.value || undefined })} /></label>
+        <label className="cw-f cw-f-wide"><span>{words.happened}</span>
+          <DraftArea rows={5} value={test.result ?? ''}
+            placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift' : '61 ppm, 3 leaked in 20'}
             onSave={v => save({ result: v.trim() || undefined })} /></label>
         <span className="tw-seg">
           {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
             <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')} onClick={() => setOutcome(o)}>
-              {o === 'planned' ? 'Still planned' : OUTCOME_WORD[o]}
+              {o === 'planned' ? 'Still planned' : outcomeWord({ kind, outcome: o })}
             </button>
           ))}
         </span>
@@ -209,11 +236,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
  *  read first, the way the client report has always worked.
  */
 function TrialCardButton({ test, project }: { test: Test; project: string }) {
+  const words = WORDS[test.kind ?? 'test'];
   return (
     <div className="tw-card-out">
       <button className="btn btn-primary"
         onClick={() => nav(`/project/${project}/testing/${encodeURIComponent(test.id)}/card`)}>
-        Trial card — read it, then send it
+        {words.one} card — read it, then send it
       </button>
       <p className="sub tw-note">
         Everything on this screen on one page: what we planned, what happened, every observation

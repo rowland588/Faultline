@@ -33,7 +33,7 @@ import {
   type Asset, type Test, type TestItem,
 } from './testing';
 
-export type Strand = 'trials' | 'materials' | 'programs' | 'observations' | 'actions' | 'machines';
+export type Strand = 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'actions' | 'machines';
 
 /** One line of "what are we waiting on". */
 export interface OutstandingRow {
@@ -50,7 +50,7 @@ export interface OutstandingRow {
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
  *  because arriving and running are different days; everything else is a point. */
 export interface PlanMark {
-  kind: 'trial' | 'material' | 'program' | 'machine';
+  kind: 'test' | 'fix' | 'material' | 'program' | 'machine';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
   until?: string;
@@ -133,8 +133,15 @@ export function standing(input: StandingInput): Standing {
 
   /* ---------------------------- the five lists ---------------------------- */
 
-  const trialsOpen = tests.filter(t => !hasRun(t));
-  const trialsLate = trialsOpen.filter(isOverdue);
+  /* A TEST AND A FIX ARE THE SAME RECORD, COUNTED APART. Both are open until
+     they have happened and late once the END of their window has gone — see
+     isOverdue — but they are owed by different people and read as different
+     news, so a client gets two rows rather than one number hiding both. */
+  const isFix = (t: Test) => t.kind === 'fix';
+  const testsOpen = tests.filter(t => !isFix(t) && !hasRun(t));
+  const testsLate = testsOpen.filter(isOverdue);
+  const fixesOpen = tests.filter(t => isFix(t) && !hasRun(t));
+  const fixesLate = fixesOpen.filter(isOverdue);
 
   const matsOpen = materials.filter(m => !isHere(m));
   const matsLate = matsOpen.filter(m => !!m.due && m.due < today);
@@ -160,8 +167,10 @@ export function standing(input: StandingInput): Standing {
   const machLate = machOpen.filter(a => !!a.dueOn && a.dueOn < today && !a.onSiteOn);
 
   const rows: OutstandingRow[] = ([
-    { key: 'trials', what: 'Trials still to run', open: trialsOpen.length, late: trialsLate.length,
-      whose: mostlyWhose(trialsOpen.map(t => t.withWhom)) },
+    { key: 'tests', what: 'Tests still to run', open: testsOpen.length, late: testsLate.length,
+      whose: mostlyWhose(testsOpen.map(t => t.withWhom)) },
+    { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length,
+      whose: mostlyWhose(fixesOpen.map(t => t.withWhom)) },
     { key: 'materials', what: 'Materials not here', open: matsOpen.length, late: matsLate.length,
       whose: mostlyWhose(matsOpen.map(m => m.from)) },
     { key: 'programs', what: 'Programs not proved', open: progsOpen.length, late: progsLate.length,
@@ -184,10 +193,18 @@ export function standing(input: StandingInput): Standing {
   const plan: PlanMark[] = [];
 
   for (const t of tests) {
+    /* The window it ACTUALLY took if it has run, otherwise the one it is booked
+       for — never the start of one and the end of the other. */
     const at = t.ranOn ?? t.plannedFor;
+    const until = t.ranOn ? t.ranTo : t.plannedTo;
     if (!at) continue;
     plan.push({
-      kind: 'trial', at, label: t.title,
+      kind: t.kind === 'fix' ? 'fix' : 'test', at,
+      /* A block of days draws as a BAR, the same shape a machine already uses
+         and for the same reason — it occupies time rather than happening on a
+         day. Nothing new had to be drawn for this. */
+      until: until && until > at ? until : undefined,
+      label: t.title,
       tone: t.outcome === 'passed' ? 'done'
         : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
           : isOverdue(t) ? 'late' : 'booked',

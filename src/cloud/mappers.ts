@@ -399,10 +399,13 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       const t = l as Test;
       return {
         id: t.id, owner_id: fallbackOwner, project_id: t.projectId,
+        kind: t.kind ?? 'test',
         title: t.title, asset_id: t.assetId ?? null,
-        planned_for: t.plannedFor ?? null, passes_if: t.passesIf ?? null,
+        planned_for: t.plannedFor ?? null, planned_to: t.plannedTo ?? null,
+        passes_if: t.passesIf ?? null,
         with_whom: t.withWhom ?? null, planned: t.planned ?? null,
-        ran_on: t.ranOn ?? null, product: t.product ?? null, result: t.result ?? null,
+        ran_on: t.ranOn ?? null, ran_to: t.ranTo ?? null,
+        product: t.product ?? null, result: t.result ?? null,
         outcome: t.outcome,
         media: t.media ?? null, docs: t.docs ?? null,
         from_test_id: t.fromTestId ?? null,
@@ -412,13 +415,17 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     },
     fromRow: (r) => ({
       id: r.id as string, projectId: r.project_id as string,
+      /* A row written before fixes existed has no kind and is a test. */
+      kind: ((r.kind as Test['kind']) ?? 'test'),
       title: (r.title as string) ?? '',
       assetId: (r.asset_id as string) ?? undefined,
       plannedFor: (r.planned_for as string) ?? undefined,
+      plannedTo: (r.planned_to as string) ?? undefined,
       passesIf: (r.passes_if as string) ?? undefined,
       withWhom: (r.with_whom as string) ?? undefined,
       planned: (r.planned as string) ?? undefined,
       ranOn: (r.ran_on as string) ?? undefined,
+      ranTo: (r.ran_to as string) ?? undefined,
       product: (r.product as string) ?? undefined,
       result: (r.result as string) ?? undefined,
       outcome: ((r.outcome as Test['outcome']) ?? 'planned'),

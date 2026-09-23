@@ -25,6 +25,7 @@ import { useEffect, useState } from 'react';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { trialCard, verdictLine, type CardFinding, type CardNext, type TrialCard } from '../lib/trialCard';
+import { WORDS } from '../lib/testing';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import { todayISO } from '../lib/standing';
 import { nav } from '../state/useRoute';
@@ -139,6 +140,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   }
 
   const c: TrialCard = trialCard(test, tt.tests, tt.items, tt.assets);
+  const words = WORDS[c.kind];
   const when = c.ranOn ?? c.plannedFor;
 
   const send = async () => {
@@ -168,7 +170,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Testing', to: `/project/${projectId}/testing` },
         { label: c.title, to: `/project/${projectId}/testing/${encodeURIComponent(testId)}` },
-        { label: 'Trial card' },
+        { label: `${words.one} card` },
       ]} />
 
       {/* EYEBROW IS THE CONTEXT, H1 IS THE SCREEN — the convention Testing,
@@ -179,8 +181,8 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           lose track of which one you are on. */}
       <header className="cm-head">
         <div>
-          <p className="cm-eyebrow">{project.name}</p>
-          <h1>Trial card</h1>
+          <p className="cm-eyebrow">{project.name} · {words.one.toLowerCase()}</p>
+          <h1>{words.one} card</h1>
           <p className="tc-which">{c.title}</p>
           <p className="cw-handover">
             <b>{c.outcomeWord}</b>
@@ -211,15 +213,16 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       )}
 
       <div className="tc-two">
-        <Block n="1" title="What we planned">
-          <Field label="Passes if — the expectation" text={c.passesIf} empty="Nothing agreed in advance" />
-          <Field label="Product we planned to run" text={c.plannedProduct} />
+        <Block n="1" title={words.plan}>
+          <Field label={words.expectation} text={c.passesIf}
+            empty={c.kind === 'fix' ? 'The problem was not written down' : 'Nothing agreed in advance'} />
+          {c.kind === 'test' && <Field label="Product we planned to run" text={c.plannedProduct} />}
           <Field label="Booked for" text={c.plannedFor ? nice(c.plannedFor) : ''} empty="No day set" />
         </Block>
 
-        <Block n="2" title="What happened">
-          <Field label="What happened" text={verdictLine(c)} empty="Nothing written down yet" />
-          <Field label="Product we ran" text={c.product} />
+        <Block n="2" title={words.day}>
+          <Field label={words.happened} text={verdictLine(c)} empty="Nothing written down yet" />
+          {c.kind === 'test' && <Field label="Product we ran" text={c.product} />}
           <Field label="Ran on" text={c.ranOn ? nice(c.ranOn) : ''} empty="Not run yet" />
         </Block>
       </div>

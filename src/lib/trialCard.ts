@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { OUTCOME_WORD, actionOf, foundTally, live, type Asset, type Test, type TestItem } from './testing';
+import { actionOf, foundTally, live, outcomeWord, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
   what: string;
@@ -43,6 +43,9 @@ export interface CardNext {
 
 export interface TrialCard {
   id: string;
+  /** Which face — the card says "Test card" or "Fix card" accordingly, and both
+   *  documents take their words from lib/testing's WORDS rather than deciding. */
+  kind: TestKind;
   title: string;
   machine: string;
   withWhom?: string;
@@ -51,11 +54,15 @@ export interface TrialCard {
 
   /* the plan */
   plannedFor?: string;
+  /** The last day of the planned window. Absent means one day. */
+  plannedTo?: string;
   plannedProduct?: string;
   passesIf?: string;
 
   /* the day */
   ranOn?: string;
+  /** The last day it actually took. Absent means one day. */
+  ranTo?: string;
   product?: string;
   result?: string;
 
@@ -90,17 +97,20 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
 
   return {
     id: test.id,
+    kind: test.kind ?? 'test',
     title: test.title,
     machine: assets.find(a => a.id === test.assetId)?.name ?? 'the line',
     withWhom: test.withWhom,
     outcome: test.outcome,
-    outcomeWord: OUTCOME_WORD[test.outcome],
+    outcomeWord: outcomeWord(test),
 
     plannedFor: test.plannedFor,
+    plannedTo: test.plannedTo,
     plannedProduct: test.planned,
     passesIf: test.passesIf,
 
     ranOn: test.ranOn,
+    ranTo: test.ranTo,
     product: test.product ?? test.planned,
     result: test.result,
 

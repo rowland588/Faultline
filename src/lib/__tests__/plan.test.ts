@@ -9,7 +9,7 @@ import { labelGap, layoutPlan, planAgenda, planSays, whenWords } from '../plan';
 import type { PlanMark } from '../standing';
 
 const mark = (o: Partial<PlanMark> & { at: string }): PlanMark => ({
-  kind: 'trial', label: 'a thing', tone: 'booked', ...o,
+  kind: 'test', label: 'a thing', tone: 'booked', ...o,
 });
 
 describe('the axis', () => {
@@ -58,17 +58,18 @@ describe('the axis', () => {
 describe('the lanes', () => {
   it('reads top to bottom in the order the job runs', () => {
     const p = layoutPlan([
-      mark({ at: '2026-09-02', kind: 'trial' }),
+      mark({ at: '2026-09-02', kind: 'test' }),
       mark({ at: '2026-09-03', kind: 'machine' }),
       mark({ at: '2026-09-04', kind: 'program' }),
       mark({ at: '2026-09-05', kind: 'material' }),
+      mark({ at: '2026-09-06', kind: 'fix' }),
     ]);
-    expect(p.lanes.map(l => l.label)).toEqual(['Machines', 'Materials', 'Programs', 'Trials']);
+    expect(p.lanes.map(l => l.label)).toEqual(['Machines', 'Materials', 'Programs', 'Fixes', 'Tests']);
   });
 
   it('does not draw a band for a list with nothing dated on it', () => {
-    const p = layoutPlan([mark({ at: '2026-09-02', kind: 'trial' })]);
-    expect(p.lanes.map(l => l.kind)).toEqual(['trial']);
+    const p = layoutPlan([mark({ at: '2026-09-02', kind: 'test' })]);
+    expect(p.lanes.map(l => l.kind)).toEqual(['test']);
   });
 
   it('puts two marks that would collide on separate lines', () => {
@@ -103,14 +104,14 @@ describe('the lanes', () => {
       mark({ at: '2026-09-20', label: 'Seal integrity — Finest Red 2kg' }),
       mark({ at: '2026-09-27', label: 'Seal integrity — Finest Red 2kg — re-test' }),
     ], gap);
-    expect(wide.lanes.find(l => l.kind === 'trial')!.rows).toHaveLength(2);
+    expect(wide.lanes.find(l => l.kind === 'test')!.rows).toHaveLength(2);
 
     const narrow = layoutPlan([
       far,
       mark({ at: '2026-09-20', label: 'P-104' }),
       mark({ at: '2026-09-27', label: 'P-118' }),
     ], gap);
-    expect(narrow.lanes.find(l => l.kind === 'trial')!.rows).toHaveLength(1);
+    expect(narrow.lanes.find(l => l.kind === 'test')!.rows).toHaveLength(1);
   });
 
   it('measures the gap from the END of a bar, not its start', () => {

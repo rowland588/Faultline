@@ -103,7 +103,8 @@ const LANES: { kind: PlanMark['kind']; label: string }[] = [
   { kind: 'machine', label: 'Machines' },
   { kind: 'material', label: 'Materials' },
   { kind: 'program', label: 'Programs' },
-  { kind: 'trial', label: 'Trials' },
+  { kind: 'fix', label: 'Fixes' },
+  { kind: 'test', label: 'Tests' },
 ];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

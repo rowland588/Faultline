@@ -431,11 +431,11 @@ function TestingOverview({ projectId }: { projectId: string }) {
 
           {st.total > 0 && (
             <div className="cx-answer">
-              <span className="cmp-h-n">THE TRIALS</span>
+              <span className="cmp-h-n">TESTS AND FIXES</span>
               <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
               <span className="cx-tally">
-                {st.ran} of {st.total} run
-                {st.passed > 0 && <> · {st.passed} passed</>}
+                {st.ran} of {st.total} done
+                {st.passed > 0 && <> · {st.passed} passed or fixed</>}
               </span>
             </div>
           )}
