@@ -108,6 +108,19 @@ function foot(d: Doc, page: number, pages: number, meta: TrialCardMeta): void {
   d.text(`${page} of ${pages}`, W - M, H - 14, { align: 'right' });
 }
 
+/** The lines a field will put on the page. Height and drawing both come off
+ *  this, so the box cannot be sized by one arithmetic and filled by another. */
+function fieldLines(d: Doc, w: number, text: string, size: number, empty: string): string[] {
+  setFont(d, size, 'normal', INK);
+  return (d.splitTextToSize(san(text).trim() || empty, w) as string[]).slice(0, 6);
+}
+
+/** How tall a field will be, without drawing it. */
+const fieldHeight = (d: Doc, w: number, text: string, opts: { size?: number; empty?: string } = {}): number => {
+  const size = opts.size ?? 9.5;
+  return 12 + fieldLines(d, w, text, size, opts.empty ?? '—').length * (size + 2.5);
+};
+
 /** A labelled block of prose. Returns the y it finished at, so the caller can
  *  stack them without arithmetic of its own. */
 function field(d: Doc, x: number, y: number, w: number, label: string, text: string, opts: {
@@ -117,10 +130,10 @@ function field(d: Doc, x: number, y: number, w: number, label: string, text: str
   d.text(label.toUpperCase(), x, y);
   const body = san(text).trim();
   const size = opts.size ?? 9.5;
-  setFont(d, size, body ? 'normal' : 'normal', body ? (opts.colour ?? INK) : MUTED);
-  const lines = d.splitTextToSize(body || (opts.empty ?? '—'), w) as string[];
-  lines.slice(0, 6).forEach((l, i) => d.text(l, x, y + 12 + i * (size + 2.5)));
-  return y + 12 + Math.min(lines.length, 6) * (size + 2.5);
+  const lines = fieldLines(d, w, text, size, opts.empty ?? '—');
+  setFont(d, size, 'normal', body ? (opts.colour ?? INK) : MUTED);
+  lines.forEach((l, i) => d.text(l, x, y + 12 + i * (size + 2.5)));
+  return y + 12 + lines.length * (size + 2.5);
 }
 
 /** A bordered box with a heading — the card's own section frame. */
@@ -184,20 +197,28 @@ function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): numbe
  * splitTextToSize is pure, so measuring costs nothing and cannot disagree with
  * the drawing — both ask the same question of the same document. */
 
+/* NOTHING ON THIS CARD IS CUT SHORT.
+ *
+ * Both of these used to cap at three lines and two, while the row they measured
+ * was as tall as the FULL wrap — so a long observation got the room for four
+ * lines, had three of them drawn, and ended mid-sentence with no ellipsis to
+ * say so. Two wrongs at once: white where the fourth line should have been, and
+ * a sentence that looked finished and was not.
+ *
+ * The cap is gone rather than the ellipsis added, because of what this document
+ * is: the client report prints the fundamentals and may fairly shorten them,
+ * this one prints everything and paginates. "…" on the sheet whose entire job
+ * is the detail would be absurd. */
 function findingHeights(d: Doc, c: TrialCard, w: number): number[] {
   setFont(d, 8.5, 'normal', INK);
-  return c.findings.map(f => {
-    const lines = d.splitTextToSize(san(f.what), 0.44 * w - 10) as string[];
-    return Math.max(18, 8 + Math.min(lines.length, 3) * 11);
-  });
+  return c.findings.map(f =>
+    Math.max(18, 8 + (d.splitTextToSize(san(f.what), 0.44 * w - 10) as string[]).length * 11));
 }
 
 function nextHeights(d: Doc, c: TrialCard, w: number): number[] {
   setFont(d, 8.5, 'bold', INK);
-  return c.next.map(n => {
-    const lines = d.splitTextToSize(san(n.what), 0.5 * w - 10) as string[];
-    return Math.max(17, 6 + Math.min(lines.length, 2) * 11);
-  });
+  return c.next.map(n =>
+    Math.max(17, 6 + (d.splitTextToSize(san(n.what), 0.5 * w - 10) as string[]).length * 11));
 }
 
 /** Head, rule, rows and a little air. `rows` is the heights of what will go in. */
@@ -209,7 +230,9 @@ const blockHeight = (rows: number[], empty: boolean): number =>
 function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: number, from: number): number {
   const cols = [0.44, 0.13, 0.15, 0.28];
   const at = (i: number) => x + cols.slice(0, i).reduce((a, b) => a + b, 0) * w;
-  const HEADS = ['WHAT WE SAW', 'WHOSE', 'DECIDED', 'THE ACTION IT BECAME'];
+  /* "THE ACTION IT BECAME" outlived the noun. An observation becomes a FIX —
+     its own record with its own card — so the column says what it became. */
+  const HEADS = ['WHAT WE SAW', 'WHOSE', 'DECIDED', 'WHAT IT BECAME'];
 
   setFont(d, 6.5, 'bold', MUTED);
   HEADS.forEach((h, i) => d.text(h, at(i), y + 11));
@@ -228,7 +251,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
 
     if (drawn % 2 === 1) { d.setFillColor('#faf9f5'); d.rect(x - 4, cy + 2, w + 8, rowH, 'F'); }
 
-    lines.slice(0, 3).forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
+    lines.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
 
     setFont(d, 8, 'normal', INK2);
     d.text(fit(d, san(f.owner ?? '—'), cols[1] * w - 10), at(1), cy + 13);
@@ -242,7 +265,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
 
     if (f.photos) {
       setFont(d, 6.5, 'normal', MUTED);
-      d.text(`${f.photos} filmed`, at(1), cy + 22);
+      d.text(`${f.photos} filmed`, at(1), cy + 24);
     }
 
     cy += rowH;
@@ -272,13 +295,13 @@ function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: 
     const rowH = Math.max(17, 6 + lines.length * 11);
     if (cy + rowH > maxY) break;
 
-    lines.slice(0, 2).forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
+    lines.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
     setFont(d, 8, 'normal', n.owner ? INK2 : DANGER);
     d.text(fit(d, san(n.owner ?? 'nobody yet'), cols[1] * w - 10), at(1), cy + 13);
     setFont(d, 8, 'normal', n.due ? INK2 : MUTED);
     d.text(n.due ? nice(n.due) : '—', at(2), cy + 13);
 
-    const from = n.becameTest ? 'became the next trial'
+    const from = n.becameTest ? 'became the next test'
       : n.fromFinding ? 'an observation'
         : 'agreed on the day';
     setFont(d, 7.5, 'normal', MUTED);
@@ -313,24 +336,42 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
      call the same field two different things. */
   const w = WORDS[c.kind];
 
-  let by = box(d, M, y, half, 128, '1', w.plan) + 12;
-  by = field(d, M + 14, by, half - 28, w.expectation, c.passesIf ?? '',
+  /* THE TWO BOXES TAKE THE ROOM THEIR WORDS NEED, not a flat 128pt.
+     Rowland: "expand and make the pdf dynamic — it will grow, make use of the
+     space better." At 128 a one-line expectation printed a hand's width of
+     white above the date, and a four-line one would have run out through the
+     bottom of the frame. They are still the SAME height as each other, because
+     the whole reason the plan and the day are two boxes is that somebody reads
+     them across, and two frames at different heights stop being a pair. */
+  const fw = half - 28;
+  const planNeeds = 12 + fieldHeight(d, fw, c.passesIf ?? '',
+    { empty: c.kind === 'fix' ? 'The problem was not written down' : 'Nothing agreed in advance' })
+    + (c.kind === 'test' ? 8 + fieldHeight(d, fw, c.plannedProduct ?? '', { size: 8.5 }) : 0);
+  const dayNeeds = 12 + fieldHeight(d, fw, c.result ?? '', { empty: 'Nothing written down yet' })
+    + (c.kind === 'test' ? 8 + fieldHeight(d, fw, c.product ?? '', { size: 8.5 }) : 0);
+  /* 25 is the box's own head and rule; 26 is the dated line that sits under
+     everything, and the air around it. */
+  const boxH = 25 + Math.max(planNeeds, dayNeeds) + 26;
+  const dateY = planTop + boxH - 12;
+
+  let by = box(d, M, y, half, boxH, '1', w.plan) + 12;
+  by = field(d, M + 14, by, fw, w.expectation, c.passesIf ?? '',
     { empty: c.kind === 'fix' ? 'The problem was not written down' : 'Nothing agreed in advance' }) + 8;
   if (c.kind === 'test') {
-    field(d, M + 14, by, half - 28, 'Product we planned to run', c.plannedProduct ?? '', { size: 8.5 });
+    field(d, M + 14, by, fw, 'Product we planned to run', c.plannedProduct ?? '', { size: 8.5 });
   }
   setFont(d, 7.5, 'normal', MUTED);
-  d.text(`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, M + 14, planTop + 118);
+  d.text(`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, M + 14, dateY);
 
-  let dy = box(d, M + half + 14, y, half, 128, '2', c.kind === 'fix' ? 'What was done' : 'What actually happened') + 12;
-  dy = field(d, M + half + 28, dy, half - 28, w.happened, c.result ?? '', { empty: 'Nothing written down yet' }) + 8;
+  let dy = box(d, M + half + 14, y, half, boxH, '2', c.kind === 'fix' ? 'What was done' : 'What actually happened') + 12;
+  dy = field(d, M + half + 28, dy, fw, w.happened, c.result ?? '', { empty: 'Nothing written down yet' }) + 8;
   if (c.kind === 'test') {
-    field(d, M + half + 28, dy, half - 28, 'Product we ran', c.product ?? '', { size: 8.5 });
+    field(d, M + half + 28, dy, fw, 'Product we ran', c.product ?? '', { size: 8.5 });
   }
   setFont(d, 7.5, 'normal', c.ranOn ? MUTED : WARN);
-  d.text(c.ranOn ? `Ran ${span(c.ranOn, c.ranTo)}` : 'Not run yet', M + half + 28, planTop + 118);
+  d.text(c.ranOn ? `Ran ${span(c.ranOn, c.ranTo)}` : 'Not run yet', M + half + 28, dateY);
 
-  y = planTop + 128 + 12;
+  y = planTop + boxH + 12;
   y = loopStrip(d, c, M, y, CW);
 
   /* ==================== WHAT WE FOUND, AND WHAT WE DO NEXT ==================

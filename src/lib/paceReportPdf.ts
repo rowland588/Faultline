@@ -766,87 +766,237 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
  * expectation beside it is what makes it an argument.
  */
 
-/** One card. Fixed height, because a grid of cards that each size themselves
- *  reads as a mess from across a table — the point of a card is that the eye
- *  knows where the next line is. */
-const CARD_H = 122;
+/* ---------- HOW BIG A CARD WANTS TO BE ----------
+ *
+ * Rowland: "PDF messy because you are trying to put everything on one sheet —
+ * the trials. Expand and make the PDF dynamic, it will grow, make use of the
+ * space better."
+ *
+ * The cards were a FIXED 122pt in a fixed two-column grid, and every value
+ * inside was clipped to one line by fit(). Those are the same fault twice: a
+ * guessed height cannot be right for the content, so it was too tall for the
+ * five short cards a seeded job has — bottom third of an A3 white — and would
+ * have cut a long expectation off mid-sentence on a real one.
+ *
+ * So a card MEASURES ITSELF and takes the room it needs, and the sheet is
+ * filled rather than partly used. It is the argument the 3P board already makes
+ * on its own sheet, for the same reason: a panel leaving the bottom third of an
+ * A3 blank is as wrong as one running off the edge, it just fails more quietly.
+ *
+ * THREE THINGS FALL OUT OF IT, in this order:
+ *
+ *   1  A FEW TESTS GET THE FULL WIDTH.  Four or fewer and the cards run one to
+ *      a row, which roughly doubles the room a sentence has. That is the whole
+ *      point of the extra space: more of what somebody wrote, not the same
+ *      words printed larger.
+ *   2  VALUES WRAP RATHER THAN CLIP.  Up to three lines, and up to five when
+ *      the sheet has room going spare — the slack is spent on the text before
+ *      it is spent on air.
+ *   3  WHAT IS LEFT OVER IS SHARED OUT.  Rows stretch so the stack finishes at
+ *      the foot of the panel, capped, because one card on an empty sheet should
+ *      not become a half-page box.
+ *
+ * splitTextToSize is pure, so measuring costs nothing and cannot disagree with
+ * the drawing: both ask the same question of the same document, and the draw
+ * takes the very lines the measure produced.
+ */
 
-function trialCardBox(d: Doc, r: PaceReportData['trials'] extends undefined ? never
-  : NonNullable<PaceReportData['trials']>['rows'][number], x: number, y: number, w: number): void {
+type TrialRow = NonNullable<PaceReportData['trials']>['rows'][number];
+
+const CARD_HEAD = 43;        // the title, the meta line, and the rule under them
+const CARD_LEAD = 10.5;      // one wrapped line inside a value
+const CARD_ROWGAP = 6;       // between EXPECTED and HAPPENED
+const CARD_PAD = 12;         // under the last line
+const CARD_GAP = 12;         // between cards, across and down
+const LABEL_W = 54;          // the label gutter down the left of the rows
+
+interface CardRow { label: string; lines: string[]; colour: string; bold: boolean }
+interface CardPlan { rows: CardRow[]; meta: string; tone: string; word: string; h: number }
+
+/** Everything the card will put on the page, already wrapped to its column, and
+ *  therefore its height. Measure and draw both read this — there is no second
+ *  arithmetic to drift out of step with the first. */
+function planTrialCard(d: Doc, r: TrialRow, w: number, maxLines: number): CardPlan {
   const tone = r.outcome === 'passed' ? OK : r.outcome === 'failed' ? DANGER
     : r.outcome === 'notRun' ? WARN : BLUE;
+  const vw = w - LABEL_W - 24;
 
-  d.setDrawColor(LINE); d.setLineWidth(0.7);
-  d.setFillColor('#ffffff');
-  d.roundedRect(x, y, w, CARD_H, 5, 5, 'FD');
-  /* The verdict as a spine down the left edge, not a tint behind the words:
-     a fill under text is the thing that fails under a strip light. */
-  d.setFillColor(tone);
-  d.roundedRect(x, y, 3.5, CARD_H, 2, 2, 'F');
-
-  /* ---- the head: what we are proving, and how it went ---- */
-  const word = r.outcomeWord.toUpperCase();
-  setFont(d, 6.5, 'bold', tone);
-  const pw = d.getTextWidth(word) + 14;
-  d.setFillColor(...wash(tone, 0.14));
-  d.roundedRect(x + w - 12 - pw, y + 9, pw, 14, 7, 7, 'F');
-  d.text(word, x + w - 12 - pw / 2, y + 18.5, { align: 'center' });
-
-  setFont(d, 10, 'bold', INK);
-  d.text(fit(d, r.title, w - 30 - pw), x + 12, y + 20);
-
-  setFont(d, 7, 'normal', MUTED);
-  const meta = [r.machine, r.withWhom && `with ${r.withWhom}`, r.when, r.product]
-    .filter(Boolean).join(' · ');
-  d.text(fit(d, meta, w - 24), x + 12, y + 31);
-
-  d.setDrawColor(LINE); d.setLineWidth(0.5);
-  d.line(x + 12, y + 37, x + w - 12, y + 37);
-
-  /* ---- the loop, four labelled lines ---- */
-  const lx = x + 12, vx = x + 66, vw = w - 78;
-  const row = (i: number, label: string, text: string, colour: string, bold = false) => {
-    const ly = y + 50 + i * 15;
-    setFont(d, 6, 'bold', MUTED);
-    d.text(label, lx, ly);
-    setFont(d, 8, bold ? 'bold' : 'normal', colour);
-    d.text(fit(d, text, vw), vx, ly);
+  const wrap = (text: string, bold: boolean): string[] => {
+    setFont(d, 8, bold ? 'bold' : 'normal', INK);
+    const all = d.splitTextToSize(san(text), vw) as string[];
+    if (all.length <= maxLines) return all.length ? all : [''];
+    /* Over the limit, the last line it keeps carries the ellipsis, so the page
+       says "there is more of this" rather than stopping mid-word as if that
+       were the end of the sentence. The trial card prints the rest in full. */
+    const cut = all.slice(0, maxLines);
+    cut[maxLines - 1] = fit(d, `${cut[maxLines - 1]} ${all[maxLines] ?? ''}`, vw);
+    return cut;
   };
-
-  row(0, 'EXPECTED', r.passesIf || 'nothing agreed in advance', r.passesIf ? INK2 : MUTED);
-  row(1, 'HAPPENED', r.verdict || '—', r.outcome === 'planned' ? MUTED : INK, r.outcome !== 'planned');
-
-  row(2, 'FOUND', foundWords(r.found), r.found.undecided ? WARN : INK2);
 
   const next = r.next
     ? [r.next.what, r.next.owner || 'nobody yet', r.next.due].filter(Boolean).join(' · ')
       + (r.nextMore ? ` (+${r.nextMore} more)` : '')
     : 'nothing agreed yet';
-  row(3, 'NEXT', next, r.next ? (r.next.owner ? INK : DANGER) : MUTED, !!r.next && !r.next.done);
+
+  const rows: CardRow[] = [
+    { label: 'EXPECTED', lines: wrap(r.passesIf || 'nothing agreed in advance', false),
+      colour: r.passesIf ? INK2 : MUTED, bold: false },
+    { label: 'HAPPENED', lines: wrap(r.verdict || '—', r.outcome !== 'planned'),
+      colour: r.outcome === 'planned' ? MUTED : INK, bold: r.outcome !== 'planned' },
+    { label: 'FOUND', lines: wrap(foundWords(r.found), false),
+      colour: r.found.undecided ? WARN : INK2, bold: false },
+    { label: 'NEXT', lines: wrap(next, !!r.next && !r.next.done),
+      colour: r.next ? (r.next.owner ? INK : DANGER) : MUTED, bold: !!r.next && !r.next.done },
+  ];
+
+  /* THE LOOP, when there is one. It was in the data all along and no card ever
+     drew it — the client report kept saying a test leads to the next test and
+     then printed nothing that showed it. The room to say so is exactly what
+     measuring the card instead of guessing it buys. */
+  const sits = [
+    r.follows && `follows “${san(r.follows)}”`,
+    r.ledTo.length && `led to ${r.ledTo.map(t => `“${san(t)}”`).join(', ')}`,
+  ].filter(Boolean).join('   ·   ');
+  if (sits) rows.push({ label: 'WHERE IT SITS', lines: wrap(sits, false), colour: MUTED, bold: false });
+
+  const h = CARD_HEAD + rows.reduce((a, row) => a + row.lines.length * CARD_LEAD + CARD_ROWGAP, 0) + CARD_PAD;
+  return {
+    rows, tone, word: r.outcomeWord.toUpperCase(), h,
+    meta: [r.machine, r.withWhom && `with ${r.withWhom}`, r.when, r.product].filter(Boolean).join(' · '),
+  };
 }
 
-/** Cards laid out two to a row, as many as fit the box. Returns how many it
- *  drew, so the caller knows whether a second sheet is owed. */
-function trialCardGrid(
-  d: Doc, rows: NonNullable<PaceReportData['trials']>['rows'],
-  x: number, y: number, w: number, maxY: number, from: number,
-): number {
-  const gap = 12;
-  const cw = (w - gap) / 2;
-  let drawn = 0;
-  for (let i = from; i < rows.length; i++) {
-    const k = drawn >> 1, col = drawn & 1;
-    const cy = y + k * (CARD_H + gap);
-    if (cy + CARD_H > maxY) break;
-    trialCardBox(d, rows[i], x + col * (cw + gap), cy, cw);
-    drawn++;
+/** Draw a planned card. `h` is what the ROW settled on, which may be more than
+ *  the card asked for — the box takes it so the row has one bottom edge rather
+ *  than a ragged one, and the words stay where they were measured. */
+function drawTrialCard(d: Doc, p: CardPlan, title: string, x: number, y: number, w: number, h: number): void {
+  d.setDrawColor(LINE); d.setLineWidth(0.7);
+  d.setFillColor('#ffffff');
+  d.roundedRect(x, y, w, h, 5, 5, 'FD');
+  /* The verdict as a spine down the left edge, not a tint behind the words:
+     a fill under text is the thing that fails under a strip light. */
+  d.setFillColor(p.tone);
+  d.roundedRect(x, y, 3.5, h, 2, 2, 'F');
+
+  setFont(d, 6.5, 'bold', p.tone);
+  const pw = d.getTextWidth(p.word) + 14;
+  d.setFillColor(...wash(p.tone, 0.14));
+  d.roundedRect(x + w - 12 - pw, y + 9, pw, 14, 7, 7, 'F');
+  d.text(p.word, x + w - 12 - pw / 2, y + 18.5, { align: 'center' });
+
+  setFont(d, 10, 'bold', INK);
+  d.text(fit(d, title, w - 30 - pw), x + 12, y + 20);
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, p.meta, w - 24), x + 12, y + 31);
+
+  d.setDrawColor(LINE); d.setLineWidth(0.5);
+  d.line(x + 12, y + 37, x + w - 12, y + 37);
+
+  let ry = y + CARD_HEAD + 5;
+  for (const row of p.rows) {
+    setFont(d, 6, 'bold', MUTED);
+    d.text(row.label, x + 12, ry);
+    setFont(d, 8, row.bold ? 'bold' : 'normal', row.colour);
+    row.lines.forEach((l, i) => d.text(l, x + 12 + LABEL_W, ry + i * CARD_LEAD));
+    ry += row.lines.length * CARD_LEAD + CARD_ROWGAP;
   }
-  return drawn;
+}
+
+/* ---------- WHERE THE CARDS FALL ----------
+ *
+ * Pure arithmetic over measured heights, drawing nothing, because the footer
+ * says "page 2 of 5" and cannot know the 5 until every card has been measured.
+ * Exported so the packing can be tested as numbers rather than looked at. */
+
+/** The height of each ROW of cards — a row is as tall as the taller of its
+ *  pair, so the two have one bottom edge. */
+export function cardRowHeights(heights: number[], cols: number): number[] {
+  const rows: number[] = [];
+  for (let i = 0; i < heights.length; i += cols) {
+    rows.push(Math.max(...heights.slice(i, i + cols)));
+  }
+  return rows;
+}
+
+/** How many CARDS land on each sheet: the front panel first, then sheets of
+ *  their own. A card taller than an empty sheet goes on one by itself — without
+ *  that guard the loop never ends, which is the only way this can fail badly. */
+export function packCards(heights: number[], cols: number, frontRoom: number, sheetRoom: number): number[] {
+  if (heights.length === 0) return [0];
+  const out: number[] = [];
+  let i = 0;
+  while (i < heights.length) {
+    const room = out.length === 0 ? frontRoom : sheetRoom;
+    let used = 0, n = 0;
+    while (i + n < heights.length) {
+      const rowH = Math.max(...heights.slice(i + n, i + n + cols));
+      const need = used + (n ? CARD_GAP : 0) + rowH;
+      if (need > room) break;
+      used = need;
+      n += Math.min(cols, heights.length - i - n);
+    }
+    if (n === 0) n = Math.min(cols, heights.length - i);
+    out.push(n);
+    i += n;
+  }
+  return out;
+}
+
+/** THE STACK, AND THEREFORE THE PANEL. A panel is as tall as its cards plus its
+ *  own chrome — it does not take the sheet and leave the rest white.
+ *
+ *  The first attempt at this shared the leftover room out across the rows so
+ *  the stack finished at the foot of the panel. It filled the sheet and it read
+ *  worse: the words stay where they were measured, so all it did was move the
+ *  white inside the boxes and make five short tests look like five things with
+ *  something missing. A page that ENDS where its content ends looks deliberate;
+ *  a page of half-empty frames looks broken. Growth is for when there is more
+ *  to say, and that is what the sheets after this one are for. */
+export function stackHeight(rowHeights: number[]): number {
+  if (rowHeights.length === 0) return 0;
+  return rowHeights.reduce((a, b) => a + b, 0) + CARD_GAP * (rowHeights.length - 1);
+}
+
+/** One column when there are few enough that the width is better spent on the
+ *  sentences than on a second card beside them. */
+const columnsFor = (n: number): number => (n <= 4 ? 1 : 2);
+
+/** Measure every card once, at the width the column count gives it, and raise
+ *  the wrap limit when the whole set would leave the front panel with room
+ *  going spare. The slack is spent on words before it is spent on air. */
+function planTrials(d: Doc, rows: TrialRow[], cw: number, frontRoom: number): CardPlan[] {
+  const tight = rows.map(r => planTrialCard(d, r, cw, 3));
+  const cols = columnsFor(rows.length);
+  const stack = cardRowHeights(tight.map(p => p.h), cols);
+  const used = stack.reduce((a, b) => a + b, 0) + CARD_GAP * Math.max(0, stack.length - 1);
+  if (used > frontRoom * 0.8) return tight;
+  return rows.map(r => planTrialCard(d, r, cw, 5));
+}
+
+/** Draw `count` cards from `from`, each at the height it measured. Returns how
+ *  many it drew. */
+function trialCardGrid(
+  d: Doc, rows: TrialRow[], plans: CardPlan[], cols: number,
+  x: number, y: number, w: number, from: number, count: number,
+): number {
+  const cw = cols === 1 ? w : (w - CARD_GAP) / 2;
+  const mine = plans.slice(from, from + count);
+  const heights = cardRowHeights(mine.map(p => p.h), cols);
+
+  let cy = y;
+  mine.forEach((p, k) => {
+    const rowH = heights[Math.floor(k / cols)] ?? p.h;
+    if (k % cols === 0 && k > 0) cy += (heights[Math.floor(k / cols) - 1] ?? 0) + CARD_GAP;
+    drawTrialCard(d, p, rows[from + k].title, x + (k % cols) * (cw + CARD_GAP), cy, cw, rowH);
+  });
+  return mine.length;
 }
 
 /** The trials on the front page. Returns how many did NOT fit, so the caller
- *  can decide whether the rest earn a sheet of their own. */
-function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number): number {
+ *  can decide how many sheets the rest have earned. */
+function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number,
+  split: { plans: CardPlan[]; cols: number; pages: number[] }): number {
   const t = data.trials;
   const sub = t
     ? `${t.planned} booked · ${t.passed} passed${t.failed ? ` · ${t.failed} didn’t` : ''}${
@@ -860,27 +1010,30 @@ function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: 
     return 0;
   }
 
-  const drawn = trialCardGrid(d, t.rows, M + 14, top + 14, CW - 28, top0 + panelH - 12, 0);
+  const drawn = trialCardGrid(d, t.rows, split.plans, split.cols, M + 14, top + 14, CW - 28, 0, split.pages[0] ?? 0);
   return t.rows.length - drawn;
 }
 
-/** The rest of them, on a sheet of their own. */
-function trialsSheet(d: Doc, data: PaceReportData, from: number, page: number, pages: number): void {
+/** The rest of them, a sheet each until there are none left. It used to be one
+ *  extra sheet and whatever fell off it was gone — a job running twenty tests
+ *  silently lost the last eight. */
+function trialsSheet(d: Doc, data: PaceReportData, from: number, count: number, sheet: number, sheets: number,
+  page: number, pages: number, split: { plans: CardPlan[]; cols: number }): void {
   const t = data.trials;
   if (!t) return;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
 
   setFont(d, 8, 'bold', BRAND);
-  d.text('THE TRIALS — CONTINUED', M, M + 8);
+  d.text('TESTS AND FIXES — CONTINUED', M, M + 8);
   setFont(d, 18, 'bold', INK);
   d.text(fit(d, `${data.title} · what we are proving`, CW * 0.7), M, M + 30);
   setFont(d, 8.5, 'normal', INK2);
-  d.text(`${from + 1} to ${t.rows.length} of ${t.rows.length}`, M, M + 44);
+  d.text(`${from + 1} to ${from + count} of ${t.rows.length}${sheets > 1 ? ` · sheet ${sheet} of ${sheets}` : ''}`, M, M + 44);
   d.setDrawColor(INK); d.setLineWidth(1.2);
   d.line(M, M + 52, W - M, M + 52);
 
-  trialCardGrid(d, t.rows, M, M + 66, CW, H - M - 24, from);
+  trialCardGrid(d, t.rows, split.plans, split.cols, M, M + 66, CW, from, count);
 
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — tests and fixes`, CW * 0.8), M, H - M + 6);
@@ -1322,11 +1475,32 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* How many trials did not fit the front page. Counted here, used below to
      decide whether they have earned a sheet of their own — and the page
      arithmetic for the whole report falls out of the same number. */
+  /* MEASURED BEFORE ANYTHING IS DRAWN, because the footer says "page 2 of 5"
+     and cannot know the 5 until every card has been measured. One plan, used
+     by the front panel, by each continuation sheet, and by the page count —
+     so the three cannot disagree about where a card went. */
+  const split = (() => {
+    const rows = data.trials?.rows ?? [];
+    if (data.tracker || rows.length === 0) return { plans: [] as CardPlan[], cols: 1, pages: [0], panelH: lpH };
+    const cols = columnsFor(rows.length);
+    const cw = cols === 1 ? CW - 28 : (CW - 28 - CARD_GAP) / 2;
+    /* The room a panel's cards actually get: the front one sits under the
+       tiles and behind a numbered head, a continuation sheet is bare. */
+    const frontRoom = lpH - 30 - 14 - 12;
+    const sheetRoom = H - M - 24 - (M + 66);
+    const plans = planTrials(d, rows, cw, frontRoom);
+    const pages = packCards(plans.map(p => p.h), cols, frontRoom, sheetRoom);
+    /* What the front panel is actually drawn at: its own chrome plus the cards
+       that landed on it. It stops where they stop. */
+    const front = stackHeight(cardRowHeights(plans.slice(0, pages[0]).map(p => p.h), cols));
+    return { plans, cols, pages, panelH: Math.min(lpH, 30 + 14 + front + 14) };
+  })();
+
   let trialsOver = 0;
   if (!data.tracker) {
     /* NO TRACKER, NO PPM SHEET. What this job is actually doing is running
        trials, so that is the front page — a card each, carrying the loop. */
-    trialsOver = trialsPanel(d, data, M, lpY, CW, lpH);
+    trialsOver = trialsPanel(d, data, M, lpY, CW, split.panelH, split);
   } else {
   const ruleY = panel(d, M, lpY, CW, lpH, '1', lead ? lead.name : 'The numbers',
     lead
@@ -1371,6 +1545,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const hasDetail = data.tracker || data.todos.length > 0 || data.wins.length > 0 || data.snags.length > 0;
   /* The trials that did not fit the front page get a sheet, and it goes
      directly behind it: the rest of the same thought, not an appendix. */
+  /* Every sheet after the front one, not just the first. A job running twenty
+     tests used to have the last eight silently dropped off the single extra
+     sheet the old arithmetic allowed for. */
+  const trialSheets = Math.max(0, split.pages.length - 1);
   const hasMoreTrials = trialsOver > 0;
   /* The two "what are we waiting on" panels share a sheet when both are short
      enough to sit on one, which is the usual case. Measured rather than
@@ -1382,7 +1560,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      here answers a narrower question, and a reader who had to assemble the
      position out of four of them was doing the report's job for it. */
   const hasPlan = !!data.plan && data.plan.lanes.length > 0;
-  const pages = 1 + (hasPlan ? 1 : 0) + (hasMoreTrials ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
     + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   setFont(d, 7, 'normal', MUTED);
@@ -1394,7 +1572,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   const wherePage = 2;
   const trialsPage = wherePage + (hasPlan ? 1 : 0);
-  const paretoPage = trialsPage + (hasMoreTrials ? 1 : 0);
+  const paretoPage = trialsPage + trialSheets;
   const materialsPage = paretoPage + (hasPareto ? 1 : 0);
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
@@ -1416,8 +1594,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * trials should not have four of them silently dropped, which is what the
    * table it replaced did with "+4 more than fit this sheet". */
   if (hasMoreTrials && data.trials) {
-    d.addPage('a3', 'landscape');
-    trialsSheet(d, data, data.trials.rows.length - trialsOver, trialsPage, pages);
+    let from = split.pages[0] ?? 0;
+    for (let sheet = 1; sheet < split.pages.length; sheet++) {
+      const count = split.pages[sheet];
+      d.addPage('a3', 'landscape');
+      trialsSheet(d, data, from, count, sheet, trialSheets, trialsPage + sheet - 1, pages, split);
+      from += count;
+    }
   }
 
   /* ============ WHERE THE TIME IS GOING — the Pareto, its own sheet ============

@@ -19,7 +19,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
-import { drawPaceReport, type PaceReportData } from '../paceReportPdf';
+import { cardRowHeights, drawPaceReport, packCards, stackHeight, type PaceReportData } from '../paceReportPdf';
 
 type Board = PaceReportData['board'];
 type Tree = PaceReportData['tree'];
@@ -106,6 +106,31 @@ const pareto = (): Pareto => ({
   more: 25, gone: ['Sensor fault'],
 });
 
+/** A commissioning job's tests, n of them, alternating through all four
+ *  outcomes. `long` gives every other one an expectation that wraps to three
+ *  lines, which is what makes the cards different heights and therefore what
+ *  makes the packing do any work at all. */
+const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> => ({
+  planned: n, passed: 0, failed: 0, notRun: 0,
+  rows: Array.from({ length: n }, (_, i) => ({
+    title: `Seal integrity ${i + 1} — Finest Red 2kg`,
+    machine: 'Ilapak flow wrapper', when: '21 Sept',
+    passesIf: long && i % 2 === 0
+      ? 'Run the BU at 75 packs a minute for a full hour on Finest Red 2kg with the new jaw profile, with no more than two stops, holding seal integrity at zero leaks in twenty and the checkweigher inside plus or minus one and a half grams across two hundred packs.'
+      : 'Zero leaks in twenty packs.',
+    withWhom: 'Ilapak UK', product: 'Finest Red 2kg',
+    result: 'Three leaked in twenty.',
+    outcome: (['planned', 'passed', 'failed', 'notRun'] as const)[i % 4],
+    outcomeWord: 'Passed',
+    verdict: 'It held for forty minutes and then drifted.',
+    found: { written: 3, actioned: 1, undecided: 2 },
+    next: { what: 'Re-cut the jaw profile', owner: 'Ilapak UK', due: '28 Sept', done: false },
+    nextMore: 1,
+    follows: i > 0 ? `Seal integrity ${i} — Finest Red 2kg` : undefined,
+    ledTo: i % 3 === 0 ? [`Seal integrity ${i + 2} — Finest Red 2kg`] : [],
+  })),
+});
+
 const data = (over: Partial<PaceReportData> = {}): PaceReportData => ({
   /* A tracker project by default — that is what every existing case is about.
      The commissioning shape is asserted by passing `tracker: false`. */
@@ -171,6 +196,19 @@ const SHAPES: [string, Partial<PaceReportData>][] = [
   ['everything at once', { pareto: pareto(), tree: tree(), board: board(4) }],
   ['everything, with a board over several sheets', { pareto: pareto(), tree: tree(), board: board(12) }],
   ['no lines at all — a project on its first day', { lines: [], byLine: [] }],
+  /* THE COMMISSIONING SHAPE, where the front page is the tests. These are the
+     cases the footer arithmetic had never seen: the sheets the tests need are
+     no longer a boolean, they come out of how tall the cards measured, and a
+     page count assembled from measurements is exactly the kind that drifts. */
+  ['a commissioning job with three tests', { tracker: false, trials: trials(3) }],
+  ['a commissioning job with one test', { tracker: false, trials: trials(1) }],
+  ['a commissioning job with no tests booked yet', { tracker: false, trials: trials(0) }],
+  ['enough tests to spill onto a second sheet', { tracker: false, trials: trials(14) }],
+  ['enough tests to spill onto several', { tracker: false, trials: trials(60) }],
+  ['tests whose expectations wrap, so no two cards are the same height',
+    { tracker: false, trials: trials(24, true) }],
+  ['spilling tests AND every optional sheet behind them',
+    { tracker: false, trials: trials(30, true), pareto: pareto(), tree: tree(), board: board(4) }],
 ];
 
 describe('the footer never lies about the document it is printed on', () => {
@@ -253,5 +291,64 @@ describe('the report carries its content', () => {
     }));
     expect(r.head).toBe('%PDF-');
     expect(r.stamps.every(s => s.of === r.pages)).toBe(true);
+  });
+});
+
+/* HOW THE TEST CARDS FALL ACROSS THE SHEETS.
+ *
+ * Rowland: "PDF messy because you are trying to put everything on one sheet —
+ * the trials. Expand and make the PDF dynamic, it will grow, make use of the
+ * space better."
+ *
+ * The cards used to be a fixed 122pt, so this arithmetic did not exist and the
+ * page count could be a sum of booleans. Now the sheets a job needs come out of
+ * how tall its cards measured — and the footer's "page 2 of 5" is computed from
+ * the same numbers, which is why they are worth pinning down as numbers rather
+ * than looking at a rendered sheet and deciding it seems about right.
+ */
+describe('the test cards across the sheets', () => {
+  it('makes a row as tall as the taller of its pair, so the two share a bottom edge', () => {
+    expect(cardRowHeights([100, 140, 90, 90], 2)).toEqual([140, 90]);
+  });
+
+  it('gives a card the whole width when the column count is one', () => {
+    expect(cardRowHeights([100, 140], 1)).toEqual([100, 140]);
+  });
+
+  it('counts the gaps between rows, not after the last one', () => {
+    expect(stackHeight([100, 100, 100])).toBe(324);   // 300 + two 12pt gaps
+    expect(stackHeight([100])).toBe(100);
+    expect(stackHeight([])).toBe(0);
+  });
+
+  it('fills the front panel, then a sheet at a time', () => {
+    /* Eight cards of 100 in pairs: a row is 100, four rows plus gaps is 436.
+       A 300pt front panel holds two rows; a 700pt sheet holds the rest. */
+    expect(packCards(Array(8).fill(100), 2, 300, 700)).toEqual([4, 4]);
+  });
+
+  it('grows onto as many sheets as it takes, not one extra and then silence', () => {
+    /* The fault this replaces: twenty tests printed six on the front and
+       fourteen on ONE further sheet, of which the last eight fell off the
+       bottom and were never seen again. */
+    const pages = packCards(Array(40).fill(120), 2, 260, 260);
+    expect(pages.reduce((a, b) => a + b, 0)).toBe(40);
+    expect(pages.length).toBeGreaterThan(3);
+  });
+
+  it('never leaves a card unplaced, whatever the heights', () => {
+    const heights = [80, 300, 95, 420, 110, 88, 260, 91, 77, 340, 102];
+    const pages = packCards(heights, 2, 400, 700);
+    expect(pages.reduce((a, b) => a + b, 0)).toBe(heights.length);
+  });
+
+  it('puts a card too tall for an empty sheet on one of its own rather than looping for ever', () => {
+    /* Without the guard this is an infinite loop, which is the only way this
+       can fail badly: the tab stops responding with no error to read. */
+    expect(packCards([2000, 2000], 1, 400, 400)).toEqual([1, 1]);
+  });
+
+  it('says one empty page when there is nothing to place', () => {
+    expect(packCards([], 2, 400, 700)).toEqual([0]);
   });
 });
