@@ -355,7 +355,7 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
           {st === 'actioned' && ' · actioned'}
           {st === 'noted' && ' · no action needed'}
           {item.fromItemId && ' · from an observation'}
-          {item.becameTestId && ' · became a test'}
+          {item.becameTestId && ` · became a ${tt.tests.find(t => t.id === item.becameTestId)?.kind === 'fix' ? 'fix' : 'test'}`}
         </span>
       </button>
       {(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={38} onClick={() => onView(m)} />)}
@@ -371,22 +371,45 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
               <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>
           )}
           <ItemMedia item={item} tt={tt} onView={onView} />
+          {/* WHAT YOU DECIDE AN OBSERVATION IS. Rowland: "what we found on the
+              day is observations — I then decide if they go to an action or go
+              to a fix." Three doors, because there are three answers: it needs
+              chasing (an action), it needs doing (a fix), or it needed neither
+              and saying so is the honest end of it. Going straight to a fix
+              does not make an action first: a line you never wanted is a line
+              somebody has to close. */}
           {observation && (
             <span className="tw-decide">
               {st === 'actioned'
                 ? <span className="sub">Actioned — it is “{action?.what}” under what we do next.</span>
-                : (
-                  <>
-                    <button className="btn btn-sm" onClick={() => void tt.actionItem(item)}>Make this an action</button>
-                    <button className="btn btn-ghost btn-sm"
-                      onClick={() => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() })}>
-                      {done ? 'Still deciding' : 'No action needed'}
-                    </button>
-                  </>
-                )}
+                : item.becameTestId
+                  ? <span className="sub">It became its own record — open it from the link above.</span>
+                  : (
+                    <>
+                      <button className="btn btn-sm" onClick={() => void tt.actionItem(item)}>Make this an action</button>
+                      <button className="btn btn-sm" onClick={() => void (async () => {
+                        const id = await tt.planNextFrom(test, item.id, item.what, 'fix', item.what);
+                        nav(`/project/${test.projectId}/testing/${encodeURIComponent(id)}`);
+                      })()}>Make this a fix</button>
+                      <button className="btn btn-ghost btn-sm"
+                        onClick={() => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() })}>
+                        {done ? 'Still deciding' : 'No action needed'}
+                      </button>
+                    </>
+                  )}
             </span>
           )}
           <span className="cw-edit-end">
+            {/* An agreed action can outgrow being a line — "sometimes I'll
+                discuss the action and agree the fix". Same journey as becoming
+                the next test, and the same link back, so the chain reads both
+                ways and nobody plans the same work twice. */}
+            {item.kind === 'next' && !item.becameTestId && (
+              <button className="btn btn-sm" onClick={() => void (async () => {
+                const id = await tt.planNextFrom(test, item.id, item.what, 'fix', item.note);
+                nav(`/project/${test.projectId}/testing/${encodeURIComponent(id)}`);
+              })()}>Make this a fix</button>
+            )}
             {item.kind === 'next' && !item.becameTestId && (
               <button className="btn btn-sm" onClick={() => void (async () => {
                 const id = await tt.planNextFrom(test, item.id, item.what);

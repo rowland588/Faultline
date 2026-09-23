@@ -171,6 +171,26 @@ describe('the plan', () => {
   });
 });
 
+describe('an action that grew into its own record', () => {
+  it('is counted once, by the record it became — not twice', () => {
+    /* The parent test has RUN, so the only things outstanding are the action
+       and the fix — otherwise the test itself is a third and the count proves
+       nothing. */
+    const t = test({ id: 't1', ranOn: '2026-09-10', outcome: 'passed' });
+    const s = at({
+      tests: [t, test({ id: 'f1', kind: 'fix', plannedFor: '2026-10-06' })],
+      items: [
+        item({ kind: 'next', testId: 't1', what: 'still a line' }),
+        item({ kind: 'next', testId: 't1', what: 'grew up', becameTestId: 'f1' }),
+      ],
+    });
+    expect(row(s, 'actions')?.open).toBe(1);
+    expect(row(s, 'fixes')?.open).toBe(1);
+    /* the whole point: two records, two obligations, not three. */
+    expect(s.outstanding).toBe(2);
+  });
+});
+
 describe('a fix is the same record wearing different words', () => {
   it('is counted apart from a test, because it is owed by different people', () => {
     const s = at({ tests: [

@@ -437,16 +437,24 @@ export const itemsOf = (items: TestItem[], testId: ID, kind: ItemKind): TestItem
 /** A new test planned from an old one, carrying forward what would otherwise be
  *  retyped: the machine, the product, and who it is with. THE LOOP, in one
  *  function — it is the only thing in the app that creates work from work. */
-export function nextFrom(t: Test, mkId: () => string, at: number, title?: string): Test {
+export function nextFrom(t: Test, mkId: () => string, at: number, title?: string,
+  kind: TestKind = 'test', problem?: string): Test {
+  const fix = kind === 'fix';
   return {
     id: mkId(),
     projectId: t.projectId,
+    kind,
     /* A next step becoming a test keeps its OWN words — it is that work, not a
        re-run of the test that found it. Only a plain re-test is named one. */
-    title: title?.trim() || `${t.title} — re-test`,
+    title: title?.trim() || (fix ? t.title : `${t.title} — re-test`),
     assetId: t.assetId,
-    planned: t.product ?? t.planned,
-    passesIf: t.passesIf,
+    /* A FIX INHERITS THE PROBLEM, A TEST INHERITS THE EXPECTATION. Both live in
+       `passesIf` because they are the same field wearing two names — what this
+       record is measured against — but carrying a test's pass criterion onto a
+       fix would state an expectation nobody agreed. What a fix wants is the
+       observation that caused it, which is what `problem` carries in. */
+    planned: fix ? undefined : (t.product ?? t.planned),
+    passesIf: fix ? problem?.trim() || undefined : t.passesIf,
     withWhom: t.withWhom,
     fromTestId: t.id,
     outcome: 'planned',

@@ -41,8 +41,14 @@ export interface TestingState {
   /** What deleting one would take with it. */
   testCost: (id: string) => Promise<{ found: number; next: number }>;
   /** THE LOOP. A new test carrying this one's machine, product and expectation
-   *  forward, and the next step that prompted it marked as having become it. */
-  planNextFrom: (t: Test, fromItemId?: string, title?: string) => Promise<string>;
+   *  forward, and the next step that prompted it marked as having become it.
+   *
+   *  `kind: 'fix'` makes it a FIX instead, which is the same journey: an
+   *  observation or an agreed action outgrows being a line and becomes a
+   *  record with its own days, its own findings and its own card. Rowland:
+   *  "sometimes I'll discuss the action and agree the fix, other times I'll
+   *  just review what we found today and decide myself that this is a fix." */
+  planNextFrom: (t: Test, fromItemId?: string, title?: string, kind?: TestKind, problem?: string) => Promise<string>;
 
   /* ---- what we found, what we do next ---- */
   addItem: (testId: string, kind: ItemKind, what: string) => Promise<void>;
@@ -102,9 +108,10 @@ export function useTesting(projectId: string): TestingState {
   const removeTest = useCallback(async (id: string) => { await deleteTest(id, projectId); }, [projectId]);
   const testCost = useCallback((id: string) => testContents(id, projectId), [projectId]);
 
-  const planNextFrom = useCallback(async (t: Test, fromItemId?: string, title?: string) => {
+  const planNextFrom = useCallback(async (t: Test, fromItemId?: string, title?: string,
+    kind: TestKind = 'test', problem?: string) => {
     const at = now();
-    const next = { ...nextFrom(t, uid, at, title), sort: nextSort() };
+    const next = { ...nextFrom(t, uid, at, title, kind, problem), sort: nextSort() };
     await putTest(next);
     /* The next step that prompted it points at the test it became, so the chain
        reads forwards as well as backwards and nobody plans the same re-test twice. */

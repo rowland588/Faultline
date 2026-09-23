@@ -152,7 +152,13 @@ export function standing(input: StandingInput): Standing {
   const obs = items.filter(i => i.kind === 'found');
   const undecided = obs.filter(i => standingOfItem(i, items) === 'new');
 
-  const actions = items.filter(i => i.kind === 'next' && isOpen(i));
+  /* AN ACTION THAT BECAME ITS OWN RECORD IS NOT STILL OUTSTANDING AS AN ACTION.
+     Once "re-track the film" is a fix with its own days and its own page, the
+     fix carries it — counting the line as well put the same obligation in two
+     rows of this table, and told a client there were four things to do when
+     there were three. The record it became is where it lives now; `isOpen`
+     alone could not know that. */
+  const actions = items.filter(i => i.kind === 'next' && isOpen(i) && !i.becameTestId);
   const actionsLate = actions.filter(a => !!a.due && a.due < today);
 
   /* A machine is outstanding until it is RUNNING — installed is not the job.
