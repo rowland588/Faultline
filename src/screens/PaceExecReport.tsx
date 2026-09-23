@@ -28,7 +28,7 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { type Asset, type Test, type TestItem } from '../lib/testing';
+import { foundWords, type Asset, type Test, type TestItem } from '../lib/testing';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
@@ -327,10 +327,7 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
               <dd className={r.outcome === 'planned' ? 'is-none' : 'is-strong'}>{r.verdict || '\u2014'}</dd>
               <dt>Found</dt>
               <dd className={r.found.undecided ? 'is-warn' : ''}>
-                {r.found.written
-                  ? `${r.found.written} written down \u00b7 ${r.found.actioned} actioned${
-                    r.found.undecided ? ` \u00b7 ${r.found.undecided} to decide` : ''}`
-                  : 'nothing written down'}
+                {foundWords(r.found)}
               </dd>
               <dt>Next</dt>
               <dd className={r.next ? (r.next.owner ? 'is-strong' : 'is-bad') : 'is-none'}>

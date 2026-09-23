@@ -45,4 +45,24 @@ describe('the file picker', () => {
     void pickFiles('image/*');
     expect(openedPicker().isConnected).toBe(true);
   });
+
+  /* BACKING OUT IS NOT AN ERROR, AND IT MUST NOT LEAVE THE CALLER WAITING.
+     For one build the strip on a test disabled its own buttons while a pick was
+     in flight, and dismissing the picker fires `cancel` rather than `change` —
+     so the promise never settled, the flag never came off, and every door in
+     the row was dead until you left the screen. Reported as, exactly, "photos
+     and video and upload video don't work". */
+  it('settles with nothing when the picker is dismissed', async () => {
+    const picked = pickFiles('image/*,video/*', { multiple: true });
+    openedPicker().dispatchEvent(new Event('cancel'));
+    await expect(picked).resolves.toEqual([]);
+  });
+
+  it('takes the dismissed input back out of the document', async () => {
+    const picked = pickFiles('image/*');
+    const el = openedPicker();
+    el.dispatchEvent(new Event('cancel'));
+    await picked;
+    expect(el.isConnected).toBe(false);
+  });
 });

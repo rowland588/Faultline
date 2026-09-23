@@ -28,6 +28,13 @@ export function pickFiles(accept: string, opts: { camera?: boolean; multiple?: b
     // document, so the picker never opens and the caller hangs forever.
     document.body.appendChild(input);
     input.onchange = () => { input.remove(); resolve(Array.from(input.files ?? [])); };
+    // BACKING OUT OF THE PICKER FIRES `cancel`, NOT `change`. Without this the
+    // promise never settles at all: the caller waits for ever, the input stays
+    // in the document, and anything the caller put on hold while it waited —
+    // a spinner, a disabled row of buttons — stays that way until the screen is
+    // left. Changing your mind about a photo is not an error, and it must not
+    // leave the thing you tapped dead behind it.
+    input.oncancel = () => { input.remove(); resolve([]); };
     input.click();
   });
 }

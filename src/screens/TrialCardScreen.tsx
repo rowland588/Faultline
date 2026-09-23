@@ -25,7 +25,7 @@ import { useEffect, useState } from 'react';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { trialCard, verdictLine, type CardFinding, type CardNext, type TrialCard } from '../lib/trialCard';
-import { WORDS } from '../lib/testing';
+import { foundWords, WORDS } from '../lib/testing';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import { todayISO } from '../lib/standing';
 import { nav } from '../state/useRoute';
@@ -230,8 +230,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       </div>
 
       <Block n="3" title="What we found on the day"
-        sub={c.found.written === 0 ? undefined
-          : `${c.found.written} written · ${c.found.actioned} actioned · ${c.found.undecided} to decide`}>
+        sub={c.found.written === 0 ? undefined : foundWords(c.found)}>
         <Found rows={c.findings} />
       </Block>
 

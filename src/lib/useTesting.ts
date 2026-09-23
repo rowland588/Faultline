@@ -52,9 +52,16 @@ export interface TestingState {
 
   /* ---- what we found, what we do next ---- */
   addItem: (testId: string, kind: ItemKind, what: string) => Promise<void>;
-  /** Decide an observation needs doing: it becomes a next step, and the two are
-   *  linked. Returns the new next step's id. */
-  actionItem: (obs: TestItem) => Promise<string>;
+  /** TAKE THE DECISION BACK. Rowland: "when I take [an observation] to send to
+   *  fix, I can't untick."
+   *
+   *  Resolves to true when the fix it made was removed with it, false when the
+   *  fix was kept because somebody had already worked on it. */
+  unmakeFix: (obs: TestItem) => Promise<boolean>;
+  /** Would undoing take the fix with it? False once somebody has worked on it.
+   *  The screen asks BEFORE drawing the button, so the consequence is written
+   *  where the control is rather than reported afterwards. */
+  fixUntouched: (obs: TestItem) => boolean;
   saveItem: (i: TestItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
 }
@@ -159,27 +166,40 @@ export function useTesting(projectId: string): TestingState {
     });
   }, [projectId, items]);
 
-  /* "I'm live, taking observations, writing stuff down... and I'd appreciate
-     then the ability to go yes, let's action this, and then it becomes an
-     action."  So the observation stays exactly as written — it is the record of
-     what was seen — and a NEXT STEP is made from it, which is the row that
-     carries an owner and a date and gets chased. The two point at each other so
-     the report can read the chain either way. */
-  const actionItem = useCallback(async (obs: TestItem) => {
-    const t = now();
-    const mine = items.filter(i => i.testId === obs.testId && i.kind === 'next');
-    const id = uid();
-    await putTestItem({
-      id, projectId, testId: obs.testId, kind: 'next', what: obs.what,
-      owner: obs.owner, media: obs.media, fromItemId: obs.id,
-      sort: mine.reduce((n, i) => Math.max(n, i.sort), 0) + 1,
-      createdAt: t, updatedAt: t,
-    });
-    /* `doneAt` comes off: an observation somebody has decided to act on is not
-       also one they decided needed nothing. */
-    await putTestItem({ ...obs, becameItemId: id, doneAt: undefined, updatedAt: t });
-    return id;
-  }, [projectId, items]);
+  /* UNDOING THE DECISION.
+   *
+   * There used to be an actionItem here, which turned an observation into a
+   * next step. It is gone: actions are, by Rowland's own call, fixes, and the
+   * loader above converts any line still stored as one. Leaving a maker for
+   * the noun we removed meant the tick wrote a row that was silently rewritten
+   * a moment later — planNextFrom(…, 'fix') writes the record the app
+   * actually has, in one step, which is the sentence that earns the removal.
+   *
+   * THE FIX GOES WITH THE UNDO. An undo that unlinks and leaves the fix behind
+   * is not an undo: it is a second row on the Fixes tab that somebody now has
+   * to go and close, which is exactly the cost the one-noun decision was meant
+   * to avoid. The exception is a fix somebody has already worked on — a day
+   * on it, a result, findings under it, evidence attached. Then the work is
+   * the thing worth keeping and only the link comes off, and the screen says
+   * so beside the button rather than after the fact. */
+  const fixUntouched = useCallback((obs: TestItem): boolean => {
+    const fix = obs.becameTestId ? tests.find(t => t.id === obs.becameTestId) : undefined;
+    if (!fix) return true;                       // already gone: nothing to keep
+    return fix.outcome === 'planned' && !fix.result && !fix.ranOn
+      && !fix.media?.length && !fix.docs?.length
+      && !items.some(i => i.testId === fix.id && !i.deletedAt);
+  }, [tests, items]);
+
+  const unmakeFix = useCallback(async (obs: TestItem) => {
+    const fix = obs.becameTestId ? tests.find(t => t.id === obs.becameTestId) : undefined;
+    const removable = fixUntouched(obs);
+    if (fix && removable) await deleteTest(fix.id, projectId);
+    /* Both links come off. becameItemId is the old line-under-a-test shape and
+       a row carrying one reads as decided just the same. */
+    await putTestItem({ ...obs, becameTestId: undefined, becameItemId: undefined, updatedAt: now() });
+    return removable;
+    /* items is read through fixUntouched, which is itself a dependency. */
+  }, [tests, projectId, fixUntouched]);
 
   const saveItem = useCallback(async (i: TestItem) => { await putTestItem({ ...i, updatedAt: now() }); }, []);
   const removeItem = useCallback(async (id: string) => { await deleteTestItem(id); }, []);
@@ -190,6 +210,6 @@ export function useTesting(projectId: string): TestingState {
     loading, assets, tests, items, standing: answer,
     addAsset, saveAsset, removeAsset,
     planTest, saveTest, removeTest, testCost, planNextFrom,
-    addItem, actionItem, saveItem, removeItem,
+    addItem, unmakeFix, fixUntouched, saveItem, removeItem,
   };
 }

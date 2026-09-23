@@ -22,6 +22,7 @@ import {
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
+import { foundWords } from './testing';
 import { vsTarget } from './measures';
 import type { LineSeries } from './measures';
 
@@ -815,10 +816,7 @@ function trialCardBox(d: Doc, r: PaceReportData['trials'] extends undefined ? ne
   row(0, 'EXPECTED', r.passesIf || 'nothing agreed in advance', r.passesIf ? INK2 : MUTED);
   row(1, 'HAPPENED', r.verdict || '—', r.outcome === 'planned' ? MUTED : INK, r.outcome !== 'planned');
 
-  const found = r.found.written
-    ? `${r.found.written} written down · ${r.found.actioned} actioned${r.found.undecided ? ` · ${r.found.undecided} to decide` : ''}`
-    : 'nothing written down';
-  row(2, 'FOUND', found, r.found.undecided ? WARN : INK2);
+  row(2, 'FOUND', foundWords(r.found), r.found.undecided ? WARN : INK2);
 
   const next = r.next
     ? [r.next.what, r.next.owner || 'nobody yet', r.next.due].filter(Boolean).join(' · ')

@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  actionOf, foundTally, standingOfItem,
+  actionOf, foundTally, foundWords, standingOfItem,
   OUTCOME_WORD, byWhenPlanned, byWhenRun, hasRun, isOpen, isOverdue, itemsOf,
   nextFrom, standing, standsAt, weeksTo,
   type Test, type TestItem,
@@ -320,5 +320,36 @@ describe('observations, and the ones somebody decides to action', () => {
   it('leaves a deleted observation out of the count entirely', () => {
     const rows = [item('t1', { id: 'o1' }), item('t1', { id: 'o2', deletedAt: 3 })];
     expect(foundTally(rows, rows).written).toBe(1);
+  });
+});
+
+/* THE ONE SENTENCE THE SCREEN AND THE PDF BOTH PRINT.
+ *
+ * It was written out five times and all five said "N actioned" — the noun
+ * Rowland had already taken out of the app, still being read back to him on
+ * the test screen, on the card, on the client report and in both PDFs. Whole
+ * strings, not toContain: a count printed with the wrong word, or without its
+ * number, is exactly the class of fault that slipped through twice before. */
+describe('what the tally says in words', () => {
+  it('names a single one in the singular', () => {
+    expect(foundWords({ written: 3, actioned: 1, undecided: 1 }))
+      .toBe('3 written down · 1 became a fix · 1 to decide');
+  });
+
+  it('names several in the plural', () => {
+    expect(foundWords({ written: 5, actioned: 2, undecided: 0 }))
+      .toBe('5 written down · 2 became fixes');
+  });
+
+  it('leaves out a count it has nothing for', () => {
+    expect(foundWords({ written: 2, actioned: 0, undecided: 0 })).toBe('2 written down');
+  });
+
+  it('says plainly when nothing was written down', () => {
+    expect(foundWords({ written: 0, actioned: 0, undecided: 0 })).toBe('nothing written down');
+  });
+
+  it('never says the word action', () => {
+    expect(foundWords({ written: 9, actioned: 4, undecided: 2 })).not.toMatch(/action/i);
   });
 });

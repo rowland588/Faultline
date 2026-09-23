@@ -28,7 +28,7 @@ import {
   fit, san, setFont, wash, type Doc,
 } from './reportKit';
 import type { TrialCard } from './trialCard';
-import { WORDS } from './testing';
+import { foundWords, WORDS } from './testing';
 
 const M = 30;                       // the margin, A4 landscape
 const nice = (iso?: string): string => {
@@ -343,9 +343,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const nH = nextHeights(d, c, CW - 28);
   const room = bottom - y;
 
-  const foundSub = c.found.written
-    ? `${c.found.written} written down · ${c.found.actioned} actioned${c.found.undecided ? ` · ${c.found.undecided} to decide` : ''}`
-    : 'nothing written down';
+  const foundSub = foundWords(c.found);
   const nextSub = c.next.length
     ? `${c.openNext} still to do of ${c.next.length}`
     : 'nothing agreed yet';

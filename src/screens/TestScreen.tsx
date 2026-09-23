@@ -28,7 +28,7 @@ import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
-  WORDS, outcomeWord, foundTally, itemsOf, standingOfItem,
+  WORDS, outcomeWord, foundTally, foundWords, itemsOf, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -353,13 +353,7 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
    * going wrong, when what had happened was that five things were noticed. An
    * observation is written down; it is not open. */
   const count = kind === 'found'
-    ? (() => {
-        const t = foundTally(rows, tt.items);
-        const bits = [`${t.written} written down`];
-        if (t.actioned) bits.push(`${t.actioned} actioned`);
-        if (t.undecided) bits.push(`${t.undecided} to decide`);
-        return bits.join(' · ');
-      })()
+    ? foundWords(foundTally(rows, tt.items))
     : (() => {
         const open = rows.filter(r => r.doneAt == null).length;
         return open > 0 ? `${open} to do of ${rows.length}` : `${rows.length} done`;
@@ -412,23 +406,29 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
   const observation = item.kind === 'found';
   const st = observation ? standingOfItem(item, tt.items) : undefined;
 
+  /* THE TICK ON AN OBSERVATION MEANS "THIS IS A FIX", AND IT GOES BOTH WAYS.
+     Rowland: "when I take [an observation] to send to fix, I can't untick."
+     It refused, on the grounds that you undid it by deleting the action — and
+     there are no actions any more, so that was a dead end with nothing behind
+     it. Ticking makes the fix; ticking again takes it back, and the fix it
+     made goes with it unless somebody has already worked on that fix. */
+  const decided = st === 'actioned';
   const tick = observation
-    ? () => {
-        if (st === 'actioned') return;              // undo by deleting the action
-        void tt.actionItem(item);
-      }
+    ? () => void (decided
+        ? tt.unmakeFix(item)
+        : tt.planNextFrom(test, item.id, item.what, 'fix', item.what))
     : () => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() });
 
   return (
     <div className={'tw-item' + (done && !observation ? ' is-done' : '') + (st ? ' is-' + st : '')}>
       <button
-        className={'tw-tick' + (st === 'actioned' ? ' is-on' : '')}
+        className={'tw-tick' + (decided ? ' is-on' : '')}
         aria-label={observation
-          ? (st === 'actioned' ? 'Already an action' : 'Make this an action')
+          ? (decided ? 'Not a fix after all' : 'Make this a fix')
           : (done ? 'Re-open' : 'Mark done')}
         onClick={tick}
       >
-        {(observation ? st === 'actioned' : done) ? TICK : null}
+        {(observation ? decided : done) ? TICK : null}
       </button>
       <button className="tw-item-m" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <b>{item.what}</b>
@@ -436,10 +436,16 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
           {item.owner ?? (item.kind === 'next' ? 'nobody yet' : '')}
           {item.due && ` · by ${nice(item.due)}`}
           {!observation && done && ' · done'}
-          {st === 'actioned' && ' · actioned'}
-          {st === 'noted' && ' · no action needed'}
+          {/* ONE PHRASE, NOT TWO. Saying both "a fix" and "became a fix" on the
+              same row is the sort of thing that only shows up when you look at
+              it: the record it became is the more useful of the two, because it
+              names which. The bare word is for the old line-under-a-test shape,
+              which has no record to name. */}
+          {item.becameTestId
+            ? ` · became a ${tt.tests.find(t => t.id === item.becameTestId)?.kind === 'fix' ? 'fix' : 'test'}`
+            : decided && ' · a fix'}
+          {st === 'noted' && ' · not a problem'}
           {item.fromItemId && ' · from an observation'}
-          {item.becameTestId && ` · became a ${tt.tests.find(t => t.id === item.becameTestId)?.kind === 'fix' ? 'fix' : 'test'}`}
         </span>
       </button>
       {(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={38} onClick={() => onView(m)} />)}
@@ -466,7 +472,23 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
           {observation && (
             <span className="tw-decide">
               {item.becameTestId
-                  ? <span className="sub">It became its own record — open it from the link above.</span>
+                  ? (
+                    <>
+                      <button className="btn btn-sm"
+                        onClick={() => nav(`/project/${test.projectId}/testing/${encodeURIComponent(item.becameTestId ?? '')}`)}>
+                        Open the fix
+                      </button>
+                      {/* THE WAY BACK. The consequence is written beside the
+                          button, not reported after it: an untouched fix goes
+                          with the undo, a fix somebody has worked on stays. */}
+                      <button className="btn btn-ghost btn-sm" onClick={() => void tt.unmakeFix(item)}>
+                        Not a fix after all
+                      </button>
+                      {!tt.fixUntouched(item) && (
+                        <span className="sub">The fix keeps what is written on it and stays on the Fixes tab.</span>
+                      )}
+                    </>
+                  )
                   : (
                     <>
                       <button className="btn btn-sm" onClick={() => void (async () => {
@@ -536,19 +558,24 @@ function MediaStrip({ media, size, onAdd, onView }: {
   onView: (m: MediaRef) => void;
 }) {
   const [filming, setFilming] = useState(false);
-  const [busy, setBusy] = useState<'' | 'photo' | 'upload'>('');
   const [note, setNote] = useState<string | null>(null);
 
-  const take = async (what: '' | 'photo' | 'upload', get: () => Promise<MediaRef[]>) => {
-    setBusy(what);
-    setNote(null);
+  /* NOTHING HERE IS EVER DISABLED WHILE A PICKER IS OPEN, and that is the
+     point. It was, for one build: tap a door, change your mind, back out of
+     the picker, and every button in the row was dead until you left the
+     screen — because a picker that is dismissed rather than used reports
+     nothing at all on some browsers, so the "still working" flag never came
+     off. Reported as, exactly, "photos and video and upload video don't work".
+     A second tap while one is open is a far cheaper fault than a row that
+     cannot be tapped at all, so the word is the only thing that changes. */
+  const take = async (busyNote: string | null, get: () => Promise<MediaRef[]>) => {
+    setNote(busyNote);
     try {
       const refs = await get();
       if (refs.length) await onAdd(refs);
+      setNote(null);
     } catch {
       setNote('That wouldn’t attach — the device may be out of room.');
-    } finally {
-      setBusy('');
     }
   };
 
@@ -556,28 +583,30 @@ function MediaStrip({ media, size, onAdd, onView }: {
     <div className="tw-media">
       {media.map(m => <EvidenceThumb key={m.id} media={m} size={size} onClick={() => onView(m)} />)}
 
-      <button className="tw-att" disabled={busy !== ''}
-        onClick={() => void take('photo', async () => { const r = await captureMedia('photo'); return r ? [r] : []; })}>
+      <button className="tw-att"
+        onClick={() => void take(null, async () => { const r = await captureMedia('photo'); return r ? [r] : []; })}>
         📷 Photo
       </button>
 
       {/* Filming stays in the app rather than handing off to the camera app, so
           several clips can be shot back to back — see VideoRecorder for why. */}
       {videoCaptureSupported() && (
-        <button className="tw-att" disabled={busy !== ''} onClick={() => setFilming(true)}>🎥 Video</button>
+        <button className="tw-att" onClick={() => setFilming(true)}>🎥 Video</button>
       )}
 
-      {/* Photos AND video, several at once, from the gallery or a laptop. */}
-      <button className="tw-att" disabled={busy !== ''}
-        onClick={() => void take('upload', () => pickExistingMedia())}>
-        {busy === 'upload' ? 'Adding…' : '⬆ Upload'}
+      {/* Photos AND video, several at once, from the gallery or a laptop. A
+          phone clip is converted on the way in, which takes a moment, hence
+          the word. */}
+      <button className="tw-att"
+        onClick={() => void take('Adding…', () => pickExistingMedia())}>
+        ⬆ Upload
       </button>
 
-      {note && <span className="sub is-r" role="alert">{note}</span>}
+      {note && <span className="sub" role="status">{note}</span>}
 
       {filming && (
         <VideoRecorder
-          onCapture={b => { void take('', async () => [await saveVideoBlob(b)]); setFilming(false); }}
+          onCapture={b => { void take('Saving the clip…', async () => [await saveVideoBlob(b)]); setFilming(false); }}
           onClose={() => setFilming(false)} />
       )}
     </div>

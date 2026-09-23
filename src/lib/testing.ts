@@ -335,6 +335,21 @@ export function foundTally(found: TestItem[], items: TestItem[]): FoundTally {
   return { written: rows.length, actioned, noted, undecided: rows.length - actioned - noted };
 }
 
+/** WHAT THE TALLY SAYS, IN WORDS, IN ONE PLACE.
+ *
+ *  This sentence was written out five times — the test screen, the card
+ *  screen, the client report screen, and both PDFs — and all five said
+ *  "N actioned", which is the noun Rowland had already taken out of the app.
+ *  One copy, so the screen and the document cannot say it differently, which is
+ *  the point of the rule about designing the two halves together. */
+export const foundWords = (t: Pick<FoundTally, 'written' | 'actioned' | 'undecided'>): string => {
+  if (t.written === 0) return 'nothing written down';
+  const bits = [`${t.written} written down`];
+  if (t.actioned) bits.push(t.actioned === 1 ? '1 became a fix' : `${t.actioned} became fixes`);
+  if (t.undecided) bits.push(`${t.undecided} to decide`);
+  return bits.join(' · ');
+};
+
 /** Has the day happened yet. */
 export const hasRun = (t: Test): boolean => t.outcome !== 'planned';
 
