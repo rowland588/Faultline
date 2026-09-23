@@ -171,6 +171,45 @@ describe('the plan', () => {
   });
 });
 
+describe('a fix that did not fix it', () => {
+  /* Rowland: "if I change the status from fixed to not fixed, because that's
+     what happens, it still falls under done." */
+  it('is still outstanding, because the problem is still there', () => {
+    const s = at({ tests: [test({
+      kind: 'fix', plannedFor: '2026-09-20', ranOn: '2026-09-20', outcome: 'failed',
+    })] });
+    expect(row(s, 'fixes')?.open).toBe(1);
+    expect(s.outstanding).toBe(1);
+  });
+
+  it('is late once the day has gone, the same as one never attempted', () => {
+    const s = at({ tests: [test({
+      kind: 'fix', plannedFor: '2026-09-15', ranOn: '2026-09-15', outcome: 'failed',
+    })] });
+    expect(row(s, 'fixes')?.late).toBe(1);
+  });
+
+  it('drops off the list only when it is actually fixed', () => {
+    const s = at({ tests: [test({
+      kind: 'fix', plannedFor: '2026-09-20', ranOn: '2026-09-20', outcome: 'passed',
+    })] });
+    expect(s.rows.find(r => r.key === 'fixes')).toBeUndefined();
+    expect(s.outstanding).toBe(0);
+  });
+
+  it('did not happen at all — also still outstanding', () => {
+    const s = at({ tests: [test({ kind: 'fix', plannedFor: '2026-09-20', outcome: 'notRun' })] });
+    expect(row(s, 'fixes')?.open).toBe(1);
+  });
+
+  /* A TEST is the other way round and stays that way: it ran, it told you
+     something, and what you do about it is a new record. */
+  it('leaves a failed TEST settled, which is not the same question', () => {
+    const s = at({ tests: [test({ plannedFor: '2026-09-20', ranOn: '2026-09-20', outcome: 'failed' })] });
+    expect(s.rows.find(r => r.key === 'tests')).toBeUndefined();
+  });
+});
+
 describe('one noun, not two', () => {
   /* Rowland, on action versus fix: "I don't think there is a difference — as a
      matter of fact they're just fixes." The table has one row for them now, so

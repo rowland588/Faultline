@@ -29,7 +29,7 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  hasRun, isOverdue, live, standingOfItem,
+  hasRun, isOverdue, isSettled, live, standingOfItem,
   type Asset, type Test, type TestItem,
 } from './testing';
 
@@ -138,9 +138,9 @@ export function standing(input: StandingInput): Standing {
      isOverdue — but they are owed by different people and read as different
      news, so a client gets two rows rather than one number hiding both. */
   const isFix = (t: Test) => t.kind === 'fix';
-  const testsOpen = tests.filter(t => !isFix(t) && !hasRun(t));
+  const testsOpen = tests.filter(t => !isFix(t) && !isSettled(t));
   const testsLate = testsOpen.filter(isOverdue);
-  const fixesOpen = tests.filter(t => isFix(t) && !hasRun(t));
+  const fixesOpen = tests.filter(t => isFix(t) && !isSettled(t));
   const fixesLate = fixesOpen.filter(isOverdue);
 
   const matsOpen = materials.filter(m => !isHere(m));

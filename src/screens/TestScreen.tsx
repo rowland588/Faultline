@@ -99,7 +99,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
-        { label: 'Testing', to: `/project/${projectId}/testing` },
+        /* A fix walks back to Fixes, a test to Testing — the spine has to lead
+           where you came from, which for a fix has not been Testing since it
+           got its own tab. */
+        kind === 'fix'
+          ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
+          : { label: 'Testing', to: `/project/${projectId}/testing` },
         { label: test.title },
       ]} />
 
@@ -224,15 +229,30 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         Carries the machine, the product and the expectation forward, so the plan writes itself.
       </p>
 
+      {/* DELETING SAYS WHICH THING IT IS DELETING. It said "Delete this test"
+          on a fix, which is the kind of wrong word that makes somebody stop and
+          wonder what they are about to lose.
+
+          And the warning counts what actually goes: the observations written
+          under it. The fixes that came OUT of it are their own records now and
+          survive — so saying they would go with it would be a lie, and a lie
+          on a confirm box is the worst place for one. */}
       <div className="cm-foot">
         <button className="btn btn-ghost cw-del" onClick={() => void (async () => {
           const c = await tt.testCost(test.id);
-          const n = c.found + c.next;
-          const warn = n > 0
-            ? `Delete “${test.title}”?\n\nIts ${c.found} finding${c.found === 1 ? '' : 's'} and ${c.next} next step${c.next === 1 ? '' : 's'} go with it. That cannot be undone.`
+          const out = tt.tests.filter(x => x.fromTestId === test.id && !x.deletedAt).length;
+          const bits = [
+            c.found > 0 && `${c.found} observation${c.found === 1 ? '' : 's'} go${c.found === 1 ? 'es' : ''} with it`,
+            out > 0 && `${out} ${out === 1 ? 'record that came out of it stays' : 'records that came out of it stay'}`,
+          ].filter(Boolean);
+          const warn = bits.length
+            ? `Delete “${test.title}”?\n\n${bits.join('. ')}. Deleting cannot be undone.`
             : `Delete “${test.title}”?`;
-          if (confirm(warn)) { await tt.removeTest(test.id); nav(`/project/${projectId}/testing`); }
-        })()}>Delete this test</button>
+          if (confirm(warn)) {
+            await tt.removeTest(test.id);
+            nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : 'testing'}`);
+          }
+        })()}>Delete this {words.one.toLowerCase()}</button>
       </div>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}

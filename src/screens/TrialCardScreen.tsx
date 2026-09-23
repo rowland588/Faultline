@@ -133,7 +133,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   if (!test) {
     return (
       <div className="wrap pace">
-        <p className="sub">That trial isn’t here any more.</p>
+        <p className="sub">That record isn’t here any more.</p>
         <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>Back to testing</button>
       </div>
     );
@@ -168,7 +168,9 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
-        { label: 'Testing', to: `/project/${projectId}/testing` },
+        c.kind === 'fix'
+          ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
+          : { label: 'Testing', to: `/project/${projectId}/testing` },
         { label: c.title, to: `/project/${projectId}/testing/${encodeURIComponent(testId)}` },
         { label: `${words.one} card` },
       ]} />

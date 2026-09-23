@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { actionOf, foundTally, hasRun, live, outcomeWord, standingOfItem, type Asset, type Test, type TestItem, type TestKind } from './testing';
+import { actionOf, foundTally, isSettled, live, outcomeWord, standingOfItem, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
   what: string;
@@ -142,13 +142,13 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
       owner: n.withWhom,
       /* The day it is wanted BY, which on a block of days is the last of them. */
       due: n.plannedTo ?? n.plannedFor,
-      done: hasRun(n),
+      done: isSettled(n),
       /* True when an observation on this card points at it — the chain from
          "I saw this" to "so we are doing this", readable on the page. */
       fromFinding: mine.some(i => i.becameTestId === n.id),
       becameTest: (n.kind ?? 'test') === 'test',
     })),
-    openNext: nexts.filter(n => !hasRun(n)).length,
+    openNext: nexts.filter(n => !isSettled(n)).length,
 
     follows: test.fromTestId ? live(tests).find(t => t.id === test.fromTestId)?.title : undefined,
     ledTo: live(tests).filter(t => t.fromTestId === test.id).map(t => t.title),

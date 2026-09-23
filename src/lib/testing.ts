@@ -338,6 +338,26 @@ export function foundTally(found: TestItem[], items: TestItem[]): FoundTally {
 /** Has the day happened yet. */
 export const hasRun = (t: Test): boolean => t.outcome !== 'planned';
 
+/** OFF THE LIST, OR STILL ON IT — and it is not the same question as whether
+ *  the day happened.
+ *
+ *  Rowland: "if I change the status from fixed to not fixed, because that's
+ *  what happens, it still falls under done."
+ *
+ *  For a TEST, any outcome settles it: a test that ran and failed still told
+ *  you something, and what you do about it is a NEW record. `notRun` is the
+ *  same — a recorded answer, deliberately not the same as still being planned.
+ *
+ *  For a FIX, the work is the point. "Didn't fix it" means the problem is still
+ *  there and somebody is still going to have to deal with it, so it stays on
+ *  the list until it is actually fixed. Using "has the day happened" for both
+ *  put a fix that had failed under Done, which is the opposite of true.
+ *
+ *  This decides both lists, the verdict's count, the row in what we are waiting
+ *  on and whether something can be late — so it is asked in one place. */
+export const isSettled = (t: Test): boolean =>
+  t.kind === 'fix' ? t.outcome === 'passed' : hasRun(t);
+
 const todayISO = (): string => new Date().toISOString().slice(0, 10);
 
 /** Planned for a date that has been and gone, and still not run. */
@@ -355,7 +375,7 @@ export const ranEnd = (t: Test): string | undefined => t.ranTo ?? t.ranOn;
  *  is the only place the question is asked. */
 export const isOverdue = (t: Test): boolean => {
   const end = plannedEnd(t);
-  return !hasRun(t) && !!end && end < todayISO();
+  return !isSettled(t) && !!end && end < todayISO();
 };
 
 /** Newest first for what has happened; soonest first for what has not. A list
@@ -395,8 +415,8 @@ export function standing(tests: Test[], items: TestItem[]): Standing {
   // An item whose test was deleted is not counted against anybody.
   const mine = its.filter(i => ids.has(i.testId));
 
-  const upcoming = ts.filter(t => !hasRun(t)).sort(byWhenPlanned);
-  const done = ts.filter(hasRun).sort(byWhenRun);
+  const upcoming = ts.filter(t => !isSettled(t)).sort(byWhenPlanned);
+  const done = ts.filter(isSettled).sort(byWhenRun);
   const observations = mine.filter(i => i.kind === 'found');
   const undecided = observations.filter(i => standingOfItem(i, mine) === 'new');
   const openNext = mine.filter(i => i.kind === 'next' && isOpen(i));
