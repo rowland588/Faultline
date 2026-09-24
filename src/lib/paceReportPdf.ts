@@ -568,18 +568,36 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
         const wWords = d.getTextWidth(words);
         setFont(d, 6.5, 'normal', MUTED);
         const wWhen = d.getTextWidth(when) + 4;
-        const flip = mx + 6 + wWords + wWhen > right;
+        /* A BAR'S LABEL STARTS WHERE THE BAR ENDS. The layout already reserved
+           its room there (lib/plan footprint); drawing it from the start dot
+           ran the bar straight through the machine's own name, which on a
+           phone read as the name being struck out. */
+        const ex = m.until != null && m.until > m.at ? at(m.until) : mx;
+        const flip = ex + 6 + wWords + wWhen > right;
+        /* A white backing under the words, so the Today and date rules run
+           behind a label rather than through it. */
+        const knock = (x: number, w: number) => {
+          d.setFillColor(255, 255, 255);
+          d.rect(x - 1.5, cy - 4.6, w + 3, 9, 'F');
+        };
 
         if (flip) {
+          const shown = fit(d, words, mx - 6 - wWhen - trackX + PLAN_LANE_W);
+          setFont(d, 7.5, 'bold', INK);
+          const wShown = d.getTextWidth(shown);
+          knock(mx - 6 - wWhen - wShown, wShown + wWhen);
           setFont(d, 6.5, 'normal', MUTED);
           d.text(when, mx - 6, cy + 2.4, { align: 'right' });
           setFont(d, 7.5, 'bold', INK);
-          d.text(fit(d, words, mx - 6 - wWhen - trackX + PLAN_LANE_W), mx - 6 - wWhen, cy + 2.4, { align: 'right' });
+          d.text(shown, mx - 6 - wWhen, cy + 2.4, { align: 'right' });
         } else {
           setFont(d, 7.5, 'bold', INK);
-          d.text(fit(d, words, right - mx - 6 - wWhen), mx + 6, cy + 2.4);
+          const shown = fit(d, words, right - ex - 6 - wWhen);
+          const wShown = d.getTextWidth(shown);
+          knock(ex + 6, wShown + wWhen);
+          d.text(shown, ex + 6, cy + 2.4);
           setFont(d, 6.5, 'normal', MUTED);
-          d.text(when, mx + 6 + Math.min(wWords, right - mx - 6 - wWhen) + 4, cy + 2.4);
+          d.text(when, ex + 6 + wShown + 4, cy + 2.4);
         }
       }
       ly += rowH;
