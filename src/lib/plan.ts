@@ -329,9 +329,11 @@ export function planSays(marks: PlanMark[], today: string): string {
   if (marks.length === 0) return 'Nothing on any list carries a date yet.';
   const done = marks.filter(m => m.tone === 'done').length;
   const late = marks.filter(m => m.tone === 'late').length;
+  const ran = marks.filter(m => m.tone === 'ran').length;
   const ahead = marks.filter(m => m.at > today).length;
   const bits = [`${done} of ${marks.length} done`];
   if (ahead) bits.push(`${ahead} still ahead`);
+  if (ran) bits.push(`${ran} waiting on a verdict`);
   if (late) bits.push(`${late} past the day`);
   return bits.join(' · ');
 }

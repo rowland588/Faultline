@@ -406,6 +406,7 @@ function planInk(tone: PlacedMark['tone']): { colour: string; filled: boolean } 
   switch (tone) {
     case 'done': return { colour: OK, filled: true };
     case 'failed': return { colour: DANGER, filled: true };
+    case 'ran': return { colour: WARN, filled: true };
     case 'late': return { colour: DANGER, filled: false };
     case 'booked': return { colour: BLUE, filled: false };
     default: return { colour: MUTED, filled: false };
@@ -606,6 +607,8 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   };
   key('done', 'done');
   key('failed', 'ran, didn’t pass');
+  /* Only when there is one on the sheet — the key is the rule, not a menu. */
+  if (pl.lanes.some(l => l.rows.some(r => r.some(m => m.tone === 'ran')))) key('ran', 'ran, no verdict yet');
   key('late', 'the day has gone');
   key('booked', 'still ahead');
   setFont(d, 6.5, 'normal', MUTED);

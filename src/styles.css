@@ -5762,11 +5762,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 .tl-m.is-done   { color: var(--ok); }
 .tl-m.is-failed { color: var(--danger); }
+.tl-m.is-ran    { color: var(--warn); }
 .tl-m.is-late   { color: var(--danger); }
 .tl-m.is-booked { color: var(--blue); }
 .tl-m.is-none   { color: var(--line-2); }
 /* filled means it happened — the whole of the second half of the rule */
-.tl-m.is-done .tl-dot, .tl-m.is-failed .tl-dot { background: currentColor; }
+.tl-m.is-done .tl-dot, .tl-m.is-failed .tl-dot, .tl-m.is-ran .tl-dot { background: currentColor; }
 /* a day that has gone, or a run that did not pass, says so in the date too */
 .tl-m.is-late .tl-lab-d, .tl-m.is-failed .tl-lab-d { color: currentColor; font-weight: 700; }
 
@@ -5795,6 +5796,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tl-k { width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; }
 .tl-k.is-done   { color: var(--ok); background: currentColor; }
 .tl-k.is-failed { color: var(--danger); background: currentColor; }
+.tl-k.is-ran    { color: var(--warn); background: currentColor; }
 .tl-k.is-late   { color: var(--danger); background: var(--surface); }
 .tl-k.is-booked { color: var(--blue); background: var(--surface); }
 .tl-kl { width: 0; height: 12px; border-left: 2px solid var(--ink); }
@@ -5839,10 +5841,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   }
   .tl-ag-item.is-done   { color: var(--ok); }
   .tl-ag-item.is-failed { color: var(--danger); }
+  .tl-ag-item.is-ran    { color: var(--warn); }
   .tl-ag-item.is-late   { color: var(--danger); }
   .tl-ag-item.is-booked { color: var(--blue); }
   .tl-ag-item.is-none   { color: var(--line-2); }
-  .tl-ag-item.is-done .tl-ag-dot, .tl-ag-item.is-failed .tl-ag-dot { background: currentColor; }
+  .tl-ag-item.is-done .tl-ag-dot, .tl-ag-item.is-failed .tl-ag-dot, .tl-ag-item.is-ran .tl-ag-dot { background: currentColor; }
   .tl-ag-item.is-late .tl-ag-when, .tl-ag-item.is-failed .tl-ag-when { color: currentColor; font-weight: 700; }
   .tl-ag-key { list-style: none; margin-top: 14px; }
 }

@@ -188,6 +188,8 @@ export function Timeline({ marks, today, expectedAt, plannedAt }: {
   );
   const agenda = useMemo(() => planAgenda(marks), [marks]);
   const says = useMemo(() => planSays(marks, today), [marks, today]);
+  /* The key names only what is on the sheet — five entries every time is a menu. */
+  const anyRan = marks.some(m => m.tone === 'ran');
 
   /* A project where nothing carries a date has no plan to draw, and an axis
      with an empty middle reads as a fault rather than as an absence. */
@@ -280,6 +282,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt }: {
         <p className="tl-key sub">
           <span className="tl-key-i"><span className="tl-k is-done" />done</span>
           <span className="tl-key-i"><span className="tl-k is-failed" />ran, didn’t pass</span>
+          {anyRan && <span className="tl-key-i"><span className="tl-k is-ran" />ran, no verdict yet</span>}
           <span className="tl-key-i"><span className="tl-k is-late" />the day has gone</span>
           <span className="tl-key-i"><span className="tl-k is-booked" />still ahead</span>
           {axis.today != null && <span className="tl-key-i"><span className="tl-kl is-today" />today</span>}
@@ -311,6 +314,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt }: {
         <li className="tl-ag-key sub">
           <span className="tl-key-i"><span className="tl-k is-done" />done</span>
           <span className="tl-key-i"><span className="tl-k is-failed" />ran, didn’t pass</span>
+          {anyRan && <span className="tl-key-i"><span className="tl-k is-ran" />ran, no verdict yet</span>}
           <span className="tl-key-i"><span className="tl-k is-late" />the day has gone</span>
           <span className="tl-key-i"><span className="tl-k is-booked" />still ahead</span>
         </li>

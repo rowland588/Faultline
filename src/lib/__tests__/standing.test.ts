@@ -169,6 +169,34 @@ describe('the plan', () => {
     const s = at({ tests: [test({ ranOn: '2026-09-16', outcome: 'notRun' })] });
     expect(s.plan[0].tone).toBe('late');
   });
+
+  /* Page 1 of the client report said NOT PROVED for the run that had happened
+     and not been called; the chart on page 2 drew it hollow blue — "still
+     ahead". It happened, so it is filled; nobody has said whether it was good,
+     so it is neither green nor red. */
+  it('draws a test that ran and has no verdict yet as its own thing, not as still ahead', () => {
+    const s = at({ tests: [test({ plannedFor: '2026-09-20', ranOn: '2026-09-21', result: 'reached 90%' })] });
+    expect(s.plan[0]).toMatchObject({ at: '2026-09-21', tone: 'ran' });
+  });
+});
+
+/* THE SAME RULE AS PAGE 1. The report's first sheet counts a test that did not
+   run as still owed and past its day. The second sheet used to drop it —
+   isSettled calls the day settled — so one document said "3 past the day" and
+   then "2 of them, and they are all Ishida's". */
+describe('a test that did not run', () => {
+  it('is still to run, and late', () => {
+    const s = at({ tests: [test({ plannedFor: '2026-09-18', outcome: 'notRun', withWhom: 'Ilapak UK' })] });
+    expect(row(s, 'tests')).toMatchObject({ open: 1, late: 1, whose: 'Ilapak UK' });
+  });
+
+  it('is never more late than open', () => {
+    const s = at({ tests: [
+      test({ plannedFor: '2026-09-18', outcome: 'notRun' }),
+      test({ plannedFor: '2026-09-29' }),
+    ] });
+    expect(row(s, 'tests')).toMatchObject({ open: 2, late: 1 });
+  });
 });
 
 describe('a fix that did not fix it', () => {
@@ -341,6 +369,37 @@ describe('the sentence', () => {
     const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-21' });
     expect(s.sentence).toContain('1 day past the date');
     expect(s.sentence).not.toContain('1 days');
+  });
+
+  /* Ishida owned three of the four open tests; the one late one was Ilapak's.
+     The headline read "and they are all Ishida Europe's", off who owned most
+     of the OPEN work. The late name is the one the sentence is about. */
+  it('blames whoever owns the LATE work, not whoever owns most of the open work', () => {
+    const s = at({
+      tests: [
+        test({ plannedFor: '2026-09-18', outcome: 'notRun', withWhom: 'Ilapak UK' }),
+        test({ plannedFor: '2026-09-29', withWhom: 'Ishida Europe' }),
+        test({ plannedFor: '2026-09-30', withWhom: 'Ishida Europe' }),
+        test({ plannedFor: '2026-10-01', withWhom: 'Ishida Europe' }),
+      ],
+      expectedAt: '2026-10-06',
+    });
+    expect(row(s, 'tests')).toMatchObject({ whose: 'Ishida Europe × 3', lateWhose: 'Ilapak UK' });
+    expect(s.sentence).toBe(
+      '14 days to go, with 4 things outstanding — one is past the day it was wanted, and it is Ilapak UK’s.',
+    );
+  });
+
+  it('names nobody when the late work in one row is split', () => {
+    const s = at({
+      tests: [
+        test({ plannedFor: '2026-09-18', outcome: 'notRun', withWhom: 'Ilapak UK' }),
+        test({ plannedFor: '2026-09-17', outcome: 'notRun', withWhom: 'Ilapak UK' }),
+        test({ plannedFor: '2026-09-16', outcome: 'notRun', withWhom: 'Ishida Europe' }),
+      ],
+    });
+    expect(s.sentence).toContain('3 of them are past the day it was wanted.');
+    expect(s.sentence).not.toContain('Ilapak');
   });
 
   it('does not name anybody when the late work is spread between them', () => {

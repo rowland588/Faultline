@@ -29,7 +29,7 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  hasRun, isOverdue, isSettled, live, standingOfItem,
+  hasRun, isOverdue, isSettled, live, needsVerdict, standingOfItem,
   type Asset, type Test, type TestItem,
 } from './testing';
 
@@ -45,6 +45,11 @@ export interface OutstandingRow {
   late: number;
   /** "Brilopak × 2", when one name owns more of it than anyone else. */
   whose?: string;
+  /** Who owns the LATE ones. The headline blames off this, not off `whose`:
+   *  three open with Ishida and the one late one Ilapak's used to print
+   *  "and they are all Ishida Europe's" — the late name is the one that
+   *  matters, and it is not always the busiest. */
+  lateWhose?: string;
 }
 
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
@@ -56,8 +61,9 @@ export interface PlanMark {
   until?: string;
   label: string;
   /** done = it happened and it was good · failed = it happened and it wasn't
+   *  ran = it happened and nobody has said which yet
    *  booked = still ahead of us · late = the day has gone · none = no date agreed */
-  tone: 'done' | 'failed' | 'booked' | 'late' | 'none';
+  tone: 'done' | 'failed' | 'ran' | 'booked' | 'late' | 'none';
 }
 
 export interface Standing {
@@ -139,9 +145,15 @@ export function standing(input: StandingInput): Standing {
      isOverdue — but they are owed by different people and read as different
      news, so a client gets two rows rather than one number hiding both. */
   const isFix = (t: Test) => t.kind === 'fix';
-  const testsOpen = tests.filter(t => !isFix(t) && !isSettled(t));
+  /* A TEST THAT DID NOT RUN IS STILL TO RUN. isSettled calls its day settled —
+     the day happened — but the client is owed the demonstration until it is
+     rebooked, which is exactly the rule page 1 of the report draws its "Past
+     the day" tile by. Leaving notRun out here is how one document said "3
+     past the day" on the first sheet and "2, all Ishida's" on the second. */
+  const owed = (t: Test) => !isSettled(t) || t.outcome === 'notRun';
+  const testsOpen = tests.filter(t => !isFix(t) && owed(t));
   const testsLate = testsOpen.filter(isOverdue);
-  const fixesOpen = tests.filter(t => isFix(t) && !isSettled(t));
+  const fixesOpen = tests.filter(t => isFix(t) && owed(t));
   const fixesLate = fixesOpen.filter(isOverdue);
 
   const matsOpen = materials.filter(m => !isHere(m));
@@ -171,15 +183,15 @@ export function standing(input: StandingInput): Standing {
 
   const rows: OutstandingRow[] = ([
     { key: 'tests', what: 'Tests still to run', open: testsOpen.length, late: testsLate.length,
-      whose: mostlyWhose(testsOpen.map(t => t.withWhom)) },
+      whose: mostlyWhose(testsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(testsLate.map(t => t.withWhom)) },
     { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length,
-      whose: mostlyWhose(fixesOpen.map(t => t.withWhom)) },
+      whose: mostlyWhose(fixesOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(fixesLate.map(t => t.withWhom)) },
     { key: 'materials', what: 'Materials not here', open: matsOpen.length, late: matsLate.length,
-      whose: mostlyWhose(matsOpen.map(m => m.from)) },
+      whose: mostlyWhose(matsOpen.map(m => m.from)), lateWhose: mostlyWhose(matsLate.map(m => m.from)) },
     { key: 'programs', what: 'Programs not proved', open: progsOpen.length, late: progsLate.length,
-      whose: mostlyWhose(progsOpen.map(p => p.from)) },
+      whose: mostlyWhose(progsOpen.map(p => p.from)), lateWhose: mostlyWhose(progsLate.map(p => p.from)) },
     { key: 'machines', what: 'Machines not running', open: machOpen.length, late: machLate.length,
-      whose: mostlyWhose(machOpen.map(a => a.oem)) },
+      whose: mostlyWhose(machOpen.map(a => a.oem)), lateWhose: mostlyWhose(machLate.map(a => a.oem)) },
     /* An observation is never LATE. Nobody agreed a day for it — it is waiting
        on somebody to say whether it matters, which is a different thing. */
     { key: 'observations', what: 'Observations to decide on', open: undecided.length, late: 0,
@@ -207,10 +219,14 @@ export function standing(input: StandingInput): Standing {
       until: until && until > at ? until : undefined,
       label: t.title,
       /* notRun is "the day has gone" (hollow red), not "ran, didn't pass"
-         (filled red) — the key says filled means it happened, and it didn't. */
+         (filled red) — the key says filled means it happened, and it didn't.
+         Ran and not yet called is its own thing: it happened (filled), and
+         the colour cannot say good or bad because nobody has. It drew as
+         "still ahead" while page 1 of the same report said NOT PROVED. */
       tone: t.outcome === 'passed' ? 'done'
         : t.outcome === 'failed' ? 'failed'
-          : t.outcome === 'notRun' || isOverdue(t) ? 'late' : 'booked',
+          : needsVerdict(t) ? 'ran'
+            : t.outcome === 'notRun' || isOverdue(t) ? 'late' : 'booked',
     });
   }
 
@@ -280,8 +296,15 @@ function sentenceFor(x: {
   /* Who owns the late work. Naming them is the difference between a confession
      and a document you can hand to the OEM. */
   const lateRows = x.rows.filter(r => r.late > 0);
-  const owners = new Set(lateRows.map(r => r.whose?.split(' × ')[0]).filter(Boolean));
-  const blame = x.late > 0 && owners.size === 1
+  /* Off the LATE names — `whose` is who owns most of the open work, and the
+     one late thing is not always theirs. Only when every late row names one
+     party, and that party owns every late thing in it. */
+  const owners = new Set(lateRows.map(r => r.lateWhose?.split(' × ')[0]).filter(Boolean));
+  const allTheirs = lateRows.every(r => {
+    const [name, n] = (r.lateWhose ?? '').split(' × ');
+    return !!name && (n ? Number(n) : 1) === r.late;
+  });
+  const blame = x.late > 0 && owners.size === 1 && allTheirs
     ? `, and ${x.late === 1 ? 'it is' : 'they are all'} ${[...owners][0]}’s`
     : '';
 

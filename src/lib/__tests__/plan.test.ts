@@ -205,6 +205,11 @@ describe('what the plan says about itself', () => {
   it('says plainly when nothing carries a date', () => {
     expect(planSays([], '2026-09-22')).toBe('Nothing on any list carries a date yet.');
   });
+
+  it('says how many ran and are waiting on a verdict', () => {
+    expect(planSays([mark({ at: '2026-09-21', tone: 'ran' })], '2026-09-22'))
+      .toBe('0 of 1 done · 1 waiting on a verdict');
+  });
 });
 
 describe('the words a date becomes', () => {
