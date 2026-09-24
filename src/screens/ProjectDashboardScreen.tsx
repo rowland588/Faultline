@@ -11,6 +11,7 @@
  * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
  * into the meeting. */
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { Peers, projectPeers } from '../ui/Peers';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
@@ -406,6 +407,9 @@ function TestingOverview({ projectId }: { projectId: string }) {
 
   return (
     <section className="pace-sec">
+      {/* The same row every screen under this project carries, with the same
+          counts — one way around, not a second one for the front page. */}
+      {!empty && <Peers peers={projectPeers(projectId, 'overview', all.counts)} />}
       {empty ? (
         <div className="pace-empty">
           <p className="sub">Nothing planned on this line yet.</p>
@@ -432,8 +436,10 @@ function TestingOverview({ projectId }: { projectId: string }) {
             <div className="cx-answer">
               <span className="cmp-h-n">TESTS AND FIXES</span>
               <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
+              {/* "have run", not "done" — the plan above says "done" for
+                  passed, and this bar said it for anything with a verdict. */}
               <span className="cx-tally">
-                {st.ran} of {st.total} done
+                {st.ran} of {st.total} have run
                 {st.passed > 0 && <> · {st.passed} passed or fixed</>}
               </span>
             </div>
@@ -464,11 +470,6 @@ function TestingOverview({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          <div className="pace-lines-foot" style={{ marginTop: 14 }}>
-            <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>
-              Open testing
-            </button>
-          </div>
         </>
       )}
     </section>
@@ -567,30 +568,34 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {/* Offered only where the project asked for them — see Project.leverTree
               and Project.pareto. Both are tools some projects run on; a door to
               somewhere a team has decided not to go is a door in the way. */}
-          {project.commissioning && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing`)}>Testing</button>
-          )}
-          {/* Beside Testing, its own door — see FixesScreen. A fix is not part
-              of testing, and it is the list somebody works off on the floor. */}
-          {project.commissioning && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/fixes`)}>Fixes</button>
-          )}
+          {/* ON A COMMISSIONING JOB THE DOORS ARE THE PEERS ROW, drawn once in
+              the body with its counts — see CommissioningPanel. This header
+              offered Testing, then the lens strip offered it, then the waiting-on
+              table, then a button at the foot: four doors to one place on one
+              phone screen, and a different set of doors from every other
+              screen's. The other models keep theirs here. */}
           {/* Materials is offered on every project, not behind an opt-in: every
               job waits on something, and a list you have to switch on first is a
               list nobody starts. It costs nothing when it is empty. */}
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/materials`)}>Materials</button>
+          {model !== 'commissioning' && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/materials`)}>Materials</button>
+          )}
           {/* Beside Materials, deliberately, and on every project for the same
               reason: the two answer one question between them — what is this
               line waiting on. A machine with no program is as stopped as a
               machine with no film. */}
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
+          {model !== 'commissioning' && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
+          )}
           {project.pareto && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
           )}
           {project.leverTree && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
           )}
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
+          {model !== 'commissioning' && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
+          )}
           {/* THE REPORT IS NO LONGER ONLY THE TRACKER.
               This used to be hidden on every commissioning project, and the
               reasoning was sound at the time: the report was drawn from the
@@ -619,12 +624,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           or not — so offering those lenses was the whole reason commissioning
           read as the tracker wearing a different hat. */}
       <nav className="pace-lenses" aria-label="View">
-        {model === 'commissioning' && (
-          <button className="pace-lens on" onClick={() => nav(`/project/${projectId}/testing`)}>
-            <span className="pace-lens-l">Testing</span>
-            <span className="pace-lens-s">plan · run · found · next</span>
-          </button>
-        )}
         {shownLenses.map((l, i) => (
           <Fragment key={l.id}>
           {i === 1 && model === 'board' && (

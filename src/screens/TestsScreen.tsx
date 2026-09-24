@@ -204,7 +204,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}
       <Verdicts tests={st.done} projectId={projectId}
-        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))} />
+        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
+        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />
 
       <section className="cmp-sec">
         <div className="cw-sec-h">

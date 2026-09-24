@@ -5782,6 +5782,13 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tl-lab-d { flex: none; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tl-lab.is-cut { cursor: help; }
 
+/* An 820px tablet squeezed the project title into a 139px column beside six
+   header buttons. Under 1000px the buttons take their own row. */
+@media (max-width: 1000px) {
+  .pace-head { flex-wrap: wrap; }
+  .pace-head-actions { flex-basis: 100%; }
+}
+
 .tl-m.is-done   { color: var(--ok); }
 .tl-m.is-failed { color: var(--danger); }
 .tl-m.is-ran    { color: var(--warn); }

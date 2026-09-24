@@ -99,7 +99,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
       {/* A fix that was done and never signed off asks first. */}
       <Verdicts tests={fixes} projectId={projectId}
-        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))} />
+        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
+        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />
 
       {/* STILL TO DO, soonest first — the list somebody works off. */}
       <section className="cmp-sec">
