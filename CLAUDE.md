@@ -48,7 +48,7 @@ Run all of it before merging. It is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
-npx eslint src --max-warnings 109     # a ratchet, not a target — see below
+npx eslint src --max-warnings 97      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
