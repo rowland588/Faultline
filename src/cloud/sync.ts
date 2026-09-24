@@ -411,12 +411,14 @@ export async function syncNow(): Promise<void> {
     //      accepted for it. Never a comparison against a wall clock. ----
     const wanted = new Set<string>(wantedUploads);
     const alive = new Set<string>();          // every row still here, for the prune
+    const liveBlobs = new Set<string>();      // every blob a live row names, for the other prune
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
       const batch: { key: string; clock: number; row: Record<string, unknown>; local: Record<string, unknown> }[] = [];
       for (const local of await rawAll(kind)) {
         const key = sentKey(kind, local.id as string);
         alive.add(key);
+        for (const m of map.mediaKeys(local)) liveBlobs.add(m.key);
         const clock = map.clock(local);
         if (needsPush(sent, kind, local.id as string, clock)) {
           batch.push({ key, clock, row: map.toRow(local, uid), local });
@@ -461,7 +463,10 @@ export async function syncNow(): Promise<void> {
     /* The cursor is now ONLY the legacy pull's (a cloud too old for rev
        cursors). Compare-and-set so a Full re-sync tapped mid-pass is not
        clobbered. What the push has sent is recorded per row, above. */
-    await metaPut('uploaded', { keys: [...uploaded] });
+    /* Pruned like `sent`: it used to keep every blob key ever pushed, for the
+       life of the device, and was read and rewritten whole every thirty
+       seconds. Only what a live row still names is worth remembering. */
+    await metaPut('uploaded', { keys: [...uploaded].filter(k => liveBlobs.has(k)) });
     if ((await getSyncCursor()) === cursor) await setSyncCursor(startedAt);
     // Retry queues persist regardless — an extra retry is harmless, a lost one isn't.
     const stillUp = new Set([...wanted].filter(k => !uploaded.has(k)));

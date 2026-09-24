@@ -23,6 +23,18 @@ if ('serviceWorker' in navigator) {
   }).catch(() => { /* no SW (e.g. dev) — fine */ });
 }
 
+/* A NEW BUILD TAKES OVER WHILE AN OLD PAGE IS OPEN. The new service worker
+   drops the old hashed chunks, and Vercel no longer serves them, so the old
+   page's next "Download PDF" asked for a chunk that no longer exists and
+   printed an error with no way out. Vite fires this exactly then; a reload
+   lands on the new build and the button works on the next press. */
+window.addEventListener('vite:preloadError', e => { e.preventDefault(); location.reload(); });
+
+/* Ask the browser not to evict this origin's storage under pressure. The only
+   copy of a walk filmed with no signal is in IndexedDB until it uploads. A
+   request, not a promise — the answer is not shown anywhere. */
+void navigator.storage?.persist?.().catch(() => {});
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

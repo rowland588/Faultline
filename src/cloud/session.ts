@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, cloudConfigured } from './client';
 import { startSync, syncNow, onSyncChange, syncStatus, type SyncStatus } from './sync';
+import { wipeLocalData } from '../db/core';
 
 /** The signed-in session (null when signed out or cloud isn't configured). */
 export function useSession(): { session: Session | null; loading: boolean } {
@@ -51,6 +52,26 @@ function mapSignUpError(error: { message?: string }): Error {
     return new Error('This email hasn’t been invited yet. Ask your administrator to add it, then try again.');
   return new Error(error.message || 'Could not create your account.');
 }
-export async function signOut(): Promise<void> {
-  if (supabase) await supabase.auth.signOut();
+/** Sign out, and take this device's copy of the job with it.
+ *
+ *  It used to clear only the session. The database, the sync cursors and the
+ *  device's own settings stayed: on a shared tablet the next person found the
+ *  last one's job, usable offline with no login, and a different account then
+ *  pushed the first account's rows under its own name. So: one last push, and
+ *  if anything has still not reached the cloud the sign-out is refused with
+ *  the reason — losing a walk filmed with no signal is the one thing this must
+ *  never do. Otherwise the local database and the app's own settings go, and
+ *  the next sign-in pulls a clean copy. */
+export async function signOut(): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!supabase) return { ok: true };
+  await syncNow();
+  const s = syncStatus();
+  if (s.state === 'error' || (s.pendingUp ?? 0) > 0) {
+    return { ok: false, reason: s.state === 'error'
+      ? `Some of this device's work has not reached the cloud yet (${s.error ?? 'sync failed'}). Get a signal, wait for it to sync, then sign out.`
+      : `${s.pendingUp} file${s.pendingUp === 1 ? '' : 's'} on this device ${s.pendingUp === 1 ? 'has' : 'have'} not uploaded yet. Get a signal, wait for the upload, then sign out.` };
+  }
+  await supabase.auth.signOut();
+  await wipeLocalData();
+  return { ok: true };
 }

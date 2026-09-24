@@ -4,30 +4,36 @@
  * The front door is invite-only and there is no way around it: signed out means
  * the Landing (sign in / create account, and only invited emails can register).
  * Once signed in the session is cached locally, so the app still works offline. */
+import { lazy, Suspense } from 'react';
 import { useRoute } from './state/useRoute';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
 import { ResumeRedirect } from './screens/ResumeRedirect';
-import { AppShell } from './screens/AppShell';
-import { Landing } from './screens/Landing';
-import { GuideScreen } from './screens/GuideScreen';
-import { PortfolioScreen } from './screens/PortfolioScreen';
 import { ProjectDashboardScreen } from './screens/ProjectDashboardScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
 import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
 import { ProjectLineScreen } from './screens/ProjectLineScreen';
-import { LeverTree } from './screens/LeverTree';
-import { BoardScreen } from './screens/BoardScreen';
-import { ParetoScreen } from './screens/ParetoScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsScreen } from './screens/ProgramsScreen';
 import { TestsScreen } from './screens/TestsScreen';
 import { TrialCardScreen } from './screens/TrialCardScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { TestScreen } from './screens/TestScreen';
-import { PaceExecReport } from './screens/PaceExecReport';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
+/* OFF THE START-UP PATH, so not in the first download. One chunk held every
+   screen — the 1,500-line client report, the lever tree, the whole line-walk
+   tree, the guide and the landing — a megabyte before the dashboard could
+   paint, re-fetched on every deploy. The commissioning screens stay eager;
+   these load the first time they are opened, behind the same splash. */
+const AppShell = lazy(() => import('./screens/AppShell').then(m => ({ default: m.AppShell })));
+const Landing = lazy(() => import('./screens/Landing').then(m => ({ default: m.Landing })));
+const GuideScreen = lazy(() => import('./screens/GuideScreen').then(m => ({ default: m.GuideScreen })));
+const PortfolioScreen = lazy(() => import('./screens/PortfolioScreen').then(m => ({ default: m.PortfolioScreen })));
+const LeverTree = lazy(() => import('./screens/LeverTree').then(m => ({ default: m.LeverTree })));
+const BoardScreen = lazy(() => import('./screens/BoardScreen').then(m => ({ default: m.BoardScreen })));
+const ParetoScreen = lazy(() => import('./screens/ParetoScreen').then(m => ({ default: m.ParetoScreen })));
+const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 import { RequireModel } from './ui/RequireModel';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -46,18 +52,18 @@ export function Router() {
   if (!cloudConfigured) return <ServiceUnavailable />;
 
   // The "how it works" tour is public — an invitee reads it BEFORE signing up.
-  if (route.name === 'guide') return <GuideScreen />;
+  if (route.name === 'guide') return <Suspense fallback={<BootSplash />}><GuideScreen /></Suspense>;
 
   // Hold the branded splash while the session resolves, so a returning signed-in
   // visitor never flashes the app or the landing on the way in.
   if (loading) return <BootSplash />;
   // Not signed in → the front door. No bypass.
-  if (!session) return <Landing />;
+  if (!session) return <Suspense fallback={<BootSplash />}><Landing /></Suspense>;
 
   // Wrapped around every signed-in screen, not mounted on one: the phone that
   // filmed Line 7 should be fixing Line 7's footage whatever page you happen
   // to be on, and wandering off a screen must not abandon it mid-clip.
-  return <><AutoConvert />{app(route)}</>;
+  return <><AutoConvert /><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></>;
 }
 
 function app(route: Route) {

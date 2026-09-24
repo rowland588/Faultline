@@ -18,9 +18,10 @@ export function AccountMenu() {
   const email = session.user.email ?? 'signed in';
 
   const logout = async () => {
-    if (!window.confirm('Sign out of Faultline on this device? Your work is saved and will sync back when you sign in again.')) return;
+    if (!window.confirm('Sign out of Faultline on this device? Its copy of the job is cleared — everything is in the cloud and comes back when you sign in again.')) return;
     setOpen(false);
-    await signOut(); // session clears → the app returns to the sign-in screen
+    const r = await signOut(); // session clears → the app returns to the sign-in screen
+    if (!r.ok) window.alert(r.reason);
   };
 
   return (

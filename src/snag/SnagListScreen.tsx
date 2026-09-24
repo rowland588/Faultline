@@ -146,7 +146,10 @@ export function SnagListScreen() {
   const toggleSel = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const exportCsv = () => {
-    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    /* A cell starting =, +, - or @ is a formula to Excel — a teammate's snag
+       text could run when the export is opened. A leading apostrophe makes it
+       text, which is what it is. */
+    const esc = (v: string) => { const s = v ?? ''; return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`; };
     const lines = [['Asset', 'Problem', 'Proposed solution', 'Status', 'Owner', 'Raised', 'Age (days)', 'Due', 'Overdue (days)', 'Latest update', 'Updated'].join(',')];
     for (const { snag, assetName } of ordered) {
       const d = dueInDays(snag);

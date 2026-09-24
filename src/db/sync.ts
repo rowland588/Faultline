@@ -8,6 +8,7 @@
 import type { ID } from '../types';
 import { now } from '../lib/ids';
 import { getDB, signalWrite, signalData } from './core';
+import { blobKeysOf } from './testing';
 import type { Tombstone, SyncKind } from './rows';
 
 /* ---------- resume / session ---------- */
@@ -163,9 +164,15 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
       // no local row to mark — a minimal marker, on a clock old enough that it
       // can never win a push against a real edit made anywhere else
       : { id, key: id.replace(/^ppm-/, ''), name: '', deletedAt: now(), updatedAt: 0 });
+  } else if (kind === 'tests' || kind === 'test_items' || kind === 'commission_assets') {
+    /* These carried no media when they were filed under "flat rows" below.
+       They do now — photos, videos and the OEM's documents — and a test
+       deleted on the laptop left all of it on the phone. */
+    const row = await db.get(kind, id);
+    for (const k of blobKeysOf(row)) await db.delete('media', k);
+    await db.delete(kind, id);
   } else if (kind === 'pace_snapshots'
-    || kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'tests' || kind === 'test_items'
-    || kind === 'commission_assets'
+    || kind === 'pace_wins' || kind === 'tree_nodes'
     || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on

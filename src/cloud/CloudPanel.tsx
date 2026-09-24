@@ -62,7 +62,7 @@ export function CloudPanel() {
             )}
           </span>
         </button>
-        <button className="btn btn-ghost" onClick={() => void signOut()}>Sign out</button>
+        <button className="btn btn-ghost" onClick={() => void signOut().then(r => { if (!r.ok) window.alert(r.reason); })}>Sign out</button>
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
@@ -84,7 +84,7 @@ export function CloudPanel() {
         )}
         <SheetRow label="Check for changes now" hint="usually unnecessary" onClick={() => { void syncNow(); setOpen(false); }} />
         <SheetRow label="Repair sync" hint="re-send and re-fetch everything" onClick={() => { void fullResync(); setOpen(false); }} />
-        <SheetRow label="Sign out" danger onClick={() => { setOpen(false); void signOut(); }} />
+        <SheetRow label="Sign out" danger onClick={() => { setOpen(false); void signOut().then(r => { if (!r.ok) window.alert(r.reason); }); }} />
       </Sheet>
     </>
   );

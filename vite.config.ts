@@ -14,6 +14,19 @@ const BUILD_STAMP = process.env.FAULTLINE_BUILD_STAMP
 
 export default defineConfig({
   define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },
+  build: {
+    rollupOptions: {
+      output: {
+        /* React and Supabase in chunks of their own, so a one-line change to
+           the app no longer re-downloads a quarter of a megabyte of libraries
+           on every deploy — autoUpdate fetches only what changed. */
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          supabase: ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -27,7 +40,8 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait',
+        /* No `orientation`: it locked the installed Android app to portrait,
+           and floor tablets are held landscape for the lever tree. */
         background_color: '#f3f8f7',
         theme_color: '#eaf4f1',
         icons: [

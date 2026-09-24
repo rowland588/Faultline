@@ -9,7 +9,7 @@
  * file imports none of them back. That is the whole rule that keeps the split
  * acyclic.
  */
-import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
+import { openDB, deleteDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
 import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { Asset, Test, TestItem } from '../lib/testing';
@@ -145,8 +145,32 @@ export function onDataChange(fn: () => void): () => void {
   dataListeners.add(fn);
   return () => { dataListeners.delete(fn); };
 }
+/* ONE REDRAW PER BURST, not one per row. A pull applies rows one at a time and
+   each one signalled; a page of 500 rows meant 500 signals, and every hook on
+   the open dashboard re-read IndexedDB on each — thirteen reads a signal, six
+   and a half thousand for the page, on the main thread while somebody typed.
+   The listeners run once, on the next macrotask, however many writes landed. */
+let dataPending = false;
 export function signalData(): void {
-  for (const fn of dataListeners) { try { fn(); } catch { /* listener's problem */ } }
+  if (dataPending) return;
+  dataPending = true;
+  setTimeout(() => {
+    dataPending = false;
+    for (const fn of dataListeners) { try { fn(); } catch { /* listener's problem */ } }
+  }, 0);
+}
+
+/** Everything this device holds, gone: the database and the app's own
+ *  localStorage. For sign-out on a shared tablet — the next person must not
+ *  find the last one's job waiting, and a different account must not push the
+ *  first one's rows under its own name. */
+export async function wipeLocalData(): Promise<void> {
+  try { opened?.close(); } catch { /* already closed */ }
+  opened = null; dbp = null;
+  await deleteDB(DB_NAME);
+  for (const k of Object.keys(localStorage)) {
+    if (k.startsWith('fl:') || k.startsWith('faultline')) localStorage.removeItem(k);
+  }
 }
 
 export function getDB(): Promise<IDBPDatabase<AppDB>> {

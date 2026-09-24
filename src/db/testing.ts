@@ -25,11 +25,13 @@ export async function putAsset(a: Asset): Promise<void> {
  *  worst possible trade. They simply stop naming a machine. */
 export async function deleteAsset(id: ID, projectId: string): Promise<void> {
   const db = await getDB();
+  const asset = await db.get('commission_assets', id);
   const tests = (await db.getAllFromIndex('tests', 'by_project', projectId)).filter(t => t.assetId === id);
-  const tx = db.transaction(['commission_assets', 'tests'], 'readwrite');
+  const tx = db.transaction(['commission_assets', 'tests', 'media'], 'readwrite');
   await tx.objectStore('commission_assets').delete(id);
   const t = now();
   for (const test of tests) await tx.objectStore('tests').put({ ...test, assetId: undefined, updatedAt: t });
+  for (const k of blobKeysOf(asset)) await tx.objectStore('media').delete(k);
   await tx.done;
   await recordTombstones('commission_assets', [id]);
   signalWrite();
@@ -69,10 +71,14 @@ export async function patchTest(id: ID, patch: Partial<Test> | ((cur: Test) => P
  *  this device and the other one pushes its copy straight back. */
 export async function deleteTest(id: ID, projectId: string): Promise<void> {
   const db = await getDB();
+  const test = await db.get('tests', id);
   const items = (await db.getAllFromIndex('test_items', 'by_project', projectId)).filter(i => i.testId === id);
-  const tx = db.transaction(['tests', 'test_items'], 'readwrite');
+  const tx = db.transaction(['tests', 'test_items', 'media'], 'readwrite');
   await tx.objectStore('tests').delete(id);
   for (const i of items) await tx.objectStore('test_items').delete(i.id);
+  /* The photos and videos go with the record. They did not: every deleted
+     test left its evidence in the media store for ever, on every device. */
+  for (const k of [test, ...items].flatMap(blobKeysOf)) await tx.objectStore('media').delete(k);
   await tx.done;
   await recordTombstones('tests', [id]);
   if (items.length) await recordTombstones('test_items', items.map(i => i.id));
@@ -190,7 +196,21 @@ export async function patchTestItem(id: ID, patch: Partial<TestItem> | ((cur: Te
 }
 
 export async function deleteTestItem(id: ID): Promise<void> {
-  await (await getDB()).delete('test_items', id);
+  const db = await getDB();
+  const item = await db.get('test_items', id);
+  const tx = db.transaction(['test_items', 'media'], 'readwrite');
+  await tx.objectStore('test_items').delete(id);
+  for (const k of blobKeysOf(item)) await tx.objectStore('media').delete(k);
+  await tx.done;
   await recordTombstones('test_items', [id]);
   signalWrite();
+}
+
+/** Every blob a test, an observation or a machine points at. */
+export function blobKeysOf(row?: { media?: { blobKey: string; thumbKey?: string }[]; docs?: { blobKey: string }[] }): string[] {
+  if (!row) return [];
+  return [
+    ...(row.media ?? []).flatMap(m => [m.blobKey, m.thumbKey]),
+    ...(row.docs ?? []).map(d => d.blobKey),
+  ].filter((k): k is string => !!k);
 }
