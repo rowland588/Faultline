@@ -16,6 +16,7 @@ import {
   nextFrom, standing, standsAt, weeksTo,
   type Test, type TestItem,
   needsVerdict, outcomeWord, isSettled,
+  assetStateOf, assetStateOn, type Asset,
 } from '../testing';
 
 const DAY = 86_400_000;
@@ -413,5 +414,36 @@ describe('a day that came and did not happen', () => {
     const t: Test = { id: 'x', projectId: 'p', title: 'Changeover', outcome: 'notRun',
       plannedFor: '2000-01-01', sort: 0, createdAt: 1, updatedAt: 1 };
     expect(isOverdue(t)).toBe(true);
+  });
+});
+
+/* ================================ MACHINES ================================ */
+
+describe('where a machine has got to is read off its dates', () => {
+  const m = (o: Partial<Asset> = {}): Asset => ({
+    id: 'a1', projectId: 'p', name: 'Wrapper', state: 'onSite', sort: 1, updatedAt: 1, ...o,
+  });
+
+  it('follows the latest date it has reached, in the order they happen', () => {
+    expect(assetStateOf(m({ dueOn: '2026-09-01' }))).toBe('awaited');
+    expect(assetStateOf(m({ dueOn: '2026-09-01', onSiteOn: '2026-09-03' }))).toBe('onSite');
+    expect(assetStateOf(m({ onSiteOn: '2026-09-03', installedOn: '2026-09-05' }))).toBe('installed');
+    expect(assetStateOf(m({ state: 'awaited', installedOn: '2026-09-05', runningOn: '2026-09-09' }))).toBe('running');
+  });
+
+  it('keeps the word it has when it carries no dates — a machine already on site never needed one', () => {
+    expect(assetStateOf(m({ state: 'onSite' }))).toBe('onSite');
+    expect(assetStateOf(m({ state: 'running' }))).toBe('running');
+  });
+
+  it('goes back to "not here yet" when the only date is the day it is due', () => {
+    expect(assetStateOf(m({ state: 'installed', dueOn: '2026-10-01' }))).toBe('awaited');
+  });
+
+  it('names the date that goes with the word, so the card prints them as one fact', () => {
+    expect(assetStateOn(m({ dueOn: '2026-09-01' }))).toBe('2026-09-01');
+    expect(assetStateOn(m({ dueOn: '2026-09-01', onSiteOn: '2026-09-03' }))).toBe('2026-09-03');
+    expect(assetStateOn(m({ onSiteOn: '2026-09-03', runningOn: '2026-09-09' }))).toBe('2026-09-09');
+    expect(assetStateOn(m())).toBeUndefined();
   });
 });

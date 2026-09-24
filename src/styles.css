@@ -5043,6 +5043,18 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
 }
 .tw-asset .sub { white-space: nowrap; }
+/* The card was one row — name, word, × — until it carried a date and a link
+   as well, which at phone width did not fit beside the name. So: the name and
+   its × on one row, where it has got to and "Dates" on the next, and behind
+   "Dates" the same four boxes the job's own dates use at the top of the screen. */
+.tw-asset { flex-direction: column; align-items: stretch; gap: 6px; }
+.tw-asset-r { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.tw-asset-r .sub { white-space: normal; }
+.tw-asset .sub.is-r { color: var(--danger); }
+.tw-asset .cw-link { flex: none; margin-left: auto; }
+.tw-dates { display: flex; flex-wrap: wrap; gap: 8px 12px; padding-top: 2px; }
+.tw-dates .cw-f { flex: 1 1 140px; }
+.tw-asset .tw-dates input { flex: 0 0 auto; }
 .tw-x {
   width: 32px; height: 32px; flex: none; border-radius: 8px;
   font: inherit; font-size: 17px; line-height: 1; color: var(--muted);

@@ -13,7 +13,7 @@ import {
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import { nextFrom, standing } from './testing';
+import { assetStateOf, nextFrom, standing } from './testing';
 import type { Asset, AssetState, ItemKind, Standing, Test, TestItem, TestKind } from './testing';
 
 export interface TestingState {
@@ -135,7 +135,9 @@ export function useTesting(projectId: string): TestingState {
     return id;
   }, [projectId, assets]);
 
-  const saveAsset = useCallback(async (a: Asset) => { await putAsset({ ...a, updatedAt: now() }); }, []);
+  /* The word follows the dates on every save — see assetStateOf. A screen sets
+     a date; nothing sets the word directly any more. */
+  const saveAsset = useCallback(async (a: Asset) => { await putAsset({ ...a, state: assetStateOf(a), updatedAt: now() }); }, []);
   const removeAsset = useCallback(async (id: string) => { await deleteAsset(id, projectId); }, [projectId]);
 
   /* --------------------------------- tests -------------------------------- */

@@ -9,7 +9,7 @@
  * grouped by stage, an asset × pack grid with material supersession. The job
  * never had any of those. It has a cycle, and this is the list of times round it.
  */
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
@@ -22,8 +22,8 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, hasRun, outcomeWord, isOverdue, itemsOf, standing, standingOfItem, weeksTo,
-  type Test, type TestKind,
+  ASSET_STATE_WORD, WORDS, assetStateOn, hasRun, outcomeWord, isOverdue, itemsOf, standing, standingOfItem, weeksTo,
+  type Asset, type Test, type TestKind,
 } from '../lib/testing';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
@@ -276,31 +276,71 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      {/* THE MACHINES. A test names one; nothing else about them is stored,
-          because what a machine has to prove is whatever tests name it. */}
+      {/* THE MACHINES. A test names one; what a machine has to prove is
+          whatever tests name it. What it carries of its own is WHEN — expected,
+          landed, installed, running — and those four days are what put it on
+          the plan and in the outstanding table. The word beside the name is
+          read off them (assetStateOf), never set by hand. */}
       <section className="cmp-sec">
         <div className="cw-sec-h">
           <h2 className="cmp-h">Machines</h2>
           <span className="cmp-h-n">{tt.assets.length ? `${tt.assets.length} on this line` : ''}</span>
         </div>
         <div className="cx-assets">
-          {tt.assets.map(a => {
-            const ran = tt.tests.filter(t => t.assetId === a.id && hasRun(t)).length;
-            return (
-              <div key={a.id} className="tw-asset">
-                <DraftField value={a.name} ariaLabel="Machine name"
-                  onSave={v => v.trim() && void tt.saveAsset({ ...a, name: v.trim() })} />
-                <span className="sub">{ASSET_STATE_WORD[a.state]}{ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}</span>
-                <button className="tw-x" aria-label={`Remove ${a.name}`} onClick={() => {
-                  if (confirm(`Remove “${a.name}”?\n\nIts tests stay — they just stop naming a machine.`)) void tt.removeAsset(a.id);
-                }}>×</button>
-              </div>
-            );
-          })}
+          {tt.assets.map(a => (
+            <MachineCard key={a.id} a={a}
+              ran={tt.tests.filter(t => t.assetId === a.id && hasRun(t)).length}
+              save={tt.saveAsset} remove={tt.removeAsset} />
+          ))}
           <AddAsset add={tt.addAsset} />
         </div>
       </section>
 
+    </div>
+  );
+}
+
+/** One machine: its name, where it has got to and since when, and behind a
+ *  "Dates" link the same four boxes the job's own dates use — each one saved
+ *  the moment it is picked, exactly like "Now expecting" at the top of this
+ *  screen. Expected → landed → installed → running is the order they happen. */
+function MachineCard({ a, ran, save, remove }: {
+  a: Asset; ran: number; save: (a: Asset) => Promise<void>; remove: (id: string) => Promise<void>;
+}) {
+  const [dates, setDates] = useState(false);
+  const on = assetStateOn(a);
+  const late = a.state === 'awaited' && !!a.dueOn && a.dueOn < todayISO();
+  const set = (k: 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn') =>
+    (e: ChangeEvent<HTMLInputElement>) => void save({ ...a, [k]: e.target.value || undefined });
+  return (
+    <div className="tw-asset">
+      <div className="tw-asset-r">
+        <DraftField value={a.name} ariaLabel="Machine name"
+          onSave={v => v.trim() && void save({ ...a, name: v.trim() })} />
+        <button className="tw-x" aria-label={`Remove ${a.name}`} onClick={() => {
+          if (confirm(`Remove “${a.name}”?\n\nIts tests stay — they just stop naming a machine.`)) void remove(a.id);
+        }}>×</button>
+      </div>
+      <div className="tw-asset-r">
+        <span className={'sub' + (late ? ' is-r' : '')}>
+          {ASSET_STATE_WORD[a.state]}
+          {on && (a.state === 'awaited' ? ` — due ${nice(on)}` : ` since ${nice(on)}`)}
+          {ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}
+        </span>
+        <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>
+      </div>
+      {dates && (
+        <div className="tw-dates">
+          <label className="cw-f"><span>Expected on site</span>
+            <input type="date" value={a.dueOn ?? ''} onChange={set('dueOn')} /></label>
+          <label className="cw-f"><span>On site</span>
+            <input type="date" value={a.onSiteOn ?? ''} onChange={set('onSiteOn')} /></label>
+          <label className="cw-f"><span>Installed</span>
+            <input type="date" value={a.installedOn ?? ''} onChange={set('installedOn')} /></label>
+          <label className="cw-f"><span>Running</span>
+            <input type="date" value={a.runningOn ?? ''} onChange={set('runningOn')} /></label>
+        </div>
+      )}
     </div>
   );
 }

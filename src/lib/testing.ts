@@ -54,6 +54,33 @@ export const ASSET_STATE_WORD: Record<AssetState, string> = {
 
 export const ASSET_STATE_ORDER: AssetState[] = ['awaited', 'onSite', 'installed', 'running'];
 
+/** Where a machine has got to, read off its dates rather than off the word —
+ *  the same rule programs already follow in `stateOf`. The four dates ARE the
+ *  four states: the day it landed is the day it became "on site", and a machine
+ *  with a `runningOn` that still said "installed" would be a record contradicting
+ *  itself. A machine with no dates at all keeps whatever it says: one already on
+ *  site when the job started never needed a date, and an invented one reads as
+ *  a fact. A machine with only a due date is not here yet — that is what "due"
+ *  means — which is the one case where a date moves the word BACKWARDS. */
+export function assetStateOf(a: Pick<Asset, 'state' | 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn'>): AssetState {
+  if (a.runningOn) return 'running';
+  if (a.installedOn) return 'installed';
+  if (a.onSiteOn) return 'onSite';
+  if (a.dueOn) return 'awaited';
+  return a.state;
+}
+
+/** The date that goes with the state it is in — what the machine card prints
+ *  beside the word, so "On site" and "since 12 Sep" are read as one fact. */
+export function assetStateOn(a: Pick<Asset, 'state' | 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn'>): string | undefined {
+  switch (assetStateOf(a)) {
+    case 'running': return a.runningOn;
+    case 'installed': return a.installedOn;
+    case 'onSite': return a.onSiteOn;
+    case 'awaited': return a.dueOn;
+  }
+}
+
 /** A machine on the line. It carries no checklist of its own: what it has to
  *  prove is whatever tests name it, which is why the same stages repeat down a
  *  line without anybody being made to set them up twice. */

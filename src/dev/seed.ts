@@ -151,13 +151,25 @@ export async function seedForSmokeTest(): Promise<Seeded> {
    * fixture that got it wrong would make the app look broken when it was right. */
   await updateProject({ ...proj, plannedAt: iso(19), expectedAt: iso(27), updatedAt: t });
 
+  /* Each machine carries its four days — expected, landed, installed, running —
+     so the Machines lane of the plan draws from the seed the way it draws from
+     a real job. The wrapper ran on time; the weigher landed late and is still
+     being commissioned; the labeller was due three days ago and has not turned
+     up, which is the one case the outstanding table counts as late. */
   const wrapper: Asset = {
     id: uid(), projectId: proj.id, name: 'Ilapak flow wrapper', oem: 'Ilapak UK',
-    state: 'running', sort: 10, updatedAt: t,
+    state: 'running', dueOn: iso(-16), onSiteOn: iso(-16), installedOn: iso(-13), runningOn: iso(-10),
+    sort: 10, updatedAt: t,
   };
   const weigher: Asset = {
     id: uid(), projectId: proj.id, name: 'Ishida checkweigher', oem: 'Ishida Europe',
-    state: 'running', sort: 20, updatedAt: t,
+    state: 'installed', dueOn: iso(-12), onSiteOn: iso(-8), installedOn: iso(-5),
+    sort: 20, updatedAt: t,
+  };
+  const labeller: Asset = {
+    id: uid(), projectId: proj.id, name: 'Domino coder', oem: 'Domino UK',
+    state: 'awaited', dueOn: iso(-3),
+    sort: 30, updatedAt: t,
   };
 
   /* A file the OEM sent, bytes and all, so the screen renders a real row and a
@@ -167,6 +179,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
 
   await putAsset(wrapper);
   await putAsset(weigher);
+  await putAsset(labeller);
 
   const estop: Test = {
     id: uid(), projectId: proj.id, title: 'Emergency stops', assetId: wrapper.id,
