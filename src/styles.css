@@ -5886,7 +5886,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface-2); color: var(--ink-2);
 }
 .tc-tag.is-to-decide { background: var(--gold-soft); color: var(--warn); }
-.tc-tag.is-actioned { background: var(--blue-soft); color: var(--blue); }
+.tc-tag.is-a-fix { background: var(--blue-soft); color: var(--blue); }
 
 .tc-loop {
   padding: 14px 18px; margin-bottom: 12px;

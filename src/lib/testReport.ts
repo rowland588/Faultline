@@ -19,7 +19,8 @@ import {
   ACCENT, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
   fit, san, setFont, type Doc,
 } from './reportKit';
-import { OUTCOME_WORD, isOpen, itemsOf, live, standing } from './testing';
+import { isOpen, itemsOf, live, standing, outcomeWord } from './testing';
+import { niceDay } from './weeks';
 import type { Asset, Test, TestItem } from './testing';
 
 const MAX_EDGE = 1200;
@@ -45,6 +46,7 @@ export interface ReportTest {
   machine: string;
   when: string;
   outcome: Test['outcome'];
+  outcomeWord: string;
   passesIf?: string;
   product?: string;
   result?: string;
@@ -53,11 +55,7 @@ export interface ReportTest {
   shots?: Shot[];
 }
 
-const shortISO = (iso?: string): string => {
-  if (!iso) return '';
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : iso;
-};
+const shortISO = (iso?: string): string => niceDay(iso);
 
 /** Everything the drawer needs except the pictures. Pure, so the sheet's numbers
  *  can be tested without a browser. */
@@ -88,6 +86,8 @@ export function buildTestReport(input: {
       machine: (t.assetId && name.get(t.assetId)) || 'The line',
       when: shortISO(t.ranOn ?? t.plannedFor) || 'no date',
       outcome: t.outcome,
+      /* The word, not the raw outcome: a test that ran without a verdict says so. */
+      outcomeWord: outcomeWord(t),
       passesIf: t.passesIf,
       product: t.product ?? t.planned,
       result: t.result,
@@ -172,7 +172,7 @@ export function drawTestReport(d: Doc, data: TestReport): void {
       setFont(d, 11.5, 'bold', INK);
       d.text(fit(d, san(r.title), CW * 0.62), M + 12, ty);
       setFont(d, 9, 'bold', colourOf(r.outcome));
-      d.text(OUTCOME_WORD[r.outcome].toUpperCase(), W - M - 10, ty, { align: 'right' });
+      d.text(r.outcomeWord.toUpperCase(), W - M - 10, ty, { align: 'right' });
 
       ty += 12;
       setFont(d, 8.2, 'normal', MUTED);

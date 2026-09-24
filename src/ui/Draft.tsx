@@ -24,20 +24,30 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
  *
  * The draft stays the draft — that is what keeps the caret where it was put,
  * which is the whole reason these fields exist. What changes is WHEN the row is
- * written: a beat after the last keystroke, when the tab is hidden, when the
- * page is being left, and when the field unmounts. Blur still lets the draft go.
+ * written: a beat after the last keystroke, when the tab is hidden, and when
+ * the field unmounts. (pagehide is listened to as well, but a write started
+ * there is not guaranteed to land — the hidden flush that precedes it is what
+ * actually saves the day.) Blur still lets the draft go.
  */
 function useDraft(value: string, onSave: (v: string) => void, norm: (s: string) => string = s => s) {
   const [draft, setDraft] = useState<string | null>(null);
   const latest = useRef({ draft, value, onSave, norm });
   latest.current = { draft, value, onSave, norm };
+  /* The last thing this field wrote. `value` catches up a render later, and in
+     between the hidden flush and the pagehide flush would both write. */
+  const lastSaved = useRef<string | null>(null);
+  /* Escape: the draft is dropped BEFORE the blur that follows, or the blur's
+     own commit writes the very text that was being abandoned. */
+  const abandoned = useRef(false);
 
   /** Write what is typed if it differs from what is stored. Keeps the draft. */
   const commit = useCallback(() => {
     const cur = latest.current;
-    if (cur.draft == null) return;
+    if (cur.draft == null || abandoned.current) return;
     const v = cur.norm(cur.draft);
-    if (v !== cur.value) cur.onSave(v);
+    if (v === cur.value || v === lastSaved.current) return;
+    lastSaved.current = v;
+    cur.onSave(v);
   }, []);
 
   useEffect(() => {
@@ -57,8 +67,10 @@ function useDraft(value: string, onSave: (v: string) => void, norm: (s: string) 
     };
   }, [commit]);
 
-  const blur = useCallback(() => { commit(); setDraft(null); }, [commit]);
-  return { draft, setDraft, blur };
+  const blur = useCallback(() => { commit(); setDraft(null); abandoned.current = false; }, [commit]);
+  /** Drop the draft without writing it — Escape. */
+  const abandon = useCallback(() => { abandoned.current = true; setDraft(null); }, []);
+  return { draft, setDraft, blur, abandon };
 }
 
 /** The same four moments, for a field whose commit is its own (the number box). */
@@ -90,7 +102,7 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
    *  table it sits in. */
   wide?: boolean;
 }) {
-  const { draft, setDraft, blur } = useDraft(value, onSave, v => v.trim());
+  const { draft, setDraft, blur, abandon } = useDraft(value, onSave, v => v.trim());
   return (
     <input
       className={className + (wide ? ' is-wide' : '')}
@@ -102,7 +114,7 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
       onBlur={blur}
       onKeyDown={e => {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-        if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); }
+        if (e.key === 'Escape') { abandon(); (e.target as HTMLInputElement).blur(); }
       }}
     />
   );
@@ -121,8 +133,9 @@ export function DraftNumber({ value, onSave, className = 'pset-cell is-num', pla
   const [draft, setDraft] = useState<string | null>(null);
   const shown = draft ?? (value == null ? '' : String(value));
 
+  const abandoned = useRef(false);
   const commit = () => {
-    if (draft == null) return;
+    if (draft == null || abandoned.current) return;
     const t = draft.trim();
     if (t === '') { if (value != null) onSave(undefined); setDraft(null); return; }
     const n = Number(t);
@@ -131,16 +144,30 @@ export function DraftNumber({ value, onSave, className = 'pset-cell is-num', pla
     setDraft(null);
   };
   useFlush(commit);
+  /* A number half-typed when the phone locks is still a number typed. */
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+  useEffect(() => {
+    if (draft == null) return;
+    const t = window.setTimeout(() => {
+      /* The timer writes but keeps the draft, like the text fields do. */
+      const cur = commitRef.current;
+      const keep = draft;
+      cur();
+      setDraft(keep);
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [draft]);
 
   return (
     <input
       className={className} inputMode="decimal" aria-label={label}
       value={shown} placeholder={placeholder}
       onChange={e => setDraft(e.target.value)}
-      onBlur={commit}
+      onBlur={() => { commit(); abandoned.current = false; }}
       onKeyDown={e => {
         if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur(); }
-        if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); }
+        if (e.key === 'Escape') { abandoned.current = true; setDraft(null); (e.target as HTMLInputElement).blur(); }
       }}
     />
   );
@@ -179,7 +206,7 @@ export function DraftField({
   id?: string;
   ariaLabel?: string;
 }) {
-  const { draft, setDraft, blur } = useDraft(value, onSave);
+  const { draft, setDraft, blur, abandon } = useDraft(value, onSave, v => v.trim());
   const live = type === 'date';
 
   return (
@@ -190,7 +217,7 @@ export function DraftField({
       onBlur={blur}
       onKeyDown={e => {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-        if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); }
+        if (e.key === 'Escape') { abandon(); (e.target as HTMLInputElement).blur(); }
       }}
     />
   );
@@ -218,7 +245,7 @@ export function DraftArea({
   id?: string;
   ariaLabel?: string;
 }) {
-  const { draft, setDraft, blur } = useDraft(value, onSave);
+  const { draft, setDraft, blur, abandon } = useDraft(value, onSave, v => v.trim());
   const own = useRef<HTMLTextAreaElement>(null);
   const box = areaRef ?? own;
 
@@ -240,7 +267,7 @@ export function DraftArea({
       value={draft ?? value} placeholder={placeholder}
       onChange={e => setDraft(e.target.value)}
       onBlur={blur}
-      onKeyDown={e => { if (e.key === 'Escape') { setDraft(null); (e.target as HTMLTextAreaElement).blur(); } }}
+      onKeyDown={e => { if (e.key === 'Escape') { abandon(); (e.target as HTMLTextAreaElement).blur(); } }}
     />
   );
 }

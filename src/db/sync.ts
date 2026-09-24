@@ -59,6 +59,12 @@ export async function clearTombstones(ids: ID[]): Promise<void> {
 export async function rawAll(store: SyncKind): Promise<Record<string, unknown>[]> {
   return (await getDB()).getAll(store as never) as Promise<Record<string, unknown>[]>;
 }
+/** One row, as it is NOW. The pull used to work off a snapshot of the whole
+ *  store taken before paging, so a keystroke written while page two was in
+ *  flight could be compared against, and lost to, a row read before it. */
+export async function rawGet(store: SyncKind, id: string): Promise<Record<string, unknown> | undefined> {
+  return (await getDB()).get(store as never, id as never) as Promise<Record<string, unknown> | undefined>;
+}
 export async function rawPut(store: SyncKind, value: Record<string, unknown>): Promise<void> {
   await (await getDB()).put(store as never, value as never);
   signalData();   // a row from another device — the open screen has to redraw

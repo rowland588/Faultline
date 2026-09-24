@@ -26,23 +26,14 @@ import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
+import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { isOverdue, outcomeWord, plannedEnd, standing, type Test } from '../lib/testing';
 
-const nice = (iso?: string): string => {
-  if (!iso) return '—';
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : iso;
-};
-const loud = (iso?: string): string => {
-  if (!iso) return 'NO DATE';
-  const t = Date.parse(iso);
-  return Number.isFinite(t)
-    ? new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
-    : iso;
-};
+const nice = (iso?: string): string => niceDay(iso) || '—';
+const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
 
 /** A day, or the block of them it is booked across. The second date is absent
  *  on most records and absent means one day. */
@@ -110,7 +101,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
       {/* A fix that was done and never signed off asks first. */}
       <Verdicts tests={fixes} projectId={projectId}
-        onAnswer={(t, outcome) => void tt.saveTest({ ...t, outcome })} />
+        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))} />
 
       {/* STILL TO DO, soonest first — the list somebody works off. */}
       <section className="cmp-sec">

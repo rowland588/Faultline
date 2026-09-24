@@ -27,7 +27,7 @@ import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
 import type { SyncKind } from '../db';
 import {
-  rawAll, rawPut, hasBlob, getBlob, putBlob, applyRemoteDelete,
+  rawAll, rawGet, rawPut, hasBlob, getBlob, putBlob, applyRemoteDelete,
   listTombstones, clearTombstones, getSyncCursor, setSyncCursor, getDB, onLocalWrite,
 } from '../db';
 
@@ -191,6 +191,22 @@ const readSent = async (): Promise<Sent> => ((await metaGet(SENT_KEY)) as Sent |
 export const needsPush = (sent: Sent, kind: SyncKind, id: string, clock: number): boolean =>
   sent[sentKey(kind, id)] !== clock;
 
+/** Does a row from the cloud replace the one we hold?
+ *
+ *  CAUSALITY BEFORE CLOCKS. `pushed` means the cloud already accepted our copy
+ *  (sent records its clock). If it now holds something different, that was
+ *  written after ours — whatever the two devices' clocks say. The old rule
+ *  compared wall clocks only, so a phone ten minutes fast made every later
+ *  edit from the laptop lose, and a device a year fast produced rows nobody
+ *  could ever update. Only a row with UNPUSHED changes keeps itself when its
+ *  clock is the newer one: there, "newer" is the only fact we have, and the
+ *  edit on one side is lost either way — the remaining, documented risk. */
+export const remoteWins = (localClock: number, remoteClock: number, pushed: boolean): boolean => {
+  if (remoteClock === localClock) return false;          // our own echo
+  if (pushed) return true;                               // written after what the cloud took from us
+  return remoteClock > localClock;                       // both changed: the clock decides
+};
+
 /** Drop what no longer exists, so a lifetime of deletes cannot grow the record
  *  without bound. `alive` must hold every row of every kind — the pass visits
  *  them all, so anything missing from it is genuinely gone. */
@@ -271,19 +287,36 @@ export async function syncNow(): Promise<void> {
     // it was), the pull re-inserted the very row being deleted — its cloud copy
     // still had deleted_at null, so applyRemote treated it as a new row and
     // rawPut it back. That is the deleted workspace reappearing on Home.
+    /* NOTHING IN A PASS THROWS FOR ONE KIND'S SAKE. A tombstone push that
+       hit a table the cloud did not have yet used to throw here, first thing,
+       every pass, for ever: nothing pulled, nothing pushed, for every kind,
+       while the status said "error" and the rows typed on the floor sat on
+       the phone. The same for one rejected row of an early kind stalling
+       tests and test_items, which come last. A kind that fails is noted and
+       skipped; the pass carries on; the first failure is what the status
+       shows at the end. Tombstones and rows that did not go are still there
+       next pass. */
+    let firstError: string | undefined;
     const tombs = await listTombstones();
     const tombstoned = new Set(tombs.map(t => `${t.kind}:${t.id}`));
     if (tombs.length) {
       const byKind = new Map<SyncKind, string[]>();
       for (const t of tombs) byKind.set(t.kind, [...(byKind.get(t.kind) ?? []), t.id]);
+      const cleared: string[] = [];
       for (const [kind, ids] of byKind) {
-        for (let i = 0; i < ids.length; i += CHUNK) {
+        let ok = true;
+        for (let i = 0; i < ids.length && ok; i += CHUNK) {
           const part = ids.slice(i, i + CHUNK);
           const { error } = await supabase.from(kind).update({ deleted_at: startedAt, updated_at: startedAt }).in('id', part);
-          if (error) throw new Error(`tombstone ${kind}: ${error.message}`);
+          if (error) {
+            ok = false;
+            if (isMissingTable(error) || isMissingColumn(error)) set({ schemaOutdated: true });
+            else firstError ??= `tombstone ${kind}: ${error.message}`;
+          }
         }
+        if (ok) cleared.push(...ids);
       }
-      await clearTombstones(tombs.map(t => t.id));
+      if (cleared.length) await clearTombstones(cleared);
     }
 
     // ---- PULL: everything with a rev this device hasn't seen. Keyset-paged
@@ -297,22 +330,34 @@ export async function syncNow(): Promise<void> {
 
       const applyRemote = async (r: Record<string, unknown>) => {
         const id = r.id as string;
-        if (r.deleted_at != null) { if (local.has(id)) await applyRemoteDelete(kind, id); return; }
+        /* The row as it is NOW, not as it was when this kind's pull began — a
+           keystroke written while page two was in flight is a real edit. */
+        const localRow = local.has(id) ? await rawGet(kind, id) : undefined;
+        if (r.deleted_at != null) { if (localRow) await applyRemoteDelete(kind, id); return; }
         // Deleted here this pass — never resurrect it, even if the tombstone
         // push above failed (it stays queued and retries next run).
         if (tombstoned.has(`${kind}:${id}`)) return;
-        const localRow = local.get(id);
         const localClock = localRow ? map.clock(localRow) : -1;
-        if (Number(r.updated_at) <= localClock) {
-          // Local row wins — but still fetch any blobs it's missing (hasBlob
-          // short-circuits, so this is cheap).
-          if (localRow) await downloadMedia(uid, map.mediaKeys(localRow), failedDownloads);
-          return;
+        const remoteClock = Number(r.updated_at);
+        const key = sentKey(kind, id);
+
+        if (localRow) {
+          /* Our own echo, or a row we hold the newer copy of: keep ours and
+             fetch any blob it is missing. The rule is remoteWins(), above. */
+          if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) {
+            await downloadMedia(uid, map.mediaKeys(localRow), failedDownloads);
+            return;
+          }
         }
+
         const incoming = map.fromRow(r);
         // workspaces: preserve device-only fields (running timer, last route, version)
         const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
         await rawPut(kind, merged as Record<string, unknown>);
+        /* What we now hold IS the cloud's copy: say so, or the push phase would
+           send it straight back up as if it were ours, bumping rev and making
+           every other device pull it again — an echo for each edit. */
+        Object.assign(sent, { [key]: map.clock(merged as Record<string, unknown>) });
         await downloadMedia(uid, map.mediaKeys(merged as Record<string, unknown>), failedDownloads);
       };
 
@@ -358,6 +403,10 @@ export async function syncNow(): Promise<void> {
       }
     }
 
+    /* Rows the pull just took from the cloud are recorded as accepted before
+       the push looks at them (see applyRemote). */
+    await metaPut(SENT_KEY, sent);
+
     // ---- PUSH: every row whose clock differs from the one we last got
     //      accepted for it. Never a comparison against a wall clock. ----
     const wanted = new Set<string>(wantedUploads);
@@ -382,7 +431,11 @@ export async function syncNow(): Promise<void> {
           // rows for this kind wait for their SQL. Nothing is recorded as sent,
           // so they simply go again next pass — no cursor to hold back.
           if (isMissingTable(error) || isMissingColumn(error)) { set({ schemaOutdated: true }); break; }
-          throw new Error(`push ${kind}: ${error.message}`);
+          /* Anything else — a policy refusal, a bad legacy row — is this
+             kind's problem. It used to be the whole pass's: the throw left
+             every kind after it unpushed, for ever, and tests come last. */
+          firstError ??= `push ${kind}: ${error.message}`;
+          break;
         }
         // Recorded ONLY on an accepted write, and persisted per kind so a later
         // kind throwing cannot lose the work the earlier ones just did.
@@ -416,7 +469,8 @@ export async function syncNow(): Promise<void> {
     await keySetPut('pendingUploads', stillUp);
     await keySetPut('pendingDownloads', stillDown);
 
-    set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, pendingDown: stillDown.size });
+    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, pendingDown: stillDown.size });
+    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, pendingDown: stillDown.size });
   } catch (e) {
     set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });
   } finally {

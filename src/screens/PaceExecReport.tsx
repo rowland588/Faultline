@@ -813,7 +813,7 @@ export function PaceExecReport() {
     .filter(t => !t.deletedAt)
     .slice()
     .sort((a, b) => {
-      const ap = a.outcome === 'planned', bp = b.outcome === 'planned';
+      const ap = !hasRun(a), bp = !hasRun(b);
       if (ap !== bp) return ap ? -1 : 1;
       if (ap) return (a.plannedFor ?? '9999').localeCompare(b.plannedFor ?? '9999');
       return (b.ranOn ?? '').localeCompare(a.ranOn ?? '');
@@ -830,7 +830,7 @@ export function PaceExecReport() {
    * somebody's name on it. Read through the same lib/trialCard.ts the card
    * uses, so the two documents cannot disagree about what a trial says. */
   const trialsBlock: PaceReportData['trials'] = line || trialRows.length === 0 ? undefined : {
-    planned: trialRows.filter(t => t.outcome === 'planned').length,
+    planned: trialRows.filter(t => !hasRun(t)).length,
     passed: trialRows.filter(t => t.outcome === 'passed').length,
     failed: trialRows.filter(t => t.outcome === 'failed').length,
     notRun: trialRows.filter(t => t.outcome === 'notRun').length,

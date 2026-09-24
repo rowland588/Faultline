@@ -16,6 +16,20 @@ export function todayISO(d: Date = new Date()): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/** An ISO date, said the way a person says it: "24 Sept", "Wed 24 Sept",
+ *  "24 Sept 2026". Parsed at MIDDAY, because `Date.parse('2026-09-24')` is
+ *  midnight UTC and prints the 23rd anywhere west of Greenwich — on screen and
+ *  on the client's PDF. Six copies of that mistake lived in six files. */
+export function niceDay(iso?: string, opts: { weekday?: 'short'; year?: boolean } = {}): string {
+  if (!iso) return '';
+  const t = Date.parse(`${iso}T12:00:00`);
+  if (!Number.isFinite(t)) return iso;
+  return new Date(t).toLocaleDateString('en-GB', {
+    ...(opts.weekday ? { weekday: opts.weekday } : {}),
+    day: 'numeric', month: 'short', ...(opts.year ? { year: 'numeric' } : {}),
+  });
+}
+
 /** Whole days between two ISO dates. Dates, not timestamps: a delivery is late
  *  by days, and an hour either side of midnight must not change the answer. */
 export function daysBetween(fromISO: string, toISO: string): number {

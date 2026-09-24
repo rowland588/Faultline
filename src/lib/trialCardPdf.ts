@@ -29,15 +29,10 @@ import {
 } from './reportKit';
 import type { TrialCard } from './trialCard';
 import { foundWords, WORDS } from './testing';
+import { niceDay } from './weeks';
 
 const M = 30;                       // the margin, A4 landscape
-const nice = (iso?: string): string => {
-  if (!iso) return '';
-  const t = Date.parse(iso);
-  return Number.isFinite(t)
-    ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : iso;
-};
+const nice = (iso?: string): string => niceDay(iso, { year: true });
 
 /** "5 Jan" or "5 – 9 Jan". A window prints as a window on the page the client
  *  reads, because "planned for 5 Jan" on a job booked for that whole week is
@@ -256,7 +251,10 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
     setFont(d, 8, 'normal', INK2);
     d.text(fit(d, san(f.owner ?? '—'), cols[1] * w - 10), at(1), cy + 13);
 
-    const tone = f.decision === 'actioned' ? BLUE_DECIDED : f.decision === 'no action needed' ? MUTED : WARN;
+    /* The words trialCard.ts emits now — 'a fix' / 'not a problem'. This still
+       compared the old ones, so every decision printed in the amber "to decide"
+       tone, including the ones somebody had decided. */
+    const tone = f.decision === 'a fix' ? BLUE_DECIDED : f.decision === 'not a problem' ? MUTED : WARN;
     setFont(d, 8, 'bold', tone);
     d.text(fit(d, f.decision, cols[2] * w - 10), at(2), cy + 13);
 

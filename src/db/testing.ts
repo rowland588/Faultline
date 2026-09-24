@@ -47,6 +47,24 @@ export async function putTest(t: Test): Promise<void> {
   signalWrite();
 }
 
+/* A PATCH READS THE ROW IT CHANGES. Every write on the test screen used to be
+ * `put({ ...test, ...patch })` with `test` from the render that drew the
+ * button — so tapping Photo blurred the result box (one write), the camera
+ * came back five seconds later, and the second write carried the row from
+ * BEFORE the first: the result was gone. Same for Passed tapped straight after
+ * typing, and for a pull from the other device landing while the camera was
+ * open. Reading the row inside the write is what makes a patch a patch. A
+ * function patch sees the current row, for appends. A row that is gone stays
+ * gone: patching it back is how a deleted record came back. */
+export async function patchTest(id: ID, patch: Partial<Test> | ((cur: Test) => Partial<Test>)): Promise<void> {
+  const db = await getDB();
+  const cur = await db.get('tests', id);
+  if (!cur || cur.deletedAt) return;
+  const p = typeof patch === 'function' ? patch(cur) : patch;
+  await db.put('tests', { ...cur, ...p, updatedAt: now() });
+  signalWrite();
+}
+
 /** A test and everything under it. Both tombstoned, or the delete never leaves
  *  this device and the other one pushes its copy straight back. */
 export async function deleteTest(id: ID, projectId: string): Promise<void> {
@@ -159,6 +177,15 @@ export async function listTestItems(projectId: string): Promise<TestItem[]> {
 
 export async function putTestItem(i: TestItem): Promise<void> {
   await (await getDB()).put('test_items', { ...i, updatedAt: now() });
+  signalWrite();
+}
+
+export async function patchTestItem(id: ID, patch: Partial<TestItem> | ((cur: TestItem) => Partial<TestItem>)): Promise<void> {
+  const db = await getDB();
+  const cur = await db.get('test_items', id);
+  if (!cur || cur.deletedAt) return;
+  const p = typeof patch === 'function' ? patch(cur) : patch;
+  await db.put('test_items', { ...cur, ...p, updatedAt: now() });
   signalWrite();
 }
 

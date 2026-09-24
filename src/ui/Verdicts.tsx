@@ -13,13 +13,10 @@
  * writes; there is no second place a verdict lives.
  */
 import { nav } from '../state/useRoute';
+import { niceDay } from '../lib/weeks';
 import { needsVerdict, outcomeWord, verdictQuestion, type Outcome, type Test } from '../lib/testing';
 
-const nice = (iso?: string): string => {
-  if (!iso) return '';
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : iso;
-};
+const nice = (iso?: string): string => niceDay(iso) || '';
 
 export function Verdicts({ tests, projectId, onAnswer }: {
   tests: Test[];

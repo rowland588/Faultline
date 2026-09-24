@@ -8,8 +8,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   listAssets, putAsset, deleteAsset,
-  listTests, putTest, deleteTest, testContents,
-  listTestItems, putTestItem, deleteTestItem, actionsBecomeFixes,
+  listTests, putTest, patchTest, deleteTest, testContents,
+  listTestItems, putTestItem, patchTestItem, deleteTestItem, actionsBecomeFixes,
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
@@ -37,6 +37,10 @@ export interface TestingState {
    *  the same record and the same call; nothing needed a second one. */
   planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind) => Promise<string>;
   saveTest: (t: Test) => Promise<void>;
+  /** Change some fields of the row AS IT IS NOW. Use this from a button, a
+   *  picker or anything that fires after an await — never `saveTest({...test})`
+   *  with a row captured at render, which is how a typed result was lost. */
+  patchTest: (id: string, patch: Partial<Test> | ((cur: Test) => Partial<Test>)) => Promise<void>;
   removeTest: (id: string) => Promise<void>;
   /** What deleting one would take with it. */
   testCost: (id: string) => Promise<{ found: number; next: number }>;
@@ -63,6 +67,7 @@ export interface TestingState {
    *  where the control is rather than reported afterwards. */
   fixUntouched: (obs: TestItem) => boolean;
   saveItem: (i: TestItem) => Promise<void>;
+  patchItem: (id: string, patch: Partial<TestItem> | ((cur: TestItem) => Partial<TestItem>)) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
 }
 
@@ -151,6 +156,7 @@ export function useTesting(projectId: string): TestingState {
   }, [projectId, nextSort]);
 
   const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);
+  const patchTestCb = useCallback(async (id: string, patch: Partial<Test> | ((cur: Test) => Partial<Test>)) => { await patchTest(id, patch); }, []);
   const removeTest = useCallback(async (id: string) => { await deleteTest(id, projectId); }, [projectId]);
   const testCost = useCallback((id: string) => testContents(id, projectId), [projectId]);
 
@@ -218,6 +224,7 @@ export function useTesting(projectId: string): TestingState {
   }, [tests, projectId, fixUntouched]);
 
   const saveItem = useCallback(async (i: TestItem) => { await putTestItem({ ...i, updatedAt: now() }); }, []);
+  const patchItem = useCallback(async (id: string, patch: Partial<TestItem> | ((cur: TestItem) => Partial<TestItem>)) => { await patchTestItem(id, patch); }, []);
   const removeItem = useCallback(async (id: string) => { await deleteTestItem(id); }, []);
 
   const answer = useMemo(() => standing(tests, items), [tests, items]);
@@ -225,7 +232,7 @@ export function useTesting(projectId: string): TestingState {
   return {
     loading, assets, tests, items, standing: answer,
     addAsset, saveAsset, removeAsset,
-    planTest, saveTest, removeTest, testCost, planNextFrom,
-    addItem, unmakeFix, fixUntouched, saveItem, removeItem,
+    planTest, saveTest, patchTest: patchTestCb, removeTest, testCost, planNextFrom,
+    addItem, unmakeFix, fixUntouched, saveItem, patchItem, removeItem,
   };
 }

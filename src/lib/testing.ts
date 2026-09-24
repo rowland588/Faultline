@@ -397,7 +397,12 @@ export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerd
 export const isSettled = (t: Test): boolean =>
   t.kind === 'fix' ? t.outcome === 'passed' : hasRun(t);
 
-const todayISO = (): string => new Date().toISOString().slice(0, 10);
+/* The reader's OWN day. toISOString() is UTC: at half past midnight in
+   Manchester all summer it still says yesterday, so a verdict tapped on the
+   night shift was stamped with the day before, and a test planned for today
+   was not yet late while the film due today already was. One definition,
+   from weeks.ts, for every list on the dashboard. */
+import { todayISO } from './weeks';
 
 /** Planned for a date that has been and gone, and still not run. */
 /** The last day of the planned window, which on a single-day plan IS the

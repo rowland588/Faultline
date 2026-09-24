@@ -87,7 +87,8 @@ export function slipWords(slipDays?: number): string | undefined {
     : `${days} ahead of what was agreed.`;
 }
 
-export const todayISO = (): string => new Date().toISOString().slice(0, 10);
+import { todayISO } from './weeks';
+export { todayISO };
 
 const daysBetween = (a: string, b: string): number =>
   Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);

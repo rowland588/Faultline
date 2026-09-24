@@ -32,15 +32,11 @@ import {
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
+import { niceDay, todayISO } from '../lib/weeks';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
-const nice = (iso?: string): string => {
-  if (!iso) return '';
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : iso;
-};
-const today = () => new Date().toISOString().slice(0, 10);
+const nice = (iso?: string): string => niceDay(iso) || '';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -81,7 +77,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
     );
   }
 
-  const save = (patch: Partial<Test>) => void tt.saveTest({ ...test, ...patch });
+  const save = (patch: Partial<Test>) => void tt.patchTest(test.id, patch);
   /* Which face this record is wearing — every label on the screen comes from
      lib/testing's WORDS rather than being decided here. */
   const kind = test.kind ?? 'test';
@@ -92,7 +88,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
      otherwise — the common case is telling the app on the day itself, and
      making somebody type today's date is a question the app can answer. */
   const setOutcome = (o: Outcome) =>
-    save({ outcome: o, ranOn: test.ranOn ?? (o === 'planned' ? undefined : today()) });
+    void tt.patchTest(test.id, cur => ({ outcome: o, ranOn: cur.ranOn ?? (o === 'planned' ? undefined : todayISO()) }));
 
   return (
     <div className="wrap pace cm-screen">
@@ -205,7 +201,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           ))}
         </span>
         <MediaStrip media={test.media ?? []} size={54} onView={setViewing}
-          onAdd={refs => tt.saveTest({ ...test, media: [...(test.media ?? []), ...refs] })} />
+          onAdd={refs => tt.patchTest(test.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
       </section>
 
       {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
@@ -467,7 +463,7 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
               <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>
           )}
           <MediaStrip media={item.media ?? []} size={44} onView={onView}
-            onAdd={refs => tt.saveItem({ ...item, media: [...(item.media ?? []), ...refs] })} />
+            onAdd={refs => tt.patchItem(item.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
           {/* WHAT YOU DECIDE AN OBSERVATION IS. Rowland: "what we found on the
               day is observations — I then decide if they go to an action or go
               to a fix." Three doors, because there are three answers: it needs
@@ -645,7 +641,7 @@ function Docs({ test, tt }: { test: Test; tt: TT }) {
         await putBlob(blobKey, f);
         next.push({ id: uid(), name: f.name, blobKey, mime: f.type || 'application/pdf', bytes: f.size, savedAt: Date.now() });
       }
-      await tt.saveTest({ ...test, docs: [...docs, ...next] });
+      await tt.patchTest(test.id, cur => ({ docs: [...(cur.docs ?? []), ...next] }));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'That file could not be saved.');
     }

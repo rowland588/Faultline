@@ -15,28 +15,19 @@ import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
+import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { DraftField } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, outcomeWord, isOverdue, itemsOf, standing, weeksTo,
+  ASSET_STATE_WORD, WORDS, hasRun, outcomeWord, isOverdue, itemsOf, standing, standingOfItem, weeksTo,
   type Test, type TestKind,
 } from '../lib/testing';
 
-const nice = (iso?: string): string => {
-  if (!iso) return '—';
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : iso;
-};
-const loud = (iso?: string): string => {
-  if (!iso) return 'NO DATE';
-  const t = Date.parse(iso);
-  return Number.isFinite(t)
-    ? new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
-    : iso;
-};
+const nice = (iso?: string): string => niceDay(iso) || '—';
+const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
 
 /** A day, or a block of them. "MON 5 – FRI 9 JAN" reads as the week it is, and
  *  a single date is still a single date — the second one is absent on almost
@@ -108,8 +99,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const weeks = weeksTo(project.expectedAt);
   const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
 
+  /* "Still open" is what nobody has decided about — not what has no doneAt,
+     which counted an observation that had become a fix as still open. */
   const counts = (t: Test) => ({
-    found: itemsOf(tt.items, t.id, 'found').filter(i => i.doneAt == null).length,
+    found: itemsOf(tt.items, t.id, 'found').filter(i => standingOfItem(i, tt.items) === 'new').length,
     next: itemsOf(tt.items, t.id, 'next').filter(i => i.doneAt == null).length,
   });
 
@@ -181,7 +174,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}
       <Verdicts tests={st.done} projectId={projectId}
-        onAnswer={(t, outcome) => void tt.saveTest({ ...t, outcome })} />
+        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))} />
 
       <section className="cmp-sec">
         <div className="cw-sec-h">
@@ -292,7 +285,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="cx-assets">
           {tt.assets.map(a => {
-            const ran = tt.tests.filter(t => t.assetId === a.id && t.outcome !== 'planned').length;
+            const ran = tt.tests.filter(t => t.assetId === a.id && hasRun(t)).length;
             return (
               <div key={a.id} className="tw-asset">
                 <DraftField value={a.name} ariaLabel="Machine name"
