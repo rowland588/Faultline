@@ -49,6 +49,17 @@ export interface PlacedMark {
   /** Already written for print — "21 Sep". No drawer parses a date. */
   when: string;
   tone: PlanMark['tone'];
+  /** Which way the words go from the mark. Right, unless they would run off
+   *  the end of the axis and there is more room behind the mark than ahead of
+   *  it — the last thing on a plan is the one a client looks for, and it must
+   *  never be the one that gets cut. See placeLabel. Optional only so that a
+   *  hand-built mark in a test reads as right-going with the whole axis to
+   *  itself, which is what an unplaced mark is. */
+  side?: 'right' | 'left';
+  /** How much of the axis the words have on that side before they reach its
+   *  edge, as a fraction. A drawer whose words are wider than this trims them
+   *  rather than letting them leave the lane. */
+  room?: number;
 }
 
 /** One horizontal band. `rows` is the band split into as many lines as it took
@@ -148,9 +159,8 @@ export interface PlanOpts {
    *
    *  A flat minGap treats "P-104" and "Seal integrity — Finest Red 2kg —
    *  re-test" as the same width, and they are not: on the A3 the second ran
-   *  straight through the mark seven days after it. Labels are drawn to the
-   *  RIGHT of their dot, so what has to fit before the next dot is the
-   *  PREVIOUS mark's label — which is what the packer asks this for. */
+   *  straight through the mark seven days after it. The screen measures its
+   *  text and passes the truth; the report estimates by character count. */
   widthOf?: (m: PlanMark) => number;
 }
 
@@ -163,6 +173,42 @@ export interface PlanOpts {
 export function labelGap(label: string, charPt: number, padPt: number, trackPt: number): number {
   return (label.length * charPt + padPt) / Math.max(1, trackPt);
 }
+
+/** Which side of a mark its words go, and how much axis they have there.
+ *
+ *  Right by default, because that is the way a plan reads. Back towards the
+ *  middle when they would run off the end, because the last mark on a plan is
+ *  the one a client looks for. When they fit on neither side — a long title on
+ *  a mark in the middle of a short axis — the roomier side, and the drawer
+ *  trims them to `room`. `at` and `end` are fractions; `end` is where a bar
+ *  stops, and the same as `at` for a mark that happens on one day.
+ *
+ *  This used to be a fixed fraction of the axis (past 72%, flip), which was
+ *  wrong in both directions: a short label at 80% was flipped for nothing and
+ *  a long one at 60% ran a hundred pixels off the card. */
+export function placeLabel(at: number, end: number, width: number): { side: 'right' | 'left'; room: number } {
+  const ahead = Math.max(0, 1 - end);
+  const behind = Math.max(0, at);
+  if (width <= ahead) return { side: 'right', room: ahead };
+  if (width <= behind) return { side: 'left', room: behind };
+  return ahead >= behind ? { side: 'right', room: ahead } : { side: 'left', room: behind };
+}
+
+/** The stretch of axis a mark and its words take up, as [from, to] fractions:
+ *  the dot (or bar) plus the words on whichever side they went, trimmed to
+ *  the room there was. Two marks can share a line only when their footprints
+ *  are clear of each other. Before this, only the width to the RIGHT of the
+ *  previous mark was checked, so a mark whose words had been written back to
+ *  the left landed them across whatever was already on the line. */
+export function footprint(m: { at: number; until?: number; side?: 'right' | 'left'; room?: number }, width: number): [number, number] {
+  const end = m.until != null && m.until > m.at ? m.until : m.at;
+  const w = Math.min(width, m.room ?? 1);
+  return m.side === 'left' ? [m.at - w, end] : [m.at, end + w];
+}
+
+/** A hair of clear axis between two footprints on a line — under half a day
+ *  on a two-month axis, enough that words never touch the next dot. */
+const CLEAR = 0.004;
 
 /**
  * Put the marks on an axis.
@@ -209,25 +255,26 @@ export function layoutPlan(marks: PlanMark[], opts: PlanOpts = {}): Plan {
     if (mine.length === 0) continue;   // an empty band is a row of nothing
 
     const placed = mine
-      .map(m => ({
-        placed: {
-          kind: m.kind, at: pos(m.at), until: m.until ? pos(m.until) : undefined,
-          label: m.label, when: whenWords(m.at), tone: m.tone,
-        } satisfies PlacedMark,
-        from: m,
-      }))
+      .map(m => {
+        const at = pos(m.at);
+        const until = m.until ? pos(m.until) : undefined;
+        const end = until != null && until > at ? until : at;
+        const width = opts.widthOf ? Math.max(opts.widthOf(m), 0.01) : minGap;
+        const { side, room } = placeLabel(at, end, width);
+        const p: PlacedMark = {
+          kind: m.kind, at, until, label: m.label, when: whenWords(m.at), tone: m.tone, side, room,
+        };
+        return { placed: p, foot: footprint(p, width) };
+      })
       .sort((a, b) => a.placed.at - b.placed.at);
 
-    /* Greedy packing: a mark goes on the first line whose last mark has enough
-       clear space before it. In date order, so the lines read left to right. */
-    const rows: { placed: PlacedMark; from: PlanMark }[][] = [];
+    /* Greedy packing: a mark goes on the first line where nothing already
+       there is under its footprint — dot, bar or words, whichever way the
+       words went. In date order, so the lines read left to right. */
+    const rows: { placed: PlacedMark; foot: [number, number] }[][] = [];
     for (const m of placed) {
-      const row = rows.find(r => {
-        const prev = r[r.length - 1];
-        if (!prev) return false;
-        const need = opts.widthOf ? Math.max(opts.widthOf(prev.from), 0.01) : minGap;
-        return m.placed.at - (prev.placed.until ?? prev.placed.at) >= need;
-      });
+      const row = rows.find(r => r.every(o =>
+        m.foot[0] >= o.foot[1] + CLEAR || m.foot[1] + CLEAR <= o.foot[0]));
       if (row) row.push(m); else rows.push([m]);
     }
     lanes.push({ kind: lane.kind, label: lane.label, rows: rows.map(r => r.map(x => x.placed)) });

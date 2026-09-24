@@ -5,7 +5,7 @@
  * kind of fault that looks plausible in a picture and is obvious in a number.
  */
 import { describe, it, expect } from 'vitest';
-import { labelGap, layoutPlan, planAgenda, planSays, whenWords } from '../plan';
+import { footprint, labelGap, layoutPlan, placeLabel, planAgenda, planSays, whenWords } from '../plan';
 import type { PlanMark } from '../standing';
 
 const mark = (o: Partial<PlanMark> & { at: string }): PlanMark => ({
@@ -211,5 +211,109 @@ describe('the words a date becomes', () => {
   it('is the day and the short month', () => {
     expect(whenWords('2026-09-21')).toBe('21 Sep');
     expect(whenWords('2026-01-05')).toBe('5 Jan');
+  });
+});
+
+describe('which way the words go', () => {
+  it('go right when they fit, with the rest of the axis as their room', () => {
+    expect(placeLabel(0.2, 0.2, 0.3)).toEqual({ side: 'right', room: 0.8 });
+  });
+
+  it('go back down the axis when they would run off the end of it', () => {
+    /* At 0.9 with words 0.3 wide: 0.1 ahead, 0.9 behind. */
+    expect(placeLabel(0.9, 0.9, 0.3)).toEqual({ side: 'left', room: 0.9 });
+  });
+
+  it('do not flip a short label just because it is near the end', () => {
+    /* The old rule flipped everything past 72% of the axis. "P-104" at 80%
+       fits on the right with room to spare, and reads the way the rest do. */
+    expect(placeLabel(0.8, 0.8, 0.05).side).toBe('right');
+  });
+
+  it('take the roomier side, to be trimmed, when they fit on neither', () => {
+    expect(placeLabel(0.4, 0.4, 0.7)).toEqual({ side: 'right', room: 0.6 });
+    expect(placeLabel(0.7, 0.7, 0.9)).toEqual({ side: 'left', room: 0.7 });
+  });
+
+  it('measure a bar from where it ends going right and where it starts going left', () => {
+    expect(placeLabel(0.5, 0.85, 0.2)).toEqual({ side: 'left', room: 0.5 });
+    expect(placeLabel(0.1, 0.4, 0.2)).toEqual({ side: 'right', room: 0.6 });
+  });
+
+  it('are laid out by layoutPlan, so no drawer decides for itself', () => {
+    /* A 30-day axis. The 28th is 0.9 along; words 0.3 wide cannot go right. */
+    const p = layoutPlan([mark({ at: '2026-09-28', label: 'a long enough title' })], { widthOf: () => 0.3 });
+    const m = p.lanes[0]!.rows[0]![0]!;
+    expect(m.side).toBe('left');
+    expect(m.room).toBeCloseTo(27 / 30, 4);
+  });
+});
+
+describe('the ground a mark takes up', () => {
+  it('runs from the dot to the end of its words', () => {
+    expect(footprint({ at: 0.2, side: 'right', room: 0.8 }, 0.1)).toEqual([0.2, expect.closeTo(0.3, 6)]);
+  });
+
+  it('runs back from the dot when the words went left', () => {
+    expect(footprint({ at: 0.9, side: 'left', room: 0.9 }, 0.1)).toEqual([expect.closeTo(0.8, 6), 0.9]);
+  });
+
+  it('is only as long as the room there was, because the words get trimmed to it', () => {
+    expect(footprint({ at: 0.7, side: 'right', room: 0.3 }, 0.5)).toEqual([0.7, expect.closeTo(1, 6)]);
+  });
+
+  it('includes the whole of a bar', () => {
+    expect(footprint({ at: 0.1, until: 0.4, side: 'right', room: 0.6 }, 0.1)).toEqual([0.1, expect.closeTo(0.5, 6)]);
+    expect(footprint({ at: 0.5, until: 0.85, side: 'left', room: 0.5 }, 0.1)).toEqual([expect.closeTo(0.4, 6), 0.85]);
+  });
+
+  it('reads an unplaced mark as right-going with the whole axis to itself', () => {
+    expect(footprint({ at: 0.2 }, 0.1)).toEqual([0.2, expect.closeTo(0.3, 6)]);
+  });
+});
+
+describe('packing when words go both ways', () => {
+  it('puts a flipped label on its own line rather than over the mark before it', () => {
+    /* A 30-day axis. 'first' on the 22nd (0.7) goes right, words 0.25 wide,
+       to 0.95. 'last' on the 28th (0.9) cannot go right, goes left to 0.65 —
+       straight across 'first'. The old packer only asked whether there was
+       room to the RIGHT of 'first', found 0.2 < 0.25, and stacked them anyway;
+       this is the case where it would have found room and been wrong. */
+    const p = layoutPlan([
+      mark({ at: '2026-09-22', label: 'first' }),
+      mark({ at: '2026-09-28', label: 'last' }),
+    ], { widthOf: m => (m.label === 'first' ? 0.15 : 0.25) });
+    expect(p.lanes[0]!.rows).toHaveLength(2);
+    expect(p.lanes[0]!.rows[1]![0]!.side).toBe('left');
+  });
+
+  it('lets a flipped label share a line with something well before it', () => {
+    /* 'early' on the 4th (0.1) to 0.3; 'last' at 0.9 going left to 0.65. Clear. */
+    const p = layoutPlan([
+      mark({ at: '2026-09-04', label: 'early' }),
+      mark({ at: '2026-09-28', label: 'last' }),
+    ], { widthOf: m => (m.label === 'early' ? 0.2 : 0.25) });
+    expect(p.lanes[0]!.rows).toHaveLength(1);
+  });
+
+  it('keeps a hair of clear axis between two footprints', () => {
+    /* 'one' at 0.1 takes exactly to 0.4; 'two' sits at 0.4. Touching is not clear. */
+    const p = layoutPlan([
+      mark({ at: '2026-09-04', label: 'one' }),
+      mark({ at: '2026-09-13', label: 'two' }),
+    ], { widthOf: m => (m.label === 'one' ? 0.3 : 0.1) });
+    expect(p.lanes[0]!.rows).toHaveLength(2);
+  });
+
+  it('never lets a footprint reach past either end of the axis', () => {
+    const p = layoutPlan([
+      mark({ at: '2026-09-01', label: 'start' }),
+      mark({ at: '2026-09-30', label: 'end' }),
+    ], { widthOf: () => 1.5 });
+    for (const m of p.lanes[0]!.rows.flat()) {
+      const [a, b] = footprint(m, 1.5);
+      expect(a).toBeGreaterThanOrEqual(0);
+      expect(b).toBeLessThanOrEqual(1 + 1e-9);
+    }
   });
 });

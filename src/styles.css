@@ -5672,84 +5672,93 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
  *   red    = and it was not         red  = and the day has gone
  * So a hollow red ring is "due, not done" and never reads as a trial that ran
  * and failed — that one happened, and is filled.
+ *
+ * WORDS NEVER LEAVE THEIR LANE. Each mark is a zero-width anchor on its day;
+ * the dot is centred on it and the words hang off one side or the other
+ * (Timeline.tsx decides which, from measured text), trimmed to the room there
+ * is with an ellipsis and the whole label on the tooltip. The numbers here —
+ * the 78px lane column, the 4px gap, the 5px pad — are read by Timeline.tsx
+ * as LANE_W, LAB_GAP and LAB_PAD; change them together.
  */
 .tl {
   padding: 18px 22px 14px; margin-bottom: 16px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
 }
-.tl-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.tl-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .tl-h { margin: 0; font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: -0.018em; }
 
 .tl-agenda { display: none; }          /* across, until a phone says otherwise */
+.tl-wide { position: relative; }
+/* the ruler's reference glyphs: styled exactly as a label, never seen */
+.tl-probe { position: absolute; visibility: hidden; pointer-events: none; white-space: nowrap; left: 0; top: 0; }
 
-.tl-months { position: relative; height: 15px; margin-left: 78px; }
+.tl-months { position: relative; height: 18px; margin-left: 78px; }
 .tl-month {
-  position: absolute; top: 0; transform: translateX(2px);
+  position: absolute; top: 0; padding-left: 6px; line-height: 18px;
+  border-left: 1px solid var(--line-2);
   font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
-  color: var(--muted);
+  color: var(--muted); white-space: nowrap;
 }
 
-.tl-body { position: relative; padding: 4px 0 2px; }
+.tl-body { position: relative; padding: 2px 0 0; }
 
-/* the month rules, and the two dates, all behind the marks */
-.tl-grid {
-  position: absolute; top: 0; bottom: 0; width: 1px; margin-left: 78px;
-  background: var(--line); pointer-events: none;
-}
-.tl-today {
-  position: absolute; top: 0; bottom: 0; width: 2px; margin-left: 77px;
-  background: var(--ink); opacity: 0.55; pointer-events: none;
-}
-.tl-when { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: 77px; pointer-events: none; }
-.tl-when.is-rate { background: var(--brand); }
-.tl-when.is-agreed { background: var(--muted); opacity: 0.6; }
+/* Everything that runs the full height sits in one overlay the exact width of
+   the track. It used to be placed as a fraction of the whole body, lane column
+   included, and then nudged 78px — which drifted up to 78px right of the marks
+   it was meant to sit under, and most at the end, where the dates are. */
+.tl-under { position: absolute; top: -2px; bottom: 0; left: 78px; right: 0; pointer-events: none; }
+.tl-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tl-today { position: absolute; top: 0; bottom: -4px; width: 0; border-left: 2px solid var(--ink); }
+.tl-when { position: absolute; top: 0; bottom: -4px; width: 0; }
+.tl-when.is-rate { border-left: 2px solid var(--brand); }
+.tl-when.is-agreed { border-left: 2px dashed var(--muted); }
 /* THE SLIP, DRAWN. The verdict card counts the days the date has moved; this
    is the ground those days cover at the scale of the job. */
 .tl-slip {
-  position: absolute; top: 0; bottom: 0; margin-left: 78px;
-  background: repeating-linear-gradient(135deg,
-    var(--gold-soft) 0 6px, transparent 6px 12px);
-  border-left: 1px solid var(--gold-soft); border-right: 1px solid var(--gold-soft);
-  pointer-events: none;
+  position: absolute; top: 0; bottom: 0;
+  background: repeating-linear-gradient(135deg, var(--gold-soft) 0 5px, transparent 5px 11px);
 }
 
-.tl-lane { display: grid; grid-template-columns: 78px 1fr; align-items: start; padding: 5px 0; }
+.tl-lane { display: grid; grid-template-columns: 78px 1fr; align-items: start; padding: 7px 0 6px; position: relative; }
 .tl-lane + .tl-lane { border-top: 1px solid var(--surface-2); }
 .tl-lane-l {
-  padding-top: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  padding: 3px 8px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--ink-2);
 }
+.tl-lane-n {
+  display: block; margin-top: 2px; font-size: 10.5px; font-weight: 500; letter-spacing: 0;
+  text-transform: none; color: var(--muted); font-variant-numeric: tabular-nums;
+}
 .tl-rows { position: relative; }
-.tl-row { position: relative; height: 26px; }
+.tl-row { position: relative; height: 24px; }
 
-/* a mark: the dot on the axis, its words beside it */
-.tl-m { position: absolute; top: 0; display: flex; align-items: center; height: 26px; }
+/* a mark: a zero-width anchor on its day, the dot centred on it, the words
+   beside it — and for a machine, a bar from arriving to running */
+.tl-m { position: absolute; top: 0; height: 24px; width: 0; }
 .tl-m.is-bar::before {
-  content: ''; position: absolute; left: 0; right: 0; top: 11px; height: 4px;
-  border-radius: 2px; background: currentColor; opacity: 0.32;
+  content: ''; position: absolute; left: 0; right: 0; top: 10px; height: 4px;
+  border-radius: 2px; background: currentColor; opacity: 0.3;
 }
 .tl-dot {
-  flex: none; width: 9px; height: 9px; border-radius: 50%;
-  border: 2px solid currentColor; background: var(--surface);
-  position: relative; z-index: 1;
+  position: absolute; left: 0; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+  box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor;
+  background: var(--surface); z-index: 1;
 }
-.tl-lab { display: flex; align-items: baseline; gap: 6px; padding-left: 7px; white-space: nowrap; }
-/* A BAR'S WORDS GO AFTER THE BAR, NOT ON TOP OF IT. The label sat at the dot
-   with the bar running underneath it, which on a dark enough bar reads as the
-   text having been struck through. The bar occupies the days; the words come
-   once the days are done with. */
-.tl-m.is-bar .tl-lab { position: absolute; left: 100%; margin-left: 7px; padding-left: 0; }
-.tl-lab-t { font-size: 11.5px; font-weight: 600; color: var(--ink); }
-.tl-lab-d { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-/* a mark near the right edge writes back towards the middle, so the last thing
-   on the plan — the one a client looks for — is never the one that gets cut */
-.tl-m.is-flip { flex-direction: row-reverse; }
-.tl-m.is-flip .tl-lab { flex-direction: row-reverse; padding-left: 0; padding-right: 7px; }
-/* Near the right edge the words go back down the axis — for a bar that means
-   to the left of where the bar STARTS, so they never sit over it either. The
-   bar itself never moves: shifting it would put the mark on the wrong days. */
-.tl-m.is-flip.is-bar .tl-lab { left: auto; right: 100%; margin-left: 0; margin-right: 7px; }
+/* the words: after the mark, or after the bar for a machine. A whisper of the
+   surface behind them, so a month rule or the today line reads as passing
+   behind the words rather than striking them through. */
+.tl-lab {
+  position: absolute; top: 50%; transform: translateY(-50%); left: 100%; margin-left: 4px;
+  display: flex; align-items: baseline; gap: 6px; padding: 1px 5px; box-sizing: border-box;
+  border-radius: 4px; white-space: nowrap;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+}
+/* near the right edge the words go back down the axis — for a bar, to the left
+   of where it STARTS, so they never sit over it either. The mark never moves. */
+.tl-m.is-left .tl-lab { left: auto; right: 100%; margin-left: 0; margin-right: 4px; flex-direction: row-reverse; }
+.tl-lab-t { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; font-weight: 600; color: var(--ink); }
+.tl-lab-d { flex: none; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tl-lab.is-cut { cursor: help; }
 
 .tl-m.is-done   { color: var(--ok); }
 .tl-m.is-failed { color: var(--danger); }
@@ -5758,62 +5767,84 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tl-m.is-none   { color: var(--line-2); }
 /* filled means it happened — the whole of the second half of the rule */
 .tl-m.is-done .tl-dot, .tl-m.is-failed .tl-dot { background: currentColor; }
+/* a day that has gone, or a run that did not pass, says so in the date too */
+.tl-m.is-late .tl-lab-d, .tl-m.is-failed .tl-lab-d { color: currentColor; font-weight: 700; }
 
-.tl-feet { position: relative; height: 17px; margin-top: 3px; }
+/* the two dates and today, named under the axis on their own line */
+.tl-feet { position: relative; height: 20px; margin: 6px 0 0 78px; }
+.tl-feet.is-two { height: 40px; }
 .tl-foot {
-  position: absolute; top: 0; margin-left: 78px; transform: translateX(-50%);
-  white-space: nowrap; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
-  padding: 1px 6px; border-radius: 999px;
+  position: absolute; top: 0; transform: translateX(-50%);
+  white-space: nowrap; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; line-height: 16px;
+  padding: 0 7px; border-radius: 999px;
 }
+.tl-foot.at-start { transform: none; }
+.tl-foot.at-end   { transform: translateX(-100%); }
+.tl-foot.is-below { top: 20px; }
 .tl-foot.is-today  { background: var(--ink); color: var(--on-brand); }
 .tl-foot.is-rate   { background: var(--brand); color: var(--on-brand); }
 .tl-foot.is-agreed { background: var(--surface-2); color: var(--ink-2); }
 
-.tl-key {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 5px 4px;
+/* the key: each entry is the thing itself, drawn small, beside its words */
+.tl-key, .tl-ag-key {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px;
   margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--surface-2);
-  font-size: 11px;
+  font-size: 11px; color: var(--ink-2);
 }
-.tl-key .tl-k {
-  width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor;
-  margin-left: 12px; margin-right: 2px;
-}
-.tl-key .tl-k:first-child { margin-left: 0; }
-.tl-k.is-done   { color: var(--ok); background: var(--ok); }
-.tl-k.is-failed { color: var(--danger); background: var(--danger); }
+.tl-key-i { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tl-k { width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; }
+.tl-k.is-done   { color: var(--ok); background: currentColor; }
+.tl-k.is-failed { color: var(--danger); background: currentColor; }
 .tl-k.is-late   { color: var(--danger); background: var(--surface); }
 .tl-k.is-booked { color: var(--blue); background: var(--surface); }
+.tl-kl { width: 0; height: 12px; border-left: 2px solid var(--ink); }
+.tl-kl.is-rate   { border-color: var(--brand); }
+.tl-kl.is-agreed { border-color: var(--muted); border-left-style: dashed; }
 .tl-key-say { margin-left: auto; color: var(--muted); }
 
-@media (max-width: 720px) {
+@media (max-width: 840px) {
   /* Four bands of labelled dots at 390 points is a smear, so the plan becomes
-     what a plan is when you say it out loud: this month, then next month. */
+     what a plan is when you say it out loud: this month, then next month.
+     840 rather than the 720 the rest of the app turns on, because it was
+     measured: on a job the size of Rowland's (47 dated things over four
+     months) a 604px track put every one of them on a line of its own and
+     trimmed four — a list drawn the expensive way. At 868px of track nothing
+     is trimmed and the lines start to share. */
   .tl { padding: 15px 16px 8px; }
   .tl-wide { display: none; }
   .tl-agenda { display: block; margin: 0; padding: 0; list-style: none; }
   .tl-ag-month + .tl-ag-month { margin-top: 14px; }
   .tl-ag-h {
-    margin: 0 0 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.09em;
+    margin: 0 0 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.09em;
     text-transform: uppercase; color: var(--muted);
     padding-bottom: 5px; border-bottom: 1px solid var(--surface-2);
   }
   .tl-ag-list { margin: 0; padding: 0; list-style: none; }
   .tl-ag-item {
-    display: grid; grid-template-columns: 52px 11px 1fr; align-items: center;
-    gap: 9px; padding: 7px 0; font-size: 13px;
+    display: grid; grid-template-columns: 46px 10px minmax(0, 1fr); align-items: start;
+    gap: 9px; padding: 6px 0; font-size: 13px; line-height: 1.3;
   }
-  .tl-ag-when { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tl-ag-item + .tl-ag-item { border-top: 1px solid color-mix(in srgb, var(--surface-2) 60%, transparent); }
+  .tl-ag-when { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
   .tl-ag-dot {
-    width: 9px; height: 9px; border-radius: 50%;
+    width: 10px; height: 10px; box-sizing: border-box; margin-top: 4px; border-radius: 50%;
     border: 2px solid currentColor; background: var(--surface);
   }
-  .tl-ag-what { font-weight: 600; color: var(--ink); }
+  /* the words wrap rather than run off a phone; the list they came from
+     reads after them, small, because the agenda has no lanes to say it */
+  .tl-ag-what { font-weight: 600; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+  .tl-ag-kind {
+    margin-left: 7px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  }
   .tl-ag-item.is-done   { color: var(--ok); }
   .tl-ag-item.is-failed { color: var(--danger); }
   .tl-ag-item.is-late   { color: var(--danger); }
   .tl-ag-item.is-booked { color: var(--blue); }
   .tl-ag-item.is-none   { color: var(--line-2); }
   .tl-ag-item.is-done .tl-ag-dot, .tl-ag-item.is-failed .tl-ag-dot { background: currentColor; }
+  .tl-ag-item.is-late .tl-ag-when, .tl-ag-item.is-failed .tl-ag-when { color: currentColor; font-weight: 700; }
+  .tl-ag-key { list-style: none; margin-top: 14px; }
 }
 
 /* ===================== THE TRIAL CARD, ON SCREEN =========================
