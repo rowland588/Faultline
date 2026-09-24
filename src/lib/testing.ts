@@ -125,8 +125,32 @@ export const FIX_OUTCOME_WORD: Record<Outcome, string> = {
   planned: 'Planned', passed: 'Fixed', failed: 'Didn’t fix it', notRun: 'Didn’t happen',
 };
 
-export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'>): string =>
-  (t.kind === 'fix' ? FIX_OUTCOME_WORD : OUTCOME_WORD)[t.outcome];
+/* IT HAPPENED, AND NOBODY HAS SAID WHETHER IT PASSED.
+ *
+ * Rowland ran a test on the floor, dated it, typed what happened — "started at
+ * 73%, achieved 90% over a 97 minute run" — and pocketed the phone. The row
+ * reached the cloud. On his laptop the test sat under "Next up" reading "Not
+ * run yet", with everything he had written hidden behind it, because the
+ * outcome was still `planned` and every screen and both PDFs took that one
+ * word as the whole truth. His words for it: "it shows on the laptop as next
+ * one up with all information missing ... I never get asked."
+ *
+ * The outcome is a VERDICT. It is not evidence of whether the day happened —
+ * the date and the result are. So a record carrying either has run, whatever
+ * the verdict says, and one that has run without a verdict is a question the
+ * app owes the person, not a plan it should keep filing. It is deliberately
+ * not a fifth outcome: nothing is stored, and the moment somebody answers, it
+ * reads as passed or didn't like any other. */
+export const needsVerdict = (t: Pick<Test, 'outcome' | 'ranOn' | 'result'>): boolean =>
+  t.outcome === 'planned' && (!!t.ranOn || !!t.result?.trim());
+
+export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'> & Partial<Pick<Test, 'ranOn' | 'result'>>): string =>
+  needsVerdict({ outcome: t.outcome, ranOn: t.ranOn, result: t.result })
+    ? 'No verdict yet'
+    : (t.kind === 'fix' ? FIX_OUTCOME_WORD : OUTCOME_WORD)[t.outcome];
+
+/** The question the screen asks when the verdict is owed — in the face's own words. */
+export const verdictQuestion = (kind: TestKind): string => (kind === 'fix' ? 'Did it fix it?' : 'Did it pass?');
 
 /** What each field is CALLED depends on which face you are looking at. One
  *  record, two vocabularies, and the screens and both documents take the words
@@ -351,7 +375,7 @@ export const foundWords = (t: Pick<FoundTally, 'written' | 'actioned' | 'undecid
 };
 
 /** Has the day happened yet. */
-export const hasRun = (t: Test): boolean => t.outcome !== 'planned';
+export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerdict(t);
 
 /** OFF THE LIST, OR STILL ON IT — and it is not the same question as whether
  *  the day happened.

@@ -1,5 +1,22 @@
 # Faultline — how work gets delivered here
 
+## What this is for
+
+Commissioning management for a plant start-up: the site that is accepting the
+equipment, working with the OEM to a structured plan, so that things get done
+and nothing gets missed. That is the whole product. Rowland, 24 September:
+
+> "We are close, but it still feels like a gimmick."
+
+So every change is measured against one question before it is built: does it
+help the site and the OEM agree what has to be proved, see what is proved and
+what is not, and know who owes what by when — or is it a feature? A screen that
+shows information without saying what it means for the start-up is a gimmick,
+however well it is drawn. A report that lists records instead of telling the
+story of the start-up is a gimmick. A field nobody is asked to fill in is a
+gimmick. The test for any addition is the sentence it lets the site say to the
+OEM, or the OEM to the site, that they could not say before.
+
 ## Finished means live, not pushed
 
 `main` is what Vercel builds. A push to any other branch changes nothing that

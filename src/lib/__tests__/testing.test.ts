@@ -15,6 +15,7 @@ import {
   OUTCOME_WORD, byWhenPlanned, byWhenRun, hasRun, isOpen, isOverdue, itemsOf,
   nextFrom, standing, standsAt, weeksTo,
   type Test, type TestItem,
+  needsVerdict, outcomeWord, isSettled,
 } from '../testing';
 
 const DAY = 86_400_000;
@@ -351,5 +352,58 @@ describe('what the tally says in words', () => {
 
   it('never says the word action', () => {
     expect(foundWords({ written: 9, actioned: 4, undecided: 2 })).not.toMatch(/action/i);
+  });
+});
+
+/* IT HAPPENED AND NOBODY SAID HOW IT WENT.
+ *
+ * Rowland ran a test, dated it, wrote the result and pocketed the phone. The
+ * row synced. On the laptop it sat under Next up as "Not run yet" with the
+ * result hidden, because the outcome was still `planned` and every list took
+ * that word as the whole truth. The date and the result are the evidence the
+ * day happened; the outcome is the verdict, and a missing verdict is a
+ * question owed, not a plan to keep filing.
+ */
+describe('a test that happened without a verdict', () => {
+  const t = (o: Partial<Test>): Test => ({
+    id: 'x', projectId: 'p', title: 'Run at 70 ppm', outcome: 'planned', sort: 0, createdAt: 1, updatedAt: 1, ...o,
+  });
+
+  it('has run once it carries the day it ran', () => {
+    expect(hasRun(t({ ranOn: '2026-09-23' }))).toBe(true);
+  });
+
+  it('has run once somebody wrote what happened, even with no date', () => {
+    expect(hasRun(t({ result: 'Started at 73%, achieved 90% over a 97 min run' }))).toBe(true);
+  });
+
+  it('has not run when it is only planned', () => {
+    expect(hasRun(t({ plannedFor: '2026-09-23' }))).toBe(false);
+    expect(needsVerdict(t({ plannedFor: '2026-09-23' }))).toBe(false);
+  });
+
+  it('a blank result is not a result', () => {
+    expect(needsVerdict(t({ result: '   ' }))).toBe(false);
+  });
+
+  it('says so in words instead of "Planned"', () => {
+    expect(outcomeWord(t({ ranOn: '2026-09-23' }))).toBe('No verdict yet');
+    expect(outcomeWord(t({ kind: 'fix', result: 'Re-cut the jaw' }))).toBe('No verdict yet');
+  });
+
+  it('reads as Planned again for a button that only carries an outcome', () => {
+    expect(outcomeWord({ kind: 'test', outcome: 'planned' })).toBe('Planned');
+  });
+
+  it('is settled — it is not up next — and is filed with what has happened', () => {
+    const ran = t({ ranOn: '2026-09-23', result: '90% over 97 min' });
+    expect(isSettled(ran)).toBe(true);
+    const st = standing([ran, t({ id: 'y', plannedFor: '2026-10-01' })], []);
+    expect(st.upcoming.map(x => x.id)).toEqual(['y']);
+    expect(st.done.map(x => x.id)).toEqual(['x']);
+  });
+
+  it('stops needing one the moment it is answered', () => {
+    expect(needsVerdict(t({ ranOn: '2026-09-23', outcome: 'failed' }))).toBe(false);
   });
 });

@@ -444,10 +444,19 @@ export async function backedUp(kind: SyncKind, id: string, clock: number, keys: 
   return true;
 }
 
+/* THE PHONE IS ABOUT TO SLEEP. A write made on the floor and then pocketed
+   requests a sync 1.2 seconds later — and a backgrounded PWA has its timers
+   frozen before that, so the row sat in IndexedDB until the app was next
+   opened, while the laptop showed the old version. When the tab goes hidden,
+   every request in the next few seconds fires almost at once instead: the
+   field's own flush writes the row, the write signals a sync, and the sync
+   goes before the freeze rather than after it. */
+let hurryUntil = 0;
 export function requestSync(delayMs = 1200): void {
   if (typeof window === 'undefined' || !cloudConfigured) return;
   window.clearTimeout(debounceTimer);
-  debounceTimer = window.setTimeout(() => { void syncNow(); }, delayMs);
+  const delay = Date.now() < hurryUntil ? Math.min(delayMs, 150) : delayMs;
+  debounceTimer = window.setTimeout(() => { void syncNow(); }, delay);
 }
 
 /** Forget what's been synced and push/pull EVERYTHING again. For recovery — e.g.
@@ -501,7 +510,10 @@ export function startSync() {
   const kick = () => { void syncNow(); };
   window.addEventListener('online', kick);
   window.addEventListener('focus', kick);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hurryUntil = Date.now() + 3000; requestSync(150); }
+    else kick();
+  });
   timer = window.setInterval(kick, 30_000);
   kick();
 }

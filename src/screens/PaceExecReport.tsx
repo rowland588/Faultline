@@ -28,7 +28,7 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { foundWords, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
+import { foundWords, hasRun, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
@@ -841,6 +841,7 @@ export function PaceExecReport() {
         id: t.id,
         fromId: t.fromTestId,
         kind: c.kind,
+        ran: hasRun(t),
         /* STILL OWED, AND THE DAY HAS GONE.
            Not lib/testing's isOverdue, and the difference matters: there, a
            test whose day came and went is SETTLED — the day happened, whatever
@@ -849,7 +850,9 @@ export function PaceExecReport() {
            demonstration; the 17th has been and gone and they still have not
            had it. Both readings are true and this page needs this one. */
         late: (() => {
-          if (c.outcome !== 'planned' && c.outcome !== 'notRun') return false;
+          /* Still owed a DAY — not a verdict. One that ran and is waiting to be
+             called passed or not is a different debt, said on its own line. */
+          if (!(c.outcome === 'notRun' || (c.outcome === 'planned' && !hasRun(t)))) return false;
           const end = plannedEnd(t);
           return !!end && end < todayISO();
         })(),

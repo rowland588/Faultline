@@ -5122,6 +5122,20 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 
 /* PHOTOS, VIDEO AND FILES. */
+/* THE VERDICT, ASKED FOR. The segment is the same three buttons it always was;
+   what changes is that the question is put, and the row is lit while it is. */
+.tw-ask { display: block; font-weight: 700; font-size: 15px; margin: 8px 0 4px; color: var(--ink); }
+.tw-seg.is-asking { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 10px; }
+.tw-verdicts {
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 12px; background: var(--accent-soft); padding: 12px 14px; margin-bottom: 14px;
+}
+.tw-verdict { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); }
+.tw-verdict:first-of-type { border-top: 0; }
+.tw-verdict-m { text-align: left; background: none; border: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.tw-verdict-m b { font-size: 15px; }
+.tw-verdict-q { font-weight: 700; font-size: 14px; }
+
 .tw-media { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
 .tw-att {
   padding: 9px 13px; font: inherit; font-size: 13px; font-weight: 700; color: var(--accent);

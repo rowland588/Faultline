@@ -28,7 +28,7 @@ import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
-  WORDS, outcomeWord, foundTally, foundWords, itemsOf, standingOfItem,
+  WORDS, needsVerdict, outcomeWord, foundTally, foundWords, itemsOf, standingOfItem, verdictQuestion,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -191,10 +191,16 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           <DraftArea rows={5} value={test.result ?? ''}
             placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift' : '61 ppm, 3 leaked in 20'}
             onSave={v => save({ result: v.trim() || undefined })} /></label>
-        <span className="tw-seg">
+        {/* THE VERDICT IS ASKED FOR, not left as four buttons at the foot of a
+            block. Once there is a day or a result on the record and nobody has
+            said how it went, the question leads, in the face's own words —
+            because "I never get asked" was true, and the answer is what every
+            list and both documents turn on. */}
+        {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
+        <span className={'tw-seg' + (needsVerdict(test) ? ' is-asking' : '')}>
           {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
             <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')} onClick={() => setOutcome(o)}>
-              {o === 'planned' ? 'Still planned' : outcomeWord({ kind, outcome: o })}
+              {o === 'planned' ? (needsVerdict(test) ? 'Not decided' : 'Still planned') : outcomeWord({ kind, outcome: o })}
             </button>
           ))}
         </span>

@@ -14,6 +14,7 @@ import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
+import { Verdicts } from '../ui/Verdicts';
 import { useStanding } from '../lib/useStanding';
 import { DraftField } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
@@ -179,6 +180,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}
+      <Verdicts tests={st.done} projectId={projectId}
+        onAnswer={(t, outcome) => void tt.saveTest({ ...t, outcome })} />
+
       <section className="cmp-sec">
         <div className="cw-sec-h">
           <h2 className="cmp-h">Next up</h2>

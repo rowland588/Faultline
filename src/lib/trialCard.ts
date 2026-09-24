@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { actionOf, foundTally, isSettled, live, outcomeWord, standingOfItem, type Asset, type Test, type TestItem, type TestKind } from './testing';
+import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
   what: string;
@@ -166,7 +166,13 @@ export function verdictLine(c: TrialCard): string {
      here repeats the line directly above it on the card — which read as the
      report having nothing to say twice. The day it is booked for is on the
      card's own meta line. */
-  if (c.outcome === 'planned') return 'Not run yet';
+  /* Ran, dated, written up, and nobody has said whether it passed: the result
+     IS the line, with the missing verdict said plainly after it. "Not run yet"
+     over a result somebody typed on the floor is the report hiding the day. */
+  if (c.outcome === 'planned') {
+    if (!needsVerdict(c)) return 'Not run yet';
+    return c.result ? `${c.result} — no verdict given yet` : 'Ran — no verdict given yet';
+  }
   if (c.outcome === 'notRun') return 'The day came and it did not happen';
   if (!c.result) return c.outcomeWord;
   return c.result;

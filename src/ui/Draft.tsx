@@ -9,7 +9,75 @@
  *
  * Escape abandons the draft. That is the only way to get out of a half-typed
  * cell without writing it. */
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+
+/* ---------------------------------------------------------------------------
+ * WHAT IS TYPED IS WRITTEN WITHIN A SECOND, AND WRITTEN BEFORE THE PHONE SLEEPS.
+ *
+ * Rowland: "I never get asked to save any data in the app when I'm on my
+ * phone." He is right that nothing asks — and on a phone nothing was written
+ * either, unless the box lost focus. iOS and Android do not fire blur when the
+ * screen locks, the app is swiped away, or another app comes to the front; a
+ * result typed on the floor and then pocketed sat in React state, still visible
+ * in the box, and never reached IndexedDB — so it never reached the cloud, and
+ * a reload lost it. "Saves as you type" was true on a laptop only.
+ *
+ * The draft stays the draft — that is what keeps the caret where it was put,
+ * which is the whole reason these fields exist. What changes is WHEN the row is
+ * written: a beat after the last keystroke, when the tab is hidden, when the
+ * page is being left, and when the field unmounts. Blur still lets the draft go.
+ */
+function useDraft(value: string, onSave: (v: string) => void, norm: (s: string) => string = s => s) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const latest = useRef({ draft, value, onSave, norm });
+  latest.current = { draft, value, onSave, norm };
+
+  /** Write what is typed if it differs from what is stored. Keeps the draft. */
+  const commit = useCallback(() => {
+    const cur = latest.current;
+    if (cur.draft == null) return;
+    const v = cur.norm(cur.draft);
+    if (v !== cur.value) cur.onSave(v);
+  }, []);
+
+  useEffect(() => {
+    if (draft == null) return;
+    const t = window.setTimeout(commit, 700);
+    return () => window.clearTimeout(t);
+  }, [draft, commit]);
+
+  useEffect(() => {
+    const hide = () => { if (document.visibilityState === 'hidden') commit(); };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', commit);
+    return () => {
+      document.removeEventListener('visibilitychange', hide);
+      window.removeEventListener('pagehide', commit);
+      commit();                                   // leaving the screen writes too
+    };
+  }, [commit]);
+
+  const blur = useCallback(() => { commit(); setDraft(null); }, [commit]);
+  return { draft, setDraft, blur };
+}
+
+/** The same four moments, for a field whose commit is its own (the number box). */
+function useFlush(commit: () => void) {
+  const ref = useRef(commit);
+  ref.current = commit;
+  useEffect(() => {
+    const run = () => ref.current();
+    const hide = () => { if (document.visibilityState === 'hidden') run(); };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', run);
+    return () => {
+      document.removeEventListener('visibilitychange', hide);
+      window.removeEventListener('pagehide', run);
+      run();
+    };
+  }, []);
+}
+
 
 export function DraftText({ value, placeholder, onSave, className = 'pset-cell', max = 120, autoFocus, wide }: {
   value: string;
@@ -22,7 +90,7 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
    *  table it sits in. */
   wide?: boolean;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
+  const { draft, setDraft, blur } = useDraft(value, onSave, v => v.trim());
   return (
     <input
       className={className + (wide ? ' is-wide' : '')}
@@ -31,7 +99,7 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
       maxLength={max}
       autoFocus={autoFocus}
       onChange={e => setDraft(e.target.value)}
-      onBlur={() => { if (draft != null && draft.trim() !== value) onSave(draft.trim()); setDraft(null); }}
+      onBlur={blur}
       onKeyDown={e => {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
         if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); }
@@ -62,6 +130,7 @@ export function DraftNumber({ value, onSave, className = 'pset-cell is-num', pla
     if (Number.isFinite(n) && n !== value) onSave(n);
     setDraft(null);
   };
+  useFlush(commit);
 
   return (
     <input
@@ -110,7 +179,7 @@ export function DraftField({
   id?: string;
   ariaLabel?: string;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
+  const { draft, setDraft, blur } = useDraft(value, onSave);
   const live = type === 'date';
 
   return (
@@ -118,7 +187,7 @@ export function DraftField({
       id={id} className={className} aria-label={ariaLabel} type={type ?? 'text'} inputMode={inputMode}
       value={draft ?? value} placeholder={placeholder} maxLength={max} autoFocus={autoFocus}
       onChange={e => { if (live) onSave(e.target.value); else setDraft(e.target.value); }}
-      onBlur={() => { if (draft != null && draft !== value) onSave(draft); setDraft(null); }}
+      onBlur={blur}
       onKeyDown={e => {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
         if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); }
@@ -149,7 +218,7 @@ export function DraftArea({
   id?: string;
   ariaLabel?: string;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
+  const { draft, setDraft, blur } = useDraft(value, onSave);
   const own = useRef<HTMLTextAreaElement>(null);
   const box = areaRef ?? own;
 
@@ -170,7 +239,7 @@ export function DraftArea({
       ref={box} id={id} className={className} aria-label={ariaLabel} rows={rows}
       value={draft ?? value} placeholder={placeholder}
       onChange={e => setDraft(e.target.value)}
-      onBlur={() => { if (draft != null && draft !== value) onSave(draft); setDraft(null); }}
+      onBlur={blur}
       onKeyDown={e => { if (e.key === 'Escape') { setDraft(null); (e.target as HTMLTextAreaElement).blur(); } }}
     />
   );

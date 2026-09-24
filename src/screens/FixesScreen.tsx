@@ -25,6 +25,7 @@ import { nav } from '../state/useRoute';
 import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
+import { Verdicts } from '../ui/Verdicts';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -106,6 +107,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
+
+      {/* A fix that was done and never signed off asks first. */}
+      <Verdicts tests={fixes} projectId={projectId}
+        onAnswer={(t, outcome) => void tt.saveTest({ ...t, outcome })} />
 
       {/* STILL TO DO, soonest first — the list somebody works off. */}
       <section className="cmp-sec">

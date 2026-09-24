@@ -122,6 +122,7 @@ const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> 
        that — rather than n things that happen to be unrelated. */
     fromId: i % 3 === 0 ? undefined : `t${i - 1}`,
     kind: (i % 3 === 1 ? 'fix' : 'test') as 'test' | 'fix',
+    ran: i % 4 !== 0,
     late: i % 5 === 0,
     title: `Seal integrity ${i + 1} — Finest Red 2kg`,
     machine: 'Ilapak flow wrapper', when: '21 Sept',
@@ -439,7 +440,7 @@ describe('the test cards across the sheets', () => {
 type Row = NonNullable<PaceReportData['trials']>['rows'][number];
 
 const row = (o: Partial<Row> & { id: string }): Row => ({
-  kind: 'test', late: false, title: `Test ${o.id}`, machine: 'Ilapak flow wrapper',
+  kind: 'test', late: false, ran: (o.outcome ?? 'planned') !== 'planned', title: `Test ${o.id}`, machine: 'Ilapak flow wrapper',
   when: '21 Sept', passesIf: 'Zero leaks in twenty.', withWhom: 'Ilapak UK',
   product: 'Finest Red 2kg', result: '', outcome: 'planned', outcomeWord: 'Planned',
   verdict: 'Not run yet', found: { written: 0, actioned: 0, undecided: 0 },
@@ -510,6 +511,16 @@ describe('where a strand has got to', () => {
 
   it('is booked when nothing has run at all', () => {
     expect(state([row({ id: 'a', outcome: 'planned' })])).toBe('booked');
+  });
+
+  it('a test that ran with no verdict is not proved, and the client is owed the call', () => {
+    /* The live fault: a result typed on the floor, no Passed/Didn't pass
+       tapped. The strand must not read it as still booked. */
+    const st = strandsOf([row({ id: 'a', ran: true, outcome: 'planned',
+      verdict: 'Started at 73%, achieved 90% over a 97 min run', outcomeWord: 'No verdict yet' })]);
+    expect(st[0]!.state).toBe('notProved');
+    expect(st[0]!.attempts).toBe(1);
+    expect(st[0]!.owed.map(o => o.what)).toEqual(['Say whether it passed']);
   });
 
   it('a done fix does not make it proved — only a passing test does', () => {

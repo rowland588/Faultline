@@ -142,6 +142,8 @@ export interface PaceReportData {
       /** The test or fix this one was planned out of, when it was. */
       fromId?: string;
       kind: 'test' | 'fix';
+      /** The day happened — dated or written up — whatever the verdict says. */
+      ran: boolean;
       /** Past the day it was wanted and still not settled — by lib/testing's
        *  own rule, not a second comparison made here. A client report that
        *  prints an overdue date without saying it has gone is the report
@@ -879,6 +881,7 @@ export interface StrandStep {
    *  at proving anything — it is what was done between two of them. */
   n?: number;
   kind: 'test' | 'fix';
+  ran: boolean;
   when: string;
   /** What it was. Blank on the first attempt, whose title is the strand's. */
   what: string;
@@ -943,6 +946,7 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
     const steps: StrandStep[] = chain.map(r => ({
       n: r.kind === 'test' ? ++n : undefined,
       kind: r.kind,
+      ran: r.ran,
       when: r.when,
       /* The first attempt's title IS the strand's name, so repeating it as the
          step would print the same words twice one under the other. */
@@ -960,9 +964,12 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
        answer; it is not the answer, and a strand whose fix is done but whose
        re-test has not run is NOT proved. */
     const tests = chain.filter(r => r.kind === 'test');
-    const ran = tests.filter(t => t.outcome !== 'planned');
+    /* RAN means the day happened, not that somebody has called it. A test
+       written up on the floor and never given a verdict is not "booked" — it is
+       an answer the client is still waiting for, and the strand says so. */
+    const ran = tests.filter(t => t.ran);
     const last = ran[ran.length - 1];
-    const booked = tests.some(t => t.outcome === 'planned');
+    const booked = tests.some(t => !t.ran);
     const state: StrandState = !last ? 'booked'
       : last.outcome === 'passed' ? 'proved'
         : booked ? 'notYet'
@@ -973,6 +980,12 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
        a name on it is the thing a client asks about in the meeting. */
     const owed: Strand['owed'] = [];
     for (const r of chain) {
+      /* Ran and not called: the debt is the verdict, not the day. */
+      if (r.ran && r.outcome === 'planned') {
+        owed.push({ what: r.kind === 'fix' ? 'Say whether it fixed it' : 'Say whether it passed',
+          owner: r.withWhom, due: r.when, late: false });
+        continue;
+      }
       if (r.outcome === 'planned' || r.outcome === 'notRun') {
         /* Saying the strand's own name back under its own heading reads as
            the page having nothing to add. What is owed on a test nobody has
@@ -1090,8 +1103,8 @@ function planStrand(d: Doc, s: Strand, w: number, maxLines: number): StrandPlan 
     /* A fix says WHAT was done; an attempt says what happened, because its
        "what" is the strand's own name at the top of the block. */
     const headline = st.kind === 'fix' ? (st.what || st.verdict) : st.verdict;
-    rows.push({ lines: wrap(headline || '—', stepW, 8, st.outcome !== 'planned'),
-      colour: st.outcome === 'planned' ? MUTED : INK, bold: st.outcome !== 'planned' });
+    rows.push({ lines: wrap(headline || '—', stepW, 8, st.ran),
+      colour: st.ran ? INK : MUTED, bold: st.ran });
     if (st.kind === 'fix' && st.verdict && st.what) {
       rows.push({ lines: wrap(st.verdict, stepW, 7.5, false), colour: INK2, bold: false });
     }
