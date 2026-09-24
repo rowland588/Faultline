@@ -1405,7 +1405,7 @@ export function PaceExecReport() {
           <span>{title} · client report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'what we are proving'}</span>
           <span>{hasTracker
             ? 'The tracker workbook is the system of record; this report reads it.'
-            : 'A test is planned, then run, and what it found becomes the next one.'}</span>
+            : 'One card per test, with the fixes for it. Who owes what, in full, is further on.'}</span>
         </footer>
       </section>
       </div>

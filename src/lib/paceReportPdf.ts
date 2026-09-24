@@ -23,7 +23,7 @@ import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
 import { ASK, type Owes, type OweTone, type Party } from './owes';
-import { strandsOf, orderStrands, strandsSay, strandWord, type Strand, type StrandState } from './strands';
+import { strandsOf, orderStrands, strandWord, type Strand, type StrandFix, type StrandState } from './strands';
 export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
 export type { Strand, StrandState, StrandStep } from './strands';
 import { vsTarget } from './measures';
@@ -897,300 +897,231 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
 
 type TrialRow = NonNullable<PaceReportData['trials']>['rows'][number];
 
-/* ---------- HOW BIG A STRAND WANTS TO BE ----------
+/* ---------- A TEST'S CARD ----------
  *
- * It measures itself and takes the room it needs, then the sheet is packed with
- * as many as fit and the rest flow onto sheets behind it. That much is what the
- * fixed 122pt card grid taught: a guessed height is too tall for a short one
- * and too short for a long one at the same time.
+ * Rowland: "the pdf is still messy on the first page." A client review of it
+ * found why: two vocabularies of status word on every card, contradicting each
+ * other; a STILL OWED block repeating the rows above it, the card's own name
+ * included; six marks per row at 6 to 6.5pt; rows out of date order; a fix
+ * card among the tests; and holes wherever a short card sat beside a long one.
  *
- * What is different is what is being measured. A strand is a story with a
- * variable number of steps, so its height IS its content — three attempts and
- * two fixes is genuinely taller than one test that passed first time, and
- * printing them the same size was the report claiming they were the same thing.
+ * So a card answers three questions and nothing else, in this order:
+ *
+ *     Seal integrity — Finest Red 2kg                          [ FAILED ]
+ *     Ilapak flow wrapper · with Ilapak UK
+ *     Passes if: zero leaks in twenty packs, tested off the running machine.
+ *     21 Sept   FAILED       3 of 20 leaked — jaw ran 4°C cold at the edge.
+ *     Fix       DONE         Re-cut the jaw profile · Ilapak UK · 24 Sept
+ *     ──────────────────────────────────────────────────────────────────────
+ *     Next                   Re-test · Ilapak UK · by 29 Sept
+ *
+ * What it has to do, what happened, what happens next and who owes it. One
+ * status word on the badge — the latest result — and nothing below 7.5pt.
+ * Every debt in full is page 3's; this card says the one thing next.
  */
 
-const S_HEAD = 46;           // the name, the machine line, and the rule under them
-const S_LEAD = 10.5;         // one wrapped line
-const S_STEP_GAP = 5;
-const S_PAD = 12;
-const S_GAP = 12;            // between strands
-const S_NUM_W = 30;          // the attempt number, or FIX, and its dot
-const S_DATE_W = 44;
+const C_PAD = 14;            // inside the card
+const C_GAP = 12;            // between cards
+const C_LEAD = 11.5;         // one line of body text
+const C_ROW_GAP = 3;
+const C_COL1 = 46;           // the date, or "Fix", or "Next"
+const C_COL2 = 60;           // the result word
+const C_HEAD = 42;           // name, machine line, rule
 
-interface StrandRow { lines: string[]; colour: string; bold: boolean }
-interface StepPlan {
-  n: string; when: string; word: string; tone: string;
-  rows: StrandRow[]; h: number;
-}
+interface CardRow { c1: string; c2: string; tone: string; lines: string[]; bold: boolean; h: number }
 interface StrandPlan {
-  s: Strand; tone: string; meta: string;
-  proves: string[]; steps: StepPlan[]; owed: { text: string; late: boolean }[]; h: number;
+  s: Strand; tone: string; meta: string; proves: string[];
+  rows: CardRow[]; next?: CardRow; h: number;
 }
 
-const strandTone = (st: StrandState): string =>
-  st === 'proved' ? OK : st === 'notProved' ? DANGER : st === 'notYet' ? WARN : BLUE;
+const strandTone = (st: Strand): string =>
+  st.state === 'proved' ? OK : st.state === 'failed' ? DANGER
+    : st.state === 'noVerdict' ? WARN : st.late ? DANGER : BLUE;
 
-const stepTone = (o: TrialRow['outcome']): string =>
-  o === 'passed' ? OK : o === 'failed' ? DANGER : o === 'notRun' ? WARN : BLUE;
+const runTone = (o: TrialRow['outcome']): string =>
+  o === 'passed' ? OK : o === 'failed' ? DANGER : o === 'notRun' ? DANGER : WARN;
 
-/** Everything the strand will put on the page, already wrapped, and therefore
- *  its height. Measure and draw read this one list. */
-function planStrand(d: Doc, s: Strand, w: number, maxLines: number): StrandPlan {
-  const bodyW = w - 24;
-  const stepW = bodyW - S_NUM_W - S_DATE_W - 8;
+const FIX_TONE: Record<StrandFix['tone'], string> = {
+  done: OK, failed: DANGER, waiting: WARN, late: DANGER, due: INK2,
+};
 
-  const wrap = (text: string, width: number, size: number, bold: boolean): string[] => {
-    setFont(d, size, bold ? 'bold' : 'normal', INK);
+/** Everything the card puts on the page, wrapped, and therefore its height.
+ *  Measure and draw read this one list. */
+function planStrand(d: Doc, s: Strand, w: number): StrandPlan {
+  const textW = w - 2 * C_PAD - C_COL1 - C_COL2;
+  const wrap = (text: string, width: number, bold: boolean, max: number): string[] => {
+    setFont(d, 8.5, bold ? 'bold' : 'normal', INK);
     const all = d.splitTextToSize(san(text), width) as string[];
-    if (all.length <= maxLines) return all.length ? all : [''];
-    const cut = all.slice(0, maxLines);
-    cut[maxLines - 1] = fit(d, `${cut[maxLines - 1]} ${all[maxLines] ?? ''}`, width);
+    if (all.length <= max) return all.length ? all : [''];
+    const cut = all.slice(0, max);
+    cut[max - 1] = fit(d, `${cut[max - 1]} ${all[max] ?? ''}`, width);
     return cut;
   };
+  const row = (c1: string, c2: string, tone: string, text: string, bold: boolean, max: number): CardRow => {
+    const lines = wrap(text, textW, bold, max);
+    return { c1, c2, tone, lines, bold, h: lines.length * C_LEAD + C_ROW_GAP };
+  };
 
-  const proves = wrap(s.provesIf || 'nothing agreed in advance', bodyW - 52, 8, false);
+  setFont(d, 8.5, 'bold', INK);
+  const labelW = d.getTextWidth('Passes if: ');
+  const proves = wrap(s.provesIf || 'nothing agreed in advance', w - 2 * C_PAD - labelW, false, 2);
 
-  const steps: StepPlan[] = s.steps.map(st => {
-    const rows: StrandRow[] = [];
-    /* A fix says WHAT was done; an attempt says what happened, because its
-       "what" is the strand's own name at the top of the block. */
-    const headline = st.kind === 'fix' ? (st.what || st.verdict) : st.verdict;
-    /* The step's own word — DIDN'T PASS, NO VERDICT YET — sits on the first
-       line's right, 70pt wide. The line used to be wrapped to the full width
-       and the word printed over its last words on the first two cards a
-       client saw. */
-    rows.push({ lines: wrap(headline || '—', stepW - 76, 8, st.ran),
-      colour: st.ran ? INK : MUTED, bold: st.ran });
-    if (st.kind === 'fix' && st.verdict && st.what) {
-      rows.push({ lines: wrap(st.verdict, stepW, 7.5, false), colour: INK2, bold: false });
-    }
-    if (st.found) rows.push({ lines: wrap(st.found, stepW, 7.5, false), colour: WARN, bold: false });
-    const h = rows.reduce((a, r) => a + r.lines.length * S_LEAD, 0) + S_STEP_GAP;
-    return {
-      n: st.n ? String(st.n) : '·',
-      when: st.when || '—',
-      word: st.outcomeWord.toUpperCase(),
-      tone: stepTone(st.outcome),
-      rows, h,
-    };
-  });
+  const rows: CardRow[] = [
+    ...s.runs.map(r => row(r.when || '—', r.word, runTone(r.outcome), r.reason || '—', false, 2)),
+    ...s.fixes.slice(0, 3).map(f => row('Fix', f.word, FIX_TONE[f.tone],
+      [f.what, f.who || 'nobody yet', f.when].filter(Boolean).join(' · '), false, 2)),
+  ];
+  if (s.fixes.length > 3) rows.push(row('', '', MUTED, `+${s.fixes.length - 3} more fixes — see who owes what`, false, 1));
 
-  /* A date that has gone says so, in the words the screen uses for it. A
-     client report printing "by 17 Sept" six days after the 17th, in the same
-     ink as everything else, is the report failing at the one thing it is for. */
-  const owed = s.owed.map(o => ({
-    text: fit(d, san([o.what, o.owner || 'nobody yet',
-      o.due && (o.since ? `since ${o.due}` : o.late ? `WAS ${o.due}` : `by ${o.due}`)].filter(Boolean).join('  ·  ')), bodyW - 46),
-    late: o.late,
-  }));
+  const next = s.next
+    ? row('Next', s.next.late ? 'LATE' : '', s.next.late ? DANGER : INK,
+      [s.next.what, s.next.who || 'nobody yet', s.next.when].filter(Boolean).join(' · '), true, 2)
+    : undefined;
 
-  const provesH = 11 + proves.length * S_LEAD + 4;
-  const owedH = owed.length ? 12 + owed.length * 10 + 4 : 0;
-  const h = S_HEAD + provesH + steps.reduce((a, st) => a + st.h, 0) + owedH + S_PAD;
+  const h = C_PAD + C_HEAD + proves.length * C_LEAD + 6
+    + rows.reduce((a, r) => a + r.h, 0)
+    + (next ? 8 + next.h : 0) + C_PAD - 4;
 
   return {
-    s, tone: strandTone(s.state), proves, steps, owed, h,
-    meta: [s.machine, s.withWhom && `with ${s.withWhom}`,
-      s.attempts > 1 ? `${s.attempts} attempts` : '']
-      .filter(Boolean).join('  ·  '),
+    s, tone: strandTone(s), proves, rows, next, h,
+    meta: [s.machine, s.withWhom && `with ${s.withWhom}`].filter(Boolean).join('  ·  '),
   };
 }
 
-function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number, h: number): void {
+function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number): void {
   d.setDrawColor(LINE); d.setLineWidth(0.7);
   d.setFillColor('#ffffff');
-  d.roundedRect(x, y, w, h, 5, 5, 'FD');
+  d.roundedRect(x, y, w, p.h, 5, 5, 'FD');
   d.setFillColor(p.tone);
-  d.roundedRect(x, y, 3.5, h, 2, 2, 'F');
+  d.roundedRect(x, y, 4, p.h, 2, 2, 'F');
 
-  /* The verdict on the whole strand, top right — the one thing somebody looks
-     for before they read a word of it. */
+  /* The latest result, top right — the one thing somebody looks for first. */
   const word = strandWord(p.s);
-  setFont(d, 7, 'bold', p.tone);
+  setFont(d, 7.5, 'bold', p.tone);
   const pw = d.getTextWidth(word) + 16;
   d.setFillColor(...wash(p.tone, 0.14));
-  d.roundedRect(x + w - 12 - pw, y + 10, pw, 15, 7.5, 7.5, 'F');
-  d.text(word, x + w - 12 - pw / 2, y + 20.5, { align: 'center' });
+  d.roundedRect(x + w - C_PAD - pw, y + C_PAD - 3, pw, 16, 8, 8, 'F');
+  d.text(word, x + w - C_PAD - pw / 2, y + C_PAD + 8, { align: 'center' });
 
-  setFont(d, 10.5, 'bold', INK);
-  d.text(fit(d, san(p.s.name), w - 30 - pw), x + 12, y + 21);
-  setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, san(p.meta), w - 24), x + 12, y + 32);
-
+  const lx = x + C_PAD;
+  setFont(d, 11.5, 'bold', INK);
+  d.text(fit(d, san(p.s.name), w - 2 * C_PAD - pw - 10), lx, y + C_PAD + 9);
+  setFont(d, 7.5, 'normal', MUTED);
+  d.text(fit(d, san(p.meta), w - 2 * C_PAD), lx, y + C_PAD + 22);
   d.setDrawColor(LINE); d.setLineWidth(0.5);
-  d.line(x + 12, y + 39, x + w - 12, y + 39);
+  d.line(lx, y + C_PAD + 29, x + w - C_PAD, y + C_PAD + 29);
 
-  /* ---- what it set out to prove ---- */
-  let cy = y + S_HEAD + 5;
-  setFont(d, 6, 'bold', MUTED);
-  d.text(p.s.kind === 'fix' ? 'THE PROBLEM' : 'TO PROVE', x + 12, cy);
-  setFont(d, 8, 'normal', p.s.provesIf ? INK2 : MUTED);
-  p.proves.forEach((l, i) => d.text(l, x + 12 + 52, cy + i * S_LEAD));
-  cy += Math.max(11, p.proves.length * S_LEAD) + 4;
+  /* What it has to do. */
+  let cy = y + C_PAD + C_HEAD;
+  setFont(d, 8.5, 'bold', INK2);
+  d.text('Passes if:', lx, cy);
+  const labelW = d.getTextWidth('Passes if: ');
+  setFont(d, 8.5, 'normal', p.s.provesIf ? INK2 : MUTED);
+  p.proves.forEach((l, i) => d.text(l, lx + labelW, cy + i * C_LEAD));
+  cy += p.proves.length * C_LEAD + 6;
 
-  /* ---- the steps, in the order the work happened ---- */
-  const nx = x + 12, dx = nx + S_NUM_W, sx = dx + S_DATE_W + 8;
-  const stepW = w - 24 - S_NUM_W - S_DATE_W - 8;
-  p.steps.forEach((st, i) => {
-    /* A thread down the gutter, so three steps read as one chain rather than
-       three rows that happen to be near each other. */
-    if (i < p.steps.length - 1) {
-      d.setDrawColor(SURF2); d.setLineWidth(1);
-      d.line(nx + 4, cy - 1, nx + 4, cy + st.h + 2);
+  const drawRow = (r: CardRow) => {
+    setFont(d, 7.5, 'bold', r.c1 === 'Fix' || r.c1 === 'Next' ? INK : MUTED);
+    d.text(r.c1, lx, cy);
+    if (r.c2) {
+      setFont(d, 7.5, 'bold', r.tone);
+      d.text(fit(d, r.c2, C_COL2 - 6), lx + C_COL1, cy);
     }
-    d.setFillColor(st.tone);
-    d.circle(nx + 4, cy - 3, 2.6, 'F');
-    setFont(d, 6.5, 'bold', st.n === '·' ? MUTED : INK);
-    d.text(st.n === '·' ? 'FIX' : st.n, nx + 10, cy - 1);
+    setFont(d, 8.5, r.bold ? 'bold' : 'normal', r.c1 === 'Next' ? r.tone : INK);
+    r.lines.forEach((l, i) => d.text(l, lx + C_COL1 + C_COL2, cy + i * C_LEAD));
+    cy += r.h;
+  };
+  p.rows.forEach(drawRow);
 
-    setFont(d, 7, 'normal', MUTED);
-    d.text(fit(d, st.when, S_DATE_W), dx, cy - 1);
-
-    let ry = cy - 1;
-    st.rows.forEach((r, k) => {
-      setFont(d, k === 0 ? 8 : 7.5, r.bold ? 'bold' : 'normal', r.colour);
-      r.lines.forEach((l, j) => d.text(l, sx, ry + j * S_LEAD));
-      ry += r.lines.length * S_LEAD;
-    });
-
-    /* The step's own word, right-aligned against the strand's verdict above. */
-    setFont(d, 6.5, 'bold', st.tone);
-    d.text(fit(d, st.word, 70), x + w - 12, cy - 1, { align: 'right' });
-    cy += st.h;
-  });
-
-  /* ---- and what is still owed on it ---- */
-  if (p.owed.length) {
-    cy += 4;
-    setFont(d, 6, 'bold', MUTED);
-    d.text('STILL OWED', x + 12, cy);
-    p.owed.forEach((o, i) => {
-      setFont(d, 7.5, o.late ? 'bold' : 'normal', o.late ? DANGER : INK);
-      d.text(o.text, x + 12 + 46, cy + i * 10);
-    });
+  /* The one thing next, under a hairline. */
+  if (p.next) {
+    cy += 2;
+    d.setDrawColor(LINE); d.setLineWidth(0.5);
+    d.line(lx, cy - 7, x + w - C_PAD, cy - 7);
+    cy += 6;
+    drawRow(p.next);
   }
-  void stepW;
 }
 
-/* ---------- WHERE THE STRANDS FALL ----------
+/* ---------- WHERE THE CARDS FALL ----------
  *
- * Pure arithmetic over measured heights, drawing nothing, because the footer
- * says "page 2 of 5" and cannot know the 5 until every block has been
- * measured. Exported so the packing can be tested as numbers. */
-
-/** The height of each ROW of blocks — a row is as tall as the taller of its
- *  pair, so the two have one bottom edge. */
-export function cardRowHeights(heights: number[], cols: number): number[] {
-  const rows: number[] = [];
-  for (let i = 0; i < heights.length; i += cols) {
-    rows.push(Math.max(...heights.slice(i, i + cols)));
-  }
-  return rows;
-}
-
-/** How many BLOCKS land on each sheet: the front panel first, then sheets of
- *  their own. One taller than an empty sheet goes on one by itself — without
- *  that guard the loop never ends, which is the only way this can fail badly. */
-export function packCards(heights: number[], cols: number, frontRoom: number, sheetRoom: number): number[] {
-  if (heights.length === 0) return [0];
-  const out: number[] = [];
-  let i = 0;
-  while (i < heights.length) {
-    const room = out.length === 0 ? frontRoom : sheetRoom;
-    let used = 0, n = 0;
-    while (i + n < heights.length) {
-      const rowH = Math.max(...heights.slice(i + n, i + n + cols));
-      const need = used + (n ? S_GAP : 0) + rowH;
-      if (need > room) break;
-      used = need;
-      n += Math.min(cols, heights.length - i - n);
+ * Each column stacks on its own: a card goes into whichever column is shorter,
+ * so a short card beside a long one leaves no hole — the old grid padded every
+ * pair to the taller of the two. A card that fits in no column on this sheet
+ * starts the next. Pure, drawing nothing, so the footer's "page 2 of 5" can be
+ * right before anything is drawn. */
+export function packColumns(heights: number[], cols: number, frontRoom: number, sheetRoom: number):
+  { at: { sheet: number; col: number; y: number }[]; sheets: number; front: number } {
+  const at: { sheet: number; col: number; y: number }[] = [];
+  let sheet = 0;
+  let used = Array<number>(cols).fill(0);
+  let front = 0;
+  for (const h of heights) {
+    const room = sheet === 0 ? frontRoom : sheetRoom;
+    let col = used.indexOf(Math.min(...used));
+    if (used[col] > 0 && used[col] + h > room) {
+      if (sheet === 0) front = Math.max(...used) - C_GAP;
+      sheet += 1; used = Array<number>(cols).fill(0); col = 0;
     }
-    if (n === 0) n = Math.min(cols, heights.length - i);
-    out.push(n);
-    i += n;
+    at.push({ sheet, col, y: used[col] });
+    used[col] += h + C_GAP;
   }
-  return out;
-}
-
-/** THE STACK, AND THEREFORE THE PANEL. A panel is as tall as its blocks plus
- *  its own chrome — it does not take the sheet and leave the rest white.
- *
- *  The first attempt at this shared the leftover room out across the rows so
- *  the stack finished at the foot of the panel. It filled the sheet and it read
- *  worse: the words stay where they were measured, so all it did was move the
- *  white inside the boxes. A page that ENDS where its content ends looks
- *  deliberate; a page of half-empty frames looks broken. */
-export function stackHeight(rowHeights: number[]): number {
-  if (rowHeights.length === 0) return 0;
-  return rowHeights.reduce((a, b) => a + b, 0) + S_GAP * (rowHeights.length - 1);
+  if (sheet === 0) front = Math.max(0, Math.max(...used) - C_GAP);
+  return { at, sheets: Math.max(1, sheet + 1), front };
 }
 
 /** One column when there are few enough that the width is better spent on the
- *  story than on a second block beside it. */
+ *  story than on a second card beside it. */
 const columnsFor = (n: number): number => (n <= 3 ? 1 : 2);
 
-/** Measure every strand once, and raise the wrap limit when the whole set
- *  would leave the front panel with room going spare. */
-function planTrials(d: Doc, strands: Strand[], cw: number, frontRoom: number): StrandPlan[] {
-  const tight = strands.map(s => planStrand(d, s, cw, 3));
-  const cols = columnsFor(strands.length);
-  const stack = cardRowHeights(tight.map(p => p.h), cols);
-  const used = stackHeight(stack);
-  if (used > frontRoom * 0.8) return tight;
-  return strands.map(s => planStrand(d, s, cw, 5));
+interface Split {
+  plans: StrandPlan[]; strands: Strand[]; cols: number; cw: number;
+  layout: ReturnType<typeof packColumns>; panelH: number;
 }
 
-/** Draw `count` strands from `from`, each at the height it measured. */
-function trialCardGrid(
-  d: Doc, plans: StrandPlan[], cols: number,
-  x: number, y: number, w: number, from: number, count: number,
-): number {
-  const cw = cols === 1 ? w : (w - S_GAP) / 2;
-  const mine = plans.slice(from, from + count);
-  const heights = cardRowHeights(mine.map(p => p.h), cols);
-
-  let cy = y;
-  mine.forEach((p, k) => {
-    const rowH = heights[Math.floor(k / cols)] ?? p.h;
-    if (k % cols === 0 && k > 0) cy += (heights[Math.floor(k / cols) - 1] ?? 0) + S_GAP;
-    drawStrand(d, p, x + (k % cols) * (cw + S_GAP), cy, cw, rowH);
+/** Draw the cards that landed on `sheet`. */
+function drawSheetCards(d: Doc, split: Split, sheet: number, x: number, y: number): void {
+  split.plans.forEach((p, i) => {
+    const at = split.layout.at[i];
+    if (at.sheet !== sheet) return;
+    drawStrand(d, p, x + at.col * (split.cw + C_GAP), y + at.y, split.cw);
   });
-  return mine.length;
 }
 
-/** The strands on the front page. Returns how many did NOT fit. */
+/** The cards on the front page. Returns how many did NOT fit. */
 function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: number, panelH: number,
-  split: { plans: StrandPlan[]; strands: Strand[]; cols: number; pages: number[] }): number {
+  split: Split): number {
   const t = data.trials;
-  const top = panel(d, M, top0, CW, panelH, '1', 'What we are proving', strandsSay(split.strands));
+  /* No summary line in the heading: the tiles above say the same thing, and
+     said it in different words. */
+  const top = panel(d, M, top0, CW, panelH, '1', 'What we are proving', '');
 
-  if (!t || t.rows.length === 0) {
-    setFont(d, 8, 'normal', MUTED);
-    d.text('Nothing has been booked on this job yet.', M + 14, top + 22);
+  if (!t || split.strands.length === 0) {
+    setFont(d, 8.5, 'normal', MUTED);
+    d.text('No test has been planned on this job yet.', M + 14, top + 22);
     return 0;
   }
-
-  const drawn = trialCardGrid(d, split.plans, split.cols, M + 14, top + 14, CW - 28, 0, split.pages[0] ?? 0);
-  return split.strands.length - drawn;
+  drawSheetCards(d, split, 0, M + 14, top + 14);
+  return split.layout.at.filter(a => a.sheet > 0).length;
 }
 
 /** The rest of them, a sheet each until there are none left. */
-function trialsSheet(d: Doc, data: PaceReportData, from: number, count: number, sheet: number, sheets: number,
-  page: number, pages: number, split: { plans: StrandPlan[]; strands: Strand[]; cols: number }): void {
+function trialsSheet(d: Doc, data: PaceReportData, sheet: number, sheets: number,
+  page: number, pages: number, split: Split): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
+  const idx = split.layout.at.map((a, i) => (a.sheet === sheet ? i : -1)).filter(i => i >= 0);
 
   setFont(d, 8, 'bold', BRAND);
   d.text('WHAT WE ARE PROVING — CONTINUED', M, M + 8);
   setFont(d, 18, 'bold', INK);
   d.text(fit(d, `${data.title}`, CW * 0.7), M, M + 30);
   setFont(d, 8.5, 'normal', INK2);
-  d.text(`${from + 1} to ${from + count} of ${split.strands.length}${sheets > 1 ? ` · sheet ${sheet} of ${sheets}` : ''}`, M, M + 44);
+  d.text(`${(idx[0] ?? 0) + 1} to ${(idx[idx.length - 1] ?? 0) + 1} of ${split.strands.length}${sheets > 1 ? ` · sheet ${sheet} of ${sheets}` : ''}`, M, M + 44);
   d.setDrawColor(INK); d.setLineWidth(1.2);
   d.line(M, M + 52, W - M, M + 52);
 
-  trialCardGrid(d, split.plans, split.cols, M, M + 66, CW, from, count);
+  drawSheetCards(d, split, sheet, M, M + 66);
 
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — what we are proving`, CW * 0.8), M, H - M + 6);
@@ -1762,18 +1693,21 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      job was. A failed test and its re-test are one thing to prove, not two, and
      the number a client repeats in a meeting has to be the one the page argues
      for underneath it. */
-  const headStrands = data.tracker ? [] : orderStrands(strandsOf(tr?.rows ?? []));
+  /* TESTS ONLY. A fix on its own — a guard fitted — was a card among the tests
+     and counted in these tiles, so the one thing "proved" on the page was a
+     guard going on, not a test passing. It is page 3's now. */
+  const headStrands = data.tracker ? [] : orderStrands(strandsOf(tr?.rows ?? [])).filter(x => x.kind === 'test');
   const nStrand = (st: StrandState) => headStrands.filter(x => x.state === st).length;
+  const retestBooked = headStrands.filter(x => x.state === 'failed' && x.next?.what === 'Re-test').length;
   const commTiles: [string, string, string, string][] = [
-    [String(headStrands.length), 'To prove', 'on this line', BRAND],
+    [String(headStrands.length), 'Tests', 'being proved on this job', BRAND],
     [String(nStrand('proved')), 'Proved', `of ${headStrands.length}`, nStrand('proved') > 0 ? OK : MUTED],
-    [String(nStrand('notProved') + nStrand('notYet')), 'Not proved yet',
-      nStrand('notYet') ? `${nStrand('notYet')} with a re-test booked` : 'nothing booked behind them',
-      nStrand('notProved') > 0 ? DANGER : nStrand('notYet') > 0 ? WARN : OK],
-    /* The next three used to be "0 programs proved of 0", "0 films late" and
-       "open evidence from the line walk" — half the tiles about things the
-       job did not have. These are the two numbers a client asks for. */
-    [String(nStrand('booked')), 'Still to run', 'booked, not yet happened', nStrand('booked') > 0 ? BRAND : MUTED],
+    [String(nStrand('failed')), 'Failed',
+      nStrand('failed') ? `${retestBooked} with a re-test booked` : 'none',
+      nStrand('failed') > 0 ? DANGER : OK],
+    [String(nStrand('noVerdict') + nStrand('notRun')), 'Waiting',
+      `${nStrand('noVerdict')} no verdict · ${nStrand('notRun')} not run`,
+      nStrand('noVerdict') + nStrand('notRun') > 0 ? WARN : OK],
     /* THE WHOLE JOB'S LATE, when page 3 is there to account for it. Counted
        off the strands alone, this tile said 3 while page 2's sentence and page
        3's cards said 4 — the fourth a machine that never turned up, which is
@@ -1786,10 +1720,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         owesLate != null ? 'owed across the job — see who owes what' : 'owed and the date has gone',
         late > 0 ? DANGER : OK]];
     })(),
-    [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
+    /* Only when there is some: the line walk is part of the story when it has
+       something open, and a tile reading 0 about it is not. */
+    ...(data.openSnags > 0
+      ? [[String(data.openSnags), 'Open evidence', 'from the line walk', WARN] as [string, string, string, string]]
+      : []),
   ];
   const headTiles = data.tracker ? tiles : commTiles;
-  const tGap = 8, tW = (CW - tGap * 5) / 6, tY = M + 68, tH = 54;
+  const tGap = 8, tW = (CW - tGap * (headTiles.length - 1)) / headTiles.length, tY = M + 68, tH = 54;
   headTiles.forEach(([n, label, sub, colour], i) => {
     const tx = M + i * (tW + tGap);
     d.setFillColor('#ffffff'); d.setDrawColor(LINE); d.setLineWidth(0.8);
@@ -1800,8 +1738,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     d.text(n, tx + 10, tY + 26);
     setFont(d, 8, 'bold', INK);
     d.text(label, tx + 10, tY + 38);
-    setFont(d, 6.5, 'normal', MUTED);
-    d.text(sub, tx + 10, tY + 47);
+    setFont(d, 7.5, 'normal', MUTED);
+    d.text(fit(d, sub, tW - 20), tx + 10, tY + 47);
   });
 
   /* line pace */
@@ -1818,26 +1756,25 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      and cannot know the 5 until every card has been measured. One plan, used
      by the front panel, by each continuation sheet, and by the page count —
      so the three cannot disagree about where a card went. */
-  const split = (() => {
+  const split: Split = (() => {
     const rows = data.trials?.rows ?? [];
-    const none = { plans: [] as StrandPlan[], strands: [] as Strand[], cols: 1, pages: [0], panelH: lpH };
+    const none: Split = { plans: [], strands: [], cols: 1, cw: CW - 28,
+      layout: { at: [], sheets: 1, front: 0 }, panelH: lpH };
     if (data.tracker || rows.length === 0) return none;
-    /* THE TESTS BECOME THE THINGS THEY SET OUT TO PROVE, before anything is
-       measured — a strand is what this section draws, so it is what the page
-       count and the packing have to be about. */
-    const strands = orderStrands(strandsOf(rows));
+    /* Tests only — see the tiles. The strands are measured before anything is
+       drawn, so the page count and the packing are about what is drawn. */
+    const strands = orderStrands(strandsOf(rows)).filter(x => x.kind === 'test');
+    if (strands.length === 0) return none;
     const cols = columnsFor(strands.length);
-    const cw = cols === 1 ? CW - 28 : (CW - 28 - 12) / 2;
-    /* The room a panel's blocks actually get: the front one sits under the
+    const cw = cols === 1 ? CW - 28 : (CW - 28 - C_GAP) / 2;
+    /* The room a panel's cards actually get: the front one sits under the
        tiles and behind a numbered head, a continuation sheet is bare. */
     const frontRoom = lpH - 30 - 14 - 12;
     const sheetRoom = H - M - 24 - (M + 66);
-    const plans = planTrials(d, strands, cw, frontRoom);
-    const pages = packCards(plans.map(p => p.h), cols, frontRoom, sheetRoom);
-    /* What the front panel is actually drawn at: its own chrome plus the blocks
-       that landed on it. It stops where they stop. */
-    const front = stackHeight(cardRowHeights(plans.slice(0, pages[0]).map(p => p.h), cols));
-    return { plans, strands, cols, pages, panelH: Math.min(lpH, 30 + 14 + front + 14) };
+    const plans = strands.map(st => planStrand(d, st, cw));
+    const layout = packColumns(plans.map(p => p.h), cols, frontRoom, sheetRoom);
+    /* The front panel stops where its cards stop. */
+    return { plans, strands, cols, cw, layout, panelH: Math.min(lpH, 30 + 14 + layout.front + 14) };
   })();
 
   let trialsOver = 0;
@@ -1899,7 +1836,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* Every sheet after the front one, not just the first. A job running twenty
      tests used to have the last eight silently dropped off the single extra
      sheet the old arithmetic allowed for. */
-  const trialSheets = Math.max(0, split.pages.length - 1);
+  const trialSheets = Math.max(0, split.layout.sheets - 1);
   const hasMoreTrials = trialsOver > 0;
   /* The two "what are we waiting on" panels share a sheet when both are short
      enough to sit on one, which is the usual case. Measured rather than
@@ -1929,7 +1866,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      news — on page 3 after the plan, under an 18pt title, as if a second
      document had started. */
   const planUnder = !data.tracker && !!data.plan && data.plan.lanes.length > 0
-    && split.pages.length <= 1
+    && split.layout.sheets <= 1
     && lpY + split.panelH + 12 + planPanelHeight(data.plan, H - 2 * M) <= H - M - 18;
   const hasPlan = !!data.plan && data.plan.lanes.length > 0 && !planUnder;
   /* WHO OWES WHAT goes behind the story and the position, before anything
@@ -1948,7 +1885,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       : data.tracker ? 'line pace' : 'what we are proving'}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
     ? 'The tracker workbook is the system of record; this report reads it.'
-    : 'A test is planned, then run, and what it found becomes the next one.',
+    : 'One card per test, with the fixes for it. Who owes what, in full, is further on.',
     W - M, H - M + 6, { align: 'right' });
 
   const wherePage = 2;
@@ -1976,12 +1913,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * trials should not have four of them silently dropped, which is what the
    * table it replaced did with "+4 more than fit this sheet". */
   if (hasMoreTrials && data.trials) {
-    let from = split.pages[0] ?? 0;
-    for (let sheet = 1; sheet < split.pages.length; sheet++) {
-      const count = split.pages[sheet];
+    for (let sheet = 1; sheet < split.layout.sheets; sheet++) {
       d.addPage('a3', 'landscape');
-      trialsSheet(d, data, from, count, sheet, trialSheets, trialsPage + sheet - 1, pages, split);
-      from += count;
+      trialsSheet(d, data, sheet, trialSheets, trialsPage + sheet - 1, pages, split);
     }
   }
 

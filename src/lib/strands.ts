@@ -10,24 +10,28 @@ import type { PaceReportData } from './paceReportPdf';
 
 export type TrialRow = NonNullable<PaceReportData['trials']>['rows'][number];
 
-export type StrandState = 'proved' | 'notYet' | 'notProved' | 'booked';
+/* ONE WORD FOR WHERE A TEST HAS GOT TO — its LATEST RESULT, literally.
+ *
+ * It used to be NOT YET / NOT PROVED / BOOKED on the card and DIDN'T PASS /
+ * NO VERDICT YET / PLANNED / FIXED on its rows: two vocabularies on one card,
+ * and they contradicted each other — a test that ran and was never called was
+ * badged NOT PROVED over a row reading NO VERDICT YET. Rowland: "the pdf is
+ * still messy on the first page." Four words, each meaning one thing. */
+export type StrandState = 'proved' | 'failed' | 'noVerdict' | 'notRun';
 
-/** The word a client reads. Not "stuck": the report says what is true, and
- *  what is true is that nothing has been booked yet. */
 export const STRAND_WORD: Record<StrandState, string> = {
   proved: 'PROVED',
-  notYet: 'NOT YET',
-  notProved: 'NOT PROVED',
-  booked: 'BOOKED',
+  failed: 'FAILED',
+  noVerdict: 'NO VERDICT',
+  notRun: 'NOT RUN',
 };
-/** A strand that is a FIX on its own — a guard fitted, a valve replaced — is
- *  not proving anything; it is done or it is not. Badging a fitted guard
- *  "BOOKED" over a row reading FIXED was the report contradicting itself. */
+/** A strand that is only fixes — no test above them. Not drawn on page 1 (it
+ *  proves nothing); it keeps words of its own for anything that does draw it. */
 export const FIX_STRAND_WORD: Record<StrandState, string> = {
   proved: 'DONE',
-  notYet: 'NOT YET',
-  notProved: 'NOT DONE',
-  booked: 'PLANNED',
+  failed: 'NOT FIXED',
+  noVerdict: 'NO VERDICT',
+  notRun: 'PLANNED',
 };
 export const strandWord = (s: Pick<Strand, 'kind' | 'state'>): string =>
   (s.kind === 'fix' ? FIX_STRAND_WORD : STRAND_WORD)[s.state];
@@ -48,6 +52,20 @@ export interface StrandStep {
   found: string;
 }
 
+/** A day a test was run — or was meant to be and did not happen. */
+export interface StrandRun { when: string; word: string; reason: string; outcome: TrialRow['outcome'] }
+/** A fix for this test, in one line. */
+export interface StrandFix {
+  what: string; who: string;
+  /** DONE, NOT FIXED, NO VERDICT, NOT DONE, LATE — or blank while it is
+   *  simply booked, when `when` says "by …". */
+  word: string;
+  tone: 'done' | 'failed' | 'waiting' | 'late' | 'due';
+  when: string;
+}
+/** The ONE thing owed on this test, next. Everything else owed is page 3's. */
+export interface StrandNext { what: string; who: string; when: string; late: boolean }
+
 export interface Strand {
   /** The thing being proved — the first attempt's name. */
   name: string;
@@ -58,6 +76,13 @@ export interface Strand {
   /** What it was agreed it passes on, from the attempt that set out to do it. */
   provesIf: string;
   state: StrandState;
+  /** NOT RUN and the day has gone — the badge goes red. */
+  late: boolean;
+  /** Days it ran (or did not happen), in date order. */
+  runs: StrandRun[];
+  /** The fixes for it, in date order. */
+  fixes: StrandFix[];
+  next?: StrandNext;
   attempts: number;
   steps: StrandStep[];
   /** What is still owed on this strand, with a name and a date on it.
@@ -120,24 +145,68 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
         : '',
     }));
 
-    /* WHERE IT HAS GOT TO, off the tests alone. A fix is work done towards the
-       answer; it is not the answer, and a strand whose fix is done but whose
-       re-test has not run is NOT proved. */
+    /* WHERE IT HAS GOT TO: the LATEST result, off the tests alone — a fix is
+       work towards the answer, not the answer. A strand with no test in it is
+       fixes on their own, and then the fixes are what it is about. Date order
+       throughout: walking the chain branch by branch printed a re-test on the
+       29th above a fix on the 25th. */
+    const byOn = (a: TrialRow, b: TrialRow) => (a.on ?? '\uffff').localeCompare(b.on ?? '\uffff');
     const tests = chain.filter(r => r.kind === 'test');
-    /* The state comes off the TESTS when there are any — a fix is work towards
-       the answer, not the answer. A strand with no test in it is a fix on its
-       own, and then the fixes are what it is about. */
-    const about = tests.length ? tests : chain;
-    /* RAN means the day happened, not that somebody has called it. A test
-       written up on the floor and never given a verdict is not "booked" — it is
-       an answer the client is still waiting for, and the strand says so. */
+    const about = (tests.length ? tests : chain).slice().sort(byOn);
+    /* RAN means the day came — it ran, or it did not happen. */
     const ran = about.filter(t => t.ran);
     const last = ran[ran.length - 1];
-    const booked = about.some(t => !t.ran);
-    const state: StrandState = !last ? 'booked'
+    const pending = about.filter(t => !t.ran);
+    const state: StrandState = !last ? 'notRun'
       : last.outcome === 'passed' ? 'proved'
-        : booked ? 'notYet'
-          : 'notProved';
+        : last.outcome === 'failed' ? 'failed'
+          : last.outcome === 'notRun' ? 'notRun'
+            : 'noVerdict';
+    const late = state === 'notRun'
+      && (pending.some(p => p.late) || (last?.outcome === 'notRun' && pending.length === 0));
+
+    const dated = (w: string) => (w && w !== '—' ? w : '');
+    const RUN_WORD: Record<TrialRow['outcome'], string> = {
+      passed: 'PASSED', failed: 'FAILED', notRun: 'DIDN’T RUN', planned: 'NO VERDICT',
+    };
+    const runs: StrandRun[] = (tests.length ? ran : []).map(r => ({
+      when: dated(r.when), word: RUN_WORD[r.outcome], reason: r.verdict, outcome: r.outcome,
+    }));
+
+    const fixes: StrandFix[] = (tests.length ? chain.filter(r => r.kind === 'fix') : [])
+      .slice().sort(byOn).map(r => {
+        const w = dated(r.when);
+        const tone: StrandFix['tone'] = r.outcome === 'passed' ? 'done'
+          : r.outcome === 'failed' ? 'failed'
+            : r.ran ? 'waiting'
+              : r.late ? 'late' : 'due';
+        return {
+          what: r.title, who: r.withWhom, tone,
+          word: tone === 'done' ? 'DONE' : tone === 'failed' ? 'NOT FIXED'
+            : tone === 'waiting' ? (r.outcome === 'notRun' ? 'NOT DONE' : 'NO VERDICT')
+              : tone === 'late' ? 'LATE' : '',
+          when: !w ? 'no date' : tone === 'late' ? `was ${w}` : tone === 'due' ? `by ${w}` : w,
+        };
+      });
+
+    /* THE ONE THING NEXT. The card used to list every debt under STILL OWED,
+       which repeated the rows above it, the card's own name included. It says
+       one thing now; the whole list is page 3's. */
+    const next: StrandNext | undefined = !tests.length ? undefined
+      : last && last.outcome === 'planned'
+        ? { what: 'Call the result', who: 'the site', when: last.when ? `since ${dated(last.when) || 'the day'}` : '', late: false }
+        : pending[0]
+          ? {
+            what: pending[0] === root ? 'Run it' : 'Re-test',
+            who: pending[0].withWhom,
+            when: dated(pending[0].when) ? `${pending[0].late ? 'was' : 'by'} ${dated(pending[0].when)}` : 'no date',
+            late: pending[0].late,
+          }
+          : state === 'notRun' && last
+            ? { what: 'Rebook it', who: last.withWhom, when: dated(last.when) ? `was ${dated(last.when)}` : 'no date', late: true }
+            : state === 'failed'
+              ? { what: 'Book the re-test', who: root.withWhom, when: 'no date', late: false }
+              : undefined;
 
     /* What is still owed: every step not settled, plus the agreed next step
        hanging off any of them. Named and dated, because "outstanding" without
@@ -179,7 +248,7 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
       machine: root.machine,
       withWhom: root.withWhom,
       provesIf: root.passesIf,
-      state,
+      state, late, runs, fixes, next,
       /* Attempts are days that happened. One run and one booked is one attempt. */
       attempts: tests.filter(t => t.ran).length,
       steps,
@@ -197,11 +266,12 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
  * to look at, and choosing wrong. What needs attention leads, then what is
  * coming, then what is finished. Rowland, on the same argument for the tests
  * list: "a client wants what is coming before what we did." */
-const STRAND_ORDER: Record<StrandState, number> = { notProved: 0, notYet: 1, booked: 2, proved: 3 };
+const STRAND_ORDER: Record<StrandState, number> = { failed: 0, noVerdict: 1, notRun: 2, proved: 3 };
 
 export const orderStrands = (strands: Strand[]): Strand[] =>
   [...strands].sort((a, b) =>
-    STRAND_ORDER[a.state] - STRAND_ORDER[b.state]
+    /* A test whose day has gone with nothing to show leads with the failures. */
+    (a.late ? 0 : STRAND_ORDER[a.state]) - (b.late ? 0 : STRAND_ORDER[b.state])
     /* Within a state, whatever is owed soonest — and a strand with nothing
        owed sorts after the ones that do. */
     || (a.owed[0]?.due ?? '\uffff').localeCompare(b.owed[0]?.due ?? '\uffff')
@@ -211,10 +281,10 @@ export const orderStrands = (strands: Strand[]): Strand[] =>
 export function strandsSay(strands: Strand[]): string {
   if (strands.length === 0) return 'nothing booked yet';
   const n = (s: StrandState) => strands.filter(x => x.state === s).length;
-  const bits = [`${strands.length} thing${strands.length === 1 ? '' : 's'} to prove`];
+  const bits = [`${strands.length} test${strands.length === 1 ? '' : 's'}`];
   if (n('proved')) bits.push(`${n('proved')} proved`);
-  if (n('notYet')) bits.push(`${n('notYet')} not yet`);
-  if (n('notProved')) bits.push(`${n('notProved')} not proved`);
-  if (n('booked')) bits.push(`${n('booked')} still to run`);
+  if (n('failed')) bits.push(`${n('failed')} failed`);
+  if (n('noVerdict')) bits.push(`${n('noVerdict')} no verdict`);
+  if (n('notRun')) bits.push(`${n('notRun')} not run`);
   return bits.join(' · ');
 }

@@ -20,7 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
 import {
-  cardRowHeights, drawPaceReport, layoutOwes, orderStrands, owesColumns, packCards, stackHeight, strandWord,
+  drawPaceReport, layoutOwes, orderStrands, owesColumns, packColumns, strandWord,
   strandsOf, strandsSay, type PaceReportData,
 } from '../paceReportPdf';
 import type { Owes, Party } from '../owes';
@@ -400,49 +400,43 @@ describe('the report carries its content', () => {
  * than looking at a rendered sheet and deciding it seems about right.
  */
 describe('the test cards across the sheets', () => {
-  it('makes a row as tall as the taller of its pair, so the two share a bottom edge', () => {
-    expect(cardRowHeights([100, 140, 90, 90], 2)).toEqual([140, 90]);
+  /* EACH COLUMN STACKS ON ITS OWN. The old grid padded every pair of cards to
+     the taller of the two, so a short card beside a long one left a hole. */
+  it('puts each card into whichever column is shorter', () => {
+    const l = packColumns([300, 100, 100, 100], 2, 1000, 1000);
+    expect(l.at.map(a => a.col)).toEqual([0, 1, 1, 1]);
+    expect(l.at.map(a => a.y)).toEqual([0, 0, 112, 224]);
   });
 
   it('gives a card the whole width when the column count is one', () => {
-    expect(cardRowHeights([100, 140], 1)).toEqual([100, 140]);
+    const l = packColumns([100, 140], 1, 1000, 1000);
+    expect(l.at.map(a => [a.col, a.y])).toEqual([[0, 0], [0, 112]]);
   });
 
-  it('counts the gaps between rows, not after the last one', () => {
-    expect(stackHeight([100, 100, 100])).toBe(324);   // 300 + two 12pt gaps
-    expect(stackHeight([100])).toBe(100);
-    expect(stackHeight([])).toBe(0);
+  it('says how tall the front panel is — where its cards stop, no gap after the last', () => {
+    expect(packColumns([100, 100, 100], 1, 1000, 1000).front).toBe(324);
+    expect(packColumns([300, 100], 2, 1000, 1000).front).toBe(300);
   });
 
   it('fills the front panel, then a sheet at a time', () => {
-    /* Eight cards of 100 in pairs: a row is 100, four rows plus gaps is 436.
-       A 300pt front panel holds two rows; a 700pt sheet holds the rest. */
-    expect(packCards(Array(8).fill(100), 2, 300, 700)).toEqual([4, 4]);
+    const l = packColumns(Array(8).fill(100), 2, 300, 700);
+    expect(l.at.filter(a => a.sheet === 0)).toHaveLength(4);
+    expect(l.sheets).toBe(2);
   });
 
-  it('grows onto as many sheets as it takes, not one extra and then silence', () => {
-    /* The fault this replaces: twenty tests printed six on the front and
-       fourteen on ONE further sheet, of which the last eight fell off the
-       bottom and were never seen again. */
-    const pages = packCards(Array(40).fill(120), 2, 260, 260);
-    expect(pages.reduce((a, b) => a + b, 0)).toBe(40);
-    expect(pages.length).toBeGreaterThan(3);
-  });
-
-  it('never leaves a card unplaced, whatever the heights', () => {
-    const heights = [80, 300, 95, 420, 110, 88, 260, 91, 77, 340, 102];
-    const pages = packCards(heights, 2, 400, 700);
-    expect(pages.reduce((a, b) => a + b, 0)).toBe(heights.length);
+  it('grows onto as many sheets as it takes, and never leaves a card unplaced', () => {
+    const l = packColumns(Array(40).fill(120), 2, 260, 260);
+    expect(l.at).toHaveLength(40);
+    expect(l.sheets).toBeGreaterThan(3);
   });
 
   it('puts a card too tall for an empty sheet on one of its own rather than looping for ever', () => {
-    /* Without the guard this is an infinite loop, which is the only way this
-       can fail badly: the tab stops responding with no error to read. */
-    expect(packCards([2000, 2000], 1, 400, 400)).toEqual([1, 1]);
+    const l = packColumns([2000, 2000], 1, 400, 400);
+    expect(l.at.map(a => a.sheet)).toEqual([0, 1]);
   });
 
-  it('says one empty page when there is nothing to place', () => {
-    expect(packCards([], 2, 400, 700)).toEqual([0]);
+  it('still has a front page when there is nothing to place', () => {
+    expect(packColumns([], 2, 400, 700)).toMatchObject({ sheets: 1, front: 0 });
   });
 });
 
@@ -523,17 +517,20 @@ describe('where a strand has got to', () => {
       row({ id: 'b', fromId: 'a', outcome: 'passed' })])).toBe('proved');
   });
 
-  it('is not yet when it failed and a re-test is booked', () => {
+  /* THE LATEST RESULT, LITERALLY — one word on the card, meaning one thing. */
+  it('is FAILED when the latest attempt failed, re-test booked or not', () => {
     expect(state([row({ id: 'a', outcome: 'failed' }),
-      row({ id: 'b', fromId: 'a', outcome: 'planned' })])).toBe('notYet');
+      row({ id: 'b', fromId: 'a', outcome: 'planned' })])).toBe('failed');
+    expect(state([row({ id: 'a', outcome: 'failed' })])).toBe('failed');
   });
 
-  it('is NOT PROVED when it failed and nothing is booked behind it', () => {
-    expect(state([row({ id: 'a', outcome: 'failed' })])).toBe('notProved');
+  it('is NOT RUN when nothing has run at all', () => {
+    expect(state([row({ id: 'a', outcome: 'planned' })])).toBe('notRun');
   });
 
-  it('is booked when nothing has run at all', () => {
-    expect(state([row({ id: 'a', outcome: 'planned' })])).toBe('booked');
+  it('is NOT RUN, and late, when the day came and it did not happen', () => {
+    const [st] = strandsOf([row({ id: 'a', outcome: 'notRun', late: true })]);
+    expect(st).toMatchObject({ state: 'notRun', late: true });
   });
 
   it('a test that ran with no verdict is not proved, and the client is owed the call', () => {
@@ -541,9 +538,11 @@ describe('where a strand has got to', () => {
        tapped. The strand must not read it as still booked. */
     const st = strandsOf([row({ id: 'a', ran: true, outcome: 'planned',
       verdict: 'Started at 73%, achieved 90% over a 97 min run', outcomeWord: 'No verdict yet' })]);
-    expect(st[0]!.state).toBe('notProved');
+    expect(st[0]!.state).toBe('noVerdict');
     expect(st[0]!.attempts).toBe(1);
     expect(st[0]!.owed.map(o => o.what)).toEqual(['Say whether it passed']);
+    /* The card's one next line is the call, owed by the site. */
+    expect(st[0]!.next).toMatchObject({ what: 'Call the result', who: 'the site', late: false });
     /* The verdict is the SITE's debt, not the OEM's: withWhom is who we ran
        it with. It printed "Say whether it passed · Ilapak UK". */
     expect(st[0]!.owed[0]).toMatchObject({ owner: 'the site', since: true });
@@ -574,7 +573,47 @@ describe('where a strand has got to', () => {
        done and whose re-test has not run is not proved, and saying otherwise
        on a client report is the worst thing this page could do. */
     expect(state([row({ id: 'a', outcome: 'failed' }),
-      row({ id: 'b', fromId: 'a', kind: 'fix', outcome: 'passed' })])).toBe('notProved');
+      row({ id: 'b', fromId: 'a', kind: 'fix', outcome: 'passed' })])).toBe('failed');
+  });
+});
+
+describe('what a test card carries', () => {
+  it('lists the days it ran, the fixes for it, and one thing next', () => {
+    const [st] = strandsOf([
+      row({ id: 'a', title: 'Seal integrity', outcome: 'failed', verdict: '3 of 20 leaked', on: '2026-09-21' }),
+      row({ id: 'f', fromId: 'a', kind: 'fix', title: 'Re-cut the jaw profile', outcome: 'passed', when: '24 Sept', on: '2026-09-24' }),
+      row({ id: 'r', fromId: 'f', title: 'Seal integrity — re-test', when: '29 Sept', on: '2026-09-29' }),
+    ]);
+    expect(st!.runs).toEqual([{ when: '21 Sept', word: 'FAILED', reason: '3 of 20 leaked', outcome: 'failed' }]);
+    expect(st!.fixes).toEqual([{ what: 'Re-cut the jaw profile', who: 'Ilapak UK', tone: 'done', word: 'DONE', when: '24 Sept' }]);
+    expect(st!.next).toEqual({ what: 'Re-test', who: 'Ilapak UK', when: 'by 29 Sept', late: false });
+  });
+
+  it('says a late fix is late, in its own words', () => {
+    const [st] = strandsOf([
+      row({ id: 'a', outcome: 'failed' }),
+      row({ id: 'f', fromId: 'a', kind: 'fix', title: 'Replace the valve', when: '22 Sept', late: true }),
+    ]);
+    expect(st!.fixes[0]).toMatchObject({ tone: 'late', word: 'LATE', when: 'was 22 Sept' });
+  });
+
+  it('asks for the day to be rebooked when it did not happen and nothing is booked', () => {
+    const [st] = strandsOf([row({ id: 'a', outcome: 'notRun', when: '18 Sept', late: true })]);
+    expect(st!.next).toEqual({ what: 'Rebook it', who: 'Ilapak UK', when: 'was 18 Sept', late: true });
+  });
+
+  it('asks for a re-test to be booked when it failed and none is', () => {
+    const [st] = strandsOf([row({ id: 'a', outcome: 'failed' })]);
+    expect(st!.next).toMatchObject({ what: 'Book the re-test', when: 'no date' });
+  });
+
+  it('has nothing next once it is proved', () => {
+    expect(strandsOf([row({ id: 'a', outcome: 'passed' })])[0]!.next).toBeUndefined();
+  });
+
+  it('never prints a date that was never set', () => {
+    const [st] = strandsOf([row({ id: 'a', outcome: 'planned', when: '—' })]);
+    expect(st!.next).toMatchObject({ what: 'Run it', when: 'no date' });
   });
 });
 
@@ -611,7 +650,7 @@ describe('the order a presentation reads in', () => {
       row({ id: 'y1', title: 'not yet', outcome: 'failed' }),
       row({ id: 'y2', fromId: 'y1', outcome: 'planned' }),
     ]));
-    expect(st.map(s => s.state)).toEqual(['notProved', 'notYet', 'booked', 'proved']);
+    expect(st.map(s => s.state)).toEqual(['failed', 'failed', 'notRun', 'proved']);
   });
 
   it('puts what is owed soonest first within the same state', () => {
@@ -633,7 +672,7 @@ describe('what the section says about itself', () => {
       row({ id: 'b', fromId: 'a', kind: 'fix', outcome: 'passed' }),
       row({ id: 'c', fromId: 'b', outcome: 'planned' }),
     ]);
-    expect(strandsSay(st)).toBe('1 thing to prove · 1 not yet');
+    expect(strandsSay(st)).toBe('1 test · 1 failed');
   });
 
   it('says plainly when there is nothing', () => {
