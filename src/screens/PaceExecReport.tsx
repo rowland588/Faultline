@@ -27,7 +27,7 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { foundWords, hasRun, plannedEnd, standingOfItem, type Asset, type Test, type TestItem } from '../lib/testing';
+import { foundWords, hasRun, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
 import { strandsOf } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
@@ -383,7 +383,7 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
               <dt>Happened</dt>
               <dd className={r.outcome === 'planned' ? 'is-none' : 'is-strong'}>{r.verdict || '\u2014'}</dd>
               <dt>Found</dt>
-              <dd className={r.found.undecided ? 'is-warn' : ''}>
+              <dd>
                 {foundWords(r.found)}
               </dd>
               <dt>Next</dt>
@@ -982,22 +982,8 @@ export function PaceExecReport() {
       debts.push({ who: a.oem ?? '', what: landed ? 'Get it running' : 'Get it on site', about: a.name,
         on: landed ? undefined : a.dueOn, late: !landed && !!a.dueOn && a.dueOn < today });
     }
-    /* An observation nobody has decided on is the SITE's debt — whether it is
-       a fix is the site's call — and it is what the OEM will be asked about. */
-    const live = new Map(tests.filter(t => !t.deletedAt).map(t => [t.id, t]));
-    const undecided = new Map<string, TestItem[]>();
-    for (const i of testItems) {
-      if (i.deletedAt || i.kind !== 'found' || !live.has(i.testId)) continue;
-      if (standingOfItem(i, testItems) !== 'new') continue;
-      undecided.set(i.testId, [...(undecided.get(i.testId) ?? []), i]);
-    }
-    for (const [testId, found] of undecided) {
-      const t = live.get(testId);
-      if (!t) continue;
-      debts.push({ who: 'the site',
-        what: found.length === 1 ? `Decide on “${found[0].what}”` : `Decide on ${found.length} observations`,
-        about: t.title, on: t.ranOn, late: false, since: !!t.ranOn });
-    }
+    /* No "decide on N observations" lines: an observation is a note now, and
+       whatever needs doing about one is a fix — owed above, by whoever does it. */
     if (debts.length === 0) return undefined;
     const suppliers = [
       ...machines.map(a => a.oem), ...mats.materials.map(m => m.from),

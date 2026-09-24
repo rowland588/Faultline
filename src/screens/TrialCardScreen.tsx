@@ -79,7 +79,7 @@ function Found({ rows, one }: { rows: CardFinding[]; one: string }) {
           <div className="tc-row-b">
             <p className="tc-row-t">{f.what}</p>
             <p className="tc-row-m sub">
-              <span className={'tc-tag is-' + f.decision.replace(/\s+/g, '-')}>{f.decision}</span>
+              {f.decision && <span className={'tc-tag is-' + f.decision.replace(/\s+/g, '-')}>{f.decision}</span>}
               {f.owner && <span>{f.owner}</span>}
               {f.photos > 0 && <span>{f.photos} photo{f.photos === 1 ? '' : 's'}</span>}
             </p>

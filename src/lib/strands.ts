@@ -116,7 +116,7 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
       outcomeWord: r.outcomeWord,
       found: r.found.written
         ? `turned up ${r.found.written} thing${r.found.written === 1 ? '' : 's'}${
-            r.found.undecided ? ` · ${r.found.undecided} still to decide` : ''}`
+            ''}`
         : '',
     }));
 

@@ -223,11 +223,13 @@ const blockHeight = (rows: number[], empty: boolean): number =>
 /** What we found: one row per observation, with what somebody decided about it.
  *  Returns how many it drew, so the caller knows whether to start a new page. */
 function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: number, from: number): number {
-  const cols = [0.44, 0.13, 0.15, 0.28];
+  const cols = [0.5, 0.14, 0.08, 0.28];
   const at = (i: number) => x + cols.slice(0, i).reduce((a, b) => a + b, 0) * w;
   /* "THE ACTION IT BECAME" outlived the noun. An observation becomes a FIX —
      its own record with its own card — so the column says what it became. */
-  const HEADS = ['WHAT WE SAW', 'WHOSE', 'DECIDED', 'WHAT IT BECAME'];
+  /* No DECIDED column heading: an observation is a note now, and the word
+     survives only on the few decided before fixes moved to their own screen. */
+  const HEADS = ['WHAT WE SAW', 'WHOSE', '', 'WHAT IT BECAME'];
 
   setFont(d, 6.5, 'bold', MUTED);
   HEADS.forEach((h, i) => d.text(h, at(i), y + 11));

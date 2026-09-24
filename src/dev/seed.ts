@@ -226,17 +226,27 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const item = (testId: string, kind: TestItem['kind'], what: string, extra: Partial<TestItem> = {}): TestItem =>
     ({ id: uid(), projectId: proj.id, testId, kind, what, sort: 1, createdAt: t, updatedAt: t, ...extra });
 
-  const jaw = item(seal.id, 'next', 'Ilapak to fit the upgraded jaw heater',
-    { owner: 'Ilapak UK', due: iso(3), becameTestId: retest.id, sort: 1 });
+  /* FIXES ARE MADE ON THE FIXES SCREEN, AGAINST THE TEST THEY ARE FOR — so the
+     seed makes them that way. They used to be next-step lines that a loader
+     silently turned into fixes, which is the very thing Rowland found on his
+     own list and never asked for. */
+  const fix = (o: Partial<Test> & { title: string }): Test => ({
+    id: uid(), projectId: proj.id, kind: 'fix', outcome: 'planned', sort: 20, createdAt: t, updatedAt: t, ...o,
+  });
+  for (const f of [
+    fix({ title: 'Fit the upgraded jaw heater', fromTestId: seal.id, assetId: wrapper.id,
+      withWhom: 'Ilapak UK', plannedFor: iso(3), passesIf: 'Seal jaw temperature drifts 8°C in 20 minutes' }),
+    fix({ title: 'Re-track the film and re-splice', fromTestId: seal.id, assetId: wrapper.id,
+      withWhom: 'Dave', plannedFor: iso(1), passesIf: 'Film tracking off to the left after a splice' }),
+    fix({ title: 'Send a changeover kit list', fromTestId: changeover.id, assetId: wrapper.id,
+      withWhom: 'Ilapak UK', plannedFor: iso(4), passesIf: 'Nobody on site could find the changeover parts' }),
+  ]) await putTest(f);
 
   for (const i of [
     item(seal.id, 'found', 'Seal jaw temperature drifting', { owner: 'Ilapak UK', note: 'Drops 8°C over 20 minutes, then the seals fail', sort: 1 }),
     item(seal.id, 'found', 'Film tracking off to the left after a splice', { owner: 'Ilapak UK', sort: 2 }),
     item(seal.id, 'found', 'No guard on the infeed shelf', { owner: 'us', doneAt: t - 1 * day, sort: 3 }),
-    jaw,
-    item(seal.id, 'next', 'Re-track the film and re-splice', { owner: 'Dave', due: iso(1), sort: 2 }),
     item(changeover.id, 'found', 'Nobody on site could find the changeover parts', { owner: 'us', sort: 1 }),
-    item(changeover.id, 'next', 'Ilapak to send a changeover kit list', { owner: 'Ilapak UK', due: iso(4), sort: 1 }),
     item(estop.id, 'found', 'E-stop label peeling on the infeed', { owner: 'us', doneAt: t - 5 * day, sort: 1 }),
   ]) await putTestItem(i);
 

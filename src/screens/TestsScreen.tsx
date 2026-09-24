@@ -21,7 +21,7 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, assetStateOn, hasRun, outcomeWord, isOverdue, itemsOf, standing, standingOfItem, weeksTo,
+  ASSET_STATE_WORD, WORDS, assetStateOn, hasRun, outcomeWord, isOverdue, itemsOf, standing, testOfFix, weeksTo,
   type Asset, type Test, type TestKind,
 } from '../lib/testing';
 
@@ -98,12 +98,17 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const weeks = weeksTo(project.expectedAt);
   const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
 
-  /* "Still open" is what nobody has decided about — not what has no doneAt,
-     which counted an observation that had become a fix as still open. */
-  const counts = (t: Test) => ({
-    found: itemsOf(tt.items, t.id, 'found').filter(i => standingOfItem(i, tt.items) === 'new').length,
-    next: itemsOf(tt.items, t.id, 'next').filter(i => i.doneAt == null).length,
-  });
+  /* What was written down, and the fixes FOR this test — the same list its own
+     page shows under "Fixes for this test". An observation is a note, not a
+     backlog, so it is counted plainly and never in red. */
+  const counts = (t: Test) => {
+    const fixes = tt.tests.filter(x => (x.kind ?? 'test') === 'fix' && !x.deletedAt && testOfFix(x, tt.tests)?.id === t.id);
+    return {
+      found: itemsOf(tt.items, t.id, 'found').length,
+      fixes: fixes.length,
+      fixesOpen: fixes.filter(x => x.outcome !== 'passed').length,
+    };
+  };
 
   const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
 
@@ -187,8 +192,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
             <span className="cx-tally">
               {st.ran} of {st.total} run
               {st.passed > 0 && <> · {st.passed} passed</>}
-              {st.undecided.length > 0 && <> · <b className="is-w">{st.undecided.length} to decide</b></>}
-              {st.openNext.length > 0 && <> · <b className="is-r">{st.openNext.length} to do</b></>}
             </span>
           </>
         )}
@@ -292,11 +295,11 @@ export function TestsScreen({ projectId }: { projectId: string }) {
                     <span className={'tw-res is-' + t.outcome}>
                       <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
                     </span>
-                    {(c.found > 0 || c.next > 0) && (
+                    {(c.found > 0 || c.fixes > 0) && (
                       <span className="sub">
-                        {c.found > 0 && <b className="is-r">{c.found} still open</b>}
-                        {c.found > 0 && c.next > 0 && ' · '}
-                        {c.next > 0 && `${c.next} next step${c.next === 1 ? '' : 's'}`}
+                        {c.found > 0 && `${c.found} written down`}
+                        {c.found > 0 && c.fixes > 0 && ' · '}
+                        {c.fixes > 0 && `${c.fixes} fix${c.fixes === 1 ? '' : 'es'}${c.fixesOpen ? `, ${c.fixesOpen} still to do` : ''}`}
                       </span>
                     )}
                   </span>

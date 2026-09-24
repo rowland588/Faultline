@@ -5451,6 +5451,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
  * ------------------------------------------------------------------------- */
 .tw-item.is-actioned .tw-tick { background: var(--blue); border-color: var(--blue); }
 .tw-item.is-noted { opacity: 0.6; }
+/* An observation is a note — a small mark where the tick used to be, so the
+   rows still line up with the ones that have one. */
+.tw-obs-dot { flex: none; width: 8px; height: 8px; margin: 8px 8px 0; border-radius: 50%; background: var(--line-2); }
+.tw-plan-sel { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .tw-item.is-noted .tw-tick { border-style: dashed; }
 .tw-obs-note { margin: -2px 0 6px; }
 .tw-decide { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 100%; }

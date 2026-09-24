@@ -132,14 +132,11 @@ describe('where are we — the sentence, derived', () => {
       item(t.id, { kind: 'next' }),
       item(t.id, { kind: 'next', doneAt: 5 }),
     ]);
-    /* Two observations were written down. One has been decided on (noted, no
-       action needed); one is still waiting on somebody to say. Neither is an
-       "open issue" — that reading is what made five observations read as five
-       problems on the report. */
+    /* Two observations were written down and two next-step lines left over
+       from before fixes had their own screen. None of them is outstanding
+       work: an observation is a note, and the work is a fix. */
     expect(st.observations).toHaveLength(2);
-    expect(st.undecided).toHaveLength(1);
-    expect(st.openNext).toHaveLength(1);
-    expect(st.sentence).toBe('1 next step outstanding, and 1 observation to decide on. 1 of 1 tests have run.');
+    expect(st.sentence).toBe('Nothing outstanding. 1 of 1 tests have run.');
   });
 
   it('says nothing is outstanding when nothing is', () => {
@@ -333,26 +330,19 @@ describe('observations, and the ones somebody decides to action', () => {
  * strings, not toContain: a count printed with the wrong word, or without its
  * number, is exactly the class of fault that slipped through twice before. */
 describe('what the tally says in words', () => {
-  it('names a single one in the singular', () => {
-    expect(foundWords({ written: 3, actioned: 1, undecided: 1 }))
-      .toBe('3 written down · 1 became a fix · 1 to decide');
-  });
-
-  it('names several in the plural', () => {
-    expect(foundWords({ written: 5, actioned: 2, undecided: 0 }))
-      .toBe('5 written down · 2 became fixes');
-  });
-
-  it('leaves out a count it has nothing for', () => {
-    expect(foundWords({ written: 2, actioned: 0, undecided: 0 })).toBe('2 written down');
+  /* An observation is a note: the words count what was written down and
+     nothing else. A fix is made on the Fixes screen against its test, so
+     "became a fix" and "to decide" are no longer the observation's to say. */
+  it('counts what was written down', () => {
+    expect(foundWords({ written: 3 })).toBe('3 written down');
   });
 
   it('says plainly when nothing was written down', () => {
-    expect(foundWords({ written: 0, actioned: 0, undecided: 0 })).toBe('nothing written down');
+    expect(foundWords({ written: 0 })).toBe('nothing written down');
   });
 
-  it('never says the word action', () => {
-    expect(foundWords({ written: 9, actioned: 4, undecided: 2 })).not.toMatch(/action/i);
+  it('never asks for a decision', () => {
+    expect(foundWords({ written: 9 })).not.toMatch(/decide|action/i);
   });
 });
 

@@ -393,13 +393,14 @@ export function foundTally(found: TestItem[], items: TestItem[]): FoundTally {
  *  "N actioned", which is the noun Rowland had already taken out of the app.
  *  One copy, so the screen and the document cannot say it differently, which is
  *  the point of the rule about designing the two halves together. */
-export const foundWords = (t: Pick<FoundTally, 'written' | 'actioned' | 'undecided'>): string => {
-  if (t.written === 0) return 'nothing written down';
-  const bits = [`${t.written} written down`];
-  if (t.actioned) bits.push(t.actioned === 1 ? '1 became a fix' : `${t.actioned} became fixes`);
-  if (t.undecided) bits.push(`${t.undecided} to decide`);
-  return bits.join(' · ');
-};
+/* AN OBSERVATION IS A NOTE. It used to carry a decision — a fix, not a
+   problem, or "to decide" — made by ticking it on the test. Rowland: "me
+   putting in what did we find and then sending it tick to fix is the messy
+   part." A fix is made on the Fixes screen against its test, so there is no
+   decision left on the observation, and a count of undecided ones would be a
+   count nobody could ever bring down. */
+export const foundWords = (t: Pick<FoundTally, 'written'>): string =>
+  t.written === 0 ? 'nothing written down' : `${t.written} written down`;
 
 /** Has the day happened yet. */
 export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerdict(t);
@@ -505,7 +506,9 @@ export function standing(tests: Test[], items: TestItem[]): Standing {
     ran: done.length,
     total: ts.length,
     passed: done.filter(t => t.outcome === 'passed').length,
-    sentence: sentenceFor(ts, done.length, undecided.length, openNext.length),
+    /* Neither observations nor next-step lines are outstanding work any more:
+       an observation is a note, and the work is a fix on the Fixes screen. */
+    sentence: sentenceFor(ts, done.length, 0, 0),
   };
 }
 
@@ -551,6 +554,29 @@ export const itemsOf = (items: TestItem[], testId: ID, kind: ItemKind): TestItem
 /** A new test planned from an old one, carrying forward what would otherwise be
  *  retyped: the machine, the product, and who it is with. THE LOOP, in one
  *  function — it is the only thing in the app that creates work from work. */
+/** THE TEST A RECORD BELONGS TO: itself when it is a test, otherwise the
+ *  nearest test up its `fromTestId` chain. Old data has fixes hanging off
+ *  fixes, and tests planned "from" a fix — made by a button that should never
+ *  have been on a fix page. Rather than rewrite those links behind anybody's
+ *  back, every reader resolves them to the test they are really about. */
+export function rootTestOf(t: Test | undefined, all: Test[]): Test | undefined {
+  const seen = new Set<string>();
+  let cur = t;
+  while (cur && !seen.has(cur.id)) {
+    if ((cur.kind ?? 'test') === 'test') return cur;
+    seen.add(cur.id);
+    const parent = cur.fromTestId;
+    cur = parent ? all.find(x => x.id === parent && !x.deletedAt) : undefined;
+  }
+  return undefined;
+}
+
+/** The test a FIX is for — the nearest test above it, never the fix itself. */
+export const testOfFix = (fix: Test, all: Test[]): Test | undefined => {
+  const parent = fix.fromTestId ? all.find(x => x.id === fix.fromTestId && !x.deletedAt) : undefined;
+  return rootTestOf(parent, all);
+};
+
 export function nextFrom(t: Test, mkId: () => string, at: number, title?: string,
   kind: TestKind = 'test', problem?: string): Test {
   const fix = kind === 'fix';

@@ -27,7 +27,7 @@ import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
-  WORDS, needsVerdict, outcomeWord, foundTally, foundWords, itemsOf, standingOfItem, verdictQuestion,
+  WORDS, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -81,6 +81,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const kind = test.kind ?? 'test';
   const words = WORDS[kind];
   const from = test.fromTestId ? tt.tests.find(t => t.id === test.fromTestId) : undefined;
+  /* A fix's test — the nearest one up its chain, so an old fix hanging off
+     another fix still names the test it is really about. */
+  const forTest = kind === 'fix' ? testOfFix(test, tt.tests) : undefined;
+  const testsToPick = tt.tests
+    .filter(t => (t.kind ?? 'test') === 'test' && !t.deletedAt)
+    .sort((a, b) => (b.ranOn ?? b.plannedFor ?? '').localeCompare(a.ranOn ?? a.plannedFor ?? ''));
 
   /* Setting the outcome stamps the day it happened, if nobody has said
      otherwise — the common case is telling the app on the day itself, and
@@ -108,9 +114,14 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           <p className="cw-handover">
             <b>{outcomeWord(test)}</b>
             {test.ranOn && <span className="sub">{nice(test.ranOn)}</span>}
-            {from && (
+            {kind === 'test' && from && (
               <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(from.id)}`)}>
                 follows “{from.title}”
+              </button>
+            )}
+            {kind === 'fix' && forTest && (
+              <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
+                for “{forTest.title}”
               </button>
             )}
           </p>
@@ -122,6 +133,15 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         <span className="tw-block-h">1 · {words.plan}</span>
         <label className="cw-f cw-f-wide"><span>{kind === 'fix' ? 'What we are fixing' : 'What we plan to do'}</span>
           <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
+        {/* WHICH TEST IT IS FOR. The one link a fix carries, and it can be
+            changed — a fix put against the wrong test is moved, not re-made. */}
+        {kind === 'fix' && (
+          <label className="cw-f cw-f-wide"><span>Which test is it for?</span>
+            <select value={forTest?.id ?? ''} onChange={e => save({ fromTestId: e.target.value || undefined })}>
+              <option value="">Not from a test</option>
+              {testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </select></label>
+        )}
         <label className="cw-f"><span>Machine</span>
           <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
             <option value="">The line itself</option>
@@ -205,31 +225,44 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
           These are OBSERVATIONS: written down live, while it is running. Whether
           any of them is a fix is a decision somebody makes afterwards. */}
-      <Items kind="found" test={test} tt={tt} onView={setViewing}
-        heading="3 · What we found on the day"
-        placeholder="What did you see?"
-        empty="Nothing written down yet. This is the part that matters most." />
+      {/* A fix has no "what we found" of its own — it is the work, not the
+          question. One made before that rule keeps what was written under it. */}
+      {(kind === 'test' || itemsOf(tt.items, test.id, 'found').length > 0) && (
+        <Items kind="found" test={test} tt={tt} onView={setViewing}
+          heading="3 · What we found on the day"
+          placeholder="What did you see?"
+          empty="Nothing written down yet. This is the part that matters most." />
+      )}
 
-      {/* 4 · WHAT'S NEXT — THE FIXES THAT CAME OUT OF THIS ONE.
-          There is no such thing as an action any more: Rowland, on the two
-          words, "I don't think there is a difference — as a matter of fact
-          they're just fixes." So what comes next is a list of records, each
-          with its own days and its own page, not a list of lines. */}
-      <NextFixes test={test} tt={tt} />
+      {/* 4 · THE FIXES FOR THIS TEST. Listed here, made on the Fixes screen —
+          the button goes there with this test already picked. */}
+      {kind === 'test' && <NextFixes test={test} tt={tt} />}
 
       <Docs test={test} tt={tt} />
 
       <TrialCardButton test={test} project={projectId} />
 
-      <button className="btn btn-primary tw-loop" onClick={() => void (async () => {
-        const id = await tt.planNextFrom(test);
-        nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
-      })()}>
-        Plan the next test from this one
-      </button>
-      <p className="sub tw-note" style={{ textAlign: 'center' }}>
-        Carries the machine, the product and the expectation forward, so the plan writes itself.
-      </p>
+      {/* THE LOOP IS A TEST'S. On a fix this button made a TEST planned "from"
+          the fix, copied the fix's problem into its pass criteria, and so
+          turned fixes into tests nobody asked for. A fix goes back to its test;
+          the re-test is planned from there. */}
+      {kind === 'test' ? (
+        <>
+          <button className="btn btn-primary tw-loop" onClick={() => void (async () => {
+            const id = await tt.planNextFrom(test);
+            nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+          })()}>
+            Plan the re-test
+          </button>
+          <p className="sub tw-note" style={{ textAlign: 'center' }}>
+            Carries the machine, the product and the expectation forward, so the plan writes itself.
+          </p>
+        </>
+      ) : forTest && (
+        <button className="btn tw-loop" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
+          Back to the test — {forTest.title}
+        </button>
+      )}
 
       {/* DELETING SAYS WHICH THING IT IS DELETING. It said "Delete this test"
           on a fix, which is the kind of wrong word that makes somebody stop and
@@ -302,25 +335,32 @@ function TrialCardButton({ test, project }: { test: Test; project: string }) {
  *  evidence and starts being a wish list.
  */
 function NextFixes({ test, tt }: { test: Test; tt: TT }) {
+  /* The fixes FOR this test — including an old fix hanging off another of its
+     fixes — and the re-tests planned from it. */
   const out = tt.tests
-    .filter(t => t.fromTestId === test.id && !t.deletedAt)
+    .filter(t => !t.deletedAt && (
+      ((t.kind ?? 'test') === 'fix' && testOfFix(t, tt.tests)?.id === test.id)
+      || ((t.kind ?? 'test') === 'test' && t.fromTestId === test.id)))
     .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
 
   return (
     <section className="tw-block">
-      <span className="tw-block-h">4 · What we do next</span>
-      {out.length === 0 ? (
-        <p className="sub tw-note">
-          Nothing agreed yet. Decide an observation above is a fix and it will appear here,
-          with its own days and its own page.
-        </p>
-      ) : (
+      <span className="tw-block-h">4 · Fixes for this test</span>
+      {out.length === 0 && (
+        <p className="sub tw-note">No fixes for this test yet.</p>
+      )}
+      {/* ONE DOOR TO MAKE A FIX, and it is on the Fixes screen. This takes you
+          there with this test already picked. */}
+      <button className="cw-add" onClick={() => nav(`/project/${test.projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
+        <span className="cw-add-p" aria-hidden>+</span> Add a fix for this test
+      </button>
+      {out.length === 0 ? null : (
         <div className="cw-list">
           {out.map(t => (
             <button key={t.id} className={'tw-row is-' + t.outcome}
               onClick={() => nav(`/project/${test.projectId}/testing/${encodeURIComponent(t.id)}`)}>
               <span className="tw-row-m">
-                <b>{(t.kind ?? 'test') === 'fix' ? <><span className="tw-face">Fix</span>{t.title}</> : t.title}</b>
+                <b>{(t.kind ?? 'test') === 'fix' ? <><span className="tw-face">Fix</span>{t.title}</> : <><span className="tw-face">Re-test</span>{t.title}</>}</b>
                 <span className="sub">
                   {t.withWhom ? t.withWhom : 'nobody yet'}
                   {t.plannedFor && ` · ${nice(t.plannedFor)}${t.plannedTo && t.plannedTo > t.plannedFor ? ` – ${nice(t.plannedTo)}` : ''}`}
@@ -353,7 +393,7 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
    * going wrong, when what had happened was that five things were noticed. An
    * observation is written down; it is not open. */
   const count = kind === 'found'
-    ? foundWords(foundTally(rows, tt.items))
+    ? foundWords({ written: rows.length })
     : (() => {
         const open = rows.filter(r => r.doneAt == null).length;
         return open > 0 ? `${open} to do of ${rows.length}` : `${rows.length} done`;
@@ -368,14 +408,14 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
 
       {kind === 'found' && rows.length > 0 && (
         <p className="sub tw-note tw-obs-note">
-          What you saw, as you saw it. Tick one to decide it needs doing — it becomes a fix below,
-          with somebody's name on it.
+          What you saw, as you saw it. Anything that needs doing is a fix, added below — on the
+          Fixes screen, against this test.
         </p>
       )}
 
       {rows.length === 0 && <p className="sub tw-note">{empty}</p>}
 
-      {rows.map(i => <ItemRow key={i.id} item={i} test={test} tt={tt} onView={onView} />)}
+      {rows.map(i => <ItemRow key={i.id} item={i} tt={tt} onView={onView} />)}
 
       <form className="tw-addrow" onSubmit={e => {
         e.preventDefault();
@@ -396,7 +436,7 @@ const TICK = (
   </svg>
 );
 
-function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: TT; onView: (m: MediaRef) => void }) {
+function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: MediaRef) => void }) {
   const [open, setOpen] = useState(false);
   const done = item.doneAt != null;
 
@@ -404,32 +444,23 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
      somebody decides: it needs doing (it becomes a fix below), or it needs
      nothing. A next step is the ordinary open/done row it always was. */
   const observation = item.kind === 'found';
-  const st = observation ? standingOfItem(item, tt.items) : undefined;
 
-  /* THE TICK ON AN OBSERVATION MEANS "THIS IS A FIX", AND IT GOES BOTH WAYS.
-     Rowland: "when I take [an observation] to send to fix, I can't untick."
-     It refused, on the grounds that you undid it by deleting the action — and
-     there are no actions any more, so that was a dead end with nothing behind
-     it. Ticking makes the fix; ticking again takes it back, and the fix it
-     made goes with it unless somebody has already worked on that fix. */
-  const decided = st === 'actioned';
-  const tick = observation
-    ? () => void (decided
-        ? tt.unmakeFix(item)
-        : tt.planNextFrom(test, item.id, item.what, 'fix', item.what))
+  /* AN OBSERVATION IS A NOTE — no tick. Ticking one used to make a fix in
+     one tap, with no confirm; Rowland: "me putting in what did we find and
+     then sending it tick to fix is the messy part." A next step (the old
+     line-under-a-test shape) keeps its done tick. */
+  const tick = observation ? undefined
     : () => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() });
 
   return (
-    <div className={'tw-item' + (done && !observation ? ' is-done' : '') + (st ? ' is-' + st : '')}>
-      <button
-        className={'tw-tick' + (decided ? ' is-on' : '')}
-        aria-label={observation
-          ? (decided ? 'Not a fix after all' : 'Make this a fix')
-          : (done ? 'Re-open' : 'Mark done')}
-        onClick={tick}
-      >
-        {(observation ? decided : done) ? TICK : null}
-      </button>
+    <div className={'tw-item' + (done && !observation ? ' is-done' : '') + (observation ? ' is-note' : '')}>
+      {tick && (
+        <button className={'tw-tick' + (done ? ' is-on' : '')}
+          aria-label={done ? 'Re-open' : 'Mark done'} onClick={tick}>
+          {done ? TICK : null}
+        </button>
+      )}
+      {observation && <span className="tw-obs-dot" aria-hidden />}
       <button className="tw-item-m" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <b>{item.what}</b>
         <span className="sub">
@@ -441,10 +472,12 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
               it: the record it became is the more useful of the two, because it
               names which. The bare word is for the old line-under-a-test shape,
               which has no record to name. */}
-          {item.becameTestId
-            ? ` · became a ${tt.tests.find(t => t.id === item.becameTestId)?.kind === 'fix' ? 'fix' : 'test'}`
-            : decided && ' · a fix'}
-          {st === 'noted' && ' · not a problem'}
+          {/* A link made before fixes moved to their own screen is history,
+              and true — it stays, read-only. */}
+          {item.becameTestId && (() => {
+            const became = tt.tests.find(t => t.id === item.becameTestId && !t.deletedAt);
+            return became ? ` · fix: ${became.title}` : '';
+          })()}
           {item.fromItemId && ' · from an observation'}
         </span>
       </button>
@@ -469,57 +502,7 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
               and saying so is the honest end of it. Going straight to a fix
               does not make an action first: a line you never wanted is a line
               somebody has to close. */}
-          {observation && (
-            <span className="tw-decide">
-              {item.becameTestId
-                  ? (
-                    <>
-                      <button className="btn btn-sm"
-                        onClick={() => nav(`/project/${test.projectId}/testing/${encodeURIComponent(item.becameTestId ?? '')}`)}>
-                        Open the fix
-                      </button>
-                      {/* THE WAY BACK. The consequence is written beside the
-                          button, not reported after it: an untouched fix goes
-                          with the undo, a fix somebody has worked on stays. */}
-                      <button className="btn btn-ghost btn-sm" onClick={() => void tt.unmakeFix(item)}>
-                        Not a fix after all
-                      </button>
-                      {!tt.fixUntouched(item) && (
-                        <span className="sub">The fix keeps what is written on it and stays on the Fixes tab.</span>
-                      )}
-                    </>
-                  )
-                  : (
-                    <>
-                      <button className="btn btn-sm" onClick={() => void (async () => {
-                        const id = await tt.planNextFrom(test, item.id, item.what, 'fix', item.what);
-                        nav(`/project/${test.projectId}/testing/${encodeURIComponent(id)}`);
-                      })()}>Make this a fix</button>
-                      <button className="btn btn-ghost btn-sm"
-                        onClick={() => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() })}>
-                        {done ? 'Still deciding' : 'Not a problem'}
-                      </button>
-                    </>
-                  )}
-            </span>
-          )}
           <span className="cw-edit-end">
-            {/* An agreed action can outgrow being a line — "sometimes I'll
-                discuss the action and agree the fix". Same journey as becoming
-                the next test, and the same link back, so the chain reads both
-                ways and nobody plans the same work twice. */}
-            {item.kind === 'next' && !item.becameTestId && (
-              <button className="btn btn-sm" onClick={() => void (async () => {
-                const id = await tt.planNextFrom(test, item.id, item.what, 'fix', item.note);
-                nav(`/project/${test.projectId}/testing/${encodeURIComponent(id)}`);
-              })()}>Make this a fix</button>
-            )}
-            {item.kind === 'next' && !item.becameTestId && (
-              <button className="btn btn-sm" onClick={() => void (async () => {
-                const id = await tt.planNextFrom(test, item.id, item.what);
-                nav(`/project/${test.projectId}/testing/${encodeURIComponent(id)}`);
-              })()}>Make this the next test</button>
-            )}
             <button className="btn btn-ghost btn-sm cw-del"
               onClick={() => { if (confirm(`Delete “${item.what}”?`)) void tt.removeItem(item.id); }}>Delete</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Close</button>

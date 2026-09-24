@@ -84,7 +84,9 @@ export interface TrialCard {
 /* The three answers, in the words the buttons use — there is no "actioned"
    any more, there is a fix. */
 const DECISION: Record<string, string> = {
-  new: 'to decide', actioned: 'a fix', noted: 'not a problem',
+  /* Blank for an ordinary observation — it is a note. The other two survive
+     only on observations decided before fixes moved to the Fixes screen. */
+  new: '', actioned: 'a fix', noted: 'not a problem',
 };
 
 /** One trial, read whole. `tests` and `items` are the project's, not the

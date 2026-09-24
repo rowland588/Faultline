@@ -83,9 +83,10 @@ describe('what somebody decided about each observation', () => {
     expect(trialCard(mine, [mine, fix], [obs], []).found.undecided).toBe(0);
   });
 
-  it('calls an undecided one what it is, rather than open', () => {
+  /* A note carries no decision — no amber "to decide" tag on every row. */
+  it('leaves an ordinary observation undecorated', () => {
     expect(trialCard(test(), [], [item({ what: 'Seal drifting' })], []).findings[0].decision)
-      .toBe('to decide');
+      .toBe('');
   });
 
   it('says it was not a problem when somebody decided that', () => {

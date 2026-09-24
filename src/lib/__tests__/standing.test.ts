@@ -95,12 +95,12 @@ describe('late means the day has gone', () => {
     expect(s.outstanding).toBe(3);
   });
 
-  /* THE RULE THE WHOLE READING RESTS ON. An observation is waiting on somebody
-     to say whether it matters. Calling that "late" is what made a list of
-     things noticed read as a list of things going wrong. */
-  it('never calls an observation late, however old it is', () => {
+  /* AN OBSERVATION IS A NOTE. It used to be a row of its own, "observations to
+     decide on", which nothing could ever bring down once the decision moved to
+     the Fixes screen. What needs doing about one is a fix, counted as a fix. */
+  it('does not count observations as outstanding at all', () => {
     const s = at({ tests: [test({ id: 't1' })], items: [item({ testId: 't1' })] });
-    expect(row(s, 'observations')).toMatchObject({ open: 1, late: 0 });
+    expect(row(s, 'observations')).toBeUndefined();
   });
 
   it('never reports more late than open', () => {

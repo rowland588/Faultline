@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   listAssets, putAsset, deleteAsset,
   listTests, putTest, patchTest, deleteTest, testContents,
-  listTestItems, putTestItem, patchTestItem, deleteTestItem, actionsBecomeFixes,
+  listTestItems, putTestItem, patchTestItem, deleteTestItem,
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
@@ -35,7 +35,9 @@ export interface TestingState {
    *  stages and typing them out per machine is the job the app should do. */
   /** `kind` picks which face the new record wears — see lib/testing. A fix is
    *  the same record and the same call; nothing needed a second one. */
-  planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind) => Promise<string>;
+  /** `fromTestId`: for a fix, the test it is for — picked on the Fixes screen,
+   *  the one place a fix is made. */
+  planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind, fromTestId?: string) => Promise<string>;
   saveTest: (t: Test) => Promise<void>;
   /** Change some fields of the row AS IT IS NOW. Use this from a button, a
    *  picker or anything that fires after an await — never `saveTest({...test})`
@@ -112,11 +114,13 @@ export function useTesting(projectId: string): TestingState {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    /* One noun. Any agreed next step still stored as a line becomes a fix, once,
-       on whichever device still has it — see actionsBecomeFixes, which is a
-       no-op the moment there are none left. Done before the read so the screen
-       never draws the old shape and then blinks. */
-    await actionsBecomeFixes(projectId);
+    /* NOTHING IS CONVERTED BEHIND ANYBODY'S BACK ANY MORE. This used to turn
+       every agreed next step still stored as a line into a fix, on load, on
+       every device — and Rowland found fixes on his list he had never made:
+       "some fixes are tests but I didn't do that." A fix is made on the Fixes
+       screen, by a person, against the test it is for, and nowhere else. The
+       ones already converted stay; they are real records now and he can
+       delete or re-point them from the Fixes screen. */
     const [a, t, i] = await Promise.all([listAssets(projectId), listTests(projectId), listTestItems(projectId)]);
     setAssets(a); setTests(t); setItems(i);
     setLoading(false);
@@ -142,7 +146,7 @@ export function useTesting(projectId: string): TestingState {
 
   /* --------------------------------- tests -------------------------------- */
 
-  const planTest = useCallback(async (title: string, assetIds: (string | undefined)[] = [undefined], kind: TestKind = 'test') => {
+  const planTest = useCallback(async (title: string, assetIds: (string | undefined)[] = [undefined], kind: TestKind = 'test', fromTestId?: string) => {
     const clean = title.trim();
     const t = now();
     let sort = nextSort();
@@ -156,6 +160,7 @@ export function useTesting(projectId: string): TestingState {
          on every test — "Done with" now reads it off the machine, and stays
          editable on the test for the day it is somebody else. */
       withWhom: assets.find(a => a.id === assetId)?.oem || undefined,
+      fromTestId,
       outcome: 'planned' as const, sort: sort++, createdAt: t, updatedAt: t,
     }));
     for (const test of made) await putTest(test);

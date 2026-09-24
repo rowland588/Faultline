@@ -29,7 +29,7 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  hasRun, isOverdue, isSettled, live, needsVerdict, standingOfItem,
+  hasRun, isOverdue, isSettled, live, needsVerdict,
   type Asset, type Test, type TestItem,
 } from './testing';
 
@@ -131,9 +131,6 @@ export interface StandingInput {
 export function standing(input: StandingInput): Standing {
   const today = input.today ?? todayISO();
   const tests = live(input.tests);
-  const ids = new Set(tests.map(t => t.id));
-  /* An item whose trial was deleted is not counted against anybody. */
-  const items = live(input.items).filter(i => ids.has(i.testId));
   const materials = live(input.materials);
   const programs = live(input.programs);
   const assets = live(input.assets);
@@ -162,8 +159,6 @@ export function standing(input: StandingInput): Standing {
   const progsOpen = programs.filter(p => stateOf(p) !== 'proved');
   const progsLate = progsOpen.filter(p => daysOverdue(p, today) != null);
 
-  const obs = items.filter(i => i.kind === 'found');
-  const undecided = obs.filter(i => standingOfItem(i, items) === 'new');
 
   /* THERE IS NO ACTIONS ROW ANY MORE. An agreed next step IS a fix — see
      db/testing's actionsBecomeFixes — so it is counted under "fixes still to
@@ -192,10 +187,10 @@ export function standing(input: StandingInput): Standing {
       whose: mostlyWhose(progsOpen.map(p => p.from)), lateWhose: mostlyWhose(progsLate.map(p => p.from)) },
     { key: 'machines', what: 'Machines not running', open: machOpen.length, late: machLate.length,
       whose: mostlyWhose(machOpen.map(a => a.oem)), lateWhose: mostlyWhose(machLate.map(a => a.oem)) },
-    /* An observation is never LATE. Nobody agreed a day for it — it is waiting
-       on somebody to say whether it matters, which is a different thing. */
-    { key: 'observations', what: 'Observations to decide on', open: undecided.length, late: 0,
-      whose: undefined },
+    /* NO OBSERVATIONS ROW. It counted observations nobody had decided on, and
+       an observation is now a note: the decision that something needs doing
+       is a fix, made on the Fixes screen and counted in the row above. A row
+       that could never come down was a row a client learned to ignore. */
   ] as OutstandingRow[]).filter(r => r.open > 0);
 
   const outstanding = rows.reduce((n, r) => n + r.open, 0);
