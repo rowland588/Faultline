@@ -39,7 +39,7 @@ describe('san collapses whitespace, which is the whole reason it exists', () => 
 
 describe('san maps what people type onto what the encoding has', () => {
   it('rewrites arrows rather than printing noise', () => {
-    expect(san('44 → 49 ppm')).toBe('44 -> 49 ppm');
+    expect(san('44 → 49 ppm')).toBe('44 to 49 ppm');
     expect(san('49 ← 44')).toBe('49 <- 44');
   });
 

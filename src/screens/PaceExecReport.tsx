@@ -874,6 +874,8 @@ export function PaceExecReport() {
           owner: nx.owner ?? '',
           due: nx.due ? fmtShort(nx.due) : '',
           done: nx.done,
+          /* Its OWN lateness, off its own ISO date — not its parent's. */
+          late: !nx.done && !!nx.due && nx.due < todayISO(),
         } : undefined,
         nextMore: Math.max(0, c.next.length - 1),
         follows: c.follows,
@@ -1109,7 +1111,11 @@ export function PaceExecReport() {
     })),
     // A line's deck is titled for the LINE and led by its owner — it is that
     // person's page to hand over. The project's is titled for the project.
-    title, lead, leadRole, subtitle,
+    title, lead, leadRole,
+    /* The improvement board's lede — "L7 · L8 — tests and fixes, what we are
+       waiting on…" — named the lines of a tracker a commissioning job does not
+       keep. The commissioning report says what it is. */
+    subtitle: hasTracker ? subtitle : 'What we are proving · where the job is · who owes what, by when',
     lines: reportLines.map(l => ({
       key: l.key, name: l.name, variant: l.variant,
       owner: l.owner, sponsor: l.sponsor,

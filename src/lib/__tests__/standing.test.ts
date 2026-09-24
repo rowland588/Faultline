@@ -165,9 +165,9 @@ describe('the plan', () => {
     expect(at({ assets: [asset({ dueOn: '2026-09-01' })] }).plan[0].tone).toBe('late');
   });
 
-  it('calls a trial that did not run what it is, rather than still booked', () => {
+  it('calls a test that did not run what it is — the day has gone — rather than still booked or failed', () => {
     const s = at({ tests: [test({ ranOn: '2026-09-16', outcome: 'notRun' })] });
-    expect(s.plan[0].tone).toBe('failed');
+    expect(s.plan[0].tone).toBe('late');
   });
 });
 

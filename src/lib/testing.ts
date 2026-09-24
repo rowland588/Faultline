@@ -419,7 +419,11 @@ export const ranEnd = (t: Test): string | undefined => t.ranTo ?? t.ranOn;
  *  is the only place the question is asked. */
 export const isOverdue = (t: Test): boolean => {
   const end = plannedEnd(t);
-  return !isSettled(t) && !!end && end < todayISO();
+  /* "The day came and it did not happen" is settled as a day and still late
+     as a debt: the client is owed that demonstration until it is rebooked.
+     Page 1 of the report said Ilapak was late for it while page 2 said
+     nothing was — two rules for one word on one document. */
+  return (t.outcome === 'notRun' || !isSettled(t)) && !!end && end < todayISO();
 };
 
 /** Newest first for what has happened; soonest first for what has not. A list

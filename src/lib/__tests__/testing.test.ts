@@ -407,3 +407,11 @@ describe('a test that happened without a verdict', () => {
     expect(needsVerdict(t({ ranOn: '2026-09-23', outcome: 'failed' }))).toBe(false);
   });
 });
+
+describe('a day that came and did not happen', () => {
+  it('is late until it is rebooked — the client is still owed that demonstration', () => {
+    const t: Test = { id: 'x', projectId: 'p', title: 'Changeover', outcome: 'notRun',
+      plannedFor: '2000-01-01', sort: 0, createdAt: 1, updatedAt: 1 };
+    expect(isOverdue(t)).toBe(true);
+  });
+});

@@ -45,7 +45,7 @@ export function san(t: string): string {
     /* Whitespace to single spaces FIRST, so a line break becomes a word gap
        rather than vanishing and welding two sentences together. */
     .replace(/\s+/g, ' ')
-    .replace(/[\u2192\u27A1\u2794]/g, '->')
+    .replace(/\s*[\u2192\u27A1\u2794]\s*/g, ' to ')
     .replace(/[\u2190]/g, '<-')
     .replace(/[\u2713\u2714]/g, 'v')
     .replace(/[\u2022]/g, '·')

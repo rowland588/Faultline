@@ -20,7 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
 import {
-  cardRowHeights, drawPaceReport, orderStrands, packCards, stackHeight, strandsOf, strandsSay,
+  cardRowHeights, drawPaceReport, orderStrands, packCards, stackHeight, strandWord, strandsOf, strandsSay,
   type PaceReportData,
 } from '../paceReportPdf';
 
@@ -135,7 +135,7 @@ const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> 
     outcomeWord: 'Passed',
     verdict: 'It held for forty minutes and then drifted.',
     found: { written: 3, actioned: 1, undecided: 2 },
-    next: { what: 'Re-cut the jaw profile', owner: 'Ilapak UK', due: '28 Sept', done: false },
+    next: { what: 'Re-cut the jaw profile', owner: 'Ilapak UK', due: '28 Sept', done: false, late: false },
     nextMore: 1,
     follows: i > 0 ? `Seal integrity ${i} — Finest Red 2kg` : undefined,
     ledTo: i % 3 === 0 ? [`Seal integrity ${i + 2} — Finest Red 2kg`] : [],
@@ -466,7 +466,9 @@ describe('grouping the tests into what they prove', () => {
       row({ id: 'c', fromId: 'b' }),
     ]);
     expect(st[0]!.steps.map(s => s.n)).toEqual([1, undefined, 2]);
-    expect(st[0]!.attempts).toBe(2);
+    /* Two are numbered; one has happened. "2 attempts" over a run and a
+       booking read as two runs. */
+    expect(st[0]!.attempts).toBe(1);
   });
 
   it('reads the chain in the order the work happened, not the order stored', () => {
@@ -521,6 +523,29 @@ describe('where a strand has got to', () => {
     expect(st[0]!.state).toBe('notProved');
     expect(st[0]!.attempts).toBe(1);
     expect(st[0]!.owed.map(o => o.what)).toEqual(['Say whether it passed']);
+    /* The verdict is the SITE's debt, not the OEM's: withWhom is who we ran
+       it with. It printed "Say whether it passed · Ilapak UK". */
+    expect(st[0]!.owed[0]).toMatchObject({ owner: 'the site', since: true });
+  });
+
+  it('counts attempts as days that happened — one run and one booked is one attempt', () => {
+    const st = strandsOf([row({ id: 'a', outcome: 'failed' }), row({ id: 'b', fromId: 'a', outcome: 'planned' })]);
+    expect(st[0]!.attempts).toBe(1);
+  });
+
+  it('a fix on its own is DONE when it is done, not BOOKED', () => {
+    const [guard] = strandsOf([row({ id: 'g', kind: 'fix', title: 'Guard on the infeed shelf', outcome: 'passed' })]);
+    expect(guard).toMatchObject({ kind: 'fix', state: 'proved', owed: [] });
+    expect(strandWord({ kind: 'fix', state: 'proved' })).toBe('DONE');
+  });
+
+  it('a booked re-test carries its OWN date and lateness, not its parent\u2019s', () => {
+    const st = strandsOf([
+      row({ id: 'a', outcome: 'failed', late: true, when: '17 Sept',
+        next: { what: 'Reject confirmation — re-test', owner: 'Ishida Europe', due: '26 Sept', done: false, late: false } }),
+      row({ id: 'b', fromId: 'a', title: 'Reject confirmation — re-test', when: '26 Sept', late: false }),
+    ]);
+    expect(st.map(x => x.owed)).toEqual([[{ what: 'Reject confirmation — re-test', owner: 'Ilapak UK', due: '26 Sept', late: false }]]);
   });
 
   it('a done fix does not make it proved — only a passing test does', () => {
@@ -545,7 +570,7 @@ describe('what is still owed on a strand', () => {
 
   it('does not list the same job twice when a booked re-test is also the next step', () => {
     const st = strandsOf([
-      row({ id: 'a', outcome: 'failed', next: { what: 'Seal integrity — re-test', owner: 'Ilapak UK', due: '28 Sept', done: false } }),
+      row({ id: 'a', outcome: 'failed', next: { what: 'Seal integrity — re-test', owner: 'Ilapak UK', due: '28 Sept', done: false, late: false } }),
       row({ id: 'b', fromId: 'a', title: 'Seal integrity — re-test', when: '28 Sept' }),
     ]);
     expect(st[0]!.owed.map(o => o.what)).toEqual(['Seal integrity — re-test']);

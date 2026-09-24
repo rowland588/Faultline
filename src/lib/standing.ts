@@ -206,9 +206,11 @@ export function standing(input: StandingInput): Standing {
          day. Nothing new had to be drawn for this. */
       until: until && until > at ? until : undefined,
       label: t.title,
+      /* notRun is "the day has gone" (hollow red), not "ran, didn't pass"
+         (filled red) — the key says filled means it happened, and it didn't. */
       tone: t.outcome === 'passed' ? 'done'
-        : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
-          : isOverdue(t) ? 'late' : 'booked',
+        : t.outcome === 'failed' ? 'failed'
+          : t.outcome === 'notRun' || isOverdue(t) ? 'late' : 'booked',
     });
   }
 

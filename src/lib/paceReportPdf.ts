@@ -162,7 +162,7 @@ export interface PaceReportData {
       verdict: string;
       found: { written: number; actioned: number; undecided: number };
       /** The first next step still outstanding. */
-      next?: { what: string; owner: string; due: string; done: boolean };
+      next?: { what: string; owner: string; due: string; done: boolean; late: boolean };
       /** How many more there are after that one. */
       nextMore: number;
       follows?: string;
@@ -649,7 +649,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   if (place) return;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — where the job is`, CW * 0.8), M, H - M + 6);
-  d.text('Worked out from the lists the job already keeps — nothing typed twice.',
+  d.text('Read off the same records the site and the OEM are working to.',
     W - M, H - M + 6, { align: 'right' });
 }
 
@@ -875,6 +875,17 @@ export const STRAND_WORD: Record<StrandState, string> = {
   notProved: 'NOT PROVED',
   booked: 'BOOKED',
 };
+/** A strand that is a FIX on its own — a guard fitted, a valve replaced — is
+ *  not proving anything; it is done or it is not. Badging a fitted guard
+ *  "BOOKED" over a row reading FIXED was the report contradicting itself. */
+export const FIX_STRAND_WORD: Record<StrandState, string> = {
+  proved: 'DONE',
+  notYet: 'NOT YET',
+  notProved: 'NOT DONE',
+  booked: 'PLANNED',
+};
+export const strandWord = (s: Pick<Strand, 'kind' | 'state'>): string =>
+  (s.kind === 'fix' ? FIX_STRAND_WORD : STRAND_WORD)[s.state];
 
 export interface StrandStep {
   /** The attempt number for a test; absent on a fix, which is not an attempt
@@ -895,6 +906,8 @@ export interface StrandStep {
 export interface Strand {
   /** The thing being proved — the first attempt's name. */
   name: string;
+  /** A strand that starts with a fix is a piece of work, not a proof. */
+  kind: 'test' | 'fix';
   machine: string;
   withWhom: string;
   /** What it was agreed it passes on, from the attempt that set out to do it. */
@@ -902,8 +915,10 @@ export interface Strand {
   state: StrandState;
   attempts: number;
   steps: StrandStep[];
-  /** What is still owed on this strand, with a name and a date on it. */
-  owed: { what: string; owner: string; due: string; late: boolean }[];
+  /** What is still owed on this strand, with a name and a date on it.
+   *  `since` is a debt that started on a day rather than one due by it —
+   *  the verdict on a test that ran. */
+  owed: { what: string; owner: string; due: string; late: boolean; since?: boolean }[];
 }
 
 /** Every row that came out of `id`, in the order the work happened, depth
@@ -964,12 +979,16 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
        answer; it is not the answer, and a strand whose fix is done but whose
        re-test has not run is NOT proved. */
     const tests = chain.filter(r => r.kind === 'test');
+    /* The state comes off the TESTS when there are any — a fix is work towards
+       the answer, not the answer. A strand with no test in it is a fix on its
+       own, and then the fixes are what it is about. */
+    const about = tests.length ? tests : chain;
     /* RAN means the day happened, not that somebody has called it. A test
        written up on the floor and never given a verdict is not "booked" — it is
        an answer the client is still waiting for, and the strand says so. */
-    const ran = tests.filter(t => t.ran);
+    const ran = about.filter(t => t.ran);
     const last = ran[ran.length - 1];
-    const booked = tests.some(t => !t.ran);
+    const booked = about.some(t => !t.ran);
     const state: StrandState = !last ? 'booked'
       : last.outcome === 'passed' ? 'proved'
         : booked ? 'notYet'
@@ -980,10 +999,13 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
        a name on it is the thing a client asks about in the meeting. */
     const owed: Strand['owed'] = [];
     for (const r of chain) {
-      /* Ran and not called: the debt is the verdict, not the day. */
+      /* Ran and not called: the debt is the verdict, not the day — and it is
+         the SITE's debt. withWhom is who we ran it with; calling it is ours.
+         It printed "Say whether it passed · Ilapak UK", which told the OEM's
+         project manager the site was blaming him for the site's own call. */
       if (r.ran && r.outcome === 'planned') {
         owed.push({ what: r.kind === 'fix' ? 'Say whether it fixed it' : 'Say whether it passed',
-          owner: r.withWhom, due: r.when, late: false });
+          owner: 'the site', due: r.when, late: false, since: true });
         continue;
       }
       if (r.outcome === 'planned' || r.outcome === 'notRun') {
@@ -995,18 +1017,26 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
           owner: r.withWhom, due: r.when, late: r.late,
         });
       }
-      if (r.next && !r.next.done) {
-        owed.push({ what: r.next.what, owner: r.next.owner, due: r.next.due, late: r.late });
+    }
+    /* An agreed next step that is ALSO a record in the chain is already listed
+       above, with its own date and its own lateness. It used to be pushed with
+       its parent's lateness and win the de-duplication, so a re-test two days
+       ahead printed "WAS 26 Sept" in red. The record's own line wins. */
+    for (const r of chain) {
+      if (r.next && !r.next.done && !owed.some(o => o.what === r.next?.what)) {
+        owed.push({ what: r.next.what, owner: r.next.owner, due: r.next.due, late: r.next.late });
       }
     }
 
     return {
       name: root.title,
+      kind: root.kind,
       machine: root.machine,
       withWhom: root.withWhom,
       provesIf: root.passesIf,
       state,
-      attempts: tests.length,
+      /* Attempts are days that happened. One run and one booked is one attempt. */
+      attempts: tests.filter(t => t.ran).length,
       steps,
       /* The same thing twice — a booked re-test IS the next step off the one
          before it — reads as two jobs. Kept once, by its words. */
@@ -1103,7 +1133,11 @@ function planStrand(d: Doc, s: Strand, w: number, maxLines: number): StrandPlan 
     /* A fix says WHAT was done; an attempt says what happened, because its
        "what" is the strand's own name at the top of the block. */
     const headline = st.kind === 'fix' ? (st.what || st.verdict) : st.verdict;
-    rows.push({ lines: wrap(headline || '—', stepW, 8, st.ran),
+    /* The step's own word — DIDN'T PASS, NO VERDICT YET — sits on the first
+       line's right, 70pt wide. The line used to be wrapped to the full width
+       and the word printed over its last words on the first two cards a
+       client saw. */
+    rows.push({ lines: wrap(headline || '—', stepW - 76, 8, st.ran),
       colour: st.ran ? INK : MUTED, bold: st.ran });
     if (st.kind === 'fix' && st.verdict && st.what) {
       rows.push({ lines: wrap(st.verdict, stepW, 7.5, false), colour: INK2, bold: false });
@@ -1124,7 +1158,7 @@ function planStrand(d: Doc, s: Strand, w: number, maxLines: number): StrandPlan 
      ink as everything else, is the report failing at the one thing it is for. */
   const owed = s.owed.map(o => ({
     text: fit(d, san([o.what, o.owner || 'nobody yet',
-      o.due && (o.late ? `WAS ${o.due}` : `by ${o.due}`)].filter(Boolean).join('  ·  ')), bodyW - 46),
+      o.due && (o.since ? `since ${o.due}` : o.late ? `WAS ${o.due}` : `by ${o.due}`)].filter(Boolean).join('  ·  ')), bodyW - 46),
     late: o.late,
   }));
 
@@ -1149,7 +1183,7 @@ function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number, h: n
 
   /* The verdict on the whole strand, top right — the one thing somebody looks
      for before they read a word of it. */
-  const word = STRAND_WORD[p.s.state];
+  const word = strandWord(p.s);
   setFont(d, 7, 'bold', p.tone);
   const pw = d.getTextWidth(word) + 16;
   d.setFillColor(...wash(p.tone, 0.14));
@@ -1167,7 +1201,7 @@ function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number, h: n
   /* ---- what it set out to prove ---- */
   let cy = y + S_HEAD + 5;
   setFont(d, 6, 'bold', MUTED);
-  d.text('TO PROVE', x + 12, cy);
+  d.text(p.s.kind === 'fix' ? 'THE PROBLEM' : 'TO PROVE', x + 12, cy);
   setFont(d, 8, 'normal', p.s.provesIf ? INK2 : MUTED);
   p.proves.forEach((l, i) => d.text(l, x + 12 + 52, cy + i * S_LEAD));
   cy += Math.max(11, p.proves.length * S_LEAD) + 4;
@@ -1692,12 +1726,15 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const M = 26;
   const CW = W - 2 * M;
 
-  const dateLong = new Date(data.now).toLocaleDateString(undefined,
+  /* en-GB, pinned: `undefined` took the BUILD machine's locale and printed
+     "Thursday, September 24, 2026" at the top of a Lincolnshire client's
+     report. */
+  const dateLong = new Date(data.now).toLocaleDateString('en-GB',
     { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   /* ================= PAGE 1 — LINE PACE ================= */
   setFont(d, 8, 'bold', BRAND);
-  d.text('IMPROVEMENT INITIATIVE · CLIENT REPORT', M, M + 8);
+  d.text(data.tracker ? 'IMPROVEMENT INITIATIVE · CLIENT REPORT' : 'COMMISSIONING · CLIENT REPORT', M, M + 8);
   setFont(d, 24, 'bold', INK);
   d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);
@@ -1740,7 +1777,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* A COMMISSIONING JOB'S OWN NUMBERS. "0% actions complete" is not a fact
      about this job, it is a fact about a spreadsheet it does not keep. */
-  const tr = data.trials, mt = data.materials, pg = data.programs;
+  const tr = data.trials;
   /* THE TILES COUNT WHAT THE SECTION UNDER THEM COUNTS. They counted TESTS —
      "2 booked · 2 passed" — over a section that talks about the four things the
      job is proving, so the two halves of one page disagreed about how big the
@@ -1755,8 +1792,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     [String(nStrand('notProved') + nStrand('notYet')), 'Not proved yet',
       nStrand('notYet') ? `${nStrand('notYet')} with a re-test booked` : 'nothing booked behind them',
       nStrand('notProved') > 0 ? DANGER : nStrand('notYet') > 0 ? WARN : OK],
-    [String(pg?.proved ?? 0), 'Programs proved', `of ${pg?.total ?? 0} on the machine`, (pg?.proved ?? 0) > 0 ? OK : MUTED],
-    [String(mt?.late ?? 0), 'Films late', 'past the date, still not here', (mt?.late ?? 0) > 0 ? DANGER : OK],
+    /* The next three used to be "0 programs proved of 0", "0 films late" and
+       "open evidence from the line walk" — half the tiles about things the
+       job did not have. These are the two numbers a client asks for. */
+    [String(nStrand('booked')), 'Still to run', 'booked, not yet happened', nStrand('booked') > 0 ? BRAND : MUTED],
+    [String(headStrands.reduce((n, st) => n + st.owed.filter(o => o.late).length, 0)), 'Past the day',
+      'owed and the date has gone',
+      headStrands.some(st => st.owed.some(o => o.late)) ? DANGER : OK],
     [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
   ];
   const headTiles = data.tracker ? tiles : commTiles;
@@ -1857,7 +1899,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* The detail sheet carries the tracker, the next steps, the walk and the
      wins. With none of them it is a page of headings, so it is not printed —
      which on a commissioning job it never had any of. */
-  const hasDetail = data.tracker || data.todos.length > 0 || data.wins.length > 0 || data.snags.length > 0;
+  /* THE TRACKER SHEET IS THE TRACKER'S. On a commissioning job it printed an
+     action tracker of zeros for lines the job has not got, an empty "Overdue
+     & at risk" frame under a front page with three late things on it, and
+     one seeded snag — a different product's report stapled to the back of
+     the client's. It was there because every project was a Pace project. A
+     job that does not keep a tracker gets no tracker sheet; what the site and
+     the OEM owe each other is the front page's business. */
+  const hasDetail = data.tracker;
   /* The trials that did not fit the front page get a sheet, and it goes
      directly behind it: the rest of the same thought, not an appendix. */
   /* Every sheet after the front one, not just the first. A job running twenty
@@ -1887,7 +1936,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * tests to fill the front page it keeps its own sheet, which is the case the
    * separate sheet was designed for. Measured, not assumed — the page count
    * below reads the same boolean. */
+  /* Never between two sheets of strands: the story of what is being proved
+     reads whole, then where the job is. It rode on page 1 whenever it fitted
+     under the FIRST sheet's strands, which put the proved ones — the good
+     news — on page 3 after the plan, under an 18pt title, as if a second
+     document had started. */
   const planUnder = !data.tracker && !!data.plan && data.plan.lanes.length > 0
+    && split.pages.length <= 1
     && lpY + split.panelH + 12 + planPanelHeight(data.plan, H - 2 * M) <= H - M - 18;
   const hasPlan = !!data.plan && data.plan.lanes.length > 0 && !planUnder;
   const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
@@ -2485,7 +2540,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${pages} of ${pages} — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
-  d.text(`Generated ${new Date(data.now).toLocaleString(undefined,
+  d.text(`Generated ${new Date(data.now).toLocaleString('en-GB',
     { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     W - M, H - M + 6, { align: 'right' });
 }

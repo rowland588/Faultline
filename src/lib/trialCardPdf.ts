@@ -27,9 +27,9 @@ import {
   ACCENT, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
   fit, san, setFont, wash, type Doc,
 } from './reportKit';
-import type { TrialCard } from './trialCard';
+import { verdictLine, type TrialCard } from './trialCard';
 import { foundWords, WORDS } from './testing';
-import { niceDay } from './weeks';
+import { niceDay, todayISO } from './weeks';
 
 const M = 30;                       // the margin, A4 landscape
 const nice = (iso?: string): string => niceDay(iso, { year: true });
@@ -69,7 +69,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   d.text(fit(d, san(meta.project), W / 2), M + 58, 20);
 
   setFont(d, 6.5, 'normal', '#7f9b8d');
-  d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB')}`, W - M, 20, { align: 'right' });
+  d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, W - M, 20, { align: 'right' });
 
   if (page === 1) {
     setFont(d, 16, 'bold', '#ffffff');
@@ -296,8 +296,11 @@ function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: 
     lines.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
     setFont(d, 8, 'normal', n.owner ? INK2 : DANGER);
     d.text(fit(d, san(n.owner ?? 'nobody yet'), cols[1] * w - 10), at(1), cy + 13);
-    setFont(d, 8, 'normal', n.due ? INK2 : MUTED);
-    d.text(n.due ? nice(n.due) : '—', at(2), cy + 13);
+    /* A next step past its day says so, in red, on the document that goes to
+       the people who owe it. It printed in plain ink two days late. */
+    const gone = !!n.due && !n.done && n.due < todayISO();
+    setFont(d, 8, gone ? 'bold' : 'normal', gone ? DANGER : n.due ? INK2 : MUTED);
+    d.text(n.due ? (gone ? `WAS ${nice(n.due)}` : nice(n.due)) : '—', at(2), cy + 13);
 
     const from = n.becameTest ? 'became the next test'
       : n.fromFinding ? 'an observation'
@@ -362,7 +365,9 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   d.text(`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, M + 14, dateY);
 
   let dy = box(d, M + half + 14, y, half, boxH, '2', c.kind === 'fix' ? 'What was done' : 'What actually happened') + 12;
-  dy = field(d, M + half + 28, dy, fw, w.happened, c.result ?? '', { empty: 'Nothing written down yet' }) + 8;
+  /* The same line the card SCREEN shows — the result, and "no verdict given
+     yet" after it when that is the case — not the raw result field. */
+  dy = field(d, M + half + 28, dy, fw, w.happened, c.outcome === 'planned' && !c.result && !c.ranOn ? '' : verdictLine(c), { empty: 'Nothing written down yet' }) + 8;
   if (c.kind === 'test') {
     field(d, M + half + 28, dy, fw, 'Product we ran', c.product ?? '', { size: 8.5 });
   }
