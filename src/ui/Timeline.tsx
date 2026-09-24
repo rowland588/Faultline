@@ -133,6 +133,11 @@ function laneTally(lane: PlanLane): string {
 
 /* ------------------------------ the drawing ----------------------------- */
 
+/** The key's words, one per row of the agenda. */
+const TONE_WORD: Record<PlanMark['tone'], string> = {
+  done: 'done', failed: 'didn’t pass', ran: 'no verdict yet', late: 'day has gone', booked: 'ahead', none: '',
+};
+
 export function Timeline({ marks, today, expectedAt, plannedAt }: {
   marks: PlanMark[];
   today: string;
@@ -305,6 +310,9 @@ export function Timeline({ marks, today, expectedAt, plannedAt }: {
                   <span className="tl-ag-what">
                     {it.label}
                     <span className="tl-ag-kind">{it.kind}</span>
+                    {/* The word, not just the colour — a filled red and a filled
+                        green dot are the same dot to one reader in twelve. */}
+                    <span className="tl-ag-tone">{TONE_WORD[it.tone]}</span>
                   </span>
                 </li>
               ))}

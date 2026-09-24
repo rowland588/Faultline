@@ -91,9 +91,12 @@ function useFlush(commit: () => void) {
 }
 
 
-export function DraftText({ value, placeholder, onSave, className = 'pset-cell', max = 120, autoFocus, wide }: {
+export function DraftText({ value, placeholder, onSave, className = 'pset-cell', max = 120, autoFocus, wide, ariaLabel }: {
   value: string;
   placeholder?: string;
+  /** What a screen reader calls it. A placeholder vanishes the moment there is
+   *  a value, so it is the fallback, not the name. */
+  ariaLabel?: string;
   onSave: (v: string) => void;
   className?: string;
   max?: number;
@@ -108,6 +111,7 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
       className={className + (wide ? ' is-wide' : '')}
       value={draft ?? value}
       placeholder={placeholder}
+      aria-label={ariaLabel ?? placeholder}
       maxLength={max}
       autoFocus={autoFocus}
       onChange={e => setDraft(e.target.value)}

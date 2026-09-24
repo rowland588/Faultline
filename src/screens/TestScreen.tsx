@@ -195,7 +195,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
         <span className={'tw-seg' + (needsVerdict(test) ? ' is-asking' : '')}>
           {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
-            <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')} onClick={() => setOutcome(o)}>
+            <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')}
+              aria-pressed={test.outcome === o} onClick={() => setOutcome(o)}>
               {o === 'planned' ? (needsVerdict(test) ? 'Not decided' : 'Still planned') : outcomeWord({ kind, outcome: o })}
             </button>
           ))}
