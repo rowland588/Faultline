@@ -22,7 +22,6 @@
  */
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
@@ -77,7 +76,6 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <AccountMenu />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },

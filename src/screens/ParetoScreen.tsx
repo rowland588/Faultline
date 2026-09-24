@@ -13,7 +13,6 @@
  */
 import { useMemo } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
@@ -107,7 +106,6 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-actions">
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}?view=data`)}>Upload</button>
           <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>
-          <AccountMenu />
         </div>
       </header>
 

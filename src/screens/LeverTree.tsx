@@ -25,7 +25,6 @@ import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
-import { AccountMenu } from '../ui/AccountMenu';
 import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
 import { useSticky } from '../lib/useSticky';
@@ -706,7 +705,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
             <button className="lt-zoom-b" aria-label="Zoom in" onClick={() => setZoom(clampZoom(zoom + 0.15))}>＋</button>
           </div>
           <button className="btn" onClick={() => window.print()}>Print</button>
-          <AccountMenu />
         </div>
       </header>
 

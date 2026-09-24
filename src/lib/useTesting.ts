@@ -151,11 +151,16 @@ export function useTesting(projectId: string): TestingState {
        same day, and a single shared record could not say that. */
     const made = (assetIds.length ? assetIds : [undefined]).map(assetId => ({
       id: uid(), projectId, kind, title: clean, assetId,
+      /* Who it is done with starts as who supplied the machine. The OEM was
+         typed once on the machine and never shown again, then asked for again
+         on every test — "Done with" now reads it off the machine, and stays
+         editable on the test for the day it is somebody else. */
+      withWhom: assets.find(a => a.id === assetId)?.oem || undefined,
       outcome: 'planned' as const, sort: sort++, createdAt: t, updatedAt: t,
     }));
     for (const test of made) await putTest(test);
     return made[0].id;
-  }, [projectId, nextSort]);
+  }, [projectId, nextSort, assets]);
 
   const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);
   const patchTestCb = useCallback(async (id: string, patch: Partial<Test> | ((cur: Test) => Partial<Test>)) => { await patchTest(id, patch); }, []);

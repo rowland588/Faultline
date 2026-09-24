@@ -11,7 +11,6 @@
  */
 import { useState, type ChangeEvent } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
@@ -108,6 +107,31 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
 
+  /* THE MACHINES. A test names one; what a machine has to prove is whatever
+     tests name it. What it carries of its own is WHEN — expected, landed,
+     installed, running — and those four days are what put it on the plan and
+     in the outstanding table. The word beside the name is read off them
+     (assetStateOf), never set by hand. */
+  const machines = (
+    <section className="cmp-sec">
+      <div className="cw-sec-h">
+        <h2 className="cmp-h">Machines</h2>
+        <span className="cmp-h-n">{tt.assets.length ? `${tt.assets.length} on this line` : 'name them first'}</span>
+      </div>
+      {tt.assets.length === 0 && (
+        <p className="sub">Each machine, and who supplied it. A test names a machine, and the OEM's name goes with it onto every test, fix and report.</p>
+      )}
+      <div className="cx-assets">
+        {tt.assets.map(a => (
+          <MachineCard key={a.id} a={a}
+            ran={tt.tests.filter(t => t.assetId === a.id && hasRun(t)).length}
+            save={tt.saveAsset} remove={tt.removeAsset} />
+        ))}
+        <AddAsset add={tt.addAsset} />
+      </div>
+    </section>
+  );
+
   const plan = () => {
     const clean = title.trim();
     if (!clean || !adding) return;
@@ -120,7 +144,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <AccountMenu />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
@@ -135,7 +158,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           <p className="cw-handover">
             {project.expectedAt
               ? <><b>Ours by {nice(project.expectedAt)}</b>{weeks != null && <span className="sub">{weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'}` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}</span>}</>
-              : <b>No date set yet</b>}
+              : <b>No handover date yet</b>}
             {project.lead && <span className="sub">{project.lead} leading</span>}
             <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>
           </p>
@@ -144,10 +167,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
       {dates && (
         <div className="cx-dates">
-          <label className="cw-f"><span>Planned — never moves</span>
+          <label className="cw-f"><span>Handover agreed — never moves</span>
             <input type="date" value={project.plannedAt ?? ''}
               onChange={e => void updateProject({ ...project, plannedAt: e.target.value || undefined, updatedAt: Date.now() })} /></label>
-          <label className="cw-f"><span>Now expecting</span>
+          <label className="cw-f"><span>Handover now expected</span>
             <input type="date" value={project.expectedAt ?? ''}
               onChange={e => void updateProject({ ...project, expectedAt: e.target.value || undefined, updatedAt: Date.now() })} /></label>
         </div>
@@ -170,6 +193,13 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           </>
         )}
       </section>
+
+      {/* MACHINES FIRST ON A NEW JOB. The plan-a-test form only asks which
+          machine when there is one to ask about, so a first-time user who did
+          what the screen said — "plan the first test" — got a test on the line
+          itself and was never asked. When nothing is named yet the machines
+          section leads; once there is one, tests lead, as they should. */}
+      {tt.assets.length === 0 && machines}
 
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}
@@ -276,25 +306,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      {/* THE MACHINES. A test names one; what a machine has to prove is
-          whatever tests name it. What it carries of its own is WHEN — expected,
-          landed, installed, running — and those four days are what put it on
-          the plan and in the outstanding table. The word beside the name is
-          read off them (assetStateOf), never set by hand. */}
-      <section className="cmp-sec">
-        <div className="cw-sec-h">
-          <h2 className="cmp-h">Machines</h2>
-          <span className="cmp-h-n">{tt.assets.length ? `${tt.assets.length} on this line` : ''}</span>
-        </div>
-        <div className="cx-assets">
-          {tt.assets.map(a => (
-            <MachineCard key={a.id} a={a}
-              ran={tt.tests.filter(t => t.assetId === a.id && hasRun(t)).length}
-              save={tt.saveAsset} remove={tt.removeAsset} />
-          ))}
-          <AddAsset add={tt.addAsset} />
-        </div>
-      </section>
+      {tt.assets.length > 0 && machines}
 
     </div>
   );
@@ -323,6 +335,7 @@ function MachineCard({ a, ran, save, remove }: {
       </div>
       <div className="tw-asset-r">
         <span className={'sub' + (late ? ' is-r' : '')}>
+          {a.oem && <>{a.oem} · </>}
           {ASSET_STATE_WORD[a.state]}
           {on && (a.state === 'awaited' ? ` — due ${nice(on)}` : ` since ${nice(on)}`)}
           {ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}

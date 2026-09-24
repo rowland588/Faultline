@@ -15,7 +15,6 @@
  * reading. One source at the top, fed from underneath. */
 import { useCallback, useMemo } from 'react';
 import { nav, useRoute } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { PaceMeeting } from './PaceMeeting';
@@ -165,7 +164,6 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               Testing
             </button>
           )}
-          <AccountMenu />
         </div>
       </header>
 

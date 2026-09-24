@@ -28,6 +28,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { nav } from '../state/useRoute';
+import { AccountMenu } from './AccountMenu';
 
 export interface Crumb {
   label: string;
@@ -69,6 +70,10 @@ export function Crumbs({ trail }: { trail: Crumb[] }) {
       )}
       <nav className="spine-trail" ref={trailRef} aria-label="Where you are">
         {steps.map((c, i) => (
+          /* On a phone the pill already IS the step above, so the trail
+             printed it again beside it, both cut mid-word: "‹ Line 2 commissi…
+             e 2 commissioning › Testing". Below 720px the trail keeps only
+             where you are — "‹ Line 2 commissioning  › Testing". */
           <span key={i} className="spine-w">
             {i > 0 && <span className="spine-sep" aria-hidden>›</span>}
             {c.to
@@ -77,6 +82,11 @@ export function Crumbs({ trail }: { trail: Crumb[] }) {
           </span>
         ))}
       </nav>
+      {/* ONE HOME for the account button. It sat in three places — above the
+          spine, inside a header's action row, and on its own line mid-page on
+          Materials and Programs at phone width. It lives here, on every screen
+          that has a spine. */}
+      <AccountMenu />
     </div>
   );
 }

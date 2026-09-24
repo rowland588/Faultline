@@ -15,7 +15,6 @@
  */
 import { useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -58,7 +57,6 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
        deleted. */
     return (
       <div className="wrap pace cm-screen">
-        <AccountMenu />
         <Crumbs trail={[
           { label: 'Projects', to: '/projects' },
           ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
@@ -92,7 +90,6 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
   return (
     <div className="wrap pace cm-screen">
-      <AccountMenu />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },

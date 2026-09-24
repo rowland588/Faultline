@@ -15,7 +15,6 @@ import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -610,7 +609,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>Client report</button>
             <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
           </>}
-          <AccountMenu />
         </div>
       </header>
 

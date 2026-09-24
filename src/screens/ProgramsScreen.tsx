@@ -16,7 +16,6 @@
  */
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { useStanding } from '../lib/useStanding';
@@ -578,7 +577,6 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
-          <AccountMenu />
         </div>
       </header>
 

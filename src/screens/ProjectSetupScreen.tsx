@@ -12,7 +12,6 @@
  * Everything saves as you type (on blur). There is no Save button to forget. */
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { useStanding } from '../lib/useStanding';
@@ -313,7 +312,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <p className="pace-lede">The lines this project runs, who owns each one, and who is invited to see it.</p>
         </div>
         <div className="pace-head-actions">
-          <AccountMenu />
         </div>
       </header>
 

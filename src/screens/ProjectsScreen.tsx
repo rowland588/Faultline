@@ -11,7 +11,6 @@
  * before the answer is shown. */
 import { useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { AccountMenu } from '../ui/AccountMenu';
 import { Crumbs } from '../ui/Crumbs';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
@@ -54,15 +53,17 @@ export function ProjectsScreen() {
    * the project has a single line in it, means nobody discovers the choice was
    * ever made by tripping over a ticked box in Lines & people three weeks in.
    * It stays changeable there afterwards; this is just where it starts. */
-  const [model, setModel] = useState<PlanModel>('board');
+  const [model, setModel] = useState<PlanModel>('commissioning');
 
   const doCreate = async () => {
     if (!name.trim()) return;
     const p = await create(name, lead.trim() || undefined, model);
-    setName(''); setLead(''); setAdding(false); setModel('board');
-    // Straight into setting it up: a project with no lines is not yet a project,
-    // and the next thing to do is add one.
-    nav(`/project/${p.id}/setup`);
+    setName(''); setLead(''); setAdding(false); setModel('commissioning');
+    /* Straight into the job. A commissioning project starts with its machines
+       and its first test, on the Testing screen; it used to land on Lines &
+       people and ask for a line with a sponsor. An improvement initiative is
+       its lines, so that one still starts there. */
+    nav(model === 'commissioning' ? `/project/${p.id}/testing` : `/project/${p.id}/setup`);
   };
 
   if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;
@@ -72,15 +73,14 @@ export function ProjectsScreen() {
       <Crumbs trail={[{ label: 'Home', to: '/' }, { label: 'Projects' }]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">Improvement</p>
+          <p className="pace-eyebrow">Commissioning · improvement</p>
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">Each project runs a set of lines. Every line has an owner, a sponsor and a workspace of its own for its snag list, its captures and its reports.</p>
+          <p className="pace-lede">A commissioning job is the site and the OEM working to one plan — the machines, what each has to prove, what happened, what we found, what we do next. An improvement initiative is a set of lines, each with an owner and a sponsor.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
             {adding ? 'Cancel' : 'New project'}
           </button>
-          <AccountMenu />
         </div>
       </header>
 
@@ -117,10 +117,14 @@ export function ProjectsScreen() {
           </div>
           <div className="row-inline" style={{ marginTop: 10 }}>
             <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>
-              Create and add lines
+              {model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
             </button>
           </div>
-          <p className="chip-hint">You add the lines next — that is where owners and sponsors go.</p>
+          <p className="chip-hint">
+            {model === 'commissioning'
+              ? 'You name the machines and who supplied them next, then plan the first test.'
+              : 'You add the lines next — that is where owners and sponsors go.'}
+          </p>
         </section>
       )}
 

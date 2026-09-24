@@ -32,11 +32,15 @@ export const setPlanModel = (m: PlanModel): Pick<Project, 'leverTree' | 'commiss
   commissioning: m === 'commissioning' || undefined,
 });
 
+/* COMMISSIONING FIRST. The form pre-selected the 3P board, and a site lead who
+   did not spot the third tile got a project with no Testing, no Fixes and no
+   Programs — the first run of a first-run audit did exactly that. The job this
+   app is for leads, under the name the eyebrow, the kicker and CLAUDE.md give it. */
 export const MODELS: { id: PlanModel; label: string; blurb: string }[] = [
+  { id: 'commissioning', label: 'Commissioning',
+    blurb: 'Site and OEM to one plan — what we plan to run, what happened on the day, what we found, what we do next' },
   { id: 'board', label: '3P board',
     blurb: 'People · Plant · Process, off the weekly tracker — the meeting runs on it directly' },
   { id: 'tree', label: 'Lever tree',
     blurb: 'Outcome, what has to be true for it, conditions and work — kept by hand, one page' },
-  { id: 'commissioning', label: 'Testing',
-    blurb: 'What we plan to run, what happened on the day, what we found, what we do next — with the OEM' },
 ];

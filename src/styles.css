@@ -3077,6 +3077,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   mask-image: linear-gradient(to right, transparent 0, #000 12px);
 }
 .spine-w { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+/* The phone: the pill is the step above, so the trail keeps only what the pill
+   is not — usually just "› Testing". No mask, since nothing is clipped. */
+@media (max-width: 719px) {
+  .spine-w:not(:last-child) { display: none; }
+  .spine-up { max-width: 60%; }
+  .spine-trail { -webkit-mask-image: none; mask-image: none; }
+}
+.spine .acct-btn { flex: none; margin-left: auto; width: 36px; height: 36px; }
 .spine-sep { color: var(--muted); opacity: 0.55; font-size: 12px; padding: 0 1px; }
 .spine-crumb {
   background: none; border: none; padding: 4px 3px; cursor: pointer;
@@ -5120,7 +5128,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .tw-item.is-done .tw-tick { background: var(--st-g); border-color: var(--st-g); }
 .tw-item-m {
-  flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  /* flex-basis 0, not auto: with auto a long observation's max-content width
+     wrapped the whole button under its tick circle, 60px below. */
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px;
   font: inherit; text-align: left; color: inherit; background: none; border: 0;
   cursor: pointer; padding: 0; min-height: 40px;
 }

@@ -30,7 +30,6 @@ import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '.
 import { todayISO } from '../lib/standing';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
-import { AccountMenu } from '../ui/AccountMenu';
 
 const nice = (iso?: string): string => {
   if (!iso) return '';
@@ -164,7 +163,6 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
 
   return (
     <div className="wrap pace cm-screen tc-screen">
-      <AccountMenu />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
