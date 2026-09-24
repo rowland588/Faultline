@@ -118,7 +118,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
     const costableB = hasCost(workspace);
     const factorB = costPerMs(workspace);
     const perYr = (msWeek: number) => (costableB ? `${fmtGBP(msWeek * factorB * 52)}/yr` : `${fmtHrs(msWeek * 52)}/yr`);
-    const dn = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const dn = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     // the trophy shelf: cases whose study was CALLED and showed a real reduction
     const wins = cases
       .map(c => (c.study?.closedAt ? { c, r: studyResult(c, applyDrill(observations, workspace.id, c.path)) } : null))

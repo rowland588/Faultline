@@ -65,7 +65,7 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
     <>
     <tr className={'ns-row is-' + row.state}>
       <td data-h="What"><DraftArea className="ns-in ns-grow" rows={2} value={row.what} ariaLabel="What"
-        placeholder="Trial the Tesco Express trays" onSave={v => onPatch({ what: v })} /></td>
+        placeholder="e.g. test the Tesco Express trays" onSave={v => onPatch({ what: v })} /></td>
       <td data-h="Where"><DraftArea className="ns-in ns-grow" rows={1} value={row.where} ariaLabel="Where"
         placeholder="Line 10 robot" onSave={v => onPatch({ where: v })} /></td>
       <td data-h="Why"><DraftArea className="ns-in ns-grow" rows={2} value={row.why} ariaLabel="Why"
@@ -200,7 +200,7 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
         <div className="ns-empty">
           <p className="ns-empty-title">Nothing written down yet</p>
           <p className="ns-empty-sub">
-            The things that are not tracker actions yet — a trial to run, a quote to chase,
+            The things that are not tracker actions yet — a test to run, a quote to chase,
             an answer someone owes you. Say what it is, where, why it matters, who has it and when,
             then write up what happened and attach the pictures or video.
           </p>

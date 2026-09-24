@@ -83,7 +83,7 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
       <button className="ps-card" onClick={onCard} disabled={carding}
         aria-label={`Send "${snag.problem}" as a PDF`}
         title="One page with the photo — the PDF to email">{carding ? '…' : 'PDF'}</button>
-      {!from && <button className="ps-del" onClick={onDelete} aria-label="Delete this snag">Delete</button>}
+      {!from && <button className="ps-del" onClick={onDelete} aria-label="Delete this">Delete</button>}
     </div>
   );
 }
@@ -127,7 +127,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
       );
     } catch (e) {
       console.error('snag card failed', e);
-      window.alert('Sorry — the snag card could not be built. Please try again.');
+      window.alert('Sorry — the evidence card could not be built. Please try again.');
     } finally {
       setCarding(null);
     }
@@ -199,7 +199,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
 
   const removeSnag = async (sn: Snag) => {
     if (!wsId) return;
-    if (!window.confirm(`Delete this snag?\n\n"${sn.problem}"\n\nThis cannot be undone.`)) return;
+    if (!window.confirm(`Delete this?\n\n"${sn.problem}"\n\nIts photo and notes go with it. This cannot be undone.`)) return;
     await deleteSnag(sn.id);
     await load(wsId);
   };

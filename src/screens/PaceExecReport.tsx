@@ -63,7 +63,7 @@ const isLate = (a: PaceAction, todayStart: number) =>
  *  2A/2B split the ppm uses — so actions are bucketed on the workbook's own
  *  vocabulary. 10 is checked before 2 so "Line 10" never falls into "Line 2". */
 const fmtDate = (ms: number) =>
-  new Date(ms).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(ms).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 /* en-GB, not the viewer's locale. Every date the app writes elsewhere is
    British (see `nice` on the materials and programs screens), and this one was
    the machine's guess — so the same film read "25 Sept" on the screen and
@@ -298,8 +298,8 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
   if (!t || t.rows.length === 0) {
     return (
       <section className="exec-box">
-        <SectionHead n="1" title="The trials" sowhat="nothing planned yet" />
-        <p className="exec-empty">No trial has been booked on this job yet.</p>
+        <SectionHead n="1" title="What we are proving" sowhat="nothing planned yet" />
+        <p className="exec-empty">No test has been planned on this job yet — plan the first one under Testing.</p>
       </section>
     );
   }
@@ -307,7 +307,7 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
   const rows = t.rows.slice(0, SHOWN);
   return (
     <section className="exec-box">
-      <SectionHead n="1" title="The trials"
+      <SectionHead n="1" title="What we are proving"
         sowhat={`${t.planned} booked \u00b7 ${t.passed} passed${t.failed ? ` \u00b7 ${t.failed} didn\u2019t` : ''}${
           t.notRun ? ` \u00b7 ${t.notRun} didn\u2019t run` : ''}`} />
       <div className="tr-cards">
@@ -1294,10 +1294,10 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · client report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'the trials'}</span>
+          <span>{title} · client report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'what we are proving'}</span>
           <span>{hasTracker
             ? 'The tracker workbook is the system of record; this report reads it.'
-            : 'A trial is planned, then run, and what it found becomes the next one.'}</span>
+            : 'A test is planned, then run, and what it found becomes the next one.'}</span>
         </footer>
       </section>
       </div>
@@ -1446,7 +1446,7 @@ export function PaceExecReport() {
           <section className="exec-box exec-box-next">
             <SectionHead n={String(sec + 2)} title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
             {openTodos.length === 0 ? (
-              <p className="exec-empty">Nothing outstanding logged.</p>
+              <p className="exec-empty">Nothing outstanding.</p>
             ) : (
               <table className="exec-list">
                 <thead><tr><th scope="col">State</th><th scope="col">What</th><th scope="col">Who</th><th scope="col">When</th></tr></thead>
@@ -1487,9 +1487,9 @@ export function PaceExecReport() {
           </section>
 
           <section className="exec-box exec-box-snags">
-            <SectionHead n={String(sec + 3)} title="Line walk" sowhat={`${openSnags.length} open snag${openSnags.length === 1 ? '' : 's'} filmed on the line`} />
+            <SectionHead n={String(sec + 3)} title="Line walk" sowhat={`${openSnags.length} open on the walk`} />
             {openSnags.length === 0 ? (
-              <p className="exec-empty">{snags.length ? 'All logged snags are closed.' : 'No walk recorded this week.'}</p>
+              <p className="exec-empty">{snags.length ? 'Everything pinned on the walk is closed.' : 'No walk recorded this week.'}</p>
             ) : (
               <ul className="exec-snags">
                 {openSnags
@@ -1543,7 +1543,7 @@ export function PaceExecReport() {
 
         <footer className="exec-foot">
           <span>{title} · client report · page {pageCount} of {pageCount} — tracker, attention &amp; movement</span>
-          <span>Generated {new Date(now).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          <span>Generated {new Date(now).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>
       </div>

@@ -21,7 +21,7 @@ const MAX_EDGE = 1400;
 const QUALITY = 0.82;
 
 const dateNice = (ms: number) =>
-  new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** Whole days since, never negative — an age, not a duration. */
 const ageDays = (ms: number) => Math.max(0, Math.floor((Date.now() - ms) / DAY));

@@ -156,7 +156,7 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
   );
 }
 
-const when = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const when = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /* ---------- weekly upload ---------- */
 function UploadPanel({ state, projectId, lineKeys }: {
@@ -302,7 +302,7 @@ function LineCard({ line, pack, projectId, series }: {
         <div className="lc-pips">
           <span className="lc-pip">{open}<span className="lc-pip-l">next steps open</span></span>
           <span className="lc-pip">{pack.doneTodos}<span className="lc-pip-l">finished</span></span>
-          <span className={'lc-pip' + (pack.openSnags > 0 ? ' is-warn' : '')}>{pack.openSnags}<span className="lc-pip-l">open snags</span></span>
+          <span className={'lc-pip' + (pack.openSnags > 0 ? ' is-warn' : '')}>{pack.openSnags}<span className="lc-pip-l">open evidence</span></span>
           <span className="lc-pip is-good">{pack.wins}<span className="lc-pip-l">wins</span></span>
         </div>
       </button>
@@ -754,7 +754,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Next steps</h2>
-            <p className="pace-sec-sub">What still needs doing, what we are waiting on, and trials — with the write-up and the evidence · not in the workbook, typed here</p>
+            <p className="pace-sec-sub">What still needs doing, what we are waiting on, and tests — with the write-up and the evidence · not in the workbook, typed here</p>
           </div>
           <PaceNextSteps projectId={projectId} />
         </section>

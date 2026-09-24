@@ -407,7 +407,7 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           runs ONE plan, not zero or both, so this is a switch and not a pair of
           independent opt-ins. */}
       <div className="pset-tools">
-        <p className="field-label">Plan model</p>
+        <p className="field-label">How this project runs</p>
         <div className="proj-model-grid">
           {MODELS.map(m => (
             <button key={m.id} type="button"

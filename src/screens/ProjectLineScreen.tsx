@@ -37,7 +37,7 @@ type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'this line' },
   { id: 'meeting',  label: 'Actions',    sub: 'from the tracker' },
-  { id: 'next',     label: 'Next steps', sub: 'to do & trials' },
+  { id: 'next',     label: 'Next steps', sub: 'to do & tests' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Numbers',    sub: 'record and chart' },
@@ -253,7 +253,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Next steps on {line.name}</h2>
-            <p className="pace-sec-sub">What still needs doing here, what we are waiting on, and trials — with the write-up and the evidence</p>
+            <p className="pace-sec-sub">What still needs doing here, what we are waiting on, and tests — with the write-up and the evidence</p>
           </div>
           <PaceNextSteps projectId={projectId} lineId={lineId} />
         </section>

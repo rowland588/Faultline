@@ -44,7 +44,7 @@ const fmtH = (ms: number) => {
   const h = ms / 3600_000;
   return h >= 10 ? `${Math.round(h)} h` : h >= 1 ? `${Math.round(h * 10) / 10} h` : `${Math.round(ms / 60_000)} min`;
 };
-const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const weekOf = (start: number) => `Week of ${dateNice(start)}`;
 
 type Sel = number | 'all'; // a full week's Monday, or everything
@@ -287,7 +287,7 @@ export function MeetingScreen() {
           {/* the doors the Present tab used to open — the meeting adds, never removes */}
           <div className="meet-links">
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag report (print) ›</button>
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Evidence report (print) ›</button>
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/report`)}>One-page report ›</button>
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/present`)}>Present the board ›</button>
           </div>

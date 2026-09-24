@@ -36,7 +36,7 @@ const nice = (iso?: string): string => {
   if (!iso) return '';
   const [y, m, d] = iso.split('-').map(Number);
   if (!y || !m || !d) return iso;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
 };
@@ -70,8 +70,8 @@ function Field({ label, text, empty = '—' }: { label: string; text?: string; e
   );
 }
 
-function Found({ rows }: { rows: CardFinding[] }) {
-  if (rows.length === 0) return <p className="sub tc-empty">Nothing was written down on this trial.</p>;
+function Found({ rows, one }: { rows: CardFinding[]; one: string }) {
+  if (rows.length === 0) return <p className="sub tc-empty">Nothing was written down on this {one}. Go back to it to add what you saw.</p>;
   return (
     <ol className="tc-list">
       {rows.map((f, i) => (
@@ -92,8 +92,8 @@ function Found({ rows }: { rows: CardFinding[] }) {
   );
 }
 
-function Next({ rows }: { rows: CardNext[] }) {
-  if (rows.length === 0) return <p className="sub tc-empty">Nothing has been agreed out of this trial yet.</p>;
+function Next({ rows, one }: { rows: CardNext[]; one: string }) {
+  if (rows.length === 0) return <p className="sub tc-empty">Nothing has been agreed out of this {one} yet — decide an observation is a fix, or plan the next test from it.</p>;
   return (
     <ol className="tc-list">
       {rows.map((n, i) => (
@@ -102,10 +102,10 @@ function Next({ rows }: { rows: CardNext[] }) {
           <div className="tc-row-b">
             <p className="tc-row-t">{n.what}</p>
             <p className="tc-row-m sub">
-              {n.owner ? <span>{n.owner}</span> : <span className="is-none">nobody named</span>}
+              {n.owner ? <span>{n.owner}</span> : <span className="is-none">nobody yet</span>}
               {n.due ? <span>by {nice(n.due)}</span> : <span className="is-none">no date</span>}
               {n.fromFinding && <span>out of an observation</span>}
-              {n.becameTest && <span>became the next trial</span>}
+              {n.becameTest && <span>became the next test</span>}
             </p>
           </div>
         </li>
@@ -151,14 +151,14 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       const { drawTrialCard } = await import('../lib/trialCardPdf');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now() });
-      const slug = `${project.name} ${c.title}`.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Trial';
+      const slug = `${project.name} ${c.title}`.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Test';
       const how = await deliverPdf(pdf, `${slug}-${when ?? todayISO()}.pdf`);
       setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
     } catch (e) {
-      console.error('Trial card failed', e);
+      console.error('Card failed', e);
       setErr(isStaleBuildError(e)
         ? 'This tab is still running an older version of the app, so the part that draws the PDF could not load.'
-        : (e instanceof Error ? e.message : 'The trial card could not be built.'));
+        : (e instanceof Error ? e.message : `The ${words.one.toLowerCase()} card could not be built.`));
     } finally { setBusy(false); }
   };
 
@@ -231,13 +231,13 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
 
       <Block n="3" title="What we found on the day"
         sub={c.found.written === 0 ? undefined : foundWords(c.found)}>
-        <Found rows={c.findings} />
+        <Found rows={c.findings} one={words.one.toLowerCase()} />
       </Block>
 
       <Block n="4" title="What we do next"
         sub={c.next.length === 0 ? undefined
           : `${c.openNext} of ${c.next.length} still open`}>
-        <Next rows={c.next} />
+        <Next rows={c.next} one={words.one.toLowerCase()} />
       </Block>
 
       {/* WHERE THIS SITS — the loop, read both ways. The same block the A4

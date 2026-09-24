@@ -91,7 +91,7 @@ export function ProjectsScreen() {
             <label className="proj-field">
               <span className="field-label">Name</span>
               <input className="text-input" autoFocus value={name} maxLength={80}
-                placeholder="Project Pace" onChange={e => setName(e.target.value)}
+                placeholder="e.g. Line 7 commissioning" onChange={e => setName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
             </label>
             <label className="proj-field">
@@ -102,7 +102,7 @@ export function ProjectsScreen() {
             </label>
           </div>
           <div className="proj-model">
-            <span className="field-label">Plan model</span>
+            <span className="field-label">How this project runs</span>
             <div className="proj-model-grid">
               {MODELS.map(m => (
                 <button key={m.id} type="button"

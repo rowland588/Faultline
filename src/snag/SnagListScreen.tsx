@@ -12,7 +12,7 @@ import {
 } from './types';
 import { TimeStrip, dueWord } from './TimeStrip';
 
-const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
+const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
 interface Row { snag: Snag; assetName: string; assetId: string; sequence: number; timestampS: number }
 
@@ -185,7 +185,7 @@ export function SnagListScreen() {
       );
     } catch (e) {
       console.error('snag card failed', e);
-      window.alert('Sorry — the snag card could not be built. Please try again.');
+      window.alert('Sorry — the evidence card could not be built. Please try again.');
     } finally {
       setCarding(false);
     }
@@ -342,7 +342,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
   const all = rows.map(r => r.snag);
   const c = { open: 0, in_progress: 0, closed: 0, stale: 0, overdue: 0 };
   for (const s of all) { c[s.status]++; if (isStaleOpen(s)) c.stale++; if (isOverdue(s)) c.overdue++; }
-  const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="wrap print-root">

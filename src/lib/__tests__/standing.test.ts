@@ -418,7 +418,7 @@ describe('the sentence', () => {
 
   it('says nothing is outstanding when nothing is', () => {
     const s = at({ tests: [test({ outcome: 'passed' })] });
-    expect(s.sentence).toBe('Nothing outstanding. 1 of 1 trials have run.');
+    expect(s.sentence).toBe('Nothing outstanding. 1 of 1 tests have run.');
   });
 
   it('does not pretend there is a job when nothing has been planned', () => {

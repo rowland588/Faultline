@@ -294,7 +294,7 @@ const INTENT: Record<string, string> = {
   'checkweigher': 'The checkweigher passes what it should',
   'consumable changes': 'Consumable changes do not cost us a run',
   'planning': 'The plan we are given is one the line can run',
-  'trial': 'Trials finish and give us an answer',
+  'trial': 'Tests finish and give us an answer',
 };
 function intentFor(category: string): string {
   return INTENT[category.trim().toLowerCase()] ?? `${category} is not costing us the line`;

@@ -171,7 +171,7 @@ export function verdictLine(c: TrialCard): string {
      over a result somebody typed on the floor is the report hiding the day. */
   if (c.outcome === 'planned') {
     if (!needsVerdict(c)) return 'Not run yet';
-    return c.result ? `${c.result} — no verdict given yet` : 'Ran — no verdict given yet';
+    return c.result ? `${c.result} — no verdict yet` : 'Ran — no verdict yet';
   }
   if (c.outcome === 'notRun') return 'The day came and it did not happen';
   if (!c.result) return c.outcomeWord;

@@ -156,7 +156,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       {/* WHERE WE ARE. One sentence, composed in lib/testing so this screen and
           the A3 cannot say different things about the same job. */}
       <section className="cx-answer">
-        <span className="cmp-h-n">WHERE WE ARE</span>
+        <span className="cmp-h-n">WHERE THE JOB IS</span>
         <p className="cx-said">{st.sentence}</p>
         {st.total > 0 && (
           <>

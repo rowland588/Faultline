@@ -289,7 +289,7 @@ function sentenceFor(x: {
 
   if (x.outstanding === 0) {
     return x.tests.length
-      ? `Nothing outstanding. ${ran} of ${x.tests.length} trials have run.`
+      ? `Nothing outstanding. ${ran} of ${x.tests.length} tests have run.`
       : 'Nothing outstanding, and nothing planned yet.';
   }
 

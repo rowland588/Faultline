@@ -4,7 +4,7 @@
  * the snag list and the meeting so the same action never tells two stories. */
 import { isOverdue, isDueSoon, closedDaysLate, dueInDays, type Snag } from './types';
 
-const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
+const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
 export function TimeStrip({ snag }: { snag: Snag }) {
   const late = closedDaysLate(snag);

@@ -45,7 +45,7 @@ export function ReportScreen() {
   const stale = open.filter(s => ageDays(s.raisedAt) > 30);
   const closedThisWeek = snags.filter(s => s.status === 'closed' && (s.closedAt ?? 0) >= from);
 
-  const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
     <div className={`report-stage paper-${paper}`}>

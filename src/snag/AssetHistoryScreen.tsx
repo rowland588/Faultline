@@ -11,7 +11,7 @@ import PinImage, { type Pin } from './PinImage';
 import { SNAG_STATUS_META, type Snag, type SnagAsset } from './types';
 import { assetHistory, compareVerdict, type AssetAppearance } from './history';
 
-const fmtDay = (t: number) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const fmtDay = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: string }) {
   const [target, setTarget] = useState<SnagAsset | null>(null);

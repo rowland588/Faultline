@@ -32,7 +32,7 @@ import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib
 import { WinProofSheet } from './WinProofSheet';
 
 const when = (ms: number) =>
-  new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function Card({ win, onPatch, onDelete, onProve }: {
   win: PaceWinRow; onPatch: (p: Partial<PaceWinRow>) => void; onDelete: () => void;
@@ -150,7 +150,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
         <div className="win-empty">
           <p className="win-empty-title">Nothing logged yet</p>
           <p className="win-empty-sub">
-            The things that worked — a trial that landed, a changeover you cut, a fault you finally
+            The things that worked — a test that passed, a changeover you cut, a fault you finally
             beat. Say what it was, what you did, the number that proves it, and who made it happen.
             This is the tab you open the meeting with.
           </p>

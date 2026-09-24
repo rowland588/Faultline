@@ -123,7 +123,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
               </span>
               <span className="sub">
                 {machine(t)}
-                {t.withWhom ? ` · ${t.withWhom}` : ' · nobody named'}
+                {t.withWhom ? ` · ${t.withWhom}` : ' · nobody yet'}
                 {from && ` · out of “${from.title}”`}
               </span>
               {t.passesIf && <span className="tw-passes"><b>The problem:</b> {t.passesIf}</span>}

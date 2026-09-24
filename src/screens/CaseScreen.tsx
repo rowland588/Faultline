@@ -28,7 +28,7 @@ const fmtH = (ms: number) => {
   const h = ms / 3600_000;
   return h >= 10 ? `${Math.round(h)} h` : h >= 1 ? `${Math.round(h * 10) / 10} h` : `${Math.round(ms / 60_000)} min`;
 };
-const dateNice = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
+const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
 export const scopeLabel = (c: Pick<Case, 'path'>): string =>
   c.path.length ? c.path.map(s => s.value).join(' · ') : 'the whole line';

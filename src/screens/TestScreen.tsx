@@ -197,7 +197,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
             <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')}
               aria-pressed={test.outcome === o} onClick={() => setOutcome(o)}>
-              {o === 'planned' ? (needsVerdict(test) ? 'Not decided' : 'Still planned') : outcomeWord({ kind, outcome: o })}
+              {o === 'planned' ? (needsVerdict(test) ? 'No verdict yet' : 'Still planned') : outcomeWord({ kind, outcome: o })}
             </button>
           ))}
         </span>
@@ -325,7 +325,7 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
               <span className="tw-row-m">
                 <b>{(t.kind ?? 'test') === 'fix' ? <><span className="tw-face">Fix</span>{t.title}</> : t.title}</b>
                 <span className="sub">
-                  {t.withWhom ? t.withWhom : 'nobody named'}
+                  {t.withWhom ? t.withWhom : 'nobody yet'}
                   {t.plannedFor && ` · ${nice(t.plannedFor)}${t.plannedTo && t.plannedTo > t.plannedFor ? ` – ${nice(t.plannedTo)}` : ''}`}
                 </span>
                 <span className={'tw-res is-' + t.outcome}>
@@ -371,7 +371,7 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
 
       {kind === 'found' && rows.length > 0 && (
         <p className="sub tw-note tw-obs-note">
-          What you saw, as you saw it. Tick one to decide it needs doing — it becomes an action below,
+          What you saw, as you saw it. Tick one to decide it needs doing — it becomes a fix below,
           with somebody's name on it.
         </p>
       )}
@@ -404,7 +404,7 @@ function ItemRow({ item, test, tt, onView }: { item: TestItem; test: Test; tt: T
   const done = item.doneAt != null;
 
   /* AN OBSERVATION IS NOT DONE OR NOT DONE. It is written down, and then
-     somebody decides: it needs doing (it becomes an action below), or it needs
+     somebody decides: it needs doing (it becomes a fix below), or it needs
      nothing. A next step is the ordinary open/done row it always was. */
   const observation = item.kind === 'found';
   const st = observation ? standingOfItem(item, tt.items) : undefined;

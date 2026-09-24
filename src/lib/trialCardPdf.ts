@@ -365,7 +365,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   d.text(`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, M + 14, dateY);
 
   let dy = box(d, M + half + 14, y, half, boxH, '2', c.kind === 'fix' ? 'What was done' : 'What actually happened') + 12;
-  /* The same line the card SCREEN shows — the result, and "no verdict given
+  /* The same line the card SCREEN shows — the result, and "no verdict
      yet" after it when that is the case — not the raw result field. */
   dy = field(d, M + half + 28, dy, fw, w.happened, c.outcome === 'planned' && !c.result && !c.ranOn ? '' : verdictLine(c), { empty: 'Nothing written down yet' }) + 8;
   if (c.kind === 'test') {
@@ -404,7 +404,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   let drawn = 0;
   if (c.findings.length === 0) {
     setFont(d, 8.5, 'normal', MUTED);
-    d.text('Nothing was written down on this trial.', M + 14, fTop + 20);
+    d.text(`Nothing was written down on this ${WORDS[c.kind].one.toLowerCase()}.`, M + 14, fTop + 20);
   } else {
     drawn = findingsTable(d, c, M + 14, fTop, CW - 28, y + foundH - 10, 0);
   }
@@ -447,7 +447,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const nTop = box(d, M, ny, CW, nRoom, '4', 'What we do next', nextSub);
   if (c.next.length === 0) {
     setFont(d, 8.5, 'normal', MUTED);
-    d.text('Nothing has been agreed out of this trial yet.', M + 14, nTop + 20);
+    d.text(`Nothing has been agreed out of this ${WORDS[c.kind].one.toLowerCase()} yet.`, M + 14, nTop + 20);
   } else {
     nextTable(d, c, M + 14, nTop, CW - 28, ny + nRoom - 10);
   }

@@ -39,7 +39,7 @@ interface Row {
   factor: number;
 }
 
-const dn = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const dn = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const hrs = (ms: number) => {
   const h = ms / 3600_000;
   return h >= 10 ? `${Math.round(h)} h` : h >= 1 ? `${Math.round(h * 10) / 10} h` : `${Math.round(ms / 60_000)} min`;

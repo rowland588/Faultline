@@ -2467,11 +2467,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* 5 — line walk */
   const lwX = M + colW + gap;
   const lwRule = panel(d, lwX, r2y, colW, rowH2, '5', 'Line walk',
-    `${data.openSnags} open snag${data.openSnags === 1 ? '' : 's'}`);
+    `${data.openSnags} open on the walk`);
   let sy = lwRule + 18;
   if (data.snags.length === 0) {
     setFont(d, 8, 'normal', MUTED);
-    d.text('No open snags on the walk.', lwX + 12, sy);
+    d.text('Nothing open on the walk.', lwX + 12, sy);
   }
   for (const s of data.snags) {
     if (sy + 14 > r2y + rowH2 - 10) break;

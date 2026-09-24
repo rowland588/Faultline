@@ -51,7 +51,7 @@ export function PresentScreen({ route }: { route: Route }) {
               <p className="present-snag-sub">{plural(snag!.snags, 'snag')} across {plural(snag!.assets, 'asset')}. Show the walk to the team, or open the report to print / save as PDF.</p>
               <div className="present-snag-actions">
                 <button className="btn btn-primary btn-lg" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
-                <button className="btn btn-lg" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Snag report →</button>
+                <button className="btn btn-lg" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Evidence report →</button>
               </div>
             </div>
           ) : (

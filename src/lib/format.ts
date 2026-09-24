@@ -28,7 +28,7 @@ export function fmtRelative(at: number, ref: number = Date.now()): string {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  return new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 /** "1" / "2" — a plural-aware count noun. */
@@ -37,4 +37,4 @@ export const plural = (n: number, one: string, many = one + 's'): string =>
 
 /** A short clock time, e.g. "14:32". */
 export const fmtClock = (at: number): string =>
-  new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
