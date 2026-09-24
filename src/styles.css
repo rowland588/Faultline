@@ -2543,6 +2543,35 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 .exec-empty { font-size: 12px; color: var(--muted); margin: 6px 2px; }
 
+/* WHO OWES WHAT, BY WHEN — one card per party, the same as page 3 of the file. */
+.ow-grid { display: grid; gap: 14px; margin-top: 12px; align-items: start; }
+.ow-grid.is-1 { grid-template-columns: 1fr; }
+.ow-grid.is-2 { grid-template-columns: 1fr 1fr; }
+.ow-grid.is-3 { grid-template-columns: 1fr 1fr 1fr; }
+.ow-card { position: relative; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 12px 18px; background: #fff; }
+.ow-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; background: var(--brand); }
+.ow-card.is-site::before { background: var(--ink-2, #4c4f52); }
+.ow-card.is-nobody::before { background: var(--warn); }
+.ow-card.is-late::before { background: var(--danger); }
+.ow-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.ow-head h3 { margin: 0; font-size: 17px; }
+.ow-n { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.ow-n b { color: var(--danger); }
+.ow-lines { list-style: none; margin: 8px 0 0; padding: 0; }
+.ow-line { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; }
+.ow-what { display: flex; flex-direction: column; min-width: 0; }
+.ow-what b { font-size: 12px; }
+.ow-what span { font-size: 10.5px; color: var(--muted); }
+.ow-when { flex: none; font-size: 11px; color: var(--ink-2, #4c4f52); white-space: nowrap; }
+.ow-line.is-late .ow-when { color: var(--danger); font-weight: 800; }
+.ow-line.is-since .ow-when { color: var(--warn); }
+.ow-line.is-none .ow-when { color: var(--muted); }
+.ow-ask { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; background: #eef4f1; font-size: 11.5px; }
+.ow-card.is-late .ow-ask { background: #fbeeec; }
+.ow-ask span { display: block; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); margin-bottom: 2px; }
+.ow-card.is-late .ow-ask span { color: var(--danger); }
+
+
 .exec-snags { list-style: none; margin: 0; padding: 0; }
 .exec-snags li { display: flex; align-items: baseline; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--line); font-size: 11.5px; }
 .exec-snags li:last-child { border-bottom: 0; }

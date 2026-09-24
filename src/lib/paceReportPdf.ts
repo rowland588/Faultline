@@ -22,6 +22,10 @@ import {
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
+import { ASK, type Owes, type OweTone, type Party } from './owes';
+import { strandsOf, orderStrands, strandsSay, strandWord, type Strand, type StrandState } from './strands';
+export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
+export type { Strand, StrandState, StrandStep } from './strands';
 import { vsTarget } from './measures';
 import type { LineSeries } from './measures';
 
@@ -150,6 +154,8 @@ export interface PaceReportData {
        *  failing at the one thing it is for. */
       late: boolean;
       title: string; machine: string; when: string; passesIf: string;
+      /** `when` as ISO, for page 3's ordering only — never printed. */
+      on?: string;
       withWhom: string; product: string; result: string;
       outcome: 'planned' | 'passed' | 'failed' | 'notRun';
       outcomeWord: string;
@@ -162,13 +168,18 @@ export interface PaceReportData {
       verdict: string;
       found: { written: number; actioned: number; undecided: number };
       /** The first next step still outstanding. */
-      next?: { what: string; owner: string; due: string; done: boolean; late: boolean };
+      next?: { what: string; owner: string; due: string; done: boolean; late: boolean; on?: string };
       /** How many more there are after that one. */
       nextMore: number;
       follows?: string;
       ledTo: string[];
     }[];
   };
+  /* WHO OWES WHAT, BY WHEN — the same debts as page 1, turned the other way
+     up: one block per party. Built by lib/owes off the strands, the materials,
+     the programs, the machines and the undecided observations; drawn-ready.
+     Absent on a line's own deck and on a job that owes nothing. */
+  owes?: Owes;
   /** Does this project keep a weekly tracker at all? A commissioning job does
    *  not, and printing it a ppm sheet, a 3P board and an action list is three
    *  pages of scaffolding in front of the two it does carry. */
@@ -868,215 +879,6 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
 
 type TrialRow = NonNullable<PaceReportData['trials']>['rows'][number];
 
-export type StrandState = 'proved' | 'notYet' | 'notProved' | 'booked';
-
-/** The word a client reads. Not "stuck": the report says what is true, and
- *  what is true is that nothing has been booked yet. */
-export const STRAND_WORD: Record<StrandState, string> = {
-  proved: 'PROVED',
-  notYet: 'NOT YET',
-  notProved: 'NOT PROVED',
-  booked: 'BOOKED',
-};
-/** A strand that is a FIX on its own — a guard fitted, a valve replaced — is
- *  not proving anything; it is done or it is not. Badging a fitted guard
- *  "BOOKED" over a row reading FIXED was the report contradicting itself. */
-export const FIX_STRAND_WORD: Record<StrandState, string> = {
-  proved: 'DONE',
-  notYet: 'NOT YET',
-  notProved: 'NOT DONE',
-  booked: 'PLANNED',
-};
-export const strandWord = (s: Pick<Strand, 'kind' | 'state'>): string =>
-  (s.kind === 'fix' ? FIX_STRAND_WORD : STRAND_WORD)[s.state];
-
-export interface StrandStep {
-  /** The attempt number for a test; absent on a fix, which is not an attempt
-   *  at proving anything — it is what was done between two of them. */
-  n?: number;
-  kind: 'test' | 'fix';
-  ran: boolean;
-  when: string;
-  /** What it was. Blank on the first attempt, whose title is the strand's. */
-  what: string;
-  verdict: string;
-  outcome: TrialRow['outcome'];
-  outcomeWord: string;
-  /** "turned up 3 things · 2 still to decide", when it turned up anything. */
-  found: string;
-}
-
-export interface Strand {
-  /** The thing being proved — the first attempt's name. */
-  name: string;
-  /** A strand that starts with a fix is a piece of work, not a proof. */
-  kind: 'test' | 'fix';
-  machine: string;
-  withWhom: string;
-  /** What it was agreed it passes on, from the attempt that set out to do it. */
-  provesIf: string;
-  state: StrandState;
-  attempts: number;
-  steps: StrandStep[];
-  /** What is still owed on this strand, with a name and a date on it.
-   *  `since` is a debt that started on a day rather than one due by it —
-   *  the verdict on a test that ran. */
-  owed: { what: string; owner: string; due: string; late: boolean; since?: boolean }[];
-}
-
-/** Every row that came out of `id`, in the order the work happened, depth
- *  first — a fix off attempt one belongs before attempt two, not after it. */
-const descend = (id: string, byParent: Map<string, TrialRow[]>, out: TrialRow[]): void => {
-  for (const child of byParent.get(id) ?? []) {
-    out.push(child);
-    descend(child.id, byParent, out);
-  }
-};
-
-/** The tests and fixes of a job, grouped into the things they set out to prove.
- *
- *  Pure, and exported, because the shape of this report is now an argument
- *  about which record belongs with which — and that is worth asserting as data
- *  rather than looking at a sheet and deciding it seems about right. */
-export function strandsOf(rows: TrialRow[]): Strand[] {
-  const byId = new Map(rows.map(r => [r.id, r]));
-  const byParent = new Map<string, TrialRow[]>();
-  for (const r of rows) {
-    /* A parent that is not in this report — deleted, or on another line — makes
-       an orphan a root. Hanging it off nothing would lose it altogether, and a
-       test nobody can see is the one fault this must not have. */
-    const parent = r.fromId && byId.has(r.fromId) ? r.fromId : undefined;
-    if (!parent) continue;
-    const kids = byParent.get(parent) ?? [];
-    kids.push(r);
-    byParent.set(parent, kids);
-  }
-  /* Children in the order they were planned, so the chain reads forwards. */
-  for (const kids of byParent.values()) kids.sort((a, b) => a.when.localeCompare(b.when));
-
-  const roots = rows.filter(r => !(r.fromId && byId.has(r.fromId)));
-
-  return roots.map(root => {
-    const chain = [root];
-    descend(root.id, byParent, chain);
-
-    let n = 0;
-    const steps: StrandStep[] = chain.map(r => ({
-      n: r.kind === 'test' ? ++n : undefined,
-      kind: r.kind,
-      ran: r.ran,
-      when: r.when,
-      /* The first attempt's title IS the strand's name, so repeating it as the
-         step would print the same words twice one under the other. */
-      what: r === root ? '' : r.title,
-      verdict: r.verdict,
-      outcome: r.outcome,
-      outcomeWord: r.outcomeWord,
-      found: r.found.written
-        ? `turned up ${r.found.written} thing${r.found.written === 1 ? '' : 's'}${
-            r.found.undecided ? ` · ${r.found.undecided} still to decide` : ''}`
-        : '',
-    }));
-
-    /* WHERE IT HAS GOT TO, off the tests alone. A fix is work done towards the
-       answer; it is not the answer, and a strand whose fix is done but whose
-       re-test has not run is NOT proved. */
-    const tests = chain.filter(r => r.kind === 'test');
-    /* The state comes off the TESTS when there are any — a fix is work towards
-       the answer, not the answer. A strand with no test in it is a fix on its
-       own, and then the fixes are what it is about. */
-    const about = tests.length ? tests : chain;
-    /* RAN means the day happened, not that somebody has called it. A test
-       written up on the floor and never given a verdict is not "booked" — it is
-       an answer the client is still waiting for, and the strand says so. */
-    const ran = about.filter(t => t.ran);
-    const last = ran[ran.length - 1];
-    const booked = about.some(t => !t.ran);
-    const state: StrandState = !last ? 'booked'
-      : last.outcome === 'passed' ? 'proved'
-        : booked ? 'notYet'
-          : 'notProved';
-
-    /* What is still owed: every step not settled, plus the agreed next step
-       hanging off any of them. Named and dated, because "outstanding" without
-       a name on it is the thing a client asks about in the meeting. */
-    const owed: Strand['owed'] = [];
-    for (const r of chain) {
-      /* Ran and not called: the debt is the verdict, not the day — and it is
-         the SITE's debt. withWhom is who we ran it with; calling it is ours.
-         It printed "Say whether it passed · Ilapak UK", which told the OEM's
-         project manager the site was blaming him for the site's own call. */
-      if (r.ran && r.outcome === 'planned') {
-        owed.push({ what: r.kind === 'fix' ? 'Say whether it fixed it' : 'Say whether it passed',
-          owner: 'the site', due: r.when, late: false, since: true });
-        continue;
-      }
-      if (r.outcome === 'planned' || r.outcome === 'notRun') {
-        /* Saying the strand's own name back under its own heading reads as
-           the page having nothing to add. What is owed on a test nobody has
-           run is that somebody runs it. */
-        owed.push({
-          what: r.title === root.title ? (r.kind === 'fix' ? 'Do it' : 'Run it') : r.title,
-          owner: r.withWhom, due: r.when, late: r.late,
-        });
-      }
-    }
-    /* An agreed next step that is ALSO a record in the chain is already listed
-       above, with its own date and its own lateness. It used to be pushed with
-       its parent's lateness and win the de-duplication, so a re-test two days
-       ahead printed "WAS 26 Sept" in red. The record's own line wins. */
-    for (const r of chain) {
-      if (r.next && !r.next.done && !owed.some(o => o.what === r.next?.what)) {
-        owed.push({ what: r.next.what, owner: r.next.owner, due: r.next.due, late: r.next.late });
-      }
-    }
-
-    return {
-      name: root.title,
-      kind: root.kind,
-      machine: root.machine,
-      withWhom: root.withWhom,
-      provesIf: root.passesIf,
-      state,
-      /* Attempts are days that happened. One run and one booked is one attempt. */
-      attempts: tests.filter(t => t.ran).length,
-      steps,
-      /* The same thing twice — a booked re-test IS the next step off the one
-         before it — reads as two jobs. Kept once, by its words. */
-      owed: owed.filter((o, i) => owed.findIndex(x => x.what === o.what) === i).slice(0, 4),
-    };
-  });
-}
-
-/* THE ORDER A PRESENTATION READS IN.
- *
- * Alphabetical, or by date added, puts a test booked for next month above the
- * one that failed last week — which is the report choosing for the client what
- * to look at, and choosing wrong. What needs attention leads, then what is
- * coming, then what is finished. Rowland, on the same argument for the tests
- * list: "a client wants what is coming before what we did." */
-const STRAND_ORDER: Record<StrandState, number> = { notProved: 0, notYet: 1, booked: 2, proved: 3 };
-
-export const orderStrands = (strands: Strand[]): Strand[] =>
-  [...strands].sort((a, b) =>
-    STRAND_ORDER[a.state] - STRAND_ORDER[b.state]
-    /* Within a state, whatever is owed soonest — and a strand with nothing
-       owed sorts after the ones that do. */
-    || (a.owed[0]?.due ?? '\uffff').localeCompare(b.owed[0]?.due ?? '\uffff')
-    || a.name.localeCompare(b.name));
-
-/** One line under the heading that says what the whole section amounts to. */
-export function strandsSay(strands: Strand[]): string {
-  if (strands.length === 0) return 'nothing booked yet';
-  const n = (s: StrandState) => strands.filter(x => x.state === s).length;
-  const bits = [`${strands.length} thing${strands.length === 1 ? '' : 's'} to prove`];
-  if (n('proved')) bits.push(`${n('proved')} proved`);
-  if (n('notYet')) bits.push(`${n('notYet')} not yet`);
-  if (n('notProved')) bits.push(`${n('notProved')} not proved`);
-  if (n('booked')) bits.push(`${n('booked')} still to run`);
-  return bits.join(' · ');
-}
-
 /* ---------- HOW BIG A STRAND WANTS TO BE ----------
  *
  * It measures itself and takes the room it needs, then the sheet is packed with
@@ -1656,6 +1458,153 @@ function treeDraw(d: Doc, b: TreeBox, x: number, top: number): void {
   }
 }
 
+/* ============== WHO OWES WHAT, BY WHEN — page 3 ==============================
+ *
+ * Page 1 is the story of each thing being proved; page 2 is where the job is.
+ * This is the page the meeting ends on: what each side has to do before the
+ * next one. One card per party, the suppliers first and the site last. Each
+ * line says what has to happen, what it hangs off, and by when — red when the
+ * date has gone. Each card closes with the ask, in a sentence, because it is
+ * read aloud.
+ *
+ * The lines are lib/owes's, off the same strands page 1 draws, so the two pages
+ * cannot disagree about who owes what.
+ */
+
+const O_PAD = 14;          // inside a card
+const O_GAP = 14;          // between cards
+const O_HEAD = 44;         // the party's name, its count, the rule
+const O_WHEN_W = 82;       // the date column, right
+const O_MAX_LINES = 14;    // a card longer than this points at the screens
+
+interface OwesRow { what: string[]; about: string[]; when: string; tone: OweTone; h: number }
+interface OwesCard { p: Party; rows: OwesRow[]; more: number; ask: string[]; h: number }
+
+function planOwesCard(d: Doc, p: Party, w: number): OwesCard {
+  const textW = w - 2 * O_PAD - O_WHEN_W - 8;
+  const rows = p.lines.slice(0, O_MAX_LINES).map(l => {
+    setFont(d, 8.5, 'bold', INK);
+    const what = d.splitTextToSize(l.what, textW) as string[];
+    setFont(d, 7.5, 'normal', MUTED);
+    const about = d.splitTextToSize([l.about, l.person].filter(Boolean).join(' · '), textW) as string[];
+    return { what, about, when: l.when, tone: l.tone, h: what.length * 10.5 + about.length * 9 + 8 };
+  });
+  const more = p.lines.length - rows.length;
+  /* The ask, without the words the label above it already says. */
+  const said = p.ask.startsWith(ASK) ? p.ask.slice(ASK.length) : p.ask;
+  const askText = said.charAt(0).toUpperCase() + said.slice(1);
+  setFont(d, 8, 'normal', INK);
+  const ask = d.splitTextToSize(askText, w - 2 * O_PAD - 16) as string[];
+  /* The same arithmetic drawOwesCard walks: head, rows, the "more" line, the
+     ask box, the bottom pad — and nothing else, or the card carries white. */
+  const h = O_HEAD + 2 + rows.reduce((n, r) => n + r.h, 0) + (more ? 14 : 0)
+    + 4 + 18 + ask.length * 10.5 + O_PAD;
+  return { p, rows, more, ask, h };
+}
+
+const partyTitle = (p: Party): string =>
+  p.kind === 'nobody' ? 'Nobody named yet — needs an owner' : `${p.who} owes`;
+
+function drawOwesCard(d: Doc, c: OwesCard, x: number, y: number, w: number): void {
+  const { p } = c;
+  const tone = p.late > 0 ? DANGER : p.kind === 'nobody' ? WARN : p.kind === 'site' ? INK2 : BRAND;
+  d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
+  d.roundedRect(x, y, w, c.h, 5, 5, 'FD');
+  d.setFillColor(tone);                                   // the party's band
+  d.roundedRect(x, y, 3.5, c.h, 1.5, 1.5, 'F');
+
+  const count = `${p.lines.length} thing${p.lines.length === 1 ? '' : 's'}`
+    + (p.late ? ` · ${p.late} past the day` : '');
+  setFont(d, 8, p.late ? 'bold' : 'normal', p.late ? DANGER : MUTED);
+  const countW = d.getTextWidth(count);
+  d.text(count, x + w - O_PAD, y + 22, { align: 'right' });
+  setFont(d, 13, 'bold', INK);
+  d.text(fit(d, partyTitle(p), w - 2 * O_PAD - countW - 12), x + O_PAD, y + 23);
+  d.setDrawColor(LINE); d.setLineWidth(0.6);
+  d.line(x + O_PAD, y + O_HEAD - 10, x + w - O_PAD, y + O_HEAD - 10);
+
+  let cy = y + O_HEAD + 2;
+  for (const r of c.rows) {
+    setFont(d, 8.5, 'bold', INK);
+    r.what.forEach((ln, i) => d.text(ln, x + O_PAD, cy + i * 10.5));
+    setFont(d, 7.5, 'normal', MUTED);
+    r.about.forEach((ln, i) => d.text(ln, x + O_PAD, cy + r.what.length * 10.5 + i * 9 - 1));
+    const colour = r.tone === 'late' ? DANGER : r.tone === 'since' ? WARN : r.tone === 'due' ? INK2 : MUTED;
+    setFont(d, 8, r.tone === 'late' ? 'bold' : 'normal', colour);
+    d.text(r.when, x + w - O_PAD, cy, { align: 'right' });
+    cy += r.h;
+  }
+  if (c.more) {
+    setFont(d, 7.5, 'normal', MUTED);
+    d.text(`+${c.more} more — on the Testing, Fixes, Materials and Programs screens`, x + O_PAD, cy + 2);
+    cy += 14;
+  }
+
+  /* The ask, on a wash of the brand, so it reads as the conclusion of the card
+     rather than one more line in it. */
+  const boxY = cy + 4;
+  const boxH = 18 + c.ask.length * 10.5;
+  d.setFillColor(...wash(p.late ? DANGER : BRAND, 0.08));
+  d.roundedRect(x + O_PAD, boxY, w - 2 * O_PAD, boxH, 4, 4, 'F');
+  setFont(d, 6.5, 'bold', p.late ? DANGER : BRAND);
+  d.text('BEFORE THE NEXT REPORT', x + O_PAD + 8, boxY + 11);
+  setFont(d, 8, 'normal', INK);
+  c.ask.forEach((ln, i) => d.text(ln, x + O_PAD + 8, boxY + 22 + i * 10.5));
+}
+
+/** Where every card goes: which sheet, which column, how far down. Cards go
+ *  into whichever column is shortest, in the parties' order, and a card that
+ *  fits in no column on this sheet starts the next. Pure, so the page count
+ *  can be known before anything is drawn. */
+export function layoutOwes(heights: number[], cols: number, room: number):
+  { at: { sheet: number; col: number; y: number }[]; sheets: number } {
+  const at: { sheet: number; col: number; y: number }[] = [];
+  let sheet = 0;
+  let used = Array<number>(cols).fill(0);
+  for (const h of heights) {
+    let col = used.indexOf(Math.min(...used));
+    if (used[col] > 0 && used[col] + h > room) {
+      sheet += 1; used = Array<number>(cols).fill(0); col = 0;
+    }
+    at.push({ sheet, col, y: used[col] });
+    used[col] += h + O_GAP;
+  }
+  return { at, sheets: heights.length ? sheet + 1 : 0 };
+}
+
+/** Columns for this many parties: one each up to three, two for four (a 2×2
+ *  reads better than 3 + 1), three after that. */
+export const owesColumns = (n: number): number => (n <= 3 ? Math.max(1, n) : n === 4 ? 2 : 3);
+
+interface OwesPlan { cards: OwesCard[]; cols: number; cw: number; layout: ReturnType<typeof layoutOwes> }
+
+function planOwes(d: Doc, data: PaceReportData, W: number, H: number, M: number): OwesPlan | undefined {
+  const o = data.owes;
+  if (!o || o.parties.length === 0) return undefined;
+  const CW = W - 2 * M;
+  const cols = owesColumns(o.parties.length);
+  const cw = (CW - 28 - (cols - 1) * O_GAP) / cols;
+  const cards = o.parties.map(p => planOwesCard(d, p, cw));
+  const room = (H - 2 * M - 14) - 30 - 24;
+  return { cards, cols, cw, layout: layoutOwes(cards.map(c => c.h), cols, room) };
+}
+
+function owesSheet(d: Doc, data: PaceReportData, plan: OwesPlan, sheet: number, page: number, pages: number): void {
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+  const title = sheet === 0 ? 'Who owes what, by when' : 'Who owes what, by when — continued';
+  const ruleY = panel(d, M, M, CW, H - 2 * M - 14, String(page), title, data.owes?.says ?? '');
+  plan.cards.forEach((c, i) => {
+    const at = plan.layout.at[i];
+    if (at.sheet !== sheet) return;
+    drawOwesCard(d, c, M + 14 + at.col * (plan.cw + O_GAP), ruleY + 12 + at.y, plan.cw);
+  });
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — who owes what, by when`, CW * 0.6), M, H - M + 6);
+  d.text('The same debts as page 1, sorted by who owes them. Every line names what it hangs off.',
+    W - M, H - M + 6, { align: 'right' });
+}
+
 export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   // sanitise once, at the boundary — everything below draws known-safe text
   const data: PaceReportData = {
@@ -1701,6 +1650,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      *
      * san() is the ONE door. Anything that skips it is a rendering bug waiting
      * for somebody to type a real character. */
+    owes: raw.owes && {
+      says: san(raw.owes.says),
+      parties: raw.owes.parties.map(pt => ({
+        ...pt, who: san(pt.who), ask: san(pt.ask),
+        lines: pt.lines.map(l => ({ ...l, what: san(l.what), about: san(l.about),
+          person: l.person ? san(l.person) : undefined, when: san(l.when) })),
+      })),
+    },
     trials: raw.trials && {
       ...raw.trials,
       rows: raw.trials.rows.map(r => ({
@@ -1799,9 +1756,18 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
        "open evidence from the line walk" — half the tiles about things the
        job did not have. These are the two numbers a client asks for. */
     [String(nStrand('booked')), 'Still to run', 'booked, not yet happened', nStrand('booked') > 0 ? BRAND : MUTED],
-    [String(headStrands.reduce((n, st) => n + st.owed.filter(o => o.late).length, 0)), 'Past the day',
-      'owed and the date has gone',
-      headStrands.some(st => st.owed.some(o => o.late)) ? DANGER : OK],
+    /* THE WHOLE JOB'S LATE, when page 3 is there to account for it. Counted
+       off the strands alone, this tile said 3 while page 2's sentence and page
+       3's cards said 4 — the fourth a machine that never turned up, which is
+       not a test and so was not on this page. One number, three pages. */
+    ...((): [string, string, string, string][] => {
+      const owesLate = data.owes?.parties.reduce((n, pt) => n + pt.late, 0);
+      const strandLate = headStrands.reduce((n, st) => n + st.owed.filter(o => o.late).length, 0);
+      const late = owesLate ?? strandLate;
+      return [[String(late), 'Past the day',
+        owesLate != null ? 'owed across the job — see who owes what' : 'owed and the date has gone',
+        late > 0 ? DANGER : OK]];
+    })(),
     [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
   ];
   const headTiles = data.tracker ? tiles : commTiles;
@@ -1948,7 +1914,12 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     && split.pages.length <= 1
     && lpY + split.panelH + 12 + planPanelHeight(data.plan, H - 2 * M) <= H - M - 18;
   const hasPlan = !!data.plan && data.plan.lanes.length > 0 && !planUnder;
-  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+  /* WHO OWES WHAT goes behind the story and the position, before anything
+     narrower. Measured here, like the strands, so the page count is right
+     before either is drawn. */
+  const owesPlan = data.tracker ? undefined : planOwes(d, data, W, H, M);
+  const owesSheets = owesPlan?.layout.sheets ?? 0;
+  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
     + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
   if (planUnder) planSheet(d, data, 1, pages, { top: lpY + split.panelH + 12, n: '2' });
@@ -1964,7 +1935,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   const wherePage = 2;
   const trialsPage = wherePage + (hasPlan ? 1 : 0);
-  const paretoPage = trialsPage + trialSheets;
+  const owesPage = trialsPage + trialSheets;
+  const paretoPage = owesPage + owesSheets;
   const materialsPage = paretoPage + (hasPareto ? 1 : 0);
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
@@ -2000,6 +1972,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * numbers sit beside it. When a second Pareto has been uploaded the right
    * hand column carries the movement — the only thing in this report that says
    * whether the work CHANGED anything rather than merely happened. */
+  if (owesPlan) {
+    for (let sheet = 0; sheet < owesSheets; sheet++) {
+      d.addPage('a3', 'landscape');
+      owesSheet(d, data, owesPlan, sheet, owesPage + sheet, pages);
+    }
+  }
+
   if (data.pareto) {
     const pv = data.pareto;
     d.addPage('a3', 'landscape');

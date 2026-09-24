@@ -20,9 +20,24 @@
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
 import {
-  cardRowHeights, drawPaceReport, orderStrands, packCards, stackHeight, strandWord, strandsOf, strandsSay,
-  type PaceReportData,
+  cardRowHeights, drawPaceReport, layoutOwes, orderStrands, owesColumns, packCards, stackHeight, strandWord,
+  strandsOf, strandsSay, type PaceReportData,
 } from '../paceReportPdf';
+import type { Owes, Party } from '../owes';
+
+/* Page 3's block — parties with a given number of lines each. */
+const owes = (...sizes: number[]): Owes => ({
+  says: 'test',
+  parties: sizes.map((n, i): Party => ({
+    who: `Supplier ${i + 1}`, kind: i === sizes.length - 1 ? 'site' : 'oem', late: i === 0 ? 1 : 0,
+    ask: 'Before the next report: something (somewhere) — a new date.',
+    lines: Array.from({ length: n }, (_, k) => ({
+      what: `Thing ${k + 1} that has to happen, said in enough words to wrap on a narrow card`,
+      about: 'Seal integrity — Finest Red 2kg', when: k === 0 ? 'WAS 18 Sept' : 'by 29 Sept',
+      tone: k === 0 ? 'late' as const : 'due' as const, on: '2026-09-29',
+    })),
+  })),
+});
 
 type Board = PaceReportData['board'];
 type Tree = PaceReportData['tree'];
@@ -253,6 +268,12 @@ const SHAPES: [string, Partial<PaceReportData>][] = [
   ['a tall plan that cannot fit under the tests', { tracker: false, trials: trials(6), plan: plan(6, 6) }],
   ['enough tests to fill the front page, so the plan keeps its own sheet',
     { tracker: false, trials: trials(20, true), plan: plan(3, 3) }],
+  /* WHO OWES WHAT — a page, or two, measured from the cards it carries. */
+  ['who owes what, with three parties', { tracker: false, trials: trials(3), owes: owes(4, 2, 5) }],
+  ['who owes what, so long it spills onto a second sheet',
+    { tracker: false, trials: trials(3), owes: owes(14, 14, 14, 14, 14, 14, 14) }],
+  ['who owes what, with the plan on its own sheet and spilling tests',
+    { tracker: false, trials: trials(20, true), plan: plan(3, 3), owes: owes(3, 3), pareto: pareto() }],
   ['a plan on a tracker project, which never merges',
     { tracker: true, plan: plan(3, 3) }],
   ['a plan, spilling tests and every optional sheet',
@@ -617,5 +638,45 @@ describe('what the section says about itself', () => {
 
   it('says plainly when there is nothing', () => {
     expect(strandsSay([])).toBe('nothing booked yet');
+  });
+});
+
+describe('who owes what, by when — page 3', () => {
+  const pagesFor = (over: Partial<PaceReportData>) => render(data(over)).pages;
+  const few = { tracker: false, trials: trials(3) };
+
+  it('costs one sheet on a commissioning job that owes something', () => {
+    expect(pagesFor({ ...few, owes: owes(3, 2) })).toBe(pagesFor(few) + 1);
+  });
+
+  it('costs nothing when nobody owes anything', () => {
+    expect(pagesFor({ ...few, owes: { says: '', parties: [] } })).toBe(pagesFor(few));
+  });
+
+  /* A tracker job has its own sheets; this page is the commissioning report's. */
+  it('is not printed on a tracker job', () => {
+    expect(pagesFor({ owes: owes(3) })).toBe(pagesFor({}));
+  });
+
+  it('prints each party’s name, its lines and the ask', () => {
+    const said = render(data({ ...few, owes: owes(2, 1) })).said.join('\n');
+    expect(said).toContain('Who owes what, by when');
+    expect(said).toContain('Supplier 1 owes');
+    expect(said).toContain('WAS 18 Sept');
+    expect(said).toContain('BEFORE THE NEXT REPORT');
+  });
+
+  it('packs cards into the shortest column, and starts a new sheet when none has room', () => {
+    const l = layoutOwes([300, 200, 100, 400], 2, 500);
+    expect(l.at.map(a => [a.sheet, a.col])).toEqual([[0, 0], [0, 1], [0, 1], [1, 0]]);
+    expect(l.sheets).toBe(2);
+  });
+
+  it('uses no sheet for no cards', () => {
+    expect(layoutOwes([], 2, 500).sheets).toBe(0);
+  });
+
+  it('reads four parties as two by two, not three and one', () => {
+    expect([1, 2, 3, 4, 5, 9].map(owesColumns)).toEqual([1, 2, 3, 2, 3, 3]);
   });
 });

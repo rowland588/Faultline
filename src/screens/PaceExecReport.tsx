@@ -27,7 +27,9 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { foundWords, hasRun, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
+import { foundWords, hasRun, plannedEnd, standingOfItem, type Asset, type Test, type TestItem } from '../lib/testing';
+import { strandsOf } from '../lib/strands';
+import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
@@ -279,6 +281,62 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
         <footer className="exec-foot">
           <span>{title} · client report · page {n} of {of} — what we are waiting on</span>
           <span>Green from the week it lands, the same as the plan it comes off.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+/* WHO OWES WHAT, BY WHEN — the screen's copy of page 3. The same block the
+ * file draws, one card per party: what has to happen, what it hangs off, by
+ * when, and the ask. See lib/owes. */
+function OwesPage({ o, title, scale, sheetH, n, of }: {
+  o: NonNullable<PaceReportData['owes']>;
+  title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  const SHOWN = 14;   // the same cap the file uses
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="Who owes what, by when" sowhat={o.says} />
+            <div className={'ow-grid is-' + Math.min(3, o.parties.length === 4 ? 2 : o.parties.length)}>
+              {o.parties.map(p => (
+                <article key={p.who} className={'ow-card is-' + p.kind + (p.late ? ' is-late' : '')}>
+                  <header className="ow-head">
+                    <h3>{p.kind === 'nobody' ? 'Nobody named yet — needs an owner' : `${p.who} owes`}</h3>
+                    <span className="ow-n">
+                      {p.lines.length} thing{p.lines.length === 1 ? '' : 's'}
+                      {p.late > 0 && <b> · {p.late} past the day</b>}
+                    </span>
+                  </header>
+                  <ol className="ow-lines">
+                    {p.lines.slice(0, SHOWN).map((l, i) => (
+                      <li key={i} className={'ow-line is-' + l.tone}>
+                        <span className="ow-what">
+                          <b>{l.what}</b>
+                          <span>{[l.about, l.person].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        <span className="ow-when">{l.when}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  {p.lines.length > SHOWN && (
+                    <p className="exec-more">+{p.lines.length - SHOWN} more — on the Testing, Fixes, Materials and Programs screens</p>
+                  )}
+                  <p className="ow-ask">
+                    <span>Before the next report</span>
+                    {p.ask.replace(/^Before the next report: /, '').replace(/^./, c => c.toUpperCase())}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · client report · page {n} of {of} — who owes what, by when</span>
+          <span>The same debts as page 1, sorted by who owes them. Every line names what it hangs off.</span>
         </footer>
       </section>
     </div>
@@ -860,6 +918,9 @@ export function PaceExecReport() {
         /* The plan and the day are two fields, never one — the difference
            between what you meant to run and what you ran is usually the story. */
         when: c.outcome === 'planned' ? fmtShort(c.plannedFor) : fmtShort(c.ranOn ?? c.plannedFor),
+        /* The day as a date, for page 3's ordering. A run waiting on its
+           verdict is owed SINCE the day it ran, not the day it was booked. */
+        on: hasRun(t) ? (t.ranOn ?? t.plannedFor) : t.plannedFor,
         passesIf: c.passesIf ?? '',
         withWhom: c.withWhom ?? '',
         product: c.product ?? '',
@@ -875,6 +936,7 @@ export function PaceExecReport() {
           done: nx.done,
           /* Its OWN lateness, off its own ISO date — not its parent's. */
           late: !nx.done && !!nx.due && nx.due < todayISO(),
+          on: nx.due,
         } : undefined,
         nextMore: Math.max(0, c.next.length - 1),
         follows: c.follows,
@@ -890,12 +952,73 @@ export function PaceExecReport() {
      carry behind them. What prints is now what the project HAS. */
   const hasTracker = actions.length > 0 || nums.measures.length > 0;
 
+  /* WHO OWES WHAT, BY WHEN — page 3. Every line read off a record the pages
+     before it already draw: the strands' owed lines (so page 1 and page 3
+     cannot disagree), the materials not in, the programs not proved, the
+     machines not running, and the observations nobody has decided on. Left off
+     a line's own deck, like the plan: the debts belong to the job. */
+  const owesBlock = ((): PaceReportData['owes'] => {
+    if (line || !project?.commissioning) return undefined;
+    const debts: Debt[] = [];
+    for (const s of trialsBlock ? strandsOf(trialsBlock.rows) : []) {
+      for (const o of s.owed) {
+        debts.push({ who: o.owner, what: o.what, about: s.name, on: o.on, late: o.late, since: o.since });
+      }
+    }
+    for (const m of mats.materials) {
+      if (m.deletedAt || isHere(m)) continue;
+      debts.push({ who: m.from ?? '', what: m.what, about: 'to arrive on site',
+        on: m.due, late: !!m.due && m.due < today });
+    }
+    for (const pr of progs.programs) {
+      if (pr.deletedAt || stateOf(pr) === 'proved') continue;
+      debts.push({ who: pr.from ?? '', what: `Prove ${pr.what}`,
+        about: machines.find(a => a.id === pr.assetId)?.name ?? 'program',
+        on: pr.testOn, late: daysOverdue(pr, today) != null });
+    }
+    for (const a of machines) {
+      if (a.deletedAt || a.state === 'running') continue;
+      const landed = !!a.onSiteOn || a.state !== 'awaited';
+      debts.push({ who: a.oem ?? '', what: landed ? 'Get it running' : 'Get it on site', about: a.name,
+        on: landed ? undefined : a.dueOn, late: !landed && !!a.dueOn && a.dueOn < today });
+    }
+    /* An observation nobody has decided on is the SITE's debt — whether it is
+       a fix is the site's call — and it is what the OEM will be asked about. */
+    const live = new Map(tests.filter(t => !t.deletedAt).map(t => [t.id, t]));
+    const undecided = new Map<string, TestItem[]>();
+    for (const i of testItems) {
+      if (i.deletedAt || i.kind !== 'found' || !live.has(i.testId)) continue;
+      if (standingOfItem(i, testItems) !== 'new') continue;
+      undecided.set(i.testId, [...(undecided.get(i.testId) ?? []), i]);
+    }
+    for (const [testId, found] of undecided) {
+      const t = live.get(testId);
+      if (!t) continue;
+      debts.push({ who: 'the site',
+        what: found.length === 1 ? `Decide on “${found[0].what}”` : `Decide on ${found.length} observations`,
+        about: t.title, on: t.ranOn, late: false, since: !!t.ranOn });
+    }
+    if (debts.length === 0) return undefined;
+    const suppliers = [
+      ...machines.map(a => a.oem), ...mats.materials.map(m => m.from),
+      /* A TEST's "done with" names the other side. A FIX's is who is doing it,
+         and that is as often Dave on nights as it is the OEM — counting it made
+         Dave a company of his own on the client's page. */
+      ...progs.programs.map(pr => pr.from), ...tests.filter(t => t.kind !== 'fix').map(t => t.withWhom),
+    ].filter((x): x is string => !!x);
+    return whoOwes(debts, { suppliers, today, day: iso => fmtShort(iso) });
+  })();
+
   /* One order, counted once. Pace, then where the time is going, then the plan,
      then the work, then the detail — and every page number falls out of the
      same arithmetic the pages themselves are rendered from. */
-  const paretoPageNo = 2;
+  /* Who owes what sits directly behind the front page on a commissioning job,
+     as it does in the file. */
+  const hasOwes = !hasTracker && !!owesBlock && owesBlock.parties.length > 0;
+  const owesPageNo = 2;
+  const paretoPageNo = owesPageNo + (hasOwes ? 1 : 0);
   const hasMaterials = !!materialsBlock && materialsBlock.rows.length > 0;
-  const materialsPageNo = 2 + (hasPareto ? 1 : 0);
+  const materialsPageNo = paretoPageNo + (hasPareto ? 1 : 0);
   const hasPrograms = !!programsBlock && programsBlock.rows.length > 0;
   const programsPageNo = materialsPageNo + (hasMaterials ? 1 : 0);
   const treePageNo = programsPageNo + (hasPrograms ? 1 : 0);
@@ -903,7 +1026,7 @@ export function PaceExecReport() {
   /* The detail page carries the tracker, the next steps, the walk and the wins.
      With none of them it is a page of headings, so it is not printed. */
   const hasDetail = hasTracker || (todos?.length ?? 0) > 0 || wins.length > 0 || snags.length > 0;
-  const pageCount = 1 + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
+  const pageCount = 1 + (hasOwes ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
     + (hasTree ? 1 : 0) + boardPlan.length;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
@@ -1128,6 +1251,7 @@ export function PaceExecReport() {
     programs: programsBlock,
     trials: trialsBlock,
     plan: planBlock,
+    owes: owesBlock,
     tracker: hasTracker,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
@@ -1299,6 +1423,10 @@ export function PaceExecReport() {
         </footer>
       </section>
       </div>
+
+      {hasOwes && owesBlock && (
+        <OwesPage o={owesBlock} title={title} scale={scale} sheetH={SHEET_H} n={owesPageNo} of={pageCount} />
+      )}
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
       {pView && <ParetoPage view={pView} title={title} scale={scale} sheetH={SHEET_H} n={paretoPageNo} of={pageCount} />}
