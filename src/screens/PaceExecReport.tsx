@@ -27,8 +27,8 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { foundWords, hasRun, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
-import { strandsOf } from '../lib/strands';
+import { hasRun, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
+import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
@@ -352,8 +352,61 @@ function OwesPage({ o, title, scale, sheetH, n, of }: {
  * because the difference between what you meant to run and what you ran is
  * usually the story.
  */
+/* PAGE 1, AS THE PDF DRAWS IT — one card per test, with the fixes for it.
+ *
+ * The preview still drew the old card: Expected / Happened / Found / Next, one
+ * test to a card, the re-test a card of its own. The PDF moved to strands —
+ * a test, every attempt at it, the fixes for it, and the one thing next — and
+ * the screen somebody reads before sending it went on showing the old shape.
+ * Built from the same strandsOf() call, so the card on the screen is the card
+ * in the file. */
+const STRAND_TONE: Record<Strand['state'], string> = { proved: 'ok', failed: 'bad', noVerdict: 'warn', notRun: 'flat' };
+const FIX_TONE_CLASS: Record<string, string> = { done: 'ok', failed: 'bad', waiting: 'warn', late: 'bad', due: 'flat' };
+const RUN_TONE: Record<string, string> = { passed: 'ok', failed: 'bad', notRun: 'bad', planned: 'warn' };
+
+function StrandCard({ s }: { s: Strand }) {
+  const tone = s.state === 'notRun' && s.late ? 'bad' : STRAND_TONE[s.state];
+  return (
+    <article className={'st-card is-' + tone}>
+      <header>
+        <h4>{s.name}</h4>
+        <span className={'st-badge is-' + tone}>{strandWord(s)}</span>
+      </header>
+      <p className="tr-meta">{[s.machine, s.withWhom && `with ${s.withWhom}`].filter(Boolean).join(' \u00b7 ')}</p>
+      <p className="st-passes"><b>Passes if:</b> <span className={s.provesIf ? '' : 'is-none'}>{s.provesIf || 'nothing agreed in advance'}</span></p>
+      <div className="st-rows">
+        {s.runs.slice(-4).map((r, i) => (
+          <div className="st-row" key={`r${i}`}>
+            <span className="st-c1">{r.when || '\u2014'}</span>
+            <span className={'st-c2 is-' + (RUN_TONE[r.outcome] ?? 'flat')}>{r.word}</span>
+            <span className="st-c3">{r.reason || '\u2014'}</span>
+          </div>
+        ))}
+        {s.fixes.slice(0, 3).map((f, i) => (
+          <div className="st-row" key={`f${i}`}>
+            <span className="st-c1 is-ink">Fix</span>
+            <span className={'st-c2 is-' + (FIX_TONE_CLASS[f.tone] ?? 'flat')}>{f.word}</span>
+            <span className="st-c3">{[f.what, f.who || 'nobody yet', f.when].filter(Boolean).join(' \u00b7 ')}</span>
+          </div>
+        ))}
+        {s.fixes.length > 3 && <p className="st-more">+{s.fixes.length - 3} more fixes — see who owes what</p>}
+      </div>
+      {s.next && (
+        <div className={'st-row st-next' + (s.next.late ? ' is-late' : '')}>
+          <span className="st-c1 is-ink">Next</span>
+          <span className="st-c2 is-bad">{s.next.late ? 'LATE' : ''}</span>
+          <span className="st-c3"><b>{[s.next.what, s.next.who || 'nobody yet', s.next.when].filter(Boolean).join(' \u00b7 ')}</b></span>
+        </div>
+      )}
+    </article>
+  );
+}
+
 function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
-  if (!t || t.rows.length === 0) {
+  /* Tests only, in the order the PDF prints them — late first. A fix on its
+     own is page 3's business, as it is in the file. */
+  const strands = t ? orderStrands(strandsOf(t.rows)).filter(x => x.kind === 'test') : [];
+  if (strands.length === 0) {
     return (
       <section className="exec-box">
         <SectionHead n="1" title="What we are proving" sowhat="nothing planned yet" />
@@ -362,44 +415,15 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
     );
   }
   const SHOWN = 6;
-  const rows = t.rows.slice(0, SHOWN);
+  const shown = strands.slice(0, SHOWN);
   return (
     <section className="exec-box">
-      <SectionHead n="1" title="What we are proving"
-        sowhat={`${t.planned} booked \u00b7 ${t.passed} passed${t.failed ? ` \u00b7 ${t.failed} didn\u2019t` : ''}${
-          t.notRun ? ` \u00b7 ${t.notRun} didn\u2019t run` : ''}`} />
-      <div className="tr-cards">
-        {rows.map((r, i) => (
-          <article className={'tr-card is-' + r.outcome} key={`${r.title}-${i}`}>
-            <header>
-              <h4>{r.title}</h4>
-              <span className={'tr-out is-' + r.outcome}>{r.outcomeWord}</span>
-            </header>
-            <p className="tr-meta">
-              {[r.machine, r.withWhom && `with ${r.withWhom}`, r.when, r.product].filter(Boolean).join(' \u00b7 ')}
-            </p>
-            <dl className="tr-loop">
-              <dt>Expected</dt>
-              <dd className={r.passesIf ? '' : 'is-none'}>{r.passesIf || 'nothing agreed in advance'}</dd>
-              <dt>Happened</dt>
-              <dd className={r.outcome === 'planned' ? 'is-none' : 'is-strong'}>{r.verdict || '\u2014'}</dd>
-              <dt>Found</dt>
-              <dd>
-                {foundWords(r.found)}
-              </dd>
-              <dt>Next</dt>
-              <dd className={r.next ? (r.next.owner ? 'is-strong' : 'is-bad') : 'is-none'}>
-                {r.next
-                  ? [r.next.what, r.next.owner || 'nobody yet', r.next.due].filter(Boolean).join(' \u00b7 ')
-                    + (r.nextMore ? ` (+${r.nextMore} more)` : '')
-                  : 'nothing agreed yet'}
-              </dd>
-            </dl>
-          </article>
-        ))}
+      <SectionHead n="1" title="What we are proving" sowhat="" />
+      <div className={'st-cards' + (shown.length <= 3 ? ' is-one' : '')}>
+        {shown.map((s, i) => <StrandCard key={`${s.name}-${i}`} s={s} />)}
       </div>
-      {t.rows.length > rows.length && (
-        <p className="exec-more">+{t.rows.length - rows.length} on the sheet behind this one</p>
+      {strands.length > shown.length && (
+        <p className="exec-more">+{strands.length - shown.length} more on the sheet behind this one</p>
       )}
     </section>
   );
@@ -1356,7 +1380,7 @@ export function PaceExecReport() {
                   : 'Commissioning · client report'}
             </p>
             <h1 className="exec-title">{title}</h1>
-            <p className="exec-lede">{subtitle}</p>
+            <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the job is · who owes what, by when'}</p>
           </div>
           <div className="exec-head-meta">
             <span className="exec-asat">Status as at</span>
@@ -1371,12 +1395,24 @@ export function PaceExecReport() {
               and "0/2 lines at target" are not facts about a commissioning job,
               they are facts about a spreadsheet it does not keep. */}
           {!hasTracker ? (<>
-            <Stat n={String(trialsBlock?.planned ?? 0)} label="Booked" sub="still to do" tone="flat" />
-            <Stat n={String(trialsBlock?.passed ?? 0)} label="Passed or fixed" sub={`of ${trialRows.length} run or booked`} tone="good" />
-            <Stat n={String(trialsBlock?.failed ?? 0)} label="Didn’t pass" sub="and what came of it" tone={(trialsBlock?.failed ?? 0) > 0 ? 'bad' : 'good'} />
-            <Stat n={String(progs.tally.proved)} label="Programs proved" sub={`of ${progs.tally.total} on the machine`} tone={progs.tally.proved > 0 ? 'good' : 'flat'} />
-            <Stat n={String(mats.tally.late)} label="Films late" sub="past the date, still not here" tone={mats.tally.late > 0 ? 'bad' : 'good'} />
-            <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
+            {/* THE PDF'S OWN TILES. These said Booked / Passed or fixed /
+                Programs proved / Films late while the file said Tests /
+                Proved / Failed / Waiting / Past the day — two sets of numbers
+                for one job, a tap apart. Same strands, same owes total. */}
+            {(() => {
+              const heads = orderStrands(strandsOf(trialsBlock?.rows ?? [])).filter(x => x.kind === 'test');
+              const n = (st: Strand['state']) => heads.filter(x => x.state === st).length;
+              const reBooked = heads.filter(x => x.state === 'failed' && x.next?.what === 'Re-test').length;
+              const pastDay = owesBlock?.parties.reduce((k, pt) => k + pt.late, 0) ?? 0;
+              return (<>
+                <Stat n={String(heads.length)} label="Tests" sub="being proved on this job" tone="flat" />
+                <Stat n={String(n('proved'))} label="Proved" sub={`of ${heads.length}`} tone={n('proved') > 0 ? 'good' : 'flat'} />
+                <Stat n={String(n('failed'))} label="Failed" sub={n('failed') ? `${reBooked} with a re-test booked` : 'none'} tone={n('failed') > 0 ? 'bad' : 'good'} />
+                <Stat n={String(n('noVerdict') + n('notRun'))} label="Waiting" sub={`${n('noVerdict')} no verdict \u00b7 ${n('notRun')} not run`} tone={n('noVerdict') + n('notRun') > 0 ? 'warn' : 'good'} />
+                <Stat n={String(pastDay)} label="Past the day" sub="owed across the job — see who owes what" tone={pastDay > 0 ? 'bad' : 'good'} />
+                {openSnags.length > 0 && <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone="warn" />}
+              </>);
+            })()}
           </>) : line
             ? (() => {
                 const ser = seriesByLine.get(line.id);

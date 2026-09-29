@@ -6452,3 +6452,35 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .jb-focus-h { align-items: flex-start; }
   .jb-focus-h h3 { font-size: 16px; }
 }
+
+/* PAGE 1 OF THE PREVIEW, drawn as the PDF draws it: one card per test. */
+.st-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.st-cards.is-one { grid-template-columns: 1fr; }
+.st-card {
+  display: flex; flex-direction: column; gap: 5px; padding: 11px 13px 10px;
+  border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: 10px; background: var(--surface);
+}
+.st-card.is-ok { border-left-color: var(--ok); }
+.st-card.is-bad { border-left-color: var(--danger); }
+.st-card.is-warn { border-left-color: var(--warn); }
+.st-card.is-flat { border-left-color: var(--blue); }
+.st-card header { display: flex; align-items: flex-start; gap: 10px; }
+.st-card h4 { margin: 0; flex-grow: 1; font-size: 13.5px; line-height: 1.25; }
+.st-badge { flex: none; padding: 2px 8px; border-radius: 999px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; }
+.st-badge.is-ok { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.st-badge.is-bad { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.st-badge.is-warn { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.st-badge.is-flat { background: var(--blue-soft); color: var(--blue); }
+.st-passes { margin: 0; padding-bottom: 5px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--ink-2); }
+.st-passes .is-none { color: var(--muted); font-style: italic; }
+.st-rows { display: flex; flex-direction: column; gap: 3px; }
+.st-row { display: grid; grid-template-columns: 50px 72px 1fr; gap: 8px; font-size: 11.5px; line-height: 1.35; }
+.st-c1 { font-size: 10px; font-weight: 800; color: var(--muted); padding-top: 1px; }
+.st-c1.is-ink { color: var(--ink); }
+.st-c2 { font-size: 10px; font-weight: 800; padding-top: 1px; }
+.st-c2.is-ok { color: var(--ok); } .st-c2.is-bad { color: var(--danger); } .st-c2.is-warn { color: var(--warn); } .st-c2.is-flat { color: var(--ink-2); }
+.st-c3 { color: var(--ink); min-width: 0; }
+.st-more { margin: 0; font-size: 10.5px; color: var(--muted); }
+.st-next { margin-top: 3px; padding-top: 6px; border-top: 1px solid var(--line); }
+.st-next.is-late .st-c3 { color: var(--danger); }
+@media (max-width: 720px) { .st-cards { grid-template-columns: 1fr; } }
