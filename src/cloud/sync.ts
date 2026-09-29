@@ -49,6 +49,10 @@ export interface SyncStatus {
    *  filmed an hour ago is still sitting on this phone. */
   pendingUp?: number;
   pendingDown?: number;
+  /** Named by a record and not in the cloud at all: the device that took it
+   *  has not sent it. No amount of waiting on THIS device brings it down, so
+   *  it is counted apart from what is merely still on its way. */
+  missingDown?: number;
 }
 let status: SyncStatus = { state: 'signedout', lastSyncedAt: null };
 const listeners = new Set<() => void>();
@@ -136,22 +140,115 @@ async function uploadMedia(_uid: string, keys: MediaKey[], uploaded: Set<string>
     uploaded.add(key);
   }
 }
-async function downloadMedia(uid: string, keys: MediaKey[], failed: Map<string, string | undefined>): Promise<void> {
-  const sb = supabase!;
-  for (const { key, mime, owner } of keys) {
-    if (!key || (await hasBlob(key))) { if (key) failed.delete(key); continue; }
-    const paths = [key, ...(owner && owner !== uid ? [`${owner}/${key}`] : []), `${uid}/${key}`];
-    let got: Blob | null = null;
-    for (const path of paths) {
-      const { data, error } = await sb.storage.from(BUCKET).download(path);
-      if (!error && data) { got = data; break; }
+/** A storage answer that means "no such file", as opposed to a dropped
+ *  connection. The API answers a missing object with a 400 whose body says
+ *  404; a network failure never gets that far. */
+export const isNotThere = (e: unknown): boolean => {
+  const x = e as { status?: number; statusCode?: string; message?: string } | null;
+  return !!x && (x.status === 404 || x.statusCode === '404' || /not.?found/i.test(x.message ?? ''));
+};
+
+/** Fetch one file into this device. 'absent' only when every place it could
+ *  be says it is not there; anything else that failed is worth another go. */
+async function downloadOne(uid: string, key: string, owner?: string, mime?: string): Promise<'got' | 'absent' | 'failed'> {
+  const sb = supabase;
+  if (!sb) return 'failed';
+  const paths = [key, ...(owner && owner !== uid ? [`${owner}/${key}`] : []), `${uid}/${key}`];
+  let absentEverywhere = true;
+  for (const path of paths) {
+    const { data, error } = await sb.storage.from(BUCKET).download(path);
+    if (!error && data) {
+      // Re-derive the type from the bytes: what comes back off the wire is often
+      // application/octet-stream, which no <video> or <img> will render.
+      await putBlob(key, await withUsableMime(data, mime));
+      return 'got';
     }
-    if (!got) { failed.set(key, owner); continue; }    // queued — retried on every sync until it lands
-    // Re-derive the type from the bytes: what comes back off the wire is often
-    // application/octet-stream, which no <video> or <img> will render.
-    await putBlob(key, await withUsableMime(got, mime));
-    failed.delete(key);
+    if (!isNotThere(error)) absentEverywhere = false;
   }
+  return absentEverywhere ? 'absent' : 'failed';
+}
+
+/* ---------- THE DOWNLOAD QUEUE ----------
+ *
+ * Rowland, on the laptop: "20 still coming down … I need instant connecting
+ * sync between devices, not this uploading system."
+ *
+ * The records WERE instant — a test typed on the phone is on the laptop a
+ * second or two later. What was not was everything behind them, for three
+ * reasons, and the counter could not tell them apart:
+ *
+ * 1. THE PULL WAITED FOR THE FILMS. Every row the pull took from the cloud
+ *    fetched its media there and then, before the next row. A walk is tens of
+ *    megabytes: a laptop's first pull sat on each video in turn, and every row
+ *    after it — and every change made on the phone in the meantime — waited
+ *    behind the film. The push was cured of this a long time ago ("rows before
+ *    blobs"); the pull never was. Now the pull only QUEUES a file, and the
+ *    queue drains on its own, beside the sync rather than inside it: photos
+ *    first, films last, one at a time, counting down as each lands.
+ *
+ * 2. SOME OF THEM WERE NEVER COMING. Eight files named by records in the
+ *    cloud were not in the cloud: walk films from August and September that
+ *    never left the phone that shot them. "It carries on by itself" was not
+ *    true of those — no amount of waiting on the laptop fetches a file that
+ *    is only on a phone. They are counted apart now, and the words say where
+ *    they are.
+ *
+ * 3. THE QUEUE NEVER FORGOT. A file whose record had since been deleted
+ *    stayed in the queue for ever. It is pruned to what a live record names.
+ */
+const DOWN_KEY = 'pendingDownloads';
+type DownEntry = { owner?: string; mime?: string };
+let queueLock: Promise<unknown> = Promise.resolve();
+/** Read-modify-write of the queue, one at a time — the sync pass and the
+ *  drain both change it, and two overlapping writes would lose one. */
+function withQueue<T>(fn: (q: Map<string, DownEntry>) => Promise<T> | T): Promise<T> {
+  const run = queueLock.then(async () => {
+    const q = new Map<string, DownEntry>();
+    for (const s of await keySet(DOWN_KEY)) {
+      const i = s.indexOf('|');
+      q.set(i < 0 ? s : s.slice(0, i), { owner: i < 0 ? undefined : s.slice(i + 1) || undefined, mime: mimes.get(i < 0 ? s : s.slice(0, i)) });
+    }
+    const out = await fn(q);
+    await keySetPut(DOWN_KEY, new Set([...q].map(([k, e]) => (e.owner ? `${k}|${e.owner}` : k))));
+    return out;
+  });
+  queueLock = run.catch(() => undefined);
+  return run;
+}
+/** The type each queued file was named with, for this session — the queue on
+ *  disk keeps only key and owner, and the bytes say the rest. */
+const mimes = new Map<string, string>();
+/** Files known not to be in the cloud, this session. Still queued — the phone
+ *  that has one may send it at any moment — but not counted as "coming". */
+const absent = new Set<string>();
+
+const isFilm = (key: string) => (mimes.get(key) ?? '').startsWith('video/');
+
+function countDown(q: Map<string, DownEntry>) {
+  const missing = [...q.keys()].filter(k => absent.has(k)).length;
+  set({ pendingDown: q.size - missing, missingDown: missing });
+}
+
+let draining = false;
+let drainAgain = false;
+/** Fetch everything queued: pictures first, films last. Beside the sync, not
+ *  inside it, so a film coming down never holds a record up. */
+export async function drainDownloads(uid: string): Promise<void> {
+  if (draining) { drainAgain = true; return; }
+  draining = true;
+  try {
+    do {
+      drainAgain = false;
+      const todo = await withQueue(q => [...q].sort(([a], [b]) => Number(isFilm(a)) - Number(isFilm(b))));
+      for (const [key, e] of todo) {
+        if (await hasBlob(key)) { await withQueue(q => { q.delete(key); countDown(q); }); continue; }
+        const r = await downloadOne(uid, key, e.owner, e.mime);
+        if (r === 'got') absent.delete(key);
+        else if (r === 'absent') absent.add(key);
+        await withQueue(q => { if (r === 'got') q.delete(key); countDown(q); });
+      }
+    } while (drainAgain);
+  } finally { draining = false; }
 }
 
 /* ---------- WHAT HAS ACTUALLY BEEN SENT ----------
@@ -260,9 +357,6 @@ export async function syncNow(): Promise<void> {
     const sent = await readSent();
     const uploaded = await keySet('uploaded');
     const wantedUploads = await keySet('pendingUploads');   // prior failures — retried AFTER the rows
-    const failedDownloads = new Map<string, string | undefined>(
-      [...await keySet('pendingDownloads')].map(s => { const i = s.indexOf('|'); return i < 0 ? [s, undefined] : [s.slice(0, i), s.slice(i + 1) || undefined]; }),
-    );
 
     /* ROWS BEFORE BLOBS — and the media retry queue LAST.
      *
@@ -344,10 +438,8 @@ export async function syncNow(): Promise<void> {
         if (localRow) {
           /* Our own echo, or a row we hold the newer copy of: keep ours and
              fetch any blob it is missing. The rule is remoteWins(), above. */
-          if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) {
-            await downloadMedia(uid, map.mediaKeys(localRow), failedDownloads);
-            return;
-          }
+          /* Its files are the end-of-pass sweep's business, not this row's. */
+          if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) return;
         }
 
         const incoming = map.fromRow(r);
@@ -358,7 +450,6 @@ export async function syncNow(): Promise<void> {
            send it straight back up as if it were ours, bumping rev and making
            every other device pull it again — an echo for each edit. */
         Object.assign(sent, { [key]: map.clock(merged as Record<string, unknown>) });
-        await downloadMedia(uid, map.mediaKeys(merged as Record<string, unknown>), failedDownloads);
       };
 
       // Missing table is decided here so the legacy pass below doesn't ask again
@@ -412,13 +503,18 @@ export async function syncNow(): Promise<void> {
     const wanted = new Set<string>(wantedUploads);
     const alive = new Set<string>();          // every row still here, for the prune
     const liveBlobs = new Set<string>();      // every blob a live row names, for the other prune
+    const named = new Map<string, DownEntry>(); // …and who took it, for fetching it
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
       const batch: { key: string; clock: number; row: Record<string, unknown>; local: Record<string, unknown> }[] = [];
       for (const local of await rawAll(kind)) {
         const key = sentKey(kind, local.id as string);
         alive.add(key);
-        for (const m of map.mediaKeys(local)) liveBlobs.add(m.key);
+        for (const m of map.mediaKeys(local)) {
+          liveBlobs.add(m.key);
+          if (m.mime) mimes.set(m.key, m.mime);
+          named.set(m.key, { owner: m.owner, mime: m.mime });
+        }
         const clock = map.clock(local);
         if (needsPush(sent, kind, local.id as string, clock)) {
           batch.push({ key, clock, row: map.toRow(local, uid), local });
@@ -458,7 +554,6 @@ export async function syncNow(): Promise<void> {
 
     // ---- and only now, what failed on earlier passes ----
     if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, new Set());
-    if (failedDownloads.size) await downloadMedia(uid, [...failedDownloads].map(([key, owner]) => ({ key, owner })), failedDownloads);
 
     /* The cursor is now ONLY the legacy pull's (a cloud too old for rev
        cursors). Compare-and-set so a Full re-sync tapped mid-pass is not
@@ -470,12 +565,23 @@ export async function syncNow(): Promise<void> {
     if ((await getSyncCursor()) === cursor) await setSyncCursor(startedAt);
     // Retry queues persist regardless — an extra retry is harmless, a lost one isn't.
     const stillUp = new Set([...wanted].filter(k => !uploaded.has(k)));
-    const stillDown = new Set([...failedDownloads].map(([k, o]) => (o ? `${k}|${o}` : k)));
     await keySetPut('pendingUploads', stillUp);
-    await keySetPut('pendingDownloads', stillDown);
+    /* THE SWEEP. Every file a live record names that this device does not
+       hold joins the queue; what no live record names leaves it. Asked of
+       every record on every pass rather than of the rows this pass happened
+       to pull, so a pass that failed half way, a file that arrived after its
+       row, or a device that has never had it all come right on their own. */
+    const missingHere = new Map<string, DownEntry>();
+    for (const [k, e] of named) if (!(await hasBlob(k))) missingHere.set(k, e);
+    await withQueue(q => {
+      for (const [k, e] of missingHere) if (!q.has(k)) q.set(k, e);
+      for (const k of [...q.keys()]) if (!liveBlobs.has(k)) q.delete(k);
+      countDown(q);
+    });
 
-    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, pendingDown: stillDown.size });
-    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, pendingDown: stillDown.size });
+    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size });
+    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size });
+    void drainDownloads(uid);
   } catch (e) {
     set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });
   } finally {
@@ -529,6 +635,7 @@ export async function fullResync(): Promise<void> {
   await metaPut('uploaded', { keys: [] });
   await metaPut('pendingUploads', { keys: [] });
   await metaPut('pendingDownloads', { keys: [] });
+  absent.clear();
   set({ state: 'syncing', error: undefined });
   // Let the in-flight pass finish — but never wait for ever. The flag is cleared
   // in that pass's finally, so this normally ends in well under a second; the

@@ -139,10 +139,13 @@ describe('the order of a pass', () => {
   });
 
   /* The queue must still run. Moving it to the end and quietly dropping it
-     would trade a stall for silent data loss on the films. */
+     would trade a stall for silent data loss on the films. Downloads left the
+     pass for a drain beside it (see sync-downloads.test) — the pass still
+     queues every file a record names that this device lacks, and starts it. */
   it('still retries the failed-media queue', () => {
     expect(body).toContain(RETRY_UPLOADS);
-    expect(body).toContain('if (failedDownloads.size) await downloadMedia(');
+    expect(body).toContain('for (const [k, e] of named) if (!(await hasBlob(k))) missingHere.set(k, e);');
+    expect(body).toContain('void drainDownloads(uid);');
   });
 
   /* Tombstones stay in front of everything: a delete this device has already

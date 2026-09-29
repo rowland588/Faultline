@@ -45,12 +45,13 @@ export function CloudPanel() {
             {status.state === 'error' && <span className="sub">Backup paused — it will retry by itself</span>}
             {/* "Is everything synced?" answered with a number. Silence means
                 yes; a count means the files still moving, and how many. */}
-            {status.state !== 'error' && (status.pendingUp || status.pendingDown) ? (
+            {status.state !== 'error' && (status.pendingUp || status.pendingDown || status.missingDown) ? (
               <span className="sub">
-                {status.pendingUp ? `${status.pendingUp} file${status.pendingUp === 1 ? '' : 's'} still to back up` : ''}
-                {status.pendingUp && status.pendingDown ? ' · ' : ''}
-                {status.pendingDown ? `${status.pendingDown} still to download` : ''}
-                {' — keep this device online'}
+                {[
+                  status.pendingUp ? `${status.pendingUp} file${status.pendingUp === 1 ? '' : 's'} still to back up` : '',
+                  status.pendingDown ? `${status.pendingDown} still to download` : '',
+                  status.missingDown ? `${status.missingDown} only on the phone that took ${status.missingDown === 1 ? 'it' : 'them'}` : '',
+                ].filter(Boolean).join(' · ')}
               </span>
             ) : status.state === 'idle' && status.lastSyncedAt ? (
               <span className="sub">Everything is backed up ✓</span>
@@ -70,11 +71,17 @@ export function CloudPanel() {
           Your work backs up and syncs to your devices automatically
           {status.lastSyncedAt ? ` — last checked in ${fmtRelative(status.lastSyncedAt)}` : ''}.
         </p>
-        {(status.pendingUp || status.pendingDown) ? (
+        {/* THREE DIFFERENT FACTS, NOT ONE COUNT. Records sync in seconds;
+            this is only photos and films. What is coming down will arrive by
+            itself. What is not in the cloud at all will not, however long this
+            device waits — it is on the phone that took it, and saying "it
+            carries on by itself" about those was not true. */}
+        {(status.pendingUp || status.pendingDown || status.missingDown) ? (
           <p className="sub" style={{ marginBottom: 10 }}>
-            {status.pendingUp ? <><b>{status.pendingUp}</b> file{status.pendingUp === 1 ? '' : 's'} still going up. </> : null}
-            {status.pendingDown ? <><b>{status.pendingDown}</b> still coming down. </> : null}
-            Video is the slow part — a walk is a big file. It carries on by itself while the app is open.
+            Tests, fixes and notes are already here — this is only photos and films.{' '}
+            {status.pendingUp ? <><b>{status.pendingUp}</b> file{status.pendingUp === 1 ? '' : 's'} still going up from this device. </> : null}
+            {status.pendingDown ? <><b>{status.pendingDown}</b> coming down now, photos first — films are the slow part. </> : null}
+            {status.missingDown ? <><b>{status.missingDown}</b> never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}. Open Faultline on that phone with a signal and {status.missingDown === 1 ? 'it' : 'they'} will come across.</> : null}
           </p>
         ) : status.lastSyncedAt ? (
           <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up ✓</p>
