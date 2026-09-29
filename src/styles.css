@@ -5618,6 +5618,13 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   }
   .peers::-webkit-scrollbar { display: none; }
   .peer { flex: 0 0 auto; min-height: 42px; }
+  /* THE ROW SAYS IT GOES ON. Five doors do not fit a phone, and "Details"
+     sat off the right edge with nothing to say it was there — found on the
+     phone pass. The edge fades where the row carries on. */
+  .peers {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+  }
 }
 
 /* The project's name sits ABOVE the heading now, small — the heading itself
@@ -6484,3 +6491,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .st-next { margin-top: 3px; padding-top: 6px; border-top: 1px solid var(--line); }
 .st-next.is-late .st-c3 { color: var(--danger); }
 @media (max-width: 720px) { .st-cards { grid-template-columns: 1fr; } }
+
+/* A thumb on the home board: the parties and the update link reach 44px. */
+@media (pointer: coarse) {
+  .jb-owe { min-height: 44px; align-items: center; }
+  .build-refresh { min-height: 36px; padding-inline: 12px; }
+}
