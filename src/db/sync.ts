@@ -48,6 +48,28 @@ export async function recordTombstones(kind: SyncKind, ids: ID[]): Promise<void>
 export async function listTombstones(): Promise<Tombstone[]> {
   return (await getDB()).getAll('tombstones');
 }
+/** How to take a delete back. See restoreRows. */
+export type Restore = () => Promise<void>;
+
+/** PUT ROWS BACK AS THEY WERE, stamped now, and take their tombstones back.
+ *
+ *  Stamped now because the delete may already have reached the cloud: the
+ *  tombstone push writes deleted_at and updated_at as of its own pass, so a
+ *  restore written after it is newer, and the upsert that follows is the copy
+ *  every other device keeps — the record comes back on them too. The
+ *  tombstone is cleared so one still waiting on this device cannot delete
+ *  the row again behind the undo. */
+export async function restoreRows(kind: SyncKind, rows: { id: ID }[]): Promise<void> {
+  if (!rows.length) return;
+  const db = await getDB();
+  const tx = db.transaction(kind as never, 'readwrite');
+  const t = now();
+  for (const r of rows) await (tx.objectStore(kind as never) as unknown as { put: (v: unknown) => Promise<unknown> }).put({ ...r, updatedAt: t });
+  await tx.done;
+  await clearTombstones(rows.map(r => r.id));
+  signalWrite();
+}
+
 export async function clearTombstones(ids: ID[]): Promise<void> {
   const db = await getDB();
   const tx = db.transaction('tombstones', 'readwrite');

@@ -25,10 +25,7 @@ export function EvidenceViewer({ media, onClose, onRemove }: {
     <div className="ev-viewer" onClick={onClose}>
       <button className="ev-close" onClick={onClose} aria-label="Close">✕</button>
       {onRemove && (
-        <button className="ev-remove" onClick={e => {
-          e.stopPropagation();
-          if (confirm(`Remove this ${media.kind === 'video' ? 'clip' : 'photo'}?\n\nIt comes off the record, the card and the report.`)) onRemove();
-        }}>Remove</button>
+        <button className="ev-remove" onClick={e => { e.stopPropagation(); onRemove(); }}>Remove</button>
       )}
       <div className="ev-stage" onClick={e => e.stopPropagation()}>
         {media.kind === 'photo'

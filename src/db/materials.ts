@@ -4,7 +4,7 @@ import type { ID } from '../types';
 import type { Material } from '../lib/materials';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows, type Restore } from './sync';
 
 export async function listMaterials(projectId: string): Promise<Material[]> {
   const all = await (await getDB()).getAllFromIndex('materials', 'by_project', projectId);
@@ -28,8 +28,11 @@ export async function putMaterials(rows: Material[]): Promise<void> {
   signalWrite();
 }
 
-export async function deleteMaterial(id: ID): Promise<void> {
-  await (await getDB()).delete('materials', id);
+export async function deleteMaterial(id: ID): Promise<Restore> {
+  const db = await getDB();
+  const row = await db.get('materials', id);
+  await db.delete('materials', id);
   await recordTombstones('materials', [id]);
   signalWrite();
+  return async () => { if (row) await restoreRows('materials', [row]); };
 }

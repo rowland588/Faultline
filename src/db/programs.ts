@@ -4,7 +4,7 @@ import type { ID } from '../types';
 import type { Program } from '../lib/programs';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows, type Restore } from './sync';
 
 export async function listPrograms(projectId: string): Promise<Program[]> {
   const all = await (await getDB()).getAllFromIndex('programs', 'by_project', projectId);
@@ -28,10 +28,13 @@ export async function putPrograms(rows: Program[]): Promise<void> {
   signalWrite();
 }
 
-export async function deleteProgram(id: ID): Promise<void> {
-  await (await getDB()).delete('programs', id);
+export async function deleteProgram(id: ID): Promise<Restore> {
+  const db = await getDB();
+  const row = await db.get('programs', id);
+  await db.delete('programs', id);
   await recordTombstones('programs', [id]);
   signalWrite();
+  return async () => { if (row) await restoreRows('programs', [row]); };
 }
 
 /** Every program a test proved, brought back into line with it.

@@ -3,6 +3,7 @@ import { useBootResume } from './state/useResume';
 import { Router } from './router';
 import { BootSplash } from './ui/Logo';
 import { UpdateBanner } from './ui/UpdateBanner';
+import { UndoHost } from './ui/Undo';
 
 /** A render error becomes a recoverable message, never a blank screen — a field
  *  app must not silently vanish. Local data is safe (it's in IndexedDB). */
@@ -34,6 +35,7 @@ export default function App() {
     <ErrorBoundary>
       <UpdateBanner />
       <Router />
+      <UndoHost />
     </ErrorBoundary>
   );
 }

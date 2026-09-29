@@ -3,7 +3,21 @@ import type { ID } from '../types';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows, type Restore } from './sync';
+import { getBlob, putBlob } from './blobs';
+
+/* ---------- UNDO ----------
+ * Every delete below hands back how to take it back: the rows as they were
+ * and the photos they pointed at, kept in memory for the few seconds the
+ * Undo is on screen. Nothing is written unless Undo is pressed. */
+async function keepBlobs(keys: string[]): Promise<Map<string, Blob>> {
+  const out = new Map<string, Blob>();
+  for (const k of keys) { const b = await getBlob(k); if (b) out.set(k, b); }
+  return out;
+}
+async function putBlobsBack(blobs: Map<string, Blob>): Promise<void> {
+  for (const [k, b] of blobs) await putBlob(k, b);
+}
 
 /* ---------- the machines ----------
    The store is still called commission_assets: it is already on every device
@@ -23,10 +37,11 @@ export async function putAsset(a: Asset): Promise<void> {
 /** Remove a machine. Its tests stay: a test that happened, happened, and losing
  *  the record of it because somebody tidied up the machine list would be the
  *  worst possible trade. They simply stop naming a machine. */
-export async function deleteAsset(id: ID, projectId: string): Promise<void> {
+export async function deleteAsset(id: ID, projectId: string): Promise<Restore> {
   const db = await getDB();
   const asset = await db.get('commission_assets', id);
   const tests = (await db.getAllFromIndex('tests', 'by_project', projectId)).filter(t => t.assetId === id);
+  const blobs = await keepBlobs(blobKeysOf(asset));
   const tx = db.transaction(['commission_assets', 'tests', 'media'], 'readwrite');
   await tx.objectStore('commission_assets').delete(id);
   const t = now();
@@ -35,6 +50,13 @@ export async function deleteAsset(id: ID, projectId: string): Promise<void> {
   await tx.done;
   await recordTombstones('commission_assets', [id]);
   signalWrite();
+  return async () => {
+    if (asset) await restoreRows('commission_assets', [asset]);
+    await putBlobsBack(blobs);
+    /* Its tests name it again — patched, so anything else typed on them in
+       the seconds between stays. */
+    for (const t of tests) await patchTest(t.id, { assetId: id });
+  };
 }
 
 /* ---------- the tests ---------- */
@@ -69,10 +91,11 @@ export async function patchTest(id: ID, patch: Partial<Test> | ((cur: Test) => P
 
 /** A test and everything under it. Both tombstoned, or the delete never leaves
  *  this device and the other one pushes its copy straight back. */
-export async function deleteTest(id: ID, projectId: string): Promise<void> {
+export async function deleteTest(id: ID, projectId: string): Promise<Restore> {
   const db = await getDB();
   const test = await db.get('tests', id);
   const items = (await db.getAllFromIndex('test_items', 'by_project', projectId)).filter(i => i.testId === id);
+  const blobs = await keepBlobs([test, ...items].flatMap(blobKeysOf));
   const tx = db.transaction(['tests', 'test_items', 'media'], 'readwrite');
   await tx.objectStore('tests').delete(id);
   for (const i of items) await tx.objectStore('test_items').delete(i.id);
@@ -83,6 +106,11 @@ export async function deleteTest(id: ID, projectId: string): Promise<void> {
   await recordTombstones('tests', [id]);
   if (items.length) await recordTombstones('test_items', items.map(i => i.id));
   signalWrite();
+  return async () => {
+    if (test) await restoreRows('tests', [test]);
+    await restoreRows('test_items', items);
+    await putBlobsBack(blobs);
+  };
 }
 
 /** What deleting a test would take with it, so the warning says a number rather
@@ -195,15 +223,20 @@ export async function patchTestItem(id: ID, patch: Partial<TestItem> | ((cur: Te
   signalWrite();
 }
 
-export async function deleteTestItem(id: ID): Promise<void> {
+export async function deleteTestItem(id: ID): Promise<Restore> {
   const db = await getDB();
   const item = await db.get('test_items', id);
+  const blobs = await keepBlobs(blobKeysOf(item));
   const tx = db.transaction(['test_items', 'media'], 'readwrite');
   await tx.objectStore('test_items').delete(id);
   for (const k of blobKeysOf(item)) await tx.objectStore('media').delete(k);
   await tx.done;
   await recordTombstones('test_items', [id]);
   signalWrite();
+  return async () => {
+    if (item) await restoreRows('test_items', [item]);
+    await putBlobsBack(blobs);
+  };
 }
 
 /** Every blob a test, an observation or a machine points at. */

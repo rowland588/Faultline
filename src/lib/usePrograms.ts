@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange } from '../db';
 import { uid, now } from './ids';
+import { offerUndo } from '../ui/Undo';
 import {
   byUrgency, ontoMachine, tally, todayISO, weeksFor,
   type Program, type ProgramState, type Tally, type Week,
@@ -79,7 +80,10 @@ export function usePrograms(projectId: string): ProgramsState {
   const putAllOn = useCallback(async (ids: string[], assetId: string) => {
     await putPrograms(ontoMachine(rows, ids, assetId));
   }, [rows]);
-  const remove = useCallback(async (id: string) => { await deleteProgram(id); }, []);
+  const remove = useCallback(async (id: string) => {
+    const what = rows.find(x => x.id === id)?.what ?? "it";
+    offerUndo(`Took “${what}” off the list`, await deleteProgram(id));
+  }, [rows]);
 
   const markProved = useCallback(async (id: string, on = todayISO(), testId?: string) => {
     const p = rows.find(r => r.id === id);

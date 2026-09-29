@@ -159,7 +159,7 @@ function Row({ m, today, lineName, state }: {
       )}
 
       <button className="pset-x" aria-label={`Remove ${m.what}`}
-        onClick={() => { if (window.confirm(`Take “${m.what}” off the list?`)) void state.remove(m.id); }}>×</button>
+        onClick={() => void state.remove(m.id)}>×</button>
     </div>
   );
 }

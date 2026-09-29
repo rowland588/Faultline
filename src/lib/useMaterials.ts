@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { listMaterials, putMaterial, putMaterials, deleteMaterial, onDataChange } from '../db';
 import { uid, now } from './ids';
 import { byUrgency, tally, todayISO, weeksFor, type Material, type Tally, type Week } from './materials';
+import { offerUndo } from '../ui/Undo';
 
 export interface MaterialsState {
   loading: boolean;
@@ -57,7 +58,10 @@ export function useMaterials(projectId: string): MaterialsState {
   }, [projectId, nextSort]);
 
   const save = useCallback(async (m: Material) => { await putMaterial(m); }, []);
-  const remove = useCallback(async (id: string) => { await deleteMaterial(id); }, []);
+  const remove = useCallback(async (id: string) => {
+    const what = rows.find(x => x.id === id)?.what ?? "it";
+    offerUndo(`Took “${what}” off the list`, await deleteMaterial(id));
+  }, [rows]);
 
   const markIn = useCallback(async (id: string, on = todayISO()) => {
     const m = rows.find(r => r.id === id);

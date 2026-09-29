@@ -32,6 +32,7 @@ import {
 } from '../lib/testing';
 import type { MediaRef } from '../types';
 import { niceDay, todayISO } from '../lib/weeks';
+import { offerUndo } from '../ui/Undo';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -294,14 +295,20 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         onRemove={() => void (async () => {
           const gone = viewing;
           setViewing(null);
+          /* Kept in hand for the Undo: the file itself, and which record held it. */
+          const keys = [gone.blobKey, ...(gone.thumbKey && gone.thumbKey !== gone.blobKey ? [gone.thumbKey] : [])];
+          const kept = await Promise.all(keys.map(async k => [k, await getBlob(k)] as const));
+          const onTest = (test.media ?? []).some(m => m.id === gone.id);
+          const onItems = tt.items.filter(x => x.testId === test.id && (x.media ?? []).some(m => m.id === gone.id)).map(x => x.id);
           /* Off whichever it is on — the test itself, or a thing found under it. */
-          if ((test.media ?? []).some(m => m.id === gone.id)) {
-            await tt.patchTest(test.id, cur => ({ media: (cur.media ?? []).filter(m => m.id !== gone.id) }));
-          }
-          for (const i of tt.items.filter(x => x.testId === test.id && (x.media ?? []).some(m => m.id === gone.id))) {
-            await tt.patchItem(i.id, cur => ({ media: (cur.media ?? []).filter(m => m.id !== gone.id) }));
-          }
-          await deleteBlobs([gone.blobKey, ...(gone.thumbKey ? [gone.thumbKey] : [])]);
+          if (onTest) await tt.patchTest(test.id, cur => ({ media: (cur.media ?? []).filter(m => m.id !== gone.id) }));
+          for (const id of onItems) await tt.patchItem(id, cur => ({ media: (cur.media ?? []).filter(m => m.id !== gone.id) }));
+          await deleteBlobs(keys);
+          offerUndo(`Removed the ${gone.kind === 'video' ? 'clip' : 'photo'}`, async () => {
+            for (const [k, b] of kept) if (b) await putBlob(k, b);
+            if (onTest) await tt.patchTest(test.id, cur => ({ media: [...(cur.media ?? []), gone] }));
+            for (const id of onItems) await tt.patchItem(id, cur => ({ media: [...(cur.media ?? []), gone] }));
+          });
         })()} />}
     </div>
   );
@@ -520,7 +527,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
               somebody has to close. */}
           <span className="cw-edit-end">
             <button className="btn btn-ghost btn-sm cw-del"
-              onClick={() => { if (confirm(`Delete “${item.what}”?`)) void tt.removeItem(item.id); }}>Delete</button>
+              onClick={() => void tt.removeItem(item.id)}>Delete</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Close</button>
           </span>
         </div>
@@ -680,7 +687,14 @@ function Docs({ test, tt }: { test: Test; tt: TT }) {
             <span className="cx-doc-s">{kb(d.bytes)}</span>
           </button>
           <button className="cw-del btn btn-ghost btn-sm"
-            onClick={() => { if (confirm(`Remove “${d.name}”?`)) void tt.saveTest({ ...test, docs: docs.filter(x => x.id !== d.id) }); }}>Remove</button>
+            onClick={() => void (async () => {
+              await tt.patchTest(test.id, cur => ({ docs: (cur.docs ?? []).filter(x => x.id !== d.id) }));
+              /* The file itself stays on the device until nothing names it,
+                 so putting the reference back is the whole undo. */
+              offerUndo(`Removed “${d.name}”`, async () => {
+                await tt.patchTest(test.id, cur => ({ docs: [...(cur.docs ?? []), d] }));
+              });
+            })()}>Remove</button>
         </div>
       ))}
       <button className="cw-add" onClick={() => pick.current?.click()}>

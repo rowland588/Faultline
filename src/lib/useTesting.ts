@@ -15,6 +15,7 @@ import {
 import { uid, now } from './ids';
 import { assetStateOf, nextFrom, standing } from './testing';
 import type { Asset, AssetState, ItemKind, Standing, Test, TestItem, TestKind } from './testing';
+import { offerUndo } from '../ui/Undo';
 
 export interface TestingState {
   loading: boolean;
@@ -142,7 +143,10 @@ export function useTesting(projectId: string): TestingState {
   /* The word follows the dates on every save — see assetStateOf. A screen sets
      a date; nothing sets the word directly any more. */
   const saveAsset = useCallback(async (a: Asset) => { await putAsset({ ...a, state: assetStateOf(a), updatedAt: now() }); }, []);
-  const removeAsset = useCallback(async (id: string) => { await deleteAsset(id, projectId); }, [projectId]);
+  const removeAsset = useCallback(async (id: string) => {
+    const name = assets.find(a => a.id === id)?.name ?? 'the machine';
+    offerUndo(`Removed “${name}”`, await deleteAsset(id, projectId));
+  }, [projectId, assets]);
 
   /* --------------------------------- tests -------------------------------- */
 
@@ -169,7 +173,10 @@ export function useTesting(projectId: string): TestingState {
 
   const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);
   const patchTestCb = useCallback(async (id: string, patch: Partial<Test> | ((cur: Test) => Partial<Test>)) => { await patchTest(id, patch); }, []);
-  const removeTest = useCallback(async (id: string) => { await deleteTest(id, projectId); }, [projectId]);
+  const removeTest = useCallback(async (id: string) => {
+    const t = tests.find(x => x.id === id);
+    offerUndo(`Deleted “${t?.title ?? (t?.kind === 'fix' ? 'the fix' : 'the test')}”`, await deleteTest(id, projectId));
+  }, [projectId, tests]);
   const testCost = useCallback((id: string) => testContents(id, projectId), [projectId]);
 
   const planNextFrom = useCallback(async (t: Test, fromItemId?: string, title?: string,
@@ -237,7 +244,10 @@ export function useTesting(projectId: string): TestingState {
 
   const saveItem = useCallback(async (i: TestItem) => { await putTestItem({ ...i, updatedAt: now() }); }, []);
   const patchItem = useCallback(async (id: string, patch: Partial<TestItem> | ((cur: TestItem) => Partial<TestItem>)) => { await patchTestItem(id, patch); }, []);
-  const removeItem = useCallback(async (id: string) => { await deleteTestItem(id); }, []);
+  const removeItem = useCallback(async (id: string) => {
+    const what = items.find(i => i.id === id)?.what ?? 'the note';
+    offerUndo(`Deleted “${what}”`, await deleteTestItem(id));
+  }, [items]);
 
   const answer = useMemo(() => standing(tests, items), [tests, items]);
 
