@@ -15,7 +15,7 @@ import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { useStanding } from '../lib/useStanding';
-import { useProject, useProjects } from '../lib/useProjects';
+import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { MODELS, planModel, setPlanModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
@@ -413,6 +413,19 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
         {/* THE TWO DATES, HERE AS WELL. They were only behind "Dates" on the
             Testing screen, which is not where anybody looks to change what a
             project is. Same two fields — both doors write them. */}
+        {/* ITS COLOUR, chosen. The all-jobs board draws each job in its own,
+            and the app picked it — with no way to change it, two jobs could
+            end up the same blue. */}
+        <div className="proj-field pset-identity-desc">
+          <span className="field-label">Its colour — on the home board and the reports</span>
+          <span className="pset-swatches" role="radiogroup" aria-label="Project colour">
+            {COLORS.map(c => (
+              <button key={c} type="button" role="radio" aria-checked={project.color === c} aria-label={c}
+                className={'pset-swatch' + (project.color === c ? ' on' : '')} style={{ background: c }}
+                onClick={() => void rename(project, { color: c })} />
+            ))}
+          </span>
+        </div>
         {!paced && (
           <>
             <label className="proj-field">

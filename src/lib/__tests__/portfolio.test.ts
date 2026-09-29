@@ -6,7 +6,8 @@
  * asserted here, because a board that disagrees with the job it opens is
  * worse than no board. */
 import { describe, it, expect } from 'vitest';
-import { portfolio, jobItems, type JobInput } from '../portfolio';
+import { clusterMarks, jobItems, owedBy, portfolio, shortName, type JobInput } from '../portfolio';
+import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
 import type { Project } from '../../types';
 import type { Asset, Test } from '../testing';
@@ -132,5 +133,43 @@ describe('the edges', () => {
   it('never counts a deleted record', () => {
     const j = job(project({ id: 'd', name: 'Line 4' }), { tests: [test({ plannedFor: '2026-09-01', deletedAt: 5 })] });
     expect(jobItems(j, TODAY)).toEqual([]);
+  });
+});
+
+describe('what the review asked for', () => {
+  it('drops "commissioning" from a job’s name on the board, and keeps a name that is only that word', () => {
+    expect(shortName('Line 2B commissioning')).toBe('Line 2B');
+    expect(shortName('Commissioning — Line 7')).toBe('— Line 7');
+    expect(shortName('Commissioning')).toBe('Commissioning');
+    expect(shortName('Line 3')).toBe('Line 3');
+  });
+
+  it('lists everything owed, late first, so a number on the board opens what it counts', () => {
+    const pf = portfolio([twoA, twoB], TODAY);
+    expect(pf.items.length).toBe(pf.owes.reduce((n, o) => n + o.open, 0));
+    expect(pf.items.findIndex(x => !x.late)).toBe(pf.items.filter(x => x.late).length);
+  });
+
+  it('finds what one party owes across jobs, whatever case it was typed in', () => {
+    const pf = portfolio([twoA, twoB], TODAY);
+    expect(pf.items.filter(x => owedBy(x, 'Ilapak UK')).map(x => x.what).sort()).toEqual(['Case erector', 'Changeover']);
+    expect(pf.items.filter(x => owedBy(x, 'Nobody named')).length).toBe(0);
+  });
+
+  describe('dots that land on top of each other', () => {
+    const m = (at: number, tone: PlacedMark['tone'], label = `m${at}`): PlacedMark => ({ kind: 'test', at, label, when: '1 Oct', tone });
+
+    it('become one dot with the count, when closer than the gap', () => {
+      const c = clusterMarks([m(0.5, 'booked'), m(0.505, 'done'), m(0.9, 'booked')]);
+      expect(c.map(x => x.marks.length)).toEqual([2, 1]);
+    });
+
+    it('take the colour of the most urgent thing inside', () => {
+      expect(clusterMarks([m(0.3, 'done'), m(0.301, 'late'), m(0.302, 'booked')])[0].tone).toBe('late');
+    });
+
+    it('leave dots apart when they are apart, in date order', () => {
+      expect(clusterMarks([m(0.8, 'done'), m(0.2, 'done')]).map(x => x.at)).toEqual([0.2, 0.8]);
+    });
   });
 });

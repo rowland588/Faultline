@@ -100,12 +100,22 @@ export interface Portfolio {
   jobs: JobView[];
   /** Late, or due within the week, across every job. Late first. */
   week: JobItem[];
+  /** Everything owed, on every job, late first — what a number or a party on
+   *  the board opens into. */
+  items: JobItem[];
   owes: Owed[];
   totals: { jobs: number; outstanding: number; late: number; week: number };
   says: string;
 }
 
 const WEEK_DAYS = 7;
+
+/** "Line 2B commissioning" is "Line 2B" on a board where every row is a
+ *  commissioning job — the word said nothing and pushed the rest off the row. */
+export function shortName(name: string): string {
+  const s = name.replace(/\s*\bcommissioning\b\s*/i, ' ').replace(/\s+/g, ' ').trim();
+  return s || name;
+}
 
 const addDays = (iso: string, n: number): string => {
   const d = new Date(iso + 'T12:00:00');
@@ -114,13 +124,18 @@ const addDays = (iso: string, n: number): string => {
 };
 
 const key = (s: string) => s.trim().toLowerCase();
+export const NOBODY = 'Nobody named';
+
+/** Is this item owed by this party, as the board groups them? */
+export const owedBy = (x: JobItem, who: string): boolean =>
+  (key(x.who) || key(NOBODY)) === key(who);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** What each job owes, one row per thing — the same rules standing() counts
  *  by, so the board and each job's own verdict cannot disagree. */
 export function jobItems(j: JobInput, today: string): JobItem[] {
   const p = j.project;
-  const base = { jobId: p.id, job: p.name, color: p.color };
+  const base = { jobId: p.id, job: shortName(p.name), color: p.color };
   const out: JobItem[] = [];
   for (const t of live(j.tests)) {
     const owed = !isSettled(t) || t.outcome === 'notRun';
@@ -185,7 +200,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
     const ends = [...ats, ...(plan.axis.expected ? [plan.axis.expected.at] : []), ...(plan.axis.agreed ? [plan.axis.agreed.at] : [])];
     const items = all[i];
     return {
-      id: p.id, name: p.name, color: p.color, lead: p.lead,
+      id: p.id, name: shortName(p.name), color: p.color, lead: p.lead,
       sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.daysToGo,
       outstanding: st.outstanding, late: st.late,
       done: st.plan.filter(m => m.tone === 'done').length, total: st.plan.length,
@@ -212,7 +227,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
     const k = key(x.who) || '\u0000';
     let o = parties.get(k);
     if (!o) {
-      o = { who: x.who.trim() || 'Nobody named', open: 0, late: 0, byJob: jobs.map(v => ({ jobId: v.id, job: v.name, color: v.color, open: 0, late: 0 })) };
+      o = { who: x.who.trim() || NOBODY, open: 0, late: 0, byJob: jobs.map(v => ({ jobId: v.id, job: v.name, color: v.color, open: 0, late: 0 })) };
       parties.set(k, o);
     }
     o.open += 1;
@@ -228,7 +243,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
   const late = jobs.reduce((n, v) => n + v.late, 0);
 
   return {
-    axis, span, jobs, week, owes,
+    axis, span, jobs, week, owes, items: all.flat().sort(byUrgency),
     totals: { jobs: jobs.length, outstanding, late, week: week.length },
     says: saysOf(jobs, owes, late),
   };
@@ -247,4 +262,31 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
   const top = owes.find(o => o.late > 0);
   const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${top.who}’s` : '';
   return `${bits.join(' · ')}. ${plural(late, 'thing')} past the day${whose}.`;
+}
+
+/* ---------- MARKS THAT FALL ON TOP OF EACH OTHER ----------
+ *
+ * Three things in the same few days drew as three dots in one place, and
+ * nobody could tell them apart or hover the one underneath. Marks closer
+ * than `gap` (a fraction of the calendar) are one dot with a number on it,
+ * coloured by the most urgent thing inside it — a late ring beats a booked
+ * one, whatever order they were drawn in. */
+export interface Cluster { at: number; marks: PlacedMark[]; tone: PlacedMark['tone'] }
+
+const URGENCY: Record<string, number> = { late: 0, failed: 1, ran: 2, booked: 3, done: 4 };
+
+export function clusterMarks(marks: PlacedMark[], gap = 0.012): Cluster[] {
+  const sorted = [...marks].sort((a, b) => a.at - b.at);
+  const out: Cluster[] = [];
+  for (const m of sorted) {
+    const last = out[out.length - 1];
+    if (last && m.at - last.marks[0].at <= gap) {
+      last.marks.push(m);
+      if ((URGENCY[m.tone] ?? 9) < (URGENCY[last.tone] ?? 9)) last.tone = m.tone;
+      last.at = (last.marks[0].at + m.at) / 2;
+    } else {
+      out.push({ at: m.at, marks: [m], tone: m.tone });
+    }
+  }
+  return out;
 }

@@ -34,6 +34,8 @@ import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
 import { allPaceLines, chainForWorkspace, onDataChange, type PaceLineRow } from '../db';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
+import { JobsBoard } from '../ui/JobsBoard';
+import { planModel } from '../lib/planModel';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -153,6 +155,7 @@ export function WorkspaceHome() {
   // organised — a workspace is the container underneath a line, not the thing
   // anybody sets out to open.
   const { projects } = useProjects();
+  const jobs = projects.filter(p => planModel(p) === 'commissioning');
   const [lines, setLines] = useState<PaceLineRow[]>([]);
   const linesOf = (pid: string) => lines.filter(l => (l.projectId ?? '') === pid);
 
@@ -229,8 +232,17 @@ export function WorkspaceHome() {
     <div className="wrap home">
       <div className="home-head">
         <Wordmark />
-        <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
+        {/* The pitch is for somebody with nothing running yet. Once a job is,
+            the board under it says more than the paragraph could. */}
+        {!jobs.length && (
+          <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
+        )}
       </div>
+
+      {/* EVERY JOB, ONE HOME — the first thing the app opens on. Rowland
+          reviewing the board: it lived one tap in, on Projects, which is not
+          where the app opens. Everything below it on this screen stays. */}
+      {jobs.length > 0 && <JobsBoard projects={jobs} />}
 
       {profile?.is_super && (
         <>

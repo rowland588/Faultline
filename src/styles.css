@@ -6171,24 +6171,55 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .jb-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .jb-stat {
-  display: flex; flex-direction: column; gap: 2px; min-width: 118px; padding: 10px 14px 11px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 118px; padding: 10px 14px 11px;
+  font: inherit; text-align: left; cursor: pointer; transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
   border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--shell-line);
   font-size: 12px; color: var(--shell-muted);
   animation: jb-rise 700ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: 120ms;
 }
+.jb-stat:hover { background: rgba(255, 255, 255, 0.11); transform: translateY(-1px); }
+.jb-stat.is-on, .jb-owe.is-on { border-color: var(--brand-mark); box-shadow: 0 0 0 1px var(--brand-mark); }
+.jb-stat:focus-visible, .jb-owe:focus-visible { outline: 2px solid var(--brand-mark); outline-offset: 2px; }
 .jb-stat b { font-family: var(--display); font-size: 30px; line-height: 1; color: var(--shell-ink); font-variant-numeric: tabular-nums; }
 .jb-stat.is-late b { color: var(--shell-bad); }
 .jb-owes { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 16px; }
 .jb-owes-h { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--shell-muted); margin-right: 4px; }
 .jb-owe {
   position: relative; display: inline-flex; align-items: baseline; gap: 7px; padding: 7px 11px 10px;
-  border-radius: 999px; background: rgba(255, 255, 255, 0.08); font-size: 13px; overflow: hidden;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.08); font: inherit; font-size: 13px; overflow: hidden;
+  color: var(--shell-ink); border: 1px solid transparent; cursor: pointer; transition: background 140ms ease;
 }
+.jb-owe:hover { background: rgba(255, 255, 255, 0.15); }
 .jb-owe b { font-weight: 700; }
 .jb-owe-n { font-variant-numeric: tabular-nums; color: var(--shell-dim); }
 .jb-owe-l { font-size: 11.5px; font-weight: 700; color: var(--shell-bad); }
 .jb-owe-jobs { position: absolute; left: 11px; right: 11px; bottom: 4px; height: 3px; display: flex; gap: 2px; }
 .jb-owe-jobs i { display: block; height: 100%; border-radius: 2px; min-width: 6px; }
+
+/* ---- what a number or a party opens into ---- */
+.jb-focus {
+  padding: 14px 16px 12px; border-radius: var(--radius-lg); background: var(--surface);
+  border: 1px solid var(--line); box-shadow: var(--shadow-lift); animation: jb-rise 320ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.jb-focus-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.jb-focus-h h3 { margin: 0; font-family: var(--display); font-size: 17px; letter-spacing: -0.01em; }
+.jb-focus-acts { display: flex; align-items: center; gap: 6px; }
+.jb-x { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink-2); }
+.jb-focus-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 18px; }
+.jb-fi {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "job what when" "job m when";
+  gap: 1px 10px; align-items: center; padding: 9px 4px; text-align: left; font: inherit; color: var(--ink);
+  background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 6px;
+}
+.jb-fi:hover { background: var(--surface-2); }
+.jb-fi-job {
+  grid-area: job; align-self: stretch; display: flex; align-items: center; padding: 0 8px; border-left: 3px solid var(--job);
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2);
+}
+.jb-fi-what { grid-area: what; font-size: 13.5px; }
+.jb-fi-m { grid-area: m; font-size: 12px; color: var(--muted); }
+.jb-fi-when { grid-area: when; font-size: 12px; font-weight: 800; color: var(--st-w); white-space: nowrap; }
+.jb-fi.is-late .jb-fi-when { color: var(--danger); }
 
 /* ---- this week ---- */
 .jb-sec-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -6198,6 +6229,19 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); overflow-x: auto;
   scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
 }
+.jb-wk-wrap { position: relative; }
+.jb-wk-wrap.more-right .jb-wk-list { -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+.jb-wk-wrap.more-left.more-right .jb-wk-list { -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 88%, transparent); }
+.jb-wk-wrap.more-left:not(.more-right) .jb-wk-list { -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%); mask-image: linear-gradient(90deg, transparent, #000 6%); }
+.jb-wk-arrow {
+  position: absolute; top: 50%; z-index: 3; width: 38px; height: 38px; margin-top: -24px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lift);
+  font-size: 22px; line-height: 1; cursor: pointer;
+}
+.jb-wk-arrow.is-left { left: -8px; }
+.jb-wk-arrow.is-right { right: -8px; }
+.jb-wk-list { scrollbar-width: none; }
+.jb-wk-list::-webkit-scrollbar { display: none; }
 .jb-wk-list li { scroll-snap-align: start; animation: jb-rise 500ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 45ms + 150ms); }
 .jb-wk {
   width: 100%; height: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
@@ -6237,13 +6281,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jb-row { position: relative; z-index: 1; border-bottom: 1px solid var(--line); }
 .jb-row:last-child { border-bottom: 0; }
 .jb-row-h {
-  width: 100%; display: grid; grid-template-columns: var(--jb-lab) 1fr 28px; align-items: center;
-  padding: 0; min-height: 84px; font: inherit; color: inherit; text-align: left;
-  background: none; border: 0; cursor: pointer; border-radius: 12px; transition: background 160ms ease;
+  display: grid; grid-template-columns: var(--jb-lab) 1fr 28px; align-items: center;
+  min-height: 84px; border-radius: 12px; transition: background 160ms ease;
 }
 .jb-row-h:hover { background: color-mix(in srgb, var(--job) 6%, transparent); }
-.jb-row-h:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.jb-lab { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px 12px 4px; min-width: 0; }
+.jb-lab {
+  display: flex; flex-direction: column; gap: 5px; padding: 12px 14px 12px 4px; min-width: 0;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; border-radius: 12px;
+}
+.jb-lab:focus-visible, .jb-chev-b:focus-visible, .jb-mk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .jb-name { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 16.5px; font-weight: 700; letter-spacing: -0.01em; }
 .jb-dot { width: 11px; height: 11px; flex: none; border-radius: 50%; background: var(--job); box-shadow: 0 0 0 4px color-mix(in srgb, var(--job) 18%, transparent); }
 .jb-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -6252,7 +6298,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jb-next { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jb-next.is-late { color: var(--danger); }
 
-.jb-track { position: relative; height: 84px; }
+.jb-track { position: relative; height: 84px; cursor: pointer; }
 .jb-bar {
   position: absolute; top: 50%; height: 14px; margin-top: -7px; border-radius: 999px; overflow: hidden;
   background: color-mix(in srgb, var(--job) 18%, var(--surface));
@@ -6268,26 +6314,35 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--warn) 22%, transparent) 0 4px, transparent 4px 8px);
 }
 .jb-mk {
-  position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
-  border: 2px solid var(--st-w); background: var(--surface); z-index: 2;
+  position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; padding: 0; border-radius: 50%;
+  border: 2px solid var(--st-w); background: var(--surface); z-index: 2; cursor: pointer;
+  font: 800 10px/1 var(--font); color: var(--surface); display: grid; place-items: center;
   animation: jb-pop 420ms cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--i) * 110ms + 900ms + var(--d) * 18ms);
   transition: transform 140ms ease;
 }
+/* A finger needs more than twelve pixels: an invisible ring round every dot. */
+.jb-mk::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; }
+.jb-mk.is-many { width: 20px; height: 20px; margin: -10px 0 0 -10px; background: var(--st-w); }
 .jb-mk.is-done { background: var(--st-g); border-color: var(--st-g); }
 .jb-mk.is-failed { background: var(--st-r); border-color: var(--st-r); }
 .jb-mk.is-ran { background: var(--st-a); border-color: var(--st-a); }
 .jb-mk.is-late { border-color: var(--st-r); }
-.jb-mk:hover { transform: scale(1.5); z-index: 5; }
-/* The tip: what the mark is, when, and what state — in words, not colour. */
-.jb-mk::after, .jb-flag::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
-  padding: 5px 9px; border-radius: 7px; background: var(--ink); color: var(--surface);
-  font-size: 11.5px; font-weight: 600; white-space: nowrap; pointer-events: none;
-  opacity: 0; transition: opacity 120ms ease, transform 120ms ease;
+.jb-mk.is-many.is-late { background: var(--st-r); }
+.jb-mk:hover, .jb-mk.is-on { transform: scale(1.35); z-index: 6; }
+/* The tip: what the dot is, when, and what state — in words, not colour.
+   Hover on a desk, a tap on a phone. */
+.jb-mk::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(4px);
+  width: max-content; max-width: 280px; padding: 7px 10px; border-radius: 8px; background: var(--ink); color: var(--surface);
+  font: 600 11.5px/1.45 var(--font); text-align: left; white-space: pre-line; pointer-events: none;
+  opacity: 0; transition: opacity 120ms ease, transform 120ms ease; z-index: 7;
 }
-.jb-mk:hover::after, .jb-flag:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.jb-mk.tip-end::after { left: auto; right: -8px; transform: translateY(4px); }
+.jb-mk.tip-start::after { left: -8px; transform: translateY(4px); }
+.jb-mk:hover::after, .jb-mk.is-on::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.jb-mk.tip-end:hover::after, .jb-mk.tip-end.is-on::after, .jb-mk.tip-start:hover::after, .jb-mk.tip-start.is-on::after { transform: none; }
 .jb-flag {
-  position: absolute; top: 14px; bottom: 14px; width: 2px; margin-left: -1px; background: var(--job); z-index: 1;
+  position: absolute; top: 14px; bottom: 14px; width: 2px; margin-left: -1px; background: var(--job); z-index: 1; pointer-events: none;
   animation: jb-drop 700ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 110ms + 1000ms);
 }
 .jb-flag::before {
@@ -6295,8 +6350,13 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 .jb-flag-t { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; font-size: 10.5px; font-weight: 800; color: var(--job); white-space: nowrap; }
+.jb-empty {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: 12px; padding: 0 12px;
+  font-size: 13px; color: var(--muted); cursor: default;
+}
+.jb-chev-b { justify-self: center; width: 28px; height: 44px; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 8px; display: grid; place-items: center; }
 .jb-chev {
-  justify-self: center; width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
   transform: rotate(45deg); transition: transform 240ms cubic-bezier(.2, .8, .2, 1); margin-top: -4px;
 }
 .jb-row.is-open .jb-chev { transform: rotate(225deg); margin-top: 4px; }
@@ -6315,6 +6375,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jb-row.is-open .jb-drawer-in { padding: 4px 0 16px; animation: jb-rise 420ms cubic-bezier(.2, .8, .2, 1) both; }
 .jb-drawer-grid { display: grid; grid-template-columns: calc(var(--jb-lab) - 101px) 1fr; align-items: start; }
 .jb-drawer .tl { margin: 0 5px 0 0; min-width: 0; }
+.jb-drawer-empty { margin: 8px 0 0; }
 .jb-aside { display: flex; flex-direction: column; gap: 8px; padding: 6px 16px 0 4px; }
 .jb-aside .jb-sent { margin: 0; font-size: 13.5px; line-height: 1.4; }
 .jb-led { margin: 0; }
@@ -6329,6 +6390,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jb-k.is-done { background: var(--st-g); border-color: var(--st-g); }
 .jb-k.is-failed { background: var(--st-r); border-color: var(--st-r); }
 .jb-k.is-late { border-color: var(--st-r); }
+.jb-k.is-many { width: 15px; height: 15px; background: var(--st-w); color: var(--surface); font: 800 8.5px/11px var(--font); font-style: normal; text-align: center; }
 .jb-kf { display: inline-block; width: 10px; height: 8px; background: var(--ink-2); clip-path: polygon(0 0, 100% 50%, 0 100%); }
 .jb-key-say { margin-left: auto; }
 
@@ -6345,6 +6407,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .jb-g-head { grid-template-columns: 1fr; }
   .jb-g-track, .jb-g-under, .jb-track { display: none; }
   .jb-row-h { grid-template-columns: 1fr 28px; min-height: 0; }
+  .jb-focus-list { grid-template-columns: 1fr; }
+  .jb-wk-arrow { display: none; }
   .jb-key { display: none; }
   .jb-wk-list { grid-auto-columns: 78%; }
   .jb-drawer-grid { grid-template-columns: 1fr; gap: 10px; }
@@ -6353,6 +6417,38 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .jb-aside .jb-doors { flex-direction: row; }
 }
 
+/* Coming back from a job, the board is simply there — the arrival played
+   once already this session. The light behind the band still moves. */
+.jb.is-still *:not(.jb-glow) { animation: none !important; }
+
 @media (prefers-reduced-motion: reduce) {
   .jb *, .jb *::before, .jb *::after { animation: none !important; transition: none !important; }
+}
+
+/* A project's colour, chosen from the six the app uses. */
+.pset-swatches { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0 2px; }
+.pset-swatch {
+  width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--surface); cursor: pointer;
+  box-shadow: 0 0 0 1px var(--line); transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.pset-swatch:hover { transform: scale(1.08); }
+.pset-swatch.on { box-shadow: 0 0 0 2px var(--ink); }
+.pset-swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ON HOME THE BOARD TAKES THE SCREEN. Home is a 720px column — right for a
+   list of projects, and a letterbox for a calendar: three jobs' months in
+   340px pushed a week's worth of marks into one dot. The board breaks out
+   of the column to the window's width (a 16px gutter each side, 1320px at
+   most), centred on it; everything else on Home stays in its column. */
+@media (min-width: 760px) {
+  .home .jb {
+    width: min(1320px, calc(100vw - 32px));
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+}
+.jb-focus-acts .btn { white-space: nowrap; }
+@media (max-width: 719px) {
+  .jb-focus-h { align-items: flex-start; }
+  .jb-focus-h h3 { font-size: 16px; }
 }

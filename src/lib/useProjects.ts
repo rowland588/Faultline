@@ -35,7 +35,7 @@ export interface ProjectsState {
 
 /** The palette new projects take their accent from, in order — so two projects
  *  made in a row never look the same, and nobody has to pick a colour. */
-const COLORS = ['#2b87d4', '#1f8a4c', '#b4632a', '#7a4fd0', '#0f766e', '#c0392b'];
+export const COLORS = ['#2b87d4', '#1f8a4c', '#b4632a', '#7a4fd0', '#0f766e', '#c0392b'];
 
 export function useProjects(): ProjectsState {
   const [all, setAll] = useState<Project[]>([]);
