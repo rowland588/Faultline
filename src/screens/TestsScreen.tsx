@@ -97,6 +97,15 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const st = standing(tt.tests.filter(t => t.kind !== 'fix'), tt.items);
   const weeks = weeksTo(project.expectedAt);
   const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
+  /* THE SAME COUNT THE OVERVIEW PRINTS. This screen said "Nothing outstanding"
+     while the overview, a tap away, said two tests were still to run and one
+     was past its day — because this sentence only counted observations and
+     next-step lines, and those stopped being outstanding work when fixes got
+     their own screen. It now reads the one standing() row both use. */
+  const testsRow = stand.standing.rows.find(r => r.key === 'tests');
+  const testsSay = testsRow && testsRow.open > 0
+    ? `${testsRow.open} ${testsRow.open === 1 ? 'test' : 'tests'} still to run${testsRow.late ? ` — ${testsRow.late} past the day` : ''}. ${st.ran} of ${st.total} have run.`
+    : st.sentence;
 
   /* What was written down, and the fixes FOR this test — the same list its own
      page shows under "Fixes for this test". An observation is a note, not a
@@ -186,7 +195,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           the A3 cannot say different things about the same job. */}
       <section className="cx-answer">
         <span className="cmp-h-n">WHERE THE JOB IS</span>
-        <p className="cx-said">{st.sentence}</p>
+        <p className="cx-said">{testsSay}</p>
         {st.total > 0 && (
           <>
             <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
@@ -347,10 +356,16 @@ function MachineCard({ a, ran, save, remove }: {
           {on && (a.state === 'awaited' ? ` — due ${nice(on)}` : ` since ${nice(on)}`)}
           {ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}
         </span>
-        <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>
+        <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Edit'}</button>
       </div>
       {dates && (
         <div className="tw-dates">
+          {/* WHO SUPPLIED IT, changeable. It could only be typed once, when the
+              machine was added — and it is what page 3 of the client report
+              files every one of this machine's debts under. */}
+          <label className="cw-f tw-oem"><span>Who supplied it</span>
+            <DraftField value={a.oem ?? ''} placeholder="Ilapak UK"
+              onSave={v => void save({ ...a, oem: v.trim() || undefined })} /></label>
           <label className="cw-f"><span>Expected on site</span>
             <input type="date" value={a.dueOn ?? ''} onChange={set('dueOn')} /></label>
           <label className="cw-f"><span>On site</span>

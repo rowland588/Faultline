@@ -297,26 +297,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
     );
   }
 
-  return (
-    <div className="wrap pace project-setup">
-      <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
-        { label: project.name, to: `/project/${project.id}` },
-        { label: 'Lines & people' },
-      ]} />
-      <Peers peers={projectPeers(project.id, 'setup', stand.counts)} />
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Lines &amp; people</h1>
-          <p className="pace-lede">The lines this project runs, who owns each one, and who is invited to see it.</p>
-        </div>
-        <div className="pace-head-actions">
-        </div>
-      </header>
-
-      <ProjectIdentity projectId={projectId} />
-
+  const commissioning = planModel(project) === 'commissioning';
+  const linesSection = (
       <section className="pace-sec">
         <div className="pace-sec-head">
           <h2 className="pace-sec-title">Lines</h2>
@@ -353,6 +335,33 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
             placing, once, and gone from the page as soon as it is placed. */}
         <LineTidyPanel projectId={project.id} lines={lines.lines} />
       </section>
+  );
+
+  return (
+    <div className="wrap pace project-setup">
+      <Crumbs trail={[
+        { label: 'Projects', to: '/projects' },
+        { label: project.name, to: `/project/${project.id}` },
+        { label: commissioning ? 'Details' : 'Lines & people' },
+      ]} />
+      <Peers peers={projectPeers(project.id, 'setup', stand.counts)} />
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">{commissioning ? 'Project details' : 'Lines & people'}</h1>
+          <p className="pace-lede">
+            {commissioning
+              ? 'What it is called, who leads it, the two dates it is judged on, and who is invited to see it.'
+              : 'The lines this project runs, who owns each one, and who is invited to see it.'}
+          </p>
+        </div>
+        <div className="pace-head-actions">
+        </div>
+      </header>
+
+      <ProjectIdentity projectId={projectId} />
+
+      {!commissioning && linesSection}
 
       {/* WHAT THIS BUSINESS MEASURES. Only on a project that runs a plan — a
           commissioning job proves a rate once, per pack, and has no periods to
@@ -368,6 +377,10 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <ProjectPeople lead={project.lead} people={people} />
         </div>
       </section>
+
+      {/* A COMMISSIONING JOB'S LINES GO LAST. It has them — materials can be
+          for one line — but they are not what anybody comes here to change. */}
+      {commissioning && linesSection}
     </div>
   );
 }
@@ -394,9 +407,26 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
         </label>
         <label className="proj-field pset-identity-desc">
           <span className="field-label">What it is</span>
-          <Cell value={project.description ?? ''} placeholder="One line, for the people you invite" wide
+          <Cell value={project.description ?? ''} placeholder="Line 2 — new flow wrapper and checkweigher, handed over by Ilapak" wide
             onSave={v => void rename(project, { description: v || undefined })} />
         </label>
+        {/* THE TWO DATES, HERE AS WELL. They were only behind "Dates" on the
+            Testing screen, which is not where anybody looks to change what a
+            project is. Same two fields — both doors write them. */}
+        {!paced && (
+          <>
+            <label className="proj-field">
+              <span className="field-label">Handover agreed</span>
+              <input className="pset-cell is-wide" type="date" value={project.plannedAt ?? ''}
+                onChange={e => void rename(project, { plannedAt: e.target.value || undefined })} />
+            </label>
+            <label className="proj-field">
+              <span className="field-label">Now expected</span>
+              <input className="pset-cell is-wide" type="date" value={project.expectedAt ?? ''}
+                onChange={e => void rename(project, { expectedAt: e.target.value || undefined })} />
+            </label>
+          </>
+        )}
       </div>
 
       {/* THE PLAN MODEL — the same choice offered when the project was started

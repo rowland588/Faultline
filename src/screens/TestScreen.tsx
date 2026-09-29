@@ -22,7 +22,7 @@ import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useProject } from '../lib/useProjects';
 import { usePrograms } from '../lib/usePrograms';
 import { useTesting } from '../lib/useTesting';
-import { getBlob, putBlob } from '../db';
+import { deleteBlobs, getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
@@ -165,7 +165,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             who needs it. */}
         <label className="cw-f"><span>Planned from</span>
           <input type="date" value={test.plannedFor ?? ''} onChange={e => save({ plannedFor: e.target.value || undefined })} /></label>
-        <label className="cw-f"><span>to <span className="sub">leave blank for one day</span></span>
+        <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
           <input type="date" value={test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
             onChange={e => save({ plannedTo: e.target.value || undefined })} /></label>
         <label className="cw-f"><span>{words.withWhom}</span>
@@ -197,7 +197,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         )}
         <label className="cw-f"><span>On the day</span>
           <input type="date" value={test.ranOn ?? ''} onChange={e => save({ ranOn: e.target.value || undefined })} /></label>
-        <label className="cw-f"><span>to <span className="sub">if it took more than one</span></span>
+        <label className="cw-f" title="Leave blank when it took one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
           <input type="date" value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
             onChange={e => save({ ranTo: e.target.value || undefined })} /></label>
         <label className="cw-f cw-f-wide"><span>{words.happened}</span>
@@ -290,7 +290,19 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         })()}>Delete this {words.one.toLowerCase()}</button>
       </div>
 
-      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onRemove={() => void (async () => {
+          const gone = viewing;
+          setViewing(null);
+          /* Off whichever it is on — the test itself, or a thing found under it. */
+          if ((test.media ?? []).some(m => m.id === gone.id)) {
+            await tt.patchTest(test.id, cur => ({ media: (cur.media ?? []).filter(m => m.id !== gone.id) }));
+          }
+          for (const i of tt.items.filter(x => x.testId === test.id && (x.media ?? []).some(m => m.id === gone.id))) {
+            await tt.patchItem(i.id, cur => ({ media: (cur.media ?? []).filter(m => m.id !== gone.id) }));
+          }
+          await deleteBlobs([gone.blobKey, ...(gone.thumbKey ? [gone.thumbKey] : [])]);
+        })()} />}
     </div>
   );
 }

@@ -428,6 +428,12 @@ button { font-family: inherit; }
 .ev-play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); font-size: 18px; }
 .ev-viewer { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.9); display: grid; place-items: center; }
 .ev-close { position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.15); color: #fff; font-size: 18px; cursor: pointer; }
+.ev-remove {
+  position: absolute; top: 14px; left: 16px; height: 44px; padding: 0 16px; border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.35); color: #fff;
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; z-index: 1;
+}
+.ev-remove:hover { background: var(--danger); border-color: var(--danger); }
 .ev-stage img, .ev-stage video { max-width: 96vw; max-height: 90vh; width: auto; height: auto; object-fit: contain; border-radius: 8px; display: block; }
 
 /* ---------- in-app video recorder ---------- */
@@ -2758,6 +2764,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pset-identity { margin-bottom: 26px; }
 .pset-identity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .pset-identity-desc { grid-column: 1 / -1; }
+/* THE PROJECT'S OWN FIELDS LOOK LIKE FIELDS. Borderless until hovered, they
+   read as plain text on a touch screen — which has no hover — and nobody
+   could tell the name was editable. */
+.pset-identity .pset-cell { border-color: var(--line); background: var(--surface); }
 
 /* One editable cell, used in the identity card and in every line row. It reads
    as text until you touch it — a page of boxed inputs is a form, and this is a
@@ -6114,3 +6124,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
     content: ''; position: absolute; inset: -10px;
   }
 }
+
+/* The supplier takes the whole first row of a machine's details. */
+.tw-dates .tw-oem { flex-basis: 100%; }
+.tw-asset .tw-dates .tw-oem input { flex: 1 1 auto; width: 100%; }
+
+/* A field label's aside, at the label's own size — "to leave blank for one
+   day" was a paragraph-size .sub inside a small caps label, and it knocked
+   its field a line lower than the fields beside it. */
+.cw-f-opt { font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; }

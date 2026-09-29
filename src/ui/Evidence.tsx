@@ -15,11 +15,21 @@ export function EvidenceThumb({ media, onClick, size = 54 }: {
 }
 
 /** Full-screen lightbox for one piece of evidence. */
-export function EvidenceViewer({ media, onClose }: { media: MediaRef; onClose: () => void }) {
+/** `onRemove`, where the screen allows it: a photo attached to the wrong
+ *  test, or a blurred one, could be looked at and never taken off again. */
+export function EvidenceViewer({ media, onClose, onRemove }: {
+  media: MediaRef; onClose: () => void; onRemove?: () => void;
+}) {
   const { url, state } = useBlobSource(media.blobKey);
   return (
     <div className="ev-viewer" onClick={onClose}>
       <button className="ev-close" onClick={onClose} aria-label="Close">✕</button>
+      {onRemove && (
+        <button className="ev-remove" onClick={e => {
+          e.stopPropagation();
+          if (confirm(`Remove this ${media.kind === 'video' ? 'clip' : 'photo'}?\n\nIt comes off the record, the card and the report.`)) onRemove();
+        }}>Remove</button>
+      )}
       <div className="ev-stage" onClick={e => e.stopPropagation()}>
         {media.kind === 'photo'
           ? (url ? <img src={url} alt="Evidence" />

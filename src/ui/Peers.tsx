@@ -70,6 +70,9 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
     p('fixes', 'Fixes', `/project/${projectId}/fixes`),
     p('materials', 'Materials', `/project/${projectId}/materials`),
     p('programs', 'Programs', `/project/${projectId}/programs`),
-    p('setup', 'Lines & people', `/project/${projectId}/setup`),
+    /* "Details", not "Lines & people". Rowland could not find where to rename
+       a project: it was on this page, under a name that said lines — which a
+       commissioning job barely has. The page leads with the project itself. */
+    p('setup', 'Details', `/project/${projectId}/setup`),
   ];
 }

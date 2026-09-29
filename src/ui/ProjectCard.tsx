@@ -12,6 +12,8 @@
 import { nav } from '../state/useRoute';
 import type { Project } from '../types';
 import type { PaceLineRow } from '../db';
+import { planModel } from '../lib/planModel';
+import { niceDay } from '../lib/weeks';
 
 export function ProjectCard({ p, lines, compact, onArchive }: {
   p: Project; lines: PaceLineRow[]; compact?: boolean;
@@ -20,6 +22,11 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
   onArchive?: () => void;
 }) {
   const withOwner = lines.filter(l => l.owner).length;
+  /* A COMMISSIONING JOB IS JUDGED ON A DATE, NOT ON LINES. "2 lines · 0 owned"
+     under it was the improvement model's card on the wrong kind of project. */
+  const commissioning = planModel(p) === 'commissioning';
+  const when = p.expectedAt ?? p.plannedAt;
+  const moved = !!p.expectedAt && !!p.plannedAt && p.expectedAt !== p.plannedAt;
   return (
     <article className={'proj-card' + (compact ? ' is-compact' : '')} style={{ ['--proj' as string]: p.color }}>
       <button className="proj-open" onClick={() => nav(`/project/${p.id}`)}>
@@ -30,7 +37,7 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
         </p>
       </button>
 
-      <div className="proj-lines">
+      {!commissioning && <div className="proj-lines">
         {lines.length === 0
           ? <button className="proj-chip is-add" onClick={() => nav(`/project/${p.id}/setup`)}>＋ Add a line</button>
           : lines.map(l => (
@@ -40,12 +47,15 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
                 {l.owner && <span className="proj-chip-o">{l.owner.split(' ')[0]}</span>}
               </button>
             ))}
-      </div>
+      </div>}
 
       <footer className="proj-foot">
         <span className="sub">
-          {lines.length} line{lines.length === 1 ? '' : 's'}
-          {lines.length > 0 && ` · ${withOwner} owned`}
+          {commissioning
+            ? (when
+              ? <>Handover {niceDay(when)}{moved && <> · agreed {niceDay(p.plannedAt)}</>}</>
+              : 'No handover date yet')
+            : <>{lines.length} line{lines.length === 1 ? '' : 's'}{lines.length > 0 && ` · ${withOwner} owned`}</>}
         </span>
         <span className="proj-foot-actions">
           {/* ARCHIVE, NOT DELETE, on the card. Nothing on the main list may
@@ -57,7 +67,9 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
               Archive
             </button>
           )}
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${p.id}/setup`)}>Lines &amp; people</button>
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${p.id}/setup`)}>
+            {commissioning ? 'Details' : 'Lines & people'}
+          </button>
           <button className="btn btn-primary" onClick={() => nav(`/project/${p.id}`)}>Open</button>
         </span>
       </footer>
