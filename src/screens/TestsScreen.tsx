@@ -107,6 +107,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       found: itemsOf(tt.items, t.id, 'found').length,
       fixes: fixes.length,
       fixesOpen: fixes.filter(x => x.outcome !== 'passed').length,
+      photos: (t.media ?? []).length + itemsOf(tt.items, t.id, 'found').reduce((n, i) => n + (i.media ?? []).length, 0),
     };
   };
 
@@ -295,11 +296,13 @@ export function TestsScreen({ projectId }: { projectId: string }) {
                     <span className={'tw-res is-' + t.outcome}>
                       <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
                     </span>
-                    {(c.found > 0 || c.fixes > 0) && (
+                    {(c.found > 0 || c.fixes > 0 || c.photos > 0) && (
                       <span className="sub">
-                        {c.found > 0 && `${c.found} written down`}
-                        {c.found > 0 && c.fixes > 0 && ' · '}
-                        {c.fixes > 0 && `${c.fixes} fix${c.fixes === 1 ? '' : 'es'}${c.fixesOpen ? `, ${c.fixesOpen} still to do` : ''}`}
+                        {[
+                          c.found > 0 && `${c.found} written down`,
+                          c.fixes > 0 && `${c.fixes} fix${c.fixes === 1 ? '' : 'es'}${c.fixesOpen ? `, ${c.fixesOpen} still to do` : ''}`,
+                          c.photos > 0 && `${c.photos} picture${c.photos === 1 ? '' : 's'}`,
+                        ].filter(Boolean).join(' · ')}
                       </span>
                     )}
                   </span>

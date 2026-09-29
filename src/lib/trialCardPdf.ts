@@ -28,6 +28,7 @@ import {
   fit, san, setFont, wash, type Doc,
 } from './reportKit';
 import { verdictLine, type TrialCard } from './trialCard';
+import type { Shot } from './testReport';
 import { foundWords, WORDS } from './testing';
 import { niceDay, todayISO } from './weeks';
 
@@ -51,6 +52,10 @@ export interface TrialCardMeta {
   /** Who it is from, printed under the mark. */
   lead?: string;
   builtAt: number;
+  /** The pictures, already decoded — the card is drawn synchronously and the
+   *  pictures come off the device's store, so the screen fetches them first.
+   *  The test's own first, then the ones on what was found. */
+  shots?: Shot[];
 }
 
 /* ---------- the pieces ---------- */
@@ -452,6 +457,36 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
     d.text(`Nothing has been agreed out of this ${WORDS[c.kind].one.toLowerCase()} yet.`, M + 14, nTop + 20);
   } else {
     nextTable(d, c, M + 14, nTop, CW - 28, ny + nRoom - 10);
+  }
+
+  /* THE PICTURES. Rowland: "the power of the evidence is not available in
+     fixes and in the tests." A fix card that says "fixed" is a claim; the
+     photo of the guard on the shelf is the proof, and it was in the app and
+     never on the page. Six at most, the height of a row, under what we do
+     next when it fits and on a sheet of its own when it does not. */
+  const shots = meta.shots ?? [];
+  if (shots.length) {
+    let py = ny + nRoom + 12;
+    /* A row's height when the page has it; a shorter row when the page has
+       most of it — a strip of pictures the height of a thumb still shows
+       the guard on the shelf, and a sheet of its own for them does not. */
+    const left = bottom - py - 25 - 24;
+    const SHOT_H = left >= 92 ? 92 : left >= 56 ? left : 92;
+    const want = 25 + 12 + SHOT_H + 12;
+    if (py + want > bottom) {
+      d.addPage();
+      page++;
+      py = head(d, c, meta, page) + 14;
+    }
+    const pTop = box(d, M, py, CW, want, '5', c.kind === 'fix' ? 'The problem, and it fixed' : 'Pictures from the day',
+      `${c.photos} on the ${WORDS[c.kind].one.toLowerCase()}${shots.length < c.photos ? ` · the first ${shots.length}` : ''}`);
+    let sx = M + 14;
+    for (const s of shots) {
+      const sw = Math.min(150, (s.w / s.h) * SHOT_H);
+      if (sx + sw > M + CW - 14) break;
+      try { d.addImage(s.data, 'JPEG', sx, pTop + 12, sw, SHOT_H); } catch { /* a bad frame must not cost the words */ }
+      sx += sw + 8;
+    }
   }
 
   /* Page numbers last: "1 of 3" cannot be written until the third page exists. */

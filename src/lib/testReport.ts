@@ -236,6 +236,21 @@ export function drawTestReport(d: Doc, data: TestReport): void {
 
 /* ------------------------------- the pictures ------------------------------ */
 
+/** The pictures behind a list of blob keys, in order, at most `max` — an
+ *  unreadable one is skipped rather than costing the rest. Shared with the
+ *  test and fix cards, so one picture is drawn one way everywhere. */
+export async function shotsFor(keys: string[], max = 6): Promise<Shot[]> {
+  const shots: Shot[] = [];
+  for (const k of keys.slice(0, max)) {
+    try { shots.push(await shotFrom(k)); } catch { /* send the words */ }
+  }
+  return shots;
+}
+
+/** What a photo or a clip prints as: the photo itself, or the clip's poster. */
+export const shotKey = (m: { kind: 'photo' | 'video'; blobKey: string; thumbKey?: string }): string | undefined =>
+  (m.kind === 'photo' ? m.blobKey : m.thumbKey);
+
 async function shotFrom(key: string): Promise<Shot> {
   const blob = await getBlob(key);
   if (!blob) throw new Error('not on this device');

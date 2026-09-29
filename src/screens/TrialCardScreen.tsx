@@ -30,6 +30,8 @@ import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '.
 import { todayISO } from '../lib/standing';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
+import type { MediaRef } from '../types';
 
 const nice = (iso?: string): string => {
   if (!iso) return '';
@@ -119,6 +121,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<MediaRef | null>(null);
 
   /* The 350KB of jsPDF is fetched when this screen OPENS, not when the button
      is pressed — the same rule savePdf.ts sets out, and the reason the button
@@ -141,6 +144,12 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   const c: TrialCard = trialCard(test, tt.tests, tt.items, tt.assets);
   const words = WORDS[c.kind];
   const when = c.ranOn ?? c.plannedFor;
+  /* The pictures the card carries: the record's own, then what was found. The
+     screen shows them and the PDF prints them, off this one list. */
+  const media: MediaRef[] = [
+    ...(test.media ?? []),
+    ...tt.items.filter(i => i.testId === test.id && !i.deletedAt).flatMap(i => i.media ?? []),
+  ];
 
   const send = async () => {
     if (busy) return;
@@ -148,8 +157,10 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
     try {
       const { jsPDF } = await loadPdfLib();
       const { drawTrialCard } = await import('../lib/trialCardPdf');
+      const { shotsFor, shotKey } = await import('../lib/testReport');
+      const shots = await shotsFor(media.map(shotKey).filter((k): k is string => !!k));
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-      drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now() });
+      drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
       const slug = `${project.name} ${c.title}`.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Test';
       const how = await deliverPdf(pdf, `${slug}-${when ?? todayISO()}.pdf`);
       setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
@@ -237,6 +248,19 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           : `${c.openNext} of ${c.next.length} still open`}>
         <Next rows={c.next} one={words.one.toLowerCase()} />
       </Block>
+
+      {/* THE PICTURES — the same ones the A4 prints, in the same order. Only
+          when there are any: an empty box for them is a box that says the
+          test was not looked at. */}
+      {media.length > 0 && (
+        <Block n="5" title={c.kind === 'fix' ? 'The problem, and it fixed' : 'Pictures from the day'}
+          sub={`${media.length} on the ${words.one.toLowerCase()}`}>
+          <div className="tw-ev-grid">
+            {media.map(m => <EvidenceThumb key={m.id} media={m} size={84} onClick={() => setViewing(m)} />)}
+          </div>
+        </Block>
+      )}
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
 
       {/* WHERE THIS SITS — the loop, read both ways. The same block the A4
           carries, and the reason a trial card is not an isolated page. */}

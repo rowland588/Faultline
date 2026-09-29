@@ -155,7 +155,9 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
     follows: test.fromTestId ? live(tests).find(t => t.id === test.fromTestId)?.title : undefined,
     ledTo: live(tests).filter(t => t.fromTestId === test.id).map(t => t.title),
 
-    photos: (test.media ?? []).length,
+    /* The test's own pictures and the ones on what was found: the card prints
+       them together, and the count has to be the count it prints. */
+    photos: (test.media ?? []).length + mine.reduce((n, i) => n + (i.media ?? []).length, 0),
     docs: (test.docs ?? []).length,
   };
 }

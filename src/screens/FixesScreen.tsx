@@ -143,6 +143,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
                 {machine(t)}
                 {t.withWhom ? ` · ${t.withWhom}` : ' · nobody yet'}
                 {from ? ` · for “${from.title}”` : ' · not from a test'}
+                {(t.media ?? []).length > 0 && ` · ${t.media?.length} picture${t.media?.length === 1 ? '' : 's'}`}
               </span>
               {t.passesIf && <span className="tw-passes"><b>The problem:</b> {t.passesIf}</span>}
             </button>
@@ -210,6 +211,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
                   <span className="sub">
                     {windowOf(t.ranOn ?? t.plannedFor, t.ranOn ? t.ranTo : t.plannedTo, nice)} · {machine(t)}
                     {t.withWhom ? ` · ${t.withWhom}` : ''}
+                    {(t.media ?? []).length > 0 && ` · ${t.media?.length} picture${t.media?.length === 1 ? '' : 's'}`}
                   </span>
                   <span className={'tw-res is-' + t.outcome}>
                     <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}

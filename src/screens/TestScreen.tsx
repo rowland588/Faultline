@@ -218,7 +218,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             </button>
           ))}
         </span>
-        <MediaStrip media={test.media ?? []} size={54} onView={setViewing}
+        <Evidence media={test.media ?? []} onView={setViewing} kind={kind}
           onAdd={refs => tt.patchTest(test.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
       </section>
 
@@ -481,7 +481,11 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
           {item.fromItemId && ' · from an observation'}
         </span>
       </button>
-      {(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={38} onClick={() => onView(m)} />)}
+      {(item.media ?? []).length > 0 && !open && (
+        <span className="tw-item-ev">
+          {(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={44} onClick={() => onView(m)} />)}
+        </span>
+      )}
 
       {open && (
         <div className="tw-item-edit">
@@ -493,7 +497,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
             <label className="cw-f"><span>By when</span>
               <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>
           )}
-          <MediaStrip media={item.media ?? []} size={44} onView={onView}
+          <Evidence media={item.media ?? []} onView={onView} kind="found"
             onAdd={refs => tt.patchItem(item.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
           {/* WHAT YOU DECIDE AN OBSERVATION IS. Rowland: "what we found on the
               day is observations — I then decide if they go to an action or go
@@ -515,28 +519,40 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
 
 /* ------------------------------ what's attached ---------------------------- */
 
-/** Photos and video, on a test, on a fix, or on a single thing we found.
+/** THE EVIDENCE — photos and clips, on a test, on a fix, or on one thing found.
  *
- *  THREE DOORS, THE SAME THREE THE LINE WALK HAS. Shoot a photo, film a clip,
- *  or upload what is already on the device — and upload takes VIDEO as well as
- *  photos, which is the whole point of it. Most footage of a fix was filmed on
- *  somebody else's phone and arrives afterwards; before this, the only way to
- *  get a clip onto a test was to stand there and film it live, and the picker
- *  said `image/*`, so the phone would not even offer a video it already had.
+ *  Rowland: "the power of the evidence is not available in fixes and in the
+ *  tests; photo still isn't live camera from the phone, it only does gallery;
+ *  what we have in the media looks a little messy."
  *
- *  IT GOES THROUGH lib/media, which is the door the line walk and next steps
- *  already use. That matters more than the button: a clip taken that way is
- *  sniffed for its real type, converted so it plays on the other devices too,
- *  and a photo gets a thumbnail — none of which the hand-rolled copy that used
- *  to live here did. One door, so a clip on a fix behaves like every other clip
- *  in the app.
+ *  Three things were wrong with the strip this replaces, and they were one
+ *  fault: it had no name, no count and no shape. Thumbnails and three dashed
+ *  buttons wrapped together in whatever order the width allowed, so a fix
+ *  with one photo showed a purple square beside "Photo" and "Upload" on a
+ *  line of its own, and nothing on the screen said what any of it was for.
  *
- *  ONE COMPONENT, NOT TWO. There were two of these, identical apart from the
- *  record they saved onto, which is exactly how the video gap came to exist in
- *  two places at once. The caller says what it is saving onto. */
-function MediaStrip({ media, size, onAdd, onView }: {
+ *  So it is a block with a heading — EVIDENCE, and how much there is — a grid
+ *  of what has been taken, and three doors that say where they go:
+ *
+ *      Camera       the phone's lens, straight away, for what is in front
+ *                   of you now. `capture` set, so it never stops at a chooser.
+ *      Video        filmed in the app, several clips back to back.
+ *      On the phone photos AND clips already taken — somebody else's phone,
+ *                   the OEM's engineer, the laptop. Several at once.
+ *
+ *  Camera used to drop `capture` on these screens so that the phone would
+ *  "offer the gallery too", which on Android meant it offered ONLY the
+ *  gallery: the lens was never reachable from a test. The gallery has its
+ *  own door now, so the camera can be the camera.
+ *
+ *  IT GOES THROUGH lib/media, the door the line walk already uses: a clip is
+ *  sniffed for its real type, converted so it plays on other devices, and a
+ *  photo gets a thumbnail. One door, so a clip on a fix behaves like every
+ *  other clip in the app. And what is taken here is what the test's card and
+ *  the fix's card print — see trialCardPdf. */
+function Evidence({ media, kind, onAdd, onView }: {
   media: MediaRef[];
-  size: number;
+  kind: 'test' | 'fix' | 'found';
   onAdd: (refs: MediaRef[]) => Promise<void>;
   onView: (m: MediaRef) => void;
 }) {
@@ -548,9 +564,8 @@ function MediaStrip({ media, size, onAdd, onView }: {
      the picker, and every button in the row was dead until you left the
      screen — because a picker that is dismissed rather than used reports
      nothing at all on some browsers, so the "still working" flag never came
-     off. Reported as, exactly, "photos and video and upload video don't work".
-     A second tap while one is open is a far cheaper fault than a row that
-     cannot be tapped at all, so the word is the only thing that changes. */
+     off. A second tap while one is open is a far cheaper fault than a row
+     that cannot be tapped at all, so the word is the only thing that changes. */
   const take = async (busyNote: string | null, get: () => Promise<MediaRef[]>) => {
     setNote(busyNote);
     try {
@@ -562,37 +577,41 @@ function MediaStrip({ media, size, onAdd, onView }: {
     }
   };
 
+  const photos = media.filter(m => m.kind === 'photo').length;
+  const clips = media.length - photos;
+  const count = [photos && `${photos} photo${photos === 1 ? '' : 's'}`, clips && `${clips} clip${clips === 1 ? '' : 's'}`]
+    .filter(Boolean).join(' · ');
+  const why = kind === 'fix' ? 'The problem, and it fixed — a picture of each is the proof.'
+    : kind === 'test' ? 'What the machine did, as it did it. The card prints them.'
+      : 'A picture of what you saw.';
+
   return (
-    <div className="tw-media">
-      {media.map(m => <EvidenceThumb key={m.id} media={m} size={size} onClick={() => onView(m)} />)}
-
-      {/* CAMERA *OR* THE GALLERY, the phone's own chooser deciding. Rowland:
-          "make photo offer the gallery too." A close-up of the fault has
-          usually been taken already by the time the test is written up, and a
-          button that goes straight to the lens cannot reach it. Upload below is
-          still the door for several at once, and for video. */}
-      <button className="tw-att"
-        onClick={() => void take(null, async () => {
-          const r = await captureMedia('photo', { gallery: true });
-          return r ? [r] : [];
-        })}>
-        📷 Photo
-      </button>
-
-      {/* Filming stays in the app rather than handing off to the camera app, so
-          several clips can be shot back to back — see VideoRecorder for why. */}
-      {videoCaptureSupported() && (
-        <button className="tw-att" onClick={() => setFilming(true)}>🎥 Video</button>
-      )}
-
-      {/* Photos AND video, several at once, from the gallery or a laptop. A
-          phone clip is converted on the way in, which takes a moment, hence
-          the word. */}
-      <button className="tw-att"
-        onClick={() => void take('Adding…', () => pickExistingMedia())}>
-        ⬆ Upload
-      </button>
-
+    <div className="tw-ev">
+      <span className="tw-ev-h">
+        <b>Evidence</b>
+        <span className="sub">{count || 'none yet'}</span>
+      </span>
+      {media.length > 0
+        ? <div className="tw-ev-grid">
+          {media.map(m => <EvidenceThumb key={m.id} media={m} size={72} onClick={() => onView(m)} />)}
+        </div>
+        : <p className="sub tw-ev-why">{why}</p>}
+      <div className="tw-ev-doors">
+        <button className="tw-door"
+          onClick={() => void take(null, async () => {
+            const r = await captureMedia('photo');
+            return r ? [r] : [];
+          })}>
+          <span aria-hidden>📷</span>Camera
+        </button>
+        {videoCaptureSupported() && (
+          <button className="tw-door" onClick={() => setFilming(true)}><span aria-hidden>🎥</span>Video</button>
+        )}
+        <button className="tw-door"
+          onClick={() => void take('Adding…', () => pickExistingMedia())}>
+          <span aria-hidden>🖼</span>On the phone
+        </button>
+      </div>
       {note && <span className="sub" role="status">{note}</span>}
 
       {filming && (
