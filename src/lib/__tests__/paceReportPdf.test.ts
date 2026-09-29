@@ -568,6 +568,33 @@ const row = (o: Partial<Row> & { id: string }): Row => ({
   nextMore: 0, ledTo: [], ...o,
 });
 
+/* A 1×1 white JPEG, enough for jsPDF to place. */
+const JPEG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+
+describe('the pictures on a test card', () => {
+  it('collects them across the whole chain, the test first', () => {
+    const st = strandsOf([
+      row({ id: 'a', title: 'Seal integrity', outcome: 'failed', shots: [{ data: JPEG, w: 4, h: 3 }], photos: 3 }),
+      row({ id: 'b', fromId: 'a', kind: 'fix', title: 'Re-cut the jaw', outcome: 'passed', shots: [{ data: JPEG, w: 1, h: 1 }] }),
+      row({ id: 'c', fromId: 'b', title: 'Seal integrity — re-test' }),
+    ]);
+    expect(st[0]!.shots.map(x => x.w)).toEqual([4, 1]);
+    expect(st[0]!.photos).toBe(4);
+  });
+
+  it('prints them on the card, and says how many more are in the app', () => {
+    const shots = Array.from({ length: 4 }, () => ({ data: JPEG, w: 4, h: 3 }));
+    const r = render(data({ tracker: false, trials: { ...trials(1), rows: [row({ id: 'a', shots, photos: 7 })] } }));
+    expect(r.said.join('\n')).toContain('+3 more in the app');
+  });
+
+  it('costs a card nothing when there are none', () => {
+    const with_ = strandsOf([row({ id: 'a', shots: [] })]);
+    expect(with_[0]!.shots).toEqual([]);
+    expect(with_[0]!.photos).toBe(0);
+  });
+});
+
 describe('grouping the tests into what they prove', () => {
   it('keeps a test, its fix and its re-test as ONE thing being proved', () => {
     const st = strandsOf([

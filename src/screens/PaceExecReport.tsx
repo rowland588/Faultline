@@ -34,6 +34,7 @@ import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceReportData } from '../lib/paceReportPdf';
+import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
 import { useMeasures } from '../lib/useMeasures';
@@ -720,8 +721,17 @@ export function PaceExecReport() {
     try {
       const { jsPDF } = await loadPdfLib();
       const { drawPaceReport } = await import('../lib/paceReportPdf');
+      /* The pictures come off the device's store, so they are fetched before
+         the drawer runs — four per record, the same first four the card
+         shows. A record with none costs nothing here. */
+      const { shotsFor, shotKey } = await import('../lib/testReport');
+      const shots = new Map<string, Shot[]>();
+      for (const t of trialRows) {
+        const keys = mediaOf(t).map(shotKey).filter((k): k is string => !!k);
+        if (keys.length) shots.set(t.id, await shotsFor(keys, 4));
+      }
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-      drawPaceReport(pdf, reportData());
+      drawPaceReport(pdf, reportData(shots));
       // The file lands in someone's inbox on its own, so its NAME has to say
       // which project it is — "report.pdf" from three projects is three files
       // nobody can tell apart.
@@ -886,7 +896,12 @@ export function PaceExecReport() {
    * what it actually did, what that turned up, and what happens next with
    * somebody's name on it. Read through the same lib/trialCard.ts the card
    * uses, so the two documents cannot disagree about what a trial says. */
-  const trialsBlock: PaceReportData['trials'] = line || trialRows.length === 0 ? undefined : {
+  /* A record's pictures: its own, then the ones on what was found under it. */
+  const mediaOf = (t: Test) => [
+    ...(t.media ?? []),
+    ...testItems.filter(i => i.testId === t.id && !i.deletedAt).flatMap(i => i.media ?? []),
+  ];
+  const trialsBlockWith = (shots?: Map<string, Shot[]>): PaceReportData['trials'] => line || trialRows.length === 0 ? undefined : {
     planned: trialRows.filter(t => !hasRun(t)).length,
     passed: trialRows.filter(t => t.outcome === 'passed').length,
     failed: trialRows.filter(t => t.outcome === 'failed').length,
@@ -941,9 +956,14 @@ export function PaceExecReport() {
         nextMore: Math.max(0, c.next.length - 1),
         follows: c.follows,
         ledTo: c.ledTo,
+        shots: shots?.get(t.id),
+        photos: mediaOf(t).length,
       };
     }),
   };
+  /* The screen's copy, without pictures: the preview draws thumbnails off
+     the records themselves. */
+  const trialsBlock = trialsBlockWith();
 
   /* A JOB WITH NO TRACKER IS NOT A TRACKER JOB.
      The report was Project Pace's, and every project got its shape: a ppm sheet,
@@ -1192,7 +1212,7 @@ export function PaceExecReport() {
       })),
     };
 
-  const reportData = (): PaceReportData => ({
+  const reportData = (shots?: Map<string, Shot[]>): PaceReportData => ({
     now,
     // The lever tree, flat. Only on the PROJECT's report: a line's own deck is
     // that line's page, and the whole project's plan on it would be somebody
@@ -1235,7 +1255,7 @@ export function PaceExecReport() {
     byLine: rollup,
     materials: materialsBlock,
     programs: programsBlock,
-    trials: trialsBlock,
+    trials: shots ? trialsBlockWith(shots) : trialsBlock,
     plan: planBlock,
     owes: owesBlock,
     tracker: hasTracker,

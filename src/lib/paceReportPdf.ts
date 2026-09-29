@@ -22,6 +22,7 @@ import {
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
   BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
+import type { Shot } from './testReport';
 import { ASK, type Owes, type OweTone, type Party } from './owes';
 import { strandsOf, orderStrands, strandWord, type Strand, type StrandFix, type StrandState } from './strands';
 export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
@@ -167,6 +168,12 @@ export interface PaceReportData {
        *  word alone, which is a verdict nobody in the room can check. */
       verdict: string;
       found: { written: number; actioned: number; undecided: number };
+      /** The pictures of the day, already decoded — the record's own and the
+       *  ones on what was found. The drawer is synchronous; the screen fetches
+       *  them off the device first, the way the test card does. */
+      shots?: Shot[];
+      /** How many there are in the app, which can be more than `shots`. */
+      photos?: number;
       /** The first next step still outstanding. */
       next?: { what: string; owner: string; due: string; done: boolean; late: boolean; on?: string };
       /** How many more there are after that one. */
@@ -995,6 +1002,8 @@ const C_ROW_GAP = 3;
 const C_COL1 = 46;           // the date, or "Fix", or "Next"
 const C_COL2 = 60;           // the result word
 const C_HEAD = 42;           // name, machine line, rule
+const C_SHOT = 46;           // a picture's height; four across at most
+const C_SHOTS = 4;
 
 interface CardRow { c1: string; c2: string; tone: string; lines: string[]; bold: boolean; h: number }
 interface StrandPlan {
@@ -1052,8 +1061,14 @@ function planStrand(d: Doc, s: Strand, w: number): StrandPlan {
       [s.next.what, s.next.who || 'nobody yet', s.next.when].filter(Boolean).join(' · '), true, 2)
     : undefined;
 
+  /* THE PICTURES, on the card. Rowland: "yes, add the photos." Four at most,
+     a row's height, under the attempts — the guard on the shelf, the leak in
+     the seal, on the page the client reads rather than on a card they have
+     to ask for. */
+  const shots = s.shots.slice(0, C_SHOTS);
   const h = C_PAD + C_HEAD + proves.length * C_LEAD + 6
     + rows.reduce((a, r) => a + r.h, 0)
+    + (shots.length ? 4 + C_SHOT + 4 : 0)
     + (next ? 8 + next.h : 0) + C_PAD - 4;
 
   return {
@@ -1106,6 +1121,22 @@ function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number): voi
     cy += r.h;
   };
   p.rows.forEach(drawRow);
+
+  if (p.s.shots.length) {
+    let sx = lx;
+    const top = cy - 4;
+    for (const sh of p.s.shots.slice(0, C_SHOTS)) {
+      const sw = Math.min(82, (sh.w / sh.h) * C_SHOT);
+      if (sx + sw > x + w - C_PAD) break;
+      try { d.addImage(sh.data, 'JPEG', sx, top, sw, C_SHOT); } catch { /* a bad frame must not cost the words */ }
+      sx += sw + 5;
+    }
+    if (p.s.photos > p.s.shots.length || p.s.shots.length > C_SHOTS) {
+      setFont(d, 7, 'normal', MUTED);
+      d.text(`+${p.s.photos - Math.min(p.s.shots.length, C_SHOTS)} more in the app`, sx + 2, top + C_SHOT - 2);
+    }
+    cy += 4 + C_SHOT + 4;
+  }
 
   /* The one thing next, under a hairline. */
   if (p.next) {

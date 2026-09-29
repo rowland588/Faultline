@@ -7,6 +7,7 @@
  * lib/paceReportPdf.ts.
  */
 import type { PaceReportData } from './paceReportPdf';
+import type { Shot } from './testReport';
 
 export type TrialRow = NonNullable<PaceReportData['trials']>['rows'][number];
 
@@ -85,6 +86,11 @@ export interface Strand {
   next?: StrandNext;
   attempts: number;
   steps: StrandStep[];
+  /** The pictures across the whole chain — the test's, its fixes', its
+   *  re-tests' — in the order the work happened. */
+  shots: Shot[];
+  /** How many there are in the app, across the chain. */
+  photos: number;
   /** What is still owed on this strand, with a name and a date on it.
    *  `since` is a debt that started on a day rather than one due by it —
    *  the verdict on a test that ran. */
@@ -252,6 +258,8 @@ export function strandsOf(rows: TrialRow[]): Strand[] {
       /* Attempts are days that happened. One run and one booked is one attempt. */
       attempts: tests.filter(t => t.ran).length,
       steps,
+      shots: chain.flatMap(r => r.shots ?? []),
+      photos: chain.reduce((n, r) => n + (r.photos ?? (r.shots?.length ?? 0)), 0),
       /* The same thing twice — a booked re-test IS the next step off the one
          before it — reads as two jobs. Kept once, by its words. */
       owed: owed.filter((o, i) => owed.findIndex(x => x.what === o.what) === i).slice(0, 4),
