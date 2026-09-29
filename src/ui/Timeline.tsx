@@ -138,11 +138,15 @@ const TONE_WORD: Record<PlanMark['tone'], string> = {
   done: 'done', failed: 'didn’t pass', ran: 'no verdict yet', late: 'day has gone', booked: 'ahead', none: '',
 };
 
-export function Timeline({ marks, today, expectedAt, plannedAt }: {
+export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
   marks: PlanMark[];
   today: string;
   expectedAt?: string;
   plannedAt?: string;
+  /** Dates the axis must reach anyway — see layoutPlan. The all-jobs board
+   *  passes every job's dates, so an opened job sits under the same calendar
+   *  as the rows around it. */
+  span?: string[];
 }) {
   const wideRef = useRef<HTMLDivElement>(null);
   const probeT = useRef<HTMLSpanElement>(null);
@@ -178,7 +182,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt }: {
 
   const plan = useMemo(
     () => layoutPlan(marks, {
-      today, expectedAt, plannedAt,
+      today, expectedAt, plannedAt, span,
       widthOf: m => {
         if (track.px > 0) {
           const tW = textWidth(m.label, track.fontT), dW = textWidth(whenWords(m.at), track.fontD);
@@ -189,7 +193,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt }: {
         return labelGap(m.label, 6.2, 58, 1020);
       },
     }),
-    [marks, today, expectedAt, plannedAt, track],
+    [marks, today, expectedAt, plannedAt, span, track],
   );
   const agenda = useMemo(() => planAgenda(marks), [marks]);
   const says = useMemo(() => planSays(marks, today), [marks, today]);

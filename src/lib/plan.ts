@@ -162,6 +162,10 @@ export interface PlanOpts {
    *  straight through the mark seven days after it. The screen measures its
    *  text and passes the truth; the report estimates by character count. */
   widthOf?: (m: PlanMark) => number;
+  /** Dates the axis must reach even though no mark here falls on them — the
+   *  other jobs' dates, when several jobs are drawn under one calendar and a
+   *  month has to land in the same place on every one of them. */
+  span?: string[];
 }
 
 /** A label's width as a fraction of the axis, near enough to pack by.
@@ -228,7 +232,7 @@ export function layoutPlan(marks: PlanMark[], opts: PlanOpts = {}): Plan {
     dates.push(m.at);
     if (m.until) dates.push(m.until);
   }
-  for (const d of [today, opts.expectedAt, opts.plannedAt]) if (d) dates.push(d);
+  for (const d of [today, opts.expectedAt, opts.plannedAt, ...(opts.span ?? [])]) if (d) dates.push(d);
 
   const sorted = [...dates].sort();
   const first = sorted[0], last = sorted[sorted.length - 1];

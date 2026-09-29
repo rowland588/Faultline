@@ -6133,3 +6133,226 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    day" was a paragraph-size .sub inside a small caps label, and it knocked
    its field a line lower than the fields beside it. */
 .cw-f-opt { font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+/* =============================================================================
+ * THE ALL-JOBS BOARD — every commissioning job, one calendar. See JobsBoard.
+ *
+ * Built out of the scheme's own parts: the charcoal shell the verdict card
+ * already uses for the band, bone for the paper, each job's own colour for its
+ * row — and the state colours meaning what they mean everywhere else. The
+ * movement is one orchestrated moment on arrival (the bars grow, the marks
+ * land, today drops in) and one on use (a row opens in place). Nothing loops
+ * except the light behind the band, and none of it runs for somebody who has
+ * asked their device for less motion.
+ * ========================================================================== */
+.jb { --jb-lab: 290px; display: flex; flex-direction: column; gap: 16px; margin: 6px 0 30px; }
+
+/* ---- the band ---- */
+.jb-hero {
+  position: relative; overflow: hidden; isolation: isolate;
+  padding: 26px 28px 22px; border-radius: var(--radius-lg);
+  background: var(--shell); color: var(--shell-ink);
+  box-shadow: 0 30px 60px -30px rgba(23, 24, 26, 0.55);
+}
+.jb-glow {
+  position: absolute; inset: -40%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40% 50% at 18% 30%, color-mix(in srgb, var(--g1, #1e6b4b) 55%, transparent), transparent 70%),
+    radial-gradient(35% 45% at 82% 70%, color-mix(in srgb, var(--g2, #2b4e7e) 45%, transparent), transparent 70%);
+  opacity: 0.55; filter: blur(10px);
+  animation: jb-drift 18s ease-in-out infinite alternate;
+}
+@keyframes jb-drift { from { transform: translate3d(-4%, -2%, 0) rotate(0deg); } to { transform: translate3d(4%, 3%, 0) rotate(8deg); } }
+.jb-eyebrow { margin: 0 0 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brand-mark); }
+.jb-says {
+  margin: 0; max-width: 34ch; font-family: var(--display); font-size: clamp(22px, 2.6vw, 32px);
+  line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; text-wrap: balance;
+  animation: jb-rise 700ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.jb-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.jb-stat {
+  display: flex; flex-direction: column; gap: 2px; min-width: 118px; padding: 10px 14px 11px;
+  border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--shell-line);
+  font-size: 12px; color: var(--shell-muted);
+  animation: jb-rise 700ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: 120ms;
+}
+.jb-stat b { font-family: var(--display); font-size: 30px; line-height: 1; color: var(--shell-ink); font-variant-numeric: tabular-nums; }
+.jb-stat.is-late b { color: var(--shell-bad); }
+.jb-owes { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 16px; }
+.jb-owes-h { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--shell-muted); margin-right: 4px; }
+.jb-owe {
+  position: relative; display: inline-flex; align-items: baseline; gap: 7px; padding: 7px 11px 10px;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.08); font-size: 13px; overflow: hidden;
+}
+.jb-owe b { font-weight: 700; }
+.jb-owe-n { font-variant-numeric: tabular-nums; color: var(--shell-dim); }
+.jb-owe-l { font-size: 11.5px; font-weight: 700; color: var(--shell-bad); }
+.jb-owe-jobs { position: absolute; left: 11px; right: 11px; bottom: 4px; height: 3px; display: flex; gap: 2px; }
+.jb-owe-jobs i { display: block; height: 100%; border-radius: 2px; min-width: 6px; }
+
+/* ---- this week ---- */
+.jb-sec-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.jb-sec-h h3 { margin: 0; font-family: var(--display); font-size: 16px; letter-spacing: -0.01em; }
+.jb-wk-list {
+  list-style: none; margin: 0; padding: 2px 2px 10px; display: grid; gap: 8px;
+  grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); overflow-x: auto;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+}
+.jb-wk-list li { scroll-snap-align: start; animation: jb-rise 500ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 45ms + 150ms); }
+.jb-wk {
+  width: 100%; height: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
+  padding: 11px 13px 12px; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  border-top: 3px solid var(--job); box-shadow: var(--shadow);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.jb-wk:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.jb-wk-job { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.jb-wk-what { font-size: 14px; line-height: 1.3; }
+.jb-wk-m { font-size: 12px; color: var(--muted); }
+.jb-wk-when { margin-top: auto; padding-top: 4px; font-size: 12px; font-weight: 800; color: var(--st-w); }
+.jb-wk.is-late .jb-wk-when { color: var(--danger); }
+.jb-more { margin: 2px 0 0; }
+
+/* ---- the Gantt ---- */
+.jb-gantt { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px 12px; box-shadow: var(--shadow); }
+.jb-g-head { display: grid; grid-template-columns: var(--jb-lab) 1fr 28px; align-items: end; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.jb-g-lab { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; }
+.jb-g-track { position: relative; height: 38px; }
+.jb-month { position: absolute; top: 2px; padding-left: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.jb-today-pill {
+  position: absolute; bottom: 0; transform: translateX(-50%); padding: 2px 8px; border-radius: 999px;
+  background: var(--ink); color: var(--surface); font-size: 10.5px; font-weight: 800; white-space: nowrap;
+  animation: jb-rise 600ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: 500ms;
+}
+.jb-g-body { position: relative; }
+/* The overlay spans the track column only, over every row. */
+.jb-g-under { position: absolute; top: 0; bottom: 0; left: var(--jb-lab); right: 28px; pointer-events: none; z-index: 0; }
+.jb-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.jb-today {
+  position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.8;
+  transform-origin: top; animation: jb-drop 900ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: 450ms;
+}
+
+.jb-row { position: relative; z-index: 1; border-bottom: 1px solid var(--line); }
+.jb-row:last-child { border-bottom: 0; }
+.jb-row-h {
+  width: 100%; display: grid; grid-template-columns: var(--jb-lab) 1fr 28px; align-items: center;
+  padding: 0; min-height: 84px; font: inherit; color: inherit; text-align: left;
+  background: none; border: 0; cursor: pointer; border-radius: 12px; transition: background 160ms ease;
+}
+.jb-row-h:hover { background: color-mix(in srgb, var(--job) 6%, transparent); }
+.jb-row-h:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jb-lab { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px 12px 4px; min-width: 0; }
+.jb-name { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 16.5px; font-weight: 700; letter-spacing: -0.01em; }
+.jb-dot { width: 11px; height: 11px; flex: none; border-radius: 50%; background: var(--job); box-shadow: 0 0 0 4px color-mix(in srgb, var(--job) 18%, transparent); }
+.jb-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.jb-chip { padding: 2px 8px; border-radius: 999px; background: var(--surface-2); font-size: 11.5px; font-weight: 700; color: var(--ink-2); }
+.jb-chip.is-late { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.jb-next { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jb-next.is-late { color: var(--danger); }
+
+.jb-track { position: relative; height: 84px; }
+.jb-bar {
+  position: absolute; top: 50%; height: 14px; margin-top: -7px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--job) 18%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--job) 35%, transparent);
+  transform-origin: left; animation: jb-grow 1100ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 110ms + 200ms);
+}
+.jb-bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--job) 75%, transparent), var(--job));
+}
+.jb-slip {
+  position: absolute; top: 50%; height: 30px; margin-top: -15px; border-radius: 6px;
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--warn) 22%, transparent) 0 4px, transparent 4px 8px);
+}
+.jb-mk {
+  position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+  border: 2px solid var(--st-w); background: var(--surface); z-index: 2;
+  animation: jb-pop 420ms cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--i) * 110ms + 900ms + var(--d) * 18ms);
+  transition: transform 140ms ease;
+}
+.jb-mk.is-done { background: var(--st-g); border-color: var(--st-g); }
+.jb-mk.is-failed { background: var(--st-r); border-color: var(--st-r); }
+.jb-mk.is-ran { background: var(--st-a); border-color: var(--st-a); }
+.jb-mk.is-late { border-color: var(--st-r); }
+.jb-mk:hover { transform: scale(1.5); z-index: 5; }
+/* The tip: what the mark is, when, and what state — in words, not colour. */
+.jb-mk::after, .jb-flag::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
+  padding: 5px 9px; border-radius: 7px; background: var(--ink); color: var(--surface);
+  font-size: 11.5px; font-weight: 600; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity 120ms ease, transform 120ms ease;
+}
+.jb-mk:hover::after, .jb-flag:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.jb-flag {
+  position: absolute; top: 14px; bottom: 14px; width: 2px; margin-left: -1px; background: var(--job); z-index: 1;
+  animation: jb-drop 700ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 110ms + 1000ms);
+}
+.jb-flag::before {
+  content: ''; position: absolute; top: 0; left: 1px; width: 12px; height: 9px; background: var(--job);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.jb-flag-t { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; font-size: 10.5px; font-weight: 800; color: var(--job); white-space: nowrap; }
+.jb-chev {
+  justify-self: center; width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg); transition: transform 240ms cubic-bezier(.2, .8, .2, 1); margin-top: -4px;
+}
+.jb-row.is-open .jb-chev { transform: rotate(225deg); margin-top: 4px; }
+
+/* The drawer opens by animating its grid row from nothing to its content. */
+.jb-drawer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 420ms cubic-bezier(.2, .8, .2, 1); }
+.jb-row.is-open .jb-drawer { grid-template-rows: 1fr; }
+.jb-drawer-in { min-height: 0; overflow: hidden; }
+/* An open job sits ON the board's calendar, not over it: its own drawing
+   covers the board's lines, and its track starts and ends where the board's
+   does — the lane names fall under the jobs column — so a month in the
+   drawer is the same month as the grid line above it. .tl is 1px border +
+   22px padding + a 78px lane column; the board's track starts at --jb-lab
+   and stops 28px short of the right for the chevron. */
+.jb-row.is-open .jb-drawer { position: relative; z-index: 2; background: var(--surface); }
+.jb-row.is-open .jb-drawer-in { padding: 4px 0 16px; animation: jb-rise 420ms cubic-bezier(.2, .8, .2, 1) both; }
+.jb-drawer-grid { display: grid; grid-template-columns: calc(var(--jb-lab) - 101px) 1fr; align-items: start; }
+.jb-drawer .tl { margin: 0 5px 0 0; min-width: 0; }
+.jb-aside { display: flex; flex-direction: column; gap: 8px; padding: 6px 16px 0 4px; }
+.jb-aside .jb-sent { margin: 0; font-size: 13.5px; line-height: 1.4; }
+.jb-led { margin: 0; }
+.jb-aside .jb-doors { flex-direction: column; align-items: stretch; margin-top: 6px; }
+.jb-aside .btn { justify-content: center; }
+.jb-sent { font-weight: 600; }
+.jb-doors { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.jb-key { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 10px 0 0; }
+.jb-key > span { display: inline-flex; align-items: center; gap: 6px; }
+.jb-k { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--st-w); }
+.jb-k.is-done { background: var(--st-g); border-color: var(--st-g); }
+.jb-k.is-failed { background: var(--st-r); border-color: var(--st-r); }
+.jb-k.is-late { border-color: var(--st-r); }
+.jb-kf { display: inline-block; width: 10px; height: 8px; background: var(--ink-2); clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.jb-key-say { margin-left: auto; }
+
+@keyframes jb-grow { from { transform: scaleX(0); opacity: 0.2; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes jb-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes jb-drop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes jb-rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---- a phone: the rows without the calendar; a row still opens ---- */
+@media (max-width: 719px) {
+  .jb { --jb-lab: 1fr; }
+  .jb-hero { padding: 20px 18px 18px; }
+  .jb-stat { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
+  .jb-g-head { grid-template-columns: 1fr; }
+  .jb-g-track, .jb-g-under, .jb-track { display: none; }
+  .jb-row-h { grid-template-columns: 1fr 28px; min-height: 0; }
+  .jb-key { display: none; }
+  .jb-wk-list { grid-auto-columns: 78%; }
+  .jb-drawer-grid { grid-template-columns: 1fr; gap: 10px; }
+  .jb-drawer .tl { margin: 0; }
+  .jb-aside { padding: 0 4px; }
+  .jb-aside .jb-doors { flex-direction: row; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jb *, .jb *::before, .jb *::after { animation: none !important; transition: none !important; }
+}

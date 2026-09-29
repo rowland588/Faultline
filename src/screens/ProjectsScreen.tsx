@@ -14,7 +14,8 @@ import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
-import { MODELS, type PlanModel } from '../lib/planModel';
+import { MODELS, planModel, type PlanModel } from '../lib/planModel';
+import { JobsBoard } from '../ui/JobsBoard';
 import { allPaceLines, onDataChange, STORE_WORDS, type PaceLineRow } from '../db';
 
 /** The lines, grouped by project — the counts and the names shown on each card. */
@@ -77,7 +78,11 @@ export function ProjectsScreen() {
         <div className="pace-head-main">
           <p className="pace-eyebrow">Commissioning · improvement</p>
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">A commissioning job is the site and the OEM working to one plan — the machines, what each has to prove, what happened, what we found, what we do next. An improvement initiative is a set of lines, each with an owner and a sponsor.</p>
+          {/* The definition is for somebody with no job yet. Once one is
+              running, the board under this says more than the paragraph. */}
+          {!projects.some(p => planModel(p) === 'commissioning') && (
+            <p className="pace-lede">A commissioning job is the site and the OEM working to one plan — the machines, what each has to prove, what happened, what we found, what we do next. An improvement initiative is a set of lines, each with an owner and a sponsor.</p>
+          )}
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
@@ -131,7 +136,7 @@ export function ProjectsScreen() {
                 </button>
               ))}
             </div>
-            <p className="chip-hint">Changeable later under Lines &amp; people, if the project turns out to need the other one.</p>
+            <p className="chip-hint">Changeable later under Details, if the project turns out to need the other one.</p>
           </div>
           <div className="row-inline" style={{ marginTop: 10 }}>
             <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>
@@ -144,6 +149,13 @@ export function ProjectsScreen() {
               : 'You add the lines next — that is where owners and sponsors go.'}
           </p>
         </section>
+      )}
+
+      {/* EVERY JOB, ONE HOME. The commissioning jobs, side by side on one
+          calendar, above the cards that open each of them — which stay exactly
+          as they were. See JobsBoard. */}
+      {!adding && projects.some(p => planModel(p) === 'commissioning') && (
+        <JobsBoard projects={projects.filter(p => planModel(p) === 'commissioning')} />
       )}
 
       {/* AN EMPTY LIST IS NOT ALWAYS AN EMPTY APP. Archive everything and this
