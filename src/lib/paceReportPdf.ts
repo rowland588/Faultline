@@ -436,10 +436,58 @@ function planInk(tone: PlacedMark['tone']): { colour: string; filled: boolean } 
  * cut through the last two rows of the table. */
 const PLAN_ROW_H = 15, PLAN_LANE_GAP = 7;
 
-export function planPanelHeight(pl: NonNullable<PaceReportData['plan']>, ceiling: number,
+/* ---- A LANE WITH TOO MUCH IN IT IS DRAWN AS DENSITY, NOT AS WORDS ----
+ *
+ * Rowland: "the client reports still don't adapt to the amount of content in
+ * the app — it overspills, becomes merged and messy." Page 2 was the worst of
+ * it. Eighty materials each got a labelled dot, the labels needed twenty-two
+ * lines to stop touching, and the lane ran through the footer and off the
+ * sheet with the fixes, the tests and the table never drawn at all.
+ *
+ * A lane that would take more than a few lines is collapsed: every mark on ONE
+ * line, unlabelled, so the eye still reads when the work lands and where the
+ * red is — and the lane's own name carries the count in words: "12 late · 7
+ * ahead". Names are page 3's and the lists' business; the timeline's is shape.
+ * Collapsed first by size when the sheet would otherwise overflow, and always
+ * past MAX_LANE_ROWS, because six lines of labels is a wall whether or not it
+ * fits. */
+export const MAX_LANE_ROWS = 8;
+/** Past this many marks a lane is density whatever the room: sixteen labelled
+ *  dots is a list, and page 3 is the list. */
+export const MAX_LANE_MARKS = 16;
+type PlanLaneDrawn = PlanLane & { collapsed?: string };
+type PlanDrawn = Omit<NonNullable<PaceReportData['plan']>, 'lanes'> & { lanes: PlanLaneDrawn[] };
+const COLLAPSED_H = 22;
+
+const laneH = (l: PlanLaneDrawn, rowH: number): number =>
+  l.collapsed ? Math.max(rowH, COLLAPSED_H) : l.rows.length * rowH;
+
+function collapseLane(l: PlanLane): PlanLaneDrawn {
+  const marks = l.rows.flat().sort((a, b) => a.at - b.at);
+  const n = (f: (m: PlacedMark) => boolean) => marks.filter(f).length;
+  const late = n(m => m.tone === 'late'), ahead = n(m => m.tone === 'booked');
+  const done = n(m => m.tone === 'done' || m.tone === 'failed' || m.tone === 'ran');
+  const words = late ? `${late} late · ${ahead} ahead` : `${done} done · ${ahead} ahead`;
+  return { ...l, rows: [marks.map(m => ({ ...m, label: '' }))], collapsed: `${marks.length} · ${words}` };
+}
+
+/** The plan as the sheet can carry it. Pure; the drawing reads the result. */
+export function fitPlan(pl: NonNullable<PaceReportData['plan']>, room: number): PlanDrawn {
+  const busy = (l: PlanLane) => l.rows.length > MAX_LANE_ROWS || l.rows.reduce((n, r) => n + r.length, 0) > MAX_LANE_MARKS;
+  let lanes: PlanLaneDrawn[] = pl.lanes.map(l => (busy(l) ? collapseLane(l) : l));
+  const tooTall = () => planPanelHeight({ ...pl, lanes }, Infinity) > room;
+  while (tooTall()) {
+    const open = lanes.filter(l => !l.collapsed && l.rows.length > 1);
+    if (open.length === 0) break;
+    const biggest = open.reduce((a, b) => (b.rows.length > a.rows.length ? b : a));
+    lanes = lanes.map(l => (l === biggest ? collapseLane(l) : l));
+  }
+  return { ...pl, lanes };
+}
+
+export function planPanelHeight(pl: PlanDrawn, ceiling: number,
   rowH = PLAN_ROW_H): number {
-  const rowsTotal = pl.lanes.reduce((n, l) => n + l.rows.length, 0);
-  const chartOnly = rowsTotal * rowH + pl.lanes.length * PLAN_LANE_GAP + 4;
+  const chartOnly = pl.lanes.reduce((n, l) => n + laneH(l, rowH), 0) + pl.lanes.length * PLAN_LANE_GAP + 4;
   const PANEL_HEAD = 30;
   const beforeChart = 24 + (pl.slip ? 11 : 0) + 26;      // verdict, slip, month labels
   const afterChart = 26 + 22 + 8;                         // date tags, key, table heading
@@ -451,9 +499,9 @@ export function planPanelHeight(pl: NonNullable<PaceReportData['plan']>, ceiling
  *  the front page, under the tests — and then there is no footer to write,
  *  because the sheet it is riding on has its own. */
 function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
-  place?: { top: number; n: string }): void {
-  const pl = data.plan;
-  if (!pl) return;
+  place?: { top: number; n: string }, opts: { grow?: boolean; foot?: boolean } = {}): number {
+  const pl: PlanDrawn | undefined = data.plan;
+  if (!pl) return 0;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
 
@@ -480,11 +528,15 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
    * Riding on the front page it takes what it needs and no more; the sheet
    * under it belongs to the tests. */
   const rowsTotal = pl.lanes.reduce((n, l) => n + l.rows.length, 0);
-  const slack = Math.max(0, room - need);
+  /* A collapsed lane's row is one line of dots, and never grows: the slack
+     goes to the lanes that carry words. */
+  const growing = pl.lanes.reduce((n, l) => n + (l.collapsed ? 0 : l.rows.length), 0) || rowsTotal;
+  /* No growth when something else is coming under it: the slack is theirs. */
+  const slack = opts.grow === false ? 0 : Math.max(0, room - need);
   /* 30pt is about as far apart as two marks on a timeline can sit and still
      read as one line of work rather than as a list. Past that the growth is
      only air, and air inside a frame is worse than a page that ends. */
-  const ROW_H = rowsTotal > 0 ? Math.min(30, PLAN_ROW_H + slack / rowsTotal) : PLAN_ROW_H;
+  const ROW_H = rowsTotal > 0 ? Math.min(30, PLAN_ROW_H + slack / growing) : PLAN_ROW_H;
   const LANE_GAP = PLAN_LANE_GAP;
   /* And then the panel ends where its content ends. Filling the sheet by
      stretching the frame was the first attempt and it just moved the white
@@ -509,7 +561,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   const at = (f: number) => trackX + f * trackW;
 
   const rowH = ROW_H, laneGap = LANE_GAP;
-  const chartH = rowsTotal * ROW_H + pl.lanes.length * LANE_GAP + 4;
+  const chartH = pl.lanes.reduce((n, l) => n + laneH(l, ROW_H), 0) + pl.lanes.length * LANE_GAP + 4;
   const chartTop = y + 26;
   const chartBottom = chartTop + chartH;
 
@@ -543,9 +595,15 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   for (const lane of pl.lanes) {
     setFont(d, 6.5, 'bold', INK2);
     d.text(fit(d, lane.label.toUpperCase(), PLAN_LANE_W - 6), x0, ly + 9);
+    /* The count, in words, where the names would have been. */
+    if (lane.collapsed) {
+      setFont(d, 6, 'normal', MUTED);
+      d.text(fit(d, lane.collapsed, PLAN_LANE_W - 6), x0, ly + 17);
+    }
+    const thisRowH = lane.collapsed ? laneH(lane, rowH) : rowH;
 
     for (const row of lane.rows) {
-      const cy = ly + rowH / 2;
+      const cy = ly + thisRowH / 2;
       for (const m of row) {
         const { colour, filled } = planInk(m.tone);
         const mx = at(m.at);
@@ -559,6 +617,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
         d.setDrawColor(colour); d.setLineWidth(1.1);
         if (filled) { d.setFillColor(colour); d.circle(mx, cy, 2.6, 'FD'); }
         else { d.setFillColor(255, 255, 255); d.circle(mx, cy, 2.6, 'FD'); }
+        if (!m.label) continue;           // a collapsed lane: the dot is the whole mark
 
         /* The label goes right of the dot, or back towards the middle when the
            dot is near the edge — the last mark on a plan is the one a client
@@ -600,7 +659,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
           d.text(when, ex + 6 + wShown + 4, cy + 2.4);
         }
       }
-      ly += rowH;
+      ly += thisRowH;
     }
     ly += laneGap;
     if (lane !== pl.lanes[pl.lanes.length - 1]) {
@@ -678,24 +737,35 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   /* Riding on the front page, the sheet it is on has already written its own
      footer — and a second one stamped over the first is how a report comes out
      claiming to be two different pages at once. */
-  if (place) return;
+  if (place || opts.foot === false) return panelBottom;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — where the job is`, CW * 0.8), M, H - M + 6);
   d.text('Read off the same records the site and the OEM are working to.',
     W - M, H - M + 6, { align: 'right' });
+  return panelBottom;
 }
 
-export const MAT_ROWS = 26;
+/* ---- AS MANY SHEETS AS THE LIST TAKES ----
+ * The grid was capped at 26 rows and the footer said "14 more on the list than
+ * fit this sheet — the app has them all", which is the report telling the
+ * client to go and look somewhere else. A list runs onto the next sheet under
+ * the same heading, "continued", with the week columns repeated. */
+const MAT_ROW_MIN = 12, MAT_PANEL_HEAD = 44, MAT_GRID_HEAD = 50, MAT_FOOT_PAD = 22;
+export function materialsPlan(n: number, H: number, M: number): { sheets: number; per: number } {
+  const maxRows = Math.max(1, Math.floor((H - 2 * M - 14 - MAT_PANEL_HEAD - MAT_GRID_HEAD - MAT_FOOT_PAD) / MAT_ROW_MIN));
+  const sheets = Math.max(1, Math.ceil(n / maxRows));
+  return { sheets, per: Math.ceil(n / sheets) };
+}
 export function materialsHeight(data: PaceReportData, H: number, M: number): number {
   const m = data.materials;
   if (!m) return 0;
-  const rows = Math.min(m.rows.length, MAT_ROWS);
-  const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - 44 - 50 - 22) / Math.max(1, rows)));
-  return Math.min(H - 2 * M - 14, Math.max(150, 44 + 50 + rows * rowH + 22));
+  const rows = materialsPlan(m.rows.length, H, M).per;
+  const rowH = Math.max(MAT_ROW_MIN, Math.min(22, (H - 2 * M - 14 - MAT_PANEL_HEAD - MAT_GRID_HEAD - MAT_FOOT_PAD) / Math.max(1, rows)));
+  return Math.min(H - 2 * M - 14, Math.max(150, MAT_PANEL_HEAD + MAT_GRID_HEAD + rows * rowH + MAT_FOOT_PAD));
 }
 
 function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: number,
-  yTop?: number, withFoot = true): number {
+  yTop?: number, withFoot = true, sheet = 0): number {
   const m = data.materials;
   if (!m) return 0;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
@@ -705,7 +775,8 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
     ? `${m.late} late \u00b7 ${m.waiting} still to come \u00b7 ${m.here} of ${m.total} in`
     : `${m.waiting} still to come \u00b7 ${m.here} of ${m.total} in`;
 
-  const rows = m.rows.slice(0, MAT_ROWS);    // a sheet nobody can read is not a picture
+  const { per } = materialsPlan(m.rows.length, H, M);
+  const rows = m.rows.slice(sheet * per, (sheet + 1) * per);
   const weeks = m.weeks;
   const y0 = yTop ?? M;
 
@@ -720,13 +791,13 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
      began at top+20 and painted straight over them. The grid printed with a
      month band, no week names, and an unlabelled column axis: the reader could
      see a block of green and not which weeks it covered. */
-  const PANEL_HEAD = 44, GRID_HEAD = 50, FOOT_PAD = 22;
-  const rowH = Math.max(12, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
+  const PANEL_HEAD = MAT_PANEL_HEAD, GRID_HEAD = MAT_GRID_HEAD, FOOT_PAD = MAT_FOOT_PAD;
+  const rowH = Math.max(MAT_ROW_MIN, Math.min(22, (H - 2 * M - 14 - PANEL_HEAD - GRID_HEAD - FOOT_PAD) / Math.max(1, rows.length)));
   const panelH = Math.min(
     H - 2 * M - 14,
     Math.max(150, PANEL_HEAD + GRID_HEAD + rows.length * rowH + FOOT_PAD),
   );
-  const top = panel(d, M, y0, CW, panelH, String(page), 'What we are waiting on', late);
+  const top = panel(d, M, y0, CW, panelH, String(page), sheet ? 'What we are waiting on — continued' : 'What we are waiting on', late);
 
   /* Columns: the thing, when it is planned for, then one narrow cell per week.
      The week cells get whatever is left, so a long plan squeezes rather than
@@ -820,10 +891,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
   if (withFoot) {
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
-    d.text(
-      m.rows.length > rows.length
-        ? `${m.rows.length - rows.length} more on the list than fit this sheet \u2014 the app has them all`
-        : 'Green from the week it lands, the same as the plan it comes off.',
+    d.text('Green from the week it lands, the same as the plan it comes off.',
       W - M, H - M + 6, { align: 'right' });
   }
   return y0 + panelH;
@@ -966,8 +1034,14 @@ function planStrand(d: Doc, s: Strand, w: number): StrandPlan {
   const labelW = d.getTextWidth('Passes if: ');
   const proves = wrap(s.provesIf || 'nothing agreed in advance', w - 2 * C_PAD - labelW, false, 2);
 
+  /* A card is never taller than a sheet: the last four attempts in full, the
+     earlier ones counted. Four is the most a client reads before asking why. */
+  const MAX_RUNS = 4;
+  const runs = s.runs.length > MAX_RUNS ? s.runs.slice(-MAX_RUNS) : s.runs;
+  const earlier = s.runs.length - runs.length;
   const rows: CardRow[] = [
-    ...s.runs.map(r => row(r.when || '—', r.word, runTone(r.outcome), r.reason || '—', false, 2)),
+    ...(earlier ? [row('', '', MUTED, `${earlier} earlier attempt${earlier === 1 ? '' : 's'} — the app has them all`, false, 1)] : []),
+    ...runs.map(r => row(r.when || '—', r.word, runTone(r.outcome), r.reason || '—', false, 2)),
     ...s.fixes.slice(0, 3).map(f => row('Fix', f.word, FIX_TONE[f.tone],
       [f.what, f.who || 'nobody yet', f.when].filter(Boolean).join(' · '), false, 2)),
   ];
@@ -1051,23 +1125,38 @@ function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number): voi
  * starts the next. Pure, drawing nothing, so the footer's "page 2 of 5" can be
  * right before anything is drawn. */
 export function packColumns(heights: number[], cols: number, frontRoom: number, sheetRoom: number):
-  { at: { sheet: number; col: number; y: number }[]; sheets: number; front: number } {
+  { at: { sheet: number; col: number; y: number }[]; sheets: number; front: number; used: number[] } {
   const at: { sheet: number; col: number; y: number }[] = [];
-  let sheet = 0;
-  let used = Array<number>(cols).fill(0);
-  let front = 0;
+  /* EVERY SHEET STAYS OPEN. A card that did not fit used to close the sheet,
+     and every card after it went behind — so a job with 28 tests printed a
+     front page that stopped a third of the way down and three more sheets
+     each half white, because one tall card in the wrong place ended each of
+     them. A card goes on the FIRST sheet with a column that has room for it,
+     in the shortest such column; late-first order still leads, and the holes
+     get the cards that fit them. */
+  const sheets: number[][] = [Array<number>(cols).fill(0)];
   for (const h of heights) {
-    const room = sheet === 0 ? frontRoom : sheetRoom;
-    let col = used.indexOf(Math.min(...used));
-    if (used[col] > 0 && used[col] + h > room) {
-      if (sheet === 0) front = Math.max(...used) - C_GAP;
-      sheet += 1; used = Array<number>(cols).fill(0); col = 0;
+    let placed = false;
+    for (let s = 0; s < sheets.length && !placed; s++) {
+      const used = sheets[s];
+      const room = s === 0 ? frontRoom : sheetRoom;
+      let col = -1;
+      used.forEach((u, c) => {
+        if ((u === 0 || u + h <= room) && (col < 0 || u < used[col])) col = c;
+      });
+      if (col >= 0) { at.push({ sheet: s, col, y: used[col] }); used[col] += h + C_GAP; placed = true; }
     }
-    at.push({ sheet, col, y: used[col] });
-    used[col] += h + C_GAP;
+    if (!placed) {
+      sheets.push(Array<number>(cols).fill(0));
+      const s = sheets.length - 1;
+      at.push({ sheet: s, col: 0, y: 0 });
+      sheets[s][0] = h + C_GAP;
+    }
   }
-  if (sheet === 0) front = Math.max(0, Math.max(...used) - C_GAP);
-  return { at, sheets: Math.max(1, sheet + 1), front };
+  /* How far down each sheet the cards reach — so whatever comes next in the
+     report can ride on the last sheet's tail rather than open a new one. */
+  const used = sheets.map(u => Math.max(0, Math.max(...u) - C_GAP));
+  return { at, sheets: sheets.length, front: used[0], used };
 }
 
 /** One column when there are few enough that the width is better spent on the
@@ -1107,7 +1196,7 @@ function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: 
 
 /** The rest of them, a sheet each until there are none left. */
 function trialsSheet(d: Doc, data: PaceReportData, sheet: number, sheets: number,
-  page: number, pages: number, split: Split): void {
+  page: number, pages: number, split: Split, tail = 'what we are proving'): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
   const idx = split.layout.at.map((a, i) => (a.sheet === sheet ? i : -1)).filter(i => i >= 0);
@@ -1124,7 +1213,7 @@ function trialsSheet(d: Doc, data: PaceReportData, sheet: number, sheets: number
   drawSheetCards(d, split, sheet, M, M + 66);
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — what we are proving`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — ${tail}`, CW * 0.8), M, H - M + 6);
 }
 
 
@@ -1148,18 +1237,26 @@ function trialsSheet(d: Doc, data: PaceReportData, sheet: number, sheets: number
  * when we find out. The state is a word as well as a colour, because this page
  * gets photocopied and faxed to an OEM.
  */
+const PG_ROW_H = 22, PG_HEAD = 34, PG_KEY = 30, PG_PAD = 12;
+const pgMaxRows = (H: number, M: number) => Math.max(1, Math.floor((H - 2 * M - 14 - PG_HEAD - PG_KEY - PG_PAD) / PG_ROW_H));
+/** Sheets for this many programs: one column up to 16, two after, and as many
+ *  sheets as two columns take — the rows past the sheet were dropped before. */
+export function programsPlan(n: number, H: number, M: number): { sheets: number; per: number } {
+  const maxRows = pgMaxRows(H, M);
+  const perSheet = n > 16 ? maxRows * 2 : maxRows;
+  const sheets = Math.max(1, Math.ceil(n / perSheet));
+  return { sheets, per: Math.ceil(n / sheets) };
+}
 export function programsHeight(data: PaceReportData, H: number, M: number): number {
   const pg = data.programs;
   if (!pg) return 0;
-  const maxRows = Math.floor((H - 2 * M - 14 - 34 - 30 - 12) / 22);
-  const perCol = pg.rows.length > 16
-    ? Math.min(maxRows, Math.ceil(pg.rows.length / 2))
-    : Math.min(maxRows, pg.rows.length);
-  return Math.min(H - 2 * M - 14, Math.max(130, 34 + perCol * 22 + 30 + 12));
+  const n = programsPlan(pg.rows.length, H, M).per;
+  const perCol = n > 16 ? Math.min(pgMaxRows(H, M), Math.ceil(n / 2)) : Math.min(pgMaxRows(H, M), n);
+  return Math.min(H - 2 * M - 14, Math.max(130, PG_HEAD + perCol * PG_ROW_H + PG_KEY + PG_PAD));
 }
 
 function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number,
-  yTop?: number, withFoot = true): void {
+  yTop?: number, withFoot = true, sheet = 0): void {
   const pg = data.programs;
   if (!pg) return;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
@@ -1173,21 +1270,23 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
      A panel given the whole A3 whatever is in it printed seven programs in the
      top-left corner of an otherwise empty sheet — the same "be a bit smarter
      with size" complaint the calendar earned. */
-  const rowH = 22;
-  const HEAD = 34, KEY = 30, PAD = 12;
-  const maxRows = Math.floor((H - 2 * M - 14 - HEAD - KEY - PAD) / rowH);
+  const rowH = PG_ROW_H;
+  const HEAD = PG_HEAD, KEY = PG_KEY, PAD = PG_PAD;
+  const maxRows = pgMaxRows(H, M);
+  const { per } = programsPlan(pg.rows.length, H, M);
+  const mine = pg.rows.slice(sheet * per, (sheet + 1) * per);
 
   /* One column while the list is short enough to read down; two once it is long
      enough that a second column saves a sheet rather than splitting a glance. */
-  const twoCols = pg.rows.length > 16;
-  const perCol = twoCols ? Math.min(maxRows, Math.ceil(pg.rows.length / 2)) : Math.min(maxRows, pg.rows.length);
-  const rows = pg.rows.slice(0, perCol * (twoCols ? 2 : 1));
+  const twoCols = mine.length > 16;
+  const perCol = twoCols ? Math.min(maxRows, Math.ceil(mine.length / 2)) : Math.min(maxRows, mine.length);
+  const rows = mine;
 
   const panelH = Math.min(H - 2 * M - 14, Math.max(130, HEAD + perCol * rowH + KEY + PAD));
   const y0 = yTop ?? M;
   /* Sharing a sheet with materials: no badge, because the badge is the page
      number and the page already has one. */
-  const top = panel(d, M, y0, CW, panelH, withFoot ? String(page) : '', 'What the machine can run', sub);
+  const top = panel(d, M, y0, CW, panelH, withFoot ? String(page) : '', sheet ? 'What the machine can run — continued' : 'What the machine can run', sub);
 
   const gap = 34;
   const inner = CW - 28;
@@ -1263,10 +1362,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   if (withFoot) {
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — what the machine can run`, CW * 0.8), M, H - M + 6);
-    d.text(
-      pg.rows.length > rows.length
-        ? `${pg.rows.length - rows.length} more on the list than fit this sheet — the app has them all`
-        : 'Proved carries the day it was proved. The word on its own is an opinion.',
+    d.text('Proved carries the day it was proved. The word on its own is an opinion.',
       W - M, H - M + 6, { align: 'right' });
   }
 }
@@ -1424,43 +1520,100 @@ const O_PAD = 14;          // inside a card
 const O_GAP = 14;          // between cards
 const O_HEAD = 44;         // the party's name, its count, the rule
 const O_WHEN_W = 82;       // the date column, right
-const O_MAX_LINES = 14;    // a card longer than this points at the screens
 
 interface OwesRow { what: string[]; about: string[]; when: string; tone: OweTone; h: number }
-interface OwesCard { p: Party; rows: OwesRow[]; more: number; ask: string[]; h: number }
+interface OwesParty { p: Party; rows: OwesRow[]; ask: string[]; askH: number }
 
-function planOwesCard(d: Doc, p: Party, w: number): OwesCard {
+/* ---- THE PAGE FLOWS; A PARTY IS NEVER CUT SHORT ----
+ *
+ * One card per party, packed like the test cards, was the shape until a real
+ * job hit it: the site owed twenty-two things, the card was capped at fourteen
+ * with "+8 more — see the screens", and because the card was the tallest thing
+ * on the page it went on a sheet of its own with the other two columns white.
+ * Four sheets, each half empty, and eight debts the client never saw.
+ *
+ * So the page is a column flow, the way a newspaper runs a long list: the
+ * parties in order, each one's rows running down the column, the next party
+ * starting under it, and whatever does not fit continuing at the top of the
+ * next column — or the next sheet — under the party's name again with
+ * "continued" after it. Every row is printed. Every column is full before the
+ * next one is started. Nothing points at a screen. */
+interface OwesSeg { party: number; from: number; to: number; ask: boolean; cont: boolean;
+  sheet: number; col: number; y: number; h: number }
+
+function planOwesParty(d: Doc, p: Party, w: number): OwesParty {
   const textW = w - 2 * O_PAD - O_WHEN_W - 8;
-  const rows = p.lines.slice(0, O_MAX_LINES).map(l => {
+  const rows = p.lines.map(l => {
     setFont(d, 8.5, 'bold', INK);
     const what = d.splitTextToSize(l.what, textW) as string[];
     setFont(d, 7.5, 'normal', MUTED);
     const about = d.splitTextToSize([l.about, l.person].filter(Boolean).join(' · '), textW) as string[];
     return { what, about, when: l.when, tone: l.tone, h: what.length * 10.5 + about.length * 9 + 8 };
   });
-  const more = p.lines.length - rows.length;
   /* The ask, without the words the label above it already says. */
   const said = p.ask.startsWith(ASK) ? p.ask.slice(ASK.length) : p.ask;
   const askText = said.charAt(0).toUpperCase() + said.slice(1);
   setFont(d, 8, 'normal', INK);
   const ask = d.splitTextToSize(askText, w - 2 * O_PAD - 16) as string[];
-  /* The same arithmetic drawOwesCard walks: head, rows, the "more" line, the
-     ask box, the bottom pad — and nothing else, or the card carries white. */
-  const h = O_HEAD + 2 + rows.reduce((n, r) => n + r.h, 0) + (more ? 14 : 0)
-    + 4 + 18 + ask.length * 10.5 + O_PAD;
-  return { p, rows, more, ask, h };
+  return { p, rows, ask, askH: 4 + 18 + ask.length * 10.5 };
 }
 
-const partyTitle = (p: Party): string =>
-  p.kind === 'nobody' ? 'Nobody named yet — needs an owner' : `${p.who} owes`;
+/** Where every row of every party goes. Pure, so it can be asserted on and so
+ *  the page count is known before anything is drawn. `parties` carries each
+ *  party's row heights and the height of its closing ask. */
+export function flowOwes(parties: { rows: number[]; askH: number }[], cols: number, room: number,
+  firstRoom = room): { segs: OwesSeg[]; sheets: number } {
+  const segs: OwesSeg[] = [];
+  let sheet = 0, col = 0, y = 0;
+  const advance = () => { col += 1; y = 0; if (col >= cols) { col = 0; sheet += 1; } };
+  parties.forEach((pt, party) => {
+    const n = pt.rows.length;
+    let from = 0, cont = false;
+    for (;;) {
+      const avail = (sheet === 0 ? firstRoom : room) - y;
+      let h = O_HEAD + 2, to = from;
+      /* The last row and the ask travel together: a continuation that is a
+         party's name over nothing but its ask box reads as a mistake. */
+      const withAsk = (i: number) => (i === n - 1 ? pt.askH : 0);
+      while (to < n && h + pt.rows[to] + withAsk(to) + O_PAD <= avail) { h += pt.rows[to]; to += 1; }
+      let ask = false;
+      if (to === n) { h += pt.askH; ask = true; }
+      const took = to - from;
+      /* A party opens in a column only when the whole of it fits there or at
+         least three rows do; otherwise it starts at the top of the next
+         column. Nothing fitting at all in a column that already has something
+         in it means the same. A fresh column that still cannot take one row
+         is not a case a sheet has — a row is three lines at most — but the
+         guard below never loops on it: the row is placed and the column
+         moves on. */
+      const opening = !cont && !ask && took < Math.min(3, n);
+      if ((took === 0 && y > 0) || (opening && y > 0)) { advance(); continue; }
+      if (took === 0 && from < n) { h += pt.rows[from]; to = from + 1; if (to === n) { h += pt.askH; ask = true; } }
+      const seg: OwesSeg = { party, from, to, ask, cont, sheet, col, y, h: h + O_PAD };
+      segs.push(seg);
+      y += seg.h + O_GAP;
+      if (to === n && ask) break;
+      from = to; cont = true;
+      advance();
+    }
+  });
+  return { segs, sheets: parties.length ? sheet + 1 : 0 };
+}
 
-function drawOwesCard(d: Doc, c: OwesCard, x: number, y: number, w: number): void {
-  const { p } = c;
+/** Two columns for a party or two, three past that — a card is read at either
+ *  width, and three narrow ones hold more of a long list on a sheet. */
+export const owesColumns = (n: number): number => (n <= 2 ? 2 : 3);
+
+const partyTitle = (p: Party, cont: boolean): string =>
+  (p.kind === 'nobody' ? 'Nobody named yet — needs an owner' : `${p.who} owes`) + (cont ? ' — continued' : '');
+
+function drawOwesSeg(d: Doc, pt: OwesParty, seg: OwesSeg, x: number, y: number, w: number): void {
+  const { p } = pt;
   const tone = p.late > 0 ? DANGER : p.kind === 'nobody' ? WARN : p.kind === 'site' ? INK2 : BRAND;
   d.setDrawColor(LINE); d.setLineWidth(0.8); d.setFillColor('#ffffff');
-  d.roundedRect(x, y, w, c.h, 5, 5, 'FD');
+  d.roundedRect(x, y, w, seg.h, 5, 5, 'FD');
   d.setFillColor(tone);                                   // the party's band
-  d.roundedRect(x, y, 3.5, c.h, 1.5, 1.5, 'F');
+  d.roundedRect(x, y, 3.5, seg.h, 1.5, 1.5, 'F');
 
   const count = `${p.lines.length} thing${p.lines.length === 1 ? '' : 's'}`
     + (p.late ? ` · ${p.late} past the day` : '');
@@ -1468,12 +1621,12 @@ function drawOwesCard(d: Doc, c: OwesCard, x: number, y: number, w: number): voi
   const countW = d.getTextWidth(count);
   d.text(count, x + w - O_PAD, y + 22, { align: 'right' });
   setFont(d, 13, 'bold', INK);
-  d.text(fit(d, partyTitle(p), w - 2 * O_PAD - countW - 12), x + O_PAD, y + 23);
+  d.text(fit(d, partyTitle(p, seg.cont), w - 2 * O_PAD - countW - 12), x + O_PAD, y + 23);
   d.setDrawColor(LINE); d.setLineWidth(0.6);
   d.line(x + O_PAD, y + O_HEAD - 10, x + w - O_PAD, y + O_HEAD - 10);
 
   let cy = y + O_HEAD + 2;
-  for (const r of c.rows) {
+  for (const r of pt.rows.slice(seg.from, seg.to)) {
     setFont(d, 8.5, 'bold', INK);
     r.what.forEach((ln, i) => d.text(ln, x + O_PAD, cy + i * 10.5));
     setFont(d, 7.5, 'normal', MUTED);
@@ -1483,71 +1636,54 @@ function drawOwesCard(d: Doc, c: OwesCard, x: number, y: number, w: number): voi
     d.text(r.when, x + w - O_PAD, cy, { align: 'right' });
     cy += r.h;
   }
-  if (c.more) {
-    setFont(d, 7.5, 'normal', MUTED);
-    d.text(`+${c.more} more — on the Testing, Fixes, Materials and Programs screens`, x + O_PAD, cy + 2);
-    cy += 14;
-  }
+  if (!seg.ask) return;
 
   /* The ask, on a wash of the brand, so it reads as the conclusion of the card
      rather than one more line in it. */
   const boxY = cy + 4;
-  const boxH = 18 + c.ask.length * 10.5;
+  const boxH = 18 + pt.ask.length * 10.5;
   d.setFillColor(...wash(p.late ? DANGER : BRAND, 0.08));
   d.roundedRect(x + O_PAD, boxY, w - 2 * O_PAD, boxH, 4, 4, 'F');
   setFont(d, 6.5, 'bold', p.late ? DANGER : BRAND);
   d.text('BEFORE THE NEXT REPORT', x + O_PAD + 8, boxY + 11);
   setFont(d, 8, 'normal', INK);
-  c.ask.forEach((ln, i) => d.text(ln, x + O_PAD + 8, boxY + 22 + i * 10.5));
+  pt.ask.forEach((ln, i) => d.text(ln, x + O_PAD + 8, boxY + 22 + i * 10.5));
 }
 
-/** Where every card goes: which sheet, which column, how far down. Cards go
- *  into whichever column is shortest, in the parties' order, and a card that
- *  fits in no column on this sheet starts the next. Pure, so the page count
- *  can be known before anything is drawn. */
-export function layoutOwes(heights: number[], cols: number, room: number):
-  { at: { sheet: number; col: number; y: number }[]; sheets: number } {
-  const at: { sheet: number; col: number; y: number }[] = [];
-  let sheet = 0;
-  let used = Array<number>(cols).fill(0);
-  for (const h of heights) {
-    let col = used.indexOf(Math.min(...used));
-    if (used[col] > 0 && used[col] + h > room) {
-      sheet += 1; used = Array<number>(cols).fill(0); col = 0;
-    }
-    at.push({ sheet, col, y: used[col] });
-    used[col] += h + O_GAP;
-  }
-  return { at, sheets: heights.length ? sheet + 1 : 0 };
-}
+interface OwesPlan { parties: OwesParty[]; cols: number; cw: number; flow: ReturnType<typeof flowOwes> }
 
-/** Columns for this many parties: one each up to three, two for four (a 2×2
- *  reads better than 3 + 1), three after that. */
-export const owesColumns = (n: number): number => (n <= 3 ? Math.max(1, n) : n === 4 ? 2 : 3);
+/** The room the cards get on a sheet whose panel starts at `top`. */
+const owesRoom = (H: number, M: number, top: number): number => (H - M - 14 - top) - 30 - 24;
 
-interface OwesPlan { cards: OwesCard[]; cols: number; cw: number; layout: ReturnType<typeof layoutOwes> }
-
-function planOwes(d: Doc, data: PaceReportData, W: number, H: number, M: number): OwesPlan | undefined {
+/** `firstTop` puts the first sheet's panel under something else — the plan —
+ *  and the flow starts in what is left of that sheet. */
+function planOwes(d: Doc, data: PaceReportData, W: number, H: number, M: number, firstTop = M): OwesPlan | undefined {
   const o = data.owes;
   if (!o || o.parties.length === 0) return undefined;
   const CW = W - 2 * M;
   const cols = owesColumns(o.parties.length);
   const cw = (CW - 28 - (cols - 1) * O_GAP) / cols;
-  const cards = o.parties.map(p => planOwesCard(d, p, cw));
-  const room = (H - 2 * M - 14) - 30 - 24;
-  return { cards, cols, cw, layout: layoutOwes(cards.map(c => c.h), cols, room) };
+  const parties = o.parties.map(p => planOwesParty(d, p, cw));
+  return { parties, cols, cw, flow: flowOwes(parties.map(pt => ({ rows: pt.rows.map(r => r.h), askH: pt.askH })),
+    cols, owesRoom(H, M, M), owesRoom(H, M, firstTop)) };
 }
 
-function owesSheet(d: Doc, data: PaceReportData, plan: OwesPlan, sheet: number, page: number, pages: number): void {
+function owesSheet(d: Doc, data: PaceReportData, plan: OwesPlan, sheet: number, page: number, pages: number,
+  place?: { top: number }): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
   const title = sheet === 0 ? 'Who owes what, by when' : 'Who owes what, by when — continued';
-  const ruleY = panel(d, M, M, CW, H - 2 * M - 14, String(page), title, data.owes?.says ?? '');
-  plan.cards.forEach((c, i) => {
-    const at = plan.layout.at[i];
-    if (at.sheet !== sheet) return;
-    drawOwesCard(d, c, M + 14 + at.col * (plan.cw + O_GAP), ruleY + 12 + at.y, plan.cw);
-  });
+  const top = place?.top ?? M;
+  /* The panel stops where its cards stop when it shares a sheet; on its own
+     sheet it is the sheet. */
+  const mine = plan.flow.segs.filter(seg => seg.sheet === sheet);
+  const used = mine.reduce((n, seg) => Math.max(n, seg.y + seg.h), 0);
+  const panelH = place ? Math.min(H - M - 14 - top, 30 + 12 + used + 14) : H - 2 * M - 14;
+  const ruleY = panel(d, M, top, CW, panelH, place ? '' : String(page), title, data.owes?.says ?? '');
+  for (const seg of mine) {
+    drawOwesSeg(d, plan.parties[seg.party], seg, M + 14 + seg.col * (plan.cw + O_GAP), ruleY + 12 + seg.y, plan.cw);
+  }
+  if (place) return;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — who owes what, by when`, CW * 0.6), M, H - M + 6);
   d.text('The same debts as page 1, sorted by who owes them. Every line names what it hangs off.',
@@ -1634,6 +1770,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const H = d.internal.pageSize.getHeight();       // 841.89pt
   const M = 26;
   const CW = W - 2 * M;
+  /* The plan as a sheet can carry it — see fitPlan. Decided once, here, so the
+     page count, the "under the tests" test and the drawing read one plan. */
+  if (data.plan) data.plan = fitPlan(data.plan, H - 2 * M - 14);
 
   /* en-GB, pinned: `undefined` took the BUILD machine's locale and printed
      "Thursday, September 24, 2026" at the top of a Lincolnshire client's
@@ -1759,7 +1898,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const split: Split = (() => {
     const rows = data.trials?.rows ?? [];
     const none: Split = { plans: [], strands: [], cols: 1, cw: CW - 28,
-      layout: { at: [], sheets: 1, front: 0 }, panelH: lpH };
+      layout: { at: [], sheets: 1, front: 0, used: [0] }, panelH: lpH };
     if (data.tracker || rows.length === 0) return none;
     /* Tests only — see the tiles. The strands are measured before anything is
        drawn, so the page count and the packing are about what is drawn. */
@@ -1842,7 +1981,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      enough to sit on one, which is the usual case. Measured rather than
      guessed: both heights are arithmetic, so the page count below can be right
      before either of them is drawn. */
-  const shareSheet = hasMaterials && hasPrograms
+  const matSheets = hasMaterials && data.materials ? materialsPlan(data.materials.rows.length, H, M).sheets : 0;
+  const progSheets = hasPrograms && data.programs ? programsPlan(data.programs.rows.length, H, M).sheets : 0;
+  const shareSheet = hasMaterials && hasPrograms && matSheets === 1 && progSheets === 1
     && materialsHeight(data, H, M) + 14 + programsHeight(data, H, M) <= H - 2 * M - 14;
   /* WHERE THE JOB IS goes directly behind the front page. Every other sheet
      here answers a narrower question, and a reader who had to assemble the
@@ -1865,49 +2006,70 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      under the FIRST sheet's strands, which put the proved ones — the good
      news — on page 3 after the plan, under an 18pt title, as if a second
      document had started. */
-  const planUnder = !data.tracker && !!data.plan && data.plan.lanes.length > 0
-    && split.layout.sheets <= 1
-    && lpY + split.panelH + 12 + planPanelHeight(data.plan, H - 2 * M) <= H - M - 18;
-  const hasPlan = !!data.plan && data.plan.lanes.length > 0 && !planUnder;
+  /* ---- THE TAIL OF THE LAST TEST SHEET IS NOT WASTED ----
+   *
+   * Whichever sheet the cards end on, page 1 or the fourth continuation, the
+   * plan rides on what is left of it when it fits, and the debts ride under
+   * the plan when THEY fit. A job with fourteen tests used to print sheet 3
+   * with one card on it and the plan on a sheet of its own after that. */
+  const lastSheet = split.layout.sheets - 1;
+  const tailTop = lastSheet === 0
+    ? lpY + split.panelH + 12
+    : M + 66 + split.layout.used[lastSheet] + 12;
+  const planH = data.plan && data.plan.lanes.length > 0 ? planPanelHeight(data.plan, H - 2 * M - 14) : 0;
+  /* Never on a tracker's front page: that page is the numbers. */
+  const planUnder = planH > 0 && !data.tracker && tailTop + planH <= H - M - 18;
+  const hasPlan = planH > 0 && !planUnder;
   /* WHO OWES WHAT goes behind the story and the position, before anything
      narrower. Measured here, like the strands, so the page count is right
-     before either is drawn. */
-  const owesPlan = data.tracker ? undefined : planOwes(d, data, W, H, M);
-  const owesSheets = owesPlan?.layout.sheets ?? 0;
-  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
-    + (hasMaterials ? 1 : 0) + (hasPrograms && !shareSheet ? 1 : 0)
+     before either is drawn. It starts under the plan when there is room —
+     the position and the debts are one thought — and under the last cards
+     when there is no plan. */
+  const afterPlanTop = planUnder ? tailTop + planH + 12 : hasPlan ? M + planH + 12 : tailTop;
+  const owesUnder = !data.tracker && !!data.owes && data.owes.parties.length > 0
+    && owesRoom(H, M, afterPlanTop) >= 160;
+  const owesPlan = data.tracker ? undefined : planOwes(d, data, W, H, M, owesUnder ? afterPlanTop : M);
+  const owesSheets = owesPlan?.flow.sheets ?? 0;
+  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets - (owesUnder ? 1 : 0)
+    + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+    + matSheets + (hasPrograms && !shareSheet ? progSheets : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
-  if (planUnder) planSheet(d, data, 1, pages, { top: lpY + split.panelH + 12, n: '2' });
+
+  /* What rides on the tail of a test sheet, and what its footer then says. */
+  const rideTail = (page: number): string => {
+    const bits: string[] = [];
+    if (planUnder) { planSheet(d, data, page, pages, { top: tailTop, n: '' }); bits.push('where the job is'); }
+    if (owesUnder && !hasPlan && owesPlan) { owesSheet(d, data, owesPlan, 0, page, pages, { top: afterPlanTop }); bits.push('who owes what'); }
+    return bits.length ? `what we are proving, ${bits.join(', and ')}` : 'what we are proving';
+  };
+  const frontTail = lastSheet === 0 ? rideTail(1) : data.tracker ? 'line pace' : 'what we are proving';
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${
-    planUnder ? 'what we are proving, and where the job is'
-      : data.tracker ? 'line pace' : 'what we are proving'}`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${frontTail}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
     ? 'The tracker workbook is the system of record; this report reads it.'
     : 'One card per test, with the fixes for it. Who owes what, in full, is further on.',
     W - M, H - M + 6, { align: 'right' });
 
-  const wherePage = 2;
-  const trialsPage = wherePage + (hasPlan ? 1 : 0);
-  const owesPage = trialsPage + trialSheets;
+  /* THE STORY READS WHOLE, THEN THE POSITION. The plan sat between the first
+     sheet of tests and the second, so a client turned from test 6 to a
+     timeline and then back to test 7. The tests run on, then where the job
+     is, then who owes what. */
+  const trialsPage = 2;
+  const wherePage = trialsPage + trialSheets;             // the plan's own sheet, when it has one
+  const owesPage = owesUnder ? (hasPlan ? wherePage : 1 + trialSheets) : wherePage + (hasPlan ? 1 : 0);
   const paretoPage = owesPage + owesSheets;
   const materialsPage = paretoPage + (hasPareto ? 1 : 0);
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
-  const programsPage = shareSheet ? materialsPage : materialsPage + (hasMaterials ? 1 : 0);
-  const planPage = programsPage + (hasPrograms && !shareSheet ? 1 : 0);
+  const programsPage = shareSheet ? materialsPage : materialsPage + matSheets;
+  const planPage = programsPage + (hasPrograms && !shareSheet ? progSheets : 0);
   const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
 
   /* ============== WHERE THE JOB IS — the verdict, the plan, the table =======
    * The same three things the project screen leads with, in the same order and
    * off the same two calls. Only when something carries a date: an axis with
    * nothing on it reads as a fault rather than as an absence. */
-  if (hasPlan) {
-    d.addPage('a3', 'landscape');
-    planSheet(d, data, wherePage, pages);
-  }
-
   /* ================= THE REST OF THE TRIALS, on a sheet of their own ========
    * Only when there are any. Six cards fit the front page; a job running ten
    * trials should not have four of them silently dropped, which is what the
@@ -1915,17 +2077,31 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   if (hasMoreTrials && data.trials) {
     for (let sheet = 1; sheet < split.layout.sheets; sheet++) {
       d.addPage('a3', 'landscape');
-      trialsSheet(d, data, sheet, trialSheets, trialsPage + sheet - 1, pages, split);
+      const page = trialsPage + sheet - 1;
+      const tail = sheet === lastSheet ? rideTail(page) : 'what we are proving';
+      trialsSheet(d, data, sheet, trialSheets, page, pages, split, tail);
     }
   }
 
-  /* ============ WHERE THE TIME IS GOING — the Pareto, its own sheet ============
-   * A ranking is a shape before it is a table, so the bar is drawn and the
-   * numbers sit beside it. When a second Pareto has been uploaded the right
-   * hand column carries the movement — the only thing in this report that says
-   * whether the work CHANGED anything rather than merely happened. */
+  /* ============== WHERE THE JOB IS — the verdict, the plan, the table =======
+   * The same three things the project screen leads with, in the same order and
+   * off the same two calls. Only when something carries a date: an axis with
+   * nothing on it reads as a fault rather than as an absence. */
+  if (hasPlan) {
+    d.addPage('a3', 'landscape');
+    const bottom = planSheet(d, data, wherePage, pages, undefined, { grow: !owesUnder, foot: !owesUnder });
+    if (owesUnder && owesPlan) {
+      owesSheet(d, data, owesPlan, 0, wherePage, pages, { top: bottom + 12 });
+      setFont(d, 7, 'normal', MUTED);
+      d.text(fit(d, `${data.title} · client report · page ${wherePage} of ${pages} — where the job is, and who owes what`, CW * 0.8), M, H - M + 6);
+      d.text('The same debts as page 1, sorted by who owes them. Every line names what it hangs off.',
+        W - M, H - M + 6, { align: 'right' });
+    }
+  }
+
+  /* ============ WHO OWES WHAT — the rest of it, a sheet at a time ============ */
   if (owesPlan) {
-    for (let sheet = 0; sheet < owesSheets; sheet++) {
+    for (let sheet = owesUnder ? 1 : 0; sheet < owesSheets; sheet++) {
       d.addPage('a3', 'landscape');
       owesSheet(d, data, owesPlan, sheet, owesPage + sheet, pages);
     }
@@ -2025,9 +2201,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * Its own sheet, because it is the one page a client can read coverage off in a
    * look: rows of what we need, weeks across the top, green from the week each
    * one lands. Only when there IS something outstanding. */
-  if (hasMaterials) {
+  for (let sheet = 0; sheet < matSheets; sheet++) {
     d.addPage('a3', 'landscape');
-    const bottom = materialsSheet(d, data, materialsPage, pages, M, !shareSheet);
+    const bottom = materialsSheet(d, data, materialsPage + sheet, pages, M, !shareSheet, sheet);
     /* WHAT WE ARE WAITING ON AND WHAT THE MACHINE CAN RUN, ONE SHEET.
        They answer one question between them, and two short panels on two A3s
        is the "be a bit smarter with size" complaint in its plainest form. */
@@ -2043,8 +2219,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* ============ WHAT THE MACHINE CAN RUN — the programs, as a grid ============
    * Behind the films, and read the same way. Only when there are any. */
   if (hasPrograms && !shareSheet) {
-    d.addPage('a3', 'landscape');
-    programsSheet(d, data, programsPage, pages);
+    for (let sheet = 0; sheet < progSheets; sheet++) {
+      d.addPage('a3', 'landscape');
+      programsSheet(d, data, programsPage + sheet, pages, undefined, true, sheet);
+    }
   }
 
   /* ================= THE PLAN — the lever tree, its own sheet =================

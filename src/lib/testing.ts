@@ -445,13 +445,16 @@ export const ranEnd = (t: Test): string | undefined => t.ranTo ?? t.ranOn;
  *  of being able to book a block. This one line decides the verdict's late
  *  count, the row in what-we-are-waiting-on and the colour on the plan, so it
  *  is the only place the question is asked. */
-export const isOverdue = (t: Test): boolean => {
+/** `today` is for a caller that already knows the day it is judging by — the
+ *  standing sentence, whose every other rule reads its own `today`. Left to
+ *  the clock, this one rule disagreed with the rest once the dates passed. */
+export const isOverdue = (t: Test, today = todayISO()): boolean => {
   const end = plannedEnd(t);
   /* "The day came and it did not happen" is settled as a day and still late
      as a debt: the client is owed that demonstration until it is rebooked.
      Page 1 of the report said Ilapak was late for it while page 2 said
      nothing was — two rules for one word on one document. */
-  return (t.outcome === 'notRun' || !isSettled(t)) && !!end && end < todayISO();
+  return (t.outcome === 'notRun' || !isSettled(t)) && !!end && end < today;
 };
 
 /** Newest first for what has happened; soonest first for what has not. A list

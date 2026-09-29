@@ -20,8 +20,8 @@
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
 import {
-  drawPaceReport, layoutOwes, orderStrands, owesColumns, packColumns, strandWord,
-  strandsOf, strandsSay, type PaceReportData,
+  drawPaceReport, fitPlan, flowOwes, materialsPlan, orderStrands, owesColumns, packColumns,
+  programsPlan, strandWord, strandsOf, strandsSay, MAX_LANE_ROWS, type PaceReportData,
 } from '../paceReportPdf';
 import type { Owes, Party } from '../owes';
 
@@ -346,9 +346,22 @@ describe('the optional sheets each cost exactly one page', () => {
     expect(pagesFor({ ...few, plan: plan(14, 12) })).toBe(pagesFor(few) + 1);
   });
 
-  it('and so does one on a page already full of tests', () => {
+  /* The tail of the LAST test sheet carries it when it fits — a job with 14
+     tests printed a sheet with one card on it and the plan on the next. */
+  it('rides on the tail of the last test sheet when there is room there', () => {
     const many = { tracker: false, trials: trials(20, true) };
-    expect(pagesFor({ ...many, plan: plan(2, 2) })).toBe(pagesFor(many) + 1);
+    const r = render(data({ ...many, plan: plan(2, 2) }));
+    expect(r.pages).toBe(pagesFor(many));
+    expect(r.said.join('\n')).toContain('Where the job is');
+  });
+
+  it('and costs a sheet of its own when the last test sheet is full', () => {
+    const many = { tracker: false, trials: trials(20, true) };
+    const tall = { ...plan(2, 2), lanes: Array.from({ length: 5 }, (_, i) => ({ ...plan(5, 0).lanes[i], rows: Array.from({ length: 5 }, () => plan(1, 0).lanes[0].rows[0]) })) };
+    const before = pagesFor(many);
+    const r = render(data({ ...many, plan: tall }));
+    expect(r.said.join('\n')).toContain('Where the job is');
+    expect(r.pages).toBeGreaterThanOrEqual(before);
   });
 
   it('a tracker project never merges it — that front page is the numbers', () => {
@@ -437,6 +450,99 @@ describe('the test cards across the sheets', () => {
 
   it('still has a front page when there is nothing to place', () => {
     expect(packColumns([], 2, 400, 700)).toMatchObject({ sheets: 1, front: 0 });
+  });
+
+  /* A tall card in the wrong place used to end the sheet, and every card after
+     it went behind — four sheets each half white on a job with 28 tests. */
+  it('fills a hole on an earlier sheet with a later card that fits it', () => {
+    const l = packColumns([300, 300, 200, 50], 2, 400, 400);
+    /* 200 fits nowhere on sheet 0 (300 + 12 + 200 > 400) so it opens sheet 1;
+       50 fits under either 300 on sheet 0 and goes back there. */
+    expect(l.at.map(a => a.sheet)).toEqual([0, 0, 1, 0]);
+  });
+
+  it('keeps every sheet within its room', () => {
+    const heights = Array.from({ length: 30 }, (_, i) => 80 + (i * 37) % 200);
+    const l = packColumns(heights, 2, 500, 700);
+    const used = new Map<string, number>();
+    l.at.forEach((a, i) => {
+      const k = `${a.sheet}:${a.col}`;
+      expect(a.y).toBe(used.get(k) ?? 0);
+      used.set(k, a.y + heights[i] + 12);
+      expect(a.y + heights[i]).toBeLessThanOrEqual(a.sheet === 0 ? 500 : 700);
+    });
+  });
+});
+
+/* Page 2 ran off the sheet: eighty materials needed twenty-two lines of labels
+   and the lanes under them were never drawn. */
+describe('the plan is drawn to fit its sheet', () => {
+  const busy = (rows: number) => ({
+    ...plan(1, 0),
+    lanes: [{
+      kind: 'material' as const, label: 'Materials',
+      rows: Array.from({ length: rows }, (_, r) => [
+        { kind: 'material' as const, at: r / rows, label: `Film lot ${r}`, when: '1 Oct', tone: (r % 3 ? 'booked' : 'late') as 'booked' | 'late' },
+      ]),
+    }],
+  });
+
+  it('leaves a lane with a few lines alone', () => {
+    const f = fitPlan(busy(3), 800);
+    expect(f.lanes[0].rows).toHaveLength(3);
+    expect(f.lanes[0].collapsed).toBeUndefined();
+  });
+
+  it('collapses a lane past the line limit to one line of dots with the count in words', () => {
+    const f = fitPlan(busy(MAX_LANE_ROWS + 1), 800);
+    expect(f.lanes[0].rows).toHaveLength(1);
+    expect(f.lanes[0].rows[0]).toHaveLength(MAX_LANE_ROWS + 1);
+    expect(f.lanes[0].rows[0].every(m => m.label === '')).toBe(true);
+    expect(f.lanes[0].collapsed).toBe(`${MAX_LANE_ROWS + 1} · 3 late · 6 ahead`);
+  });
+
+  it('collapses the biggest lane first when the sheet would overflow', () => {
+    const three = { ...plan(1, 0), lanes: [busy(4).lanes[0], { ...busy(5).lanes[0], label: 'Programs', kind: 'program' as const }, { ...busy(2).lanes[0], label: 'Tests', kind: 'test' as const }] };
+    const f = fitPlan(three, 330);
+    expect(f.lanes.map(l => !!l.collapsed)).toEqual([false, true, false]);
+  });
+
+  it('is never taller than the sheet once every lane is collapsed', () => {
+    const f = fitPlan(busy(60), 700);
+    expect(f.lanes[0].rows).toHaveLength(1);
+  });
+
+  it('prints every material and program lane of a big job without error', () => {
+    const r = render(data({ tracker: false, trials: trials(3), plan: busy(80) }));
+    expect(r.said.join('\n')).toContain('80 · ');
+  });
+});
+
+/* The lists ran onto the next sheet rather than stopping at what fit. */
+describe('materials and programs take as many sheets as they need', () => {
+  const H = 841.89, M = 26;
+  it('keeps a short list to one sheet', () => {
+    expect(materialsPlan(7, H, M)).toEqual({ sheets: 1, per: 7 });
+    expect(programsPlan(7, H, M)).toEqual({ sheets: 1, per: 7 });
+  });
+
+  it('splits a long list evenly across sheets, dropping nothing', () => {
+    const m = materialsPlan(80, H, M);
+    expect(m.sheets).toBe(2);
+    expect(m.per * m.sheets).toBeGreaterThanOrEqual(80);
+    const p = programsPlan(130, H, M);
+    expect(p.sheets).toBe(3);
+    expect(p.per * p.sheets).toBeGreaterThanOrEqual(130);
+  });
+
+  it('prints every row of a long materials list, on continued sheets, and counts the pages', () => {
+    const base = data({ tracker: false, trials: trials(2) });
+    const rows = Array.from({ length: 80 }, (_, i) => ({ ...base.materials!.rows[0], what: `Film lot ${i + 1}` }));
+    const r = render({ ...base, materials: { ...base.materials!, rows } });
+    const said = r.said.join('\n');
+    for (let i = 1; i <= 80; i++) expect(said).toContain(`Film lot ${i}`);
+    expect(said).toContain('What we are waiting on — continued');
+    expect(r.pages).toBe(render(base).pages + 1);
   });
 });
 
@@ -684,8 +790,16 @@ describe('who owes what, by when — page 3', () => {
   const pagesFor = (over: Partial<PaceReportData>) => render(data(over)).pages;
   const few = { tracker: false, trials: trials(3) };
 
-  it('costs one sheet on a commissioning job that owes something', () => {
-    expect(pagesFor({ ...few, owes: owes(3, 2) })).toBe(pagesFor(few) + 1);
+  /* Under the tests, or under the plan, when there is room; a sheet of its
+     own only when there is not. */
+  it('rides under the front page when a few tests leave room, and is still printed in full', () => {
+    const r = render(data({ ...few, owes: owes(3, 2) }));
+    expect(r.pages).toBe(pagesFor(few));
+    expect(r.said.join('\n')).toContain('Who owes what, by when');
+  });
+
+  it('costs sheets when it is long', () => {
+    expect(pagesFor({ ...few, owes: owes(30, 30, 30, 30) })).toBeGreaterThan(pagesFor(few));
   });
 
   it('costs nothing when nobody owes anything', () => {
@@ -705,17 +819,54 @@ describe('who owes what, by when — page 3', () => {
     expect(said).toContain('BEFORE THE NEXT REPORT');
   });
 
-  it('packs cards into the shortest column, and starts a new sheet when none has room', () => {
-    const l = layoutOwes([300, 200, 100, 400], 2, 500);
-    expect(l.at.map(a => [a.sheet, a.col])).toEqual([[0, 0], [0, 1], [0, 1], [1, 0]]);
-    expect(l.sheets).toBe(2);
+  /* Rowland: "it overspills, becomes merged and messy." The site's card was
+     cut at fourteen lines with "+8 more — see the screens", and sat alone on
+     a sheet with two white columns beside it. The page flows now. */
+  describe('the page flows, column by column, and every row is printed', () => {
+    const party = (n: number, askH = 40) => ({ rows: Array<number>(n).fill(30), askH });
+
+    it('runs the parties down one column and starts the next under the last', () => {
+      const f = flowOwes([party(3), party(2)], 3, 1000);
+      expect(f.segs.map(g => [g.party, g.col, g.from, g.to, g.ask])).toEqual([[0, 0, 0, 3, true], [1, 0, 0, 2, true]]);
+      expect(f.sheets).toBe(1);
+    });
+
+    it('continues a long party in the next column, under its name again', () => {
+      const f = flowOwes([party(40)], 2, 500);
+      expect(f.segs.every(g => g.party === 0)).toBe(true);
+      expect(f.segs[0].cont).toBe(false);
+      expect(f.segs.slice(1).every(g => g.cont)).toBe(true);
+      expect(f.segs[f.segs.length - 1].ask).toBe(true);
+      /* every row exactly once */
+      expect(f.segs.reduce((n, g) => n + (g.to - g.from), 0)).toBe(40);
+      expect(f.segs.map(g => g.from)).toEqual(f.segs.map((_, i, a) => (i ? a[i - 1].to : 0)));
+    });
+
+    it('goes onto a second sheet only when every column of the first is full', () => {
+      const f = flowOwes([party(40), party(40)], 3, 500);
+      const onFirst = f.segs.filter(g => g.sheet === 0);
+      expect(new Set(onFirst.map(g => g.col)).size).toBe(3);
+      expect(f.sheets).toBeGreaterThan(1);
+    });
+
+    it('never opens a party at the very foot of a column with one row before breaking', () => {
+      const f = flowOwes([{ rows: Array<number>(12).fill(30), askH: 40 }, party(5)], 2, 500);
+      const second = f.segs.find(g => g.party === 1);
+      expect(second).toBeDefined();
+      expect(second?.y).toBe(0);
+    });
+
+    it('fits inside the room it was given', () => {
+      const f = flowOwes([party(9), party(7), party(22)], 3, 400);
+      for (const g of f.segs) expect(g.y + g.h).toBeLessThanOrEqual(400);
+    });
+
+    it('uses no sheet for no parties', () => {
+      expect(flowOwes([], 2, 500).sheets).toBe(0);
+    });
   });
 
-  it('uses no sheet for no cards', () => {
-    expect(layoutOwes([], 2, 500).sheets).toBe(0);
-  });
-
-  it('reads four parties as two by two, not three and one', () => {
-    expect([1, 2, 3, 4, 5, 9].map(owesColumns)).toEqual([1, 2, 3, 2, 3, 3]);
+  it('flows two columns for a party or two, three past that', () => {
+    expect([1, 2, 3, 4, 9].map(owesColumns)).toEqual([2, 2, 3, 3, 3]);
   });
 });

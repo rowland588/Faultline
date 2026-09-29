@@ -149,9 +149,9 @@ export function standing(input: StandingInput): Standing {
      past the day" on the first sheet and "2, all Ishida's" on the second. */
   const owed = (t: Test) => !isSettled(t) || t.outcome === 'notRun';
   const testsOpen = tests.filter(t => !isFix(t) && owed(t));
-  const testsLate = testsOpen.filter(isOverdue);
+  const testsLate = testsOpen.filter(t => isOverdue(t, today));
   const fixesOpen = tests.filter(t => isFix(t) && owed(t));
-  const fixesLate = fixesOpen.filter(isOverdue);
+  const fixesLate = fixesOpen.filter(t => isOverdue(t, today));
 
   const matsOpen = materials.filter(m => !isHere(m));
   const matsLate = matsOpen.filter(m => !!m.due && m.due < today);
@@ -221,7 +221,7 @@ export function standing(input: StandingInput): Standing {
       tone: t.outcome === 'passed' ? 'done'
         : t.outcome === 'failed' ? 'failed'
           : needsVerdict(t) ? 'ran'
-            : t.outcome === 'notRun' || isOverdue(t) ? 'late' : 'booked',
+            : t.outcome === 'notRun' || isOverdue(t, today) ? 'late' : 'booked',
     });
   }
 
