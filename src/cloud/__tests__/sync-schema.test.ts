@@ -21,6 +21,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { SYNC_KINDS } from '../mappers';
+import { TEST_KINDS } from '../../lib/testing';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SQL_DIR = join(ROOT, 'supabase');
@@ -115,6 +116,23 @@ describe('every synced table can carry the pull cursor', () => {
       // single 42703 as "this cloud is too old for rev cursors at all" — so
       // EVERY table drops to the clock cursor for the rest of the session.
       expect(columnsFor(kind).has('rev'), `${kind} has no rev column in any migration`).toBe(true);
+    });
+  }
+});
+
+/* THE SAME DRIFT, ONE LEVEL DOWN. A column can exist and still refuse the row:
+   `tests.kind` is checked against a list of faces, and a face the app writes
+   that the list does not name is rejected exactly as a missing column is —
+   the step never leaves the phone. The LAST migration to set the check is the
+   one the cloud holds, since each drops and re-adds it by name. */
+describe('every face the app writes, the cloud accepts', () => {
+  const checks = [...sql.matchAll(/constraint\s+tests_kind_check\s+check\s*\(\s*kind\s+in\s*\(([^)]*)\)/gi)];
+  const allowed = new Set(
+    [...(checks[checks.length - 1]?.[1] ?? '').matchAll(/'([^']+)'/g)].map(m => m[1]),
+  );
+  for (const k of TEST_KINDS) {
+    it(`tests.kind accepts '${k}'`, () => {
+      expect(allowed.has(k), `the app writes kind '${k}' and no migration's tests_kind_check allows it`).toBe(true);
     });
   }
 });

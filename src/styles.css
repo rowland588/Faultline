@@ -6513,3 +6513,88 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .jb-owe { min-height: 44px; align-items: center; }
   .build-refresh { min-height: 36px; padding-inline: 12px; }
 }
+
+/* ============================== INSTALL ==============================
+   Each machine, its steps left to right in the order they happen, and one
+   sentence saying where it has got to. The strip is the story at a glance;
+   the rows under it are the detail. Tones are the plan's: green done, oxblood
+   the day has gone, ochre waiting on a word, ink blue still ahead. */
+.in-late { color: var(--danger); font-weight: 700; }
+.in-list { display: grid; gap: 14px; margin-top: 14px; }
+.in-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.in-card.is-late { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.in-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.in-name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.in-name b { font-size: 17px; letter-spacing: -0.01em; }
+.in-state {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2);
+}
+.in-state.is-installed, .in-state.is-running { background: var(--accent-soft); color: var(--ok); }
+.in-state.is-onSite { background: var(--blue-soft); color: var(--blue); }
+
+.in-strip { list-style: none; display: flex; gap: 4px; margin: 14px 0 4px; padding: 0; }
+.in-seg { flex: 1 1 0; min-width: 0; }
+.in-seg button {
+  all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px;
+  width: 100%; cursor: pointer; padding: 2px 0;
+}
+.in-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.in-seg-bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line-2); }
+.in-seg.is-done .in-seg-bar { background: var(--st-g); border-color: var(--st-g); }
+.in-seg.is-problem .in-seg-bar { background: var(--st-r); border-color: var(--st-r); }
+.in-seg.is-late .in-seg-bar { background: transparent; border: 2px solid var(--st-r); }
+.in-seg.is-asking .in-seg-bar { background: var(--st-a); border-color: var(--st-a); }
+.in-seg.is-next.is-ahead .in-seg-bar { background: var(--blue-soft); border: 2px solid var(--st-w); }
+.in-seg-t {
+  font-size: 11px; line-height: 1.25; color: var(--muted);
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.in-seg.is-next .in-seg-t, .in-seg.is-late .in-seg-t, .in-seg.is-problem .in-seg-t { color: var(--ink); font-weight: 700; }
+
+.in-says { margin: 10px 0 0; font-size: 15px; line-height: 1.45; color: var(--ink); }
+.in-ready {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--accent-soft); color: var(--ok); font-weight: 600;
+}
+
+.in-steps { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.in-step {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+  display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: start;
+  padding: 10px 2px; border-bottom: 1px solid var(--line); min-height: var(--tap, 44px);
+}
+.in-step:hover { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+.in-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.in-dot { width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; border: 2px solid var(--line-2); }
+.in-step.is-done .in-dot { background: var(--st-g); border-color: var(--st-g); }
+.in-step.is-problem .in-dot { background: var(--st-r); border-color: var(--st-r); }
+.in-step.is-late .in-dot { border-color: var(--st-r); }
+.in-step.is-asking .in-dot { background: var(--st-a); border-color: var(--st-a); }
+.in-step.is-next.is-ahead .in-dot { border-color: var(--st-w); background: var(--blue-soft); }
+.in-step-m { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.in-step-m b { font-size: 14.5px; }
+.in-step-r { font-size: 13px; color: var(--ink-2); }
+.in-step-w { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.in-step.is-done .in-step-w { color: var(--ok); }
+.in-step.is-problem .in-step-w, .in-step.is-late .in-step-w { color: var(--danger); }
+.in-step.is-asking .in-step-w { color: var(--warn); }
+.in-step.is-next.is-ahead .in-step-w { color: var(--blue); }
+
+.in-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.in-actions .cw-add { flex: 1 1 200px; }
+.in-addf { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 100%; }
+.in-addf input { flex: 1 1 220px; min-width: 0; }
+.in-add-machine { margin-top: 14px; }
+
+@media (max-width: 720px) {
+  .in-card { padding: 14px; }
+  /* Six labels do not fit across a phone; the bars stay, the words go to the rows. */
+  .in-seg-t { display: none; }
+  .in-seg-bar { height: 10px; }
+  .in-actions .btn, .in-actions .cw-add { width: 100%; min-height: var(--tap, 44px); }
+}

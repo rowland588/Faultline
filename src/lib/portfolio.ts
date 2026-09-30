@@ -23,7 +23,7 @@
  */
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
-import { isOverdue, isSettled, live, plannedEnd } from './testing';
+import { isOverdue, isSettled, isTestFace, live, plannedEnd } from './testing';
 import type { Material } from './materials';
 import { isHere } from './materials';
 import type { Program } from './programs';
@@ -149,7 +149,7 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
     const owed = !isSettled(t) || t.outcome === 'notRun';
     if (!owed) continue;
     out.push({
-      ...base, kind: t.kind === 'fix' ? 'fix' : 'test', id: t.id, what: t.title,
+      ...base, kind: t.kind ?? 'test', id: t.id, what: t.title,
       who: t.withWhom ?? '', on: plannedEnd(t), late: isOverdue(t, today),
     });
   }
@@ -244,7 +244,9 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
     for (const a of live(j.assets)) if (a.oem) supplierTyped.push(a.oem);
     for (const m of live(j.materials)) if (m.from) supplierTyped.push(m.from);
     for (const pr of live(j.programs)) if (pr.from) supplierTyped.push(pr.from);
-    for (const t of live(j.tests)) if (t.kind !== 'fix' && t.withWhom) supplierTyped.push(t.withWhom);
+    /* A TEST's "done with" is the other side; a fix's or an install step's
+       is whoever is doing it, which is as often the site's own fitter. */
+    for (const t of live(j.tests)) if (isTestFace(t) && t.withWhom) supplierTyped.push(t.withWhom);
   }
   const allTyped = [...supplierTyped, ...all.flat().map(x => x.who)];
   const res = resolver(allTyped);

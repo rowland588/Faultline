@@ -63,6 +63,9 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
     label, to, on: here === key, n: counts?.[key]?.n, late: counts?.[key]?.late,
   });
   return [
+    /* First, because it is first on the floor: a machine is installed before
+       anything is tested on it. */
+    p('install', 'Install', `/project/${projectId}/install`),
     p('testing', 'Testing', `/project/${projectId}/testing`),
     /* Beside Testing, because deciding an observation is a fix is the one move
        that crosses between them — and a fix is not part of testing, which is

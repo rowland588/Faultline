@@ -88,6 +88,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const testsToPick = tt.tests
     .filter(t => (t.kind ?? 'test') === 'test' && !t.deletedAt)
     .sort((a, b) => (b.ranOn ?? b.plannedFor ?? '').localeCompare(a.ranOn ?? a.plannedFor ?? ''));
+  /* A fix can be for an install step as well as a test — the regulator that
+     was missing when the air went on is a fix FOR that step. */
+  const stepsToPick = tt.tests.filter(t => t.kind === 'install' && !t.deletedAt).sort((a, b) => a.sort - b.sort);
+  const machineOf = (t: Test) => tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line';
 
   /* Setting the outcome stamps the day it happened, if nobody has said
      otherwise — the common case is telling the app on the day itself, and
@@ -105,7 +109,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
            got its own tab. */
         kind === 'fix'
           ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
-          : { label: 'Testing', to: `/project/${projectId}/testing` },
+          : kind === 'install'
+            ? { label: 'Install', to: `/project/${projectId}/install` }
+            : { label: 'Testing', to: `/project/${projectId}/testing` },
         { label: test.title },
       ]} />
 
@@ -132,15 +138,20 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       {/* 1 · THE PLAN */}
       <section className="tw-block">
         <span className="tw-block-h">1 · {words.plan}</span>
-        <label className="cw-f cw-f-wide"><span>{kind === 'fix' ? 'What we are fixing' : 'What we plan to do'}</span>
+        <label className="cw-f cw-f-wide"><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
           <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
         {/* WHICH TEST IT IS FOR. The one link a fix carries, and it can be
             changed — a fix put against the wrong test is moved, not re-made. */}
         {kind === 'fix' && (
-          <label className="cw-f cw-f-wide"><span>Which test is it for?</span>
+          <label className="cw-f cw-f-wide"><span>{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</span>
             <select value={forTest?.id ?? ''} onChange={e => save({ fromTestId: e.target.value || undefined })}>
-              <option value="">Not from a test</option>
-              {testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+              <option value="">{stepsToPick.length ? 'Not from a test or an install step' : 'Not from a test'}</option>
+              {stepsToPick.length > 0
+                ? <>
+                  <optgroup label="Tests">{testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</optgroup>
+                  <optgroup label="Install steps">{stepsToPick.map(t => <option key={t.id} value={t.id}>{machineOf(t)} — {t.title}</option>)}</optgroup>
+                </>
+                : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select></label>
         )}
         <label className="cw-f"><span>Machine</span>
@@ -179,10 +190,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         )}
         <label className="cw-f cw-f-wide"><span>{words.expectation}</span>
           <DraftArea value={test.passesIf ?? ''}
-            placeholder={kind === 'fix' ? 'Film creases as the web enters the former' : '65 ppm held for 30 minutes, under 2% waste'}
+            placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
+              : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
+                : '65 ppm held for 30 minutes, under 2% waste'}
             onSave={v => save({ passesIf: v.trim() || undefined })} /></label>
         <p className="sub tw-note">
-          {kind === 'fix'
+          {kind !== 'test'
             ? 'Written before the work. It is what the end result gets measured against.'
             : 'Agreed before the day. It is what the result gets measured against.'}
         </p>
@@ -190,7 +203,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       {/* 2 · THE DAY */}
       <section className="tw-block">
-        <span className="tw-block-h">2 · {kind === 'fix' ? 'What was done' : 'What actually happened'}</span>
+        <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
         {kind === 'test' && (
           <label className="cw-f"><span>Product we ran</span>
             <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
@@ -203,7 +216,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             onChange={e => save({ ranTo: e.target.value || undefined })} /></label>
         <label className="cw-f cw-f-wide"><span>{words.happened}</span>
           <DraftArea rows={5} value={test.result ?? ''}
-            placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift' : '61 ppm, 3 leaked in 20'}
+            placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
+              : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
+                : '61 ppm, 3 leaked in 20'}
             onSave={v => save({ result: v.trim() || undefined })} /></label>
         {/* THE VERDICT IS ASKED FOR, not left as four buttons at the foot of a
             block. Once there is a day or a result on the record and nobody has
@@ -228,16 +243,18 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           any of them is a fix is a decision somebody makes afterwards. */}
       {/* A fix has no "what we found" of its own — it is the work, not the
           question. One made before that rule keeps what was written under it. */}
-      {(kind === 'test' || itemsOf(tt.items, test.id, 'found').length > 0) && (
+      {/* An install step does — installing is where the missing part and the
+          wrong drawing turn up, and they are the day's story. */}
+      {(kind !== 'fix' || itemsOf(tt.items, test.id, 'found').length > 0) && (
         <Items kind="found" test={test} tt={tt} onView={setViewing}
-          heading="3 · What we found on the day"
+          heading={kind === 'install' ? '3 · What we found doing it' : '3 · What we found on the day'}
           placeholder="What did you see?"
           empty="Nothing written down yet. This is the part that matters most." />
       )}
 
       {/* 4 · THE FIXES FOR THIS TEST. Listed here, made on the Fixes screen —
           the button goes there with this test already picked. */}
-      {kind === 'test' && <NextFixes test={test} tt={tt} />}
+      {kind !== 'fix' && <NextFixes test={test} tt={tt} />}
 
       <Docs test={test} tt={tt} />
 
@@ -259,6 +276,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             Carries the machine, the product and the expectation forward, so the plan writes itself.
           </p>
         </>
+      ) : kind === 'install' ? (
+        <button className="btn tw-loop" onClick={() => nav(`/project/${projectId}/install`)}>
+          Back to Install — {machineOf(test)}
+        </button>
       ) : forTest && (
         <button className="btn tw-loop" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
           Back to the test — {forTest.title}
@@ -286,7 +307,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             : `Delete “${test.title}”?`;
           if (confirm(warn)) {
             await tt.removeTest(test.id);
-            nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : 'testing'}`);
+            nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : kind === 'install' ? 'install' : 'testing'}`);
           }
         })()}>Delete this {words.one.toLowerCase()}</button>
       </div>
@@ -361,17 +382,18 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
       ((t.kind ?? 'test') === 'fix' && testOfFix(t, tt.tests)?.id === test.id)
       || ((t.kind ?? 'test') === 'test' && t.fromTestId === test.id)))
     .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
+  const noun = test.kind === 'install' ? 'step' : 'test';
 
   return (
     <section className="tw-block">
-      <span className="tw-block-h">4 · Fixes for this test</span>
+      <span className="tw-block-h">4 · Fixes for this {noun}</span>
       {out.length === 0 && (
-        <p className="sub tw-note">No fixes for this test yet.</p>
+        <p className="sub tw-note">No fixes for this {noun} yet.</p>
       )}
       {/* ONE DOOR TO MAKE A FIX, and it is on the Fixes screen. This takes you
           there with this test already picked. */}
       <button className="cw-add" onClick={() => nav(`/project/${test.projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
-        <span className="cw-add-p" aria-hidden>+</span> Add a fix for this test
+        <span className="cw-add-p" aria-hidden>+</span> Add a fix for this {noun}
       </button>
       {out.length === 0 ? null : (
         <div className="cw-list">
@@ -571,7 +593,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
  *  the fix's card print — see trialCardPdf. */
 function Evidence({ media, kind, onAdd, onView }: {
   media: MediaRef[];
-  kind: 'test' | 'fix' | 'found';
+  kind: 'test' | 'fix' | 'install' | 'found';
   onAdd: (refs: MediaRef[]) => Promise<void>;
   onView: (m: MediaRef) => void;
 }) {
@@ -601,6 +623,7 @@ function Evidence({ media, kind, onAdd, onView }: {
   const count = [photos && `${photos} photo${photos === 1 ? '' : 's'}`, clips && `${clips} clip${clips === 1 ? '' : 's'}`]
     .filter(Boolean).join(' · ');
   const why = kind === 'fix' ? 'The problem, and it fixed — a picture of each is the proof.'
+    : kind === 'install' ? 'How it was left — a picture is the proof it is done, or of what stopped it.'
     : kind === 'test' ? 'What the machine did, as it did it. The card prints them.'
       : 'A picture of what you saw.';
 

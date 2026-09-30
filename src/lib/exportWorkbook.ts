@@ -10,8 +10,10 @@
  * dump somebody has to reshape. A project column on every row, because the
  * tool keeps every line in one workbook. Dates are real Excel dates.
  *
- * Two sheets arrive empty on purpose — Stages and Training. The app never kept
- * either; the Excel tool does, and they are there so the shape is complete.
+ * Training arrives empty on purpose: the app never kept it; the Excel tool
+ * does, and the sheet is there so the shape is complete. Stages carries the
+ * install steps — each machine's installation, step by step, which is what
+ * the tool's Stages table was always for.
  *
  * Photos, videos and documents stay in the app: a workbook cannot carry them
  * and a link to a phone's own storage would open nothing. Each row says how
@@ -71,6 +73,9 @@ const live = <T extends { deletedAt?: number }>(rows: T[]): T[] => rows.filter(r
 const TEST_OUTCOME: Record<Test['outcome'], string> = {
   planned: 'Planned', passed: 'Passed', failed: 'Didn’t pass', notRun: 'Didn’t run',
 };
+const STEP_STATUS: Record<Test['outcome'], string> = {
+  planned: 'Planned', passed: 'Done', failed: 'Hit a problem', notRun: 'Didn’t happen',
+};
 const FIX_STATUS: Record<Test['outcome'], string> = {
   planned: 'Open', passed: 'Done', failed: 'Didn’t fix it', notRun: 'Didn’t happen',
 };
@@ -129,6 +134,15 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
         d(t.plannedFor), d(t.plannedTo), t.withWhom ?? '', t.passesIf ?? '', t.planned ?? '',
         d(t.ranOn), d(t.ranTo), t.product ?? '', t.result ?? '', TEST_OUTCOME[t.outcome],
         count((t.media?.length ?? 0) + (t.docs?.length ?? 0), 'photo or file'),
+      ]);
+    }
+
+    /* INSTALL STEPS, machine by machine in the order they happen. */
+    for (const s of all.filter(t => t.kind === 'install').sort((x, y) => x.sort - y.sort)) {
+      const where = machine(s.assetId) || 'The line';
+      rows.Stages.push([
+        name, `${where} — ${s.title}`, d(s.ranOn ?? s.plannedFor), d(s.ranOn ? s.ranTo : s.plannedTo),
+        s.withWhom ?? '', STEP_STATUS[s.outcome], s.result ?? '',
       ]);
     }
 

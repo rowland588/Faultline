@@ -75,7 +75,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const testsToPick = tt.tests
     .filter(t => (t.kind ?? 'test') === 'test' && !t.deletedAt)
     .sort((a, b) => (b.ranOn ?? b.plannedFor ?? '').localeCompare(a.ranOn ?? a.plannedFor ?? ''));
-  const forTest = testsToPick.find(t => t.id === forId);
+  /* An install step is something a fix can be for, as a test is — the part
+     that was missing when the air went on. */
+  const stepsToPick = tt.tests.filter(t => t.kind === 'install' && !t.deletedAt).sort((a, b) => a.sort - b.sort);
+  const forTest = [...testsToPick, ...stepsToPick].find(t => t.id === forId);
   /* The machine follows the test unless somebody has picked one themselves. */
   const machines = onTouched ? on : forTest?.assetId ? [forTest.assetId] : on;
 
@@ -153,10 +156,15 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         {adding ? (
           <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
             <input autoFocus placeholder="What are we fixing?" value={title} onChange={e => setTitle(e.target.value)} />
-            <label className="tw-plan-l" htmlFor="fix-for">Which test is it for?</label>
+            <label className="tw-plan-l" htmlFor="fix-for">{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</label>
             <select id="fix-for" className="tw-plan-sel" value={forId} onChange={e => setForId(e.target.value)}>
-              <option value="">Not from a test</option>
-              {testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+              <option value="">{stepsToPick.length ? 'Not from a test or an install step' : 'Not from a test'}</option>
+              {stepsToPick.length > 0
+                ? <>
+                  <optgroup label="Tests">{testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</optgroup>
+                  <optgroup label="Install steps">{stepsToPick.map(t => <option key={t.id} value={t.id}>{machine(t)} — {t.title}</option>)}</optgroup>
+                </>
+                : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>
             {tt.assets.length > 0 && (
               <>

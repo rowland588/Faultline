@@ -93,8 +93,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   /* TESTS ONLY. A fix has its own screen — see FixesScreen — because a fix is
      not part of testing and plenty of them never came out of a test. The same
-     `standing` call, over half the records. */
-  const st = standing(tt.tests.filter(t => t.kind !== 'fix'), tt.items);
+     `standing` call, over the tests alone — install steps have Install. */
+  const st = standing(tt.tests.filter(t => (t.kind ?? 'test') === 'test'), tt.items);
   const weeks = weeksTo(project.expectedAt);
   const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
   /* THE SAME COUNT THE OVERVIEW PRINTS. This screen said "Nothing outstanding"
@@ -139,7 +139,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       <div className="cx-assets">
         {tt.assets.map(a => (
           <MachineCard key={a.id} a={a}
-            ran={tt.tests.filter(t => t.assetId === a.id && hasRun(t)).length}
+            ran={tt.tests.filter(t => t.assetId === a.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length}
             save={tt.saveAsset} remove={tt.removeAsset} />
         ))}
         <AddAsset add={tt.addAsset} />
@@ -380,7 +380,7 @@ function MachineCard({ a, ran, save, remove }: {
   );
 }
 
-function AddAsset({ add }: { add: (name: string, oem?: string) => Promise<string> }) {
+export function AddAsset({ add }: { add: (name: string, oem?: string) => Promise<string> }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [oem, setOem] = useState('');

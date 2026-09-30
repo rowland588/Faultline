@@ -33,7 +33,7 @@ import {
   type Asset, type Test, type TestItem,
 } from './testing';
 
-export type Strand = 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
+export type Strand = 'install' | 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
 
 /** One line of "what are we waiting on". */
 export interface OutstandingRow {
@@ -55,7 +55,7 @@ export interface OutstandingRow {
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
  *  because arriving and running are different days; everything else is a point. */
 export interface PlanMark {
-  kind: 'test' | 'fix' | 'material' | 'program' | 'machine';
+  kind: 'install' | 'test' | 'fix' | 'material' | 'program' | 'machine';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
   until?: string;
@@ -130,6 +130,7 @@ export interface StandingInput {
 
 export function standing(input: StandingInput): Standing {
   const today = input.today ?? todayISO();
+  /* Every face of the one record — tests, fixes, install steps. */
   const tests = live(input.tests);
   const materials = live(input.materials);
   const programs = live(input.programs);
@@ -142,16 +143,22 @@ export function standing(input: StandingInput): Standing {
      isOverdue — but they are owed by different people and read as different
      news, so a client gets two rows rather than one number hiding both. */
   const isFix = (t: Test) => t.kind === 'fix';
+  const isStep = (t: Test) => t.kind === 'install';
   /* A TEST THAT DID NOT RUN IS STILL TO RUN. isSettled calls its day settled —
      the day happened — but the client is owed the demonstration until it is
      rebooked, which is exactly the rule page 1 of the report draws its "Past
      the day" tile by. Leaving notRun out here is how one document said "3
      past the day" on the first sheet and "2, all Ishida's" on the second. */
   const owed = (t: Test) => !isSettled(t) || t.outcome === 'notRun';
-  const testsOpen = tests.filter(t => !isFix(t) && owed(t));
+  const testsOpen = tests.filter(t => !isFix(t) && !isStep(t) && owed(t));
   const testsLate = testsOpen.filter(t => isOverdue(t, today));
   const fixesOpen = tests.filter(t => isFix(t) && owed(t));
   const fixesLate = fixesOpen.filter(t => isOverdue(t, today));
+  /* INSTALL STEPS, their own row: the weeks between a machine landing and it
+     running are somebody's work, owed by a day, and a client reads "3 install
+     steps late, Brillopak's" as different news from a test that has not run. */
+  const stepsOpen = tests.filter(t => isStep(t) && owed(t));
+  const stepsLate = stepsOpen.filter(t => isOverdue(t, today));
 
   const matsOpen = materials.filter(m => !isHere(m));
   const matsLate = matsOpen.filter(m => !!m.due && m.due < today);
@@ -177,6 +184,10 @@ export function standing(input: StandingInput): Standing {
   const machLate = machOpen.filter(a => !!a.dueOn && a.dueOn < today && !a.onSiteOn);
 
   const rows: OutstandingRow[] = ([
+    /* First, because it is first in the job: a machine is installed before
+       anything can be tested on it. */
+    { key: 'install', what: 'Install steps to do', open: stepsOpen.length, late: stepsLate.length,
+      whose: mostlyWhose(stepsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(stepsLate.map(t => t.withWhom)) },
     { key: 'tests', what: 'Tests still to run', open: testsOpen.length, late: testsLate.length,
       whose: mostlyWhose(testsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(testsLate.map(t => t.withWhom)) },
     { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length,
@@ -207,7 +218,7 @@ export function standing(input: StandingInput): Standing {
     const until = t.ranOn ? t.ranTo : t.plannedTo;
     if (!at) continue;
     plan.push({
-      kind: t.kind === 'fix' ? 'fix' : 'test', at,
+      kind: t.kind === 'fix' ? 'fix' : t.kind === 'install' ? 'install' : 'test', at,
       /* A block of days draws as a BAR, the same shape a machine already uses
          and for the same reason — it occupies time rather than happening on a
          day. Nothing new had to be drawn for this. */
@@ -265,7 +276,8 @@ export function standing(input: StandingInput): Standing {
     : undefined;
 
   return {
-    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests }),
+    /* "N of M tests have run" is about tests — an install step is not one. */
+    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests: tests.filter(t => !isStep(t)) }),
     daysToGo, slipDays, outstanding, late, rows, plan,
   };
 }

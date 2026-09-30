@@ -13,7 +13,7 @@ import {
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import { assetStateOf, nextFrom, standing } from './testing';
+import { WORDS, assetStateOf, nextFrom, standing } from './testing';
 import type { Asset, AssetState, ItemKind, Standing, Test, TestItem, TestKind } from './testing';
 import { offerUndo } from '../ui/Undo';
 
@@ -39,6 +39,9 @@ export interface TestingState {
   /** `fromTestId`: for a fix, the test it is for — picked on the Fixes screen,
    *  the one place a fix is made. */
   planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind, fromTestId?: string) => Promise<string>;
+  /** Several install steps on one machine at once, in the order given — the
+   *  one-tap "the usual stages". Each is an ordinary step from then on. */
+  planSteps: (titles: readonly string[], assetId?: string) => Promise<void>;
   saveTest: (t: Test) => Promise<void>;
   /** Change some fields of the row AS IT IS NOW. Use this from a button, a
    *  picker or anything that fires after an await — never `saveTest({...test})`
@@ -171,11 +174,25 @@ export function useTesting(projectId: string): TestingState {
     return made[0].id;
   }, [projectId, nextSort, assets]);
 
+  const planSteps = useCallback(async (titles: readonly string[], assetId?: string) => {
+    const t = now();
+    let sort = nextSort();
+    const withWhom = assets.find(a => a.id === assetId)?.oem || undefined;
+    for (const title of titles) {
+      const clean = title.trim();
+      if (!clean) continue;
+      await putTest({
+        id: uid(), projectId, kind: 'install', title: clean, assetId, withWhom,
+        outcome: 'planned', sort: sort++, createdAt: t, updatedAt: t,
+      });
+    }
+  }, [projectId, nextSort, assets]);
+
   const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);
   const patchTestCb = useCallback(async (id: string, patch: Partial<Test> | ((cur: Test) => Partial<Test>)) => { await patchTest(id, patch); }, []);
   const removeTest = useCallback(async (id: string) => {
     const t = tests.find(x => x.id === id);
-    offerUndo(`Deleted “${t?.title ?? (t?.kind === 'fix' ? 'the fix' : 'the test')}”`, await deleteTest(id, projectId));
+    offerUndo(`Deleted “${t?.title ?? `the ${WORDS[t?.kind ?? 'test'].one.toLowerCase()}`}”`, await deleteTest(id, projectId));
   }, [projectId, tests]);
   const testCost = useCallback((id: string) => testContents(id, projectId), [projectId]);
 
@@ -253,7 +270,7 @@ export function useTesting(projectId: string): TestingState {
 
   return {
     loading, assets, tests, items, standing: answer,
-    addAsset, saveAsset, removeAsset,
+    addAsset, saveAsset, removeAsset, planSteps,
     planTest, saveTest, patchTest: patchTestCb, removeTest, testCost, planNextFrom,
     addItem, unmakeFix, fixUntouched, saveItem, patchItem, removeItem,
   };

@@ -450,7 +450,7 @@ function TestingOverview({ projectId }: { projectId: string }) {
               onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(st.upcoming[0].id)}`)}>
               <span className="tw-next-h">
                 {/* A fix said nothing about being one here, and read as a test. */}
-                <b>{st.upcoming[0].kind === 'fix' && <span className="tw-face">Fix</span>}{st.upcoming[0].title}</b>
+                <b>{st.upcoming[0].kind === 'fix' && <span className="tw-face">Fix</span>}{st.upcoming[0].kind === 'install' && <span className="tw-face">Install</span>}{st.upcoming[0].title}</b>
                 <span className="tw-when">NEXT UP</span>
               </span>
               <span className="sub">

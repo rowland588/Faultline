@@ -45,6 +45,8 @@ export interface Seeded {
   /** How many tests are on the job, and the id of one that has run — so the
    *  smoke test can open a real test rather than an empty one. */
   tests: number;
+  /** An install step, for the screens that open one. */
+  stepId: string;
   assets: number;
   testId: string;
   /** A project on the BOARD model, with measures its own business defined,
@@ -242,6 +244,29 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       withWhom: 'Ilapak UK', plannedFor: iso(4), passesIf: 'Nobody on site could find the changeover parts' }),
   ]) await putTest(f);
 
+  /* THE WEIGHER'S INSTALLATION, step by step — four done, one late, one
+     ahead, and the air drop turned up a missing regulator that became a fix
+     for that step. The Install screen draws its strip and its sentence off
+     exactly this. */
+  const step = (title: string, sort: number, o: Partial<Test> = {}): Test => ({
+    id: uid(), projectId: proj.id, kind: 'install', title, assetId: weigher.id, withWhom: 'Ishida Europe',
+    outcome: 'planned', sort: 40 + sort, createdAt: t, updatedAt: t, ...o,
+  });
+  const airDrop = step('Air and power connected', 3, { plannedFor: iso(-7), ranOn: iso(-7), outcome: 'passed',
+    result: 'Air on and tested. Regulator missing from the kit — fitted a loan one.' });
+  const steps = [
+    step('Positioned and levelled', 1, { plannedFor: iso(-8), ranOn: iso(-8), outcome: 'passed' }),
+    step('Mechanically complete', 2, { plannedFor: iso(-8), ranOn: iso(-7), outcome: 'passed' }),
+    airDrop,
+    step('Electrically complete', 4, { plannedFor: iso(-6), ranOn: iso(-5), outcome: 'passed', withWhom: 'Site electrician' }),
+    step('I/O checked', 5, { plannedFor: iso(-2) }),
+    step('Dry run', 6, { plannedFor: iso(2) }),
+  ];
+  for (const s of steps) await putTest(s);
+  await putTestItem(item(airDrop.id, 'found', 'Regulator missing from the kit', { owner: 'Ishida Europe', sort: 1 }));
+  await putTest(fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
+    withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' }));
+
   for (const i of [
     item(seal.id, 'found', 'Seal jaw temperature drifting', { owner: 'Ilapak UK', note: 'Drops 8°C over 20 minutes, then the seals fail', sort: 1 }),
     item(seal.id, 'found', 'Film tracking off to the left after a splice', { owner: 'Ilapak UK', sort: 2 }),
@@ -358,6 +383,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     tests: (await listTests(proj.id)).length,
     assets: (await listAssets(proj.id)).length,
     testId: seal.id,
+    stepId: airDrop.id,
     pacedProjectId: paced.id, pacedLineId: pacedLine.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
   };

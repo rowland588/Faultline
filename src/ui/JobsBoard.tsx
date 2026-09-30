@@ -40,7 +40,7 @@ const OPEN_KEY = 'faultline.jobs.open';
 const SEEN_KEY = 'faultline.jobs.seen';
 
 const KIND_WORD: Record<JobItem['kind'], string> = {
-  test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
+  install: 'Install step', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
 };
 const TONE_WORD: Record<string, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'the day has gone', booked: 'still ahead',

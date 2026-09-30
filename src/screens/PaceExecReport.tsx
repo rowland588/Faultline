@@ -27,7 +27,7 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { hasRun, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
+import { hasRun, isOverdue, isSettled, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
 import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
@@ -901,7 +901,9 @@ export function PaceExecReport() {
      already happened, most recent first. A client wants "what is coming" before
      "what we did". */
   const trialRows = tests
-    .filter(t => !t.deletedAt)
+    /* Tests and fixes. An install step is not a trial: it is owed on page 3,
+       under whoever is doing it, and drawn in its own lane on the plan. */
+    .filter(t => !t.deletedAt && t.kind !== 'install')
     .slice()
     .sort((a, b) => {
       const ap = !hasRun(a), bp = !hasRun(b);
@@ -936,7 +938,7 @@ export function PaceExecReport() {
       return {
         id: t.id,
         fromId: t.fromTestId,
-        kind: c.kind,
+        kind: c.kind === 'fix' ? 'fix' as const : 'test' as const,
         ran: hasRun(t),
         /* STILL OWED, AND THE DAY HAS GONE.
            Not lib/testing's isOverdue, and the difference matters: there, a
@@ -1009,6 +1011,15 @@ export function PaceExecReport() {
         debts.push({ who: o.owner, what: o.what, about: s.name, on: o.on, late: o.late, since: o.since });
       }
     }
+    /* INSTALL STEPS still to do, under whoever is doing them — the fitter's
+       name resolves to the supplier when it is theirs, and to the site when
+       it is not, by the same rule as a fix. */
+    for (const t of tests) {
+      if (t.deletedAt || t.kind !== 'install' || isSettled(t)) continue;
+      debts.push({ who: t.withWhom ?? '', what: t.title,
+        about: machines.find(a => a.id === t.assetId)?.name ?? 'the line',
+        on: plannedEnd(t), late: isOverdue(t, today) });
+    }
     for (const m of mats.materials) {
       if (m.deletedAt || isHere(m)) continue;
       debts.push({ who: m.from ?? '', what: m.what, about: 'to arrive on site',
@@ -1034,7 +1045,7 @@ export function PaceExecReport() {
       /* A TEST's "done with" names the other side. A FIX's is who is doing it,
          and that is as often Dave on nights as it is the OEM — counting it made
          Dave a company of his own on the client's page. */
-      ...progs.programs.map(pr => pr.from), ...tests.filter(t => t.kind !== 'fix').map(t => t.withWhom),
+      ...progs.programs.map(pr => pr.from), ...tests.filter(t => (t.kind ?? 'test') === 'test').map(t => t.withWhom),
     ].filter((x): x is string => !!x);
     return whoOwes(debts, { suppliers, today, day: iso => fmtShort(iso) });
   })();

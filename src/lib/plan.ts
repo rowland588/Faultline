@@ -112,6 +112,9 @@ export interface PlanMonth {
    then a trial can be run. Reading top to bottom is reading the job. */
 const LANES: { kind: PlanMark['kind']; label: string }[] = [
   { kind: 'machine', label: 'Machines' },
+  /* Straight under the machines: installing is what happens between a
+     machine's bar starting and it running. */
+  { kind: 'install', label: 'Install' },
   { kind: 'material', label: 'Materials' },
   { kind: 'program', label: 'Programs' },
   { kind: 'fix', label: 'Fixes' },

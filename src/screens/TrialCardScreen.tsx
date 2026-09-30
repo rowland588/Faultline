@@ -179,7 +179,9 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
         { label: project.name, to: `/project/${projectId}` },
         c.kind === 'fix'
           ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
-          : { label: 'Testing', to: `/project/${projectId}/testing` },
+          : c.kind === 'install'
+            ? { label: 'Install', to: `/project/${projectId}/install` }
+            : { label: 'Testing', to: `/project/${projectId}/testing` },
         { label: c.title, to: `/project/${projectId}/testing/${encodeURIComponent(testId)}` },
         { label: `${words.one} card` },
       ]} />
@@ -226,7 +228,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       <div className="tc-two">
         <Block n="1" title={words.plan}>
           <Field label={words.expectation} text={c.passesIf}
-            empty={c.kind === 'fix' ? 'The problem was not written down' : 'Nothing agreed in advance'} />
+            empty={words.noPlan} />
           {c.kind === 'test' && <Field label="Product we planned to run" text={c.plannedProduct} />}
           <Field label="Booked for" text={c.plannedFor ? nice(c.plannedFor) : ''} empty="No day set" />
         </Block>
@@ -238,7 +240,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
         </Block>
       </div>
 
-      <Block n="3" title="What we found on the day"
+      <Block n="3" title={words.found}
         sub={c.found.written === 0 ? undefined : foundWords(c.found)}>
         <Found rows={c.findings} one={words.one.toLowerCase()} />
       </Block>
@@ -253,7 +255,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           when there are any: an empty box for them is a box that says the
           test was not looked at. */}
       {media.length > 0 && (
-        <Block n="5" title={c.kind === 'fix' ? 'The problem, and it fixed' : 'Pictures from the day'}
+        <Block n="5" title={words.pictures}
           sub={`${media.length} on the ${words.one.toLowerCase()}`}>
           <div className="tw-ev-grid">
             {media.map(m => <EvidenceThumb key={m.id} media={m} size={84} onClick={() => setViewing(m)} />)}

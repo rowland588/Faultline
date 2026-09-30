@@ -56,6 +56,7 @@ export function useStanding(projectId: string): StandingState {
          their own count. */
       testing: { n: (tests?.open ?? 0) + (obs?.open ?? 0), late: tests?.late ?? 0 },
       fixes: { n: fixes?.open ?? 0, late: fixes?.late ?? 0 },
+      install: { n: by('install')?.open ?? 0, late: by('install')?.late ?? 0 },
       materials: { n: by('materials')?.open ?? 0, late: by('materials')?.late ?? 0 },
       programs: { n: by('programs')?.open ?? 0, late: by('programs')?.late ?? 0 },
       setup: { n: 0, late: 0 },

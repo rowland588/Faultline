@@ -140,7 +140,38 @@ export type Outcome = 'planned' | 'passed' | 'failed' | 'notRun';
  * second migration, and every derived thing in the app — the verdict, the
  * plan, what we are waiting on, the client report, the card — reads a fix the
  * day it is added, with nothing new written to draw it. */
-export type TestKind = 'test' | 'fix';
+export const TEST_KINDS = ['test', 'fix', 'install'] as const;
+export type TestKind = typeof TEST_KINDS[number];
+
+/* A THIRD FACE: AN INSTALL STEP.
+ *
+ * Rowland: "an installing section — the ability to understand the issues and
+ * stages that are taking place on a day to day basis, telling a story."
+ *
+ * A machine already went Not here yet → On site → Installed → Running, and the
+ * weeks between landing and running — the installation — were one date. An
+ * install step is the same record again: planned for a day, on a machine,
+ * done by somebody, with what was found doing it and the fixes that came out
+ * of it. "Connect air to the case packer, Tuesday, Brillopak fitter — done,
+ * regulator missing." So it is a face, not a table, for the reason a fix is. */
+
+/** Which face a record is wearing. Absent is a test — see `Test.kind`. */
+export const faceOf = (t: Pick<Test, 'kind'>): TestKind => t.kind ?? 'test';
+export const isTestFace = (t: Pick<Test, 'kind'>): boolean => faceOf(t) === 'test';
+export const isInstall = (t: Pick<Test, 'kind'>): boolean => t.kind === 'install';
+
+/** The stages most machines go through between landing and running, offered in
+ *  one tap on a machine with no install steps yet. They are ordinary steps from
+ *  the moment they exist — renamed, dated, deleted — because no two machines
+ *  install the same way and a fixed list would be a form nobody fits. */
+export const INSTALL_STAGES = [
+  'Positioned and levelled',
+  'Mechanically complete',
+  'Air and power connected',
+  'Electrically complete',
+  'I/O checked',
+  'Dry run',
+] as const;
 
 export const OUTCOME_WORD: Record<Outcome, string> = {
   planned: 'Planned', passed: 'Passed', failed: 'Didn’t pass', notRun: 'Didn’t run',
@@ -150,6 +181,16 @@ export const OUTCOME_WORD: Record<Outcome, string> = {
  *  about a question; a fix either got done or it did not. */
 export const FIX_OUTCOME_WORD: Record<Outcome, string> = {
   planned: 'Planned', passed: 'Fixed', failed: 'Didn’t fix it', notRun: 'Didn’t happen',
+};
+
+/** An install step is done, or it hit a problem, or the day came and it did
+ *  not happen. */
+export const INSTALL_OUTCOME_WORD: Record<Outcome, string> = {
+  planned: 'Planned', passed: 'Done', failed: 'Hit a problem', notRun: 'Didn’t happen',
+};
+
+const OUTCOME_WORDS: Record<TestKind, Record<Outcome, string>> = {
+  test: OUTCOME_WORD, fix: FIX_OUTCOME_WORD, install: INSTALL_OUTCOME_WORD,
 };
 
 /* IT HAPPENED, AND NOBODY HAS SAID WHETHER IT PASSED.
@@ -174,10 +215,11 @@ export const needsVerdict = (t: Pick<Test, 'outcome' | 'ranOn' | 'result'>): boo
 export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'> & Partial<Pick<Test, 'ranOn' | 'result'>>): string =>
   needsVerdict({ outcome: t.outcome, ranOn: t.ranOn, result: t.result })
     ? 'No verdict yet'
-    : (t.kind === 'fix' ? FIX_OUTCOME_WORD : OUTCOME_WORD)[t.outcome];
+    : OUTCOME_WORDS[t.kind ?? 'test'][t.outcome];
 
 /** The question the screen asks when the verdict is owed — in the face's own words. */
-export const verdictQuestion = (kind: TestKind): string => (kind === 'fix' ? 'Did it fix it?' : 'Did it pass?');
+export const verdictQuestion = (kind: TestKind): string =>
+  kind === 'fix' ? 'Did it fix it?' : kind === 'install' ? 'Is it done?' : 'Did it pass?';
 
 /** What each field is CALLED depends on which face you are looking at. One
  *  record, two vocabularies, and the screens and both documents take the words
@@ -185,6 +227,12 @@ export const verdictQuestion = (kind: TestKind): string => (kind === 'fix' ? 'Di
 export const WORDS: Record<TestKind, {
   one: string; many: string; expectation: string; happened: string;
   withWhom: string; plan: string; day: string;
+  /** What the card prints when the expectation box is empty. */
+  noPlan: string;
+  /** The heading over what was written down under it. */
+  found: string;
+  /** The heading over its pictures on the card. */
+  pictures: string;
 }> = {
   test: {
     one: 'Test', many: 'Tests',
@@ -192,6 +240,7 @@ export const WORDS: Record<TestKind, {
     happened: 'What happened',
     withWhom: 'Done with',
     plan: 'What we planned', day: 'What happened',
+    noPlan: 'Nothing agreed in advance', found: 'What we found on the day', pictures: 'Pictures from the day',
   },
   fix: {
     one: 'Fix', many: 'Fixes',
@@ -199,6 +248,15 @@ export const WORDS: Record<TestKind, {
     happened: 'The end result',
     withWhom: 'Who is doing it',
     plan: 'What we are fixing', day: 'What was done',
+    noPlan: 'The problem was not written down', found: 'What we found doing it', pictures: 'The problem, and it fixed',
+  },
+  install: {
+    one: 'Install step', many: 'Install steps',
+    expectation: 'Done means',
+    happened: 'What was done',
+    withWhom: 'Who is doing it',
+    plan: 'What we are installing', day: 'What was done',
+    noPlan: 'Nothing written down for what done means', found: 'What we found doing it', pictures: 'How it was left',
   },
 };
 
@@ -423,7 +481,9 @@ export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerd
  *  This decides both lists, the verdict's count, the row in what we are waiting
  *  on and whether something can be late — so it is asked in one place. */
 export const isSettled = (t: Test): boolean =>
-  t.kind === 'fix' ? t.outcome === 'passed' : hasRun(t);
+  /* An install step is off the list when it is DONE, like a fix — one that
+     hit a problem is still a step the machine has not got past. */
+  t.kind === 'fix' || t.kind === 'install' ? t.outcome === 'passed' : hasRun(t);
 
 /* The reader's OWN day. toISOString() is UTC: at half past midnight in
    Manchester all summer it still says yesterday, so a verdict tapped on the
@@ -557,7 +617,8 @@ export const itemsOf = (items: TestItem[], testId: ID, kind: ItemKind): TestItem
 /** A new test planned from an old one, carrying forward what would otherwise be
  *  retyped: the machine, the product, and who it is with. THE LOOP, in one
  *  function — it is the only thing in the app that creates work from work. */
-/** THE TEST A RECORD BELONGS TO: itself when it is a test, otherwise the
+/** THE TEST A RECORD BELONGS TO: itself when it is a test (or an install
+ *  step), otherwise the
  *  nearest test up its `fromTestId` chain. Old data has fixes hanging off
  *  fixes, and tests planned "from" a fix — made by a button that should never
  *  have been on a fix page. Rather than rewrite those links behind anybody's
@@ -566,7 +627,8 @@ export function rootTestOf(t: Test | undefined, all: Test[]): Test | undefined {
   const seen = new Set<string>();
   let cur = t;
   while (cur && !seen.has(cur.id)) {
-    if ((cur.kind ?? 'test') === 'test') return cur;
+    /* An install step is something a fix can be for, the way a test is. */
+    if ((cur.kind ?? 'test') !== 'fix') return cur;
     seen.add(cur.id);
     const parent = cur.fromTestId;
     cur = parent ? all.find(x => x.id === parent && !x.deletedAt) : undefined;

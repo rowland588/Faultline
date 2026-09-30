@@ -65,6 +65,9 @@ const ROUTES = [
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['testing', `#/project/${seeded.projectId}/testing`],
   ['fixes', `#/project/${seeded.projectId}/fixes`],
+  ['install', `#/project/${seeded.projectId}/install`],
+  ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
+  ['install step card', `#/project/${seeded.projectId}/testing/${seeded.stepId}/card`],
   ['one test', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
   /* The trial read back whole — the screen the PDF is sent from. */
   ['trial card', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],
