@@ -48,6 +48,7 @@ import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import type { PaceParetoSheet } from '../lib/paceWorkbook';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
+import { methodOf } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
 
@@ -1430,6 +1431,7 @@ export function PaceExecReport() {
     owes: owesBlock,
     installation: installBlock,
     tracker: hasTracker,
+    method: project ? methodOf(project).label : undefined,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
       what: a.action || a.problem || `Action ${a.ref}`,
@@ -1524,9 +1526,7 @@ export function PaceExecReport() {
             <p className="exec-eyebrow">
               {line
                 ? `${project?.name ?? 'Project'} · line report`
-                : hasTracker
-                  ? 'Improvement initiative · client report'
-                  : 'Commissioning · client report'}
+                : `${project ? methodOf(project).label : hasTracker ? '3P' : 'Stage gate'} · client report`}
             </p>
             <h1 className="exec-title">{title}</h1>
             <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the job is · who owes what, by when'}</p>

@@ -212,6 +212,9 @@ export interface PaceReportData {
    *  not, and printing it a ppm sheet, a 3P board and an action list is three
    *  pages of scaffolding in front of the two it does carry. */
   tracker: boolean;
+  /** Which of the three methods the project runs — "Stage gate", "3P",
+   *  "Lever tree" — printed at the head of page 1. See lib/planModel. */
+  method?: string;
   lateActions: { line: string; what: string; owner: string; due: string }[];
   lateMore: number;
   todos: { state: 'todo' | 'waiting'; what: string; who: string; when: string }[];
@@ -1946,7 +1949,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* ================= PAGE 1 — LINE PACE ================= */
   setFont(d, 8, 'bold', BRAND);
-  d.text(data.tracker ? 'IMPROVEMENT INITIATIVE · CLIENT REPORT' : 'COMMISSIONING · CLIENT REPORT', M, M + 8);
+  d.text(`${(data.method ?? (data.tracker ? '3P' : 'Stage gate')).toUpperCase()} · CLIENT REPORT`, M, M + 8);
   setFont(d, 24, 'bold', INK);
   d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);

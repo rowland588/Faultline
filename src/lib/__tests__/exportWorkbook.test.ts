@@ -96,6 +96,6 @@ describe('everything in the app, as a workbook', () => {
 
   it('carries the project and its two handover dates', () => {
     const { get } = book();
-    expect(get('Projects').rows[1]!.slice(0, 3)).toEqual(['Line 2 commissioning', 'Commissioning', 'Rowland']);
+    expect(get('Projects').rows[1]!.slice(0, 3)).toEqual(['Line 2 commissioning', 'Stage gate', 'Rowland']);
   });
 });

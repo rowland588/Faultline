@@ -6916,3 +6916,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pace-title-row .pace-title { min-width: 0; }
 .pace-gear { flex-shrink: 0; min-height: 36px; }
 .pace-head-actions:empty { display: none; }
+
+/* The three methods, each defined the same way — see lib/planModel MODELS. */
+.proj-model-opt { text-align: left; }
+.proj-model-q { font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+.proj-model-dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: 12px; line-height: 1.4; }
+.proj-model-dl dt { color: var(--muted); font-weight: 700; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 1px; }
+.proj-model-dl dd { margin: 0; color: var(--ink-2); }
+/* Which method a project runs, on its card. */
+.proj-method { display: inline-block; margin-bottom: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); }
+.fl-sub { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 0; }
+.fl-sub span { display: inline-flex; align-items: center; }
+.fl-dot { display: inline-block; width: 5px; height: 5px; margin: 0 0.9em; border-radius: 50%; background: var(--fl-glow); box-shadow: 0 0 8px rgba(var(--fl-glow-rgb), 0.9); }

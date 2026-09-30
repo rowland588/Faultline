@@ -211,7 +211,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
-  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">All jobs</p><h2 className="jb-says">Reading every job…</h2></div></section>;
+  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Stage gate · all jobs</p><h2 className="jb-says">Reading every job…</h2></div></section>;
   if (pf.jobs.length === 0) return null;
 
   const glow = { '--g1': pf.jobs[0]?.color, '--g2': pf.jobs[1]?.color ?? pf.jobs[0]?.color } as CSSProperties;
@@ -223,7 +223,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       {/* ------------------------------ the band ------------------------------ */}
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
-        <p className="jb-eyebrow">All jobs · {niceDay(today, { weekday: 'short' })}</p>
+        <p className="jb-eyebrow">Stage gate · all jobs · {niceDay(today, { weekday: 'short' })}</p>
         <h2 className="jb-says">{pf.says}</h2>
         <div className="jb-stats">
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>

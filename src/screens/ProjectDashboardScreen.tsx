@@ -34,7 +34,7 @@ import { uncoveredAreas } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
-import { planModel } from '../lib/planModel';
+import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
@@ -538,7 +538,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">
-            {model === 'commissioning' ? 'Commissioning' : 'Improvement initiative'}
+            {methodOf(project).label}
             {project.lead && <> · led by <b>{project.lead}</b></>}
           </p>
           <div className="pace-title-row">

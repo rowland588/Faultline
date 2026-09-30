@@ -297,7 +297,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
 /** The whole board in one sentence, the way somebody would answer "how are
  *  the jobs going" in a corridor. */
 function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
-  if (jobs.length === 0) return 'No commissioning job running yet.';
+  if (jobs.length === 0) return 'No stage gate job running yet.';
   const next = jobs
     .filter(v => v.daysToGo != null && v.daysToGo >= 0)
     .sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0))[0];

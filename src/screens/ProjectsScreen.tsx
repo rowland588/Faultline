@@ -54,18 +54,22 @@ export function ProjectsScreen() {
    * are we doing and why", not two features to switch on. Asking here, before
    * the project has a single line in it, means nobody discovers the choice was
    * ever made by tripping over a ticked box in Lines & people three weeks in.
-   * It stays changeable there afterwards; this is just where it starts. */
-  const [model, setModel] = useState<PlanModel>('commissioning');
+   * It stays changeable there afterwards; this is just where it starts.
+   *
+   * NOTHING IS PICKED FOR YOU. Three methods, each for a different kind of
+   * job — a default is a choice made without anybody noticing there was one. */
+  const [model, setModel] = useState<PlanModel | null>(null);
 
   const doCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !model) return;
     const p = await create(name, lead.trim() || undefined, model);
-    setName(''); setLead(''); setAdding(false); setModel('commissioning');
+    setName(''); setLead(''); setAdding(false); setModel(null);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &
-       people and ask for a line with a sponsor. An improvement initiative is
-       its lines, so that one still starts there. */
-    nav(model === 'commissioning' ? `/project/${p.id}/testing` : `/project/${p.id}/setup`);
+       people and ask for a line with a sponsor. A 3P or lever-tree project is
+       its lines, so that one still starts there. Stage gate starts on Install
+       now, where the machines are named. */
+    nav(model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}/setup`);
   };
 
   if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;
@@ -75,9 +79,9 @@ export function ProjectsScreen() {
       <Crumbs trail={[{ label: 'Home', to: '/' }, { label: 'Projects' }]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">Commissioning · improvement</p>
+          <p className="pace-eyebrow">{MODELS.map(m => m.label).join(' · ')}</p>
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">A commissioning job is the site and the OEM working to one plan — the machines, what each has to prove, what happened, what we found, what we do next. An improvement initiative is a set of lines, each with an owner and a sponsor.</p>
+          <p className="pace-lede">Three ways to run a project. <b>Stage gate</b> takes new equipment through its gates to handover. <b>3P</b> runs a line’s improvement week by week, People · Plant · Process. <b>Lever tree</b> works one outcome down to what has to be true for it.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
@@ -109,7 +113,7 @@ export function ProjectsScreen() {
             <label className="proj-field">
               <span className="field-label">Name</span>
               <input className="text-input" autoFocus value={name} maxLength={80}
-                placeholder="e.g. Line 7 commissioning" onChange={e => setName(e.target.value)}
+                placeholder={model === 'board' ? 'e.g. Line 7 performance' : model === 'tree' ? 'e.g. Line 7 to 60 ppm by March' : 'e.g. Line 7 new wrapper'} onChange={e => setName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
             </label>
             <label className="proj-field">
@@ -120,29 +124,38 @@ export function ProjectsScreen() {
             </label>
           </div>
           <div className="proj-model">
-            <span className="field-label">How this project runs</span>
+            <span className="field-label">How this project runs — choose one</span>
             <div className="proj-model-grid">
               {MODELS.map(m => (
-                <button key={m.id} type="button"
+                <button key={m.id} type="button" aria-pressed={model === m.id}
                   className={'proj-model-opt' + (model === m.id ? ' on' : '')}
                   onClick={() => setModel(m.id)}>
                   <span className="proj-model-t">{m.label}</span>
-                  <span className="proj-model-s">{m.blurb}</span>
+                  <span className="proj-model-q">{m.blurb}</span>
+                  <span className="proj-model-s">{m.useWhen}</span>
+                  <dl className="proj-model-dl">
+                    <dt>Built from</dt><dd>{m.organised}</dd>
+                    <dt>Rhythm</dt><dd>{m.rhythm}</dd>
+                    <dt>Done when</dt><dd>{m.done}</dd>
+                    <dt>Prints</dt><dd>{m.document}</dd>
+                  </dl>
                 </button>
               ))}
             </div>
-            <p className="chip-hint">Changeable later under Details, if the project turns out to need the other one.</p>
+            <p className="chip-hint">Changeable later under Details, if the project turns out to need another.</p>
           </div>
           <div className="row-inline" style={{ marginTop: 10 }}>
-            <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>
-              {model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
+            <button className="btn btn-primary" disabled={!name.trim() || !model} onClick={() => void doCreate()}>
+              {!model ? 'Choose how it runs' : model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
             </button>
           </div>
-          <p className="chip-hint">
-            {model === 'commissioning'
-              ? 'You name the machines and who supplied them next, then plan the first test.'
-              : 'You add the lines next — that is where owners and sponsors go.'}
-          </p>
+          {model && (
+            <p className="chip-hint">
+              {model === 'commissioning'
+                ? 'You name the machines and who supplied them next, then their install stages and tests.'
+                : 'You add the lines next — that is where owners and sponsors go.'}
+            </p>
+          )}
         </section>
       )}
 

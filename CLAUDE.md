@@ -2,20 +2,38 @@
 
 ## What this is for
 
-Commissioning management for a plant start-up: the site that is accepting the
-equipment, working with the OEM to a structured plan, so that things get done
-and nothing gets missed. That is the whole product. Rowland, 24 September:
+Running projects on a factory floor, three ways. Rowland, 30 September:
+
+> "I've built three individual project methods ... I want to be able to use
+> this in multiple business scenarios, because my work is so diverse."
+
+- **Stage gate** — new equipment taken through its gates (install stages,
+  tests against what was agreed, fixes, what it waits on) to handover, with
+  the OEM. Stored as `commissioning` on the project; never shown under that
+  name — commissioning is one gate in the middle, not the method.
+- **3P** — a line's improvement run week by week off the tracker, actions
+  sorted People · Plant · Process.
+- **Lever tree** — one outcome worked down to what has to be true for it.
+
+They are separate methods, not one loop pretending to be cohesive; each is
+defined once, the same way, in `src/lib/planModel.ts` (the question, when to
+use it, how it is organised, rhythm, done, what it prints). A fourth method is
+one more entry there. Tools (Pareto, the filmed walk, a line study) are
+instruments a method uses, never methods of their own.
+
+Rowland, 24 September:
 
 > "We are close, but it still feels like a gimmick."
 
 So every change is measured against one question before it is built: does it
-help the site and the OEM agree what has to be proved, see what is proved and
-what is not, and know who owes what by when — or is it a feature? A screen that
-shows information without saying what it means for the start-up is a gimmick,
-however well it is drawn. A report that lists records instead of telling the
-story of the start-up is a gimmick. A field nobody is asked to fill in is a
-gimmick. The test for any addition is the sentence it lets the site say to the
-OEM, or the OEM to the site, that they could not say before.
+help the people on the project agree what has to be done or proved, see what
+is and what is not, and know who owes what by when — or is it a feature? A
+screen that shows information without saying what it means for the project is
+a gimmick, however well it is drawn. A report that lists records instead of
+telling the story of the project is a gimmick. A field nobody is asked to fill
+in is a gimmick. The test for any addition is the sentence it lets one side of
+the project say to the other — the site to the OEM, the lead to the sponsor,
+the team to the client — that they could not say before.
 
 ## Finished means live, not pushed
 

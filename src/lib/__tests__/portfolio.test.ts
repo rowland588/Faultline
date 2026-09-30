@@ -127,7 +127,7 @@ describe('the edges', () => {
   it('draws a board with no jobs without falling over', () => {
     const pf = portfolio([], TODAY);
     expect(pf.jobs).toEqual([]);
-    expect(pf.says).toBe('No commissioning job running yet.');
+    expect(pf.says).toBe('No stage gate job running yet.');
   });
 
   it('never counts a deleted record', () => {

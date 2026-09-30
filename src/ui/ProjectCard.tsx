@@ -12,7 +12,7 @@
 import { nav } from '../state/useRoute';
 import type { Project } from '../types';
 import type { PaceLineRow } from '../db';
-import { planModel } from '../lib/planModel';
+import { methodOf, planModel } from '../lib/planModel';
 import { niceDay } from '../lib/weeks';
 
 export function ProjectCard({ p, lines, compact, onArchive }: {
@@ -30,6 +30,9 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
   return (
     <article className={'proj-card' + (compact ? ' is-compact' : '')} style={{ ['--proj' as string]: p.color }}>
       <button className="proj-open" onClick={() => nav(`/project/${p.id}`)}>
+        {/* Which of the three methods it runs — the first thing that tells
+            two projects on this list apart. */}
+        <span className="proj-method">{methodOf(p).label}</span>
         <h2 className="proj-name">{p.name}</h2>
         {p.description && !compact && <p className="proj-desc">{p.description}</p>}
         <p className="proj-lead">

@@ -11,6 +11,10 @@
  * pitch. The guide is still whole at /guide, one tap from here, for anybody
  * who wants the story.
  *
+ * Under the name, the three ways a project runs here: Stage gate, 3P, Lever
+ * tree. Rowland: "brand things properly on the landing page ... I want to be
+ * able to use this in multiple business scenarios."
+ *
  * The pulse is the mark's own trace (ui/Logo) drawn across the page: a flat
  * line, a tremor, the fault. It beats slowly, and holds still for anybody who
  * has asked for less motion.
@@ -18,6 +22,7 @@
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
+import { MODELS } from '../lib/planModel';
 
 /* Flat, a small tremor, the fault, and flat again — across the full width. */
 const TRACE = 'M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000';
@@ -55,7 +60,11 @@ export function Landing() {
         </svg>
         <h1 className="fl-name">FAULTLINE</h1>
       </div>
-      <p className="fl-sub">Commissioning, proved.</p>
+      {/* The three ways a project runs in here — see lib/planModel. It said
+          "Commissioning, proved.", which was one of them, under an old name. */}
+      <p className="fl-sub" aria-label={`Projects run three ways: ${MODELS.map(m => m.label).join(', ')}`}>
+        {MODELS.map((m, i) => <span key={m.id}>{i > 0 && <i className="fl-dot" aria-hidden />}{m.label}</span>)}
+      </p>
 
       <form className="fl-auth" onSubmit={e => { e.preventDefault(); void submit(); }}>
         <label className="fl-f">
