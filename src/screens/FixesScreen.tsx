@@ -29,7 +29,7 @@ import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
-import { niceDay, todayISO } from '../lib/weeks';
+import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -126,6 +126,15 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
+
+      {(st.upcoming.length + st.done.length) > 0 && (
+        <p className="fx-key" aria-label="What the colours mean">
+          <span className="is-late">Late</span>
+          <span className="is-soon">Due within {DUE_SOON_DAYS} days</span>
+          <span className="is-ahead">Planned</span>
+          <span className="is-done">Done</span>
+        </p>
+      )}
 
       {/* A fix that was done and never signed off asks first. */}
       <Verdicts tests={fixes} projectId={projectId}
@@ -248,25 +257,41 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   );
 }
 
+/* COLOUR SAYS WHERE IT STANDS. Rowland: "it's all the same colour. If
+   something's done it should be green and outlined; out of date, red; coming
+   close to its end date, amber; blue is okay." Close means the last day it
+   was wanted is within this many days — today included. */
+export const DUE_SOON_DAYS = 3;
+
+export type FixTone = 'done' | 'late' | 'soon' | 'ahead' | 'notRun';
+
+/** The colour a fix wears, and the words that go with it. */
+export function fixTone(t: Test, today = todayISO()): { tone: FixTone; when: string } {
+  if (t.outcome === 'passed') return { tone: 'done', when: `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}` };
+  /* Tried and did not fix it: the problem is still there, which is red. */
+  if (t.outcome === 'failed') return { tone: 'late', when: `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}` };
+  if (t.outcome === 'notRun') return { tone: 'notRun', when: `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}` };
+  if (isOverdue(t, today)) return { tone: 'late', when: `Late · was ${windowOf(t.plannedFor, t.plannedTo, nice)}` };
+  const end = plannedEnd(t);
+  if (!end) return { tone: 'ahead', when: 'No date yet' };
+  const left = daysBetween(today, end);
+  if (left <= DUE_SOON_DAYS) {
+    return { tone: 'soon', when: left <= 0 ? 'Due today' : left === 1 ? 'Due tomorrow' : `Due in ${left} days · ${nice(end)}` };
+  }
+  return { tone: 'ahead', when: windowOf(t.plannedFor, t.plannedTo, nice) };
+}
+
 /** One fix, as a box: where it stands, the machine, the fix, the problem, and
  *  who is on it and what it is for — the same things in the same places on
  *  every box, so a grid of them reads at a glance. */
-function FixBox({ t, first, machine, from, onOpen }: {
+function FixBox({ t, machine, from, onOpen }: {
   t: Test; first?: boolean; machine: string; from?: Test; onOpen: () => void;
 }) {
   const settled = t.outcome === 'passed' || t.outcome === 'failed' || t.outcome === 'notRun';
-  const lateNow = !settled && isOverdue(t);
-  const tone = settled ? `is-${t.outcome}` : lateNow ? 'is-late' : first ? 'is-next' : 'is-ahead';
-  const when = settled
-    ? `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}`
-    : lateNow
-      ? `Late · was ${windowOf(t.plannedFor, t.plannedTo, nice)}`
-      : t.plannedFor
-        ? `${first ? 'Next · ' : ''}${windowOf(t.plannedFor, t.plannedTo, nice)}`
-        : 'No date yet';
+  const { tone, when } = fixTone(t);
   const pics = (t.media ?? []).length;
   return (
-    <button className={'fx-box ' + tone} onClick={onOpen}>
+    <button className={'fx-box is-' + tone} onClick={onOpen}>
       <span className="fx-top">
         <span className="fx-state">{when}</span>
         <span className="fx-machine">{machine}</span>

@@ -6992,19 +6992,18 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); overflow: hidden; transition: transform .12s, box-shadow .12s, border-color .12s;
 }
-.fx-box::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 3px; background: var(--st-w); }
-.fx-box:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); border-color: var(--line-2); }
-.fx-box.is-late::before { background: var(--st-r); }
-.fx-box.is-next::before { background: var(--brand); }
-.fx-box.is-passed::before { background: var(--st-g); }
-.fx-box.is-failed::before { background: var(--st-r); }
-.fx-box.is-notRun::before { background: var(--st-n); }
+.fx-box::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 4px; background: var(--fx-c); }
+.fx-box:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+/* COLOUR SAYS WHERE IT STANDS — the outline, a light wash and the state
+   words all carry it, so it reads across a room and not only on the edge. */
+.fx-box { --fx-c: var(--brand); --fx-wash: var(--surface); --fx-ink: var(--accent); border: 1.5px solid color-mix(in srgb, var(--fx-c) 38%, var(--line)); background: var(--fx-wash); }
+.fx-box.is-ahead { --fx-c: var(--brand); --fx-wash: #f7faff; --fx-ink: var(--accent); }
+.fx-box.is-soon { --fx-c: #d4930f; --fx-wash: #fff8ea; --fx-ink: #8a5f14; border-color: #e3b04f; }
+.fx-box.is-late { --fx-c: var(--st-r); --fx-wash: #fdf2f0; --fx-ink: var(--st-r); border-color: #d98a80; }
+.fx-box.is-done { --fx-c: var(--st-g); --fx-wash: #eff8f3; --fx-ink: var(--st-g); border: 2px solid var(--st-g); box-shadow: none; }
+.fx-box.is-notRun { --fx-c: var(--st-n); --fx-wash: color-mix(in srgb, var(--surface) 70%, var(--bg)); --fx-ink: var(--muted); box-shadow: none; }
 .fx-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.fx-state { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--st-w); white-space: nowrap; }
-.fx-box.is-late .fx-state, .fx-box.is-failed .fx-state { color: var(--st-r); }
-.fx-box.is-next .fx-state { color: var(--accent); }
-.fx-box.is-passed .fx-state { color: var(--st-g); }
-.fx-box.is-notRun .fx-state { color: var(--muted); }
+.fx-state { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fx-ink); white-space: nowrap; }
 .fx-machine { min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fx-title { font-size: 15.5px; line-height: 1.3; font-weight: 700; }
 .fx-text {
@@ -7013,12 +7012,18 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .fx-k { font-weight: 700; color: var(--ink); }
 .fx-foot {
-  margin-top: auto; padding-top: 9px; border-top: 1px solid var(--line);
+  margin-top: auto; padding-top: 9px; border-top: 1px solid color-mix(in srgb, var(--fx-c) 22%, var(--line));
   display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-2);
 }
 .fx-foot > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .fx-foot .fx-none { color: var(--st-r); font-weight: 700; }
 .fx-for { color: var(--muted); }
 .fx-pics { color: var(--muted); }
-/* Done boxes step back: they are the record, not the work. */
-.fx-box.is-passed, .fx-box.is-failed, .fx-box.is-notRun { box-shadow: none; background: color-mix(in srgb, var(--surface) 70%, var(--bg)); }
+/* The key: what the colours mean, once, at the top. */
+.fx-key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; font-size: 12.5px; color: var(--ink-2); }
+.fx-key span { display: inline-flex; align-items: center; gap: 6px; }
+.fx-key span::before { content: ""; width: 12px; height: 12px; border-radius: 4px; border: 2px solid; }
+.fx-key .is-late::before { border-color: var(--st-r); background: #fdf2f0; }
+.fx-key .is-soon::before { border-color: #d4930f; background: #fff8ea; }
+.fx-key .is-ahead::before { border-color: var(--brand); background: #f7faff; }
+.fx-key .is-done::before { border-color: var(--st-g); background: #eff8f3; }
