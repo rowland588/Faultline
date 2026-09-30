@@ -6669,3 +6669,25 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ex-in-strip .in-seg-t { font-size: 9px; }
 .ex-in-none { font-size: 11px; color: var(--muted); }
 .ex-in-says { font-size: 12px; line-height: 1.4; color: var(--ink); }
+
+/* The usual install stages — shown as a quiet numbered line, edited in place. */
+.in-usual {
+  margin-top: 12px; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px dashed var(--line-2);
+}
+.in-usual.is-editing { border-style: solid; }
+.in-usual-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.in-usual-h .cw-link { margin-left: auto; }
+.in-usual-list { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0 0; padding: 0 0 0 18px; font-size: 13.5px; color: var(--ink-2); }
+.in-usual-list li { padding-left: 2px; }
+.in-usual-edit { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.in-usual-edit li { display: grid; grid-template-columns: 22px 1fr auto auto auto; gap: 6px; align-items: center; }
+.in-usual-n { font-size: 12px; font-weight: 800; color: var(--muted); text-align: right; }
+.in-usual-edit input { min-width: 0; min-height: var(--tap, 44px); }
+.in-usual-b { min-width: 40px; min-height: var(--tap, 44px); padding: 0 8px; }
+.in-usual-go { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 720px) {
+  .in-usual-list { flex-direction: column; }
+  .in-usual-edit li { grid-template-columns: 18px 1fr auto auto auto; gap: 4px; }
+  .in-usual-b { min-width: 36px; padding: 0 4px; }
+}

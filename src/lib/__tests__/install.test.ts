@@ -5,7 +5,7 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { installOf } from '../install';
+import { cleanStages, installOf, usualStages } from '../install';
 import { standing } from '../standing';
 import { INSTALL_STAGES, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
@@ -133,5 +133,30 @@ describe('counted as install, never as a test', () => {
        an install step never makes somebody a supplier on its own. */
     const pf = portfolio([{ ...j, assets: [] }], TODAY);
     expect(pf.owes.find(o => o.kind === 'supplier')).toBeUndefined();
+  });
+});
+
+/* "Allow me to edit the 6 install names that you have made as default." */
+describe('the usual stages, the job’s own', () => {
+  const job = (id: string, updatedAt: number, installStages?: string[]) => ({ id, updatedAt, installStages });
+
+  it('uses the job’s own list first', () => {
+    const own = ['Landed', 'Bolted down', 'Wired'];
+    expect(usualStages(job('a', 1, own), [job('a', 1, own)])).toEqual({ stages: own, from: 'job' });
+  });
+
+  it('borrows the list edited most recently on another job, so it is typed once', () => {
+    const older = job('b', 5, ['Old way']);
+    const newer = job('c', 9, ['Landed', 'Wired']);
+    expect(usualStages(job('a', 1), [job('a', 1), older, newer])).toEqual({ stages: ['Landed', 'Wired'], from: 'other', otherId: 'c' });
+  });
+
+  it('falls back to the app’s six', () => {
+    expect(usualStages(job('a', 1), [job('a', 1)])).toEqual({ stages: [...INSTALL_STAGES], from: 'app' });
+  });
+
+  it('saves what was meant: trimmed, no blanks, no repeats — and the app’s six as nothing', () => {
+    expect(cleanStages(['  Landed ', '', 'landed', 'Bolted   down'])).toEqual(['Landed', 'Bolted down']);
+    expect(cleanStages([...INSTALL_STAGES])).toBeUndefined();
   });
 });

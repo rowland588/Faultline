@@ -9,7 +9,7 @@
  * has got, what is next and whose it is, what stopped it — so the Install
  * screen and, later, the client report say the same sentence from one call.
  */
-import { isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
+import { INSTALL_STAGES, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 
 /** done · a problem stopped it · ran and nobody has said · the day has gone · still ahead */
@@ -102,4 +102,41 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset?: Asse
     return `${head} ${t.title} is late${when ? ` — it was due ${day(when)}` : ''}${who ? `, ${who}’s` : ''}.${fixes}`;
   }
   return `${head} Next: ${t.title}${when ? `, ${day(when)}` : ', no day yet'}${who ? `, ${who}` : ''}.${fixes}`;
+}
+
+/* ---------------------------- THE USUAL STAGES ----------------------------
+ *
+ * Rowland: "Allow me to edit the 6 install names that you have made as
+ * default." The six are the app's guess at how a machine goes in; a site
+ * installs its own way, and says so once.
+ *
+ * The job's own list first. A job that has none yet takes the list from the
+ * job whose list was edited most recently — Line 2A is installed the way Line
+ * 2B was, and making somebody type the same six names twice is the app not
+ * doing its job. Only then the app's six. */
+export function usualStages<P extends { id: string; installStages?: string[]; updatedAt: number; deletedAt?: number }>(
+  project: P | undefined, all: readonly P[] = [],
+): { stages: string[]; from: 'job' | 'other' | 'app'; otherId?: string } {
+  if (project?.installStages?.length) return { stages: project.installStages, from: 'job' };
+  const other = all
+    .filter(p => p.id !== project?.id && !p.deletedAt && p.installStages?.length)
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (other?.installStages) return { stages: other.installStages, from: 'other', otherId: other.id };
+  return { stages: [...INSTALL_STAGES], from: 'app' };
+}
+
+/** A list as typed → a list worth saving: trimmed, no blanks, no repeats.
+ *  Undefined when it is the app's own six again, so "absent" keeps meaning
+ *  "the app's". */
+export function cleanStages(typed: readonly string[]): string[] | undefined {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of typed) {
+    const s = raw.trim().replace(/\s+/g, ' ');
+    if (!s || seen.has(s.toLowerCase())) continue;
+    seen.add(s.toLowerCase());
+    out.push(s);
+  }
+  if (out.length === INSTALL_STAGES.length && out.every((s, i) => s === INSTALL_STAGES[i])) return undefined;
+  return out;
 }

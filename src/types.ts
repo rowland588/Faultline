@@ -240,6 +240,9 @@ export interface Project {
    *  moves. */
   plannedAt?: string;
   expectedAt?: string;
+  /** The job's own "usual install stages" — what "Add the usual stages"
+   *  puts on a machine. Absent means the app's six (INSTALL_STAGES). */
+  installStages?: string[];
 
   /** WHAT THIS BUSINESS MEASURES, and what it calls its periods.
    *

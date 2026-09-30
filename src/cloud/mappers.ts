@@ -187,6 +187,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         commissioning: p.commissioning ?? false,
         planned_at: p.plannedAt ?? null, expected_at: p.expectedAt ?? null,
         measures: p.measures ?? null, periods: p.periods ?? null,
+        install_stages: p.installStages ?? null,
         archived_at: p.archivedAt ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -204,6 +205,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       expectedAt: (r.expected_at as string) ?? undefined,
       measures: (r.measures as Project['measures']) ?? undefined,
       periods: (r.periods as Project['periods']) ?? undefined,
+      installStages: (r.install_stages as string[]) ?? undefined,
       archivedAt: n(r.archived_at),
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),

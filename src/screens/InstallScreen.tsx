@@ -20,10 +20,11 @@ import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
 import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
-import { useProject } from '../lib/useProjects';
+import { useProjects } from '../lib/useProjects';
+import { UsualStages } from '../ui/UsualStages';
 import { useTesting } from '../lib/useTesting';
-import { ASSET_STATE_WORD, INSTALL_STAGES, assetStateOf, assetStateOn, outcomeWord, plannedEnd, type Asset } from '../lib/testing';
-import { installOf, type MachineInstall, type StepView } from '../lib/install';
+import { ASSET_STATE_WORD, assetStateOf, assetStateOn, outcomeWord, plannedEnd, type Asset } from '../lib/testing';
+import { installOf, usualStages, type MachineInstall, type StepView } from '../lib/install';
 import { AddAsset } from './TestsScreen';
 
 type TT = ReturnType<typeof useTesting>;
@@ -33,7 +34,8 @@ const TONE_WORD: Record<StepView['tone'], string> = {
 };
 
 export function InstallScreen({ projectId }: { projectId: string }) {
-  const { project, loading } = useProject(projectId);
+  const { projects, loading } = useProjects();
+  const project = projects.find(p => p.id === projectId);
   const tt = useTesting(projectId);
   const stand = useStanding(projectId);
 
@@ -48,6 +50,7 @@ export function InstallScreen({ projectId }: { projectId: string }) {
   const done = steps.filter(t => t.outcome === 'passed').length;
   const late = [...machines, line].reduce((n, m) => n + m.late, 0);
   const installing = machines.filter(m => m.total > 0 && m.done < m.total).length;
+  const usual = usualStages(project, projects);
 
   return (
     <div className="wrap pace cm-screen">
@@ -80,6 +83,8 @@ export function InstallScreen({ projectId }: { projectId: string }) {
         onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
         onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />
 
+      <UsualStages project={project} usual={usual} otherName={projects.find(p => p.id === usual.otherId)?.name} />
+
       {machines.length === 0 && (
         <p className="sub tw-note">
           Name the machines first. Each gets its install steps — positioned, air and power, electrics,
@@ -88,8 +93,8 @@ export function InstallScreen({ projectId }: { projectId: string }) {
       )}
 
       <div className="in-list">
-        {machines.map(m => <MachineInstallCard key={m.asset?.id} m={m} tt={tt} projectId={projectId} />)}
-        {(line.total > 0 || machines.length === 0) && <MachineInstallCard m={line} tt={tt} projectId={projectId} />}
+        {machines.map(m => <MachineInstallCard key={m.asset?.id} m={m} tt={tt} projectId={projectId} usual={usual.stages} />)}
+        {(line.total > 0 || machines.length === 0) && <MachineInstallCard m={line} tt={tt} projectId={projectId} usual={usual.stages} />}
       </div>
 
       <div className="cx-assets in-add-machine">
@@ -104,7 +109,7 @@ export function InstallScreen({ projectId }: { projectId: string }) {
   );
 }
 
-function MachineInstallCard({ m, tt, projectId }: { m: MachineInstall; tt: TT; projectId: string }) {
+function MachineInstallCard({ m, tt, projectId, usual }: { m: MachineInstall; tt: TT; projectId: string; usual: string[] }) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
   const a = m.asset;
@@ -168,8 +173,8 @@ function MachineInstallCard({ m, tt, projectId }: { m: MachineInstall; tt: TT; p
             already in and running has nothing to plan; a step can still be
             added to record what was done. */}
         {m.total === 0 && !(state === 'installed' || state === 'running') && (
-          <button className="btn" onClick={() => void tt.planSteps(INSTALL_STAGES, a?.id)}>
-            Add the usual {INSTALL_STAGES.length} stages
+          <button className="btn" onClick={() => void tt.planSteps(usual, a?.id)}>
+            Add the usual {usual.length} stage{usual.length === 1 ? '' : 's'}
           </button>
         )}
         {adding ? (
