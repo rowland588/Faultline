@@ -166,10 +166,39 @@ export function tidy(form: VoiceForm, raw: unknown): VoiceResult {
 
 /* ------------------------------- the model -------------------------------- */
 
-const MODEL = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const PREFERRED = 'gemini-2.5-flash';
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+
+/* WHICH MODEL. GEMINI_MODEL when it is set. Otherwise Gemini 2.5 Flash — and
+   when Google no longer serves that name to this key (it answered 404 the day
+   this went live), the newest Flash the key CAN use, read off Google's own
+   list rather than guessed. Worked out once per warm instance. */
+let chosen: string | undefined;
+export function pickModel(names: string[]): string | undefined {
+  const flash = names
+    .map(n => n.replace(/^models\//, ''))
+    .filter(n => /^gemini-[\d.]+-flash(-latest|-\d{3})?$/.test(n) || n === 'gemini-flash-latest');
+  if (flash.includes(PREFERRED)) return PREFERRED;
+  const version = (n: string) => Number(/gemini-([\d.]+)/.exec(n)?.[1] ?? 0);
+  return flash.sort((a, b) => version(b) - version(a) || a.length - b.length)[0];
+}
+async function listModels(key: string): Promise<string[]> {
+  const res = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': key } });
+  if (!res.ok) return [];
+  const body = await res.json() as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
+  return (body.models ?? []).filter(m => m.supportedGenerationMethods?.includes('generateContent')).map(m => m.name);
+}
+async function modelFor(key: string): Promise<string> {
+  if (process.env.GEMINI_MODEL) return process.env.GEMINI_MODEL;
+  if (chosen) return chosen;
+  chosen = pickModel(await listModels(key)) ?? PREFERRED;
+  return chosen;
+}
+const MODEL = () => process.env.GEMINI_MODEL || chosen || PREFERRED;
 
 async function understand(req: VoiceRequest, key: string): Promise<unknown> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL()}:generateContent`, {
+  const model = await modelFor(key);
+  const res = await fetch(`${API}/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify({
@@ -184,9 +213,10 @@ async function understand(req: VoiceRequest, key: string): Promise<unknown> {
         temperature: 0.1,
         responseMimeType: 'application/json',
         responseSchema: schemaFor(req.form),
-        /* No thinking: this is reading, not reasoning, and it is the phone
-           waiting on it. */
-        thinkingConfig: { thinkingBudget: 0 },
+        /* No thinking on 2.5: this is reading, not reasoning, and it is the
+           phone waiting on it. Other generations take their own setting, so
+           none is sent to them. */
+        ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
     }),
   });
@@ -223,17 +253,22 @@ async function signedIn(auth: string | null): Promise<boolean> {
 export async function GET(request: Request): Promise<Response> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return json({ ok: false, key: false, model: MODEL() }, 503);
-  if (!new URL(request.url).searchParams.has('check')) return json({ ok: true, key: true, model: MODEL() });
+  const params = new URL(request.url).searchParams;
+  if (!params.has('check')) return json({ ok: true, key: true, model: MODEL() });
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL()}:generateContent`, {
+    const model = await modelFor(key);
+    const res = await fetch(`${API}/models/${model}:generateContent`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: 'Reply with the single word OK.' }] }],
-        generationConfig: { maxOutputTokens: 5, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { maxOutputTokens: 5 },
       }),
     });
-    return json({ ok: res.ok, key: true, model: MODEL(), status: res.status }, res.ok ? 200 : 502);
+    /* Google's own words when it refuses — the reason, never the key. */
+    const why = res.ok ? undefined : ((await res.json().catch(() => ({}))) as { error?: { message?: string } }).error?.message;
+    const models = params.has('models') ? (await listModels(key)).map(n => n.replace(/^models\//, '')) : undefined;
+    return json({ ok: res.ok, key: true, model, status: res.status, ...(why ? { why } : {}), ...(models ? { models } : {}) }, res.ok ? 200 : 502);
   } catch {
     return json({ ok: false, key: true, model: MODEL(), status: 0 }, 502);
   }
