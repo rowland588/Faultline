@@ -17,7 +17,7 @@ const MAX_SECONDS = 120;
 type State =
   | { s: 'idle' }
   | { s: 'recording'; started: number }
-  | { s: 'reading' }
+  | { s: 'reading'; attempt?: number; of?: number }
   | { s: 'error'; msg: string };
 
 export function VoiceNote({ form, context, onHeard, label = 'Say it' }: {
@@ -42,7 +42,7 @@ export function VoiceNote({ form, context, onHeard, label = 'Say it' }: {
     setState({ s: 'reading' });
     try {
       const audio = await toWavBase64(blob);
-      const r = await askVoice(form, audio, context());
+      const r = await askVoice(form, audio, context(), (attempt, of) => setState({ s: 'reading', attempt, of }));
       kept.current = null;
       setState({ s: 'idle' });
       onHeard(r);
@@ -95,7 +95,12 @@ export function VoiceNote({ form, context, onHeard, label = 'Say it' }: {
     );
   }
   if (state.s === 'reading') {
-    return <span className="vo-btn is-reading" role="status"><span className="vo-spin" aria-hidden /> Reading what you said…</span>;
+    return (
+      <span className="vo-btn is-reading" role="status">
+        <span className="vo-spin" aria-hidden />
+        {state.attempt ? `Voice is busy — trying again (${state.attempt} of ${state.of})…` : 'Reading what you said…'}
+      </span>
+    );
   }
   return (
     <span className="vo-wrap">

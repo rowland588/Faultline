@@ -65,23 +65,46 @@ function bytesToBase64(b: Uint8Array): string {
 
 export class VoiceError extends Error {}
 
-export async function askVoice(form: VoiceForm, audio: string, context: VoiceContext): Promise<VoiceResult> {
+/* TRYING AGAIN BY ITSELF. Rowland: "add automatic retry". The free Gemini
+   tier is often busy; the server already walks down its Flash models inside
+   one request, and when every one of them is busy it says `retry`. The phone
+   then waits and asks again — twice more, a few seconds apart — before it
+   says so. Signed out, a bad recording or a missing key are not retried:
+   asking again would get the same answer. */
+export const RETRY_WAITS_MS = [3000, 7000];
+
+export async function askVoice(form: VoiceForm, audio: string, context: VoiceContext,
+  onRetry?: (attempt: number, of: number) => void,
+  wait: (ms: number) => Promise<void> = ms => new Promise(r => setTimeout(r, ms))): Promise<VoiceResult> {
   if (!navigator.onLine) throw new VoiceError('No signal — the recording is kept. Try again when you have some.');
   const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : undefined;
   if (!token) throw new VoiceError('Sign in to use voice.');
-  let res: Response;
-  try {
-    res = await fetch('/api/voice', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ form, audio, mime: 'audio/wav', context }),
-    });
-  } catch {
-    throw new VoiceError('No signal — the recording is kept. Try again when you have some.');
+  const of = RETRY_WAITS_MS.length + 1;
+  for (let attempt = 1; ; attempt++) {
+    let res: Response | undefined;
+    try {
+      res = await fetch('/api/voice', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ form, audio, mime: 'audio/wav', context }),
+      });
+    } catch {
+      /* A dropped connection mid-request is worth another go while there is
+         signal; with none, say so now. */
+      if (!navigator.onLine || attempt >= of) throw new VoiceError('No signal — the recording is kept. Try again when you have some.');
+    }
+    if (res) {
+      const body = await res.json().catch(() => ({})) as VoiceResult & { error?: string; retry?: boolean };
+      if (res.ok) return body;
+      if (!body.retry || attempt >= of) {
+        throw new VoiceError(attempt > 1 && body.retry
+          ? 'Voice is busy right now — tried three times. The recording is kept; try again in a minute.'
+          : body.error || 'That could not be read. Try again.');
+      }
+    }
+    onRetry?.(attempt + 1, of);
+    await wait(RETRY_WAITS_MS[attempt - 1]);
   }
-  const body = await res.json().catch(() => ({})) as VoiceResult & { error?: string };
-  if (!res.ok) throw new VoiceError(body.error || 'That could not be read. Try again.');
-  return body;
 }
 
 /* --------------------------------- propose -------------------------------- */

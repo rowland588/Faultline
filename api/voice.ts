@@ -326,11 +326,17 @@ export async function POST(request: Request): Promise<Response> {
   } catch (e) {
     if (e instanceof ModelError) {
       console.error('voice: model', e.status, e.detail);
-      return json({ error: e.status === 429
+      /* `retry`: the free tier was busy or out of its minute, or Google
+         stumbled — worth the phone asking again in a moment. A request
+         Google refused as wrong (a 4xx other than 429) is not. */
+      const retry = e.status === 429 || e.status >= 500;
+      return json({ retry, error: e.status === 429
         ? 'Voice has hit its limit for the minute — try again shortly.'
         : 'The voice reader did not answer. Try again.' }, 502);
     }
     console.error('voice:', e);
-    return json({ error: 'That could not be read. Try again.' }, 502);
+    /* An answer that would not read as the form's JSON: the next attempt
+       usually does. */
+    return json({ retry: true, error: 'That could not be read. Try again.' }, 502);
   }
 }
