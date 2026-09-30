@@ -6598,3 +6598,58 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .in-seg-bar { height: 10px; }
   .in-actions .btn, .in-actions .cw-add { width: 100%; min-height: var(--tap, 44px); }
 }
+
+/* =============================== THE DAY ===============================
+   One date, as a story: what got done, what did not go to plan, what was
+   found, what is next. Same tones as the plan and Install. */
+.dy-date { margin-left: 10px; font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.dy-headline { margin: 6px 0 0; font-size: 16px; line-height: 1.45; color: var(--ink); max-width: 60ch; }
+.dy-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+.dy-nav input[type="date"] { min-height: var(--tap, 44px); }
+.dy-install {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 8px; width: 100%;
+  margin-top: 12px; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.dy-install:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dy-install-h { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.dy-bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.dy-bar > span { display: block; height: 100%; background: var(--st-g); border-radius: 4px; }
+.dy-sec { margin-top: 18px; }
+.dy-lines { list-style: none; margin: 8px 0 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.dy-lines li + li { border-top: 1px solid var(--line); }
+.dy-line {
+  all: unset; box-sizing: border-box; width: 100%; cursor: pointer;
+  display: grid; grid-template-columns: 14px 1fr; gap: 10px; padding: 11px 14px; min-height: var(--tap, 44px);
+}
+.dy-line:disabled { cursor: default; }
+.dy-line:not(:disabled):hover { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+.dy-line:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dy-line-m { display: flex; flex-direction: column; gap: 2px; font-size: 14.5px; line-height: 1.4; }
+.dy-dot { width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; border: 2px solid var(--line-2); }
+.dy-line.is-done .dy-dot { background: var(--st-g); border-color: var(--st-g); }
+.dy-line.is-bad .dy-dot { background: var(--st-r); border-color: var(--st-r); }
+.dy-line.is-slipped .dy-dot { border-color: var(--st-r); }
+.dy-line.is-asking .dy-dot { background: var(--st-a); border-color: var(--st-a); }
+.dy-line.is-found .dy-dot { background: var(--accent-soft); border-color: var(--accent); }
+.dy-line.is-booked .dy-dot { border-color: var(--st-w); background: var(--blue-soft); }
+.dy-line.is-bad .dy-line-m > span:first-child, .dy-line.is-slipped .dy-line-m > span:first-child { font-weight: 700; }
+.dy-pics { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.dy-send { margin-top: 22px; }
+
+/* The overview's one line about the day. */
+.dy-link {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 4px; width: 100%;
+  margin: 12px 0; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.dy-link:hover { border-color: var(--line-2); }
+.dy-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dy-link-t { font-size: 15px; color: var(--ink); line-height: 1.4; }
+.dy-link-go { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+@media (max-width: 720px) {
+  .dy-nav .btn { flex: 1 1 0; }
+  .dy-nav input[type="date"] { flex: 1 1 100%; order: -1; }
+  .dy-send .btn { width: 100%; min-height: var(--tap, 44px); }
+}

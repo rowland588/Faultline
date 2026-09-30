@@ -70,6 +70,7 @@ export function InstallScreen({ projectId }: { projectId: string }) {
                 {installing > 0 && <span className="sub">{installing} machine{installing === 1 ? '' : 's'} installing</span>}
                 {late > 0 && <span className="sub in-late">{late} late</span>}
               </>}
+            <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
           </p>
         </div>
       </header>

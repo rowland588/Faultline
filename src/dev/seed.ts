@@ -47,6 +47,8 @@ export interface Seeded {
   tests: number;
   /** An install step, for the screens that open one. */
   stepId: string;
+  /** A day in the past with a story on it — the air went on. */
+  pastDay: string;
   assets: number;
   testId: string;
   /** A project on the BOARD model, with measures its own business defined,
@@ -384,6 +386,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     assets: (await listAssets(proj.id)).length,
     testId: seal.id,
     stepId: airDrop.id,
+    pastDay: iso(-7),
     pacedProjectId: paced.id, pacedLineId: pacedLine.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
   };

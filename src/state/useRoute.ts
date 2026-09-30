@@ -8,7 +8,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'materials' | 'programs';
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'day' | 'materials' | 'programs';
 
 export interface Route {
   name: RouteName;
@@ -81,6 +81,7 @@ export function parseRoute(hash: string): Route {
        404ing somebody's bookmark. */
     if (segs[2] === 'fixes') return { name: 'fixes', id, query };
     if (segs[2] === 'install') return { name: 'install', id, query };
+    if (segs[2] === 'day') return { name: 'day', id, query };
     if (segs[2] === 'testing' || segs[2] === 'commissioning') {
       const testId = segs[2] === 'testing' && segs[3] ? decodeURIComponent(segs[3]) : undefined;
       /* /testing/:id/card is the trial read back whole — the page the PDF is

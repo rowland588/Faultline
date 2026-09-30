@@ -20,6 +20,7 @@ import { TestsScreen } from './screens/TestsScreen';
 import { TrialCardScreen } from './screens/TrialCardScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { InstallScreen } from './screens/InstallScreen';
+import { DayScreen } from './screens/DayScreen';
 import { TestScreen } from './screens/TestScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 /* OFF THE START-UP PATH, so not in the first download. One chunk held every
@@ -102,6 +103,7 @@ function app(route: Route) {
   }
   if (route.name === 'fixes' && route.id) return <FixesScreen projectId={route.id} />;
   if (route.name === 'install' && route.id) return <InstallScreen projectId={route.id} />;
+  if (route.name === 'day' && route.id) return <DayScreen projectId={route.id} />;
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsScreen projectId={route.id} />;
   /* Narrowed once rather than asserted three times: a test route without a

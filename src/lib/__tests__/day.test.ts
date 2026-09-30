@@ -1,0 +1,107 @@
+/* THE DAY, AS DATA.
+ *
+ * "Telling a story" of a day off the dates the records already carry. Asserts
+ * what the story says, and — the part that matters most — that it never says
+ * something did not happen when it did. */
+import { describe, it, expect } from 'vitest';
+import { activeDays, dayOf, type DayInput } from '../day';
+import type { Asset, Test, TestItem } from '../testing';
+import type { Material } from '../materials';
+import type { Program } from '../programs';
+
+const TODAY = '2026-09-30';
+const at = (iso: string) => new Date(`${iso}T10:00:00`).getTime();
+let n = 0;
+const packer: Asset = { id: 'a1', projectId: 'p', name: 'Case packer', oem: 'Brillopak', state: 'onSite', onSiteOn: '2026-09-22', dueOn: '2026-09-22', sort: 1, updatedAt: 1 };
+const coder: Asset = { id: 'a2', projectId: 'p', name: 'Coder', oem: 'Domino UK', state: 'awaited', dueOn: '2026-09-29', sort: 2, updatedAt: 1 };
+const rec = (o: Partial<Test> & { title: string }): Test =>
+  ({ id: `t${++n}`, projectId: 'p', outcome: 'planned', sort: n, createdAt: at('2026-09-20'), updatedAt: 1, ...o });
+const item = (testId: string, what: string, day: string): TestItem =>
+  ({ id: `i${++n}`, projectId: 'p', testId, kind: 'found', what, sort: n, createdAt: at(day), updatedAt: 1 });
+
+const air = rec({ kind: 'install', title: 'Air and power connected', assetId: packer.id, withWhom: 'Brillopak',
+  plannedFor: '2026-09-29', ranOn: '2026-09-29', outcome: 'passed', result: 'Regulator missing — loan one fitted' });
+const elec = rec({ kind: 'install', title: 'Electrically complete', assetId: packer.id, withWhom: 'Brillopak', plannedFor: '2026-09-29' });
+const dry = rec({ kind: 'install', title: 'Dry run', assetId: packer.id, withWhom: 'Brillopak', plannedFor: '2026-10-02' });
+const seal = rec({ title: 'Seal integrity', withWhom: 'Ilapak UK', plannedFor: '2026-09-29', ranOn: '2026-09-29', outcome: 'failed', result: '3 leaks in 20' });
+const fix = rec({ kind: 'fix', title: 'Send the regulator', fromTestId: air.id, withWhom: 'Brillopak', plannedFor: '2026-10-01', createdAt: at('2026-09-29') });
+const film: Material = { id: 'm1', projectId: 'p', what: 'Lidding film', from: 'Amcor', due: '2026-09-29', inOn: '2026-09-29', sort: 1, createdAt: 1, updatedAt: 1 };
+const labels: Material = { id: 'm2', projectId: 'p', what: 'Case labels', from: 'Avery', due: '2026-09-29', sort: 2, createdAt: 1, updatedAt: 1 };
+const input: DayInput = {
+  tests: [air, elec, dry, seal, fix],
+  items: [item(air.id, 'Regulator missing from the kit', '2026-09-29')],
+  assets: [packer, coder],
+  materials: [film, labels],
+  programs: [] as Program[],
+};
+
+describe('a day that happened', () => {
+  const d = dayOf(input, '2026-09-29', TODAY);
+  const texts = (k: string) => d.sections.find(s => s.key === k)?.lines.map(l => l.text) ?? [];
+
+  it('says what got done, install steps named by their machine', () => {
+    expect(texts('done')).toEqual([
+      'Case packer — Air and power connected — done (Brillopak).',
+      'Lidding film arrived from Amcor.',
+    ]);
+    expect(d.sections[0].lines[0].detail).toBe('Regulator missing — loan one fitted');
+  });
+
+  it('says what did not go to plan: failed, booked and not done, due and not here', () => {
+    expect(texts('wrong')).toEqual([
+      'Coder was due on site and did not arrive (Domino UK).',
+      'Case packer — Electrically complete was booked and did not happen (Brillopak).',
+      'Seal integrity — didn’t pass (Ilapak UK).',
+      'Case labels was due and did not arrive (Avery).',
+    ]);
+  });
+
+  it('says what was found, where, and the fix decided on it', () => {
+    expect(texts('found')[0]).toBe('Regulator missing from the kit');
+    expect(d.sections.find(s => s.key === 'found')?.lines[0].detail).toBe('Found on Case packer — Air and power connected');
+    expect(texts('found')[1]).toMatch(/^New fix: Send the regulator — Brillopak, by /);
+  });
+
+  it('ends today on what is next, with the day it is booked — and a past day does not', () => {
+    expect(d.sections.find(s => s.key === 'next')).toBeUndefined();
+    const next = dayOf(input, TODAY, TODAY).sections.find(s => s.key === 'next');
+    expect(next?.title).toMatch(/^Next — /);
+    expect(next?.lines.map(l => l.text)).toEqual(['Fix: Send the regulator (Brillopak).']);
+  });
+
+  it('says it in one sentence, with install as it stood that evening', () => {
+    expect(d.headline).toBe('2 things done, 4 did not go to plan and 1 thing found. Install 1 of 3 steps done.');
+    expect(d.install).toEqual({ done: 1, total: 3 });
+  });
+
+  it('opens the record each line came from', () => {
+    expect(d.sections[0].lines[0].id).toBe(air.id);
+    expect(d.sections[0].lines[1].go).toBe('materials');
+  });
+});
+
+describe('never inventing what did not happen', () => {
+  it('does not call a material late that was marked here without a date', () => {
+    const here: Material = { ...labels, here: true };
+    const d = dayOf({ ...input, materials: [here] }, '2026-09-29', TODAY);
+    expect(JSON.stringify(d.sections)).not.toContain('Case labels');
+  });
+
+  it('calls what is booked today booked, not missed, while the day is still going', () => {
+    const d = dayOf({ ...input, tests: [rec({ kind: 'install', title: 'Guards fitted', assetId: packer.id, plannedFor: TODAY })] }, TODAY, TODAY);
+    expect(d.sections.find(s => s.key === 'today')?.lines.map(l => l.text)).toEqual(['Case packer — Guards fitted.']);
+    expect(d.sections.find(s => s.key === 'wrong')).toBeUndefined();
+    expect(d.headline).toBe('1 thing booked, nothing logged yet. Install 0 of 1 steps done.');
+  });
+
+  it('says so when nothing was logged', () => {
+    const d = dayOf(input, '2026-09-10', TODAY);
+    expect(d).toMatchObject({ empty: true, headline: 'Nothing was logged for this day.' });
+  });
+});
+
+describe('stepping through the days', () => {
+  it('lists every day something happened, and none where nothing did', () => {
+    expect(activeDays(input)).toEqual(['2026-09-22', '2026-09-29']);
+  });
+});

@@ -41,6 +41,7 @@ import { Verdict } from '../ui/Verdict';
 import { Outstanding } from '../ui/Outstanding';
 import { Timeline } from '../ui/Timeline';
 import { todayISO } from '../lib/standing';
+import { activeDays, dayOf } from '../lib/day';
 import { ASSET_STATE_WORD } from '../lib/testing';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
@@ -393,6 +394,27 @@ function LateAlarms({ projectId }: { projectId: string }) {
   );
 }
 
+/** THE DAY, one line under the verdict: today's story if there is one yet,
+ *  otherwise the last day that has one — and a tap reads it whole. */
+function DayLink({ projectId }: { projectId: string }) {
+  const tt = useTesting(projectId);
+  const mats = useMaterials(projectId);
+  const progs = usePrograms(projectId);
+  if (tt.loading || mats.loading || progs.loading) return null;
+  const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs };
+  const today = todayISO();
+  const now = dayOf(input, today, today);
+  const last = activeDays(input).filter(d => d < today).pop();
+  const shown = !now.empty || !last ? now : dayOf(input, last, today);
+  return (
+    <button className="dy-link" onClick={() => nav(`/project/${projectId}/day${shown.date === today ? '' : `?d=${shown.date}`}`)}>
+      <span className="cmp-h-n">{shown.date === today ? 'TODAY' : `LAST LOGGED · ${shown.label.toUpperCase()}`}</span>
+      <span className="dy-link-t">{shown.headline}</span>
+      <span className="dy-link-go">Read the day ›</span>
+    </button>
+  );
+}
+
 function TestingOverview({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
@@ -423,6 +445,7 @@ function TestingOverview({ projectId }: { projectId: string }) {
               alone; this says it off all five lists, which is the difference
               between a summary and an answer. */}
           <Verdict st={all.standing} />
+          <DayLink projectId={projectId} />
           {/* The position, then the sore point by name, then WHEN, then the
               whole list. The plan goes above the table on purpose: the table
               answers "what is not done", and the only honest way to read that
