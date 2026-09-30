@@ -34,7 +34,7 @@ import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
-import type { PaceReportData } from '../lib/paceReportPdf';
+import type { FilePages, PaceReportData } from '../lib/paceReportPdf';
 import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
@@ -716,6 +716,33 @@ export function PaceExecReport() {
    * button appears to do nothing. Loading it up front turns a dead button into
    * something that can say what is wrong while you are still reading the page. */
   useEffect(() => { void loadPdfLib().catch(() => { /* reported when pressed */ }); }, []);
+
+  /* THE PAGE NUMBERS COME FROM THE FILE. After every render the report's data
+     is compared with the last one drawn; when it has changed, the PDF is drawn
+     off-screen (no pictures — they move no page break) and each preview page
+     takes its number from the page its panel title landed on. Until that
+     comes back, the preview's own count stands in. */
+  const [file, setFile] = useState<FilePages | null>(null);
+  const fileData = useRef<PaceReportData | null>(null);
+  const fileKey = useRef('');
+  useEffect(() => {
+    const data = fileData.current;
+    if (!data) return;
+    const key = JSON.stringify({ ...data, now: 0 });
+    if (key === fileKey.current) return;
+    fileKey.current = key;
+    setTimeout(() => {
+      if (fileKey.current !== key) return;
+      void (async () => {
+        try {
+          const { jsPDF } = await loadPdfLib();
+          const { readPages } = await import('../lib/paceReportPdf');
+          const read = readPages(new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' }), data);
+          if (fileKey.current === key) setFile(read);
+        } catch { /* the preview's own count stands */ }
+      })();
+    }, 250);
+  });
   const loading = pace.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
 
   // Scale the fixed-size sheets down to whatever width the window gives us, so
@@ -1145,21 +1172,38 @@ export function PaceExecReport() {
   /* Who owes what sits directly behind the front page on a commissioning job,
      as it does in the file. */
   const hasOwes = !hasTracker && !!owesBlock && owesBlock.parties.length > 0;
-  const owesPageNo = 2;
   const hasInstall = !!installBlock;
-  const installPageNo = owesPageNo + (hasOwes ? 1 : 0);
-  const paretoPageNo = installPageNo + (hasInstall ? 1 : 0);
   const hasMaterials = !!materialsBlock && materialsBlock.rows.length > 0;
-  const materialsPageNo = paretoPageNo + (hasPareto ? 1 : 0);
   const hasPrograms = !!programsBlock && programsBlock.rows.length > 0;
-  const programsPageNo = materialsPageNo + (hasMaterials ? 1 : 0);
-  const treePageNo = programsPageNo + (hasPrograms ? 1 : 0);
-  const boardPageNo = treePageNo + (hasTree ? 1 : 0);
-  /* The detail page carries the tracker, the next steps, the walk and the wins.
-     With none of them it is a page of headings, so it is not printed. */
-  const hasDetail = hasTracker || (todos?.length ?? 0) > 0 || wins.length > 0 || snags.length > 0;
-  const pageCount = 1 + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
-    + (hasTree ? 1 : 0) + boardPlan.length;
+  /* The detail page is the tracker's, as it is in the file: a commissioning
+     job gets no tracker sheet there ("a different product's report stapled to
+     the back of the client's"), and the preview printed one anyway — a page
+     on screen the client would never be sent. */
+  const hasDetail = hasTracker;
+  /* The preview's own count, used until the file has been read — see above. */
+  const guess = (() => {
+    const owes = 2;
+    const install = owes + (hasOwes ? 1 : 0);
+    const pareto = install + (hasInstall ? 1 : 0);
+    const materials = pareto + (hasPareto ? 1 : 0);
+    const programs = materials + (hasMaterials ? 1 : 0);
+    const tree = programs + (hasPrograms ? 1 : 0);
+    const board = tree + (hasTree ? 1 : 0);
+    const of = 1 + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+      + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0) + (hasTree ? 1 : 0) + boardPlan.length;
+    return { owes, install, pareto, materials, programs, tree, board, of };
+  })();
+  /* Inline rather than imported: the drawing module is loaded only when needed. */
+  const onFile = (re: RegExp, fallback: number): number =>
+    (file ? file.texts.find(t => re.test(t.text))?.page ?? fallback : fallback);
+  const owesPageNo = onFile(/^Who owes what, by when/, guess.owes);
+  const installPageNo = onFile(/^Installation/, guess.install);
+  const paretoPageNo = onFile(/^Where the time is going/, guess.pareto);
+  const materialsPageNo = onFile(/^What we are waiting on/, guess.materials);
+  const programsPageNo = onFile(/^What the machine can run/, guess.programs);
+  const treePageNo = onFile(/^The plan$/, guess.tree);
+  const boardPageNo = onFile(/^3P Board/, guess.board);
+  const pageCount = file?.of ?? guess.of;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
      two pages in front of them — add a Pareto and the report has two panels
@@ -1431,6 +1475,8 @@ export function PaceExecReport() {
       };
     }),
   });
+  // What the off-screen read of the file draws — see `file` above.
+  fileData.current = reportData();
 
   return (
     <div className="exec-report" ref={root}>

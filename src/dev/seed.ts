@@ -261,7 +261,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     step('Mechanically complete', 2, { plannedFor: iso(-8), ranOn: iso(-7), outcome: 'passed' }),
     airDrop,
     step('Electrically complete', 4, { plannedFor: iso(-6), ranOn: iso(-5), outcome: 'passed', withWhom: 'Site electrician' }),
-    step('I/O checked', 5, { plannedFor: iso(-2) }),
+    step('Sensors and controls checked (I/O)', 5, { plannedFor: iso(-2) }),
     step('Dry run', 6, { plannedFor: iso(2) }),
   ];
   for (const s of steps) await putTest(s);

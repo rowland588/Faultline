@@ -31,7 +31,7 @@ const installation = (n: number): NonNullable<PaceReportData['installation']> =>
   rows: Array.from({ length: n }, (_, i) => ({
     machine: `Machine ${i + 1}`, oem: 'Brillopak', state: 'On site · 22 Sept', late: 1,
     says: `3 of 6 done. Electrically complete is late — it was due Mon 28 Sept, Brillopak’s.`,
-    steps: ['Positioned and levelled', 'Mechanically complete', 'Air and power connected', 'Electrically complete', 'I/O checked', 'Dry run']
+    steps: ['Positioned and levelled', 'Mechanically complete', 'Air and power connected', 'Electrically complete', 'Sensors and controls checked (I/O)', 'Dry run']
       .map((title, k) => ({ title, tone: k < 3 ? 'done' as const : k === 3 ? 'late' as const : 'ahead' as const, next: k === 3 })),
   })),
 });
@@ -547,6 +547,27 @@ describe('materials and programs take as many sheets as they need', () => {
     const p = programsPlan(130, H, M);
     expect(p.sheets).toBe(3);
     expect(p.per * p.sheets).toBeGreaterThanOrEqual(130);
+  });
+
+  it('puts a short installation under who owes what, rather than on a sheet of its own', () => {
+    /* Fourteen tests take two sheets, so the debts get a sheet of their own. */
+    const base = data({ tracker: false, trials: trials(14), owes: owes(4, 3) });
+    const r = render({ ...base, installation: installation(2) });
+    expect(r.pages).toBe(render(base).pages);
+    expect(r.said.join('\n')).toMatch(/and installation/);
+    expect(r.said).toContain('Machine 2');
+  });
+
+  it('rides under the debts that sit under the plan, too', () => {
+    const base = data({ tracker: false, trials: trials(6), plan: plan(6, 6), owes: owes(1) });
+    const r = render({ ...base, installation: installation(2) });
+    expect(r.pages).toBe(render(base).pages);
+    expect(r.said.join('\n')).toMatch(/where the job is, who owes what, and installation/);
+  });
+
+  it('keeps its own sheet when the debts ride on the tail of the tests', () => {
+    const base = data({ tracker: false, trials: trials(2), owes: owes(2, 1) });
+    expect(render({ ...base, installation: installation(2) }).pages).toBe(render(base).pages + 1);
   });
 
   it('prints every machine of a long installation, on continued sheets, and counts the pages', () => {

@@ -942,7 +942,10 @@ const IN_TONE: Record<NonNullable<PaceReportData['installation']>['rows'][number
   done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#eae7de',
 };
 
-function installSheet(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number): void {
+export const installHeight = (rows: number): number => IN_HEAD + rows * IN_ROW + IN_FOOT;
+
+function installSheet(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number,
+  place?: { top: number }): void {
   const ins = data.installation;
   if (!ins) return;
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
@@ -954,8 +957,9 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
     `${ins.machinesIn} of ${ins.machines} machine${ins.machines === 1 ? '' : 's'} in`,
     ins.late > 0 ? `${ins.late} step${ins.late === 1 ? '' : 's'} late` : 'nothing late',
   ].join(' \u00b7 ');
-  const panelH = Math.min(H - 2 * M - 14, IN_HEAD + rows.length * IN_ROW + IN_FOOT);
-  const top = panel(d, M, M, CW, panelH, String(page), sheet ? 'Installation — continued' : 'Installation', sowhat);
+  const y0 = place?.top ?? M;
+  const panelH = Math.min(H - M - 14 - y0, installHeight(rows.length));
+  const top = panel(d, M, y0, CW, panelH, place ? '' : String(page), sheet ? 'Installation — continued' : 'Installation', sowhat);
 
   const x0 = M + 14, right = M + CW - 14;
   const nameW = 210, saysW = 330;
@@ -1011,6 +1015,7 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
     said.forEach((l, j) => d.text(l, saysX, y + 11 + j * 10));
   });
 
+  if (place) return;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 installation`, CW * 0.7), M, H - M + 6);
   d.text('Green done \u00b7 red ring late \u00b7 red hit a problem \u00b7 blue ring next.', W - M, H - M + 6, { align: 'right' });
@@ -1177,10 +1182,15 @@ function planStrand(d: Doc, s: Strand, w: number): StrandPlan {
      a row's height, under the attempts — the guard on the shelf, the leak in
      the seal, on the page the client reads rather than on a card they have
      to ask for. */
+  /* THE ROW IS KEPT FOR PICTURES THE RECORD HAS, not for the ones this
+     device could decode. Sized off the decoded ones, a card was taller in the
+     download than in the page count the preview reads — the pictures are
+     fetched only when the file is built — and a clip with no poster made a
+     card shorter on one phone than another. */
   const shots = s.shots.slice(0, C_SHOTS);
   const h = C_PAD + C_HEAD + proves.length * C_LEAD + 6
     + rows.reduce((a, r) => a + r.h, 0)
-    + (shots.length ? 4 + C_SHOT + 4 : 0)
+    + (shots.length || s.photos > 0 ? 4 + C_SHOT + 4 : 0)
     + (next ? 8 + next.h : 0) + C_PAD - 4;
 
   return {
@@ -1234,7 +1244,11 @@ function drawStrand(d: Doc, p: StrandPlan, x: number, y: number, w: number): voi
   };
   p.rows.forEach(drawRow);
 
-  if (p.s.shots.length) {
+  if (!p.s.shots.length && p.s.photos > 0) {
+    setFont(d, 7.5, 'normal', MUTED);
+    d.text(`${p.s.photos} picture${p.s.photos === 1 ? '' : 's'} in the app`, lx, cy + C_SHOT / 2);
+    cy += 4 + C_SHOT + 4;
+  } else if (p.s.shots.length) {
     let sx = lx;
     const top = cy - 4;
     for (const sh of p.s.shots.slice(0, C_SHOTS)) {
@@ -1812,7 +1826,7 @@ function planOwes(d: Doc, data: PaceReportData, W: number, H: number, M: number,
 }
 
 function owesSheet(d: Doc, data: PaceReportData, plan: OwesPlan, sheet: number, page: number, pages: number,
-  place?: { top: number }): void {
+  place?: { top: number; n?: string }): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const M = 26, CW = W - 2 * M;
   const title = sheet === 0 ? 'Who owes what, by when' : 'Who owes what, by when — continued';
@@ -1822,7 +1836,7 @@ function owesSheet(d: Doc, data: PaceReportData, plan: OwesPlan, sheet: number, 
   const mine = plan.flow.segs.filter(seg => seg.sheet === sheet);
   const used = mine.reduce((n, seg) => Math.max(n, seg.y + seg.h), 0);
   const panelH = place ? Math.min(H - M - 14 - top, 30 + 12 + used + 14) : H - 2 * M - 14;
-  const ruleY = panel(d, M, top, CW, panelH, place ? '' : String(page), title, data.owes?.says ?? '');
+  const ruleY = panel(d, M, top, CW, panelH, place ? (place.n ?? '') : String(page), title, data.owes?.says ?? '');
   for (const seg of mine) {
     drawOwesSeg(d, plan.parties[seg.party], seg, M + 14 + seg.col * (plan.cw + O_GAP), ruleY + 12 + seg.y, plan.cw);
   }
@@ -2187,8 +2201,23 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     && owesRoom(H, M, afterPlanTop) >= 160;
   const owesPlan = data.tracker ? undefined : planOwes(d, data, W, H, M, owesUnder ? afterPlanTop : M);
   const owesSheets = owesPlan?.flow.sheets ?? 0;
-  const installSheets = data.installation && data.installation.rows.length > 0
-    ? installPlan(data.installation.rows.length, H, M).sheets : 0;
+  /* ---- INSTALLATION RIDES UNDER WHO OWES WHAT WHEN IT FITS ----
+   * Two machines filled the top fifth of an A3 and left the rest white. When
+   * the whole installation fits under the last sheet of the debts, it goes
+   * there — the debts and how far each machine has got are read together. On
+   * the tail of a test sheet it keeps its own: that sheet is already two
+   * thoughts. Measured before anything is drawn, like everything here. */
+  const inRows = data.installation?.rows.length ?? 0;
+  const inSheets = inRows > 0 ? installPlan(inRows, H, M).sheets : 0;
+  const owesLast = owesSheets - 1;
+  const owesLastTop = owesLast === 0 && owesUnder ? afterPlanTop : M;
+  const owesLastUsed = owesPlan
+    ? owesPlan.flow.segs.filter(s => s.sheet === owesLast).reduce((n, s) => Math.max(n, s.y + s.h), 0) : 0;
+  const owesBottom = owesLastTop + 30 + 12 + owesLastUsed + 14;
+  const owesOnTail = owesLast === 0 && owesUnder && !hasPlan;
+  const installRides = inSheets === 1 && owesSheets > 0 && !owesOnTail
+    && owesBottom + 12 + installHeight(inRows) <= H - M - 18;
+  const installSheets = installRides ? 0 : inSheets;
   const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets - (owesUnder ? 1 : 0) + installSheets
     + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
     + matSheets + (hasPrograms && !shareSheet ? progSheets : 0)
@@ -2254,8 +2283,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     const bottom = planSheet(d, data, wherePage, pages, undefined, { grow: !owesUnder, foot: !owesUnder });
     if (owesUnder && owesPlan) {
       owesSheet(d, data, owesPlan, 0, wherePage, pages, { top: bottom + 12 });
+      const alsoInstall = installRides && owesLast === 0;
+      if (alsoInstall) installSheet(d, data, wherePage, pages, 0, { top: owesBottom + 12 });
       setFont(d, 7, 'normal', MUTED);
-      d.text(fit(d, `${data.title} · client report · page ${wherePage} of ${pages} — where the job is, and who owes what`, CW * 0.8), M, H - M + 6);
+      d.text(fit(d, `${data.title} · client report · page ${wherePage} of ${pages} — where the job is, who owes what${alsoInstall ? ', and installation' : ''}`, CW * 0.8), M, H - M + 6);
       d.text('The same debts as page 1, sorted by who owes them. Every line names what it hangs off.',
         W - M, H - M + 6, { align: 'right' });
     }
@@ -2265,7 +2296,17 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   if (owesPlan) {
     for (let sheet = owesUnder ? 1 : 0; sheet < owesSheets; sheet++) {
       d.addPage('a3', 'landscape');
-      owesSheet(d, data, owesPlan, sheet, owesPage + sheet, pages);
+      const page = owesPage + sheet;
+      if (installRides && sheet === owesLast) {
+        owesSheet(d, data, owesPlan, sheet, page, pages, { top: M, n: String(page) });
+        installSheet(d, data, page, pages, 0, { top: owesBottom + 12 });
+        setFont(d, 7, 'normal', MUTED);
+        d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — who owes what, by when, and installation`, CW * 0.6), M, H - M + 6);
+        d.text('The same debts as page 1, sorted by who owes them. Every line names what it hangs off.',
+          W - M, H - M + 6, { align: 'right' });
+      } else {
+        owesSheet(d, data, owesPlan, sheet, page, pages);
+      }
     }
   }
 
@@ -2823,3 +2864,35 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     W - M, H - M + 6, { align: 'right' });
 }
+
+/* ====================== WHERE EACH PART OF THE FILE LANDS ======================
+ *
+ * The screen's preview used to number its pages with a second copy of the page
+ * arithmetic, and the two drifted: the preview said "installation, page 3 of
+ * 4" while the file said page 4, because the preview never had the "where the
+ * job is" sheet. Every fix to one copy was a fix the other did not get.
+ *
+ * So the preview asks the file. This draws the report — no pictures, which do
+ * not change a single page break (see the photo row in planStrand) — and
+ * records every string with the page it landed on. The preview looks up the
+ * first page a panel's title appears on. One arithmetic, read twice. */
+export interface FilePages { of: number; texts: { page: number; text: string }[] }
+
+export function readPages(d: Doc, data: PaceReportData): FilePages {
+  const texts: FilePages['texts'] = [];
+  const real = d.text.bind(d);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- narrow shim over jsPDF's overloaded text()
+  (d as any).text = (t: unknown, ...rest: unknown[]) => {
+    const page = d.getCurrentPageInfo().pageNumber;
+    if (typeof t === 'string') texts.push({ page, text: t });
+    else if (Array.isArray(t)) for (const x of t) if (typeof x === 'string') texts.push({ page, text: x });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
+    return (real as any)(t, ...rest);
+  };
+  drawPaceReport(d, data);
+  return { of: d.getNumberOfPages(), texts };
+}
+
+/** The first page a string matching `re` was drawn on. */
+export const firstPageOf = (f: FilePages, re: RegExp): number | undefined =>
+  f.texts.find(t => re.test(t.text))?.page;

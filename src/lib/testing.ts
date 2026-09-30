@@ -169,7 +169,10 @@ export const INSTALL_STAGES = [
   'Mechanically complete',
   'Air and power connected',
   'Electrically complete',
-  'I/O checked',
+  /* "I/O" is inputs and outputs — every sensor, switch, valve and motor wired
+     to the controller, tested one at a time. Said in words first, because
+     not everybody on a job speaks controls. */
+  'Sensors and controls checked (I/O)',
   'Dry run',
 ] as const;
 
