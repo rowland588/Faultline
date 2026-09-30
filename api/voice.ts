@@ -200,7 +200,10 @@ async function modelsFor(key: string): Promise<string[]> {
 }
 
 /** Call the first model that answers; remember it. A 404 ("no longer
- *  available") moves on to the next; anything else is the answer. */
+ *  available"), a 503 ("high demand") or a 429 (this model's free minute is
+ *  used up) moves on to the next Flash — the free tier's newest model is the
+ *  busiest one, and an older Flash that answers beats a voice note that does
+ *  not. Anything else is the answer. */
 async function generate(key: string, body: (model: string) => unknown): Promise<{ res: Response; model: string }> {
   const list = await modelsFor(key);
   let last: { res: Response; model: string } | undefined;
@@ -211,7 +214,7 @@ async function generate(key: string, body: (model: string) => unknown): Promise<
       body: JSON.stringify(body(model)),
     });
     last = { res, model };
-    if (res.status !== 404) { if (res.ok) chosen = model; return last; }
+    if (![404, 429, 503].includes(res.status)) { if (res.ok) chosen = model; return last; }
   }
   return last as { res: Response; model: string };
 }
