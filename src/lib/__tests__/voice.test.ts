@@ -1,7 +1,7 @@
 /* VOICE, AS DATA. What a voice note heard becomes changes a person sees
  * before any is made — asserted here, and the server's own tidying with it. */
 import { describe, it, expect } from 'vitest';
-import { pickModel, schemaFor, tidy, promptFor } from '../../../api/voice';
+import { flashModels, pickModel, schemaFor, tidy, promptFor } from '../../../api/voice';
 import { changesFor, contextFor, machineNamed, wav } from '../voice';
 import type { Asset, Test } from '../testing';
 
@@ -11,12 +11,16 @@ const packer: Asset = { id: 'a2', projectId: 'p', name: 'Pick and place', oem: '
 const rec = (o: Partial<Test>): Test => ({ id: 't1', projectId: 'p', title: 'x', outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1, ...o });
 
 describe('which model', () => {
-  it('keeps 2.5 Flash when the key has it', () => {
-    expect(pickModel(['models/gemini-2.5-pro', 'models/gemini-2.5-flash', 'models/gemini-3-flash'])).toBe('gemini-2.5-flash');
+  /* The key's real list, the day this went live — 2.5 Flash listed, but
+     "no longer available to new users". */
+  const real = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-preview-tts', 'gemini-flash-latest', 'gemini-flash-lite-latest',
+    'gemini-2.5-flash-lite', 'gemini-2.5-flash-image', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-3.5-flash',
+    'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-3.8-flash-tts'].map(n => `models/${n}`);
+  it('takes the newest Flash on the key’s own list', () => {
+    expect(pickModel(real)).toBe('gemini-3.8-flash');
   });
-  it('takes the newest Flash when it does not, never Lite or a picture model', () => {
-    expect(pickModel(['models/gemini-3-flash', 'models/gemini-3.5-flash-lite', 'models/gemini-3.5-flash-image', 'models/gemini-2.0-flash', 'models/gemini-3-pro']))
-      .toBe('gemini-3-flash');
+  it('has the older ones next, to fall back to — never Lite, TTS, image or preview', () => {
+    expect(flashModels(real)).toEqual(['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash']);
   });
   it('says nothing rather than guess when there is no Flash at all', () => {
     expect(pickModel(['models/gemini-3-pro'])).toBeUndefined();
