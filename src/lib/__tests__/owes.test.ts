@@ -23,6 +23,18 @@ describe('who owes what, by when', () => {
 
   /* "Dave re-tracking the film" is the site's work with Dave's name on it —
      not a company of its own sitting beside Ilapak on the client's page. */
+  /* The client's page: one supplier typed three ways was three cards. */
+  it('makes one card of a supplier typed more than one way', () => {
+    const o = owes([
+      debt({ who: 'Brillopak', what: 'A', about: 'a' }),
+      debt({ who: 'Brilopak', what: 'B', about: 'b' }),
+      debt({ who: 'Brilopak', what: 'C', about: 'c' }),
+    ], ['Brilopak', 'Brilopak', 'Brillopak']);
+    expect(o.parties).toHaveLength(1);
+    expect(o.parties[0]).toMatchObject({ who: 'Brilopak', kind: 'oem' });
+    expect(o.parties[0].lines).toHaveLength(3);
+  });
+
   it('files a person who is not a supplier under the site, and keeps their name', () => {
     const o = owes([debt({ who: 'Dave', what: 'Re-track the film', about: 'Seal integrity', on: '2026-09-25' })]);
     expect(o.parties).toHaveLength(1);

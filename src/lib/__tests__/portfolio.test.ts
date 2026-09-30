@@ -173,3 +173,50 @@ describe('what the review asked for', () => {
     });
   });
 });
+
+/* "The who-owns-what on the new home doesn't make sense." — Rowland's own
+   data: one supplier typed three ways, one fix left with nobody. */
+describe('who owes what, on a real mess', () => {
+  const messy = job(project({ id: 'm', name: 'Line 2 B commissioning', expectedAt: '2026-11-01' }), {
+    assets: [
+      asset({ name: 'Wrapper', oem: 'Brillopak', dueOn: '2026-09-20' }),
+      asset({ name: 'Case packer', oem: 'Brilopak', dueOn: '2026-10-05' }),
+      asset({ name: 'Coder', oem: 'Brilopak', dueOn: '2026-10-06' }),
+    ],
+    tests: [
+      test({ title: 'Seal', withWhom: 'Brillopak', plannedFor: '2026-10-08' }),
+      test({ kind: 'fix', title: 'Re-cut jaw', withWhom: 'Brilopak', plannedFor: '2026-10-02' }),
+      test({ kind: 'fix', title: 'Guard', withWhom: 'Dave', plannedFor: '2026-10-01' }),
+      test({ kind: 'fix', title: 'Label the shelf', plannedFor: '2026-10-03' }),
+    ],
+  });
+  const pf = portfolio([messy], TODAY);
+
+  it('is one company, not one per spelling', () => {
+    const suppliers = pf.owes.filter(o => o.kind === 'supplier');
+    expect(suppliers).toHaveLength(1);
+    expect(suppliers[0]).toMatchObject({ who: 'Brilopak', open: 5, late: 1 });
+  });
+
+  it('files a person who is not a supplier under the site', () => {
+    expect(pf.owes.find(o => o.kind === 'site')).toMatchObject({ who: 'The site', open: 1 });
+    expect(pf.items.find(x => x.what === 'Guard')).toMatchObject({ party: 'The site', partyKind: 'site', who: 'Dave' });
+  });
+
+  it('gives a fix nobody owns a party of its own', () => {
+    expect(pf.owes.find(o => o.kind === 'nobody')).toMatchObject({ who: 'Nobody named', open: 1 });
+  });
+
+  it('orders them the way page 3 does: suppliers, then nobody, then the site', () => {
+    expect(pf.owes.map(o => o.kind)).toEqual(['supplier', 'nobody', 'site']);
+  });
+
+  it('says which spellings disagree, most used first, so they can be made one', () => {
+    expect(pf.variants).toHaveLength(1);
+    expect(pf.variants[0].spellings.map(sp => sp.name)).toEqual(['Brilopak', 'Brillopak']);
+  });
+
+  it('opens what a party owes, spelled either way', () => {
+    expect(pf.items.filter(x => owedBy(x, 'Brilopak'))).toHaveLength(5);
+  });
+});

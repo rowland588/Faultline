@@ -26,9 +26,10 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Project } from '../types';
-import { listAssets, listMaterials, listPrograms, listTestItems, listTests, onDataChange } from '../db';
+import { listAssets, listMaterials, listPrograms, listTestItems, listTests, onDataChange, renameSupplier } from '../db';
+import { offerUndo } from './Undo';
 import {
-  clusterMarks, owedBy, portfolio, type JobInput, type JobItem, type JobView, type Portfolio,
+  clusterMarks, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type Portfolio,
 } from '../lib/portfolio';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
@@ -129,7 +130,8 @@ function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
   if (f.t === 'open') return { title: `Everything outstanding — ${pf.items.length}, late first`, items: pf.items };
   const items = pf.items.filter(x => owedBy(x, f.who));
   const jobs = new Set(items.map(x => x.jobId)).size;
-  return { title: `What ${f.who} owes — ${items.length} across ${jobs} ${jobs === 1 ? 'job' : 'jobs'}`, items };
+  const across = jobs > 1 ? ` across ${jobs} jobs` : '';
+  return { title: f.who === SITE ? `What the site owes — ${items.length}${across}` : f.who === NOBODY ? `${items.length} with nobody named${across}` : `What ${f.who} owes — ${items.length}${across}`, items };
 }
 
 /** The list as text, for pasting into an email or reading down the phone. */
@@ -160,7 +162,9 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
                 <button className={'jb-fi' + (x.late ? ' is-late' : '')} onClick={() => nav(whereTo(x))}>
                   <span className="jb-fi-job">{x.job}</span>
                   <b className="jb-fi-what">{x.what}</b>
-                  <span className="jb-fi-m">{KIND_WORD[x.kind]}{f.t !== 'who' ? ` · ${x.who || 'nobody yet'}` : ''}</span>
+                  <span className="jb-fi-m">{KIND_WORD[x.kind]}{
+                    x.partyKind === 'site' && x.who.trim() ? ` · ${x.who.trim()}`
+                      : f.t !== 'who' ? ` · ${x.party ?? 'nobody yet'}` : ''}</span>
                   <span className="jb-fi-when">{whenOf(x)}</span>
                 </button>
               </li>
@@ -201,6 +205,10 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
     try { localStorage.setItem(OPEN_KEY, JSON.stringify([...next])); } catch { /* fine */ }
     return next;
   });
+  const tidy = async (to: string, spellings: string[]) => {
+    const { changed, undo } = await renameSupplier(projects.map(p => p.id), spellings, to);
+    if (changed > 0) offerUndo(`${changed} ${changed === 1 ? 'record now says' : 'records now say'} “${to}”`, undo);
+  };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
   if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">All jobs</p><h2 className="jb-says">Reading every job…</h2></div></section>;
@@ -235,20 +243,40 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
         {pf.owes.length > 0 && (
           <div className="jb-owes">
             <span className="jb-owes-h">Who owes what</span>
-            {pf.owes.slice(0, 8).map(o => (
-              <button key={o.who} className={'jb-owe' + (o.late ? ' is-late' : '') + (on({ t: 'who', who: o.who }) ? ' is-on' : '')}
-                onClick={() => pick({ t: 'who', who: o.who })} aria-pressed={on({ t: 'who', who: o.who })}
-                title={o.byJob.map(b => `${b.job}: ${b.open}${b.late ? `, ${b.late} late` : ''}`).join('\n')}>
-                <b>{o.who}</b>
-                <span className="jb-owe-n">{o.open}</span>
-                {o.late > 0 && <span className="jb-owe-l">{o.late} late</span>}
-                <span className="jb-owe-jobs" aria-hidden>
-                  {o.byJob.map(b => <i key={b.jobId} style={{ background: b.color, flexGrow: b.open }} />)}
-                </span>
-              </button>
-            ))}
+            {pf.owes.slice(0, 8).map(o => {
+              const label = o.kind === 'site' ? 'The site' : o.kind === 'nobody' ? 'No one named' : o.who;
+              const split = pf.jobs.length > 1 && o.byJob.length > 0;
+              return (
+                <button key={o.who} className={'jb-owe is-' + o.kind + (o.late ? ' is-late' : '') + (on({ t: 'who', who: o.who }) ? ' is-on' : '')}
+                  onClick={() => pick({ t: 'who', who: o.who })} aria-pressed={on({ t: 'who', who: o.who })}>
+                  <b>{label}</b>
+                  <span className="jb-owe-n">{o.kind === 'nobody' ? 'has' : 'owes'} {o.open}</span>
+                  {o.late > 0 && <span className="jb-owe-l">{o.late} late</span>}
+                  {split && (
+                    <span className="jb-owe-jobs">
+                      {o.byJob.map(b => <span key={b.jobId} className="jb-owe-job"><i style={{ background: b.color }} aria-hidden />{b.job} {b.open}</span>)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
+        {/* THE RECORDS DISAGREE. The same company typed two ways is counted as
+            one here and on the client report already; this makes the records
+            say it one way too, in a tap, and it can be undone. */}
+        {pf.variants.map(c => (
+          <p key={c.name} className="jb-tidy">
+            <span><b>{c.spellings.map(sp => sp.name).join(' and ')}</b> look like one company.</span>
+            <span className="jb-tidy-acts">
+              {c.spellings.map(sp => (
+                <button key={sp.name} className="jb-tidy-b" onClick={() => void tidy(sp.name, c.spellings.map(x => x.name))}>
+                  Call it {sp.name}
+                </button>
+              ))}
+            </span>
+          </p>
+        ))}
       </header>
 
       {focus && <FocusList pf={pf} f={focus} onClose={() => setFocus(null)} />}

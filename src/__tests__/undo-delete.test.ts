@@ -69,4 +69,26 @@ describe('undo after a delete', () => {
     expect((await db.listPrograms('p')).map(g => g.what)).toEqual(['Recipe 1']);
     expect(await db.listTombstones()).toEqual([]);
   });
+
+  /* "Call it Brillopak": the tidy rewrites every place a supplier is typed,
+     touches nothing else, and is itself undoable. */
+  it('makes a supplier’s spellings one in every place, and takes it back', async () => {
+    const db = await import('../db');
+    await db.putAsset({ id: 'a1', projectId: 'p', name: 'Wrapper', oem: 'Brilopak', state: 'awaited', sort: 1, updatedAt: 1 });
+    await db.putTest({ id: 't1', projectId: 'p', title: 'Seal', withWhom: 'brillopak', outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1 });
+    await db.putTest({ id: 't2', projectId: 'p', title: 'Other', withWhom: 'Ilapak UK', outcome: 'planned', sort: 2, createdAt: 1, updatedAt: 1 });
+    await db.putMaterial({ id: 'm1', projectId: 'p', what: 'Film', from: 'Brilopak', sort: 1, createdAt: 1, updatedAt: 1 });
+    await db.putProgram({ id: 'g1', projectId: 'p', what: 'Recipe', from: 'Brillopak', state: 'needed', sort: 1, createdAt: 1, updatedAt: 1 });
+
+    const { changed, undo } = await db.renameSupplier(['p'], ['Brilopak', 'Brillopak'], 'Brillopak');
+    expect(changed).toBe(3);   // machine, test, material — the program is already spelled right
+    expect((await db.listAssets('p'))[0].oem).toBe('Brillopak');
+    expect((await db.listTests('p')).map(t => t.withWhom).sort()).toEqual(['Brillopak', 'Ilapak UK']);
+    expect((await db.listMaterials('p'))[0].from).toBe('Brillopak');
+
+    await undo();
+    expect((await db.listAssets('p'))[0].oem).toBe('Brilopak');
+    expect((await db.listTests('p')).find(t => t.id === 't1')?.withWhom).toBe('brillopak');
+    expect((await db.listPrograms('p'))[0].from).toBe('Brillopak');
+  });
 });

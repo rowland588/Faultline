@@ -30,6 +30,7 @@ import type { Program } from './programs';
 import { daysOverdue, stateOf } from './programs';
 import { standing, slipWords, type PlanMark } from './standing';
 import { layoutPlan, type PlacedMark, type PlanAxis } from './plan';
+import { companies, resolver, type Company } from './names';
 
 export interface JobInput {
   project: Project;
@@ -51,6 +52,11 @@ export interface JobItem {
   what: string;
   /** Who owes it, as typed. Empty is nobody. */
   who: string;
+  /** Who it is filed under on the board: the supplier, spelled the way it is
+   *  mostly typed; "The site" for anybody who is not a supplier; or nobody.
+   *  Set by portfolio(). */
+  party?: string;
+  partyKind?: 'supplier' | 'site' | 'nobody';
   /** ISO. The day it is due by. */
   on?: string;
   late: boolean;
@@ -86,6 +92,7 @@ export interface JobView {
 
 export interface Owed {
   who: string;
+  kind: 'supplier' | 'site' | 'nobody';
   open: number;
   late: number;
   /** Per job, in the jobs' order: how many this party owes on each. */
@@ -104,6 +111,8 @@ export interface Portfolio {
    *  the board opens into. */
   items: JobItem[];
   owes: Owed[];
+  /** Suppliers typed more than one way — the records disagree with each other. */
+  variants: Company[];
   totals: { jobs: number; outstanding: number; late: number; week: number };
   says: string;
 }
@@ -123,12 +132,11 @@ const addDays = (iso: string, n: number): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const key = (s: string) => s.trim().toLowerCase();
 export const NOBODY = 'Nobody named';
+export const SITE = 'The site';
 
-/** Is this item owed by this party, as the board groups them? */
-export const owedBy = (x: JobItem, who: string): boolean =>
-  (key(x.who) || key(NOBODY)) === key(who);
+/** Is this item filed under this party on the board? */
+export const owedBy = (x: JobItem, who: string): boolean => x.party === who;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** What each job owes, one row per thing — the same rules standing() counts
@@ -219,31 +227,66 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
 
   const week = all.flat().filter(x => x.late || (!!x.on && x.on >= today && x.on <= weekEnd)).sort(byUrgency);
 
-  /* WHO OWES WHAT, ACROSS THE JOBS. Named as typed, grouped however it was
-     typed; nobody at all is its own row, because "nobody" owing something on
-     two jobs is the thing most worth seeing. */
+  /* WHO OWES WHAT, ACROSS THE JOBS — by the same rules page 3 of the client
+     report files it by, so the home board and the page a client reads say
+     the same thing about the same job.
+       - A SUPPLIER is anyone named as one: a machine's OEM, where a material
+         or a program comes from, who a test is done with. A fix's "who" does
+         not make a supplier — that is as often Dave on nights as the OEM.
+       - Anybody else is THE SITE, with the person's name kept on the line.
+       - Nobody at all is its own party: nobody owing something on two jobs is
+         the thing most worth seeing.
+     And one company is one name however it was typed (see lib/names): the
+     home board grouped by the typed string and showed a real supplier as
+     "Brilopak 8" and "Brillopak 6" — two companies, each owing part. */
+  const supplierTyped: string[] = [];
+  for (const j of inputs) {
+    for (const a of live(j.assets)) if (a.oem) supplierTyped.push(a.oem);
+    for (const m of live(j.materials)) if (m.from) supplierTyped.push(m.from);
+    for (const pr of live(j.programs)) if (pr.from) supplierTyped.push(pr.from);
+    for (const t of live(j.tests)) if (t.kind !== 'fix' && t.withWhom) supplierTyped.push(t.withWhom);
+  }
+  const allTyped = [...supplierTyped, ...all.flat().map(x => x.who)];
+  const res = resolver(allTyped);
+  const supplierSet = new Set(supplierTyped.map(n => res(n).toLowerCase()));
+  for (const x of all.flat()) {
+    const who = x.who.trim();
+    if (!who) { x.party = NOBODY; x.partyKind = 'nobody'; }
+    else if (supplierSet.has(res(who).toLowerCase())) { x.party = res(who); x.partyKind = 'supplier'; }
+    else { x.party = SITE; x.partyKind = 'site'; }
+  }
+  /* The spellings that disagree: every supplier name typed anywhere, fixes
+     included where they name a supplier. */
+  const variants = companies([
+    ...supplierTyped,
+    ...all.flat().filter(x => x.partyKind === 'supplier').map(x => x.who),
+  ]).filter(c => c.spellings.length > 1);
+
   const parties = new Map<string, Owed>();
   for (const x of all.flat()) {
-    const k = key(x.who) || '\u0000';
-    let o = parties.get(k);
+    const party = x.party ?? NOBODY;
+    let o = parties.get(party);
     if (!o) {
-      o = { who: x.who.trim() || NOBODY, open: 0, late: 0, byJob: jobs.map(v => ({ jobId: v.id, job: v.name, color: v.color, open: 0, late: 0 })) };
-      parties.set(k, o);
+      o = { who: party, kind: x.partyKind ?? 'nobody', open: 0, late: 0, byJob: jobs.map(v => ({ jobId: v.id, job: v.name, color: v.color, open: 0, late: 0 })) };
+      parties.set(party, o);
     }
     o.open += 1;
     if (x.late) o.late += 1;
     const slot = o.byJob.find(b => b.jobId === x.jobId);
     if (slot) { slot.open += 1; if (x.late) slot.late += 1; }
   }
+  /* Suppliers first, whoever is furthest behind leading; then what nobody
+     owns; the site last — the order page 3 reads in. */
+  const rank = (o: Owed) => (o.kind === 'supplier' ? 0 : o.kind === 'nobody' ? 1 : 2);
   const owes = [...parties.values()]
     .map(o => ({ ...o, byJob: o.byJob.filter(b => b.open > 0) }))
-    .sort((a, b) => b.late - a.late || b.open - a.open || a.who.localeCompare(b.who));
+    .sort((a, b) => rank(a) - rank(b) || b.late - a.late || b.open - a.open || a.who.localeCompare(b.who));
 
   const outstanding = jobs.reduce((n, v) => n + v.outstanding, 0);
   const late = jobs.reduce((n, v) => n + v.late, 0);
 
   return {
-    axis, span, jobs, week, owes, items: all.flat().sort(byUrgency),
+    axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency),
     totals: { jobs: jobs.length, outstanding, late, week: week.length },
     says: saysOf(jobs, owes, late),
   };
@@ -259,8 +302,9 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
   const bits = [plural(jobs.length, 'job') + ' running'];
   if (next) bits.push(`${next.name} hands over first, in ${plural(next.daysToGo ?? 0, 'day')}`);
   if (late === 0) return `${bits.join(' · ')}. Nothing is past its day.`;
-  const top = owes.find(o => o.late > 0);
-  const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${top.who}’s` : '';
+  const top = [...owes].sort((a, b) => b.late - a.late)[0];
+  const owner = top ? (top.kind === 'site' ? 'the site' : top.who) : '';
+  const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${owner}’s` : '';
   return `${bits.join(' · ')}. ${plural(late, 'thing')} past the day${whose}.`;
 }
 

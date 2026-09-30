@@ -24,6 +24,7 @@ export * from './db/core';
 
 // what the sync layer reaches for, plus this device's own session state
 export * from './db/sync';
+export * from './db/names';
 
 // the features, in the order the app moves through them
 export * from './db/workspaces';

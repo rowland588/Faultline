@@ -20,6 +20,8 @@
  * thing most worth putting in front of both sides.
  */
 
+import { resolver } from './names';
+
 export type OweTone = 'late' | 'due' | 'since' | 'none';
 
 export interface OweLine {
@@ -84,12 +86,17 @@ export function whoOwes(debts: Debt[], opts: {
   /** ISO to print, e.g. "18 Sept". */
   day: (iso: string) => string;
 }): Owes {
+  /* ONE COMPANY, ONE NAME. The same supplier typed Brillopak, Brilopak and
+     Brillopak was three cards on the client's page, each owing a third of
+     the work. Spellings that are plainly one company are one party, shown
+     as the way it was most often typed — see lib/names. */
+  const res = resolver([...opts.suppliers, ...debts.map(d => d.who)]);
   const suppliers = new Map<string, string>();
-  for (const s of opts.suppliers) if (s.trim() && key(s) !== SITE) suppliers.set(key(s), s.trim());
+  for (const s of opts.suppliers) if (s.trim() && key(s) !== SITE) suppliers.set(key(res(s)), res(s));
 
   const parties = new Map<string, Party>();
   const partyOf = (who: string): { party: Party; person?: string } => {
-    const k = key(who);
+    const k = key(res(who));
     const supplier = suppliers.get(k);
     const [pk, name, kind]: [string, string, Party['kind']] = !k
       ? ['\u0000nobody', 'Nobody named yet', 'nobody']
