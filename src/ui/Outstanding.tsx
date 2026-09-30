@@ -5,7 +5,7 @@
  * stored: the client report prints this same table from the same call.
  *
  * NAMING THE OWNER IS THE WHOLE POINT. "4 materials late" is a confession.
- * "4 materials late, Brilopak × 2" is a document you can hand to the OEM, and
+ * "4 materials late, Brillopak × 2" is a document you can hand to the OEM, and
  * it is the difference between a page that makes you look behind and a page
  * that shows you are on top of it.
  *

@@ -43,7 +43,7 @@ export interface OutstandingRow {
   open: number;
   /** Open AND past the day it was wanted. Never more than `open`. */
   late: number;
-  /** "Brilopak × 2", when one name owns more of it than anyone else. */
+  /** "Brillopak × 2", when one name owns more of it than anyone else. */
   whose?: string;
   /** Who owns the LATE ones. The headline blames off this, not off `whose`:
    *  three open with Ishida and the one late one Ilapak's used to print
@@ -100,7 +100,7 @@ const daysBetween = (a: string, b: string): number =>
   Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
 /** The name that owns most of a set, and how many it owns. Only worth saying
- *  when one name actually dominates — "Brilopak × 1" of four is noise. */
+ *  when one name actually dominates — "Brillopak × 1" of four is noise. */
 function mostlyWhose(names: (string | undefined)[]): string | undefined {
   const counts = new Map<string, number>();
   for (const n of names) {

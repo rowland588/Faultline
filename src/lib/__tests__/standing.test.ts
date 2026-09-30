@@ -116,13 +116,13 @@ describe('late means the day has gone', () => {
 describe('whose it is', () => {
   it('names the one who owns most of it, and how many', () => {
     const s = at({
-      materials: [mat({ from: 'Brilopak' }), mat({ from: 'Brilopak' }), mat({ from: 'Ilapak UK' })],
+      materials: [mat({ from: 'Brillopak' }), mat({ from: 'Brillopak' }), mat({ from: 'Ilapak UK' })],
     });
-    expect(row(s, 'materials')?.whose).toBe('Brilopak × 2');
+    expect(row(s, 'materials')?.whose).toBe('Brillopak × 2');
   });
 
   it('names a single owner without a count', () => {
-    expect(row(at({ materials: [mat({ from: 'Brilopak' })] }), 'materials')?.whose).toBe('Brilopak');
+    expect(row(at({ materials: [mat({ from: 'Brillopak' })] }), 'materials')?.whose).toBe('Brillopak');
   });
 
   it('says nothing when nobody is named', () => {
@@ -266,12 +266,12 @@ describe('a fix is the same record wearing different words', () => {
   it('is counted apart from a test, because it is owed by different people', () => {
     const s = at({ tests: [
       test({ plannedFor: '2026-10-06', withWhom: 'Ilapak UK' }),
-      test({ kind: 'fix', plannedFor: '2026-10-06', withWhom: 'Brilopak' }),
+      test({ kind: 'fix', plannedFor: '2026-10-06', withWhom: 'Brillopak' }),
     ] });
     expect(row(s, 'tests')?.open).toBe(1);
     expect(row(s, 'fixes')?.open).toBe(1);
     expect(row(s, 'tests')?.whose).toBe('Ilapak UK');
-    expect(row(s, 'fixes')?.whose).toBe('Brilopak');
+    expect(row(s, 'fixes')?.whose).toBe('Brillopak');
   });
 
   it('goes on the plan in its own lane', () => {
@@ -347,11 +347,11 @@ describe('the sentence', () => {
 
   it('names the one who owns the late work', () => {
     const s = at({
-      materials: [mat({ due: '2026-09-01', from: 'Brilopak' }), mat({ due: '2026-09-02', from: 'Brilopak' })],
+      materials: [mat({ due: '2026-09-01', from: 'Brillopak' }), mat({ due: '2026-09-02', from: 'Brillopak' })],
       expectedAt: '2026-10-06',
     });
     expect(s.sentence).toBe(
-      '14 days to go, with 2 things outstanding — 2 of them are past the day it was wanted, and they are all Brilopak’s.',
+      '14 days to go, with 2 things outstanding — 2 of them are past the day it was wanted, and they are all Brillopak’s.',
     );
   });
 
@@ -359,9 +359,9 @@ describe('the sentence', () => {
      `toContain`, and that is exactly how the dashboard came to read "1 one is
      past the day it was wanted" without a test going red. */
   it('counts one late thing in words, not "1 one"', () => {
-    const s = at({ materials: [mat({ due: '2026-09-01', from: 'Brilopak' })], expectedAt: '2026-10-06' });
+    const s = at({ materials: [mat({ due: '2026-09-01', from: 'Brillopak' })], expectedAt: '2026-10-06' });
     expect(s.sentence).toBe(
-      '14 days to go, with 1 thing outstanding — one is past the day it was wanted, and it is Brilopak’s.',
+      '14 days to go, with 1 thing outstanding — one is past the day it was wanted, and it is Brillopak’s.',
     );
   });
 
@@ -404,10 +404,10 @@ describe('the sentence', () => {
 
   it('does not name anybody when the late work is spread between them', () => {
     const s = at({
-      materials: [mat({ due: '2026-09-01', from: 'Brilopak' })],
+      materials: [mat({ due: '2026-09-01', from: 'Brillopak' })],
       programs: [prog({ testOn: '2026-09-01', from: 'Ilapak UK' })],
     });
-    expect(s.sentence).not.toContain('Brilopak');
+    expect(s.sentence).not.toContain('Brillopak');
     expect(s.sentence).toContain('past the day');
   });
 

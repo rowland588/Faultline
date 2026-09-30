@@ -24,7 +24,7 @@ const stored = async (id) => page.evaluate(async id => (await (await import('/sr
 const TID = await page.evaluate(async pid => {
   const { putTest } = await import('/src/db/testing.ts');
   await putTest({ id:'v-1', projectId: pid, kind:'test', title:'Run at 70 ppm on Wednesday', passesIf:'70 packs per min 98%',
-    plannedFor:'2026-09-24', withWhom:'Brilopak', outcome:'planned', sort: 50, createdAt: Date.now(), updatedAt: Date.now() });
+    plannedFor:'2026-09-24', withWhom:'Brillopak', outcome:'planned', sort: 50, createdAt: Date.now(), updatedAt: Date.now() });
   return 'v-1';
 }, PID);
 
