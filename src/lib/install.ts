@@ -152,7 +152,14 @@ export function cleanStages(typed: readonly string[]): string[] | undefined {
  * order, a cell where they cross. A cell is the step, or the gap where it
  * has not been added. Matched by NAME, because "Dry run" on the wrapper and
  * "Dry run" on the coder are the same stage of two installations. */
-export interface GridRow { asset?: Asset; cells: (StepView | undefined)[]; missing: number }
+export interface GridRow {
+  asset?: Asset;
+  cells: (StepView | undefined)[];
+  missing: number;
+  /** The machine's whole reading — its sentence, and whether it is ready to
+   *  be marked installed — printed under its row. */
+  view: MachineInstall;
+}
 export interface InstallGrid { columns: string[]; rows: GridRow[] }
 
 const stageKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -177,7 +184,7 @@ export function installGrid(assets: Asset[], tests: Test[], items: TestItem[], t
 
   const rows = views.map(v => {
     const cells = columns.map(c => v.steps.find(s => stageKey(s.step.title) === stageKey(c)));
-    return { asset: v.asset, cells, missing: usual.filter(u => !v.steps.some(s => stageKey(s.step.title) === stageKey(u))).length };
+    return { asset: v.asset, cells, view: v, missing: usual.filter(u => !v.steps.some(s => stageKey(s.step.title) === stageKey(u))).length };
   });
   return { columns, rows };
 }

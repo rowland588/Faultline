@@ -14,10 +14,12 @@
  * Nothing new is stored: a cell is an install step (see lib/testing), read
  * through lib/install's installGrid.
  */
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
-import { installGrid, type StepView } from '../lib/install';
+import { installGrid, type StepView, type usualStages } from '../lib/install';
+import { UsualStages } from './UsualStages';
+import type { Project } from '../types';
 import { isSettled, live, plannedEnd, type Asset, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
@@ -26,7 +28,7 @@ import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 import type { useTesting } from '../lib/useTesting';
 
 type TT = ReturnType<typeof useTesting>;
-type Open = { t: 'cell'; row: number; col: number } | { t: 'col'; col: number } | { t: 'row'; row: number } | null;
+type Open = { t: 'cell'; row: number; col: number } | { t: 'col'; col: number } | { t: 'row'; row: number } | { t: 'stages' } | null;
 
 const short = (iso?: string) => (iso ? niceDay(iso) : '');
 
@@ -42,10 +44,18 @@ function cellWord(s: StepView): string {
   }
 }
 
-export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: string; usual: string[] }) {
+export function InstallGrid({ tt, project, stages, otherName }: {
+  tt: TT; project: Project;
+  /** The job's usual stages, and where they came from — see lib/install. */
+  stages: ReturnType<typeof usualStages>;
+  otherName?: string;
+}) {
+  const projectId = project.id;
+  const usual = stages.stages;
   const today = todayISO();
   const grid = installGrid(tt.assets, tt.tests, tt.items, today, usual);
   const [open, setOpen] = useState<Open>(null);
+  const [stepName, setStepName] = useState('');
 
   if (grid.rows.length === 0) return null;
 
@@ -76,12 +86,26 @@ export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: strin
     offerUndo(said, async () => { for (const id of ids) await deleteTest(id, projectId); });
   };
 
-  /* Every machine missing a usual stage — the one-tap start. */
-  const missingAll = grid.rows.filter(r => r.asset).flatMap(r =>
-    grid.columns.slice(0, usual.length).flatMap((c, i) => (r.cells[i] ? [] : [{ title: c, assetId: r.asset?.id }])));
+  /* The machines with no stages at all yet. When there are several, one tap
+     gives them all the job's stages — said as exactly that. */
+  const bare = grid.rows.filter(r => r.asset && r.view.total === 0);
+  const giveStages = (rows: typeof grid.rows) => add(
+    rows.flatMap(r => usual.map(title => ({ title, assetId: r.asset?.id }))),
+    rows.length === 1 ? `Added the ${usual.length} stages to ${rowName(rows[0].asset)}` : `Added the ${usual.length} stages to ${rows.length} machines`);
+  const markInstalled = async (a: Asset) => {
+    await tt.saveAsset({ ...a, installedOn: today });
+    offerUndo(`${a.name} marked installed`, () => tt.saveAsset({ ...a }));
+  };
 
   const sheet = (() => {
     if (!open) return null;
+    if (open.t === 'stages') {
+      return (
+        <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
+          <UsualStages project={project} usual={stages} otherName={otherName} />
+        </Sheet>
+      );
+    }
     if (open.t === 'cell') {
       const row = grid.rows[open.row];
       const col = grid.columns[open.col];
@@ -161,15 +185,31 @@ export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: strin
     const left = row.cells.filter((c): c is StepView => !!c && !isSettled(c.step)).map(c => c.step);
     const missing = grid.columns.slice(0, usual.length).filter((_, i) => !row.cells[i]);
     return (
-      <Sheet title={rowName(row.asset)} sub={row.asset?.oem ?? ''} onClose={() => setOpen(null)}>
+      <Sheet title={rowName(row.asset)} sub={row.view.says} onClose={() => setOpen(null)}>
         <div className="ig-acts">
           {missing.length > 0 && (
             <button className="btn btn-primary ig-big" onClick={() => {
               void add(missing.map(title => ({ title, assetId: row.asset?.id })), `Added ${missing.length} stage${missing.length === 1 ? '' : 's'} to ${rowName(row.asset)}`);
               setOpen(null);
-            }}>Add the {missing.length === usual.length ? `usual ${usual.length} stages` : `${missing.length} missing stage${missing.length === 1 ? '' : 's'}`}</button>
+            }}>Add the {missing.length} missing stage{missing.length === 1 ? '' : 's'}</button>
+          )}
+          {row.view.ready && row.asset && (
+            <button className="btn ig-big" onClick={() => { if (row.asset) void markInstalled(row.asset); setOpen(null); }}>Mark it installed today</button>
           )}
         </div>
+        {/* A stage of its own, for this machine only — the guard run, the
+            conveyor tie-in. */}
+        <form className="ig-who" onSubmit={e => {
+          e.preventDefault();
+          const title = stepName.trim();
+          if (!title) return;
+          void add([{ title, assetId: row.asset?.id }], `Added “${title}” to ${rowName(row.asset)}`);
+          setStepName(''); setOpen(null);
+        }}>
+          <label className="cw-f ig-f"><span>A step of its own</span>
+            <input value={stepName} onChange={e => setStepName(e.target.value)} placeholder="Guards fitted, conveyor tie-in…" /></label>
+          <button className="btn" type="submit" disabled={!stepName.trim()}>Add</button>
+        </form>
         {left.length > 0 && (
           <>
             <label className="cw-f ig-f"><span>Plan every step left on it for</span>
@@ -184,20 +224,20 @@ export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: strin
 
   return (
     <section className="ig">
-      <div className="ig-head">
-        <h2 className="cmp-h">Every machine at once</h2>
-        {missingAll.length > 0 && (
-          <button className="btn" onClick={() => void add(missingAll, `Added ${missingAll.length} step${missingAll.length === 1 ? '' : 's'} across the machines`)}>
-            Add the usual stages to every machine
-          </button>
+      <p className="sub ig-hint">
+        Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.
+        {bare.length > 1 && (
+          <> <button className="cw-link" onClick={() => void giveStages(bare)}>Give the {bare.length} new machines the {usual.length} stages</button></>
         )}
-      </div>
-      <p className="sub ig-hint">Tap a square to mark it done or plan it. Tap a stage or a machine to do it for all of them.</p>
+      </p>
       <div className="ig-wrap">
         <table className="ig-grid">
           <thead>
             <tr>
-              <th scope="col" className="ig-corner">Machine</th>
+              <th scope="col" className="ig-corner">
+                {/* The stages themselves are edited here, where they are read. */}
+                <button className="ig-colh ig-edit" onClick={() => setOpen({ t: 'stages' })}>Machine · <u>edit stages</u></button>
+              </th>
               {grid.columns.map((c, i) => (
                 <th key={c} scope="col">
                   <button className="ig-colh" onClick={() => setOpen({ t: 'col', col: i })}>{c}</button>
@@ -207,23 +247,45 @@ export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: strin
           </thead>
           <tbody>
             {grid.rows.map((r, ri) => (
-              <tr key={r.asset?.id ?? 'line'}>
-                <th scope="row">
-                  <button className="ig-rowh" onClick={() => setOpen({ t: 'row', row: ri })}>
-                    <b>{rowName(r.asset)}</b>
-                    {r.asset?.oem && <span>{r.asset.oem}</span>}
-                  </button>
-                </th>
-                {r.cells.map((s, ci) => (
-                  <td key={ci}>
-                    <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}` : ' is-empty')}
-                      onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
-                      aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added'}`}>
-                      {s ? cellWord(s) : '+'}
+              <Fragment key={r.asset?.id ?? 'line'}>
+                <tr className="ig-row">
+                  <th scope="row">
+                    <button className="ig-rowh" onClick={() => setOpen({ t: 'row', row: ri })}>
+                      <b>{rowName(r.asset)}</b>
+                      {r.asset?.oem && <span>{r.asset.oem}</span>}
                     </button>
+                  </th>
+                  {r.view.total === 0 ? (
+                    /* A machine with no stages yet: one button, not six empty
+                       squares asking the same question six times. */
+                    <td colSpan={grid.columns.length}>
+                      <button className="ig-give" onClick={() => void giveStages([r])}>+ Add the {usual.length} stages</button>
+                    </td>
+                  ) : r.cells.map((s, ci) => (
+                    <td key={ci}>
+                      <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}` : ' is-empty')}
+                        onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
+                        aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added'}`}>
+                        {s ? cellWord(s) : '+'}
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+                {/* WHERE IT HAS GOT TO, under its own squares — the sentence the
+                    cards used to carry, and the one question it can ask. */}
+                {r.view.total > 0 && (
+                <tr className="ig-says-row">
+                  <td colSpan={grid.columns.length + 1}>
+                    <span className="ig-says">
+                      {r.view.says}
+                      {r.view.ready && r.asset && (
+                        <button className="cw-link" onClick={() => { if (r.asset) void markInstalled(r.asset); }}>Mark it installed today</button>
+                      )}
+                    </span>
                   </td>
-                ))}
-              </tr>
+                </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -233,7 +295,7 @@ export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: strin
   );
 }
 
-function Sheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: React.ReactNode }) {
+export function Sheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="ig-scrim" onClick={onClose}>
       <div className="ig-sheet" role="dialog" aria-label={title} onClick={e => e.stopPropagation()}>
