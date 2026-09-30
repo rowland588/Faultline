@@ -187,6 +187,27 @@ export interface PaceReportData {
      the programs, the machines and the undecided observations; drawn-ready.
      Absent on a line's own deck and on a job that owes nothing. */
   owes?: Owes;
+  /* INSTALLATION — each machine's steps between landing and running.
+   *
+   * Rowland: "the issues and stages that are taking place on a day to day
+   * basis, telling a story." One row per machine: where it has got to, its
+   * steps in the order they happen, and the sentence lib/install says about
+   * it — the same sentence the Install screen prints, off the same call.
+   * Absent when the job keeps no install steps, and then no sheet. */
+  installation?: {
+    done: number; total: number;
+    /** Machines in (installed or running) of the machines on the sheet. */
+    machinesIn: number; machines: number;
+    late: number;
+    rows: {
+      machine: string; oem?: string;
+      /** Print-ready: "On site · 22 Sept". */
+      state: string;
+      steps: { title: string; tone: 'done' | 'problem' | 'asking' | 'late' | 'ahead'; next: boolean }[];
+      says: string;
+      late: number;
+    }[];
+  };
   /** Does this project keep a weekly tracker at all? A commissioning job does
    *  not, and printing it a ppm sheet, a 3P board and an action list is three
    *  pages of scaffolding in front of the two it does carry. */
@@ -902,6 +923,97 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
       W - M, H - M + 6, { align: 'right' });
   }
   return y0 + panelH;
+}
+
+/* ---------- INSTALLATION, machine by machine ----------
+ *
+ * Each machine is one row: its name and where it has got to, its steps as a
+ * strip in the order they happen, and one sentence — what is done, what it is
+ * waiting on and whose that is, or what stopped it. The strip is the shape of
+ * the installation; the sentence is what a client repeats in the meeting.
+ * Runs onto more sheets rather than dropping a machine. */
+const IN_HEAD = 44, IN_ROW = 52, IN_FOOT = 22;
+export function installPlan(n: number, H: number, M: number): { sheets: number; per: number } {
+  const maxRows = Math.max(1, Math.floor((H - 2 * M - 14 - IN_HEAD - IN_FOOT) / IN_ROW));
+  const sheets = Math.max(1, Math.ceil(n / maxRows));
+  return { sheets, per: Math.ceil(n / sheets) };
+}
+const IN_TONE: Record<NonNullable<PaceReportData['installation']>['rows'][number]['steps'][number]['tone'], string> = {
+  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#eae7de',
+};
+
+function installSheet(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number): void {
+  const ins = data.installation;
+  if (!ins) return;
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
+  const M = 26, CW = W - 2 * M;
+  const { per } = installPlan(ins.rows.length, H, M);
+  const rows = ins.rows.slice(sheet * per, (sheet + 1) * per);
+  const sowhat = [
+    `${ins.done} of ${ins.total} steps done`,
+    `${ins.machinesIn} of ${ins.machines} machine${ins.machines === 1 ? '' : 's'} in`,
+    ins.late > 0 ? `${ins.late} step${ins.late === 1 ? '' : 's'} late` : 'nothing late',
+  ].join(' \u00b7 ');
+  const panelH = Math.min(H - 2 * M - 14, IN_HEAD + rows.length * IN_ROW + IN_FOOT);
+  const top = panel(d, M, M, CW, panelH, String(page), sheet ? 'Installation — continued' : 'Installation', sowhat);
+
+  const x0 = M + 14, right = M + CW - 14;
+  const nameW = 210, saysW = 330;
+  const stripX = x0 + nameW, stripW = right - saysW - 16 - stripX;
+  const saysX = right - saysW;
+
+  setFont(d, 6.5, 'bold', MUTED);
+  d.text('MACHINE', x0, top + 14);
+  d.text('STEPS, IN THE ORDER THEY HAPPEN', stripX, top + 14);
+  d.text('WHERE IT HAS GOT TO', saysX, top + 14);
+
+  rows.forEach((r, i) => {
+    const y = top + 24 + i * IN_ROW;
+    if (i > 0) { d.setDrawColor(LINE); d.setLineWidth(0.5); d.line(x0, y - 4, right, y - 4); }
+    if (r.late > 0) { d.setFillColor(DANGER); d.rect(x0 - 8, y, 2, IN_ROW - 12, 'F'); }
+
+    setFont(d, 9.5, 'bold', INK);
+    d.text(fit(d, r.machine, nameW - 12), x0, y + 11);
+    setFont(d, 7, 'normal', MUTED);
+    if (r.oem) d.text(fit(d, r.oem, nameW - 12), x0, y + 22);
+    setFont(d, 6.5, 'bold', INK2);
+    d.text(fit(d, r.state.toUpperCase(), nameW - 12), x0, y + 33);
+
+    if (r.steps.length === 0) {
+      setFont(d, 7.5, 'normal', MUTED);
+      d.text('No install steps planned', stripX, y + 14);
+    } else {
+      const gap = 3;
+      const segW = (stripW - gap * (r.steps.length - 1)) / r.steps.length;
+      r.steps.forEach((s, k) => {
+        const sx = stripX + k * (segW + gap);
+        const c = IN_TONE[s.tone];
+        if (s.tone === 'late') {
+          d.setDrawColor(DANGER); d.setLineWidth(1.4);
+          d.roundedRect(sx + 0.7, y + 4.7, segW - 1.4, 6.6, 3, 3, 'S');
+        } else if (s.next && s.tone === 'ahead') {
+          d.setDrawColor(BLUE); d.setLineWidth(1.4);
+          d.setFillColor('#e9edf4');
+          d.roundedRect(sx + 0.7, y + 4.7, segW - 1.4, 6.6, 3, 3, 'FD');
+        } else {
+          d.setFillColor(c);
+          d.roundedRect(sx, y + 4, segW, 8, 3, 3, 'F');
+        }
+        const strong = s.next || s.tone === 'late' || s.tone === 'problem';
+        setFont(d, 6.2, strong ? 'bold' : 'normal', strong ? INK : MUTED);
+        const lines = (d.splitTextToSize(s.title, segW - 2) as string[]).slice(0, 2);
+        lines.forEach((l, j) => d.text(l, sx, y + 21 + j * 7.5));
+      });
+    }
+
+    setFont(d, 8, 'normal', INK);
+    const said = (d.splitTextToSize(r.says, saysW) as string[]).slice(0, 4);
+    said.forEach((l, j) => d.text(l, saysX, y + 11 + j * 10));
+  });
+
+  setFont(d, 7, 'normal', MUTED);
+  d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 installation`, CW * 0.7), M, H - M + 6);
+  d.text('Green done \u00b7 red ring late \u00b7 red hit a problem \u00b7 blue ring next.', W - M, H - M + 6, { align: 'right' });
 }
 
 /* ---------- the trials ----------
@@ -1790,6 +1902,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       ...raw.materials,
       rows: raw.materials.rows.map(r => ({ ...r, what: san(r.what) })),
     },
+    installation: raw.installation && {
+      ...raw.installation,
+      rows: raw.installation.rows.map(r => ({
+        ...r, machine: san(r.machine), oem: r.oem ? san(r.oem) : undefined, state: san(r.state), says: san(r.says),
+        steps: r.steps.map(s => ({ ...s, title: san(s.title) })),
+      })),
+    },
     programs: raw.programs && {
       ...raw.programs,
       rows: raw.programs.rows.map(r => ({
@@ -1890,6 +2009,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         owesLate != null ? 'owed across the job — see who owes what' : 'owed and the date has gone',
         late > 0 ? DANGER : OK]];
     })(),
+    /* INSTALL, when the job keeps install steps: machines in, and the steps
+       behind that number — the installation sheet further on says which. */
+    ...(data.installation
+      ? [[`${data.installation.machinesIn}/${data.installation.machines}`, 'Installed',
+          `${data.installation.done} of ${data.installation.total} install steps done`,
+          data.installation.late > 0 ? DANGER : data.installation.done === data.installation.total ? OK : BRAND] as [string, string, string, string]]
+      : []),
     /* Only when there is some: the line walk is part of the story when it has
        something open, and a tile reading 0 about it is not. */
     ...(data.openSnags > 0
@@ -2061,7 +2187,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     && owesRoom(H, M, afterPlanTop) >= 160;
   const owesPlan = data.tracker ? undefined : planOwes(d, data, W, H, M, owesUnder ? afterPlanTop : M);
   const owesSheets = owesPlan?.flow.sheets ?? 0;
-  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets - (owesUnder ? 1 : 0)
+  const installSheets = data.installation && data.installation.rows.length > 0
+    ? installPlan(data.installation.rows.length, H, M).sheets : 0;
+  const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets - (owesUnder ? 1 : 0) + installSheets
     + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
     + matSheets + (hasPrograms && !shareSheet ? progSheets : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
@@ -2089,7 +2217,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const trialsPage = 2;
   const wherePage = trialsPage + trialSheets;             // the plan's own sheet, when it has one
   const owesPage = owesUnder ? (hasPlan ? wherePage : 1 + trialSheets) : wherePage + (hasPlan ? 1 : 0);
-  const paretoPage = owesPage + owesSheets;
+  /* INSTALLATION behind who owes what: the position, the debts, then how far
+     each machine has got — before anything narrower. */
+  const installPage = owesPage + owesSheets;
+  const paretoPage = installPage + installSheets;
   const materialsPage = paretoPage + (hasPareto ? 1 : 0);
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
@@ -2136,6 +2267,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       d.addPage('a3', 'landscape');
       owesSheet(d, data, owesPlan, sheet, owesPage + sheet, pages);
     }
+  }
+
+  for (let sheet = 0; sheet < installSheets; sheet++) {
+    d.addPage('a3', 'landscape');
+    installSheet(d, data, installPage + sheet, pages, sheet);
   }
 
   if (data.pareto) {

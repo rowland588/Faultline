@@ -20,10 +20,21 @@
 import { describe, it, expect } from 'vitest';
 import { jsPDF } from 'jspdf';
 import {
-  drawPaceReport, fitPlan, flowOwes, materialsPlan, orderStrands, owesColumns, packColumns,
+  drawPaceReport, fitPlan, flowOwes, installPlan, materialsPlan, orderStrands, owesColumns, packColumns,
   programsPlan, strandWord, strandsOf, strandsSay, MAX_LANE_ROWS, type PaceReportData,
 } from '../paceReportPdf';
 import type { Owes, Party } from '../owes';
+
+/* The installation sheet's block — `n` machines, six steps each, one late. */
+const installation = (n: number): NonNullable<PaceReportData['installation']> => ({
+  done: n * 3, total: n * 6, machinesIn: 1, machines: n, late: n,
+  rows: Array.from({ length: n }, (_, i) => ({
+    machine: `Machine ${i + 1}`, oem: 'Brillopak', state: 'On site · 22 Sept', late: 1,
+    says: `3 of 6 done. Electrically complete is late — it was due Mon 28 Sept, Brillopak’s.`,
+    steps: ['Positioned and levelled', 'Mechanically complete', 'Air and power connected', 'Electrically complete', 'I/O checked', 'Dry run']
+      .map((title, k) => ({ title, tone: k < 3 ? 'done' as const : k === 3 ? 'late' as const : 'ahead' as const, next: k === 3 })),
+  })),
+});
 
 /* Page 3's block — parties with a given number of lines each. */
 const owes = (...sizes: number[]): Owes => ({
@@ -257,6 +268,9 @@ const SHAPES: [string, Partial<PaceReportData>][] = [
   ['enough tests to spill onto several', { tracker: false, trials: trials(60) }],
   ['tests whose expectations wrap, so no two cards are the same height',
     { tracker: false, trials: trials(24, true) }],
+  /* INSTALLATION, one sheet and several — behind who owes what. */
+  ['a commissioning job with an installation', { tracker: false, trials: trials(3), installation: installation(4) }],
+  ['an installation long enough for several sheets', { tracker: false, trials: trials(3), installation: installation(40) }],
   ['spilling tests AND every optional sheet behind them',
     { tracker: false, trials: trials(30, true), pareto: pareto(), tree: tree(), board: board(4) }],
   /* WHERE THE JOB IS, WHICH NOW RIDES ON THE FRONT PAGE WHEN IT FITS. That is
@@ -533,6 +547,16 @@ describe('materials and programs take as many sheets as they need', () => {
     const p = programsPlan(130, H, M);
     expect(p.sheets).toBe(3);
     expect(p.per * p.sheets).toBeGreaterThanOrEqual(130);
+  });
+
+  it('prints every machine of a long installation, on continued sheets, and counts the pages', () => {
+    const base = data({ tracker: false, trials: trials(2) });
+    const r = render({ ...base, installation: installation(40) });
+    const said = r.said.join('\n');
+    for (let i = 1; i <= 40; i++) expect(said).toContain(`Machine ${i}`);
+    expect(said).toContain('Installation — continued');
+    expect(r.pages).toBe(render(base).pages + installPlan(40, H, M).sheets);
+    expect(said).toContain('Installed');
   });
 
   it('prints every row of a long materials list, on continued sheets, and counts the pages', () => {

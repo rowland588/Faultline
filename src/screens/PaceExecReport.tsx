@@ -27,7 +27,8 @@ import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
-import { hasRun, isOverdue, isSettled, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
+import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isOverdue, isSettled, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
+import { installOf } from '../lib/install';
 import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
@@ -282,6 +283,62 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
         <footer className="exec-foot">
           <span>{title} · client report · page {n} of {of} — what we are waiting on</span>
           <span>Green from the week it lands, the same as the plan it comes off.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+/* INSTALLATION — the screen's copy of the sheet: one row per machine, its
+ * steps as a strip, and the sentence lib/install says about it. The same
+ * block the file draws. */
+function InstallationPage({ ins, title, scale, sheetH, n, of }: {
+  ins: NonNullable<PaceReportData['installation']>;
+  title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="Installation"
+              sowhat={[
+                `${ins.done} of ${ins.total} steps done`,
+                `${ins.machinesIn} of ${ins.machines} machine${ins.machines === 1 ? '' : 's'} in`,
+                ins.late > 0 ? `${ins.late} step${ins.late === 1 ? '' : 's'} late` : 'nothing late',
+              ].join(' · ')} />
+            <div className="ex-in">
+              <div className="ex-in-row ex-in-h">
+                <span>Machine</span><span>Steps, in the order they happen</span><span>Where it has got to</span>
+              </div>
+              {ins.rows.map((r, i) => (
+                <div key={i} className={'ex-in-row' + (r.late > 0 ? ' is-late' : '')}>
+                  <span className="ex-in-m">
+                    <b>{r.machine}</b>
+                    {r.oem && <span>{r.oem}</span>}
+                    <em>{r.state}</em>
+                  </span>
+                  {r.steps.length === 0
+                    ? <span className="ex-in-none">No install steps planned</span>
+                    : (
+                      <ol className="in-strip ex-in-strip">
+                        {r.steps.map((s, k) => (
+                          <li key={k} className={'in-seg is-' + s.tone + (s.next ? ' is-next' : '')}>
+                            <span className="in-seg-bar" aria-hidden />
+                            <span className="in-seg-t">{s.title}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  <span className="ex-in-says">{r.says}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · client report · page {n} of {of} — installation</span>
+          <span>Green done · red ring late · red hit a problem · blue ring next.</span>
         </footer>
       </section>
     </div>
@@ -1050,6 +1107,38 @@ export function PaceExecReport() {
     return whoOwes(debts, { suppliers, today, day: iso => fmtShort(iso) });
   })();
 
+  /* INSTALLATION — how far each machine has got, off lib/install: the same
+     sentence the Install screen prints. Only when the job keeps install steps.
+     A machine already running with no steps is left off: it has nothing to
+     say about installing. */
+  const installBlock = ((): PaceReportData['installation'] => {
+    if (line || !project?.commissioning) return undefined;
+    const liveMachines = machines.filter(a => !a.deletedAt).sort((a, b) => a.sort - b.sort);
+    const views = [...liveMachines.map(a => installOf(a, tests, testItems, today)), installOf(undefined, tests, testItems, today)]
+      .filter(v => v.total > 0 || (!!v.asset && !['installed', 'running'].includes(assetStateOf(v.asset))));
+    if (!views.some(v => v.total > 0)) return undefined;
+    const onMachines = views.filter(v => v.asset);
+    return {
+      done: views.reduce((n, v) => n + v.done, 0),
+      total: views.reduce((n, v) => n + v.total, 0),
+      machinesIn: onMachines.filter(v => v.asset && ['installed', 'running'].includes(assetStateOf(v.asset))).length,
+      machines: onMachines.length,
+      late: views.reduce((n, v) => n + v.late, 0),
+      rows: views.map(v => {
+        const st = v.asset ? assetStateOf(v.asset) : undefined;
+        const on = v.asset ? assetStateOn(v.asset) : undefined;
+        return {
+          machine: v.asset?.name ?? 'The line itself',
+          oem: v.asset?.oem || undefined,
+          state: st ? `${ASSET_STATE_WORD[st]}${on ? ` · ${fmtShort(on)}` : ''}` : 'Across the line',
+          steps: v.steps.map(s => ({ title: s.step.title, tone: s.tone, next: s.next })),
+          says: v.says,
+          late: v.late,
+        };
+      }),
+    };
+  })();
+
   /* One order, counted once. Pace, then where the time is going, then the plan,
      then the work, then the detail — and every page number falls out of the
      same arithmetic the pages themselves are rendered from. */
@@ -1057,7 +1146,9 @@ export function PaceExecReport() {
      as it does in the file. */
   const hasOwes = !hasTracker && !!owesBlock && owesBlock.parties.length > 0;
   const owesPageNo = 2;
-  const paretoPageNo = owesPageNo + (hasOwes ? 1 : 0);
+  const hasInstall = !!installBlock;
+  const installPageNo = owesPageNo + (hasOwes ? 1 : 0);
+  const paretoPageNo = installPageNo + (hasInstall ? 1 : 0);
   const hasMaterials = !!materialsBlock && materialsBlock.rows.length > 0;
   const materialsPageNo = paretoPageNo + (hasPareto ? 1 : 0);
   const hasPrograms = !!programsBlock && programsBlock.rows.length > 0;
@@ -1067,7 +1158,7 @@ export function PaceExecReport() {
   /* The detail page carries the tracker, the next steps, the walk and the wins.
      With none of them it is a page of headings, so it is not printed. */
   const hasDetail = hasTracker || (todos?.length ?? 0) > 0 || wins.length > 0 || snags.length > 0;
-  const pageCount = 1 + (hasOwes ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
+  const pageCount = 1 + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0)
     + (hasTree ? 1 : 0) + boardPlan.length;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
@@ -1293,6 +1384,7 @@ export function PaceExecReport() {
     trials: shots ? trialsBlockWith(shots) : trialsBlock,
     plan: planBlock,
     owes: owesBlock,
+    installation: installBlock,
     tracker: hasTracker,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
@@ -1421,6 +1513,11 @@ export function PaceExecReport() {
                 <Stat n={String(n('failed'))} label="Failed" sub={n('failed') ? `${reBooked} with a re-test booked` : 'none'} tone={n('failed') > 0 ? 'bad' : 'good'} />
                 <Stat n={String(n('noVerdict') + n('notRun'))} label="Waiting" sub={`${n('noVerdict')} no verdict \u00b7 ${n('notRun')} not run`} tone={n('noVerdict') + n('notRun') > 0 ? 'warn' : 'good'} />
                 <Stat n={String(pastDay)} label="Past the day" sub="owed across the job — see who owes what" tone={pastDay > 0 ? 'bad' : 'good'} />
+                {installBlock && (
+                  <Stat n={`${installBlock.machinesIn}/${installBlock.machines}`} label="Installed"
+                    sub={`${installBlock.done} of ${installBlock.total} install steps done`}
+                    tone={installBlock.late > 0 ? 'bad' : installBlock.done === installBlock.total ? 'good' : 'flat'} />
+                )}
                 {openSnags.length > 0 && <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone="warn" />}
               </>);
             })()}
@@ -1479,6 +1576,10 @@ export function PaceExecReport() {
 
       {hasOwes && owesBlock && (
         <OwesPage o={owesBlock} title={title} scale={scale} sheetH={SHEET_H} n={owesPageNo} of={pageCount} />
+      )}
+
+      {installBlock && (
+        <InstallationPage ins={installBlock} title={title} scale={scale} sheetH={SHEET_H} n={installPageNo} of={pageCount} />
       )}
 
       {/* ================= PAGE 2 — THE PLAN ================= */}

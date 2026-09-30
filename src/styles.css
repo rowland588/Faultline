@@ -6653,3 +6653,19 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .dy-nav input[type="date"] { flex: 1 1 100%; order: -1; }
   .dy-send .btn { width: 100%; min-height: var(--tap, 44px); }
 }
+
+/* The client report preview's installation sheet — the file's layout, in HTML. */
+.ex-in { display: grid; margin-top: 6px; }
+.ex-in-row {
+  display: grid; grid-template-columns: 210px 1fr 330px; gap: 16px; align-items: start;
+  padding: 10px 6px; border-top: 1px solid var(--line); position: relative;
+}
+.ex-in-row.is-late::before { content: ''; position: absolute; left: -4px; top: 10px; bottom: 10px; width: 2px; background: var(--danger); }
+.ex-in-h { border-top: 0; padding-top: 2px; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ex-in-m { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); }
+.ex-in-m b { font-size: 13px; color: var(--ink); }
+.ex-in-m em { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2); }
+.ex-in-strip { margin: 2px 0 0; }
+.ex-in-strip .in-seg-t { font-size: 9px; }
+.ex-in-none { font-size: 11px; color: var(--muted); }
+.ex-in-says { font-size: 12px; line-height: 1.4; color: var(--ink); }
