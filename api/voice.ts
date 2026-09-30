@@ -271,6 +271,26 @@ export async function GET(request: Request): Promise<Response> {
   if (!key) return json({ ok: false, key: false, model: MODEL() }, 503);
   const params = new URL(request.url).searchParams;
   if (!params.has('check')) return json({ ok: true, key: true, model: MODEL() });
+  /* ?check=audio — the whole road a voice note takes: a second of quiet as
+     a WAV, the found-form's schema, the answer read back and tidied. Proves
+     audio and the answer's shape, not just that the model says OK. */
+  if (params.get('check') === 'audio') {
+    try {
+      const silence = new Uint8Array(44 + 32000);
+      const v = new DataView(silence.buffer);
+      const w = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + 32000, true); w(8, 'WAVE'); w(12, 'fmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+      w(36, 'data'); v.setUint32(40, 32000, true);
+      let bin = ''; for (const b of silence) bin += String.fromCharCode(b);
+      const r = tidy('found', await understand({ form: 'found', audio: btoa(bin), mime: 'audio/wav', context: { today: new Date().toISOString().slice(0, 10) } }, key));
+      return json({ ok: true, key: true, model: MODEL(), audio: true, shape: Object.keys(r) });
+    } catch (e) {
+      return json({ ok: false, key: true, model: MODEL(), audio: false, status: e instanceof ModelError ? e.status : 0,
+        why: e instanceof ModelError ? e.detail : String(e).slice(0, 200) }, 502);
+    }
+  }
   try {
     const { res, model } = await generate(key, () => ({
       contents: [{ role: 'user', parts: [{ text: 'Reply with the single word OK.' }] }],
