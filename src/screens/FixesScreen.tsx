@@ -34,6 +34,8 @@ import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { isOverdue, outcomeWord, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
+import { VoiceNote, VoiceReview } from '../ui/Voice';
+import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
@@ -58,6 +60,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const [on, setOn] = useState<string[]>([]);
   const [forId, setForId] = useState(forParam);
   const [onTouched, setOnTouched] = useState(false);
+  const [heard, setHeard] = useState<VoiceResult | null>(null);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -190,10 +193,37 @@ export function FixesScreen({ projectId }: { projectId: string }) {
               <button className="btn btn-ghost" type="button" onClick={() => { setAdding(false); setOn([]); setOnTouched(false); setForId(''); }}>Cancel</button>
             </span>
           </form>
+        ) : heard ? (
+          /* A FIX, SAID. What was heard is laid out as the fix it would make;
+             "Plan it" makes it, with only the ticked parts. */
+          (() => {
+            const blank: Test = { id: '', projectId, kind: 'fix', title: '', outcome: 'planned', sort: 0, createdAt: 0, updatedAt: 0 };
+            const changes = changesFor(blank, heard.fields, tt.assets, todayISO());
+            const hasTitle = changes.some(c => c.key === 'title' || c.key === 'problem');
+            return (
+              <VoiceReview heard={heard} applyLabel="Plan it"
+                rows={hasTitle ? changes.map(c => ({ key: c.key, label: c.label, after: c.after })) : []}
+                onApply={keys => void (async () => {
+                  const picked = changes.filter(c => keys.includes(c.key));
+                  const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
+                  const name = patch.title || patch.passesIf || 'Fix';
+                  const id = await tt.planTest(name, [patch.assetId], 'fix', forParam || undefined);
+                  const rest = { ...patch };
+                  delete rest.title; delete rest.assetId;
+                  if (Object.keys(rest).length) await tt.patchTest(id, rest);
+                  setHeard(null);
+                  open(id);
+                })()}
+                onDiscard={() => setHeard(null)} />
+            );
+          })()
         ) : (
-          <button className="cw-add" onClick={() => setAdding(true)}>
-            <span className="cw-add-p" aria-hidden>+</span> Plan a fix
-          </button>
+          <div className="vo-pair">
+            <button className="cw-add" onClick={() => setAdding(true)}>
+              <span className="cw-add-p" aria-hidden>+</span> Plan a fix
+            </button>
+            <VoiceNote form="fix" label="Say a fix" context={() => contextFor(tt.assets, tt.tests, todayISO())} onHeard={setHeard} />
+          </div>
         )}
 
         {st.upcoming.length === 0 && !adding && (

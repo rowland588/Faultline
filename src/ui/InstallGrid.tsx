@@ -21,6 +21,8 @@ import { installGrid, type StepView } from '../lib/install';
 import { isSettled, live, plannedEnd, type Asset, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
+import { VoiceNote, VoiceReview } from './Voice';
+import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 import type { useTesting } from '../lib/useTesting';
 
 type TT = ReturnType<typeof useTesting>;
@@ -113,6 +115,7 @@ export function InstallGrid({ tt, projectId, usual }: { tt: TT; projectId: strin
               }}>Not done after all</button>
             )}
           </div>
+          <SayStep step={t} tt={tt} onDone={() => setOpen(null)} />
           <label className="cw-f ig-f"><span>Planned for</span>
             <input type="date" defaultValue={t.plannedFor ?? ''}
               onChange={e => void change([t], () => ({ plannedFor: e.target.value || undefined }), `${t.title} planned`)} /></label>
@@ -256,5 +259,29 @@ function Who({ names, value, label = 'Who is doing it', onSave }: {
       <datalist id="ig-names">{names.map(n => <option key={n} value={n} />)}</datalist>
       <button className="btn" type="submit" disabled={v.trim() === value.trim()}>Save</button>
     </form>
+  );
+}
+
+/** Say how a step went, from the square itself — shown, then put in. */
+function SayStep({ step, tt, onDone }: { step: Test; tt: TT; onDone: () => void }) {
+  const [heard, setHeard] = useState<VoiceResult | null>(null);
+  const today = todayISO();
+  if (!heard) {
+    return <VoiceNote form="install" label="Say how it went" context={() => contextFor(tt.assets, tt.tests, today, step)} onHeard={setHeard} />;
+  }
+  const changes = changesFor(step, heard.fields, tt.assets, today);
+  return (
+    <VoiceReview heard={heard}
+      rows={changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after }))}
+      onApply={keys => void (async () => {
+        const picked = changes.filter(c => keys.includes(c.key));
+        const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
+        const before = Object.fromEntries(Object.keys(patch).map(k => [k, step[k as keyof Test]])) as Partial<Test>;
+        await tt.patchTest(step.id, patch);
+        offerUndo(`${step.title}: put in what you said`, () => tt.patchTest(step.id, before));
+        onDone();
+      })()}
+      onLeftover={text => void tt.addItem(step.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
+      onDiscard={() => setHeard(null)} />
   );
 }

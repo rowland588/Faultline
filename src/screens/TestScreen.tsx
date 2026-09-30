@@ -33,6 +33,8 @@ import {
 import type { MediaRef } from '../types';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from '../ui/Undo';
+import { VoiceNote, VoiceReview } from '../ui/Voice';
+import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -134,6 +136,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           </p>
         </div>
       </header>
+
+      {/* SAY IT. One sentence fills this record's boxes — shown first, put in
+          only when you say so. */}
+      <SayIt test={test} tt={tt} />
 
       {/* 1 · THE PLAN */}
       <section className="tw-block">
@@ -467,7 +473,71 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
         <input placeholder={placeholder} value={what} onChange={e => setWhat(e.target.value)} />
         <button className="btn btn-sm" type="submit" disabled={!what.trim()}>Add</button>
       </form>
+      {kind === 'found' && <SayNotes test={test} tt={tt} />}
     </section>
+  );
+}
+
+/* ================================ VOICE ==================================
+ * Rowland: "on every part of the app I can talk the information into it."
+ * Two doors on this page: one fills the record's own boxes, one adds what was
+ * found. Both show what was heard first; nothing is written until "Put it in",
+ * and each put-in can be undone. */
+
+function SayIt({ test, tt }: { test: Test; tt: TT }) {
+  const [heard, setHeard] = useState<VoiceResult | null>(null);
+  const today = todayISO();
+  const kind = test.kind ?? 'test';
+  const changes = heard ? changesFor(test, heard.fields, tt.assets, today) : [];
+  return (
+    <div className="vo-say">
+      {!heard && (
+        <VoiceNote form={kind === 'fix' ? 'fix' : kind === 'install' ? 'install' : 'test'}
+          label={kind === 'fix' ? 'Say the fix' : kind === 'install' ? 'Say how it went' : 'Say how the test went'}
+          context={() => contextFor(tt.assets, tt.tests, today, test)} onHeard={setHeard} />
+      )}
+      {heard && (
+        <VoiceReview heard={heard}
+          rows={changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after }))}
+          onApply={keys => void (async () => {
+            const picked = changes.filter(c => keys.includes(c.key));
+            const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
+            const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
+            await tt.patchTest(test.id, patch);
+            offerUndo(`Put in ${picked.length} thing${picked.length === 1 ? '' : 's'} you said`, () => tt.patchTest(test.id, before));
+            setHeard(null);
+          })()}
+          onLeftover={text => void tt.addItem(test.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
+          onDiscard={() => setHeard(null)} />
+      )}
+    </div>
+  );
+}
+
+function SayNotes({ test, tt }: { test: Test; tt: TT }) {
+  const [heard, setHeard] = useState<VoiceResult | null>(null);
+  const today = todayISO();
+  const notes = (heard?.fields.notes as { what: string; owner?: string }[] | undefined) ?? [];
+  return (
+    <div className="vo-say">
+      {!heard && (
+        <VoiceNote form="found" label="Say what you found" context={() => contextFor(tt.assets, tt.tests, today, test)} onHeard={setHeard} />
+      )}
+      {heard && (
+        <VoiceReview heard={heard} applyLabel="Add them"
+          rows={notes.map((n, i) => ({ key: String(i), label: `Note ${i + 1}`, after: n.owner ? `${n.what} — ${n.owner}` : n.what }))}
+          onApply={keys => void (async () => {
+            const picked = notes.filter((_, i) => keys.includes(String(i)));
+            /* What was said is kept on the first note, word for word. */
+            for (const [i, n] of picked.entries()) {
+              await tt.addItem(test.id, 'found', n.what, { owner: n.owner, note: i === 0 ? `Said: “${heard.transcript}”` : undefined });
+            }
+            setHeard(null);
+          })()}
+          onLeftover={text => void tt.addItem(test.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
+          onDiscard={() => setHeard(null)} />
+      )}
+    </div>
   );
 }
 
