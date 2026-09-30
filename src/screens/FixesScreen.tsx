@@ -98,6 +98,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   /* The soonest one that has a day on it — the list is already in that order,
      so this is its head rather than a second sort. */
   const nextBy = st.upcoming.length ? plannedEnd(st.upcoming[0]) : undefined;
+  const late = st.upcoming.filter(t => isOverdue(t)).length;
 
   return (
     <div className="wrap pace cm-screen">
@@ -114,7 +115,11 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           <h1>Fixes</h1>
           <p className="cw-handover">
             {st.upcoming.length > 0
-              ? <><b>{st.upcoming.length} still to do</b>{st.done.length > 0 && <span className="sub">{st.done.length} done</span>}</>
+              ? <>
+                <b>{st.upcoming.length} still to do</b>
+                {late > 0 && <span className="sub in-late">{late} late</span>}
+                {st.done.length > 0 && <span className="sub">{st.done.length} done</span>}
+              </>
               : st.done.length > 0
                 ? <b>Nothing outstanding — {st.done.length} done</b>
                 : <b>Nothing on the list yet</b>}
@@ -133,28 +138,6 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           <h2 className="cmp-h">Still to do</h2>
           {st.upcoming.length > 0 && <span className="cmp-h-n">{st.upcoming.length}</span>}
         </div>
-
-        {st.upcoming.map((t, i) => {
-          const from = cameFrom(t);
-          return (
-            <button key={t.id} className={'tw-next' + (i === 0 ? ' is-now' : '') + (isOverdue(t) ? ' is-late' : '')}
-              onClick={() => open(t.id)}>
-              <span className="tw-next-h">
-                <b>{t.title}</b>
-                <span className={'tw-when' + (isOverdue(t) ? ' is-late' : '')}>
-                  {isOverdue(t) ? 'WAS ' + windowOf(t.plannedFor, t.plannedTo) : windowOf(t.plannedFor, t.plannedTo)}
-                </span>
-              </span>
-              <span className="sub">
-                {machine(t)}
-                {t.withWhom ? ` · ${t.withWhom}` : ' · nobody yet'}
-                {from ? ` · for “${from.title}”` : ' · not from a test'}
-                {(t.media ?? []).length > 0 && ` · ${t.media?.length} picture${t.media?.length === 1 ? '' : 's'}`}
-              </span>
-              {t.passesIf && <span className="tw-passes"><b>The problem:</b> {t.passesIf}</span>}
-            </button>
-          );
-        })}
 
         {adding ? (
           <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
@@ -226,6 +209,16 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
         )}
 
+        {/* ONE BOX PER FIX. Rowland: "everything's quite elongated across the
+            page — I would prefer their own little boxes." Each box says the
+            same things in the same places: where it stands, the machine, the
+            fix, the problem, and who / what it is for. */}
+        {st.upcoming.length > 0 && (
+          <div className="fx-grid">
+            {st.upcoming.map((t, i) => <FixBox key={t.id} t={t} first={i === 0} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
+          </div>
+        )}
+
         {st.upcoming.length === 0 && !adding && (
           <p className="sub tw-note">
             Every fix is planned here. Pick the test it is for, and it shows on that test's page and
@@ -241,22 +234,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <h2 className="cmp-h">Done</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
-          <div className="cw-list">
-            {st.done.map(t => (
-              <button key={t.id} className={'tw-row is-' + t.outcome} onClick={() => open(t.id)}>
-                <span className="tw-row-m">
-                  <b>{t.title}</b>
-                  <span className="sub">
-                    {windowOf(t.ranOn ?? t.plannedFor, t.ranOn ? t.ranTo : t.plannedTo, nice)} · {machine(t)}
-                    {t.withWhom ? ` · ${t.withWhom}` : ''}
-                    {(t.media ?? []).length > 0 && ` · ${t.media?.length} picture${t.media?.length === 1 ? '' : 's'}`}
-                  </span>
-                  <span className={'tw-res is-' + t.outcome}>
-                    <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
-                  </span>
-                </span>
-              </button>
-            ))}
+          <div className="fx-grid">
+            {st.done.map(t => <FixBox key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
           </div>
         </section>
       )}
@@ -266,5 +245,41 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         {nextBy && <> The next one is wanted by {nice(nextBy)}.</>}
       </p>
     </div>
+  );
+}
+
+/** One fix, as a box: where it stands, the machine, the fix, the problem, and
+ *  who is on it and what it is for — the same things in the same places on
+ *  every box, so a grid of them reads at a glance. */
+function FixBox({ t, first, machine, from, onOpen }: {
+  t: Test; first?: boolean; machine: string; from?: Test; onOpen: () => void;
+}) {
+  const settled = t.outcome === 'passed' || t.outcome === 'failed' || t.outcome === 'notRun';
+  const lateNow = !settled && isOverdue(t);
+  const tone = settled ? `is-${t.outcome}` : lateNow ? 'is-late' : first ? 'is-next' : 'is-ahead';
+  const when = settled
+    ? `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}`
+    : lateNow
+      ? `Late · was ${windowOf(t.plannedFor, t.plannedTo, nice)}`
+      : t.plannedFor
+        ? `${first ? 'Next · ' : ''}${windowOf(t.plannedFor, t.plannedTo, nice)}`
+        : 'No date yet';
+  const pics = (t.media ?? []).length;
+  return (
+    <button className={'fx-box ' + tone} onClick={onOpen}>
+      <span className="fx-top">
+        <span className="fx-state">{when}</span>
+        <span className="fx-machine">{machine}</span>
+      </span>
+      <b className="fx-title">{t.title}</b>
+      {settled
+        ? (t.result && <span className="fx-text">{t.result}</span>)
+        : (t.passesIf && <span className="fx-text"><span className="fx-k">Problem</span> {t.passesIf}</span>)}
+      <span className="fx-foot">
+        <span className={t.withWhom ? '' : 'fx-none'}>{t.withWhom || 'Nobody yet'}</span>
+        <span className="fx-for">{from ? `For “${from.title}”` : 'Not from a test'}</span>
+        {pics > 0 && <span className="fx-pics">{pics} picture{pics === 1 ? '' : 's'}</span>}
+      </span>
+    </button>
   );
 }
