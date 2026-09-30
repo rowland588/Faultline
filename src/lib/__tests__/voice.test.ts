@@ -19,8 +19,11 @@ describe('which model', () => {
   it('takes the newest Flash on the key’s own list', () => {
     expect(pickModel(real)).toBe('gemini-3.8-flash');
   });
-  it('has the older ones next, to fall back to — never Lite, TTS, image or preview', () => {
-    expect(flashModels(real)).toEqual(['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash']);
+  it('has the older Flash next, then Flash-Lite as the last resort — never TTS, image or preview', () => {
+    /* Every Flash "experiencing high demand" at once turned a fix said on the
+       live app into no answer; a lighter model that answers is better. */
+    expect(flashModels(real)).toEqual(['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash',
+      'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite']);
   });
   it('says nothing rather than guess when there is no Flash at all', () => {
     expect(pickModel(['models/gemini-3-pro'])).toBeUndefined();

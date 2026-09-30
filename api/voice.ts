@@ -183,13 +183,16 @@ const API = 'https://generativelanguage.googleapis.com/v1beta';
    "gemini-2.5-flash is no longer available to new users — use
    gemini-3.8-flash", while still LISTING 2.5. So the list decides the order
    and a refusal moves on to the next one, rather than a name written here
-   going stale again. Never Lite, TTS, image or preview. */
+   going stale again. */
 export function flashModels(names: string[]): string[] {
   const version = (n: string) => Number(/gemini-([\d.]+)/.exec(n)?.[1] ?? 0);
-  return names
-    .map(n => n.replace(/^models\//, ''))
-    .filter(n => /^gemini-[\d.]+-flash$/.test(n))
-    .sort((a, b) => version(b) - version(a));
+  const clean = names.map(n => n.replace(/^models\//, ''));
+  const newest = (re: RegExp) => clean.filter(n => re.test(n)).sort((a, b) => version(b) - version(a));
+  /* Flash first, newest first. Then Flash-Lite, newest first, as the last
+     resort: on the free tier every Flash can be "experiencing high demand" at
+     once, and a lighter model that answers beats a voice note that does not.
+     Never TTS, image or preview. */
+  return [...newest(/^gemini-[\d.]+-flash$/), ...newest(/^gemini-[\d.]+-flash-lite$/)];
 }
 export const pickModel = (names: string[]): string | undefined => flashModels(names)[0];
 
@@ -216,7 +219,12 @@ async function modelsFor(key: string): Promise<string[]> {
 async function generate(key: string, body: (model: string) => unknown): Promise<{ res: Response; model: string }> {
   const list = await modelsFor(key);
   let last: { res: Response; model: string } | undefined;
-  for (const model of list.slice(0, 4)) {
+  /* Down the list until one answers — but not past ~40 seconds in all, so a
+     busy spell ends as "busy, trying again" on the phone rather than as the
+     function being cut off with no answer at all. */
+  const started = Date.now();
+  for (const model of list.slice(0, 7)) {
+    if (last && Date.now() - started > 40_000) break;
     const res = await fetch(`${API}/models/${model}:generateContent`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },

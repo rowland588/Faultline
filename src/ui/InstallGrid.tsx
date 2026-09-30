@@ -67,7 +67,7 @@ export function InstallGrid({ tt, project, stages, otherName }: {
   ].filter((x): x is string => !!x))].sort();
 
   const rowName = (a?: Asset) => a?.name ?? 'The line itself';
-  const openStep = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+  const openStep = (id: string, problem = false) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}${problem ? '?problem=1' : ''}`);
 
   /* ---- the writes, each with its own undo ---- */
   const snapshot = (ts: Test[]) => ts.map(t => ({ id: t.id, outcome: t.outcome, ranOn: t.ranOn, plannedFor: t.plannedFor, plannedTo: t.plannedTo, withWhom: t.withWhom }));
@@ -132,7 +132,7 @@ export function InstallGrid({ tt, project, stages, otherName }: {
             }}>Done today</button>
             <button className="btn ig-big ig-bad" onClick={() => {
               void change([t], cur => ({ outcome: 'failed', ranOn: cur.ranOn ?? today }), `${t.title} hit a problem`);
-              setOpen(null); openStep(t.id);
+              setOpen(null); openStep(t.id, true);
             }}>Hit a problem — write it up</button>
             {t.outcome !== 'planned' && (
               <button className="btn btn-ghost ig-big" onClick={() => {

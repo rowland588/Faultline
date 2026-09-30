@@ -13,8 +13,8 @@
  * story. One field quietly following the result around would always report that
  * everything went to plan.
  */
-import { useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
+import { useEffect, useRef, useState } from 'react';
+import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -54,6 +54,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   /* The boxes a voice note just filled — they glow for a moment so you can
      see where what you said went. */
   const [filled, setFilled] = useState<string[]>([]);
+  /* Arriving from "Hit a problem — write it up" on Install: straight into the
+     box the problems are written in, ready to type the first of however many
+     there are. */
+  const writingProblem = useRoute().query.get('problem') === '1';
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const test = tt.tests.find(t => t.id === testId);
@@ -302,10 +306,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       {/* An install step does — installing is where the missing part and the
           wrong drawing turn up, and they are the day's story. */}
       {(kind !== 'fix' || itemsOf(tt.items, test.id, 'found').length > 0) && (
-        <Items kind="found" test={test} tt={tt} onView={setViewing} glow={filled.includes('found')}
+        <Items kind="found" test={test} tt={tt} onView={setViewing} glow={filled.includes('found')} focus={writingProblem}
           heading={kind === 'install' ? '3 · What we found doing it' : '3 · What we found on the day'}
-          placeholder="What did you see?"
-          empty="Nothing written down yet. This is the part that matters most." />
+          placeholder={kind === 'install' ? 'What was the problem?' : 'What did you see?'}
+          empty={kind === 'install'
+            ? 'Write each problem on its own — add one, then the next. As many as there are.'
+            : 'Nothing written down yet. This is the part that matters most.'} />
       )}
 
       {/* 4 · THE FIXES FOR THIS TEST. Listed here, made on the Fixes screen —
@@ -448,13 +454,21 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
 /** What we found, or what we do next. One component, because they are the same
  *  shape and the only difference is the word at the top and whether a row can
  *  become the next test. */
-function Items({ kind, test, tt, heading, placeholder, empty, onView, glow }: {
+function Items({ kind, test, tt, heading, placeholder, empty, onView, glow, focus }: {
   kind: ItemKind; test: Test; tt: TT; heading: string; placeholder: string; empty: string;
   onView: (m: MediaRef) => void;
   /** A voice note just added to this list. */
   glow?: boolean;
+  /** Open with the cursor in the box — the page was opened to write here. */
+  focus?: boolean;
 }) {
   const [what, setWhat] = useState('');
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!focus) return;
+    box.current?.scrollIntoView({ block: 'center' });
+    box.current?.focus();
+  }, [focus]);
   const rows = itemsOf(tt.items, test.id, kind);
 
   /* THE COUNT IS THE WHOLE POINT OF THIS BLOCK'S HONESTY.
@@ -493,7 +507,7 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView, glow }: {
         void tt.addItem(test.id, kind, what);
         setWhat('');
       }}>
-        <input placeholder={placeholder} value={what} onChange={e => setWhat(e.target.value)} />
+        <input ref={box} placeholder={rows.length ? 'Another one?' : placeholder} value={what} onChange={e => setWhat(e.target.value)} />
         <button className="btn btn-sm" type="submit" disabled={!what.trim()}>Add</button>
       </form>
     </section>
