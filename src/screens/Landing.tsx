@@ -5,21 +5,24 @@
  * very simplified futuristic page, the Faultline name across the page with a
  * pulse signature pulsing, then a login." It had grown into a sales page: a
  * tagline about improvement plans, four numbered points, a demo film and the
- * whole guide inline — written for the tracker the product used to be, and
- * all of it standing between the people who use it every day and the sign-in.
- * The people who reach this page are invited; they need the door, not the
- * pitch. The guide is still whole at /guide, one tap from here, for anybody
- * who wants the story.
+ * whole guide inline — all of it standing between the people who use it every
+ * day and the sign-in. The guide is still whole at /guide, one tap from here.
  *
- * Under the name, the three ways a project runs here: Stage gate, 3P, Lever
- * tree. Rowland: "brand things properly on the landing page ... I want to be
- * able to use this in multiple business scenarios."
+ * LIGHT, NOT DARK. The first cut was black with the name in outline capitals.
+ * Rowland: "brighten it up ... the writing looks kind of robotic. I want
+ * elegance and futuristic — white backgrounds and blues, shimmers." So: white
+ * under a slow blue mist, the name in a fine geometric face with a sheen that
+ * passes through it, the pulse drawn in blue, and the sign-in on frosted glass.
+ * Words in ordinary case — capitals spaced out read as a machine talking.
+ *
+ * Under the name, the three ways a project runs here (lib/planModel).
  *
  * The pulse is the mark's own trace (ui/Logo) drawn across the page: a flat
- * line, a tremor, the fault. It beats slowly, and holds still for anybody who
- * has asked for less motion.
+ * line, a tremor, the fault. It, the sheen and the mist all hold still for
+ * anybody who has asked for less motion.
  */
 import { useState } from 'react';
+import '@fontsource-variable/outfit';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
 import { MODELS } from '../lib/planModel';
@@ -52,48 +55,64 @@ export function Landing() {
   };
 
   return (
-    <div className="fl-door">
-      <div className="fl-stage">
-        <svg className="fl-pulse" viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden>
-          <path className="fl-trace" d={TRACE} />
-          <path className="fl-beat" d={TRACE} pathLength={1000} />
-        </svg>
-        <h1 className="fl-name">FAULTLINE</h1>
+    <div className="door">
+      <div className="door-mist" aria-hidden>
+        <span className="door-m1" /><span className="door-m2" /><span className="door-m3" />
       </div>
-      {/* The three ways a project runs in here — see lib/planModel. It said
-          "Commissioning, proved.", which was one of them, under an old name. */}
-      <p className="fl-sub" aria-label={`Projects run three ways: ${MODELS.map(m => m.label).join(', ')}`}>
-        {MODELS.map((m, i) => <span key={m.id}>{i > 0 && <i className="fl-dot" aria-hidden />}{m.label}</span>)}
-      </p>
 
-      <form className="fl-auth" onSubmit={e => { e.preventDefault(); void submit(); }}>
-        <label className="fl-f">
-          <span>Email</span>
-          <input type="email" inputMode="email"
-            autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
-            value={email} onChange={e => setEmail(e.target.value)} />
-        </label>
-        <label className="fl-f">
-          <span>Password</span>
-          <input type="password"
-            autoComplete="new-password" /* stops the browser pre-filling a saved password on this shared-safe form */
-            value={pw} onChange={e => setPw(e.target.value)} />
-        </label>
+      <main className="door-main">
+        <div className="door-stage">
+          <svg className="door-pulse" viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden>
+            <defs>
+              <linearGradient id="door-beat-g" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0" stopColor="#7cc4ff" stopOpacity="0" />
+                <stop offset="0.5" stopColor="#2f7bff" />
+                <stop offset="1" stopColor="#7cc4ff" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path className="door-trace" d={TRACE} />
+            <path className="door-beat" d={TRACE} pathLength={1000} />
+          </svg>
+          <h1 className="door-name">Faultline</h1>
+        </div>
 
-        {err && <p className="fl-msg is-err" role="alert">{err}</p>}
-        {ok && <p className="fl-msg is-ok" role="status">{ok}</p>}
+        {/* The three ways a project runs in here — see lib/planModel. */}
+        <p className="door-methods" aria-label={`Projects run three ways: ${MODELS.map(m => m.label).join(', ')}`}>
+          {MODELS.map((m, i) => (
+            <span key={m.id}>{i > 0 && <i className="door-sep" aria-hidden />}{m.label}</span>
+          ))}
+        </p>
 
-        <button type="submit" className="fl-go" disabled={busy || !email.trim() || !pw}>
-          {busy ? 'Please wait…' : mode === 'in' ? 'Sign in' : 'Create account'}
-        </button>
+        <form className="door-card" onSubmit={e => { e.preventDefault(); void submit(); }}>
+          <h2 className="door-card-h">{mode === 'in' ? 'Welcome back' : 'Create your account'}</h2>
+          <label className="door-f">
+            <span>Email</span>
+            <input type="email" inputMode="email"
+              autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
+              value={email} onChange={e => setEmail(e.target.value)} />
+          </label>
+          <label className="door-f">
+            <span>Password</span>
+            <input type="password"
+              autoComplete="new-password" /* stops the browser pre-filling a saved password on this shared-safe form */
+              value={pw} onChange={e => setPw(e.target.value)} />
+          </label>
 
-        <button type="button" className="fl-link"
-          onClick={() => { setMode(m => (m === 'in' ? 'up' : 'in')); setErr(''); setOk(''); }}>
-          {mode === 'in' ? 'Been invited? Create your account' : 'Already have an account? Sign in'}
-        </button>
-      </form>
+          {err && <p className="door-msg is-err" role="alert">{err}</p>}
+          {ok && <p className="door-msg is-ok" role="status">{ok}</p>}
 
-      <button type="button" className="fl-link fl-guide" onClick={() => nav('/guide')}>How it works ›</button>
+          <button type="submit" className="door-go" disabled={busy || !email.trim() || !pw}>
+            {busy ? 'One moment…' : mode === 'in' ? 'Sign in' : 'Create account'}
+          </button>
+
+          <button type="button" className="door-link"
+            onClick={() => { setMode(m => (m === 'in' ? 'up' : 'in')); setErr(''); setOk(''); }}>
+            {mode === 'in' ? 'Been invited? Create your account' : 'Already have an account? Sign in'}
+          </button>
+        </form>
+
+        <button type="button" className="door-link door-guide" onClick={() => nav('/guide')}>How it works →</button>
+      </main>
     </div>
   );
 }
