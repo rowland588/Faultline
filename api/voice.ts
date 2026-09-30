@@ -292,8 +292,13 @@ export async function GET(request: Request): Promise<Response> {
       v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
       w(36, 'data'); v.setUint32(40, 32000, true);
       let bin = ''; for (const b of silence) bin += String.fromCharCode(b);
-      const r = tidy('found', await understand({ form: 'found', audio: btoa(bin), mime: 'audio/wav', context: { today: new Date().toISOString().slice(0, 10) } }, key));
-      return json({ ok: true, key: true, model: MODEL(), audio: true, shape: Object.keys(r) });
+      /* &form=fix|test|install|found — each form's own schema, because a
+         schema one model accepts another can refuse, and the found-form alone
+         proved nothing about the other three. */
+      const asked = params.get('form') as VoiceForm | null;
+      const form: VoiceForm = asked && asked in FORMS ? asked : 'found';
+      const r = tidy(form, await understand({ form, audio: btoa(bin), mime: 'audio/wav', context: { today: new Date().toISOString().slice(0, 10) } }, key));
+      return json({ ok: true, key: true, model: MODEL(), form, audio: true, shape: Object.keys(r) });
     } catch (e) {
       return json({ ok: false, key: true, model: MODEL(), audio: false, status: e instanceof ModelError ? e.status : 0,
         why: e instanceof ModelError ? e.detail : String(e).slice(0, 200) }, 502);
