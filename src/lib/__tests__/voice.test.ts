@@ -36,6 +36,12 @@ describe('what comes back from the model', () => {
     const r = tidy('found', { transcript: 't', fields: { notes: [{ what: 'Film tracking left', owner: '' }, { what: ' ' }] }, leftover: 'ring Dave' });
     expect(r).toEqual({ transcript: 't', fields: { notes: [{ what: 'Film tracking left', owner: '' }] }, leftover: 'ring Dave' });
   });
+  it('reads a result and what was found from one note on a test or an install step', () => {
+    const r = tidy('test', { transcript: 't', fields: { result: 'Ran at 61', outcome: 'failed', notes: [{ what: 'Film tracks left', owner: 'Ilapak' }] } });
+    expect(r.fields).toEqual({ result: 'Ran at 61', outcome: 'failed', notes: [{ what: 'Film tracks left', owner: 'Ilapak' }] });
+    expect(tidy('install', { transcript: 't', fields: { notes: [{ what: 'Regulator missing' }] } }).fields.notes).toEqual([{ what: 'Regulator missing', owner: '' }]);
+    expect(tidy('fix', { transcript: 't', fields: { notes: [{ what: 'x' }] } }).fields).toEqual({});
+  });
   it('asks for every form with a schema and the job’s own names', () => {
     for (const f of ['fix', 'found', 'test', 'install'] as const) expect(schemaFor(f).required).toEqual(['transcript', 'fields']);
     expect(promptFor('fix', { today: TODAY, machines: ['Denester'], suppliers: ['Brillopak'] })).toContain('Machines on this job: Denester.');

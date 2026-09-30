@@ -6825,3 +6825,94 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media (max-width: 720px) {
   .ig-says { max-width: calc(100vw - 64px); font-size: 12.5px; }
 }
+
+.ig-in { display: flex; align-items: center; min-height: 44px; padding: 0 14px; font-size: 13px; color: var(--muted); }
+.ig-sheet .tw-asset { margin: 0; }
+.pace-gear { font-size: 17px; line-height: 1; padding-inline: 11px; }
+
+/* The test page's actions, at the top: the card and the loop. */
+.tw-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.tw-acts .btn { min-height: 44px; }
+/* The plan, folded to one line once the day has happened. */
+.tw-fold { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.tw-fold .tw-block-h { margin: 0; }
+.tw-fold-t { flex: 1 1 16ch; min-width: 0; color: var(--ink-2); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tw-fold-go { color: var(--accent, #1f6feb); font-size: 13px; font-weight: 600; }
+.tw-fold:hover { border-color: var(--line-2, #cfd8e3); }
+
+/* ---------- the front door: the name, the pulse, the sign-in ----------
+ * Dark whatever the theme, on purpose: it is the one screen that is only a
+ * door. The pulse is the mark's trace (ui/Logo) drawn across the page. */
+.fl-door {
+  --fl-bg: #04080b;
+  --fl-ink: #e8f3f0;
+  --fl-dim: rgba(232, 243, 240, 0.55);
+  --fl-glow: #3ee6b4;
+  --fl-glow-rgb: 62, 230, 180;
+  --fl-line: rgba(232, 243, 240, 0.16);
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 16px 32px; box-sizing: border-box; overflow: hidden;
+  color: var(--fl-ink);
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 38%, rgba(var(--fl-glow-rgb), 0.09), transparent 70%),
+    var(--fl-bg);
+}
+.fl-stage { position: relative; width: 100%; max-width: 1400px; display: grid; place-items: center; font-size: clamp(38px, 11.5vw, 190px); }
+.fl-pulse { position: absolute; left: -16px; right: -16px; top: 50%; width: calc(100% + 32px); height: 1.5em; transform: translateY(-50%); overflow: visible; }
+.fl-trace, .fl-beat { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fl-trace { stroke: rgba(var(--fl-glow-rgb), 0.28); stroke-width: 1.5; }
+/* The beat: a bright stretch of the same line running left to right, once
+   every couple of seconds, like a trace on a monitor. */
+.fl-beat {
+  stroke: var(--fl-glow); stroke-width: 2.5;
+  stroke-dasharray: 150 1000; stroke-dashoffset: 150;
+  filter: drop-shadow(0 0 6px rgba(var(--fl-glow-rgb), 0.9));
+  animation: fl-run 2.6s cubic-bezier(.45, .05, .55, .95) infinite;
+}
+@keyframes fl-run { from { stroke-dashoffset: 150; } to { stroke-dashoffset: -1000; } }
+.fl-name {
+  position: relative; margin: 0; white-space: nowrap;
+  font-size: 1em; font-weight: 200; line-height: 1;
+  letter-spacing: 0.14em; margin-right: -0.14em; /* the last letter's spacing, so it centres */
+  color: transparent; -webkit-text-stroke: 1px rgba(232, 243, 240, 0.85);
+  animation: fl-glow 2.6s ease-in-out infinite;
+}
+/* The name catches the light as the beat passes under the middle of it. */
+@keyframes fl-glow {
+  0%, 30%, 100% { text-shadow: none; color: transparent; }
+  48% { text-shadow: 0 0 28px rgba(var(--fl-glow-rgb), 0.55); color: rgba(var(--fl-glow-rgb), 0.12); }
+}
+.fl-sub { margin: 22px 0 0; font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--fl-dim); text-align: center; }
+
+.fl-auth { width: 100%; max-width: 340px; margin-top: 48px; display: grid; gap: 14px; }
+.fl-f { display: grid; gap: 6px; }
+.fl-f span { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fl-dim); }
+.fl-f input {
+  font: inherit; font-size: 16px; color: var(--fl-ink); background: transparent;
+  border: none; border-bottom: 1px solid var(--fl-line); border-radius: 0; padding: 8px 0; outline: none;
+}
+.fl-f input:focus { border-bottom-color: var(--fl-glow); box-shadow: 0 1px 0 0 var(--fl-glow); }
+.fl-go {
+  margin-top: 10px; min-height: 48px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--fl-bg); background: var(--fl-glow); border: none;
+  box-shadow: 0 0 24px rgba(var(--fl-glow-rgb), 0.35);
+}
+.fl-go:disabled { cursor: default; background: transparent; color: var(--fl-dim); border: 1px solid var(--fl-line); box-shadow: none; }
+.fl-go:not(:disabled):hover { box-shadow: 0 0 36px rgba(var(--fl-glow-rgb), 0.55); }
+.fl-link { justify-self: center; background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; color: var(--fl-dim); padding: 6px; }
+.fl-link:hover { color: var(--fl-ink); }
+.fl-guide { margin-top: 28px; letter-spacing: 0.08em; }
+.fl-msg { margin: 0; font-size: 13px; line-height: 1.45; }
+.fl-msg.is-err { color: #ff9b8e; }
+.fl-msg.is-ok { color: var(--fl-glow); }
+.fl-door :focus-visible { outline: 2px solid var(--fl-glow); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .fl-beat { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0.8; }
+  .fl-name { animation: none; }
+}
+.pace-title-row { display: flex; align-items: center; gap: 10px; }
+.pace-title-row .pace-title { min-width: 0; }
+.pace-gear { flex-shrink: 0; min-height: 36px; }
+.pace-head-actions:empty { display: none; }

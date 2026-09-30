@@ -21,7 +21,7 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, assetStateOn, hasRun, outcomeWord, isOverdue, itemsOf, standing, testOfFix, weeksTo,
+  ASSET_STATE_WORD, WORDS, assetStateOn, outcomeWord, isOverdue, itemsOf, standing, testOfFix, weeksTo,
   type Asset, type Test, type TestKind,
 } from '../lib/testing';
 
@@ -97,15 +97,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const st = standing(tt.tests.filter(t => (t.kind ?? 'test') === 'test'), tt.items);
   const weeks = weeksTo(project.expectedAt);
   const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
-  /* THE SAME COUNT THE OVERVIEW PRINTS. This screen said "Nothing outstanding"
-     while the overview, a tap away, said two tests were still to run and one
-     was past its day — because this sentence only counted observations and
-     next-step lines, and those stopped being outstanding work when fixes got
-     their own screen. It now reads the one standing() row both use. */
-  const testsRow = stand.standing.rows.find(r => r.key === 'tests');
-  const testsSay = testsRow && testsRow.open > 0
-    ? `${testsRow.open} ${testsRow.open === 1 ? 'test' : 'tests'} still to run${testsRow.late ? ` — ${testsRow.late} past the day` : ''}. ${st.ran} of ${st.total} have run.`
-    : st.sentence;
 
   /* What was written down, and the fixes FOR this test — the same list its own
      page shows under "Fixes for this test". An observation is a note, not a
@@ -122,30 +113,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
 
-  /* THE MACHINES. A test names one; what a machine has to prove is whatever
-     tests name it. What it carries of its own is WHEN — expected, landed,
-     installed, running — and those four days are what put it on the plan and
-     in the outstanding table. The word beside the name is read off them
-     (assetStateOf), never set by hand. */
-  const machines = (
-    <section className="cmp-sec">
-      <div className="cw-sec-h">
-        <h2 className="cmp-h">Machines</h2>
-        <span className="cmp-h-n">{tt.assets.length ? `${tt.assets.length} on this line` : 'name them first'}</span>
-      </div>
-      {tt.assets.length === 0 && (
-        <p className="sub">Each machine, and who supplied it. A test names a machine, and the OEM's name goes with it onto every test, fix and report.</p>
-      )}
-      <div className="cx-assets">
-        {tt.assets.map(a => (
-          <MachineCard key={a.id} a={a}
-            ran={tt.tests.filter(t => t.assetId === a.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length}
-            save={tt.saveAsset} remove={tt.removeAsset} />
-        ))}
-        <AddAsset add={tt.addAsset} />
-      </div>
-    </section>
-  );
 
   const plan = () => {
     const clean = title.trim();
@@ -191,28 +158,22 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      {/* WHERE WE ARE. One sentence, composed in lib/testing so this screen and
-          the A3 cannot say different things about the same job. */}
-      <section className="cx-answer">
-        <span className="cmp-h-n">WHERE THE JOB IS</span>
-        <p className="cx-said">{testsSay}</p>
-        {st.total > 0 && (
-          <>
-            <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
-            <span className="cx-tally">
-              {st.ran} of {st.total} run
-              {st.passed > 0 && <> · {st.passed} passed</>}
-            </span>
-          </>
-        )}
-      </section>
+      {/* NO "WHERE THE JOB IS" CARD HERE. It repeated the job's front page,
+          scoped to tests; the front page says where the job is, this page is
+          the tests. */}
 
       {/* MACHINES FIRST ON A NEW JOB. The plan-a-test form only asks which
           machine when there is one to ask about, so a first-time user who did
           what the screen said — "plan the first test" — got a test on the line
           itself and was never asked. When nothing is named yet the machines
           section leads; once there is one, tests lead, as they should. */}
-      {tt.assets.length === 0 && machines}
+      {/* MACHINES LIVE ON INSTALL, where they arrive and go in. A test asks
+          which machine when there is one; with none named yet, say where. */}
+      {tt.assets.length === 0 && (
+        <p className="sub tw-note">
+          No machines named yet — <button className="cw-link" onClick={() => nav(`/project/${projectId}/install`)}>add them on Install</button>, and each test can then say which one it is on.
+        </p>
+      )}
 
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}
@@ -322,7 +283,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      {tt.assets.length > 0 && machines}
 
     </div>
   );
@@ -332,7 +292,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
  *  "Dates" link the same four boxes the job's own dates use — each one saved
  *  the moment it is picked, exactly like "Now expecting" at the top of this
  *  screen. Expected → landed → installed → running is the order they happen. */
-function MachineCard({ a, ran, save, remove }: {
+export function MachineCard({ a, ran, save, remove }: {
   a: Asset; ran: number; save: (a: Asset) => Promise<void>; remove: (id: string) => Promise<void>;
 }) {
   const [dates, setDates] = useState(false);

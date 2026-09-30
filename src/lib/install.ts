@@ -9,7 +9,7 @@
  * has got, what is next and whose it is, what stopped it — so the Install
  * screen and, later, the client report say the same sentence from one call.
  */
-import { INSTALL_STAGES, assetStateOf, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
+import { INSTALL_STAGES, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 
 /** done · a problem stopped it · ran and nobody has said · the day has gone · still ahead */
@@ -168,11 +168,11 @@ export function installGrid(assets: Asset[], tests: Test[], items: TestItem[], t
   usual: readonly string[]): InstallGrid {
   const machines = live(assets).sort((a, b) => a.sort - b.sort);
   const views = [...machines.map(a => installOf(a, tests, items, today)), installOf(undefined, tests, items, today)]
-    /* The line row only when the line has steps of its own; a machine that
-       was in and running before anybody kept steps has no installation left
-       to capture, and "add the usual stages to every machine" must not give
-       it six. */
-    .filter(v => v.total > 0 || (!!v.asset && !['installed', 'running'].includes(assetStateOf(v.asset))));
+    /* Every machine — Install is where the machines live, so a machine that
+       was in and running before anybody kept steps still has its row (it says
+       so, and is never given stages in bulk). The line's own row only when the
+       line has steps of its own. */
+    .filter(v => v.total > 0 || !!v.asset);
 
   /* The job's stages first, in its order; then any other step name in use,
      in the order it was first planned. */

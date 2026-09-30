@@ -19,8 +19,9 @@ import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { installGrid, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
+import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
-import { isSettled, live, plannedEnd, type Asset, type Test } from '../lib/testing';
+import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
 import { VoiceNote, VoiceReview } from './Voice';
@@ -88,7 +89,8 @@ export function InstallGrid({ tt, project, stages, otherName }: {
 
   /* The machines with no stages at all yet. When there are several, one tap
      gives them all the job's stages — said as exactly that. */
-  const bare = grid.rows.filter(r => r.asset && r.view.total === 0);
+  const isIn = (a?: Asset) => !!a && ['installed', 'running'].includes(assetStateOf(a));
+  const bare = grid.rows.filter(r => r.asset && r.view.total === 0 && !isIn(r.asset));
   const giveStages = (rows: typeof grid.rows) => add(
     rows.flatMap(r => usual.map(title => ({ title, assetId: r.asset?.id }))),
     rows.length === 1 ? `Added the ${usual.length} stages to ${rowName(rows[0].asset)}` : `Added the ${usual.length} stages to ${rows.length} machines`);
@@ -197,6 +199,13 @@ export function InstallGrid({ tt, project, stages, otherName }: {
             <button className="btn ig-big" onClick={() => { if (row.asset) void markInstalled(row.asset); setOpen(null); }}>Mark it installed today</button>
           )}
         </div>
+        {/* THE MACHINE ITSELF — name, supplier, its four dates, remove. It
+            lived on Testing too; Install is where machines live now. */}
+        {row.asset && (
+          <MachineCard a={row.asset}
+            ran={tt.tests.filter(t => t.assetId === row.asset?.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length}
+            save={tt.saveAsset} remove={async id => { await tt.removeAsset(id); setOpen(null); }} />
+        )}
         {/* A stage of its own, for this machine only — the guard run, the
             conveyor tie-in. */}
         <form className="ig-who" onSubmit={e => {
@@ -255,7 +264,14 @@ export function InstallGrid({ tt, project, stages, otherName }: {
                       {r.asset?.oem && <span>{r.asset.oem}</span>}
                     </button>
                   </th>
-                  {r.view.total === 0 ? (
+                  {r.view.total === 0 && isIn(r.asset) ? (
+                    /* In before anybody kept steps: say so, offer nothing. */
+                    <td colSpan={grid.columns.length}>
+                      <span className="ig-in">
+                        {r.asset && `${ASSET_STATE_WORD[assetStateOf(r.asset)]}${assetStateOn(r.asset) ? ` since ${short(assetStateOn(r.asset))}` : ''} — no install steps kept`}
+                      </span>
+                    </td>
+                  ) : r.view.total === 0 ? (
                     /* A machine with no stages yet: one button, not six empty
                        squares asking the same question six times. */
                     <td colSpan={grid.columns.length}>

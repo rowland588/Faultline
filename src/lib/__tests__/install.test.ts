@@ -186,9 +186,11 @@ describe('the grid: every machine at once', () => {
     expect(installGrid([coder], [s], [], TODAY, usual).rows[0].cells[3]?.step.id).toBe(s.id);
   });
 
-  it('leaves off a machine already in and running with no steps kept', () => {
+  it('keeps a machine already in and running, with no steps, as a row of its own', () => {
     const running: Asset = { ...coder, id: 'run', name: 'Wrapper', state: 'running', runningOn: '2026-09-10' };
-    expect(installGrid([packer, running], steps, [], TODAY, usual).rows.map(r => r.asset?.name)).toEqual(['Case packer']);
+    const g = installGrid([packer, running], steps, [], TODAY, usual);
+    expect(g.rows.map(r => r.asset?.name)).toEqual(['Case packer', 'Wrapper']);
+    expect(g.rows[1].view.says).toBe('Already installed — no steps were kept for it.');
   });
 
   it('adds the line’s own row only when the line has steps', () => {

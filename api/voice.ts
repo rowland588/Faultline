@@ -55,6 +55,21 @@ export interface VoiceResult {
 /* -------------------------------- the forms ------------------------------- */
 
 const DATE = { type: 'STRING', description: 'ISO date YYYY-MM-DD, or empty when no day was said.' };
+/* THINGS FOUND ALONG THE WAY. The test and install forms take them too, so one
+   voice note on the day fills the result AND adds what was seen — "ran at 61,
+   three leakers, the film tracked left" is a result and a note, said in one
+   breath. They become "what we found" rows; nothing new is stored. */
+const NOTES = (what: string) => ({
+  type: 'ARRAY',
+  items: {
+    type: 'OBJECT',
+    properties: {
+      what: { type: 'STRING', description: what },
+      owner: { type: 'STRING', description: 'Whose it is, if said; empty otherwise.' },
+    },
+    required: ['what'],
+  },
+});
 const OUTCOME = (words: string) => ({ type: 'STRING', enum: ['passed', 'failed', 'notRun', ''], description: words });
 
 /** Per form: what it is for, and the fields it has. Only fields the app
@@ -74,19 +89,7 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
   },
   found: {
     what: 'WHAT WE FOUND: observations written down on the floor. Split separate things into separate notes.',
-    fields: {
-      notes: {
-        type: 'ARRAY',
-        items: {
-          type: 'OBJECT',
-          properties: {
-            what: { type: 'STRING', description: 'One thing seen, one short sentence.' },
-            owner: { type: 'STRING', description: 'Whose it is, if said; empty otherwise.' },
-          },
-          required: ['what'],
-        },
-      },
-    },
+    fields: { notes: NOTES('One thing seen, one short sentence.') },
   },
   test: {
     what: 'the DAY of a TEST: what was actually run and how it went.',
@@ -95,6 +98,7 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
       ranOn: DATE,
       result: { type: 'STRING', description: 'What happened, in the terms it was measured in — speeds, counts, times.' },
       outcome: OUTCOME('passed; failed = ran and did not pass; notRun = did not happen; empty = not said.'),
+      notes: NOTES('A separate thing SEEN during the test — a fault, a leak, a part missing — one per note. Not the result itself; empty when none.'),
     },
   },
   install: {
@@ -105,6 +109,7 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
       plannedFor: { type: 'STRING', description: 'ISO date it is now planned for, if a new day was said; empty otherwise.' },
       withWhom: { type: 'STRING', description: 'Who is doing it, if said.' },
       outcome: OUTCOME('passed = done; failed = hit a problem; notRun = did not happen; empty = not said.'),
+      notes: NOTES('A separate thing FOUND doing it — a part missing, a wrong drawing, a snag — one per note. Not what was done; empty when none.'),
     },
   },
 };

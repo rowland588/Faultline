@@ -73,11 +73,13 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
     p('fixes', 'Fixes', `/project/${projectId}/fixes`),
     p('materials', 'Materials', `/project/${projectId}/materials`),
     p('programs', 'Programs', `/project/${projectId}/programs`),
-    /* The story of a day across all of the above — read, never typed. */
-    p('day', 'The day', `/project/${projectId}/day`),
-    /* "Details", not "Lines & people". Rowland could not find where to rename
-       a project: it was on this page, under a name that said lines — which a
-       commissioning job barely has. The page leads with the project itself. */
-    p('setup', 'Details', `/project/${projectId}/setup`),
+    /* Evidence joined the row when the front page lost its own second row of
+       tabs (Overview · Evidence): two rows of tabs on one screen was two ways
+       around, and the film is a list like the others.
+       "The day" left it — Rowland: "any more streamlining? the mission,
+       simplify". It is a story read off the others, not a list, and the front
+       page's Today card and Install both open it. "Details" left it for the
+       ⚙ on the project's own header: it is set once, not visited daily. */
+    p('evidence', 'Evidence', `/project/${projectId}?view=snags`),
   ];
 }

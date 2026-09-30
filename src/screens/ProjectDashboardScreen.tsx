@@ -42,7 +42,6 @@ import { Outstanding } from '../ui/Outstanding';
 import { Timeline } from '../ui/Timeline';
 import { todayISO } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
-import { ASSET_STATE_WORD } from '../lib/testing';
 
 function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
   return (
@@ -424,7 +423,6 @@ function TestingOverview({ projectId }: { projectId: string }) {
   const all = useStanding(projectId);
   if (tt.loading || all.loading) return <p className="sub">Loading…</p>;
 
-  const st = tt.standing;
   const empty = tt.tests.length === 0 && tt.assets.length === 0;
 
   return (
@@ -455,45 +453,10 @@ function TestingOverview({ projectId }: { projectId: string }) {
             expectedAt={all.expectedAt} plannedAt={all.plannedAt} />
           <Outstanding rows={all.standing.rows} projectId={projectId} />
 
-          {st.total > 0 && (
-            <div className="cx-answer">
-              <span className="cmp-h-n">TESTS AND FIXES</span>
-              <span className="cx-bar"><span className="cx-bar-in" style={{ width: `${Math.round((st.ran / st.total) * 100)}%` }} /></span>
-              {/* "have run", not "done" — the plan above says "done" for
-                  passed, and this bar said it for anything with a verdict. */}
-              <span className="cx-tally">
-                {st.ran} of {st.total} have run
-                {st.passed > 0 && <> · {st.passed} passed or fixed</>}
-              </span>
-            </div>
-          )}
-
-          {st.upcoming[0] && (
-            <button className="tw-next is-now" style={{ marginTop: 12 }}
-              onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(st.upcoming[0].id)}`)}>
-              <span className="tw-next-h">
-                {/* A fix said nothing about being one here, and read as a test. */}
-                <b>{st.upcoming[0].kind === 'fix' && <span className="tw-face">Fix</span>}{st.upcoming[0].kind === 'install' && <span className="tw-face">Install</span>}{st.upcoming[0].title}</b>
-                <span className="tw-when">NEXT UP</span>
-              </span>
-              <span className="sub">
-                {tt.assets.find(a => a.id === st.upcoming[0].assetId)?.name ?? 'The line'}
-                {st.upcoming[0].withWhom && ` · with ${st.upcoming[0].withWhom}`}
-              </span>
-            </button>
-          )}
-
-          {tt.assets.length > 0 && (
-            <div className="cx-assets" style={{ marginTop: 12 }}>
-              {tt.assets.map(a => (
-                <div key={a.id} className="cx-asset" style={{ cursor: 'default' }}>
-                  <span className="cx-asset-n">{a.name}</span>
-                  <span className="cx-asset-s">{ASSET_STATE_WORD[a.state]}{a.oem ? ` · ${a.oem}` : ''}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
+          {/* WHAT USED TO FOLLOW — a "tests and fixes" bar, a "next up" card and
+              the list of machines — each said again what the table above
+              already says, off a smaller part of the job. The machines live on
+              Install; the next test is the top of Testing. */}
         </>
       )}
     </section>
@@ -522,6 +485,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const nums = useMeasures(projectId);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
+  const stand = useStanding(projectId);
   const { actions } = pace;
   // Every line's own pack, counted. This is the roll-up: each number below was
   // typed by a line owner into their own pack, not entered again here.
@@ -568,24 +532,36 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className={'wrap pace is-' + lens}>
-      <Crumbs trail={[{ label: 'Projects', to: '/projects' }, { label: project.name }]} />
+      <Crumbs trail={lens === 'snags' && model === 'commissioning'
+        ? [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Evidence' }]
+        : [{ label: 'Projects', to: '/projects' }, { label: project.name }]} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">
             {model === 'commissioning' ? 'Commissioning' : 'Improvement initiative'}
             {project.lead && <> · led by <b>{project.lead}</b></>}
           </p>
-          <h1 className="pace-title">{project.name}</h1>
-          <p className="pace-lede">
-            {model === 'commissioning'
-              ? <>Plan a test, run it, record what you found, agree what happens next — and the next test
-                  comes out of that. The walk is here too, because filming is how a defect gets proved.</>
-              : <>{ppm.lines.length > 0 && <>{lineList} — </>}
-                  {headline
-                    ? <>{headline.name.toLowerCase()} against the target for the period, </>
-                    : <>the numbers you choose to keep, </>}
-                  every action in flight, and the snag walk of the line.</>}
-          </p>
+          <div className="pace-title-row">
+            <h1 className="pace-title">{project.name}</h1>
+            {/* Details — name, dates, the client, the stages — is set once and
+                left, so it is a gear beside the name rather than a tab beside
+                the lists that are worked every day. */}
+            {model === 'commissioning' && (
+              <button className="btn btn-ghost pace-gear" aria-label="Details" title="Details"
+                onClick={() => nav(`/project/${projectId}/setup`)}>⚙</button>
+            )}
+          </div>
+          {/* A commissioning job's page no longer explains itself: the verdict
+              card under this says what the job is, in its own numbers. */}
+          {model !== 'commissioning' && (
+            <p className="pace-lede">
+              {ppm.lines.length > 0 && <>{lineList} — </>}
+              {headline
+                ? <>{headline.name.toLowerCase()} against the target for the period, </>
+                : <>the numbers you choose to keep, </>}
+              every action in flight, and the snag walk of the line.
+            </p>
+          )}
         </div>
         <div className="pace-head-actions">
           {/* the way out reads as a way out — same '‹' the rest of the app uses */}
@@ -647,7 +623,13 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           board and no quarterly ppm — the rate is agreed once and either proven
           or not — so offering those lenses was the whole reason commissioning
           read as the tracker wearing a different hat. */}
-      <nav className="pace-lenses" aria-label="View">
+      {/* ONE ROW OF TABS on a commissioning job: Evidence is in the peers row
+          with the other lists, and the project's name in the trail is the way
+          back to this front page. */}
+      {model === 'commissioning' && lens === 'snags' && (
+        <Peers peers={projectPeers(projectId, 'evidence', stand.counts)} />
+      )}
+      {model !== 'commissioning' && <nav className="pace-lenses" aria-label="View">
         {shownLenses.map((l, i) => (
           <Fragment key={l.id}>
           {i === 1 && model === 'board' && (
@@ -666,7 +648,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           </button>
           </Fragment>
         ))}
-      </nav>
+      </nav>}
 
       {/* On a commissioning job these are drawn UNDER the verdict instead — see
           LateAlarms. Here, where there is no verdict card, they stay first. */}

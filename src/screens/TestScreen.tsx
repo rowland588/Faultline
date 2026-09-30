@@ -27,7 +27,7 @@ import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
-  WORDS, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
+  WORDS, hasRun, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -50,6 +50,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
      the dropdown cannot be a beat behind the Programs screen. */
   const { programs } = usePrograms(projectId);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const test = tt.tests.find(t => t.id === testId);
@@ -137,11 +138,49 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         </div>
       </header>
 
-      {/* SAY IT. One sentence fills this record's boxes — shown first, put in
-          only when you say so. */}
+      {/* SAY IT. One voice note fills this record's boxes AND adds what was
+          found — it used to be two mics, one here and one under "what we
+          found", for what is one breath on the floor. Shown first, put in only
+          when you say so. */}
       <SayIt test={test} tt={tt} />
 
-      {/* 1 · THE PLAN */}
+      {/* WHAT YOU DO WITH IT, at the top. The card and the re-test were at the
+          foot, under every block, on a page that is mostly read from the top
+          on a phone. */}
+      <div className="tw-acts">
+        <TrialCardButton test={test} project={projectId} />
+        {kind === 'test' ? (
+          <button className="btn" title="Carries the machine, the product and the expectation forward, so the plan writes itself."
+            onClick={() => void (async () => {
+              const id = await tt.planNextFrom(test);
+              nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+            })()}>
+            Plan the re-test
+          </button>
+        ) : kind === 'install' ? (
+          <button className="btn" onClick={() => nav(`/project/${projectId}/install`)}>
+            Back to Install — {machineOf(test)}
+          </button>
+        ) : forTest && (
+          <button className="btn" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
+            Back to the test — {forTest.title}
+          </button>
+        )}
+      </div>
+
+      {/* 1 · THE PLAN — folded to one line once it has run. After the day the
+          plan is read, not written; the full block pushed "what happened"
+          below the fold on a phone. One tap opens it, nothing in it is lost. */}
+      {hasRun(test) && !planOpen ? (
+        <button className="tw-block tw-fold" onClick={() => setPlanOpen(true)}>
+          <span className="tw-block-h">1 · {words.plan}</span>
+          <span className="tw-fold-t">
+            {[machineOf(test), test.plannedFor && nice(test.plannedFor), test.withWhom && `with ${test.withWhom}`, test.passesIf]
+              .filter(Boolean).join(' · ')}
+          </span>
+          <span className="tw-fold-go">Edit</span>
+        </button>
+      ) : (
       <section className="tw-block">
         <span className="tw-block-h">1 · {words.plan}</span>
         <label className="cw-f cw-f-wide"><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
@@ -206,6 +245,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             : 'Agreed before the day. It is what the result gets measured against.'}
         </p>
       </section>
+      )}
 
       {/* 2 · THE DAY */}
       <section className="tw-block">
@@ -264,33 +304,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       <Docs test={test} tt={tt} />
 
-      <TrialCardButton test={test} project={projectId} />
-
-      {/* THE LOOP IS A TEST'S. On a fix this button made a TEST planned "from"
-          the fix, copied the fix's problem into its pass criteria, and so
-          turned fixes into tests nobody asked for. A fix goes back to its test;
-          the re-test is planned from there. */}
-      {kind === 'test' ? (
-        <>
-          <button className="btn btn-primary tw-loop" onClick={() => void (async () => {
-            const id = await tt.planNextFrom(test);
-            nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
-          })()}>
-            Plan the re-test
-          </button>
-          <p className="sub tw-note" style={{ textAlign: 'center' }}>
-            Carries the machine, the product and the expectation forward, so the plan writes itself.
-          </p>
-        </>
-      ) : kind === 'install' ? (
-        <button className="btn tw-loop" onClick={() => nav(`/project/${projectId}/install`)}>
-          Back to Install — {machineOf(test)}
-        </button>
-      ) : forTest && (
-        <button className="btn tw-loop" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
-          Back to the test — {forTest.title}
-        </button>
-      )}
+      {/* THE LOOP IS A TEST'S — the re-test button, now at the top. On a fix
+          it once made a TEST planned "from" the fix and turned fixes into tests
+          nobody asked for; a fix goes back to its test, and the re-test is
+          planned from there. */}
 
       {/* DELETING SAYS WHICH THING IT IS DELETING. It said "Delete this test"
           on a fix, which is the kind of wrong word that makes somebody stop and
@@ -355,17 +372,11 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 function TrialCardButton({ test, project }: { test: Test; project: string }) {
   const words = WORDS[test.kind ?? 'test'];
   return (
-    <div className="tw-card-out">
-      <button className="btn btn-primary"
-        onClick={() => nav(`/project/${project}/testing/${encodeURIComponent(test.id)}/card`)}>
-        {words.one} card — read it, then send it
-      </button>
-      <p className="sub tw-note">
-        Everything on this screen on one page: what we planned, what happened, every observation
-        and what was decided about it, and what we do next with names and dates. You see it before
-        anybody else does.
-      </p>
-    </div>
+    <button className="btn btn-primary"
+      title="Everything on this screen on one page — you see it before anybody else does."
+      onClick={() => nav(`/project/${project}/testing/${encodeURIComponent(test.id)}/card`)}>
+      {words.one} card
+    </button>
   );
 }
 
@@ -473,22 +484,24 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
         <input placeholder={placeholder} value={what} onChange={e => setWhat(e.target.value)} />
         <button className="btn btn-sm" type="submit" disabled={!what.trim()}>Add</button>
       </form>
-      {kind === 'found' && <SayNotes test={test} tt={tt} />}
     </section>
   );
 }
 
 /* ================================ VOICE ==================================
  * Rowland: "on every part of the app I can talk the information into it."
- * Two doors on this page: one fills the record's own boxes, one adds what was
- * found. Both show what was heard first; nothing is written until "Put it in",
- * and each put-in can be undone. */
+ * One door on this page: it fills the record's own boxes and adds what was
+ * found, from the same note. What was heard is shown first; nothing is written
+ * until "Put it in", and the boxes it changed can be undone. */
 
 function SayIt({ test, tt }: { test: Test; tt: TT }) {
   const [heard, setHeard] = useState<VoiceResult | null>(null);
   const today = todayISO();
   const kind = test.kind ?? 'test';
   const changes = heard ? changesFor(test, heard.fields, tt.assets, today) : [];
+  /* Things found along the way, said in the same breath as the result — each
+     offered as a "what we found" row. A fix has none of its own. */
+  const notes = kind === 'fix' ? [] : (heard?.fields.notes as { what: string; owner?: string }[] | undefined) ?? [];
   return (
     <div className="vo-say">
       {!heard && (
@@ -498,39 +511,22 @@ function SayIt({ test, tt }: { test: Test; tt: TT }) {
       )}
       {heard && (
         <VoiceReview heard={heard}
-          rows={changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after }))}
+          rows={[
+            ...changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after })),
+            ...notes.map((n, i) => ({ key: `note:${i}`, label: 'Found', after: n.owner ? `${n.what} — ${n.owner}` : n.what })),
+          ]}
           onApply={keys => void (async () => {
             const picked = changes.filter(c => keys.includes(c.key));
-            const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
-            const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
-            await tt.patchTest(test.id, patch);
-            offerUndo(`Put in ${picked.length} thing${picked.length === 1 ? '' : 's'} you said`, () => tt.patchTest(test.id, before));
-            setHeard(null);
-          })()}
-          onLeftover={text => void tt.addItem(test.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
-          onDiscard={() => setHeard(null)} />
-      )}
-    </div>
-  );
-}
-
-function SayNotes({ test, tt }: { test: Test; tt: TT }) {
-  const [heard, setHeard] = useState<VoiceResult | null>(null);
-  const today = todayISO();
-  const notes = (heard?.fields.notes as { what: string; owner?: string }[] | undefined) ?? [];
-  return (
-    <div className="vo-say">
-      {!heard && (
-        <VoiceNote form="found" label="Say what you found" context={() => contextFor(tt.assets, tt.tests, today, test)} onHeard={setHeard} />
-      )}
-      {heard && (
-        <VoiceReview heard={heard} applyLabel="Add them"
-          rows={notes.map((n, i) => ({ key: String(i), label: `Note ${i + 1}`, after: n.owner ? `${n.what} — ${n.owner}` : n.what }))}
-          onApply={keys => void (async () => {
-            const picked = notes.filter((_, i) => keys.includes(String(i)));
+            if (picked.length) {
+              const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
+              const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
+              await tt.patchTest(test.id, patch);
+              offerUndo(`Put in ${picked.length} thing${picked.length === 1 ? '' : 's'} you said`, () => tt.patchTest(test.id, before));
+            }
             /* What was said is kept on the first note, word for word. */
-            for (const [i, n] of picked.entries()) {
-              await tt.addItem(test.id, 'found', n.what, { owner: n.owner, note: i === 0 ? `Said: “${heard.transcript}”` : undefined });
+            const found = notes.filter((_, i) => keys.includes(`note:${i}`));
+            for (const [i, n] of found.entries()) {
+              await tt.addItem(test.id, 'found', n.what, { owner: n.owner || undefined, note: i === 0 ? `Said: “${heard.transcript}”` : undefined });
             }
             setHeard(null);
           })()}
