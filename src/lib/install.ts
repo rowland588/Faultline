@@ -9,7 +9,7 @@
  * has got, what is next and whose it is, what stopped it — so the Install
  * screen and, later, the client report say the same sentence from one call.
  */
-import { INSTALL_STAGES, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
+import { INSTALL_STAGES, assetStateOf, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 
 /** done · a problem stopped it · ran and nobody has said · the day has gone · still ahead */
@@ -139,4 +139,45 @@ export function cleanStages(typed: readonly string[]): string[] | undefined {
   }
   if (out.length === INSTALL_STAGES.length && out.every((s, i) => s === INSTALL_STAGES[i])) return undefined;
   return out;
+}
+
+/* ------------------------------- THE GRID --------------------------------
+ *
+ * Rowland: "two, three, four, five assets all being installed — I need to
+ * capture each of the six steps within each of them, and I need to do it
+ * fast."
+ *
+ * One card per machine is one machine at a time. The grid is every machine
+ * at once: machines down the side, stages across the top in the job's own
+ * order, a cell where they cross. A cell is the step, or the gap where it
+ * has not been added. Matched by NAME, because "Dry run" on the wrapper and
+ * "Dry run" on the coder are the same stage of two installations. */
+export interface GridRow { asset?: Asset; cells: (StepView | undefined)[]; missing: number }
+export interface InstallGrid { columns: string[]; rows: GridRow[] }
+
+const stageKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+export function installGrid(assets: Asset[], tests: Test[], items: TestItem[], today: string,
+  usual: readonly string[]): InstallGrid {
+  const machines = live(assets).sort((a, b) => a.sort - b.sort);
+  const views = [...machines.map(a => installOf(a, tests, items, today)), installOf(undefined, tests, items, today)]
+    /* The line row only when the line has steps of its own; a machine that
+       was in and running before anybody kept steps has no installation left
+       to capture, and "add the usual stages to every machine" must not give
+       it six. */
+    .filter(v => v.total > 0 || (!!v.asset && !['installed', 'running'].includes(assetStateOf(v.asset))));
+
+  /* The job's stages first, in its order; then any other step name in use,
+     in the order it was first planned. */
+  const columns: string[] = [];
+  const seen = new Set<string>();
+  const add = (s: string) => { const k = stageKey(s); if (k && !seen.has(k)) { seen.add(k); columns.push(s.trim()); } };
+  usual.forEach(add);
+  views.flatMap(v => v.steps).sort((a, b) => a.step.sort - b.step.sort).forEach(s => add(s.step.title));
+
+  const rows = views.map(v => {
+    const cells = columns.map(c => v.steps.find(s => stageKey(s.step.title) === stageKey(c)));
+    return { asset: v.asset, cells, missing: usual.filter(u => !v.steps.some(s => stageKey(s.step.title) === stageKey(u))).length };
+  });
+  return { columns, rows };
 }

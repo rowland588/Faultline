@@ -22,6 +22,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProjects } from '../lib/useProjects';
 import { UsualStages } from '../ui/UsualStages';
+import { InstallGrid } from '../ui/InstallGrid';
 import { useTesting } from '../lib/useTesting';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, outcomeWord, plannedEnd, type Asset } from '../lib/testing';
 import { installOf, usualStages, type MachineInstall, type StepView } from '../lib/install';
@@ -91,6 +92,10 @@ export function InstallScreen({ projectId }: { projectId: string }) {
           I/O, dry run — and what is found doing them becomes a fix with a name on it.
         </p>
       )}
+
+      {/* EVERY MACHINE AT ONCE, for capturing fast; the cards under it are
+          each machine's story in full. */}
+      {machines.length > 0 && <InstallGrid tt={tt} projectId={projectId} usual={usual.stages} />}
 
       <div className="in-list">
         {machines.map(m => <MachineInstallCard key={m.asset?.id} m={m} tt={tt} projectId={projectId} usual={usual.stages} />)}

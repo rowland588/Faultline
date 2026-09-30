@@ -6691,3 +6691,66 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .in-usual-edit li { grid-template-columns: 18px 1fr auto auto auto; gap: 4px; }
   .in-usual-b { min-width: 36px; padding: 0 4px; }
 }
+
+/* ============================ THE INSTALL GRID ============================
+   Machines down the side, stages across the top. The first column sticks so a
+   phone can scroll the stages sideways and still see which machine it is. */
+.ig { margin-top: 16px; }
+.ig-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ig-hint { margin: 4px 0 8px; }
+.ig-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.ig-grid { border-collapse: separate; border-spacing: 0; width: 100%; min-width: max-content; }
+.ig-grid th, .ig-grid td { padding: 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ig-grid tbody tr:last-child th, .ig-grid tbody tr:last-child td { border-bottom: 0; }
+.ig-grid thead th { background: var(--surface); }
+.ig-grid tbody th, .ig-corner {
+  position: sticky; left: 0; z-index: 1; background: var(--surface);
+  text-align: left; border-right: 1px solid var(--line); min-width: 130px; max-width: 170px;
+}
+.ig-corner { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-left: 12px !important; }
+.ig-colh, .ig-rowh {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 1px;
+  width: 100%; min-height: 40px; padding: 4px 8px; border-radius: 8px;
+}
+.ig-colh { font-size: 11.5px; font-weight: 700; line-height: 1.2; color: var(--ink-2); justify-content: flex-end; min-width: 86px; max-width: 120px; white-space: normal; }
+.ig-rowh b { font-size: 13.5px; color: var(--ink); }
+.ig-rowh span { font-size: 11px; color: var(--muted); }
+.ig-colh:hover, .ig-rowh:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.ig-colh:focus-visible, .ig-rowh:focus-visible, .ig-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ig-cell {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; place-items: center;
+  width: 100%; min-width: 86px; min-height: 44px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--ink-2);
+}
+.ig-cell.is-empty { background: transparent; border: 1.5px dashed var(--line-2); color: var(--muted); font-size: 18px; font-weight: 500; }
+.ig-cell.is-done { background: var(--st-g); color: #fff; }
+.ig-cell.is-problem { background: var(--st-r); color: #fff; }
+.ig-cell.is-late { background: transparent; border: 2px solid var(--st-r); color: var(--danger); }
+.ig-cell.is-asking { background: var(--st-a); color: #fff; }
+.ig-cell.is-next.is-ahead { background: var(--blue-soft); border: 2px solid var(--st-w); color: var(--blue); }
+
+/* The quick-action sheet: a card mid-screen on a desk, a sheet from the
+   bottom on a phone, where the thumb already is. */
+.ig-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(23, 24, 26, 0.35); display: grid; place-items: center; padding: 16px; }
+.ig-sheet {
+  width: min(460px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+  background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift);
+  padding: 16px; display: grid; gap: 12px;
+}
+.ig-sheet-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.ig-sheet-h > span { display: flex; flex-direction: column; gap: 2px; }
+.ig-sheet-h b { font-size: 16px; }
+.ig-x { all: unset; cursor: pointer; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; font-size: 16px; color: var(--muted); }
+.ig-x:hover { background: var(--surface-2); }
+.ig-acts { display: grid; gap: 8px; }
+.ig-big { width: 100%; min-height: 48px; font-size: 15px; }
+.ig-bad { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+.ig-f { margin: 0; }
+.ig-f input { width: 100%; min-height: var(--tap, 44px); }
+.ig-who { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+@media (max-width: 720px) {
+  .ig-scrim { place-items: end center; padding: 0; }
+  .ig-sheet { width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .ig-grid tbody th, .ig-corner { min-width: 112px; max-width: 132px; }
+  .ig-cell, .ig-colh { min-width: 78px; }
+}

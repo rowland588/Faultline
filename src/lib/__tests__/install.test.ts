@@ -5,7 +5,7 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { cleanStages, installOf, usualStages } from '../install';
+import { cleanStages, installGrid, installOf, usualStages } from '../install';
 import { standing } from '../standing';
 import { INSTALL_STAGES, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
@@ -158,5 +158,42 @@ describe('the usual stages, the job’s own', () => {
   it('saves what was meant: trimmed, no blanks, no repeats — and the app’s six as nothing', () => {
     expect(cleanStages(['  Landed ', '', 'landed', 'Bolted   down'])).toEqual(['Landed', 'Bolted down']);
     expect(cleanStages([...INSTALL_STAGES])).toBeUndefined();
+  });
+});
+
+/* "Two, three, four, five assets all being installed — each of the six steps
+   within each of them, and fast." */
+describe('the grid: every machine at once', () => {
+  const coder: Asset = { ...packer, id: 'coder', name: 'Coder', sort: 99 };
+  const usual = ['Positioned and levelled', 'Air and power connected', 'Electrically complete', 'Dry run'];
+
+  it('puts the job’s stages across the top, in its order, then any other stage in use', () => {
+    const extra = step({ title: 'Guards fitted', assetId: coder.id, sort: 500 });
+    const g = installGrid([packer, coder], [...steps, extra], [], TODAY, usual);
+    expect(g.columns).toEqual([...usual, 'Guards fitted']);
+  });
+
+  it('gives every machine a row and a cell per stage, empty where it has not been added', () => {
+    const g = installGrid([packer, coder], steps, [], TODAY, usual);
+    expect(g.rows.map(r => r.asset?.name)).toEqual(['Case packer', 'Coder']);
+    expect(g.rows[0].cells.map(c => c?.tone ?? null)).toEqual(['done', 'done', 'late', 'ahead']);
+    expect(g.rows[1].cells.every(c => c === undefined)).toBe(true);
+    expect(g.rows.map(r => r.missing)).toEqual([0, 4]);
+  });
+
+  it('matches a stage by name whatever the case or spacing it was typed in', () => {
+    const s = step({ title: '  dry   RUN ', assetId: coder.id });
+    expect(installGrid([coder], [s], [], TODAY, usual).rows[0].cells[3]?.step.id).toBe(s.id);
+  });
+
+  it('leaves off a machine already in and running with no steps kept', () => {
+    const running: Asset = { ...coder, id: 'run', name: 'Wrapper', state: 'running', runningOn: '2026-09-10' };
+    expect(installGrid([packer, running], steps, [], TODAY, usual).rows.map(r => r.asset?.name)).toEqual(['Case packer']);
+  });
+
+  it('adds the line’s own row only when the line has steps', () => {
+    expect(installGrid([packer], steps, [], TODAY, usual).rows).toHaveLength(1);
+    const lineStep = step({ title: 'Mezzanine handrail' });
+    expect(installGrid([packer], [...steps, lineStep], [], TODAY, usual).rows.map(r => r.asset?.name ?? 'line')).toEqual(['Case packer', 'line']);
   });
 });
