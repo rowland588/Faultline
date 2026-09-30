@@ -42,6 +42,17 @@ describe('what comes back from the model', () => {
     expect(tidy('install', { transcript: 't', fields: { notes: [{ what: 'Regulator missing' }] } }).fields.notes).toEqual([{ what: 'Regulator missing', owner: '' }]);
     expect(tidy('fix', { transcript: 't', fields: { notes: [{ what: 'x' }] } }).fields).toEqual({});
   });
+  it('never offers the model an empty choice — Gemini refuses the whole schema', () => {
+    /* "enum[3]: cannot be empty" broke voice on every fix, test and install
+       step on the live app while the found-form kept working. */
+    const empties = (node: unknown, path: string): string[] => {
+      if (!node || typeof node !== 'object') return [];
+      const o = node as Record<string, unknown>;
+      const here = Array.isArray(o.enum) && o.enum.some(v => v === '') ? [path] : [];
+      return [...here, ...Object.entries(o).flatMap(([k, v]) => empties(v, `${path}.${k}`))];
+    };
+    for (const f of ['fix', 'found', 'test', 'install'] as const) expect(empties(schemaFor(f), f)).toEqual([]);
+  });
   it('asks for every form with a schema and the job’s own names', () => {
     for (const f of ['fix', 'found', 'test', 'install'] as const) expect(schemaFor(f).required).toEqual(['transcript', 'fields']);
     expect(promptFor('fix', { today: TODAY, machines: ['Denester'], suppliers: ['Brillopak'] })).toContain('Machines on this job: Denester.');

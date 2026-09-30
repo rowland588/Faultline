@@ -34,7 +34,7 @@ import type { MediaRef } from '../types';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from '../ui/Undo';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
-import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
+import { changesFor, contextFor, type Change, type VoiceResult } from '../lib/voice';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -51,6 +51,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const { programs } = usePrograms(projectId);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
+  /* The boxes a voice note just filled — they glow for a moment so you can
+     see where what you said went. */
+  const [filled, setFilled] = useState<string[]>([]);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const test = tt.tests.find(t => t.id === testId);
@@ -80,6 +83,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   }
 
   const save = (patch: Partial<Test>) => void tt.patchTest(test.id, patch);
+  const hl = (key: string) => (filled.includes(key) ? ' is-filled' : '');
   /* Which face this record is wearing — every label on the screen comes from
      lib/testing's WORDS rather than being decided here. */
   const kind = test.kind ?? 'test';
@@ -142,7 +146,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           found — it used to be two mics, one here and one under "what we
           found", for what is one breath on the floor. Shown first, put in only
           when you say so. */}
-      <SayIt test={test} tt={tt} />
+      <SayIt test={test} tt={tt} onFilled={keys => {
+        setFilled(keys);
+        if (keys.some(k => PLAN_KEYS.includes(k))) setPlanOpen(true);
+        window.setTimeout(() => setFilled([]), 4000);
+        /* To the first box it went into — on a phone it is often below. */
+        window.setTimeout(() => document.querySelector('.is-filled')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+      }} />
 
       {/* WHAT YOU DO WITH IT, at the top. The card and the re-test were at the
           foot, under every block, on a page that is mostly read from the top
@@ -183,7 +193,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       ) : (
       <section className="tw-block">
         <span className="tw-block-h">1 · {words.plan}</span>
-        <label className="cw-f cw-f-wide"><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
+        <label className={'cw-f cw-f-wide' + hl('title')}><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
           <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
         {/* WHICH TEST IT IS FOR. The one link a fix carries, and it can be
             changed — a fix put against the wrong test is moved, not re-made. */}
@@ -199,7 +209,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
                 : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select></label>
         )}
-        <label className="cw-f"><span>Machine</span>
+        <label className={'cw-f' + hl('machine')}><span>Machine</span>
           <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
             <option value="">The line itself</option>
             {tt.assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -220,12 +230,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             default and empty means one day — so nothing that already exists
             reads any differently, and the extra box only matters to somebody
             who needs it. */}
-        <label className="cw-f"><span>Planned from</span>
+        <label className={'cw-f' + hl('plannedFor')}><span>Planned from</span>
           <input type="date" value={test.plannedFor ?? ''} onChange={e => save({ plannedFor: e.target.value || undefined })} /></label>
         <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
           <input type="date" value={test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
             onChange={e => save({ plannedTo: e.target.value || undefined })} /></label>
-        <label className="cw-f"><span>{words.withWhom}</span>
+        <label className={'cw-f' + hl('withWhom')}><span>{words.withWhom}</span>
           <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
         {/* A fix does not run a product down the machine, so the box is not
             offered — it is not hidden state, there is simply nothing to say. */}
@@ -233,7 +243,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           <label className="cw-f"><span>Product we plan to run</span>
             <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
         )}
-        <label className="cw-f cw-f-wide"><span>{words.expectation}</span>
+        <label className={'cw-f cw-f-wide' + hl('problem')}><span>{words.expectation}</span>
           <DraftArea value={test.passesIf ?? ''}
             placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
               : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
@@ -251,16 +261,16 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       <section className="tw-block">
         <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
         {kind === 'test' && (
-          <label className="cw-f"><span>Product we ran</span>
+          <label className={'cw-f' + hl('product')}><span>Product we ran</span>
             <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
               onSave={v => save({ product: v.trim() || undefined })} /></label>
         )}
-        <label className="cw-f"><span>On the day</span>
+        <label className={'cw-f' + hl('ranOn')}><span>On the day</span>
           <input type="date" value={test.ranOn ?? ''} onChange={e => save({ ranOn: e.target.value || undefined })} /></label>
         <label className="cw-f" title="Leave blank when it took one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
           <input type="date" value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
             onChange={e => save({ ranTo: e.target.value || undefined })} /></label>
-        <label className="cw-f cw-f-wide"><span>{words.happened}</span>
+        <label className={'cw-f cw-f-wide' + hl('result')}><span>{words.happened}</span>
           <DraftArea rows={5} value={test.result ?? ''}
             placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
               : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
@@ -272,7 +282,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             because "I never get asked" was true, and the answer is what every
             list and both documents turn on. */}
         {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
-        <span className={'tw-seg' + (needsVerdict(test) ? ' is-asking' : '')}>
+        <span className={'tw-seg' + (needsVerdict(test) ? ' is-asking' : '') + hl('outcome')}>
           {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
             <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')}
               aria-pressed={test.outcome === o} onClick={() => setOutcome(o)}>
@@ -292,7 +302,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       {/* An install step does — installing is where the missing part and the
           wrong drawing turn up, and they are the day's story. */}
       {(kind !== 'fix' || itemsOf(tt.items, test.id, 'found').length > 0) && (
-        <Items kind="found" test={test} tt={tt} onView={setViewing}
+        <Items kind="found" test={test} tt={tt} onView={setViewing} glow={filled.includes('found')}
           heading={kind === 'install' ? '3 · What we found doing it' : '3 · What we found on the day'}
           placeholder="What did you see?"
           empty="Nothing written down yet. This is the part that matters most." />
@@ -438,9 +448,11 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
 /** What we found, or what we do next. One component, because they are the same
  *  shape and the only difference is the word at the top and whether a row can
  *  become the next test. */
-function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
+function Items({ kind, test, tt, heading, placeholder, empty, onView, glow }: {
   kind: ItemKind; test: Test; tt: TT; heading: string; placeholder: string; empty: string;
   onView: (m: MediaRef) => void;
+  /** A voice note just added to this list. */
+  glow?: boolean;
 }) {
   const [what, setWhat] = useState('');
   const rows = itemsOf(tt.items, test.id, kind);
@@ -458,7 +470,7 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
       })();
 
   return (
-    <section className={'tw-block is-' + kind}>
+    <section className={'tw-block is-' + kind + (glow ? ' is-filled' : '')}>
       <span className="tw-block-h">
         {heading}
         {rows.length > 0 && <span className="tw-block-n">{count}</span>}
@@ -494,44 +506,75 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView }: {
  * found, from the same note. What was heard is shown first; nothing is written
  * until "Put it in", and the boxes it changed can be undone. */
 
-function SayIt({ test, tt }: { test: Test; tt: TT }) {
-  const [heard, setHeard] = useState<VoiceResult | null>(null);
+/** The boxes that sit in "1 · What we planned" — filling one opens it. */
+const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
+
+/* STRAIGHT INTO THE BOXES. Rowland: "that's where I would expect what I say
+   to be entered ... make sure when I voice it goes into the appropriate
+   boxes — what was done, for example." What adds to the record goes in at
+   once and glows where it landed, with one Undo: the account of the work is
+   ADDED to the box, never over it; an empty box is filled; a verdict nobody
+   has given yet is given. What would REPLACE something already there — a
+   different day, a different name, a changed verdict — is still asked, so
+   nothing anybody wrote is lost to a mishearing. And an account that fitted
+   no box goes into the commentary box rather than being put to one side. */
+function SayIt({ test, tt, onFilled }: { test: Test; tt: TT; onFilled: (keys: string[]) => void }) {
+  const [asking, setAsking] = useState<{ heard: VoiceResult; changes: Change[] } | null>(null);
   const today = todayISO();
   const kind = test.kind ?? 'test';
-  const changes = heard ? changesFor(test, heard.fields, tt.assets, today) : [];
-  /* Things found along the way, said in the same breath as the result — each
-     offered as a "what we found" row. A fix has none of its own. */
-  const notes = kind === 'fix' ? [] : (heard?.fields.notes as { what: string; owner?: string }[] | undefined) ?? [];
+
+  const heard = (r: VoiceResult) => void (async () => {
+    const notes = kind === 'fix' ? [] : (r.fields.notes as { what: string; owner?: string }[] | undefined) ?? [];
+    /* What did not fit a box joins the account in the commentary box. */
+    const said = typeof r.fields.result === 'string' ? r.fields.result.trim() : '';
+    const account = [said, (r.leftover ?? '').trim()].filter(Boolean).join(' ');
+    let changes = changesFor(test, { ...r.fields, result: account }, tt.assets, today);
+    /* Said something, and none of it landed anywhere: it is the account. */
+    if (changes.length === 0 && notes.length === 0 && r.transcript?.trim()) {
+      changes = changesFor(test, { result: r.transcript.trim() }, tt.assets, today);
+    }
+    const adds = (c: Change) => c.key === 'result' || !c.before || (c.key === 'outcome' && test.outcome === 'planned')
+      || (c.key === 'ranOn' && !test.ranOn);
+    const now = changes.filter(adds);
+    const ask = changes.filter(c => !adds(c));
+
+    if (now.length) {
+      const patch = Object.assign({}, ...now.map(c => c.patch)) as Partial<Test>;
+      const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
+      await tt.patchTest(test.id, patch);
+      offerUndo(`Put in what you said — ${now.map(c => c.label.toLowerCase()).join(', ')}`, () => tt.patchTest(test.id, before));
+    }
+    /* Things found along the way are new rows — nothing to overwrite. */
+    for (const [i, n] of notes.entries()) {
+      await tt.addItem(test.id, 'found', n.what, { owner: n.owner || undefined, note: i === 0 ? `Said: “${r.transcript}”` : undefined });
+    }
+    onFilled([...now.map(c => c.key), ...(notes.length ? ['found'] : [])]);
+    if (ask.length) setAsking({ heard: r, changes: ask });
+  })();
+
   return (
     <div className="vo-say">
-      {!heard && (
+      {!asking && (
         <VoiceNote form={kind === 'fix' ? 'fix' : kind === 'install' ? 'install' : 'test'}
           label={kind === 'fix' ? 'Say the fix' : kind === 'install' ? 'Say how it went' : 'Say how the test went'}
-          context={() => contextFor(tt.assets, tt.tests, today, test)} onHeard={setHeard} />
+          context={() => contextFor(tt.assets, tt.tests, today, test)} onHeard={heard} />
       )}
-      {heard && (
-        <VoiceReview heard={heard}
-          rows={[
-            ...changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after })),
-            ...notes.map((n, i) => ({ key: `note:${i}`, label: 'Found', after: n.owner ? `${n.what} — ${n.owner}` : n.what })),
-          ]}
-          onApply={keys => void (async () => {
-            const picked = changes.filter(c => keys.includes(c.key));
-            if (picked.length) {
+      {asking && (
+        <>
+          <p className="vo-ask">This would change what is already there — tick what should change.</p>
+          <VoiceReview heard={asking.heard} applyLabel="Change it"
+            rows={asking.changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after }))}
+            onApply={keys => void (async () => {
+              const picked = asking.changes.filter(c => keys.includes(c.key));
               const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
               const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
               await tt.patchTest(test.id, patch);
-              offerUndo(`Put in ${picked.length} thing${picked.length === 1 ? '' : 's'} you said`, () => tt.patchTest(test.id, before));
-            }
-            /* What was said is kept on the first note, word for word. */
-            const found = notes.filter((_, i) => keys.includes(`note:${i}`));
-            for (const [i, n] of found.entries()) {
-              await tt.addItem(test.id, 'found', n.what, { owner: n.owner || undefined, note: i === 0 ? `Said: “${heard.transcript}”` : undefined });
-            }
-            setHeard(null);
-          })()}
-          onLeftover={text => void tt.addItem(test.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
-          onDiscard={() => setHeard(null)} />
+              offerUndo(`Changed ${picked.length} thing${picked.length === 1 ? '' : 's'}`, () => tt.patchTest(test.id, before));
+              onFilled(picked.map(c => c.key));
+              setAsking(null);
+            })()}
+            onDiscard={() => setAsking(null)} />
+        </>
       )}
     </div>
   );

@@ -70,7 +70,11 @@ const NOTES = (what: string) => ({
     required: ['what'],
   },
 });
-const OUTCOME = (words: string) => ({ type: 'STRING', enum: ['passed', 'failed', 'notRun', ''], description: words });
+/* No empty choice in the list: Gemini refuses a schema with one ("enum[3]:
+   cannot be empty") — which silently broke voice on every fix, test and
+   install step while the found-form, with no list, kept working. Not said
+   means the field is left out, which tidy() already treats as not said. */
+const OUTCOME = (words: string) => ({ type: 'STRING', enum: ['passed', 'failed', 'notRun'], description: words });
 
 /** Per form: what it is for, and the fields it has. Only fields the app
  *  already stores — nothing here invents a place to put something. */
@@ -83,8 +87,8 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
       problem: { type: 'STRING', description: 'The problem being fixed, in a sentence.' },
       withWhom: { type: 'STRING', description: 'Who is doing it — a supplier from the list, a person, or empty.' },
       plannedFor: DATE,
-      result: { type: 'STRING', description: 'What was done, only if the fix was said to have happened.' },
-      outcome: OUTCOME('passed = fixed; failed = tried and did not fix it; notRun = did not happen; empty = not said.'),
+      result: { type: 'STRING', description: 'WHAT WAS DONE — the spoken account of the work on this fix, in clean sentences: what was done, what was found doing it, where it has got to. Any commentary about the work goes here.' },
+      outcome: OUTCOME('passed = fixed; failed = tried and did not fix it; notRun = did not happen. Leave out when not said.'),
     },
   },
   found: {
@@ -96,19 +100,19 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
     fields: {
       product: { type: 'STRING', description: 'The product actually run, if said.' },
       ranOn: DATE,
-      result: { type: 'STRING', description: 'What happened, in the terms it was measured in — speeds, counts, times.' },
-      outcome: OUTCOME('passed; failed = ran and did not pass; notRun = did not happen; empty = not said.'),
+      result: { type: 'STRING', description: 'WHAT HAPPENED — the spoken account of the test in clean sentences, keeping every measurement said (speeds, counts, times). Any commentary about how it ran goes here.' },
+      outcome: OUTCOME('passed; failed = ran and did not pass; notRun = did not happen. Leave out when not said.'),
       notes: NOTES('A separate thing SEEN during the test — a fault, a leak, a part missing — one per note. Not the result itself; empty when none.'),
     },
   },
   install: {
     what: 'an INSTALL STEP on a machine: a stage of putting it in.',
     fields: {
-      result: { type: 'STRING', description: 'What was done, and anything that stopped it.' },
+      result: { type: 'STRING', description: 'WHAT WAS DONE — the spoken account of this install step in clean sentences: what was done, and anything that stopped it. Any commentary about the work goes here.' },
       ranOn: DATE,
       plannedFor: { type: 'STRING', description: 'ISO date it is now planned for, if a new day was said; empty otherwise.' },
       withWhom: { type: 'STRING', description: 'Who is doing it, if said.' },
-      outcome: OUTCOME('passed = done; failed = hit a problem; notRun = did not happen; empty = not said.'),
+      outcome: OUTCOME('passed = done; failed = hit a problem; notRun = did not happen. Leave out when not said.'),
       notes: NOTES('A separate thing FOUND doing it — a part missing, a wrong drawing, a snag — one per note. Not what was done; empty when none.'),
     },
   },
@@ -138,7 +142,7 @@ export function promptFor(form: VoiceForm, ctx: VoiceContext): string {
     list('Suppliers and people on this job', ctx.suppliers),
     ctx.on?.title ? `They are on the record "${ctx.on.title}"${ctx.on.machine ? ` for the ${ctx.on.machine}` : ''}.` : '',
     `Today is ${ctx.today}. Turn "today", "tomorrow", "Friday" and the like into ISO dates from today.`,
-    'Anything said that does not belong in this form goes in "leftover", word for word — never drop it.',
+    'An account of the work always belongs in "result". Only something that is clearly about a different record goes in "leftover", word for word — never drop it.',
     'British English. Do not add anything that was not said.',
   ].filter(Boolean).join('\n');
 }
