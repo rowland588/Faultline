@@ -13,16 +13,19 @@ import type { jsPDF } from 'jspdf';
 
 export type Doc = jsPDF;
 
-/* ---------- the app's palette, as the report uses it ---------- */
-export const INK = '#17181a', INK2 = '#4c4f52', MUTED = '#84878c', LINE = '#e4e1d8';
-export const ACCENT = '#1e6b4b', BRAND = '#1e6b4b', SURF2 = '#eae7de';
+/* ---------- the app's palette, as the report uses it ----------
+   The same colours as the screen (styles.css :root) — navy ink, cool white,
+   the landing's blue for the brand, deep navy for the dark frame, green only
+   for done. When one moves, the other moves with it. */
+export const INK = '#0f1a2e', INK2 = '#44526a', MUTED = '#7a879c', LINE = '#e1e8f2';
+export const ACCENT = '#1f5fd6', BRAND = '#1f63e0', SURF2 = '#e9eff7';
 export const GOLD = '#a97822';
 /** The dark frame a masthead or a verdict block is drawn on. */
-export const SHELL = '#1a1c1a', SHELL_2 = '#232624', SHELL_MUTED = '#9a9e98';
-export const OK = '#1e6b4b', WARN = '#a97822', DANGER = '#9b3227', BLUE = '#2b4e7e';
+export const SHELL = '#0d1f3c', SHELL_2 = '#14294d', SHELL_MUTED = '#9fb0cc';
+export const OK = '#1e6b4b', WARN = '#a97822', DANGER = '#9b3227', BLUE = '#4f46b8';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
-export const ACTUAL = '#2b4e7e', TARGET = '#a97822';
+export const ACTUAL = '#1f4fb8', TARGET = '#a97822';
 
 /** jsPDF's built-in fonts are WinAnsi-encoded, which has no arrows and no
  *  general Unicode: an impact typed as "44 → 49 ppm" came out as "44 !' 49 ppm"

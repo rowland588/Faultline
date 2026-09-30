@@ -68,7 +68,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     d.text('INSTALL, END OF THE DAY', M, y);
     setFont(d, 8, 'bold', INK);
     d.text(`${done} of ${total} steps done`, W - M, y, { align: 'right' });
-    d.setFillColor('#eae7de');
+    d.setFillColor('#e9eff7');
     d.roundedRect(M, y + 6, CW, 6, 3, 3, 'F');
     if (done) { d.setFillColor(OK); d.roundedRect(M, y + 6, Math.max(6, CW * done / total), 6, 3, 3, 'F'); }
     y += 28;

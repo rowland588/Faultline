@@ -42,8 +42,8 @@ export default defineConfig({
         display: 'standalone',
         /* No `orientation`: it locked the installed Android app to portrait,
            and floor tablets are held landscape for the lever tree. */
-        background_color: '#f3f8f7',
-        theme_color: '#eaf4f1',
+        background_color: '#f8fbff',
+        theme_color: '#f5f8fc',
         icons: [
           // PNG for reliable install on iOS (SVG icons are ignored there) and Android.
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

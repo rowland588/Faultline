@@ -905,7 +905,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
        cells — which is exactly how the spreadsheet is read. */
     r.covered.forEach((on, c) => {
       const cx = gridX + c * wkW;
-      d.setFillColor(on ? OK : '#eae7de');
+      d.setFillColor(on ? OK : '#e9eff7');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
 
@@ -942,7 +942,7 @@ export function installPlan(n: number, H: number, M: number): { sheets: number; 
   return { sheets, per: Math.ceil(n / sheets) };
 }
 const IN_TONE: Record<NonNullable<PaceReportData['installation']>['rows'][number]['steps'][number]['tone'], string> = {
-  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#eae7de',
+  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#e9eff7',
 };
 
 export const installHeight = (rows: number): number => IN_HEAD + rows * IN_ROW + IN_FOOT;

@@ -283,7 +283,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
 
 /* The decided-blue is the app's "planned/in progress" slate. Named here so the
    table reads without a colour lookup in the middle of it. */
-const BLUE_DECIDED = '#2b4e7e';
+const BLUE_DECIDED = '#4f46b8';
 
 function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: number): number {
   const cols = [0.5, 0.15, 0.15, 0.2];
