@@ -207,37 +207,10 @@ button { font-family: inherit; }
 /* ---------- app frame ---------- */
 .app { min-height: 100%; display: flex; flex-direction: column; }
 .app-main { flex: 1; }
-.topbar {
-  position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; gap: 4px;
-  padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top));
-  background: var(--chrome); border-bottom: 1px solid var(--chrome-line);
-}
-.brand-btn {
-  display: inline-flex; align-items: center; background: transparent; border: none;
-  padding: 6px; margin-right: 2px; cursor: pointer; border-radius: 9px;
-}
-.brand-btn:active { background: rgba(33, 55, 76, 0.08); }
-.ws-name {
-  display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
-  background: transparent; border: none; cursor: pointer;
-  color: var(--chrome-ink); font-size: 15.5px; font-weight: 800; padding: 8px 6px;
-}
-.ws-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(33, 55, 76, 0.10); }
-/* the always-visible way into sharing a workspace */
-.people-btn {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(33, 55, 76, 0.07); border: none; cursor: pointer;
-  font-size: 15px; line-height: 1; padding: 7px 10px; border-radius: 9px;
-}
-.people-btn:active { background: rgba(33, 55, 76, 0.14); }
-.ws-name-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-caret { color: var(--chrome-muted); font-size: 12px; }
-
 /* ---------- bottom tabs ---------- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--chrome); border-top: 1px solid var(--chrome-line);
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -2182,11 +2155,6 @@ button.st-pill { cursor: pointer; }
 .ps-asset-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
 .ps-asset-meta { font-size: 11px; color: var(--muted); }
 
-/* the way back to the project, in place of the brand mark */
-.brand-btn.pace-back {
-  width: auto; padding: 0 12px; font-size: 13px; font-weight: 700; color: var(--accent);
-  white-space: nowrap;
-}
 @media print { .ps-del, .ps-assets { display: none !important; } }
 
 .pace-upload-note { margin: 6px 0 0; font-size: 11.5px; color: var(--muted); }
@@ -3108,7 +3076,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   padding: 7px 10px; padding-top: calc(7px + env(safe-area-inset-top));
   background: var(--chrome); border-bottom: 1px solid var(--chrome-line);
 }
-.app .spine { top: 53px; padding-top: 7px; }   /* under the workspace top bar */
+/* (no workspace title bar above the spine any more — it sits at the top) */
 
 .spine-up {
   flex: none; display: inline-flex; align-items: center; gap: 3px;
@@ -6147,12 +6115,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   input, select, textarea { font-size: max(16px, 1em); }
   input[type="checkbox"] { width: 20px; height: 20px; }
   .tw-x, .tw-tick, .pset-x, .pset-swap, .pset-move, .chip-move, .cap-feed-del, .cw-link,
-  .spine-crumb, .brand-btn, .people-btn, .acct-btn {
+  .spine-crumb, .acct-btn {
     position: relative;
   }
   .tw-x::after, .tw-tick::after, .pset-x::after, .pset-swap::after, .pset-move::after,
   .chip-move::after, .cap-feed-del::after, .cw-link::after, .spine-crumb::after,
-  .brand-btn::after, .people-btn::after, .acct-btn::after {
+  .acct-btn::after {
     content: ''; position: absolute; inset: -10px;
   }
 }
@@ -6499,18 +6467,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pset-swatch.on { box-shadow: 0 0 0 2px var(--ink); }
 .pset-swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
-/* ON HOME THE BOARD TAKES THE SCREEN. Home is a 720px column — right for a
-   list of projects, and a letterbox for a calendar: three jobs' months in
-   340px pushed a week's worth of marks into one dot. The board breaks out
-   of the column to the window's width (a 16px gutter each side, 1320px at
-   most), centred on it; everything else on Home stays in its column. */
-@media (min-width: 760px) {
-  .home .jb {
-    width: min(1320px, calc(100vw - 32px));
-    margin-left: 50%;
-    transform: translateX(-50%);
-  }
-}
+/* HOME IS ONE WIDTH. It was a 720px column with the board breaking out of it
+   to the window's width, so the screen was drawn twice — a wide calendar over a
+   narrow list, two left edges. The column itself is now as wide as the board
+   needs (1320px, a 16px gutter each side on a smaller window) and the lists
+   under it fill that width as rows of cards rather than one long strip, so
+   everything on Home starts and ends in the same place. */
+.wrap.home { max-width: 1320px; }
+.home .home-proj-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); align-items: start; }
 .jb-focus-acts .btn { white-space: nowrap; }
 @media (max-width: 719px) {
   .jb-focus-h { align-items: flex-start; }

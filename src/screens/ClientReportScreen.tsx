@@ -9,6 +9,7 @@ import { usePrograms } from '../lib/usePrograms';
 import { useStandards } from '../ui/StandardsCard';
 import { clientReport, machinesSay, type ClientReport } from '../lib/clientReport';
 import { todayISO } from '../lib/weeks';
+import { pdfFileName } from '../lib/fileName';
 import { Crumbs } from '../ui/Crumbs';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
@@ -35,7 +36,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
   return doc;
 }
 
-const fileName = (r: ClientReport) => `${r.name} client report ${r.printed}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
+const fileName = (r: ClientReport) => pdfFileName(r.name, 'client report', todayISO());
 
 export function ClientReportScreen({ projectId }: { projectId: string }) {
   const { projects, loading } = useProjects();

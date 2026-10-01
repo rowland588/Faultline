@@ -38,11 +38,7 @@
  */
 import type { ID } from '../types';
 import { daysBetween, todayISO, weeksFrom, type Week } from './weeks';
-/* The date reader is shared with the materials paste, so the two cannot
-   disagree about what "09-Oct" means on the same spreadsheet. */
-import { readDate } from './materials';
 export { todayISO, monthSpans, weekIndexOf, type Week } from './weeks';
-export { readDate } from './materials';
 
 /** Where a program has got to. Three words, the same three on every line, so a
  *  grid of them means something at a glance and across projects. Never free
@@ -206,36 +202,6 @@ export function testedIn(p: Program, w: Week): boolean {
   return !isProved(p) && !!p.testOn && p.testOn >= w.start && p.testOn <= w.end;
 }
 
-/* ============================== pasting a list ==============================
- *
- * The same reader as the materials sheet, and for the same reason: this list
- * lives in a spreadsheet or an OEM's email and always will. It reads each ROW
- * rather than the column headings, because a real sheet has a merged title, a
- * heading row and columns that mean nothing here.
- *
- * The first cell with words in it is the program. Anything to its right that
- * looks like a date is when it is being tested; anything that reads as a word
- * for proved, or for on the machine, sets where it has got to. A row with words
- * and nothing else is still a program — "we need one and nobody has said when"
- * is the most common row on a list like this, and refusing it would make the
- * paste useless on exactly the list it is for.
- */
-
-export interface PastedProgram {
-  rowNo: number;
-  what: string;
-  runs?: string;
-  state: ProgramState;
-  testOn?: string;
-  provedOn?: string;
-  /** Why this row is not a program, in words somebody can act on. */
-  problem?: string;
-}
-
-const PROVED = /^(proved|validated|signed off|signed-off|approved|passed|done|yes|y|green|complete|completed)$/i;
-const ON_MACHINE = /^(on machine|on the machine|loaded|written|exists|in place|built|have it|untested|unproved|unvalidated)$/i;
-const NEEDED = /^(needed|not written|none|no|missing|to write|required|outstanding|tbc)$/i;
-
 /** WHICH MACHINE A NEW PROGRAM SHOULD START ON.
  *
  *  Rowland: "same one as — I press the node and it doesn't work."
@@ -285,46 +251,3 @@ export const ontoMachine = (rows: Program[], ids: string[], assetId: string): Pr
   const want = new Set(ids);
   return rows.filter(p => want.has(p.id)).map(p => ({ ...p, assetId }));
 };
-
-export function readProgramPaste(text: string, today = todayISO()): PastedProgram[] {
-  const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim() !== '');
-  if (!lines.length) return [];
-  const sep = lines[0].includes('\t') ? '\t' : ',';
-
-  return lines.map((line, i): PastedProgram => {
-    const cells = line.split(sep).map(c => c.trim());
-    const first = cells.findIndex(c => c !== '');
-    const what = first < 0 ? '' : cells[first];
-
-    let testOn: string | undefined;
-    let state: ProgramState | undefined;
-    let runs: string | undefined;
-
-    for (const cell of cells.slice(first + 1)) {
-      if (!cell) continue;
-      if (PROVED.test(cell)) { state = 'proved'; continue; }
-      if (ON_MACHINE.test(cell)) { state ??= 'onMachine'; continue; }
-      if (NEEDED.test(cell)) { state ??= 'needed'; continue; }
-      const d = readDate(cell, today);
-      if (d) { testOn ??= d; continue; }
-      /* Words that are not a date and not a state are what it runs — the
-         product column, which on a real sheet sits right beside the name. */
-      runs ??= cell;
-    }
-
-    /* A pasted "proved" with no date takes the day it was pasted. The sheet
-       knows it is proved and does not know when, exactly as an "In stock" row
-       knows a film is here without knowing the day it landed. */
-    const provedOn = state === 'proved' ? (testOn ?? today) : undefined;
-
-    return {
-      rowNo: i + 1,
-      what,
-      runs,
-      state: state ?? 'needed',
-      testOn: state === 'proved' ? undefined : testOn,
-      provedOn,
-      problem: what ? undefined : 'Nothing on this row',
-    };
-  });
-}

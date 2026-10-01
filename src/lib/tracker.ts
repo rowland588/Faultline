@@ -1,21 +1,13 @@
-/* THE SHAPES A WEEKLY TRACKER WORKBOOK ARRIVES IN.
+/* THE SHAPES THE BOARD, THE MEETING AND THE CLIENT REPORT DRAW FROM.
  *
  * Types only — nothing in this file runs, and nothing in it is anybody's data.
  *
- * It used to be `projectPaceData.ts`, and it held one factory's tracker
- * compiled into the bundle: 28 real actions with real people's names against
- * them, a Pareto of that factory's stop reasons, its roster, its four lines and
- * the exact Monday its weeks were counted from. Every copy of the app shipped
- * with it, and every new project inherited it as a "baseline" until somebody
- * uploaded over the top.
- *
- * That was fine while the app was one person's page and wrong the moment it was
- * a product. A project with no upload now shows nothing, and says so — which is
- * the truth, and is also the only answer that is right for a business whose
- * tracker this never was.
- *
- * The workbook itself is still the system of record: lib/paceWorkbook.ts reads
- * one by column heading and produces these. */
+ * These began as the columns of a weekly tracker workbook that was uploaded.
+ * Nothing is uploaded now: an action is a next step kept in the app (see
+ * lib/actions.ts), a Pareto is worked out from the timed stops (lib/paretoFromLog)
+ * and the people in the meeting are the people on the actions. The shapes stay
+ * because every screen that draws a board already reads them.
+ */
 
 export interface PaceAction {
   /** A stable id from an ID/UID column, when the sheet has one. Unlike Ref
@@ -48,19 +40,33 @@ export interface PaceAction {
   caseId?: string;
 }
 
-/** One row of a Pareto sheet: where the time went, ranked. */
-export interface ParetoRow {
+/** One row of a Pareto: where the time went, ranked. */
+export interface PaceParetoRow {
   category: string;
   mins: number;
   events: number;
   minPerEvent: number;
+  /** Long-stop, Frequency or Mixed — the sheet's own call, not the app's. */
   profile: string;
-  l2: number; l7: number; l10: number;
+  /** Minutes per measured line, keyed as the sheet heads them (L2, L7, L10). */
+  byLine: Record<string, number>;
 }
 
-/** The workbook's own Lists sheet — the roster a meeting is run through, plus
- *  the vocabulary its dropdowns use. Includes people with nothing open. */
-export interface PaceRosterData {
+export interface PaceParetoSheet {
+  rows: PaceParetoRow[];
+  totalMins: number;
+  totalStops: number;
+  /** "14 Jul – 6 Aug 2026", straight off the sheet's own subtitle. */
+  period?: string;
+  /** The sheet's own headline sentence, kept verbatim rather than rewritten. */
+  headline?: string;
+}
+
+/** The dropdown lists the workbook drives itself from. The owner column is the
+ *  roster the meeting is run through, and it INCLUDES people with no actions
+ *  this week — "nothing from you" is a real answer at a stand-up, and it can
+ *  only be given if the person is on screen to be asked. */
+export interface PaceRoster {
   owners: string[];
   statuses: string[];
   categories: string[];

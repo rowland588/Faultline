@@ -22,6 +22,7 @@ import { useMaterials } from '../lib/useMaterials';
 import { usePrograms } from '../lib/usePrograms';
 import { activeDays, dayOf, type DayLine } from '../lib/day';
 import { niceDay, todayISO } from '../lib/weeks';
+import { pdfFileName } from '../lib/fileName';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import type { MediaRef } from '../types';
 
@@ -69,8 +70,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       const shots = await shotsFor(day.media.map(shotKey).filter((k): k is string => !!k), 4);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
-      const slug = project.name.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Job';
-      const how = await deliverPdf(pdf, `${slug}-day-${date}.pdf`);
+      const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date));
       setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
     } catch (e) {
       console.error('Day report failed', e);

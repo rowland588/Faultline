@@ -27,7 +27,7 @@ import { useAssets } from '../lib/useTesting';
 import type { Asset } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
 import {
-  busiestMachine, daysOverdue, fillIn, isProved, monthSpans, readProgramPaste, standingOf,
+  busiestMachine, daysOverdue, fillIn, isProved, monthSpans, standingOf,
   STATE_WORD, stateOf, testedIn, todayISO,
   type Program, type Week,
 } from '../lib/programs';
@@ -436,99 +436,6 @@ function AddProgram({ state, lines, assets }: {
   );
 }
 
-/** The list, pasted straight out of wherever it lives — a spreadsheet, or the
- *  OEM's email. Reads each ROW, not the headings: the first cell with words in
- *  it is the program, a date to its right is when it is being tested, a word
- *  like "proved" or "on machine" sets where it has got to, and anything else
- *  wordy is taken as what it runs. */
-function PasteList({ state }: { state: ReturnType<typeof usePrograms> }) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
-  const [said, setSaid] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const rows = readProgramPaste(text);
-  const ok = rows.filter(r => !r.problem);
-  const bad = rows.filter(r => r.problem);
-
-  const doImport = async () => {
-    setBusy(true);
-    try {
-      await state.importRows(ok.map(r => ({
-        what: r.what, runs: r.runs, state: r.state, testOn: r.testOn, provedOn: r.provedOn,
-      })));
-      setSaid(`${ok.length} added.`);
-      setText('');
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <section className="ppm-editor">
-      <button className="ppm-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="ppm-toggle-ic" aria-hidden>{open ? '▾' : '▸'}</span>
-        Paste a list of programs
-        <span className="ppm-toggle-sub">headings and all · it takes what it recognises</span>
-      </button>
-
-      {open && (
-        <div className="ppm-body">
-          <label className="proj-field">
-            <span className="field-label">Paste it in</span>
-            <textarea className="text-input pn-text" rows={6} value={text}
-              placeholder={'P-104 perforation\tFinest Red 2kg\tproved\nP-121 perforation\tAll Rounder 2kg\t29-Sep\nP-141 perforation\tExpress Piper 1.25kg'}
-              onChange={e => { setText(e.target.value); setSaid(''); }} />
-          </label>
-
-          {said && <p className="chip-note is-good">{said}</p>}
-
-          {rows.length > 0 && (
-            <>
-              <div className="pn-verdict">
-                <span className={'pn-count' + (ok.length ? ' is-good' : '')}>{ok.length} to add</span>
-                {bad.length > 0 && (
-                  <span className="pn-count">{bad.length} {bad.length === 1 ? 'row' : 'rows'} skipped</span>
-                )}
-              </div>
-
-              {ok.length > 0 && (
-                <ul className="mt-preview">
-                  {ok.slice(0, 6).map(r => (
-                    <li key={r.rowNo}>
-                      <span className="mt-preview-what">{r.what}</span>
-                      <span className="mt-preview-when">
-                        {r.provedOn ? `proved ${nice(r.provedOn)}` : r.testOn ? `test ${nice(r.testOn)}` : STATE_WORD[r.state]}
-                      </span>
-                    </li>
-                  ))}
-                  {ok.length > 6 && <li className="sub">…and {ok.length - 6} more</li>}
-                </ul>
-              )}
-
-              {bad.length > 0 && (
-                <ul className="pn-problems">
-                  {bad.slice(0, 4).map(r => <li key={r.rowNo}>Row {r.rowNo} — {r.problem}</li>)}
-                  {bad.length > 4 && <li className="sub">…and {bad.length - 4} more like it</li>}
-                </ul>
-              )}
-
-              <div className="ppm-week-actions">
-                <button className="btn btn-primary" disabled={busy || !ok.length} onClick={() => void doImport()}>
-                  {busy ? 'Adding…' : `Add ${ok.length}`}
-                </button>
-                <button className="btn btn-ghost" onClick={() => { setText(''); setSaid(''); }}>Clear</button>
-                <span className="ppm-hint">
-                  A row with a name and nothing else is still a program — needing one, with no date agreed, is
-                  the commonest row on a list like this. Nothing is written until you press Add.
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
 /* ================================ the screen ================================ */
 
 export function ProgramsScreen({ projectId, embedded = false }: {
@@ -682,7 +589,6 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           what was in it — which meant the machine you had just picked was
           gone by the time you typed the second program for it. Rendered once,
           in one position, it keeps its state across that change. */}
-      <PasteList state={state} />
       <AddProgram state={state} lines={lines.lines} assets={assets} />
 
       {!embedded && (

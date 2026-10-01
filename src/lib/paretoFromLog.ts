@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { Observation } from '../types';
-import type { PaceParetoSheet, PaceParetoRow } from './paceWorkbook';
+import type { PaceParetoSheet, PaceParetoRow } from './tracker';
 import { listObservations, loadPaceLines, onDataChange, projectWorkspaceIds } from '../db';
 
 const DAY = 86_400_000;

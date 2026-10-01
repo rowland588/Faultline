@@ -21,8 +21,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  byUrgency, coveredIn, daysBetween, daysLate, isHere, mondayOf, readDate,
-  readMaterialPaste, stateOf, tally, todayISO, weeksFor,
+  byUrgency, coveredIn, daysBetween, daysLate, mondayOf,
+  stateOf, tally, todayISO, weeksFor,
   type Material,
 } from '../materials';
 
@@ -32,29 +32,6 @@ let n = 0;
 const mat = (m: Partial<Material> & { what: string }): Material => ({
   id: `m${++n}`, projectId: 'p1', sort: n * 10, createdAt: 0, updatedAt: 0, ...m,
 });
-
-/* The sheet, pasted the way Excel puts it on the clipboard: the merged title on
- * its own row, a heading row, then the films — "In stock" in one column or a
- * date in the next, and the week columns beyond them. */
-const SHEET = [
-  'LINE 2 NEW PERFORATION PLAN\t\t\t\t\t\t',
-  '\tPlanned for arrival\tWK3\tWK4\tWK5\tWK1\tWK2',
-  'TESC03167B Jacks Piper 2kg\t\t09-Oct\t\t\t\t',
-  'TESC03185B Jacks White 2kg\tIn stock\t\t\t\t\t',
-  'TESC03421B Express All Rounder 1.25kg\t\t05-Oct\t\t\t\t',
-  'TESC03368B Express Piper 1.25kg\t\t02-Oct\t\t\t\t',
-  'TESC03186B Express Finest All Rounder 1.75kg\tIn stock\t\t\t\t\t',
-  'BRAN00009 Nanna Tate 2kg\tIn stock\t\t\t\t\t',
-  'TESC03182C All Rounder 2kg\tIn stock\t\t\t\t\t',
-  'TESC03293C Baking Potatoes 2kg\t\t28-Sep\t\t\t\t',
-  'TESC03294B British Red 2kg\tIn stock\t\t\t\t\t',
-  'TESC03169A Finest All Rounder 2kg\tIn stock\t\t\t\t\t',
-  'TESC03163A Finest Red 2kg\t\t21-Sep\t\t\t\t',
-  'TESC03401A Finest Nemo 2kg\t\t21-Sep\t\t\t\t',
-  'TESC03295B King Edward 2kg\tIn stock\t\t\t\t\t',
-  'TESC03170B Piper 1.25kg\t\t21-Sep\t\t\t\t',
-  'TESC03290B Piper 2kg\tIn stock\t\t\t\t\t',
-].join('\n');
 
 describe('where a thing has got to', () => {
   it('tells apart here, late, waiting and nobody-has-said', () => {
@@ -164,97 +141,6 @@ describe('the green', () => {
   it('is nowhere for something already late — the date passed and it is not here', () => {
     const m = mat({ what: 'Finest Red 2kg', due: '2026-09-18' });
     expect(weeks.map(w => coveredIn(m, w, TODAY)).some(Boolean)).toBe(false);
-  });
-});
-
-describe('reading a date off a sheet', () => {
-  it('takes what a British spreadsheet actually writes', () => {
-    expect(readDate('09-Oct', TODAY)).toBe('2026-10-09');
-    expect(readDate('21-Sep', TODAY)).toBe('2026-09-21');
-    expect(readDate('21 Sep', TODAY)).toBe('2026-09-21');
-    expect(readDate('Oct 9', TODAY)).toBe('2026-10-09');
-    expect(readDate('28/09/2026', TODAY)).toBe('2026-09-28');
-    expect(readDate('2026-10-05', TODAY)).toBe('2026-10-05');
-  });
-
-  it('rolls a bare day-and-month forward rather than reading it as overdue', () => {
-    // a plan pasted in December, for January
-    expect(readDate('09-Jan', '2026-12-15')).toBe('2027-01-09');
-    // but a date days behind is just that — a delivery that has slipped
-    expect(readDate('09-Dec', '2026-12-15')).toBe('2026-12-09');
-  });
-
-  it('says nothing rather than guessing', () => {
-    expect(readDate('WK3', TODAY)).toBeUndefined();
-    expect(readDate('soon', TODAY)).toBeUndefined();
-    expect(readDate('', TODAY)).toBeUndefined();
-  });
-});
-
-describe('pasting the perforation plan', () => {
-  const rows = readMaterialPaste(SHEET, TODAY);
-  const ok = rows.filter(r => !r.problem);
-
-  it('takes all fifteen films and nothing else', () => {
-    expect(ok).toHaveLength(15);
-    expect(ok[0].what).toBe('TESC03167B Jacks Piper 2kg');
-    expect(ok[14].what).toBe('TESC03290B Piper 2kg');
-  });
-
-  it('leaves the title and the headings out, because they are not materials', () => {
-    const skipped = rows.filter(r => r.problem).map(r => r.what);
-    expect(skipped).toContain('LINE 2 NEW PERFORATION PLAN');
-    expect(skipped).toContain('Planned for arrival');
-  });
-
-  it('reads "In stock" as here, with no landing date invented for it', () => {
-    const white = ok.find(r => r.what.includes('Jacks White'))!;
-    expect(white.here).toBe(true);
-    expect(white.due).toBeUndefined();
-    expect(ok.filter(r => r.here)).toHaveLength(8);
-  });
-
-  it('reads the arrival dates', () => {
-    const due = Object.fromEntries(ok.filter(r => r.due).map(r => [r.what.slice(0, 10), r.due]));
-    expect(due).toEqual({
-      TESC03167B: '2026-10-09',
-      TESC03421B: '2026-10-05',
-      TESC03368B: '2026-10-02',
-      TESC03293C: '2026-09-28',
-      TESC03163A: '2026-09-21',
-      TESC03401A: '2026-09-21',
-      TESC03170B: '2026-09-21',
-    });
-  });
-
-  it('ignores the week columns to the right of the useful ones', () => {
-    // WK3/WK4/WK5 are neither a date nor "in stock", and must not become one
-    expect(ok.every(r => r.due === undefined || /^\d{4}-\d{2}-\d{2}$/.test(r.due))).toBe(true);
-  });
-
-  it('gives a plan that reads correctly once it is in', () => {
-    const imported = ok.map(r => mat({ what: r.what, due: r.due, here: r.here }));
-    const t = tally(imported, TODAY);
-    expect(t.total).toBe(15);
-    expect(t.here, 'the eight in stock').toBe(8);
-    expect(t.waiting, 'the seven still coming').toBe(7);
-    expect(t.late, 'nothing is late — the soonest three are due today').toBe(0);
-    expect(t.nextDue).toBe('2026-09-21');
-    expect(imported.filter(isHere)).toHaveLength(8);
-  });
-
-  it('takes a comma-separated paste too', () => {
-    const csv = 'Finest Red 2kg,,21-Sep\nJacks White 2kg,In stock';
-    const read = readMaterialPaste(csv, TODAY).filter(r => !r.problem);
-    expect(read.map(r => [r.what, r.due ?? 'in'])).toEqual([
-      ['Finest Red 2kg', '2026-09-21'],
-      ['Jacks White 2kg', 'in'],
-    ]);
-  });
-
-  it('is fine with an empty paste', () => {
-    expect(readMaterialPaste('', TODAY)).toEqual([]);
-    expect(readMaterialPaste('   \n  ', TODAY)).toEqual([]);
   });
 });
 

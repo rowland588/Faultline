@@ -14,6 +14,8 @@ import type { Project } from '../types';
 import { deleteStandard, framesForProject, getProject, putBlob, putStandard } from '../db';
 import { nav } from '../state/useRoute';
 import { uid, now } from '../lib/ids';
+import { pdfFileName } from '../lib/fileName';
+import { todayISO } from '../lib/weeks';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
@@ -28,7 +30,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 const printedToday = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const pdfName = (list: Standard[], project: Project) =>
-  `${(list.length === 1 ? `${project.name} line standard - ${list[0].product}` : `${project.name} line standard`).replace(/[\\/:*?"<>|—–]+/g, ' - ').replace(/\s+/g, ' ').trim()}.pdf`;
+  pdfFileName(project.name, list.length === 1 ? `line standard ${list[0].product}` : 'line standard', todayISO());
 
 async function standardsPdf(list: Standard[], project: Project) {
   const { loadPdfLib } = await import('../lib/savePdf');

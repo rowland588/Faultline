@@ -8,9 +8,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  busiestMachine, byUrgency, daysOverdue, fillIn, isProved, ontoMachine, readProgramPaste, standingOf,
+  busiestMachine, byUrgency, daysOverdue, fillIn, isProved, ontoMachine, standingOf,
   stateOf, tally, testedIn, weeksFor,
-  type Program, type ProgramState,
+  type Program,
 } from '../programs';
 
 const TODAY = '2026-09-21';   // a Monday
@@ -180,85 +180,6 @@ describe('the grid', () => {
   it('draws no ring on something already proved', () => {
     const p = prog({ state: 'proved', provedOn: '2026-09-22', testOn: '2026-10-06' });
     expect(weeks.some(w => testedIn(p, w))).toBe(false);
-  });
-});
-
-describe('pasting a list', () => {
-  it('reads name, product and a date off one row', () => {
-    const [r] = readProgramPaste('P-121 perforation\tAll Rounder 2kg\t29-Sep', TODAY);
-    expect(r.what).toBe('P-121 perforation');
-    expect(r.runs).toBe('All Rounder 2kg');
-    expect(r.testOn).toBe('2026-09-29');
-    expect(r.state).toBe('needed');
-  });
-
-  it('takes a word for proved as proved, and dates it', () => {
-    const [r] = readProgramPaste('P-104\tFinest Red 2kg\tproved', TODAY);
-    expect(r.state).toBe('proved');
-    expect(r.provedOn).toBe(TODAY);     // the sheet knows it is; it does not know when
-    expect(r.testOn).toBeUndefined();
-  });
-
-  it('uses the date on the row when a proved row has one', () => {
-    const [r] = readProgramPaste('P-104\tvalidated\t14-Sep', TODAY);
-    expect(r.provedOn).toBe('2026-09-14');
-  });
-
-  it('reads the words a real sheet uses for on the machine', () => {
-    for (const word of ['on machine', 'loaded', 'written', 'untested']) {
-      expect(readProgramPaste(`P-1\t${word}`, TODAY)[0].state).toBe('onMachine');
-    }
-  });
-
-  /* The commonest row on a list like this is a name and nothing else. A paste
-     that refused them would be useless on exactly the list it is for. */
-  it('takes a bare name as a program that is needed, with no date', () => {
-    const [r] = readProgramPaste('P-141 perforation', TODAY);
-    expect(r.problem).toBeUndefined();
-    expect(r.state).toBe('needed');
-    expect(r.testOn).toBeUndefined();
-  });
-
-  /* Two different kinds of empty, handled differently on purpose. A blank
-     line is nothing at all and is dropped before it is counted — numbering the
-     gaps in a pasted block would make every row number in the preview wrong.
-     A row of separators with no words in it IS a row, so it is reported rather
-     than silently swallowed. */
-  it('drops a blank line without numbering it', () => {
-    const rows = readProgramPaste('P-1\tproved\n   \nP-2\tloaded', TODAY);
-    expect(rows.map(r => r.what)).toEqual(['P-1', 'P-2']);
-    expect(rows.map(r => r.rowNo)).toEqual([1, 2]);
-  });
-
-  it('reports a row that has separators but no words', () => {
-    const rows = readProgramPaste(',,\nP-1,proved', TODAY);
-    expect(rows[0].problem).toBe('Nothing on this row');
-    expect(rows[1].problem).toBeUndefined();
-  });
-
-  it('reads commas when there are no tabs', () => {
-    const [r] = readProgramPaste('P-1,Finest Red 2kg,29-Sep', TODAY);
-    expect(r.what).toBe('P-1');
-    expect(r.runs).toBe('Finest Red 2kg');
-    expect(r.testOn).toBe('2026-09-29');
-  });
-
-  it('reads a real-looking block end to end', () => {
-    const rows = readProgramPaste([
-      'PROGRAM\tPRODUCT\tSTATUS',                       // the heading row
-      'P-104 perforation\tFinest Red 2kg\tproved',
-      'P-121 perforation\tAll Rounder 2kg\t29-Sep',
-      'P-141 perforation\tExpress Piper 1.25kg',
-    ].join('\n'), TODAY);
-
-    expect(rows).toHaveLength(4);
-    // The heading row is a program called PROGRAM with a product called
-    // PRODUCT — it cannot be told apart from a real row by reading alone, and
-    // the preview shows it so somebody can delete it before pressing Add.
-    expect(rows[0].what).toBe('PROGRAM');
-    const states = rows.slice(1).map(r => r.state as ProgramState);
-    expect(states).toEqual(['proved', 'needed', 'needed']);
-    expect(rows[2].testOn).toBe('2026-09-29');
   });
 });
 

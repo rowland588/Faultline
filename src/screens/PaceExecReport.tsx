@@ -24,6 +24,7 @@ import { IMPACT_WORD } from '../lib/impact';
 import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useProject } from '../lib/useProjects';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
+import { pdfFileName } from '../lib/fileName';
 import { TreeStatic, useTreeNodes } from './TreeStatic';
 import { Sweep } from '../ui/Sweep';
 import type { TreeNodeRow } from '../db';
@@ -862,8 +863,7 @@ export function PaceExecReport() {
       // which project it is — "report.pdf" from three projects is three files
       // nobody can tell apart.
       const name = line ? `${project?.name ?? 'Project'} ${line.name}` : (project?.name ?? 'Project');
-      const slug = name.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Project';
-      const how = await deliverPdf(pdf, `${slug}-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      const how = await deliverPdf(pdf, pdfFileName(name, 'client report', todayISO()));
       // Downloading is invisible on a phone, and "opened in a tab" needs saying
       // or it looks like nothing happened at all.
       if (how === 'opened') setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });

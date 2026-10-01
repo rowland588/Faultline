@@ -29,6 +29,7 @@ import { foundWords, wordsOf } from '../lib/testing';
 import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import { todayISO } from '../lib/standing';
+import { pdfFileName } from '../lib/fileName';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -162,8 +163,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       const shots = await shotsFor(media.map(shotKey).filter((k): k is string => !!k));
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
-      const slug = `${project.name} ${c.title}`.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Test';
-      const how = await deliverPdf(pdf, `${slug}-${when ?? todayISO()}.pdf`);
+      const how = await deliverPdf(pdf, pdfFileName(project.name, `${c.title} trial card`, when ?? todayISO()));
       setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
     } catch (e) {
       console.error('Card failed', e);

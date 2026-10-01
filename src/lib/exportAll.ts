@@ -37,7 +37,7 @@ export async function exportEverything(): Promise<{ how: 'shared' | 'downloaded'
 
   const today = todayISO();
   const bytes = writeXlsx(exportSheets(data, walks, today));
-  const name = `Faultline export ${today}.xlsx`;
+  const name = `Faultline-export-${today}.xlsx`;
   const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   return { how: await deliverBlob(blob, name), name };
 }

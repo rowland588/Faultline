@@ -14,7 +14,7 @@
  * nothing here is allowed to present a difference as progress — a re-saved
  * file would otherwise read as a week's improvement.
  */
-import type { PaceParetoSheet, PaceParetoRow } from './paceWorkbook';
+import type { PaceParetoSheet, PaceParetoRow } from './tracker';
 
 /** Under this, a change is noise rather than news. A Pareto category moving by
  *  a couple of per cent between two four-week windows is the ordinary breathing

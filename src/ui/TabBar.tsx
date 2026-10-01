@@ -18,9 +18,11 @@ const SNAG_FAMILY = new Set(['snags', 'segment', 'asset', 'snaglist', 'walk', 'l
 /** The floor's modes. Capture logs losses; Analyse and Present read that data;
  *  Snags is the video-walk fault list — a peer activity, usable on its own.
  *  Fixed to the bottom, thumb-reachable. */
-export function TabBar({ active, wsId }: { active: string; wsId: ID }) {
+export function TabBar({ active, wsId, onMore }: { active: string; wsId: ID; onMore: () => void }) {
   // Present is the fullscreen mode of Analyse now; the tab slot belongs to the meeting.
-  const activeTab = SNAG_FAMILY.has(active) ? 'snags' : active === 'present' ? 'meeting' : active;
+  // The log, the people and the settings are reached from More, so it stays lit on them.
+  const activeTab = SNAG_FAMILY.has(active) ? 'snags' : active === 'present' ? 'meeting'
+    : active === 'log' || active === 'people' || active === 'settings' ? 'more' : active;
   return (
     <nav className="tabbar">
       {TABS.map(t => (
@@ -35,6 +37,12 @@ export function TabBar({ active, wsId }: { active: string; wsId: ID }) {
           <span className="tab-lbl">{t.label}</span>
         </button>
       ))}
+      {/* The quieter destinations — the log, who is on the line, its settings. */}
+      <button className={'tab' + (activeTab === 'more' ? ' on' : '')} data-tour="tab-more"
+        aria-haspopup="dialog" onClick={onMore}>
+        <span className="tab-ic" aria-hidden>⋯</span>
+        <span className="tab-lbl">More</span>
+      </button>
     </nav>
   );
 }

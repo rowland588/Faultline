@@ -29,10 +29,6 @@ export interface ProgramsState {
   /** It didn't, or it was signed off in error. Back to on the machine — the
    *  test record keeps why, so the grid does not need a fourth colour. */
   markUnproved: (id: string) => Promise<void>;
-  /** A pasted list, written in one go. */
-  importRows: (rows: {
-    what: string; runs?: string; state: ProgramState; testOn?: string; provedOn?: string;
-  }[]) => Promise<void>;
   /** EVERY ONE OF THESE, ON THAT MACHINE. Rowland: "all the current existing
    *  programs set to the machine called pick and place."
    *
@@ -102,22 +98,12 @@ export function usePrograms(projectId: string): ProgramsState {
     await putProgram({ ...p, state: 'onMachine', provedOn: undefined });
   }, [rows]);
 
-  const importRows = useCallback(async (incoming: Parameters<ProgramsState['importRows']>[0]) => {
-    const t = now();
-    let sort = nextSort();
-    await putPrograms(incoming.map(r => ({
-      id: uid(), projectId, what: r.what, runs: r.runs,
-      state: r.state, testOn: r.testOn, provedOn: r.provedOn,
-      sort: (sort += 10), createdAt: t, updatedAt: t,
-    })));
-  }, [projectId, nextSort]);
-
   const today = todayISO();
   return {
     loading,
     programs: byUrgency(rows, today),
     tally: tally(rows, today),
     weeks: weeksFor(rows, today),
-    add, save, remove, markProved, markUnproved, importRows, putAllOn,
+    add, save, remove, markProved, markUnproved, putAllOn,
   };
 }

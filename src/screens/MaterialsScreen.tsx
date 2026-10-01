@@ -25,7 +25,7 @@ import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMaterials } from '../lib/useMaterials';
 import {
-  coveredIn, daysLate, isHere, landsIn, readMaterialPaste, stateOf, todayISO,
+  coveredIn, daysLate, isHere, landsIn, stateOf, todayISO,
   type Material, type Week,
 } from '../lib/materials';
 
@@ -221,96 +221,6 @@ function AddMaterial({ state, lines }: {
   );
 }
 
-/** The plan, pasted straight out of the spreadsheet it lives in.
- *
- *  It reads each ROW rather than the column headings, because the sheet has a
- *  merged title, a heading row and a dozen week columns that mean nothing here.
- *  The first cell with words in it is the thing; somewhere to its right is
- *  either a date or the words "in stock". A row with neither is not a material,
- *  which is how the title and the headings take themselves out. */
-function PastePlan({ state }: { state: ReturnType<typeof useMaterials> }) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
-  const [said, setSaid] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const rows = readMaterialPaste(text);
-  const ok = rows.filter(r => !r.problem);
-  const bad = rows.filter(r => r.problem);
-
-  const doImport = async () => {
-    setBusy(true);
-    try {
-      await state.importRows(ok.map(r => ({ what: r.what, due: r.due, here: r.here })));
-      setSaid(`${ok.length} added.`);
-      setText('');
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <section className="ppm-editor">
-      <button className="ppm-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="ppm-toggle-ic" aria-hidden>{open ? '▾' : '▸'}</span>
-        Paste the plan from a spreadsheet
-        <span className="ppm-toggle-sub">title row and all · it takes what it recognises</span>
-      </button>
-
-      {open && (
-        <div className="ppm-body">
-          <label className="proj-field">
-            <span className="field-label">Paste it in</span>
-            <textarea className="text-input pn-text" rows={6} value={text}
-              placeholder={'TESC03163A Finest Red 2kg\t\t21-Sep\nTESC03185B Jacks White 2kg\tIn stock'}
-              onChange={e => { setText(e.target.value); setSaid(''); }} />
-          </label>
-
-          {said && <p className="chip-note is-good">{said}</p>}
-
-          {rows.length > 0 && (
-            <>
-              <div className="pn-verdict">
-                <span className={'pn-count' + (ok.length ? ' is-good' : '')}>{ok.length} to add</span>
-                {bad.length > 0 && (
-                  <span className="pn-count">{bad.length} {bad.length === 1 ? 'row' : 'rows'} skipped</span>
-                )}
-              </div>
-
-              {ok.length > 0 && (
-                <ul className="mt-preview">
-                  {ok.slice(0, 6).map(r => (
-                    <li key={r.rowNo}>
-                      <span className="mt-preview-what">{r.what}</span>
-                      <span className="mt-preview-when">{r.here ? 'in stock' : nice(r.due)}</span>
-                    </li>
-                  ))}
-                  {ok.length > 6 && <li className="sub">…and {ok.length - 6} more</li>}
-                </ul>
-              )}
-
-              {bad.length > 0 && (
-                <ul className="pn-problems">
-                  {bad.slice(0, 4).map(r => <li key={r.rowNo}>Row {r.rowNo} — {r.problem}</li>)}
-                  {bad.length > 4 && <li className="sub">…and {bad.length - 4} more like it</li>}
-                </ul>
-              )}
-
-              <div className="ppm-week-actions">
-                <button className="btn btn-primary" disabled={busy || !ok.length} onClick={() => void doImport()}>
-                  {busy ? 'Adding…' : `Add ${ok.length}`}
-                </button>
-                <button className="btn btn-ghost" onClick={() => { setText(''); setSaid(''); }}>Clear</button>
-                <span className="ppm-hint">
-                  The rows it skips are the title and the headings — nothing is written until you press Add.
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
 /* ================================ the screen ================================ */
 
 export function MaterialsScreen({ projectId }: { projectId: string }) {
@@ -379,10 +289,9 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
             <p className="sub">
               What this job needs before it can run properly, when each thing is due, and whether it has
               turned up — the same list you keep in the plan, except it works out what is late. Add what
-              you are waiting on, or paste the plan straight out of the spreadsheet it already lives in.
+              you are waiting on.
             </p>
           </div>
-          <PastePlan state={state} />
           <AddMaterial state={state} lines={lines.lines} />
         </>
       ) : (
@@ -434,7 +343,6 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
             </div>
           </section>
 
-          <PastePlan state={state} />
           <AddMaterial state={state} lines={lines.lines} />
         </>
       )}

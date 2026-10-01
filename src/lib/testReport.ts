@@ -20,7 +20,8 @@ import {
   fit, san, setFont, type Doc,
 } from './reportKit';
 import { isOpen, itemsOf, live, standing, outcomeWord } from './testing';
-import { niceDay } from './weeks';
+import { niceDay, todayISO } from './weeks';
+import { pdfFileName } from './fileName';
 import type { Asset, Test, TestItem } from './testing';
 
 const MAX_EDGE = 1200;
@@ -326,6 +327,5 @@ export async function saveTestReport(input: {
   const { jsPDF } = await loadPdfLib();
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
   drawTestReport(pdf, data);
-  const slug = input.title.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'Project';
-  return deliverPdf(pdf, `${slug}-testing-${new Date().toISOString().slice(0, 10)}.pdf`);
+  return deliverPdf(pdf, pdfFileName(input.title, 'testing', todayISO()));
 }

@@ -1,8 +1,9 @@
-/* The in-workspace frame: title bar on top, the active screen in the middle,
- * the mode tabs fixed at the bottom. Present and the snag walkthrough take the
- * whole screen. */
+/* The in-workspace frame: the breadcrumb on top, the active screen in the
+ * middle, the mode tabs fixed at the bottom. Present and the snag walkthrough
+ * take the whole screen. */
+import { useState } from 'react';
 import type { Route } from '../state/useRoute';
-import { TopBar } from '../ui/TopBar';
+import { WorkspaceMenu } from '../ui/WorkspaceMenu';
 import { TabBar } from '../ui/TabBar';
 import { Crumbs } from '../ui/Crumbs';
 import { useWsChain, useDeepCrumbs, wsTrail } from '../lib/useTrail';
@@ -32,6 +33,7 @@ export function AppShell({ route }: { route: Route }) {
   const { workspace } = useWorkspace();
   const chain = useWsChain(route.wsId);
   const deep = useDeepCrumbs(route);
+  const [more, setMore] = useState(false);
 
   // The meeting, Present, the snag walkthrough and the printable report are
   // calm, chrome-free full-bleed surfaces.
@@ -42,7 +44,6 @@ export function AppShell({ route }: { route: Route }) {
 
   return (
     <div className="app">
-      <TopBar />
       <Crumbs trail={wsTrail(route, chain, workspace.name, deep)} />
       <main className="app-main">
         {screen === 'capture' && <CaptureScreen />}
@@ -59,7 +60,8 @@ export function AppShell({ route }: { route: Route }) {
         {screen === 'history' && <AssetHistoryScreen wsId={route.wsId!} assetId={route.id!} />}
         {screen === 'case' && <CaseScreen caseId={route.id!} />}
       </main>
-      <TabBar active={screen} wsId={route.wsId!} />
+      <TabBar active={screen} wsId={route.wsId!} onMore={() => setMore(true)} />
+      <WorkspaceMenu open={more} onClose={() => setMore(false)} />
     </div>
   );
 }

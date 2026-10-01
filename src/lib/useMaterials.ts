@@ -1,7 +1,7 @@
 /* What one project is waiting on, live. Small on purpose — see lib/materials.ts:
  * a material is what it is, when it is due, and whether it is here. */
 import { useCallback, useEffect, useState } from 'react';
-import { listMaterials, putMaterial, putMaterials, deleteMaterial, onDataChange } from '../db';
+import { listMaterials, putMaterial, deleteMaterial, onDataChange } from '../db';
 import { uid, now } from './ids';
 import { byUrgency, tally, todayISO, weeksFor, type Material, type Tally, type Week } from './materials';
 import { offerUndo } from '../ui/Undo';
@@ -22,8 +22,6 @@ export interface MaterialsState {
   markIn: (id: string, on?: string) => Promise<void>;
   /** It has not, after all — put it back on the list with its date. */
   markOut: (id: string) => Promise<void>;
-  /** A pasted plan, written in one go. */
-  importRows: (rows: { what: string; due?: string; here?: boolean }[]) => Promise<void>;
 }
 
 export function useMaterials(projectId: string): MaterialsState {
@@ -78,21 +76,12 @@ export function useMaterials(projectId: string): MaterialsState {
     await putMaterial({ ...m, here: undefined, inOn: undefined });
   }, [rows]);
 
-  const importRows = useCallback(async (incoming: { what: string; due?: string; here?: boolean }[]) => {
-    const t = now();
-    let sort = nextSort();
-    await putMaterials(incoming.map(r => ({
-      id: uid(), projectId, what: r.what, due: r.due, here: r.here || undefined,
-      sort: (sort += 10), createdAt: t, updatedAt: t,
-    })));
-  }, [projectId, nextSort]);
-
   const today = todayISO();
   return {
     loading,
     materials: byUrgency(rows, today),
     tally: tally(rows, today),
     weeks: weeksFor(rows, today),
-    add, save, remove, markIn, markOut, importRows,
+    add, save, remove, markIn, markOut,
   };
 }

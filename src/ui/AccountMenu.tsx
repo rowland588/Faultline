@@ -1,7 +1,8 @@
 /* The account control for screens that sit OUTSIDE a workspace.
  *
- * Project Pace and the portfolio render without the workspace TopBar, so until
- * now there was no way to sign out from them at all — you had to find your way
+ * Every screen now carries this and the breadcrumb, and nothing else on top —
+ * the workspace title bar is gone. It was once the only way to sign out, and
+ * the screens without it had none at all — you had to find your way
  * back to Home first. Same sheet, same wording and the same confirm as the
  * workspace menu, so signing out feels like one thing wherever you do it. */
 import { useState } from 'react';
@@ -33,7 +34,7 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
-        <SheetRow label="All workspaces" hint="home" onClick={() => { setOpen(false); nav('/'); }} />
+        <SheetRow label="Home" hint="every job" onClick={() => { setOpen(false); nav('/'); }} />
         <SheetRow label="Sign out" danger onClick={logout} />
       </Sheet>
     </>

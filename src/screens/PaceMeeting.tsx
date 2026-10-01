@@ -12,7 +12,7 @@
  * hidden by a list that was never updated. */
 import { useEffect, useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/tracker';
-import type { PaceRoster } from '../lib/paceWorkbook';
+import type { PaceRoster } from '../lib/tracker';
 
 const isDone = (a: PaceAction) => /^done$/i.test(a.status.trim());
 const isOverdue = (a: PaceAction) => /overdue/i.test(a.flag ?? '') && !isDone(a);
