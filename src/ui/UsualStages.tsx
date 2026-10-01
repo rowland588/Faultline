@@ -12,11 +12,13 @@
  */
 import { useState } from 'react';
 import { updateProject } from '../db';
-import { cleanStages, stageRenames, stepsNamed, type usualStages } from '../lib/install';
-import { INSTALL_STAGES, type Test } from '../lib/testing';
+import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type usualStages } from '../lib/install';
+import type { StepGate, Test } from '../lib/testing';
 import type { Project } from '../types';
 
-export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, gate = 'install' }: {
+  /** Which gate's list — each is the job's own, edited as freely. */
+  gate?: StepGate;
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
   /** The job's records, to count the steps a rename would touch. */
   tests?: Test[];
@@ -34,11 +36,11 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
 
   const save = async () => {
     if (!draft) return;
-    const after = cleanStages(draft) ?? [...INSTALL_STAGES];
+    const after = cleanStages(draft, gate) ?? [...appStages(gate)];
     const renamed = stageRenames(usual.stages, after)
-      .map(r => ({ ...r, n: stepsNamed(tests, r.from).length }))
+      .map(r => ({ ...r, n: stepsNamed(tests, r.from, gate).length }))
       .filter(r => r.n > 0);
-    await updateProject({ ...project, installStages: cleanStages(draft), updatedAt: Date.now() });
+    await updateProject({ ...project, ...keepStages(project, gate, cleanStages(draft, gate)), updatedAt: Date.now() });
     setDraft(null);
     if (renamed.length && renameSteps) setAsking(renamed);
   };
@@ -96,7 +98,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
                     {usual.stages.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                   {x.fresh > 0 && <button className="btn btn-ghost in-extra-b is-bad" onClick={() => onRemove?.(x.col)}>Remove{x.fresh < x.n ? ` ${x.fresh} never started` : ''}</button>}
-                  <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, installStages: cleanStages([...usual.stages, x.col]), updatedAt: Date.now() })}>Make it a stage</button>
+                  <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, ...keepStages(project, gate, cleanStages([...usual.stages, x.col], gate)), updatedAt: Date.now() })}>Make it a stage</button>
                 </span>
               </div>
             ))}
@@ -106,7 +108,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
     );
   }
 
-  const cleaned = cleanStages(draft) ?? [...INSTALL_STAGES];
+  const cleaned = cleanStages(draft, gate) ?? [...appStages(gate)];
   return (
     <section className="in-usual is-editing">
       <div className="in-usual-h"><b>The usual stages</b><span className="sub">in the order they happen</span></div>
@@ -131,7 +133,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
           Save {cleaned.length} stage{cleaned.length === 1 ? '' : 's'}
         </button>
         <button className="btn btn-ghost" onClick={() => setDraft(null)}>Cancel</button>
-        <button className="cw-link" onClick={() => setDraft([...INSTALL_STAGES])}>Back to the app’s six</button>
+        <button className="cw-link" onClick={() => setDraft([...appStages(gate)])}>Back to the app’s {appStages(gate).length}</button>
       </div>
       <p className="sub tw-note">
         This is what the next machine gets. Steps already on a machine keep their names — tap one to rename it.

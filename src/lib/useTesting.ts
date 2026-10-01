@@ -14,7 +14,7 @@ import {
 } from '../db';
 import { uid, now } from './ids';
 import { WORDS, assetStateOf, nextFrom, standing } from './testing';
-import type { Asset, AssetState, ItemKind, Standing, Test, TestItem, TestKind } from './testing';
+import type { Asset, AssetState, ItemKind, Standing, StepGate, Test, TestItem, TestKind } from './testing';
 import { offerUndo } from '../ui/Undo';
 
 export interface TestingState {
@@ -41,7 +41,7 @@ export interface TestingState {
   planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind, fromTestId?: string) => Promise<string>;
   /** Several install steps on one machine at once, in the order given — the
    *  one-tap "the usual stages". Each is an ordinary step from then on. */
-  planSteps: (titles: readonly string[], assetId?: string) => Promise<string[]>;
+  planSteps: (titles: readonly string[], assetId?: string, gate?: StepGate) => Promise<string[]>;
   saveTest: (t: Test) => Promise<void>;
   /** Change some fields of the row AS IT IS NOW. Use this from a button, a
    *  picker or anything that fires after an await — never `saveTest({...test})`
@@ -176,7 +176,7 @@ export function useTesting(projectId: string): TestingState {
     return made[0].id;
   }, [projectId, nextSort, assets]);
 
-  const planSteps = useCallback(async (titles: readonly string[], assetId?: string) => {
+  const planSteps = useCallback(async (titles: readonly string[], assetId?: string, gate: StepGate = 'install') => {
     const t = now();
     let sort = nextSort();
     const withWhom = assets.find(a => a.id === assetId)?.oem || undefined;
@@ -187,6 +187,7 @@ export function useTesting(projectId: string): TestingState {
       const id = uid();
       await putTest({
         id, projectId, kind: 'install', title: clean, assetId, withWhom,
+        ...(gate !== 'install' ? { gate } : {}),
         outcome: 'planned', sort: sort++, createdAt: t, updatedAt: t,
       });
       made.push(id);

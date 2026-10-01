@@ -164,6 +164,32 @@ export const isInstall = (t: Pick<Test, 'kind'>): boolean => t.kind === 'install
  *  one tap on a machine with no install steps yet. They are ordinary steps from
  *  the moment they exist — renamed, dated, deleted — because no two machines
  *  install the same way and a fixed list would be a form nobody fits. */
+/* THE GATES A STAGE-GATE JOB GOES THROUGH. Rowland: "these are the gates to
+   do install — next gate set up, programs; next commissioning; and after that
+   handover." Install, Set up and Hand over are each a list of stages ticked
+   off per machine — the same record (an install step, below), told apart by
+   `gate`. Commission is the tests. */
+export type StepGate = 'install' | 'setup' | 'handover';
+export const gateOf = (t: Pick<Test, 'gate'>): StepGate => t.gate ?? 'install';
+
+/** Set up — the machine made ready to run what it will run. Editable per job. */
+export const SETUP_STAGES = [
+  'Programs loaded',
+  'Recipes and settings set',
+  'Change parts fitted',
+  'HMI and alarms checked',
+  'Guards and interlocks on',
+] as const;
+
+/** Hand over — what the client takes with the machine. Editable per job. */
+export const HANDOVER_STAGES = [
+  'Manuals and drawings handed over',
+  'Operators and engineers trained',
+  'Spares list agreed',
+  'Safety sign-off (PUWER)',
+  'Client signed off',
+] as const;
+
 export const INSTALL_STAGES = [
   'Positioned and levelled',
   'Mechanically complete',
@@ -263,9 +289,24 @@ export const WORDS: Record<TestKind, {
   },
 };
 
+/* A STEP'S WORDS BY ITS GATE. An install step, a set-up step and a hand-over
+   item are one record (kind 'install'); what the page, the card and the PDF
+   call it follows its gate. */
+const GATE_WORDS: Record<'setup' | 'handover', (typeof WORDS)['install']> = {
+  setup: { ...WORDS.install, one: 'Set-up step', many: 'Set-up steps', plan: 'What we are setting up', found: 'What we found setting it up' },
+  handover: { ...WORDS.install, one: 'Hand-over item', many: 'Hand-over items', plan: 'What we are handing over', found: 'What we found handing over', pictures: 'The proof it was handed over' },
+};
+export const wordsOf = (t: { kind?: TestKind; gate?: Test['gate'] }): (typeof WORDS)['install'] =>
+  t.kind === 'install' && t.gate ? GATE_WORDS[t.gate] : WORDS[t.kind ?? 'test'];
+
 export interface Test {
   id: ID;
   projectId: ID;
+
+  /** WHICH GATE an install-kind step belongs to — Set up or Hand over. Absent
+   *  means Install, which is every step written before the other gates
+   *  existed. Only install-kind records carry it. */
+  gate?: Exclude<StepGate, 'install'>;
 
   /** Which face. Absent means a test — every row written before fixes existed
    *  is a test, and reading it that way needs no migration of the data. */

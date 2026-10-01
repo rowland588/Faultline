@@ -28,7 +28,7 @@ import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isOverdue, isSettled, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
-import { installOf } from '../lib/install';
+import { GATE_WORD, installOf } from '../lib/install';
 import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
@@ -1101,7 +1101,8 @@ export function PaceExecReport() {
        it is not, by the same rule as a fix. */
     for (const t of tests) {
       if (t.deletedAt || t.kind !== 'install' || isSettled(t)) continue;
-      debts.push({ who: t.withWhom ?? '', what: t.title,
+      /* A set-up step or a hand-over item says which gate it is. */
+      debts.push({ who: t.withWhom ?? '', what: t.gate ? `${GATE_WORD[t.gate]}: ${t.title}` : t.title,
         about: machines.find(a => a.id === t.assetId)?.name ?? 'the line',
         on: plannedEnd(t), late: isOverdue(t, today) });
     }

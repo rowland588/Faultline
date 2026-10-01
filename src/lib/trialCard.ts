@@ -46,6 +46,8 @@ export interface TrialCard {
   /** Which face — the card says "Test card" or "Fix card" accordingly, and both
    *  documents take their words from lib/testing's WORDS rather than deciding. */
   kind: TestKind;
+  /** Set up or Hand over, on a step at those gates — see wordsOf. */
+  gate?: Test['gate'];
   title: string;
   machine: string;
   withWhom?: string;
@@ -109,6 +111,7 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
   return {
     id: test.id,
     kind: test.kind ?? 'test',
+    gate: test.gate,
     title: test.title,
     machine: assets.find(a => a.id === test.assetId)?.name ?? 'the line',
     withWhom: test.withWhom,

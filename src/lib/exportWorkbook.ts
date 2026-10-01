@@ -25,7 +25,8 @@ import type { Material } from './materials';
 import type { Program } from './programs';
 import { stateOf as programState } from './programs';
 import type { Asset, Test, TestItem } from './testing';
-import { rootTestOf, testOfFix } from './testing';
+import { gateOf, rootTestOf, testOfFix } from './testing';
+import { GATE_WORD } from './install';
 import { planModel } from './planModel';
 import type { XCell, XSheet } from './xlsxWrite';
 
@@ -137,11 +138,14 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
       ]);
     }
 
-    /* INSTALL STEPS, machine by machine in the order they happen. */
-    for (const s of all.filter(t => t.kind === 'install').sort((x, y) => x.sort - y.sort)) {
+    /* THE GATES' STEPS — Install, then Set up, then Hand over — machine by
+       machine in the order they happen. A set-up step or a hand-over item
+       says its gate in its name, so the Excel tool's columns are unchanged. */
+    const gateRank = { install: 0, setup: 1, handover: 2 } as const;
+    for (const s of all.filter(t => t.kind === 'install').sort((x, y) => gateRank[gateOf(x)] - gateRank[gateOf(y)] || x.sort - y.sort)) {
       const where = machine(s.assetId) || 'The line';
       rows.Stages.push([
-        name, `${where} — ${s.title}`, d(s.ranOn ?? s.plannedFor), d(s.ranOn ? s.ranTo : s.plannedTo),
+        name, `${where} — ${s.gate ? `${GATE_WORD[s.gate]}: ` : ''}${s.title}`, d(s.ranOn ?? s.plannedFor), d(s.ranOn ? s.ranTo : s.plannedTo),
         s.withWhom ?? '', STEP_STATUS[s.outcome], s.result ?? '',
       ]);
     }

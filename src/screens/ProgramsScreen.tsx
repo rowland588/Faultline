@@ -530,7 +530,13 @@ function PasteList({ state }: { state: ReturnType<typeof usePrograms> }) {
 
 /* ================================ the screen ================================ */
 
-export function ProgramsScreen({ projectId }: { projectId: string }) {
+export function ProgramsScreen({ projectId, embedded = false }: {
+  projectId: string;
+  /** Drawn inside Set up on a stage-gate job: the Set up page owns the trail,
+   *  the tabs and the heading; this is its programs section. A program is set
+   *  up here and proved in Commission. */
+  embedded?: boolean;
+}) {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
   const state = usePrograms(projectId);
@@ -558,7 +564,13 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
   const lineName = (id?: string) => lines.lines.find(l => l.id === id)?.name;
 
   return (
-    <div className="wrap pace">
+    <div className={embedded ? 'pr-embedded' : 'wrap pace'}>
+      {embedded ? (
+        <div className="cw-sec-h pr-embedded-h">
+          <h2 className="cmp-h">Programs</h2>
+          <span className="sub">what the machines have to run — set up here, proved in Commission</span>
+        </div>
+      ) : <>
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
@@ -579,6 +591,7 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-actions">
         </div>
       </header>
+      </>}
 
       {t.total === 0 ? (
         <>
@@ -660,9 +673,11 @@ export function ProgramsScreen({ projectId }: { projectId: string }) {
       <PasteList state={state} />
       <AddProgram state={state} lines={lines.lines} assets={assets} />
 
-      <footer className="pace-foot">
-        <p>{project.name} · what the machine can run</p>
-      </footer>
+      {!embedded && (
+        <footer className="pace-foot">
+          <p>{project.name} · what the machine can run</p>
+        </footer>
+      )}
     </div>
   );
 }

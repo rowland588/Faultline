@@ -33,7 +33,8 @@ import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { isOverdue, outcomeWord, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
+import { gateOf, isOverdue, outcomeWord, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
+import { GATE_WORD } from '../lib/install';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 
@@ -157,7 +158,12 @@ export function FixesScreen({ projectId }: { projectId: string }) {
               {stepsToPick.length > 0
                 ? <>
                   <optgroup label="Tests">{testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</optgroup>
-                  <optgroup label="Install steps">{stepsToPick.map(t => <option key={t.id} value={t.id}>{machine(t)} — {t.title}</option>)}</optgroup>
+                  {(['install', 'setup', 'handover'] as const).map(g => {
+                    const inGate = stepsToPick.filter(t => gateOf(t) === g);
+                    return inGate.length > 0 && (
+                      <optgroup key={g} label={`${GATE_WORD[g]} steps`}>{inGate.map(t => <option key={t.id} value={t.id}>{machine(t)} — {t.title}</option>)}</optgroup>
+                    );
+                  })}
                 </>
                 : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>

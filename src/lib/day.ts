@@ -16,9 +16,10 @@
 import { isHere, type Material } from './materials';
 import { stateOf, type Program } from './programs';
 import {
-  isSettled, live, needsVerdict, outcomeWord, type Asset, type Test, type TestItem,
+  gateOf, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
 } from './testing';
 import type { MediaRef } from '../types';
+import { GATE_WORD } from './install';
 import { niceDay, todayISO } from './weeks';
 
 export interface DayInput {
@@ -61,6 +62,10 @@ export interface Day {
   media: MediaRef[];
   /** Install, as it stood at the end of the day. Undefined on a job with no steps. */
   install?: { done: number; total: number };
+  /** Every gate with steps on the job — Install, Set up, Hand over — as it
+   *  stood that evening. `install` is the first of these, kept for callers
+   *  that only ever read Install. */
+  gates: { gate: StepGate; label: string; done: number; total: number }[];
   /** Nothing happened and nothing was booked. */
   empty: boolean;
 }
@@ -201,10 +206,13 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   /* Every step on the job, done by that evening — not only the ones created
      by then, because steps are often logged after the work, and a day whose
      steps were written up the next morning would otherwise have none. */
-  const steps = tests.filter(t => t.kind === 'install');
-  const install = steps.length
-    ? { done: steps.filter(t => t.outcome === 'passed' && (t.ranOn ?? '') <= date && !!t.ranOn).length, total: steps.length }
-    : undefined;
+  const doneBy = (ts: Test[]) => ts.filter(t => t.outcome === 'passed' && (t.ranOn ?? '') <= date && !!t.ranOn).length;
+  const gates = (['install', 'setup', 'handover'] as const)
+    .map(g => ({ g, ts: tests.filter(t => t.kind === 'install' && gateOf(t) === g) }))
+    .filter(x => x.ts.length > 0)
+    .map(x => ({ gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts), total: x.ts.length }));
+  const first = gates.find(g => g.gate === 'install');
+  const install = first ? { done: first.done, total: first.total } : undefined;
 
   const sections: DaySection[] = [
     { key: 'done' as const, title: 'What got done', lines: done },
@@ -217,14 +225,14 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const happened = done.length + wrong.length + found.length;
   return {
     date, label: short(date),
-    headline: headlineOf(done, wrong, found, booked, media.length, install, isToday),
-    sections, media, install,
+    headline: headlineOf(done, wrong, found, booked, media.length, gates, isToday),
+    sections, media, install, gates,
     empty: happened === 0 && booked.length === 0,
   };
 }
 
 function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked: DayLine[], pictures: number,
-  install: Day['install'], isToday: boolean): string {
+  gates: Day['gates'], isToday: boolean): string {
   const bits: string[] = [];
   const got = done.filter(l => l.tone === 'done').length;
   if (got) bits.push(`${plural(got, 'thing')} done`);
@@ -239,7 +247,7 @@ function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked:
       : isToday ? 'Nothing logged yet today.' : 'Nothing was logged for this day.';
   s = s[0].toUpperCase() + s.slice(1);
   /* Not on a blank day — "Nothing was logged. Install 0 of 3" is noise. */
-  if (install && install.total && (bits.length || booked.length)) s += ` Install ${install.done} of ${install.total} steps done.`;
+  if (bits.length || booked.length) for (const g of gates) s += ` ${g.label} ${g.done} of ${g.total} steps done.`;
   return s;
 }
 

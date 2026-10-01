@@ -103,6 +103,8 @@ function app(route: Route) {
   }
   if (route.name === 'fixes' && route.id) return <FixesScreen projectId={route.id} />;
   if (route.name === 'install' && route.id) return <InstallScreen projectId={route.id} />;
+  if (route.name === 'gateSetup' && route.id) return <InstallScreen projectId={route.id} gate="setup" />;
+  if (route.name === 'handover' && route.id) return <InstallScreen projectId={route.id} gate="handover" />;
   if (route.name === 'day' && route.id) return <DayScreen projectId={route.id} />;
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsScreen projectId={route.id} />;

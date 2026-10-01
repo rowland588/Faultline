@@ -29,11 +29,11 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  hasRun, isOverdue, isSettled, live, needsVerdict,
+  gateOf, hasRun, isOverdue, isSettled, live, needsVerdict,
   type Asset, type Test, type TestItem,
 } from './testing';
 
-export type Strand = 'install' | 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
+export type Strand = 'install' | 'setup' | 'handover' | 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
 
 /** One line of "what are we waiting on". */
 export interface OutstandingRow {
@@ -55,7 +55,7 @@ export interface OutstandingRow {
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
  *  because arriving and running are different days; everything else is a point. */
 export interface PlanMark {
-  kind: 'install' | 'test' | 'fix' | 'material' | 'program' | 'machine';
+  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
   until?: string;
@@ -157,8 +157,15 @@ export function standing(input: StandingInput): Standing {
   /* INSTALL STEPS, their own row: the weeks between a machine landing and it
      running are somebody's work, owed by a day, and a client reads "3 install
      steps late, Brillopak's" as different news from a test that has not run. */
-  const stepsOpen = tests.filter(t => isStep(t) && owed(t));
+  /* ONE ROW PER GATE — Install, Set up, Hand over: three different pieces of
+     work, usually owed by different people, and "2 hand-over items late" is
+     different news from install steps late. */
+  const stepsOpen = tests.filter(t => isStep(t) && gateOf(t) === 'install' && owed(t));
   const stepsLate = stepsOpen.filter(t => isOverdue(t, today));
+  const setupOpen = tests.filter(t => isStep(t) && gateOf(t) === 'setup' && owed(t));
+  const setupLate = setupOpen.filter(t => isOverdue(t, today));
+  const handOpen = tests.filter(t => isStep(t) && gateOf(t) === 'handover' && owed(t));
+  const handLate = handOpen.filter(t => isOverdue(t, today));
 
   const matsOpen = materials.filter(m => !isHere(m));
   const matsLate = matsOpen.filter(m => !!m.due && m.due < today);
@@ -188,6 +195,8 @@ export function standing(input: StandingInput): Standing {
        anything can be tested on it. */
     { key: 'install', what: 'Install steps to do', open: stepsOpen.length, late: stepsLate.length,
       whose: mostlyWhose(stepsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(stepsLate.map(t => t.withWhom)) },
+    { key: 'setup', what: 'Set-up steps to do', open: setupOpen.length, late: setupLate.length,
+      whose: mostlyWhose(setupOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(setupLate.map(t => t.withWhom)) },
     { key: 'tests', what: 'Tests still to run', open: testsOpen.length, late: testsLate.length,
       whose: mostlyWhose(testsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(testsLate.map(t => t.withWhom)) },
     { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length,
@@ -196,6 +205,8 @@ export function standing(input: StandingInput): Standing {
       whose: mostlyWhose(matsOpen.map(m => m.from)), lateWhose: mostlyWhose(matsLate.map(m => m.from)) },
     { key: 'programs', what: 'Programs not proved', open: progsOpen.length, late: progsLate.length,
       whose: mostlyWhose(progsOpen.map(p => p.from)), lateWhose: mostlyWhose(progsLate.map(p => p.from)) },
+    { key: 'handover', what: 'Hand-over items to do', open: handOpen.length, late: handLate.length,
+      whose: mostlyWhose(handOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(handLate.map(t => t.withWhom)) },
     { key: 'machines', what: 'Machines not running', open: machOpen.length, late: machLate.length,
       whose: mostlyWhose(machOpen.map(a => a.oem)), lateWhose: mostlyWhose(machLate.map(a => a.oem)) },
     /* NO OBSERVATIONS ROW. It counted observations nobody had decided on, and
@@ -218,7 +229,7 @@ export function standing(input: StandingInput): Standing {
     const until = t.ranOn ? t.ranTo : t.plannedTo;
     if (!at) continue;
     plan.push({
-      kind: t.kind === 'fix' ? 'fix' : t.kind === 'install' ? 'install' : 'test', at,
+      kind: t.kind === 'fix' ? 'fix' : t.kind === 'install' ? gateOf(t) : 'test', at,
       /* A block of days draws as a BAR, the same shape a machine already uses
          and for the same reason — it occupies time rather than happening on a
          day. Nothing new had to be drawn for this. */

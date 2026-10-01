@@ -117,8 +117,12 @@ const LANES: { kind: PlanMark['kind']; label: string }[] = [
   { kind: 'install', label: 'Install' },
   { kind: 'material', label: 'Materials' },
   { kind: 'program', label: 'Programs' },
+  /* The gates after Install, where they fall in the job: a machine is set up
+     before it is proved, and handed over last. */
+  { kind: 'setup', label: 'Set up' },
   { kind: 'fix', label: 'Fixes' },
   { kind: 'test', label: 'Tests' },
+  { kind: 'handover', label: 'Hand over' },
 ];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

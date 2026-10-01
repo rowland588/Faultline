@@ -59,7 +59,9 @@ export function useStanding(projectId: string): StandingState {
       install: { n: by('install')?.open ?? 0, late: by('install')?.late ?? 0 },
       materials: { n: by('materials')?.open ?? 0, late: by('materials')?.late ?? 0 },
       programs: { n: by('programs')?.open ?? 0, late: by('programs')?.late ?? 0 },
-      setup: { n: 0, late: 0 },
+      /* The gates after Install — Set up's tab adds the programs to this. */
+      setup: { n: by('setup')?.open ?? 0, late: by('setup')?.late ?? 0 },
+      handover: { n: by('handover')?.open ?? 0, late: by('handover')?.late ?? 0 },
     };
   }, [answer.rows]);
 

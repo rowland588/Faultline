@@ -29,7 +29,7 @@ import {
 } from './reportKit';
 import { verdictLine, type TrialCard } from './trialCard';
 import type { Shot } from './testReport';
-import { foundWords, WORDS } from './testing';
+import { foundWords, wordsOf } from './testing';
 import { niceDay, todayISO } from './weeks';
 
 const M = 30;                       // the margin, A4 landscape
@@ -69,7 +69,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   d.rect(0, 0, W, page === 1 ? 74 : 44, 'F');
 
   setFont(d, 7, 'bold', '#9fc3b4');
-  d.text(`${WORDS[c.kind].one.toUpperCase()} CARD`, M, 20);
+  d.text(`${wordsOf(c).one.toUpperCase()} CARD`, M, 20);
   setFont(d, 7, 'normal', '#8fae9f');
   d.text(fit(d, san(meta.project), W / 2), M + 58, 20);
 
@@ -342,7 +342,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
      wearing a different vocabulary, and the screen takes its labels from the
      same table — so the page a client reads and the page they are sent cannot
      call the same field two different things. */
-  const w = WORDS[c.kind];
+  const w = wordsOf(c);
 
   /* THE TWO BOXES TAKE THE ROOM THEIR WORDS NEED, not a flat 128pt.
      Rowland: "expand and make the pdf dynamic — it will grow, make use of the
@@ -353,7 +353,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
      them across, and two frames at different heights stop being a pair. */
   const fw = half - 28;
   const planNeeds = 12 + fieldHeight(d, fw, c.passesIf ?? '',
-    { empty: WORDS[c.kind].noPlan })
+    { empty: wordsOf(c).noPlan })
     + (c.kind === 'test' ? 8 + fieldHeight(d, fw, c.plannedProduct ?? '', { size: 8.5 }) : 0);
   const dayNeeds = 12 + fieldHeight(d, fw, c.result ?? '', { empty: 'Nothing written down yet' })
     + (c.kind === 'test' ? 8 + fieldHeight(d, fw, c.product ?? '', { size: 8.5 }) : 0);
@@ -364,14 +364,14 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
 
   let by = box(d, M, y, half, boxH, '1', w.plan) + 12;
   by = field(d, M + 14, by, fw, w.expectation, c.passesIf ?? '',
-    { empty: WORDS[c.kind].noPlan }) + 8;
+    { empty: wordsOf(c).noPlan }) + 8;
   if (c.kind === 'test') {
     field(d, M + 14, by, fw, 'Product we planned to run', c.plannedProduct ?? '', { size: 8.5 });
   }
   setFont(d, 7.5, 'normal', MUTED);
   d.text(`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, M + 14, dateY);
 
-  let dy = box(d, M + half + 14, y, half, boxH, '2', c.kind === 'test' ? 'What actually happened' : WORDS[c.kind].day) + 12;
+  let dy = box(d, M + half + 14, y, half, boxH, '2', c.kind === 'test' ? 'What actually happened' : wordsOf(c).day) + 12;
   /* The same line the card SCREEN shows — the result, and "no verdict
      yet" after it when that is the case — not the raw result field. */
   dy = field(d, M + half + 28, dy, fw, w.happened, c.outcome === 'planned' && !c.result && !c.ranOn ? '' : verdictLine(c), { empty: 'Nothing written down yet' }) + 8;
@@ -407,11 +407,11 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const bothFit = wantFound + 12 + wantNext <= room;
   const foundH = bothFit ? wantFound : Math.min(wantFound, room);
 
-  const fTop = box(d, M, y, CW, foundH, '3', WORDS[c.kind].found, foundSub);
+  const fTop = box(d, M, y, CW, foundH, '3', wordsOf(c).found, foundSub);
   let drawn = 0;
   if (c.findings.length === 0) {
     setFont(d, 8.5, 'normal', MUTED);
-    d.text(`Nothing was written down on this ${WORDS[c.kind].one.toLowerCase()}.`, M + 14, fTop + 20);
+    d.text(`Nothing was written down on this ${wordsOf(c).one.toLowerCase()}.`, M + 14, fTop + 20);
   } else {
     drawn = findingsTable(d, c, M + 14, fTop, CW - 28, y + foundH - 10, 0);
   }
@@ -429,7 +429,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
     page++;
     const top = head(d, c, meta, page) + 14;
     const h = bottom - top;
-    const fT = box(d, M, top, CW, h, '3', WORDS[c.kind].found,
+    const fT = box(d, M, top, CW, h, '3', wordsOf(c).found,
       `continued · from ${from + 1} of ${c.findings.length}`);
     const more = findingsTable(d, c, M + 14, fT, CW - 28, top + h - 10, from);
     if (more === 0) break;
@@ -454,7 +454,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const nTop = box(d, M, ny, CW, nRoom, '4', 'What we do next', nextSub);
   if (c.next.length === 0) {
     setFont(d, 8.5, 'normal', MUTED);
-    d.text(`Nothing has been agreed out of this ${WORDS[c.kind].one.toLowerCase()} yet.`, M + 14, nTop + 20);
+    d.text(`Nothing has been agreed out of this ${wordsOf(c).one.toLowerCase()} yet.`, M + 14, nTop + 20);
   } else {
     nextTable(d, c, M + 14, nTop, CW - 28, ny + nRoom - 10);
   }
@@ -478,8 +478,8 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
       page++;
       py = head(d, c, meta, page) + 14;
     }
-    const pTop = box(d, M, py, CW, want, '5', WORDS[c.kind].pictures,
-      `${c.photos} on the ${WORDS[c.kind].one.toLowerCase()}${shots.length < c.photos ? ` · the first ${shots.length}` : ''}`);
+    const pTop = box(d, M, py, CW, want, '5', wordsOf(c).pictures,
+      `${c.photos} on the ${wordsOf(c).one.toLowerCase()}${shots.length < c.photos ? ` · the first ${shots.length}` : ''}`);
     let sx = M + 14;
     for (const s of shots) {
       const sw = Math.min(150, (s.w / s.h) * SHOT_H);

@@ -106,7 +106,7 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
     },
   },
   install: {
-    what: 'an INSTALL STEP on a machine: a stage of putting it in.',
+    what: 'a STEP at one of a machine’s gates — installing it, setting it up, or handing it over: one stage of that work.',
     fields: {
       result: { type: 'STRING', description: 'WHAT WAS DONE — the spoken account of this install step in clean sentences: what was done, and anything that stopped it. Any commentary about the work goes here.' },
       ranOn: DATE,

@@ -129,14 +129,17 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
-        { label: 'Testing' },
+        { label: 'Commission' },
       ]} />
       <Peers peers={projectPeers(projectId, 'testing', stand.counts)} />
 
       <header className="cm-head">
         <div>
           <p className="cm-eyebrow">{project.name}</p>
-          <h1>Testing</h1>
+          {/* COMMISSION — the gate where each machine is proved against what
+              was agreed. It was called Testing; the tests are what it is made
+              of, and the URL keeps the old name so no link breaks. */}
+          <h1>Commission</h1>
           <p className="cw-handover">
             {project.expectedAt
               ? <><b>Ours by {nice(project.expectedAt)}</b>{weeks != null && <span className="sub">{weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'}` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}</span>}</>

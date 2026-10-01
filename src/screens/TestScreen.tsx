@@ -27,7 +27,7 @@ import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
-  WORDS, hasRun, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
+  gateOf, hasRun, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -35,6 +35,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from '../ui/Undo';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type Change, type VoiceResult } from '../lib/voice';
+import { GATE_PATH, GATE_WORD } from '../lib/install';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -71,7 +72,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         <Crumbs trail={[
           { label: 'Projects', to: '/projects' },
           ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
-          { label: 'Testing' },
+          { label: 'Commission' },
         ]} />
         <section className="cmp-empty">
           <h2>That test isn’t here any more</h2>
@@ -91,7 +92,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   /* Which face this record is wearing — every label on the screen comes from
      lib/testing's WORDS rather than being decided here. */
   const kind = test.kind ?? 'test';
-  const words = WORDS[kind];
+  const words = wordsOf(test);
   const from = test.fromTestId ? tt.tests.find(t => t.id === test.fromTestId) : undefined;
   /* A fix's test — the nearest one up its chain, so an old fix hanging off
      another fix still names the test it is really about. */
@@ -121,8 +122,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         kind === 'fix'
           ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
           : kind === 'install'
-            ? { label: 'Install', to: `/project/${projectId}/install` }
-            : { label: 'Testing', to: `/project/${projectId}/testing` },
+            ? { label: GATE_WORD[gateOf(test)], to: `/project/${projectId}/${GATE_PATH[gateOf(test)]}` }
+            : { label: 'Commission', to: `/project/${projectId}/testing` },
         { label: test.title },
       ]} />
 
@@ -172,8 +173,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             Plan the re-test
           </button>
         ) : kind === 'install' ? (
-          <button className="btn" onClick={() => nav(`/project/${projectId}/install`)}>
-            Back to Install — {machineOf(test)}
+          <button className="btn" onClick={() => nav(`/project/${projectId}/${GATE_PATH[gateOf(test)]}`)}>
+            Back to {GATE_WORD[gateOf(test)]} — {machineOf(test)}
           </button>
         ) : forTest && (
           <button className="btn" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
@@ -208,7 +209,12 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               {stepsToPick.length > 0
                 ? <>
                   <optgroup label="Tests">{testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</optgroup>
-                  <optgroup label="Install steps">{stepsToPick.map(t => <option key={t.id} value={t.id}>{machineOf(t)} — {t.title}</option>)}</optgroup>
+                  {(['install', 'setup', 'handover'] as const).map(g => {
+                    const inGate = stepsToPick.filter(t => gateOf(t) === g);
+                    return inGate.length > 0 && (
+                      <optgroup key={g} label={`${GATE_WORD[g]} steps`}>{inGate.map(t => <option key={t.id} value={t.id}>{machineOf(t)} — {t.title}</option>)}</optgroup>
+                    );
+                  })}
                 </>
                 : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select></label>
@@ -346,7 +352,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             : `Delete “${test.title}”?`;
           if (confirm(warn)) {
             await tt.removeTest(test.id);
-            nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : kind === 'install' ? 'install' : 'testing'}`);
+            nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : kind === 'install' ? GATE_PATH[gateOf(test)] : 'testing'}`);
           }
         })()}>Delete this {words.one.toLowerCase()}</button>
       </div>
@@ -386,7 +392,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
  *  read first, the way the client report has always worked.
  */
 function TrialCardButton({ test, project }: { test: Test; project: string }) {
-  const words = WORDS[test.kind ?? 'test'];
+  const words = wordsOf(test);
   return (
     <button className="btn btn-primary"
       title="Everything on this screen on one page — you see it before anybody else does."

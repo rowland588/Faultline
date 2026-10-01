@@ -62,24 +62,30 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
   const p = (key: string, label: string, to: string): Peer => ({
     label, to, on: here === key, n: counts?.[key]?.n, late: counts?.[key]?.late,
   });
+  /* A gate's number is everything outstanding in it — Set up counts its
+     steps and the programs not yet proved together. */
+  const gate = (key: string, label: string, to: string, keys: string[]): Peer => ({
+    label, to, on: here === key || (key === 'setup' && here === 'programs'),
+    n: keys.reduce((n, k) => n + (counts?.[k]?.n ?? 0), 0) || undefined,
+    late: keys.reduce((n, k) => n + (counts?.[k]?.late ?? 0), 0) || undefined,
+  });
   return [
-    /* First, because it is first on the floor: a machine is installed before
-       anything is tested on it. */
+    /* THE GATES, IN THE ORDER THE JOB GOES THROUGH THEM. Rowland: "install —
+       next gate set up, programs; next commissioning; after that handover."
+       Install was the only gate drawn as one; Set up had become a list called
+       Programs and Commission a list called Testing. Now the row reads as the
+       journey, and the three lists every gate draws on follow it. */
     p('install', 'Install', `/project/${projectId}/install`),
-    p('testing', 'Testing', `/project/${projectId}/testing`),
-    /* Beside Testing, because deciding an observation is a fix is the one move
-       that crosses between them — and a fix is not part of testing, which is
-       why it stopped living inside it. */
+    /* Programs are set up here — the record and its links are unchanged. */
+    gate('setup', 'Set up', `/project/${projectId}/set-up`, ['setup', 'programs']),
+    /* The tests: proving each machine against what was agreed. The key stays
+       'testing' — it is the URL and the count every screen already uses. */
+    gate('testing', 'Commission', `/project/${projectId}/testing`, ['testing']),
+    gate('handover', 'Hand over', `/project/${projectId}/handover`, ['handover']),
+    /* Not gates — what all four draw on: what is broken, what we are waiting
+       for, and the proof. */
     p('fixes', 'Fixes', `/project/${projectId}/fixes`),
     p('materials', 'Materials', `/project/${projectId}/materials`),
-    p('programs', 'Programs', `/project/${projectId}/programs`),
-    /* Evidence joined the row when the front page lost its own second row of
-       tabs (Overview · Evidence): two rows of tabs on one screen was two ways
-       around, and the film is a list like the others.
-       "The day" left it — Rowland: "any more streamlining? the mission,
-       simplify". It is a story read off the others, not a list, and the front
-       page's Today card and Install both open it. "Details" left it for the
-       ⚙ on the project's own header: it is set once, not visited daily. */
     p('evidence', 'Evidence', `/project/${projectId}?view=snags`),
   ];
 }

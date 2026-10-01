@@ -66,6 +66,8 @@ const ROUTES = [
   ['testing', `#/project/${seeded.projectId}/testing`],
   ['fixes', `#/project/${seeded.projectId}/fixes`],
   ['install', `#/project/${seeded.projectId}/install`],
+  ['set up', `#/project/${seeded.projectId}/set-up`],
+  ['hand over', `#/project/${seeded.projectId}/handover`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
   ['install step card', `#/project/${seeded.projectId}/testing/${seeded.stepId}/card`],
   /* The day, today and a day in the past that has a story on it. */

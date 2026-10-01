@@ -61,11 +61,13 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
 
   let y = band(true);
 
-  /* INSTALL, AS IT STOOD — a bar, because "11 of 24" is read faster as a length. */
-  if (day.install && day.install.total) {
-    const { done, total } = day.install;
+  /* EACH GATE, AS IT STOOD — a bar, because "11 of 24" is read faster as a
+     length. Install, Set up and Hand over, whichever have steps: the same
+     bars the day's screen draws. */
+  for (const g of day.gates) {
+    const { done, total } = g;
     setFont(d, 6.5, 'bold', MUTED);
-    d.text('INSTALL, END OF THE DAY', M, y);
+    d.text(`${g.label.toUpperCase()}, END OF THE DAY`, M, y);
     setFont(d, 8, 'bold', INK);
     d.text(`${done} of ${total} steps done`, W - M, y, { align: 'right' });
     d.setFillColor('#e9eff7');

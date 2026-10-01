@@ -40,7 +40,7 @@ const OPEN_KEY = 'faultline.jobs.open';
 const SEEN_KEY = 'faultline.jobs.seen';
 
 const KIND_WORD: Record<JobItem['kind'], string> = {
-  install: 'Install step', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
+  install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
 };
 const TONE_WORD: Record<string, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'the day has gone', booked: 'still ahead',
@@ -457,7 +457,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 {v.lead && <p className="sub jb-led">Led by {v.lead}</p>}
                 <span className="jb-doors">
                   <button className="btn btn-primary" onClick={() => nav(`/project/${v.id}`)}>Open the job ›</button>
-                  <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Testing</button>
+                  <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Commission</button>
                   <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Fixes</button>
                 </span>
               </aside>

@@ -7052,3 +7052,5 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .in-extra-acts select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--ink); max-width: 100%; }
 .in-extra-b { min-height: 38px; padding: 0 12px; font-size: 13.5px; }
 .in-extra-b.is-bad { color: var(--st-r); }
+.pr-embedded { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); }
+.pr-embedded-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }

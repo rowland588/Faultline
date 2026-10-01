@@ -265,6 +265,16 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     step('Dry run', 6, { plannedFor: iso(2) }),
   ];
   for (const s of steps) await putTest(s);
+  /* THE GATES AFTER INSTALL on the wrapper, which is in and running: set up
+     part-way (programs loaded, recipes set, change parts late), and the
+     hand-over check sheet started (manuals handed over). */
+  for (const g of [
+    step('Programs loaded', 11, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-4), ranOn: iso(-4), outcome: 'passed' }),
+    step('Recipes and settings set', 12, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-3), ranOn: iso(-3), outcome: 'passed' }),
+    step('Change parts fitted', 13, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-1) }),
+    step('Manuals and drawings handed over', 21, { gate: 'handover', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-2), ranOn: iso(-2), outcome: 'passed' }),
+    step('Operators and engineers trained', 22, { gate: 'handover', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(8) }),
+  ]) await putTest(g);
   await putTestItem(item(airDrop.id, 'found', 'Regulator missing from the kit', { owner: 'Ishida Europe', sort: 1 }));
   await putTest(fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
     withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' }));

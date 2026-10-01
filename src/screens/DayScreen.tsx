@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
+import { GATE_PATH } from '../lib/install';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
@@ -107,13 +108,14 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </button>
       </nav>
 
-      {day.install && day.install.total > 0 && (
-        <button className="dy-install" onClick={() => nav(`/project/${projectId}/install`)}
-          aria-label={`Install: ${day.install.done} of ${day.install.total} steps done`}>
-          <span className="dy-install-h"><b>Install</b><span className="sub">{day.install.done} of {day.install.total} steps done{date === today ? '' : ' by the end of the day'}</span></span>
-          <span className="dy-bar"><span style={{ width: `${(100 * day.install.done) / day.install.total}%` }} /></span>
+      {/* A bar per gate with steps — Install, Set up, Hand over. */}
+      {day.gates.map(g => (
+        <button key={g.gate} className="dy-install" onClick={() => nav(`/project/${projectId}/${GATE_PATH[g.gate]}`)}
+          aria-label={`${g.label}: ${g.done} of ${g.total} steps done`}>
+          <span className="dy-install-h"><b>{g.label}</b><span className="sub">{g.done} of {g.total} steps done{date === today ? '' : ' by the end of the day'}</span></span>
+          <span className="dy-bar"><span style={{ width: `${(100 * g.done) / g.total}%` }} /></span>
         </button>
-      )}
+      ))}
 
       {day.sections.map(s => (
         <section key={s.key} className={'dy-sec is-' + s.key}>

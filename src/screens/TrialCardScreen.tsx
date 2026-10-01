@@ -25,7 +25,8 @@ import { useEffect, useState } from 'react';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { trialCard, verdictLine, type CardFinding, type CardNext, type TrialCard } from '../lib/trialCard';
-import { foundWords, WORDS } from '../lib/testing';
+import { foundWords, wordsOf } from '../lib/testing';
+import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import { todayISO } from '../lib/standing';
 import { nav } from '../state/useRoute';
@@ -142,7 +143,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   }
 
   const c: TrialCard = trialCard(test, tt.tests, tt.items, tt.assets);
-  const words = WORDS[c.kind];
+  const words = wordsOf(c);
   const when = c.ranOn ?? c.plannedFor;
   /* The pictures the card carries: the record's own, then what was found. The
      screen shows them and the PDF prints them, off this one list. */
@@ -180,8 +181,8 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
         c.kind === 'fix'
           ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
           : c.kind === 'install'
-            ? { label: 'Install', to: `/project/${projectId}/install` }
-            : { label: 'Testing', to: `/project/${projectId}/testing` },
+            ? { label: GATE_WORD[c.gate ?? 'install'], to: `/project/${projectId}/${GATE_PATH[c.gate ?? 'install']}` }
+            : { label: 'Commission', to: `/project/${projectId}/testing` },
         { label: c.title, to: `/project/${projectId}/testing/${encodeURIComponent(testId)}` },
         { label: `${words.one} card` },
       ]} />

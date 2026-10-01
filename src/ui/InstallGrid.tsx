@@ -21,7 +21,7 @@ import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usual
 import { UsualStages } from './UsualStages';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
-import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type Test } from '../lib/testing';
+import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
 import { VoiceNote, VoiceReview } from './Voice';
@@ -45,16 +45,18 @@ function cellWord(s: StepView): string {
   }
 }
 
-export function InstallGrid({ tt, project, stages, otherName }: {
+export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }: {
   tt: TT; project: Project;
   /** The job's usual stages, and where they came from — see lib/install. */
   stages: ReturnType<typeof usualStages>;
   otherName?: string;
+  /** Which gate this grid is — Install, Set up or Hand over. */
+  gate?: StepGate;
 }) {
   const projectId = project.id;
   const usual = stages.stages;
   const today = todayISO();
-  const grid = installGrid(tt.assets, tt.tests, tt.items, today, usual);
+  const grid = installGrid(tt.assets, tt.tests, tt.items, today, usual, gate);
   const [open, setOpen] = useState<Open>(null);
   const [stepName, setStepName] = useState('');
 
@@ -83,13 +85,15 @@ export function InstallGrid({ tt, project, stages, otherName }: {
     /* Grouped per machine, so each machine's steps are numbered in order. */
     const byMachine = new Map<string | undefined, string[]>();
     for (const p of pairs) byMachine.set(p.assetId, [...(byMachine.get(p.assetId) ?? []), p.title]);
-    for (const [assetId, titles] of byMachine) ids.push(...await tt.planSteps(titles, assetId));
+    for (const [assetId, titles] of byMachine) ids.push(...await tt.planSteps(titles, assetId, gate));
     offerUndo(said, async () => { for (const id of ids) await deleteTest(id, projectId); });
   };
 
   /* The machines with no stages at all yet. When there are several, one tap
      gives them all the job's stages — said as exactly that. */
-  const isIn = (a?: Asset) => !!a && ['installed', 'running'].includes(assetStateOf(a));
+  /* Already in and running before anybody kept install steps — only the
+     install gate says so; every gate after it is still to do. */
+  const isIn = (a?: Asset) => gate === 'install' && !!a && ['installed', 'running'].includes(assetStateOf(a));
   const bare = grid.rows.filter(r => r.asset && r.view.total === 0 && !isIn(r.asset));
   const giveStages = (rows: typeof grid.rows) => add(
     rows.flatMap(r => usual.map(title => ({ title, assetId: r.asset?.id }))),
@@ -104,7 +108,7 @@ export function InstallGrid({ tt, project, stages, otherName }: {
      stage editor, by the same two moves. */
   const stepsIn = (col: string) => grid.rows.map(r => r.cells[grid.columns.indexOf(col)]).filter((c): c is StepView => !!c).map(c => c.step);
   const moveColumn = (col: string, target: string): boolean => {
-    const { move, clash } = foldInto(stepsIn(col), tt.tests, target);
+    const { move, clash } = foldInto(stepsIn(col), tt.tests, target, gate);
     if (!move.length) { alert(`Every machine here already has “${target}”. Open the steps to remove or rename them one by one.`); return false; }
     if (clash.length && !confirm(`${move.length} will move into “${target}”. ${clash.length} stay${clash.length === 1 ? 's' : ''} where ${clash.length === 1 ? 'it is' : 'they are'} — ${clash.length === 1 ? 'that machine' : 'those machines'} already ${clash.length === 1 ? 'has' : 'have'} it.`)) return false;
     void (async () => {
@@ -133,12 +137,12 @@ export function InstallGrid({ tt, project, stages, otherName }: {
     if (open.t === 'stages') {
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
-          <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests}
+          <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate}
             extras={extras} onMove={moveColumn} onRemove={removeColumn}
             renameSteps={async (pairs) => {
               const done: { id: string; title: string }[] = [];
               for (const { from, to } of pairs) {
-                for (const t of stepsNamed(tt.tests, from)) { await tt.patchTest(t.id, { title: to }); done.push({ id: t.id, title: t.title }); }
+                for (const t of stepsNamed(tt.tests, from, gate)) { await tt.patchTest(t.id, { title: to }); done.push({ id: t.id, title: t.title }); }
               }
               if (done.length) offerUndo(`Renamed ${done.length} step${done.length === 1 ? '' : 's'} to match`, async () => { for (const d of done) await tt.patchTest(d.id, { title: d.title }); });
             }} />
@@ -284,7 +288,8 @@ export function InstallGrid({ tt, project, stages, otherName }: {
           setStepName(''); setOpen(null);
         }}>
           <label className="cw-f ig-f"><span>A step of its own</span>
-            <input value={stepName} onChange={e => setStepName(e.target.value)} placeholder="Guards fitted, conveyor tie-in…" /></label>
+            <input value={stepName} onChange={e => setStepName(e.target.value)}
+              placeholder={gate === 'setup' ? 'Label printer set, date coder checked…' : gate === 'handover' ? 'Lubrication schedule, tool kit…' : 'Guards fitted, conveyor tie-in…'} /></label>
           <button className="btn" type="submit" disabled={!stepName.trim()}>Add</button>
         </form>
         {left.length > 0 && (

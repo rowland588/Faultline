@@ -188,6 +188,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         planned_at: p.plannedAt ?? null, expected_at: p.expectedAt ?? null,
         measures: p.measures ?? null, periods: p.periods ?? null,
         install_stages: p.installStages ?? null,
+        gate_stages: p.gateStages ?? null,
         archived_at: p.archivedAt ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -206,6 +207,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       measures: (r.measures as Project['measures']) ?? undefined,
       periods: (r.periods as Project['periods']) ?? undefined,
       installStages: (r.install_stages as string[]) ?? undefined,
+      gateStages: (r.gate_stages as Project['gateStages']) ?? undefined,
       archivedAt: n(r.archived_at),
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
@@ -411,6 +413,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         outcome: t.outcome,
         media: t.media ?? null, docs: t.docs ?? null,
         from_test_id: t.fromTestId ?? null,
+        gate: t.gate ?? null,
         sort: t.sort, created_at: t.createdAt,
         updated_at: t.updatedAt, deleted_at: t.deletedAt ?? null,
       };
@@ -435,6 +438,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       media: (r.media as Test['media']) ?? undefined,
       docs: (r.docs as Test['docs']) ?? undefined,
       fromTestId: (r.from_test_id as string) ?? undefined,
+      gate: (r.gate === 'setup' || r.gate === 'handover') ? r.gate : undefined,
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies Test),

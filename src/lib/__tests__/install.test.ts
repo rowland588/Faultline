@@ -5,9 +5,9 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { cleanStages, foldInto, installGrid, installOf, stageRenames, untouched, usualStages } from '../install';
+import { cleanStages, foldInto, installGrid, installOf, keepStages, stageRenames, untouched, usualStages } from '../install';
 import { standing } from '../standing';
-import { INSTALL_STAGES, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
+import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, wordsOf, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
 import { niceDay } from '../weeks';
 import type { Project } from '../../types';
@@ -235,5 +235,52 @@ describe('a stage that was changed', () => {
     const tests = [fresh, done, written, fixed, { ...step({ id: 'fx', title: 'Send the part' }), kind: 'fix' as const, fromTestId: 'x' }];
     const items = [found('w', 'Bracket holes do not line up')];
     expect([fresh, done, written, fixed].filter(t => untouched(t, tests, items)).map(t => t.id)).toEqual(['f']);
+  });
+});
+
+describe('the gates after install', () => {
+  const m = asset({ id: 'g1', name: 'Wrapper' });
+  const ins = step({ id: 'i1', title: 'Dry run', assetId: m.id });
+  const set = { ...step({ id: 'u1', title: 'Programs loaded', assetId: m.id }), gate: 'setup' as const };
+  const hand = { ...step({ id: 'h1', title: 'Client signed off', assetId: m.id, outcome: 'passed', ranOn: '2026-09-30' }), gate: 'handover' as const };
+  const tests = [ins, set, hand];
+
+  it('each gate reads only its own steps', () => {
+    expect(installOf(m, tests, [], '2026-10-01').steps.map(s => s.step.id)).toEqual(['i1']);
+    expect(installOf(m, tests, [], '2026-10-01', 'setup').steps.map(s => s.step.id)).toEqual(['u1']);
+    expect(installOf(m, tests, [], '2026-10-01', 'handover').done).toBe(1);
+  });
+  it('only Install offers "mark it installed"', () => {
+    const solo = { ...set, outcome: 'passed' as const, ranOn: '2026-09-30' };
+    expect(installOf(m, [solo], [], '2026-10-01', 'setup').ready).toBe(false);
+  });
+  it('the grid for a gate has that gate’s stages as columns', () => {
+    const g = installGrid([m], tests, [], '2026-10-01', SETUP_STAGES, 'setup');
+    expect(g.columns).toEqual([...SETUP_STAGES]);
+    expect(g.rows[0].cells.filter(Boolean)).toHaveLength(1);
+  });
+  it('each gate keeps its own list, falling back to the app’s', () => {
+    const p = { id: 'p', updatedAt: 1, gateStages: { handover: ['Keys returned', 'Client signed off'] } };
+    expect(usualStages(p, [], 'handover')).toEqual({ stages: ['Keys returned', 'Client signed off'], from: 'job' });
+    expect(usualStages(p, [], 'setup')).toEqual({ stages: [...SETUP_STAGES], from: 'app' });
+    expect(usualStages(p, [], 'install').stages).toEqual([...INSTALL_STAGES]);
+  });
+  it('saving one gate’s list leaves the others alone', () => {
+    const p = { id: 'p', updatedAt: 1, installStages: ['A'], gateStages: { setup: ['S'] } };
+    expect(keepStages(p, 'handover', ['H'])).toEqual({ gateStages: { setup: ['S'], handover: ['H'] } });
+    expect(keepStages(p, 'install', ['B'])).toEqual({ installStages: ['B'] });
+    expect(cleanStages([...HANDOVER_STAGES], 'handover')).toBeUndefined();
+  });
+  it('a step at a gate is named by its gate', () => {
+    expect(wordsOf(set).one).toBe('Set-up step');
+    expect(wordsOf(hand).one).toBe('Hand-over item');
+    expect(wordsOf(ins).one).toBe('Install step');
+  });
+  it('what is owed is counted per gate', () => {
+    const st = standing({ tests: [ins, set, hand], items: [], assets: [m], materials: [], programs: [], today: '2026-10-01' });
+    expect(st.rows.map(r => r.key)).toEqual(expect.arrayContaining(['install', 'setup']));
+    expect(st.rows.find(r => r.key === 'install')?.open).toBe(1);
+    expect(st.rows.find(r => r.key === 'setup')?.open).toBe(1);
+    expect(st.rows.some(r => r.key === 'handover')).toBe(false);
   });
 });
