@@ -20,7 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { SYNC_KINDS } from '../mappers';
+import { MAPS, SYNC_KINDS } from '../mappers';
 import { TEST_KINDS } from '../../lib/testing';
 
 const ROOT = join(__dirname, '..', '..', '..');
@@ -133,6 +133,27 @@ describe('every face the app writes, the cloud accepts', () => {
   for (const k of TEST_KINDS) {
     it(`tests.kind accepts '${k}'`, () => {
       expect(allowed.has(k), `the app writes kind '${k}' and no migration's tests_kind_check allows it`).toBe(true);
+    });
+  }
+});
+
+/* A FILE IS ONLY ALLOWED UP IF A ROW NAMES IT. Storage's write and read policies
+ * ask faultline_can_see_media whether any table the user can see points at the
+ * key — so a kind that carries files but is missing from that function syncs its
+ * rows and has every picture refused, with a 400 nobody sees. The line standard
+ * shipped like that. Every kind whose mapper names media must be in it. */
+describe('every kind that carries files can upload them', () => {
+  const fn = /function\s+public\.faultline_can_see_media[\s\S]*?\$function\$|function\s+public\.faultline_can_see_media[\s\S]*?end\s*\$\w*\$/i.exec(sql)?.[0] ?? '';
+  const withMedia = SYNC_KINDS.filter(k => !/^\(\)\s*=>\s*\[\]$/.test(MAPS[k].mediaKeys.toString().trim()));
+  it('finds the function and the kinds', () => {
+    expect(fn.length).toBeGreaterThan(100);
+    expect(withMedia).toContain('standards');
+  });
+  for (const kind of withMedia) {
+    // workspaces and projects carry no blob of their own in storage terms
+    if (kind === 'workspaces' || kind === 'projects') continue;
+    it(`${kind} is in faultline_can_see_media`, () => {
+      expect(fn, `${kind} names media but storage would refuse its files — add it to faultline_can_see_media`).toMatch(new RegExp(`public\\.${kind}\\b`));
     });
   }
 });

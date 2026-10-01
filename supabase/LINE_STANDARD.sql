@@ -85,3 +85,9 @@ begin
     end if;
   end loop;
 end $rev$;
+
+-- ---------- the picture ----------
+-- Storage lets a file be written or read only when a row the user can see names
+-- it (faultline_can_see_media, SECURITY_RLS.sql). photo_key is in that list now;
+-- without it a map synced but its picture was refused, silently. Re-run
+-- SECURITY_RLS.sql after this file on a fresh project.

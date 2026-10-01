@@ -218,6 +218,12 @@ begin
     execute 'select exists (select 1 from public.commission_items where photos @> $1 or photos @> $2)' into hit using one, two;
     if hit then return true; end if;
   end if;
+  -- The line standard's picture (LINE_STANDARD.sql): readable and writable by
+  -- whoever can see the map, exactly as a frame's still is.
+  if to_regclass('public.standards') is not null then
+    execute 'select exists (select 1 from public.standards where photo_key = $1)' into hit using k;
+    if hit then return true; end if;
+  end if;
   return false;
 end $$;
 grant execute on function public.faultline_can_see_media(text) to authenticated;
