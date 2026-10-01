@@ -278,6 +278,10 @@ export function suggestConditions(actions: PaceAction[], lineKey: string): { tex
  *  that is 90% right is worse than a blank box, because nobody edits what looks
  *  finished. Anything not in the table gets the honest generic form. */
 const INTENT: Record<string, string> = {
+  // The board's three columns — what a lever tree groups the actions by now.
+  'people': 'The people on the line can run it, every shift',
+  'plant': 'The machine runs without stopping us',
+  'process': 'The way of working is clear, and followed',
   'changeovers': 'Changeovers are quick and repeatable, every time',
   'stock starvation': 'The line is never waiting for stock',
   'brillopack snags': 'Brillopack runs a full shift without stopping',

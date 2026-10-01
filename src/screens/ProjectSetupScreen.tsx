@@ -466,12 +466,9 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
       {/* AN EXTRA TOOL, NOT PART OF THE MODEL CHOICE. The Pareto sits beside
           whichever plan the project runs — it does not replace either one, so
           it stays a plain opt-in rather than a third slot in the switch above.
-          Ticking it on does not use, publish or send anywhere any Pareto
-          reading already on file; it only turns on the surface so the NEXT
-          upload that carries a Pareto sheet has somewhere to be read. */}
-      {/* Pareto is read off the Pareto sheet of the weekly workbook upload, and
-          a commissioning job has no workbook to upload. Offering it there is a
-          door to a page that can only ever be empty. */}
+          It is drawn from the stops timed on the project's lines in the app
+          (lib/paretoFromLog) — no workbook. Offered on 3P and lever tree
+          jobs, which are the ones run on a line's losses. */}
       {paced && (
       <div className="pset-tools">
         <p className="field-label">Extra tools</p>
@@ -481,11 +478,9 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           <span className="pset-tool-m">
             <b>Pareto</b>
             <span className="sub">
-              Where the time is actually going, ranked, read off the Pareto sheet of the weekly
-              upload. At the start of a project it says where to aim; run again during it, the same
-              ranking is evidence of whether the category you went after got smaller. Needs a Pareto
-              sheet in the workbook — a project that measures its losses another way does not want
-              this page.
+              Where the time is actually going, ranked, from the stops timed on each line in the app.
+              At the start of a project it says where to aim; four weeks on, the same ranking is
+              evidence of whether the category you went after got smaller.
             </span>
           </span>
         </label>

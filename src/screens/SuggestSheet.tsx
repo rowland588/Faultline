@@ -21,17 +21,12 @@ import { suggestConditions, trackerLines, allLinesCount, ALL_LINES, type Tracker
 import { SourceStrip } from './BindSheet';
 
 export function SuggestSheet({
-  title, lines, actions, source, takenAt, todoCount, onBuild, onClose,
+  title, lines, actions, onBuild, onClose,
 }: {
   /** The "what needs to be true" box these conditions will hang under. */
   title: string;
   lines: PaceLineRow[];
   actions: PaceAction[];
-  /** Which workbook these actions came from, and when it was read. */
-  source?: string;
-  takenAt?: number;
-  /** How many of the project's OWN Next steps sit on the chosen line. */
-  todoCount?: (lineKey: string) => number;
   onBuild: (picked: { text: string; bind: TrackerBind }[]) => void;
   onClose: () => void;
 }) {
@@ -49,35 +44,25 @@ export function SuggestSheet({
   const proposed = useMemo(() => suggestConditions(actions, line), [actions, line]);
   const [off, setOff] = useState<Set<string>>(new Set());
 
-  /* The tracker is not the only work. A project's Next steps are decisions the
-     team took that never went near a spreadsheet, they are already in the app,
-     and leaving them off meant the plan on the wall was missing them. Offered
-     as one more condition, bound to the line rather than to a category —
-     Next steps do not carry one. */
-  const ownWork = todoCount?.(line) ?? 0;
-  const all = ownWork > 0
-    ? [...proposed, {
-        text: 'What we decided to do about it ourselves',
-        bind: (line === ALL_LINES ? { allLines: true, source: 'next' } : { line, source: 'next' }) as TrackerBind,
-        count: ownWork,
-        own: true,
-      }]
-    : proposed.map(p => ({ ...p, own: false }));
+  /* No extra "what we decided ourselves" condition any more: the project's
+     next steps ARE the board's actions (lib/actions.ts), already grouped in
+     the conditions above — offering them again hung them on the tree twice. */
+  const all = proposed.map(p => ({ ...p, own: false }));
 
   const chosen = all.filter(p => !off.has(p.text));
   const toggle = (t: string) =>
     setOff(o => { const n = new Set(o); if (n.has(t)) n.delete(t); else n.add(t); return n; });
 
   return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Build the conditions from the tracker">
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Build the conditions from the board">
       <div className="bs">
         <h2 className="lt-paste-t">Build the conditions</h2>
         <p className="sub bs-lede">
-          One condition for each kind of work the tracker has on this line, each one already linked.
+          One condition for each of People, Plant and Process that has work on this line, each one already linked.
           Untick anything that doesn’t belong, then <b>edit the wording on the tree</b> — these are a
           starting point, not the finished sentence.
         </p>
-        <SourceStrip fileName={source} takenAt={takenAt} />
+        <SourceStrip count={actions.length} />
 
         {(choices.length > 1 || spanning > 0) && (
           <>
@@ -106,13 +91,13 @@ export function SuggestSheet({
              branches at once. Say which it is, and point at the way forward. */
           <p className="sub">
             {line === ALL_LINES
-              ? 'The tracker has no work marked as spanning every line.'
+              ? 'The board has no actions for every line.'
               : spanning > 0
-                ? <>This line has no actions of its own on this week’s tracker — the only work
-                    touching it is the {spanning} the tracker marks as spanning every line, and
+                ? <>This line has no actions of its own on the board — the only work
+                    touching it is the {spanning} written for every line, and
                     those belong in <b>Across every line</b> above so they are not counted three
                     times over.</>
-                : 'That line has no actions on this week’s tracker, so there is nothing to build from yet.'}
+                : 'That line has no actions on the board yet, so there is nothing to build from.'}
           </p>
         ) : (
           <ul className="sg-list">

@@ -1,4 +1,8 @@
-/* PICK THE WORK OFF THE TRACKER AND HANG IT ON THE TREE.
+/* PICK THE WORK OFF THE BOARD AND HANG IT ON THE TREE.
+ *
+ * The list is the project's own actions, kept on its 3P board — there is no
+ * workbook any more (Rowland: "switch to full app only"). What follows is why
+ * picking beats copying, which still holds.
  *
  * Every earlier version of this had the user copying rows out of the
  * spreadsheet and pasting them in — which was solving the wrong problem.
@@ -15,14 +19,8 @@
  * Typing or pasting is still here, behind a link, for work that is real but
  * not in the tracker yet. It is the exception now rather than the route.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/tracker';
-import { fmtRelative } from '../lib/format';
-
-/** Past this, the week on screen is last week's. Said out loud rather than left
- *  for somebody to notice, because picking this week's work off a fortnight-old
- *  upload is a mistake you only find later, in a meeting. */
-const STALE_MS = 8 * 86_400_000;
 
 const DONE = /^(done|complete|completed|closed)$/i;
 
@@ -37,17 +35,10 @@ export function actionText(a: PaceAction): string {
 }
 
 export function TrackerPicker({
-  title, actions, source, takenAt, busy, uploadError, onUpload,
-  alreadyOn, onAdd, onClose, onTypeInstead,
+  title, actions, alreadyOn, onAdd, onClose, onTypeInstead,
 }: {
   title: string;
   actions: PaceAction[];
-  /** Which upload this list came from, and when it was taken. */
-  source?: string;
-  takenAt?: number;
-  busy: boolean;
-  uploadError?: string | null;
-  onUpload: (file: File) => void;
   /** Normalised text of everything already somewhere on the tree, so a row can
    *  say so rather than letting the same action be hung twice. */
   alreadyOn: Set<string>;
@@ -59,11 +50,6 @@ export function TrackerPicker({
   const [line, setLine] = useState('');
   const [hideDone, setHideDone] = useState(true);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const file = useRef<HTMLInputElement>(null);
-  // The workbook the app shipped with is old by definition; calling that "last
-  // week's" would be true and useless. Name it for what it is instead.
-  const baseline = !!source?.includes('(baseline)');
-  const stale = !baseline && takenAt != null && Date.now() - takenAt > STALE_MS;
 
   const lines = useMemo(
     () => [...new Set(actions.map(a => a.line).filter(Boolean))].sort(),
@@ -94,38 +80,12 @@ export function TrackerPicker({
   const chosen = actions.filter(a => picked.has(key(a)));
 
   return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Add work from the tracker">
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Add work from the board">
       <div className="lt-pick">
         <div className="lt-pick-head">
           <h2 className="lt-paste-t">Add under “{title}”</h2>
 
-          {/* WHICH tracker this is, and how old — so nobody picks this week's
-              work off a fortnight-old upload and finds out in a meeting. The
-              new one goes in from here; there is no trip to another screen. */}
-          <div className={'lt-pick-src' + (stale ? ' is-stale' : '') + (baseline ? ' is-base' : '')}>
-            <span className="lt-pick-src-t">
-              {baseline
-                ? <>The tracker the app shipped with — <b>upload yours</b> to see this week’s work</>
-                : source
-                  ? <>{source}{takenAt ? <> · read {fmtRelative(takenAt)}</> : null}</>
-                  : <>No tracker uploaded to this project yet</>}
-              {stale && <b> · this may be last week’s</b>}
-            </span>
-            <button className={'btn lt-pick-up ' + (baseline || stale ? 'btn-primary' : 'btn-ghost')}
-              disabled={busy} onClick={() => file.current?.click()}>
-              {busy ? 'Reading…' : baseline || !source ? 'Upload the tracker' : 'Upload this week’s'}
-            </button>
-            <input
-              ref={file} type="file" style={{ display: 'none' }}
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              onChange={e => {
-                const f = e.target.files?.[0];
-                if (f) onUpload(f);
-                e.target.value = '';   // the same file twice in a row still fires
-              }}
-            />
-          </div>
-          {uploadError && <p className="sub lt-pick-err">{uploadError}</p>}
+          <p className="bs-src">The project’s actions, off its <b>board</b></p>
 
           <input
             className="text-input" value={q} autoFocus
@@ -148,7 +108,7 @@ export function TrackerPicker({
           {shown.length === 0 ? (
             <p className="sub lt-pick-none">
               {actions.length === 0
-                ? 'Nothing to pick from yet — upload this week’s workbook above and its actions appear here.'
+                ? 'No actions on the board yet — write them on the 3P board, or type one here.'
                 : 'Nothing matches. Try a different word, or clear the filters.'}
             </p>
           ) : shown.map(a => {
@@ -166,7 +126,7 @@ export function TrackerPicker({
                 <span className="lt-pick-main">
                   <span className="lt-pick-what">{a.action || a.problem || `Action ${a.ref}`}</span>
                   <span className="lt-pick-meta">
-                    {[a.line && 'Line ' + a.line, a.owner || a.who, a.category, a.status]
+                    {[a.line, a.owner || a.who, a.category, a.status]
                       .filter(Boolean).join(' · ')}
                     {dup && <b className="lt-pick-dup"> · already on the tree</b>}
                   </span>

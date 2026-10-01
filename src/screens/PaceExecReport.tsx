@@ -18,7 +18,7 @@ import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
-import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { useProjectPareto } from '../lib/paretoFromLog';
 import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useProject } from '../lib/useProjects';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
@@ -46,7 +46,6 @@ import { standing, slipWords } from '../lib/standing';
 import { layoutPlan, labelGap, planSays } from '../lib/plan';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
-import type { PaceParetoSheet } from '../lib/paceWorkbook';
 import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
 import { methodOf } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
@@ -695,8 +694,9 @@ export function PaceExecReport() {
 
   // The Pareto sheet still comes off an upload where one exists; the actions
   // are the project's own, kept in the app (lib/actions.ts).
-  const pace = usePaceSnapshots(projectId);
   const ax = useActions(projectId);
+  // The Pareto from the stops timed in the app — no upload (lib/paretoFromLog).
+  const pareto = useProjectPareto(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const mats = useMaterials(projectId);
@@ -753,7 +753,7 @@ export function PaceExecReport() {
       })();
     }, 250);
   });
-  const loading = pace.loading || ax.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
+  const loading = pareto.loading || ax.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
 
   // Scale the fixed-size sheets down to whatever width the window gives us, so
   // what is on screen is exactly what comes out of the PDF. Re-runs when the
@@ -931,14 +931,10 @@ export function PaceExecReport() {
    * same way, in the same order. */
   const hasTree = !line && !!project?.leverTree && fullTree.length > 0;
 
-  /* The Pareto, when the project runs one and an upload has carried the sheet.
-     The comparison skips uploads that brought no Pareto with them: most weeks
-     the tracker changes and the loss analysis does not, and "nothing to compare"
-     the moment one file lacks the sheet would be wrong. */
-  const paretoSnaps = pace.snapshots.filter(s => !!s.pareto) as
-    (typeof pace.snapshots[number] & { pareto: PaceParetoSheet })[];
-  const pView: ParetoView | null = !line && project?.pareto && paretoSnaps[0]
-    ? paretoView(paretoSnaps[0].pareto, paretoSnaps[1]?.pareto)
+  /* The Pareto, when the project runs one and something has been timed on its
+     lines in the last four weeks — against the four before. */
+  const pView: ParetoView | null = !line && project?.pareto && pareto.now
+    ? paretoView(pareto.now, pareto.before)
     : null;
   const hasPareto = !!pView;
   /* The identical rule the PDF uses — see lib/pillars. Two rules is how a

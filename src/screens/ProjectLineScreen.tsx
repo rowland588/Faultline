@@ -285,8 +285,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">This line’s numbers</h2>
             <p className="pace-sec-sub">
-              Every measure this project runs on · record one reading, or paste a block from a
-              spreadsheet · it shows on the project the moment it lands
+              Every measure this project runs on · record each reading as it is taken · it shows on
+              the project the moment it lands
             </p>
           </div>
           <LineNumbers projectId={projectId} line={line} />

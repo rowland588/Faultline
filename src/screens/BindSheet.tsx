@@ -18,7 +18,6 @@
 import { useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
-import { fmtRelative } from '../lib/format';
 import {
   actionsForBind, statusOfAction, bindActionText, trackerLines, allLinesCount, ALL_LINES,
   type TrackerBind,
@@ -27,29 +26,24 @@ import {
 /** WHERE these rows come from, said plainly at the top of both sheets.
  *  A sheet that offers "9 actions" without saying which workbook they are out
  *  of is the difference between a tool somebody trusts and one they close. */
-export function SourceStrip({ fileName, takenAt }: { fileName?: string; takenAt?: number }) {
-  const baseline = !!fileName?.includes('(baseline)');
+export function SourceStrip({ count }: { count: number }) {
+  // The actions are the project's own, kept on its board — nothing uploaded.
   return (
-    <p className={'bs-src' + (baseline ? ' is-base' : '')}>
-      {baseline
-        ? <><b>The sample tracker the app shipped with</b> — not your workbook. Upload this week’s under the project’s <b>Data</b> tab and everything here becomes yours.</>
-        : fileName
-          ? <>From <b>{fileName}</b>{takenAt ? <> · read {fmtRelative(takenAt)}</> : null}</>
-          : <>No tracker uploaded to this project yet.</>}
+    <p className="bs-src">
+      {count > 0
+        ? <>From the project’s <b>board</b> · {count} action{count === 1 ? '' : 's'}</>
+        : <>No actions on the project’s board yet — write them on the 3P board first.</>}
     </p>
   );
 }
 
 export function BindSheet({
-  title, lines, actions, source, takenAt, initial, onSave, onClear, onClose,
+  title, lines, actions, initial, onSave, onClear, onClose,
 }: {
   /** The condition's own words, so it is obvious what is being bound. */
   title: string;
   lines: PaceLineRow[];
   actions: PaceAction[];
-  /** Which workbook these actions came from, and when it was read. */
-  source?: string;
-  takenAt?: number;
   initial?: TrackerBind;
   onSave: (b: TrackerBind) => void;
   onClear: () => void;
@@ -91,14 +85,14 @@ export function BindSheet({
     setCats(cs => (cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c]));
 
   return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Fill this box from the tracker">
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Fill this box from the board">
       <div className="bs">
-        <h2 className="lt-paste-t">Fill from the tracker</h2>
+        <h2 className="lt-paste-t">Fill from the board</h2>
         <p className="sub bs-lede">
-          The work under <b>“{title || 'this box'}”</b> comes straight off the weekly upload
+          The work under <b>“{title || 'this box'}”</b> comes straight off the project’s board
           from here on. Nothing to copy, and nothing to keep up to date.
         </p>
-        <SourceStrip fileName={source} takenAt={takenAt} />
+        <SourceStrip count={actions.length} />
 
         <p className="wp-lbl">Which line</p>
         <div className="wp-chips">
@@ -119,11 +113,11 @@ export function BindSheet({
         </div>
 
         <p className="wp-lbl">
-          Which of the tracker’s categories
+          People, Plant or Process
           {cats.length === 0 && <span className="bs-hint"> · none picked means all of them</span>}
         </p>
         {available.length === 0 ? (
-          <p className="sub">That line has no actions on this week’s tracker.</p>
+          <p className="sub">That line has no actions on the board yet.</p>
         ) : (
           <div className="wp-chips">
             {available.map(([c, n]) => (
@@ -172,8 +166,8 @@ export function BindSheet({
           </button>
         </div>
         <p className="sub wp-fine">
-          These rows are read from the tracker every time the tree is drawn — they are not copied
-          onto it, so next week’s upload is already accounted for.
+          These rows are read from the board every time the tree is drawn — they are not copied
+          onto it, so an action added on the board appears here by itself.
         </p>
       </div>
     </div>

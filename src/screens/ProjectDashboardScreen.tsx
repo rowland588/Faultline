@@ -735,8 +735,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <div className="pace-sec-head">
               
               <p className="pace-sec-sub">
-                Your own measures · record a reading as it is taken, or paste a block of them at
-                once · saves as you go
+                Your own measures · record each reading as it is taken · saves as you go
               </p>
             </div>
             <ProjectNumbers projectId={projectId} lines={ppm.lines} />

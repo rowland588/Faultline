@@ -14,7 +14,6 @@
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { MeasureChart } from '../charts/MeasureChart';
-import { PasteNumbers } from './PasteNumbers';
 import { useMeasures } from '../lib/useMeasures';
 import { lineSeries, seriesFor, say, todayISO, type Measure } from '../lib/measures';
 import type { PaceLineRow } from '../db';
@@ -137,15 +136,15 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
           </div>
         );
       })}
-      <PasteNumbers lines={[line]} measures={state.measures} only={line}
-        onImport={state.importReadings} />
+      {/* No spreadsheet paste: every reading is recorded here, as it is
+          taken. Rowland: "switch to full app only." */}
     </>
   );
 }
 
 /* ============================== the project =============================== */
 
-/** Every line's numbers in one place: type one in, or paste a block. The charts
+/** Every line's numbers in one place, typed in as they are taken. The charts
  *  live on the project's overview — this is the door for getting the numbers in,
  *  not for reading them. */
 export function ProjectNumbers({ projectId, lines }: { projectId: string; lines: PaceLineRow[] }) {
@@ -211,7 +210,6 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
         )}
       </div>
 
-      <PasteNumbers lines={lines} measures={state.measures} onImport={state.importReadings} />
 
       {newest.length > 0 && (
         <div className="card nm-card">

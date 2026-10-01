@@ -32,9 +32,8 @@ import { useSyncedAt } from '../cloud/session';
 import { useSticky } from '../lib/useSticky';
 import { parsePastedRows } from '../lib/pastedRows';
 import { TrackerPicker, actionText } from './TrackerPicker';
-import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { useActions } from '../lib/actions';
 import { usePaceLines } from '../lib/usePaceLines';
-import { fmtRelative } from '../lib/format';
 import { withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, unplacedActions, whyUnplaced, bindActionText, type TrackerBind } from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
@@ -245,17 +244,17 @@ function Box({
            box it lands in the connector gap between two columns, reading as a
            stray control belonging to neither. */
         <button className="lt-suggest" onClick={onSuggest}>
-          {suggestNew ? 'Build the conditions from the tracker' : 'Add this line’s work from the tracker'} →
+          {suggestNew ? 'Build the conditions from the board' : 'Add this line’s work from the board'} →
         </button>
       )}
 
       {fromTracker ? (
         <div className="lt-tools is-ro">
-          <span className={'lt-status is-' + node.rag + ' is-ro'} title="From the tracker’s Status column">
+          <span className={'lt-status is-' + node.rag + ' is-ro'} title="Its state on the board">
             <span className="lt-status-dot" aria-hidden />
             <span className="lt-status-l">{statusLabel(node.rag)}</span>
           </span>
-          <span className="lt-from">from the tracker</span>
+          <span className="lt-from">from the board</span>
         </div>
       ) : (
       <div className="lt-tools">
@@ -266,7 +265,7 @@ function Box({
           /* The colour came off the tracker's own Status column, so it is shown
              and not offered. Setting it here would be overwritten by the next
              upload without a word, which is worse than not offering it. */
-          <span className={'lt-status is-' + node.rag + ' is-ro'} title="From the tracker’s Status column">
+          <span className={'lt-status is-' + node.rag + ' is-ro'} title="Its state on the board">
             <span className="lt-status-dot" aria-hidden />
             <span className="lt-status-l">{statusLabel(node.rag)}</span>
           </span>
@@ -306,7 +305,7 @@ function Box({
           {/* The tracker is already in the app, so this opens THIS WEEK'S
               ACTIONS to be picked from rather than sending anybody back to
               Excel to copy a column. Typing is behind a link inside it. */}
-          <button type="button" className="lt-mini" title="Add work from the tracker" aria-label="Add work from the tracker" onClick={onPaste}>☰</button>
+          <button type="button" className="lt-mini" title="Add work from the board" aria-label="Add work from the board" onClick={onPaste}>☰</button>
           {/* Link this box to the tracker once, and its work arrives every week
               by itself. The chain is only offered where it means something: a
               box that holds work, not the outcome and not a row the tracker
@@ -314,8 +313,8 @@ function Box({
           {onBind && (
             <button
               type="button" className={'lt-mini lt-link' + (node.bind ? ' is-on' : '')}
-              title={node.bind ? 'Change what the tracker fills this with' : 'Fill this from the tracker every week'}
-              aria-label={node.bind ? 'Change what the tracker fills this with' : 'Fill this from the tracker every week'}
+              title={node.bind ? 'Change what the board fills this with' : 'Fill this from the board'}
+              aria-label={node.bind ? 'Change what the board fills this with' : 'Fill this from the board'}
               onClick={onBind}
             >⛓</button>
           )}
@@ -388,22 +387,14 @@ export function LeverTree({ projectId }: { projectId: string }) {
     return a && b ? Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) : 0;
   };
 
-  // This week's tracker, already uploaded and parsed — the work that gets hung
-  // on the tree comes from here, not from the clipboard.
-  const pace = usePaceSnapshots(projectId);
+  // The project's own actions, kept on its board — the work that gets hung on
+  // the tree comes from here. There is no workbook any more.
+  const ax = useActions(projectId);
   // The project's lines, so the bind sheet can offer them by name rather than
   // asking anybody to remember that the workbook writes "Line 2" and the app
   // keys it "2A".
   const ppm = usePaceLines(projectId);
-  // pace.actions, not snapshots[0] — it is the hook's own "current picture",
-  // which falls back to the workbook the app shipped with rather than showing
-  // an empty list on a device that has not uploaded yet.
-  const trackerActions = pace.actions;
-  const trackerFrom = pace.snapshots[0];
-  /* True when nothing has been uploaded to this project and the app is falling
-   * back to the workbook it shipped with. Everything downstream has to say so:
-   * those actions are real, they are just not HIS. */
-  const isBaseline = !!trackerFrom?.fileName?.includes('(baseline)');
+  const trackerActions = ax.actions;
 
   /* The project's own Next steps — work the team decided that never came out of
    * a spreadsheet. A condition can read these instead of the tracker. */
@@ -511,7 +502,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const msg = kids
       ? `Delete “${what}” and the ${kids} box${kids === 1 ? '' : 'es'} under it?`
       : `Delete “${what}”?`;
-    if (!window.confirm(msg + '\n\nNothing in the tracker is touched.')) return;
+    if (!window.confirm(msg + '\n\nNothing on the board is touched.')) return;
     await deleteTreeBranch(projectId, n.id);
     await load();
   };
@@ -755,27 +746,18 @@ export function LeverTree({ projectId }: { projectId: string }) {
                 otherwise invisible on a tree that already had boxes in it, and
                 a thing nobody can find is a thing nobody has. */}
             {trackerActions.length > 0 && !nodes.some(n => n.bind) && (
-              <div className={'lt-prompt' + (isBaseline ? ' is-base' : '')}>
+              <div className="lt-prompt">
                 <span className="lt-prompt-t">
-                  {/* NAME the workbook. Saying "this week's tracker has 40 actions"
-                      while reading the file the app SHIPPED WITH is how somebody
-                      ends up staring at forty actions they have never seen and
-                      concluding the app is broken. Which tracker, and how old. */}
-                  {isBaseline
-                    ? <>These <b>{trackerActions.length} actions</b> are the sample tracker the app shipped with — not yours.</>
-                    : <><b>{trackerActions.length} actions</b> from {trackerFrom?.fileName ?? 'the tracker'} — none of them are on this tree yet.</>}
+                  <b>{trackerActions.length} action{trackerActions.length === 1 ? '' : 's'}</b> on the project’s board — none of them on this tree yet.
                 </span>
                 <span className="lt-prompt-s">
-                  {isBaseline
-                    ? <>Upload this week’s workbook and the tree fills from your own actions. Until then, anything you link here will show the sample.</>
-                    : <>Read {trackerFrom ? fmtRelative(trackerFrom.takenAt) : 'recently'}. Link a box to the tracker once and its work arrives every week by itself — nothing to copy.</>}
+                  Link a box to the board once and its actions arrive by themselves — nothing to copy.
                 </span>
                 <button className="btn btn-primary" onClick={() => {
-                  if (isBaseline) { nav(`/project/${projectId}?view=data`); return; }
                   // the first "what needs to be true", which is where conditions live
                   const line = tree[0]?.kids[0]?.node ?? tree[0]?.node;
                   if (line) setSuggesting(line);
-                }}>{isBaseline ? 'Upload this week’s tracker' : 'Put them on the tree'}</button>
+                }}>Put them on the tree</button>
               </div>
             )}
 
@@ -786,7 +768,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
             {unplaced.length > 0 && (
               <div className="lt-gap">
                 <span className="lt-gap-t">
-                  <b>{unplaced.length}</b> of the tracker’s {trackerActions.length} action{trackerActions.length === 1 ? '' : 's'} {unplaced.length === 1 ? 'is' : 'are'} not on this tree.
+                  <b>{unplaced.length}</b> of the board’s {trackerActions.length} action{trackerActions.length === 1 ? '' : 's'} {unplaced.length === 1 ? 'is' : 'are'} not on this tree.
                 </span>
                 <button className="lt-gap-b" onClick={() => setShowGap(v => !v)}>
                   {showGap ? 'Hide them' : 'Which ones?'}
@@ -826,7 +808,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
-              ☰ hang this week’s tracker work under a box · ⠿ move a box · ↑ ↓ reorder
+              ☰ hang the board’s actions under a box · ⠿ move a box · ↑ ↓ reorder
               {' '}· ＋ another below · ＋› the next level along · pinch to zoom, or tap the
               percentage to fit it all on.
             </span>
@@ -839,10 +821,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
           title={suggesting.text}
           lines={ppm.lines}
           actions={trackerActions}
-          source={trackerFrom?.fileName}
-          takenAt={trackerFrom?.takenAt}
-          todoCount={key => todos.filter(t => sources.lineIdsFor(key === '*all*' ? undefined : key).includes(t.lineId ?? '')
-            || (key === '*all*' && !t.lineId)).length}
           onClose={() => setSuggesting(null)}
           onBuild={picked => { void buildConditions(suggesting, picked); setSuggesting(null); }}
         />
@@ -853,8 +831,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
           title={binding.text}
           lines={ppm.lines}
           actions={trackerActions}
-          source={trackerFrom?.fileName}
-          takenAt={trackerFrom?.takenAt}
           initial={binding.bind}
           onClose={() => setBinding(null)}
           onClear={() => { void change(binding, { bind: undefined }); setBinding(null); }}
@@ -866,11 +842,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
         <TrackerPicker
           title={pasteInto.text.trim() || 'this box'}
           actions={trackerActions}
-          source={trackerFrom?.fileName}
-          takenAt={trackerFrom?.takenAt}
-          busy={pace.busy}
-          uploadError={pace.error}
-          onUpload={f => void pace.upload(f)}
           alreadyOn={alreadyOn}
           onAdd={picked => void addPicked(pasteInto, picked)}
           onClose={() => setPasteInto(null)}
@@ -881,10 +852,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
       {pasteInto && addMode === 'type' && (
         <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Type or paste a list">
           <div className="lt-paste">
-            <h2 className="lt-paste-t">Paste underneath “{pasteInto.text.trim() || 'this box'}”</h2>
+            <h2 className="lt-paste-t">Type underneath “{pasteInto.text.trim() || 'this box'}”</h2>
             <p className="sub">
-              One box per row. Select the column in the tracker, copy, paste here — several
-              columns at once is fine, they end up in the same box.
+              One box per line you type.
             </p>
             <textarea
               className="text-input lt-paste-ta" autoFocus value={pasteText}
@@ -904,7 +874,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
             )}
             <div className="row-end">
               {trackerActions.length > 0 && (
-                <button className="btn btn-ghost" onClick={() => setAddMode('pick')}>‹ Pick off the tracker</button>
+                <button className="btn btn-ghost" onClick={() => setAddMode('pick')}>‹ Pick off the board</button>
               )}
               <div style={{ flex: 1 }} />
               <button className="btn btn-ghost" onClick={() => { setPasteInto(null); setPasteText(''); }}>Cancel</button>
