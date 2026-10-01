@@ -117,9 +117,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
     })();
     return true;
   };
-  const removeColumn = (col: string): boolean => {
+  const removeColumn = (col: string, asked = false): boolean => {
     const fresh = stepsIn(col).filter(t => untouched(t, tt.tests, tt.items));
-    if (!fresh.length || !confirm(`Remove “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}? None of them was started.`)) return false;
+    if (!fresh.length || (!asked && !confirm(`Remove “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}? None of them was started.`))) return false;
     void (async () => {
       const back: (() => Promise<void>)[] = [];
       for (const t of fresh) back.push(await deleteTest(t.id, projectId));
@@ -139,6 +139,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
           <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate}
             extras={extras} onMove={moveColumn} onRemove={removeColumn}
+            isFresh={t => untouched(t, tt.tests, tt.items)}
             renameSteps={async (pairs) => {
               const done: { id: string; title: string }[] = [];
               for (const { from, to } of pairs) {

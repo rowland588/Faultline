@@ -9,6 +9,11 @@
  * But renaming a stage and leaving its old name on every machine is how the
  * grid grew a seventh column nobody could remove. So a rename ASKS, once,
  * whether the steps already called the old name should take the new one.
+ *
+ * Taking a stage OUT has the same trap: the list changed, the column stayed,
+ * and clearing it was a second job hidden inside the column. So saving a list
+ * with a stage missing asks too — take it off the machines as well? — and the
+ * only steps it ever removes are ones nobody has touched.
  */
 import { useState } from 'react';
 import { updateProject } from '../db';
@@ -16,7 +21,7 @@ import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type usua
 import type { StepGate, Test } from '../lib/testing';
 import type { Project } from '../types';
 
-export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, gate = 'install' }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, isFresh, gate = 'install' }: {
   /** Which gate's list — each is the job's own, edited as freely. */
   gate?: StepGate;
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
@@ -28,11 +33,16 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
    *  one and it was not there; now it is, with the ways to clear it. */
   extras?: { col: string; n: number; fresh: number }[];
   onMove?: (col: string, target: string) => boolean;
-  onRemove?: (col: string) => boolean;
+  onRemove?: (col: string, asked?: boolean) => boolean;
+  /** Is this step untouched — safe to remove? */
+  isFresh?: (t: Test) => boolean;
 }) {
   const [draft, setDraft] = useState<string[] | null>(null);
   /* Renames that have steps on machines still wearing the old name. */
   const [asking, setAsking] = useState<{ from: string; to: string; n: number }[] | null>(null);
+
+  /* Stages taken out of the list that steps on machines still carry. */
+  const [dropping, setDropping] = useState<{ col: string; n: number; fresh: number }[] | null>(null);
 
   const save = async () => {
     if (!draft) return;
@@ -40,11 +50,44 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
     const renamed = stageRenames(usual.stages, after)
       .map(r => ({ ...r, n: stepsNamed(tests, r.from, gate).length }))
       .filter(r => r.n > 0);
+    const key = (x: string) => x.trim().toLowerCase();
+    const renamedFrom = new Set(renamed.map(r => key(r.from)));
+    const dropped = usual.stages
+      .filter(old => !after.some(a => key(a) === key(old)) && !renamedFrom.has(key(old)))
+      .map(col => {
+        const st = stepsNamed(tests, col, gate);
+        return { col, n: st.length, fresh: isFresh ? st.filter(isFresh).length : 0 };
+      })
+      .filter(d => d.n > 0);
     await updateProject({ ...project, ...keepStages(project, gate, cleanStages(draft, gate)), updatedAt: Date.now() });
     setDraft(null);
     if (renamed.length && renameSteps) setAsking(renamed);
+    else if (dropped.length && onRemove) setDropping(dropped);
   };
 
+  if (dropping) {
+    const fresh = dropping.reduce((n, d) => n + d.fresh, 0);
+    return (
+      <section className="in-usual is-asking">
+        <div className="in-usual-h"><b>Take {dropping.length === 1 ? 'it' : 'them'} off the machines too?</b></div>
+        <ul className="in-usual-list">
+          {dropping.map(d => (
+            <li key={d.col}>“{d.col}” · on {d.n} machine{d.n === 1 ? '' : 's'}
+              {d.fresh < d.n ? ` — ${d.n - d.fresh} ${d.n - d.fresh === 1 ? 'has' : 'have'} work on ${d.n - d.fresh === 1 ? 'it' : 'them'}, so kept` : ''}</li>
+          ))}
+        </ul>
+        <div className="in-usual-go">
+          {fresh > 0 && (
+            <button className="btn btn-primary" onClick={() => { dropping.filter(d => d.fresh > 0).forEach(d => onRemove?.(d.col, true)); setDropping(null); }}>
+              Remove the {fresh === 1 ? 'one' : fresh} never started
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={() => setDropping(null)}>{fresh > 0 ? 'Leave them on the machines' : 'OK'}</button>
+        </div>
+        <p className="sub tw-note">Leaving them keeps the name as a column of its own on the grid — it can be cleared later from “also on the grid”.</p>
+      </section>
+    );
+  }
   if (asking) {
     return (
       <section className="in-usual is-asking">
