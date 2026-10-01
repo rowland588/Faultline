@@ -8,6 +8,7 @@ import type { ID } from '../types';
 import { uid, now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import type { PaceTodoRow, PaceWinRow, PaceLineRow } from './rows';
+import type { SnagAsset } from '../snag/types';
 import { recordTombstones } from './sync';
 import { getWorkspace } from './workspaces';
 import { DEFAULT_PROJECT_ID, inProject, onLine } from './projects';
@@ -248,4 +249,15 @@ export async function deletePaceWin(id: ID): Promise<void> {
   await (await getDB()).delete('pace_wins', id);
   await recordTombstones('pace_wins', [id]);
   signalWrite();
+}
+
+/** Every frame frozen on any of a project's walks — its own and its lines' —
+ *  newest first, with the walk it came from. What a fix is pinned onto. */
+export async function framesForProject(projectId: string): Promise<{ frame: SnagAsset; wsId: ID }[]> {
+  const db = await getDB();
+  const out: { frame: SnagAsset; wsId: ID }[] = [];
+  for (const wsId of await projectWorkspaceIds(projectId)) {
+    for (const frame of await db.getAllFromIndex('snag_assets', 'by_workspace', wsId)) out.push({ frame, wsId });
+  }
+  return out.sort((a, b) => (b.frame.updatedAt ?? b.frame.createdAt) - (a.frame.updatedAt ?? a.frame.createdAt));
 }

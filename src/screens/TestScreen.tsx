@@ -13,6 +13,7 @@
  * story. One field quietly following the result around would always report that
  * everything went to plan.
  */
+import { OnTheLine } from '../ui/OnTheLine';
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -265,6 +266,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             : 'Agreed before the day. It is what the result gets measured against.'}
         </p>
       </section>
+      )}
+
+      {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk. */}
+      {kind === 'fix' && (
+        <section className="tw-block">
+          <OnTheLine projectId={projectId} test={test} onSave={pin => save({ pin })} />
+        </section>
       )}
 
       {/* 2 · THE DAY */}

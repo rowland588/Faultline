@@ -308,6 +308,13 @@ export interface Test {
    *  existed. Only install-kind records carry it. */
   gate?: Exclude<StepGate, 'install'>;
 
+  /** WHERE IT IS ON THE LINE — a spot on a frame of the filmed walk (the
+   *  Evidence tab). Rowland: "we had a really good system … press on the
+   *  picture." A fix pinned here shows as a dot on that frame, and the frame
+   *  shows the fix; the client report prints the frame with the dot. x and y
+   *  are percentages of the picture, the same as a pinned snag. */
+  pin?: { frameId: ID; x: number; y: number };
+
   /** Which face. Absent means a test — every row written before fixes existed
    *  is a test, and reading it that way needs no migration of the data. */
   kind?: TestKind;

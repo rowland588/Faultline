@@ -13,7 +13,7 @@
  * panel, a programme band and a five-kind detail table. None of those exist any
  * more, and neither does the code.
  */
-import { getBlob } from '../db';
+import { getBlob, getSnagAsset } from '../db';
 import { loadPdfLib, deliverPdf } from './savePdf';
 import {
   ACCENT, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
@@ -251,7 +251,7 @@ export async function shotsFor(keys: string[], max = 6): Promise<Shot[]> {
 export const shotKey = (m: { kind: 'photo' | 'video'; blobKey: string; thumbKey?: string }): string | undefined =>
   (m.kind === 'photo' ? m.blobKey : m.thumbKey);
 
-async function shotFrom(key: string): Promise<Shot> {
+async function shotFrom(key: string, dot?: { x: number; y: number }): Promise<Shot> {
   const blob = await getBlob(key);
   if (!blob) throw new Error('not on this device');
   const url = URL.createObjectURL(blob);
@@ -269,8 +269,28 @@ async function shotFrom(key: string): Promise<Shot> {
     const ctx = cv.getContext('2d');
     if (!ctx) throw new Error('no 2d context');
     ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    /* A fix pinned on the line: the dot drawn into the picture itself, so
+       every document that prints the shot shows where — no second layer for
+       a PDF drawer to get out of step with. Same ring the screen draws. */
+    if (dot) {
+      const r = Math.max(8, Math.round(Math.min(cv.width, cv.height) * 0.035));
+      const cx = (dot.x / 100) * cv.width, cy = (dot.y / 100) * cv.height;
+      ctx.beginPath(); ctx.arc(cx, cy, r + 3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(192,57,43,0.35)'; ctx.fill();
+      ctx.lineWidth = Math.max(3, r * 0.3); ctx.strokeStyle = '#c0392b'; ctx.stroke();
+    }
     return { data: cv.toDataURL('image/jpeg', QUALITY), w: cv.width, h: cv.height };
   } finally { URL.revokeObjectURL(url); }
+}
+
+/** Where a fix is on the line, as a picture: its walk frame with the dot.
+ *  Undefined when it is not pinned, or the frame is not on this device. */
+export async function pinShot(t: Pick<Test, 'pin'>): Promise<Shot | undefined> {
+  if (!t.pin) return undefined;
+  try {
+    const frame = await getSnagAsset(t.pin.frameId);
+    return frame?.stillKey ? await shotFrom(frame.stillKey, t.pin) : undefined;
+  } catch { return undefined; }
 }
 
 /** The pictures of each test's day, keyed by test id. A video contributes its
@@ -284,7 +304,9 @@ export async function resolveShots(tests: Test[], items: TestItem[]): Promise<Ma
         .flatMap(i => (i.media ?? []).map(m => (m.kind === 'photo' ? m.blobKey : m.thumbKey))),
     ].filter((k): k is string => !!k);
     const shots: Shot[] = [];
-    for (const k of keys.slice(0, 5)) {
+    const where = await pinShot(t);
+    if (where) shots.push(where);
+    for (const k of keys.slice(0, where ? 4 : 5)) {
       // One unreadable picture must not cost the sheet its other pictures.
       try { shots.push(await shotFrom(k)); } catch { /* send the words */ }
     }

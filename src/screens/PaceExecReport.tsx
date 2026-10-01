@@ -836,11 +836,15 @@ export function PaceExecReport() {
       /* The pictures come off the device's store, so they are fetched before
          the drawer runs — four per record, the same first four the card
          shows. A record with none costs nothing here. */
-      const { shotsFor, shotKey } = await import('../lib/testReport');
+      const { shotsFor, shotKey, pinShot } = await import('../lib/testReport');
       const shots = new Map<string, Shot[]>();
       for (const t of trialRows) {
         const keys = mediaOf(t).map(shotKey).filter((k): k is string => !!k);
-        if (keys.length) shots.set(t.id, await shotsFor(keys, 4));
+        /* A fix pinned on the line leads with where it is: the walk frame, dot drawn in. */
+        const where = await pinShot(t);
+        const rest = keys.length ? await shotsFor(keys, where ? 3 : 4) : [];
+        const all = where ? [where, ...rest] : rest;
+        if (all.length) shots.set(t.id, all);
       }
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
       drawPaceReport(pdf, reportData(shots));

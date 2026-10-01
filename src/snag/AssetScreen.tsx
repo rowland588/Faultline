@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob } from '../db';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, chainForWorkspace, getProject, listTests, putTest } from '../db';
+import { planModel } from '../lib/planModel';
+import { live, type Test } from '../lib/testing';
+import { fixTone } from '../screens/FixesScreen';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';
@@ -26,6 +29,11 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const [watching, setWatching] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const still = useBlobUrl(asset?.stillKey);
+  /* ON A STAGE-GATE JOB THE PROBLEM IS A FIX. Rowland: "where does the
+     evidence come into play?" — it sat beside the fixes. Here the frame shows
+     the fixes pinned on it, and a problem raised on it becomes a fix. */
+  const [job, setJob] = useState<{ projectId: string; fixes: Test[] } | null>(null);
+  const [fixDraft, setFixDraft] = useState<{ xPct: number; yPct: number } | null>(null);
 
   const load = async () => {
     let a = await getSnagAsset(assetId);
@@ -42,6 +50,13 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
     // video to jump back to.
     const seg = a.segmentId ? await getSegment(a.segmentId) : undefined;
     setVideoKey(seg?.videoKey);
+    const frameId = a.id;
+    const chain = await chainForWorkspace(wsId);
+    const project = chain ? await getProject(chain.projectId) : undefined;
+    if (chain && project && planModel(project) === 'commissioning') {
+      const fixes = live(await listTests(chain.projectId)).filter(t => t.kind === 'fix' && t.pin?.frameId === frameId);
+      setJob({ projectId: chain.projectId, fixes });
+    } else setJob(null);
   };
   const syncedAt = useSyncedAt();
   // Deliberately narrow: this re-runs on the identity that matters, not on
@@ -58,6 +73,13 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const numById = new Map(snags.map((s, i) => [s.id, i + 1] as const));
   const pins: Pin[] = visible.map(s => ({ id: s.id, xPct: s.xPct ?? 0, yPct: s.yPct ?? 0, color: SNAG_STATUS_META[s.status].color, label: s.problem, n: numById.get(s.id), active: editing?.id === s.id }));
   if (draft) pins.push({ id: '__draft', xPct: draft.xPct, yPct: draft.yPct, color: 'var(--brand)', n: snags.length + 1, active: true });
+  const FIX_COLOUR: Record<string, string> = { done: 'var(--ok)', late: 'var(--danger)', notRun: 'var(--danger)', soon: 'var(--warn)', ahead: 'var(--brand)' };
+  for (const f of job?.fixes ?? []) if (f.pin) pins.push({ id: 'fix:' + f.id, xPct: f.pin.x, yPct: f.pin.y, color: FIX_COLOUR[fixTone(f).tone], label: f.title });
+  if (fixDraft) pins.push({ id: '__fix', xPct: fixDraft.xPct, yPct: fixDraft.yPct, color: 'var(--danger)', active: true });
+  const place = (x: number, y: number) => {
+    setEditing(null);
+    if (job) { setDraft(null); setFixDraft({ xPct: x, yPct: y }); } else setDraft({ xPct: x, yPct: y });
+  };
 
   return (
     <div className="wrap">
@@ -80,17 +102,21 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
             is no other way in — you are stuck looking at a still you cannot
             add anything to. The button drops the pin in the middle and the
             editor lets you move it. */}
-        <button className="btn btn-primary" data-tour="add-snag"
-          onClick={() => { setEditing(null); setDraft({ xPct: 50, yPct: 50 }); }}>
-          ＋ Add evidence
+        <button className="btn btn-primary" data-tour="add-snag" onClick={() => place(50, 50)}>
+          {job ? '＋ Raise a fix here' : '＋ Add evidence'}
         </button>
-        <span className="sub">{openCount} open · or tap the picture where you see it</span>
+        <span className="sub">{job
+          ? `${((n: number) => `${n} ${n === 1 ? 'fix' : 'fixes'}`)(job.fixes.filter(f => f.outcome !== 'passed').length)} open here · or tap the picture where the problem is`
+          : `${openCount} open · or tap the picture where you see it`}</span>
       </div>
 
       <div style={{ marginTop: 12 }} data-tour="pins">
         <PinImage src={still} pins={pins} alt={asset?.name}
-          onPlace={(x, y) => { setEditing(null); setDraft({ xPct: x, yPct: y }); }}
-          onPinTap={id => { const s = snags.find(x => x.id === id); if (s) { setDraft(null); setEditing(s); } }} />
+          onPlace={place}
+          onPinTap={id => {
+            if (id.startsWith('fix:') && job) { nav(`/project/${job.projectId}/testing/${encodeURIComponent(id.slice(4))}`); return; }
+            const s = snags.find(x => x.id === id); if (s) { setDraft(null); setFixDraft(null); setEditing(s); }
+          }} />
       </div>
 
       {/* Offered whenever a source clip exists — the player itself explains if
@@ -101,8 +127,23 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         </button>
       )}
 
-      <div className="card" style={{ marginTop: 12 }}>
-        <div className="field-label" style={{ marginBottom: 8 }}>On this asset</div>
+      {job && job.fixes.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="field-label" style={{ marginBottom: 8 }}>Fixes pinned here</div>
+          {job.fixes.map(f => (
+            <button key={f.id} className="snag-line-row" onClick={() => nav(`/project/${job.projectId}/testing/${encodeURIComponent(f.id)}`)}>
+              <span className="snag-dot-sm" style={{ background: FIX_COLOUR[fixTone(f).tone] }} />
+              <span className="snag-line-main">
+                <span className="snag-line-problem">{f.title}</span>
+                <span className="snag-line-meta">{fixTone(f).when}{f.withWhom ? ` · ${f.withWhom}` : ''}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {(!job || visible.length > 0) && <div className="card" style={{ marginTop: 12 }}>
+        <div className="field-label" style={{ marginBottom: 8 }}>{job ? 'Evidence pinned here earlier' : 'On this asset'}</div>
         {visible.length === 0 ? <p className="sub">Nothing on this frame yet — tap it where you see something.</p>
           : visible.map(s => (
             <button key={s.id} className="snag-line-row" onClick={() => { setDraft(null); setEditing(s); }}>
@@ -113,10 +154,16 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
               </span>
             </button>
           ))}
-      </div>
+      </div>}
+
+      {fixDraft && job && asset && (
+        <RaiseFix projectId={job.projectId} frameId={asset.id} at={fixDraft} still={still}
+          onClose={() => setFixDraft(null)} />
+      )}
 
       {(draft || editing) && asset && (
         <SnagEditor wsId={wsId} asset={asset} draft={draft} snag={editing} observations={observations}
+          jobId={job?.projectId}
           still={still} pinAt={draft ?? (editing ? { xPct: editing.xPct ?? 50, yPct: editing.yPct ?? 50 } : null)}
           onClose={() => { setDraft(null); setEditing(null); }}
           onSaved={async () => { setDraft(null); setEditing(null); await load(); }}
@@ -146,8 +193,11 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   );
 }
 
-function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onClose, onSaved, onSavedAndNext, onMovePin }: {
+function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onClose, onSaved, onSavedAndNext, onMovePin, jobId }: {
   wsId: string; asset: SnagAsset; draft: { xPct: number; yPct: number } | null; snag: Snag | null;
+  /** The stage-gate job this frame belongs to, when it does: then a pinned
+   *  problem can be made the fix it is. */
+  jobId?: string;
   observations: Observation[];
   /** The frame and where this pin sits on it. Shown INSIDE the sheet, because
    *  the sheet covers the picture: writing "the guide on the left" while unable
@@ -193,6 +243,28 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, dueAt: dueFromInput(due), status: 'open', raisedAt: now(), updatedAt: now() });
       }
       if (then === 'another' && !snag) onSavedAndNext(); else onSaved();
+    } finally { setBusy(false); }
+  };
+  /* ONE PROBLEM, ONE RECORD. The pin becomes a fix in the same spot, carrying
+     what was written and the close-up; the pin is closed with a note saying
+     where it went, never deleted — its photo is now the fix's too. */
+  const makeFix = async () => {
+    if (!snag || !jobId) return;
+    setBusy(true);
+    try {
+      const t = now(), id = uid();
+      const due = snag.dueAt ? new Date(snag.dueAt) : undefined;
+      const iso = due ? `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}-${String(due.getDate()).padStart(2, '0')}` : undefined;
+      await putTest({
+        id, projectId: jobId, kind: 'fix', outcome: 'planned',
+        title: (snag.proposedSolution || snag.problem).trim(), passesIf: snag.problem.trim(),
+        withWhom: snag.owner || undefined, plannedFor: iso,
+        pin: { frameId: asset.id, x: snag.xPct ?? 50, y: snag.yPct ?? 50 },
+        media: snag.detailPhotoKey ? [{ id: uid(), kind: 'photo', blobKey: snag.detailPhotoKey, mime: 'image/jpeg', capturedAt: snag.raisedAt }] : undefined,
+        sort: t, createdAt: t, updatedAt: t,
+      });
+      await updateSnag({ ...snag, status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
+      nav(`/project/${jobId}/testing/${encodeURIComponent(id)}`);
     } finally { setBusy(false); }
   };
   const remove = async () => { if (snag && window.confirm('Delete this? The photo and everything written about it go with it.')) { await deleteSnag(snag.id); onSaved(); } };
@@ -294,7 +366,55 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
             Add &amp; place another
           </button>
         )}
+        {snag && jobId && snag.status !== 'closed' && (
+          <button className="btn" onClick={() => void makeFix()} disabled={busy}>Make it a fix ›</button>
+        )}
         {snag && <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={remove}>Delete</button>}
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** A problem seen on the frame, raised as a fix on the stage-gate job —
+ *  what's wrong and, if known, what will fix it. Everything else (who, when,
+ *  pictures) is filled on the fix itself, which opens straight after. */
+function RaiseFix({ projectId, frameId, at, still, onClose }: {
+  projectId: string; frameId: string; at: { xPct: number; yPct: number }; still: string | null; onClose: () => void;
+}) {
+  const [problem, setProblem] = useState('');
+  const [fix, setFix] = useState('');
+  const [busy, setBusy] = useState(false);
+  const raise = async () => {
+    if (!problem.trim() || busy) return;
+    setBusy(true);
+    try {
+      const t = now(), id = uid();
+      await putTest({
+        id, projectId, kind: 'fix', outcome: 'planned',
+        title: (fix || problem).trim(), passesIf: problem.trim(),
+        pin: { frameId, x: at.xPct, y: at.yPct }, sort: t, createdAt: t, updatedAt: t,
+      });
+      nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+    } finally { setBusy(false); }
+  };
+  return (
+    <Sheet open onClose={onClose} title="Raise a fix here">
+      {still && (
+        <div className="snag-where">
+          <div className="otl-frame" style={{ cursor: 'default' }}>
+            <img src={still} alt="" />
+            <span className="otl-dot" style={{ left: `${at.xPct}%`, top: `${at.yPct}%` }} aria-hidden />
+          </div>
+          <p className="sub" style={{ marginTop: 6 }}>Wrong spot? Close this and tap the picture where it is.</p>
+        </div>
+      )}
+      <div className="field-label">What's wrong here?</div>
+      <textarea className="text-area" autoFocus rows={2} value={problem} placeholder="Film creases as the web enters the former" onChange={e => setProblem(e.target.value)} />
+      <div className="field-label" style={{ marginTop: 10 }}>The fix <span className="opt">if you know it</span></div>
+      <textarea className="text-area" rows={2} value={fix} placeholder="Re-align the roller" onChange={e => setFix(e.target.value)} />
+      <div className="snag-editor-foot">
+        <button className="btn btn-primary" onClick={() => void raise()} disabled={busy || !problem.trim()}>{busy ? 'Raising…' : 'Raise the fix'}</button>
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
       </div>
     </Sheet>

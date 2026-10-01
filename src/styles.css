@@ -7176,3 +7176,25 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .proj-card.is-compact .proj-foot { padding: 6px 14px 10px; border-top: 0; background: none; }
   .proj-card.is-compact .proj-foot .btn { min-height: 36px; padding: 6px 14px; font-size: 13.5px; }
 }
+
+/* ---- A fix, on the line (ui/OnTheLine) — the walk's frame with one dot. ---- */
+.otl { display: grid; gap: 8px; }
+.otl-h { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.otl-frame { position: relative; display: block; width: 100%; max-width: 560px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); cursor: pointer; }
+.otl-frame:disabled { cursor: default; }
+.otl-frame img { display: block; width: 100%; height: auto; }
+.otl-frame-ph { display: block; padding: 22px 12px; font-size: 12.5px; color: var(--muted); text-align: center; }
+.otl-dot {
+  position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  background: color-mix(in srgb, var(--danger) 35%, transparent); border: 3px solid var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+.otl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.otl-add { justify-self: start; }
+.otl-none { margin: 0; }
+.otl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.otl-thumb { display: grid; gap: 4px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.otl-thumb img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.otl-thumb-n { padding: 4px 8px 7px; font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.otl-say { margin: 0 0 8px; }
+.otl-foot { display: flex; gap: 8px; margin-top: 10px; }

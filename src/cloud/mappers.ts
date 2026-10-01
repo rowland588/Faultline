@@ -414,6 +414,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         media: t.media ?? null, docs: t.docs ?? null,
         from_test_id: t.fromTestId ?? null,
         gate: t.gate ?? null,
+        pin: t.pin ?? null,
         sort: t.sort, created_at: t.createdAt,
         updated_at: t.updatedAt, deleted_at: t.deletedAt ?? null,
       };
@@ -439,6 +440,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       docs: (r.docs as Test['docs']) ?? undefined,
       fromTestId: (r.from_test_id as string) ?? undefined,
       gate: (r.gate === 'setup' || r.gate === 'handover') ? r.gate : undefined,
+      pin: pinOf(r.pin),
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies Test),
@@ -619,6 +621,13 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 // hasn't met (no hard FK, but no reason to arrive out of order either).
 // A project must reach the cloud BEFORE the lines that name it, so somebody
 // invited into it never receives a line pointing at a project they can't see.
+/** A pin off the wire, or nothing — a half-written one is no pin at all. */
+function pinOf(v: unknown): Test['pin'] {
+  const p = v as { frameId?: unknown; x?: unknown; y?: unknown } | null;
+  return p && typeof p.frameId === 'string' && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))
+    ? { frameId: p.frameId, x: Number(p.x), y: Number(p.y) } : undefined;
+}
+
 export const SYNC_KINDS: SyncKind[] = [
   'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
   'projects', 'project_targets', 'project_actuals',
