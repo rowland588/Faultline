@@ -5,7 +5,7 @@ import { nav } from '../state/useRoute';
 import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
 import { live, type Test, type TestItem } from '../lib/testing';
-import { fixTone } from '../screens/FixesScreen';
+import { fixTone } from '../lib/fixTone';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';

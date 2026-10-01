@@ -8,7 +8,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard' | 'notes';
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport';
 
 export interface Route {
   name: RouteName;
@@ -72,6 +72,8 @@ export function parseRoute(hash: string): Route {
     // What the job is waiting on — the films, the parts, the kit.
     if (segs[2] === 'materials') return { name: 'materials', id, query };
     if (segs[2] === 'programs') return { name: 'programs', id, query };
+    // The stage-gate client report.
+    if (segs[2] === 'report') return { name: 'clientReport', id, query };
     // What to raise at the next meeting.
     if (segs[2] === 'notes') return { name: 'notes', id, query };
     // The line standard — the products, or one product's map.

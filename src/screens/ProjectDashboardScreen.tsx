@@ -537,8 +537,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const pace = usePaceSnapshots(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
-  const mats = useMaterials(projectId);
-  const progs = usePrograms(projectId);
   const stand = useStanding(projectId);
   const { actions } = pace;
   // Every line's own pack, counted. This is the roll-up: each number below was
@@ -666,7 +664,14 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               So the test is what there is to print, not which kind of project it
               is. A bare handover with nothing on either list still gets no
               button, which is all the old rule was ever protecting. */}
-          {(model !== 'commissioning' || mats.tally.total > 0 || progs.tally.total > 0) && <>
+          {/* A STAGE-GATE JOB HAS ITS OWN REPORT now (screens/ClientReportScreen),
+              always offered — it is drawn from the gates, so a job with no
+              materials or programs still has one. The A3 below stays the 3P
+              and lever tree report. */}
+          {model === 'commissioning' && (
+            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/report`)}>Client report</button>
+          )}
+          {model !== 'commissioning' && <>
             <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>Client report</button>
             {/* Not on a phone: an A3 is printed from a desk, and the button
                 cost the phone a row of its first screen. */}

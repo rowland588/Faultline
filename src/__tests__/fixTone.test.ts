@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixTone } from '../screens/FixesScreen';
+import { fixTone } from '../lib/fixTone';
 import type { Test } from '../lib/testing';
 
 const TODAY = '2026-09-30';

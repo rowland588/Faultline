@@ -68,6 +68,7 @@ const ROUTES = [
   ['install', `#/project/${seeded.projectId}/install`],
   ['set up', `#/project/${seeded.projectId}/set-up`],
   ['hand over', `#/project/${seeded.projectId}/handover`],
+  ['client report', `#/project/${seeded.projectId}/report`],
   ['meeting notes', `#/project/${seeded.projectId}/notes`],
   ['meeting notes — 3P', `#/project/${seeded.pacedProjectId}/notes`],
   ['line standard', `#/project/${seeded.projectId}/standard`],

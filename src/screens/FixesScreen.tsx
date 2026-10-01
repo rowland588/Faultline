@@ -29,25 +29,16 @@ import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
-import { daysBetween, niceDay, todayISO } from '../lib/weeks';
+import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { gateOf, isOverdue, outcomeWord, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
+import { gateOf, isOverdue, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
 import { GATE_WORD } from '../lib/install';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
-const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
-
-/** A day, or the block of them it is booked across. The second date is absent
- *  on most records and absent means one day. */
-const windowOf = (from?: string, to?: string, fmt = loud): string => {
-  if (!from) return fmt(undefined);
-  if (!to || to <= from) return fmt(from);
-  return `${fmt(from)} – ${fmt(to)}`;
-};
 
 export function FixesScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
@@ -263,29 +254,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   );
 }
 
-/* COLOUR SAYS WHERE IT STANDS. Rowland: "it's all the same colour. If
-   something's done it should be green and outlined; out of date, red; coming
-   close to its end date, amber; blue is okay." Close means the last day it
-   was wanted is within this many days — today included. */
-export const DUE_SOON_DAYS = 3;
-
-export type FixTone = 'done' | 'late' | 'soon' | 'ahead' | 'notRun';
-
-/** The colour a fix wears, and the words that go with it. */
-export function fixTone(t: Test, today = todayISO()): { tone: FixTone; when: string } {
-  if (t.outcome === 'passed') return { tone: 'done', when: `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}` };
-  /* Tried and did not fix it: the problem is still there, which is red. */
-  if (t.outcome === 'failed') return { tone: 'late', when: `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}` };
-  if (t.outcome === 'notRun') return { tone: 'notRun', when: `${outcomeWord(t)}${t.ranOn ? ` · ${niceDay(t.ranOn)}` : ''}` };
-  if (isOverdue(t, today)) return { tone: 'late', when: `Late · was ${windowOf(t.plannedFor, t.plannedTo, nice)}` };
-  const end = plannedEnd(t);
-  if (!end) return { tone: 'ahead', when: 'No date yet' };
-  const left = daysBetween(today, end);
-  if (left <= DUE_SOON_DAYS) {
-    return { tone: 'soon', when: left <= 0 ? 'Due today' : left === 1 ? 'Due tomorrow' : `Due in ${left} days · ${nice(end)}` };
-  }
-  return { tone: 'ahead', when: windowOf(t.plannedFor, t.plannedTo, nice) };
-}
+export { DUE_SOON_DAYS, fixTone, type FixTone } from '../lib/fixTone';
+import { DUE_SOON_DAYS, fixTone } from '../lib/fixTone';
 
 /** One fix, as a box: where it stands, the machine, the fix, the problem, and
  *  who is on it and what it is for — the same things in the same places on
