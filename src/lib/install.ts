@@ -270,3 +270,43 @@ export function untouched(t: Test, tests: Test[], items: TestItem[]): boolean {
     && !live(items).some(i => i.testId === t.id)
     && !live(tests).some(f => f.kind === 'fix' && f.fromTestId === t.id);
 }
+
+/* --------------------------- THE JOURNEY STRIP ----------------------------
+ *
+ * Rowland: "these are the gates — install, set up, commissioning, handover."
+ * Where each machine is on that journey, read off what is already kept: the
+ * three gates' steps, and the tests on it for Commission. Nothing is stored;
+ * the Overview and the client report draw the same reading. */
+export type GateTone = 'done' | 'going' | 'late' | 'ahead' | 'none';
+export type JourneyGate = StepGate | 'commission';
+export const JOURNEY: { gate: JourneyGate; label: string; path: string }[] = [
+  { gate: 'install', label: 'Install', path: 'install' },
+  { gate: 'setup', label: 'Set up', path: 'set-up' },
+  { gate: 'commission', label: 'Commission', path: 'testing' },
+  { gate: 'handover', label: 'Hand over', path: 'handover' },
+];
+
+export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today: string): { gate: JourneyGate; label: string; tone: GateTone }[] {
+  const inAlready = ['installed', 'running'].includes(asset.state) || !!asset.installedOn || !!asset.runningOn;
+  const stepTone = (g: StepGate): GateTone => {
+    const v = installOf(asset, tests, items, today, g);
+    if (v.total === 0) return g === 'install' && inAlready ? 'done' : 'none';
+    if (v.done === v.total) return 'done';
+    if (v.steps.some(s => s.tone === 'problem' || s.tone === 'late')) return 'late';
+    if (v.done > 0 || v.steps.some(s => s.tone === 'asking')) return 'going';
+    return 'ahead';
+  };
+  const proofs = live(tests).filter(t => (t.kind ?? 'test') === 'test' && t.assetId === asset.id);
+  const commission: GateTone = proofs.length === 0 ? 'none'
+    : proofs.every(t => t.outcome === 'passed') ? 'done'
+      : proofs.some(t => t.outcome === 'failed' || t.outcome === 'notRun' || isOverdue(t, today)) ? 'late'
+        : proofs.some(t => isSettled(t) || needsVerdict(t)) ? 'going' : 'ahead';
+  return JOURNEY.map(j => ({ gate: j.gate, label: j.label,
+    tone: j.gate === 'commission' ? commission : stepTone(j.gate) }));
+}
+
+/** The gate a machine is at — the first not done — or "Handed over". */
+export function journeyNow(j: { label: string; tone: GateTone }[]): string {
+  const at = j.find(g => g.tone !== 'done');
+  return at ? at.label : 'Handed over';
+}

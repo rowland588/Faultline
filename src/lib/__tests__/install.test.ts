@@ -5,7 +5,7 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { cleanStages, foldInto, installGrid, installOf, keepStages, stageRenames, untouched, usualStages } from '../install';
+import { cleanStages, foldInto, installGrid, installOf, journeyNow, journeyOf, keepStages, stageRenames, untouched, usualStages } from '../install';
 import { standing } from '../standing';
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, wordsOf, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
@@ -282,5 +282,33 @@ describe('the gates after install', () => {
     expect(st.rows.find(r => r.key === 'install')?.open).toBe(1);
     expect(st.rows.find(r => r.key === 'setup')?.open).toBe(1);
     expect(st.rows.some(r => r.key === 'handover')).toBe(false);
+  });
+});
+
+describe('where each machine is, gate by gate', () => {
+  const T = '2026-10-01';
+  it('reads each gate off what is kept, and says the gate it is at', () => {
+    const m = asset({ id: 'j1', state: 'installed', installedOn: '2026-09-25' });
+    const tests: Test[] = [
+      { ...step({ id: 'js1', title: 'Programs loaded', assetId: m.id, outcome: 'passed', ranOn: '2026-09-28' }), gate: 'setup' },
+      { ...step({ id: 'js2', title: 'Change parts fitted', assetId: m.id, plannedFor: '2026-09-29' }), gate: 'setup' },
+      { ...step({ id: 'jt1', title: 'Seal integrity', assetId: m.id, plannedFor: '2026-10-05' }), kind: 'test' },
+    ];
+    const j = journeyOf(m, tests, [], T);
+    expect(j.map(g => [g.label, g.tone])).toEqual([
+      ['Install', 'done'],          // already installed, no steps kept
+      ['Set up', 'late'],           // one done, one past its day
+      ['Commission', 'ahead'],      // a test booked, not yet run
+      ['Hand over', 'none'],        // nothing kept yet
+    ]);
+    expect(journeyNow(j)).toBe('Set up');
+  });
+  it('a machine through every gate is handed over', () => {
+    const m = asset({ id: 'j2' });
+    const done = (title: string, o: Partial<Test> = {}) => step({ title, assetId: m.id, outcome: 'passed', ranOn: '2026-09-20', ...o });
+    const tests: Test[] = [done('Dry run'), { ...done('Programs loaded'), gate: 'setup' }, { ...done('Weight accuracy'), kind: 'test' }, { ...done('Client signed off'), gate: 'handover' }];
+    const j = journeyOf(m, tests, [], T);
+    expect(j.every(g => g.tone === 'done')).toBe(true);
+    expect(journeyNow(j)).toBe('Handed over');
   });
 });

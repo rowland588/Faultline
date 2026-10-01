@@ -575,7 +575,7 @@ describe('materials and programs take as many sheets as they need', () => {
     const r = render({ ...base, installation: installation(40) });
     const said = r.said.join('\n');
     for (let i = 1; i <= 40; i++) expect(said).toContain(`Machine ${i}`);
-    expect(said).toContain('Installation — continued');
+    expect(said).toContain('The machines — continued');
     expect(r.pages).toBe(render(base).pages + installPlan(40, H, M).sheets);
     expect(said).toContain('Installed');
   });

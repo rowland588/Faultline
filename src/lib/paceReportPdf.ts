@@ -206,6 +206,10 @@ export interface PaceReportData {
       steps: { title: string; tone: 'done' | 'problem' | 'asking' | 'late' | 'ahead'; next: boolean }[];
       says: string;
       late: number;
+      /** The four gates — Install, Set up, Commission, Hand over — and the one
+       *  it is at. Off lib/install's journeyOf, as the Overview draws it. */
+      journey?: { label: string; tone: 'done' | 'going' | 'late' | 'ahead' | 'none' }[];
+      at?: string;
     }[];
   };
   /** Does this project keep a weekly tracker at all? A commissioning job does
@@ -962,7 +966,7 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   ].join(' \u00b7 ');
   const y0 = place?.top ?? M;
   const panelH = Math.min(H - M - 14 - y0, installHeight(rows.length));
-  const top = panel(d, M, y0, CW, panelH, place ? '' : String(page), sheet ? 'Installation — continued' : 'Installation', sowhat);
+  const top = panel(d, M, y0, CW, panelH, place ? '' : String(page), sheet ? 'The machines — continued' : 'The machines — install, and every gate', sowhat);
 
   const x0 = M + 14, right = M + CW - 14;
   const nameW = 210, saysW = 330;
@@ -982,9 +986,25 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
     setFont(d, 9.5, 'bold', INK);
     d.text(fit(d, r.machine, nameW - 12), x0, y + 11);
     setFont(d, 7, 'normal', MUTED);
-    if (r.oem) d.text(fit(d, r.oem, nameW - 12), x0, y + 22);
-    setFont(d, 6.5, 'bold', INK2);
-    d.text(fit(d, r.state.toUpperCase(), nameW - 12), x0, y + 33);
+    d.text(fit(d, [r.oem, r.state].filter(Boolean).join(' \u00b7 '), nameW - 12), x0, y + 21);
+    /* THE FOUR GATES — Install, Set up, Commission, Hand over — as the
+       Overview draws them: filled green done, blue ring under way, red ring
+       late or a problem, grey ring still ahead, pale nothing kept yet. */
+    if (r.journey) {
+      const pw = (nameW - 12 - 3 * 3) / 4;
+      r.journey.forEach((g, k) => {
+        const px = x0 + k * (pw + 3), py = y + 26;
+        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : g.tone === 'late' ? DANGER : g.tone === 'ahead' ? '#c6d2e3' : '#e1e8f2';
+        if (g.tone === 'done') { d.setFillColor(OK); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
+        else if (g.tone === 'none') { d.setFillColor('#f2f5fa'); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
+        else { d.setDrawColor(col); d.setLineWidth(1); d.setFillColor(g.tone === 'late' ? '#fdf2f0' : g.tone === 'going' ? '#e8f0fd' : '#ffffff'); d.roundedRect(px + 0.5, py + 0.5, pw - 1, 9, 3, 3, 'FD'); }
+        setFont(d, 5.6, 'bold', g.tone === 'done' ? '#ffffff' : g.tone === 'none' ? MUTED : col === '#c6d2e3' ? INK2 : col);
+        d.text(fit(d, g.label, pw - 3), px + pw / 2, py + 6.8, { align: 'center' });
+      });
+    } else {
+      setFont(d, 6.5, 'bold', INK2);
+      d.text(fit(d, r.state.toUpperCase(), nameW - 12), x0, y + 33);
+    }
 
     if (r.steps.length === 0) {
       setFont(d, 7.5, 'normal', MUTED);
@@ -1020,8 +1040,8 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
 
   if (place) return;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 installation`, CW * 0.7), M, H - M + 6);
-  d.text('Green done \u00b7 red ring late \u00b7 red hit a problem \u00b7 blue ring next.', W - M, H - M + 6, { align: 'right' });
+  d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 the machines`, CW * 0.7), M, H - M + 6);
+  d.text('Steps: green done \u00b7 red ring late \u00b7 red hit a problem \u00b7 blue ring next.  Gates: green done \u00b7 blue under way \u00b7 red late.', W - M, H - M + 6, { align: 'right' });
 }
 
 /* ---------- the trials ----------
@@ -2028,7 +2048,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     })(),
     /* INSTALL, when the job keeps install steps: machines in, and the steps
        behind that number — the installation sheet further on says which. */
-    ...(data.installation
+    ...(data.installation && data.installation.total > 0
       ? [[`${data.installation.machinesIn}/${data.installation.machines}`, 'Installed',
           `${data.installation.done} of ${data.installation.total} install steps done`,
           data.installation.late > 0 ? DANGER : data.installation.done === data.installation.total ? OK : BRAND] as [string, string, string, string]]

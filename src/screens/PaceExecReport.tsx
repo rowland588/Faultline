@@ -28,7 +28,7 @@ import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isOverdue, isSettled, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
-import { GATE_WORD, installOf } from '../lib/install';
+import { GATE_WORD, installOf, journeyNow, journeyOf } from '../lib/install';
 import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
@@ -302,7 +302,7 @@ function InstallationPage({ ins, title, scale, sheetH, n, of }: {
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-1">
           <section className="exec-box">
-            <SectionHead n={String(n)} title="Installation"
+            <SectionHead n={String(n)} title="The machines — install, and every gate"
               sowhat={[
                 `${ins.done} of ${ins.total} steps done`,
                 `${ins.machinesIn} of ${ins.machines} machine${ins.machines === 1 ? '' : 's'} in`,
@@ -316,8 +316,11 @@ function InstallationPage({ ins, title, scale, sheetH, n, of }: {
                 <div key={i} className={'ex-in-row' + (r.late > 0 ? ' is-late' : '')}>
                   <span className="ex-in-m">
                     <b>{r.machine}</b>
-                    {r.oem && <span>{r.oem}</span>}
-                    <em>{r.state}</em>
+                    <span>{[r.oem, r.state].filter(Boolean).join(' · ')}</span>
+                    {/* The four gates, as the file draws them. */}
+                    {r.journey
+                      ? <span className="ex-jr">{r.journey.map(g => <span key={g.label} className={'ex-jr-g is-' + g.tone}>{g.label}</span>)}</span>
+                      : <em>{r.state}</em>}
                   </span>
                   {r.steps.length === 0
                     ? <span className="ex-in-none">No install steps planned</span>
@@ -338,8 +341,8 @@ function InstallationPage({ ins, title, scale, sheetH, n, of }: {
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · client report · page {n} of {of} — installation</span>
-          <span>Green done · red ring late · red hit a problem · blue ring next.</span>
+          <span>{title} · client report · page {n} of {of} — the machines</span>
+          <span>Steps: green done · red ring late · red hit a problem · blue ring next.  Gates: green done · blue under way · red late.</span>
         </footer>
       </section>
     </div>
@@ -1143,9 +1146,12 @@ export function PaceExecReport() {
   const installBlock = ((): PaceReportData['installation'] => {
     if (line || !project?.commissioning) return undefined;
     const liveMachines = machines.filter(a => !a.deletedAt).sort((a, b) => a.sort - b.sort);
+    /* EVERY MACHINE, now that each row carries its journey through the gates:
+       one already running with no install steps still has a place in Set up,
+       Commission and Hand over. The line's own row only when it has steps. */
     const views = [...liveMachines.map(a => installOf(a, tests, testItems, today)), installOf(undefined, tests, testItems, today)]
-      .filter(v => v.total > 0 || (!!v.asset && !['installed', 'running'].includes(assetStateOf(v.asset))));
-    if (!views.some(v => v.total > 0)) return undefined;
+      .filter(v => v.total > 0 || !!v.asset);
+    if (views.length === 0) return undefined;
     const onMachines = views.filter(v => v.asset);
     return {
       done: views.reduce((n, v) => n + v.done, 0),
@@ -1163,6 +1169,10 @@ export function PaceExecReport() {
           steps: v.steps.map(s => ({ title: s.step.title, tone: s.tone, next: s.next })),
           says: v.says,
           late: v.late,
+          ...(v.asset ? (() => {
+            const j = journeyOf(v.asset, tests, testItems, today);
+            return { journey: j.map(g => ({ label: g.label, tone: g.tone })), at: journeyNow(j) };
+          })() : {}),
         };
       }),
     };
@@ -1560,7 +1570,7 @@ export function PaceExecReport() {
                 <Stat n={String(n('failed'))} label="Failed" sub={n('failed') ? `${reBooked} with a re-test booked` : 'none'} tone={n('failed') > 0 ? 'bad' : 'good'} />
                 <Stat n={String(n('noVerdict') + n('notRun'))} label="Waiting" sub={`${n('noVerdict')} no verdict \u00b7 ${n('notRun')} not run`} tone={n('noVerdict') + n('notRun') > 0 ? 'warn' : 'good'} />
                 <Stat n={String(pastDay)} label="Past the day" sub="owed across the job — see who owes what" tone={pastDay > 0 ? 'bad' : 'good'} />
-                {installBlock && (
+                {installBlock && installBlock.total > 0 && (
                   <Stat n={`${installBlock.machinesIn}/${installBlock.machines}`} label="Installed"
                     sub={`${installBlock.done} of ${installBlock.total} install steps done`}
                     tone={installBlock.late > 0 ? 'bad' : installBlock.done === installBlock.total ? 'good' : 'flat'} />

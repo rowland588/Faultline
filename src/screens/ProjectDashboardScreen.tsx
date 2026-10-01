@@ -12,6 +12,7 @@
  * into the meeting. */
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Peers, projectPeers } from '../ui/Peers';
+import { Journey } from '../ui/Journey';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
@@ -444,6 +445,8 @@ function TestingOverview({ projectId }: { projectId: string }) {
               between a summary and an answer. */}
           <Verdict st={all.standing} />
           <DayLink projectId={projectId} />
+          {/* The four gates, machine by machine — where each one is. */}
+          <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
           {/* The position, then the sore point by name, then WHEN, then the
               whole list. The plan goes above the table on purpose: the table
               answers "what is not done", and the only honest way to read that
