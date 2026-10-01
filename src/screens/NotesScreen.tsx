@@ -18,6 +18,65 @@ import { Crumbs } from '../ui/Crumbs';
 
 const TICK = '✓';
 
+type TT = ReturnType<typeof useTesting>;
+type Options = { label: string; rows: Test[] }[];
+
+/** The step picker, shared by a new note and an edited one. */
+function AboutSelect({ value, onChange, options, machine }: {
+  value: string; onChange: (v: string) => void; options: Options; machine: (id?: string) => string | undefined;
+}) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}>
+      <option value={WHOLE_JOB}>The whole project</option>
+      {options.map(g => (
+        <optgroup key={g.label} label={g.label}>
+          {g.rows.map(t => <option key={t.id} value={t.id}>{t.title}{machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+/** One note: tick it once raised; tap the words to change them, or what the
+ *  note is about. */
+function Row({ n, tt, options, machine }: { n: TestItem; tt: TT; options: Options; machine: (id?: string) => string | undefined }) {
+  const done = n.doneAt != null;
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(n.what);
+  const [about, setAbout] = useState(n.testId);
+  const open = () => { setText(n.what); setAbout(n.testId); setEditing(true); };
+  const save = () => {
+    const v = text.trim();
+    if (v && (v !== n.what || about !== n.testId)) void tt.saveItem({ ...n, what: v, testId: about });
+    setEditing(false);
+  };
+  return (
+    <div className={'nt-row' + (done ? ' is-done' : '')}>
+      <button className={'tw-tick' + (done ? ' is-on' : '')} aria-label={done ? 'Not raised yet' : 'Raised'}
+        onClick={() => void tt.saveItem({ ...n, doneAt: done ? undefined : Date.now() })}>{done ? TICK : null}</button>
+      {editing ? (
+        <div className="nt-edit">
+          <textarea className="text-area" rows={2} autoFocus value={text} aria-label="Note"
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
+              if (e.key === 'Escape') setEditing(false);
+            }} />
+          <label className="nt-about"><span>About</span>
+            <AboutSelect value={about} onChange={setAbout} options={options} machine={machine} /></label>
+          <span className="nt-edit-acts">
+            <button className="btn btn-primary btn-sm" onClick={save} disabled={!text.trim()}>Save</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
+          </span>
+        </div>
+      ) : (
+        <button className="nt-what" onClick={open} title="Tap to edit">{n.what}</button>
+      )}
+      <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}>×</button>
+    </div>
+  );
+}
+
 /** What a note is about, in words: "Install · Guarding fitted — Pick and place". */
 function aboutWords(t: Test | undefined, machine: (id?: string) => string | undefined): string {
   if (!t) return 'The whole project';
@@ -77,18 +136,6 @@ export function NotesScreen({ projectId }: { projectId: string }) {
     { label: 'Hand-over items', rows: pick('step', 'handover') },
   ].filter(g => g.rows.length > 0);
 
-  const Row = ({ n }: { n: TestItem }) => {
-    const done = n.doneAt != null;
-    return (
-      <div className={'nt-row' + (done ? ' is-done' : '')}>
-        <button className={'tw-tick' + (done ? ' is-on' : '')} aria-label={done ? 'Not raised yet' : 'Raised'}
-          onClick={() => void tt.saveItem({ ...n, doneAt: done ? undefined : Date.now() })}>{done ? TICK : null}</button>
-        <span className="nt-what">{n.what}</span>
-        <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}>×</button>
-      </div>
-    );
-  };
-
   return (
     <div className="wrap pace nt">
       <Crumbs trail={[
@@ -113,14 +160,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void add(); } }} />
         <div className="nt-add-row">
           <label className="nt-about"><span>About</span>
-            <select value={about} onChange={e => setAbout(e.target.value)}>
-              <option value={WHOLE_JOB}>The whole project</option>
-              {optgroups.map(g => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.rows.map(t => <option key={t.id} value={t.id}>{t.title}{machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}</option>)}
-                </optgroup>
-              ))}
-            </select>
+            <AboutSelect value={about} onChange={setAbout} options={optgroups} machine={machine} />
           </label>
           <button className="btn btn-primary" type="submit" disabled={!what.trim()}>Add note</button>
         </div>
@@ -135,7 +175,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
               {t ? <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(t.id)}`)}>{aboutWords(t, machine)} ›</button>
                 : aboutWords(undefined, machine)}
             </h3>
-            {g.notes.map(n => <Row key={n.id} n={n} />)}
+            {g.notes.map(n => <Row key={n.id} n={n} tt={tt} options={optgroups} machine={machine} />)}
           </section>
         );
       })}
@@ -148,7 +188,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           {showRaised && raised.map(n => (
             <div key={n.id}>
               <span className="nt-about-sm">{aboutWords(byId.get(n.testId), machine)}</span>
-              <Row n={n} />
+              <Row n={n} tt={tt} options={optgroups} machine={machine} />
             </div>
           ))}
         </section>
