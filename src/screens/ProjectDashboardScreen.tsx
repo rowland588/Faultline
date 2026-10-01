@@ -684,6 +684,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           </button>
           </Fragment>
         ))}
+        {/* A TOOL, not a lens: who stands where on each product. People, in
+            3P's words — the standard the line runs to. */}
+        <button className="pace-lens" onClick={() => nav(`/project/${projectId}/standard`)}>
+          <span className="pace-lens-l">Line standard</span>
+          <span className="pace-lens-s">who stands where</span>
+        </button>
       </nav>}
 
       {/* On a commissioning job these are drawn UNDER the verdict instead — see

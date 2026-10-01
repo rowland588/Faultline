@@ -68,6 +68,9 @@ const ROUTES = [
   ['install', `#/project/${seeded.projectId}/install`],
   ['set up', `#/project/${seeded.projectId}/set-up`],
   ['hand over', `#/project/${seeded.projectId}/handover`],
+  ['line standard', `#/project/${seeded.projectId}/standard`],
+  ['line standard — a map', `#/project/${seeded.projectId}/standard/${seeded.standardId}`],
+  ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
   ['install step card', `#/project/${seeded.projectId}/testing/${seeded.stepId}/card`],
   /* The day, today and a day in the past that has a story on it. */

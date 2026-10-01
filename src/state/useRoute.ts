@@ -8,7 +8,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs';
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard';
 
 export interface Route {
   name: RouteName;
@@ -72,6 +72,8 @@ export function parseRoute(hash: string): Route {
     // What the job is waiting on — the films, the parts, the kit.
     if (segs[2] === 'materials') return { name: 'materials', id, query };
     if (segs[2] === 'programs') return { name: 'programs', id, query };
+    // The line standard — the products, or one product's map.
+    if (segs[2] === 'standard') return { name: 'standard', id, lineId: segs[3] ? decodeURIComponent(segs[3]) : undefined, query };
     /* Commissioning is ONE screen now. /commissioning/:anything — the old
        per-stage gate pages, and /commissioning/run before them — lands on it
        rather than 404ing somebody's bookmark. */

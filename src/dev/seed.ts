@@ -19,7 +19,7 @@ import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
-  putTarget, putReadings, putMaterials, putPrograms,
+  putTarget, putReadings, putMaterials, putPrograms, putStandard,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
@@ -64,6 +64,8 @@ export interface Seeded {
   materials: number;
   /** What the machine can run — one of every state, for the same reason. */
   programs: number;
+  /** A line standard map on the commissioning job. */
+  standardId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -387,8 +389,23 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     // ^ the word and nothing behind it: the app must read this as on the machine
   ]);
 
+  /* A LINE STANDARD on the commissioning job — the frame off the walk as its
+     picture, people with roles and tasks, and kit — so the map, its people
+     list and the products page are all drawn from a real one. */
+  const standardId = uid();
+  await putStandard({
+    id: standardId, projectId: proj.id, product: 'Finest Red 2kg', photoKey: asset.stillKey,
+    marks: [
+      { id: uid(), kind: 'person', x: 22, y: 40, label: 'Op 1', task: 'Load film, splice at the end of each reel' },
+      { id: uid(), kind: 'person', x: 58, y: 62, label: 'Op 2', task: 'Check weigher — sample 5 every 30 minutes' },
+      { id: uid(), kind: 'pallet', x: 84, y: 70 },
+      { id: uid(), kind: 'bin', x: 40, y: 80 },
+    ],
+    sort: 1, createdAt: t, updatedAt: t,
+  });
+
   return {
-    wsId: ws.id, projectId: proj.id, lineId: line.id, caseId: kase.id,
+    wsId: ws.id, projectId: proj.id, standardId, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,
     snags: (await snagsForWorkspace(ws.id)).length,

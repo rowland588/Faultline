@@ -8,6 +8,7 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
 import type { Program, ProgramState } from '../lib/programs';
+import type { Standard, StandardMark } from '../lib/standard';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -564,6 +565,34 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Program),
   },
 
+  /* THE LINE STANDARD — one map per product. The marks ride as one jsonb
+     list on the row: they are only ever read and written with their map, and
+     a table of them would be a join for nothing. */
+  standards: {
+    clock: l => (l as Standard).updatedAt,
+    mediaKeys: l => k((l as Standard).photoKey, 'image/jpeg'),
+    toRow: (l, fallbackOwner) => {
+      const s = l as Standard;
+      return {
+        id: s.id, owner_id: fallbackOwner, project_id: s.projectId,
+        product: s.product, program_id: s.programId ?? null,
+        photo_key: s.photoKey ?? null, marks: s.marks ?? [], note: s.note ?? null,
+        sort: s.sort, created_at: s.createdAt,
+        updated_at: s.updatedAt, deleted_at: s.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string,
+      product: (r.product as string) ?? '',
+      programId: (r.program_id as string) ?? undefined,
+      photoKey: (r.photo_key as string) ?? undefined,
+      marks: Array.isArray(r.marks) ? (r.marks as StandardMark[]) : [],
+      note: (r.note as string) ?? undefined,
+      sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies Standard),
+  },
+
   materials: {
     clock: l => (l as Material).updatedAt,
     mediaKeys: () => [],
@@ -642,4 +671,6 @@ export const SYNC_KINDS: SyncKind[] = [
   'materials',
   // after the machines and the tests, because a program names both
   'programs',
+  // after the programs, because a map can name the one it is for
+  'standards',
 ];

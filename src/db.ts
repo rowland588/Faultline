@@ -39,3 +39,4 @@ export * from './db/testing';
 export * from './db/measures';
 export * from './db/materials';
 export * from './db/programs';
+export * from './db/standards';

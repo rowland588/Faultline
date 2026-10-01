@@ -7198,3 +7198,78 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .otl-thumb-n { padding: 4px 8px 7px; font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .otl-say { margin: 0 0 8px; }
 .otl-foot { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ---- The line standard (screens/StandardScreen) — a picture of the line
+   with the people and the kit placed on it, one map per product. ---- */
+.ls-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 8px; }
+.ls-card { display: grid; gap: 4px; padding: 0 0 12px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.ls-card:hover { border-color: var(--line-2); }
+.ls-card-pic { position: relative; display: block; aspect-ratio: 16 / 9; background: var(--surface-2); overflow: hidden; }
+.ls-card-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ls-card-blank { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 18px 18px; }
+.ls-card-dot { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.ls-card-t { padding: 6px 14px 0; font-family: var(--display); font-size: 15.5px; font-weight: 700; }
+.ls-card-s { padding: 0 14px; font-size: 12.5px; color: var(--muted); }
+.ls-card-s b { color: var(--ink); }
+.ls-pick { display: flex; flex-wrap: wrap; gap: 7px; }
+.ls-pick-b { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.ls-pick-b:hover { border-color: var(--brand); color: var(--accent); }
+.ls-type { display: flex; gap: 8px; }
+.ls-type .text-input { flex: 1; min-width: 0; }
+
+.ls-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 6px 0 12px; }
+.ls-head-main { flex: 1 1 320px; min-width: 0; }
+.ls-product { width: 100%; padding: 2px 0; font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink);
+  background: transparent; border: 0; border-bottom: 2px solid transparent; }
+.ls-product:hover, .ls-product:focus { border-bottom-color: var(--line-2); outline: none; }
+.ls-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ls-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.ls-tool { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 6px; border-radius: 999px; border: 1.5px solid transparent;
+  background: var(--surface-2); font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.ls-tool.is-on { border-color: var(--brand); background: var(--accent-soft); color: var(--accent); }
+.ls-tools-say { margin-left: 4px; font-size: 12.5px; }
+.ls-ic { display: block; flex: none; }
+.ls-body { display: grid; grid-template-columns: 1fr 300px; gap: 14px; margin-top: 12px; align-items: start; }
+.ls-board-wrap { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.ls-board { position: relative; width: 100%; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--surface-2);
+  cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ls-board.is-blank { aspect-ratio: 16 / 9; background-color: #eef3f9;
+  background-image: linear-gradient(#dbe4ef 1px, transparent 1px), linear-gradient(90deg, #dbe4ef 1px, transparent 1px); background-size: 28px 28px; }
+.ls-photo { display: block; width: 100%; height: auto; pointer-events: auto; }
+.ls-mark { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 1px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; }
+.ls-mark:active { cursor: grabbing; }
+.ls-mark .ls-ic { width: 34px; height: 34px; filter: drop-shadow(0 2px 3px rgba(13, 31, 60, 0.35)); }
+.ls-mark.is-on .ls-ic { outline: 2px solid var(--brand); outline-offset: 1px; border-radius: 50%; }
+.ls-mark-l { padding: 1px 7px; border-radius: 999px; background: rgba(15, 26, 46, 0.88); color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.ls-side { display: grid; gap: 8px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.ls-count { display: flex; align-items: baseline; gap: 8px; }
+.ls-count b { font-family: var(--display); font-size: 34px; line-height: 1; color: var(--ink); }
+.ls-count span { font-size: 13px; color: var(--muted); }
+.ls-things { margin: 0; }
+.ls-side-h { margin: 6px 0 0; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ls-person { display: grid; grid-template-columns: 22px 1fr; gap: 4px 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.ls-role { font: inherit; font-weight: 700; font-size: 14px; padding: 3px 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--ink); min-width: 0; }
+.ls-task { grid-column: 2; font: inherit; font-size: 13px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--ink); resize: vertical; min-width: 0; }
+.ls-role:hover, .ls-role:focus { border-color: var(--line-2); outline: none; }
+.ls-del { justify-self: start; color: var(--danger); margin-top: 6px; }
+.ls-strip { margin: 16px 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.ls-strip-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ls-strip-h h3 { margin: 0; font-size: 15.5px; }
+.ls-strip-h .btn { margin-left: auto; }
+.ls-strip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ls-strip-b { display: grid; gap: 1px; padding: 8px 12px; text-align: left; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); font: inherit; cursor: pointer; color: var(--ink); }
+.ls-strip-b b { font-size: 13.5px; }
+.ls-strip-b span { font-size: 12px; color: var(--muted); }
+@media (max-width: 860px) {
+  .ls-body { grid-template-columns: 1fr; }
+  .ls-product { font-size: 22px; }
+  .ls-tools-say { flex-basis: 100%; margin: 2px 0 0; }
+  .ls-mark .ls-ic { width: 30px; height: 30px; }
+}
+@media (max-width: 640px) {
+  /* One row of icons that scrolls, so the picture sits higher on a phone. */
+  .ls-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .ls-tool { flex: none; }
+  .ls-tools-say { display: none; }
+}

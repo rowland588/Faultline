@@ -25,6 +25,7 @@
  * "what we found" and fixes that can be for it. What the machine reads as is
  * lib/install's, one call, so the sentence here is the sentence on paper.
  */
+import { StandardsCard } from '../ui/StandardsCard';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
@@ -123,6 +124,11 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       )}
 
       {gate === 'setup' && <ProgramsScreen projectId={projectId} embedded />}
+
+      {/* HOW THE LINE IS RUN, PRODUCT BY PRODUCT — handed over with the line.
+          The line standard is a tool; Hand over is where a stage-gate job
+          uses it. */}
+      {gate === 'handover' && <StandardsCard projectId={projectId} />}
     </div>
   );
 }
