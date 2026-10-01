@@ -26,14 +26,79 @@ import type { SnagAsset } from '../snag/types';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-async function printStandards(list: Standard[], project: Project) {
-  const { loadPdfLib, deliverPdf } = await import('../lib/savePdf');
+const printedToday = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const pdfName = (list: Standard[], project: Project) =>
+  `${(list.length === 1 ? `${project.name} line standard - ${list[0].product}` : `${project.name} line standard`).replace(/[\\/:*?"<>|—–]+/g, ' - ').replace(/\s+/g, ' ').trim()}.pdf`;
+
+async function standardsPdf(list: Standard[], project: Project) {
+  const { loadPdfLib } = await import('../lib/savePdf');
   const { drawStandards } = await import('../lib/standardPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  await drawStandards(doc, list, project.name, new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }));
-  const name = list.length === 1 ? `${project.name} line standard — ${list[0].product}` : `${project.name} line standard`;
-  await deliverPdf(doc, `${name.replace(/[\\/:*?"<>|]+/g, ' ').trim()}.pdf`);
+  await drawStandards(doc, list, project.name, printedToday());
+  return doc;
+}
+
+/* THE CARD, SEEN BEFORE IT PRINTS. Rowland: "print doesn't work and I can't
+   see the print format." Each card is drawn once as a picture; the picture is
+   what is shown here and what goes into the PDF, so there is nothing to guess.
+   Anything that goes wrong says so, rather than the button doing nothing. */
+function PrintSheet({ list, project, onClose }: { list: Standard[]; project: Project; onClose: () => void }) {
+  const [cards, setCards] = useState<string[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 900px)').matches;
+  /* Redrawn when a card's contents change, not on every render — the editor
+     hands a fresh array each time. */
+  const sig = JSON.stringify(list.map(x => [x.id, x.product, x.photoKey, x.marks, x.note]));
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const { cardImage } = await import('../lib/standardCard');
+        const out: string[] = [];
+        for (const st of list) out.push(await cardImage(st, project.name, printedToday()));
+        if (live) setCards(out);
+      } catch (e) {
+        console.error('line standard card failed', e);
+        if (live) setErr('The card could not be drawn on this device. Please try again.');
+      }
+    })();
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `sig` is the list, by what can change
+  }, [sig, project.name]);
+  const go = async (how: 'download' | 'print') => {
+    setBusy(true); setErr(null);
+    try {
+      const doc = await standardsPdf(list, project);
+      if (how === 'print') {
+        const url = URL.createObjectURL(doc.output('blob') as Blob);
+        const w = window.open(url, '_blank');
+        if (!w) { const { deliverPdf } = await import('../lib/savePdf'); await deliverPdf(doc, pdfName(list, project)); }
+        setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      } else {
+        const { deliverPdf } = await import('../lib/savePdf');
+        await deliverPdf(doc, pdfName(list, project));
+      }
+    } catch (e) {
+      console.error('line standard PDF failed', e);
+      setErr('The PDF could not be made. Please try again.');
+    } finally { setBusy(false); }
+  };
+  return (
+    <Sheet open onClose={onClose} title={list.length === 1 ? `Line standard — ${list[0].product}` : `Line standard — ${list.length} products`}>
+      <div className="ls-print-acts">
+        <button className="btn btn-primary" onClick={() => void go('download')} disabled={busy || !cards}>{busy ? 'Making it…' : 'Download PDF'}</button>
+        {wide && <button className="btn" onClick={() => void go('print')} disabled={busy || !cards}>Print</button>}
+        <span className="sub">A4 landscape · {list.length === 1 ? 'one page' : `${list.length} pages, one a product`}</span>
+      </div>
+      {err && <p className="ls-print-err">{err}</p>}
+      {!cards && !err && <p className="sub">Drawing the card…</p>}
+      <div className="ls-print-cards">
+        {cards?.map((c, i) => <img key={i} className="ls-print-card" src={c} alt={`Line standard card for ${list[i]?.product}`} />)}
+      </div>
+    </Sheet>
+  );
 }
 
 /** One icon, as the palette and the map both draw it. */
@@ -71,6 +136,7 @@ export function StandardScreen({ projectId, standardId }: { projectId: string; s
 function Products({ project, list }: { project: Project; list: Standard[] }) {
   const progs = usePrograms(project.id);
   const [adding, setAdding] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [typed, setTyped] = useState('');
   const mapped = new Set(list.map(s => s.product.trim().toLowerCase()));
   const offered = [...new Map(progs.programs.map(p => [p.what.trim(), p])).values()]
@@ -107,7 +173,7 @@ function Products({ project, list }: { project: Project; list: Standard[] }) {
           </p>
         </div>
         <div className="pace-head-actions">
-          {list.length > 0 && <button className="btn btn-ghost" onClick={() => void printStandards(list, project)}>Print all</button>}
+          {list.length > 0 && <button className="btn btn-ghost" onClick={() => setPrinting(true)}>Print all</button>}
           <button className="btn btn-primary" onClick={() => setAdding(true)}>New map</button>
         </div>
       </header>
@@ -122,6 +188,8 @@ function Products({ project, list }: { project: Project; list: Standard[] }) {
           {list.map(s => <ProductCard key={s.id} s={s} onOpen={() => nav(`/project/${project.id}/standard/${s.id}`)} />)}
         </div>
       )}
+
+      {printing && <PrintSheet list={list} project={project} onClose={() => setPrinting(false)} />}
 
       <Sheet open={adding} onClose={() => setAdding(false)} title="Which product?">
         {offered.length > 0 && (
@@ -169,6 +237,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
   const [editing, setEditing] = useState<string | null>(null);
   const [picture, setPicture] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [product, setProduct] = useState(s.product);
   const boardRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; moved: boolean; x0: number; y0: number } | null>(null);
@@ -262,7 +331,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
           <datalist id="ls-products">{progs.programs.map(p => <option key={p.id} value={p.what} />)}</datalist>
         </div>
         <div className="ls-head-actions">
-          <button className="btn btn-ghost" onClick={() => void printStandards([{ ...s, marks }], project)}>Print</button>
+          <button className="btn btn-ghost" onClick={() => setPrinting(true)}>Print</button>
           <button className="btn btn-ghost" onClick={() => setCopying(true)}>Copy to another product</button>
         </div>
       </header>
@@ -347,6 +416,8 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
         <WalkFrames projectId={project.id} onPick={async f => { await save({ photoKey: f.stillKey }); setPicture(false); }} />
         {url && <button className="btn btn-ghost" style={{ marginTop: 12 }} onClick={() => { void save({ photoKey: undefined }); setPicture(false); }}>Use a plain board instead</button>}
       </Sheet>
+
+      {printing && <PrintSheet list={[{ ...s, marks, product }]} project={project} onClose={() => setPrinting(false)} />}
 
       <Sheet open={copying} onClose={() => setCopying(false)} title="Copy to another product">
         <p className="sub" style={{ marginTop: 0 }}>The same picture and the same places — then move what differs.</p>
