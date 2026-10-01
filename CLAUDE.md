@@ -11,8 +11,12 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   tests against what was agreed, fixes, what it waits on) to handover, with
   the OEM. Stored as `commissioning` on the project; never shown under that
   name — commissioning is one gate in the middle, not the method.
-- **3P** — a line's improvement run week by week off the tracker, actions
-  sorted People · Plant · Process.
+- **3P** — a line's improvement run week by week on the board, actions
+  sorted People · Plant · Process. Kept entirely in the app: the actions are
+  the project's next steps with a People / Plant / Process tag and a due date
+  (`src/lib/actions.ts`). Rowland, 1 October: "There will be no Excel that
+  needs to be uploaded ... this is about now fully using the app." Nothing in
+  3P asks for a workbook.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
 They are separate methods, not one loop pretending to be cohesive; each is

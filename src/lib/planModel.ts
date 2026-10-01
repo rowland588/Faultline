@@ -4,8 +4,9 @@
  * other — they are three different answers to "what are we doing and why", and
  * a project that showed all three would be a project whose team has not decided:
  *
- *   board         improvement work, grouped People / Plant / Process off a
- *                 weekly tracker. The default, and what most projects are.
+ *   board         improvement work, grouped People / Plant / Process on a
+ *                 board kept in the app — no workbook upload. What most
+ *                 projects are.
  *   tree          one measurable outcome with a chain of conditions under it.
  *   commissioning STAGE GATE — new equipment taken through its gates: install
  *                 stages, tests against what was agreed, fixes, what it waits
@@ -71,7 +72,7 @@ export const MODELS: Method[] = [
   { id: 'board', label: '3P',
     blurb: 'What is holding this line back, and who is on it this week?',
     useWhen: 'Running lines that need to perform better — a team, a weekly meeting, a rate to hit.',
-    organised: 'Lines with owners and sponsors · actions sorted People, Plant, Process off the weekly tracker',
+    organised: 'Lines with owners and sponsors · actions sorted People, Plant, Process on the board',
     rhythm: 'Weekly, in the meeting',
     done: 'At target, and holding',
     document: 'The 3P board · client report' },

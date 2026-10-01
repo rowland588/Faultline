@@ -630,7 +630,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
         <div className="exec-body-1">
           <section className="exec-box">
             <SectionHead n={String(n)} title={'3P Board — People · Plant · Process' + (sheet > 1 ? ' (continued)' : '')}
-              sowhat="One card per area · every action off this week’s workbook" />
+              sowhat="One card per line · every action on the project’s board" />
             <div className="exec-areas" style={geom}>
             {areas.map(area => {
               const mine = rows.filter(r => r.area === area);
@@ -673,8 +673,8 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
         <footer className="exec-foot">
           <span>{title} · client report · page {n} of {of} — the 3P board{sheet > 1 ? ` (${sheet})` : ''}</span>
           <span>{unplaced > 0
-            ? `${unplaced} tracker row${unplaced === 1 ? '' : 's'} with no 3P value`
-            : 'Every tracker row is on the board.'}</span>
+            ? `${unplaced} action${unplaced === 1 ? '' : 's'} not given a column yet`
+            : 'Every action is on the board.'}</span>
         </footer>
       </section>
     </div>
@@ -1201,7 +1201,11 @@ export function PaceExecReport() {
      job gets no tracker sheet there ("a different product's report stapled to
      the back of the client's"), and the preview printed one anyway — a page
      on screen the client would never be sent. */
-  const hasDetail = hasTracker;
+  /* The actions, attention & movement sheet only when it has something to say:
+     with no actions, no wins and nothing open on the walk it was six empty
+     frames. Rowland: one sentence instead — the front page's foot says it. */
+  const hasDetail = hasTracker && (actions.length > 0 || (wins?.length ?? 0) > 0
+    || (snags ?? []).some(sn => sn.status !== 'closed'));
   /* The preview's own count, used until the file has been read — see above. */
   const guess = (() => {
     const owes = 2;
@@ -1272,7 +1276,7 @@ export function PaceExecReport() {
     : !hasTracker
       ? [lineList, 'tests and fixes', 'what we are waiting on', 'what the machine can run']
           .filter(Boolean).join(' — ').replace(/ — (?=what we)/, ', ').replace(/ — (?=what the)/, ', ')
-      : [lineList, nums.measures[0]?.name ?? 'the numbers', 'the action tracker', 'the line walk']
+      : [lineList, nums.measures[0]?.name ?? 'the numbers', 'the board', 'the line walk']
           .filter(Boolean).join(' — ').replace(/ — (?=the action)/, ', ').replace(/ — (?=the line walk)/, ', ');
 
   const openSnags = snags.filter(s => s.status !== 'closed');
@@ -1297,6 +1301,10 @@ export function PaceExecReport() {
   const lateActions = lateAll.slice(0, LATE_SHOWN);
   const lateMore = lateAll.length - lateActions.length;
 
+  /* When it is due: the date on the board where there is one, the free words
+     where there is not. The column printed "—" against every action once the
+     date moved onto the board. */
+  const whenOf = (t: PaceTodoRow) => (t.due ? fmtShort(t.due) : t.when) || '—';
   const openTodos = todos
     .filter(t => t.state !== 'done')
     .sort((a, b) => (a.state === b.state ? 0 : a.state === 'todo' ? -1 : 1))
@@ -1454,6 +1462,7 @@ export function PaceExecReport() {
     owes: owesBlock,
     installation: installBlock,
     tracker: hasTracker,
+    detail: hasDetail,
     method: project ? methodOf(project).label : undefined,
     lateActions: lateActions.map(a => ({
       line: norm(a.line) || '—',
@@ -1472,7 +1481,7 @@ export function PaceExecReport() {
       state: t.state === 'waiting' ? 'waiting' : 'todo',
       what: [t.what || '—', t.where].filter(Boolean).join(' · '),
       who: t.who || '—',
-      when: t.when || '—',
+      when: whenOf(t),
     })),
     snags: openSnags
       .slice()
@@ -1637,7 +1646,7 @@ export function PaceExecReport() {
         <footer className="exec-foot">
           <span>{title} · client report · page 1 of {pageCount} — {hasTracker ? 'the numbers' : 'what we are proving'}</span>
           <span>{hasTracker
-            ? 'The tracker workbook is the system of record; this report reads it.'
+            ? (hasDetail ? 'Every action is kept on the project’s board.' : 'No actions on the board yet.')
             : 'One card per test, with the fixes for it. Who owes what, in full, is further on.'}</span>
         </footer>
       </section>
@@ -1662,32 +1671,9 @@ export function PaceExecReport() {
           n={programsPageNo} of={pageCount} />
       )}
       {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
-      {/* WHY THE BOARD SHEET IS NOT IN THIS REPORT.
-          A page with a heading and nothing under it has no place in something
-          going to a client, so when the workbook has no 3P column the
-          board sheet is simply not built. But silence at this end reads as a
-          missing feature rather than as missing data — you go looking for the
-          board, find nothing, and have no way to tell which of the two it is.
-          So the report SCREEN says it, and the file stays clean: this note does
-          not print and is not in the PDF. */}
-      {/* And the note about the missing board only where a board was ever
-          expected — it is a note about the TRACKER's 3P column. */}
-      {hasTracker && boardRows.length === 0 && (
-        <div className="exec-note no-print">
-          <p>
-            <b>No 3P board sheet in this report.</b>{' '}
-            {actions.length === 0
-              ? <>There are no tracker actions on this {line ? 'line' : 'project'} yet.</>
-              : <>The tracker the app has read carries {actions.length} action{actions.length === 1 ? '' : 's'} and
-                  no <b>3P</b> column, so there is nothing to draw. Add one column to the Tracker sheet headed
-                  {' '}<b>3P</b>, with <b>People</b>, <b>Plant</b> or <b>Process</b> against each row, and the board
-                  becomes page {2 + (hasTree ? 1 : 0)} of this report.</>}
-          </p>
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}?view=data`)}>
-            Upload the workbook
-          </button>
-        </div>
-      )}
+      {/* No note about a missing board sheet any more: it explained a 3P
+          column in a workbook that is no longer uploaded. The board's own
+          "not on the board yet" list is where an unsorted action is fixed. */}
       {boardPlan.map((sheetAreas, i) => (
         <BoardPage key={i} rows={boardRows} unplaced={boardData.unplaced.length} title={title}
           scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount}
@@ -1711,7 +1697,7 @@ export function PaceExecReport() {
               walk and the wins below it are real, so the page stays. */}
           {hasTracker && (
           <section className="exec-box exec-box-actions">
-            <SectionHead n={String(sec + 0)} title={line ? 'Action tracker' : 'Action tracker & the lines'}
+            <SectionHead n={String(sec + 0)} title={line ? 'The actions' : 'The actions & the lines'}
               sowhat={line
                 ? `${actions.length} actions on this line — where they stand`
                 : `${actions.length} actions — and what each line's own pack holds`} />
@@ -1737,7 +1723,8 @@ export function PaceExecReport() {
                   <th scope="col">Line</th><th scope="col">Owner</th>
                   <th scope="col">{rollup.find(r => r.unit)?.unit ?? 'Latest'}</th>
                   <th scope="col">Open</th><th scope="col">Late</th>
-                  <th scope="col">Next</th><th scope="col">Evidence</th><th scope="col">Wins</th>
+                  {/* No Next column: a line's next steps ARE its actions now. */}
+                  <th scope="col">Evidence</th><th scope="col">Wins</th>
                 </tr>
               </thead>
               <tbody>
@@ -1750,7 +1737,6 @@ export function PaceExecReport() {
                     </td>
                     <td>{r.open}</td>
                     <td className={r.late > 0 ? 'is-bad' : ''}>{r.late}</td>
-                    <td>{r.nextOpen}</td>
                     <td className={r.snags > 0 ? 'is-warn' : ''}>{r.snags}</td>
                     <td className={r.wins > 0 ? 'is-good' : ''}>{r.wins}</td>
                   </tr>
@@ -1788,12 +1774,12 @@ export function PaceExecReport() {
                 </tbody>
               </table>
             )}
-            {lateMore > 0 && <p className="exec-more">+{lateMore} more overdue — see the tracker</p>}
+            {lateMore > 0 && <p className="exec-more">+{lateMore} more overdue — see the board</p>}
           </section>
           )}
 
           <section className="exec-box exec-box-next">
-            <SectionHead n={String(sec + 2)} title="Next steps" sowhat="To do, waiting, and what came of the finished ones" />
+            <SectionHead n={String(sec + 2)} title="Who is doing what" sowhat="To do, waiting, and what came of the finished ones" />
             {openTodos.length === 0 ? (
               <p className="exec-empty">Nothing outstanding.</p>
             ) : (
@@ -1805,7 +1791,7 @@ export function PaceExecReport() {
                       <td><span className={'exec-tag is-' + t.state}>{t.state === 'waiting' ? 'Waiting' : 'To do'}</span></td>
                       <td className="c-what">{clip(t.what || '—', 64)}{t.where ? <span className="c-where"> · {clip(t.where, 24)}</span> : null}</td>
                       <td className="c-who">{t.who || '—'}</td>
-                      <td className="c-due">{t.when || '—'}</td>
+                      <td className="c-due">{whenOf(t)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1891,7 +1877,7 @@ export function PaceExecReport() {
         </div>
 
         <footer className="exec-foot">
-          <span>{title} · client report · page {pageCount} of {pageCount} — tracker, attention &amp; movement</span>
+          <span>{title} · client report · page {pageCount} of {pageCount} — actions, attention &amp; movement</span>
           <span>Generated {new Date(now).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
         </footer>
       </section>

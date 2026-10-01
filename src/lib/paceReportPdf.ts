@@ -217,6 +217,10 @@ export interface PaceReportData {
    *  not, and printing it a ppm sheet, a 3P board and an action list is three
    *  pages of scaffolding in front of the two it does carry. */
   tracker: boolean;
+  /** Whether the actions, attention & movement sheet has anything to say.
+   *  With no actions, no wins and nothing open on the walk it was six empty
+   *  frames; it is left out, and the front page says there are no actions. */
+  detail?: boolean;
   /** Which of the three methods the project runs — "Stage gate", "3P",
    *  "Lever tree" — printed at the head of page 1. See lib/planModel. */
   method?: string;
@@ -1565,8 +1569,8 @@ function footBoard(d: Doc, data: PaceReportData, page: number, pages: number, sh
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the 3P board${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
   d.text(data.boardUnplaced > 0
-    ? `${data.boardUnplaced} tracker row${data.boardUnplaced === 1 ? '' : 's'} with no 3P value`
-    : 'Every tracker row is on the board.', W - 28, H - 28 + 6, { align: 'right' });
+    ? `${data.boardUnplaced} action${data.boardUnplaced === 1 ? '' : 's'} not given a column yet`
+    : 'Every action is on the board.', W - 28, H - 28 + 6, { align: 'right' });
 }
 
 const TREE_STATUS: Record<string, { c: string; label: string }> = {
@@ -2163,7 +2167,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      the client's. It was there because every project was a Pace project. A
      job that does not keep a tracker gets no tracker sheet; what the site and
      the OEM owe each other is the front page's business. */
-  const hasDetail = data.tracker;
+  const hasDetail = data.detail ?? data.tracker;
   /* The trials that did not fit the front page get a sheet, and it goes
      directly behind it: the rest of the same thought, not an appendix. */
   /* Every sheet after the front one, not just the first. A job running twenty
@@ -2258,7 +2262,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${frontTail}`, CW * 0.8), M, H - M + 6);
   d.text(data.tracker
-    ? 'The tracker workbook is the system of record; this report reads it.'
+    // The actions are kept in the app now, not read off a workbook.
+    ? (data.detail === false ? 'No actions on the board yet.' : 'Every action is kept on the project’s board.')
     : 'One card per test, with the fixes for it. Who owes what, in full, is further on.',
     W - M, H - M + 6, { align: 'right' });
 
@@ -2508,7 +2513,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   if (data.board.length > 0) {
     d.addPage('a3', 'landscape');
     const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), '3P Board — People · Plant · Process',
-      'One card per area \u00b7 every action off this week\u2019s workbook');
+      'One card per line \u00b7 every action on the project\u2019s board');
 
     const PILL: { key: 'people' | 'plant' | 'process'; label: string; c: string }[] = [
       { key: 'people',  label: 'PEOPLE',  c: BRAND },
@@ -2538,7 +2543,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         sheet++;
         ay = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage),
           '3P Board — People · Plant · Process (continued)',
-          'One card per area \u00b7 every action off this week\u2019s workbook') + 14;
+          'One card per line \u00b7 every action on the project\u2019s board') + 14;
       }
       const k = boardScale(runHeight(plan));
       for (const blk of plan) {
@@ -2694,7 +2699,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* 2 — action tracker */
   const atRule = panel(d, M, r1y, colW, rowH1, sheetNo,
-    data.byLine.length > 1 ? 'Action tracker & the lines' : 'Action tracker',
+    data.byLine.length > 1 ? 'The actions & the lines' : 'The actions',
     data.byLine.length > 1
       ? `${data.total} actions — and what each line's own pack holds`
       : `${data.total} actions`);
@@ -2722,9 +2727,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   table(d, barX, barY + 46, barW,
     [{ head: 'Line', width: 0.19 }, { head: 'Owner', width: 0.19 },
      { head: data.byLine.find(r => r.unit)?.unit ?? 'Latest', width: 0.11, align: 'right' },
-     { head: 'Open', width: 0.10, align: 'right' }, { head: 'Late', width: 0.10, align: 'right' },
-     { head: 'Next', width: 0.11, align: 'right' }, { head: 'Evid.', width: 0.10, align: 'right' },
-     { head: 'Wins', width: 0.10, align: 'right' }],
+     { head: 'Open', width: 0.135, align: 'right' }, { head: 'Late', width: 0.135, align: 'right' },
+     // No NEXT column: a line's next steps ARE its actions now (lib/actions.ts),
+     // so it printed the Open count a second time.
+     { head: 'Evid.', width: 0.12, align: 'right' }, { head: 'Wins', width: 0.12, align: 'right' }],
     data.byLine.map(r => [
       { text: r.name, bold: true, colour: r.noLine ? MUTED : INK },
       { text: r.owner, colour: MUTED },
@@ -2732,7 +2738,6 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         colour: r.meeting == null ? MUTED : r.meeting ? OK : DANGER },
       { text: String(r.open) },
       { text: String(r.late), colour: r.late > 0 ? DANGER : INK, bold: r.late > 0 },
-      { text: String(r.nextOpen) },
       { text: String(r.snags), colour: r.snags > 0 ? WARN : INK },
       { text: String(r.wins), colour: r.wins > 0 ? OK : INK },
     ]),
@@ -2762,11 +2767,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     r1y + rowH1 - 22);
   if (data.lateMore > 0) {
     setFont(d, 7, 'bold', DANGER);
-    d.text(`+${data.lateMore} more overdue — see the tracker`, odX + 12, endY + 16);
+    d.text(`+${data.lateMore} more overdue — see the board`, odX + 12, endY + 16);
   }
 
   /* 4 — next steps */
-  const nsRule = panel(d, M, r2y, colW, rowH2, String(first + 2), 'Next steps', 'To do, waiting, and what came of the finished ones');
+  const nsRule = panel(d, M, r2y, colW, rowH2, String(first + 2), 'Who is doing what', 'To do, waiting, and what came of the finished ones');
   const nsBottom = r2y + rowH2 - 10;
   let ny = table(d, M + 12, nsRule + 14, colW - 24,
     [{ head: 'State', width: 0.20 }, { head: 'What', width: 0.44 }, { head: 'Who', width: 0.20 }, { head: 'When', width: 0.16 }],
@@ -2888,7 +2893,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${pages} of ${pages} — tracker, attention & movement`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${pages} of ${pages} — actions, attention & movement`, CW * 0.8), M, H - M + 6);
   d.text(`Generated ${new Date(data.now).toLocaleString('en-GB',
     { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     W - M, H - M + 6, { align: 'right' });
