@@ -99,12 +99,42 @@ export function InstallGrid({ tt, project, stages, otherName }: {
     offerUndo(`${a.name} marked installed`, () => tt.saveAsset({ ...a }));
   };
 
+  /* A COLUMN THAT IS NOT ONE OF THE JOB'S STAGES — a name steps were given
+     before the stages changed. Cleared from its own heading or from the
+     stage editor, by the same two moves. */
+  const stepsIn = (col: string) => grid.rows.map(r => r.cells[grid.columns.indexOf(col)]).filter((c): c is StepView => !!c).map(c => c.step);
+  const moveColumn = (col: string, target: string): boolean => {
+    const { move, clash } = foldInto(stepsIn(col), tt.tests, target);
+    if (!move.length) { alert(`Every machine here already has “${target}”. Open the steps to remove or rename them one by one.`); return false; }
+    if (clash.length && !confirm(`${move.length} will move into “${target}”. ${clash.length} stay${clash.length === 1 ? 's' : ''} where ${clash.length === 1 ? 'it is' : 'they are'} — ${clash.length === 1 ? 'that machine' : 'those machines'} already ${clash.length === 1 ? 'has' : 'have'} it.`)) return false;
+    void (async () => {
+      for (const t of move) await tt.patchTest(t.id, { title: target });
+      offerUndo(`Moved ${move.length} into “${target}”`, async () => { for (const t of move) await tt.patchTest(t.id, { title: t.title }); });
+    })();
+    return true;
+  };
+  const removeColumn = (col: string): boolean => {
+    const fresh = stepsIn(col).filter(t => untouched(t, tt.tests, tt.items));
+    if (!fresh.length || !confirm(`Remove “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}? None of them was started.`)) return false;
+    void (async () => {
+      const back: (() => Promise<void>)[] = [];
+      for (const t of fresh) back.push(await deleteTest(t.id, projectId));
+      offerUndo(`Removed “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}`, async () => { for (const r of back) await r(); });
+    })();
+    return true;
+  };
+  const extras = grid.columns.slice(usual.length).map(col => {
+    const st = stepsIn(col);
+    return { col, n: st.length, fresh: st.filter(t => untouched(t, tt.tests, tt.items)).length };
+  });
+
   const sheet = (() => {
     if (!open) return null;
     if (open.t === 'stages') {
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
           <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests}
+            extras={extras} onMove={moveColumn} onRemove={removeColumn}
             renameSteps={async (pairs) => {
               const done: { id: string; title: string }[] = [];
               for (const { from, to } of pairs) {
@@ -177,30 +207,13 @@ export function InstallGrid({ tt, project, stages, otherName }: {
             </p>
             <label className="cw-f ig-f"><span>Move them into</span>
               <select defaultValue="" onChange={e => {
-                const target = e.target.value;
-                if (!target) return;
-                const { move, clash } = foldInto(steps, tt.tests, target);
-                if (!move.length) { alert(`Every machine here already has “${target}”. Open the steps to remove or rename them one by one.`); return; }
-                if (clash.length && !confirm(`${move.length} will move into “${target}”. ${clash.length} stay${clash.length === 1 ? 's' : ''} where ${clash.length === 1 ? 'it is' : 'they are'} — ${clash.length === 1 ? 'that machine' : 'those machines'} already ${clash.length === 1 ? 'has' : 'have'} it.`)) return;
-                void (async () => {
-                  for (const t of move) await tt.patchTest(t.id, { title: target });
-                  offerUndo(`Moved ${move.length} into “${target}”`, async () => { for (const t of move) await tt.patchTest(t.id, { title: t.title }); });
-                })();
-                setOpen(null);
+                if (e.target.value && moveColumn(col, e.target.value)) setOpen(null);
               }}>
                 <option value="">Choose a stage…</option>
                 {usual.map(u => <option key={u} value={u}>{u}</option>)}
               </select></label>
             {fresh.length > 0 && (
-              <button className="btn ig-big ig-bad" onClick={() => {
-                if (!confirm(`Remove “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}? None of them was started.`)) return;
-                void (async () => {
-                  const back: (() => Promise<void>)[] = [];
-                  for (const t of fresh) back.push(await deleteTest(t.id, projectId));
-                  offerUndo(`Removed “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}`, async () => { for (const r of back) await r(); });
-                })();
-                setOpen(null);
-              }}>Remove from the {fresh.length === 1 ? 'one' : fresh.length} never started</button>
+              <button className="btn ig-big ig-bad" onClick={() => { if (removeColumn(col)) setOpen(null); }}>Remove from the {fresh.length === 1 ? 'one' : fresh.length} never started</button>
             )}
             {worked.length > 0 && (
               <p className="sub tw-note">

@@ -7043,3 +7043,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .vo-ask { margin: 0 0 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .is-filled { animation: none; outline: 3px solid rgba(61, 139, 255, 0.55); } }
 .ig-why { margin: 0 0 12px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+/* Columns on the grid that are not one of the stages, in the stage editor. */
+.in-extra { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line-2); display: grid; gap: 10px; }
+.in-extra-h { font-size: 13px; color: var(--ink); }
+.in-extra-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.in-extra-n { min-width: 0; }
+.in-extra-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.in-extra-acts select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--ink); max-width: 100%; }
+.in-extra-b { min-height: 38px; padding: 0 12px; font-size: 13.5px; }
+.in-extra-b.is-bad { color: var(--st-r); }

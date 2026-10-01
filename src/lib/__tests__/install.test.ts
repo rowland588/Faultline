@@ -203,17 +203,27 @@ describe('the grid: every machine at once', () => {
 describe('a stage that was changed', () => {
   it('reads a rename: same place, new name, old name gone', () => {
     const before = ['Positioned and levelled', 'Air and power connected', 'Sensors and controls checked (I/O)', 'Dry run'];
-    expect(stageRenames(before, ['Positioned and levelled', 'Air and power connected', 'I/O checked', 'Dry run']))
-      .toEqual([{ from: 'Sensors and controls checked (I/O)', to: 'I/O checked' }]);
+    expect(stageRenames(before, ['Positioned and levelled', 'Air and power connected', 'Controls proven', 'Dry run']))
+      .toEqual([{ from: 'Sensors and controls checked (I/O)', to: 'Controls proven' }]);
     /* moved, added or removed is not a rename */
     expect(stageRenames(before, ['Air and power connected', 'Positioned and levelled', 'Sensors and controls checked (I/O)', 'Dry run'])).toEqual([]);
     expect(stageRenames(before, [...before, 'Guards on'])).toEqual([]);
   });
+  it('puts a step under the app’s old name "I/O checked" in the I/O column — six columns, not seven', () => {
+    /* Rowland's live job: steps made before the fifth stage was renamed. */
+    const m = asset({ id: 'live' });
+    const names = ['Positioned and levelled', 'Mechanically complete', 'Air and power connected', 'Electrically complete', 'I/O checked', 'Dry run'];
+    const tests = names.map((title, i) => step({ title, sort: i, assetId: m.id }));
+    const g = installGrid([m], tests, [], '2026-10-01', INSTALL_STAGES);
+    expect(g.columns).toEqual([...INSTALL_STAGES]);
+    expect(g.rows[0].cells.every(Boolean)).toBe(true);
+    expect(g.rows[0].missing).toBe(0);
+  });
   it('moves steps into a stage, except where the machine already has it', () => {
     const a = asset({ id: 'a' }), b = asset({ id: 'b', name: 'Coder' });
     const old = [step({ id: 's1', title: 'Sensors and controls checked (I/O)', assetId: a.id }), step({ id: 's2', title: 'Sensors and controls checked (I/O)', assetId: b.id })];
-    const tests = [...old, step({ id: 's3', title: 'I/O checked', assetId: b.id })];
-    const { move, clash } = foldInto(old, tests, 'I/O checked');
+    const tests = [...old, step({ id: 's3', title: 'Controls proven', assetId: b.id })];
+    const { move, clash } = foldInto(old, tests, 'Controls proven');
     expect(move.map(t => t.id)).toEqual(['s1']);
     expect(clash.map(t => t.id)).toEqual(['s2']);
   });

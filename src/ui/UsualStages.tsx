@@ -16,11 +16,17 @@ import { cleanStages, stageRenames, stepsNamed, type usualStages } from '../lib/
 import { INSTALL_STAGES, type Test } from '../lib/testing';
 import type { Project } from '../types';
 
-export function UsualStages({ project, usual, otherName, tests = [], renameSteps }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove }: {
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
   /** The job's records, to count the steps a rename would touch. */
   tests?: Test[];
   renameSteps?: (pairs: { from: string; to: string }[]) => Promise<void>;
+  /** Columns on the grid that are not one of these stages — steps given a
+   *  name before the stages changed. Rowland went to "edit stages" to remove
+   *  one and it was not there; now it is, with the ways to clear it. */
+  extras?: { col: string; n: number; fresh: number }[];
+  onMove?: (col: string, target: string) => boolean;
+  onRemove?: (col: string) => boolean;
 }) {
   const [draft, setDraft] = useState<string[] | null>(null);
   /* Renames that have steps on machines still wearing the old name. */
@@ -77,6 +83,25 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         <ol className="in-usual-list">
           {usual.stages.map((s, i) => <li key={i}>{s}</li>)}
         </ol>
+        {extras.length > 0 && (
+          <div className="in-extra">
+            <b className="in-extra-h">Also on the grid — not one of these stages</b>
+            <p className="sub tw-note">Steps given this name before the stages changed. Move them into a stage, remove the ones never started, or keep it as a stage of its own.</p>
+            {extras.map(x => (
+              <div key={x.col} className="in-extra-row">
+                <span className="in-extra-n"><b>{x.col}</b> <span className="sub">on {x.n} machine{x.n === 1 ? '' : 's'}</span></span>
+                <span className="in-extra-acts">
+                  <select defaultValue="" aria-label={`Move “${x.col}” into`} onChange={e => { if (e.target.value) onMove?.(x.col, e.target.value); e.target.value = ''; }}>
+                    <option value="">Move into…</option>
+                    {usual.stages.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                  {x.fresh > 0 && <button className="btn btn-ghost in-extra-b is-bad" onClick={() => onRemove?.(x.col)}>Remove{x.fresh < x.n ? ` ${x.fresh} never started` : ''}</button>}
+                  <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, installStages: cleanStages([...usual.stages, x.col]), updatedAt: Date.now() })}>Make it a stage</button>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     );
   }

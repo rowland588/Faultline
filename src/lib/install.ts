@@ -162,7 +162,19 @@ export interface GridRow {
 }
 export interface InstallGrid { columns: string[]; rows: GridRow[] }
 
-const stageKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+/* THE APP'S OWN OLD NAMES. The fifth of the app's six stages was "I/O
+   checked" until Rowland asked what I/O meant and it became "Sensors and
+   controls checked (I/O)". Steps made before that kept the old name, and the
+   grid — which matches by name — drew them as a seventh column nobody could
+   remove (the stage editor only lists the six). The same stage under either
+   name is one column. */
+const OLD_NAMES: Record<string, string> = {
+  'i/o checked': 'sensors and controls checked (i/o)',
+};
+const stageKey = (s: string) => {
+  const k = s.trim().toLowerCase().replace(/\s+/g, ' ');
+  return OLD_NAMES[k] ?? k;
+};
 
 export function installGrid(assets: Asset[], tests: Test[], items: TestItem[], today: string,
   usual: readonly string[]): InstallGrid {
