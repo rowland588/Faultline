@@ -11,6 +11,7 @@
  */
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, gateOf, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
+import { stateOf, type Program } from './programs';
 
 /** done · a problem stopped it · ran and nobody has said · the day has gone · still ahead */
 export type StepTone = 'done' | 'problem' | 'asking' | 'late' | 'ahead';
@@ -286,9 +287,10 @@ export const JOURNEY: { gate: JourneyGate; label: string; path: string }[] = [
   { gate: 'handover', label: 'Hand over', path: 'handover' },
 ];
 
-export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today: string): { gate: JourneyGate; label: string; tone: GateTone }[] {
+export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today: string,
+  programs: readonly Program[] = []): { gate: JourneyGate; label: string; tone: GateTone }[] {
   const inAlready = ['installed', 'running'].includes(asset.state) || !!asset.installedOn || !!asset.runningOn;
-  const stepTone = (g: StepGate): GateTone => {
+  const fromSteps = (g: StepGate): GateTone => {
     const v = installOf(asset, tests, items, today, g);
     if (v.total === 0) return g === 'install' && inAlready ? 'done' : 'none';
     if (v.done === v.total) return 'done';
@@ -296,17 +298,42 @@ export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today:
     if (v.done > 0 || v.steps.some(s => s.tone === 'asking')) return 'going';
     return 'ahead';
   };
+  /* SET UP COUNTS THE MACHINE'S PROGRAMS. Rowland's Line 2B had seventeen
+     programs written, loaded and proved on its pick and place and no set-up
+     steps, and the strip called Set up "nothing kept". A program on the
+     machine (loaded or proved) is set up; one not written yet is not. */
+  const progs = programs.filter(p => !p.deletedAt && p.assetId === asset.id);
+  const fromPrograms: GateTone = progs.length === 0 ? 'none'
+    : progs.every(p => stateOf(p) !== 'needed') ? 'done'
+      : progs.some(p => stateOf(p) !== 'needed') ? 'going' : 'ahead';
+  const setup = ((): GateTone => {
+    const st = fromSteps('setup');
+    if (st === 'none') return fromPrograms;
+    if (fromPrograms === 'none' || st === 'late') return st;
+    if (st === 'done' && fromPrograms === 'done') return 'done';
+    return st === 'ahead' && fromPrograms === 'ahead' ? 'ahead' : 'going';
+  })();
   const proofs = live(tests).filter(t => (t.kind ?? 'test') === 'test' && t.assetId === asset.id);
   const commission: GateTone = proofs.length === 0 ? 'none'
     : proofs.every(t => t.outcome === 'passed') ? 'done'
       : proofs.some(t => t.outcome === 'failed' || t.outcome === 'notRun' || isOverdue(t, today)) ? 'late'
         : proofs.some(t => isSettled(t) || needsVerdict(t)) ? 'going' : 'ahead';
   return JOURNEY.map(j => ({ gate: j.gate, label: j.label,
-    tone: j.gate === 'commission' ? commission : stepTone(j.gate) }));
+    tone: j.gate === 'commission' ? commission : j.gate === 'setup' ? setup : fromSteps(j.gate) }));
 }
 
-/** The gate a machine is at — the first not done — or "Handed over". */
+/** THE GATE A MACHINE IS AT — the earliest with work open on it (late or
+ *  under way); failing that, the next one after the last done; "Handed over"
+ *  once all four are. Not simply "the first gate not done": Line 2B's
+ *  machines were in commissioning trials with no install steps ever kept,
+ *  and that read "at Install". A gate with nothing kept does not hold a
+ *  machine back from the work it is actually in. */
 export function journeyNow(j: { label: string; tone: GateTone }[]): string {
-  const at = j.find(g => g.tone !== 'done');
-  return at ? at.label : 'Handed over';
+  const open = j.find(g => g.tone === 'late' || g.tone === 'going');
+  if (open) return open.label;
+  let lastDone = -1;
+  j.forEach((g, i) => { if (g.tone === 'done') lastDone = i; });
+  const after = j.slice(lastDone + 1);
+  const next = after.find(g => g.tone === 'ahead') ?? after.find(g => g.tone !== 'done');
+  return next ? next.label : 'Handed over';
 }

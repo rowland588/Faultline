@@ -312,3 +312,37 @@ describe('where each machine is, gate by gate', () => {
     expect(journeyNow(j)).toBe('Handed over');
   });
 });
+
+describe('the gate a machine is at, on a job like Line 2B', () => {
+  const T = '2026-10-01';
+  const prog = (id: string, assetId: string, state: 'needed' | 'onMachine' | 'proved', provedOn?: string) =>
+    ({ id, projectId: 'p', what: id, assetId, state, provedOn, sort: 1, createdAt: 1, updatedAt: 1 });
+  it('on site, no install steps ever kept, programs loaded and proved, testing under way: at Commission', () => {
+    const pnp = asset({ id: 'pnp', state: 'onSite' });
+    const tests: Test[] = [
+      { ...step({ id: 't1', title: 'Express 1.25kg', assetId: pnp.id, outcome: 'passed', ranOn: '2026-09-29' }), kind: 'test' },
+      { ...step({ id: 't2', title: 'Express 1.75', assetId: pnp.id }), kind: 'test' },
+    ];
+    const programs = [prog('a', pnp.id, 'proved', '2026-09-29'), prog('b', pnp.id, 'onMachine')];
+    const j = journeyOf(pnp, tests, [], T, programs);
+    expect(j.map(g => g.tone)).toEqual(['none', 'done', 'going', 'none']);
+    expect(journeyNow(j)).toBe('Commission');
+  });
+  it('a program not written yet keeps Set up open', () => {
+    const m = asset({ id: 'm2', state: 'onSite' });
+    const j = journeyOf(m, [], [], T, [prog('a', m.id, 'proved', '2026-09-29'), prog('b', m.id, 'needed')]);
+    expect(j[1].tone).toBe('going');
+    expect(journeyNow(j)).toBe('Set up');
+  });
+  it('open install work holds the machine at Install, even with a test already passed', () => {
+    const m = asset({ id: 'm3' });
+    const tests: Test[] = [
+      step({ title: 'Dry run', assetId: m.id, plannedFor: '2026-09-28' }),
+      { ...step({ title: 'Weight accuracy', assetId: m.id, outcome: 'passed', ranOn: '2026-09-26' }), kind: 'test' },
+    ];
+    expect(journeyNow(journeyOf(m, tests, [], T))).toBe('Install');
+  });
+  it('nothing kept anywhere: at Install', () => {
+    expect(journeyNow(journeyOf(asset({ id: 'm4', state: 'onSite' }), [], [], T))).toBe('Install');
+  });
+});

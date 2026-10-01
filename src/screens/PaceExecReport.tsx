@@ -1170,7 +1170,7 @@ export function PaceExecReport() {
           says: v.says,
           late: v.late,
           ...(v.asset ? (() => {
-            const j = journeyOf(v.asset, tests, testItems, today);
+            const j = journeyOf(v.asset, tests, testItems, today, progs.programs);
             return { journey: j.map(g => ({ label: g.label, tone: g.tone })), at: journeyNow(j) };
           })() : {}),
         };
