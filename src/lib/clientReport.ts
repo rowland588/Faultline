@@ -25,7 +25,7 @@ import { GATE_WORD, installGrid, jobJourney, journeyNow, journeyOf, usualStages,
 import { standing, slipWords, type OutstandingRow } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { stateOf, type Program } from './programs';
-import { live, hasRun, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay } from './weeks';
@@ -151,16 +151,20 @@ export function clientReport(x: ClientReportInput): ClientReport {
   }
 
   const proofs = tests.filter(t => (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);
-  const passed = proofs.filter(t => t.outcome === 'passed').length;
-  const failed = proofs.filter(t => t.outcome === 'failed').length;
-  const notRun = proofs.filter(t => t.outcome === 'notRun').length;
+  /* THE COUNTS ARE THE LATEST ATTEMPT OF EACH TEST. A test that failed and
+     passed on its re-test is one test that passed; the rows below still list
+     both attempts, because that is what happened. */
+  const now = latestAttempts(tests).sort((a, b) => a.sort - b.sort);
+  const passed = now.filter(t => t.outcome === 'passed').length;
+  const failed = now.filter(t => t.outcome === 'failed').length;
+  const notRun = now.filter(t => t.outcome === 'notRun').length;
   const endOf = (t: Test) => t.plannedTo ?? t.plannedFor;
   const commission: GateSection = {
     gate: 'commission', label: 'Commission', tone: job.find(j => j.gate === 'commission')?.tone ?? 'none',
     says: proofs.length === 0 ? 'No tests planned yet'
       // Every outcome said: "2 of 5 passed · 1 didn't pass" left a test that never ran unaccounted for.
-      : `${passed} of ${proofs.length} passed${failed ? ` · ${failed} didn’t pass` : ''}${notRun ? ` · ${notRun} didn’t run` : ''}`,
-    late: proofs.filter(t => t.outcome === 'failed' || t.outcome === 'notRun').map(t => `${t.title}${machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}`),
+      : `${passed} of ${now.length} passed${failed ? ` · ${failed} didn’t pass` : ''}${notRun ? ` · ${notRun} didn’t run` : ''}`,
+    late: now.filter(t => t.outcome === 'failed' || t.outcome === 'notRun').map(t => `${t.title}${machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}`),
     tests: proofs.map(t => ({
       title: t.title, machine: machine(t.assetId),
       when: niceDay(t.ranOn ?? t.plannedFor) || 'no date',

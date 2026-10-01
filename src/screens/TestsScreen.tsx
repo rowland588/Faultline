@@ -21,7 +21,7 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, assetStateOn, outcomeWord, isOverdue, itemsOf, standing, testOfFix, weeksTo,
+  ASSET_STATE_WORD, WORDS, assetStateOn, outcomeWord, isOverdue, itemsOf, latestAttempts, standing, testOfFix, weeksTo,
   type Asset, type Test, type TestKind,
 } from '../lib/testing';
 
@@ -114,7 +114,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
 
   // Counted as the client report counts them, so the screen and the paper agree.
-  const proofs = tt.tests.filter(t => (t.kind ?? 'test') === 'test' && !t.deletedAt);
+  const proofs = latestAttempts(tt.tests);
   const passed = proofs.filter(t => t.outcome === 'passed').length;
   const failed = proofs.filter(t => t.outcome === 'failed').length;
   const notRun = proofs.filter(t => t.outcome === 'notRun').length;

@@ -163,23 +163,40 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         );
       }
       const t = s.step;
+      /* WHERE IT STANDS, said first, and the buttons follow from it. The sheet
+         used to offer the same three buttons whatever the step was — "Hit a
+         problem" on a step that already had one — and never said which state
+         it was in, so a step pressed by mistake went red with nothing saying
+         how to put it back. Whatever it is, one tap here puts it back. */
+      const stateWord = t.outcome === 'passed' ? `Done${t.ranOn ? ` ${short(t.ranOn)}` : ''}`
+        : t.outcome === 'failed' ? `Hit a problem${t.ranOn ? ` ${short(t.ranOn)}` : ''}`
+          : t.outcome === 'notRun' ? 'Did not happen'
+            : t.outcome === 'planned' && t.ranOn ? 'Worked on — not called yet' : 'Not done yet';
+      const backWord = t.outcome === 'passed' ? 'Not done after all — put it back'
+        : t.outcome === 'failed' ? 'Not a problem after all — put it back'
+          : 'Put it back to planned';
       return (
-        <Sheet title={`${rowName(row.asset)} — ${t.title}`} sub={[t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${short(plannedEnd(t))}` : 'no day yet'].join(' · ')}
+        <Sheet title={`${rowName(row.asset)} — ${t.title}`}
+          sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${short(plannedEnd(t))}` : 'no day yet'].join(' · ')}
           onClose={() => setOpen(null)}>
           <div className="ig-acts">
-            <button className="btn btn-primary ig-big" onClick={() => {
-              void change([t], cur => ({ outcome: 'passed', ranOn: cur.ranOn ?? today }), `${t.title} done — ${rowName(row.asset)}`);
-              setOpen(null);
-            }}>Done today</button>
-            <button className="btn ig-big ig-bad" onClick={() => {
-              void change([t], cur => ({ outcome: 'failed', ranOn: cur.ranOn ?? today }), `${t.title} hit a problem`);
-              setOpen(null); openStep(t.id, true);
-            }}>Hit a problem — write it up</button>
-            {t.outcome !== 'planned' && (
+            {t.outcome !== 'passed' && (
+              <button className="btn btn-primary ig-big" onClick={() => {
+                void change([t], cur => ({ outcome: 'passed', ranOn: cur.ranOn ?? today }), `${t.title} done — ${rowName(row.asset)}`);
+                setOpen(null);
+              }}>Done today</button>
+            )}
+            {t.outcome !== 'failed' && (
+              <button className="btn ig-big ig-bad" onClick={() => {
+                void change([t], cur => ({ outcome: 'failed', ranOn: cur.ranOn ?? today }), `${t.title} hit a problem`);
+                setOpen(null); openStep(t.id, true);
+              }}>Hit a problem — write it up</button>
+            )}
+            {(t.outcome !== 'planned' || !!t.ranOn) && (
               <button className="btn btn-ghost ig-big" onClick={() => {
                 void change([t], () => ({ outcome: 'planned', ranOn: undefined }), `${t.title} back to planned`);
                 setOpen(null);
-              }}>Not done after all</button>
+              }}>{backWord}</button>
             )}
           </div>
           <SayStep step={t} tt={tt} onDone={() => setOpen(null)} />

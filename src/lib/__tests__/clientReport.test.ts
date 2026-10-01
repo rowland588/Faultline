@@ -58,3 +58,21 @@ describe('the stage-gate client report', () => {
     expect(JSON.stringify(r)).not.toContain('private');
   });
 });
+
+describe('a test that was run again', () => {
+  const again = [
+    ...tests,
+    test({ id: 't75b', kind: 'test', title: '75 ppm for 1 hr — re-test', fromTestId: 't75', assetId: 'bu', ranOn: '2026-09-30', outcome: 'passed' }),
+  ];
+  const r2 = clientReport({ project, projects: [project], assets, tests: again, items, materials: [], programs, standards: [], today: T });
+  const c = r2.sections[2];
+
+  it('counts the latest attempt of each, so a pass on the re-test is not still a failure', () => {
+    expect(c.says).toBe('2 of 2 passed');
+    expect(c.late).toEqual([]);
+  });
+
+  it('still lists every attempt — that is what happened', () => {
+    expect(c.tests?.map(t => t.tone)).toEqual(['failed', 'done', 'done']);
+  });
+});

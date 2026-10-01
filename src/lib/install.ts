@@ -9,7 +9,7 @@
  * has got, what is next and whose it is, what stopped it — so the Install
  * screen and, later, the client report say the same sentence from one call.
  */
-import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, gateOf, isOverdue, isSettled, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
 
@@ -287,6 +287,30 @@ export const JOURNEY: { gate: JourneyGate; label: string; path: string }[] = [
   { gate: 'handover', label: 'Hand over', path: 'handover' },
 ];
 
+/** A machine's tests as they stand now — see testing.latestAttempts. */
+function currentProofs(asset: Asset, tests: Test[]): Test[] {
+  return latestAttempts(tests).filter(t => t.assetId === asset.id);
+}
+
+/** WHY A GATE IS RED, in the words the floor would use — one line per cause,
+ *  so a red tile on the front page says what to go and look at instead of
+ *  leaving it to be found. Same rules journeyOf colours by. */
+export function redReasons(asset: Asset, tests: Test[], items: TestItem[], today: string): string[] {
+  const out: string[] = [];
+  const stepWord = (v: StepView) => (v.tone === 'problem' ? 'hit a problem' : 'is late');
+  for (const g of ['install', 'setup'] as const) {
+    for (const v of installOf(asset, tests, items, today, g).steps) {
+      if (v.tone === 'problem' || v.tone === 'late') out.push(`${v.step.title} ${stepWord(v)}`);
+    }
+  }
+  for (const t of currentProofs(asset, tests)) {
+    if (t.outcome === 'failed') out.push(`${t.title} did not pass`);
+    else if (t.outcome === 'notRun') out.push(`${t.title} did not run`);
+    else if (isOverdue(t, today)) out.push(`${t.title} is late`);
+  }
+  return out;
+}
+
 export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today: string,
   programs: readonly Program[] = []): { gate: JourneyGate; label: string; tone: GateTone }[] {
   const inAlready = ['installed', 'running'].includes(asset.state) || !!asset.installedOn || !!asset.runningOn;
@@ -313,7 +337,7 @@ export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today:
     if (st === 'done' && fromPrograms === 'done') return 'done';
     return st === 'ahead' && fromPrograms === 'ahead' ? 'ahead' : 'going';
   })();
-  const proofs = live(tests).filter(t => (t.kind ?? 'test') === 'test' && t.assetId === asset.id);
+  const proofs = currentProofs(asset, tests);
   const commission: GateTone = proofs.length === 0 ? 'none'
     : proofs.every(t => t.outcome === 'passed') ? 'done'
       : proofs.some(t => t.outcome === 'failed' || t.outcome === 'notRun' || isOverdue(t, today)) ? 'late'

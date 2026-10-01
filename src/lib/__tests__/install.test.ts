@@ -5,7 +5,7 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { cleanStages, foldInto, installGrid, installOf, jobJourney, journeyNow, journeyOf, keepStages, stageRenames, untouched, usualStages } from '../install';
+import { cleanStages, foldInto, installGrid, installOf, jobJourney, journeyNow, journeyOf, keepStages, redReasons, stageRenames, untouched, usualStages } from '../install';
 import { standing } from '../standing';
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, wordsOf, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
@@ -369,5 +369,45 @@ describe('the gate a whole job is at — what the all-jobs board shows', () => {
   });
   it('a job with no machines yet is at Install', () => {
     expect(journeyNow(jobJourney([], [], [], T))).toBe('Install');
+  });
+});
+
+/* NOTHING PRESSED CAN LEAVE A GATE RED FOR GOOD. Rowland pressed something on a
+ * machine, the gate went red, and there was nothing to clear it. A test that
+ * failed and was run again is history: the re-test says where the gate is. */
+describe('a red gate that can be cleared', () => {
+  const T = '2026-10-01';
+  const m = asset({ id: 'r1', state: 'onSite' });
+  const test = (o: Partial<Test> & { id: string; title: string }): Test =>
+    ({ projectId: 'p', kind: 'test', assetId: m.id, outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1, ...o });
+
+  it('a failed test is red until it is run again', () => {
+    const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
+    expect(journeyOf(m, [failed], [], T)[2].tone).toBe('late');
+  });
+
+  it('goes green once the re-test passes — the first attempt no longer holds it red', () => {
+    const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
+    const again = test({ id: 'x2', title: 'Seal — re-test', fromTestId: 'x1', outcome: 'passed', ranOn: '2026-09-30' });
+    expect(journeyOf(m, [failed, again], [], T)[2].tone).toBe('done');
+  });
+
+  it('and is not red while a re-test is merely booked ahead', () => {
+    const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
+    const booked = test({ id: 'x2', title: 'Seal — re-test', fromTestId: 'x1', plannedFor: '2026-10-08' });
+    expect(journeyOf(m, [failed, booked], [], T)[2].tone).not.toBe('late');
+  });
+
+  it('a step put back to planned stops being a problem', () => {
+    const s = step({ id: 'y1', title: 'Positioned and levelled', assetId: m.id, plannedFor: '2026-10-09', outcome: 'failed', ranOn: '2026-10-01' });
+    expect(journeyOf(m, [s], [], T)[0].tone).toBe('late');
+    const back = { ...s, outcome: 'planned' as const, ranOn: undefined };
+    expect(journeyOf(m, [back], [], T)[0].tone).toBe('ahead');
+  });
+
+  it('says why it is red, in the floor’s words', () => {
+    const s = step({ id: 'y1', title: 'Positioned and levelled', assetId: m.id, outcome: 'failed', ranOn: '2026-10-01' });
+    const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
+    expect(redReasons(m, [s, failed], [], T)).toEqual(['Positioned and levelled hit a problem', 'Seal did not pass']);
   });
 });

@@ -542,6 +542,17 @@ export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerd
  *
  *  This decides both lists, the verdict's count, the row in what we are waiting
  *  on and whether something can be late — so it is asked in one place. */
+/** THE TESTS AS THEY STAND NOW — the latest attempt of each, not every attempt
+ *  ever made. A test that failed and was run again is history: the re-test
+ *  says where it is. Counting every attempt kept a gate, a header and a
+ *  report line red for good after the re-test passed, with nothing the user
+ *  could press to clear it. The attempts themselves are still all listed. */
+export const latestAttempts = (all: Test[]): Test[] => {
+  const tests = all.filter(t => !t.deletedAt && (t.kind ?? 'test') === 'test');
+  const followedOn = new Set(tests.filter(t => t.fromTestId).map(t => t.fromTestId as string));
+  return tests.filter(t => !followedOn.has(t.id));
+};
+
 /** A record's words, with its machine in front ONLY where two records would
  *  otherwise read the same.
  *

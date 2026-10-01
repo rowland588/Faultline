@@ -29,7 +29,7 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  assetStateOf, gateOf, hasRun, isOverdue, isSettled, live, needsVerdict, titleOnMachine,
+  assetStateOf, gateOf, hasRun, isOverdue, isSettled, live, needsVerdict, titleOnMachine, latestAttempts,
   type Asset, type Test, type TestItem,
 } from './testing';
 
@@ -293,7 +293,7 @@ export function standing(input: StandingInput): Standing {
 
   return {
     /* "N of M tests have run" is about tests — an install step is not one. */
-    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests: tests.filter(t => !isStep(t) && !isFix(t)), unanswered: unanswered(tests) }),
+    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests) }),
     daysToGo, slipDays, outstanding, late, rows, plan,
   };
 }
