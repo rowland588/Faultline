@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, chainForWorkspace, getProject, listTests, putTest } from '../db';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
-import { live, type Test } from '../lib/testing';
+import { live, type Test, type TestItem } from '../lib/testing';
 import { fixTone } from '../screens/FixesScreen';
 import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
@@ -32,7 +32,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   /* ON A STAGE-GATE JOB THE PROBLEM IS A FIX. Rowland: "where does the
      evidence come into play?" — it sat beside the fixes. Here the frame shows
      the fixes pinned on it, and a problem raised on it becomes a fix. */
-  const [job, setJob] = useState<{ projectId: string; fixes: Test[] } | null>(null);
+  const [job, setJob] = useState<{ projectId: string; fixes: Test[]; found: { item: TestItem; on?: Test }[] } | null>(null);
   const [fixDraft, setFixDraft] = useState<{ xPct: number; yPct: number } | null>(null);
 
   const load = async () => {
@@ -54,8 +54,13 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
     const chain = await chainForWorkspace(wsId);
     const project = chain ? await getProject(chain.projectId) : undefined;
     if (chain && project && planModel(project) === 'commissioning') {
-      const fixes = live(await listTests(chain.projectId)).filter(t => t.kind === 'fix' && t.pin?.frameId === frameId);
-      setJob({ projectId: chain.projectId, fixes });
+      const tests = live(await listTests(chain.projectId));
+      const fixes = tests.filter(t => t.kind === 'fix' && t.pin?.frameId === frameId);
+      /* What was found on an install step or a test, pointed at here. */
+      const found = live(await listTestItems(chain.projectId))
+        .filter(i => i.pin?.frameId === frameId)
+        .map(item => ({ item, on: tests.find(t => t.id === item.testId) }));
+      setJob({ projectId: chain.projectId, fixes, found });
     } else setJob(null);
   };
   const syncedAt = useSyncedAt();
@@ -75,6 +80,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   if (draft) pins.push({ id: '__draft', xPct: draft.xPct, yPct: draft.yPct, color: 'var(--brand)', n: snags.length + 1, active: true });
   const FIX_COLOUR: Record<string, string> = { done: 'var(--ok)', late: 'var(--danger)', notRun: 'var(--danger)', soon: 'var(--warn)', ahead: 'var(--brand)' };
   for (const f of job?.fixes ?? []) if (f.pin) pins.push({ id: 'fix:' + f.id, xPct: f.pin.x, yPct: f.pin.y, color: FIX_COLOUR[fixTone(f).tone], label: f.title });
+  for (const { item } of job?.found ?? []) if (item.pin) pins.push({ id: 'item:' + item.id, xPct: item.pin.x, yPct: item.pin.y, color: 'var(--warn)', label: item.what });
   if (fixDraft) pins.push({ id: '__fix', xPct: fixDraft.xPct, yPct: fixDraft.yPct, color: 'var(--danger)', active: true });
   const place = (x: number, y: number) => {
     setEditing(null);
@@ -115,6 +121,11 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           onPlace={place}
           onPinTap={id => {
             if (id.startsWith('fix:') && job) { nav(`/project/${job.projectId}/testing/${encodeURIComponent(id.slice(4))}`); return; }
+            if (id.startsWith('item:') && job) {
+              const hit = job.found.find(f => f.item.id === id.slice(5));
+              if (hit) nav(`/project/${job.projectId}/testing/${encodeURIComponent(hit.item.testId)}`);
+              return;
+            }
             const s = snags.find(x => x.id === id); if (s) { setDraft(null); setFixDraft(null); setEditing(s); }
           }} />
       </div>
@@ -125,6 +136,21 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         <button className="btn watch-video-btn" onClick={() => setWatching(true)}>
           ▶ Watch the video — see it live
         </button>
+      )}
+
+      {job && job.found.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="field-label" style={{ marginBottom: 8 }}>Found here</div>
+          {job.found.map(({ item, on }) => (
+            <button key={item.id} className="snag-line-row" onClick={() => nav(`/project/${job.projectId}/testing/${encodeURIComponent(item.testId)}`)}>
+              <span className="snag-dot-sm" style={{ background: 'var(--warn)' }} />
+              <span className="snag-line-main">
+                <span className="snag-line-problem">{item.what}</span>
+                <span className="snag-line-meta">{on ? `${on.kind === 'install' ? 'Install step' : 'Test'} · ${on.title}` : ''}{item.owner ? ` · ${item.owner}` : ''}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       )}
 
       {job && job.fixes.length > 0 && (

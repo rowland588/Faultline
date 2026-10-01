@@ -406,6 +406,9 @@ export interface TestItem {
   /** Closed, or done. Absent means open. */
   doneAt?: number;
   media?: MediaRef[];
+  /** Where it is on the line — a spot on a frame of the filmed walk, the same
+   *  as a fix's pin. An install problem or a test finding can be pointed at. */
+  pin?: Test['pin'];
   /** For a next step that became the next test. */
   becameTestId?: ID;
 

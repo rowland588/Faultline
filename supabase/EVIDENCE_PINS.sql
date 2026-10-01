@@ -11,3 +11,7 @@
 -- ============================================================================
 
 alter table public.tests add column if not exists pin jsonb;
+
+-- And on what was found: an install problem or a test finding can be pointed
+-- at on the line too — "Pin it on the line" wherever a problem is written.
+alter table public.test_items add column if not exists pin jsonb;

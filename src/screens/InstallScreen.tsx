@@ -25,6 +25,10 @@
  * "what we found" and fixes that can be for it. What the machine reads as is
  * lib/install's, one call, so the sentence here is the sentence on paper.
  */
+import { useEffect, useState } from 'react';
+import { Fold } from '../ui/Fold';
+import { PaceSnags } from './PaceSnags';
+import { framesForProject, onDataChange } from '../db';
 import { StandardsCard } from '../ui/StandardsCard';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -35,7 +39,7 @@ import { useStanding } from '../lib/useStanding';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { GATE_WORD, installGrid, installOf, usualStages } from '../lib/install';
-import { gateOf, type StepGate } from '../lib/testing';
+import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { ProgramsScreen } from './ProgramsScreen';
 import { AddAsset } from './TestsScreen';
 
@@ -60,12 +64,34 @@ const FACE: Record<StepGate, { peer: string; doing: string; empty: string }> = {
   },
 };
 
+/** What the filmed line holds, for its folded line: frames frozen, and the
+ *  problems pinned on them that are still open. */
+function useFilmed(projectId: string, tests: Test[], items: TestItem[]): { frames: number; open: number } | null {
+  const [frames, setFrames] = useState<number | null>(null);
+  useEffect(() => {
+    let live = true;
+    const load = () => void framesForProject(projectId).then(f => { if (live) setFrames(f.length); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId]);
+  if (frames == null) return null;
+  const open = tests.filter(t => !t.deletedAt && t.kind === 'fix' && t.pin && t.outcome !== 'passed').length
+    + items.filter(i => !i.deletedAt && i.pin).length;
+  return { frames, open };
+}
+
+const filmedSays = (f: { frames: number; open: number } | null): string =>
+  !f ? '' : f.frames === 0 ? 'nothing filmed yet — film the line, then pin problems on it'
+    : `${f.frames} frame${f.frames === 1 ? '' : 's'} · ${f.open} problem${f.open === 1 ? '' : 's'} pinned`;
+
 export function InstallScreen({ projectId, gate = 'install' }: { projectId: string; gate?: StepGate }) {
   const { projects, loading } = useProjects();
   const project = projects.find(p => p.id === projectId);
   const tt = useTesting(projectId);
   const stand = useStanding(projectId);
   const face = FACE[gate];
+  const filmed = useFilmed(projectId, tt.tests, tt.items);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -105,6 +131,16 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           </p>
         </div>
       </header>
+
+      {/* THE LINE, FILMED — the evidence system, inside the gate it belongs to.
+          Film the new line, freeze the frames, and every problem on every gate
+          can be pinned on one of them. Rowland: "why can't the evidence system
+          be inside what already exists, within the install section?" */}
+      {gate === 'install' && (
+        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed)}>
+          <PaceSnags projectId={projectId} projectName={project.name} />
+        </Fold>
+      )}
 
       {onGrid
         ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate}

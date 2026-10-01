@@ -82,10 +82,14 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
        'testing' — it is the URL and the count every screen already uses. */
     gate('testing', 'Commission', `/project/${projectId}/testing`, ['testing']),
     gate('handover', 'Hand over', `/project/${projectId}/handover`, ['handover']),
-    /* Not gates — what all four draw on: what is broken, what we are waiting
-       for, and the proof. */
+    /* Not gates — what all four draw on: what is broken and what we are
+       waiting for. */
     p('fixes', 'Fixes', `/project/${projectId}/fixes`),
     p('materials', 'Materials', `/project/${projectId}/materials`),
-    p('evidence', 'Evidence', `/project/${projectId}?view=snags`),
+    /* NO EVIDENCE TAB. It sat last in the row, beside the gates, and Rowland
+       could not see where it came in: "why can't the evidence system be inside
+       what already exists, within the install section?" The filmed line is on
+       Install now — the first gate, where the new line is walked — and any
+       problem written on any gate can be pinned on it. */
   ];
 }

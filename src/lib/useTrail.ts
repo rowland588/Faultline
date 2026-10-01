@@ -13,7 +13,7 @@ import { chainForWorkspace, getSegment, getSnagAsset } from '../db';
 import type { Crumb } from '../ui/Crumbs';
 import type { Route } from '../state/useRoute';
 
-export interface WsChain { projectId: string; projectName: string; lineId?: string; lineName?: string }
+export interface WsChain { projectId: string; projectName: string; lineId?: string; lineName?: string; stageGate?: boolean }
 
 /** The project and line a workspace belongs to — null while loading or when the
  *  workspace is free-standing. */
@@ -38,6 +38,10 @@ export function chainCrumbs(chain: WsChain | null, wsName: string): Crumb[] {
   ];
   if (chain.lineId) {
     out.push({ label: chain.lineName ?? 'the line', to: `/project/${chain.projectId}/line/${chain.lineId}?view=snags` });
+  } else if (chain.stageGate) {
+    /* On a stage-gate job the filmed line lives on Install — so that is the
+       step above the walk, and where Back lands. */
+    out.push({ label: 'Install', to: `/project/${chain.projectId}/install` });
   }
   return out;
 }

@@ -271,7 +271,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk. */}
       {kind === 'fix' && (
         <section className="tw-block">
-          <OnTheLine projectId={projectId} test={test} onSave={pin => save({ pin })} />
+          <OnTheLine projectId={projectId} pin={test.pin} onSave={pin => save({ pin })} />
         </section>
       )}
 
@@ -657,6 +657,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
             return became ? ` · fix: ${became.title}` : '';
           })()}
           {item.fromItemId && ' · from an observation'}
+          {item.pin && ' · 📍 on the line'}
         </span>
       </button>
       {(item.media ?? []).length > 0 && !open && (
@@ -667,6 +668,13 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
 
       {open && (
         <div className="tw-item-edit">
+          {/* WHERE ON THE LINE — the problem pointed at on a frame of the walk. */}
+          {observation && (
+            <div className="cw-f cw-f-wide">
+              <OnTheLine projectId={item.projectId} pin={item.pin} quiet
+                onSave={pin => void tt.saveItem({ ...item, pin })} />
+            </div>
+          )}
           <label className="cw-f cw-f-wide"><span>What</span>
             <DraftArea rows={2} value={item.what} onSave={v => v.trim() && void tt.saveItem({ ...item, what: v.trim() })} /></label>
           <label className="cw-f"><span>Whose</span>

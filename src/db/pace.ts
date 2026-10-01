@@ -168,6 +168,8 @@ export async function setPaceWorkspaceId(id: ID, projectId?: string): Promise<vo
  *  can show the trail and every back button can land on the step above. */
 export async function chainForWorkspace(wsId: ID): Promise<{
   projectId: string; projectName: string; lineId?: string; lineName?: string;
+  /** A stage-gate job: its walk lives on Install, and that is the step above. */
+  stageGate?: boolean;
 } | null> {
   const db = await getDB();
   const line = (await db.getAll('pace_ppm')).find(l => l.workspaceId === wsId && !l.deletedAt);
@@ -180,6 +182,7 @@ export async function chainForWorkspace(wsId: ID): Promise<{
     projectName: p?.name ?? 'the project',
     lineId: line?.id,
     lineName: line?.name,
+    stageGate: !!p?.commissioning,
   };
 }
 

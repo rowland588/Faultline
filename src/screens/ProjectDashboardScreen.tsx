@@ -567,7 +567,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   return (
     <div className={'wrap pace is-' + lens}>
       <Crumbs trail={lens === 'snags' && model === 'commissioning'
-        ? [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Evidence' }]
+        ? [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Install', to: `/project/${projectId}/install` }, { label: 'The line, filmed' }]
         : [{ label: 'Projects', to: '/projects' }, { label: project.name }]} />
       <header className="pace-head">
         <div className="pace-head-main">
@@ -663,7 +663,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           with the other lists, and the project's name in the trail is the way
           back to this front page. */}
       {model === 'commissioning' && lens === 'snags' && (
-        <Peers peers={projectPeers(projectId, 'evidence', stand.counts)} />
+        <Peers peers={projectPeers(projectId, 'install', stand.counts)} />
       )}
       {model !== 'commissioning' && <nav className="pace-lenses" aria-label="View">
         {shownLenses.map((l, i) => (
