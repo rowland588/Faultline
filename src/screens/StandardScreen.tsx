@@ -394,7 +394,8 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
     else if (d.mode === 'start') patchMark(d.id, { x: r1(o.x + dx), y: r1(o.y + dy), w: r1((o.w ?? 0) - dx), h: r1((o.h ?? 0) - dy) });
     else {
       const left = o.x - (o.w ?? 0) / 2, top = o.y - (o.h ?? 0) / 2;
-      let w = Math.max(3, (o.w ?? 0) + dx), h = Math.max(3, (o.h ?? 0) + dy);
+      const w = Math.max(3, (o.w ?? 0) + dx);
+      let h = Math.max(3, (o.h ?? 0) + dy);
       if (o.shape === 'square' || o.shape === 'circle') h = sameH(w);
       patchMark(d.id, { w: r1(w), h: r1(h), x: r1(left + w / 2), y: r1(top + h / 2) });
     }
