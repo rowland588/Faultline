@@ -7,7 +7,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack, buildAnalyseHash } from '../state/useRoute';
-import { getCase, updateCase, deleteCase, snagsForWorkspace, updateSnag } from '../db';
+import { getCase, updateCase, deleteCase, snagsForWorkspace, updateSnag, chainForWorkspace, listPaceTodos, loadPaceLines, type PaceLineRow, type PaceTodoRow } from '../db';
+import { ActionSheet, type Editing } from '../ui/ActionSheet';
+import { isLate } from '../lib/actions';
 import { useSyncedAt } from '../cloud/session';
 import { applyDrill, drillNode } from '../engine/drill';
 import { weeklyLoss, weekStart } from '../lib/stats';
@@ -257,9 +259,18 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
   const [kase, setKase] = useState<Case | null | undefined>(undefined); // undefined = loading
   const [snags, setSnags] = useState<Snag[]>([]);
+  /* The actions raised for this Case on the project's board — the same record
+     the 3P board shows, so there is one list. Older ones are snags, above. */
+  const [boardActs, setBoardActs] = useState<PaceTodoRow[]>([]);
+  const [boardLines, setBoardLines] = useState<PaceLineRow[]>([]);
+  const [editing, setEditing] = useState<Editing | null>(null);
   const load = async () => {
-    const [c, sn] = await Promise.all([getCase(caseId), snagsForWorkspace(workspace.id)]);
+    const [c, sn, chain] = await Promise.all([getCase(caseId), snagsForWorkspace(workspace.id), chainForWorkspace(workspace.id)]);
     setKase(c ?? null); setSnags(sn);
+    if (chain) {
+      const [todos, lines] = await Promise.all([listPaceTodos(chain.projectId), loadPaceLines(chain.projectId)]);
+      setBoardActs(todos.filter(t => t.caseId === caseId)); setBoardLines(lines);
+    } else { setBoardActs([]); setBoardLines([]); }
   };
   // Deliberately narrow: this re-runs on the identity that matters, not on
   // every reference it reads.
@@ -284,6 +295,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const mine = snags.filter(s => s.caseId === kase.id).sort((a, b) => compareReview(a, b));
   const openMine = mine.filter(s => s.status !== 'closed');
   const closedMine = mine.filter(s => s.status === 'closed');
+  const boardOpen = boardActs.filter(t => t.state !== 'done').length;
+  const boardDone = boardActs.length - boardOpen;
 
   // suggestions: open board actions whose target sits inside this scope, not yet attached
   const inScope = (s: Snag) => kase.path.every(step =>
@@ -407,11 +420,26 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
       {/* ── countermeasures ── */}
       <section className="case-box">
-        <h2 className="case-box-h">Countermeasures — {openMine.length} open · {closedMine.length} closed</h2>
+        <h2 className="case-box-h">Countermeasures — {openMine.length + boardOpen} open · {closedMine.length + boardDone} closed</h2>
         {kase.whys?.length ? (
           <p className="case-root">Aimed at the root cause: <b>{kase.whys[kase.whys.length - 1]}</b></p>
         ) : null}
-        {mine.length === 0 && <p className="sub">No actions on this case yet. Raise the first one below.</p>}
+        {mine.length + boardActs.length === 0 && <p className="sub">No actions on this case yet. Raise the first one below.</p>}
+        {boardActs.map(t => (
+          <div key={t.id} className={'meet-action case-action' + (isLate(t) ? ' over' : '') + (t.state === 'done' ? ' done' : '')}>
+            <div className="ma-main">
+              <span className="ma-problem">{t.what}</span>
+              {t.why ? <span className="sub case-why">{t.why}</span> : null}
+              {t.outcome ? <span className="case-upd">↻ {t.outcome}</span> : null}
+            </div>
+            <div className="ma-controls">
+              <span className="mini-select">{t.state === 'done' ? 'Done' : t.state === 'waiting' ? 'Waiting' : 'To do'}</span>
+              {t.who ? <span>· {t.who}</span> : null}
+              {t.due ? <span>· due {t.due}</span> : null}
+              <button className="btn btn-ghost btn-sm no-print" onClick={() => setEditing({ step: t, isNew: false })}>Edit</button>
+            </div>
+          </div>
+        ))}
         {mine.map(s => (
           <div key={s.id} className={'meet-action case-action' + (isOverdue(s) ? ' over' : '') + (s.status === 'closed' ? ' done' : '')}>
             <div className="ma-main">
@@ -450,6 +478,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         <div className="no-print">
           <ActionComposer wsId={workspace.id} path={kase.path} caseId={kase.id} onRaised={() => void load()} />
         </div>
+        {editing && <ActionSheet editing={editing} lines={boardLines} onClose={() => { setEditing(null); void load(); }} />}
       </section>
 
       {/* ── the proof: re-measure the same thing, the same way ── */}

@@ -81,7 +81,7 @@ export function ProjectsScreen() {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{MODELS.map(m => m.label).join(' · ')}</p>
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">Three ways to run a project. <b>Stage gate</b> takes new equipment through its gates to handover. <b>3P</b> runs a line’s improvement week by week, People · Plant · Process. <b>Lever tree</b> works one outcome down to what has to be true for it.</p>
+          <p className="pace-lede">Every project is a change to a line. Say what you are trying to do and it is run the right way: <b>stage gate</b> takes new equipment through its gates to handover, <b>3P</b> runs a line’s improvement week by week, and a <b>lever tree</b> works one number down to what has to be true for it.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
@@ -109,30 +109,21 @@ export function ProjectsScreen() {
       {adding && (
         <section className="card proj-new">
           <div className="field-label">New project</div>
-          <div className="proj-new-grid">
-            <label className="proj-field">
-              <span className="field-label">Name</span>
-              <input className="text-input" autoFocus value={name} maxLength={80}
-                placeholder={model === 'board' ? 'e.g. Line 7 performance' : model === 'tree' ? 'e.g. Line 7 to 60 ppm by March' : 'e.g. Line 7 new wrapper'} onChange={e => setName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
-            </label>
-            <label className="proj-field">
-              <span className="field-label">Lead</span>
-              <input className="text-input" value={lead} maxLength={80}
-                placeholder="Who is accountable for it" onChange={e => setLead(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
-            </label>
-          </div>
+          {/* START FROM THE SITUATION, NOT THE METHOD. Nobody should have to
+              know what a "lever tree" is to start the right kind of change:
+              say what you are trying to do and the way it is run follows. The
+              name and the lead come once that is said. */}
           <div className="proj-model">
-            <span className="field-label">How this project runs — choose one</span>
+            <span className="field-label">What are you trying to do?</span>
             <div className="proj-model-grid">
               {MODELS.map(m => (
                 <button key={m.id} type="button" aria-pressed={model === m.id}
                   className={'proj-model-opt' + (model === m.id ? ' on' : '')}
                   onClick={() => setModel(m.id)}>
-                  <span className="proj-model-t">{m.label}</span>
+                  <span className="proj-model-t">{m.situation}</span>
                   <span className="proj-model-q">{m.blurb}</span>
                   <span className="proj-model-s">{m.useWhen}</span>
+                  <span className="proj-model-runs">Runs as <b>{m.label}</b></span>
                   <dl className="proj-model-dl">
                     <dt>Built from</dt><dd>{m.organised}</dd>
                     <dt>Rhythm</dt><dd>{m.rhythm}</dd>
@@ -142,11 +133,27 @@ export function ProjectsScreen() {
                 </button>
               ))}
             </div>
-            <p className="chip-hint">Changeable later under Details, if the project turns out to need another.</p>
+            {!model && <p className="chip-hint">Pick the closest. It can be changed later under Details.</p>}
           </div>
+          {model && (
+            <div className="proj-new-grid" style={{ marginTop: 12 }}>
+              <label className="proj-field">
+                <span className="field-label">Name</span>
+                <input className="text-input" autoFocus value={name} maxLength={80}
+                  placeholder={model === 'board' ? 'e.g. Line 7 performance' : model === 'tree' ? 'e.g. Line 7 to 60 ppm by March' : 'e.g. Line 7 new wrapper'} onChange={e => setName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
+              </label>
+              <label className="proj-field">
+                <span className="field-label">Lead</span>
+                <input className="text-input" value={lead} maxLength={80}
+                  placeholder="Who is accountable for it" onChange={e => setLead(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
+              </label>
+            </div>
+          )}
           <div className="row-inline" style={{ marginTop: 10 }}>
             <button className="btn btn-primary" disabled={!name.trim() || !model} onClick={() => void doCreate()}>
-              {!model ? 'Choose how it runs' : model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
+              {!model ? 'Say what you are trying to do' : model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
             </button>
           </div>
           {model && (

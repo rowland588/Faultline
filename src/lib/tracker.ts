@@ -44,6 +44,8 @@ export interface PaceAction {
    *  action kept in the app, so the lever tree matches 2A and 2B apart rather
    *  than by the digits a workbook's "Line 2" needed. */
   lineKey?: string;
+  /** The Case it was raised for, when it was (see lib/actions). */
+  caseId?: string;
 }
 
 /** One row of a Pareto sheet: where the time went, ranked. */

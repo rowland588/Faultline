@@ -7381,3 +7381,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ax-foot { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
 @media print { .bd-add, .bd-filters, .bd-unsorted { display: none !important; } }
 @media (max-width: 720px) { .bd-cols { grid-template-columns: 1fr; } }
+
+/* A new project starts from the situation: the method it runs as is a small
+   line under it, not the heading. */
+.proj-model-runs { font-size: 12px; color: var(--muted); }
+.proj-model-runs b { color: var(--brand); }

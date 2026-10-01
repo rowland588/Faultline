@@ -51,6 +51,11 @@ export const setPlanModel = (m: PlanModel): Pick<Project, 'leverTree' | 'commiss
 export interface Method {
   id: PlanModel;
   label: string;
+  /** What the person is trying to DO, in their words — what a new project asks
+   *  first. Rowland: the control room starts from the situation, and the
+   *  method follows from it; nobody should have to know the method's name to
+   *  start the right kind of change. */
+  situation: string;
   /** One line — the question it answers. Also the setup switcher's line. */
   blurb: string;
   useWhen: string;
@@ -63,6 +68,7 @@ export interface Method {
 
 export const MODELS: Method[] = [
   { id: 'commissioning', label: 'Stage gate',
+    situation: 'Bring new equipment into use',
     blurb: 'Is the equipment proved to what was agreed, so it can be accepted?',
     useWhen: 'New or moved equipment — a supplier to work with, gates to pass, a handover date.',
     organised: 'Machines through their install stages, tests with agreed pass marks, fixes, materials and programs',
@@ -70,6 +76,7 @@ export const MODELS: Method[] = [
     done: 'Handed over',
     document: 'Client report · test and fix cards' },
   { id: 'board', label: '3P',
+    situation: 'Make a running line perform better',
     blurb: 'What is holding this line back, and who is on it this week?',
     useWhen: 'Running lines that need to perform better — a team, a weekly meeting, a rate to hit.',
     organised: 'Lines with owners and sponsors · actions sorted People, Plant, Process on the board',
@@ -77,6 +84,7 @@ export const MODELS: Method[] = [
     done: 'At target, and holding',
     document: 'The 3P board · client report' },
   { id: 'tree', label: 'Lever tree',
+    situation: 'Hit a number by a date',
     blurb: 'What has to be true to reach this outcome, and is it being done?',
     useWhen: 'One defined outcome with a sponsor — a number to move, by a date.',
     organised: 'Outcome → levers → conditions → the work under each',

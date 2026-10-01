@@ -6,6 +6,7 @@
  */
 import type { ID } from '../types';
 import { uid, now } from '../lib/ids';
+import { todayISO } from '../lib/weeks';
 import { getDB, signalWrite } from './core';
 import type { PaceTodoRow, PaceWinRow, PaceLineRow } from './rows';
 import type { SnagAsset } from '../snag/types';
@@ -224,8 +225,19 @@ export async function listPaceTodos(projectId: string, lineId?: string): Promise
   const all = await (await getDB()).getAll('pace_todos');
   return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => a.createdAt - b.createdAt);
 }
+/** The day an action was marked done is the store's to keep, not the screen's:
+ *  every place that moves a step to done (the board, the list, a Case) gets it
+ *  without remembering to, and reopening a step clears it. A step that arrives
+ *  already done from another device keeps the day it came with. */
 export async function putPaceTodo(t: PaceTodoRow): Promise<void> {
-  await (await getDB()).put('pace_todos', { ...t, updatedAt: now() });
+  const db = await getDB();
+  const before = await db.get('pace_todos', t.id);
+  /* Stamped only on a real move to done. One already done before the day was
+     kept stays as it was — it must not claim it was done today the next time
+     somebody fixes a typo in it. */
+  const wasDone = before?.state === 'done';
+  const doneOn = t.state !== 'done' ? undefined : (t.doneOn ?? (wasDone ? before?.doneOn : todayISO()));
+  await db.put('pace_todos', { ...t, doneOn, updatedAt: now() });
   signalWrite();
 }
 export async function deletePaceTodo(id: ID): Promise<void> {

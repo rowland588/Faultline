@@ -21,14 +21,14 @@
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
-import { Sheet } from '../ui/Sheet';
+import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { Peers, methodPeers } from '../ui/Peers';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useProject } from '../lib/useProjects';
 import { useActions, WHOLE_PROJECT, isLate } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
 import { PILLARS, actionTitle, meetingOrder, type PillarKey } from '../lib/pillars';
-import { putPaceTodo, deletePaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { putPaceTodo } from '../db';
 import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
 import type { PaceAction } from '../lib/tracker';
@@ -47,84 +47,10 @@ function Card({ a, onOpen }: { a: PaceAction; onOpen: () => void }) {
       <span className="bd-act-f">
         <span className={'bd-chip is-' + st}>{STATUS[st]}</span>
         {who && <span className="bd-who">{who}</span>}
+        {a.caseId && <span className="bd-meta" title="Raised from a Pareto, for a Case">from a Case</span>}
         {a.due && <span className="bd-meta">{st === 'g' ? '' : 'due '}{a.due}</span>}
       </span>
     </button>
-  );
-}
-
-/** What the sheet edits — a step, or the start of a new one. */
-type Editing = { step: PaceTodoRow; isNew: boolean };
-
-function ActionSheet({ editing, lines, onClose }: { editing: Editing; lines: PaceLineRow[]; onClose: () => void }) {
-  const [s, setS] = useState<PaceTodoRow>(editing.step);
-  const set = (p: Partial<PaceTodoRow>) => setS(x => ({ ...x, ...p }));
-  const save = async () => {
-    if (!s.what.trim()) return;
-    await putPaceTodo({ ...s, what: s.what.trim(), who: s.who.trim() });
-    onClose();
-  };
-  const remove = async () => {
-    if (!window.confirm(`Delete this action?\n\n"${s.what}"`)) return;
-    await deletePaceTodo(s.id);
-    onClose();
-  };
-  return (
-    <Sheet open onClose={onClose} title={editing.isNew ? 'A new action' : 'The action'}>
-      <div className="ax-form">
-        <label className="cw-f cw-f-wide"><span>WHAT HAS TO BE DONE</span>
-          <textarea rows={2} value={s.what} autoFocus={editing.isNew}
-            placeholder="e.g. Train the night shift on the splice"
-            onChange={e => set({ what: e.target.value })} /></label>
-        <label className="cw-f cw-f-wide"><span>WHY — WHAT IT FIXES</span>
-          <textarea rows={2} value={s.why} placeholder="Film breaks at the splice, 20 min a shift"
-            onChange={e => set({ why: e.target.value })} /></label>
-        <div className="ax-row">
-          <span className="ax-k">3P</span>
-          <div className="cw-seg" role="group" aria-label="People, Plant or Process">
-            {PILLARS.map(p => (
-              <button key={p.key} type="button" className={'chip' + (s.pillar === p.key ? ' on' : '')}
-                aria-pressed={s.pillar === p.key} onClick={() => set({ pillar: p.key })}>{p.label}</button>
-            ))}
-          </div>
-        </div>
-        <div className="ax-grid">
-          <label className="cw-f"><span>LINE</span>
-            <select value={s.lineId ?? ''} onChange={e => set({ lineId: e.target.value || undefined })}>
-              {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              <option value="">{WHOLE_PROJECT}</option>
-            </select></label>
-          <label className="cw-f"><span>WHO</span>
-            <input value={s.who} placeholder="Name" onChange={e => set({ who: e.target.value })} /></label>
-          <label className="cw-f"><span>DUE</span>
-            <input type="date" value={s.due ?? ''} onChange={e => set({ due: e.target.value || undefined })} /></label>
-        </div>
-        <div className="ax-row">
-          <span className="ax-k">STATE</span>
-          <div className="cw-seg" role="group" aria-label="State">
-            {(['todo', 'waiting', 'done'] as const).map(k => (
-              <button key={k} type="button" className={'chip' + (s.state === k ? ' on' : '')}
-                aria-pressed={s.state === k} onClick={() => set({ state: k })}>
-                {k === 'todo' ? 'To do' : k === 'waiting' ? 'Waiting on someone' : 'Done'}
-              </button>
-            ))}
-          </div>
-        </div>
-        {s.state === 'done' && (
-          <label className="cw-f cw-f-wide"><span>HOW IT ENDED</span>
-            <textarea rows={2} value={s.outcome ?? ''} placeholder="Worked / didn't / needs another go"
-              onChange={e => set({ outcome: e.target.value })} /></label>
-        )}
-        <div className="ax-foot">
-          {!editing.isNew && <button className="btn btn-ghost cw-del" onClick={() => void remove()}>Delete</button>}
-          <span style={{ flex: 1 }} />
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" disabled={!s.what.trim()} onClick={() => void save()}>
-            {editing.isNew ? 'Add it' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </Sheet>
   );
 }
 

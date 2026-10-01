@@ -28,6 +28,14 @@ export interface PaceTodoRow {
   /** The day it is due, YYYY-MM-DD — what makes it late. `when` stays the free
    *  words ("before the Tesco launch"); this is the date the board counts. */
   due?: string;
+  /** The Case (the A3) it was raised for, when it was raised from one — so the
+   *  Case lists it as a countermeasure and the board says where it came from. */
+  caseId?: string;
+  /** The day it was marked done, YYYY-MM-DD. Set by the store when the state
+   *  becomes done and cleared when it is reopened — never typed. It is what
+   *  lets the control room compare the loss before it closed with the loss
+   *  after. */
+  doneOn?: string;
   /** What happened. What/Where/Why/Who/When are all set BEFORE the thing is
    *  done; this is the write-up afterwards — the run, the numbers, the verdict.
    *  It is what makes a Next step able to hold a trial rather than only name

@@ -44,6 +44,7 @@ export function stepAction(s: PaceTodoRow, lines: PaceLineRow[], today = todayIS
     line: line?.name ?? WHOLE_PROJECT,
     lineId: s.lineId,
     lineKey: line?.key ?? '',
+    caseId: s.caseId,
     // The column, as the category the lever tree groups and binds by.
     category: s.pillar ? PILLAR_WORD[s.pillar] : '',
     action: s.what,
