@@ -13,7 +13,7 @@
  * said "no improvement" and that verdict is shown, not hidden. */
 import { useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { listWorkspaces, listObservations, listCases, snagsForWorkspace } from '../db';
+import { listWorkspaces, listObservations, listCases, snagsForWorkspace, inArchivedProject } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { applyDrill } from '../engine/drill';
 import { weeklyLoss } from '../lib/stats';
@@ -87,6 +87,7 @@ export function PortfolioScreen() {
       const wss = await listWorkspaces();
       const out: Row[] = [];
       for (const ws of wss) {
+        if (await inArchivedProject(ws.id)) continue;
         const cases = await listCases(ws.id);
         if (cases.length === 0) continue;
         const [obs, snags] = await Promise.all([listObservations(ws.id), snagsForWorkspace(ws.id)]);

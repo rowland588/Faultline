@@ -57,7 +57,7 @@ const KIND_WORD: Record<JobItem['kind'], string> = {
   action: 'Action',
 };
 const GATE_WORD: Record<GateTone, string> = {
-  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'still ahead', none: 'nothing kept yet',
+  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'still ahead', none: 'not started',
 };
 const TONE_WORD: Record<string, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'the day has gone', booked: 'still ahead',

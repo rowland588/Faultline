@@ -32,7 +32,7 @@ import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
-import { allPaceLines, chainForWorkspace, onDataChange, type PaceLineRow } from '../db';
+import { allPaceLines, chainForWorkspace, inArchivedProject, onDataChange, type PaceLineRow } from '../db';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 import { JobsBoard } from '../ui/JobsBoard';
 
@@ -178,14 +178,14 @@ export function WorkspaceHome() {
       if (!alive) return;
       setList(ws);
       const entries = await Promise.all(ws.map(async w => {
-        const [obs, segs, snags, cases] = await Promise.all([
-          listObservations(w.id), listSegments(w.id), snagsForWorkspace(w.id), listCases(w.id),
+        const [obs, segs, snags, cases, away] = await Promise.all([
+          listObservations(w.id), listSegments(w.id), snagsForWorkspace(w.id), listCases(w.id), inArchivedProject(w.id),
         ]);
         return [w.id, {
           obs: obs.length,
           videos: segs.length,
           openSnags: snags.filter(s => s.status !== 'closed').length,
-          cases: cases.length,
+          cases: away ? 0 : cases.length,
         }] as const;
       }));
       if (alive) setCasesTotal(entries.reduce((a, [, c]) => a + (c.cases ?? 0), 0));

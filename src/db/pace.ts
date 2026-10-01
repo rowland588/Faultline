@@ -187,6 +187,16 @@ export async function chainForWorkspace(wsId: ID): Promise<{
   };
 }
 
+/** Is this workspace part of a project that has been archived? Archiving a job
+ *  puts away everything under it, so what it held — its cases included — must
+ *  not keep counting on Home or on the improvement-work screen. */
+export async function inArchivedProject(wsId: ID): Promise<boolean> {
+  const c = await chainForWorkspace(wsId);
+  if (!c) return false;
+  const p = await (await getDB()).get('projects', c.projectId);
+  return !!p?.archivedAt;
+}
+
 /** Which project a workspace belongs to, if any — its project's line-walk
  *  workspace, or the workspace of one of its lines. This is what lets the
  *  generic snag and capture screens offer a way back to the PROJECT rather

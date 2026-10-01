@@ -6327,7 +6327,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jb-gate.is-done { background: var(--st-g); border-color: var(--st-g); color: #fff; }
 .jb-gate.is-going { background: var(--accent-soft); border-color: var(--brand); color: var(--accent); }
 .jb-gate.is-late { background: #fdf2f0; border-color: var(--st-r); color: var(--st-r); }
-.jb-gate.is-none { border-color: transparent; color: var(--muted); background: var(--surface-2); font-weight: 600; }
+/* A gate nothing has been kept at yet is AHEAD, not switched off. It was a solid
+   grey fill, which on a new job turned every gate after Install grey and read as
+   disabled; it is now drawn exactly like "still ahead". */
+.jb-gate.is-none { border-color: var(--line-2); color: var(--ink-2); background: var(--surface); }
 .jb-gate.is-now { box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 25%, transparent); }
 
 .jb-track { position: relative; height: 84px; cursor: pointer; }
@@ -7067,7 +7070,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jr-seg.is-going { background: var(--accent-soft); border-color: var(--brand); color: var(--accent); }
 .jr-seg.is-late { background: #fdf2f0; border-color: var(--st-r); color: var(--st-r); }
 .jr-seg.is-ahead { background: var(--surface); border-color: var(--line-2); color: var(--ink-2); }
-.jr-seg.is-none { background: var(--surface-2); border-color: transparent; color: var(--muted); font-weight: 600; }
+.jr-seg.is-none { background: var(--surface); border-color: var(--line-2); color: var(--ink-2); }
 .jr-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; font-size: 11.5px; color: var(--muted); }
 .jr-key span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 .jr-key .is-done::before { background: var(--st-g); }
@@ -7085,7 +7088,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ex-jr-g.is-going { background: #e8f0fd; border-color: var(--brand); color: var(--brand); }
 .ex-jr-g.is-late { background: #fdf2f0; border-color: var(--st-r); color: var(--st-r); }
 .ex-jr-g.is-none { background: #f2f5fa; border-color: transparent; color: var(--muted); }
-.jr-key .is-none::before { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+
 
 /* ---- A card that folds (ui/Fold) — the Overview's cards, each saying its
    answer in one line when shut. The card inside keeps its rows and loses its
