@@ -1,7 +1,7 @@
 /* The line standard's arithmetic — headcount, roles, the copy to another
  * product. Counted off the marks, never typed, so it is tested here. */
 import { describe, it, expect } from 'vitest';
-import { copyFor, headcount, MARKS, nextRole, peopleOf, thingsOf, type Standard, type StandardMark } from '../standard';
+import { copyFor, headcount, manyOf, MARKS, nextRole, peopleOf, thingsOf, type Standard, type StandardMark } from '../standard';
 
 const m = (o: Partial<StandardMark> & Pick<StandardMark, 'kind'>): StandardMark => ({ id: Math.random().toString(36).slice(2), x: 50, y: 50, ...o });
 const map = (marks: StandardMark[]): Standard => ({ id: 's1', projectId: 'p', product: 'Maris Piper 2kg — Tall', marks, sort: 1, createdAt: 1, updatedAt: 1 });
@@ -31,7 +31,26 @@ describe('the line standard', () => {
     expect(s.marks[0].id).toBe('a');
   });
   it('has an icon for every kind, each a drawable path', () => {
-    expect(MARKS.map(k => k.kind)).toEqual(['person', 'pallet', 'box', 'crate', 'cage', 'bin', 'forklift']);
+    expect(MARKS.length).toBeGreaterThan(35); expect(new Set(MARKS.map(k => k.kind)).size).toBe(MARKS.length);
     for (const k of MARKS) expect(k.glyph).toMatch(/^M[\d.\s,a-zA-Z-]+$/);
+  });
+});
+
+describe('shapes on the map', () => {
+  const shape = (o: Partial<StandardMark>): StandardMark => ({ id: Math.random().toString(36).slice(2), kind: 'shape', shape: 'rect', x: 50, y: 50, w: 20, h: 10, label: 'Bagger', ...o });
+  it('are neither people nor kit', () => {
+    const s = map([shape({}), shape({ shape: 'circle' }), m({ kind: 'person', label: 'Op 1' }), m({ kind: 'metaldetector' })]);
+    expect(headcount(s)).toBe(1);
+    expect(thingsOf(s)).toBe('1 metal detector');
+  });
+  it('copy to another product with the rest of the map', () => {
+    let n = 0;
+    const c = copyFor(map([shape({ label: 'Hopper' })]), 'Baker 2kg', () => `n${n++}`, 1);
+    expect(c.marks[0]).toMatchObject({ kind: 'shape', shape: 'rect', label: 'Hopper', w: 20, h: 10 });
+  });
+  it('says plurals the way a person would', () => {
+    expect(manyOf('Box')).toBe('boxes');
+    expect(manyOf('X-ray')).toBe('x-rays');
+    expect(manyOf('Tote bin')).toBe('tote bins');
   });
 });

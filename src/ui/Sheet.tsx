@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 /** A bottom sheet — the switcher, menus, quick edits. Tap the scrim to close.
@@ -9,6 +9,13 @@ import { createPortal } from 'react-dom';
 export function Sheet({ open, onClose, title, children }: {
   open: boolean; onClose: () => void; title?: string; children: ReactNode;
 }) {
+  /* A SHEET OPENED BY A TAP must not be shut by the same tap. On a phone the
+     click that follows a touch lands where the finger was — and the sheet's
+     scrim is now under it — so a shape drawn with a tap opened its naming
+     sheet and closed it in the same instant. Taps in the first moment after
+     opening are not taken as "close". */
+  const openedAt = useRef(0);
+  useEffect(() => { if (open) openedAt.current = Date.now(); }, [open]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -20,7 +27,7 @@ export function Sheet({ open, onClose, title, children }: {
 
   if (!open) return null;
   return createPortal(
-    <div className="sheet-scrim" onClick={onClose}>
+    <div className="sheet-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
       <div className="sheet" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="sheet-grip" />
         {title && <div className="sheet-title">{title}</div>}

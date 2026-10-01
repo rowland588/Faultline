@@ -21,7 +21,7 @@
  *   │ Agreed by ____________  Date ______          Faultline  │
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
-import { headcount, markOf, MARKS, peopleOf, type Standard, type StandardMark } from './standard';
+import { headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -90,7 +90,7 @@ export function drawIcon(ctx: CanvasRenderingContext2D, kind: StandardMark['kind
   ctx.save();
   const g = r * 1.3;
   ctx.translate(cx - g / 2, cy - g / 2); ctx.scale(g / 24, g / 24);
-  ctx.fillStyle = '#ffffff'; ctx.fill(new Path2D(k.glyph), 'evenodd');
+  ctx.fillStyle = '#ffffff'; ctx.fill(new Path2D(k.glyph), k.rule ?? 'evenodd');
   ctx.restore();
 }
 
@@ -102,6 +102,44 @@ function pillLabel(ctx: CanvasRenderingContext2D, text: string, cx: number, top:
   ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, cx, top + h / 2 + 1);
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+/** A shape on the map: the same geometry the editor draws, its words in the middle. */
+function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, iy: number, iw: number, ih: number) {
+  const t = TONES[m.tone ?? (m.shape === 'text' ? 'grey' : 'blue')];
+  const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
+  const w = ((m.w ?? 10) / 100) * iw, h = ((m.h ?? 10) / 100) * ih;
+  const lw = Math.max(2, iw * 0.0028);
+  ctx.save();
+  if (m.shape === 'arrow') {
+    const x2 = cx + w, y2 = cy + h, ang = Math.atan2(h, w), head = Math.max(14, iw * 0.016);
+    ctx.strokeStyle = t.stroke; ctx.fillStyle = t.stroke; ctx.lineWidth = lw * 1.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x2 - Math.cos(ang) * head * 0.6, y2 - Math.sin(ang) * head * 0.6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(ang - 0.45), y2 - head * Math.sin(ang - 0.45));
+    ctx.lineTo(x2 - head * Math.cos(ang + 0.45), y2 - head * Math.sin(ang + 0.45));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    return;
+  }
+  const x = cx - w / 2, y = cy - h / 2;
+  ctx.beginPath();
+  if (m.shape === 'circle') ctx.ellipse(cx, cy, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
+  else if (m.shape === 'triangle') { ctx.moveTo(cx, y); ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h); ctx.closePath(); }
+  else { round(ctx, x, y, w, h, Math.min(10, w * 0.06)); }
+  if (m.shape !== 'text') {
+    ctx.fillStyle = t.fill; ctx.fill();
+    ctx.strokeStyle = t.stroke; ctx.lineWidth = lw; ctx.stroke();
+  }
+  if (m.label?.trim()) {
+    const size = Math.max(16, Math.min(iw * 0.02, h * 0.34));
+    ctx.font = `800 ${size}px ${FONT}`; ctx.fillStyle = t.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const inner = m.shape === 'triangle' ? w * 0.55 : m.shape === 'circle' ? w * 0.72 : w - 12;
+    const lines = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 3)).slice(0, 4);
+    const lh = size * 1.15, ty0 = (m.shape === 'triangle' ? cy + h * 0.18 : cy) - ((lines.length - 1) * lh) / 2;
+    lines.forEach((l, i) => ctx.fillText(l, cx, ty0 + i * lh));
+  }
+  ctx.restore();
 }
 
 /** The whole card, as a canvas. */
@@ -158,12 +196,20 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     iw = img.width * k; ih = img.height * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
     ctx.drawImage(img, ix, iy, iw, ih);
   } else {
+    /* The plain board is 16:9 on the screen, so it is 16:9 here too — a
+       square drawn there is a square on the card. */
+    const k = Math.min(mapW / 16, mapH / 9);
+    iw = 16 * k; ih = 9 * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
+    ctx.fillStyle = '#f7f9fc'; ctx.fillRect(ix, iy, iw, ih);
     ctx.strokeStyle = '#e1e8f2'; ctx.lineWidth = 1;
-    for (let x = mapX; x < mapX + mapW; x += 40) { ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + mapH); ctx.stroke(); }
-    for (let y = top; y < top + mapH; y += 40) { ctx.beginPath(); ctx.moveTo(mapX, y); ctx.lineTo(mapX + mapW, y); ctx.stroke(); }
+    for (let x = ix; x < ix + iw; x += 40) { ctx.beginPath(); ctx.moveTo(x, iy); ctx.lineTo(x, iy + ih); ctx.stroke(); }
+    for (let y = iy; y < iy + ih; y += 40) { ctx.beginPath(); ctx.moveTo(ix, y); ctx.lineTo(ix + iw, y); ctx.stroke(); }
   }
+  // shapes first — everything placed stands on them
+  for (const m of s.marks) if (isShape(m)) drawShape(ctx, m, ix, iy, iw, ih);
   const r = Math.max(20, Math.min(iw, ih) * 0.036);
   for (const m of s.marks) {
+    if (isShape(m)) continue;
     const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
     drawIcon(ctx, m.kind, cx, cy, r);
     if (m.label) pillLabel(ctx, m.label, cx, cy + r + 8, Math.round(r * 0.72));
@@ -200,7 +246,8 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
 
   // the kit at the line, with its icons
   const kit = MARKS.filter(k => k.kind !== 'person')
-    .map(k => ({ k, n: s.marks.filter(m => m.kind === k.kind).length })).filter(x => x.n > 0);
+    .map(k => ({ k, n: s.marks.filter(m => m.kind === k.kind).length })).filter(x => x.n > 0)
+    .slice(0, 6);   // the card has room for six kinds; the map shows the rest
   if (kit.length) {
     let ky = top + mapH - 150;
     ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('A T   T H E   L I N E', sx, ky);
@@ -208,7 +255,7 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     let kx = sx;
     for (const { k, n: c } of kit) {
       ctx.font = `700 24px ${FONT}`;
-      const word = `${c} ${k.word.toLowerCase()}${c === 1 ? '' : k.kind === 'box' ? 'es' : 's'}`;
+      const word = `${c} ${c === 1 ? k.word.toLowerCase() : manyOf(k.word)}`;
       const w = 52 + ctx.measureText(word).width + 24;
       if (kx + w > sx + sideW) { kx = sx; ky += 58; }
       drawIcon(ctx, k.kind, kx + 22, ky + 24, 20);

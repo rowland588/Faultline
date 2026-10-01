@@ -7318,3 +7318,33 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ls-print-err { margin: 0 0 10px; padding: 8px 12px; border-radius: var(--radius-sm); background: #fdf2f0; color: var(--st-r); font-weight: 600; }
 .ls-print-cards { display: grid; gap: 14px; }
 .ls-print-card { display: block; width: 100%; max-width: 1040px; margin: 0 auto; height: auto; border-radius: 10px; box-shadow: 0 6px 24px rgba(13, 31, 60, 0.18); border: 1px solid var(--line); }
+
+/* ---- Drawing the line: shapes, their words, handles, the icon picker ---- */
+.ls-svg { position: absolute; inset: 0; overflow: visible; }
+.ls-board.is-placing { cursor: crosshair; }
+.ls-shape { cursor: move; }
+.ls-shape.is-on > :first-child { filter: drop-shadow(0 0 0.5px #1f63e0) drop-shadow(0 0 3px rgba(31, 99, 224, 0.55)); }
+.ls-handle { fill: #fff; stroke: #1f63e0; stroke-width: 2; cursor: nwse-resize; }
+.ls-draft { fill: rgba(31, 99, 224, 0.08); stroke: #1f63e0; stroke-width: 2; stroke-dasharray: 6 4; }
+.ls-shape-t {
+  position: absolute; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 2px 6px; font-weight: 800; line-height: 1.15; overflow: hidden; overflow-wrap: anywhere; pointer-events: none; white-space: pre-wrap;
+}
+.ls-shape-t.is-tri { align-items: flex-end; padding-bottom: 12%; }
+.ls-tool.is-shape { padding: 5px 8px; }
+.ls-tool-sep { width: 1px; align-self: stretch; margin: 2px 2px; background: var(--line-2); }
+.ls-ti { display: inline-grid; place-items: center; width: 24px; height: 24px; font-size: 16px; font-weight: 800; }
+.ls-tools-say { margin: 6px 2px 0; font-size: 12.5px; }
+.ls-tones { display: flex; flex-wrap: wrap; gap: 6px; }
+.ls-tone { padding: 7px 12px; border-radius: 999px; border: 2px solid; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.ls-tone.is-on { box-shadow: 0 0 0 3px rgba(31, 99, 224, 0.25); }
+.ls-icon-group { margin-bottom: 14px; }
+.ls-icon-h { margin: 0 0 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ls-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.ls-icon-b { display: grid; justify-items: center; gap: 4px; padding: 8px 4px; border-radius: var(--radius-sm); border: 1.5px solid var(--line); background: var(--surface); font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-2); cursor: pointer; text-align: center; }
+.ls-icon-b.is-on { border-color: var(--brand); background: var(--accent-soft); color: var(--accent); }
+.ls-card-shape { position: absolute; border: 1.5px solid; border-radius: 3px; }
+.ls-card-shape.is-round { border-radius: 50%; }
+@media (max-width: 640px) {
+  .ls-tools-say { display: block; }
+}
