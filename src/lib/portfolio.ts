@@ -32,6 +32,10 @@ import { daysOverdue, stateOf } from './programs';
 import { standing, slipWords, type PlanMark } from './standing';
 import { layoutPlan, type PlacedMark, type PlanAxis } from './plan';
 import { companies, resolver, type Company } from './names';
+import type { PaceLineRow, PaceTodoRow } from '../db';
+import { methodOf, planModel, type PlanModel } from './planModel';
+import { isLate as stepIsLate } from './actions';
+import { PILLARS } from './pillars';
 
 export interface JobInput {
   project: Project;
@@ -40,6 +44,20 @@ export interface JobInput {
   materials: Material[];
   programs: Program[];
   assets: Asset[];
+}
+
+/** A 3P or lever tree job, as the control room reads it: the actions kept on
+ *  its board, its lines, and how many of them are at target. Rowland: "turn it
+ *  into a control room for change on your lines" — the board was a stage-gate
+ *  board only, and a job on the other two methods did not appear on it. */
+export interface PacedInput {
+  project: Project;
+  /** The board's actions — the project's next steps (lib/actions). */
+  steps: PaceTodoRow[];
+  lines: PaceLineRow[];
+  /** Lines meeting their target, of the lines there is a target to judge. */
+  atTarget: number;
+  judged: number;
 }
 
 /** One thing owed, on one job. */
@@ -65,6 +83,14 @@ export interface JobItem {
 
 export interface JobView {
   id: string;
+  /** Which kind of change this is — a stage-gate row leads with its gates, the
+   *  others with the board's People, Plant and Process. */
+  method: PlanModel;
+  methodLabel: string;
+  /** Lines at target, said in words, when there is a target to judge. */
+  reach?: string;
+  /** The board's three columns: what is open in each, and how it stands. */
+  pillars: { key: string; label: string; open: number; tone: GateTone }[];
   name: string;
   color: string;
   lead?: string;
@@ -179,54 +205,122 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
   return out;
 }
 
+/** What a 3P or lever tree job owes: every open action on its board. */
+export function pacedItems(j: PacedInput, today: string): JobItem[] {
+  const p = j.project;
+  const base = { jobId: p.id, job: shortName(p.name), color: p.color };
+  return j.steps.filter(s => s.state !== 'done').map(s => ({
+    ...base, kind: 'action' as const, id: s.id, what: (s.what || '').trim() || 'An action',
+    who: s.who ?? '', on: s.due, late: stepIsLate(s, today),
+  }));
+}
+
+/** The actions with a day on them, as marks on the shared calendar. */
+function pacedPlan(j: PacedInput, today: string): PlanMark[] {
+  return j.steps.filter(s => !!s.due).map(s => ({
+    kind: 'action' as const, at: s.due as string, label: (s.what || '').trim() || 'An action',
+    tone: s.state === 'done' ? 'done' as const : stepIsLate(s, today) ? 'late' as const : 'booked' as const,
+  }));
+}
+
+/** Where a 3P or lever tree job stands, in one sentence — the line the project's
+ *  own front page leads with, said once here so the two cannot differ. */
+export function pacedSays(a: { atTarget: number; judged: number; lines?: number; open: number; late: number; any: boolean }): string {
+  const onTarget = a.judged > 0 ? `${a.atTarget} of ${a.judged} line${a.judged === 1 ? '' : 's'} at target` : '';
+  const onBoard = !a.any ? ''
+    : a.open === 0 ? 'nothing open on the board'
+    : `${a.open} action${a.open === 1 ? '' : 's'} open${a.late ? ` — ${a.late} past ${a.late === 1 ? 'its' : 'their'} day` : ''}`;
+  const said = [onTarget, onBoard].filter(Boolean).join(', with ');
+  return said ? said.charAt(0).toUpperCase() + said.slice(1) + '.' : 'Nothing on the board yet.';
+}
+
+/** People, Plant and Process, each as a tile on the row: late if anything in it
+ *  is, under way if anything is open, done when all of it is. */
+function pacedPillars(j: PacedInput, today: string): JobView['pillars'] {
+  return PILLARS.map(p => {
+    const mine = j.steps.filter(s => s.pillar === p.key);
+    const open = mine.filter(s => s.state !== 'done');
+    const tone: GateTone = mine.length === 0 ? 'none'
+      : open.some(s => stepIsLate(s, today)) ? 'late'
+      : open.length > 0 ? 'going' : 'done';
+    return { key: p.key, label: p.label, open: open.length, tone };
+  });
+}
+
 const byUrgency = (a: JobItem, b: JobItem) =>
   Number(b.late) - Number(a.late) || (a.on ?? '￿').localeCompare(b.on ?? '￿') || a.what.localeCompare(b.what);
 
-export function portfolio(unsorted: JobInput[], today: string): Portfolio {
+export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInput[] = []): Portfolio {
   /* The job handing over first, first — that is the order they get asked
-     about in. A job with no date yet goes last rather than first. */
-  const when = (j: JobInput) => j.project.expectedAt ?? j.project.plannedAt ?? '\uffff';
-  const inputs = [...unsorted].sort((a, b) => when(a).localeCompare(when(b)) || a.project.name.localeCompare(b.project.name));
-  const answers = inputs.map(j => ({
-    j,
-    st: standing({
-      tests: j.tests, items: j.items, materials: j.materials, programs: j.programs, assets: j.assets,
-      expectedAt: j.project.expectedAt, plannedAt: j.project.plannedAt, today,
+     about in. A job with no date yet goes last rather than first. Stage gate,
+     3P and lever tree jobs stand in one order. */
+  type Entry = { project: Project; plan: PlanMark[]; items: JobItem[]; gate?: { j: JobInput; st: ReturnType<typeof standing> }; paced?: PacedInput };
+  const entries: Entry[] = [
+    ...unsorted.map((j): Entry => {
+      const st = standing({
+        tests: j.tests, items: j.items, materials: j.materials, programs: j.programs, assets: j.assets,
+        expectedAt: j.project.expectedAt, plannedAt: j.project.plannedAt, today,
+      });
+      return { project: j.project, plan: st.plan, items: jobItems(j, today), gate: { j, st } };
     }),
-  }));
+    ...pacedIn.map((j): Entry => ({ project: j.project, plan: pacedPlan(j, today), items: pacedItems(j, today), paced: j })),
+  ];
+  const when = (e: Entry) => e.project.expectedAt ?? e.project.plannedAt ?? '\uffff';
+  entries.sort((a, b) => when(a).localeCompare(when(b)) || a.project.name.localeCompare(b.project.name));
+  const inputs = entries.flatMap(e => (e.gate ? [e.gate.j] : []));
 
   /* ONE CALENDAR. Every date on every job goes into every job's layout, so
      the axis runs from the same month to the same month on all of them. */
-  const span = [...new Set(answers.flatMap(({ j, st }) => [
-    ...st.plan.flatMap(m => [m.at, ...(m.until ? [m.until] : [])]),
-    ...[j.project.expectedAt, j.project.plannedAt].filter((d): d is string => !!d),
+  const span = [...new Set(entries.flatMap(e => [
+    ...e.plan.flatMap(m => [m.at, ...(m.until ? [m.until] : [])]),
+    ...[e.project.expectedAt, e.project.plannedAt].filter((d): d is string => !!d),
   ]))].sort();
 
   const layout = (marks: PlanMark[], p: Project) =>
     layoutPlan(marks, { today, expectedAt: p.expectedAt, plannedAt: p.plannedAt, span, minGap: 0 });
 
-  const all = inputs.map(j => jobItems(j, today));
+  const all = entries.map(e => e.items);
   const weekEnd = addDays(today, WEEK_DAYS);
 
-  const jobs: JobView[] = answers.map(({ j, st }, i) => {
-    const p = j.project;
-    const plan = layout(st.plan, p);
+  const jobs: JobView[] = entries.map((e, i) => {
+    const p = e.project;
+    const plan = layout(e.plan, p);
     const marks = plan.lanes.flatMap(l => l.rows.flat());
     const ats = marks.flatMap(m => [m.at, ...(m.until != null ? [m.until] : [])]);
     const ends = [...ats, ...(plan.axis.expected ? [plan.axis.expected.at] : []), ...(plan.axis.agreed ? [plan.axis.agreed.at] : [])];
     const items = all[i];
+    const base = {
+      id: p.id, method: planModel(p), methodLabel: methodOf(p).label,
+      name: shortName(p.name), color: p.color, lead: p.lead,
+      from: ats.length ? Math.min(...ats) : undefined,
+      to: ends.length ? Math.max(...ends) : undefined,
+      marks, axis: plan.axis, plan: e.plan,
+      expectedAt: p.expectedAt, plannedAt: p.plannedAt,
+      next: [...items].sort(byUrgency)[0],
+    };
+    if (e.paced) {
+      const j = e.paced;
+      const open = items.length, late = items.filter(x => x.late).length;
+      const daysToGo = p.expectedAt
+        ? Math.round((Date.parse(p.expectedAt + 'T12:00:00') - Date.parse(today + 'T12:00:00')) / 86_400_000) : undefined;
+      return {
+        ...base,
+        sentence: pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
+        slip: undefined, daysToGo, outstanding: open, late,
+        done: e.plan.filter(m => m.tone === 'done').length, total: e.plan.length,
+        reach: j.judged > 0 ? `${j.atTarget} of ${j.judged} at target` : undefined,
+        pillars: pacedPillars(j, today),
+        gates: [], at: methodOf(p).label,
+      };
+    }
+    const { j, st } = e.gate as NonNullable<Entry['gate']>;
     const gates = jobJourney(j.assets, j.tests, j.items, today, j.programs);
     return {
-      id: p.id, name: shortName(p.name), color: p.color, lead: p.lead,
+      ...base,
       sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.daysToGo,
       outstanding: st.outstanding, late: st.late,
       done: st.plan.filter(m => m.tone === 'done').length, total: st.plan.length,
-      from: ats.length ? Math.min(...ats) : undefined,
-      to: ends.length ? Math.max(...ends) : undefined,
-      marks, axis: plan.axis, plan: st.plan,
-      expectedAt: p.expectedAt, plannedAt: p.plannedAt,
-      next: [...items].sort(byUrgency)[0],
-      gates, at: journeyNow(gates),
+      pillars: [], gates, at: journeyNow(gates),
     };
   });
 
@@ -307,7 +401,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
 /** The whole board in one sentence, the way somebody would answer "how are
  *  the jobs going" in a corridor. */
 function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
-  if (jobs.length === 0) return 'No stage gate job running yet.';
+  if (jobs.length === 0) return 'No job running yet.';
   const next = jobs
     .filter(v => v.daysToGo != null && v.daysToGo >= 0)
     .sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0))[0];

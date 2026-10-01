@@ -123,6 +123,8 @@ const LANES: { kind: PlanMark['kind']; label: string }[] = [
      before it is proved, and handed over last. */
   { kind: 'setup', label: 'Set up' },
   { kind: 'fix', label: 'Fixes' },
+  // A 3P or lever tree job's actions, off its board (lib/actions).
+  { kind: 'action', label: 'Actions' },
   { kind: 'test', label: 'Tests' },
   { kind: 'handover', label: 'Hand over' },
 ];
@@ -339,7 +341,7 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
 
 const MANY: Record<PlanMark['kind'], string> = {
   install: 'install steps', setup: 'set-up steps', handover: 'hand-over items', test: 'tests',
-  fix: 'fixes', material: 'materials', program: 'programs', machine: 'machines',
+  fix: 'fixes', material: 'materials', program: 'programs', machine: 'machines', action: 'actions',
 };
 
 /** SAME DAY, SAME KIND, SAME OUTCOME — ONE LINE. Line 2B proved sixteen

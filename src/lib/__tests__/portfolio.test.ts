@@ -6,7 +6,7 @@
  * asserted here, because a board that disagrees with the job it opens is
  * worse than no board. */
 import { describe, it, expect } from 'vitest';
-import { clusterMarks, jobItems, owedBy, portfolio, shortName, type JobInput } from '../portfolio';
+import { clusterMarks, jobItems, owedBy, pacedSays, portfolio, shortName, type JobInput, type PacedInput } from '../portfolio';
 import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
 import type { Project } from '../../types';
@@ -127,7 +127,7 @@ describe('the edges', () => {
   it('draws a board with no jobs without falling over', () => {
     const pf = portfolio([], TODAY);
     expect(pf.jobs).toEqual([]);
-    expect(pf.says).toBe('No stage gate job running yet.');
+    expect(pf.says).toBe('No job running yet.');
   });
 
   it('never counts a deleted record', () => {
@@ -218,5 +218,57 @@ describe('who owes what, on a real mess', () => {
 
   it('opens what a party owes, spelled either way', () => {
     expect(pf.items.filter(x => owedBy(x, 'Brilopak'))).toHaveLength(5);
+  });
+});
+
+
+/* THE CONTROL ROOM HOLDS EVERY METHOD. A 3P job and a lever tree job are
+ * changes to a line too; the board that says "am I in control?" has to show
+ * them beside the stage-gate jobs, on the same calendar, owed by the same
+ * people. */
+describe('every job on every method', () => {
+  const step = (o: Record<string, unknown>) =>
+    ({ id: `s${++n}`, projectId: 'p', what: 'An action', where: '', why: '', who: '', when: '', state: 'todo', createdAt: 1, updatedAt: 1, ...o }) as PacedInput['steps'][number];
+  const threeP: PacedInput = {
+    project: project({ id: 'p3', name: 'Line 7 pace', commissioning: undefined, color: '#1b7f5a' }),
+    steps: [
+      step({ what: 'Train nights on the splice', who: 'Rob', pillar: 'people', due: '2026-09-25' }),   // late
+      step({ what: 'Replace the jaw', who: 'Engineering', pillar: 'plant', due: '2026-10-03' }),
+      step({ what: 'One changeover standard', who: 'Rob', pillar: 'process', due: '2026-09-20', state: 'done' }),
+      step({ what: 'Look at the reject bin' }),                                                          // no one, no day
+    ],
+    lines: [], atTarget: 1, judged: 2,
+  };
+  const tree: PacedInput = {
+    project: project({ id: 'lt', name: 'Line 2B to 60 ppm', commissioning: undefined, leverTree: true }),
+    steps: [], lines: [], atTarget: 0, judged: 0,
+  };
+  const pf = portfolio([twoB], TODAY, [threeP, tree]);
+
+  it('shows them all, and says which method each runs', () => {
+    expect(pf.jobs.map(j => [j.id, j.method])).toEqual(expect.arrayContaining([['b', 'commissioning'], ['p3', 'board'], ['lt', 'tree']]));
+    expect(pf.jobs).toHaveLength(3);
+  });
+  it('counts a 3P job by its open actions and what is late', () => {
+    const v = pf.jobs.find(j => j.id === 'p3')!;
+    expect(v.outstanding).toBe(3);                // the done one is not owed
+    expect(v.late).toBe(1);
+    expect(v.reach).toBe('1 of 2 at target');
+    expect(v.sentence).toBe('1 of 2 lines at target, with 3 actions open — 1 past its day.');
+  });
+  it('gives it the board’s three columns, not four gates', () => {
+    const v = pf.jobs.find(j => j.id === 'p3')!;
+    expect(v.gates).toEqual([]);
+    expect(v.pillars.map(x => [x.label, x.open, x.tone])).toEqual([['People', 1, 'late'], ['Plant', 1, 'going'], ['Process', 0, 'done']]);
+  });
+  it('puts its actions on the same calendar and in the same owed lists', () => {
+    expect(pf.items.filter(x => x.jobId === 'p3').map(x => x.kind)).toEqual(['action', 'action', 'action']);
+    expect(pf.week.some(x => x.jobId === 'p3' && x.what === 'Train nights on the splice')).toBe(true);
+    expect(pf.owes.find(o => o.kind === 'nobody')?.byJob.some(b => b.jobId === 'p3')).toBe(true);
+    expect(pf.jobs.find(j => j.id === 'p3')!.marks.length).toBe(3);   // the three with a day
+  });
+  it('says nothing is on the board when nothing is', () => {
+    expect(pf.jobs.find(j => j.id === 'lt')!.sentence).toBe('Nothing on the board yet.');
+    expect(pacedSays({ atTarget: 2, judged: 2, open: 0, late: 0, any: true })).toBe('2 of 2 lines at target, with nothing open on the board.');
   });
 });

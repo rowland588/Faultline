@@ -32,6 +32,7 @@ import { daysOverdue } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { useActions } from '../lib/actions';
+import { pacedSays } from '../lib/portfolio';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
@@ -460,21 +461,17 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      the actions still open. The same Verdict card a stage-gate job leads with,
      so the two methods' front pages read alike. */
   const openActions = actions.length - done;
-  const onTarget = headline && ppm.lines.length > 0
-    ? `${atTarget} of ${ppm.lines.length} line${ppm.lines.length === 1 ? '' : 's'} at target` : '';
-  const onBoard = actions.length === 0 ? ''
-    : openActions === 0 ? 'nothing open on the board'
-    : `${openActions} action${openActions === 1 ? '' : 's'} open${overdue ? ` — ${overdue} past ${overdue === 1 ? 'its' : 'their'} day` : ''}`;
-  const said = [onTarget, onBoard].filter(Boolean).join(', with ');
+  const judged = ppm.lines.filter(l => standing.get(l.id)?.meeting != null).length;
   const verdict: Standing = {
-    sentence: said ? said.charAt(0).toUpperCase() + said.slice(1) + '.' : '',
+    // The same sentence the Home control room says of this job.
+    sentence: pacedSays({ atTarget, judged, open: openActions, late: overdue, any: actions.length > 0 }),
     outstanding: openActions, late: overdue, rows: [], plan: [],
   };
   const boardSays = actions.length === 0 ? 'nothing on it yet'
     : `${openActions} open${overdue ? ` · ${overdue} late` : ''} · ${done} done`;
   const numbersSays = !headline ? 'no measures set yet'
     : ppm.lines.length === 0 ? 'no lines yet'
-    : `${atTarget} of ${ppm.lines.length} at target`;
+    : `${atTarget} of ${judged || ppm.lines.length} at target`;
 
 
   if (ax.loading || ppm.loading || projLoading || nums.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;

@@ -35,7 +35,6 @@ import { useProjects } from '../lib/useProjects';
 import { allPaceLines, chainForWorkspace, onDataChange, type PaceLineRow } from '../db';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 import { JobsBoard } from '../ui/JobsBoard';
-import { planModel } from '../lib/planModel';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -155,7 +154,8 @@ export function WorkspaceHome() {
   // organised — a workspace is the container underneath a line, not the thing
   // anybody sets out to open.
   const { projects } = useProjects();
-  const jobs = projects.filter(p => planModel(p) === 'commissioning');
+  // Every job, on every method — the control room is not a stage-gate board.
+  const jobs = projects;
   const [lines, setLines] = useState<PaceLineRow[]>([]);
   const linesOf = (pid: string) => lines.filter(l => (l.projectId ?? '') === pid);
 

@@ -1,4 +1,11 @@
-/* THE ALL-JOBS BOARD — every commissioning job, one calendar, one home.
+/* THE CONTROL ROOM — every job on every method, one calendar, one home.
+ *
+ * It was every STAGE-GATE job only. Rowland: "turn it into a control room for
+ * change on your lines" — a 3P job or a lever tree job is a change to a line
+ * too, and the one place that says "am I in control?" has to hold all of them.
+ * A stage-gate row leads with its four gates; the others with the board's
+ * People, Plant and Process and how many lines are at target. Same calendar,
+ * same "who owes what", same "this week".
  *
  * Rowland: "When I have multiple projects all going on, how do I see that in
  * one home? … an immersive Gantt that drops down and up, so it's not massive —
@@ -26,10 +33,15 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Project } from '../types';
-import { listAssets, listMaterials, listPrograms, listTestItems, listTests, onDataChange, renameSupplier } from '../db';
+import {
+  listAssets, listMaterials, listPrograms, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
+  loadPaceLines, onDataChange, renameSupplier,
+} from '../db';
+import { planModel } from '../lib/planModel';
+import { lineSeries } from '../lib/measures';
 import { offerUndo } from './Undo';
 import {
-  clusterMarks, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type Portfolio,
+  clusterMarks, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
 } from '../lib/portfolio';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
@@ -42,6 +54,7 @@ const SEEN_KEY = 'faultline.jobs.seen';
 
 const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
+  action: 'Action',
 };
 const GATE_WORD: Record<GateTone, string> = {
   done: 'done', going: 'under way', late: 'late or a problem', ahead: 'still ahead', none: 'nothing kept yet',
@@ -52,6 +65,7 @@ const TONE_WORD: Record<string, string> = {
 
 /** Where a thing on the board opens. */
 function whereTo(x: JobItem): string {
+  if (x.kind === 'action') return `/project/${x.jobId}/board`;
   if (x.id) return `/project/${x.jobId}/testing/${encodeURIComponent(x.id)}`;
   if (x.kind === 'material') return `/project/${x.jobId}/materials`;
   if (x.kind === 'program') return `/project/${x.jobId}/programs`;
@@ -91,14 +105,19 @@ function Count({ n, still }: { n: number; still: boolean }) {
   return <>{v}</>;
 }
 
-function useJobs(projects: Project[]): JobInput[] | null {
-  const [inputs, setInputs] = useState<JobInput[] | null>(null);
+interface Jobs { gate: JobInput[]; paced: PacedInput[] }
+
+/** Every project, read the way its own method reads it. */
+function useJobs(projects: Project[]): Jobs | null {
+  const [inputs, setInputs] = useState<Jobs | null>(null);
   const ids = projects.map(p => `${p.id}:${p.updatedAt}`).join('|');
   useEffect(() => {
     let live = true;
     let timer: number | undefined;
     const load = async () => {
-      const out = await Promise.all(projects.map(async project => ({
+      const gateProjects = projects.filter(p => planModel(p) === 'commissioning');
+      const pacedProjects = projects.filter(p => planModel(p) !== 'commissioning');
+      const gate = await Promise.all(gateProjects.map(async project => ({
         project,
         tests: await listTests(project.id),
         items: await listTestItems(project.id),
@@ -106,7 +125,19 @@ function useJobs(projects: Project[]): JobInput[] | null {
         materials: await listMaterials(project.id),
         programs: await listPrograms(project.id),
       })));
-      if (live) setInputs(out);
+      const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
+        const [steps, lines, targets, readings] = await Promise.all([
+          listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id),
+        ]);
+        // The same call the project's own page makes, so the row and the page agree.
+        const series = lines.map(l => lineSeries(project.measures ?? [], project.periods ?? [], targets, readings, l.id));
+        return {
+          project, steps, lines,
+          atTarget: series.filter(x => x?.meeting === true).length,
+          judged: series.filter(x => x?.meeting != null).length,
+        };
+      }));
+      if (live) setInputs({ gate, paced });
     };
     void load();
     /* Anything written anywhere — here, or synced from the phone — redraws
@@ -183,7 +214,7 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
 export function JobsBoard({ projects }: { projects: Project[] }) {
   const inputs = useJobs(projects);
   const today = todayISO();
-  const pf = useMemo(() => (inputs ? portfolio(inputs, today) : null), [inputs, today]);
+  const pf = useMemo(() => (inputs ? portfolio(inputs.gate, today, inputs.paced) : null), [inputs, today]);
   const [still] = useState(seenThisSession);
   useEffect(() => { if (pf) markSeen(); }, [pf]);
   /* Which rows are open, remembered on this device — a convenience, never
@@ -214,7 +245,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
-  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Stage gate · all jobs</p><h2 className="jb-says">Reading every job…</h2></div></section>;
+  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every job</p><h2 className="jb-says">Reading every job…</h2></div></section>;
   if (pf.jobs.length === 0) return null;
 
   const glow = { '--g1': pf.jobs[0]?.color, '--g2': pf.jobs[1]?.color ?? pf.jobs[0]?.color } as CSSProperties;
@@ -226,7 +257,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       {/* ------------------------------ the band ------------------------------ */}
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
-        <p className="jb-eyebrow">Stage gate · all jobs · {niceDay(today, { weekday: 'short' })}</p>
+        <p className="jb-eyebrow">Every job · {niceDay(today, { weekday: 'short' })}</p>
         <h2 className="jb-says">{pf.says}</h2>
         <div className="jb-stats">
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
@@ -390,16 +421,33 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 {v.daysToGo < 0 ? `${-v.daysToGo} days over` : `${v.daysToGo} days to go`}
               </span>
             )}
-            {/* Where the job is, not how much is on its lists. */}
-            <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>
+            {/* Where the job is, not how much is on its lists. A stage-gate job
+                is AT a gate; a 3P or tree job is a kind of change, and how its
+                lines are doing against target. */}
+            {v.method === 'commissioning'
+              ? <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>
+              : <>
+                <span className="jb-chip is-at is-none">{v.methodLabel}</span>
+                {v.reach && <span className="jb-chip is-at is-going">{v.reach}</span>}
+              </>}
             {v.late > 0 && <span className="jb-chip is-late">{v.late} late</span>}
           </span>
-          <span className="jb-gates" aria-label={v.gates.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
-            {v.gates.map(g => (
-              <span key={g.gate} className={'jb-gate is-' + g.tone + (g.label === v.at ? ' is-now' : '')}
-                title={`${g.label}: ${GATE_WORD[g.tone]}`}>{g.label}</span>
-            ))}
-          </span>
+          {v.method === 'commissioning' ? (
+            <span className="jb-gates" aria-label={v.gates.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
+              {v.gates.map(g => (
+                <span key={g.gate} className={'jb-gate is-' + g.tone + (g.label === v.at ? ' is-now' : '')}
+                  title={`${g.label}: ${GATE_WORD[g.tone]}`}>{g.label}</span>
+              ))}
+            </span>
+          ) : (
+            <span className="jb-gates" aria-label={v.pillars.map(x => `${x.label}: ${x.open} open`).join(', ')}>
+              {v.pillars.map(x => (
+                <span key={x.key} className={'jb-gate is-' + x.tone} title={`${x.label}: ${x.open} open`}>
+                  {x.label}{x.open > 0 ? ` ${x.open}` : ''}
+                </span>
+              ))}
+            </span>
+          )}
           {v.next && (
             <span className={'jb-next' + (v.next.late ? ' is-late' : '')}>
               Next: {v.next.what}{v.next.who ? ` · ${v.next.who}` : ''}{v.next.on ? ` · ${v.next.late ? 'was ' : ''}${niceDay(v.next.on)}` : ''}
@@ -412,8 +460,12 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
               that read as broken. It says what it needs. */}
           {empty ? (
             <span className="jb-empty">
-              Nothing dated yet — add the machines and when they are due.
-              <button className="btn btn-ghost btn-sm" onClick={() => nav(`/project/${v.id}/testing`)}>Add them ›</button>
+              {v.method === 'commissioning'
+                ? 'Nothing dated yet — add the machines and when they are due.'
+                : 'No action has a due date yet — write them on the board.'}
+              <button className="btn btn-ghost btn-sm" onClick={() => nav(v.method === 'commissioning' ? `/project/${v.id}/testing` : `/project/${v.id}/board`)}>
+                {v.method === 'commissioning' ? 'Add them ›' : 'Open the board ›'}
+              </button>
             </span>
           ) : (
             <>
@@ -469,12 +521,19 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 {v.lead && <p className="sub jb-led">Led by {v.lead}</p>}
                 <span className="jb-doors">
                   <button className="btn btn-primary" onClick={() => nav(`/project/${v.id}`)}>Open the job ›</button>
-                  <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Commission</button>
-                  <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Fixes</button>
+                  {v.method === 'commissioning' ? <>
+                    <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Commission</button>
+                    <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Fixes</button>
+                  </> : <>
+                    <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/board`)}>Board</button>
+                    <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}?view=lines`)}>Lines</button>
+                  </>}
                 </span>
               </aside>
               {empty
-                ? <p className="sub jb-drawer-empty">When the machines have dates, the plan draws itself here.</p>
+                ? <p className="sub jb-drawer-empty">{v.method === 'commissioning'
+                    ? 'When the machines have dates, the plan draws itself here.'
+                    : 'When the board’s actions have due dates, the plan draws itself here.'}</p>
                 : <Timeline marks={v.plan} today={today} expectedAt={v.expectedAt} plannedAt={v.plannedAt} span={span} />}
             </div>
           )}

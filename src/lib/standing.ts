@@ -55,7 +55,7 @@ export interface OutstandingRow {
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
  *  because arriving and running are different days; everything else is a point. */
 export interface PlanMark {
-  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine';
+  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine' | 'action';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
   until?: string;
