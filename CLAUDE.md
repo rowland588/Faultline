@@ -1,6 +1,32 @@
 # Faultline — how work gets delivered here
 
-## What this is for
+## What this is
+
+**Faultline is a control room for change on production lines.** Decided with
+Rowland, 1 October, and it is his own wording from the start — the Verdict
+card's header quotes it: *"show the business a formal process, to show that I
+am in control of the project."*
+
+- **The unit is a change to a line.** New equipment, a line that has to
+  perform better, a number that has to be hit. Many changes happen on a line
+  at once, and the ops lead has to be in control of all of them and able to
+  show it. That is the problem this solves, and it is the moat.
+- **The three methods are three kinds of change**, not three apps (below).
+- **Everything else is a tool used inside a change** to see, decide or prove
+  — the stopwatch, the Pareto, the filmed walk, the line standard, the tests.
+  A tool never becomes a method, and never sits beside a change.
+- **The record is the project.** Do not add a "change" noun beside it.
+
+What it must always do, in this order — see, understand, commit, prove, show:
+start a change from the situation (not from a method picker); give every
+change a measured before and after; and keep one view above all changes that
+answers "am I in control?" across every line and job.
+
+**Before building anything, say which change it belongs to, which record it
+reads or writes, and where it shows up in the control-room view and the
+report.** If it has no answer, it is a feature, not part of the control room.
+
+## The three methods
 
 Running projects on a factory floor, three ways. Rowland, 30 September:
 
