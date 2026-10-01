@@ -62,6 +62,7 @@ const ROUTES = [
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.projectId}/tree`],
   ['3P board', `#/project/${seeded.projectId}/board`],
+  ['3P board — actions', `#/project/${seeded.pacedProjectId}/board`],
   ['pareto', `#/project/${seeded.projectId}/pareto`],
   ['testing', `#/project/${seeded.projectId}/testing`],
   ['fixes', `#/project/${seeded.projectId}/fixes`],

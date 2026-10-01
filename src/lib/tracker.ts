@@ -37,6 +37,9 @@ export interface PaceAction {
    *  workbook that has not added the column yet, which the board says out loud
    *  rather than quietly dropping the row. */
   pillar?: string;
+  /** The line it belongs to, by id, when it came from a next step (see
+   *  lib/actions.ts). Absent on an action spanning every line. */
+  lineId?: string;
 }
 
 /** One row of a Pareto sheet: where the time went, ranked. */

@@ -19,8 +19,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useProject } from '../lib/useProjects';
-import { actionsForLine, uncoveredAreas } from '../lib/paceLineMatch';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import { TreeStatic, useTreeNodes } from './TreeStatic';
 import { Sweep } from '../ui/Sweep';
@@ -56,7 +56,10 @@ import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
 const norm = (s?: string) => (s ?? '').trim();
 const isDone = (a: PaceAction) => /^done$/i.test(norm(a.status));
 const dueMs = (a: PaceAction) => {
-  if (!a.due) return null;
+  // A date with no year ("2 Oct", how an action kept in the app prints its
+  // due day) parses as 2001 and would read as late; such an action carries its
+  // lateness in `flag` instead.
+  if (!a.due || !/\d{4}/.test(a.due)) return null;
   const d = Date.parse(a.due);
   return Number.isNaN(d) ? null : d;
 };
@@ -690,7 +693,10 @@ export function PaceExecReport() {
   const lineId = route.query.get('line') || undefined;
   const { loading: projLoading, project } = useProject(projectId);
 
+  // The Pareto sheet still comes off an upload where one exists; the actions
+  // are the project's own, kept in the app (lib/actions.ts).
   const pace = usePaceSnapshots(projectId);
+  const ax = useActions(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const mats = useMaterials(projectId);
@@ -747,7 +753,7 @@ export function PaceExecReport() {
       })();
     }, 250);
   });
-  const loading = pace.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
+  const loading = pace.loading || ax.loading || ppm.loading || projLoading || todos == null || wins == null || snags == null;
 
   // Scale the fixed-size sheets down to whatever width the window gives us, so
   // what is on screen is exactly what comes out of the PDF. Re-runs when the
@@ -901,13 +907,13 @@ export function PaceExecReport() {
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
   // A line's deck shows that line's slice of the tracker; the project's shows
   // the lot.
-  const actions = actionsForLine(pace.actions, line?.key);
+  const actions = line ? ax.actions.filter(a => a.lineId === line.id || a.line === WHOLE_PROJECT) : ax.actions;
 
   /* The plan on the wall and the plan on the paper have to be the same plan.
    * A condition bound to the tracker grows its actions at draw time, so the
    * report runs the identical derivation the editor does rather than printing
    * only the boxes that happen to be stored. */
-  const fullTree = withTrackerRows(treeRows ?? [], bindSources(pace.actions, todos ?? [], ppm.lines));
+  const fullTree = withTrackerRows(treeRows ?? [], bindSources(ax.actions, todos ?? [], ppm.lines));
 
   /* The board reads the same actions the rest of the report does — narrowed to
    * the line when this is a line's own deck, so an owner's page shows only
@@ -1314,7 +1320,7 @@ export function PaceExecReport() {
    * 7', 'Line 10'), which could only ever describe the workbook. Now it
    * describes the project. */
   const byLine = reportLines.map(l => {
-    const mine = actionsForLine(pace.actions, l.key);
+    const mine = ax.actions.filter(a => a.lineId === l.id);
     const lineTodos = todos.filter(t => t.lineId === l.id);
     const ser = seriesByLine.get(l.id);
     return {
@@ -1345,7 +1351,9 @@ export function PaceExecReport() {
    * can have would be — no reading, no next steps, no walk, no wins — which
    * says both things at once: here is the work, and here is what this area has
    * not got yet. A line's own deck never shows them: it is that line's page. */
-  const extraAreas = line ? [] : uncoveredAreas(actions, reportLines.map(l => l.key));
+  // Every action kept in the app is on a project line or on every line, so
+  // there is no area the project has not heard of.
+  const extraAreas: string[] = [];
   const byArea = extraAreas.map(name => {
     const mine = actions.filter(a => (a.line ?? '').trim() === name);
     return {

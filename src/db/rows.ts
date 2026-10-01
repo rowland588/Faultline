@@ -19,6 +19,15 @@ export interface PaceTodoRow {
   lineId?: string;
   what: string; where: string; why: string; who: string; when: string;
   state: 'todo' | 'waiting' | 'done';
+  /** People, Plant or Process — the column it sits in on the 3P board. A next
+   *  step IS a 3P action now: the board used to be read off an uploaded
+   *  workbook, and Rowland: "there will be no Excel that needs to be uploaded
+   *  ... this is about now fully using the app." Absent means not sorted yet,
+   *  which the board says rather than dropping the row. */
+  pillar?: 'people' | 'plant' | 'process';
+  /** The day it is due, YYYY-MM-DD — what makes it late. `when` stays the free
+   *  words ("before the Tesco launch"); this is the date the board counts. */
+  due?: string;
   /** What happened. What/Where/Why/Who/When are all set BEFORE the thing is
    *  done; this is the write-up afterwards — the run, the numbers, the verdict.
    *  It is what makes a Next step able to hold a trial rather than only name

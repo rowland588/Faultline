@@ -1,78 +1,174 @@
-/* PEOPLE · PROCESS · PLANT — the project on three columns.
+/* PEOPLE · PLANT · PROCESS — the project on three columns, kept in the app.
  *
  * Every improvement problem in a factory is one of three things: the people who
- * run the line, the way the work is done, or the machine itself. Three columns
+ * run the line, the machine itself, or the way the work is done. Three columns
  * is the whole design. It fits on a wall, it fits on a phone, and anybody can
  * read it without being taught what they are looking at.
  *
- * THE WORKBOOK IS THE TRUTH AND THIS IS THE VIEW. Nothing here is stored and
- * nothing here is editable: every card and action is derived from the latest upload every
- * time the board is drawn. That is the whole reason the weekly cycle works —
- * next week's file simply appears, a closed action goes green on its own, and
- * nothing anybody did in the app can be quietly overwritten, because there is
- * nothing in the app to overwrite. Status is changed where status lives, which
- * is the spreadsheet the business already runs on.
+ * IT USED TO BE READ OFF AN UPLOADED WORKBOOK, and nothing on it could be
+ * touched. Rowland: "There will be no Excel that needs to be uploaded ... this
+ * is about now fully using the app to be able to do everything that we need to
+ * do." So the board is where the actions are written now: add one in the
+ * column it belongs to, tap one to change it. Each is a next step of the
+ * project (see lib/actions.ts) — one list, read the same by the board, a
+ * line's pack, the meeting and the client report.
  *
- * The counterpart of that promise is that the board must never lose a row. Any
- * action the workbook has not placed in a column is counted and named, rather
- * than dropped — a board you cannot trust to be complete is worse than no
- * board at all.
+ * One block per line, then one for work that spans every line. Overdue and
+ * waiting first in every column, because those are the ones that need
+ * somebody in the room. Nothing is ever dropped: a step not yet given a column
+ * is listed under the board with the three to choose from.
  */
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
-import { Sweep } from '../ui/Sweep';
+import { Sheet } from '../ui/Sheet';
 import { useProject } from '../lib/useProjects';
-import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { useActions, WHOLE_PROJECT, isLate } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
-import { board, actionTitle } from '../lib/pillars';
-import { fmtRelative } from '../lib/format';
-
+import { PILLARS, actionTitle, meetingOrder, type PillarKey } from '../lib/pillars';
+import { putPaceTodo, deletePaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { uid } from '../lib/ids';
+import { todayISO } from '../lib/weeks';
 import type { PaceAction } from '../lib/tracker';
 import type { NodeStatus } from '../db';
 
 const STATUS: Record<NodeStatus, string> = {
-  n: 'Not started', w: 'In progress', a: 'Overdue', r: 'Blocked', g: 'Done',
+  n: 'To do', w: 'In progress', a: 'Overdue', r: 'Waiting', g: 'Done',
 };
 
-function Card({ a }: { a: PaceAction }) {
+function Card({ a, onOpen }: { a: PaceAction; onOpen: () => void }) {
   const st = statusOfAction(a);
   const who = (a.owner || a.who || '').trim();
   return (
-    <article className={'bd-act is-' + st}>
-      <p className="bd-act-t">{actionTitle(a)}</p>
-      <div className="bd-act-f">
+    <button className={'bd-act is-' + st} onClick={onOpen}>
+      <span className="bd-act-t">{actionTitle(a)}</span>
+      <span className="bd-act-f">
         <span className={'bd-chip is-' + st}>{STATUS[st]}</span>
         {who && <span className="bd-who">{who}</span>}
-        {a.line && <span className="bd-meta">{a.line}</span>}
-        {a.due && <span className="bd-meta">due {a.due}</span>}
+        {a.due && <span className="bd-meta">{st === 'g' ? '' : 'due '}{a.due}</span>}
+      </span>
+    </button>
+  );
+}
+
+/** What the sheet edits — a step, or the start of a new one. */
+type Editing = { step: PaceTodoRow; isNew: boolean };
+
+function ActionSheet({ editing, lines, onClose }: { editing: Editing; lines: PaceLineRow[]; onClose: () => void }) {
+  const [s, setS] = useState<PaceTodoRow>(editing.step);
+  const set = (p: Partial<PaceTodoRow>) => setS(x => ({ ...x, ...p }));
+  const save = async () => {
+    if (!s.what.trim()) return;
+    await putPaceTodo({ ...s, what: s.what.trim(), who: s.who.trim() });
+    onClose();
+  };
+  const remove = async () => {
+    if (!window.confirm(`Delete this action?\n\n"${s.what}"`)) return;
+    await deletePaceTodo(s.id);
+    onClose();
+  };
+  return (
+    <Sheet open onClose={onClose} title={editing.isNew ? 'A new action' : 'The action'}>
+      <div className="ax-form">
+        <label className="cw-f cw-f-wide"><span>WHAT HAS TO BE DONE</span>
+          <textarea rows={2} value={s.what} autoFocus={editing.isNew}
+            placeholder="e.g. Train the night shift on the splice"
+            onChange={e => set({ what: e.target.value })} /></label>
+        <label className="cw-f cw-f-wide"><span>WHY — WHAT IT FIXES</span>
+          <textarea rows={2} value={s.why} placeholder="Film breaks at the splice, 20 min a shift"
+            onChange={e => set({ why: e.target.value })} /></label>
+        <div className="ax-row">
+          <span className="ax-k">3P</span>
+          <div className="cw-seg" role="group" aria-label="People, Plant or Process">
+            {PILLARS.map(p => (
+              <button key={p.key} type="button" className={'chip' + (s.pillar === p.key ? ' on' : '')}
+                aria-pressed={s.pillar === p.key} onClick={() => set({ pillar: p.key })}>{p.label}</button>
+            ))}
+          </div>
+        </div>
+        <div className="ax-grid">
+          <label className="cw-f"><span>LINE</span>
+            <select value={s.lineId ?? ''} onChange={e => set({ lineId: e.target.value || undefined })}>
+              {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              <option value="">{WHOLE_PROJECT}</option>
+            </select></label>
+          <label className="cw-f"><span>WHO</span>
+            <input value={s.who} placeholder="Name" onChange={e => set({ who: e.target.value })} /></label>
+          <label className="cw-f"><span>DUE</span>
+            <input type="date" value={s.due ?? ''} onChange={e => set({ due: e.target.value || undefined })} /></label>
+        </div>
+        <div className="ax-row">
+          <span className="ax-k">STATE</span>
+          <div className="cw-seg" role="group" aria-label="State">
+            {(['todo', 'waiting', 'done'] as const).map(k => (
+              <button key={k} type="button" className={'chip' + (s.state === k ? ' on' : '')}
+                aria-pressed={s.state === k} onClick={() => set({ state: k })}>
+                {k === 'todo' ? 'To do' : k === 'waiting' ? 'Waiting on someone' : 'Done'}
+              </button>
+            ))}
+          </div>
+        </div>
+        {s.state === 'done' && (
+          <label className="cw-f cw-f-wide"><span>HOW IT ENDED</span>
+            <textarea rows={2} value={s.outcome ?? ''} placeholder="Worked / didn't / needs another go"
+              onChange={e => set({ outcome: e.target.value })} /></label>
+        )}
+        <div className="ax-foot">
+          {!editing.isNew && <button className="btn btn-ghost cw-del" onClick={() => void remove()}>Delete</button>}
+          <span style={{ flex: 1 }} />
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" disabled={!s.what.trim()} onClick={() => void save()}>
+            {editing.isNew ? 'Add it' : 'Save'}
+          </button>
+        </div>
       </div>
-    </article>
+    </Sheet>
   );
 }
 
 export function BoardScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
-  const pace = usePaceSnapshots(projectId);
+  const ax = useActions(projectId);
   const [hideDone, setHideDone] = useState(false);
+  const [only, setOnly] = useState<string | null>(null);     // a line id, '' for every line's, null for all
+  const [editing, setEditing] = useState<Editing | null>(null);
+  const today = todayISO();
 
-  const source = pace.snapshots[0];
+  const stepById = useMemo(() => new Map(ax.steps.map(s => [s.id, s])), [ax.steps]);
+  const open = (a: PaceAction) => { const s = a.uid ? stepById.get(a.uid) : undefined; if (s) setEditing({ step: s, isNew: false }); };
+  const add = (pillar: PillarKey, lineId?: string) => {
+    const t = Date.now();
+    setEditing({
+      isNew: true,
+      step: { id: uid(), projectId, lineId, what: '', where: '', why: '', who: '', when: '', state: 'todo', pillar, createdAt: t, updatedAt: t },
+    });
+  };
 
-  const [area, setArea] = useState('');
+  /* Every line gets its block, even with nothing in it yet — the "+ Add" in
+     its columns is how its first action is written. Work for no one line
+     goes last, and only appears once there is some (or there are no lines). */
+  const areas = useMemo(() => {
+    const blocks: { id: string; name: string; lineId?: string }[] = ax.lines.map(l => ({ id: l.id, name: l.name, lineId: l.id }));
+    const whole = ax.actions.some(a => !a.lineId);
+    if (whole || ax.lines.length === 0) blocks.push({ id: '', name: WHOLE_PROJECT });
+    return blocks.map(b => {
+      const rows = ax.actions.filter(a => (a.lineId ?? '') === b.id && a.pillar);
+      const shown = hideDone ? rows.filter(a => statusOfAction(a) !== 'g') : rows;
+      return {
+        ...b,
+        total: rows.length,
+        done: rows.filter(a => statusOfAction(a) === 'g').length,
+        columns: PILLARS.map(p => ({ ...p, rows: shown.filter(a => a.pillar === p.label).sort(meetingOrder) })),
+      };
+    });
+  }, [ax.actions, ax.lines, hideDone]);
 
-  const full = useMemo(() => board(pace.actions), [pace.actions]);
+  const unsorted = ax.steps.filter(s => !s.pillar);
+  const late = ax.steps.filter(s => isLate(s, today)).length;
+  const done = ax.steps.filter(s => s.state === 'done').length;
+  const shownAreas = only == null ? areas : areas.filter(a => a.id === only);
 
-  /* Filtering narrows what is SHOWN, never what is counted as missing — the
-   * "not on the board" line has to keep telling the truth about the whole
-   * workbook whatever is on screen. */
-  const shown = useMemo(() => {
-    let rows = pace.actions;
-    if (area) rows = rows.filter(a => (a.line ?? '').trim() === area);
-    if (hideDone) rows = rows.filter(a => statusOfAction(a) !== 'g');
-    return board(rows);
-  }, [pace.actions, area, hideDone]);
-
-  if (loading || pace.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+  if (loading || ax.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
     return (
       <div className="wrap pace">
@@ -84,57 +180,35 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace bd-screen">
-      <Sweep id={'board:' + projectId} />
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Board' },
       ]} />
 
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">3P Board</h1>
-          <p className="pace-lede">
-            <b>This is the meeting.</b> Walk it area by area — People, Plant, Process — with the
-            overdue and the blocked at the top of each column, because those are the ones that need
-            somebody in the room. Every action carries its owner. Nothing here is typed and nothing
-            here is stored: change a status in the tracker and it changes here on the next upload.
+      <header className="cm-head">
+        <div>
+          <p className="cm-eyebrow">{project.name}</p>
+          <h1>3P Board</h1>
+          <p className="cw-handover">
+            {ax.steps.length === 0
+              ? <b>No actions yet</b>
+              : <>
+                <b>{ax.steps.length - done} open</b>
+                {late > 0 && <span className="sub in-late">{late} late</span>}
+                <span className="sub">{done} done</span>
+              </>}
           </p>
         </div>
-        <div className="pace-head-actions">
-          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}?view=data`)}>Upload</button>
-          <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>
-        </div>
+        <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print</button>
       </header>
 
-      {/* WHICH workbook, and how old. The same rule as everywhere else: a count
-          without a source is how somebody decides the app is broken. */}
-      <p className="bs-src bd-src">
-        {source
-          ? <>From <b>{source.fileName}</b> · read {fmtRelative(source.takenAt)} · {full.areas.length} card{full.areas.length === 1 ? '' : 's'} · {full.total} action{full.total === 1 ? '' : 's'} across them</>
-          : <>No tracker uploaded to this project yet.</>}
-      </p>
-
-      {full.areas.length > 1 && (
+      {areas.length > 1 && (
         <div className="bd-filters">
-          {/* THE TRAP THIS AVOIDS. The workbook has a card literally called
-              "All lines", and in a row of filters next to a chip meaning "show
-              everything" the two read as the same thing — except one of them
-              shows that card's four actions out of twenty-eight.
-              So the show-everything chip is worded differently, set apart by a
-              divider, and carries NO number: every other chip's number is its
-              own action count, and a badge on this one would be a third
-              quantity in a row where two already mean different things. The
-              totals are said once, in words, in the line above. */}
-          <button className={'chip is-all' + (area === '' ? ' on' : '')} onClick={() => setArea('')}>
-            Every card
-          </button>
+          <button className={'chip is-all' + (only == null ? ' on' : '')} onClick={() => setOnly(null)}>Every line</button>
           <span className="bd-filter-div" aria-hidden />
-          {full.areas.map(a => (
-            <button key={a.name} className={'chip' + (area === a.name ? ' on' : '')}
-              title={`Only the ${a.name} card — the ${a.total} action${a.total === 1 ? '' : 's'} the workbook files under it`}
-              onClick={() => setArea(a.name)}>
+          {areas.map(a => (
+            <button key={a.id || 'whole'} className={'chip' + (only === a.id ? ' on' : '')} onClick={() => setOnly(a.id)}>
               {a.name} <span className="bs-n">{a.total}</span>
             </button>
           ))}
@@ -144,107 +218,60 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      {area && (
-        <p className="bd-filtered">
-          Showing the <b>{area}</b> card only — {shown.total} of {full.total} action{full.total === 1 ? '' : 's'}.{' '}
-          <button className="lt-gap-b" onClick={() => setArea('')}>Show all {full.areas.length} cards</button>
+      {ax.steps.length === 0 && (
+        <p className="sub bd-intro">
+          Write each action in the column it belongs to — <b>People</b> (who runs it, and whether they can),
+          {' '}<b>Plant</b> (the machine) or <b>Process</b> (the way of working) — with who has it and when it is due.
+          This is the meeting: walk it line by line.
         </p>
       )}
 
-      {!full.hasPillarColumn ? (
-        /* Three different situations, three different sentences, because each
-           one needs a different thing doing. Nothing here is a dead end: the
-           upload is a tap away in every case, since the answer to all three is
-           a workbook this screen has not read yet. */
-        <div className="bd-empty">
-          {pace.actions.length === 0 ? (
-            <>
-              <p className="bd-empty-t">Nothing uploaded to this project yet</p>
-              <p className="sub">
-                The board is drawn from the weekly tracker — every action on it is a row of your own
-                workbook. Upload this week’s and it builds itself.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="bd-empty-t">This workbook hasn’t got a <b>3P</b> column yet</p>
-              <p className="sub">
-                The tracker the app has read{source?.fileName ? <> — <b>{source.fileName}</b></> : null} carries
-                {' '}{pace.actions.length} action{pace.actions.length === 1 ? '' : 's'} and no <b>3P</b> column,
-                so there is nothing to sort them into. Add one column to the Tracker sheet, headed
-                {' '}<b>3P</b> (or <b>Pillar</b>), and put <b>People</b>, <b>Plant</b> or <b>Process</b> against
-                each row. Nothing else in the workbook needs to change — every other screen keeps reading
-                it exactly as it does now.
-              </p>
-            </>
-          )}
-          <button className="btn btn-primary" style={{ marginTop: 16 }}
-            onClick={() => nav(`/project/${projectId}?view=data`)}>
-            Upload the workbook
-          </button>
-        </div>
-      ) : shown.areas.length === 0 ? (
-        <p className="sub">Nothing matches that filter.</p>
-      ) : (
-        /* One block per area, three columns inside it — the workbook's own 3P
-           Board sheet, drawn from the Tracker rows it is itself a view of. */
-        shown.areas.map(a => (
-          <section key={a.name} className="bd-area">
-            <header className="bd-area-h">
-              <h2 className="bd-area-t">{a.name}</h2>
-              <span className="bd-area-n">{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
-            </header>
-            <div className="bd-cols">
-              {a.columns.map(c => (
-                <section key={c.key} className={'bd-col is-' + c.key}>
-                  <header className="bd-col-h">
-                    <h3 className="bd-col-t">{c.label}</h3>
-                    <span className="bd-col-n">{c.rows.length}</span>
-                    <span className="bd-col-s">{c.blurb}</span>
-                  </header>
-                  <div className="bd-col-b">
-                    {c.rows.length === 0
-                      ? <p className="sub bd-none">—</p>
-                      : c.rows.map((x, i) => <Card key={x.uid || x.ref || i} a={x} />)}
-                  </div>
-                </section>
-              ))}
-            </div>
-          </section>
-        ))
+      {shownAreas.map(a => (
+        <section key={a.id || 'whole'} className="bd-area">
+          <header className="bd-area-h">
+            <h2 className="bd-area-t">{a.name}</h2>
+            <span className="bd-area-n">{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
+          </header>
+          <div className="bd-cols">
+            {a.columns.map(c => (
+              <section key={c.key} className={'bd-col is-' + c.key}>
+                <header className="bd-col-h">
+                  <h3 className="bd-col-t">{c.label}</h3>
+                  <span className="bd-col-n">{c.rows.length}</span>
+                  <span className="bd-col-s">{c.blurb}</span>
+                </header>
+                <div className="bd-col-b">
+                  {c.rows.map(x => <Card key={x.uid} a={x} onOpen={() => open(x)} />)}
+                  <button className="bd-add" onClick={() => add(c.key, a.lineId)}>＋ Add</button>
+                </div>
+              </section>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {/* Never lose a row: a step written before the board, or on the Next
+          steps list, is shown here until it is given its column. */}
+      {unsorted.length > 0 && (
+        <section className="bd-unsorted">
+          <h2 className="bd-area-t">Not on the board yet</h2>
+          <p className="sub">{unsorted.length} action{unsorted.length === 1 ? ' has' : 's have'} no column — say which it is.</p>
+          <ul className="bd-un-list">
+            {unsorted.map(s => (
+              <li key={s.id} className="bd-un">
+                <button className="bd-un-t" onClick={() => setEditing({ step: s, isNew: false })}>{s.what || 'Untitled'}</button>
+                <span className="cw-seg">
+                  {PILLARS.map(p => (
+                    <button key={p.key} className="chip" onClick={() => void putPaceTodo({ ...s, pillar: p.key })}>{p.label}</button>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
-      {/* Never lose a row. Same promise the lever tree makes. */}
-      {full.unplaced.length > 0 && (
-        <div className="lt-gap bd-gap">
-          <span className="lt-gap-t">
-            <b>{full.unplaced.length}</b> action{full.unplaced.length === 1 ? '' : 's'} {full.unplaced.length === 1 ? 'is' : 'are'} not on the board —
-            {full.hasPillarColumn ? ' the 3P cell is blank or says something else.' : ' there is no 3P column yet.'}
-          </span>
-          <details className="bd-det">
-            <summary>Which ones?</summary>
-            <ul className="lt-gap-list">
-              {full.unplaced.slice(0, 20).map((a, i) => (
-                <li key={a.uid || a.ref || i}>
-                  <span className="lt-gap-w">{actionTitle(a)}</span>
-                  <span className="lt-gap-y">
-                    {(a.pillar ?? '').trim()
-                      ? `3P says “${a.pillar}” — not People, Plant or Process`
-                      : 'no 3P value on the tracker row'}
-                  </span>
-                </li>
-              ))}
-              {full.unplaced.length > 20 && <li className="sub">and {full.unplaced.length - 20} more</li>}
-            </ul>
-          </details>
-        </div>
-      )}
-
-      <footer className="pace-foot">
-        <p>
-          {project.name} · People · Plant · Process · derived from the weekly workbook, never stored
-        </p>
-      </footer>
+      {editing && <ActionSheet editing={editing} lines={ax.lines} onClose={() => setEditing(null)} />}
     </div>
   );
 }

@@ -17,7 +17,10 @@ const digits = (s: string): string => (s.match(/\d+/)?.[0] ?? '');
 const spansAll = (s: string): boolean => /\ball\b/i.test(s);
 
 /** True when this action is one the given line's owner should be looking at. */
-export function actionOnLine(a: PaceAction, lineKey: string): boolean {
+export function actionOnLine(a: PaceAction, lineKey: string, lineId?: string): boolean {
+  // An action kept in the app knows its line by id — no guessing from names,
+  // which would hand Line 2A's work to Line 2B.
+  if (a.lineId) return a.lineId === lineId;
   const l = (a.line ?? '').trim();
   if (!l) return false;
   if (spansAll(l)) return true;
@@ -26,8 +29,8 @@ export function actionOnLine(a: PaceAction, lineKey: string): boolean {
 }
 
 /** The actions for one line, or every action when no line is named. */
-export function actionsForLine(actions: PaceAction[], lineKey?: string): PaceAction[] {
-  return lineKey ? actions.filter(a => actionOnLine(a, lineKey)) : actions;
+export function actionsForLine(actions: PaceAction[], lineKey?: string, lineId?: string): PaceAction[] {
+  return lineKey ? actions.filter(a => actionOnLine(a, lineKey, lineId)) : actions;
 }
 
 /** Tracker areas that NO line on the project answers for.

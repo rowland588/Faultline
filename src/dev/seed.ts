@@ -337,6 +337,22 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   });
   await putReadings(rows);
 
+  /* THE 3P ACTIONS — kept in the app, one in every column and every state:
+     late, waiting, done, one for every line, and one not yet given a column,
+     so every branch of the board is drawn. */
+  const act = (what: string, a: Partial<PaceTodoRow>): PaceTodoRow => ({
+    id: uid(), projectId: paced.id, what, where: '', why: '', who: '', when: '', state: 'todo',
+    createdAt: t, updatedAt: t, ...a,
+  });
+  for (const a of [
+    act('Train the night shift on the splice', { lineId: pacedLine.id, pillar: 'people', who: 'Rob Scott', due: iso(-2), why: 'Film breaks at the splice' }),
+    act('Replace the worn sealing jaw', { lineId: pacedLine.id, pillar: 'plant', who: 'Engineering', due: iso(5), state: 'waiting' }),
+    act('One changeover standard for 2kg to 1.25kg', { lineId: pacedLine.id, pillar: 'process', who: 'Rob Scott', due: iso(-9), state: 'done', outcome: 'Down to 22 minutes' }),
+    act('Second operator on the infeed at start-up', { lineId: otherLine.id, pillar: 'people', who: 'Lee Carty', due: iso(3) }),
+    act('Weekly 5S walk, every line', { pillar: 'process', who: 'Tanya', due: iso(7) }),
+    act('Look at the reject bin full by 10am', { lineId: otherLine.id }),
+  ]) await putPaceTodo(a);
+
   /* WHAT THE JOB IS WAITING ON — one of each state, because the grid, the list
      order and the "late" banner all read differently per state and a fixture
      that is all one thing proves none of them. */

@@ -10,7 +10,7 @@
  *
  * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
  * into the meeting. */
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Journey } from '../ui/Journey';
 import { Fold } from '../ui/Fold';
@@ -31,11 +31,10 @@ import { usePrograms } from '../lib/usePrograms';
 import { daysOverdue } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
-import { usePaceSnapshots, type PaceState } from '../lib/usePaceSnapshots';
+import { useActions } from '../lib/actions';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
-import { uncoveredAreas } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
@@ -89,23 +88,17 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
         </p>
       </div>
 
-      {!b.hasPillarColumn ? (
-        /* Not a blank panel and not a hidden one. It says which workbook the
-           app has read, what is missing from it, and offers the one action
-           that fixes it. */
+      {b.total === 0 ? (
+        /* Nothing on the board yet — and the board is where it is written,
+           so the one button goes there. */
         <div className="pace-empty">
           <p className="sub">
             {actions.length === 0
-              ? <>Nothing uploaded yet — the board is drawn from the weekly tracker.</>
-              : <>The tracker the app has read carries {actions.length} action{actions.length === 1 ? '' : 's'} and
-                  no <b>3P</b> column, so there is nothing to sort them into. Add one column to the Tracker
-                  sheet headed <b>3P</b>, with <b>People</b>, <b>Plant</b> or <b>Process</b> against each row.</>}
+              ? <>No actions yet. Write each one in its column — People, Plant or Process — with who has it and when it is due.</>
+              : <>{actions.length} action{actions.length === 1 ? ' is' : 's are'} waiting to be given a column.</>}
           </p>
           <div className="pb-foot" style={{ marginTop: 10 }}>
-            <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}?view=data`)}>
-              Upload the workbook
-            </button>
-            <button className="btn btn-ghost" onClick={open}>What the board is</button>
+            <button className="btn btn-primary" onClick={open}>Open the board</button>
           </div>
         </div>
       ) : (
@@ -151,8 +144,7 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
             <button className="btn btn-primary" onClick={open}>Run the meeting off the board</button>
             {b.unplaced.length > 0 && (
               <span className="sub pb-gap">
-                {b.unplaced.length} action{b.unplaced.length === 1 ? '' : 's'} not on it — the 3P cell is blank
-                or says something else
+                {b.unplaced.length} action{b.unplaced.length === 1 ? '' : 's'} not given a column yet
               </span>
             )}
           </div>
@@ -162,98 +154,11 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
   );
 }
 
-const when = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/* ---------- weekly upload ---------- */
-function UploadPanel({ state, projectId, lineKeys }: {
-  state: PaceState; projectId: string; lineKeys: string[];
-}) {
-  const input = useRef<HTMLInputElement>(null);
-  const [showHistory, setShowHistory] = useState(false);
-
-  /* WHAT THIS WEEK'S FILE BROUGHT WITH IT. An upload can introduce an area the
-     project has never heard of — a line commissioned this week, an area that
-     was never a measured line. The board picks it up on its own, because the
-     board is drawn from the workbook; everything keyed to a project LINE does
-     not, so it needs saying here, on the screen where the file just landed and
-     where the fix is one tap away. */
-  const uncovered = uncoveredAreas(state.actions, lineKeys);
-
-  return (
-    <section className="pace-upload">
-      <div className="pace-upload-main">
-        <div>
-          <h3 className="pace-upload-title">The tracker</h3>
-          <p className="pace-upload-sub">
-            {state.snapshots.length === 0
-              ? <>Nothing uploaded yet — the actions on this project come from the workbook.</>
-              : <>
-                  This page is showing <b>{state.snapshots[0].fileName}</b> · read {when(state.snapshots[0].takenAt)}
-                  {state.snapshots.length > 1 && ` · ${state.snapshots.length - 1} earlier upload${state.snapshots.length === 2 ? '' : 's'}`}
-                </>}
-          </p>
-          <p className="pace-upload-note">Upload the workbook and the whole page follows it. The sheet is the record; this just reads it.</p>
-        </div>
-        <div className="pace-upload-actions">
-          <button className="btn btn-primary" disabled={state.busy} onClick={() => input.current?.click()}>
-            {state.busy ? 'Reading…' : 'Upload this week\u2019s tracker'}
-          </button>
-          {state.snapshots.length > 1 && (
-            <button className="btn btn-ghost" onClick={() => setShowHistory(h => !h)}>
-              {showHistory ? 'Hide history' : 'History'}
-            </button>
-          )}
-        </div>
-        <input
-          ref={input} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          style={{ display: 'none' }}
-          onChange={e => {
-            const f = e.target.files?.[0];
-            if (f) void state.upload(f);
-            e.target.value = ''; // same file twice in a row still fires
-          }}
-        />
-      </div>
-
-      {state.error && (
-        <p className="pace-upload-err" role="alert">
-          {state.error}
-          <button className="pace-err-x" onClick={state.dismissError} aria-label="Dismiss">×</button>
-        </p>
-      )}
-      {state.warnings.map((w, i) => <p key={i} className="pace-upload-warn">{w}</p>)}
-
-      {uncovered.length > 0 && (
-        <p className="pace-upload-warn is-info">
-          The tracker has {uncovered.length === 1 ? 'an area' : 'areas'} this project has no line
-          for — {uncovered.map((a, i) => (
-            <Fragment key={a}>{i > 0 ? ', ' : ''}<b>{a}</b></Fragment>
-          ))}. The actions are on the board and counted on the
-          report; the readings, next steps, the walk and wins all hang off a line, so those stay empty until
-          one exists.{' '}
-          <button className="lt-gap-b" onClick={() => nav(`/project/${projectId}/setup`)}>
-            Add {uncovered.length === 1 ? 'the line' : 'the lines'}
-          </button>
-        </p>
-      )}
-
-      {showHistory && (
-        <ul className="pace-history">
-          {state.snapshots.map(sn => (
-            <li key={sn.id}>
-              <span className="pace-hist-when">{when(sn.takenAt)}</span>
-              <span className="pace-hist-name">{sn.fileName}</span>
-              <span className="pace-hist-n">{sn.actions.length} actions</span>
-              {sn.id !== 'baseline' && (
-                <button className="pace-hist-x" onClick={() => void state.remove(sn.id)}>Remove</button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
+/* THERE IS NO UPLOAD. The tracker workbook this read every week is gone:
+   Rowland — "there will be no Excel that needs to be uploaded ... this is about
+   now fully using the app." The actions are written on the board (see
+   lib/actions.ts); the numbers are typed or pasted on the Data lens. */
 
 /* Who is against a line, under its chart. A chart with nobody's name on it is
  * a number; with a name on it, it is somebody's number — which is the whole
@@ -534,17 +439,17 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   }, [raw, projectId]);
 
   const { loading: projLoading, project } = useProject(projectId);
-  const pace = usePaceSnapshots(projectId);
+  const ax = useActions(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const stand = useStanding(projectId);
-  const { actions } = pace;
+  const { actions } = ax;
   // Every line's own pack, counted. This is the roll-up: each number below was
   // typed by a line owner into their own pack, not entered again here.
   const packs = useAllLinePacks(projectId, ppm.lines);
 
-  const done = actions.filter(a => /^done$/i.test(a.status.trim())).length;
-  const overdue = actions.filter(a => /overdue/i.test(a.flag ?? '')).length;
+  const done = actions.filter(a => statusOfAction(a) === 'g').length;
+  const overdue = actions.filter(a => statusOfAction(a) === 'a').length;
   const live = actions.length - done;
 
   /* WHERE EVERY LINE STANDS on the measure this project leads on — worked out
@@ -557,7 +462,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const headline = nums.measures[0];
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
-  if (pace.loading || ppm.loading || projLoading || nums.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+  if (ax.loading || ppm.loading || projLoading || nums.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
   // A link to a project that has since been deleted is a dead end, not a crash.
   if (!project) {
@@ -747,7 +652,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             </>}
           </div>
 
-          <BoardPanel projectId={projectId} actions={pace.actions} />
+          <BoardPanel projectId={projectId} actions={actions} />
 
               <section className="pace-sec">
             <div className="pace-sec-head">
@@ -830,7 +735,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Next steps</h2>
-            <p className="pace-sec-sub">What still needs doing, what we are waiting on, and tests — with the write-up and the evidence · not in the workbook, typed here</p>
+            <p className="pace-sec-sub">What still needs doing, what we are waiting on, and tests — with the write-up and the evidence · the same actions the board sorts People, Plant and Process</p>
           </div>
           <PaceNextSteps projectId={projectId} />
         </section>
@@ -840,7 +745,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Success</h2>
-            <p className="pace-sec-sub">What we did and what worked · the wins to show the team · not in the workbook, logged here</p>
+            <p className="pace-sec-sub">What we did and what worked · the wins to show the team</p>
           </div>
           <PaceSuccess projectId={projectId} />
         </section>
@@ -861,7 +766,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
       {lens === 'data' && (
         <>
-          <UploadPanel state={pace} projectId={projectId} lineKeys={ppm.lines.map(l => l.key)} />
           <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">The numbers</h2>
@@ -882,7 +786,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {project.lead && <> · led by {project.lead}</>}
           {model === 'commissioning'
             ? <> · what we planned, what happened, what we found, what we do next</>
-            : <> · actions from the team’s tracker · the line walk filmed in the app</>}
+            : <> · actions kept on the board · the line walk filmed in the app</>}
         </p>
       </footer>
     </div>

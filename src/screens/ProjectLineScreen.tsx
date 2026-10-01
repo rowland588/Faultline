@@ -26,9 +26,8 @@ import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
 import { lineSeries, say, vsTarget } from '../lib/measures';
-import { usePaceSnapshots } from '../lib/usePaceSnapshots';
+import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useLineWorkspace } from '../lib/usePaceWorkspace';
-import { actionsForLine } from '../lib/paceLineMatch';
 import { planModel } from '../lib/planModel';
 import { useLinePackCounts } from '../lib/useLinePack';
 
@@ -70,7 +69,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   const { loading: projLoading, project } = useProject(projectId);
   const ppm = usePaceLines(projectId);
-  const pace = usePaceSnapshots(projectId);
+  const ax = useActions(projectId);
   const nums = useMeasures(projectId);
   const line = ppm.lines.find(l => l.id === lineId);
 
@@ -82,7 +81,9 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
     await ppm.editLine(lineId, { workspaceId: wsId });
   }, [ppm, lineId]);
 
-  const mine = useMemo(() => actionsForLine(pace.actions, line?.key ?? ''), [pace.actions, line?.key]);
+  // This line's actions, and the ones written for every line — by id, not by
+  // guessing from the name (lib/actions.ts).
+  const mine = useMemo(() => ax.actions.filter(a => a.lineId === line?.id || a.line === WHOLE_PROJECT), [ax.actions, line?.id]);
 
   /* The Pareto used to be a top-level mode you had to already know about, and
    * nothing in the project ever pointed at it — so on the one screen that says
@@ -92,7 +93,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   const ws = useLineWorkspace(line?.workspaceId, line?.name ?? '', attach);
   const findOutWhy = async () => { nav(`/w/${await ws.ensure()}/analyse`); };
 
-  if (projLoading || ppm.loading || pace.loading || nums.loading) {
+  if (projLoading || ppm.loading || ax.loading || nums.loading) {
     return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   }
   if (!project || !line) {
@@ -192,7 +193,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               <Kpi n={String(mine.length - done)} label="actions live" sub={`${done} of ${mine.length} closed`} />
               <Kpi n={String(overdue)} label="overdue" sub="past their date" tone={overdue > 0 ? 'bad' : 'good'} />
             </>}
-            <Kpi n={String(counts.openTodos)} label="next steps open" sub={`${counts.doneTodos} finished`} />
+            {/* On a 3P line the next steps ARE the actions — counted once, above. */}
+            {!paced && <Kpi n={String(counts.openTodos)} label="next steps open" sub={`${counts.doneTodos} finished`} />}
             <Kpi n={String(counts.openSnags)} label="open evidence" sub="on this line’s walk" tone={counts.openSnags > 0 ? 'warn' : 'good'} />
             {/* green only when there is something to be pleased about — a
                 green nought reads as "all good" when it means "nothing yet" */}
@@ -239,11 +241,11 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Actions on {line.name}</h2>
             <p className="pace-sec-sub">
-              This line’s slice of the tracker, by owner · {mine.length} action{mine.length === 1 ? '' : 's'}
-              {' '}· actions the workbook marks as spanning every line show here too
+              This line’s actions, by owner · {mine.length} action{mine.length === 1 ? '' : 's'}
+              {' '}· the ones written for every line show here too
             </p>
           </div>
-          <PaceMeeting actions={mine} roster={pace.roster} />
+          <PaceMeeting actions={mine} />
         </section>
       )}
 

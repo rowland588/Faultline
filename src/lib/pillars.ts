@@ -104,7 +104,7 @@ const isDone = (a: PaceAction): boolean => /^(done|complete|completed|closed)$/i
  * rather than the question. It used to be Priority alone, which buried an
  * overdue action under three that merely started life as a 1. */
 const MEETING_RANK: Record<string, number> = { a: 0, r: 1, w: 2, n: 3, g: 4 };
-const meetingOrder = (x: PaceAction, y: PaceAction): number =>
+export const meetingOrder = (x: PaceAction, y: PaceAction): number =>
   (MEETING_RANK[statusOfAction(x)] ?? 2) - (MEETING_RANK[statusOfAction(y)] ?? 2)
   || (x.priority || 3) - (y.priority || 3);
 
