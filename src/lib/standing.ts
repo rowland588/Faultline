@@ -96,7 +96,7 @@ export function slipWords(slipDays?: number): string | undefined {
     : `${days} ahead of what was agreed.`;
 }
 
-import { todayISO } from './weeks';
+import { niceDay, todayISO } from './weeks';
 export { todayISO };
 
 const daysBetween = (a: string, b: string): number =>
@@ -293,7 +293,7 @@ export function standing(input: StandingInput): Standing {
 
   return {
     /* "N of M tests have run" is about tests — an install step is not one. */
-    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests) }),
+    sentence: sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests) }),
     daysToGo, slipDays, outstanding, late, rows, plan,
   };
 }
@@ -318,7 +318,7 @@ export function unanswered(all: Test[]): number {
  *  and whether anybody should be worried. It leads on the DATE, because that is
  *  the only question a client actually asked. */
 function sentenceFor(x: {
-  daysToGo?: number; slipDays?: number; late: number; outstanding: number;
+  daysToGo?: number; handover?: string; slipDays?: number; late: number; outstanding: number;
   rows: OutstandingRow[]; tests: Test[]; unanswered: number;
 }): string {
   const ran = x.tests.filter(hasRun).length;
@@ -351,11 +351,18 @@ function sentenceFor(x: {
     ? `, and ${x.late === 1 ? 'it is' : 'they are all'} ${[...owners][0]}’s`
     : '';
 
+  /* SAY WHAT THE DAYS ARE COUNTED TO. "8 days to go" over a job whose first
+     step is on the 5th reads as a mistake: eight days to what? It is the
+     handover date typed on the job, so the sentence says so, and says which day
+     — the one number a client can check against their own calendar. */
+  const on = x.handover ? ` (${niceDay(x.handover, { weekday: 'short' })})` : '';
   const head = x.daysToGo == null
     ? `${plural(x.outstanding, 'thing')} outstanding`
     : x.daysToGo < 0
-      ? `${plural(Math.abs(x.daysToGo), 'day')} past the date, with ${plural(x.outstanding, 'thing')} outstanding`
-      : `${plural(x.daysToGo, 'day')} to go, with ${plural(x.outstanding, 'thing')} outstanding`;
+      ? `${plural(Math.abs(x.daysToGo), 'day')} past the handover date${on}, with ${plural(x.outstanding, 'thing')} outstanding`
+      : x.daysToGo === 0
+        ? `Handover is today, with ${plural(x.outstanding, 'thing')} outstanding`
+        : `${plural(x.daysToGo, 'day')} to handover${on}, with ${plural(x.outstanding, 'thing')} outstanding`;
 
   /* NOT `plural` here. `plural` always prints the number, and a single late
      thing read "1 one is past the day it was wanted" on the dashboard. At one,

@@ -48,7 +48,7 @@ export function Verdict({ st, eyebrow = 'Where the job is' }: { st: Standing; ey
         {st.daysToGo != null && (
           <Tile
             n={String(Math.abs(st.daysToGo))}
-            label={late ? 'days past' : 'days to go'}
+            label={late ? 'days past handover' : 'days to handover'}
             tone={late ? 'bad' : undefined}
           />
         )}

@@ -173,7 +173,7 @@ const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> 
  *  two fit and gives it a sheet of its own when they do not, and that decision
  *  and the page count have to be the same decision. */
 const plan = (lanes = 2, outstanding = 2): NonNullable<PaceReportData['plan']> => ({
-  says: '27 days to go, with 4 things outstanding — none of it late.',
+  says: '27 days to handover (Wed 28 Oct), with 4 things outstanding — none of it late.',
   slip: 'The date has moved 8 days from what was agreed.',
   counted: '5 dates · 2 done · 1 still ahead',
   axis: {

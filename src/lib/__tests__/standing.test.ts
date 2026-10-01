@@ -10,11 +10,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { standing, type StandingInput } from '../standing';
+import { niceDay } from '../weeks';
 import type { Asset, Test, TestItem } from '../testing';
 import type { Material } from '../materials';
 import type { Program } from '../programs';
 
 const TODAY = '2026-09-22';
+/* The handover day the way the sentence prints it. */
+const D = (iso: string) => `(${niceDay(iso, { weekday: 'short' })})`;
 
 let n = 0;
 const test = (o: Partial<Test> = {}): Test => ({
@@ -343,7 +346,7 @@ describe('a machine and the day it was wanted', () => {
 describe('the sentence', () => {
   it('leads on the date, because that is the question that was asked', () => {
     const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-10-06' });
-    expect(s.sentence).toBe('14 days to go, with 1 thing outstanding — none of it late.');
+    expect(s.sentence).toBe(`14 days to handover ${D('2026-10-06')}, with 1 thing outstanding — none of it late.`);
   });
 
   it('names the one who owns the late work', () => {
@@ -352,7 +355,7 @@ describe('the sentence', () => {
       expectedAt: '2026-10-06',
     });
     expect(s.sentence).toBe(
-      '14 days to go, with 2 things outstanding — 2 of them are past the day it was wanted, and they are all Brillopak’s.',
+      `14 days to handover ${D('2026-10-06')}, with 2 things outstanding — 2 of them are past the day it was wanted, and they are all Brillopak’s.`,
     );
   });
 
@@ -362,13 +365,13 @@ describe('the sentence', () => {
   it('counts one late thing in words, not "1 one"', () => {
     const s = at({ materials: [mat({ due: '2026-09-01', from: 'Brillopak' })], expectedAt: '2026-10-06' });
     expect(s.sentence).toBe(
-      '14 days to go, with 1 thing outstanding — one is past the day it was wanted, and it is Brillopak’s.',
+      `14 days to handover ${D('2026-10-06')}, with 1 thing outstanding — one is past the day it was wanted, and it is Brillopak’s.`,
     );
   });
 
   it('is one day past the date, not "1 days"', () => {
     const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-21' });
-    expect(s.sentence).toContain('1 day past the date');
+    expect(s.sentence).toContain('1 day past the handover date');
     expect(s.sentence).not.toContain('1 days');
   });
 
@@ -387,7 +390,7 @@ describe('the sentence', () => {
     });
     expect(row(s, 'tests')).toMatchObject({ whose: 'Ishida Europe × 3', lateWhose: 'Ilapak UK' });
     expect(s.sentence).toBe(
-      '14 days to go, with 4 things outstanding — one is past the day it was wanted, and it is Ilapak UK’s.',
+      `14 days to handover ${D('2026-10-06')}, with 4 things outstanding — one is past the day it was wanted, and it is Ilapak UK’s.`,
     );
   });
 
@@ -412,9 +415,22 @@ describe('the sentence', () => {
     expect(s.sentence).toContain('past the day');
   });
 
+  /* "8 days to go" with no word for what — Rowland read it as a fault, on a job
+     whose first step was four days off. It is the handover date, and says so. */
+  it('says what the days are counted to, and which day', () => {
+    const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-30' });
+    expect(s.sentence).toContain(`8 days to handover ${D('2026-09-30')}`);
+    expect(s.sentence).not.toMatch(/to go/);
+  });
+
+  it('says so on the day itself, and says nothing about days when no handover is set', () => {
+    expect(at({ materials: [mat({ due: '2026-09-29' })], expectedAt: TODAY }).sentence).toMatch(/^Handover is today, with 1 thing/);
+    expect(at({ materials: [mat({ due: '2026-09-29' })] }).sentence).toBe('1 thing outstanding — none of it late.');
+  });
+
   it('says the date has gone rather than counting backwards to it', () => {
     const s = at({ materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-15' });
-    expect(s.sentence).toContain('7 days past the date');
+    expect(s.sentence).toContain('7 days past the handover date');
   });
 
   it('says nothing is outstanding when nothing is', () => {

@@ -418,7 +418,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
           <span className="jb-chips">
             {v.daysToGo != null && (
               <span className={'jb-chip' + (v.daysToGo < 0 ? ' is-late' : '')}>
-                {v.daysToGo < 0 ? `${-v.daysToGo} days over` : `${v.daysToGo} days to go`}
+                {v.daysToGo < 0 ? `${-v.daysToGo} days over handover` : `${v.daysToGo} days to handover`}
               </span>
             )}
             {/* Where the job is, not how much is on its lists. A stage-gate job
