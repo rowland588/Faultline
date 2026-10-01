@@ -175,7 +175,7 @@ const trials = (n: number, long = false): NonNullable<PaceReportData['trials']> 
 const plan = (lanes = 2, outstanding = 2): NonNullable<PaceReportData['plan']> => ({
   says: '27 days to go, with 4 things outstanding — none of it late.',
   slip: 'The date has moved 8 days from what was agreed.',
-  counted: '2 of 5 done · 1 still ahead',
+  counted: '5 dates · 2 done · 1 still ahead',
   axis: {
     from: '2026-09-01', to: '2026-11-01', today: 0.4,
     ticks: [{ at: 0, label: 'Sep' }, { at: 0.5, label: 'Oct' }],

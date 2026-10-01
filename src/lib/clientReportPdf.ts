@@ -4,6 +4,7 @@ import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow } from './clientReport';
 import type { GateTone } from './install';
 import type { Shot } from './testReport';
+import { san } from './reportKit';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
@@ -33,7 +34,18 @@ export interface ClientReportExtras {
   standards?: (doc: jsPDF) => Promise<void>;
 }
 
-export async function drawClientReport(doc: jsPDF, r: ClientReport, extras: ClientReportExtras): Promise<void> {
+/** Every string in the report through the one door the other PDFs use. The
+ *  built-in font has no arrows: "Changeover 2kg → 1.25kg" printed as
+ *  "Changeover 2kg !' 1.25kg" on the client's copy. */
+function sanAll<T>(v: T): T {
+  if (typeof v === 'string') return san(v) as T;
+  if (Array.isArray(v)) return v.map(sanAll) as T;
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, sanAll(x)])) as T;
+  return v;
+}
+
+export async function drawClientReport(doc: jsPDF, report: ClientReport, extras: ClientReportExtras): Promise<void> {
+  const r = sanAll(report);
   let y = M;
   const font = (size: number, style: 'normal' | 'bold' | 'italic' = 'normal', colour = INK) => {
     doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(colour);
@@ -41,8 +53,10 @@ export async function drawClientReport(doc: jsPDF, r: ClientReport, extras: Clie
   const newPage = () => { doc.addPage('a4', 'portrait'); y = M; };
   const room = (h: number) => { if (y + h > H - M - 20) newPage(); };
   const lines = (text: string, width: number): string[] => doc.splitTextToSize(text, width) as string[];
-  const heading = (title: string, says?: string) => {
-    room(60);
+  /** `need` is the room the heading's first block wants with it, so a short
+   *  table is never split to leave one row alone on the next page. */
+  const heading = (title: string, says?: string, need = 60) => {
+    room(need);
     y += 8;
     font(15, 'bold'); doc.text(title, M, y + 12);
     if (says) { font(9.5, 'normal', MUTED); doc.text(says, M, y + 26); }
@@ -237,7 +251,8 @@ export async function drawClientReport(doc: jsPDF, r: ClientReport, extras: Clie
 
   /* ================================ 4 · WHO OWES WHAT ================================ */
   if (r.waiting.length) {
-    heading('What we’re waiting on', 'and whose it is');
+    // A short table travels whole; a long one starts with at least three rows.
+    heading('What we’re waiting on', 'and whose it is', 46 + 12 + Math.min(r.waiting.length, 12) * 18);
     font(7.5, 'bold', MUTED);
     doc.text('OPEN', M + CW - 190, y + 6, { align: 'right' }); doc.text('LATE', M + CW - 150, y + 6, { align: 'right' }); doc.text('MOSTLY WHOSE', M + CW - 130, y + 6);
     y += 12;

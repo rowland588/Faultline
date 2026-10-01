@@ -194,12 +194,12 @@ describe('what the plan says about itself', () => {
       mark({ at: '2026-09-02', tone: 'late' }),
       mark({ at: '2026-10-30', tone: 'booked' }),
     ], '2026-09-22');
-    expect(s).toBe('1 of 3 done · 1 still ahead · 1 past the day');
+    expect(s).toBe('3 dates · 1 done · 1 still ahead · 1 past the day');
   });
 
   it('does not invent a count it has nothing for', () => {
     expect(planSays([mark({ at: '2026-09-01', tone: 'done' })], '2026-09-22'))
-      .toBe('1 of 1 done');
+      .toBe('1 date · 1 done');
   });
 
   it('says plainly when nothing carries a date', () => {
@@ -208,7 +208,7 @@ describe('what the plan says about itself', () => {
 
   it('says how many ran and are waiting on a verdict', () => {
     expect(planSays([mark({ at: '2026-09-21', tone: 'ran' })], '2026-09-22'))
-      .toBe('0 of 1 done · 1 waiting on a verdict');
+      .toBe('1 date · 0 done · 1 waiting on a verdict');
   });
 });
 

@@ -576,19 +576,23 @@ export function ProgramsScreen({ projectId, embedded = false }: {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Programs' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
+      {/* The gates are a stage-gate job's — see MaterialsScreen. */}
+      {project.commissioning && <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />}
 
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pace-eyebrow">What the machine can run</p>
-          <h1 className="pace-title">Programs</h1>
-          <p className="pace-lede">
-            What this line has to be able to run, whether the program exists yet, and when we find out
-            it works. Having a program is not the same as trusting it — so there are three states here,
-            not two, and proved always carries the day it was proved.
+      {/* The header its peers wear — see MaterialsScreen. */}
+      <header className="cm-head">
+        <div>
+          <p className="cm-eyebrow">{project.name}</p>
+          <h1>Programs</h1>
+          <p className="cw-handover">
+            {t.total === 0
+              ? <b>Nothing on the list yet</b>
+              : <>
+                <b>{t.proved} of {t.total} proved</b>
+                {t.overdue > 0 && <span className="sub in-late">{t.overdue} past the test date</span>}
+                {t.onMachine > 0 && <span className="sub">{t.onMachine} on the machine</span>}
+              </>}
           </p>
-        </div>
-        <div className="pace-head-actions">
         </div>
       </header>
       </>}
@@ -597,8 +601,10 @@ export function ProgramsScreen({ projectId, embedded = false }: {
         <>
           <div className="pace-empty">
             <p className="sub">
-              Nothing on the list yet. Add the programs this line needs, or paste the list from wherever it
-              already lives.
+              {!embedded && <>What this line has to be able to run, whether the program exists yet, and when we
+              find out it works. Having a program is not the same as trusting it — so there are three states
+              here, not two, and proved always carries the day it was proved. </>}Nothing on the list yet. Add
+              the programs this line needs, or paste the list from wherever it already lives.
             </p>
           </div>
         </>

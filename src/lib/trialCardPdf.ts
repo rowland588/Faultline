@@ -69,9 +69,12 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   d.rect(0, 0, W, page === 1 ? 74 : 44, 'F');
 
   setFont(d, 7, 'bold', '#9fc3b4');
-  d.text(`${wordsOf(c).one.toUpperCase()} CARD`, M, 20);
+  const kicker = `${wordsOf(c).one.toUpperCase()} CARD`;
+  d.text(kicker, M, 20);
+  // Placed after the kicker, not at a fixed 58pt: "INSTALL STEP CARD" ran into the project name.
+  const after = M + d.getTextWidth(kicker) + 14;
   setFont(d, 7, 'normal', '#8fae9f');
-  d.text(fit(d, san(meta.project), W / 2), M + 58, 20);
+  d.text(fit(d, san(meta.project), W / 2), after, 20);
 
   setFont(d, 6.5, 'normal', '#7f9b8d');
   d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, W - M, 20, { align: 'right' });
@@ -228,13 +231,16 @@ const blockHeight = (rows: number[], empty: boolean): number =>
 /** What we found: one row per observation, with what somebody decided about it.
  *  Returns how many it drew, so the caller knows whether to start a new page. */
 function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: number, from: number): number {
-  const cols = [0.5, 0.14, 0.08, 0.28];
+  /* Three columns. A decision of "not a problem" had its own 8% column and
+     printed as "not a probl…" against WHOSE; it is what the finding became, so
+     it is said there. */
+  const cols = [0.5, 0.17, 0.33];
   const at = (i: number) => x + cols.slice(0, i).reduce((a, b) => a + b, 0) * w;
   /* "THE ACTION IT BECAME" outlived the noun. An observation becomes a FIX —
      its own record with its own card — so the column says what it became. */
   /* No DECIDED column heading: an observation is a note now, and the word
      survives only on the few decided before fixes moved to their own screen. */
-  const HEADS = ['WHAT WE SAW', 'WHOSE', '', 'WHAT IT BECAME'];
+  const HEADS = ['WHAT WE SAW', 'WHOSE', 'WHAT IT BECAME'];
 
   setFont(d, 6.5, 'bold', MUTED);
   HEADS.forEach((h, i) => d.text(h, at(i), y + 11));
@@ -258,15 +264,19 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
     setFont(d, 8, 'normal', INK2);
     d.text(fit(d, san(f.owner ?? '—'), cols[1] * w - 10), at(1), cy + 13);
 
-    /* The words trialCard.ts emits now — 'a fix' / 'not a problem'. This still
-       compared the old ones, so every decision printed in the amber "to decide"
-       tone, including the ones somebody had decided. */
-    const tone = f.decision === 'a fix' ? BLUE_DECIDED : f.decision === 'not a problem' ? MUTED : WARN;
-    setFont(d, 8, 'bold', tone);
-    d.text(fit(d, f.decision, cols[2] * w - 10), at(2), cy + 13);
-
-    setFont(d, 8, 'normal', f.action ? INK2 : MUTED);
-    d.text(fit(d, san(f.action ?? '—'), cols[3] * w - 10), at(3), cy + 13);
+    /* What it became: the fix if there is one, else the decision in its own
+       tone ('not a problem' muted, an undecided one amber), else a dash. */
+    if (f.action) {
+      setFont(d, 8, 'normal', INK2);
+      d.text(fit(d, san(f.action), cols[2] * w - 10), at(2), cy + 13);
+    } else if (f.decision) {
+      const tone = f.decision === 'a fix' ? BLUE_DECIDED : f.decision === 'not a problem' ? MUTED : WARN;
+      setFont(d, 8, 'bold', tone);
+      d.text(fit(d, f.decision.charAt(0).toUpperCase() + f.decision.slice(1), cols[2] * w - 10), at(2), cy + 13);
+    } else {
+      setFont(d, 8, 'normal', MUTED);
+      d.text('—', at(2), cy + 13);
+    }
 
     if (f.photos) {
       setFont(d, 6.5, 'normal', MUTED);

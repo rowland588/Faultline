@@ -343,18 +343,28 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Materials' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
+      {/* The gates are a stage-gate job's. A 3P job's Materials showed
+          Install, Set up, Commission — tabs for a method it is not run on. */}
+      {project.commissioning && <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />}
 
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pace-eyebrow">What we need</p>
-          <h1 className="pace-title">Materials</h1>
-          <p className="pace-lede">
-            What this job needs before it can run properly, when each thing is due, and whether it has
-            turned up. The same list you keep in the plan — except it works out what is late.
+      {/* The header every peer of this screen wears — the project above, the
+          screen's name, then where it has got to in one line. It had its own
+          eyebrow, a lede paragraph and a rule, and read as a different app
+          from the Install tab beside it. The lede says what the screen is for,
+          so it is said where that is news: on the empty list. */}
+      <header className="cm-head">
+        <div>
+          <p className="cm-eyebrow">{project.name}</p>
+          <h1>Materials</h1>
+          <p className="cw-handover">
+            {t.total === 0
+              ? <b>Nothing on the list yet</b>
+              : <>
+                <b>{t.here} of {t.total} here</b>
+                {t.late > 0 && <span className="sub in-late">{t.late} late</span>}
+                {t.waiting > 0 && <span className="sub">{t.waiting} waiting</span>}
+              </>}
           </p>
-        </div>
-        <div className="pace-head-actions">
         </div>
       </header>
 
@@ -362,8 +372,9 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         <>
           <div className="pace-empty">
             <p className="sub">
-              Nothing on the list yet. Add what you are waiting on, or paste the plan straight out of the
-              spreadsheet it already lives in.
+              What this job needs before it can run properly, when each thing is due, and whether it has
+              turned up — the same list you keep in the plan, except it works out what is late. Add what
+              you are waiting on, or paste the plan straight out of the spreadsheet it already lives in.
             </p>
           </div>
           <PastePlan state={state} />

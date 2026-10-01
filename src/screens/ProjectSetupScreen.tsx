@@ -344,7 +344,9 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${project.id}` },
         { label: commissioning ? 'Details' : 'Lines & people' },
       ]} />
-      <Peers peers={projectPeers(project.id, 'setup', stand.counts)} />
+      {/* The gates row belongs to a stage-gate job, and this page is none of
+          them: 'setup' lit the Set up GATE while you stood on the Details. */}
+      {commissioning && <Peers peers={projectPeers(project.id, 'details', stand.counts)} />}
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>

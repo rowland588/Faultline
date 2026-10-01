@@ -16,6 +16,7 @@
  * normal dE 28.7); the target also carries a dash, so the pair never relies on
  * colour alone. */
 import { useState } from 'react';
+import { niceScale } from '../lib/niceScale';
 import { vsTarget } from '../lib/measures';
 import type { LineSeries } from '../lib/measures';
 
@@ -62,15 +63,14 @@ export function MeasureChart({ series, who }: {
   const vals = points.map(p => p.value);
   const lo = Math.min(...vals, ...(target != null ? [target] : []));
   const hi = Math.max(...vals, ...(target != null ? [target] : []));
-  const span = hi - lo;
-  const pad = span > 0 ? span * 0.35 : Math.max(Math.abs(hi) * 0.1, 1);
-  const yMin = lo >= 0 ? Math.max(0, lo - pad) : lo - pad;
-  const yMax = hi + pad;
+  // Round numbers on the scale — see lib/niceScale.
+  const scale = niceScale(lo, hi);
+  const yMin = scale.min, yMax = scale.max;
 
   const x = (i: number) => (t1 === t0 ? (L + (W - R)) / 2 : L + ((ts[i] - t0) / (t1 - t0)) * (W - L - R));
   const y = (v: number) => T + ((yMax - v) / (yMax - yMin || 1)) * (H - T - B);
 
-  const gridVals = [yMin, (yMin + yMax) / 2, yMax];
+  const gridVals = scale.ticks;
   const last = vals[vals.length - 1];
 
   /* Both right-hand labels sit on the value they annotate, so when actual lands

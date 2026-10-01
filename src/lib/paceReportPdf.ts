@@ -15,6 +15,7 @@
  *
  * The layout deliberately mirrors the on-screen report: the same sections in the
  * same order, the same palette, the same chart geometry. */
+import { niceScale } from './niceScale';
 import {
   INK, INK2, MUTED, LINE, ACCENT, BRAND, SURF2, OK, WARN, DANGER, BLUE, ACTUAL, TARGET,
   san, setFont, fit, panel, table, wash, type Doc,
@@ -126,7 +127,7 @@ export interface PaceReportData {
     says: string;
     /** "The date has moved 8 days from what was agreed." Absent when it hasn't. */
     slip?: string;
-    /** "4 of 13 done · 4 still ahead · 2 past the day" */
+    /** "13 dates · 4 done · 4 still ahead · 2 past the day" */
     counted: string;
     axis: PlanAxis;
     lanes: PlanLane[];
@@ -342,10 +343,9 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
 
   const withTarget = target != null ? [...vals, target] : vals;
   const lo = Math.min(...withTarget), hi = Math.max(...withTarget);
-  const span = hi - lo;
-  const pad = span > 0 ? span * 0.35 : Math.max(Math.abs(hi) * 0.1, 1);
-  const yMin = lo >= 0 ? Math.max(0, lo - pad) : lo - pad;
-  const yMax = hi + pad;
+  // Round numbers on the scale, the same as the screen's — see lib/niceScale.
+  const scale = niceScale(lo, hi);
+  const yMin = scale.min, yMax = scale.max;
 
   const ts = s.points.map(p => Date.parse(p.at + 'T12:00:00'));
   const t0ms = ts[0], t1ms = ts[ts.length - 1];
@@ -353,7 +353,7 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   const py = (v: number) => pT + ((yMax - v) / (yMax - yMin || 1)) * (pB - pT);
 
   // recessive gridlines + y labels
-  const grid = [yMin, (yMin + yMax) / 2, yMax];
+  const grid = scale.ticks;
   d.setLineWidth(0.4);
   for (const g of grid) {
     d.setDrawColor('#eef3f8'); d.setLineDashPattern([2, 2], 0);
@@ -2629,6 +2629,12 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* ================= TRACKER, ATTENTION & MOVEMENT ================= */
   if (!hasDetail) return;
   d.addPage('a3', 'landscape');
+  /* The badge is the page's number, as on every sheet before this one. This
+     sheet's panels were numbered 2–6 from when it was the second page, so a
+     four-page report read 1, 2, 3, then 2, 3, 4, 5, 6. They carry on from
+     the sheet's own number, as the screen's preview numbers them. */
+  const first = d.getNumberOfPages();
+  const sheetNo = String(first);
 
   const gap = 12;
   const colW = (CW - gap * 2) / 3;
@@ -2687,7 +2693,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const r1y = M, r2y = M + rowH1 + gap;
 
   /* 2 — action tracker */
-  const atRule = panel(d, M, r1y, colW, rowH1, '2',
+  const atRule = panel(d, M, r1y, colW, rowH1, sheetNo,
     data.byLine.length > 1 ? 'Action tracker & the lines' : 'Action tracker',
     data.byLine.length > 1
       ? `${data.total} actions — and what each line's own pack holds`
@@ -2743,7 +2749,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* 3 — overdue & at risk (spans two columns) */
   const odX = M + colW + gap, odW = colW * 2 + gap;
-  const odRule = panel(d, odX, r1y, odW, rowH1, '3', 'Overdue & at risk', 'The actions past their date — where help is needed');
+  const odRule = panel(d, odX, r1y, odW, rowH1, String(first + 1), 'Overdue & at risk', 'The actions past their date — where help is needed');
   const endY = table(d, odX + 12, odRule + 14, odW - 24,
     [{ head: 'Line', width: 0.10 }, { head: 'Action', width: 0.55 },
      { head: 'Owner', width: 0.22 }, { head: 'Due', width: 0.13, align: 'right' }],
@@ -2760,7 +2766,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   }
 
   /* 4 — next steps */
-  const nsRule = panel(d, M, r2y, colW, rowH2, '4', 'Next steps', 'To do, waiting, and what came of the finished ones');
+  const nsRule = panel(d, M, r2y, colW, rowH2, String(first + 2), 'Next steps', 'To do, waiting, and what came of the finished ones');
   const nsBottom = r2y + rowH2 - 10;
   let ny = table(d, M + 12, nsRule + 14, colW - 24,
     [{ head: 'State', width: 0.20 }, { head: 'What', width: 0.44 }, { head: 'Who', width: 0.20 }, { head: 'When', width: 0.16 }],
@@ -2806,7 +2812,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* 5 — line walk */
   const lwX = M + colW + gap;
-  const lwRule = panel(d, lwX, r2y, colW, rowH2, '5', 'Line walk',
+  const lwRule = panel(d, lwX, r2y, colW, rowH2, String(first + 3), 'Line walk',
     `${data.openSnags} open on the walk`);
   let sy = lwRule + 18;
   if (data.snags.length === 0) {
@@ -2829,7 +2835,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* 6 — what worked */
   const wwX = M + (colW + gap) * 2;
-  const wwRule = panel(d, wwX, r2y, colW, rowH2, '6', 'What we tried', 'What worked, what didn\'t');
+  const wwRule = panel(d, wwX, r2y, colW, rowH2, String(first + 4), 'What we tried', 'What worked, what didn\'t');
   let wy = wwRule + 18;
   if (data.wins.length === 0) {
     setFont(d, 8, 'normal', MUTED);

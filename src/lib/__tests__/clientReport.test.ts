@@ -37,7 +37,8 @@ describe('the stage-gate client report', () => {
   it('goes gate by gate, in order, each saying how far it has got', () => {
     expect(r.sections.map(s => s.label)).toEqual(['Install', 'Set up', 'Commission', 'Hand over']);
     const install = r.sections[0];
-    expect(install.says).toBe('1 of 2 done · 1 late or a problem');
+    // Six usual stages plus "Guarding fitted": seven squares, two planned.
+    expect(install.says).toBe('1 of 2 done · 1 late or a problem · 5 not planned yet');
     expect(install.grid?.rows.map(x => x.machine)).toEqual(['De-staker']);
     expect(install.late[0]).toMatch(/De-staker — Guarding fitted/);
   });

@@ -738,9 +738,13 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target"
               sub={headline ? `latest ${headline.name.toLowerCase()} vs target` : 'no measures set yet'}
               tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
-            <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
-            <Kpi n={String(live)} label="still live" sub="open or in progress" />
-            <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
+            {/* With no tracker there are no actions, and three cards saying 0
+                said nothing three times. The board below says why, once. */}
+            {actions.length > 0 && <>
+              <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
+              <Kpi n={String(live)} label="still live" sub="open or in progress" />
+              <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
+            </>}
           </div>
 
           <BoardPanel projectId={projectId} actions={pace.actions} />

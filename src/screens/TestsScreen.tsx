@@ -113,6 +113,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
 
+  // Counted as the client report counts them, so the screen and the paper agree.
+  const proofs = tt.tests.filter(t => (t.kind ?? 'test') === 'test' && !t.deletedAt);
+  const passed = proofs.filter(t => t.outcome === 'passed').length;
+  const failed = proofs.filter(t => t.outcome === 'failed').length;
+  const notRun = proofs.filter(t => t.outcome === 'notRun').length;
+
 
   const plan = () => {
     const clean = title.trim();
@@ -140,11 +146,20 @@ export function TestsScreen({ projectId }: { projectId: string }) {
               was agreed. It was called Testing; the tests are what it is made
               of, and the URL keeps the old name so no link breaks. */}
           <h1>Commission</h1>
+          {/* Where the gate has got to FIRST, as the other three gates say it —
+              then the handover date this gate is driving at. "Rowland leading"
+              is on the project itself; the four gate headers read alike. */}
           <p className="cw-handover">
+            {proofs.length === 0
+              ? <b>No tests planned yet</b>
+              : <>
+                <b>{passed} of {proofs.length} passed</b>
+                {failed > 0 && <span className="sub in-late">{failed} didn’t pass</span>}
+                {notRun > 0 && <span className="sub in-late">{notRun} didn’t run</span>}
+              </>}
             {project.expectedAt
-              ? <><b>Ours by {nice(project.expectedAt)}</b>{weeks != null && <span className="sub">{weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'}` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}</span>}</>
-              : <b>No handover date yet</b>}
-            {project.lead && <span className="sub">{project.lead} leading</span>}
+              ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'} to go` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}`}</span>
+              : <span className="sub">No handover date yet</span>}
             <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>
           </p>
         </div>

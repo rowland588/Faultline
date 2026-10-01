@@ -28,7 +28,7 @@
 import { useEffect, useState } from 'react';
 import { Fold } from '../ui/Fold';
 import { PaceSnags } from './PaceSnags';
-import { framesForProject, onDataChange } from '../db';
+import { framesForProject, getPaceWorkspaceId, onDataChange } from '../db';
 import { StandardsCard } from '../ui/StandardsCard';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -70,7 +70,11 @@ function useFilmed(projectId: string, tests: Test[], items: TestItem[]): { frame
   const [frames, setFrames] = useState<number | null>(null);
   useEffect(() => {
     let live = true;
-    const load = () => void framesForProject(projectId).then(f => { if (live) setFrames(f.length); });
+    /* The frames of THIS walk — the one the fold opens onto. Counting every
+       workspace on the project said "1 frame" over a body that said "No walk
+       filmed yet", because the frame was on a line's own walk. */
+    const load = () => void Promise.all([framesForProject(projectId), getPaceWorkspaceId(projectId)])
+      .then(([f, walk]) => { if (live) setFrames(f.filter(x => x.wsId === walk).length); });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
@@ -104,7 +108,11 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const done = steps.filter(t => t.outcome === 'passed').length;
   const late = [...machines, line].reduce((n, m) => n + m.late, 0);
   const going = machines.filter(m => m.total > 0 && m.done < m.total).length;
-  const onGrid = installGrid(tt.assets, tt.tests, tt.items, today, stages.stages, gate).rows.length > 0;
+  const grid = installGrid(tt.assets, tt.tests, tt.items, today, stages.stages, gate);
+  const onGrid = grid.rows.length > 0;
+  /* Stages a machine has on the grid with nothing planned in them. "1 of 2
+     steps done" over five stages read as nearly half way; it is one of five. */
+  const unplanned = grid.rows.filter(r => r.view.total > 0).reduce((n, r) => n + r.cells.filter(c => !c).length, 0);
 
   return (
     <div className="wrap pace cm-screen">
@@ -126,21 +134,12 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                 <b>{done} of {steps.length} steps done</b>
                 {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
                 {late > 0 && <span className="sub in-late">{late} late</span>}
+                {unplanned > 0 && <span className="sub">{unplanned} not planned yet</span>}
               </>}
             <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
           </p>
         </div>
       </header>
-
-      {/* THE LINE, FILMED — the evidence system, inside the gate it belongs to.
-          Film the new line, freeze the frames, and every problem on every gate
-          can be pinned on one of them. Rowland: "why can't the evidence system
-          be inside what already exists, within the install section?" */}
-      {gate === 'install' && (
-        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed)}>
-          <PaceSnags projectId={projectId} projectName={project.name} />
-        </Fold>
-      )}
 
       {onGrid
         ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate}
@@ -157,6 +156,18 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         <div className="cx-assets in-add-machine">
           <AddAsset add={tt.addAsset} />
         </div>
+      )}
+
+      {/* THE LINE, FILMED — the evidence system, inside the gate it belongs to.
+          Film the new line, freeze the frames, and every problem on every gate
+          can be pinned on one of them. Rowland: "why can't the evidence system
+          be inside what already exists, within the install section?"
+          Below the grid, not above it: the grid is what this screen is for,
+          and the film is what you reach for when the grid shows a problem. */}
+      {gate === 'install' && (
+        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed)}>
+          <PaceSnags projectId={projectId} projectName={project.name} />
+        </Fold>
       )}
 
       {gate === 'setup' && <ProgramsScreen projectId={projectId} embedded />}

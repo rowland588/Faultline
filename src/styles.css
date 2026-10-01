@@ -408,7 +408,7 @@ button { font-family: inherit; }
 @keyframes feedIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
 /* ---------- secondary-page header (Log, Settings) ---------- */
-.subhead { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.subhead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
 .back-btn {
   display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px 0 10px;
   border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
@@ -2837,7 +2837,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pset-ws { padding: 5px 9px; font-size: 12px; }
 .pset-ws + .pset-ws { margin-left: 5px; }
 .pset-x {
-  width: 26px; height: 26px; margin-left: 6px; padding: 0;
+  width: 26px; height: 26px; margin-left: 6px; padding: 0; flex-shrink: 0;
   border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
   color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer;
 }
@@ -3157,7 +3157,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media (min-width: 720px) {
   .spine { padding: 9px 20px; gap: 10px; }
   .spine-crumb, .spine-crumb.is-here { font-size: 13.5px; }
-  .spine-up { max-width: none; }
+  /* On a laptop the whole trail fits, every step of it is a button, and the
+     pill only said one of them a second time: "‹ Projects  Projects › Line 2".
+     The pill stays where it earns its place — the phone, where the trail is
+     cut to where you are. The trail is not clipped here, so no fade either
+     (it was greying the first letter of "Projects"). */
+  .spine-up { display: none; }
+  .spine-trail { -webkit-mask-image: none; mask-image: none; }
+  .spine-crumb:hover { color: var(--accent); background: var(--surface-2); }
 }
 
 /* ---------- the front door: the work first, the containers after ---------- */
@@ -6840,9 +6847,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ig-edit { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); justify-content: center; }
 .ig-edit u { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-transform: none; letter-spacing: 0; font-size: 11.5px; }
 .ig-grid tbody tr.ig-row td { border-bottom: 0; padding-bottom: 2px; }
-.ig-says-row td { padding: 0 8px 10px !important; }
+.ig-says-row td { padding: 0 12px 10px !important; }
 .ig-says {
-  position: sticky; left: 8px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+  position: sticky; left: 12px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
   max-width: min(760px, calc(100vw - 64px)); font-size: 13px; line-height: 1.4; color: var(--ink-2);
 }
 /* The sentence runs under the name and the squares both, so the machine's row

@@ -123,10 +123,12 @@ export function clientReport(x: ClientReportInput): ClientReport {
       .filter(s => s.tone === 'late' || s.tone === 'problem')
       .map(s => `${r.asset?.name ?? 'The line'} — ${s.step.title}${s.tone === 'problem' ? ' (a problem)' : ' (late)'}`));
     const tone = job.find(j => j.gate === gate)?.tone ?? 'none';
+    // Said as the gate's own screen says it — stages with nothing planned count.
+    const unplanned = rows.reduce((n, r) => n + r.cells.filter(c => c === 'none').length, 0);
     return {
       gate, label: GATE_WORD[gate], tone,
       says: steps.length === 0 ? 'Nothing kept at this gate yet'
-        : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}`,
+        : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}${unplanned ? ` · ${unplanned} not planned yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
     };
@@ -151,11 +153,13 @@ export function clientReport(x: ClientReportInput): ClientReport {
   const proofs = tests.filter(t => (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);
   const passed = proofs.filter(t => t.outcome === 'passed').length;
   const failed = proofs.filter(t => t.outcome === 'failed').length;
+  const notRun = proofs.filter(t => t.outcome === 'notRun').length;
   const endOf = (t: Test) => t.plannedTo ?? t.plannedFor;
   const commission: GateSection = {
     gate: 'commission', label: 'Commission', tone: job.find(j => j.gate === 'commission')?.tone ?? 'none',
     says: proofs.length === 0 ? 'No tests planned yet'
-      : `${passed} of ${proofs.length} passed${failed ? ` · ${failed} didn’t pass` : ''}`,
+      // Every outcome said: "2 of 5 passed · 1 didn't pass" left a test that never ran unaccounted for.
+      : `${passed} of ${proofs.length} passed${failed ? ` · ${failed} didn’t pass` : ''}${notRun ? ` · ${notRun} didn’t run` : ''}`,
     late: proofs.filter(t => t.outcome === 'failed' || t.outcome === 'notRun').map(t => `${t.title}${machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}`),
     tests: proofs.map(t => ({
       title: t.title, machine: machine(t.assetId),

@@ -372,7 +372,10 @@ export function planSays(marks: PlanMark[], today: string): string {
   const late = marks.filter(m => m.tone === 'late').length;
   const ran = marks.filter(m => m.tone === 'ran').length;
   const ahead = marks.filter(m => m.at > today).length;
-  const bits = [`${done} of ${marks.length} done`];
+  /* Counted as DATES, and said so. "3 of 10 done" printed under "10 things
+     outstanding" on the client report read as a contradiction: the ten here
+     are the dated marks on the chart, the ten there every open thing. */
+  const bits = [`${marks.length} date${marks.length === 1 ? '' : 's'}`, `${done} done`];
   if (ahead) bits.push(`${ahead} still ahead`);
   if (ran) bits.push(`${ran} waiting on a verdict`);
   if (late) bits.push(`${late} past the day`);
