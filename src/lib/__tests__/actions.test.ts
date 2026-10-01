@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { stepAction, isLate, WHOLE_PROJECT } from '../actions';
 import { statusOfAction } from '../treeBind';
 import { pillarOf } from '../pillars';
+import { actionsForBind, trackerLines } from '../treeBind';
 import type { PaceLineRow, PaceTodoRow } from '../../db';
 
 const T = '2026-10-01';
@@ -32,5 +33,19 @@ describe('a next step on the 3P board', () => {
     expect(a.lineId).toBe('l2');
     expect(a.uid).toBe('s');
     expect(stepAction(step({}), lines, T).line).toBe(WHOLE_PROJECT);
+  });
+});
+
+describe('on the lever tree, every line is its own branch', () => {
+  const two = [{ id: 'a', key: '2A', name: 'Line 2A' }, { id: 'b', key: '2B', name: 'Line 2B' }] as PaceLineRow[];
+  const onA = stepAction(step({ id: 'x', lineId: 'a', pillar: 'plant' }), two, T);
+  const onB = stepAction(step({ id: 'y', lineId: 'b', pillar: 'plant' }), two, T);
+  const every = stepAction(step({ id: 'z', pillar: 'process' }), two, T);
+  it('2A and 2B are two lines, not one "Line 2"', () => {
+    expect(trackerLines(two).map(l => l.label)).toEqual(['Line 2A', 'Line 2B']);
+  });
+  it('a box linked to 2A collects 2A’s actions only', () => {
+    expect(actionsForBind([onA, onB, every], { line: '2A' }).map(a => a.uid)).toEqual(['x']);
+    expect(actionsForBind([onA, onB, every], { allLines: true }).map(a => a.uid)).toEqual(['z']);
   });
 });

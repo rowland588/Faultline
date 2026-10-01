@@ -47,6 +47,8 @@ const spansAll = (s: string): boolean => /\ball\b/i.test(s);
  * So on the tree they are their own thing — work that belongs to the project
  * rather than to any one line — and a condition says which of the two it wants. */
 function onLine(a: PaceAction, lineKey: string): boolean {
+  // An action kept in the app knows its line exactly: 2A is not 2B.
+  if (a.lineKey !== undefined) return a.lineKey !== '' && a.lineKey === lineKey;
   const l = (a.line ?? '').trim();
   if (!l || spansAll(l)) return false;
   const want = digits(lineKey);
@@ -211,8 +213,7 @@ export function bindSources(actions: PaceAction[], todos: PaceTodoRow[], lines: 
     actions, todos,
     lineIdsFor: (lineKey) => {
       if (!lineKey) return lines.map(l => l.id);
-      const want = digits(lineKey);
-      return lines.filter(l => digits(l.key) === want).map(l => l.id);
+      return lines.filter(l => l.key === lineKey).map(l => l.id);
     },
   };
 }
@@ -314,24 +315,14 @@ export const ALL_LINES = '*all*';
  *  option is not worth offering. */
 export const allLinesCount = (actions: PaceAction[]): number => actions.filter(isAllLines).length;
 
-/** The lines AS THE TRACKER SEES THEM, one entry each, in the app's own order.
+/** The project's lines, one entry each, in the app's own order.
  *
- *  The app splits Line 2 into 2A and 2B because they are measured separately;
- *  the tracker does not, and files everything under "Line 2". Building one
- *  branch per APP line would therefore give two Line 2 branches holding an
- *  identical copy of the same 31 actions. Grouped on the digits, the four lines
- *  the app knows become the three the tracker writes — which is also the three
- *  the tree wants. */
+ *  These used to be grouped on their digits — 2A and 2B became one "Line 2" —
+ *  because the uploaded tracker filed both under "Line 2". There is no tracker
+ *  now: every action is written against one line in the app, so 2A and 2B are
+ *  two branches with their own work. Rowland: "Yes split." */
 export function trackerLines(lines: PaceLineRow[]): { key: string; label: string }[] {
-  const out: { key: string; label: string }[] = [];
-  const seen = new Set<string>();
-  for (const l of lines) {
-    const d = digits(l.key) || digits(l.name ?? '');
-    if (!d || seen.has(d)) continue;
-    seen.add(d);
-    out.push({ key: l.key, label: `Line ${d}` });
-  }
-  return out;
+  return lines.filter(l => l.key).map(l => ({ key: l.key, label: l.name || `Line ${l.key}` }));
 }
 
 

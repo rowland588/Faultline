@@ -40,6 +40,10 @@ export interface PaceAction {
   /** The line it belongs to, by id, when it came from a next step (see
    *  lib/actions.ts). Absent on an action spanning every line. */
   lineId?: string;
+  /** Its line's key ('2A', '7'), or '' for work on every line — set on an
+   *  action kept in the app, so the lever tree matches 2A and 2B apart rather
+   *  than by the digits a workbook's "Line 2" needed. */
+  lineKey?: string;
 }
 
 /** One row of a Pareto sheet: where the time went, ranked. */
