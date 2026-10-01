@@ -517,7 +517,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
               {!embedded && <>What this line has to be able to run, whether the program exists yet, and when we
               find out it works. Having a program is not the same as trusting it — so there are three states
               here, not two, and proved always carries the day it was proved. </>}Nothing on the list yet. Add
-              the programs this line needs, or paste the list from wherever it already lives.
+              the programs this line needs, below.
             </p>
           </div>
         </>

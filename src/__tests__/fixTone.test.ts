@@ -11,7 +11,7 @@ describe('the colour a fix wears', () => {
   it('tried and did not fix it is red', () => expect(fixTone(fix({ outcome: 'failed', ranOn: '2026-09-29' }), TODAY).tone).toBe('late'));
   it('due today, tomorrow or within three days is amber', () => {
     expect(fixTone(fix({ plannedFor: TODAY }), TODAY)).toEqual({ tone: 'soon', when: 'Due today' });
-    expect(fixTone(fix({ plannedFor: '2026-10-01' }), TODAY)).toEqual({ tone: 'soon', when: 'Due tomorrow' });
+    expect(fixTone(fix({ plannedFor: '2026-10-01' }), TODAY)).toEqual({ tone: 'soon', when: 'Due tomorrow · 1 Oct' });
     expect(fixTone(fix({ plannedFor: '2026-10-03' }), TODAY).tone).toBe('soon');
   });
   it('further off, or with no date, is blue', () => {

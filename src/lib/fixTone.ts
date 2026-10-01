@@ -29,7 +29,11 @@ export function fixTone(t: Test, today = todayISO()): { tone: FixTone; when: str
   if (!end) return { tone: 'ahead', when: 'No date yet' };
   const left = daysBetween(today, end);
   if (left <= DUE_SOON_DAYS) {
-    return { tone: 'soon', when: left <= 0 ? 'Due today' : left === 1 ? 'Due tomorrow' : `Due in ${left} days · ${nice(end)}` };
+    /* The DATE goes with "tomorrow" because this same line is printed on the
+       client report: a sheet read three days later still says "tomorrow", and
+       the day beside it is the only part that stays true. "Today" needs none
+       — it is the day the sheet is printed. */
+    return { tone: 'soon', when: left <= 0 ? 'Due today' : left === 1 ? `Due tomorrow · ${nice(end)}` : `Due in ${left} days · ${nice(end)}` };
   }
   return { tone: 'ahead', when: windowOf(t.plannedFor, t.plannedTo, nice) };
 }

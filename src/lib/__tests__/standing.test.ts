@@ -419,7 +419,28 @@ describe('the sentence', () => {
 
   it('says nothing is outstanding when nothing is', () => {
     const s = at({ tests: [test({ outcome: 'passed' })] });
-    expect(s.sentence).toBe('Nothing outstanding. 1 of 1 tests have run.');
+    expect(s.sentence).toBe('Nothing outstanding. 1 of 1 test has run.');
+  });
+
+  it('counts tests, not the fixes raised from them, in "N of M have run"', () => {
+    const t1 = test({ id: 'a', outcome: 'passed' });
+    const fix = test({ id: 'f', kind: 'fix', outcome: 'passed', fromTestId: 'a' });
+    expect(at({ tests: [t1, fix] }).sentence).toBe('Nothing outstanding. 1 of 1 test has run.');
+  });
+
+  /* A failed test is settled and has nothing after it to be owed, so the counts
+     say zero — over a thing the client has not been shown working. */
+  it('does not say nothing is outstanding over a test that failed and was never booked again', () => {
+    const s = at({ tests: [test({ id: 'a', outcome: 'failed', ranOn: '2026-09-28' })] });
+    expect(s.sentence).toBe('Nothing booked, but one test did not pass and has no re-test planned.');
+  });
+
+  it('is satisfied once a re-test has passed, and still owes while a re-test is booked', () => {
+    const failed = test({ id: 'a', outcome: 'failed', ranOn: '2026-09-28' });
+    const passedAfter = test({ id: 'b', fromTestId: 'a', outcome: 'passed', ranOn: '2026-09-29' });
+    expect(at({ tests: [failed, passedAfter] }).sentence).toContain('Nothing outstanding.');
+    const booked = test({ id: 'c', fromTestId: 'a', outcome: 'planned', plannedFor: '2026-10-06' });
+    expect(at({ tests: [failed, booked] }).sentence).toContain('1 thing outstanding');
   });
 
   it('does not pretend there is a job when nothing has been planned', () => {

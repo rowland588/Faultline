@@ -11,7 +11,8 @@
  *   coming, then what nobody has dated, then what is already in. This is where
  *   the editing happens, so nothing has to be typed into a grid cell.
  *
- * The plan is PASTED, not retyped: it lives in a spreadsheet and always will.
+ * The plan is kept here, one thing at a time — nothing is pasted in from a
+ * spreadsheet any more.
  */
 import { useState } from 'react';
 import { nav } from '../state/useRoute';

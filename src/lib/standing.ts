@@ -29,7 +29,7 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  assetStateOf, gateOf, hasRun, isOverdue, isSettled, live, needsVerdict,
+  assetStateOf, gateOf, hasRun, isOverdue, isSettled, live, needsVerdict, titleOnMachine,
   type Asset, type Test, type TestItem,
 } from './testing';
 
@@ -239,7 +239,7 @@ export function standing(input: StandingInput): Standing {
          and for the same reason — it occupies time rather than happening on a
          day. Nothing new had to be drawn for this. */
       until: until && until > at ? until : undefined,
-      label: t.title,
+      label: titleOnMachine(t, tests, assets),
       /* notRun is "the day has gone" (hollow red), not "ran, didn't pass"
          (filled red) — the key says filled means it happened, and it didn't.
          Ran and not yet called is its own thing: it happened (filled), and
@@ -293,9 +293,22 @@ export function standing(input: StandingInput): Standing {
 
   return {
     /* "N of M tests have run" is about tests — an install step is not one. */
-    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests: tests.filter(t => !isStep(t)) }),
+    sentence: sentenceFor({ daysToGo, slipDays, late, outstanding, rows, tests: tests.filter(t => !isStep(t) && !isFix(t)), unanswered: unanswered(tests) }),
     daysToGo, slipDays, outstanding, late, rows, plan,
   };
+}
+
+/** Tests that did not pass and have nothing after them: no re-test booked or
+ *  run that passed, none still to run. A re-test that is still to run is
+ *  already counted as owed, so it does not show up here too. */
+export function unanswered(all: Test[]): number {
+  const tests = live(all).filter(t => t.kind !== 'fix' && t.kind !== 'install');
+  const kids = (t: Test) => tests.filter(c => c.fromTestId === t.id);
+  const passedAfter = (t: Test, depth = 0): boolean =>
+    depth < 12 && kids(t).some(c => c.outcome === 'passed' || passedAfter(c, depth + 1));
+  const openAfter = (t: Test, depth = 0): boolean =>
+    depth < 12 && kids(t).some(c => !isSettled(c) || c.outcome === 'notRun' || openAfter(c, depth + 1));
+  return tests.filter(t => t.outcome === 'failed' && !passedAfter(t) && !openAfter(t)).length;
 }
 
 /** What somebody would say out loud if you asked where the job is.
@@ -306,13 +319,20 @@ export function standing(input: StandingInput): Standing {
  *  the only question a client actually asked. */
 function sentenceFor(x: {
   daysToGo?: number; slipDays?: number; late: number; outstanding: number;
-  rows: OutstandingRow[]; tests: Test[];
+  rows: OutstandingRow[]; tests: Test[]; unanswered: number;
 }): string {
   const ran = x.tests.filter(hasRun).length;
 
   if (x.outstanding === 0) {
+    /* NOT "nothing outstanding" over a test that failed and was never booked
+       again. It is on no list — a failed test is settled, and no re-test
+       exists to be owed — so the count says zero while the client has not
+       been shown that thing working. Said out loud instead. */
+    if (x.unanswered > 0) {
+      return `Nothing booked, but ${x.unanswered === 1 ? 'one test did' : `${x.unanswered} tests did`} not pass and ${x.unanswered === 1 ? 'has' : 'have'} no re-test planned.`;
+    }
     return x.tests.length
-      ? `Nothing outstanding. ${ran} of ${x.tests.length} tests have run.`
+      ? `Nothing outstanding. ${ran} of ${x.tests.length} ${x.tests.length === 1 ? 'test has' : 'tests have'} run.`
       : 'Nothing outstanding, and nothing planned yet.';
   }
 

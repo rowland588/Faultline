@@ -23,7 +23,7 @@
  */
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
-import { assetStateOf, isOverdue, isSettled, isTestFace, live, plannedEnd } from './testing';
+import { assetStateOf, isOverdue, isSettled, isTestFace, live, plannedEnd, titleOnMachine } from './testing';
 import { jobJourney, journeyNow, type JourneyGate, type GateTone } from './install';
 import type { Material } from './materials';
 import { isHere } from './materials';
@@ -181,7 +181,7 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
     const owed = !isSettled(t) || t.outcome === 'notRun';
     if (!owed) continue;
     out.push({
-      ...base, kind: t.kind ?? 'test', id: t.id, what: t.title,
+      ...base, kind: t.kind ?? 'test', id: t.id, what: titleOnMachine(t, j.tests, j.assets),
       who: t.withWhom ?? '', on: plannedEnd(t), late: isOverdue(t, today),
     });
   }

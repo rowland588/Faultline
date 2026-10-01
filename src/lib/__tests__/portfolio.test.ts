@@ -272,3 +272,51 @@ describe('every job on every method', () => {
     expect(pacedSays({ atTarget: 2, judged: 2, open: 0, late: 0, any: true })).toBe('2 of 2 lines at target, with nothing open on the board.');
   });
 });
+
+/* THE SAME STEP ON THREE MACHINES IS THREE THINGS, NOT ONE THING SAID THREE
+ * TIMES. Rowland: Home listed two planned things that "both say the same
+ * thing". Install steps are written once per machine from one stage list, and
+ * the board printed only the step's name. */
+describe('the same step on more than one machine', () => {
+  const wrapper = asset({ id: 'wr', name: 'Wrapper', state: 'running' });
+  const pnp = asset({ id: 'pp', name: 'Pick and place', state: 'running' });
+  const mk = (assets: Asset[]) => job(project({ id: 'm', name: 'Line 3' }), {
+    assets,
+    tests: [
+      test({ kind: 'install', title: 'Dry run', assetId: 'wr', plannedFor: '2026-10-01', withWhom: 'Ilapak UK' }),
+      test({ kind: 'install', title: 'Dry run', assetId: 'pp', plannedFor: '2026-10-01', withWhom: 'Ilapak UK' }),
+    ],
+  });
+
+  it('says which machine, so no two rows read alike', () => {
+    const what = jobItems(mk([wrapper, pnp]), TODAY).map(x => x.what).sort();
+    expect(what).toEqual(['Pick and place — Dry run', 'Wrapper — Dry run']);
+    expect(new Set(what).size).toBe(2);
+  });
+
+  it('leaves the words alone when nothing else reads the same', () => {
+    const j = job(project({ id: 'm', name: 'Line 3' }), {
+      assets: [wrapper, pnp],
+      tests: [
+        test({ kind: 'install', title: 'Dry run', assetId: 'wr', plannedFor: '2026-10-01' }),
+        test({ kind: 'install', title: 'Guards fitted', assetId: 'pp', plannedFor: '2026-10-01' }),
+      ],
+    });
+    expect(jobItems(j, TODAY).map(x => x.what).sort()).toEqual(['Dry run', 'Guards fitted']);
+  });
+
+  it('does the same on a job with one machine — there is nothing to say apart', () => {
+    const j = job(project({ id: 'm', name: 'Line 3' }), {
+      assets: [wrapper],
+      tests: [test({ kind: 'install', title: 'Dry run', assetId: 'wr', plannedFor: '2026-10-01' })],
+    });
+    expect(jobItems(j, TODAY).map(x => x.what)).toEqual(['Dry run']);
+  });
+
+  it('puts the machine on the calendar dot too, so the dot and the row agree', () => {
+    const j = mk([wrapper, pnp]);
+    const labels = standing({ tests: j.tests, items: [], materials: [], programs: [], assets: j.assets, today: TODAY })
+      .plan.filter(m => m.kind !== 'machine').map(m => m.label).sort();
+    expect(labels).toEqual(['Pick and place — Dry run', 'Wrapper — Dry run']);
+  });
+});

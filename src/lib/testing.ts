@@ -542,6 +542,28 @@ export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerd
  *
  *  This decides both lists, the verdict's count, the row in what we are waiting
  *  on and whether something can be late — so it is asked in one place. */
+/** A record's words, with its machine in front ONLY where two records would
+ *  otherwise read the same.
+ *
+ *  Install and set-up steps are written once per machine from the same stage
+ *  list, so a job with three machines owes "Dry run" three times — three rows
+ *  saying the same words that differ only by something the row did not print.
+ *  With the machine in front ("Pick and place — Dry run", as the day report
+ *  already says it) they are three different things to do. A title nothing
+ *  else shares is left exactly as it was written: prefixing every row with its
+ *  machine would bury the words people actually look for. */
+export const titleOnMachine = (
+  t: Pick<Test, 'id' | 'title' | 'assetId'>,
+  all: Pick<Test, 'id' | 'title' | 'assetId' | 'deletedAt'>[],
+  assets: Pick<Asset, 'id' | 'name' | 'deletedAt'>[],
+): string => {
+  const m = t.assetId ? assets.find(a => a.id === t.assetId && !a.deletedAt) : undefined;
+  if (!m) return t.title;
+  const key = t.title.trim().toLowerCase();
+  const shared = all.some(o => !o.deletedAt && o.id !== t.id && o.assetId !== t.assetId && o.title.trim().toLowerCase() === key);
+  return shared ? `${m.name} — ${t.title}` : t.title;
+};
+
 export const isSettled = (t: Test): boolean =>
   /* An install step is off the list when it is DONE, like a fix — one that
      hit a problem is still a step the machine has not got past. */
