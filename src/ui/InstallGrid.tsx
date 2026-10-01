@@ -17,7 +17,7 @@
 import { Fragment, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
-import { installGrid, type StepView, type usualStages } from '../lib/install';
+import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
@@ -104,7 +104,14 @@ export function InstallGrid({ tt, project, stages, otherName }: {
     if (open.t === 'stages') {
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
-          <UsualStages project={project} usual={stages} otherName={otherName} />
+          <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests}
+            renameSteps={async (pairs) => {
+              const done: { id: string; title: string }[] = [];
+              for (const { from, to } of pairs) {
+                for (const t of stepsNamed(tt.tests, from)) { await tt.patchTest(t.id, { title: to }); done.push({ id: t.id, title: t.title }); }
+              }
+              if (done.length) offerUndo(`Renamed ${done.length} step${done.length === 1 ? '' : 's'} to match`, async () => { for (const d of done) await tt.patchTest(d.id, { title: d.title }); });
+            }} />
         </Sheet>
       );
     }
@@ -156,6 +163,54 @@ export function InstallGrid({ tt, project, stages, otherName }: {
       const steps = cells.filter((c): c is StepView => !!c).map(c => c.step);
       const left = steps.filter(t => !isSettled(t));
       const lacking = grid.rows.filter((_r, i) => !cells[i]).map(r => ({ title: col, assetId: r.asset?.id }));
+      /* NOT ONE OF THE JOB'S STAGES — a name steps were given before the
+         stages were edited. Say so, and offer the two ways to clear it: move
+         them into a stage, or remove the ones nobody has touched. */
+      if (open.col >= usual.length) {
+        const fresh = steps.filter(t => untouched(t, tt.tests, tt.items));
+        const worked = steps.filter(t => !untouched(t, tt.tests, tt.items));
+        return (
+          <Sheet title={col} sub={`Not one of the job’s stages · on ${steps.length} machine${steps.length === 1 ? '' : 's'}`} onClose={() => setOpen(null)}>
+            <p className="ig-why">
+              Steps were given this name before the stages changed, so it shows as a column of its own.
+              Move them into one of the stages, or remove the ones never started.
+            </p>
+            <label className="cw-f ig-f"><span>Move them into</span>
+              <select defaultValue="" onChange={e => {
+                const target = e.target.value;
+                if (!target) return;
+                const { move, clash } = foldInto(steps, tt.tests, target);
+                if (!move.length) { alert(`Every machine here already has “${target}”. Open the steps to remove or rename them one by one.`); return; }
+                if (clash.length && !confirm(`${move.length} will move into “${target}”. ${clash.length} stay${clash.length === 1 ? 's' : ''} where ${clash.length === 1 ? 'it is' : 'they are'} — ${clash.length === 1 ? 'that machine' : 'those machines'} already ${clash.length === 1 ? 'has' : 'have'} it.`)) return;
+                void (async () => {
+                  for (const t of move) await tt.patchTest(t.id, { title: target });
+                  offerUndo(`Moved ${move.length} into “${target}”`, async () => { for (const t of move) await tt.patchTest(t.id, { title: t.title }); });
+                })();
+                setOpen(null);
+              }}>
+                <option value="">Choose a stage…</option>
+                {usual.map(u => <option key={u} value={u}>{u}</option>)}
+              </select></label>
+            {fresh.length > 0 && (
+              <button className="btn ig-big ig-bad" onClick={() => {
+                if (!confirm(`Remove “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}? None of them was started.`)) return;
+                void (async () => {
+                  const back: (() => Promise<void>)[] = [];
+                  for (const t of fresh) back.push(await deleteTest(t.id, projectId));
+                  offerUndo(`Removed “${col}” from ${fresh.length} machine${fresh.length === 1 ? '' : 's'}`, async () => { for (const r of back) await r(); });
+                })();
+                setOpen(null);
+              }}>Remove from the {fresh.length === 1 ? 'one' : fresh.length} never started</button>
+            )}
+            {worked.length > 0 && (
+              <p className="sub tw-note">
+                {worked.length === 1 ? 'One has' : `${worked.length} have`} work on {worked.length === 1 ? 'it' : 'them'} — done, written up or pictured — so {worked.length === 1 ? 'it is' : 'they are'} kept.
+                Move {worked.length === 1 ? 'it' : 'them'} into a stage above, or open {worked.length === 1 ? 'it' : 'each'} to decide.
+              </p>
+            )}
+          </Sheet>
+        );
+      }
       return (
         <Sheet title={col} sub={`${steps.length - left.length} of ${grid.rows.length} machines done`} onClose={() => setOpen(null)}>
           <div className="ig-acts">

@@ -188,3 +188,46 @@ export function installGrid(assets: Asset[], tests: Test[], items: TestItem[], t
   });
   return { columns, rows };
 }
+
+/* ------------------------- A STAGE THAT WAS CHANGED -------------------------
+ *
+ * Rowland: "I/O checked is in the six standard, making it seven, but I can't
+ * remove it." Editing the usual stages changes what the NEXT machine gets; the
+ * steps already on machines are records of their own and kept their old name,
+ * so the grid — which shows every step name in use — grew a seventh column
+ * with nothing on screen to clear it. These are the three readings that let
+ * him: what was renamed, which steps can move into a stage, and which were
+ * never touched and can simply go. */
+
+/** Stages renamed in an edit: same place in the list, a new name, and the old
+ *  name gone. A stage moved, added or removed is not a rename. */
+export function stageRenames(before: readonly string[], after: readonly string[]): { from: string; to: string }[] {
+  const has = (list: readonly string[], s: string) => list.some(x => stageKey(x) === stageKey(s));
+  const out: { from: string; to: string }[] = [];
+  for (let i = 0; i < Math.min(before.length, after.length); i++) {
+    const from = before[i], to = after[i];
+    if (stageKey(from) !== stageKey(to) && !has(after, from) && !has(before, to)) out.push({ from, to });
+  }
+  return out;
+}
+
+/** The install steps called `name` — on any machine, or the line itself. */
+export const stepsNamed = (tests: Test[], name: string): Test[] =>
+  live(tests).filter(t => t.kind === 'install' && stageKey(t.title) === stageKey(name));
+
+/** Moving steps into another stage: each moves unless its machine already has
+ *  that stage — then it stays, rather than making two of the same square. */
+export function foldInto(steps: Test[], tests: Test[], target: string): { move: Test[]; clash: Test[] } {
+  const holders = new Set(stepsNamed(tests, target).map(t => t.assetId ?? ''));
+  const move: Test[] = [], clash: Test[] = [];
+  for (const t of steps) (holders.has(t.assetId ?? '') ? clash : move).push(t);
+  return { move, clash };
+}
+
+/** Never touched: still planned, no day it ran, nothing written under it, no
+ *  pictures, no fix for it. The only steps the app offers to remove in bulk. */
+export function untouched(t: Test, tests: Test[], items: TestItem[]): boolean {
+  return t.outcome === 'planned' && !t.ranOn && !(t.result ?? '').trim() && !(t.media ?? []).length
+    && !live(items).some(i => i.testId === t.id)
+    && !live(tests).some(f => f.kind === 'fix' && f.fromTestId === t.id);
+}

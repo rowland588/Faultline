@@ -5,7 +5,7 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { cleanStages, installGrid, installOf, usualStages } from '../install';
+import { cleanStages, foldInto, installGrid, installOf, stageRenames, untouched, usualStages } from '../install';
 import { standing } from '../standing';
 import { INSTALL_STAGES, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
@@ -197,5 +197,33 @@ describe('the grid: every machine at once', () => {
     expect(installGrid([packer], steps, [], TODAY, usual).rows).toHaveLength(1);
     const lineStep = step({ title: 'Mezzanine handrail' });
     expect(installGrid([packer], [...steps, lineStep], [], TODAY, usual).rows.map(r => r.asset?.name ?? 'line')).toEqual(['Case packer', 'line']);
+  });
+});
+
+describe('a stage that was changed', () => {
+  it('reads a rename: same place, new name, old name gone', () => {
+    const before = ['Positioned and levelled', 'Air and power connected', 'Sensors and controls checked (I/O)', 'Dry run'];
+    expect(stageRenames(before, ['Positioned and levelled', 'Air and power connected', 'I/O checked', 'Dry run']))
+      .toEqual([{ from: 'Sensors and controls checked (I/O)', to: 'I/O checked' }]);
+    /* moved, added or removed is not a rename */
+    expect(stageRenames(before, ['Air and power connected', 'Positioned and levelled', 'Sensors and controls checked (I/O)', 'Dry run'])).toEqual([]);
+    expect(stageRenames(before, [...before, 'Guards on'])).toEqual([]);
+  });
+  it('moves steps into a stage, except where the machine already has it', () => {
+    const a = asset({ id: 'a' }), b = asset({ id: 'b', name: 'Coder' });
+    const old = [step({ id: 's1', title: 'Sensors and controls checked (I/O)', assetId: a.id }), step({ id: 's2', title: 'Sensors and controls checked (I/O)', assetId: b.id })];
+    const tests = [...old, step({ id: 's3', title: 'I/O checked', assetId: b.id })];
+    const { move, clash } = foldInto(old, tests, 'I/O checked');
+    expect(move.map(t => t.id)).toEqual(['s1']);
+    expect(clash.map(t => t.id)).toEqual(['s2']);
+  });
+  it('only offers to remove steps nobody has touched', () => {
+    const fresh = step({ id: 'f', title: 'X' });
+    const done = step({ id: 'd', title: 'X', outcome: 'passed', ranOn: '2026-09-20' });
+    const written = step({ id: 'w', title: 'X' });
+    const fixed = step({ id: 'x', title: 'X' });
+    const tests = [fresh, done, written, fixed, { ...step({ id: 'fx', title: 'Send the part' }), kind: 'fix' as const, fromTestId: 'x' }];
+    const items = [found('w', 'Bracket holes do not line up')];
+    expect([fresh, done, written, fixed].filter(t => untouched(t, tests, items)).map(t => t.id)).toEqual(['f']);
   });
 });

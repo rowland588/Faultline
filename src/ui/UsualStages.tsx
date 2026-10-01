@@ -3,25 +3,55 @@
  *
  * Rowland: "Allow me to edit the 6 install names that you have made as
  * default." Changing them changes what the NEXT machine gets. A step already
- * on a machine is its own record and is renamed on its own page — rewriting
- * those behind somebody's back would change what the client was already sent.
+ * on a machine is its own record, and is never rewritten behind somebody's
+ * back — that would change what the client was already sent.
+ *
+ * But renaming a stage and leaving its old name on every machine is how the
+ * grid grew a seventh column nobody could remove. So a rename ASKS, once,
+ * whether the steps already called the old name should take the new one.
  */
 import { useState } from 'react';
 import { updateProject } from '../db';
-import { cleanStages, type usualStages } from '../lib/install';
-import { INSTALL_STAGES } from '../lib/testing';
+import { cleanStages, stageRenames, stepsNamed, type usualStages } from '../lib/install';
+import { INSTALL_STAGES, type Test } from '../lib/testing';
 import type { Project } from '../types';
 
-export function UsualStages({ project, usual, otherName }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps }: {
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
+  /** The job's records, to count the steps a rename would touch. */
+  tests?: Test[];
+  renameSteps?: (pairs: { from: string; to: string }[]) => Promise<void>;
 }) {
   const [draft, setDraft] = useState<string[] | null>(null);
+  /* Renames that have steps on machines still wearing the old name. */
+  const [asking, setAsking] = useState<{ from: string; to: string; n: number }[] | null>(null);
 
   const save = async () => {
     if (!draft) return;
+    const after = cleanStages(draft) ?? [...INSTALL_STAGES];
+    const renamed = stageRenames(usual.stages, after)
+      .map(r => ({ ...r, n: stepsNamed(tests, r.from).length }))
+      .filter(r => r.n > 0);
     await updateProject({ ...project, installStages: cleanStages(draft), updatedAt: Date.now() });
     setDraft(null);
+    if (renamed.length && renameSteps) setAsking(renamed);
   };
+
+  if (asking) {
+    return (
+      <section className="in-usual is-asking">
+        <div className="in-usual-h"><b>Rename the steps already on machines?</b></div>
+        <ul className="in-usual-list">
+          {asking.map(r => <li key={r.from}>“{r.from}” → “{r.to}” · on {r.n} machine{r.n === 1 ? '' : 's'}</li>)}
+        </ul>
+        <div className="in-usual-go">
+          <button className="btn btn-primary" onClick={() => void (async () => { await renameSteps?.(asking); setAsking(null); })()}>Rename them too</button>
+          <button className="btn btn-ghost" onClick={() => setAsking(null)}>Keep their old names</button>
+        </div>
+        <p className="sub tw-note">Keeping them leaves the old name as a column of its own on the grid.</p>
+      </section>
+    );
+  }
   const set = (i: number, v: string) => setDraft(d => (d ? d.map((x, k) => (k === i ? v : x)) : d));
   const move = (i: number, by: number) => setDraft(d => {
     if (!d) return d;
