@@ -36,6 +36,7 @@ const LeverTree = lazy(() => import('./screens/LeverTree').then(m => ({ default:
 const BoardScreen = lazy(() => import('./screens/BoardScreen').then(m => ({ default: m.BoardScreen })));
 const ParetoScreen = lazy(() => import('./screens/ParetoScreen').then(m => ({ default: m.ParetoScreen })));
 const StandardScreen = lazy(() => import('./screens/StandardScreen').then(m => ({ default: m.StandardScreen })));
+const NotesScreen = lazy(() => import('./screens/NotesScreen').then(m => ({ default: m.NotesScreen })));
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 import { RequireModel } from './ui/RequireModel';
 import { BootSplash } from './ui/Logo';
@@ -109,6 +110,7 @@ function app(route: Route) {
   if (route.name === 'day' && route.id) return <DayScreen projectId={route.id} />;
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsScreen projectId={route.id} />;
+  if (route.name === 'notes' && route.id) return <NotesScreen projectId={route.id} />;
   if (route.name === 'standard' && route.id) return <StandardScreen projectId={route.id} standardId={route.lineId} />;
   /* Narrowed once rather than asserted three times: a test route without a
      project is not a screen, it is a bad link, and it falls through to the

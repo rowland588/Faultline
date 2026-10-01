@@ -7273,3 +7273,20 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .ls-tool { flex: none; }
   .ls-tools-say { display: none; }
 }
+
+/* ---- Meeting notes (screens/NotesScreen) — what to raise, written beforehand. ---- */
+.nt-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; }
+.nt-add { display: grid; gap: 8px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.nt-add-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.nt-about { display: grid; gap: 3px; flex: 1 1 260px; min-width: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.nt-about select { font: inherit; font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); min-width: 0; }
+.nt-group { margin-top: 14px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.nt-group-h { margin: 0 0 6px; font-size: 13px; font-weight: 800; color: var(--ink-2); }
+.nt-toggle { all: unset; cursor: pointer; font-size: 13px; font-weight: 800; color: var(--muted); }
+.nt-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.nt-row:first-of-type { border-top: 0; }
+.nt-what { font-size: 15px; line-height: 1.4; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; padding-top: 2px; }
+.nt-row.is-done .nt-what { color: var(--muted); text-decoration: line-through; }
+.nt-x { border: 0; background: none; font-size: 20px; line-height: 1; color: var(--muted); cursor: pointer; padding: 2px 6px; }
+.nt-x:hover { color: var(--danger); }
+.nt-about-sm { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); }

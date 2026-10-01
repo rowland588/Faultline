@@ -39,6 +39,7 @@ import { uncoveredAreas } from '../lib/paceLineMatch';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
+import { listTestItems, onDataChange } from '../db';
 import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
@@ -419,6 +420,25 @@ function DayLink({ projectId }: { projectId: string }) {
   );
 }
 
+/** "Meeting notes · 3" — the notes still to raise, one tap from the project. */
+function NotesButton({ projectId }: { projectId: string }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const load = () => void listTestItems(projectId).then(rows => {
+      if (live) setN(rows.filter(i => i.kind === 'note' && !i.deletedAt && i.doneAt == null).length);
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId]);
+  return (
+    <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/notes`)}>
+      Meeting notes{n > 0 && <span className="nt-badge">{n}</span>}
+    </button>
+  );
+}
+
 function TestingOverview({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
@@ -618,6 +638,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               reason: the two answer one question between them — what is this
               line waiting on. A machine with no program is as stopped as a
               machine with no film. */}
+          {/* What to raise at the next meeting — every method has meetings. */}
+          <NotesButton projectId={projectId} />
           {model !== 'commissioning' && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
           )}

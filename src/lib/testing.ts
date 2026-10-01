@@ -389,7 +389,15 @@ export interface Test {
  * but a second mapper and a second migration.
  */
 
-export type ItemKind = 'found' | 'next';
+/* A NOTE FOR THE MEETING is the third kind, and the same shape again: a line
+   of words, on a step — or on the whole job, which is a testId of ''. Ticked
+   (doneAt) once it has been raised. Rowland: "write in preparation for a
+   meeting so I don't forget what I want to talk about … associated to either
+   a step or the entire project." Private preparation: no document prints it. */
+export type ItemKind = 'found' | 'next' | 'note';
+
+/** The testId a note about the whole project carries. */
+export const WHOLE_JOB = '';
 
 export interface TestItem {
   id: ID;

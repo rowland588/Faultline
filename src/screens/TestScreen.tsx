@@ -328,6 +328,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             : 'Nothing written down yet. This is the part that matters most.'} />
       )}
 
+      {/* FOR THE MEETING — what to raise about this one, written beforehand.
+          The same list as every project note (the Notes screen), filed here. */}
+      <Items kind="note" test={test} tt={tt} onView={setViewing}
+        heading="For the meeting"
+        placeholder="Something to raise about this?"
+        empty="Anything you want to bring up about this at the next meeting — write it here so it isn't forgotten." />
+
       {/* 4 · THE FIXES FOR THIS TEST. Listed here, made on the Fixes screen —
           the button goes there with this test already picked. */}
       {kind !== 'fix' && <NextFixes test={test} tt={tt} />}
@@ -492,6 +499,8 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView, glow, focu
    * observation is written down; it is not open. */
   const count = kind === 'found'
     ? foundWords({ written: rows.length })
+    : kind === 'note'
+      ? (() => { const open = rows.filter(r => r.doneAt == null).length; return open ? `${open} to raise` : 'all raised'; })()
     : (() => {
         const open = rows.filter(r => r.doneAt == null).length;
         return open > 0 ? `${open} to do of ${rows.length}` : `${rows.length} done`;
@@ -634,7 +643,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
     <div className={'tw-item' + (done && !observation ? ' is-done' : '') + (observation ? ' is-note' : '')}>
       {tick && (
         <button className={'tw-tick' + (done ? ' is-on' : '')}
-          aria-label={done ? 'Re-open' : 'Mark done'} onClick={tick}>
+          aria-label={item.kind === 'note' ? (done ? 'Not raised yet' : 'Raised') : done ? 'Re-open' : 'Mark done'} onClick={tick}>
           {done ? TICK : null}
         </button>
       )}
@@ -644,7 +653,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
         <span className="sub">
           {item.owner ?? (item.kind === 'next' ? 'nobody yet' : '')}
           {item.due && ` · by ${nice(item.due)}`}
-          {!observation && done && ' · done'}
+          {!observation && done && (item.kind === 'note' ? ' · raised' : ' · done')}
           {/* ONE PHRASE, NOT TWO. Saying both "a fix" and "became a fix" on the
               same row is the sort of thing that only shows up when you look at
               it: the record it became is the more useful of the two, because it
