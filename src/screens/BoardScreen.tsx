@@ -188,7 +188,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Board' },
       ]} />
-      <Peers peers={methodPeers(projectId, 'board', 'board', counts)} />
+      <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'board', counts)} />
 
       <header className="cm-head">
         <div>

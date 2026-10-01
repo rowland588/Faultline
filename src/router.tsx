@@ -94,7 +94,8 @@ function app(route: Route) {
   }
   if (route.name === 'board' && route.id) {
     const id = route.id;
-    return <RequireModel projectId={id} model="board"><BoardScreen projectId={id} /></RequireModel>;
+    // A lever tree job writes its actions here too — the tree fills from them.
+    return <RequireModel projectId={id} model={['board', 'tree']}><BoardScreen projectId={id} /></RequireModel>;
   }
   if (route.name === 'pareto' && route.id) {
     const id = route.id;

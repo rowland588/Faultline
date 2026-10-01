@@ -66,6 +66,11 @@ export interface Seeded {
   programs: number;
   /** A line standard map on the commissioning job. */
   standardId: string;
+  /** A project on the lever tree model, with a tree, a bound condition, a
+   *  Pareto switched on and actions on its board — the smoke test used to
+   *  open the tree on the stage-gate job, which bounced to its front page, so
+   *  the tree had never been rendered by it. */
+  treeProjectId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -353,6 +358,27 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     act('Look at the reject bin full by 10am', { lineId: otherLine.id }),
   ]) await putPaceTodo(a);
 
+  /* A PROJECT ON THE LEVER TREE: an outcome, a line under it, a condition
+     bound to the board (so the tree draws derived rows), a Pareto, and actions
+     written on its board against its own line. */
+  const tree = await createProject('Line 2B to 60 ppm', '#7c3aed', 'Rowland', 'r@example.com', 'tree');
+  await updateProject({ ...tree, pareto: true, updatedAt: t });
+  const treeLine = await addPaceLine({ projectId: tree.id, key: '2B', name: 'Line 2B', owner: 'Rob Scott', sponsor: 'Tanya', sort: 0 });
+  const treeBox = (text: string, sort: number, o: Partial<TreeNodeRow> = {}): TreeNodeRow =>
+    ({ id: uid(), projectId: tree.id, text, rag: 'n', sort, createdAt: t, updatedAt: t, ...o });
+  const outcome = treeBox('Line 2B holds 60 ppm', 0);
+  const truth = treeBox('Line 2B achieves its ppm rate', 0, { parentId: outcome.id });
+  const cond = treeBox('The machine runs without stopping us', 0, { parentId: truth.id, bind: { line: '2B', categories: ['Plant'] } });
+  for (const n of [outcome, truth, cond]) await putTreeNode(n);
+  for (const a of [
+    { what: 'Replace the worn sealing jaw', pillar: 'plant' as const, who: 'Engineering', due: iso(-1) },
+    { what: 'Re-time the infeed to the sealer', pillar: 'plant' as const, who: 'Rob Scott', due: iso(6) },
+    { what: 'Night shift trained on the splice', pillar: 'people' as const, who: 'Rob Scott', due: iso(4), state: 'done' as const },
+  ]) await putPaceTodo({
+    id: uid(), projectId: tree.id, lineId: treeLine.id, where: '', why: '', when: '', state: 'todo',
+    createdAt: t, updatedAt: t, ...a,
+  });
+
   /* WHAT THE JOB IS WAITING ON — one of each state, because the grid, the list
      order and the "late" banner all read differently per state and a fixture
      that is all one thing proves none of them. */
@@ -430,7 +456,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     testId: seal.id,
     stepId: airDrop.id,
     pastDay: iso(-7),
-    pacedProjectId: paced.id, pacedLineId: pacedLine.id,
+    pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
   };
 }

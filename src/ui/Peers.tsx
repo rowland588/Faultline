@@ -109,9 +109,10 @@ export function methodPeers(projectId: string, method: 'board' | 'tree', here: s
     label, to, on: here === key, n: counts?.[key]?.n || undefined, late: counts?.[key]?.late || undefined,
   });
   return [
-    method === 'tree'
-      ? p('tree', 'Tree', `/project/${projectId}/tree`)
-      : p('board', 'Board', `/project/${projectId}/board`),
+    // A lever tree job keeps the board as well as the tree: the tree is built
+    // out of the actions written on it, so it has to be somewhere to write them.
+    ...(method === 'tree' ? [p('tree', 'Tree', `/project/${projectId}/tree`)] : []),
+    p('board', 'Board', `/project/${projectId}/board`),
     p('lines', 'Lines', `/project/${projectId}?view=lines`),
     p('data', 'Numbers', `/project/${projectId}?view=data`),
     p('wins', 'Wins', `/project/${projectId}?view=wins`),
