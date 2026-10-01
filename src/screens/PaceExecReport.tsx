@@ -19,6 +19,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useProjectPareto } from '../lib/paretoFromLog';
+import { useImpacts } from '../lib/useImpacts';
+import { IMPACT_WORD } from '../lib/impact';
 import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useProject } from '../lib/useProjects';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
@@ -695,6 +697,8 @@ export function PaceExecReport() {
   // The Pareto sheet still comes off an upload where one exists; the actions
   // are the project's own, kept in the app (lib/actions.ts).
   const ax = useActions(projectId);
+  // Did it work? — each closed action against the line's numbers (lib/impact).
+  const { impacts } = useImpacts(projectId);
   // The Pareto from the stops timed in the app — no upload (lib/paretoFromLog).
   const pareto = useProjectPareto(projectId);
   const ppm = usePaceLines(projectId);
@@ -1467,11 +1471,15 @@ export function PaceExecReport() {
       due: fmtShort(a.due),
     })),
     lateMore,
-    completed: doneTodos.map(t => ({
-      what: t.what || '—',
-      who: t.who || '',
-      outcome: t.outcome || t.notes || '',
-    })),
+    completed: doneTodos.map(t => {
+      const im = impacts.get(t.id);
+      return {
+        what: t.what || '—',
+        who: t.who || '',
+        outcome: t.outcome || t.notes || '',
+        proof: im && im.state !== 'none' ? { word: IMPACT_WORD[im.state], words: im.words, state: im.state } : undefined,
+      };
+    }),
     completedMore: doneMore,
     todos: openTodos.map(t => ({
       state: t.state === 'waiting' ? 'waiting' : 'todo',
@@ -1809,6 +1817,12 @@ export function PaceExecReport() {
                       {(t.outcome || t.notes) && (
                         <p className="exec-done-out">{clip(t.outcome || t.notes || '', 110)}</p>
                       )}
+                      {(() => {
+                        const im = impacts.get(t.id);
+                        return im && im.state !== 'none'
+                          ? <p className={'exec-done-proof is-' + im.state}><b>{IMPACT_WORD[im.state]}</b> {im.words}</p>
+                          : null;
+                      })()}
                     </li>
                   ))}
                 </ul>

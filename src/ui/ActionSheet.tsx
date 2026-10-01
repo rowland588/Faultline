@@ -10,11 +10,16 @@ import { Sheet } from './Sheet';
 import { PILLARS } from '../lib/pillars';
 import { WHOLE_PROJECT } from '../lib/actions';
 import { putPaceTodo, deletePaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { IMPACT_WORD, type Impact } from '../lib/impact';
 
 /** What the sheet edits — a step, or the start of a new one. */
 export type Editing = { step: PaceTodoRow; isNew: boolean };
 
-export function ActionSheet({ editing, lines, onClose }: { editing: Editing; lines: PaceLineRow[]; onClose: () => void }) {
+export function ActionSheet({ editing, lines, impact, onClose }: {
+  editing: Editing; lines: PaceLineRow[]; onClose: () => void;
+  /** Did it work? — the line's numbers either side of the day it closed. */
+  impact?: Impact;
+}) {
   const [s, setS] = useState<PaceTodoRow>(editing.step);
   const set = (p: Partial<PaceTodoRow>) => setS(x => ({ ...x, ...p }));
   const save = async () => {
@@ -78,6 +83,12 @@ export function ActionSheet({ editing, lines, onClose }: { editing: Editing; lin
           <label className="cw-f cw-f-wide"><span>HOW IT ENDED</span>
             <textarea rows={2} value={s.outcome ?? ''} placeholder="Worked / didn't / needs another go"
               onChange={e => set({ outcome: e.target.value })} /></label>
+        )}
+        {impact && impact.state !== 'none' && editing.step.state === 'done' && (
+          <p className={'ax-proof is-' + impact.state}>
+            <b>Did it work? {IMPACT_WORD[impact.state]}.</b> {impact.words}
+            <span className="sub"> The line’s numbers either side of the day it closed — the evidence, not the cause.</span>
+          </p>
         )}
         <div className="ax-foot">
           {!editing.isNew && <button className="btn btn-ghost cw-del" onClick={() => void remove()}>Delete</button>}

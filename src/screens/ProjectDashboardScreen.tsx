@@ -34,6 +34,9 @@ import { ProjectNumbers } from './NumbersPanel';
 import { useActions } from '../lib/actions';
 import { pacedSays } from '../lib/portfolio';
 import { useMethodCounts } from '../lib/useMethodCounts';
+import { useImpacts } from '../lib/useImpacts';
+import { niceDay } from '../lib/weeks';
+import { IMPACT_WORD } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
@@ -436,6 +439,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const { loading: projLoading, project } = useProject(projectId);
   const ax = useActions(projectId);
   const methodCounts = useMethodCounts(projectId);
+  const { impacts } = useImpacts(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const stand = useStanding(projectId);
@@ -467,6 +471,16 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     sentence: pacedSays({ atTarget, judged, open: openActions, late: overdue, any: actions.length > 0 }),
     outstanding: openActions, late: overdue, rows: [], plan: [],
   };
+  /* The actions closed on a known day, newest first, and what the numbers say. */
+  const closed = ax.steps.filter(s => s.state === 'done' && !!s.doneOn)
+    .sort((a, b) => (b.doneOn as string).localeCompare(a.doneOn as string)).slice(0, 8);
+  const tally = (st: string) => closed.filter(s => impacts.get(s.id)?.state === st).length;
+  const provenSays = [
+    tally('proven') && `${tally('proven')} proven`,
+    (tally('better') + tally('flat')) && `${tally('better') + tally('flat')} not yet`,
+    tally('worse') && `${tally('worse')} worse`,
+    tally('soon') && `${tally('soon')} too soon`,
+  ].filter(Boolean).join(' · ') || `${closed.length} closed`;
   const boardSays = actions.length === 0 ? 'nothing on it yet'
     : `${openActions} open${overdue ? ` · ${overdue} late` : ''} · ${done} done`;
   const numbersSays = !headline ? 'no measures set yet'
@@ -602,6 +616,27 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           <Fold id="p3-board" title="The board" says={boardSays}>
             <BoardPanel projectId={projectId} actions={actions} bare />
           </Fold>
+
+          {/* DID IT WORK? Each closed action, judged by the line's own numbers
+              either side of the day it closed — the same proof a Win carries.
+              Only the ones with a day they closed and something to judge by. */}
+          {closed.length > 0 && (
+            <Fold id="p3-proof" title="Did it work?" says={provenSays}>
+              <ul className="dw-list">
+                {closed.map(s => {
+                  const im = impacts.get(s.id);
+                  return (
+                    <li key={s.id} className="dw-row">
+                      <button className="dw-t" onClick={() => nav(`/project/${projectId}/board`)}>{s.what}</button>
+                      <span className="sub">{[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}</span>
+                      {im && im.state !== 'none' && <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span>}
+                      {im?.words && <span className="dw-w">{im.words}</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Fold>
+          )}
 
           <Fold id="p3-numbers" title={headline ? headline.name : 'The numbers'} says={numbersSays}>
 

@@ -352,7 +352,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   for (const a of [
     act('Train the night shift on the splice', { lineId: pacedLine.id, pillar: 'people', who: 'Rob Scott', due: iso(-2), why: 'Film breaks at the splice' }),
     act('Replace the worn sealing jaw', { lineId: pacedLine.id, pillar: 'plant', who: 'Engineering', due: iso(5), state: 'waiting' }),
-    act('One changeover standard for 2kg to 1.25kg', { lineId: pacedLine.id, pillar: 'process', who: 'Rob Scott', due: iso(-9), state: 'done', outcome: 'Down to 22 minutes' }),
+    act('One changeover standard for 2kg to 1.25kg', { lineId: pacedLine.id, pillar: 'process', who: 'Rob Scott', due: iso(-9), state: 'done', doneOn: iso(-21), outcome: 'Down to 22 minutes' }),
     act('Second operator on the infeed at start-up', { lineId: otherLine.id, pillar: 'people', who: 'Lee Carty', due: iso(3) }),
     act('Weekly 5S walk, every line', { pillar: 'process', who: 'Tanya', due: iso(7) }),
     act('Look at the reject bin full by 10am', { lineId: otherLine.id }),

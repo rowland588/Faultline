@@ -24,6 +24,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { Peers, methodPeers } from '../ui/Peers';
 import { useMethodCounts } from '../lib/useMethodCounts';
+import { useImpacts } from '../lib/useImpacts';
+import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
 import { useActions, WHOLE_PROJECT, isLate } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
@@ -38,7 +40,7 @@ const STATUS: Record<NodeStatus, string> = {
   n: 'To do', w: 'In progress', a: 'Overdue', r: 'Waiting', g: 'Done',
 };
 
-function Card({ a, onOpen }: { a: PaceAction; onOpen: () => void }) {
+function Card({ a, impact, onOpen }: { a: PaceAction; impact?: Impact; onOpen: () => void }) {
   const st = statusOfAction(a);
   const who = (a.owner || a.who || '').trim();
   return (
@@ -48,6 +50,11 @@ function Card({ a, onOpen }: { a: PaceAction; onOpen: () => void }) {
         <span className={'bd-chip is-' + st}>{STATUS[st]}</span>
         {who && <span className="bd-who">{who}</span>}
         {a.caseId && <span className="bd-meta" title="Raised from a Pareto, for a Case">from a Case</span>}
+        {/* DID IT WORK? Once an action is closed, the line's own numbers either
+            side of that day say whether they moved — the same proof the Wins use. */}
+        {impact && impact.state !== 'none' && (
+          <span className={'bd-proof is-' + impact.state} title={impact.words}>{IMPACT_WORD[impact.state]}</span>
+        )}
         {a.due && <span className="bd-meta">{st === 'g' ? '' : 'due '}{a.due}</span>}
       </span>
     </button>
@@ -58,6 +65,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const ax = useActions(projectId);
   const counts = useMethodCounts(projectId);
+  const { impacts } = useImpacts(projectId);
   const [hideDone, setHideDone] = useState(false);
   const [only, setOnly] = useState<string | null>(null);     // a line id, '' for every line's, null for all
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -174,7 +182,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
                   <span className="bd-col-s">{c.blurb}</span>
                 </header>
                 <div className="bd-col-b">
-                  {c.rows.map(x => <Card key={x.uid} a={x} onOpen={() => open(x)} />)}
+                  {c.rows.map(x => <Card key={x.uid} a={x} impact={x.uid ? impacts.get(x.uid) : undefined} onOpen={() => open(x)} />)}
                   <button className="bd-add" onClick={() => add(c.key, a.lineId)}>＋ Add</button>
                 </div>
               </section>
@@ -204,7 +212,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      {editing && <ActionSheet editing={editing} lines={ax.lines} onClose={() => setEditing(null)} />}
+      {editing && <ActionSheet editing={editing} lines={ax.lines} impact={impacts.get(editing.step.id)} onClose={() => setEditing(null)} />}
     </div>
   );
 }

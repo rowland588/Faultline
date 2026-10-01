@@ -230,7 +230,9 @@ export interface PaceReportData {
   /** Finished lines and what came of them. A Next step marked Done used to drop
    *  out of the report entirely, taking its outcome with it — which is the one
    *  part the client most wants to read. */
-  completed: { what: string; who: string; outcome: string }[];
+  /** `proof` is the line's own numbers either side of the day it closed — the
+   *  same words the board and the front page say (lib/impact). */
+  completed: { what: string; who: string; outcome: string; proof?: { word: string; words: string; state: string } }[];
   completedMore: number;
   /** `line` is which line's walk it came off. On the project's report the
    *  snags are merged from every line, so without it the client reads six problems
@@ -1891,7 +1893,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     byLine: raw.byLine.map(r => ({ ...r, name: san(r.name), owner: san(r.owner) })),
     lateActions: raw.lateActions.map(a => ({ line: san(a.line), what: san(a.what), owner: san(a.owner), due: san(a.due) })),
     todos: raw.todos.map(t => ({ ...t, what: san(t.what), who: san(t.who), when: san(t.when) })),
-    completed: raw.completed.map(c => ({ what: san(c.what), who: san(c.who), outcome: san(c.outcome) })),
+    completed: raw.completed.map(c => ({
+      what: san(c.what), who: san(c.who), outcome: san(c.outcome),
+      proof: c.proof ? { ...c.proof, words: san(c.proof.words) } : undefined,
+    })),
     snags: raw.snags.map(s2 => ({ ...s2, problem: san(s2.problem), owner: san(s2.owner), line: san(s2.line) })),
     wins: raw.wins.map(w => ({
       title: san(w.title), impact: san(w.impact), story: san(w.story),
@@ -2677,7 +2682,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* The finished-with-an-outcome block under next steps: a heading, its rule,
      then a line each and a second one wherever somebody wrote the outcome. */
   const doneH = data.completed.length === 0 ? 0
-    : 22 + data.completed.reduce((n, c) => n + 16 + (c.outcome ? 9 : 0), 0)
+    : 22 + data.completed.reduce((n, c) => n + 16 + (c.outcome ? 9 : 0) + (c.proof ? 9 : 0), 0)
       + (data.completedMore > 0 ? 11 : 0);
   const nextH = PANEL_HEAD + 14 + tableH(data.todos.length) + doneH + PAD;
   const walkH = PANEL_HEAD + 18 + 17 * Math.max(1, data.snags.length) + PAD;
@@ -2805,6 +2810,17 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         ny += 9;
         setFont(d, 7.5, 'normal', INK2);
         d.text(fit(d, c.outcome, colW - 26), M + 12, ny);
+      }
+      /* DID IT WORK? The verdict first, in the colour a Win's would be, then
+         the numbers it rests on — before and after, counted. */
+      if (c.proof) {
+        ny += 9;
+        const col = c.proof.state === 'proven' ? OK : c.proof.state === 'worse' ? DANGER : c.proof.state === 'soon' ? MUTED : WARN;
+        setFont(d, 7, 'bold', col);
+        d.text(c.proof.word.toUpperCase(), M + 12, ny);
+        const ww = d.getTextWidth(c.proof.word.toUpperCase());
+        setFont(d, 7, 'normal', INK2);
+        d.text(fit(d, c.proof.words, colW - 38 - ww), M + 12 + ww + 6, ny);
       }
       ny += 4;
     }
