@@ -24,6 +24,8 @@ import {
 import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { Peers, methodPeers } from '../ui/Peers';
+import { useMethodCounts } from '../lib/useMethodCounts';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
@@ -329,6 +331,7 @@ function Box({
 
 export function LeverTree({ projectId }: { projectId: string }) {
   const { project } = useProject(projectId);
+  const methodCounts = useMethodCounts(projectId);
   const [rows, setRows] = useState<TreeNodeRow[] | null>(null);
   const [pasteInto, setPasteInto] = useState<TreeNodeRow | null>(null);
   const [pasteText, setPasteText] = useState('');
@@ -683,6 +686,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Lever tree' },
       ]} />
+      {/* On a lever tree job the tree is the first of the row's tabs. */}
+      {project.leverTree && !project.commissioning && (
+        <Peers peers={methodPeers(projectId, 'tree', 'tree', methodCounts)} />
+      )}
 
       <header className="pace-head">
         <div className="pace-head-main">

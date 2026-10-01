@@ -93,3 +93,29 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
        problem written on any gate can be pinned on it. */
   ];
 }
+
+/** The row on a 3P or lever tree job — the same shape as the gates row, in
+ *  that method's own running order. Rowland, of the 3P page's fourteen
+ *  buttons: "make it just like the other one."
+ *
+ *  The board (or the tree) first, because it is the meeting; then the lines
+ *  it is about, the numbers that say whether it is working, what worked, the
+ *  filmed line, and what it is waiting on. Programs sit inside Materials and
+ *  the line standard inside Lines — the way Set up and Hand over hold them on
+ *  a stage-gate job — so the row stays six long. */
+export function methodPeers(projectId: string, method: 'board' | 'tree', here: string,
+  counts?: Record<string, { n: number; late: number }>): Peer[] {
+  const p = (key: string, label: string, to: string): Peer => ({
+    label, to, on: here === key, n: counts?.[key]?.n || undefined, late: counts?.[key]?.late || undefined,
+  });
+  return [
+    method === 'tree'
+      ? p('tree', 'Tree', `/project/${projectId}/tree`)
+      : p('board', 'Board', `/project/${projectId}/board`),
+    p('lines', 'Lines', `/project/${projectId}?view=lines`),
+    p('data', 'Numbers', `/project/${projectId}?view=data`),
+    p('wins', 'Wins', `/project/${projectId}?view=wins`),
+    p('snags', 'Evidence', `/project/${projectId}?view=snags`),
+    p('materials', 'Materials', `/project/${projectId}/materials`),
+  ];
+}

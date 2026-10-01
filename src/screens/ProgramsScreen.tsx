@@ -17,7 +17,8 @@
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
+import { Peers, projectPeers, methodPeers } from '../ui/Peers';
+import { useMethodCounts } from '../lib/useMethodCounts';
 import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
@@ -546,6 +547,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
   const stand = useStanding(projectId);
+  const counts = useMethodCounts(projectId);
   const today = todayISO();
 
   if (loading || state.loading || lines.loading) {
@@ -568,7 +570,9 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       {embedded ? (
         <div className="cw-sec-h pr-embedded-h">
           <h2 className="cmp-h">Programs</h2>
-          <span className="sub">what the machines have to run — set up here, proved in Commission</span>
+          <span className="sub">{project.commissioning
+            ? 'what the machines have to run — set up here, proved in Commission'
+            : 'what the line has to be able to run, and whether we trust it yet'}</span>
         </div>
       ) : <>
       <Crumbs trail={[
@@ -577,7 +581,9 @@ export function ProgramsScreen({ projectId, embedded = false }: {
         { label: 'Programs' },
       ]} />
       {/* The gates are a stage-gate job's — see MaterialsScreen. */}
-      {project.commissioning && <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />}
+      {project.commissioning
+        ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
+        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
 
       {/* The header its peers wear — see MaterialsScreen. */}
       <header className="cm-head">

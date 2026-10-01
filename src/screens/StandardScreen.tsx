@@ -160,7 +160,10 @@ function Products({ project, list }: { project: Project; list: Standard[] }) {
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${project.id}` },
-        ...(commissioning ? [{ label: 'Hand over', to: `/project/${project.id}/handover` }] : []),
+        // Where it is held: Hand over on a stage-gate job, Lines on the others.
+        commissioning
+          ? { label: 'Hand over', to: `/project/${project.id}/handover` }
+          : { label: 'Lines', to: `/project/${project.id}?view=lines` },
         { label: 'Line standard' },
       ]} />
       <header className="pace-head">
@@ -457,7 +460,10 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
       <Crumbs trail={[
         { label: 'Projects', to: '/projects' },
         { label: project.name, to: `/project/${project.id}` },
-        ...(commissioning ? [{ label: 'Hand over', to: `/project/${project.id}/handover` }] : []),
+        // Where it is held: Hand over on a stage-gate job, Lines on the others.
+        commissioning
+          ? { label: 'Hand over', to: `/project/${project.id}/handover` }
+          : { label: 'Lines', to: `/project/${project.id}?view=lines` },
         { label: 'Line standard', to: `/project/${project.id}/standard` },
         { label: s.product },
       ]} />

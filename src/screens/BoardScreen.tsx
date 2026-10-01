@@ -22,6 +22,8 @@ import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Sheet } from '../ui/Sheet';
+import { Peers, methodPeers } from '../ui/Peers';
+import { useMethodCounts } from '../lib/useMethodCounts';
 import { useProject } from '../lib/useProjects';
 import { useActions, WHOLE_PROJECT, isLate } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
@@ -129,6 +131,7 @@ function ActionSheet({ editing, lines, onClose }: { editing: Editing; lines: Pac
 export function BoardScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const ax = useActions(projectId);
+  const counts = useMethodCounts(projectId);
   const [hideDone, setHideDone] = useState(false);
   const [only, setOnly] = useState<string | null>(null);     // a line id, '' for every line's, null for all
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -185,6 +188,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Board' },
       ]} />
+      <Peers peers={methodPeers(projectId, 'board', 'board', counts)} />
 
       <header className="cm-head">
         <div>
@@ -198,6 +202,9 @@ export function BoardScreen({ projectId }: { projectId: string }) {
                 {late > 0 && <span className="sub in-late">{late} late</span>}
                 <span className="sub">{done} done</span>
               </>}
+            {ax.steps.length > 0 && (
+              <button className="cw-link" onClick={() => nav(`/project/${projectId}?view=next`)}>As a list, with photos</button>
+            )}
           </p>
         </div>
         <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print</button>

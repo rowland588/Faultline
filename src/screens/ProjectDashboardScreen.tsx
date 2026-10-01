@@ -10,8 +10,8 @@
  *
  * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
  * into the meeting. */
-import { Fragment, useEffect, useState } from 'react';
-import { Peers, projectPeers } from '../ui/Peers';
+import { useEffect, useState } from 'react';
+import { Peers, projectPeers, methodPeers } from '../ui/Peers';
 import { Journey } from '../ui/Journey';
 import { Fold } from '../ui/Fold';
 import { live } from '../lib/testing';
@@ -32,6 +32,7 @@ import { daysOverdue } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { useActions } from '../lib/actions';
+import { useMethodCounts } from '../lib/useMethodCounts';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
@@ -43,20 +44,11 @@ import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
+import { StandardsCard } from '../ui/StandardsCard';
 import { Outstanding } from '../ui/Outstanding';
 import { Timeline } from '../ui/Timeline';
-import { todayISO } from '../lib/standing';
+import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
-
-function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
-  return (
-    <div className={'pace-kpi' + (tone ? ' is-' + tone : '')}>
-      <span className="pace-kpi-n">{n}</span>
-      <span className="pace-kpi-l">{label}</span>
-      {sub && <span className="pace-kpi-s">{sub}</span>}
-    </div>
-  );
-}
 
 /* THE 3P BOARD, ON THE PAGE ITSELF.
  *
@@ -73,12 +65,13 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
  * is imply it is showing everything when it is not. */
 const AREA_PEEK = 3;
 
-function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAction[] }) {
+function BoardPanel({ projectId, actions, bare }: { projectId: string; actions: PaceAction[]; bare?: boolean }) {
   const b = buildBoard(actions);
   const open = () => nav(`/project/${projectId}/board`);
 
   return (
     <section className="pace-sec pb-sec">
+      {!bare && (
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">3P Board</h2>
         <p className="pace-sec-sub">
@@ -87,6 +80,7 @@ function BoardPanel({ projectId, actions }: { projectId: string; actions: PaceAc
             : <>The meeting agenda — one card per area, People, Plant and Process inside each</>}
         </p>
       </div>
+      )}
 
       {b.total === 0 ? (
         /* Nothing on the board yet — and the board is where it is written,
@@ -240,10 +234,10 @@ type Lens = 'overview' | 'lines' | 'next' | 'wins' | 'snags' | 'data';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
   { id: 'lines',    label: 'Lines',      sub: 'each owner\u2019s pack' },
-  { id: 'next',     label: 'Next steps', sub: 'to do & waiting' },
-  { id: 'wins',     label: 'Success',    sub: 'what worked' },
+  { id: 'next',     label: 'Actions, as a list', sub: 'to do & waiting' },
+  { id: 'wins',     label: 'Wins',       sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
-  { id: 'data',     label: 'Data',       sub: 'upload & readings' },
+  { id: 'data',     label: 'Numbers',    sub: 'readings against target' },
 ];
 
 /** WHERE THE TESTING STANDS, on the project's own front page.
@@ -440,6 +434,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
   const { loading: projLoading, project } = useProject(projectId);
   const ax = useActions(projectId);
+  const methodCounts = useMethodCounts(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
   const stand = useStanding(projectId);
@@ -450,7 +445,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
   const done = actions.filter(a => statusOfAction(a) === 'g').length;
   const overdue = actions.filter(a => statusOfAction(a) === 'a').length;
-  const live = actions.length - done;
 
   /* WHERE EVERY LINE STANDS on the measure this project leads on — worked out
      once, read by the cards, the charts and the count above them. A line with no
@@ -461,6 +455,27 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   ]));
   const headline = nums.measures[0];
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
+
+  /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
+     the actions still open. The same Verdict card a stage-gate job leads with,
+     so the two methods' front pages read alike. */
+  const openActions = actions.length - done;
+  const onTarget = headline && ppm.lines.length > 0
+    ? `${atTarget} of ${ppm.lines.length} line${ppm.lines.length === 1 ? '' : 's'} at target` : '';
+  const onBoard = actions.length === 0 ? ''
+    : openActions === 0 ? 'nothing open on the board'
+    : `${openActions} action${openActions === 1 ? '' : 's'} open${overdue ? ` — ${overdue} past ${overdue === 1 ? 'its' : 'their'} day` : ''}`;
+  const said = [onTarget, onBoard].filter(Boolean).join(', with ');
+  const verdict: Standing = {
+    sentence: said ? said.charAt(0).toUpperCase() + said.slice(1) + '.' : '',
+    outstanding: openActions, late: overdue, rows: [], plan: [],
+  };
+  const boardSays = actions.length === 0 ? 'nothing on it yet'
+    : `${openActions} open${overdue ? ` · ${overdue} late` : ''} · ${done} done`;
+  const numbersSays = !headline ? 'no measures set yet'
+    : ppm.lines.length === 0 ? 'no lines yet'
+    : `${atTarget} of ${ppm.lines.length} at target`;
+
 
   if (ax.loading || ppm.loading || projLoading || nums.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
@@ -491,7 +506,16 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     <div className={'wrap pace is-' + lens}>
       <Crumbs trail={lens === 'snags' && model === 'commissioning'
         ? [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Install', to: `/project/${projectId}/install` }, { label: 'The line, filmed' }]
-        : [{ label: 'Projects', to: '/projects' }, { label: project.name }]} />
+        : lens === 'overview'
+          ? [{ label: 'Projects', to: '/projects' }, { label: project.name }]
+          // A lens is a page of its own now, reached from the row — so the trail
+          // says which, and the project's name is the way back.
+          : [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` },
+            { label: LENSES.find(l => l.id === lens)?.label ?? '' }]} />
+      {/* A 3P or tree job's lens is a page under the project, like a gate is
+          on a stage-gate job: the project's own header stays on its front
+          page, and the lens wears the small heading the gates do. */}
+      {(lens === 'overview' || model === 'commissioning') && (
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">
@@ -503,87 +527,37 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             {/* Details — name, dates, the client, the stages — is set once and
                 left, so it is a gear beside the name rather than a tab beside
                 the lists that are worked every day. */}
-            {model === 'commissioning' && (
-              <button className="btn btn-ghost pace-gear" aria-label="Details" title="Details"
-                onClick={() => nav(`/project/${projectId}/setup`)}>⚙</button>
-            )}
+            {/* On every method: a 3P job's lines, people and measures are set
+                here, once — they were a header button, "Lines & people". */}
+            <button className="btn btn-ghost pace-gear" aria-label="Details" title="Details"
+              onClick={() => nav(`/project/${projectId}/setup`)}>⚙</button>
           </div>
-          {/* A commissioning job's page no longer explains itself: the verdict
-              card under this says what the job is, in its own numbers. */}
-          {model !== 'commissioning' && (
-            <p className="pace-lede">
-              {ppm.lines.length > 0 && <>{lineList} — </>}
-              {headline
-                ? <>{headline.name.toLowerCase()} against the target for the period, </>
-                : <>the numbers you choose to keep, </>}
-              every action in flight, and the snag walk of the line.
-            </p>
-          )}
+          {/* No method's page explains itself in a paragraph any more: the
+              verdict card under this says what the job is, in its own numbers. */}
         </div>
         <div className="pace-head-actions">
-          {/* the way out reads as a way out — same '‹' the rest of the app uses */}
-          {/* Offered only where the project asked for them — see Project.leverTree
-              and Project.pareto. Both are tools some projects run on; a door to
-              somewhere a team has decided not to go is a door in the way. */}
-          {/* ON A COMMISSIONING JOB THE DOORS ARE THE PEERS ROW, drawn once in
-              the body with its counts — see CommissioningPanel. This header
-              offered Testing, then the lens strip offered it, then the waiting-on
-              table, then a button at the foot: four doors to one place on one
-              phone screen, and a different set of doors from every other
-              screen's. The other models keep theirs here. */}
-          {/* Materials is offered on every project, not behind an opt-in: every
-              job waits on something, and a list you have to switch on first is a
-              list nobody starts. It costs nothing when it is empty. */}
-          {model !== 'commissioning' && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/materials`)}>Materials</button>
-          )}
-          {/* Beside Materials, deliberately, and on every project for the same
-              reason: the two answer one question between them — what is this
-              line waiting on. A machine with no program is as stopped as a
-              machine with no film. */}
-          {/* What to raise at the next meeting — every method has meetings. */}
+          {/* TWO DOORS IN THE HEADER, ON EVERY METHOD: what to raise at the next
+              meeting, and the report that goes to the client. Everything worked
+              day to day is the row below. A 3P job's header carried six —
+              Materials, Meeting notes, Programs, Lines & people, Client report,
+              Print A3 — over a second row of eight lenses. Rowland: "make it
+              just like the other one." Materials is in the row; Programs inside
+              it; Lines & people is the gear; Print A3 printed the screen, and
+              the client report is the document. */}
           <NotesButton projectId={projectId} />
-          {model !== 'commissioning' && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
-          )}
+          {/* Tools some projects opt into — see Project.pareto / leverTree. A
+              tree-model job has its tree in the row already. */}
           {project.pareto && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
           )}
-          {project.leverTree && (
+          {project.leverTree && model !== 'tree' && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
           )}
-          {model !== 'commissioning' && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>Lines &amp; people</button>
-          )}
-          {/* THE REPORT IS NO LONGER ONLY THE TRACKER.
-              This used to be hidden on every commissioning project, and the
-              reasoning was sound at the time: the report was drawn from the
-              weekly tracker, and a handover has not got one, so the button led
-              to blank paper.
-              It stopped being true the moment the materials sheet went in, and
-              again when the programs sheet followed. Both are things a
-              commissioning job has in abundance — and the result was a project
-              carrying fifteen films and seventeen programs with no way to print
-              either, because the one report that draws them was hidden by a rule
-              about a tracker it no longer needs.
-              So the test is what there is to print, not which kind of project it
-              is. A bare handover with nothing on either list still gets no
-              button, which is all the old rule was ever protecting. */}
-          {/* A STAGE-GATE JOB HAS ITS OWN REPORT now (screens/ClientReportScreen),
-              always offered — it is drawn from the gates, so a job with no
-              materials or programs still has one. The A3 below stays the 3P
-              and lever tree report. */}
-          {model === 'commissioning' && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/report`)}>Client report</button>
-          )}
-          {model !== 'commissioning' && <>
-            <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>Client report</button>
-            {/* Not on a phone: an A3 is printed from a desk, and the button
-                cost the phone a row of its first screen. */}
-            <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print A3</button>
-          </>}
+          <button className="btn btn-ghost" onClick={() => nav(model === 'commissioning'
+            ? `/project/${projectId}/report` : `/pace-report?project=${projectId}`)}>Client report</button>
         </div>
       </header>
+      )}
 
       {/* The row is the running order, left to right: where we are, the board
           we walk, then everything that comes out of walking it.
@@ -597,36 +571,18 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {model === 'commissioning' && lens === 'snags' && (
         <Peers peers={projectPeers(projectId, 'install', stand.counts)} />
       )}
-      {model !== 'commissioning' && <nav className="pace-lenses" aria-label="View">
-        {shownLenses.map((l, i) => (
-          <Fragment key={l.id}>
-          {i === 1 && model === 'board' && (
-            <button className="pace-lens" onClick={() => nav(`/project/${projectId}/board`)}>
-              <span className="pace-lens-l">3P Board</span>
-              <span className="pace-lens-s">the meeting</span>
-            </button>
-          )}
-          <button
-            className={'pace-lens' + (lens === l.id ? ' on' : '')}
-            aria-current={lens === l.id ? 'page' : undefined}
-            onClick={() => nav(l.id === 'overview' ? `/project/${projectId}` : `/project/${projectId}?view=${l.id}`)}
-          >
-            <span className="pace-lens-l">{l.label}</span>
-            <span className="pace-lens-s">{l.sub}</span>
-          </button>
-          </Fragment>
-        ))}
-        {/* A TOOL, not a lens: who stands where on each product. People, in
-            3P's words — the standard the line runs to. */}
-        <button className="pace-lens" onClick={() => nav(`/project/${projectId}/standard`)}>
-          <span className="pace-lens-l">Line standard</span>
-          <span className="pace-lens-s">who stands where</span>
-        </button>
-      </nav>}
+      {model !== 'commissioning' && (
+        <Peers peers={methodPeers(projectId, model === 'tree' ? 'tree' : 'board', lens, methodCounts)} />
+      )}
+      {model !== 'commissioning' && lens !== 'overview' && (
+        <header className="cm-head">
+          <div>
+            <p className="cm-eyebrow">{project.name}</p>
+            <h1>{LENSES.find(l => l.id === lens)?.label}</h1>
+          </div>
+        </header>
+      )}
 
-      {/* On a commissioning job these are drawn UNDER the verdict instead — see
-          LateAlarms. Here, where there is no verdict card, they stay first. */}
-      {lens === 'overview' && model !== 'commissioning' && <LateAlarms projectId={projectId} />}
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.
           It used to be the tracker's: lines at target against Q1, the 3P board
@@ -637,26 +593,24 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         <TestingOverview projectId={projectId} />
       )}
 
+      {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE: the verdict in one
+          sentence, what is late under it, then cards that fold — each saying
+          its answer while shut. It was four number cards, a board panel asking
+          for a workbook upload, and a chart per line, all open at once. */}
       {lens === 'overview' && model !== 'commissioning' && (
         <>
-          <div className="pace-kpis">
-            <Kpi n={`${atTarget}/${ppm.lines.length}`} label="lines at target"
-              sub={headline ? `latest ${headline.name.toLowerCase()} vs target` : 'no measures set yet'}
-              tone={atTarget === ppm.lines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />
-            {/* With no tracker there are no actions, and three cards saying 0
-                said nothing three times. The board below says why, once. */}
-            {actions.length > 0 && <>
-              <Kpi n={String(done)} label="actions closed" sub={`of ${actions.length}`} tone="good" />
-              <Kpi n={String(live)} label="still live" sub="open or in progress" />
-              <Kpi n={String(overdue)} label="overdue" sub="past their due date" tone={overdue > 0 ? 'bad' : 'good'} />
-            </>}
-          </div>
+          <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
+          <LateAlarms projectId={projectId} />
 
-          <BoardPanel projectId={projectId} actions={actions} />
+          <Fold id="p3-board" title="The board" says={boardSays}>
+            <BoardPanel projectId={projectId} actions={actions} bare />
+          </Fold>
 
-              <section className="pace-sec">
+          <Fold id="p3-numbers" title={headline ? headline.name : 'The numbers'} says={numbersSays}>
+
+
+          <section className="pace-sec">
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">{headline ? headline.name : 'The numbers'}</h2>
               <p className="pace-sec-sub">
                 {headline
                   ? <>Every line’s readings against the target for the period they fall in
@@ -694,14 +648,14 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               </div>
             )}
           </section>
-
+          </Fold>
         </>
       )}
 
       {lens === 'lines' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Lines</h2>
+            
             <p className="pace-sec-sub">
               Each line has an owner and a pack of its own — its pace, its actions, its next steps, its wins and its
               filmed walk. Open one to work in it; everything in it rolls up into the report above.
@@ -728,14 +682,25 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               </div>
             </>
           )}
+          {/* WHO STANDS WHERE, product by product — held with the lines it is
+              about, the way Hand over holds it on a stage-gate job. It was a
+              lens of its own beside them. */}
+          <StandardsCard projectId={projectId} />
         </section>
       )}
 
       {lens === 'next' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Next steps</h2>
-            <p className="pace-sec-sub">What still needs doing, what we are waiting on, and tests — with the write-up and the evidence · the same actions the board sorts People, Plant and Process</p>
+            {/* The board's actions as rows — the view with room for the photos
+                and the write-up of a trial. Reached from the board, not the row:
+                one list, two ways of looking at it. */}
+            
+            <p className="pace-sec-sub">
+              The same actions the board sorts into People, Plant and Process — here with the where, the
+              photos and the write-up.{' '}
+              <button className="cw-link" onClick={() => nav(`/project/${projectId}/board`)}>Back to the board</button>
+            </p>
           </div>
           <PaceNextSteps projectId={projectId} />
         </section>
@@ -744,7 +709,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'wins' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Success</h2>
+            
             <p className="pace-sec-sub">What we did and what worked · the wins to show the team</p>
           </div>
           <PaceSuccess projectId={projectId} />
@@ -754,7 +719,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'snags' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Evidence</h2>
+            {model === 'commissioning' && <h2 className="pace-sec-title">Evidence</h2>}
             <p className="pace-sec-sub">Film the line, mark the frames, pin what you see · play it back in the meeting</p>
           </div>
           {/* every line's walk as well as the project's own, so a snag filmed
@@ -768,10 +733,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         <>
           <section className="pace-sec">
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">The numbers</h2>
+              
               <p className="pace-sec-sub">
-                Your own measures · record one reading, or paste a block from whatever spreadsheet you
-                already keep · saves as you go
+                Your own measures · record a reading as it is taken, or paste a block of them at
+                once · saves as you go
               </p>
             </div>
             <ProjectNumbers projectId={projectId} lines={ppm.lines} />

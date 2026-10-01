@@ -16,7 +16,9 @@
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
+import { Peers, projectPeers, methodPeers } from '../ui/Peers';
+import { useMethodCounts } from '../lib/useMethodCounts';
+import { ProgramsScreen } from './ProgramsScreen';
 import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
@@ -319,6 +321,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
   const stand = useStanding(projectId);
+  const counts = useMethodCounts(projectId);
   const today = todayISO();
 
   if (loading || state.loading || lines.loading) {
@@ -345,7 +348,9 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
       ]} />
       {/* The gates are a stage-gate job's. A 3P job's Materials showed
           Install, Set up, Commission — tabs for a method it is not run on. */}
-      {project.commissioning && <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />}
+      {project.commissioning
+        ? <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
+        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
 
       {/* The header every peer of this screen wears — the project above, the
           screen's name, then where it has got to in one line. It had its own
@@ -433,6 +438,12 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           <AddMaterial state={state} lines={lines.lines} />
         </>
       )}
+
+      {/* WHAT THE MACHINE CAN RUN, beside what it is waiting for — the two
+          answer one question between them. On a stage-gate job Programs is
+          held by Set up; on a 3P or tree job it is held here, and the row of
+          tabs stays six long. */}
+      {!project.commissioning && <ProgramsScreen projectId={projectId} embedded />}
 
       <footer className="pace-foot">
         <p>{project.name} · what we are waiting on</p>
