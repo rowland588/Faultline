@@ -34,6 +34,7 @@ import {
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { Timeline } from './Timeline';
+import type { GateTone } from '../lib/install';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
@@ -41,6 +42,9 @@ const SEEN_KEY = 'faultline.jobs.seen';
 
 const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
+};
+const GATE_WORD: Record<GateTone, string> = {
+  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'still ahead', none: 'nothing kept yet',
 };
 const TONE_WORD: Record<string, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'the day has gone', booked: 'still ahead',
@@ -120,14 +124,13 @@ function readOpen(): Set<string> {
 
 /* ---------------------------- the focus list ---------------------------- */
 
-type Focus = { t: 'who'; who: string } | { t: 'late' } | { t: 'open' };
+type Focus = { t: 'who'; who: string } | { t: 'late' };
 
 function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
   if (f.t === 'late') {
     const items = pf.items.filter(x => x.late);
     return { title: `${items.length} past the day, across every job`, items };
   }
-  if (f.t === 'open') return { title: `Everything outstanding — ${pf.items.length}, late first`, items: pf.items };
   const items = pf.items.filter(x => owedBy(x, f.who));
   const jobs = new Set(items.map(x => x.jobId)).size;
   const across = jobs > 1 ? ` across ${jobs} jobs` : '';
@@ -229,9 +232,11 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.jobs} still={still} /></b>{pf.totals.jobs === 1 ? 'job running' : 'jobs running'}
           </button>
-          <button className={'jb-stat' + (on({ t: 'open' }) ? ' is-on' : '')} onClick={() => pick({ t: 'open' })} aria-pressed={on({ t: 'open' })}>
-            <b><Count n={pf.totals.outstanding} still={still} /></b>outstanding
-          </button>
+          {/* NO "OUTSTANDING" HERE ANY MORE. It added up every planned gate
+              step on every job — the work ahead, not what is owed — and read
+              as a backlog: Rowland, "states loads open but they are gates".
+              Each row now says the gate its job is at; what needs chasing is
+              the two numbers either side. */}
           <button className={'jb-stat' + (pf.totals.late ? ' is-late' : '') + (on({ t: 'late' }) ? ' is-on' : '')}
             onClick={() => pick({ t: 'late' })} aria-pressed={on({ t: 'late' })}>
             <b><Count n={pf.totals.late} still={still} /></b>past the day
@@ -385,8 +390,15 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 {v.daysToGo < 0 ? `${-v.daysToGo} days over` : `${v.daysToGo} days to go`}
               </span>
             )}
-            <span className="jb-chip">{v.outstanding} open</span>
+            {/* Where the job is, not how much is on its lists. */}
+            <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>
             {v.late > 0 && <span className="jb-chip is-late">{v.late} late</span>}
+          </span>
+          <span className="jb-gates" aria-label={v.gates.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
+            {v.gates.map(g => (
+              <span key={g.gate} className={'jb-gate is-' + g.tone + (g.label === v.at ? ' is-now' : '')}
+                title={`${g.label}: ${GATE_WORD[g.tone]}`}>{g.label}</span>
+            ))}
           </span>
           {v.next && (
             <span className={'jb-next' + (v.next.late ? ' is-late' : '')}>

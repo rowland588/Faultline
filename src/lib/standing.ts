@@ -29,7 +29,7 @@
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
-  gateOf, hasRun, isOverdue, isSettled, live, needsVerdict,
+  assetStateOf, gateOf, hasRun, isOverdue, isSettled, live, needsVerdict,
   type Asset, type Test, type TestItem,
 } from './testing';
 
@@ -64,6 +64,9 @@ export interface PlanMark {
    *  ran = it happened and nobody has said which yet
    *  booked = still ahead of us · late = the day has gone · none = no date agreed */
   tone: 'done' | 'failed' | 'ran' | 'booked' | 'late' | 'none';
+  /** How many records this one mark stands for — set only by bunchPlan,
+   *  where sixteen programs proved on one day are drawn as one line. */
+  count?: number;
 }
 
 export interface Standing {
@@ -179,15 +182,17 @@ export function standing(input: StandingInput): Standing {
      do" with everything else somebody has to do. Two rows for one job was how
      the same obligation ended up in the table twice. */
 
-  /* A machine is outstanding until it is RUNNING — installed is not the job.
-     LATE IS A DIFFERENT QUESTION, and this used to get it wrong: `dueOn` is
-     the day it was expected ON SITE, so a machine that landed and is being
-     commissioned has met that date and is not late against it, however far
-     off running it still is. Counting it late put a machine that arrived
-     three weeks ago into the verdict's "past the day it was wanted", and
-     into the client report under the OEM's name. The plan drew it correctly
-     while the table did not — the same record, two answers. */
-  const machOpen = assets.filter(a => a.state !== 'running');
+  /* A MACHINE IS WAITED ON UNTIL IT LANDS — not until it runs. It used to
+     be outstanding until RUNNING, which was right before the gates existed:
+     "not running" was the only way to say a machine still had work ahead.
+     Now each machine says which gate it is at (lib/install journeyOf, on the
+     Overview and on the report's machines page), and counting the same three
+     machines again here made a job in its commissioning trials read as
+     "10 things outstanding" when seven were owed and three were simply the
+     job. Arriving is the one part of a machine somebody owes by a day.
+     LATE is unchanged: `dueOn` is the day it was expected ON SITE, so a
+     machine that has landed has met it. */
+  const machOpen = assets.filter(a => assetStateOf(a) === 'awaited');
   const machLate = machOpen.filter(a => !!a.dueOn && a.dueOn < today && !a.onSiteOn);
 
   const rows: OutstandingRow[] = ([
@@ -207,7 +212,7 @@ export function standing(input: StandingInput): Standing {
       whose: mostlyWhose(progsOpen.map(p => p.from)), lateWhose: mostlyWhose(progsLate.map(p => p.from)) },
     { key: 'handover', what: 'Hand-over items to do', open: handOpen.length, late: handLate.length,
       whose: mostlyWhose(handOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(handLate.map(t => t.withWhom)) },
-    { key: 'machines', what: 'Machines not running', open: machOpen.length, late: machLate.length,
+    { key: 'machines', what: 'Machines not here yet', open: machOpen.length, late: machLate.length,
       whose: mostlyWhose(machOpen.map(a => a.oem)), lateWhose: mostlyWhose(machLate.map(a => a.oem)) },
     /* NO OBSERVATIONS ROW. It counted observations nobody had decided on, and
        an observation is now a note: the decision that something needs doing

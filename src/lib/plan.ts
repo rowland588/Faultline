@@ -49,6 +49,8 @@ export interface PlacedMark {
   /** Already written for print — "21 Sep". No drawer parses a date. */
   when: string;
   tone: PlanMark['tone'];
+  /** How many records the mark stands for, when bunchPlan made it one. */
+  count?: number;
   /** Which way the words go from the mark. Right, unless they would run off
    *  the end of the axis and there is more room behind the mark than ahead of
    *  it — the last thing on a plan is the one a client looks for, and it must
@@ -274,6 +276,7 @@ export function layoutPlan(marks: PlanMark[], opts: PlanOpts = {}): Plan {
         const { side, room } = placeLabel(at, end, width);
         const p: PlacedMark = {
           kind: m.kind, at, until, label: m.label, when: whenWords(m.at), tone: m.tone, side, room,
+          ...(m.count ? { count: m.count } : {}),
         };
         return { placed: p, foot: footprint(p, width) };
       })
@@ -332,6 +335,33 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
     month.items.push({ kind: m.kind, when: whenWords(m.at), label: m.label, tone: m.tone });
   }
   return out;
+}
+
+const MANY: Record<PlanMark['kind'], string> = {
+  install: 'install steps', setup: 'set-up steps', handover: 'hand-over items', test: 'tests',
+  fix: 'fixes', material: 'materials', program: 'programs', machine: 'machines',
+};
+
+/** SAME DAY, SAME KIND, SAME OUTCOME — ONE LINE. Line 2B proved sixteen
+ *  programs on 29 September and the plan drew sixteen rows of them, pushing
+ *  the fixes and the tests that actually needed reading a screen further
+ *  down. Three or more alike become "16 programs", and the lane still counts
+ *  all sixteen. For the screen: the client report's sheet already folds a
+ *  busy lane its own way (paceReportPdf fitPlan). */
+export function bunchPlan(marks: PlanMark[], least = 3): PlanMark[] {
+  const groups = new Map<string, PlanMark[]>();
+  for (const m of marks) {
+    const k = m.until ? `solo:${groups.size}` : `${m.kind}|${m.at}|${m.tone}`;
+    const g = groups.get(k);
+    if (g) g.push(m); else groups.set(k, [m]);
+  }
+  const out: PlanMark[] = [];
+  for (const g of groups.values()) {
+    const n = g.reduce((a, m) => a + (m.count ?? 1), 0);
+    if (g.length < least) out.push(...g);
+    else out.push({ kind: g[0].kind, at: g[0].at, tone: g[0].tone, label: `${n} ${MANY[g[0].kind]}`, count: n });
+  }
+  return out.sort((x, y) => x.at.localeCompare(y.at) || x.kind.localeCompare(y.kind));
 }
 
 /** What the plan is worth saying about itself, for the sheet's so-what line.

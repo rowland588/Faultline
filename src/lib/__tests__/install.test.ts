@@ -5,7 +5,7 @@
  * what the Install screen says of them, and that they are counted as install —
  * never as tests — everywhere else a test is counted. */
 import { describe, it, expect } from 'vitest';
-import { cleanStages, foldInto, installGrid, installOf, journeyNow, journeyOf, keepStages, stageRenames, untouched, usualStages } from '../install';
+import { cleanStages, foldInto, installGrid, installOf, jobJourney, journeyNow, journeyOf, keepStages, stageRenames, untouched, usualStages } from '../install';
 import { standing } from '../standing';
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, wordsOf, isSettled, outcomeWord, rootTestOf, testOfFix, verdictQuestion, type Asset, type Test, type TestItem } from '../testing';
 import { jobItems, portfolio, type JobInput } from '../portfolio';
@@ -344,5 +344,30 @@ describe('the gate a machine is at, on a job like Line 2B', () => {
   });
   it('nothing kept anywhere: at Install', () => {
     expect(journeyNow(journeyOf(asset({ id: 'm4', state: 'onSite' }), [], [], T))).toBe('Install');
+  });
+});
+
+describe('the gate a whole job is at — what the all-jobs board shows', () => {
+  const T = '2026-10-01';
+  const bu = asset({ id: 'bu', state: 'onSite' }), pnp = asset({ id: 'pnp2', state: 'onSite' }), ds = asset({ id: 'ds', state: 'onSite' });
+  const tests: Test[] = [
+    { ...step({ id: 'x75', title: '75 ppm', assetId: bu.id, outcome: 'failed', ranOn: '2026-09-22' }), kind: 'test' },
+    { ...step({ id: 'x125', title: 'Express 1.25kg', assetId: pnp.id, outcome: 'passed', ranOn: '2026-09-29' }), kind: 'test' },
+  ];
+  const programs = [{ id: 'pa', projectId: 'p', what: 'pa', assetId: pnp.id, state: 'proved' as const, provedOn: '2026-09-29', sort: 1, createdAt: 1, updatedAt: 1 }];
+  it('puts every machine together: late if any is, and a machine with nothing kept holds nothing back', () => {
+    const j = jobJourney([bu, pnp, ds], tests, [], T, programs);
+    expect(j.map(g => g.tone)).toEqual(['none', 'done', 'late', 'none']);
+    expect(journeyNow(j)).toBe('Commission');
+  });
+  it('planned install steps and nothing else: the job is at Install, still ahead — not "12 open"', () => {
+    const m = asset({ id: 'a2' });
+    const steps = INSTALL_STAGES.map((title, i) => step({ id: `s${i}`, title, assetId: m.id, sort: i }));
+    const j = jobJourney([m], steps, [], T);
+    expect(j[0].tone).toBe('ahead');
+    expect(journeyNow(j)).toBe('Install');
+  });
+  it('a job with no machines yet is at Install', () => {
+    expect(journeyNow(jobJourney([], [], [], T))).toBe('Install');
   });
 });

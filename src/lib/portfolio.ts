@@ -23,7 +23,8 @@
  */
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
-import { isOverdue, isSettled, isTestFace, live, plannedEnd } from './testing';
+import { assetStateOf, isOverdue, isSettled, isTestFace, live, plannedEnd } from './testing';
+import { jobJourney, journeyNow, type JourneyGate, type GateTone } from './install';
 import type { Material } from './materials';
 import { isHere } from './materials';
 import type { Program } from './programs';
@@ -88,6 +89,11 @@ export interface JobView {
   plannedAt?: string;
   /** The next thing owed on this job, soonest first, late before anything. */
   next?: JobItem;
+  /** The four gates across the job's machines, and the one it is at. What a
+   *  row on the board leads with: "at Commission" says where a job is; "10
+   *  open" added planned gate steps to things owed and said neither. */
+  gates: { gate: JourneyGate; label: string; tone: GateTone }[];
+  at: string;
 }
 
 export interface Owed {
@@ -161,8 +167,10 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
     if (stateOf(pr) === 'proved') continue;
     out.push({ ...base, kind: 'program', what: pr.what, who: pr.from ?? '', on: pr.testOn, late: daysOverdue(pr, today) != null });
   }
+  /* Owed until it lands — the same rule standing() counts by. After that the
+     machine is at a gate, and the gate is what the board shows. */
   for (const a of live(j.assets)) {
-    if (a.state === 'running') continue;
+    if (assetStateOf(a) !== 'awaited') continue;
     out.push({
       ...base, kind: 'machine', what: a.name, who: a.oem ?? '',
       on: a.onSiteOn ? undefined : a.dueOn, late: !!a.dueOn && a.dueOn < today && !a.onSiteOn,
@@ -207,6 +215,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
     const ats = marks.flatMap(m => [m.at, ...(m.until != null ? [m.until] : [])]);
     const ends = [...ats, ...(plan.axis.expected ? [plan.axis.expected.at] : []), ...(plan.axis.agreed ? [plan.axis.agreed.at] : [])];
     const items = all[i];
+    const gates = jobJourney(j.assets, j.tests, j.items, today, j.programs);
     return {
       id: p.id, name: shortName(p.name), color: p.color, lead: p.lead,
       sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.daysToGo,
@@ -217,6 +226,7 @@ export function portfolio(unsorted: JobInput[], today: string): Portfolio {
       marks, axis: plan.axis, plan: st.plan,
       expectedAt: p.expectedAt, plannedAt: p.plannedAt,
       next: [...items].sort(byUrgency)[0],
+      gates, at: journeyNow(gates),
     };
   });
 

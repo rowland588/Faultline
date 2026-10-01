@@ -6333,6 +6333,22 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .jb-chip.is-late { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
 .jb-next { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jb-next.is-late { color: var(--danger); }
+/* The gate a job is at, and the four in a row — the same colours as the
+   machine strip on the job's own Overview, so the two read as one picture. */
+.jb-chip.is-at { background: var(--surface-2); color: var(--ink); }
+.jb-chip.is-at.is-going { background: var(--accent-soft); color: var(--accent); }
+.jb-chip.is-at.is-late { background: #fdf2f0; color: var(--st-r); }
+.jb-chip.is-at.is-done { background: var(--st-g); color: #fff; }
+.jb-gates { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; max-width: 280px; }
+.jb-gate {
+  padding: 2px 0; border-radius: 5px; font-size: 9.5px; font-weight: 700; text-align: center; letter-spacing: 0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--line-2); color: var(--ink-2); background: var(--surface);
+}
+.jb-gate.is-done { background: var(--st-g); border-color: var(--st-g); color: #fff; }
+.jb-gate.is-going { background: var(--accent-soft); border-color: var(--brand); color: var(--accent); }
+.jb-gate.is-late { background: #fdf2f0; border-color: var(--st-r); color: var(--st-r); }
+.jb-gate.is-none { border-style: dashed; color: var(--muted); background: transparent; font-weight: 600; }
+.jb-gate.is-now { box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 25%, transparent); }
 
 .jb-track { position: relative; height: 84px; cursor: pointer; }
 .jb-bar {
@@ -6439,7 +6455,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 @media (max-width: 719px) {
   .jb { --jb-lab: 1fr; }
   .jb-hero { padding: 20px 18px 18px; }
-  .jb-stat { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
+  .jb-stat { min-width: calc(33% - 6px); flex: 1 1 0; }
   .jb-g-head { grid-template-columns: 1fr; }
   .jb-g-track, .jb-g-under, .jb-track { display: none; }
   .jb-row-h { grid-template-columns: 1fr 28px; min-height: 0; }
@@ -7093,3 +7109,31 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ex-jr-g.is-late { background: #fdf2f0; border-color: var(--st-r); color: var(--st-r); }
 .ex-jr-g.is-none { background: #f2f5fa; border-color: transparent; color: var(--muted); }
 .jr-key .is-none::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-2); border: 1px dashed var(--line-2); width: 8px; height: 8px; }
+
+/* ---- A card that folds (ui/Fold) — the Overview's cards, each saying its
+   answer in one line when shut. The card inside keeps its rows and loses its
+   own frame and heading, which the fold now carries. ---- */
+.fold { margin: 14px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.fold-h {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 14px 16px;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer;
+}
+.fold-h:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+.fold-h:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
+.fold-t { font-family: var(--display); font-size: 15.5px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.fold-s { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fold-chev {
+  flex: none; align-self: center; width: 9px; height: 9px; margin-left: auto;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translateY(-3px); transition: transform 160ms ease;
+}
+.fold.is-open .fold-chev { transform: rotate(-135deg) translateY(-1px); }
+.fold-b { padding: 0 16px 14px; }
+.fold-b > .jr, .fold-b > .og, .fold-b > .tl { margin: 0; padding: 0; border: 0; box-shadow: none; background: none; border-radius: 0; }
+.fold-b .jr-head, .fold-b > .og > .og-head, .fold-b > .tl > .tl-head { display: none; }
+@media (max-width: 640px) {
+  .fold-h { flex-wrap: wrap; gap: 2px 10px; padding: 13px 14px; }
+  .fold-s { order: 3; flex-basis: 100%; white-space: normal; }
+  .fold-b { padding: 0 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .fold-chev { transition: none; } }

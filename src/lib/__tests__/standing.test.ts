@@ -50,10 +50,13 @@ describe('what is outstanding', () => {
     expect(row(s, 'tests')?.open).toBe(1);
   });
 
-  it('counts a machine as outstanding until it is RUNNING, not merely installed', () => {
-    /* Installed is not the job. A line that cannot run is not commissioned. */
-    const s = at({ assets: [asset({ state: 'installed' }), asset({ state: 'running' })] });
+  it('waits on a machine until it LANDS — after that it is at a gate, not owed', () => {
+    /* Line 2B: three machines on site in their trials read as three things
+       outstanding on top of the seven that were. The gate each one is at is
+       on the Overview and the report's machines page. */
+    const s = at({ assets: [asset({ state: 'awaited' }), asset({ state: 'onSite' }), asset({ state: 'installed' }), asset({ state: 'running' })] });
     expect(row(s, 'machines')?.open).toBe(1);
+    expect(row(s, 'machines')?.what).toBe('Machines not here yet');
   });
 
   it('leaves a list out entirely when it has nothing outstanding', () => {
@@ -319,11 +322,9 @@ describe('a plan that is a block of days, not one day', () => {
 describe('a machine and the day it was wanted', () => {
   /* `dueOn` is the day it was expected ON SITE. The plan and the table read
      the same record, and for a while they disagreed about this one. */
-  it('is not late once it has landed, however far off running it is', () => {
+  it('is neither late nor waited on once it has landed, however far off running it is', () => {
     const s = at({ assets: [asset({ state: 'installed', dueOn: '2026-09-01', onSiteOn: '2026-09-03' })] });
-    const row = s.rows.find(r => r.key === 'machines')!;
-    expect(row.open).toBe(1);
-    expect(row.late).toBe(0);
+    expect(s.rows.find(r => r.key === 'machines')).toBeUndefined();
     expect(s.late).toBe(0);
   });
 
@@ -335,7 +336,7 @@ describe('a machine and the day it was wanted', () => {
   it('draws it on the plan the same way the table counts it', () => {
     const s = at({ assets: [asset({ state: 'installed', dueOn: '2026-09-01', onSiteOn: '2026-09-03' })] });
     expect(s.plan.find(m => m.kind === 'machine')!.tone).toBe('booked');
-    expect(s.rows.find(r => r.key === 'machines')!.late).toBe(0);
+    expect(s.rows.find(r => r.key === 'machines')?.late ?? 0).toBe(0);
   });
 });
 

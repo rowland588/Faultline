@@ -322,6 +322,25 @@ export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today:
     tone: j.gate === 'commission' ? commission : j.gate === 'setup' ? setup : fromSteps(j.gate) }));
 }
 
+/** THE FOUR GATES FOR A WHOLE JOB — each machine's, put together. A gate is
+ *  late if any machine is late at it, done when every machine with something
+ *  kept there is done, under way when some of it has happened, and still
+ *  ahead otherwise. Machines with nothing kept at a gate do not hold it back:
+ *  the same rule journeyNow keeps for one machine. What the all-jobs board
+ *  shows on each job's row. */
+export function jobJourney(assets: Asset[], tests: Test[], items: TestItem[], today: string,
+  programs: readonly Program[] = []): { gate: JourneyGate; label: string; tone: GateTone }[] {
+  const each = live(assets).map(a => journeyOf(a, tests, items, today, programs));
+  return JOURNEY.map((j, i) => {
+    const tones = each.map(e => e[i].tone).filter(t => t !== 'none');
+    const tone: GateTone = tones.length === 0 ? 'none'
+      : tones.includes('late') ? 'late'
+        : tones.every(t => t === 'done') ? 'done'
+          : tones.some(t => t === 'done' || t === 'going') ? 'going' : 'ahead';
+    return { gate: j.gate, label: j.label, tone };
+  });
+}
+
 /** THE GATE A MACHINE IS AT — the earliest with work open on it (late or
  *  under way); failing that, the next one after the last done; "Handed over"
  *  once all four are. Not simply "the first gate not done": Line 2B's

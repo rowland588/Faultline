@@ -33,7 +33,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PlanMark } from '../lib/standing';
-import { labelGap, layoutPlan, planAgenda, planSays, whenWords, type PlacedMark, type PlanLane } from '../lib/plan';
+import { bunchPlan, labelGap, layoutPlan, planAgenda, planSays, whenWords, type PlacedMark, type PlanLane } from '../lib/plan';
 
 /** The lane-name column. Must match `.tl-lane { grid-template-columns }`. */
 const LANE_W = 78;
@@ -126,8 +126,9 @@ function Mark({ m, track }: { m: PlacedMark; track: Track }) {
 
 /** "4 of 17 done" — the lane's own count, off its own marks. */
 function laneTally(lane: PlanLane): string {
-  const all = lane.rows.reduce((n, r) => n + r.length, 0);
-  const done = lane.rows.reduce((n, r) => n + r.filter(m => m.tone === 'done').length, 0);
+  const n1 = (m: PlacedMark) => m.count ?? 1;
+  const all = lane.rows.reduce((n, r) => n + r.reduce((a, m) => a + n1(m), 0), 0);
+  const done = lane.rows.reduce((n, r) => n + r.filter(m => m.tone === 'done').reduce((a, m) => a + n1(m), 0), 0);
   return all === 1 ? (done ? 'done' : '1') : `${done} of ${all} done`;
 }
 
@@ -180,8 +181,11 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
     };
   }, []);
 
+  /* Alike on one day, drawn once — see bunchPlan. The count above the lanes
+     still reads every record. */
+  const shown = useMemo(() => bunchPlan(marks), [marks]);
   const plan = useMemo(
-    () => layoutPlan(marks, {
+    () => layoutPlan(shown, {
       today, expectedAt, plannedAt, span,
       widthOf: m => {
         if (track.px > 0) {
@@ -193,9 +197,9 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
         return labelGap(m.label, 6.2, 58, 1020);
       },
     }),
-    [marks, today, expectedAt, plannedAt, span, track],
+    [shown, today, expectedAt, plannedAt, span, track],
   );
-  const agenda = useMemo(() => planAgenda(marks), [marks]);
+  const agenda = useMemo(() => planAgenda(shown), [shown]);
   const says = useMemo(() => planSays(marks, today), [marks, today]);
   /* The key names only what is on the sheet — five entries every time is a menu. */
   const anyRan = marks.some(m => m.tone === 'ran');

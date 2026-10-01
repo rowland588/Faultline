@@ -5,7 +5,7 @@
  * kind of fault that looks plausible in a picture and is obvious in a number.
  */
 import { describe, it, expect } from 'vitest';
-import { footprint, labelGap, layoutPlan, placeLabel, planAgenda, planSays, whenWords } from '../plan';
+import { bunchPlan, footprint, labelGap, layoutPlan, placeLabel, planAgenda, planSays, whenWords } from '../plan';
 import type { PlanMark } from '../standing';
 
 const mark = (o: Partial<PlanMark> & { at: string }): PlanMark => ({
@@ -320,5 +320,32 @@ describe('packing when words go both ways', () => {
       expect(a).toBeGreaterThanOrEqual(0);
       expect(b).toBeLessThanOrEqual(1 + 1e-9);
     }
+  });
+});
+
+describe('alike on one day, drawn once', () => {
+  it('sixteen programs proved on one day are one line, and the count says sixteen', () => {
+    const marks = [
+      ...Array.from({ length: 16 }, (_, i) => mark({ kind: 'program', at: '2026-09-29', tone: 'done', label: `P${i}` })),
+      mark({ kind: 'test', at: '2026-09-29', tone: 'done', label: 'Express 1.25kg' }),
+    ];
+    const b = bunchPlan(marks);
+    expect(b).toHaveLength(2);
+    expect(b.find(m => m.kind === 'program')).toMatchObject({ label: '16 programs', count: 16, tone: 'done' });
+    expect(b.find(m => m.kind === 'test')!.label).toBe('Express 1.25kg');
+  });
+  it('keeps two alike as they are, and never mixes outcomes or days', () => {
+    const b = bunchPlan([
+      mark({ kind: 'fix', at: '2026-09-24', tone: 'failed', label: 'a' }),
+      mark({ kind: 'fix', at: '2026-09-24', tone: 'failed', label: 'b' }),
+      mark({ kind: 'fix', at: '2026-09-24', tone: 'done', label: 'c' }),
+      mark({ kind: 'fix', at: '2026-09-25', tone: 'failed', label: 'd' }),
+    ]);
+    expect(b.map(m => m.label).sort()).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('carries the count onto the placed mark, so a lane can still count every record', () => {
+    const b = bunchPlan(Array.from({ length: 3 }, () => mark({ kind: 'material', at: '2026-09-10', tone: 'done' })));
+    const placed = layoutPlan(b, { today: '2026-10-01' }).lanes[0].rows[0][0];
+    expect(placed.count).toBe(3);
   });
 });

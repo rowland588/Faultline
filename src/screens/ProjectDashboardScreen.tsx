@@ -13,6 +13,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Journey } from '../ui/Journey';
+import { Fold } from '../ui/Fold';
+import { live } from '../lib/testing';
+import { journeyNow, journeyOf } from '../lib/install';
+import { planSays } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
@@ -422,9 +426,26 @@ function TestingOverview({ projectId }: { projectId: string }) {
      "nothing outstanding" while four materials were late and two programs were
      past their test date. Same call the client report makes. */
   const all = useStanding(projectId);
+  const progs = usePrograms(projectId);
   if (tt.loading || all.loading) return <p className="sub">Loading…</p>;
 
   const empty = tt.tests.length === 0 && tt.assets.length === 0;
+  const today = todayISO();
+  const st = all.standing;
+
+  /* WHAT EACH FOLDED CARD SAYS — the answer, so closing a card hides the
+     detail and never the news. */
+  const machines = live(tt.assets);
+  const atCount = new Map<string, number>();
+  for (const a of machines) {
+    const at = journeyNow(journeyOf(a, tt.tests, tt.items, today, progs.programs));
+    atCount.set(at, (atCount.get(at) ?? 0) + 1);
+  }
+  const whereSays = machines.length === 1
+    ? `at ${[...atCount.keys()][0]}`
+    : [...atCount].map(([at, n]) => `${n} at ${at}`).join(' · ');
+  const waitSays = st.outstanding === 0 ? 'nothing waiting'
+    : `${st.outstanding} open${st.late ? ` · ${st.late} late` : ' · none late'}`;
 
   return (
     <section className="pace-sec">
@@ -439,22 +460,32 @@ function TestingOverview({ projectId }: { projectId: string }) {
         </div>
       ) : (
         <>
-          {/* THE VERDICT, then what is waiting on somebody, then the work.
-              The old block here said the same kind of thing off the trials
-              alone; this says it off all five lists, which is the difference
-              between a summary and an answer. */}
-          <Verdict st={all.standing} />
+          {/* THE VERDICT, then where each machine is, then what is waiting on
+              somebody, then the dates. Every card below the verdict folds —
+              Rowland: "very busy, hard to see, nothing collapses" — and folded
+              each still says its answer in a line. */}
+          <Verdict st={st} />
           <DayLink projectId={projectId} />
-          {/* The four gates, machine by machine — where each one is. */}
-          <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
-          {/* The position, then the sore point by name, then WHEN, then the
-              whole list. The plan goes above the table on purpose: the table
-              answers "what is not done", and the only honest way to read that
-              is against the days there are left to do it in. */}
           <LateAlarms projectId={projectId} />
-          <Timeline marks={all.standing.plan} today={todayISO()}
-            expectedAt={all.expectedAt} plannedAt={all.plannedAt} />
-          <Outstanding rows={all.standing.rows} projectId={projectId} />
+          {machines.length > 0 && (
+            <Fold id="where" title="Where each machine is" says={whereSays}>
+              <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
+            </Fold>
+          )}
+          {st.rows.length > 0 && (
+            <Fold id="waiting" title="What we’re waiting on" says={waitSays}>
+              <Outstanding rows={st.rows} projectId={projectId} />
+            </Fold>
+          )}
+          {/* THE PLAN LAST, AND SHUT TO START WITH. It used to sit above the
+              table, so the table could be read against the days left; but it
+              is the longest thing on the page, and open it pushed what needs
+              doing off the screen. Folded, it still says how much is done. */}
+          {st.plan.length > 0 && (
+            <Fold id="plan" title="The plan" says={planSays(st.plan, today)} start={false}>
+              <Timeline marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} />
+            </Fold>
+          )}
 
           {/* WHAT USED TO FOLLOW — a "tests and fixes" bar, a "next up" card and
               the list of machines — each said again what the table above
