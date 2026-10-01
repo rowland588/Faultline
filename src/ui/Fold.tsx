@@ -15,6 +15,15 @@ import { useState, type ReactNode } from 'react';
 
 const KEY = 'faultline.fold.';
 
+/* ON A PHONE EVERY CARD STARTS SHUT. Rowland: "on the laptop it's fine …
+   on the phone it's too much information, I can't see anything." Shut, the
+   Overview is the verdict and one line per card — the whole job on one
+   screen — and a tap opens the one you want. Once somebody has opened or
+   shut a card, that choice wins, on that device. */
+const phone = (): boolean => {
+  try { return window.matchMedia('(max-width: 640px)').matches; } catch { return false; }
+};
+
 function read(id: string, start: boolean): boolean {
   try {
     const v = localStorage.getItem(KEY + id);
@@ -31,7 +40,7 @@ export function Fold({ id, title, says, start = true, children }: {
   start?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(() => read(id, start));
+  const [open, setOpen] = useState(() => read(id, start && !phone()));
   const toggle = () => setOpen(o => {
     try { localStorage.setItem(KEY + id, o ? '0' : '1'); } catch { /* fine */ }
     return !o;

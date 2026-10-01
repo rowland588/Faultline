@@ -7137,3 +7137,42 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .fold-b { padding: 0 14px 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .fold-chev { transition: none; } }
+
+/* ---- THE PHONE PASS on the two dashboards. Rowland: "on the laptop it's
+   fine … on the phone it's too much information, I can't see anything."
+   The rule: the first screen of each dashboard is the answer, and every
+   detail is one tap away rather than one scroll down. Nothing here takes
+   anything away from the laptop. ---- */
+@media (max-width: 640px) {
+  /* The verdict: the sentence already says the numbers the tiles repeated. */
+  .vd { padding: 15px 16px; gap: 0; }
+  .vd-tiles { display: none; }
+  .vd-sentence { font-size: 19px; line-height: 1.22; }
+  /* The day: one line, not a card. */
+  .dy-link { grid-template-columns: auto 1fr auto; align-items: baseline; gap: 8px; margin: 10px 0; padding: 10px 12px; }
+  .dy-link .cmp-h-n { font-size: 10px; }
+  .dy-link-t { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dy-link-go { font-size: 0; }
+  .dy-link-go::after { content: "›"; font-size: 18px; line-height: 1; }
+  .pd-print { display: none; }
+  .fold { margin: 10px 0; }
+  /* Each machine: its name and gate on one line, the four gates small. */
+  .fold-b .jr-row { grid-template-columns: 1fr; gap: 6px; padding: 8px 0; }
+  .fold-b .jr-m { flex-direction: row; align-items: baseline; gap: 8px; }
+  .fold-b .jr-seg { min-height: 28px; font-size: 10.5px; }
+  .fold-b .jr-key { display: none; }
+
+  /* Home: who owes what, one chip a party — the per-job split is the
+     laptop's, and on a phone it wrapped each chip into a paragraph. */
+  .jb-says { font-size: 21px; line-height: 1.2; }
+  .jb-stat b { font-size: 24px; }
+  .jb-owe-jobs { display: none; }
+  .jb-owes-h { flex-basis: 100%; }
+  /* The project cards under the board: a name and its door. The board above
+     already says where each job is; the card only has to open it. */
+  .proj-card.is-compact .proj-open { padding: 11px 14px 6px; }
+  .proj-card.is-compact .proj-name { font-size: 16px; }
+  .proj-card.is-compact .proj-lead { display: none; }
+  .proj-card.is-compact .proj-foot { padding: 6px 14px 10px; border-top: 0; background: none; }
+  .proj-card.is-compact .proj-foot .btn { min-height: 36px; padding: 6px 14px; font-size: 13.5px; }
+}

@@ -646,7 +646,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               button, which is all the old rule was ever protecting. */}
           {(model !== 'commissioning' || mats.tally.total > 0 || progs.tally.total > 0) && <>
             <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}`)}>Client report</button>
-            <button className="btn btn-ghost" onClick={() => window.print()}>Print A3</button>
+            {/* Not on a phone: an A3 is printed from a desk, and the button
+                cost the phone a row of its first screen. */}
+            <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print A3</button>
           </>}
         </div>
       </header>
