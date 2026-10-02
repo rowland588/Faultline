@@ -3,6 +3,7 @@
  * Pareto for every asset (its own losses), worst-first. Tap any bar to walk in.
  * The line and every machine's story on one screen — built for the daily huddle
  * and for presales. Reused in Present (calm, full-screen). */
+import { LOSS } from '../charts/loss';
 import { nav, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { buildCompare, divergenceTags } from '../engine/compare';
@@ -84,7 +85,7 @@ export function LineBoard({ present = false, since = 0, periodKey }: { present?:
             Loss by <b>asset</b> — worst first<span className="chart-hint"> · tap a bar to walk into it</span>
           </div>
           <div className="chart-card" data-tour="line-chart">
-            <ParetoChart slices={assetSlices} color={workspace.color} rankLabel="cumulative time" onDrill={goAsset} canDrill />
+            <ParetoChart slices={assetSlices} color={LOSS} rankLabel="cumulative time" onDrill={goAsset} canDrill />
           </div>
         </>
       )}
@@ -106,7 +107,7 @@ export function LineBoard({ present = false, since = 0, periodKey }: { present?:
               <span className="asset-card-name">{a.name}</span>
               <span className="asset-card-total">{fmtDuration(a.ms)}{costable ? ` · ${fmtGBP(a.ms * factor)}` : ''} ›</span>
             </button>
-            <ParetoChart slices={toSlices(a.rows, 'category', costable, factor)} color={workspace.color} rankLabel="cumulative time" onDrill={key => goAssetCat(a.name, key)} canDrill compact={multi} />
+            <ParetoChart slices={toSlices(a.rows, 'category', costable, factor)} color={LOSS} rankLabel="cumulative time" onDrill={key => goAssetCat(a.name, key)} canDrill compact={multi} />
           </div>
         ))}
       </div>

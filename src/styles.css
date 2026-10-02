@@ -1696,12 +1696,14 @@ button.st-pill { cursor: pointer; }
   text-align: center; padding: 6px 4px; border-radius: var(--radius-sm);
   background: var(--surface-2); border: 1px solid transparent; min-width: 0;
 }
-.pace-p.is-now { background: #fdf0e0; border-color: var(--warn); }
+/* The period we are in: marked by weight (an ink outline), not by amber —
+   amber means waiting, and being this quarter is not a problem. */
+.pace-p.is-now { background: var(--surface); border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .pace-p-lbl {
   display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.pace-p.is-now .pace-p-lbl { color: var(--warn); }
+.pace-p.is-now .pace-p-lbl { color: var(--ink); }
 .pace-p-val { display: block; font-size: 15px; font-weight: 800; color: var(--ink); }
 
 /* a chart with a measure but no readings yet says so in the space the plot
@@ -2465,7 +2467,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-stat.is-good { border-top-color: var(--ok); }
 .exec-stat.is-warn { border-top-color: var(--warn); }
 .exec-stat.is-bad  { border-top-color: var(--danger); }
-.exec-stat.is-flat { border-top-color: var(--brand); }
+.exec-stat.is-flat { border-top-color: var(--line-2); }   /* brand blue is for what you press, not a state */
 .exec-stat-n { font-size: 26px; font-weight: 800; line-height: 1.05; color: #141b26; letter-spacing: -0.02em; }
 .exec-stat.is-good .exec-stat-n { color: var(--ok); }
 .exec-stat.is-bad  .exec-stat-n { color: var(--danger); }

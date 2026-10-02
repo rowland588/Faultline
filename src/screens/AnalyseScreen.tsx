@@ -4,6 +4,7 @@
  * sub-category); the breadcrumb walks you back. The toggle changes only what you
  * RANK by — time or frequency — so you can flip the lens and watch the order
  * change. When the two rankings disagree, the app says so. All state in the URL. */
+import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
@@ -267,7 +268,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
               <div className="chart-card" data-tour="drill-chart">
                 <ParetoChart
                   slices={slices}
-                  color={workspace.color}
+                  color={LOSS}
                   rankLabel={rankByFreq ? 'cumulative freq' : 'cumulative time'}
                   onDrill={drill}
                   canDrill

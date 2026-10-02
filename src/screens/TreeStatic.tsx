@@ -14,7 +14,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listTreeNodes, type TreeNodeRow, type NodeStatus } from '../db';
 
 const LABEL: Record<NodeStatus, string> = {
-  n: 'Not started', w: 'In progress', a: 'At risk', r: 'Blocked', g: 'Done',
+  n: 'Not started', w: 'In progress', a: 'At risk', r: 'Overdue', g: 'Done',
 };
 
 interface Node { row: TreeNodeRow; depth: number; kids: Node[] }

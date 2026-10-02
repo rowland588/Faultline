@@ -4,6 +4,7 @@
  * from the scoped rows' weekly loss, analysis from the drill engine,
  * countermeasures from the actions carrying this caseId, follow-up from the
  * scoped trend against the target. Print it and it's the A3 you hand upward. */
+import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack, buildAnalyseHash } from '../state/useRoute';
@@ -383,7 +384,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             {weeks.map(w => (
               <div key={w.start} className={'cw-col' + (w.current ? ' cur' : '')} title={`${fmtH(w.ms)}${costable ? ` · ${fmtGBP(w.ms * factor)}` : ''}`}>
                 <span className="cw-flag">{closedFlagWeeks.has(w.start) ? '⚑' : ''}</span>
-                <span className="cw-bar" style={{ height: `${Math.max(2, (w.ms / maxWeekMs) * 100)}%`, background: workspace.color }} />
+                <span className="cw-bar" style={{ height: `${Math.max(2, (w.ms / maxWeekMs) * 100)}%`, background: LOSS }} />
                 <span className="cw-lbl">{w.current ? 'now' : w.label}</span>
               </div>
             ))}
@@ -399,7 +400,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
           <>
             {topSlices.map(sl => (
               <div key={sl.key} className="mt-bar-row">
-                <span className="mt-bar" style={{ width: `${Math.round(sl.share * 100)}%`, background: workspace.color }} />
+                <span className="mt-bar" style={{ width: `${Math.round(sl.share * 100)}%`, background: LOSS }} />
                 <span className="mt-bar-lbl">{sl.key} · {Math.round(sl.share * 100)}%{costable ? ` · ${fmtGBP(sl.value * factor)}` : ` · ${fmtH(sl.value)}`}</span>
               </div>
             ))}

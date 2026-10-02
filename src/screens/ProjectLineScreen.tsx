@@ -196,11 +196,11 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
                   tone={head.meeting == null ? undefined : head.meeting ? 'good' : 'bad'} />
               )}
               <Kpi n={String(mine.length - done)} label="actions live" sub={`${done} of ${mine.length} closed`} />
-              <Kpi n={String(overdue)} label="overdue" sub="past their date" tone={overdue > 0 ? 'bad' : 'good'} />
+              <Kpi n={String(overdue)} label="overdue" sub="past their date" tone={overdue > 0 ? 'bad' : undefined} />
             </>}
             {/* On a 3P line the next steps ARE the actions — counted once, above. */}
             {!paced && <Kpi n={String(counts.openTodos)} label="next steps open" sub={`${counts.doneTodos} finished`} />}
-            <Kpi n={String(counts.openSnags)} label="open evidence" sub="on this line’s walk" tone={counts.openSnags > 0 ? 'warn' : 'good'} />
+            <Kpi n={String(counts.openSnags)} label="open evidence" sub="on this line’s walk" tone={counts.openSnags > 0 ? 'warn' : undefined} />
             {/* green only when there is something to be pleased about — a
                 green nought reads as "all good" when it means "nothing yet" */}
             <Kpi n={String(counts.wins)} label="wins logged" sub="what worked" tone={counts.wins > 0 ? 'good' : undefined} />

@@ -2,6 +2,7 @@
  * nose on a Monday. Everything derives from the workspace's own rows via
  * lib/stats, so every number here agrees with Trend and Analyse. Print uses
  * the browser's own dialog (Save as PDF included) — no server, no export lib. */
+import { LOSS, LOSS_TOP } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
@@ -94,7 +95,7 @@ export function ReportScreen() {
             {cats.length === 0 ? <p className="report-empty">Nothing logged this week.</p> : cats.map(([cat, ms], i) => (
               <div className="rbar" key={cat}>
                 <span className="rbar-lbl">{cat}</span>
-                <span className="rbar-track" style={{ width: `${Math.max(8, (ms / maxMs) * 160)}px`, background: i === 0 ? '#fb923c' : 'var(--brand)' }} />
+                <span className="rbar-track" style={{ width: `${Math.max(8, (ms / maxMs) * 160)}px`, background: i === 0 ? LOSS_TOP : LOSS }} />
                 <span className="rbar-val">{fmtDurationWords(ms)}{factor > 0 ? ` · ${fmtGBP(ms * factor)}` : ''}</span>
               </div>
             ))}

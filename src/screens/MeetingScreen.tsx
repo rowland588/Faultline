@@ -12,6 +12,7 @@
  * trusts (lib/stats, the drill engine, the snag store), every edit goes
  * through the same mutators as everywhere else, and the period defaults to
  * the last FULL week so a Tuesday never reads as a miracle. */
+import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack } from '../state/useRoute';
@@ -250,14 +251,14 @@ export function MeetingScreen() {
                 <span className="mt-eyebrow">2 · Where it hurt</span>
                 {topHurt.length === 0 ? <span className="mt-sub">No losses in this period.</span> : topHurt.map(sl => (
                   <span key={sl.key} className="mt-bar-row">
-                    <span className="mt-bar" style={{ width: `${Math.round(sl.timeShare * 100)}%`, background: workspace.color }} />
+                    <span className="mt-bar" style={{ width: `${Math.round(sl.timeShare * 100)}%`, background: LOSS }} />
                     <span className="mt-bar-lbl">{sl.key} · {Math.round(sl.timeShare * 100)}%</span>
                   </span>
                 ))}
               </button>
               <button className="meet-tile" onClick={() => setAct(3)}>
                 <span className="mt-eyebrow">3 · Actions</span>
-                <span className="mt-line">{overdueN > 0 ? <b className="mt-bad">{overdueN} overdue</b> : <b className="mt-good">0 overdue</b>} · {dueSoonN} due this week</span>
+                <span className="mt-line">{overdueN > 0 ? <b className="mt-bad">{overdueN} overdue</b> : <b>0 overdue</b>} · {dueSoonN} due this week</span>
                 <span className="mt-sub">{plural(openActions.filter(s => s.status !== 'closed').length, 'open action')}</span>
               </button>
               <button className="meet-tile" onClick={() => setAct(4)}>
@@ -334,7 +335,7 @@ export function MeetingScreen() {
                   <div className="present-chart">
                     <ParetoChart
                       slices={toSlices(node.rows, node.dimension, costable, factor)}
-                      color={workspace.color} rankLabel="cumulative time"
+                      color={LOSS} rankLabel="cumulative time"
                       onDrill={key => setPath(p => [...p, { dimension: node.dimension!, value: key }])} canDrill
                     />
                   </div>

@@ -657,7 +657,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
     { key: 'process' as const, label: 'Process' },
   ];
   const LABEL: Record<string, string> = {
-    n: 'Not started', w: 'In progress', a: 'Overdue', r: 'Blocked', g: 'Done',
+    n: 'Not started', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done',
   };
   const areas = plan;
 
@@ -1653,9 +1653,9 @@ export function PaceExecReport() {
               return (<>
                 <Stat n={String(heads.length)} label="Tests" sub="being proved on this job" tone="flat" />
                 <Stat n={String(n('proved'))} label="Proved" sub={`of ${heads.length}`} tone={n('proved') > 0 ? 'good' : 'flat'} />
-                <Stat n={String(n('failed'))} label="Failed" sub={n('failed') ? `${reBooked} with a re-test booked` : 'none'} tone={n('failed') > 0 ? 'bad' : 'good'} />
-                <Stat n={String(n('noVerdict') + n('notRun'))} label="Waiting" sub={`${n('noVerdict')} no verdict \u00b7 ${n('notRun')} not run`} tone={n('noVerdict') + n('notRun') > 0 ? 'warn' : 'good'} />
-                <Stat n={String(pastDay)} label="Past the day" sub="owed across the job — see who owes what" tone={pastDay > 0 ? 'bad' : 'good'} />
+                <Stat n={String(n('failed'))} label="Failed" sub={n('failed') ? `${reBooked} with a re-test booked` : 'none'} tone={n('failed') > 0 ? 'bad' : 'flat'} />
+                <Stat n={String(n('noVerdict') + n('notRun'))} label="Waiting" sub={`${n('noVerdict')} no verdict \u00b7 ${n('notRun')} not run`} tone={n('noVerdict') + n('notRun') > 0 ? 'warn' : 'flat'} />
+                <Stat n={String(pastDay)} label="Past the day" sub="owed across the job — see who owes what" tone={pastDay > 0 ? 'bad' : 'flat'} />
                 {installBlock && installBlock.total > 0 && (
                   <Stat n={`${installBlock.machinesIn}/${installBlock.machines}`} label="Installed"
                     sub={`${installBlock.done} of ${installBlock.total} install steps done`}
@@ -1676,11 +1676,13 @@ export function PaceExecReport() {
             : <Stat n={`${atTarget}/${reportLines.length}`} label="Lines at target" sub="latest reading vs target"
                 tone={atTarget === reportLines.length ? 'good' : atTarget === 0 ? 'bad' : 'warn'} />}
           {hasTracker && <>
-            <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="good" />
+            {/* Only the abnormal number carries colour (CLAUDE.md, visual management):
+                a zero is grey, and "17% complete" is the work, not good news. */}
+            <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="flat" />
             <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
-            <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'good'} />
-            <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'good'} />
-            <Stat n={String(winsThisWeek.length)} label="Wins this week" sub="what worked" tone="good" />
+            <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'flat'} />
+            <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'flat'} />
+            <Stat n={String(winsThisWeek.length)} label="Wins this week" sub="what worked" tone={winsThisWeek.length > 0 ? 'good' : 'flat'} />
           </>}
         </div>
 

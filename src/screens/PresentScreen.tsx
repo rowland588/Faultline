@@ -1,6 +1,7 @@
 /* Present — the same analysis, calm and full-screen for the senior team. The big
  * two-measure Pareto (time + £ beside frequency), the one insight, the proof as
  * hero. Still live: drill in front of the room; exit lands back in Analyse. */
+import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
@@ -138,7 +139,7 @@ export function PresentScreen({ route }: { route: Route }) {
           <div className="present-chart">
             <ParetoChart
               slices={slices}
-              color={workspace.color}
+              color={LOSS}
               rankLabel={rankByFreq ? 'cumulative freq' : 'cumulative time'}
               onDrill={drill}
               canDrill

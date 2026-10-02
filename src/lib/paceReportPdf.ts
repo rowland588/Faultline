@@ -412,12 +412,12 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
     cells.forEach((cell, i) => {
       const qx = x + 12 + i * (qW + 5), qy = y + h - qH - 6;
       const now = s.period?.name === cell.name;
-      d.setFillColor(now ? '#fdf0e0' : SURF2);
-      d.setDrawColor(now ? WARN : SURF2); d.setLineWidth(0.8);
+      d.setFillColor(now ? '#ffffff' : SURF2);
+      d.setDrawColor(now ? INK : SURF2); d.setLineWidth(now ? 1.2 : 0.8);   // this period, by weight not amber
       d.roundedRect(qx, qy, qW, qH, 4, 4, 'FD');
-      setFont(d, 6, 'bold', now ? WARN : MUTED);
+      setFont(d, 6, 'bold', now ? INK : MUTED);
       d.text(fit(d, cell.name, qW - 4), qx + qW / 2, qy + 10, { align: 'center' });
-      setFont(d, 9.5, 'bold', now ? WARN : INK);
+      setFont(d, 9.5, 'bold', INK);
       d.text(cell.value == null ? '--' : nice(cell.value), qx + qW / 2, qy + 21, { align: 'center' });
     });
   }
@@ -1584,7 +1584,7 @@ const TREE_STATUS: Record<string, { c: string; label: string }> = {
   n: { c: MUTED,  label: 'Not started' },
   w: { c: BLUE, label: 'In progress' },
   a: { c: WARN,   label: 'At risk' },
-  r: { c: DANGER, label: 'Blocked' },
+  r: { c: DANGER, label: 'Overdue' },
   g: { c: OK,     label: 'Done' },
 };
 
@@ -2023,11 +2023,13 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
          solo.meeting == null ? MUTED : solo.meeting ? OK : DANGER]
       : [`${data.atTarget}/${data.lines.length}`, 'Lines at target', 'latest reading vs target',
          data.atTarget === data.lines.length ? OK : data.atTarget === 0 ? DANGER : WARN],
-    [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, OK],
-    [String(data.openTotal), 'Still open', 'in flight', BRAND],
-    [String(data.late), 'Overdue', 'past their date', data.late > 0 ? DANGER : OK],
-    [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : OK],
-    [String(data.winsThisWeek), 'Wins this week', 'what worked', OK],
+    /* Only the abnormal number carries colour, as on screen: a zero is grey,
+       and a share complete is the work, not good news. */
+    [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, MUTED],
+    [String(data.openTotal), 'Still open', 'in flight', MUTED],
+    [String(data.late), 'Overdue', 'past their date', data.late > 0 ? DANGER : MUTED],
+    [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : MUTED],
+    [String(data.winsThisWeek), 'Wins this week', 'what worked', data.winsThisWeek > 0 ? OK : MUTED],
   ];
 
   /* A COMMISSIONING JOB'S OWN NUMBERS. "0% actions complete" is not a fact
@@ -2046,14 +2048,14 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   const nStrand = (st: StrandState) => headStrands.filter(x => x.state === st).length;
   const retestBooked = headStrands.filter(x => x.state === 'failed' && x.next?.what === 'Re-test').length;
   const commTiles: [string, string, string, string][] = [
-    [String(headStrands.length), 'Tests', 'being proved on this job', BRAND],
+    [String(headStrands.length), 'Tests', 'being proved on this job', MUTED],
     [String(nStrand('proved')), 'Proved', `of ${headStrands.length}`, nStrand('proved') > 0 ? OK : MUTED],
     [String(nStrand('failed')), 'Failed',
       nStrand('failed') ? `${retestBooked} with a re-test booked` : 'none',
-      nStrand('failed') > 0 ? DANGER : OK],
+      nStrand('failed') > 0 ? DANGER : MUTED],
     [String(nStrand('noVerdict') + nStrand('notRun')), 'Waiting',
       `${nStrand('noVerdict')} no verdict · ${nStrand('notRun')} not run`,
-      nStrand('noVerdict') + nStrand('notRun') > 0 ? WARN : OK],
+      nStrand('noVerdict') + nStrand('notRun') > 0 ? WARN : MUTED],
     /* THE WHOLE JOB'S LATE, when page 3 is there to account for it. Counted
        off the strands alone, this tile said 3 while page 2's sentence and page
        3's cards said 4 — the fourth a machine that never turned up, which is
@@ -2064,7 +2066,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       const late = owesLate ?? strandLate;
       return [[String(late), 'Past the day',
         owesLate != null ? 'owed across the job — see who owes what' : 'owed and the date has gone',
-        late > 0 ? DANGER : OK]];
+        late > 0 ? DANGER : MUTED]];
     })(),
     /* INSTALL, when the job keeps install steps: machines in, and the steps
        behind that number — the installation sheet further on says which. */
