@@ -10,6 +10,39 @@ import { useSession } from './session';
 export interface WsMember { workspace_id: string; email: string; created_at: string }
 
 const norm = (e: string) => e.trim().toLowerCase();
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/* ---------- the add is the invite ----------
+ * The front door is `allowed_emails`: a sign-up whose address is not on it is
+ * turned away, and only the superadmin could write that list. So an owner who
+ * added a colleague put them on the people list and the screen had to say "the
+ * administrator needs to invite them". supabase/OWNER_INVITES.sql gives the
+ * owner one call that does both — the front door and the people list — and
+ * answers whether that person already has an account, so the screen can say
+ * the true thing: nothing new when they do, "sign up" when they don't.
+ *
+ * On a database that has not run that file yet the call comes back "function
+ * not found"; the add then falls through to the plain insert RLS always
+ * guarded, and `invited: false` tells the screen the front door is still the
+ * administrator's. */
+export type AddResult = { invited: true; registered: boolean } | { invited: false };
+
+const rpcMissing = (e: { code?: string; message: string }) =>
+  e.code === 'PGRST202' || /invite_member/.test(e.message);
+/** supabase-js hands a dead network back as an error object whose message is
+ *  the browser's — "TypeError: Failed to fetch" — not a sentence for a screen. */
+const offline = (e: { code?: string; message: string }) =>
+  !e.code || /fetch|network|load failed/i.test(e.message);
+const asError = (e: { code?: string; message: string }): Error =>
+  new Error(offline(e) ? 'Couldn’t add them — are you online?' : e.message);
+
+async function invite(kind: 'project' | 'workspace', targetId: string, email: string, role: ProjectRole = 'member'): Promise<AddResult | null> {
+  if (!supabase) throw new Error('Cloud isn’t configured.');
+  const { data, error } = await supabase.rpc('invite_member', { kind, target_id: targetId, invitee: email, invitee_role: role });
+  if (!error) return { invited: true, registered: data === true };
+  if (rpcMissing(error)) return null;
+  throw asError(error);
+}
 
 export async function listMembers(workspaceId: string): Promise<WsMember[]> {
   if (!supabase) return [];
@@ -21,13 +54,16 @@ export async function listMembers(workspaceId: string): Promise<WsMember[]> {
   return (data as WsMember[]) ?? [];
 }
 
-export async function addMember(workspaceId: string, email: string): Promise<void> {
+export async function addMember(workspaceId: string, email: string): Promise<AddResult> {
   if (!supabase) throw new Error('Cloud isn’t configured.');
   const clean = norm(email);
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error('That doesn’t look like an email address.');
+  if (!EMAIL.test(clean)) throw new Error('That doesn’t look like an email address.');
+  const done = await invite('workspace', workspaceId, clean);
+  if (done) return done;
   const { error } = await supabase.from('workspace_members')
     .upsert({ workspace_id: workspaceId, email: clean }, { onConflict: 'workspace_id,email' });
-  if (error) throw error;
+  if (error) throw asError(error);
+  return { invited: false };
 }
 
 export async function removeMember(workspaceId: string, email: string): Promise<void> {
@@ -40,7 +76,7 @@ export async function removeMember(workspaceId: string, email: string): Promise<
 /** The people list for one workspace, with add/remove that refresh in place. */
 export function useMembers(workspaceId: string): {
   members: WsMember[]; loaded: boolean; myEmail: string;
-  add: (email: string) => Promise<void>; remove: (email: string) => Promise<void>;
+  add: (email: string) => Promise<AddResult>; remove: (email: string) => Promise<void>;
 } {
   const { session } = useSession();
   const [members, setMembers] = useState<WsMember[]>([]);
@@ -56,7 +92,7 @@ export function useMembers(workspaceId: string): {
   return {
     members, loaded,
     myEmail: norm(session?.user.email ?? ''),
-    add: async (email: string) => { await addMember(workspaceId, email); await refresh(); },
+    add: async (email: string) => { const r = await addMember(workspaceId, email); await refresh(); return r; },
     remove: async (email: string) => { await removeMember(workspaceId, email); await refresh(); },
   };
 }
@@ -84,13 +120,16 @@ export async function listProjectMembers(projectId: string): Promise<ProjectMemb
   return (data as ProjectMember[]) ?? [];
 }
 
-export async function addProjectMember(projectId: string, email: string, role: ProjectRole = 'member'): Promise<void> {
+export async function addProjectMember(projectId: string, email: string, role: ProjectRole = 'member'): Promise<AddResult> {
   if (!supabase) throw new Error('Cloud isn’t configured.');
   const clean = norm(email);
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error('That doesn’t look like an email address.');
+  if (!EMAIL.test(clean)) throw new Error('That doesn’t look like an email address.');
+  const done = await invite('project', projectId, clean, role);
+  if (done) return done;
   const { error } = await supabase.from('project_members')
     .upsert({ project_id: projectId, email: clean, role }, { onConflict: 'project_id,email' });
-  if (error) throw error;
+  if (error) throw asError(error);
+  return { invited: false };
 }
 
 export async function removeProjectMember(projectId: string, email: string): Promise<void> {
@@ -105,7 +144,7 @@ export async function removeProjectMember(projectId: string, email: string): Pro
  *  reading the project must never depend on being online. */
 export function useProjectMembers(projectId: string): {
   members: ProjectMember[]; loaded: boolean; myEmail: string; error: string;
-  add: (email: string, role?: ProjectRole) => Promise<void>;
+  add: (email: string, role?: ProjectRole) => Promise<AddResult>;
   remove: (email: string) => Promise<void>;
 } {
   const { session } = useSession();
@@ -129,7 +168,7 @@ export function useProjectMembers(projectId: string): {
   return {
     members, loaded, error,
     myEmail: norm(session?.user.email ?? ''),
-    add: async (email: string, role: ProjectRole = 'member') => { await addProjectMember(projectId, email, role); await refresh(); },
+    add: async (email: string, role: ProjectRole = 'member') => { const r = await addProjectMember(projectId, email, role); await refresh(); return r; },
     remove: async (email: string) => { await removeProjectMember(projectId, email); await refresh(); },
   };
 }
