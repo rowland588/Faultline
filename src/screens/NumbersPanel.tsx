@@ -11,6 +11,7 @@
  * The chart appears as soon as there is a reading. That is the whole of what
  * Rowland asked for: "is there a way for users to set their measurements and
  * then a graph will appear". */
+import { AddFold } from '../ui/AddFold';
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { MeasureChart } from '../charts/MeasureChart';
@@ -188,6 +189,7 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
 
   return (
     <>
+      <AddFold label="Record a reading" start={newest.length === 0}>
       <div className="card nm-card">
         <div className="field-label">Record a reading</div>
         <div className="nm-pick">
@@ -209,6 +211,7 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
             onAdd={(at, v, note) => state.addReading(line.id, measure.id, at, v, note)} />
         )}
       </div>
+      </AddFold>
 
 
       {newest.length > 0 && (

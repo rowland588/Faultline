@@ -10,6 +10,7 @@
  * one-off, it is something you come back to every time a line changes hands.
  *
  * Everything saves as you type (on blur). There is no Save button to forget. */
+import { Fold } from '../ui/Fold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -120,7 +121,7 @@ function LineRow({ line, first, last, state, projectId, members }: {
 
   const remove = () => {
     if (!window.confirm(
-      `Remove ${line.name} from this project?\n\nIts readings and targets go with it. Anything captured in its workspace stays where it is.`
+      `Remove ${line.name} from this project?\n\nIts readings and targets go with it. Anything captured on it — stops, walks, evidence — stays where it is.`
     )) return;
     void state.removeLine(line.id);
   };
@@ -302,13 +303,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
 
   const commissioning = planModel(project) === 'commissioning';
   const linesSection = (
-      <section className="pace-sec">
-        <div className="pace-sec-head">
-          <h2 className="pace-sec-title">Lines</h2>
-          <p className="pace-sec-sub">
-            Each line has an owner who runs it and a sponsor who carries it — and a workspace of its own for its snag list, captures and reports
-          </p>
-        </div>
+      <Fold id="pset-lines" title="Lines"
+        says={lines.lines.length === 0 ? 'none yet' : `${lines.lines.length} line${lines.lines.length === 1 ? '' : 's'} · ${lines.lines.filter(l => l.owner).length} with an owner`}>
 
         {lines.lines.length === 0
           ? <p className="sub">No lines yet — add the first one below.</p>
@@ -337,7 +333,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         {/* Work written before lines had packs of their own — offered for
             placing, once, and gone from the page as soon as it is placed. */}
         <LineTidyPanel projectId={project.id} lines={lines.lines} />
-      </section>
+      </Fold>
   );
 
   return (
@@ -364,24 +360,25 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         </div>
       </header>
 
-      <ProjectIdentity projectId={projectId} />
+      {/* FOLDS. Project, lines, measures and people were all open at once —
+          2,900px on a phone. Each is a line until it is the one being worked on. */}
+      <Fold id="pset-project" title={commissioning ? 'The project' : 'The project'} says={`${project.name} · led by ${project.lead || 'nobody yet'}`}>
+        <ProjectIdentity projectId={projectId} />
+      </Fold>
 
       {!commissioning && linesSection}
 
       {/* WHAT THIS BUSINESS MEASURES. Only on a project that runs a plan — a
           commissioning job proves a rate once, per pack, and has no periods to
           set targets across. */}
-      {paced && <MeasuresSetup projectId={project.id} lines={lines.lines} />}
+      {paced && <MeasuresSetup projectId={project.id} lines={lines.lines} fold />}
 
-      <section className="pace-sec">
-        <div className="pace-sec-head">
-          <h2 className="pace-sec-title">People</h2>
-          <p className="pace-sec-sub">Sponsors and owners, invited by email · they see this project on their own device</p>
-        </div>
+      <Fold id="pset-people" title="People" start={false}
+        says={people.members.length ? `${people.members.length} invited · they see this project on their own device` : 'nobody else yet — invite by email'}>
         <div className="card">
           <ProjectPeople lead={project.lead} people={people} />
         </div>
-      </section>
+      </Fold>
 
       {/* PUT IT AWAY. Rowland: "you removed the archive and delete system for
           projects." It was only ever on the All projects page — nowhere on the

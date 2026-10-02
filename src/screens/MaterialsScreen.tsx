@@ -14,6 +14,7 @@
  * The plan is kept here, one thing at a time — nothing is pasted in from a
  * spreadsheet any more.
  */
+import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
 import { useState } from 'react';
@@ -281,7 +282,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
             </div>
           </section>
 
-          <AddMaterial state={state} lines={lines.lines} />
+          <AddFold label="Add what you need"><AddMaterial state={state} lines={lines.lines} /></AddFold>
         </>
       )}
 

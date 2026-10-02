@@ -8,6 +8,7 @@
  * or on the whole job (testId ''). The same notes show on each step's own page
  * under "For the meeting". Ticked once raised. Private preparation — the
  * client report and every other document leave them out. */
+import { AddFold } from '../ui/AddFold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
@@ -246,6 +247,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         </div>
       </header>
 
+      <AddFold label="Add a note" start={open.length === 0}>
       <form className="nt-add" onSubmit={e => { e.preventDefault(); void add(); }}>
         <textarea className="text-area" rows={2} value={what} autoFocus placeholder="What do you want to raise?"
           onChange={e => setWhat(e.target.value)}
@@ -271,6 +273,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           <button type="button" className="nt-rem-add" onClick={() => setAddRem(true)}>+ Remind me about it on a date</button>
         )}
       </form>
+      </AddFold>
 
       {/* WHAT IS DUE, FIRST. And whether this device will say so on the day. */}
       {(() => {

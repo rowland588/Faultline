@@ -72,10 +72,14 @@ function Ladder({ r }: { r: ReturnType<typeof analyse> }) {
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested, patch, move, remove, assets }: {
+function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested, patch, move, remove, assets, open, onToggle }: {
   s: Station; i: number; last: boolean; prevUnit?: string; planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
+  /** ONE STATION OPEN AT A TIME. Every station's eight boxes were open at once
+   *  — 57 buttons on the page — when the work is on one of them. Shut, a
+   *  station is its name and one line of its numbers; tap Edit to open it. */
+  open: boolean; onToggle: () => void;
 }) {
   const cyc = s.rate == null && (s.cycleSec != null || s.perCycle != null);
   const [mode, setMode] = useState<'rate' | 'cycle'>(cyc ? 'cycle' : 'rate');
@@ -98,11 +102,23 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested,
           <button className="btn btn-ghost in-usual-b" onClick={() => move(-1)} disabled={i === 0} aria-label="Move earlier in the line">↑</button>
           <button className="btn btn-ghost in-usual-b" onClick={() => move(1)} disabled={last} aria-label="Move later in the line">↓</button>
           <button className="btn btn-ghost in-usual-b" onClick={remove} aria-label={`Remove ${s.name || 'this station'}`}>✕</button>
+          <button type="button" className={'btn btn-sm' + (open ? ' btn-primary' : ' btn-ghost')} onClick={onToggle} aria-expanded={open}>{open ? 'Done' : 'Edit'}</button>
         </span>
       </div>
 
       {why && <p className="cap-why" role="note">Not counted yet: {why}.</p>}
 
+      {!open && (
+        <p className="cap-sum">
+          {s.rate != null ? `${fmtN(s.rate)} ${s.unit.trim() || 'units'} ${PER_WORD[s.ratePer ?? 'min']}`
+            : s.perCycle != null || s.cycleSec != null ? `${fmtN(s.perCycle ?? 0)} ${s.unit.trim() || 'units'} every ${fmtN(s.cycleSec ?? 0)} s`
+              : 'no speed yet'}
+          {' · '}{s.crew ?? 1} {s.kind === 'people' ? (s.crew === 1 ? 'person' : 'people') : 'of it'}
+          {' · '}{s.runningPct ?? 100}% running · {s.goodPct ?? 100}% good
+        </p>
+      )}
+
+      {open && <>
       <div className="cap-grid">
         <label className="proj-field">
           <span className="field-label">It counts in</span>
@@ -196,6 +212,7 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested,
           <span className="cap-hint">Last 4 weeks: {Math.round(own)} min its own stops · {Math.round(wait)} min waiting on neighbours</span>
         )}
       </div>
+      </>}
     </li>
   );
 }
@@ -209,6 +226,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
 }) {
   const stored = line.capacity ?? EMPTY_CAPACITY;
   const [cap, setCap] = useState<Capacity>(stored);
+  const [editing, setEditing] = useState<string | null>(null);
   /* What this panel last wrote. A reload that has not caught up with it must
      not put the old document back over a field somebody has just left. */
   const sent = useRef<string | null>(null);
@@ -374,7 +392,8 @@ export function CapacityPanel({ projectId, line, onSave }: {
             prevUnit={cap.stations[i - 1]?.unit} planned={cap.plannedHoursPerWeek} why={why(s.id)}
             wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
             suggested={suggestRunning(stats[s.id]?.ownMins ?? 0, cap.plannedHoursPerWeek, stops.weeks)}
-            patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets} />
+            patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets}
+            open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} />
         ))}
       </ol>
       <div className="row-inline">

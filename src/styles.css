@@ -7895,3 +7895,10 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .mt-weeks-months span { border-bottom: 1px solid var(--line-2); padding-bottom: 2px; margin-bottom: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mt-weeks-wks span { text-align: center; overflow: hidden; white-space: nowrap; }
 @media (max-width: 640px) { .mt-weeks-wks span { font-size: 8.5px; letter-spacing: 0; } }
+
+/* an add form, folded to one row (ui/AddFold) */
+.add-fold-b { margin-top: 10px; }
+.add-fold { position: relative; margin-top: 10px; }
+.add-fold-x { position: absolute; top: 12px; right: 14px; z-index: 1; }
+/* a station shut: its numbers in one line */
+.cap-sum { margin: 2px 0 0 34px; font-size: 12.5px; color: var(--ink-2); }

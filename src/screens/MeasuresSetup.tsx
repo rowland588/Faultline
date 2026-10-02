@@ -16,6 +16,7 @@
  * this screen is that the business names its own.
  *
  * Everything saves as you type. There is no Save button to forget. */
+import { Fold } from '../ui/Fold';
 import { useState } from 'react';
 import { DraftText, DraftNumber } from '../ui/Draft';
 import { useMeasures } from '../lib/useMeasures';
@@ -243,9 +244,20 @@ function Targets({ state, lines }: { state: ReturnType<typeof useMeasures>; line
   );
 }
 
-export function MeasuresSetup({ projectId, lines }: { projectId: string; lines: PaceLineRow[] }) {
+export function MeasuresSetup({ projectId, lines, fold = false }: { projectId: string; lines: PaceLineRow[]; fold?: boolean }) {
   const state = useMeasures(projectId);
   if (state.loading) return null;
+  if (fold) {
+    const n = state.measures.length, k = state.periods.length;
+    return (
+      <Fold id="pset-measures" title="What this project measures" start={n === 0}
+        says={n === 0 ? 'none yet — every number on the packs and the report comes from these' : `${n} measure${n === 1 ? '' : 's'} · ${k} period${k === 1 ? '' : 's'}`}>
+        <Measures state={state} />
+        <Periods state={state} />
+        <Targets state={state} lines={lines} />
+      </Fold>
+    );
+  }
   return (
     <section className="pace-sec">
       <div className="pace-sec-head">

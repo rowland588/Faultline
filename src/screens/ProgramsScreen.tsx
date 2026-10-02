@@ -14,6 +14,7 @@
  * DATE. Marking something proved asks which day, because the word on its own is
  * an opinion and the date is the fact.
  */
+import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
 import { useEffect, useState } from 'react';
@@ -495,7 +496,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           what was in it — which meant the machine you had just picked was
           gone by the time you typed the second program for it. Rendered once,
           in one position, it keeps its state across that change. */}
-      <AddProgram state={state} lines={lines.lines} assets={assets} />
+      <AddFold label="Add a program" start={t.total === 0}><AddProgram state={state} lines={lines.lines} assets={assets} /></AddFold>
 
       {!embedded && (
         <footer className="pace-foot">

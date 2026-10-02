@@ -54,6 +54,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const { programs } = usePrograms(projectId);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
+  /* 2 · THE DAY folds the same way once the verdict is in. */
+  const [dayOpen, setDayOpen] = useState(false);
   /* The boxes a voice note just filled — they glow for a moment so you can
      see where what you said went. */
   const [filled, setFilled] = useState<string[]>([]);
@@ -305,7 +307,17 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         </section>
       )}
 
-      {/* 2 · THE DAY */}
+      {/* 2 · THE DAY — one line once there is a verdict; Edit opens it. */}
+      {hasRun(test) && test.outcome !== 'planned' && !dayOpen ? (
+        <button className="tw-block tw-fold" onClick={() => setDayOpen(true)}>
+          <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
+          <span className="tw-fold-t">
+            {[outcomeWord(test), test.ranOn && nice(test.ranOn), test.result, (test.media?.length ?? 0) > 0 && `${test.media?.length} picture${test.media?.length === 1 ? '' : 's'}`]
+              .filter(Boolean).join(' · ')}
+          </span>
+          <span className="tw-fold-go">Edit</span>
+        </button>
+      ) : (
       <section className="tw-block">
         <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
         {kind === 'test' && (
@@ -341,6 +353,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         <Evidence media={test.media ?? []} onView={setViewing} kind={kind}
           onAdd={refs => tt.patchTest(test.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
       </section>
+      )}
 
       {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
           These are OBSERVATIONS: written down live, while it is running. Whether
