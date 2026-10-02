@@ -2,9 +2,10 @@
  *
  *  · ReminderNotifier  — mounted once at the root: on the day, this device
  *    shows a notification for each reminder due (or gone), once a day each,
- *    while Faultline is open or opened. There is no server to wake a closed
- *    app, so it never claims to; the cards below are the reminder that always
- *    works.
+ *    while Faultline is open. When the app is closed the cloud does the same
+ *    job (supabase/functions/remind → cloud/push.ts), to every device that
+ *    has said yes; the notifier re-registers this one on every start. The
+ *    cards below are the reminder that always works.
  *  · ReminderPermission — the one switch that lets this device do that.
  *  · ProjectReminders   — the card at the top of a project while one is due.
  */
@@ -16,6 +17,7 @@ import { dueNow, remindersOf, remindWords } from '../lib/reminders';
 import { todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { offerUndo } from './Undo';
+import { pushRegistered, pushSupported, subscribePush } from '../cloud/push';
 
 const SAID_KEY = 'faultline.reminded';
 const supported = () => typeof window !== 'undefined' && 'Notification' in window;
@@ -62,6 +64,7 @@ export function ReminderNotifier() {
       markSaid(said);
     };
     void check();
+    void subscribePush();   // keep this device reachable while the app is closed
     const every = window.setInterval(() => void check(), 15 * 60_000);
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => void check(), 1500); });
     return () => { live = false; window.clearInterval(every); window.clearTimeout(timer); off(); };
@@ -73,13 +76,32 @@ export function ReminderNotifier() {
 /** Whether this device will say a reminder out loud, and the switch to let it. */
 export function ReminderPermission() {
   const [state, setState] = useState<NotificationPermission | 'none'>(() => (supported() ? Notification.permission : 'none'));
+  // Whether the cloud can reach this device when the app is closed — true only
+  // once the push address is registered, so the sentence is never ahead of it.
+  const [reach, setReach] = useState<boolean | null>(null);
+  useEffect(() => { if (state === 'granted') void pushRegistered().then(setReach); }, [state]);
+  const grant = async () => {
+    const s = await Notification.requestPermission();
+    setState(s);
+    if (s === 'granted') setReach(await subscribePush());
+  };
   if (state === 'none') return <p className="sub nt-perm">This device cannot show notifications — reminders show on Home and on the project instead.</p>;
-  if (state === 'granted') return <p className="sub nt-perm">This device will notify you on the day, while Faultline is open. Reminders also show on Home and on the project.</p>;
+  if (state === 'granted') {
+    return (
+      <p className="sub nt-perm">
+        {reach
+          ? 'This device will notify you on the day, even when Faultline is closed. Reminders also show on Home and on the project.'
+          : reach === false && pushSupported()
+            ? <>This device will notify you on the day while Faultline is open. It could not be registered for reminders when the app is closed — {/iPhone|iPad/.test(navigator.userAgent) ? 'on an iPhone, add Faultline to the Home Screen first, then' : ''} <button type="button" className="cw-link" onClick={() => void subscribePush().then(setReach)}>try again</button>.</>
+            : 'This device will notify you on the day, while Faultline is open. Reminders also show on Home and on the project.'}
+      </p>
+    );
+  }
   if (state === 'denied') return <p className="sub nt-perm">Notifications are blocked for Faultline in this browser’s settings — reminders still show on Home and on the project.</p>;
   return (
     <p className="sub nt-perm">
-      <button type="button" className="btn btn-sm" onClick={() => void Notification.requestPermission().then(setState)}>Notify me on this device</button>
-      {' '}Reminders always show on Home and on the project; this adds a notification on the day.
+      <button type="button" className="btn btn-sm" onClick={() => void grant()}>Notify me on this device</button>
+      {' '}Reminders always show on Home and on the project; this adds a notification on the day, even when Faultline is closed.
     </p>
   );
 }

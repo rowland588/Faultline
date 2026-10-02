@@ -63,6 +63,8 @@ export default defineConfig({
         globIgnores: ['**/guide/**', '**/og.png', '**/demo/**'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
+        // the push handler: a reminder that arrives while the app is closed
+        importScripts: ['push-sw.js'],
       },
     }),
   ],
