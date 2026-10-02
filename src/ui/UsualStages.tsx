@@ -17,11 +17,12 @@
  */
 import { useState } from 'react';
 import { updateProject } from '../db';
+import { offerUndo } from './Undo';
 import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type usualStages } from '../lib/install';
 import type { StepGate, Test } from '../lib/testing';
 import type { Project } from '../types';
 
-export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, isFresh, gate = 'install' }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install' }: {
   /** Which gate's list — each is the job's own, edited as freely. */
   gate?: StepGate;
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
@@ -34,6 +35,9 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   extras?: { col: string; n: number; fresh: number }[];
   onMove?: (col: string, target: string) => boolean;
   onRemove?: (col: string, asked?: boolean) => boolean;
+  /** Remove every never-started step of these stages, as ONE undo that also
+   *  puts the list back — see `save`. */
+  onDrop?: (cols: string[], restoreList: () => Promise<void>) => Promise<void>;
   /** Is this step untouched — safe to remove? */
   isFresh?: (t: Test) => boolean;
 }) {
@@ -61,30 +65,36 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
       .filter(d => d.n > 0);
     await updateProject({ ...project, ...keepStages(project, gate, cleanStages(draft, gate)), updatedAt: Date.now() });
     setDraft(null);
+    /* TAKING A STAGE OUT TAKES IT OUT. Rowland, twice: "deleted a stage in
+       edits but it never deleted." The first fix asked a second question after
+       Save, and a stage stayed on the grid for anybody who missed it or said
+       "leave them". Now the stage goes from the list AND the never-started
+       steps go from the machines in the same tap, with one Undo that brings
+       back both. Only steps with work on them are kept — and the sheet says so. */
+    const restoreList = async () => { await updateProject({ ...project, updatedAt: Date.now() }); };
+    const gone = usual.stages.filter(old => !after.some(a => key(a) === key(old)) && !renamedFrom.has(key(old)));
+    const freshCols = dropped.filter(d => d.fresh > 0).map(d => d.col);
+    if (gone.length && freshCols.length && onDrop) await onDrop(freshCols, restoreList);
+    else if (gone.length) offerUndo(`Removed ${gone.length === 1 ? `“${gone[0]}”` : `${gone.length} stages`} from the list`, restoreList);
+    const kept = dropped.filter(d => d.fresh < d.n);
     if (renamed.length && renameSteps) setAsking(renamed);
-    else if (dropped.length && onRemove) setDropping(dropped);
+    else if (kept.length) setDropping(kept);
   };
 
   if (dropping) {
-    const fresh = dropping.reduce((n, d) => n + d.fresh, 0);
     return (
       <section className="in-usual is-asking">
-        <div className="in-usual-h"><b>Take {dropping.length === 1 ? 'it' : 'them'} off the machines too?</b></div>
+        <div className="in-usual-h"><b>{dropping.length === 1 ? 'One stage' : `${dropping.length} stages`} still on the machines</b></div>
         <ul className="in-usual-list">
-          {dropping.map(d => (
-            <li key={d.col}>“{d.col}” · on {d.n} machine{d.n === 1 ? '' : 's'}
-              {d.fresh < d.n ? ` — ${d.n - d.fresh} ${d.n - d.fresh === 1 ? 'has' : 'have'} work on ${d.n - d.fresh === 1 ? 'it' : 'them'}, so kept` : ''}</li>
-          ))}
+          {dropping.map(d => {
+            const worked = d.n - d.fresh;
+            return <li key={d.col}>“{d.col}” — {worked === d.n ? '' : `${d.fresh} never started, removed. `}{worked} {worked === 1 ? 'machine has' : 'machines have'} work on it, so {worked === 1 ? 'it was' : 'they were'} kept.</li>;
+          })}
         </ul>
         <div className="in-usual-go">
-          {fresh > 0 && (
-            <button className="btn btn-primary" onClick={() => { dropping.filter(d => d.fresh > 0).forEach(d => onRemove?.(d.col, true)); setDropping(null); }}>
-              Remove the {fresh === 1 ? 'one' : fresh} never started
-            </button>
-          )}
-          <button className="btn btn-ghost" onClick={() => setDropping(null)}>{fresh > 0 ? 'Leave them on the machines' : 'OK'}</button>
+          <button className="btn btn-primary" onClick={() => setDropping(null)}>OK</button>
         </div>
-        <p className="sub tw-note">Leaving them keeps the name as a column of its own on the grid — it can be cleared later from “also on the grid”.</p>
+        <p className="sub tw-note">They stay as a column of their own on the grid. Open one to remove it step by step, or clear it from “also on the grid”.</p>
       </section>
     );
   }

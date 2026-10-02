@@ -127,6 +127,16 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
     })();
     return true;
   };
+  /* Stages taken out of the list in one go: every never-started step of them
+     goes, and ONE undo brings back the steps and the list. */
+  const dropColumns = async (cols: string[], restoreList: () => Promise<void>) => {
+    const fresh = cols.flatMap(c => stepsIn(c).filter(t => untouched(t, tt.tests, tt.items)));
+    if (!fresh.length) return;
+    const back: (() => Promise<void>)[] = [];
+    for (const t of fresh) back.push(await deleteTest(t.id, projectId));
+    offerUndo(`Removed ${cols.length === 1 ? `“${cols[0]}”` : `${cols.length} stages`} and its ${fresh.length} step${fresh.length === 1 ? '' : 's'}`,
+      async () => { await restoreList(); for (const r of back) await r(); });
+  };
   const extras = grid.columns.slice(usual.length).map(col => {
     const st = stepsIn(col);
     return { col, n: st.length, fresh: st.filter(t => untouched(t, tt.tests, tt.items)).length };
@@ -138,7 +148,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
           <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate}
-            extras={extras} onMove={moveColumn} onRemove={removeColumn}
+            extras={extras} onMove={moveColumn} onRemove={removeColumn} onDrop={dropColumns}
             isFresh={t => untouched(t, tt.tests, tt.items)}
             renameSteps={async (pairs) => {
               const done: { id: string; title: string }[] = [];
