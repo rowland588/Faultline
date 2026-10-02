@@ -7730,3 +7730,4 @@ button.gt-fixlab small { font-size: 10px; }
 .why-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .why-need { margin: 0; }
 .ig-why-note { margin: 6px 0 0; color: var(--st-r); font-weight: 600; }
+.sp-acts { display: flex; flex-wrap: wrap; gap: 8px; }

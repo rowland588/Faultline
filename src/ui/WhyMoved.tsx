@@ -10,7 +10,10 @@
  */
 import { useState } from 'react';
 import type { MediaRef } from '../types';
-import type { Test } from '../lib/testing';
+import { plannedEnd, type Test } from '../lib/testing';
+import { movedLater } from '../lib/story';
+import { todayISO } from '../lib/weeks';
+import { offerUndo } from './Undo';
 import type { useTesting } from '../lib/useTesting';
 import { deleteTest, deleteTestItem } from '../db';
 import { uid } from '../lib/ids';
@@ -76,7 +79,7 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel }: 
 
 /** Keep the reason (and the fix, if asked) on each moved step. Returns how to
  *  take it all back — the caller restores the dates in the same Undo. */
-export async function recordMove(tt: TT, steps: { step: Test; from: string; to: string }[], a: WhyAnswer): Promise<() => Promise<void>> {
+export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?: string }[], a: WhyAnswer): Promise<() => Promise<void>> {
   const made: { item: string; fix?: string }[] = [];
   const at = Date.now();
   for (const [k, { step, from, to }] of steps.entries()) {
@@ -89,7 +92,7 @@ export async function recordMove(tt: TT, steps: { step: Test; from: string; to: 
     await tt.saveItem({
       id, projectId: step.projectId, testId: step.id, kind: 'found', what: a.why,
       ...(a.media.length ? { media: a.media } : {}),
-      movedFrom: from, movedTo: to,
+      ...(from && to ? { movedFrom: from, movedTo: to } : {}),
       ...(fixId ? { becameTestId: fixId } : {}),
       sort: at + k, createdAt: at + k, updatedAt: at + k,
     });
@@ -101,4 +104,72 @@ export async function recordMove(tt: TT, steps: { step: Test; from: string; to: 
       if (m.fix) await deleteTest(m.fix, steps[0].step.projectId);
     }
   };
+}
+
+/* HIT A PROBLEM — one short form, the date asked in the same breath.
+ *
+ * Rowland: "do I press hit a problem? It doesn't prompt me for any date
+ * changes." It did not: it marked the step and sent you to write the problem
+ * up somewhere else, and the plan never heard. Now the problem, its pictures,
+ * whether it pushes the finish — and to when — and a fix, are one answer. A
+ * later finish is kept as a move with this problem as its reason, so the Gantt
+ * shows the overrun and why. */
+export function ProblemForm({ step, onSave, onCancel }: {
+  step: Test;
+  onSave: (a: WhyAnswer & { to?: string }) => void;
+  onCancel: () => void;
+}) {
+  const end = plannedEnd(step);
+  const [why, setWhy] = useState('');
+  const [media, setMedia] = useState<MediaRef[]>([]);
+  const [to, setTo] = useState('');
+  const [fix, setFix] = useState(false);
+  const [fixOn, setFixOn] = useState('');
+  const [viewing, setViewing] = useState<MediaRef | null>(null);
+  const later = movedLater(end, to || undefined);
+  return (
+    <div className="why">
+      <p className="why-h">What's the problem?</p>
+      <span className="why-quick">
+        {QUICK.map(q => <button key={q} type="button" className={why === q ? 'on' : ''} onClick={() => setWhy(q)}>{q}</button>)}
+      </span>
+      <label className="cw-f cw-f-wide"><span>What happened</span>
+        <textarea className="text-area" rows={2} value={why} autoFocus placeholder="Guard brackets arrived the wrong size"
+          onChange={e => setWhy(e.target.value)} /></label>
+      <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
+      <label className="cw-f why-fix-on" style={{ flex: '0 1 260px' }}>
+        <span>Does it push the finish? <span className="cw-f-opt">{end ? `now ${niceDay(end)}` : 'no date yet'} · blank = no</span></span>
+        <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
+      {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(to)}</b> · <b>+{daysBetween(end, to)} day{daysBetween(end, to) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
+      <div className="why-fix">
+        <label className="why-check"><input type="checkbox" checked={fix} onChange={e => setFix(e.target.checked)} /> Book it in as a fix</label>
+        {fix && (
+          <label className="cw-f why-fix-on"><span>Date agreed <span className="cw-f-opt">blank = not agreed yet</span></span>
+            <input type="date" value={fixOn} onChange={e => setFixOn(e.target.value)} /></label>
+        )}
+      </div>
+      <span className="why-acts">
+        <button type="button" className="btn btn-primary" disabled={!why.trim()}
+          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}) })}>Save the problem</button>
+        <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+      </span>
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
+    </div>
+  );
+}
+
+/** Keep a problem on a step: marks it as having hit one, moves its finish when
+ *  a later one was given (kept as a move, this problem its reason), books the
+ *  fix if asked. One Undo takes all of it back. */
+export async function recordProblem(tt: TT, step: Test, a: WhyAnswer & { to?: string }, said: string): Promise<void> {
+  const before = { outcome: step.outcome, ranOn: step.ranOn, plannedFor: step.plannedFor, plannedTo: step.plannedTo };
+  const end = plannedEnd(step);
+  const moved = !!a.to && movedLater(end, a.to);
+  const dates = a.to
+    ? (step.plannedFor && a.to > step.plannedFor ? { plannedTo: a.to } : { plannedFor: a.to, plannedTo: undefined })
+    : {};
+  await tt.patchTest(step.id, { outcome: 'failed', ranOn: step.ranOn ?? todayISO(), ...dates });
+  const back = await recordMove(tt, [{ step, ...(moved ? { from: end, to: a.to } : {}) }], a);
+  offerUndo(said, async () => { await tt.patchTest(step.id, before); await back(); });
 }

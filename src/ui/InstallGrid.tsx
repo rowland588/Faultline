@@ -19,7 +19,7 @@ import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
-import { WhyMoved, recordMove, type WhyAnswer } from './WhyMoved';
+import { ProblemForm, WhyMoved, recordMove, recordProblem, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
@@ -69,6 +69,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
   const grid = installGrid(tt.assets, tt.tests, tt.items, today, usual, gate);
   const [open, setOpen] = useState<Open>(null);
   const [stepName, setStepName] = useState('');
+  const [problem, setProblem] = useState(false);
 
   if (grid.rows.length === 0) return null;
 
@@ -214,7 +215,16 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
       return (
         <Sheet title={`${rowName(row.asset)} — ${t.title}`}
           sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${spanShort(t.plannedFor, plannedEnd(t))}` : 'no day yet'].join(' · ')}
-          onClose={() => setOpen(null)}>
+          onClose={() => { setOpen(null); setProblem(false); }}>
+          {/* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
+              the finish and to when, a fix. The plan hears all of it. */}
+          {problem ? (
+            <ProblemForm step={t} onCancel={() => setProblem(false)}
+              onSave={a => {
+                void recordProblem(tt, t, a, `${t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`);
+                setProblem(false); setOpen(null);
+              }} />
+          ) : <>
           <div className="ig-acts">
             {t.outcome !== 'passed' && (
               <button className="btn btn-primary ig-big" onClick={() => {
@@ -222,12 +232,10 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                 setOpen(null);
               }}>Done today</button>
             )}
-            {t.outcome !== 'failed' && (
-              <button className="btn ig-big ig-bad" onClick={() => {
-                void change([t], cur => ({ outcome: 'failed', ranOn: cur.ranOn ?? today }), `${t.title} hit a problem`);
-                setOpen(null); openStep(t.id, true);
-              }}>Hit a problem — write it up</button>
-            )}
+            {/* A stage can hit more than one problem — the button stays. */}
+            <button className="btn ig-big ig-bad" onClick={() => setProblem(true)}>
+              {t.outcome === 'failed' ? 'Another problem — write it up' : 'Hit a problem — write it up'}
+            </button>
             {(t.outcome !== 'planned' || !!t.ranOn) && (
               <button className="btn btn-ghost ig-big" onClick={() => {
                 void change([t], () => ({ outcome: 'planned', ranOn: undefined }), `${t.title} back to planned`);
@@ -253,6 +261,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
             }} />
           <Who names={names} value={t.withWhom ?? ''} onSave={v => void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`)} />
           <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
+          </>}
         </Sheet>
       );
     }
@@ -468,7 +477,7 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
 }
 
 /** ONE STEP'S START AND FINISH, held until Save. */
-function DatesForm({ start, finish, was, onSave, onMove }: {
+export function DatesForm({ start, finish, was, onSave, onMove }: {
   start?: string; finish?: string;
   /** The finish it has now — a push past it asks why. */
   was?: string;

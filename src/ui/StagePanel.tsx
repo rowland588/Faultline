@@ -16,14 +16,23 @@ import { daysBetween, niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
+import { useTesting } from '../lib/useTesting';
+import { DatesForm } from './InstallGrid';
+import { ProblemForm, recordMove, recordProblem } from './WhyMoved';
+import { offerUndo } from './Undo';
 
 export function StagePanel({ stepId, title, tests, items, projectId, onClose }: {
   stepId: string; title: string; tests: Test[]; items: TestItem[]; projectId: string; onClose: () => void;
 }) {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
-  const step = live(tests).find(t => t.id === stepId);
+  /* WHAT YOU DO FROM HERE, without leaving the plan: move its dates (asked why
+     when it is later) or say it hit a problem (asked whether it moves the
+     finish). Rowland: "how does the date move from this?" */
+  const tt = useTesting(projectId);
+  const [doing, setDoing] = useState<'dates' | 'problem' | null>(null);
+  const step = live(tt.loading ? tests : tt.tests).find(t => t.id === stepId);
   if (!step) return null;
-  const st = storyOf(stepId, tests, items);
+  const st = storyOf(stepId, tt.loading ? tests : tt.tests, tt.loading ? items : tt.items);
   const end = plannedEnd(step);
   const slip = st.original && end ? daysBetween(st.original, end) : 0;
   const fixWord = (f: Test) => f.outcome === 'passed' ? `done${f.ranOn ? ` ${niceDay(f.ranOn)}` : ''}`
@@ -71,7 +80,34 @@ export function StagePanel({ stepId, title, tests, items, projectId, onClose }: 
               {lines.map(l => <li key={l.key}><span className="sp-on">{niceDay(l.on, { weekday: 'short' })}</span><div className="sp-body">{l.node}</div></li>)}
             </ol>
           )}
-        <button type="button" className="btn btn-primary sp-open" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(stepId)}`)}>Open the step ›</button>
+        {doing === 'dates' && (
+          <DatesForm start={step.plannedFor} finish={step.plannedTo} was={plannedEnd(step)}
+            onSave={(from, to) => {
+              const before = { plannedFor: step.plannedFor, plannedTo: step.plannedTo };
+              void tt.patchTest(step.id, { plannedFor: from, plannedTo: to });
+              offerUndo(`${title} — dates changed`, () => tt.patchTest(step.id, before));
+              setDoing(null);
+            }}
+            onMove={(from, to, a) => void (async () => {
+              const before = { plannedFor: step.plannedFor, plannedTo: step.plannedTo };
+              const was = plannedEnd(step) as string;
+              await tt.patchTest(step.id, { plannedFor: from, plannedTo: to });
+              const back = await recordMove(tt, [{ step, from: was, to: to ?? from }], a);
+              offerUndo(`${title} moved to ${niceDay(to ?? from)} — reason kept`, async () => { await tt.patchTest(step.id, before); await back(); });
+              setDoing(null);
+            })()} />
+        )}
+        {doing === 'problem' && (
+          <ProblemForm step={step} onCancel={() => setDoing(null)}
+            onSave={a => { void recordProblem(tt, step, a, `${title} hit a problem${a.fix ? ', fix booked' : ''}`); setDoing(null); }} />
+        )}
+        {!doing && (
+          <span className="sp-acts">
+            <button type="button" className="btn btn-primary" onClick={() => setDoing('dates')}>Change the dates</button>
+            <button type="button" className="btn ig-bad" onClick={() => setDoing('problem')}>Hit a problem</button>
+            <button type="button" className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(stepId)}`)}>Open the step ›</button>
+          </span>
+        )}
       </div>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </Sheet>

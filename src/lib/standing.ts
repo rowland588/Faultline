@@ -232,8 +232,12 @@ export function standing(input: StandingInput): Standing {
   for (const t of tests) {
     /* The window it ACTUALLY took if it has run, otherwise the one it is booked
        for — never the start of one and the end of the other. */
-    const at = t.ranOn ?? t.plannedFor;
-    const until = t.ranOn ? t.ranTo : t.plannedTo;
+    /* A STAGE THAT HIT A PROBLEM IS NOT FINISHED. Its bar stays on its planned
+       window — moved later if the problem pushed it — so the plan shows the
+       overrun and why, rather than collapsing to the one day it went wrong. */
+    const stuck = t.kind === 'install' && t.outcome === 'failed' && !!t.plannedFor;
+    const at = stuck ? t.plannedFor : t.ranOn ?? t.plannedFor;
+    const until = stuck ? t.plannedTo : t.ranOn ? t.ranTo : t.plannedTo;
     if (!at) continue;
     plan.push({
       id: t.id,
