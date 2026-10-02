@@ -252,21 +252,33 @@ export function SnagListScreen() {
       <p className="eyebrow">The eyes</p>
       <h1 className="h1">Evidence</h1>
 
-      <div className="snag-summary">
-        {/* Each count in the colour of its state, and only when there is one —
-            a zero stays grey so the eye goes to what is there. */}
-        <span className={'ss-pill' + (counts.open > 0 ? ' ss-open' : '')}><b>{counts.open}</b> open</span>
-        <span className={'ss-pill' + (counts.in_progress > 0 ? ' ss-prog' : '')}><b>{counts.in_progress}</b> in progress</span>
-        <span className={'ss-pill' + (counts.closed > 0 ? ' ss-closed' : '')}><b>{counts.closed}</b> closed</span>
-        <span className={'ss-pill' + (counts.overdue > 0 ? ' ss-over' : '')} title="Open past their due date"><b>{counts.overdue}</b> overdue</span>
-        <span className={'ss-pill' + (counts.stale > 0 ? ' ss-stale' : '')} title={`Open snags older than ${SNAG_STALE_DAYS} days`}><b>{counts.stale}</b> open &gt; {SNAG_STALE_DAYS}d</span>
+      {/* THE COUNTS ARE THE FILTERS. They sat above a row of chips that said
+          the same five words again — Open, In progress, Closed, Overdue, Stale —
+          so every state was on the screen twice, once to read and once to
+          press. Lean: one thing, one place. Tap a count to see only those; tap
+          it again for all. Each count in the colour of its state, and only when
+          there is one — a zero stays grey so the eye goes to what is there. */}
+      <div className="snag-summary" role="group" aria-label="Show">
+        {(['open', 'in_progress', 'closed'] as const).map(s => (
+          <button key={s} type="button" aria-pressed={statusF === s}
+            className={'ss-pill' + (counts[s] > 0 ? (s === 'open' ? ' ss-open' : s === 'in_progress' ? ' ss-prog' : ' ss-closed') : '') + (statusF === s ? ' on' : '')}
+            onClick={() => setStatusF(statusF === s ? 'all' : s)}>
+            <b>{counts[s]}</b> {SNAG_STATUS_META[s].label.toLowerCase()}
+          </button>
+        ))}
+        <button type="button" aria-pressed={ageF === 'overdue'} title="Open past their due date"
+          className={'ss-pill' + (counts.overdue > 0 ? ' ss-over' : '') + (ageF === 'overdue' ? ' on' : '')}
+          onClick={() => setAgeF(ageF === 'overdue' ? 'all' : 'overdue')}><b>{counts.overdue}</b> overdue</button>
+        <button type="button" aria-pressed={ageF === 'stale'} title={`Open snags older than ${SNAG_STALE_DAYS} days`}
+          className={'ss-pill' + (counts.stale > 0 ? ' ss-stale' : '') + (ageF === 'stale' ? ' on' : '')}
+          onClick={() => setAgeF(ageF === 'stale' ? 'all' : 'stale')}><b>{counts.stale}</b> open &gt; {SNAG_STALE_DAYS}d</button>
+        {(statusF !== 'all' || ageF !== 'all') && (
+          <button type="button" className="cw-link ss-all" onClick={() => { setStatusF('all'); setAgeF('all'); }}>Show all</button>
+        )}
       </div>
 
       <div className="snag-filters">
         <div className="chip-row">
-          {(['all', 'open', 'in_progress', 'closed'] as const).map(s => <button key={s} className={'chip' + (statusF === s ? ' on' : '')} onClick={() => setStatusF(s)}>{s === 'all' ? 'All' : SNAG_STATUS_META[s].label}</button>)}
-          <button className={'chip' + (ageF === 'overdue' ? ' on' : '')} onClick={() => setAgeF(ageF === 'overdue' ? 'all' : 'overdue')}>Overdue</button>
-          <button className={'chip' + (ageF === 'stale' ? ' on' : '')} onClick={() => setAgeF(ageF === 'stale' ? 'all' : 'stale')}>Stale</button>
           <button className={'chip' + (byOwner ? ' on' : '')} title="Group by owner — who's carrying what" onClick={() => setByOwner(!byOwner)}>By owner</button>
           <label className="snag-sort">
             <span className="sr-only">Sort by</span>

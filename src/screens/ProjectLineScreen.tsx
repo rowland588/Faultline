@@ -36,7 +36,7 @@ import { analyse } from '../lib/capacity';
 type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data' | 'capacity';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'this line' },
-  { id: 'meeting',  label: 'Actions',    sub: 'from the tracker' },
+  { id: 'meeting',  label: 'Actions',    sub: 'by owner, on the board' },
   { id: 'next',     label: 'Next steps', sub: 'to do & tests' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },

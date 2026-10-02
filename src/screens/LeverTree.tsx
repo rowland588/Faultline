@@ -291,7 +291,7 @@ function Box({
               is the ONLY way to move a box — and it works the same on a
               computer, so there is one thing to learn rather than two. */}
           <button
-            type="button" className={'lt-mini' + (isMoving ? ' is-on' : '')}
+            type="button" className={'lt-mini lt-move' + (isMoving ? ' is-on' : '')}
             title={isMoving ? 'Cancel the move' : 'Move this box somewhere else'}
             aria-label={isMoving ? 'Cancel the move' : 'Move this box somewhere else'}
             onClick={onPickUp}
@@ -809,7 +809,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
-              ☰ hang the board’s actions under a box · ⠿ move a box · ↑ ↓ reorder
+              Tap a box for its tools: ☰ hang the board’s actions under it · ⠿ move it · ↑ ↓ reorder
               {' '}· ＋ another below · ＋› the next level along · pinch to zoom, or tap the
               percentage to fit it all on.
             </span>

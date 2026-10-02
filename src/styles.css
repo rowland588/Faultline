@@ -899,6 +899,11 @@ button { font-family: inherit; }
 .linkish { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; text-align: left; }
 
 /* tracker teeth — the promise (due dates) and the accountability view */
+.snag-summary button.ss-pill { font: inherit; font-size: 13px; cursor: pointer; }
+.snag-summary button.ss-pill:hover { border-color: var(--line-2); }
+/* The one you are filtering by: ringed in ink, so it reads as "showing only these". */
+.ss-pill.on { box-shadow: 0 0 0 2px var(--ink); border-color: var(--ink); }
+.ss-all { align-self: center; }
 .ss-pill.ss-open b { color: var(--st-r); }
 .ss-pill.ss-prog b { color: var(--st-a); }
 .ss-pill.ss-closed b { color: var(--st-g); }
@@ -3345,6 +3350,18 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-box:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .lt-tools { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+/* THE TOOLS COME OUT ON THE BOX YOU ARE WORKING ON. Seven small buttons on
+   every box made the tree read as a toolbar, and the outcome and conditions —
+   what the tree is for — were the quieter thing on the screen. Lean: show what
+   the job needs at the moment it needs it. The status stays on every box (it is
+   the state, read from across the room); the move / add / hang / remove tools
+   appear on hover, or when the box has focus — tap its words on a phone — and
+   stay out while a box is being moved. Hidden, they cannot be pressed by
+   accident: visibility, not opacity. */
+.lt-box .lt-acts { visibility: hidden; }
+.lt-box:focus-within .lt-acts,
+.lt-box:has(.lt-move.is-on) .lt-acts { visibility: visible; }
+@media (hover: hover) { .lt-box:hover .lt-acts { visibility: visible; } }
 /* A real select underneath a pill that shows the state and its name. Native,
    so it is one tap on a phone, reachable by keyboard, and never a popover
    landing off the edge of the canvas. */

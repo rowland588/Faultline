@@ -199,6 +199,24 @@ what by when?
    (days into weeks) rather than piled up. The plan never grows a row per item
    of evidence.
 
+## Simplicity — lean, applied to the screen
+
+Rowland, 2 October: "simplicity is what makes the app powerful — simple,
+effective and efficient." Waste on a screen is the same as waste on a line:
+anything the person has to look past to do the job.
+
+1. **One thing, one place.** A state, a number or an action appears once. The
+   Evidence counts *are* its filters, not a row above a second row saying the
+   same words.
+2. **Tools come out where the work is.** Controls appear on the box being
+   worked on, not on every box at once (the lever tree). The state always
+   shows; the editing tools come when they are wanted.
+3. **No word that is not true.** A label from an older design ("from the
+   tracker") is waste and misleads. Fix it the moment you see it.
+4. **Simplify by merging, not by deleting.** Rule 1 of "How a change gets made
+   here" still holds. A simplification keeps every capability and removes
+   only the duplicate route to it.
+
 ## The word is CLIENT, not GM
 
 The report goes to whoever is being reported to — Rowland's General Manager by
