@@ -30,9 +30,16 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
     if (!t) return;
     if (t === ownerEmail || members.some(m => m.email === t)) { setNote(`${t} is already on it`); setText(''); return; }
     try {
-      await add(t);
-      const registered = team.some(m => m.email.toLowerCase() === t);
-      setNote(registered ? '' : `${t} isn’t in the app yet — the administrator needs to invite them before they can sign in. Once they do, this line will be waiting for them.`);
+      const r = await add(t);
+      // The add is the invite (supabase/OWNER_INVITES.sql): somebody who has
+      // an account hears nothing new; somebody who hasn't can create one now.
+      // On a database without that file the front door is still the
+      // administrator's, and the screen says so rather than promising.
+      const registered = r.invited ? r.registered : team.some(m => m.email.toLowerCase() === t);
+      setNote(registered ? ''
+        : r.invited
+          ? `${t} can sign up now — tell them to open Faultline and create an account with that address. This line will be waiting for them.`
+          : `${t} isn’t in the app yet — inviting them from here needs OWNER_INVITES.sql run in Supabase; until then the administrator invites them. This line will be waiting for them.`);
       setText('');
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Couldn’t add them — are you online?');

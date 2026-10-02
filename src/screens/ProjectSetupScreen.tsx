@@ -226,7 +226,18 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
     const t = text.trim().toLowerCase();
     if (!t) return;
     if (members.some(m => m.email === t)) { setNote(`${t} is already on this project`); setText(''); return; }
-    try { await add(t, role); setText(''); setNote(''); }
+    try {
+      const r = await add(t, role);
+      setText('');
+      // The invite is the add (supabase/OWNER_INVITES.sql): somebody with an
+      // account hears nothing new; somebody without can create one now. On a
+      // database without that file the front door is still the
+      // administrator's, and the screen says so rather than promising.
+      setNote(!r.invited
+        ? `${t} is on the project. If they have no account yet, inviting them from here needs OWNER_INVITES.sql run in Supabase; until then the administrator invites them.`
+        : r.registered ? ''
+        : `${t} can sign up now — tell them to open Faultline and create an account with that address. This project will be waiting for them.`);
+    }
     catch (e) { setNote(e instanceof Error ? e.message : 'Couldn’t add them — are you online?'); }
   };
 
