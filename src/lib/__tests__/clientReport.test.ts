@@ -23,7 +23,8 @@ const programs: Program[] = [
   { id: 'pg1', projectId: 'p', what: 'Maris Piper 2kg', assetId: 'pnp', state: 'proved', provedOn: '2026-09-29', sort: 1, createdAt: 1, updatedAt: 1 },
   { id: 'pg2', projectId: 'p', what: 'Express 1.75', assetId: 'pnp', state: 'onMachine', sort: 2, createdAt: 1, updatedAt: 1 },
 ];
-const items: TestItem[] = [{ id: 'n1', projectId: 'p', testId: '', kind: 'note', what: 'private', sort: 1, createdAt: 1, updatedAt: 1 }];
+// A note with a reminder that is on the plan — still never on the client's copy.
+const items: TestItem[] = [{ id: 'n1', projectId: 'p', testId: '', kind: 'note', what: 'private', due: '2026-10-05', onPlan: true, sort: 1, createdAt: 1, updatedAt: 1 }];
 const r = clientReport({ project, projects: [project], assets, tests, items, materials: [], programs, standards: [], today: T });
 
 describe('the stage-gate client report', () => {

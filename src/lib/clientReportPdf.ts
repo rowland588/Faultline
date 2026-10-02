@@ -134,20 +134,6 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
     y += 8;
   }
 
-  /* ================================ THE PLAN ================================ */
-  /* The Gantt the project page draws, on a landscape page of its own straight
-     after the front page: the calendar across the top, a bar per thing on the
-     days it means. Rowland: "print the Gantt charts as well, and PDF." */
-  let planPages: number[] = [];
-  if (r.plan.length) {
-    doc.addPage('a4', 'landscape');
-    planPages = drawGantt(doc, gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }), {
-      eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
-      sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
-    });
-    newPage();
-  }
-
   /* ================================ 2 · GATE BY GATE ================================ */
   for (const s of r.sections) {
     heading(s.label, s.says);
@@ -228,6 +214,22 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
       }
       y += 6;
     }
+  }
+
+  /* ================================ THE PLAN ================================ */
+  /* The Gantt the project page draws, on a landscape page of its own: the
+     calendar across the top, a bar per thing on the days it means. Rowland:
+     "print the Gantt charts as well, and PDF." AFTER the gates, not before
+     them: straight after the front page it left most of page 1 empty on a job
+     with few machines, and pushed the gate detail to page 3. */
+  let planPages: number[] = [];
+  if (r.plan.length) {
+    doc.addPage('a4', 'landscape');
+    planPages = drawGantt(doc, gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }), {
+      eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
+      sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
+    });
+    newPage();
   }
 
   /* ================================ 3 · FIXES ================================ */

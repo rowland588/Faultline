@@ -409,8 +409,11 @@ export interface TestItem {
   note?: string;
   /** Whose it is. */
   owner?: string;
-  /** ISO date it is wanted by — next steps only, in practice. */
+  /** ISO date it is wanted by. On a meeting note, the day to be reminded. */
   due?: string;
+  /** A note's reminder is also drawn on the plan (the Gantt), in its own
+   *  colour. Absent / false: a reminder only. */
+  onPlan?: boolean;
   /** Closed, or done. Absent means open. */
   doneAt?: number;
   media?: MediaRef[];

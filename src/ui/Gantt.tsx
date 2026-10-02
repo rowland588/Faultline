@@ -143,18 +143,20 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: 
                   const href = ganttHref(projectId, r);
                   const w = Math.max(r.span * px - 4, 10);
                   const inside = w >= r.when.length * 6.4 + 16;
-                  const tip = `${r.label} · ${r.when} · ${TONE_WORD[r.tone]}`;
+                  const tip = r.kind === 'note'
+                    ? `Reminder: ${r.label} · ${r.when}${r.tone === 'done' ? ' · talked about' : r.tone === 'late' ? ' · the day has gone' : ''}`
+                    : `${r.label} · ${r.when} · ${TONE_WORD[r.tone]}`;
                   return (
                     <div key={`${r.id ?? r.label}-${i}`} className="gt-row">
-                      <button type="button" className="gt-lab" title={tip} disabled={!href} onClick={() => open(href)}>
+                      <button type="button" className={'gt-lab' + (r.kind === 'note' ? ' is-note' : '')} title={tip} disabled={!href} onClick={() => open(href)}>
                         {/* "Wrapper — Dry run" reads as the step, with its machine under
                             it: cut short on a phone, every row began "Checkweigher —…". */}
-                        {r.label.includes(' — ')
+                        {r.kind !== 'note' && r.label.includes(' — ')
                           ? <><b>{r.label.slice(r.label.indexOf(' — ') + 3)}</b><small>{r.label.slice(0, r.label.indexOf(' — '))}</small></>
                           : <b>{r.label}</b>}
                       </button>
                       <div className="gt-track" style={{ width: T }}>
-                        <button type="button" className={'gt-b is-' + r.tone} title={tip} aria-label={tip}
+                        <button type="button" className={'gt-b is-' + r.tone + (r.kind === 'note' ? ' is-note' : '')} title={tip} aria-label={tip}
                           style={{ left: r.start * px + 2, width: w, padding: inside ? undefined : 0 } as CSSProperties} onClick={() => open(href)}>
                           {inside && r.when}
                         </button>
@@ -175,6 +177,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: 
         <span><i className="gt-k is-ran" />ran, not yet called</span>
         <span><i className="gt-k is-late" />the day has gone</span>
         <span><i className="gt-k is-booked" />still ahead</span>
+        {g.groups.some(x => x.kind === 'note') && <span><i className="gt-k is-note" />a reminder from the notes</span>}
         <span><i className="gt-k-line" />today</span>
         {g.expected && <span><i className="gt-k-line is-hand" />handover</span>}
         <span className="gt-key-say">Tap a row to open it.</span>

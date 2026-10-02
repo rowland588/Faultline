@@ -213,7 +213,9 @@ export function clientReport(x: ClientReportInput): ClientReport {
     fixes: { open: fixes.filter(f => f.tone !== 'done'), done: fixes.filter(f => f.tone === 'done') },
     waiting: st.rows,
     standards: live(x.standards),
-    plan: st.plan,
+    /* Meeting notes are never on the client's copy — they are private
+       preparation — so a note's reminder stays off its plan page too. */
+    plan: st.plan.filter(m => m.kind !== 'note'),
     today,
     ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
     ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),

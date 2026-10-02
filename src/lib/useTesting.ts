@@ -63,7 +63,7 @@ export interface TestingState {
   /* ---- what we found, what we do next ---- */
   /** `extra` carries what a voice note heard beside the words — whose it is,
    *  and what was said, kept on the note. */
-  addItem: (testId: string, kind: ItemKind, what: string, extra?: Pick<TestItem, 'owner' | 'note'>) => Promise<void>;
+  addItem: (testId: string, kind: ItemKind, what: string, extra?: Pick<TestItem, 'owner' | 'note' | 'due' | 'onPlan'>) => Promise<void>;
   /** TAKE THE DECISION BACK. Rowland: "when I take [an observation] to send to
    *  fix, I can't untick."
    *
@@ -220,7 +220,7 @@ export function useTesting(projectId: string): TestingState {
 
   /* ------------------------ found, and what's next ------------------------ */
 
-  const addItem = useCallback(async (testId: string, kind: ItemKind, what: string, extra?: Pick<TestItem, 'owner' | 'note'>) => {
+  const addItem = useCallback(async (testId: string, kind: ItemKind, what: string, extra?: Pick<TestItem, 'owner' | 'note' | 'due' | 'onPlan'>) => {
     const clean = what.trim();
     if (!clean) return;
     const t = now();
@@ -229,6 +229,7 @@ export function useTesting(projectId: string): TestingState {
       id: uid(), projectId, testId, kind, what: clean,
       ...(extra?.owner?.trim() ? { owner: extra.owner.trim() } : {}),
       ...(extra?.note?.trim() ? { note: extra.note.trim() } : {}),
+      ...(extra?.due ? { due: extra.due, ...(extra.onPlan ? { onPlan: true } : {}) } : {}),
       sort: mine.reduce((n, i) => Math.max(n, i.sort), 0) + 1,
       createdAt: t, updatedAt: t,
     });

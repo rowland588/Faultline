@@ -55,7 +55,7 @@ const SEEN_KEY = 'faultline.jobs.seen';
 
 const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
-  action: 'Action',
+  action: 'Action', note: 'Reminder',
 };
 const GATE_WORD: Record<GateTone, string> = {
   done: 'done', going: 'under way', late: 'late or a problem', ahead: 'still ahead', none: 'not started',
@@ -67,6 +67,7 @@ const TONE_WORD: Record<string, string> = {
 /** Where a thing on the board opens. */
 function whereTo(x: JobItem): string {
   if (x.kind === 'action') return `/project/${x.jobId}/board`;
+  if (x.kind === 'note') return `/project/${x.jobId}/notes`;
   if (x.id) return `/project/${x.jobId}/testing/${encodeURIComponent(x.id)}`;
   if (x.kind === 'material') return `/project/${x.jobId}/materials`;
   if (x.kind === 'program') return `/project/${x.jobId}/programs`;
@@ -127,13 +128,13 @@ function useJobs(projects: Project[]): Jobs | null {
         programs: await listPrograms(project.id),
       })));
       const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
-        const [steps, lines, targets, readings] = await Promise.all([
-          listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id),
+        const [steps, lines, targets, readings, items] = await Promise.all([
+          listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id), listTestItems(project.id),
         ]);
         // The same call the project's own page makes, so the row and the page agree.
         const series = lines.map(l => lineSeries(project.measures ?? [], project.periods ?? [], targets, readings, l.id));
         return {
-          project, steps, lines,
+          project, steps, lines, notes: items.filter(i => i.kind === 'note'),
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
         };
@@ -318,6 +319,22 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
 
       {focus && <FocusList pf={pf} f={focus} onClose={() => setFocus(null)} />}
 
+      {/* --------------------------- reminders --------------------------- */}
+      {/* Dates set on meeting notes, every job — Rowland: "the app will remind
+          me." Their own strip, in their own colour, above what is owed. */}
+      {pf.reminders.length > 0 && (
+        <div className="jb-week jb-rem">
+          <div className="jb-sec-h">
+            <h3>Reminders</h3>
+            <span className="sub">
+              {(() => { const now = pf.reminders.filter(r => r.on && r.on <= today).length;
+                return `${pf.reminders.length} from your notes${now ? ` — ${now} today or gone` : ' — coming up this week'}`; })()}
+            </span>
+          </div>
+          <WeekStrip items={pf.reminders} />
+        </div>
+      )}
+
       {/* ---------------------------- this week ---------------------------- */}
       <div className="jb-week" ref={weekRef}>
         <div className="jb-sec-h">
@@ -383,11 +400,11 @@ function WeekStrip({ items }: { items: JobItem[] }) {
       <ol className="jb-wk-list" ref={ref}>
         {items.map((x, i) => (
           <li key={`${x.jobId}-${x.kind}-${x.id ?? x.what}-${i}`} style={{ '--job': x.color, '--i': Math.min(i, 8) } as CSSProperties}>
-            <button className={'jb-wk' + (x.late ? ' is-late' : '')} onClick={() => nav(whereTo(x))}>
+            <button className={'jb-wk' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => nav(whereTo(x))}>
               <span className="jb-wk-job">{x.job}</span>
               <b className="jb-wk-what">{x.what}</b>
-              <span className="jb-wk-m">{KIND_WORD[x.kind]} · {x.who || 'nobody yet'}</span>
-              <span className="jb-wk-when">{x.on ? (x.late ? `WAS ${niceDay(x.on)}` : niceDay(x.on, { weekday: 'short' })) : 'no date'}</span>
+              <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the meeting notes' : `${KIND_WORD[x.kind]} · ${x.who || 'nobody yet'}`}</span>
+              <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? `WAS ${niceDay(x.on)}` : niceDay(x.on, { weekday: 'short' })) : 'no date'}</span>
             </button>
           </li>
         ))}

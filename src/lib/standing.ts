@@ -57,7 +57,7 @@ export interface OutstandingRow {
 export interface PlanMark {
   /** The record it is drawn from, so a row on the Gantt opens it. */
   id?: string;
-  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine' | 'action';
+  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine' | 'action' | 'note';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
   until?: string;
@@ -282,6 +282,16 @@ export function standing(input: StandingInput): Standing {
       label: a.name,
       tone: a.state === 'running' ? 'done'
         : a.dueOn && a.dueOn < today && !a.onSiteOn ? 'late' : 'booked',
+    });
+  }
+
+  /* A MEETING NOTE'S REMINDER, when it was put on the plan — drawn in its own
+     colour on the Gantt (see lib/reminders). Ticked off, it is done. */
+  for (const i of live(input.items)) {
+    if (i.kind !== 'note' || !i.due || !i.onPlan || i.deletedAt) continue;
+    plan.push({
+      id: i.id, kind: 'note', at: i.due, label: i.what.trim() || 'A note',
+      tone: i.doneAt != null ? 'done' : i.due < today ? 'late' : 'booked',
     });
   }
 

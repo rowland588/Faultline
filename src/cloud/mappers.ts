@@ -465,7 +465,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       return {
         id: i.id, owner_id: fallbackOwner, project_id: i.projectId,
         test_id: i.testId, kind: i.kind, what: i.what, note: i.note ?? null,
-        owner: i.owner ?? null, due: i.due ?? null, done_at: i.doneAt ?? null,
+        owner: i.owner ?? null, due: i.due ?? null, on_plan: i.onPlan ?? null, done_at: i.doneAt ?? null,
         media: i.media ?? null, pin: i.pin ?? null, became_test_id: i.becameTestId ?? null,
         became_item_id: i.becameItemId ?? null, from_item_id: i.fromItemId ?? null,
         sort: i.sort, created_at: i.createdAt,
@@ -480,6 +480,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       note: (r.note as string) ?? undefined,
       owner: (r.owner as string) ?? undefined,
       due: (r.due as string) ?? undefined,
+      ...(r.on_plan ? { onPlan: true } : {}),
       doneAt: n(r.done_at),
       media: (r.media as TestItem['media']) ?? undefined,
       pin: pinOf(r.pin),

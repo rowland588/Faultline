@@ -52,6 +52,7 @@ import { Verdict } from '../ui/Verdict';
 import { StandardsCard } from '../ui/StandardsCard';
 import { Outstanding } from '../ui/Outstanding';
 import { Gantt } from '../ui/Gantt';
+import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
 
@@ -398,6 +399,8 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
               Rowland: "very busy, hard to see, nothing collapses" — and folded
               each still says its answer in a line. */}
           <Verdict st={st} />
+          {/* What the notes asked to be reminded of, while it is due. */}
+          <ProjectReminders projectId={projectId} />
           <DayLink projectId={projectId} />
           <LateAlarms projectId={projectId} />
           {machines.length > 0 && (
@@ -628,6 +631,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'overview' && model !== 'commissioning' && (
         <>
           <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
+          <ProjectReminders projectId={projectId} />
           <LateAlarms projectId={projectId} />
 
           <Fold id="p3-board" title="The board" says={boardSays}>

@@ -36,6 +36,7 @@ import type { PaceLineRow, PaceTodoRow } from '../db';
 import { methodOf, planModel, type PlanModel } from './planModel';
 import { isLate as stepIsLate } from './actions';
 import { PILLARS } from './pillars';
+import { remindersOf } from './reminders';
 
 export interface JobInput {
   project: Project;
@@ -58,6 +59,8 @@ export interface PacedInput {
   /** Lines meeting their target, of the lines there is a target to judge. */
   atTarget: number;
   judged: number;
+  /** Its meeting notes — for their reminders (lib/reminders). */
+  notes?: TestItem[];
 }
 
 /** One thing owed, on one job. */
@@ -142,6 +145,9 @@ export interface Portfolio {
   /** Everything owed, on every job, late first — what a number or a party on
    *  the board opens into. */
   items: JobItem[];
+  /** Reminders set on meeting notes, every job, gone first — a week ahead.
+   *  Kept apart from `items`: a reminder is not something a party owes. */
+  reminders: JobItem[];
   owes: Owed[];
   /** Suppliers typed more than one way — the records disagree with each other. */
   variants: Company[];
@@ -391,8 +397,18 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
   const outstanding = jobs.reduce((n, v) => n + v.outstanding, 0);
   const late = jobs.reduce((n, v) => n + v.late, 0);
 
+  /* Reminders on the jobs' meeting notes — the same rule the project page and
+     the device notification read (lib/reminders). */
+  const reminders: JobItem[] = entries.flatMap(e => {
+    const notes = e.gate ? e.gate.j.items : e.paced?.notes ?? [];
+    return remindersOf(notes, today).map(r => ({
+      jobId: e.project.id, job: shortName(e.project.name), color: e.project.color,
+      kind: 'note' as const, id: r.id, what: r.what, who: '', on: r.due, late: r.days < 0,
+    }));
+  }).sort(byUrgency);
+
   return {
-    axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency),
+    axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency), reminders,
     totals: { jobs: jobs.length, outstanding, late, week: week.length },
     says: saysOf(jobs, owes, late),
   };

@@ -19,6 +19,16 @@ const PW = 842, PH = 595, M = 30, LAB = 186;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', SURF2 = '#eef3f9', WEEKEND = '#f1f4f8';
 const BRAND = '#1f63e0', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+/* A reminder from the meeting notes — its own colour, on paper as on screen. */
+const REMIND = '#b8237a';
+const NOTE_TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: string }> = {
+  done: { fill: REMIND, stroke: REMIND, text: '#ffffff' },
+  failed: { fill: '#fbe7f1', stroke: DANGER, text: REMIND },
+  ran: { fill: '#fbe7f1', stroke: REMIND, text: REMIND },
+  late: { fill: '#fbe7f1', stroke: DANGER, text: REMIND },
+  booked: { fill: '#fbe7f1', stroke: REMIND, text: REMIND },
+  none: { fill: '#fbe7f1', stroke: REMIND, text: REMIND },
+};
 
 const TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: string }> = {
   done: { fill: OK, stroke: OK, text: '#ffffff' },
@@ -121,7 +131,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       const r = l.row;
       doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + ROW_H, PW - M, y + ROW_H);
       /* "Wrapper — Dry run": the step, with its machine under it. */
-      const cut = r.label.indexOf(' — ');
+      const cut = r.kind === 'note' ? -1 : r.label.indexOf(' — ');
       const step = cut >= 0 ? r.label.slice(cut + 3) : r.label;
       const mach = cut >= 0 ? r.label.slice(0, cut) : '';
       font(7.5, 'bold', INK);
@@ -129,7 +139,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       doc.text(s1, M + 6, y + (mach ? 7.5 : 11));
       if (mach) { font(6, 'normal', MUTED); doc.text((doc.splitTextToSize(san(mach), LAB - 12) as string[])[0] ?? '', M + 6, y + 14); }
 
-      const t = TONE[r.tone];
+      const t = (r.kind === 'note' ? NOTE_TONE : TONE)[r.tone];
       const bx = X(r.start) + 0.6, bw = Math.max(2.4, r.span * px - 1.2), by = y + 4, bh = ROW_H - 8;
       doc.setDrawColor(t.stroke); doc.setFillColor(t.fill); doc.setLineWidth(0.7);
       doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
@@ -168,6 +178,12 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
       font(7, 'normal', INK2); doc.text(san(word), kx + 15, ky);
       kx += 24 + doc.getTextWidth(san(word));
+    }
+    if (g.groups.some(x => x.kind === 'note')) {
+      doc.setDrawColor(REMIND); doc.setFillColor('#fbe7f1'); doc.setLineWidth(0.7);
+      doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
+      font(7, 'normal', INK2); doc.text('a reminder from the notes', kx + 15, ky);
+      kx += 24 + doc.getTextWidth('a reminder from the notes');
     }
     doc.setDrawColor(BRAND); doc.setLineWidth(1.1); doc.line(kx, ky - 6, kx, ky + 1);
     font(7, 'normal', INK2); doc.text('today', kx + 4, ky); kx += 30;

@@ -350,6 +350,7 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
 const MANY: Record<PlanMark['kind'], string> = {
   install: 'install steps', setup: 'set-up steps', handover: 'hand-over items', test: 'tests',
   fix: 'fixes', material: 'materials', program: 'programs', machine: 'machines', action: 'actions',
+  note: 'reminders',
 };
 
 /** SAME DAY, SAME KIND, SAME OUTCOME — ONE LINE. Line 2B proved sixteen

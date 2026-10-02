@@ -58,6 +58,8 @@ export interface Gantt {
 /* The order a stage-gate job runs in: machines land, materials arrive, then the
    gates, then what is left to put right. */
 const GROUPS: { kind: PlanMark['kind']; label: string }[] = [
+  /* First: what you asked to be reminded of, in its own colour. */
+  { kind: 'note', label: 'Reminders from notes' },
   { kind: 'machine', label: 'Machines arriving' },
   { kind: 'material', label: 'Materials' },
   { kind: 'install', label: 'Install' },
@@ -150,5 +152,6 @@ export function ganttHref(projectId: string, row: Pick<GanttRow, 'id' | 'kind'>)
   if (row.kind === 'program') return `/project/${projectId}/programs`;
   if (row.kind === 'machine') return `/project/${projectId}/install`;
   if (row.kind === 'action') return `/project/${projectId}/board`;
+  if (row.kind === 'note') return `/project/${projectId}/notes`;
   return row.id ? `/project/${projectId}/testing/${encodeURIComponent(row.id)}` : undefined;
 }

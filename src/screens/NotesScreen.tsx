@@ -17,6 +17,10 @@ import {
   NOTE_GATES, decodeScope, encodeScope, gateOfRecord, parentScope, recordsUnder, scopeLabel, scopeRank, type NoteScope,
 } from '../lib/noteScope';
 import { Crumbs } from '../ui/Crumbs';
+import { offerUndo } from '../ui/Undo';
+import { remindersOf, remindWords } from '../lib/reminders';
+import { niceDay, todayISO } from '../lib/weeks';
+import { ReminderPermission } from '../ui/Reminders';
 
 const TICK = '✓';
 
@@ -28,6 +32,8 @@ const GATE_PATH: Record<string, string> = {
 type TT = ReturnType<typeof useTesting>;
 /** What a picker needs to say what a note can be about. */
 type Job = { tests: Test[]; assets: Asset[] };
+
+const daysFrom = (iso: string) => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${todayISO()}T12:00:00Z`)) / 86_400_000);
 
 /** WHAT A NOTE IS ABOUT, in two steps that mirror the job's own tabs. The first
  *  box is the whole project, then Install · Set up · Commission · Hand over ·
@@ -83,6 +89,33 @@ function AboutPicker({ value, onChange, job }: { value: string; onChange: (v: st
   );
 }
 
+/** WHEN TO BE REMINDED, AND WHETHER IT GOES ON THE PLAN. Rowland: "put a date
+ *  as a reminder on the note itself ... either add it to the Gantt chart, or
+ *  just add it as a reminder." Held until Save; Remove takes the reminder off
+ *  and leaves the note. */
+function ReminderForm({ due, onPlan, onSave, onCancel, onRemove }: {
+  due?: string; onPlan?: boolean;
+  onSave: (due: string, onPlan: boolean) => void; onCancel?: () => void; onRemove?: () => void;
+}) {
+  const [day, setDay] = useState(due ?? '');
+  const [plan, setPlan] = useState(!!onPlan);
+  return (
+    <div className="nt-rem-form">
+      <label className="cw-f nt-rem-day"><span>Remind me on</span>
+        <input type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
+      <span className="nt-rem-how" role="radiogroup" aria-label="How">
+        <label className={!plan ? 'on' : ''}><input type="radio" checked={!plan} onChange={() => setPlan(false)} /> Just remind me</label>
+        <label className={plan ? 'on' : ''}><input type="radio" checked={plan} onChange={() => setPlan(true)} /> Remind me and put it on the plan</label>
+      </span>
+      <span className="nt-edit-acts">
+        <button type="button" className="btn btn-primary btn-sm" disabled={!day} onClick={() => onSave(day, plan)}>Save</button>
+        {onRemove && <button type="button" className="btn btn-ghost btn-sm" onClick={onRemove}>Remove reminder</button>}
+        {onCancel && <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>}
+      </span>
+    </div>
+  );
+}
+
 /** One note: tick it once raised; tap the words to change them, or what the
  *  note is about. */
 function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
@@ -91,6 +124,15 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
   const [text, setText] = useState(n.what);
   const [about, setAbout] = useState(n.testId);
   const open = () => { setText(n.what); setAbout(n.testId); setEditing(true); };
+  const [reminding, setReminding] = useState(false);
+  const setRem = (due: string | undefined, onPlan: boolean, said: string) => {
+    const before = { ...n };
+    const next: TestItem = { ...n, due, onPlan: due ? onPlan : undefined };
+    if (!due) delete next.due;
+    if (!next.onPlan) delete next.onPlan;
+    void tt.saveItem(next);
+    offerUndo(said, () => tt.saveItem(before));
+  };
   const save = () => {
     const v = text.trim();
     if (v && (v !== n.what || about !== n.testId)) void tt.saveItem({ ...n, what: v, testId: about });
@@ -116,7 +158,24 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
           </span>
         </div>
       ) : (
-        <button className="nt-what" onClick={open} title="Tap to edit">{n.what}</button>
+        <div className="nt-main">
+          <button className="nt-what" onClick={open} title="Tap to edit">{n.what}</button>
+          {reminding ? (
+            <ReminderForm due={n.due} onPlan={n.onPlan}
+              onCancel={() => setReminding(false)}
+              onRemove={n.due ? () => { setRem(undefined, false, 'Reminder taken off'); setReminding(false); } : undefined}
+              onSave={(d, p) => { setRem(d, p, p ? 'Reminder set — and on the plan' : 'Reminder set'); setReminding(false); }} />
+          ) : n.due ? (
+            <button className={'nt-rem' + (!done && n.due < todayISO() ? ' is-late' : '') + (!done && n.due === todayISO() ? ' is-today' : '')}
+              onClick={() => setReminding(true)} title="Change the reminder">
+              <i className="nt-rem-dot" aria-hidden />
+              {done ? `Reminder was ${remindWords({ due: n.due, days: daysFrom(n.due) }).toLowerCase()}` : `Reminder · ${remindWords({ due: n.due, days: daysFrom(n.due) })}`}
+              {n.onPlan && <span className="nt-rem-plan">on the plan</span>}
+            </button>
+          ) : !done && (
+            <button className="nt-rem-add" onClick={() => setReminding(true)}>+ Remind me</button>
+          )}
+        </div>
       )}
       <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}>×</button>
     </div>
@@ -130,6 +189,9 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   const [what, setWhat] = useState('');
   const [about, setAbout] = useState<string>(WHOLE_JOB);
   const [showRaised, setShowRaised] = useState(false);
+  const [addRem, setAddRem] = useState(false);
+  const [newDue, setNewDue] = useState('');
+  const [newPlan, setNewPlan] = useState(false);
   const [copied, setCopied] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
@@ -157,12 +219,12 @@ export function NotesScreen({ projectId }: { projectId: string }) {
 
   const add = async () => {
     if (!what.trim()) return;
-    await tt.addItem(about, 'note', what);
-    setWhat('');
+    await tt.addItem(about, 'note', what, newDue ? { due: newDue, onPlan: newPlan } : undefined);
+    setWhat(''); setNewDue(''); setNewPlan(false); setAddRem(false);
   };
   const copy = () => {
     const text = [`${project.name} — to raise`, '',
-      ...groups.flatMap(g => [words(g.scope), ...g.notes.map(n => `• ${n.what}`), ''])].join('\n');
+      ...groups.flatMap(g => [words(g.scope), ...g.notes.map(n => `• ${n.what}${n.due ? `  (remind ${niceDay(n.due, { weekday: 'short' })})` : ''}`), ''])].join('\n');
     void navigator.clipboard?.writeText(text).then(() => setCopied(true), () => setCopied(false));
   };
 
@@ -194,7 +256,36 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           </label>
           <button className="btn btn-primary" type="submit" disabled={!what.trim()}>Add note</button>
         </div>
+        {/* A reminder, if wanted, set as the note is written. */}
+        {addRem ? (
+          <div className="nt-rem-new">
+            <label className="cw-f nt-rem-day"><span>Remind me on</span>
+              <input type="date" value={newDue} onChange={e => setNewDue(e.target.value)} /></label>
+            <span className="nt-rem-how" role="radiogroup" aria-label="How">
+              <label className={!newPlan ? 'on' : ''}><input type="radio" checked={!newPlan} onChange={() => setNewPlan(false)} /> Just remind me</label>
+              <label className={newPlan ? 'on' : ''}><input type="radio" checked={newPlan} onChange={() => setNewPlan(true)} /> Remind me and put it on the plan</label>
+            </span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAddRem(false); setNewDue(''); setNewPlan(false); }}>No reminder</button>
+          </div>
+        ) : (
+          <button type="button" className="nt-rem-add" onClick={() => setAddRem(true)}>+ Remind me about it on a date</button>
+        )}
       </form>
+
+      {/* WHAT IS DUE, FIRST. And whether this device will say so on the day. */}
+      {(() => {
+        const due = remindersOf(notes, todayISO());
+        return (
+          <section className="nt-rems">
+            {due.length > 0 && (
+              <p className="nt-rems-h"><i className="nt-rem-dot" aria-hidden /> {due.filter(r => r.days <= 0).length
+                ? `${due.filter(r => r.days <= 0).length} reminder${due.filter(r => r.days <= 0).length === 1 ? '' : 's'} today or gone`
+                : `${due.length} reminder${due.length === 1 ? '' : 's'} this week`}</p>
+            )}
+            <ReminderPermission />
+          </section>
+        );
+      })()}
 
       {open.length === 0 && <p className="sub" style={{ marginTop: 14 }}>Nothing to raise yet.</p>}
       {groups.map(g => {
