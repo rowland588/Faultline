@@ -205,6 +205,11 @@ export interface Project {
   color: string;          // branded color
   workspaceIds: ID[];     // legacy: lines used to be listed here. Lines now carry
                           // their own projectId, which survives being reordered.
+  /** The project's own filmed walk — the workspace its Evidence tab opens.
+   *  On the project row so every device finds the same walk; it used to be
+   *  remembered only in the device's meta store, and a laptop opening a job
+   *  the phone had filmed made a second, empty walk (docs/REVIEW.md, 1). */
+  walkWorkspaceId?: ID;
 
   /** The one person accountable for the whole project — the lead. Shown on the
    *  client report and at the top of the project, so a reader always knows whose

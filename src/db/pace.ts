@@ -12,7 +12,7 @@ import type { PaceTodoRow, PaceWinRow, PaceLineRow } from './rows';
 import type { SnagAsset } from '../snag/types';
 import { recordTombstones } from './sync';
 import { getWorkspace } from './workspaces';
-import { DEFAULT_PROJECT_ID, inProject, onLine } from './projects';
+import { DEFAULT_PROJECT_ID, inProject, onLine, updateProject } from './projects';
 
 /* ---------- a project's lines, and who owns them ----------
  * Every device derives the same row id from project + line key, so a line added
@@ -140,21 +140,38 @@ export async function putPaceLine(row: PaceLineRow): Promise<void> {
   signalWrite();
 }
 
-/* ---------- the workspace behind Project Pace ----------
- * The snag list is workspace-scoped ("the workspace IS the line"), and Project
- * Pace is not a workspace, so it keeps one of its own. The id is remembered in
- * meta rather than looked up by name, so renaming the workspace cannot orphan
- * a walk. */
+/* ---------- the project's own walk ----------
+ * The snag list is workspace-scoped ("the workspace IS the line"), and a
+ * project is not a workspace, so it keeps one of its own for the walk its
+ * Evidence tab opens. The link LIVES ON THE PROJECT ROW (walkWorkspaceId),
+ * which syncs: that is what lets the laptop open the walk the phone filmed.
+ * It used to live only in this device's meta store, and every other device
+ * made a second, empty walk. Meta is kept as the fallback for a link made
+ * before the row carried one — read once, then carried over. */
 const walkKey = (projectId?: string) =>
   !projectId || projectId === DEFAULT_PROJECT_ID ? 'paceWorkspace' : `paceWorkspace:${projectId}`;
+const onProject = (projectId?: string): projectId is string => !!projectId && projectId !== DEFAULT_PROJECT_ID;
+
+async function putWalkOnProject(projectId: string, id: ID): Promise<void> {
+  const p = await (await getDB()).get('projects', projectId);
+  if (!p || p.walkWorkspaceId === id) return;
+  await updateProject({ ...p, walkWorkspaceId: id });
+}
 
 export async function getPaceWorkspaceId(projectId?: string): Promise<ID | null> {
-  const m = (await (await getDB()).get('meta', walkKey(projectId))) as { id: ID } | undefined;
-  if (!m?.id) return null;
-  return (await getWorkspace(m.id)) ? m.id : null;   // deleted since? treat as absent
+  const db = await getDB();
+  if (onProject(projectId)) {
+    const p = await db.get('projects', projectId);
+    if (p?.walkWorkspaceId && await getWorkspace(p.walkWorkspaceId)) return p.walkWorkspaceId;
+  }
+  const m = (await db.get('meta', walkKey(projectId))) as { id: ID } | undefined;
+  if (!m?.id || !(await getWorkspace(m.id))) return null;   // deleted since? treat as absent
+  if (onProject(projectId)) await putWalkOnProject(projectId, m.id);  // carry a pre-row link over
+  return m.id;
 }
 export async function setPaceWorkspaceId(id: ID, projectId?: string): Promise<void> {
   await (await getDB()).put('meta', { id }, walkKey(projectId));
+  if (onProject(projectId)) await putWalkOnProject(projectId, id);
 }
 
 /** WHERE AM I? — the full chain above a workspace, in one read.
@@ -209,7 +226,11 @@ export async function projectForWorkspace(wsId: ID): Promise<string | null> {
   const line = (await db.getAll('pace_ppm')).find(l => l.workspaceId === wsId && !l.deletedAt);
   if (line) return line.projectId ?? DEFAULT_PROJECT_ID;
 
-  // the project's line-walk workspace is remembered in meta, keyed by project
+  // the project's own walk says so on the project row
+  const owner = (await db.getAll('projects')).find(p => p.walkWorkspaceId === wsId && !p.deletedAt);
+  if (owner) return owner.id;
+
+  // a link made before the row carried one lives in meta, keyed by project
   for (const key of await db.getAllKeys('meta')) {
     const k = String(key);
     if (k !== 'paceWorkspace' && !k.startsWith('paceWorkspace:')) continue;
