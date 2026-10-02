@@ -41,7 +41,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Numbers',    sub: 'record and chart' },
-  { id: 'capacity', label: 'Capacity',   sub: 'where it is limited' },
+  { id: 'capacity', label: 'Line balance', sub: 'where it is limited' },
 ];
 
 /* WHAT A LINE ON A COMMISSIONING JOB HAS.

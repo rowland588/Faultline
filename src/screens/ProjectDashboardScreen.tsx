@@ -460,10 +460,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     l.id, lineSeries(nums.measures, nums.periods, nums.targets, nums.readings, l.id),
   ]));
   const headline = nums.measures[0];
-  const limited = ppm.lines.flatMap(l => {
-    const says = l.capacity ? shortSays(analyse(l.capacity)) : undefined;
-    return says ? [{ line: l, says }] : [];
-  });
+  const limited = ppm.lines.map(l => ({ line: l, says: l.capacity ? shortSays(analyse(l.capacity)) : undefined }));
+  const counted = limited.filter(x => x.says);
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
   /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
@@ -622,16 +620,21 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <BoardPanel projectId={projectId} actions={actions} bare />
           </Fold>
 
-          {/* WHERE EACH LINE IS LIMITED — what the Pareto cannot say. Only drawn
-              once a line has its stations in: a card that asks for work before
-              it has anything to say is a gimmick on the front page. */}
-          {limited.length > 0 && (
-            <Fold id="p3-capacity" title="Where each line is limited" says={limited.length === 1 ? limited[0].says : `${limited.length} lines counted`}>
+          {/* WHERE EACH LINE IS BALANCED — what the Pareto cannot say. Always
+              here, because a card that only appears once the work is done
+              cannot be found to start it (Rowland: "I can't see it anywhere").
+              A line not yet counted says so and opens straight to where its
+              stations go. */}
+          {ppm.lines.length > 0 && (
+            <Fold id="p3-capacity" title="Line balance — where each line is limited"
+              says={counted.length === 0 ? 'not counted yet — open a line to start'
+                : counted.length === 1 && ppm.lines.length === 1 ? counted[0].says
+                  : `${counted.length} of ${ppm.lines.length} lines counted`}>
               <ul className="dw-list">
                 {limited.map(x => (
                   <li key={x.line.id} className="dw-row">
                     <button className="dw-t" onClick={() => nav(`/project/${projectId}/line/${x.line.id}?view=capacity`)}>{x.line.name}</button>
-                    <span className="dw-w">{x.says}</span>
+                    <span className="dw-w">{x.says ?? 'Not counted yet — list the machines and people, each at its own speed ›'}</span>
                   </li>
                 ))}
               </ul>
