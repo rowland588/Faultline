@@ -44,12 +44,12 @@ const MONTH_H = 13, DAY_H = 17;
 const ROW_H = 17, GROUP_H = 13;
 const FOOT = 46;              // room left at the bottom for the key and the foot
 
-type Line = { group: string; n: number; cont?: boolean } | { row: GanttRow };
+type Line = { group: string; n: number; cont?: boolean } | { row: GanttRow; fix?: boolean };
 
 /** Draw the Gantt from the CURRENT page on (which must be landscape A4), adding
  *  landscape pages as the rows need them. Returns the page numbers it drew on,
  *  so a report can put its own foot on them. */
-export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: string; sub?: string }): number[] {
+export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: string; sub?: string }, moves: MoveLine[] = []): number[] {
   const font = (size: number, style: 'normal' | 'bold' = 'normal', colour = INK) => {
     doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(colour);
   };
@@ -58,7 +58,8 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
   const X = (day: number) => x0 + day * px;
 
   /* Rows, with each gate's heading, cut into pages. */
-  const lines: Line[] = g.groups.flatMap(gr => [{ group: gr.label, n: gr.rows.length } as Line, ...gr.rows.map(row => ({ row }) as Line)]);
+  const lines: Line[] = g.groups.flatMap(gr => [{ group: gr.label, n: gr.rows.length } as Line,
+    ...gr.rows.flatMap(row => [{ row } as Line, ...(row.fixes ?? []).map(f => ({ row: f, fix: true }) as Line)])]);
   const bodyTop = HEAD_TOP + MONTH_H + DAY_H;
   const room = PH - FOOT - bodyTop;
   const pages: Line[][] = [];
@@ -77,6 +78,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
   if (cur.length || !pages.length) pages.push(cur);
 
   const drawn: number[] = [];
+  let lastKey = 0;
   pages.forEach((page, pi) => {
     if (pi > 0) doc.addPage('a4', 'landscape');
     drawn.push(doc.getNumberOfPages());
@@ -130,6 +132,27 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       }
       const r = l.row;
       doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + ROW_H, PW - M, y + ROW_H);
+      /* A FIX UNDER ITS STAGE — its dates, or open-ended, "no date agreed". */
+      if (l.fix) {
+        font(6.5, 'bold', INK2);
+        doc.text((doc.splitTextToSize(san(`> Fix: ${r.label}`), LAB - 18) as string[])[0] ?? '', M + 14, y + 7.5);
+        font(5.5, 'normal', MUTED); doc.text(san(r.when), M + 14, y + 13.5);
+        const fx = X(r.start) + 0.6, fy = y + 5, fh = ROW_H - 10;
+        const open = (r as GanttRow & { open?: boolean }).open;
+        if (open) {
+          doc.setDrawColor(MUTED); doc.setLineWidth(0.6); doc.setLineDashPattern([2, 1.5], 0);
+          doc.roundedRect(fx, fy, Math.max(4 * px, 46), fh, 2, 2, 'S'); doc.setLineDashPattern([], 0);
+          font(5.5, 'normal', MUTED); doc.text('no date agreed', fx + 3, fy + fh / 2 + 1.9);
+        } else {
+          const ft = TONE[r.tone];
+          const fw = Math.max(2.4, r.span * px - 1.2);
+          doc.setDrawColor(ft.stroke); doc.setFillColor(ft.fill); doc.setLineWidth(0.6);
+          doc.roundedRect(fx, fy, fw, fh, 1.5, 1.5, 'FD');
+          font(5.5, 'bold', INK2); doc.text(san(r.when), fx + fw + 3, fy + fh / 2 + 1.9);
+        }
+        y += ROW_H;
+        continue;
+      }
       /* "Wrapper — Dry run": the step, with its machine under it. */
       const cut = r.kind === 'note' ? -1 : r.label.indexOf(' — ');
       const step = cut >= 0 ? r.label.slice(cut + 3) : r.label;
@@ -145,8 +168,29 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
       font(6, 'bold', t.text);
       const ww = doc.getTextWidth(san(r.when));
+      /* THE OVERRUN — past the finish first planned: hatched red, with how far. */
+      let after = bx + bw + 3;
+      if (r.slip) {
+        const sx = X(r.slip.start) + 0.4, sw = Math.max(2, r.slip.span * px - 0.8);
+        doc.setFillColor('#f6dcd8'); doc.setDrawColor(DANGER); doc.setLineWidth(0.7);
+        doc.roundedRect(sx, by, sw, bh, 2, 2, 'FD');
+        doc.setDrawColor('#e3a59c'); doc.setLineWidth(0.5);
+        for (let hx = sx - bh; hx < sx + sw; hx += 3.2) {
+          const x1 = Math.max(hx, sx), y1 = by + bh - (x1 - hx), x2 = Math.min(hx + bh, sx + sw), y2 = by + bh - (x2 - hx);
+          if (x2 > x1) doc.line(x1, Math.min(y1, by + bh), x2, Math.max(y2, by));
+        }
+        doc.setDrawColor(DANGER); doc.setLineWidth(0.7); doc.roundedRect(sx, by, sw, bh, 2, 2, 'S');
+        after = Math.max(after, sx + sw + 3);
+      }
       if (ww + 6 <= bw) doc.text(san(r.when), bx + 3, by + bh / 2 + 2.1);
-      else { font(6, 'bold', INK2); doc.text(san(r.when), bx + bw + 3, by + bh / 2 + 2.1); }
+      else { font(6, 'bold', INK2); doc.text(san(r.when), after, by + bh / 2 + 2.1); after += doc.getTextWidth(san(r.when)) + 3; }
+      if (r.slip) { font(6, 'bold', DANGER); doc.text(`+${r.slip.days}d`, after, by + bh / 2 + 2.1); }
+      /* SOMETHING HAPPENED HERE — a small red diamond on the day. */
+      for (const mk of r.marks ?? []) {
+        const cx = X(mk.at + 0.5), cy = y + 3;
+        doc.setFillColor(DANGER); doc.setDrawColor('#ffffff'); doc.setLineWidth(0.5);
+        doc.lines([[2.6, 2.6], [-2.6, 2.6], [-2.6, -2.6], [2.6, -2.6]], cx, cy - 2.6, [1, 1], 'FD', true);
+      }
       y += ROW_H;
     }
     doc.setDrawColor('#c6d2e3'); doc.setLineWidth(0.6); doc.line(x0, HEAD_TOP, x0, bottom);
@@ -172,12 +216,25 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
 
     /* ---- the key ---- */
     let kx = M; const ky = Math.min(bottom + 14, PH - FOOT + 14);
+    lastKey = ky;
     for (const [tone, word] of [['done', 'done'], ['failed', 'ran, didn’t pass'], ['ran', 'ran, not yet called'], ['late', 'the day has gone'], ['booked', 'still ahead']] as [PlanMark['tone'], string][]) {
       const c = TONE[tone];
       doc.setDrawColor(c.stroke); doc.setFillColor(c.fill); doc.setLineWidth(0.7);
       doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
       font(7, 'normal', INK2); doc.text(san(word), kx + 15, ky);
       kx += 24 + doc.getTextWidth(san(word));
+    }
+    if (g.groups.some(x => x.rows.some(r => r.slip))) {
+      doc.setFillColor('#f6dcd8'); doc.setDrawColor(DANGER); doc.setLineWidth(0.7);
+      doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
+      font(7, 'normal', INK2); doc.text('past the finish first planned', kx + 15, ky);
+      kx += 24 + doc.getTextWidth('past the finish first planned');
+    }
+    if (g.groups.some(x => x.rows.some(r => r.marks))) {
+      doc.setFillColor(DANGER); doc.setDrawColor('#ffffff'); doc.setLineWidth(0.5);
+      doc.lines([[2.6, 2.6], [-2.6, 2.6], [-2.6, -2.6], [2.6, -2.6]], kx + 3, ky - 5.2, [1, 1], 'FD', true);
+      font(7, 'normal', INK2); doc.text('something happened', kx + 9, ky);
+      kx += 18 + doc.getTextWidth('something happened');
     }
     if (g.groups.some(x => x.kind === 'note')) {
       doc.setDrawColor(REMIND); doc.setFillColor('#fbe7f1'); doc.setLineWidth(0.7);
@@ -192,16 +249,45 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       doc.text('handover', kx + 4, ky);
     }
   });
+
+  /* ---- WHY THE PLAN MOVED — every push later, with its reason ---- */
+  if (moves.length) {
+    let y = lastKey + 22;
+    const fresh = () => { doc.addPage('a4', 'landscape'); drawn.push(doc.getNumberOfPages()); y = M + 10; };
+    if (y + 60 > PH - 34) fresh();
+    font(11, 'bold'); doc.text('Why the plan moved', M, y); y += 6;
+    doc.setDrawColor(LINE); doc.setLineWidth(0.6); doc.line(M, y, PW - M, y); y += 12;
+    for (const mv of moves) {
+      font(8, 'normal', INK2);
+      const why = doc.splitTextToSize(san(mv.why), PW - 2 * M - 250) as string[];
+      font(7, 'normal', MUTED);
+      const fix = mv.fix ? doc.splitTextToSize(san(`Fix: ${mv.fix}`), PW - 2 * M - 250) as string[] : [];
+      font(8, 'bold', INK);
+      const stage = (doc.splitTextToSize(san(mv.stage), 180) as string[]).slice(0, 2);
+      const h = Math.max(stage.length * 9.5 + 10, why.length * 10 + fix.length * 9) + 8;
+      if (y + h > PH - 34) fresh();
+      font(8, 'bold', DANGER); doc.text(san(`+${mv.days}d`), M, y);
+      font(8, 'bold', INK); doc.text(stage, M + 30, y);
+      font(7, 'normal', MUTED); doc.text(san(`${mv.on}  ·  ${mv.from} > ${mv.to}`), M + 30, y + stage.length * 9.5);
+      font(8, 'normal', INK2); doc.text(why, M + 250, y);
+      if (fix.length) { font(7, 'normal', MUTED); doc.text(fix, M + 250, y + why.length * 10); }
+      y += h;
+      doc.setDrawColor(LINE); doc.setLineWidth(0.3); doc.line(M, y - 7, PW - M, y - 7);
+    }
+  }
   return drawn;
 }
 
+/** One push later, for the list under the chart. */
+export interface MoveLine { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string }
+
 /** The plan on its own — landscape A4, a foot on every page. */
-export function drawGanttDoc(doc: jsPDF, g: Gantt, opts: { name: string; printed: string; dates?: string }): void {
+export function drawGanttDoc(doc: jsPDF, g: Gantt, opts: { name: string; printed: string; dates?: string; moves?: MoveLine[] }): void {
   const pages = drawGantt(doc, g, {
     eyebrow: `THE PLAN · ${opts.name.toUpperCase()}`,
     title: 'The plan',
     sub: [`Printed ${opts.printed}`, opts.dates].filter(Boolean).join('   ·   '),
-  });
+  }, opts.moves);
   pages.forEach((p, i) => {
     doc.setPage(p);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(MUTED);

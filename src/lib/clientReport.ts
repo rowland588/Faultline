@@ -79,6 +79,9 @@ export interface ClientReport {
   /** The job's dated marks — the same ones the project page's Gantt draws —
    *  for "The plan" page, with the day it was printed and both handover dates. */
   plan: PlanMark[];
+  /** What happened to each stage, for the plan page's overruns and its "why"
+   *  list — the steps, their fixes and what was found. Never the notes. */
+  planRecords: { tests: Test[]; items: TestItem[] };
   today: string;
   expectedAt?: string;
   plannedAt?: string;
@@ -216,6 +219,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     /* Meeting notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),
+    planRecords: { tests, items: items.filter(i => i.kind === 'found') },
     today,
     ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
     ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),

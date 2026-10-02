@@ -19,6 +19,8 @@ import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
+import { WhyMoved, recordMove, type WhyAnswer } from './WhyMoved';
+import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
@@ -86,6 +88,21 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
     const before = snapshot(ts);
     for (const t of ts) await tt.patchTest(t.id, patch(t));
     offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); });
+  };
+  /* A PUSH LATER, KEPT WITH ITS REASON. The dates change, and the reason — its
+     words, film and pictures, and a fix if one was booked — is kept on each
+     step that moved (lib/story). One Undo takes back all of it. */
+  const pushesOf = (ts: Test[], end: string) => {
+    const pushed = ts.filter(t => movedLater(plannedEnd(t), end));
+    return { n: pushed.length, was: pushed.map(t => plannedEnd(t) as string).sort().pop() };
+  };
+  const moveWithWhy = async (ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string) => {
+    const end = to ?? from;
+    const before = snapshot(ts);
+    const pushed = ts.filter(t => movedLater(plannedEnd(t), end)).map(t => ({ step: t, from: plannedEnd(t) as string, to: end }));
+    for (const t of ts) await tt.patchTest(t.id, { plannedFor: from, plannedTo: to });
+    const back = await recordMove(tt, pushed, a);
+    offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); await back(); });
   };
   const add = async (pairs: { title: string; assetId?: string }[], said: string) => {
     if (!pairs.length) return;
@@ -224,7 +241,11 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
               moment they changed gave no sign anything was kept and left the
               sheet open. Now they are held until Save, which writes both,
               says so, and closes. Finish empty = one day. */}
-          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo}
+          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
+            onMove={(from, to, a) => {
+              void moveWithWhy([t], from, to, a, `${t.title} moved to ${short(to ?? from)} — reason kept${a.fix ? ', fix booked' : ''}`);
+              setOpen(null);
+            }}
             onSave={(from, to) => {
               void change([t], () => ({ plannedFor: from, plannedTo: to }),
                 `${t.title} ${from ? (to && to > from ? `planned ${short(from)} to ${short(to)}` : `planned ${short(from)}`) : 'has no dates'}`);
@@ -291,7 +312,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
           {left.length > 0 && (
             <>
               <PlanWindow label="Plan it for every machine not done"
-                saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`); setOpen(null); }} />
+                saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`); setOpen(null); }}
+                pushes={end => pushesOf(left, end)}
+                onMove={(from, to, a) => { void moveWithWhy(left, from, to, a, `${col} moved — reason kept`); setOpen(null); }} />
               <Who names={names} value="" label="Who is doing it, on every machine not done"
                 onSave={v => v && void change(left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`)} />
             </>
@@ -339,7 +362,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         {left.length > 0 && (
           <>
             <PlanWindow label="Plan every step left on it"
-              saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${rowName(row.asset)}: ${left.length} step${left.length === 1 ? '' : 's'} planned`); setOpen(null); }} />
+              saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${rowName(row.asset)}: ${left.length} step${left.length === 1 ? '' : 's'} planned`); setOpen(null); }}
+              pushes={end => pushesOf(left, end)}
+              onMove={(from, to, a) => { void moveWithWhy(left, from, to, a, `${rowName(row.asset)} moved — reason kept`); setOpen(null); }} />
             <Who names={names} value="" label="Who is doing every step left on it"
               onSave={v => v && void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`)} />
           </>
@@ -443,10 +468,21 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
 }
 
 /** ONE STEP'S START AND FINISH, held until Save. */
-function DatesForm({ start, finish, onSave }: { start?: string; finish?: string; onSave: (from: string | undefined, to: string | undefined) => void }) {
+function DatesForm({ start, finish, was, onSave, onMove }: {
+  start?: string; finish?: string;
+  /** The finish it has now — a push past it asks why. */
+  was?: string;
+  onSave: (from: string | undefined, to: string | undefined) => void;
+  onMove: (from: string, to: string | undefined, a: WhyAnswer) => void;
+}) {
   const [from, setFrom] = useState(start ?? '');
   const [to, setTo] = useState(finish ?? '');
+  const [asking, setAsking] = useState(false);
   const changed = from !== (start ?? '') || to !== (finish ?? '');
+  const end = from ? (to || from) : undefined;
+  if (asking && was && end) {
+    return <WhyMoved from={was} to={end} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)} />;
+  }
   return (
     <div className="ig-plan">
       <div className="ig-dates">
@@ -455,17 +491,34 @@ function DatesForm({ start, finish, onSave }: { start?: string; finish?: string;
         <label className="cw-f ig-f"><span>Finishes <span className="cw-f-opt">blank = one day</span></span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
         <button className="btn btn-primary" type="button" disabled={!changed}
-          onClick={() => onSave(from || undefined, from ? (to || undefined) : undefined)}>Save</button>
+          onClick={() => {
+            /* PUSHED LATER? Then it asks why before anything is kept. */
+            if (movedLater(was, end)) { setAsking(true); return; }
+            onSave(from || undefined, from ? (to || undefined) : undefined);
+          }}>Save</button>
       </div>
+      {movedLater(was, end) && <p className="sub ig-why-note">That is later than it was ({short(was)}) — Save will ask why.</p>}
     </div>
   );
 }
 
 /** A START AND A FINISH for several steps at once, applied together with one
  *  tap so a half-chosen window is never written. Finish empty = one day. */
-function PlanWindow({ label, onPlan, saveLabel = 'Plan' }: { label: string; onPlan: (from: string, to: string | undefined) => void; saveLabel?: string }) {
+function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
+  label: string; onPlan: (from: string, to: string | undefined) => void; saveLabel?: string;
+  /** Which of the steps this would push later, and the latest finish among them. */
+  pushes?: (end: string) => { n: number; was?: string };
+  onMove?: (from: string, to: string | undefined, a: WhyAnswer) => void;
+}) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [asking, setAsking] = useState(false);
+  const end = from ? (to || from) : '';
+  const push = end && pushes ? pushes(end) : { n: 0 };
+  if (asking && push.was && end && onMove) {
+    return <WhyMoved from={push.was} to={end} many={push.n} allowFix={false} onCancel={() => setAsking(false)}
+      onSave={a => { onMove(from, to || undefined, a); setFrom(''); setTo(''); setAsking(false); }} />;
+  }
   return (
     <div className="ig-plan">
       <span className="ig-plan-l">{label}</span>
@@ -475,8 +528,12 @@ function PlanWindow({ label, onPlan, saveLabel = 'Plan' }: { label: string; onPl
         <label className="cw-f ig-f"><span>Finishes</span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
         <button className="btn" type="button" disabled={!from}
-          onClick={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); }}>{saveLabel}</button>
+          onClick={() => {
+            if (push.n > 0 && onMove) { setAsking(true); return; }
+            onPlan(from, to || undefined); setFrom(''); setTo('');
+          }}>{saveLabel}</button>
       </div>
+      {push.n > 0 && <p className="sub ig-why-note">That pushes {push.n === 1 ? 'one machine' : `${push.n} machines`} later than planned — Save will ask why.</p>}
     </div>
   );
 }

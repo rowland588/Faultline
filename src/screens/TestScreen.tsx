@@ -14,21 +14,22 @@
  * everything went to plan.
  */
 import { OnTheLine } from '../ui/OnTheLine';
+import { Evidence } from '../ui/EvidenceDoors';
+import { WhyMoved, recordMove } from '../ui/WhyMoved';
+import { movedLater } from '../lib/story';
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
-import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useProject } from '../lib/useProjects';
 import { usePrograms } from '../lib/usePrograms';
 import { useTesting } from '../lib/useTesting';
 import { deleteBlobs, getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
-import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import {
-  gateOf, hasRun, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
+  gateOf, hasRun, plannedEnd, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -60,6 +61,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
      box the problems are written in, ready to type the first of however many
      there are. */
   const writingProblem = useRoute().query.get('problem') === '1';
+  /* A planned window waiting for its reason — see `redate` below. */
+  const [moving, setMoving] = useState<Pick<Test, 'plannedFor' | 'plannedTo'> | null>(null);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const test = tt.tests.find(t => t.id === testId);
@@ -89,6 +92,16 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   }
 
   const save = (patch: Partial<Test>) => void tt.patchTest(test.id, patch);
+  /* A new planned window. Pushing the finish later than it was waits for the
+     reason (WhyMoved); anything else is kept straight away, as before. */
+  const redate = (patch: Pick<Test, 'plannedFor'> | Pick<Test, 'plannedTo'>) => {
+    const next = { plannedFor: moving?.plannedFor ?? test.plannedFor, plannedTo: moving ? moving.plannedTo : test.plannedTo, ...patch };
+    if (next.plannedTo && next.plannedFor && next.plannedTo < next.plannedFor) next.plannedTo = undefined;
+    const end = next.plannedTo ?? next.plannedFor;
+    if (!test.ranOn && movedLater(plannedEnd(test), end)) { setMoving(next); return; }
+    setMoving(null);
+    save(next);
+  };
   const hl = (key: string) => (filled.includes(key) ? ' is-filled' : '');
   /* Which face this record is wearing — every label on the screen comes from
      lib/testing's WORDS rather than being decided here. */
@@ -242,10 +255,25 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             reads any differently, and the extra box only matters to somebody
             who needs it. */}
         <label className={'cw-f' + hl('plannedFor')}><span>Planned from</span>
-          <input type="date" value={test.plannedFor ?? ''} onChange={e => save({ plannedFor: e.target.value || undefined })} /></label>
+          <input type="date" value={moving?.plannedFor ?? test.plannedFor ?? ''} onChange={e => redate({ plannedFor: e.target.value || undefined })} /></label>
         <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
-          <input type="date" value={test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
-            onChange={e => save({ plannedTo: e.target.value || undefined })} /></label>
+          <input type="date" value={moving ? moving.plannedTo ?? '' : test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
+            onChange={e => redate({ plannedTo: e.target.value || undefined })} /></label>
+        {/* PUSHED LATER: asked why before it is kept — the plan shows the answer. */}
+        {moving && (
+          <div className="cw-f-wide">
+            <WhyMoved from={plannedEnd(test) as string} to={(moving.plannedTo ?? moving.plannedFor) as string}
+              onCancel={() => setMoving(null)}
+              onSave={a => void (async () => {
+                const before = { plannedFor: test.plannedFor, plannedTo: test.plannedTo };
+                const was = plannedEnd(test) as string, end = (moving.plannedTo ?? moving.plannedFor) as string;
+                await tt.patchTest(test.id, moving);
+                const back = await recordMove(tt, [{ step: test, from: was, to: end }], a);
+                setMoving(null);
+                offerUndo(`Moved to ${niceDay(end)} — reason kept${a.fix ? ', fix booked' : ''}`, async () => { await tt.patchTest(test.id, before); await back(); });
+              })()} />
+          </div>
+        )}
         <label className={'cw-f' + hl('withWhom')}><span>{words.withWhom}</span>
           <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
         {/* A fix does not run a product down the machine, so the box is not
@@ -713,111 +741,6 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
 }
 
 /* ------------------------------ what's attached ---------------------------- */
-
-/** THE EVIDENCE — photos and clips, on a test, on a fix, or on one thing found.
- *
- *  Rowland: "the power of the evidence is not available in fixes and in the
- *  tests; photo still isn't live camera from the phone, it only does gallery;
- *  what we have in the media looks a little messy."
- *
- *  Three things were wrong with the strip this replaces, and they were one
- *  fault: it had no name, no count and no shape. Thumbnails and three dashed
- *  buttons wrapped together in whatever order the width allowed, so a fix
- *  with one photo showed a purple square beside "Photo" and "Upload" on a
- *  line of its own, and nothing on the screen said what any of it was for.
- *
- *  So it is a block with a heading — EVIDENCE, and how much there is — a grid
- *  of what has been taken, and three doors that say where they go:
- *
- *      Camera       the phone's lens, straight away, for what is in front
- *                   of you now. `capture` set, so it never stops at a chooser.
- *      Video        filmed in the app, several clips back to back.
- *      On the phone photos AND clips already taken — somebody else's phone,
- *                   the OEM's engineer, the laptop. Several at once.
- *
- *  Camera used to drop `capture` on these screens so that the phone would
- *  "offer the gallery too", which on Android meant it offered ONLY the
- *  gallery: the lens was never reachable from a test. The gallery has its
- *  own door now, so the camera can be the camera.
- *
- *  IT GOES THROUGH lib/media, the door the line walk already uses: a clip is
- *  sniffed for its real type, converted so it plays on other devices, and a
- *  photo gets a thumbnail. One door, so a clip on a fix behaves like every
- *  other clip in the app. And what is taken here is what the test's card and
- *  the fix's card print — see trialCardPdf. */
-function Evidence({ media, kind, onAdd, onView }: {
-  media: MediaRef[];
-  kind: 'test' | 'fix' | 'install' | 'found';
-  onAdd: (refs: MediaRef[]) => Promise<void>;
-  onView: (m: MediaRef) => void;
-}) {
-  const [filming, setFilming] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-
-  /* NOTHING HERE IS EVER DISABLED WHILE A PICKER IS OPEN, and that is the
-     point. It was, for one build: tap a door, change your mind, back out of
-     the picker, and every button in the row was dead until you left the
-     screen — because a picker that is dismissed rather than used reports
-     nothing at all on some browsers, so the "still working" flag never came
-     off. A second tap while one is open is a far cheaper fault than a row
-     that cannot be tapped at all, so the word is the only thing that changes. */
-  const take = async (busyNote: string | null, get: () => Promise<MediaRef[]>) => {
-    setNote(busyNote);
-    try {
-      const refs = await get();
-      if (refs.length) await onAdd(refs);
-      setNote(null);
-    } catch {
-      setNote('That wouldn’t attach — the device may be out of room.');
-    }
-  };
-
-  const photos = media.filter(m => m.kind === 'photo').length;
-  const clips = media.length - photos;
-  const count = [photos && `${photos} photo${photos === 1 ? '' : 's'}`, clips && `${clips} clip${clips === 1 ? '' : 's'}`]
-    .filter(Boolean).join(' · ');
-  const why = kind === 'fix' ? 'The problem, and it fixed — a picture of each is the proof.'
-    : kind === 'install' ? 'How it was left — a picture is the proof it is done, or of what stopped it.'
-    : kind === 'test' ? 'What the machine did, as it did it. The card prints them.'
-      : 'A picture of what you saw.';
-
-  return (
-    <div className="tw-ev">
-      <span className="tw-ev-h">
-        <b>Evidence</b>
-        <span className="sub">{count || 'none yet'}</span>
-      </span>
-      {media.length > 0
-        ? <div className="tw-ev-grid">
-          {media.map(m => <EvidenceThumb key={m.id} media={m} size={72} onClick={() => onView(m)} />)}
-        </div>
-        : <p className="sub tw-ev-why">{why}</p>}
-      <div className="tw-ev-doors">
-        <button className="tw-door"
-          onClick={() => void take(null, async () => {
-            const r = await captureMedia('photo');
-            return r ? [r] : [];
-          })}>
-          <span aria-hidden>📷</span>Camera
-        </button>
-        {videoCaptureSupported() && (
-          <button className="tw-door" onClick={() => setFilming(true)}><span aria-hidden>🎥</span>Video</button>
-        )}
-        <button className="tw-door"
-          onClick={() => void take('Adding…', () => pickExistingMedia())}>
-          <span aria-hidden>🖼</span>On the phone
-        </button>
-      </div>
-      {note && <span className="sub" role="status">{note}</span>}
-
-      {filming && (
-        <VideoRecorder
-          onCapture={b => { void take('Saving the clip…', async () => [await saveVideoBlob(b)]); setFilming(false); }}
-          onClose={() => setFilming(false)} />
-      )}
-    </div>
-  );
-}
 
 /** Files somebody was sent — an OEM report, a spec. Saved in the app so they
  *  open on the floor with no signal, by the same route a generated report

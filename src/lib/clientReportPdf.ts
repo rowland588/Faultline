@@ -7,6 +7,7 @@ import type { Shot } from './testReport';
 import { san } from './reportKit';
 import { gantt } from './gantt';
 import { drawGantt } from './ganttPdf';
+import { moveLines } from './story';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
@@ -225,10 +226,11 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
   let planPages: number[] = [];
   if (r.plan.length) {
     doc.addPage('a4', 'landscape');
-    planPages = drawGantt(doc, gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }), {
+    const g = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
+    planPages = drawGantt(doc, g, {
       eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
       sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
-    });
+    }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items));
     newPage();
   }
 

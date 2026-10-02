@@ -7667,3 +7667,66 @@ button.gt-lab small { font-size: 10.5px; color: var(--muted); }
 .rem-when { font-size: 12px; font-weight: 700; color: var(--remind); white-space: nowrap; }
 .rem-list li.is-late .rem-when { color: var(--danger); }
 @media (max-width: 640px) { .rem-list li { grid-template-columns: auto 1fr; } .rem-when { grid-column: 2; white-space: normal; } }
+
+/* ==========================================================================
+   THE PLAN, LIVE — what happened to a stage, on its own row. See lib/story.
+   ========================================================================== */
+.gt-slip {
+  appearance: none; position: absolute; top: 9px; height: 20px; box-sizing: border-box; z-index: 2; margin: 0; padding: 0 5px;
+  border: 1.5px solid var(--st-r); border-radius: 6px; cursor: pointer; overflow: hidden;
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--st-r) 26%, var(--surface)) 0 4px, var(--surface) 4px 8px);
+  font: inherit; font-size: 10.5px; font-weight: 800; color: var(--st-r); text-align: right; line-height: 17px;
+}
+.gt-slip span { background: var(--surface); padding: 0 3px; border-radius: 3px; }
+.gt-mk {
+  appearance: none; position: absolute; top: 3px; width: 11px; height: 11px; margin-left: -5.5px; padding: 0; z-index: 3; cursor: pointer;
+  background: var(--st-r); border: 2px solid var(--surface); transform: rotate(45deg); border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--st-r);
+}
+.gt-mk:hover, .gt-mk:focus-visible { transform: rotate(45deg) scale(1.3); outline: none; }
+.gt-lab-slip { font-style: normal; font-weight: 800; color: var(--st-r); }
+.gt-fixrow { height: 32px; }
+.gt-fixrow .gt-b { top: 8px; height: 16px; }
+button.gt-fixlab { padding-left: 24px; }
+button.gt-fixlab b { font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+button.gt-fixlab small { font-size: 10px; }
+.gt-fixb { border-style: solid; }
+.gt-open {
+  border: 1.5px dashed var(--muted) !important; background: transparent !important; color: var(--muted) !important;
+  font-size: 10px !important; font-style: italic; -webkit-mask-image: linear-gradient(90deg, #000 60%, transparent); mask-image: linear-gradient(90deg, #000 60%, transparent);
+}
+.gt-k-slip { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--st-r) 30%, var(--surface)) 0 3px, var(--surface) 3px 6px) !important; border-color: var(--st-r) !important; }
+.gt-k-mk { display: inline-block; width: 8px; height: 8px; background: var(--st-r); transform: rotate(45deg); border-radius: 1px; }
+
+/* the panel a stage opens */
+.sp { display: flex; flex-direction: column; gap: 12px; }
+.sp-dates { margin: 0; font-size: 14px; color: var(--ink-2); }
+.sp-slip { color: var(--st-r); }
+.sp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sp-list li { display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.sp-on { font-size: 12px; font-weight: 800; color: var(--muted); padding-top: 2px; }
+.sp-body { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.sp-k { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; }
+.sp-k.is-move { background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r); }
+.sp-k.is-found { background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); color: var(--st-a); }
+.sp-k.is-fix { background: color-mix(in srgb, var(--st-w) 12%, var(--surface)); color: var(--st-w); }
+.sp-k.is-fix.is-done { background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); color: var(--st-g); }
+.sp-k.is-fix.is-open { background: var(--surface-2); color: var(--muted); }
+.sp-t, .sp-why { margin: 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.sp-why { color: var(--ink); }
+.sp-ev { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-open { align-self: flex-start; }
+
+/* the question, asked when a finish is pushed later */
+.why { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--st-r); border-radius: 14px; background: color-mix(in srgb, var(--st-r) 4%, var(--surface)); }
+.why-h { margin: 0; font-size: 16px; font-weight: 800; color: var(--st-r); }
+.why-s { margin: 0; font-size: 13px; color: var(--ink-2); }
+.why-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.why-quick button { appearance: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 11px; font: inherit; font-size: 12.5px; cursor: pointer; min-height: 34px; }
+.why-quick button.on { border-color: var(--st-r); color: var(--st-r); font-weight: 700; }
+.why-fix { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.why-check { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; min-height: 36px; }
+.why-fix-on { flex: 0 1 200px; margin: 0; }
+.why-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.why-need { margin: 0; }
+.ig-why-note { margin: 6px 0 0; color: var(--st-r); font-weight: 600; }

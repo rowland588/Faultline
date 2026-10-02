@@ -414,6 +414,11 @@ export interface TestItem {
   /** A note's reminder is also drawn on the plan (the Gantt), in its own
    *  colour. Absent / false: a reminder only. */
   onPlan?: boolean;
+  /** WHY A STAGE MOVED. On something found, when it was written because the
+   *  step's finish was pushed later: the finish it moved from and to. Its
+   *  words are the reason; its media, the film and the pictures. */
+  movedFrom?: string;
+  movedTo?: string;
   /** Closed, or done. Absent means open. */
   doneAt?: number;
   media?: MediaRef[];

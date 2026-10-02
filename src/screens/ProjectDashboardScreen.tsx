@@ -424,7 +424,7 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
                   The timeline wrote each date beside its mark; here the days are
                   the columns and a bar sits on the days it means. Same marks —
                   the Home drawer and the client report still draw the timeline. */}
-              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} name={name} />
+              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} name={name} tests={tt.tests} items={tt.items} />
             </Fold>
           )}
 

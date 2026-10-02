@@ -15,6 +15,9 @@
  */
 import type { PlanMark } from './standing';
 import { windowWords } from './plan';
+import { storyOf } from './story';
+import { isOverdue, type Test, type TestItem } from './testing';
+import { todayISO as isoDay } from './weeks';
 
 export type GanttScale = 'day' | 'week';
 
@@ -31,6 +34,15 @@ export interface GanttRow {
   span: number;
   /** "5–9 Oct", for the bar itself. */
   when: string;
+  /* ---- the story, when the job's records are given (lib/story) ---- */
+  /** The overrun: from the day after the finish first planned to the finish
+   *  now, and by how many days. */
+  slip?: { start: number; span: number; days: number };
+  /** Each day something happened on it — a move, a problem written up. */
+  marks?: { at: number; iso: string }[];
+  /** Its fixes, drawn directly under it: with their dates, or open-ended from
+   *  the day they were booked when no date is agreed. */
+  fixes?: (GanttRow & { open?: boolean })[];
 }
 
 export interface GanttGroup { kind: PlanMark['kind']; label: string; rows: GanttRow[] }
@@ -86,14 +98,30 @@ export const WEEKS_AFTER = 120;
 /** The shortest chart — a month, so a one-week job still sits on a calendar. */
 const MIN_DAYS = 28;
 
-export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: string; plannedAt?: string }): Gantt {
+const STAGE_KINDS = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test']);
+
+export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: string; plannedAt?: string },
+  records?: { tests: Test[]; items: TestItem[] }): Gantt {
   const { today, expectedAt, plannedAt } = opts;
   const endOf = (m: PlanMark) => (m.until && m.until > m.at ? m.until : m.at);
+
+  /* WHAT HAPPENED TO EACH STAGE — its moves, what was found, its fixes. */
+  const stories = new Map<string, ReturnType<typeof storyOf>>();
+  if (records) for (const m of marks) if (m.id && STAGE_KINDS.has(m.kind)) {
+    const st = storyOf(m.id, records.tests, records.items);
+    if (st.moves.length || st.found.length || st.fixes.length) stories.set(m.id, st);
+  }
+  /* A fix that hangs under its stage is not drawn again among the Fixes. */
+  const underStage = new Set([...stories.values()].flatMap(st => st.fixes.map(f => f.id)));
+  const fixDays = [...stories.values()].flatMap(st => [
+    ...st.days, ...(st.original ? [st.original] : []),
+    ...st.fixes.flatMap(f => [f.plannedFor, f.plannedTo, f.ranOn, isoDay(new Date(f.createdAt))].filter((d): d is string => !!d)),
+  ]);
 
   /* THE CALENDAR'S EDGES: every bar, today and both handover dates, with a few
      days either side, squared off to whole weeks so the columns start on a
      Monday and the weekends fall in the same place on every row. */
-  const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
+  const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...fixDays, ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
   let from = addDays(ends[0], -3);
   from = addDays(from, -dowOf(from));
   let to = addDays(ends[ends.length - 1], 4);
@@ -117,17 +145,42 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
     if (dow === 0) weeks.push({ label: `${Number(iso.slice(8, 10))} ${MONTHS[mo]}`, start: i, span: Math.min(7, days - i) });
   }
 
+  /* A fix under its stage: its own dates when it has them — the day it ran, or
+     the window booked — and otherwise open-ended from the day it was booked,
+     "no date agreed". */
+  const fixRow = (f: Test): GanttRow & { open?: boolean } => {
+    const at = f.ranOn ?? f.plannedFor;
+    const until = f.ranOn ? f.ranTo : f.plannedTo;
+    const tone: PlanMark['tone'] = f.outcome === 'passed' ? 'done' : f.outcome === 'failed' ? 'failed' : isOverdue(f, today) ? 'late' : 'booked';
+    if (!at) {
+      const made = isoDay(new Date(f.createdAt));
+      return { id: f.id, kind: 'fix', label: f.title, from: made, to: made, tone: 'none', start: between(from, made), span: 1, when: 'no date agreed', open: true };
+    }
+    const end = until && until > at ? until : at;
+    return { id: f.id, kind: 'fix', label: f.title, from: at, to: end, tone, start: between(from, at), span: between(at, end) + 1, when: windowWords(at, end) };
+  };
+
   const groups: GanttGroup[] = [];
   for (const g of GROUPS) {
     const rows = marks
-      .filter(m => m.kind === g.kind)
+      .filter(m => m.kind === g.kind && !(m.kind === 'fix' && m.id && underStage.has(m.id)))
       .map((m): GanttRow => {
         const end = endOf(m);
-        return {
+        const row: GanttRow = {
           ...(m.id ? { id: m.id } : {}),
           kind: m.kind, label: m.label, from: m.at, to: end, tone: m.tone,
           start: between(from, m.at), span: between(m.at, end) + 1, when: windowWords(m.at, end),
         };
+        const st = m.id ? stories.get(m.id) : undefined;
+        if (st) {
+          if (st.original && st.original < end) {
+            const s0 = between(from, st.original) + 1;
+            row.slip = { start: s0, span: between(st.original, end), days: between(st.original, end) };
+          }
+          if (st.days.length) row.marks = st.days.map(iso => ({ at: between(from, iso), iso }));
+          if (st.fixes.length) row.fixes = st.fixes.map(f => fixRow(f));
+        }
+        return row;
       })
       .sort((a, b) => a.start - b.start || a.span - b.span || a.label.localeCompare(b.label));
     if (rows.length) groups.push({ kind: g.kind, label: g.label, rows });

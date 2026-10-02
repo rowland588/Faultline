@@ -6,24 +6,34 @@
  * stays put while the calendar scrolls, so the "what" is never lost off the
  * edge, and the chart opens scrolled to today. Tapping a row opens its record.
  */
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { gantt, ganttHref, type GanttScale } from '../lib/gantt';
 import type { PlanMark } from '../lib/standing';
+import type { Test, TestItem } from '../lib/testing';
+import { StagePanel } from './StagePanel';
 import { nav } from '../state/useRoute';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test']);
 const TONE_WORD: Record<PlanMark['tone'], string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran — nobody has said how it went',
   booked: 'still ahead', late: 'the day has gone', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: {
+export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items }: {
   marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string; projectId: string;
+  /** The job's records — for what happened to each stage (lib/story). */
+  tests?: Test[]; items?: TestItem[];
   /** The job's name, for the printed copy. */
   name: string;
 }) {
-  const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }), [marks, today, expectedAt, plannedAt]);
+  const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items } : undefined), [marks, today, expectedAt, plannedAt, tests, items]);
+  const [stage, setStageRaw] = useState<{ id: string; title: string } | null>(null);
+  const setStage = (id: string) => {
+    const row = g.groups.flatMap(x => x.rows).find(r => r.id === id);
+    setStageRaw({ id, title: row?.label ?? 'This stage' });
+  };
   /* On a phone a day column leaves room for six days; weeks show the month. */
   const [scale, setScale] = useState<GanttScale>(() => {
     try { if (window.matchMedia('(max-width: 640px)').matches) return 'week'; } catch { /* no window */ }
@@ -74,7 +84,9 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: 
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       const moved = !!expectedAt && !!plannedAt && expectedAt !== plannedAt;
       const when = expectedAt ?? plannedAt;
+      const { moveLines } = await import('../lib/story');
       drawGanttDoc(doc, g, {
+        moves: tests && items ? moveLines(g.groups.flatMap(x => x.rows), tests, items) : [],
         name, printed: niceDay(today, { year: true }),
         dates: when ? `Handover ${moved ? 'expected ' : ''}${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(plannedAt, { year: true })}` : ''}` : undefined,
       });
@@ -141,28 +153,65 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: 
                 </div>
                 {gr.rows.map((r, i) => {
                   const href = ganttHref(projectId, r);
+                  /* A stage with a story opens it; anything else opens its record. */
+                  const go = () => (r.id && (r.slip || r.marks || r.fixes || STAGE.has(r.kind)) ? setStage(r.id) : open(href));
                   const w = Math.max(r.span * px - 4, 10);
                   const inside = w >= r.when.length * 6.4 + 16;
                   const tip = r.kind === 'note'
                     ? `Reminder: ${r.label} · ${r.when}${r.tone === 'done' ? ' · talked about' : r.tone === 'late' ? ' · the day has gone' : ''}`
-                    : `${r.label} · ${r.when} · ${TONE_WORD[r.tone]}`;
+                    : `${r.label} · ${r.when} · ${TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}`;
+                  const afterBar = r.start * px + 2 + w + 6 + (r.slip ? 0 : 0);
                   return (
-                    <div key={`${r.id ?? r.label}-${i}`} className="gt-row">
-                      <button type="button" className={'gt-lab' + (r.kind === 'note' ? ' is-note' : '')} title={tip} disabled={!href} onClick={() => open(href)}>
-                        {/* "Wrapper — Dry run" reads as the step, with its machine under
-                            it: cut short on a phone, every row began "Checkweigher —…". */}
-                        {r.kind !== 'note' && r.label.includes(' — ')
-                          ? <><b>{r.label.slice(r.label.indexOf(' — ') + 3)}</b><small>{r.label.slice(0, r.label.indexOf(' — '))}</small></>
-                          : <b>{r.label}</b>}
-                      </button>
-                      <div className="gt-track" style={{ width: T }}>
-                        <button type="button" className={'gt-b is-' + r.tone + (r.kind === 'note' ? ' is-note' : '')} title={tip} aria-label={tip}
-                          style={{ left: r.start * px + 2, width: w, padding: inside ? undefined : 0 } as CSSProperties} onClick={() => open(href)}>
-                          {inside && r.when}
+                    <Fragment key={`${r.id ?? r.label}-${i}`}>
+                      <div className={'gt-row' + (r.slip || r.marks ? ' has-story' : '')}>
+                        <button type="button" className={'gt-lab' + (r.kind === 'note' ? ' is-note' : '')} title={tip} disabled={!href && !r.id} onClick={go}>
+                          {/* "Wrapper — Dry run" reads as the step, with its machine under
+                              it: cut short on a phone, every row began "Checkweigher —…". */}
+                          {r.kind !== 'note' && r.label.includes(' — ')
+                            ? <><b>{r.label.slice(r.label.indexOf(' — ') + 3)}</b><small>{r.label.slice(0, r.label.indexOf(' — '))}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}</small></>
+                            : <b>{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}</b>}
                         </button>
-                        {!inside && <span className="gt-when" style={{ left: r.start * px + 2 + w + 6 }}>{r.when}</span>}
+                        <div className="gt-track" style={{ width: T }}>
+                          <button type="button" className={'gt-b is-' + r.tone + (r.kind === 'note' ? ' is-note' : '')} title={tip} aria-label={tip}
+                            style={{ left: r.start * px + 2, width: w, padding: inside ? undefined : 0 } as CSSProperties} onClick={go}>
+                            {inside && r.when}
+                          </button>
+                          {/* THE OVERRUN — past the finish first planned, hatched, with how far. */}
+                          {r.slip && (
+                            <button type="button" className="gt-slip" onClick={go} title={`+${r.slip.days} days past the finish first planned — tap for why`}
+                              style={{ left: r.slip.start * px + 1, width: Math.max(r.slip.span * px - 2, 6) }}>
+                              {r.slip.span * px >= 46 && <span>+{r.slip.days}d</span>}
+                            </button>
+                          )}
+                          {!inside && <span className="gt-when" style={{ left: afterBar }}>{r.when}{r.slip && r.slip.span * px < 46 ? ` · +${r.slip.days}d` : ''}</span>}
+                          {/* SOMETHING HAPPENED HERE — a move, a problem written up. */}
+                          {r.marks?.map(m => (
+                            <button key={m.iso} type="button" className="gt-mk" onClick={go} aria-label={`Something happened on ${m.iso} — tap for the story`}
+                              style={{ left: (m.at + 0.5) * px }} />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                      {/* ITS FIXES, directly under it — dated, or open-ended "no date agreed". */}
+                      {r.fixes?.map(f => {
+                        const fw = Math.max(f.span * px - 4, 10);
+                        return (
+                          <div key={f.id} className="gt-row gt-fixrow">
+                            <button type="button" className="gt-lab gt-fixlab" onClick={() => open(`/project/${projectId}/testing/${encodeURIComponent(f.id as string)}`)}
+                              title={`Fix: ${f.label} · ${f.when}`}>
+                              <b>↳ Fix: {f.label}</b><small>{f.open ? 'no date agreed yet' : f.when}</small>
+                            </button>
+                            <div className="gt-track" style={{ width: T }}>
+                              {f.open
+                                ? <button type="button" className="gt-b gt-open" style={{ left: f.start * px + 2, width: Math.max(4 * px, 60) }}
+                                  onClick={() => open(`/project/${projectId}/testing/${encodeURIComponent(f.id as string)}`)}>no date agreed</button>
+                                : <button type="button" className={'gt-b gt-fixb is-' + f.tone} style={{ left: f.start * px + 2, width: fw }}
+                                  onClick={() => open(`/project/${projectId}/testing/${encodeURIComponent(f.id as string)}`)} title={`Fix: ${f.label} · ${f.when}`} />}
+                              {!f.open && <span className="gt-when" style={{ left: f.start * px + 2 + fw + 6 }}>{f.when}</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </Fragment>
                   );
                 })}
               </div>
@@ -171,6 +220,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: 
         </div>
       </div>
 
+      {stage && tests && items && (
+        <StagePanel stepId={stage.id} title={stage.title} tests={tests} items={items} projectId={projectId} onClose={() => setStageRaw(null)} />
+      )}
+
       <p className="gt-key sub">
         <span><i className="gt-k is-done" />done</span>
         <span><i className="gt-k is-failed" />ran, didn’t pass</span>
@@ -178,6 +231,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: 
         <span><i className="gt-k is-late" />the day has gone</span>
         <span><i className="gt-k is-booked" />still ahead</span>
         {g.groups.some(x => x.kind === 'note') && <span><i className="gt-k is-note" />a reminder from the notes</span>}
+        {g.groups.some(x => x.rows.some(r => r.slip)) && <span><i className="gt-k gt-k-slip" />past the finish first planned</span>}
+        {g.groups.some(x => x.rows.some(r => r.marks)) && <span><i className="gt-k-mk" />something happened — tap for why</span>}
         <span><i className="gt-k-line" />today</span>
         {g.expected && <span><i className="gt-k-line is-hand" />handover</span>}
         <span className="gt-key-say">Tap a row to open it.</span>
