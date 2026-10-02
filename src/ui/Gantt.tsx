@@ -13,6 +13,9 @@ import { HANDOVER_KEY } from '../lib/story';
 import type { PlanMark } from '../lib/standing';
 import type { Test, TestItem } from '../lib/testing';
 import { StagePanel } from './StagePanel';
+import { WalkPanel } from './WalkPanel';
+import { walkMarkers, type WalkSnag } from '../lib/walkSnags';
+import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
@@ -23,14 +26,18 @@ const TONE_WORD: Record<PlanMark['tone'], string> = {
   booked: 'still ahead', late: 'the day has gone', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items }: {
+export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk }: {
   marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string; projectId: string;
   /** The job's records — for what happened to each stage (lib/story). */
   tests?: Test[]; items?: TestItem[];
+  /** What the filmed walk found — drawn as one lane (lib/walkSnags). */
+  walk?: WalkSnag[];
   /** The job's name, for the printed copy. */
   name: string;
 }) {
-  const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items } : undefined), [marks, today, expectedAt, plannedAt, tests, items]);
+  const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items, ...(walk ? { walk } : {}) } : undefined), [marks, today, expectedAt, plannedAt, tests, items, walk]);
+  /* The walk's panel: the snags behind one marker, or all of them. */
+  const [walkOpen, setWalkOpen] = useState<{ title: string; ids: string[] } | null>(null);
   /* The panel a row opens: a stage's story (with its buttons), or the story of
      one of the other dates — the handover, a machine, a material, a program. */
   const [stage, setStageRaw] = useState<{ key: string; title: string; href?: string } | null>(null);
@@ -111,6 +118,42 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     } finally { setBusy(false); }
   };
 
+  /* THE WALK'S LANE — one row, wherever the problems sit in the order: after
+     the gates, before the fixes they lead to. */
+  const walkAt = (() => { const i = g.groups.findIndex(x => x.kind === 'fix' || x.kind === 'action'); return i < 0 ? g.groups.length : i; })();
+  const walkLane = g.walk && g.walk.days.length > 0 && (() => {
+    const lane = g.walk;
+    const ms = walkMarkers(lane, px);
+    const all = walk ?? [];
+    const markerWords = (m: { start: number; span: number }) => {
+      const d0 = g.dayList[m.start]?.iso, d1 = g.dayList[Math.min(g.days - 1, m.start + m.span - 1)]?.iso;
+      return m.span === 1 ? niceDay(d0, { weekday: 'short' }) : `${niceDay(d0)} – ${niceDay(d1)}`;
+    };
+    return (
+      <div className="gt-group is-open gt-walkgroup">
+        <div className={'gt-row gt-walk-row' + (lane.late ? ' has-late' : '')}>
+          <button type="button" className="gt-lab gt-walklab" onClick={() => setWalkOpen({ title: 'Found on the walk', ids: all.map(s => s.id) })}
+            title={`Found on the walk · ${lane.words} — tap for the list`}>
+            <b>Found on the walk</b><small className={lane.late ? 'is-late' : lane.open ? 'is-open' : 'is-done'}>{lane.words}</small>
+          </button>
+          <div className="gt-track" style={{ width: T }}>
+            {ms.map(m => {
+              const tone = m.late ? 'late' : m.open ? 'open' : 'done';
+              const say = `${markerWords(m)}: ${m.ids.length} found${m.open ? `, ${m.open} still open` : ', all closed'}${m.late ? `, ${m.late} past due` : ''} — tap to see them`;
+              return (
+                <button key={m.start} type="button" className={'gt-walk is-' + tone} title={say} aria-label={say}
+                  style={{ left: (m.start + m.span / 2) * px }}
+                  onClick={() => setWalkOpen({ title: `Found on the walk · ${markerWords(m)}`, ids: m.ids })}>
+                  {m.open > 0 ? m.open : ''}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  })();
+
   return (
     <div className={'gt' + (phone ? ' is-stacked' : '')}>
       <div className="gt-top">
@@ -172,8 +215,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
               {g.today != null && <span className="gt-today" style={{ left: (g.today + 0.5) * px }} />}
             </div>
 
-            {g.groups.map(gr => (
-              <div key={gr.kind} className={'gt-group' + (isOpen(gr.kind) ? ' is-open' : ' is-shut')}>
+            {g.groups.map((gr, gi) => (
+              <Fragment key={gr.kind}>
+              {gi === walkAt && walkLane}
+              <div className={'gt-group' + (isOpen(gr.kind) ? ' is-open' : ' is-shut')}>
                 <div className="gt-row gt-grow">
                   <button type="button" className="gt-lab gt-glab" onClick={() => toggle(gr.kind)} aria-expanded={isOpen(gr.kind)}>
                     <span className="gt-fold" aria-hidden>{isOpen(gr.kind) ? '▾' : '▸'}</span>{gr.label}<span className="gt-n">{gr.rows.length}</span>
@@ -261,13 +306,20 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                   );
                 })}
               </div>
+              </Fragment>
             ))}
+            {walkAt === g.groups.length && walkLane}
           </div>
         </div>
       </div>
 
       {stage && tests && items && (
         <StagePanel stepId={stage.key} title={stage.title} href={stage.href} tests={tests} items={items} projectId={projectId} onClose={() => setStageRaw(null)} />
+      )}
+
+      {walkOpen && (
+        <WalkPanel title={walkOpen.title} today={today} projectId={projectId} onClose={() => setWalkOpen(null)}
+          snags={(walk ?? []).filter(s => walkOpen.ids.includes(s.id))} />
       )}
 
       <p className="gt-key sub">
@@ -280,6 +332,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         {g.groups.some(x => x.rows.some(r => r.slip)) && <span><i className="gt-k gt-k-slip" />past the finish first planned</span>}
         {g.groups.some(x => x.rows.some(r => r.marks)) && <span><i className="gt-k-mk" />something happened — tap for why</span>}
         {g.groups.some(x => x.rows.some(r => r.overlap)) && <span><i className="gt-k gt-k-over" />starts before the step ahead has finished</span>}
+        {walkLane && <span><i className="gt-k-walk">2</i>found on the walk — the number still open; solid, past due</span>}
         <span><i className="gt-k-line" />today</span>
         {g.expected && <span><i className="gt-k-line is-hand" />handover</span>}
         <span className="gt-key-say">Tap a row to open it.</span>

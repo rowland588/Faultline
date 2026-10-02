@@ -14,6 +14,7 @@ import type { jsPDF } from 'jspdf';
 import type { Gantt, GanttRow } from './gantt';
 import type { PlanMark } from './standing';
 import { san } from './reportKit';
+import { walkMarkers } from './walkSnags';
 
 const PW = 842, PH = 595, M = 30, LAB = 186;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', SURF2 = '#eef3f9', WEEKEND = '#f1f4f8';
@@ -42,9 +43,9 @@ const TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: strin
 const HEAD_TOP = 74;          // where the calendar band starts on a page
 const MONTH_H = 13, DAY_H = 17;
 const ROW_H = 17, GROUP_H = 13;
-const FOOT = 46;              // room left at the bottom for the key and the foot
+const FOOT = 54;              // room left at the bottom for the key (two lines when it is long) and the foot
 
-type Line = { group: string; n: number; cont?: boolean } | { row: GanttRow; fix?: boolean };
+type Line = { group: string; n: number; cont?: boolean } | { row: GanttRow; fix?: boolean } | { walk: true };
 
 /** Draw the Gantt from the CURRENT page on (which must be landscape A4), adding
  *  landscape pages as the rows need them. Returns the page numbers it drew on,
@@ -60,6 +61,12 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
   /* Rows, with each gate's heading, cut into pages. */
   const lines: Line[] = g.groups.flatMap(gr => [{ group: gr.label, n: gr.rows.length } as Line,
     ...gr.rows.flatMap(row => [{ row } as Line, ...(row.fixes ?? []).map(f => ({ row: f, fix: true }) as Line)])]);
+  /* WHAT THE WALK FOUND — one lane, after the gates and before the fixes, the
+     same place the screen draws it. */
+  if (g.walk && g.walk.days.length) {
+    const at = lines.findIndex(l => 'group' in l && (l.group === 'Fixes' || l.group === 'Actions'));
+    lines.splice(at < 0 ? lines.length : at, 0, { walk: true });
+  }
   const bodyTop = HEAD_TOP + MONTH_H + DAY_H;
   const room = PH - FOOT - bodyTop;
   const pages: Line[][] = [];
@@ -128,6 +135,25 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
         font(6.5, 'bold', INK2);
         doc.text(`${l.group.toUpperCase()}${l.cont ? '  (continued)' : `  ${l.n}`}`, M + 6, y + 9);
         y += GROUP_H;
+        continue;
+      }
+      if ('walk' in l) {
+        const lane = g.walk;
+        doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + ROW_H, PW - M, y + ROW_H);
+        if (lane) {
+          if (lane.late) { doc.setFillColor(DANGER); doc.rect(M + 1, y + 3, 2, ROW_H - 6, 'F'); }
+          font(7.5, 'bold', INK); doc.text('Found on the walk', M + 6, y + 7.5);
+          font(6, 'bold', lane.open ? DANGER : OK); doc.text(san(lane.words), M + 6, y + 14);
+          const cy = y + ROW_H / 2;
+          for (const m of walkMarkers(lane, px, 13)) {
+            const cx = X(m.start + m.span / 2);
+            if (!m.open) { doc.setFillColor(OK); doc.circle(cx, cy, 2.4, 'F'); continue; }
+            doc.setLineWidth(0.9); doc.setDrawColor(DANGER); doc.setFillColor(m.late ? DANGER : '#ffffff');
+            doc.circle(cx, cy, 5.6, 'FD');
+            font(6, 'bold', m.late ? '#ffffff' : DANGER); doc.text(String(m.open), cx, cy + 2.1, { align: 'center' });
+          }
+        }
+        y += ROW_H;
         continue;
       }
       const r = l.row;
@@ -221,9 +247,15 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
     if (g.expected) mark(g.expected.at, OK, `Handover ${g.expected.when}`, 0);
 
     /* ---- the key ---- */
-    let kx = M; const ky = Math.min(bottom + 14, PH - FOOT + 14);
+    let kx = M; let ky = Math.min(bottom + 14, PH - FOOT + 14);
     lastKey = ky;
+    /* A key with every entry on it is wider than the page: carry on below. */
+    const fit = (word: string, extra: number) => {
+      font(7, 'normal', INK2);
+      if (kx + extra + doc.getTextWidth(san(word)) > PW - M) { kx = M; ky += 11; lastKey = ky; }
+    };
     for (const [tone, word] of [['done', 'done'], ['failed', 'ran, didn’t pass'], ['ran', 'ran, not yet called'], ['late', 'the day has gone'], ['booked', 'still ahead']] as [PlanMark['tone'], string][]) {
+      fit(word, 24);
       const c = TONE[tone];
       doc.setDrawColor(c.stroke); doc.setFillColor(c.fill); doc.setLineWidth(0.7);
       doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
@@ -231,28 +263,41 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       kx += 24 + doc.getTextWidth(san(word));
     }
     if (g.groups.some(x => x.rows.some(r => r.slip))) {
+      fit('past the finish first planned', 24);
       doc.setFillColor('#f6dcd8'); doc.setDrawColor(DANGER); doc.setLineWidth(0.7);
       doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
       font(7, 'normal', INK2); doc.text('past the finish first planned', kx + 15, ky);
       kx += 24 + doc.getTextWidth('past the finish first planned');
     }
+    if (g.walk && g.walk.days.length) {
+      fit('found on the walk - the number still open; solid, past due', 21);
+      doc.setLineWidth(0.8); doc.setDrawColor(DANGER); doc.setFillColor('#ffffff'); doc.circle(kx + 4.5, ky - 2, 4.5, 'FD');
+      font(5.5, 'bold', DANGER); doc.text('2', kx + 4.5, ky, { align: 'center' });
+      const say = 'found on the walk - the number still open; solid, past due';
+      font(7, 'normal', INK2); doc.text(say, kx + 12, ky);
+      kx += 21 + doc.getTextWidth(say);
+    }
     if (g.groups.some(x => x.rows.some(r => r.overlap))) {
+      fit('starts before the step ahead has finished', 15);
       doc.setFillColor(AMBER); doc.rect(kx, ky - 6, 2.5, 8, 'F');
       font(7, 'normal', INK2); doc.text('starts before the step ahead has finished', kx + 6, ky);
       kx += 15 + doc.getTextWidth('starts before the step ahead has finished');
     }
     if (g.groups.some(x => x.rows.some(r => r.marks))) {
+      fit('something happened', 18);
       doc.setFillColor(DANGER); doc.setDrawColor('#ffffff'); doc.setLineWidth(0.5);
       doc.lines([[2.6, 2.6], [-2.6, 2.6], [-2.6, -2.6], [2.6, -2.6]], kx + 3, ky - 5.2, [1, 1], 'FD', true);
       font(7, 'normal', INK2); doc.text('something happened', kx + 9, ky);
       kx += 18 + doc.getTextWidth('something happened');
     }
     if (g.groups.some(x => x.kind === 'note')) {
+      fit('a reminder from the notes', 24);
       doc.setDrawColor(REMIND); doc.setFillColor('#fbe7f1'); doc.setLineWidth(0.7);
       doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
       font(7, 'normal', INK2); doc.text('a reminder from the notes', kx + 15, ky);
       kx += 24 + doc.getTextWidth('a reminder from the notes');
     }
+    fit('today handover', 60);
     doc.setDrawColor(BRAND); doc.setLineWidth(1.1); doc.line(kx, ky - 6, kx, ky + 1);
     font(7, 'normal', INK2); doc.text('today', kx + 4, ky); kx += 30;
     if (g.expected) {

@@ -29,6 +29,7 @@ import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, t
 import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay } from './weeks';
+import type { WalkSnag } from './walkSnags';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 export type CellTone = 'done' | 'problem' | 'asking' | 'late' | 'ahead' | 'none';
@@ -81,7 +82,7 @@ export interface ClientReport {
   plan: PlanMark[];
   /** What happened to each stage, for the plan page's overruns and its "why"
    *  list — the steps, their fixes and what was found. Never the notes. */
-  planRecords: { tests: Test[]; items: TestItem[] };
+  planRecords: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[] };
   today: string;
   expectedAt?: string;
   plannedAt?: string;
@@ -96,6 +97,8 @@ export interface ClientReportInput {
   materials: Material[];
   programs: Program[];
   standards: Standard[];
+  /** What the filmed walk found — its lane on the plan page. */
+  walk?: WalkSnag[];
   today: string;
 }
 
@@ -219,7 +222,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     /* Meeting notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),
-    planRecords: { tests, items: items.filter(i => i.kind === 'found') },
+    planRecords: { tests, items: items.filter(i => i.kind === 'found'), ...(x.walk?.length ? { walk: x.walk } : {}) },
     today,
     ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
     ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),

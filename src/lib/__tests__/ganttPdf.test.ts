@@ -45,6 +45,19 @@ describe('the plan on paper', () => {
     expect(said).toContain('starts before the step ahead has finished');
   });
 
+  it('prints the walk as one lane, with its words and its key', () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const said = texts(doc);
+    const g = gantt(steps(3), { today: TODAY }, { tests: [], items: [], walk: [
+      { id: 'a', what: 'Guard gap', state: 'open', found: '2026-10-05', due: '2026-10-01', wsId: 'w', frameId: 'f' },
+      { id: 'b', what: 'Loose cable', state: 'closed', found: '2026-10-06', wsId: 'w', frameId: 'f' },
+    ] });
+    drawGanttDoc(doc, g, { name: 'Line 2A', printed: '2 Oct 2026' });
+    expect(said.filter(t => t === 'Found on the walk')).toHaveLength(1);
+    expect(said).toContain('1 open · 1 past due · 1 closed');
+    expect(said.some(t => t.startsWith('found on the walk'))).toBe(true);
+  });
+
   it('carries a long plan over the page, each row exactly once, each sheet landscape', () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     const said = texts(doc);

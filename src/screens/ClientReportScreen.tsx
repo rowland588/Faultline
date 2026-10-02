@@ -2,6 +2,7 @@
  * it. What is shown IS the PDF (drawn once, previewed in place on a desk), so
  * the screen and the paper cannot disagree. See lib/clientReport.ts. */
 import { useEffect, useMemo, useState } from 'react';
+import { useWalkSnags } from '../lib/useWalkSnags';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { useMaterials } from '../lib/useMaterials';
@@ -45,16 +46,17 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
   const standards = useStandards(projectId);
+  const walk = useWalkSnags(projectId);
   const [withStandards, setWithStandards] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 900px)').matches;
 
-  const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && !!project;
+  const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !!project;
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
-    materials: mats.materials, programs: progs.programs, standards: standards ?? [], today: todayISO(),
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards]);
+    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], today: todayISO(),
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk]);
 
   /* The preview is the PDF itself, redrawn when what is on it changes. */
   useEffect(() => {

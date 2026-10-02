@@ -18,6 +18,7 @@ import { windowWords } from './plan';
 import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, type Test, type TestItem } from './testing';
 import { todayISO as isoDay } from './weeks';
+import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
 
 export type GanttScale = 'day' | 'week';
 
@@ -72,6 +73,8 @@ export interface Gantt {
   scale: GanttScale;
   /** Each time the handover moved later, with why — from the records. */
   handoverMoves?: { on: string; from: string; to: string; days: number; why: string }[];
+  /** What the filmed walk found — one lane, never a row per snag (lib/walkSnags). */
+  walk?: WalkLane;
 }
 
 /* The order a stage-gate job runs in: machines land, materials arrive, then the
@@ -108,7 +111,7 @@ const MIN_DAYS = 28;
 const STAGE_KINDS = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test']);
 
 export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: string; plannedAt?: string },
-  records?: { tests: Test[]; items: TestItem[] }): Gantt {
+  records?: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[] }): Gantt {
   const { today, expectedAt, plannedAt } = opts;
   const endOf = (m: PlanMark) => (m.until && m.until > m.at ? m.until : m.at);
 
@@ -130,7 +133,11 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
   /* THE CALENDAR'S EDGES: every bar, today and both handover dates, with a few
      days either side, squared off to whole weeks so the columns start on a
      Monday and the weekends fall in the same place on every row. */
-  const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...fixDays, ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
+  /* An open snag widens the calendar to the day it was found; a closed one is
+     drawn only if it falls on the job's calendar anyway. */
+  const walk = records?.walk ?? [];
+  const walkDays = walk.filter(s => s.state !== 'closed').map(s => s.found);
+  const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...fixDays, ...walkDays, ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
   let from = addDays(ends[0], -3);
   from = addDays(from, -dowOf(from));
   let to = addDays(ends[ends.length - 1], 4);
@@ -206,6 +213,23 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
     .map(m => ({ on: m.on, from: m.from, to: m.to, days: m.days, why: m.why })) : [];
   const inside = (iso?: string) => (iso && iso >= from && iso <= to ? between(from, iso) : undefined);
   const t = inside(today);
+  /* THE WALK'S LANE: each day something was found, with how many are still
+     open and how many are past the day promised. */
+  let walkLane: WalkLane | undefined;
+  if (walk.length) {
+    const byDay = new Map<string, WalkSnag[]>();
+    for (const s of walk) if (inside(s.found) != null) byDay.set(s.found, [...(byDay.get(s.found) ?? []), s]);
+    walkLane = {
+      days: [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([day, l]) => ({
+        at: between(from, day), iso: day, ids: l.map(s => s.id),
+        open: l.filter(s => s.state !== 'closed').length, late: l.filter(s => isLate(s, today)).length,
+      })),
+      open: walk.filter(s => s.state !== 'closed').length,
+      late: walk.filter(s => isLate(s, today)).length,
+      closed: walk.filter(s => s.state === 'closed').length,
+      words: walkWords(walk, today),
+    };
+  }
   const ex = inside(expectedAt);
   const ag = plannedAt && plannedAt !== expectedAt ? inside(plannedAt) : undefined;
   return {
@@ -215,6 +239,7 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
     ...(ag != null && plannedAt ? { agreed: { at: ag, when: windowWords(plannedAt) } } : {}),
     scale: days > WEEKS_AFTER ? 'week' : 'day',
     ...(handoverMoves.length ? { handoverMoves } : {}),
+    ...(walkLane ? { walk: walkLane } : {}),
   };
 }
 

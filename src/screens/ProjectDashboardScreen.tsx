@@ -19,6 +19,7 @@ import { journeyNow, journeyOf } from '../lib/install';
 import { planSays } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
+import { useWalkSnags } from '../lib/useWalkSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { Crumbs } from '../ui/Crumbs';
@@ -355,6 +356,8 @@ function NotesButton({ projectId }: { projectId: string }) {
 
 function TestingOverview({ projectId, name }: { projectId: string; name: string }) {
   const tt = useTesting(projectId);
+  /* What the filmed walk found — one lane on the plan. */
+  const walk = useWalkSnags(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
      to form its own opinion from the trials alone, which meant it could say
      "nothing outstanding" while four materials were late and two programs were
@@ -424,7 +427,7 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
                   The timeline wrote each date beside its mark; here the days are
                   the columns and a bar sits on the days it means. Same marks —
                   the Home drawer and the client report still draw the timeline. */}
-              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} name={name} tests={tt.tests} items={tt.items} />
+              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} name={name} tests={tt.tests} items={tt.items} walk={walk ?? undefined} />
             </Fold>
           )}
 
