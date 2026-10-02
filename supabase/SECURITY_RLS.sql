@@ -160,7 +160,11 @@ begin
     if to_regclass('public.' || t) is null then continue; end if;
     for r in select policyname from pg_policies
              where schemaname = 'public' and tablename = t
-               and (coalesce(qual, 'true') = 'true' or coalesce(with_check, 'true') = 'true')
+               -- A select policy has no with_check and an insert policy no
+               -- qual, so each is read through the other: the first form of
+               -- this test treated every select policy as `true` and dropped
+               -- the workspaces' select and insert (LINE_STUDY_ACCESS.sql).
+               and (coalesce(qual, with_check, '') = 'true' or coalesce(with_check, qual, '') = 'true')
                and cmd <> 'DELETE' loop
       execute format('drop policy if exists %I on public.%I', r.policyname, t);
     end loop;
