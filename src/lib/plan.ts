@@ -138,6 +138,14 @@ export function whenWords(iso: string): string {
   return `${d} ${MONTHS[m - 1]}`;
 }
 
+/** A day, or a block of them: "21 Sep", "5–9 Oct", "30 Sep – 2 Oct". The start is
+ *  half of what a block says, so a bar's words give both ends. */
+export function windowWords(from: string, until?: string): string {
+  if (!until || until <= from) return whenWords(from);
+  if (from.slice(0, 7) === until.slice(0, 7)) return `${Number(from.slice(8, 10))}–${whenWords(until)}`;
+  return `${whenWords(from)} – ${whenWords(until)}`;
+}
+
 /** "Sep", or "Jan 27" where the year turns — a job running over a new year
  *  that says "Jan" twice is a job nobody can read. */
 function monthWords(y: number, m: number, firstYear: number): string {
@@ -277,7 +285,7 @@ export function layoutPlan(marks: PlanMark[], opts: PlanOpts = {}): Plan {
         const width = opts.widthOf ? Math.max(opts.widthOf(m), 0.01) : minGap;
         const { side, room } = placeLabel(at, end, width);
         const p: PlacedMark = {
-          kind: m.kind, at, until, label: m.label, when: whenWords(m.at), tone: m.tone, side, room,
+          kind: m.kind, at, until, label: m.label, when: windowWords(m.at, m.until), tone: m.tone, side, room,
           ...(m.count ? { count: m.count } : {}),
         };
         return { placed: p, foot: footprint(p, width) };
@@ -334,7 +342,7 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
     const label = monthWords(Number(m.at.slice(0, 4)), Number(m.at.slice(5, 7)) - 1, firstYear);
     let month = out[out.length - 1];
     if (!month || month.label !== label) { month = { label, items: [] }; out.push(month); }
-    month.items.push({ kind: m.kind, when: whenWords(m.at), label: m.label, tone: m.tone });
+    month.items.push({ kind: m.kind, when: windowWords(m.at, m.until), label: m.label, tone: m.tone });
   }
   return out;
 }
@@ -385,3 +393,44 @@ export function planSays(marks: PlanMark[], today: string): string {
 }
 
 export { dayMs as PLAN_DAY_MS, iso as planISO };
+
+
+/* EACH GATE AS ONE BAR, START TO FINISH. Rowland: "we need date start and date
+ * finish ... it needs to show a timeline." The marks already carry both ends of
+ * every step; this folds them by gate — Install, Set up, Commission, Hand over —
+ * so a job on the Home board reads as four bars, each from the first day
+ * anything at that gate starts to the last day it finishes. Nothing is stored. */
+export type SpanGate = 'install' | 'setup' | 'commission' | 'handover';
+export interface GateSpan {
+  gate: SpanGate;
+  label: string;
+  from: number;
+  to: number;
+  /** done when everything dated at the gate has happened and was good; late when
+   *  anything failed or its day has gone; otherwise still ahead. */
+  tone: 'done' | 'late' | 'booked';
+  n: number;
+  /** "5–16 Oct" — from the raw marks, when they are given. */
+  words?: string;
+}
+
+const SPAN_OF: Partial<Record<PlacedMark['kind'], SpanGate>> = { install: 'install', setup: 'setup', test: 'commission', handover: 'handover' };
+const SPAN_LABEL: Record<SpanGate, string> = { install: 'Install', setup: 'Set up', commission: 'Commission', handover: 'Hand over' };
+const SPAN_ORDER: SpanGate[] = ['install', 'setup', 'commission', 'handover'];
+
+export function gateSpans(marks: PlacedMark[], raw: PlanMark[] = []): GateSpan[] {
+  const out: GateSpan[] = [];
+  for (const gate of SPAN_ORDER) {
+    const mine = marks.filter(m => SPAN_OF[m.kind] === gate);
+    if (!mine.length) continue;
+    const from = Math.min(...mine.map(m => m.at));
+    const to = Math.max(...mine.map(m => (m.until != null && m.until > m.at ? m.until : m.at)));
+    const tone = mine.some(m => m.tone === 'failed' || m.tone === 'late') ? 'late'
+      : mine.every(m => m.tone === 'done') ? 'done' : 'booked';
+    const dated = raw.filter(m => SPAN_OF[m.kind as PlacedMark['kind']] === gate);
+    const first = dated.map(m => m.at).sort()[0];
+    const last = dated.map(m => (m.until && m.until > m.at ? m.until : m.at)).sort().pop();
+    out.push({ gate, label: SPAN_LABEL[gate], from, to, tone, n: mine.length, ...(first && last ? { words: windowWords(first, last) } : {}) });
+  }
+  return out;
+}

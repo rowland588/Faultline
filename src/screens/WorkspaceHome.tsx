@@ -153,7 +153,7 @@ export function WorkspaceHome() {
   // The projects lead this screen now. They are how the work is actually
   // organised — a workspace is the container underneath a line, not the thing
   // anybody sets out to open.
-  const { projects } = useProjects();
+  const { projects, archived: archivedProjects, archive: archiveProject } = useProjects();
   // Every job, on every method — the control room is not a stage-gate board.
   const jobs = projects;
   const [lines, setLines] = useState<PaceLineRow[]>([]);
@@ -273,8 +273,15 @@ export function WorkspaceHome() {
           </p>
         ) : (
           <div className="home-proj-list">
-            {projects.map(p => <ProjectCard key={p.id} p={p} lines={linesOf(p.id)} compact />)}
+            {projects.map(p => <ProjectCard key={p.id} p={p} lines={linesOf(p.id)} compact onArchive={() => void archiveProject(p.id)} />)}
           </div>
+        )}
+        {archivedProjects.length > 0 && (
+          <p className="sub home-sec-sub">
+            <button className="cw-link" onClick={() => nav('/projects?view=archive')}>
+              Archived · {archivedProjects.length} — restore or delete ›
+            </button>
+          </p>
         )}
       </section>
 

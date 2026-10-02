@@ -33,7 +33,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PlanMark } from '../lib/standing';
-import { bunchPlan, labelGap, layoutPlan, planAgenda, planSays, whenWords, type PlacedMark, type PlanLane } from '../lib/plan';
+import { bunchPlan, labelGap, layoutPlan, planAgenda, planSays, windowWords, type PlacedMark, type PlanLane } from '../lib/plan';
 
 /** The lane-name column. Must match `.tl-lane { grid-template-columns }`. */
 const LANE_W = 78;
@@ -189,7 +189,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
       today, expectedAt, plannedAt, span,
       widthOf: m => {
         if (track.px > 0) {
-          const tW = textWidth(m.label, track.fontT), dW = textWidth(whenWords(m.at), track.fontD);
+          const tW = textWidth(m.label, track.fontT), dW = textWidth(windowWords(m.at, m.until), track.fontD);
           if (tW != null && dW != null) return (LAB_GAP + tW + DATE_GAP + dW + 2 * LAB_PAD + 2) / track.px;
         }
         /* Not measured yet, or nowhere to measure: the old estimate, which

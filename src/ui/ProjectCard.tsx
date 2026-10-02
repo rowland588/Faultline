@@ -64,7 +64,7 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
           {/* ARCHIVE, NOT DELETE, on the card. Nothing on the main list may
               destroy anything in one step; the only way to delete is from
               inside the archive, which is a second, deliberate journey. */}
-          {onArchive && !compact && (
+          {onArchive && (
             <button className="btn btn-ghost proj-archive" title={`Archive ${p.name}`}
               onClick={() => { if (confirm(`Archive “${p.name}”?\n\nIt leaves the list and loses nothing. You can restore it whenever you like.`)) onArchive(); }}>
               Archive

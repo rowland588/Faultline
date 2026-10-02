@@ -415,7 +415,7 @@ function TestingOverview({ projectId }: { projectId: string }) {
               is the longest thing on the page, and open it pushed what needs
               doing off the screen. Folded, it still says how much is done. */}
           {st.plan.length > 0 && (
-            <Fold id="plan" title="The plan" says={planSays(st.plan, today)} start={false}>
+            <Fold id="plan" title="The plan" says={planSays(st.plan, today)}>
               <Timeline marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} />
             </Fold>
           )}

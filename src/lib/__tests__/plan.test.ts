@@ -5,7 +5,7 @@
  * kind of fault that looks plausible in a picture and is obvious in a number.
  */
 import { describe, it, expect } from 'vitest';
-import { bunchPlan, footprint, labelGap, layoutPlan, placeLabel, planAgenda, planSays, whenWords } from '../plan';
+import { bunchPlan, footprint, gateSpans, labelGap, layoutPlan, placeLabel, planAgenda, planSays, whenWords, windowWords } from '../plan';
 import type { PlanMark } from '../standing';
 
 const mark = (o: Partial<PlanMark> & { at: string }): PlanMark => ({
@@ -347,5 +347,40 @@ describe('alike on one day, drawn once', () => {
     const b = bunchPlan(Array.from({ length: 3 }, () => mark({ kind: 'material', at: '2026-09-10', tone: 'done' })));
     const placed = layoutPlan(b, { today: '2026-10-01' }).lanes[0].rows[0][0];
     expect(placed.count).toBe(3);
+  });
+});
+
+
+describe('a block of days, and the gates drawn from them', () => {
+  it('writes both ends of a block, one end of a day', () => {
+    expect(windowWords('2026-10-05', '2026-10-09')).toBe('5–9 Oct');
+    expect(windowWords('2026-09-30', '2026-10-02')).toBe('30 Sep – 2 Oct');
+    expect(windowWords('2026-10-05')).toBe('5 Oct');
+    expect(windowWords('2026-10-05', '2026-10-05')).toBe('5 Oct');
+  });
+
+  it('draws a gate from the first day anything at it starts to the last it finishes', () => {
+    const raw = [
+      { kind: 'install' as const, at: '2026-10-05', until: '2026-10-09', label: 'Positioned', tone: 'booked' as const },
+      { kind: 'install' as const, at: '2026-10-12', label: 'Dry run', tone: 'booked' as const },
+      { kind: 'setup' as const, at: '2026-10-14', label: 'Programs', tone: 'booked' as const },
+    ];
+    const plan = layoutPlan(raw, { today: '2026-10-02' });
+    const spans = gateSpans(plan.lanes.flatMap(l => l.rows.flat()), raw);
+    expect(spans.map(s => s.gate)).toEqual(['install', 'setup']);
+    expect(spans[0]).toMatchObject({ label: 'Install', words: '5–12 Oct', n: 2, tone: 'booked' });
+    expect(spans[0].to).toBeGreaterThan(spans[0].from);
+    expect(spans[1].words).toBe('14 Oct');
+  });
+
+  it('calls a gate late if anything at it has failed or missed its day, done only when all of it is', () => {
+    const mk = (tone: 'done' | 'late' | 'booked') => ({ kind: 'handover' as const, at: '2026-10-05', label: 'x', tone });
+    const spansOf = (...t: ('done' | 'late' | 'booked')[]) => {
+      const raw = t.map(mk);
+      return gateSpans(layoutPlan(raw, { today: '2026-10-02' }).lanes.flatMap(l => l.rows.flat()), raw)[0].tone;
+    };
+    expect(spansOf('done', 'done')).toBe('done');
+    expect(spansOf('done', 'late')).toBe('late');
+    expect(spansOf('done', 'booked')).toBe('booked');
   });
 });

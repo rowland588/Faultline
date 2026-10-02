@@ -42,7 +42,7 @@ export function ProjectsScreen() {
   const [adding, setAdding] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportSaid, setExportSaid] = useState('');
-  const [showArchive, setShowArchive] = useState(false);
+  const [showArchive, setShowArchive] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('view') === 'archive');
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');

@@ -33,6 +33,14 @@ type Open = { t: 'cell'; row: number; col: number } | { t: 'col'; col: number } 
 
 const short = (iso?: string) => (iso ? niceDay(iso) : '');
 
+/** A day, or a block of them as the cell can hold it: "9 Oct", "5–9 Oct",
+ *  "30 Sep–2 Oct". The start is half of what a block says. */
+export function spanShort(from?: string, to?: string): string {
+  if (!from) return to ? short(to) : '';
+  if (!to || to <= from) return short(from);
+  return from.slice(0, 7) === to.slice(0, 7) ? `${Number(from.slice(8))}–${short(to)}` : `${short(from)}–${short(to)}`;
+}
+
 /** What a cell says, in as few characters as will do. */
 function cellWord(s: StepView): string {
   const t = s.step;
@@ -41,7 +49,7 @@ function cellWord(s: StepView): string {
     case 'problem': return 'Problem';
     case 'asking': return 'Done?';
     case 'late': return 'Late';
-    default: { const on = plannedEnd(t); return on ? short(on) : '—'; }
+    default: { const on = spanShort(t.plannedFor, plannedEnd(t)); return on || '—'; }
   }
 }
 
@@ -188,7 +196,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
           : 'Put it back to planned';
       return (
         <Sheet title={`${rowName(row.asset)} — ${t.title}`}
-          sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${short(plannedEnd(t))}` : 'no day yet'].join(' · ')}
+          sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${spanShort(t.plannedFor, plannedEnd(t))}` : 'no day yet'].join(' · ')}
           onClose={() => setOpen(null)}>
           <div className="ig-acts">
             {t.outcome !== 'passed' && (
@@ -211,23 +219,17 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
             )}
           </div>
           <SayStep step={t} tt={tt} onDone={() => setOpen(null)} />
-          {/* A START AND A FINISH. Rowland: "it allows one date — we need date
-              start and date finish." The step already carried both (the same
-              two the Testing screen, the trial card and the client report
-              read); this sheet only ever asked for one. Finish empty = one day. */}
-          <div className="ig-dates">
-            <label className="cw-f ig-f"><span>Starts</span>
-              <input type="date" key={'s' + t.id + (t.plannedFor ?? '')} defaultValue={t.plannedFor ?? ''}
-                onChange={e => {
-                  const from = e.target.value || undefined;
-                  void change([t], cur => ({ plannedFor: from, plannedTo: from && cur.plannedTo && cur.plannedTo < from ? undefined : cur.plannedTo }),
-                    `${t.title} starts ${from ? short(from) : 'on no day'}`);
-                }} /></label>
-            <label className="cw-f ig-f"><span>Finishes</span>
-              <input type="date" key={'f' + t.id + (t.plannedTo ?? '')} defaultValue={t.plannedTo ?? ''} min={t.plannedFor ?? undefined}
-                onChange={e => void change([t], () => ({ plannedTo: e.target.value || undefined }),
-                  `${t.title} finishes ${e.target.value ? short(e.target.value) : 'the day it starts'}`)} /></label>
-          </div>
+          {/* A START AND A FINISH, SAVED TOGETHER. Rowland: "it doesn't have a
+              save button, and it doesn't close." Two boxes that each wrote the
+              moment they changed gave no sign anything was kept and left the
+              sheet open. Now they are held until Save, which writes both,
+              says so, and closes. Finish empty = one day. */}
+          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo}
+            onSave={(from, to) => {
+              void change([t], () => ({ plannedFor: from, plannedTo: to }),
+                `${t.title} ${from ? (to && to > from ? `planned ${short(from)} to ${short(to)}` : `planned ${short(from)}`) : 'has no dates'}`);
+              setOpen(null);
+            }} />
           <Who names={names} value={t.withWhom ?? ''} onSave={v => void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`)} />
           <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
         </Sheet>
@@ -289,7 +291,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
           {left.length > 0 && (
             <>
               <PlanWindow label="Plan it for every machine not done"
-                onPlan={(from, to) => void change(left, () => ({ plannedFor: from, plannedTo: to }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`)} />
+                saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`); setOpen(null); }} />
               <Who names={names} value="" label="Who is doing it, on every machine not done"
                 onSave={v => v && void change(left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`)} />
             </>
@@ -337,7 +339,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         {left.length > 0 && (
           <>
             <PlanWindow label="Plan every step left on it"
-              onPlan={(from, to) => void change(left, () => ({ plannedFor: from, plannedTo: to }), `${rowName(row.asset)}: ${left.length} step${left.length === 1 ? '' : 's'} planned`)} />
+              saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${rowName(row.asset)}: ${left.length} step${left.length === 1 ? '' : 's'} planned`); setOpen(null); }} />
             <Who names={names} value="" label="Who is doing every step left on it"
               onSave={v => v && void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`)} />
           </>
@@ -440,9 +442,28 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
   );
 }
 
+/** ONE STEP'S START AND FINISH, held until Save. */
+function DatesForm({ start, finish, onSave }: { start?: string; finish?: string; onSave: (from: string | undefined, to: string | undefined) => void }) {
+  const [from, setFrom] = useState(start ?? '');
+  const [to, setTo] = useState(finish ?? '');
+  const changed = from !== (start ?? '') || to !== (finish ?? '');
+  return (
+    <div className="ig-plan">
+      <div className="ig-dates">
+        <label className="cw-f ig-f"><span>Starts</span>
+          <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
+        <label className="cw-f ig-f"><span>Finishes <span className="cw-f-opt">blank = one day</span></span>
+          <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
+        <button className="btn btn-primary" type="button" disabled={!changed}
+          onClick={() => onSave(from || undefined, from ? (to || undefined) : undefined)}>Save</button>
+      </div>
+    </div>
+  );
+}
+
 /** A START AND A FINISH for several steps at once, applied together with one
  *  tap so a half-chosen window is never written. Finish empty = one day. */
-function PlanWindow({ label, onPlan }: { label: string; onPlan: (from: string, to: string | undefined) => void }) {
+function PlanWindow({ label, onPlan, saveLabel = 'Plan' }: { label: string; onPlan: (from: string, to: string | undefined) => void; saveLabel?: string }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   return (
@@ -454,7 +475,7 @@ function PlanWindow({ label, onPlan }: { label: string; onPlan: (from: string, t
         <label className="cw-f ig-f"><span>Finishes</span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
         <button className="btn" type="button" disabled={!from}
-          onClick={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); }}>Plan</button>
+          onClick={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); }}>{saveLabel}</button>
       </div>
     </div>
   );

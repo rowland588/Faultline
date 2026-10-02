@@ -268,6 +268,7 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
 
 export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
+  const { archive } = useProjects();
   const lines = usePaceLines(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
@@ -377,6 +378,26 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="card">
           <ProjectPeople lead={project.lead} people={people} />
+        </div>
+      </section>
+
+      {/* PUT IT AWAY. Rowland: "you removed the archive and delete system for
+          projects." It was only ever on the All projects page — nowhere on the
+          job itself or on Home, so from where he works it was not there. Archive
+          is here, on the job, and Home's cards carry it too. Deleting for ever
+          stays where it was: inside the archive, after it says what it takes. */}
+      <section className="pace-sec">
+        <div className="pace-sec-head">
+          <h2 className="pace-sec-title">Put this project away</h2>
+          <p className="pace-sec-sub">Archive takes it off Home and the project list · nothing is deleted · restore it whenever you like</p>
+        </div>
+        <div className="card" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button className="btn" onClick={() => {
+            if (!confirm(`Archive “${project.name}”?\n\nIt leaves Home and the list and loses nothing. You can restore it whenever you like.`)) return;
+            void archive(project.id).then(() => nav('/projects?view=archive'));
+          }}>Archive this project</button>
+          <button className="btn btn-ghost" onClick={() => nav('/projects?view=archive')}>Open the archive</button>
+          <span className="sub">Delete for ever is offered from the archive, after it says what it will take.</span>
         </div>
       </section>
 

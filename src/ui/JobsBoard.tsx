@@ -47,6 +47,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { Timeline } from './Timeline';
 import type { GateTone } from '../lib/install';
+import { gateSpans } from '../lib/plan';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
@@ -407,6 +408,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
   const filled = v.total ? v.done / v.total : 0;
   const clusters = useMemo(() => clusterMarks(v.marks), [v.marks]);
   const empty = v.marks.length === 0;
+  /* A stage-gate job reads as its GATES, each from the day anything at it starts
+     to the day it finishes — not as a bar and a handful of dots. */
+  const spans = useMemo(() => (v.method === 'commissioning' ? gateSpans(v.marks, v.plan) : []), [v.marks, v.plan, v.method]);
   return (
     <div className={'jb-row' + (open ? ' is-open' : '')} style={style}>
       <div className="jb-row-h">
@@ -469,13 +473,27 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
             </span>
           ) : (
             <>
-              {v.from != null && v.to != null && (
+              {spans.length > 0 && (
+                <span className="jb-lanes" onClick={onToggle}>
+                  {spans.map((g, k) => {
+                    const laneH = 14, gap = 6, total = spans.length * laneH + (spans.length - 1) * gap;
+                    return (
+                      <span key={g.gate} className={'jb-span is-' + g.tone}
+                        style={{ left: PCT(g.from), width: PCT(Math.max(0.006, g.to - g.from)), top: `calc(50% - ${total / 2}px + ${k * (laneH + gap)}px)`, height: laneH }}
+                        title={`${g.label}${g.words ? ` · ${g.words}` : ''} · ${g.n} dated`}>
+                        <span className={'jb-span-l' + (g.to > 0.62 ? ' is-left' : '')}>{g.label}{g.words ? ` · ${g.words}` : ''}</span>
+                      </span>
+                    );
+                  })}
+                </span>
+              )}
+              {spans.length === 0 && v.from != null && v.to != null && (
                 <span className="jb-bar" style={{ left: PCT(v.from), width: PCT(Math.max(0.004, v.to - v.from)) }} onClick={onToggle}>
                   <span className="jb-bar-fill" style={{ width: PCT(filled) }} />
                 </span>
               )}
               {slip && <span className="jb-slip" style={{ left: PCT(slip.from), width: PCT(slip.to - slip.from) }} onClick={onToggle} />}
-              {clusters.map((c, k) => {
+              {spans.length === 0 && clusters.map((c, k) => {
                 const id = `${v.id}:${k}`;
                 const words = c.marks.length === 1
                   ? `${c.marks[0].label}\n${c.marks[0].when} · ${TONE_WORD[c.marks[0].tone] ?? ''}`
