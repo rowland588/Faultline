@@ -59,6 +59,31 @@ Numbers from the sweep, for the record:
   come out on the box you are on; one Actions tab per line; one Reports door in
   the meeting; one-line ledes; duplicate "All evidence" button gone; the
   record id gone from action cards; "from the tracker" gone.
+- **The ten slices, all live** (2 October, in the order below):
+  - *1, 3, 4, 7* — Home is the control room and Projects is the archive and
+    the "New project" door; Materials and Programs drawn once each with the
+    week strip on the row, Programs shown once per job; line balance, Lines &
+    people, the add forms and finished sections fold until wanted; the words
+    fixed ("THE EYES", "THE PROOF", "LINE HEALTH", "workspace", the tab names).
+  - *2 and 5* — one way to get around: the line study has the crumb bar and
+    the same row of tabs the project has (Capture · Analyse · Evidence ·
+    Meeting); the Log is Capture's list, Present is the Meeting's second act,
+    the trend is a fold on Analyse, Settings and People are one Set-up sheet;
+    Guide, Portfolio, the deck with no project and the Workspaces list are
+    gone and every old link lands where the page went.
+  - *6* — one door to paper: a Reports sheet on every project page lists the
+    client report (and each line's), Today, the line standard, the evidence
+    cards and one-page report of each line's study, and the spreadsheet of
+    everything (moved off the Projects page). Every screen's own print button
+    says one word: **PDF**. "This line's deck" is the line's client report.
+  - *8* — the 3P front page's door reads "Open the board".
+  - *9* — Pareto with nothing timed offers "Time a stop on ‹line›", which
+    makes the line's study and opens the stopwatch; the trend with no history
+    offers "Time a stop".
+  - *10* — the phone pass: 58 routes re-shot at 390px, none scrolls
+    sideways, none throws. The two longest were cut: a line's actions list
+    shows one line per action and opens the editor on the row you tap (four
+    screens became one); a line's numbers fold the reading form to a row.
 
 ## The findings, by waste
 
@@ -164,7 +189,7 @@ Suggested order: 1, 3, 4, 7 (no removals; a day or two), then 2 and 5 together
 
 ## What it adds up to
 
-| Measure | Now | After |
+| Measure | 2 Oct, before | After the ten slices |
 |---|---|---|
 | Distinct screens | ~52 | ~40 |
 | Ways to get around | 2 | 1 |
