@@ -24,6 +24,7 @@ import {
   programsPlan, strandWord, strandsOf, strandsSay, MAX_LANE_ROWS, type PaceReportData,
 } from '../paceReportPdf';
 import type { Owes, Party } from '../owes';
+import { capacityReport, type Capacity } from '../capacity';
 
 /* The installation sheet's block — `n` machines, six steps each, one late. */
 const installation = (n: number): NonNullable<PaceReportData['installation']> => ({
@@ -940,5 +941,52 @@ describe('who owes what, by when — page 3', () => {
 
   it('flows two columns for a party or two, three past that', () => {
     expect([1, 2, 3, 4, 9].map(owesColumns)).toEqual([2, 2, 3, 3, 3]);
+  });
+});
+
+/* WHERE THE LINE IS LIMITED, ON PAPER. A sheet right behind the Pareto, one page
+ * for as many lines as fit, carrying the same sentence the screen leads with. */
+describe('the capacity sheet', () => {
+  const worked: Capacity = {
+    targetPerMin: 66,
+    stations: [
+      { id: 'a', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min' },
+      { id: 'b', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 5.5, ratePer: 'min', runningPct: 94 },
+      { id: 'c', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2 },
+      { id: 'd', name: 'Palletiser', kind: 'machine', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour' },
+    ],
+  };
+  const cap = (n = 1) => capacityReport(Array.from({ length: n }, (_, i) => ({ name: `Line ${i + 1}`, owner: 'Rob', capacity: worked })));
+  const pagesFor = (over: Partial<PaceReportData>) => render(data(over)).pages;
+
+  it('adds exactly one page, and none when no line has stations counted', () => {
+    expect(pagesFor({ capacity: cap(1) })).toBe(pagesFor({}) + 1);
+    expect(pagesFor({ capacity: undefined })).toBe(pagesFor({}));
+  });
+
+  it('sits right behind the Pareto and is stamped with its own page number', () => {
+    const r = render(data({ pareto: pareto(), capacity: cap(1) }));
+    const own = r.stamps.find((_, i) => /where the line is limited/.test(r.said.filter(x => /page \d+ of \d+/.test(x))[i] ?? ''));
+    const pareto2 = r.stamps.find((_, i) => /where the time is going/.test(r.said.filter(x => /page \d+ of \d+/.test(x))[i] ?? ''));
+    expect(own?.page).toBe((pareto2?.page ?? 0) + 1);
+  });
+
+  it('every footer still says the right total with the extra page', () => {
+    const r = render(data({ pareto: pareto(), capacity: cap(1) }));
+    expect(r.stamps.every(s => s.of === r.pages)).toBe(true);
+  });
+
+  it('carries the sentence, the limit, the numbers and the target', () => {
+    const r = render(data({ capacity: cap(1) }));
+    const txt = r.said.join('\n');
+    expect(txt).toContain('Where the line is limited');
+    expect(txt).toMatch(/Basketer limits the line at 62 bags\/min/);
+    expect(txt).toContain('LIMITS THE LINE');
+    expect(txt).toContain('target 66');
+    expect(txt).toContain('baskets \u00b7 12 bags each');
+  });
+
+  it('does not split a line across sheets — five lines of four stations take two sheets', () => {
+    expect(pagesFor({ capacity: cap(5) })).toBe(pagesFor({}) + 2);
   });
 });

@@ -41,6 +41,7 @@ import type { FilePages, PaceReportData } from '../lib/paceReportPdf';
 import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
+import { capacityPlan, capacityReport, fmtN, type CapacityReport } from '../lib/capacity';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { coveredIn, daysLate, isHere, landsIn, todayISO } from '../lib/materials';
@@ -211,6 +212,59 @@ function ParetoPage({ view, title, scale, sheetH, n, of }: {
           <span>{view.comparable
             ? `Measured against the Pareto covering ${view.beforePeriod}.`
             : 'One Pareto so far — no movement can be claimed from a single reading.'}</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+/* WHERE THE LINE IS LIMITED — one ladder per line that has its stations in.
+ * Takes the same block the PDF does (lib/capacity capacityReport), the same
+ * sheet plan and the same scale, so the page and the file draw one picture. */
+function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
+  report: CapacityReport; sheet: number; title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  const idx = capacityPlan(report)[sheet] ?? [];
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="Where the line is limited"
+              sowhat="each station in one unit — the shortest is what holds the rest back" />
+            {idx.map(li => {
+              const l = report.lines[li];
+              const at = (v: number) => `${Math.min(100, (v / l.top) * 100)}%`;
+              return (
+                <div key={l.name} className="exec-cp">
+                  <div className="exec-cp-h"><b>{l.name}</b>{l.owner && <span>owned by {l.owner}</span>}</div>
+                  <p className="exec-cp-says">{l.sentence}</p>
+                  <ol className="exec-cp-rows">
+                    {l.rows.map(r => (
+                      <li key={r.name} className={'exec-cp-row' + (r.limit ? ' is-limit' : '')}>
+                        <span className="exec-cp-who"><b>{r.name}</b>{r.limit && <em>limits the line</em>}{r.chain && <small>{r.chain}</small>}</span>
+                        <span className="exec-cp-track">
+                          <span className="exec-cp-bar is-run" style={{ width: at(r.running) }} />
+                          <span className="exec-cp-bar is-eff" style={{ width: at(r.effective) }} />
+                          {l.target != null && <span className="exec-cp-target" style={{ left: at(l.target) }} />}
+                        </span>
+                        <span className="exec-cp-val">{fmtN(r.effective)}{r.effective < r.running - 1e-9 && <small>{fmtN(r.running)} running</small>}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="exec-cp-key">
+                    {l.unit} a minute · solid bar: with its own stops · pale: at running speed
+                    {l.target != null && <> · dashed: target {fmtN(l.target)}</>}
+                    {l.more > 0 && <> · +{l.more} more station{l.more === 1 ? '' : 's'} not shown</>}
+                  </p>
+                </div>
+              );
+            })}
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · client report · page {n} of {of} — where the line is limited</span>
+          <span>A steady-state screen: buffers hide short stops, so it shows where to look — not a promise.</span>
         </footer>
       </section>
     </div>
@@ -941,6 +995,10 @@ export function PaceExecReport() {
     ? paretoView(pareto.now, pareto.before)
     : null;
   const hasPareto = !!pView;
+  /* WHERE EACH LINE IS LIMITED — the stations kept on the lines, the same block
+     the PDF is handed. A line's own deck carries only that line. */
+  const capBlock: CapacityReport | undefined = capacityReport(line ? [line] : ppm.lines);
+  const capSheetCount = capBlock ? capacityPlan(capBlock).length : 0;
   /* The identical rule the PDF uses — see lib/pillars. Two rules is how a
    * four-page PDF ends up stamped "page 2 of 3", and two units is how the same
    * rule reaches two answers, so the available height lives there too. */
@@ -1211,13 +1269,14 @@ export function PaceExecReport() {
     const owes = 2;
     const install = owes + (hasOwes ? 1 : 0);
     const pareto = install + (hasInstall ? 1 : 0);
-    const materials = pareto + (hasPareto ? 1 : 0);
+    const capacity = pareto + (hasPareto ? 1 : 0);
+    const materials = capacity + capSheetCount;
     const programs = materials + (hasMaterials ? 1 : 0);
     const tree = programs + (hasPrograms ? 1 : 0);
     const board = tree + (hasTree ? 1 : 0);
-    const of = 1 + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+    const of = 1 + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + capSheetCount
       + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0) + (hasTree ? 1 : 0) + boardPlan.length;
-    return { owes, install, pareto, materials, programs, tree, board, of };
+    return { owes, install, pareto, capacity, materials, programs, tree, board, of };
   })();
   /* Inline rather than imported: the drawing module is loaded only when needed. */
   const onFile = (re: RegExp, fallback: number): number =>
@@ -1225,6 +1284,7 @@ export function PaceExecReport() {
   const owesPageNo = onFile(/^Who owes what, by when/, guess.owes);
   const installPageNo = onFile(/^Installation/, guess.install);
   const paretoPageNo = onFile(/^Where the time is going/, guess.pareto);
+  const capacityPageNo = onFile(/^Where the line is limited/, guess.capacity);
   const materialsPageNo = onFile(/^What we are waiting on/, guess.materials);
   const programsPageNo = onFile(/^What the machine can run/, guess.programs);
   const treePageNo = onFile(/^The plan$/, guess.tree);
@@ -1423,6 +1483,7 @@ export function PaceExecReport() {
     boardUnplaced: boardData.unplaced.length,
     /* The same view the screen draws, flattened to numbers and sentences — the
        drawer never looks at the DOM, so this is the whole contract. */
+    capacity: capBlock,
     pareto: pView ? {
       period: pView.period, beforePeriod: pView.beforePeriod, headline: pView.headline,
       totalMins: pView.totalMins, totalStops: pView.totalStops,
@@ -1666,6 +1727,9 @@ export function PaceExecReport() {
 
       {/* ================= PAGE 2 — THE PLAN ================= */}
       {pView && <ParetoPage view={pView} title={title} scale={scale} sheetH={SHEET_H} n={paretoPageNo} of={pageCount} />}
+      {capBlock && Array.from({ length: capSheetCount }, (_, i) => (
+        <CapacityPage key={i} report={capBlock} sheet={i} title={title} scale={scale} sheetH={SHEET_H} n={capacityPageNo + i} of={pageCount} />
+      ))}
       {materialsBlock && (
         <MaterialsPage m={materialsBlock} title={title} scale={scale} sheetH={SHEET_H}
           n={materialsPageNo} of={pageCount} />

@@ -358,3 +358,66 @@ export function crossCheck(r: CapacityResult, stats: Record<string, StopStats>):
 export function blankStation(id: string, kind: StationKind, first: boolean): Station {
   return { id, name: '', kind, unit: first ? 'units' : '', contains: 1, ratePer: 'min', crew: 1, source: 'estimate' };
 }
+
+/* ============================ the client report ============================= */
+
+/** One line's ladder, flattened to numbers and sentences — what the PDF draws
+ *  and the screen's preview draws, so the page and the file cannot disagree. */
+export interface CapacityReportLine {
+  name: string;
+  owner?: string;
+  unit: string;
+  /** The same sentence the Capacity lens leads with. */
+  sentence: string;
+  line: number;
+  target?: number;
+  /** The most any bar reaches — the scale both drawings share. */
+  top: number;
+  rows: { name: string; kind: StationKind; chain: string; running: number; effective: number; limit: boolean }[];
+  /** Stations counted but not drawn, when a line has more than a sheet holds. */
+  more: number;
+}
+export interface CapacityReport { lines: CapacityReportLine[] }
+
+/** Stations drawn per line on the report. A line past this says how many it left off. */
+export const CAP_REPORT_ROWS = 18;
+/** What one sheet holds, in rows: a line costs its stations plus three for its
+ *  heading and sentence. Shared so the preview and the file break pages alike. */
+export const CAP_SHEET_UNITS = 26;
+
+/** The report block for the lines that have something to say — two or more
+ *  stations counted, so there is a limit and a next. A line with one station,
+ *  or none, has no finding to print and costs the report no page. */
+export function capacityReport(lines: { name: string; owner?: string; capacity?: Capacity }[]): CapacityReport | undefined {
+  const out: CapacityReportLine[] = [];
+  for (const l of lines) {
+    if (!l.capacity || l.capacity.stations.length < 2) continue;
+    const r = analyse(l.capacity);
+    if (!r.limit || !r.next || r.line == null) continue;
+    const shown = r.ok.slice(0, CAP_REPORT_ROWS);
+    out.push({
+      name: l.name, owner: l.owner, unit: r.unit, sentence: r.sentence, line: r.line, target: r.target,
+      top: Math.max(...shown.map(x => x.running), r.target ?? 0) * 1.06 || 1,
+      rows: shown.map(x => ({
+        name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
+        running: x.running, effective: x.effective, limit: x.index === (r.limit as StationResult).index,
+      })),
+      more: r.ok.length - shown.length,
+    });
+  }
+  return out.length ? { lines: out } : undefined;
+}
+
+/** Which lines go on which sheet — indexes into `report.lines`, in order, a
+ *  line never split across two sheets. */
+export function capacityPlan(report: CapacityReport): number[][] {
+  const sheets: number[][] = [];
+  let used = 0;
+  report.lines.forEach((l, i) => {
+    const w = 3 + l.rows.length + (l.more > 0 ? 1 : 0);
+    if (!sheets.length || used + w > CAP_SHEET_UNITS) { sheets.push([]); used = 0; }
+    sheets[sheets.length - 1].push(i);
+    used += w;
+  });
+  return sheets;
+}

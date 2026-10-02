@@ -29,6 +29,7 @@ import { strandsOf, orderStrands, strandWord, type Strand, type StrandFix, type 
 export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
 export type { Strand, StrandState, StrandStep } from './strands';
 import { vsTarget } from './measures';
+import { CAP_SHEET_UNITS, capacityPlan, fmtN, type CapacityReport } from './capacity';
 import type { LineSeries } from './measures';
 
 
@@ -255,6 +256,10 @@ export interface PaceReportData {
   /* WHERE THE TIME IS GOING. Present only when the project runs a Pareto and an
      upload has carried the sheet; absent is the normal case, and an absent
      Pareto costs the report a page rather than printing an empty one. */
+  /** WHERE EACH LINE IS LIMITED — the Capacity ladder, one block per line that
+   *  has stations counted (lib/capacity). Absent costs the report no page. */
+  capacity?: CapacityReport;
+
   pareto?: {
     period?: string; beforePeriod?: string; headline?: string;
     totalMins: number; totalStops: number;
@@ -1913,6 +1918,12 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       owner: san(b.owner), due: san(b.due), rag: b.rag,
     })),
     boardUnplaced: raw.boardUnplaced,
+    capacity: raw.capacity && {
+      lines: raw.capacity.lines.map(l => ({
+        ...l, name: san(l.name), owner: l.owner ? san(l.owner) : undefined, unit: san(l.unit), sentence: san(l.sentence),
+        rows: l.rows.map(r => ({ ...r, name: san(r.name), chain: san(r.chain) })),
+      })),
+    },
     /* THE TRIALS WERE NOT COMING THROUGH THIS DOOR.
      *
      * Every other list is sanitised here and the trials were not, because when
@@ -2157,6 +2168,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* The same order the screen renders in, counted the same way: pace, where the
      time is going, the plan, the work, the detail. */
   const hasPareto = !!data.pareto;
+  /* The capacity ladder gets a sheet right behind the Pareto — where the time
+     goes, then where the line is limited — and one per few lines, never
+     splitting a line. */
+  const capPlan = data.capacity ? capacityPlan(data.capacity) : [];
+  const capSheets = capPlan.length;
   /* A project waiting on nothing prints no materials sheet — an empty grid is a
      page that tells the reader off for having nothing outstanding. */
   const hasMaterials = !!data.materials && data.materials.rows.length > 0;
@@ -2251,7 +2267,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     && owesBottom + 12 + installHeight(inRows) <= H - M - 18;
   const installSheets = installRides ? 0 : inSheets;
   const pages = 1 + (hasPlan ? 1 : 0) + trialSheets + owesSheets - (owesUnder ? 1 : 0) + installSheets
-    + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0)
+    + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + capSheets
     + matSheets + (hasPrograms && !shareSheet ? progSheets : 0)
     + (data.tree.length > 0 ? 1 : 0) + boardPlan.length;
 
@@ -2283,7 +2299,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
      each machine has got — before anything narrower. */
   const installPage = owesPage + owesSheets;
   const paretoPage = installPage + installSheets;
-  const materialsPage = paretoPage + (hasPareto ? 1 : 0);
+  const capacityPage = paretoPage + (hasPareto ? 1 : 0);
+  const materialsPage = capacityPage + capSheets;
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
   const programsPage = shareSheet ? materialsPage : materialsPage + matSheets;
@@ -2436,6 +2453,79 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       ? `Measured against the Pareto covering ${pv.beforePeriod}.`
       : 'One Pareto so far \u2014 no movement can be claimed from a single reading.',
       W - M, H - M + 6, { align: 'right' });
+  }
+
+  /* ============ WHERE THE LINE IS LIMITED — the ladder, a line at a time ============
+   * Each station in one unit, the shortest bar the limit, the target as a dashed
+   * mark, and the same sentence the Capacity screen leads with. A sheet holds
+   * as many lines as fit and never splits one (capacityPlan). */
+  if (data.capacity) {
+    capPlan.forEach((idx, sheet) => {
+      d.addPage('a3', 'landscape');
+      const page = capacityPage + sheet;
+      const cy0 = panel(d, M, M, CW, H - 2 * M - 14, String(page), 'Where the line is limited',
+        'each station in one unit \u2014 the shortest is what holds the rest back');
+      const x0 = M + 12, wAll = CW - 24;
+      const labelW = wAll * 0.26, barX = x0 + labelW + 8, barW = wAll * 0.56, valX = x0 + wAll;
+      /* A SHEET WITH ROOM TO SPARE SCALES UP. One short ladder on an A3 read as a
+         thumbnail on a mostly empty page; the sheet's rows are stretched to the
+         room there is, up to a little over twice, and the type grows more gently. */
+      const used = idx.reduce((n, li) => {
+        const l = (data.capacity as CapacityReport).lines[li];
+        return n + 3 + l.rows.length + (l.more > 0 ? 1 : 0);
+      }, 0);
+      const k = Math.min(2.2, Math.max(1, CAP_SHEET_UNITS / Math.max(used, 1)));
+      const f = 1 + (k - 1) * 0.4;
+      let y = cy0 + 12 * f;
+      for (const li of idx) {
+        const l = (data.capacity as CapacityReport).lines[li];
+        setFont(d, 10.5 * f, 'bold', INK);
+        d.text(fit(d, l.name, wAll * 0.5), x0, y + 4);
+        if (l.owner) { setFont(d, 7.4 * f, 'normal', MUTED); d.text(fit(d, `owned by ${l.owner}`, wAll * 0.4), x0 + wAll, y + 4, { align: 'right' }); }
+        y += 16 * f;
+        setFont(d, 8.4 * f, 'normal', INK2);
+        const said = (d.splitTextToSize(l.sentence, wAll * 0.92) as string[]).slice(0, 3);
+        for (const ln of said) { d.text(ln, x0, y); y += 11 * f; }
+        y += 8 * f + 4;
+
+        const rowH = 22 * k;
+        const bh = 11 * k;
+        const top = y;
+        const at = (v: number) => barX + Math.min(1, v / l.top) * barW;
+        l.rows.forEach((r, i) => {
+          const ry = top + i * rowH;
+          setFont(d, 8 * f, 'bold', r.limit ? DANGER : INK);
+          d.text(fit(d, r.name, labelW - (r.limit ? 62 * f : 6)), x0, ry + bh * 0.8);
+          if (r.limit) { setFont(d, 6.2 * f, 'bold', DANGER); d.text('LIMITS THE LINE', x0 + labelW - 4, ry + bh * 0.8, { align: 'right' }); }
+          if (r.chain) { setFont(d, 6.4 * f, 'normal', MUTED); d.text(fit(d, r.chain, labelW - 6), x0, ry + bh * 0.8 + 8.5 * f); }
+          d.setFillColor(SURF2); d.roundedRect(barX, ry + 1, barW, bh, 2, 2, 'F');
+          const [pr, pg, pb] = wash(r.limit ? DANGER : BRAND, 0.28);
+          d.setFillColor(pr, pg, pb);
+          d.roundedRect(barX, ry + 1, Math.max(2, at(r.running) - barX), bh, 2, 2, 'F');
+          d.setFillColor(r.limit ? DANGER : BRAND);
+          d.roundedRect(barX, ry + 1, Math.max(2, at(r.effective) - barX), bh, 2, 2, 'F');
+          setFont(d, 9 * f, 'bold', INK);
+          d.text(fmtN(r.effective), valX, ry + bh * 0.85, { align: 'right' });
+          if (r.effective < r.running - 1e-9) { setFont(d, 6.2 * f, 'normal', MUTED); d.text(`${fmtN(r.running)} running`, valX, ry + bh * 0.85 + 8 * f, { align: 'right' }); }
+        });
+        const bottom = top + l.rows.length * rowH;
+        if (l.target != null) {
+          const tx = at(l.target);
+          d.setDrawColor(INK); d.setLineWidth(0.9); d.setLineDashPattern([2.2, 1.6], 0);
+          d.line(tx, top - 3, tx, bottom - (rowH - bh - 1));
+          d.setLineDashPattern([], 0);
+          setFont(d, 6.4 * f, 'bold', INK); d.text(`target ${fmtN(l.target)}`, tx, top - 5.5, { align: 'center' });
+        }
+        y = bottom + 2;
+        setFont(d, 6.6 * f, 'normal', MUTED);
+        d.text(`${l.unit} a minute \u00b7 solid bar: with its own stops \u00b7 pale: at running speed${l.target != null ? ` \u00b7 dashed: target ${fmtN(l.target)}` : ''}${l.more > 0 ? ` \u00b7 +${l.more} more station${l.more === 1 ? '' : 's'} not shown` : ''}`, x0, y + 6);
+        y += 22 * f;
+        d.setDrawColor(LINE); d.setLineWidth(0.6); d.line(x0, y - 8, x0 + wAll, y - 8);
+      }
+      setFont(d, 7, 'normal', MUTED);
+      d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 where the line is limited`, CW * 0.8), M, H - M + 6);
+      d.text('A steady-state screen: buffers hide short stops, so it shows where to look \u2014 not a promise.', W - M, H - M + 6, { align: 'right' });
+    });
   }
 
   /* ============ WHAT WE ARE WAITING ON — the plan, as a grid ============

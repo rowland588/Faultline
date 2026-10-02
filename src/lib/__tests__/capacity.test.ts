@@ -14,7 +14,7 @@
  * palletiser can give 2 more at the very most. */
 import { describe, it, expect } from 'vitest';
 import {
-  analyse, blankStation, shortSays, crossCheck, fmtN, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning,
+  analyse, blankStation, shortSays, capacityPlan, capacityReport, CAP_REPORT_ROWS, crossCheck, fmtN, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning,
   type Capacity, type Station,
 } from '../capacity';
 import type { Observation } from '../../types';
@@ -307,5 +307,40 @@ describe('the finding in a few words', () => {
   });
   it('says nothing when nothing can be counted', () => {
     expect(shortSays(analyse(line({})))).toBeUndefined();
+  });
+});
+
+/* ------------------------------ the client report ------------------------------ */
+
+describe('the report block', () => {
+  const worked = line({ targetPerMin: 66 }, bagger(), basketer(), carrier(), palletiser());
+  const lineRow = (name: string, capacity?: Capacity) => ({ name, owner: 'Rob', capacity });
+
+  it('carries each counted line’s ladder, the same sentence as the screen, and one shared scale', () => {
+    const rep = capacityReport([lineRow('Line 2A', worked)]);
+    const l = rep?.lines[0];
+    expect(l?.sentence).toBe(analyse(worked).sentence);
+    expect(l?.rows.map(r => [r.name, Math.round(r.effective * 10) / 10, r.limit])).toEqual([
+      ['Bagger', 70, false], ['Basketer', 66, false], ['Carrier', 72, false], ['Palletiser', 64, true],
+    ]);
+    expect(l?.top).toBeCloseTo(72 * 1.06, 6);
+  });
+  it('leaves out a line with nothing to say, so it costs no page', () => {
+    expect(capacityReport([lineRow('A'), lineRow('B', line({}, bagger())), lineRow('C', line({}, bagger(), basketer({ rate: undefined })))])).toBeUndefined();
+  });
+  it('keeps the target on the scale even when every bar is shorter', () => {
+    const l = capacityReport([lineRow('A', line({ targetPerMin: 100 }, bagger(), basketer()))])?.lines[0];
+    expect(l?.top).toBeCloseTo(100 * 1.06, 6);
+  });
+  it('says how many stations it left off a very long line', () => {
+    const many = Array.from({ length: 21 }, (_, i) => st({ name: `S${i}`, unit: 'bags', rate: 50 + i }));
+    const l = capacityReport([lineRow('Long', line({}, ...many))])?.lines[0];
+    expect(l?.rows).toHaveLength(CAP_REPORT_ROWS);
+    expect(l?.more).toBe(3);
+  });
+  it('packs lines onto sheets without splitting one', () => {
+    const four = line({}, bagger(), basketer(), carrier(), palletiser());      // costs 3 + 4 = 7 rows
+    const rep = capacityReport([1, 2, 3, 4, 5].map(i => lineRow(`L${i}`, four)));
+    expect(capacityPlan(rep as NonNullable<typeof rep>)).toEqual([[0, 1, 2], [3, 4]]);   // 7 × 3 = 21, a fourth would make 28 > 26
   });
 });

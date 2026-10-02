@@ -7454,3 +7454,27 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .cap-verdict { padding: 16px 18px; }
   .cap-st-acts { margin-left: 0; }
 }
+
+/* The Capacity page of the client report preview — the PDF's ladder, on screen. */
+.exec-cp { padding: 12px 0 14px; border-top: 1px solid var(--line); }
+.exec-cp:first-of-type { border-top: 0; }
+.exec-cp-h { display: flex; justify-content: space-between; align-items: baseline; }
+.exec-cp-h b { font-size: 15px; }
+.exec-cp-h span { font-size: 11px; color: var(--muted); }
+.exec-cp-says { margin: 6px 0 10px; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); max-width: 92%; }
+.exec-cp-rows { list-style: none; margin: 0; padding: 0; }
+.exec-cp-row { display: grid; grid-template-columns: 26% 1fr 70px; gap: 12px; align-items: center; padding: 4px 0; }
+.exec-cp-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.exec-cp-who b { font-size: 12px; }
+.exec-cp-who em { font-style: normal; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--danger); margin-left: auto; }
+.exec-cp-who small { flex-basis: 100%; font-size: 9.5px; color: var(--muted); }
+.exec-cp-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 3px; }
+.exec-cp-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.exec-cp-bar.is-run { background: color-mix(in srgb, var(--brand) 28%, var(--surface-2)); }
+.exec-cp-bar.is-eff { background: var(--brand); }
+.exec-cp-row.is-limit .exec-cp-bar.is-eff { background: var(--danger); }
+.exec-cp-row.is-limit .exec-cp-bar.is-run { background: color-mix(in srgb, var(--danger) 28%, var(--surface-2)); }
+.exec-cp-target { position: absolute; top: -3px; bottom: -3px; border-left: 2px dashed var(--ink); }
+.exec-cp-val { text-align: right; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; }
+.exec-cp-val small { font-size: 9px; font-weight: 600; color: var(--muted); }
+.exec-cp-key { margin: 6px 0 0; font-size: 10px; color: var(--muted); }
