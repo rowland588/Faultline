@@ -102,10 +102,13 @@ export function statusOfAction(a: PaceAction): NodeStatus {
   const s = (a.status ?? '').trim();
   if (!s) return 'n';
   if (DONE.test(s)) return 'g';
-  if (BLOCKED.test(s)) return 'r';
-  // Overdue is louder than "in progress": a live action past its date is the
-  // one worth a question in the room.
-  if (/overdue|late/i.test(a.flag ?? '')) return 'a';
+  /* PAST ITS DAY IS RED, WAITING IS AMBER — lean visual management: red is
+     the abnormal thing, the day that has gone, and it is louder than anything
+     else, waiting included (a waiting action past its date is overdue). Waiting
+     on somebody is at risk, not yet wrong. These were the other way round, so
+     an overdue action showed amber on the board and a waiting one red. */
+  if (/overdue|late/i.test(a.flag ?? '')) return 'r';
+  if (BLOCKED.test(s)) return 'a';
   if (GOING.test(s)) return 'w';
   if (NOT_STARTED.test(s)) return 'n';
   /* Anything else is LIVE, not "not started". The fallback used to be 'n',

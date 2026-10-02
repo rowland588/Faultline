@@ -32,7 +32,8 @@ const NOTE_TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: 
 };
 
 const TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: string }> = {
-  done: { fill: OK, stroke: OK, text: '#ffffff' },
+  /* Done is quiet on paper as on screen — what is wrong is what stands out. */
+  done: { fill: '#e3efe9', stroke: OK, text: OK },
   failed: { fill: DANGER, stroke: DANGER, text: '#ffffff' },
   ran: { fill: AMBER, stroke: AMBER, text: '#ffffff' },
   late: { fill: '#f8ecea', stroke: DANGER, text: DANGER },

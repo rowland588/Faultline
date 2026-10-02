@@ -206,7 +206,7 @@ export function SnagListScreen() {
   if (printing) return <PrintView wsName={workspace.name} assets={assets} rows={ordered} filterNote={activeFilters.join(' · ')} onDone={() => setPrinting(false)} />;
 
   const renderRow = (r: Row) => (
-    <tr key={r.snag.id} className={isOverdue(r.snag) ? 'row-over' : isStaleOpen(r.snag) ? 'row-stale' : ''}>
+    <tr key={r.snag.id} className={`is-${r.snag.status} ` + (isOverdue(r.snag) ? 'row-over' : isStaleOpen(r.snag) ? 'row-stale' : '')}>
       <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
       <td data-label="Asset">{r.assetId
         ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
@@ -253,9 +253,11 @@ export function SnagListScreen() {
       <h1 className="h1">Evidence</h1>
 
       <div className="snag-summary">
-        <span className="ss-pill"><b>{counts.open}</b> open</span>
-        <span className="ss-pill"><b>{counts.in_progress}</b> in progress</span>
-        <span className="ss-pill"><b>{counts.closed}</b> closed</span>
+        {/* Each count in the colour of its state, and only when there is one —
+            a zero stays grey so the eye goes to what is there. */}
+        <span className={'ss-pill' + (counts.open > 0 ? ' ss-open' : '')}><b>{counts.open}</b> open</span>
+        <span className={'ss-pill' + (counts.in_progress > 0 ? ' ss-prog' : '')}><b>{counts.in_progress}</b> in progress</span>
+        <span className={'ss-pill' + (counts.closed > 0 ? ' ss-closed' : '')}><b>{counts.closed}</b> closed</span>
         <span className={'ss-pill' + (counts.overdue > 0 ? ' ss-over' : '')} title="Open past their due date"><b>{counts.overdue}</b> overdue</span>
         <span className={'ss-pill' + (counts.stale > 0 ? ' ss-stale' : '')} title={`Open snags older than ${SNAG_STALE_DAYS} days`}><b>{counts.stale}</b> open &gt; {SNAG_STALE_DAYS}d</span>
       </div>

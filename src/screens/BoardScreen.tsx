@@ -37,7 +37,7 @@ import type { PaceAction } from '../lib/tracker';
 import type { NodeStatus } from '../db';
 
 const STATUS: Record<NodeStatus, string> = {
-  n: 'To do', w: 'In progress', a: 'Overdue', r: 'Waiting', g: 'Done',
+  n: 'To do', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done',
 };
 
 function Card({ a, impact, onOpen }: { a: PaceAction; impact?: Impact; onOpen: () => void }) {

@@ -11,24 +11,28 @@ import { moveLines } from './story';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', SHELL = '#0d1f3c', OK = '#1e6b4b', DANGER = '#b3261e', AMBER = '#b7791f';
+/* The app's own state colours, so paper and screen say the same thing in the
+   same colour: one red (the day has gone), one amber (waiting), one indigo
+   (under way, still ahead), one green (done — and quiet). */
+const BRAND = '#1f63e0', SHELL = '#0d1f3c', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
+const DONE_WASH = '#e3efe9';
 
 const GATE_COLOUR: Record<GateTone, { fill?: string; stroke: string; text: string; word: string }> = {
-  done: { fill: OK, stroke: OK, text: '#ffffff', word: 'done' },
-  going: { fill: '#e8f0fd', stroke: BRAND, text: BRAND, word: 'under way' },
+  done: { fill: DONE_WASH, stroke: OK, text: OK, word: 'done' },
+  going: { fill: '#eeedfa', stroke: BOOKED, text: BOOKED, word: 'under way' },
   late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, word: 'late or a problem' },
   ahead: { stroke: '#b8c4d6', text: INK2, word: 'still ahead' },
   none: { stroke: '#d5dde8', text: MUTED, word: 'nothing kept' },
 };
 const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
-  done: { fill: OK, stroke: OK },
-  problem: { fill: '#fdf2f0', stroke: DANGER },
+  done: { fill: DONE_WASH, stroke: OK },
+  problem: { fill: DANGER, stroke: DANGER },
   late: { fill: '#fdf2f0', stroke: DANGER },
   asking: { fill: '#fff7e6', stroke: AMBER },
   ahead: { stroke: '#b8c4d6' },
   none: { stroke: '#e3e9f1' },
 };
-const FIX_COLOUR: Record<string, string> = { late: DANGER, notRun: DANGER, soon: AMBER, ahead: BRAND, done: OK };
+const FIX_COLOUR: Record<string, string> = { late: DANGER, notRun: DANGER, soon: AMBER, ahead: BOOKED, done: OK };
 
 export interface ClientReportExtras {
   /** A picture per fix id: its frame on the line with the dot, or its photo. */
@@ -153,7 +157,8 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
         font(8.5, 'bold'); doc.text(row.machine, M, y + 12, { maxWidth: nameW - 6 });
         row.cells.slice(0, shown.length).forEach((c, i) => {
           const cc = CELL_COLOUR[c], x = M + nameW + i * colW + colW / 2 - 7;
-          doc.setDrawColor(cc.stroke); doc.setLineWidth(0.9);
+          /* Late is drawn heavier than done — the abnormal stands out. */
+          doc.setDrawColor(cc.stroke); doc.setLineWidth(c === 'late' ? 1.8 : 0.9);
           if (c === 'none') doc.setLineDashPattern([1.5, 1.5], 0);
           if (cc.fill) { doc.setFillColor(cc.fill); doc.roundedRect(x, y + 4, 14, 10, 2, 2, 'FD'); } else doc.roundedRect(x, y + 4, 14, 10, 2, 2, 'S');
           doc.setLineDashPattern([], 0);
@@ -163,7 +168,7 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
       // the key, once per grid, small
       font(7, 'normal', MUTED);
       let kx = M;
-      for (const [t, w] of [['done', 'done'], ['late', 'late or a problem'], ['asking', 'waiting on a verdict'], ['ahead', 'still to do'], ['none', 'not on this machine']] as [CellTone, string][]) {
+      for (const [t, w] of [['problem', 'a problem'], ['late', 'late'], ['asking', 'waiting on a verdict'], ['ahead', 'still to do'], ['done', 'done'], ['none', 'not on this machine']] as [CellTone, string][]) {
         const cc = CELL_COLOUR[t];
         doc.setDrawColor(cc.stroke); doc.setLineWidth(0.8);
         if (t === 'none') doc.setLineDashPattern([1.5, 1.5], 0);

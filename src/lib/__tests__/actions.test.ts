@@ -21,9 +21,9 @@ describe('a next step on the 3P board', () => {
     expect(isLate(step({}), T)).toBe(false);
   });
   it('reads red when late, not grey', () => {
-    expect(statusOfAction(stepAction(step({ due: '2026-09-29' }), lines, T))).toBe('a');
+    expect(statusOfAction(stepAction(step({ due: '2026-09-29' }), lines, T))).toBe('r');
     expect(statusOfAction(stepAction(step({ due: '2026-10-09' }), lines, T))).toBe('n');
-    expect(statusOfAction(stepAction(step({ state: 'waiting' }), lines, T))).toBe('r');
+    expect(statusOfAction(stepAction(step({ state: 'waiting' }), lines, T))).toBe('a');
     expect(statusOfAction(stepAction(step({ state: 'done' }), lines, T))).toBe('g');
   });
   it('carries its column, its line by id, and its id as the way back to the row', () => {

@@ -172,6 +172,33 @@ about tests and it holds everywhere: if something needs a new noun to explain
 it, look again — four of this app's five lists already carry dates, owners and
 states, and most "we need to store X" turns out to be "we have never drawn X".
 
+## Visual management — the rules every screen and PDF follows
+
+Rowland, 2 October: "follow the lean visual management principles throughout
+the app." The test is the one a board on the floor passes: from across the
+room, in three seconds, can you tell what is normal, what is not, and who owes
+what by when?
+
+1. **One colour, one meaning, everywhere — screen and paper.** Red
+   (`--st-r`) is the day that has gone, or a failure. Amber (`--st-a`) is
+   waiting on somebody, or due soon. Indigo (`--st-w`) is under way or still
+   ahead. Green (`--st-g`) is done. Grey (`--st-n`) is not started. Brand blue
+   is for what you press, never a state. Nothing else wears these hues: the 3P
+   columns are told apart by place and name, not colour. The PDFs use the same
+   five values.
+2. **Normal recedes, the abnormal stands out.** Done is a quiet green wash,
+   never the loudest thing on the screen. Late gets a heavier red border and
+   tint, and a failure or problem is solid red. If the eye lands on a green box
+   first, the screen is wrong.
+3. **Only the abnormal number carries colour.** "11 outstanding" is the work
+   and stays neutral. "4 late" is red. A zero is grey.
+4. **The state in words beside the marks.** For example "4 open · 1 past due
+   · 3 closed". Colour is never the only carrier, so it survives a
+   black-and-white print and colour-blind eyes.
+5. **One lane, merged markers, tap for detail.** Busy information is merged
+   (days into weeks) rather than piled up. The plan never grows a row per item
+   of evidence.
+
 ## The word is CLIENT, not GM
 
 The report goes to whoever is being reported to — Rowland's General Manager by

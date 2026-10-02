@@ -52,7 +52,9 @@ export function Verdict({ st, eyebrow = 'Where the job is' }: { st: Standing; ey
             tone={late ? 'bad' : undefined}
           />
         )}
-        <Tile n={String(st.outstanding)} label="outstanding" tone={st.outstanding ? 'warn' : undefined} />
+        {/* Outstanding is the work, not a problem — it stays white. Only what is
+            late carries colour, so the one number in red is the one to ask about. */}
+        <Tile n={String(st.outstanding)} label="outstanding" />
         <Tile n={String(st.late)} label="late" tone={st.late ? 'bad' : undefined} />
       </div>
     </section>

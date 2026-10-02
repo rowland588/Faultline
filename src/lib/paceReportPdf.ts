@@ -2611,9 +2611,11 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       'One card per line \u00b7 every action on the project\u2019s board');
 
     const PILL: { key: 'people' | 'plant' | 'process'; label: string; c: string }[] = [
-      { key: 'people',  label: 'PEOPLE',  c: BRAND },
-      { key: 'plant',   label: 'PLANT',   c: WARN },
-      { key: 'process', label: 'PROCESS', c: BLUE },
+      /* Told apart by place and name, not colour — the colours are kept for
+         where each action stands (see the board's CSS). */
+      { key: 'people',  label: 'PEOPLE',  c: INK2 },
+      { key: 'plant',   label: 'PLANT',   c: INK2 },
+      { key: 'process', label: 'PROCESS', c: INK2 },
     ];
     const colGap = 14;
     const colW = (CW - 24 - colGap * 2) / 3;
@@ -2679,12 +2681,12 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
           return;
         }
         for (const b of rows) {
-          /* The tree's own words, except for amber. On the tree amber is a node
-             somebody judged at risk; on the board it is only ever set by the
-             workbook's Overdue flag, and Overdue is the word that gets asked
-             about in the room. */
+          /* The tree's own colours, the board's own words: red on the board is
+             only ever an action past its day, and amber one waiting on
+             somebody — Overdue and Waiting are the words asked about in the room. */
           const st = { ...(TREE_STATUS[b.rag] ?? TREE_STATUS.n) };
-          if (b.rag === 'a') st.label = 'Overdue';
+          if (b.rag === 'r') st.label = 'Overdue';
+          if (b.rag === 'a') st.label = 'Waiting';
 
           const [wr, wg, wb] = wash(st.c, 0.06);
           d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);

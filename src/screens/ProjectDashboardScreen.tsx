@@ -470,7 +470,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const packs = useAllLinePacks(projectId, ppm.lines);
 
   const done = actions.filter(a => statusOfAction(a) === 'g').length;
-  const overdue = actions.filter(a => statusOfAction(a) === 'a').length;
+  const overdue = actions.filter(a => statusOfAction(a) === 'r').length;
 
   /* WHERE EVERY LINE STANDS on the measure this project leads on — worked out
      once, read by the cards, the charts and the count above them. A line with no
