@@ -8,6 +8,7 @@
  */
 import { Fragment, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { gantt, ganttHref, type GanttScale } from '../lib/gantt';
+import { windowWords } from '../lib/plan';
 import type { PlanMark } from '../lib/standing';
 import type { Test, TestItem } from '../lib/testing';
 import { StagePanel } from './StagePanel';
@@ -34,10 +35,19 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const row = g.groups.flatMap(x => x.rows).find(r => r.id === id);
     setStageRaw({ id, title: row?.label ?? 'This stage' });
   };
-  /* On a phone a day column leaves room for six days; weeks show the month. */
-  const [scale, setScale] = useState<GanttScale>(() => {
-    try { if (window.matchMedia('(max-width: 640px)').matches) return 'week'; } catch { /* no window */ }
-    return g.scale;
+  /* ON A PHONE: the whole job on the screen, each step's name above its bar,
+     and each gate folded to one bar until it is tapped. Rowland: "the Gantt
+     isn't visible on a phone — it's just a long list." A fixed name column
+     left a strip of calendar a third of the screen wide, with most bars off
+     to the side. */
+  const phone = (() => { try { return window.matchMedia('(max-width: 640px)').matches; } catch { return false; } })();
+  const [scale, setScale] = useState<GanttScale | 'fit'>(() => (phone ? 'fit' : g.scale));
+  const [closed, setClosed] = useState<Set<string> | null>(null);
+  const isOpen = (kind: string) => (closed ? !closed.has(kind) : !phone);
+  const toggle = (kind: string) => setClosed(c => {
+    const next = new Set(c ?? (phone ? g.groups.map(x => x.kind) : []));
+    if (next.has(kind)) next.delete(kind); else next.add(kind);
+    return next;
   });
   const ref = useRef<HTMLDivElement>(null);
   /* A day is never narrower than the scale wants, and the calendar always fills
@@ -55,9 +65,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     ro?.observe(el);
     return () => ro?.disconnect();
   }, []);
-  const px = Math.max(PX[scale], room / g.days);
+  const fit = scale === 'fit';
+  const px = fit ? Math.max(1, room / g.days) : Math.max(PX[scale], room / g.days);
   const W = g.days * px;
-  const T = W + 96;   // the track runs on past the last day, for a label hanging off the end
+  const T = fit ? W : W + 96;   // the track runs on past the last day, for a label hanging off the end
 
   /* Open on today — a few days of what has gone, then what is ahead. */
   const toToday = () => {
@@ -98,9 +109,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   };
 
   return (
-    <div className="gt">
+    <div className={'gt' + (phone ? ' is-stacked' : '')}>
       <div className="gt-top">
         <span className="gt-seg" role="group" aria-label="Scale">
+          <button type="button" className={fit ? 'on' : ''} onClick={() => setScale('fit')} title="The whole job on the screen">Fit</button>
           <button type="button" className={scale === 'day' ? 'on' : ''} onClick={() => setScale('day')}>Days</button>
           <button type="button" className={scale === 'week' ? 'on' : ''} onClick={() => setScale('week')}>Weeks</button>
         </span>
@@ -128,7 +140,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                 </div>
               ) : (
                 <div className="gt-days is-weeks">
-                  {g.weeks.map(w => <span key={w.start} style={{ left: w.start * px, width: w.span * px }}><b>{w.label}</b></span>)}
+                  {g.weeks.map(w => <span key={w.start} style={{ left: w.start * px, width: w.span * px }}>{w.span * px >= 34 ? <b>{w.label}</b> : null}</span>)}
                 </div>
               )}
             </div>
@@ -146,12 +158,31 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
             </div>
 
             {g.groups.map(gr => (
-              <div key={gr.kind} className="gt-group">
+              <div key={gr.kind} className={'gt-group' + (isOpen(gr.kind) ? ' is-open' : ' is-shut')}>
                 <div className="gt-row gt-grow">
-                  <div className="gt-lab gt-glab">{gr.label}<span className="gt-n">{gr.rows.length}</span></div>
-                  <div className="gt-track" style={{ width: T }} />
+                  <button type="button" className="gt-lab gt-glab" onClick={() => toggle(gr.kind)} aria-expanded={isOpen(gr.kind)}>
+                    <span className="gt-fold" aria-hidden>{isOpen(gr.kind) ? '▾' : '▸'}</span>{gr.label}<span className="gt-n">{gr.rows.length}</span>
+                  </button>
+                  <div className="gt-track" style={{ width: T }}>
+                    {/* FOLDED: the gate as one bar, first start to last finish. */}
+                    {!isOpen(gr.kind) && (() => {
+                      const s0 = Math.min(...gr.rows.map(r => r.start));
+                      const e0 = Math.max(...gr.rows.map(r => Math.max(r.start + r.span, r.slip ? r.slip.start + r.slip.span : 0, ...(r.fixes ?? []).map(f => f.start + f.span))));
+                      const late = gr.rows.filter(r => r.tone === 'late' || r.tone === 'failed' || r.slip).length;
+                      const done = gr.rows.every(r => r.tone === 'done');
+                      const from = gr.rows.map(r => r.from).sort()[0], to = gr.rows.map(r => r.to).sort().pop() as string;
+                      const words = `${windowWords(from, to)}${late ? ` · ${late} late or moved` : ''}`;
+                      const w = Math.max((e0 - s0) * px - 4, 10);
+                      return (
+                        <button type="button" className={'gt-b gt-sum is-' + (late ? 'late' : done ? 'done' : 'booked') + (gr.kind === 'note' ? ' is-note' : '')}
+                          style={{ left: s0 * px + 2, width: w }} onClick={() => toggle(gr.kind)} title={`${gr.label} · ${words} — tap to open`}>
+                          {w >= words.length * 6.2 + 14 ? words : ''}
+                        </button>
+                      );
+                    })()}
+                  </div>
                 </div>
-                {gr.rows.map((r, i) => {
+                {isOpen(gr.kind) && gr.rows.map((r, i) => {
                   const href = ganttHref(projectId, r);
                   /* A stage with a story opens it; anything else opens its record. */
                   const go = () => (r.id && (r.slip || r.marks || r.fixes || STAGE.has(r.kind)) ? setStage(r.id) : open(href));

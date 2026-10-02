@@ -7738,3 +7738,36 @@ button.gt-fixlab small { font-size: 10px; }
 .sp-rm { color: var(--danger) !important; }
 .sp-edit { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .sp-edit-acts { display: inline-flex; gap: 8px; }
+
+/* THE PLAN ON A PHONE — whole job across the screen, each name above its bar,
+   gates folded to one bar until tapped. */
+.gt.is-stacked { --gt-lab: 0px; }
+.gt.is-stacked .gt-corner { display: none; }
+.gt.is-stacked .gt-row { flex-direction: column; height: auto; }
+.gt.is-stacked .gt-lab {
+  position: sticky; left: 0; width: max-content; max-width: calc(100vw - 64px);
+  border-right: 0; background: transparent; padding: 7px 10px 0; z-index: 3;
+}
+.gt.is-stacked button.gt-lab { flex-direction: row; align-items: baseline; gap: 6px; line-height: 1.2; }
+.gt.is-stacked button.gt-lab b { font-size: 13px; }
+.gt.is-stacked button.gt-lab small { font-size: 11px; }
+.gt.is-stacked .gt-track { height: 30px; }
+.gt.is-stacked .gt-b, .gt.is-stacked .gt-slip { top: 5px; }
+.gt.is-stacked .gt-mk { top: -2px; }
+.gt.is-stacked .gt-grow { background: var(--surface-2); }
+.gt.is-stacked .gt-glab { padding: 8px 10px 0; background: transparent; }
+.gt.is-stacked .gt-grow .gt-track { background: transparent; height: 30px; }
+.gt.is-stacked .gt-fixrow .gt-track { height: 24px; }
+.gt.is-stacked .gt-fixrow .gt-b { top: 4px; }
+.gt.is-stacked button.gt-fixlab { padding-left: 22px; }
+button.gt-glab { appearance: none; border: 0; cursor: pointer; text-align: left; width: var(--gt-lab); }
+.gt.is-stacked button.gt-glab { width: max-content; }
+.gt-fold { display: inline-block; width: 12px; color: var(--muted); font-size: 10px; }
+.gt-sum { font-size: 10.5px; }
+.gt-top { flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .gt-seg button { padding: 7px 12px; }
+  .gt-acts { width: 100%; justify-content: flex-start; }
+  .gt-acts .gt-today-b { flex: 1 1 0; }
+}
+button.gt-lab.gt-glab { flex-direction: row; align-items: center; justify-content: flex-start; gap: 6px; line-height: 1; }
