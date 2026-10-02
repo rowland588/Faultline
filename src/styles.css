@@ -7515,3 +7515,97 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--ink-2); pointer-events: none;
 }
 .jb-span-l.is-left { left: auto; right: calc(100% + 8px); }
+
+/* ==========================================================================
+   THE PLAN AS A GANTT — calendar across the top, a row per thing, bars on the
+   days they mean. See ui/Gantt.tsx.
+   ========================================================================== */
+.gt { --gt-lab: 260px; min-width: 0; }
+@media (max-width: 640px) { .gt { --gt-lab: 138px; } }
+.gt-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.gt-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.gt-seg button { appearance: none; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 700; padding: 7px 14px; color: var(--ink-2); cursor: pointer; min-height: 36px; }
+.gt-seg button + button { border-left: 1px solid var(--line); }
+.gt-seg button.on { background: var(--ink); color: #fff; }
+.gt-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); -webkit-overflow-scrolling: touch; }
+.gt-inner { position: relative; }
+.gt-head { display: flex; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.gt-corner {
+  position: sticky; left: 0; z-index: 4; flex: none; width: var(--gt-lab); box-sizing: border-box;
+  display: flex; align-items: flex-end; padding: 0 12px 8px; background: var(--surface-2); border-right: 1px solid var(--line);
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.gt-cal { position: relative; flex: none; height: 56px; }
+.gt-months span {
+  position: absolute; top: 0; height: 24px; line-height: 24px; padding-left: 6px; box-sizing: border-box;
+  border-left: 1px solid var(--line-2); font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
+  white-space: nowrap; overflow: hidden;
+}
+.gt-days span {
+  position: absolute; top: 24px; height: 32px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); font-size: 11.5px; line-height: 1.05; color: var(--ink);
+}
+.gt-days span b { font-weight: 700; }
+.gt-days span i { font-style: normal; font-size: 9px; color: var(--muted); }
+.gt-days span.is-we { background: color-mix(in srgb, var(--line) 45%, transparent); color: var(--muted); }
+.gt-days span.is-today { background: var(--brand); color: #fff; }
+.gt-days span.is-today i { color: #fff; }
+.gt-days.is-weeks span { align-items: flex-start; padding-left: 6px; }
+.gt-days.is-weeks span b { font-size: 11px; white-space: nowrap; }
+.gt-body { position: relative; }
+.gt-under { position: absolute; left: var(--gt-lab); top: 0; bottom: 0; pointer-events: none; }
+.gt-we { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--line) 30%, transparent); }
+.gt-wk { position: absolute; top: 0; bottom: 0; border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.gt-mo { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line-2); }
+.gt-today { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--brand); z-index: 1; }
+.gt-hand { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--st-g); z-index: 1; }
+.gt-hand b {
+  position: absolute; bottom: 4px; left: 4px; font-size: 10px; font-weight: 800; white-space: nowrap;
+  color: var(--st-g); background: var(--surface); padding: 1px 5px; border-radius: 4px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--st-g) 30%, transparent);
+}
+.gt-hand.is-agreed { border-left-color: var(--muted); }
+.gt-hand.is-agreed b { color: var(--muted); bottom: 22px; box-shadow: 0 0 0 1px var(--line); }
+.gt-row { display: flex; height: 38px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.gt-row:last-child { border-bottom: 0; }
+.gt-lab {
+  appearance: none; position: sticky; left: 0; z-index: 3; flex: none; width: var(--gt-lab); box-sizing: border-box;
+  display: flex; align-items: center; padding: 0 12px; margin: 0; border: 0; border-right: 1px solid var(--line); border-radius: 0;
+  background: var(--surface); font: inherit; font-size: 12.5px; color: var(--ink); text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+button.gt-lab { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; line-height: 1.15; }
+button.gt-lab b, button.gt-lab small { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.gt-lab b { font-weight: 600; font-size: 12.5px; }
+button.gt-lab small { font-size: 10.5px; color: var(--muted); }
+.gt-lab:hover:not(:disabled) { color: var(--brand); }
+.gt-lab:disabled { cursor: default; color: var(--ink); }
+.gt-grow { height: 28px; }
+.gt-glab { gap: 8px; background: var(--surface-2); font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-2); }
+.gt-grow .gt-track { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.gt-n { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+.gt-track { position: relative; flex: none; }
+.gt-b {
+  appearance: none; position: absolute; top: 9px; height: 20px; box-sizing: border-box; z-index: 2; margin: 0;
+  padding: 0 7px; border: 1.5px solid var(--st-w); border-radius: 6px; cursor: pointer;
+  background: color-mix(in srgb, var(--st-w) 16%, var(--surface)); color: var(--st-w);
+  font: inherit; font-size: 11px; font-weight: 700; line-height: 17px; text-align: left; white-space: nowrap; overflow: hidden;
+}
+.gt-b:hover, .gt-b:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-w) 22%, transparent); outline: none; }
+.gt-b.is-done { background: var(--st-g); border-color: var(--st-g); color: #fff; }
+.gt-b.is-failed { background: var(--st-r); border-color: var(--st-r); color: #fff; }
+.gt-b.is-ran { background: var(--st-a); border-color: var(--st-a); color: #fff; }
+.gt-b.is-late { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); border-color: var(--st-r); color: var(--st-r); }
+.gt-b.is-none { background: var(--surface-2); border-color: var(--line-2); color: var(--muted); }
+.gt-when { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 11px; font-weight: 700; color: var(--ink-2); white-space: nowrap; pointer-events: none; }
+.gt-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; font-size: 12px; }
+.gt-key > span { display: inline-flex; align-items: center; gap: 6px; }
+.gt-k { display: inline-block; width: 16px; height: 9px; border-radius: 3px; border: 1.5px solid var(--st-w); background: color-mix(in srgb, var(--st-w) 16%, var(--surface)); }
+.gt-k.is-done { background: var(--st-g); border-color: var(--st-g); }
+.gt-k.is-failed { background: var(--st-r); border-color: var(--st-r); }
+.gt-k.is-ran { background: var(--st-a); border-color: var(--st-a); }
+.gt-k.is-late { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); border-color: var(--st-r); }
+.gt-k-line { display: inline-block; width: 2px; height: 12px; background: var(--brand); }
+.gt-k-line.is-hand { background: none; border-left: 2px dashed var(--st-g); }
+.gt-key-say { margin-left: auto; }
+.gt-today-b { appearance: none; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--brand); padding: 7px 14px; min-height: 36px; cursor: pointer; }
+.gt-today-b:hover { background: var(--surface-2); }

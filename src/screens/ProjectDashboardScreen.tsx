@@ -51,7 +51,7 @@ import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
 import { StandardsCard } from '../ui/StandardsCard';
 import { Outstanding } from '../ui/Outstanding';
-import { Timeline } from '../ui/Timeline';
+import { Gantt } from '../ui/Gantt';
 import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
 
@@ -416,7 +416,12 @@ function TestingOverview({ projectId }: { projectId: string }) {
               doing off the screen. Folded, it still says how much is done. */}
           {st.plan.length > 0 && (
             <Fold id="plan" title="The plan" says={planSays(st.plan, today)}>
-              <Timeline marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} />
+              {/* A GANTT, NOT A TIMELINE. Rowland: "build a proper Gantt chart
+                  view with dates across the top, showing easily on a calendar."
+                  The timeline wrote each date beside its mark; here the days are
+                  the columns and a bar sits on the days it means. Same marks —
+                  the Home drawer and the client report still draw the timeline. */}
+              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} />
             </Fold>
           )}
 

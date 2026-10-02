@@ -55,6 +55,8 @@ export interface OutstandingRow {
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
  *  because arriving and running are different days; everything else is a point. */
 export interface PlanMark {
+  /** The record it is drawn from, so a row on the Gantt opens it. */
+  id?: string;
   kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine' | 'action';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
@@ -234,6 +236,7 @@ export function standing(input: StandingInput): Standing {
     const until = t.ranOn ? t.ranTo : t.plannedTo;
     if (!at) continue;
     plan.push({
+      id: t.id,
       kind: t.kind === 'fix' ? 'fix' : t.kind === 'install' ? gateOf(t) : 'test', at,
       /* A block of days draws as a BAR, the same shape a machine already uses
          and for the same reason — it occupies time rather than happening on a
@@ -256,7 +259,7 @@ export function standing(input: StandingInput): Standing {
     const at = m.inOn ?? m.due;
     if (!at) continue;
     plan.push({
-      kind: 'material', at, label: m.what,
+      id: m.id, kind: 'material', at, label: m.what,
       tone: isHere(m) ? 'done' : m.due && m.due < today ? 'late' : 'booked',
     });
   }
@@ -265,7 +268,7 @@ export function standing(input: StandingInput): Standing {
     const at = p.provedOn ?? p.testOn;
     if (!at) continue;
     plan.push({
-      kind: 'program', at, label: p.what,
+      id: p.id, kind: 'program', at, label: p.what,
       tone: stateOf(p) === 'proved' ? 'done'
         : daysOverdue(p, today) != null ? 'late' : 'booked',
     });
@@ -275,7 +278,7 @@ export function standing(input: StandingInput): Standing {
     const at = a.onSiteOn ?? a.dueOn;
     if (!at) continue;
     plan.push({
-      kind: 'machine', at, until: a.runningOn,
+      id: a.id, kind: 'machine', at, until: a.runningOn,
       label: a.name,
       tone: a.state === 'running' ? 'done'
         : a.dueOn && a.dueOn < today && !a.onSiteOn ? 'late' : 'booked',
