@@ -73,6 +73,11 @@ describe('the other ends of an installation', () => {
     expect(installOf(packer, [s], [], TODAY).says).toBe(`0 of 1 done. Next: Dry run, ${day('2026-10-02')}, Brillopak.`);
   });
 
+  it('says both ends when a step is planned as a block of days', () => {
+    const s = step({ title: 'Dry run', assetId: packer.id, plannedFor: '2026-10-05', plannedTo: '2026-10-09' });
+    expect(installOf(packer, [s], [], TODAY).says).toBe(`0 of 1 done. Next: Dry run, ${day('2026-10-05')} to ${day('2026-10-09')}.`);
+  });
+
   it('asks to mark the machine installed once every step is done', () => {
     const done = INSTALL_STAGES.map(title => step({ title, assetId: packer.id, outcome: 'passed', ranOn: '2026-09-29' }));
     const m = installOf(packer, done, [], TODAY);

@@ -105,7 +105,9 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
   if (next.tone === 'late') {
     return `${head} ${t.title} is late${when ? ` — it was due ${day(when)}` : ''}${who ? `, ${who}’s` : ''}.${fixes}`;
   }
-  return `${head} Next: ${t.title}${when ? `, ${day(when)}` : ', no day yet'}${who ? `, ${who}` : ''}.${fixes}`;
+  /* A block of days says both ends — "5 to 9 Oct" — a single day says one. */
+  const span = t.plannedFor && t.plannedTo && t.plannedTo > t.plannedFor ? `${day(t.plannedFor)} to ${day(t.plannedTo)}` : when ? day(when) : '';
+  return `${head} Next: ${t.title}${span ? `, ${span}` : ', no day yet'}${who ? `, ${who}` : ''}.${fixes}`;
 }
 
 /* ---------------------------- THE USUAL STAGES ----------------------------

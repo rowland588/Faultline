@@ -7493,3 +7493,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    something finer) the one step, test or fix. */
 .nt-pick { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .nt-pick select { flex: 1 1 200px; }
+
+/* start and finish side by side, on a phone as well */
+.ig-dates { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.ig-dates .cw-f { flex: 1 1 140px; min-width: 0; }
+.ig-plan-l { display: block; margin: 6px 0 4px; font-size: 12px; font-weight: 700; color: var(--ink-2); }

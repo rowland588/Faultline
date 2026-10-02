@@ -201,9 +201,23 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
             )}
           </div>
           <SayStep step={t} tt={tt} onDone={() => setOpen(null)} />
-          <label className="cw-f ig-f"><span>Planned for</span>
-            <input type="date" defaultValue={t.plannedFor ?? ''}
-              onChange={e => void change([t], () => ({ plannedFor: e.target.value || undefined }), `${t.title} planned`)} /></label>
+          {/* A START AND A FINISH. Rowland: "it allows one date — we need date
+              start and date finish." The step already carried both (the same
+              two the Testing screen, the trial card and the client report
+              read); this sheet only ever asked for one. Finish empty = one day. */}
+          <div className="ig-dates">
+            <label className="cw-f ig-f"><span>Starts</span>
+              <input type="date" key={'s' + t.id + (t.plannedFor ?? '')} defaultValue={t.plannedFor ?? ''}
+                onChange={e => {
+                  const from = e.target.value || undefined;
+                  void change([t], cur => ({ plannedFor: from, plannedTo: from && cur.plannedTo && cur.plannedTo < from ? undefined : cur.plannedTo }),
+                    `${t.title} starts ${from ? short(from) : 'on no day'}`);
+                }} /></label>
+            <label className="cw-f ig-f"><span>Finishes</span>
+              <input type="date" key={'f' + t.id + (t.plannedTo ?? '')} defaultValue={t.plannedTo ?? ''} min={t.plannedFor ?? undefined}
+                onChange={e => void change([t], () => ({ plannedTo: e.target.value || undefined }),
+                  `${t.title} finishes ${e.target.value ? short(e.target.value) : 'the day it starts'}`)} /></label>
+          </div>
           <Who names={names} value={t.withWhom ?? ''} onSave={v => void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`)} />
           <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
         </Sheet>
@@ -264,8 +278,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
           </div>
           {left.length > 0 && (
             <>
-              <label className="cw-f ig-f"><span>Plan it for every machine not done</span>
-                <input type="date" onChange={e => e.target.value && void change(left, () => ({ plannedFor: e.target.value }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`)} /></label>
+              <PlanWindow label="Plan it for every machine not done"
+                onPlan={(from, to) => void change(left, () => ({ plannedFor: from, plannedTo: to }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`)} />
               <Who names={names} value="" label="Who is doing it, on every machine not done"
                 onSave={v => v && void change(left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`)} />
             </>
@@ -312,8 +326,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         </form>
         {left.length > 0 && (
           <>
-            <label className="cw-f ig-f"><span>Plan every step left on it for</span>
-              <input type="date" onChange={e => e.target.value && void change(left, () => ({ plannedFor: e.target.value }), `${rowName(row.asset)}: ${left.length} step${left.length === 1 ? '' : 's'} planned`)} /></label>
+            <PlanWindow label="Plan every step left on it"
+              onPlan={(from, to) => void change(left, () => ({ plannedFor: from, plannedTo: to }), `${rowName(row.asset)}: ${left.length} step${left.length === 1 ? '' : 's'} planned`)} />
             <Who names={names} value="" label="Who is doing every step left on it"
               onSave={v => v && void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`)} />
           </>
@@ -411,6 +425,26 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
           <button className="ig-x" onClick={onClose} aria-label="Close">✕</button>
         </div>
         {children}
+      </div>
+    </div>
+  );
+}
+
+/** A START AND A FINISH for several steps at once, applied together with one
+ *  tap so a half-chosen window is never written. Finish empty = one day. */
+function PlanWindow({ label, onPlan }: { label: string; onPlan: (from: string, to: string | undefined) => void }) {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  return (
+    <div className="ig-plan">
+      <span className="ig-plan-l">{label}</span>
+      <div className="ig-dates">
+        <label className="cw-f ig-f"><span>Starts</span>
+          <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
+        <label className="cw-f ig-f"><span>Finishes</span>
+          <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
+        <button className="btn" type="button" disabled={!from}
+          onClick={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); }}>Plan</button>
       </div>
     </div>
   );
