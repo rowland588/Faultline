@@ -273,7 +273,12 @@ export interface PaceReportData {
   /** The project's lever tree, flat — parent ids, drawn into a page of its own.
    *  Empty when nobody has drawn one, and then the page is not printed at all
    *  rather than printed blank. */
-  tree: { id: string; parentId?: string; text: string; rag: string; sort: number }[];
+  tree: {
+    id: string; parentId?: string; text: string; rag: string; sort: number;
+    /** A box whose colour follows a number: the figure ("52 vs 44 ppm") and the
+     *  state in words ("Behind target"), which replaces the status label. */
+    number?: string; state?: string;
+  }[];
 }
 
 /* ---------- small drawing helpers ---------- */
@@ -1589,8 +1594,8 @@ const TREE_STATUS: Record<string, { c: string; label: string }> = {
 };
 
 
-interface TreeIn { id: string; parentId?: string; text: string; rag: string; sort: number }
-interface TreeBox { text: string; rag: string; depth: number; kids: TreeBox[]; h: number; y: number }
+interface TreeIn { id: string; parentId?: string; text: string; rag: string; sort: number; number?: string; state?: string }
+interface TreeBox { text: string; rag: string; number?: string; state?: string; depth: number; kids: TreeBox[]; h: number; y: number }
 
 /* Mutable, and set for the duration of one page by withTreeScale below. jsPDF
  * has no transform to scale a drawing after the fact, so the geometry itself is
@@ -1625,6 +1630,7 @@ function treeShape(rows: TreeIn[]): TreeBox[] {
   }
   const make = (r: TreeIn, depth: number): TreeBox => ({
     text: san(r.text) || '-', rag: r.rag, depth, h: 0, y: 0,
+    number: r.number ? san(r.number) : undefined, state: r.state ? san(r.state) : undefined,
     kids: (kids.get(r.id) ?? []).sort((a, b) => a.sort - b.sort).map(k => make(k, depth + 1)),
   });
   return (kids.get('') ?? []).sort((a, b) => a.sort - b.sort).map(r => make(r, 0));
@@ -1632,10 +1638,18 @@ function treeShape(rows: TreeIn[]): TreeBox[] {
 
 /** Height of the box itself, and then of everything under it. A parent is as
  *  tall as its children stacked, or as tall as its own box — whichever wins. */
-function treeMeasure(d: Doc, b: TreeBox): number {
+/** The box itself: its words, the number under them when it follows one, and
+ *  the status line. One function, because three places used to work this out
+ *  and a fourth line in the box would have had to be added to all three. */
+function treeOwn(d: Doc, b: TreeBox): { lines: string[]; own: number } {
   setFont(d, b.depth >= 3 ? FS_SMALL : FS_BIG, 'bold', INK);
   const lines = d.splitTextToSize(b.text, BOX_W - PAD * 2) as string[];
-  const own = PAD * 2 + lines.length * LINE_H + FS_PILL + 3;
+  const own = PAD * 2 + lines.length * LINE_H + (b.number ? LINE_H * 0.9 : 0) + FS_PILL + 3;
+  return { lines, own };
+}
+
+function treeMeasure(d: Doc, b: TreeBox): number {
+  const { own } = treeOwn(d, b);
   const kidsH = b.kids.length
     ? b.kids.reduce((t, k) => t + treeMeasure(d, k), 0) + (b.kids.length - 1) * BOX_GAP_Y
     : 0;
@@ -1646,9 +1660,7 @@ function treeMeasure(d: Doc, b: TreeBox): number {
 function treeDraw(d: Doc, b: TreeBox, x: number, top: number): void {
   const st = TREE_STATUS[b.rag] ?? TREE_STATUS.n;
   const small = b.depth >= 3;
-  setFont(d, small ? FS_SMALL : FS_BIG, 'bold', INK);
-  const lines = d.splitTextToSize(b.text, BOX_W - PAD * 2) as string[];
-  const own = PAD * 2 + lines.length * LINE_H + FS_PILL + 3;
+  const { lines, own } = treeOwn(d, b);
   const by = top + (b.h - own) / 2;            // centred against its own subtree
 
   const [wr, wg, wb] = wash(st.c, b.rag === 'n' ? 0.05 : 0.11);
@@ -1662,8 +1674,13 @@ function treeDraw(d: Doc, b: TreeBox, x: number, top: number): void {
 
   setFont(d, small ? FS_SMALL : FS_BIG, 'bold', INK);
   lines.forEach((ln, i) => d.text(ln, x + PAD, by + PAD + LINE_H * 0.72 + i * LINE_H));
+  // the number the colour came from, in the same small type as the status
+  if (b.number) {
+    setFont(d, FS_SMALL, 'normal', MUTED);
+    d.text(fit(d, b.number, BOX_W - PAD * 2), x + PAD, by + PAD + LINE_H * 0.72 + lines.length * LINE_H);
+  }
   setFont(d, FS_PILL, 'bold', st.c);
-  d.text(st.label.toUpperCase(), x + PAD, by + own - PAD + 1.5);
+  d.text((b.state ?? st.label).toUpperCase(), x + PAD, by + own - PAD + 1.5);
 
   if (b.kids.length === 0) return;
 
@@ -1677,11 +1694,7 @@ function treeDraw(d: Doc, b: TreeBox, x: number, top: number): void {
   const centres: number[] = [];
   for (const k of b.kids) {
     treeDraw(d, k, kidX, ky);
-    const kOwn = (() => {
-      setFont(d, k.depth >= 3 ? FS_SMALL : FS_BIG, 'bold', INK);
-      const kl = d.splitTextToSize(k.text, BOX_W - PAD * 2) as string[];
-      return PAD * 2 + kl.length * LINE_H + FS_PILL + 3;
-    })();
+    const kOwn = treeOwn(d, k).own;
     const kcy = ky + (k.h - kOwn) / 2 + kOwn / 2;
     centres.push(kcy);
     d.setDrawColor(LINE); d.setLineWidth(0.6);
@@ -2599,7 +2612,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, `${data.title} · client report · page ${planPage} of ${pages} — the plan`, CW * 0.8), M, H - M + 6);
-    d.text('Kept by hand on the project\u2019s lever tree; the work under it comes off the tracker.',
+    d.text(fit(d, 'Kept by hand on the project\u2019s lever tree; the work under it comes off the board, and a box bound to a number takes its colour from the line\u2019s latest reading.', CW * 0.6),
       W - M, H - M + 6, { align: 'right' });
   }
 

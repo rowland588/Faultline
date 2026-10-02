@@ -50,7 +50,7 @@ import { standing, slipWords } from '../lib/standing';
 import { layoutPlan, labelGap, planSays } from '../lib/plan';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
-import { withTrackerRows, bindSources, statusOfAction } from '../lib/treeBind';
+import { withTrackerRows, bindSources, statusOfAction, boundNumber, type NumberSources } from '../lib/treeBind';
 import { methodOf } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
@@ -119,8 +119,8 @@ function SectionHead({ n, title, sowhat }: { n: string; title: string; sowhat: s
 /* The tree gets its own sheet. It is the only thing in the report that says
  * WHY any of the rest is being done, and it needs the width of an A3 to say it
  * — squeezed into a corner of the pace page it would be a decoration. */
-function TreePage({ rows, title, scale, sheetH, n, of }: {
-  rows: TreeNodeRow[] | null; title: string; scale: number; sheetH: number; n: number; of: number;
+function TreePage({ rows, numbers, title, scale, sheetH, n, of }: {
+  rows: TreeNodeRow[] | null; numbers: NumberSources; title: string; scale: number; sheetH: number; n: number; of: number;
 }) {
   // No tree drawn yet: print nothing rather than a blank page with a heading on
   // it. A report should never contain an empty box.
@@ -132,12 +132,12 @@ function TreePage({ rows, title, scale, sheetH, n, of }: {
           <section className="exec-box">
             <SectionHead n={String(n)} title="The plan"
               sowhat="What has to be true for the outcome, and where each part has got to" />
-            <TreeStatic rows={rows} maxW={1520} maxH={860} />
+            <TreeStatic rows={rows} numbers={numbers} maxW={1520} maxH={860} />
           </section>
         </div>
         <footer className="exec-foot">
           <span>{title} · client report · page {n} of {of} — the plan</span>
-          <span>Kept by hand on the project’s lever tree; the work under it comes off the tracker.</span>
+          <span>Kept by hand on the project’s lever tree; the work under it comes off the board, and a box bound to a number takes its colour from the line’s latest reading.</span>
         </footer>
       </section>
     </div>
@@ -971,7 +971,8 @@ export function PaceExecReport() {
    * A condition bound to the tracker grows its actions at draw time, so the
    * report runs the identical derivation the editor does rather than printing
    * only the boxes that happen to be stored. */
-  const fullTree = withTrackerRows(treeRows ?? [], bindSources(ax.actions, todos ?? [], ppm.lines));
+  const numSources: NumberSources = { measures: nums.measures, periods: nums.periods, targets: nums.targets, readings: nums.readings };
+  const fullTree = withTrackerRows(treeRows ?? [], bindSources(ax.actions, todos ?? [], ppm.lines, numSources));
 
   /* The board reads the same actions the rest of the report does — narrowed to
    * the line when this is a line's own deck, so an owner's page shows only
@@ -1497,9 +1498,15 @@ export function PaceExecReport() {
       more: Math.max(0, pView.rows.filter(r => r.verdict !== 'gone').length - PARETO_SHEET_ROWS),
       gone: pView.rows.filter(r => r.verdict === 'gone').map(r => r.category),
     } : undefined,
-    tree: line || !project?.leverTree ? [] : fullTree.map(n => ({
-      id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
-    })),
+    /* A box bound to a number carries the figure and the state in words, so the
+       PDF says "52 vs 44 ppm · Behind target" exactly as the screen does. */
+    tree: line || !project?.leverTree ? [] : fullTree.map(n => {
+      const num = boundNumber(n.bind, numSources);
+      return {
+        id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
+        number: num?.figure, state: num?.words,
+      };
+    }),
     // A line's deck is titled for the LINE and led by its owner — it is that
     // person's page to hand over. The project's is titled for the project.
     title, lead, leadRole,
@@ -1740,7 +1747,7 @@ export function PaceExecReport() {
         <ProgramsPage p={programsBlock} title={title} scale={scale} sheetH={SHEET_H}
           n={programsPageNo} of={pageCount} />
       )}
-      {!line && project?.leverTree && <TreePage rows={fullTree} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
+      {!line && project?.leverTree && <TreePage rows={fullTree} numbers={numSources} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
       {/* No note about a missing board sheet any more: it explained a 3P
           column in a workbook that is no longer uploaded. The board's own
           "not on the board yet" list is where an unsorted action is fixed. */}

@@ -28,6 +28,7 @@
  */
 import type { PaceAction } from './tracker';
 import type { PaceLineRow, PaceTodoRow, TreeNodeRow, NodeStatus } from '../db';
+import { standingFor, bySort, say, type Measure, type Period, type Target, type Reading, type Standing } from './measures';
 
 /* The tracker writes lines the way people say them ("Line 2", "Line 10") and
  * marks the ones that belong to nobody in particular "All lines". Matching on
@@ -81,6 +82,111 @@ export interface TrackerBind {
    *  Next steps carry no category, so a binding that reads them uses the line
    *  alone. */
   source?: 'tracker' | 'next';
+  /** THE COLOUR FOLLOWS A NUMBER. With both of these set, the box's state is no
+   *  longer typed: it is the line's latest reading of this measure against the
+   *  target for the period that reading falls in (lib/measures). At or better
+   *  than target is green, behind it red, nothing to judge by grey. The same
+   *  box may also bind to the board's work — the two halves are independent,
+   *  which is why this is two fields on the one binding and not a second one. */
+  measureId?: string;
+  /** The app's own line id (not the key): a reading is written against it. */
+  lineId?: string;
+}
+
+/** Does this binding bring the board's WORK under the box? Only when it names
+ *  a line (or the project's own rows). A binding that carries nothing but a
+ *  measure must never be read as "every action on the board" — that was the
+ *  failure mode an unguarded `line` would have had. */
+export const bindsWork = (b?: TrackerBind): boolean => !!b && !!(b.line || b.allLines);
+/** Does this binding give the box its COLOUR from a number? */
+export const bindsNumber = (b?: TrackerBind): boolean => !!b && !!(b.measureId && b.lineId);
+
+/** The binding with its number half removed — `undefined` when nothing is left,
+ *  so an unbound box stores no binding at all rather than an empty one. */
+export function withoutNumber(b?: TrackerBind): TrackerBind | undefined {
+  if (!b) return undefined;
+  const { measureId: _m, lineId: _l, ...rest } = b;
+  return bindsWork(rest) ? rest : undefined;
+}
+/** The binding with its work half removed — what the board sheet's "Unlink"
+ *  leaves behind, so unlinking the actions does not also unbind the number. */
+export function withoutWork(b?: TrackerBind): TrackerBind | undefined {
+  if (!b) return undefined;
+  const { line: _a, allLines: _b, categories: _c, keyword: _d, source: _e, ...rest } = b;
+  return bindsNumber(rest) ? rest : undefined;
+}
+
+/* ---------- the colour from a number ---------- */
+
+/** What a number binding reads from: the project's measures and periods, and
+ *  every target and reading on it. The same four lists useMeasures holds. */
+export interface NumberSources {
+  measures: Measure[];
+  periods: Period[];
+  targets: Target[];
+  readings: Reading[];
+}
+
+/** One box's number, worked out: what was last read, what it was judged
+ *  against, and the state that gives the box. */
+export interface BoundNumber {
+  measure: Measure;
+  latest?: number;
+  target?: number;
+  period?: Period;
+  status: NodeStatus;
+  /** "52 vs 44 ppm" — the small text beside the box's own words. */
+  figure: string;
+  /** The state in words, beside the colour: "On target", "Behind target",
+   *  "No target set", "Nothing measured yet". */
+  words: string;
+}
+
+/** THE RULE. At or better than target → done (green). Behind it → red. No
+ *  reading, or no target for the period it falls in → not started (grey).
+ *  "Better" is the measure's own direction: 1.8% waste beats a 2% target, 61
+ *  ppm beats 60 — `meets` in lib/measures already knows, so nothing here does. */
+export function statusOfNumber(s: Pick<Standing, 'latest' | 'target' | 'meeting'>): NodeStatus {
+  if (!s.latest || s.target == null || s.meeting === undefined) return 'n';
+  return s.meeting ? 'g' : 'r';
+}
+
+/** The state said in words — colour is never the only carrier. */
+export function numberWords(s: Pick<Standing, 'latest' | 'target' | 'meeting'>): string {
+  if (!s.latest) return 'Nothing measured yet';
+  if (s.target == null) return 'No target set';
+  return s.meeting ? 'On target' : 'Behind target';
+}
+
+/** The figure beside the box's name: the latest reading against its target,
+ *  the unit said once. "52 vs 44 ppm"; "52 ppm" when there is no target. */
+export function numberFigure(s: Pick<Standing, 'measure' | 'latest' | 'target'>): string {
+  if (!s.latest) return `${s.measure.name} · nothing measured yet`;
+  if (s.target == null) return say(s.latest.value, s.measure.unit);
+  return `${say(s.latest.value)} vs ${say(s.target, s.measure.unit)}`;
+}
+
+/** Where one bound box stands. `undefined` when the box is not bound to a
+ *  number, or names a measure the project no longer has. */
+export function boundNumber(bind: TrackerBind | undefined, src?: NumberSources): BoundNumber | undefined {
+  if (!src || !bind?.measureId || !bind.lineId) return undefined;
+  const s = standingFor(src.measures, src.periods, src.targets, src.readings, bind.lineId)
+    .find(x => x.measure.id === bind.measureId);
+  if (!s) return undefined;
+  return {
+    measure: s.measure, latest: s.latest?.value, target: s.target, period: s.period,
+    status: statusOfNumber(s), figure: numberFigure(s), words: numberWords(s),
+  };
+}
+
+/** Every measure × line a box can be bound to, in the project's own order,
+ *  labelled the way the project says them: "Packs per minute · Line 2B". */
+export function numberChoices(
+  measures: Measure[], lines: PaceLineRow[],
+): { measureId: string; lineId: string; label: string }[] {
+  return bySort(measures).flatMap(m => lines.map(l => ({
+    measureId: m.id, lineId: l.id, label: `${m.name} · ${l.name || `Line ${l.key}`}`,
+  })));
 }
 
 const DONE = /^(done|complete|completed|closed)$/i;
@@ -181,7 +287,8 @@ export const isBoundNode = (id: string): boolean => id.startsWith(BOUND_PREFIX);
  *  so that everything which draws a tree — the editor, the report, the PDF —
  *  keeps working without knowing any of this exists. */
 export function boundChildren(parent: TreeNodeRow, src: BindSources): TreeNodeRow[] {
-  if (!parent.bind) return [];
+  const bind = parent.bind;
+  if (!bind || !bindsWork(bind)) return [];
   const row = (id: string, text: string, rag: NodeStatus, i: number): TreeNodeRow => ({
     id: `${BOUND_PREFIX}${parent.id}:${id}`,
     projectId: parent.projectId,
@@ -191,12 +298,12 @@ export function boundChildren(parent: TreeNodeRow, src: BindSources): TreeNodeRo
     createdAt: parent.createdAt,
     updatedAt: parent.updatedAt,
   });
-  if (parent.bind.source === 'next') {
-    const ids = src.lineIdsFor(parent.bind.line);
-    return todosForBind(src.todos, parent.bind, ids)
+  if (bind.source === 'next') {
+    const ids = src.lineIdsFor(bind.line);
+    return todosForBind(src.todos, bind, ids)
       .map((t, i) => row(t.id, todoText(t), statusOfTodo(t), i));
   }
-  return actionsForBind(src.actions, parent.bind)
+  return actionsForBind(src.actions, bind)
     .map((a, i) => row(a.uid || a.ref || String(i), bindActionText(a), statusOfAction(a), i));
 }
 
@@ -208,12 +315,17 @@ export interface BindSources {
   /** The app's line ids that answer to a tracker line key — 2A and 2B both
    *  answer to "Line 2", and a Next step is logged against one of them. */
   lineIdsFor: (lineKey?: string) => string[];
+  /** The project's numbers, for a box whose colour follows one. Absent where a
+   *  caller has no numbers to hand; such a box then keeps its stored colour. */
+  numbers?: NumberSources;
 }
 
 /** The usual sources, built from the project's lines. */
-export function bindSources(actions: PaceAction[], todos: PaceTodoRow[], lines: PaceLineRow[]): BindSources {
+export function bindSources(
+  actions: PaceAction[], todos: PaceTodoRow[], lines: PaceLineRow[], numbers?: NumberSources,
+): BindSources {
   return {
-    actions, todos,
+    actions, todos, numbers,
     lineIdsFor: (lineKey) => {
       if (!lineKey) return lines.map(l => l.id);
       return lines.filter(l => l.key === lineKey).map(l => l.id);
@@ -233,8 +345,11 @@ export function withTrackerRows(nodes: TreeNodeRow[], src: BindSources): TreeNod
   if (!nodes.some(n => n.bind)) return nodes;
   const out: TreeNodeRow[] = [];
   for (const n of nodes) {
-    out.push(n);
-    if (n.bind) out.push(...boundChildren(n, src));
+    /* A box bound to a number is DRAWN in the colour the number gives it. The
+       stored colour is left alone, so unbinding hands the box back as it was. */
+    const num = boundNumber(n.bind, src.numbers);
+    out.push(num ? { ...n, rag: num.status } : n);
+    if (bindsWork(n.bind)) out.push(...boundChildren(n, src));
   }
   return out;
 }
@@ -242,6 +357,7 @@ export function withTrackerRows(nodes: TreeNodeRow[], src: BindSources): TreeNod
 /** How many rows a binding is holding, and how many of those are finished —
  *  what a folded branch should say instead of a bare count. */
 export function bindCount(bind: TrackerBind, src: BindSources): { total: number; done: number } {
+  if (!bindsWork(bind)) return { total: 0, done: 0 };
   if (bind.source === 'next') {
     const rows = todosForBind(src.todos, bind, src.lineIdsFor(bind.line));
     return { total: rows.length, done: rows.filter(t => statusOfTodo(t) === 'g').length };
@@ -340,7 +456,7 @@ export function trackerLines(lines: PaceLineRow[]): { key: string; label: string
  *  So the tree counts them and says so. It is not clever and it does not guess
  *  where they belong; it just refuses to lose them quietly. */
 export function unplacedActions(nodes: TreeNodeRow[], actions: PaceAction[]): PaceAction[] {
-  const bound = nodes.filter(n => n.bind && n.bind.source !== 'next');
+  const bound = nodes.filter(n => bindsWork(n.bind) && n.bind?.source !== 'next');
   if (!bound.length) return [];
   const placed = new Set<string>();
   for (const n of bound) {

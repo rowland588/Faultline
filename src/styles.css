@@ -3352,7 +3352,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-text:focus { }
 .lt-box:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.lt-tools { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+/* The state on the first line and the tools on their own line beneath it. On
+   one line the eight (now nine) tool buttons ran past the box's right edge and
+   into the connector, where the delete sat in the arm and the last two could
+   not be pressed at all. */
+.lt-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 6px; }
 /* THE TOOLS COME OUT ON THE BOX YOU ARE WORKING ON. Seven small buttons on
    every box made the tree read as a toolbar, and the outcome and conditions —
    what the tree is for — were the quieter thing on the screen. Lean: show what
@@ -3385,7 +3389,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-status.is-r { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); }
 .lt-status.is-g { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); }
 
-.lt-acts { display: flex; gap: 1px; }
+.lt-acts { display: flex; gap: 1px; margin-left: auto; }
 .lt-mini {
   min-width: 22px; height: 22px; padding: 0 3px; border: 0; border-radius: 5px;
   background: transparent; color: var(--muted); cursor: pointer;
@@ -4007,6 +4011,32 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-from {
   margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--muted); white-space: nowrap;
+}
+
+/* ---- a box whose colour follows a number ----
+   The figure sits under the box's own words, small and quiet — "52 vs 44 ppm"
+   — so the colour never has to be taken on trust; the status pill says what the
+   number means in words. The only control left is the way back to typing it.
+   The same marks on the report sheet, through .lt-static. */
+.lt-num {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: -3px;
+  font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.lt-num-f { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-box.is-act .lt-num { font-size: 10px; }
+.lt-unbind {
+  border: 0; background: transparent; padding: 0; cursor: pointer;
+  font-size: 10.5px; text-transform: none; letter-spacing: 0;
+  text-decoration: underline dotted; text-underline-offset: 2px;
+}
+.lt-unbind:hover { color: var(--ink); }
+.lt-numb.is-on { color: var(--blue); background: color-mix(in srgb, var(--blue) 9%, transparent); }
+/* the list of the project's numbers, out on the box only while picking */
+.lt-numpick { display: flex; align-items: center; gap: 4px; }
+.lt-numpick-sel {
+  flex: 1; min-width: 0; min-height: 26px; padding: 2px 6px; border-radius: 6px;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 12px;
 }
 
 /* ---- the linking sheet ---- */
