@@ -153,6 +153,15 @@ the connector's per-tool permission, set under the connector's Tools at
 claude.ai/customize/connectors, and the fallback is the file above pasted
 into the Supabase SQL editor — in the same breath as "finished", never later.
 
+**The app has one piece of server-side code**: `supabase/functions/remind`,
+an edge function pg_cron calls every fifteen minutes (`PUSH_REMINDERS.sql`)
+to push a note's reminder to every device that said yes. It is deployed with
+`deploy_edge_function` from the file in the repo — the repo copy is the
+source, never the dashboard — and its keys are made by the function itself
+on its first run, so no key ever passes through a person or a file. It is
+checked by calling it from SQL (`net.http_post`) and reading
+`net._http_response`.
+
 **The files in `supabase/` are a history, not a playbook.** Never replay them
 all. Four of them move the database backwards if run today: `WORKSPACE_TEAMS`
 and `PROJECT_TEAMS` overwrite the membership function with an old version,

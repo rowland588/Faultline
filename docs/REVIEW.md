@@ -47,6 +47,14 @@ Ranked by how much it hurts someone on the floor. The first two are defects
 in the sense CLAUDE.md uses the word: a thing that silently does not do what
 the screen implies it does.
 
+*Update, 2 October, evening: items 1 to 5 are built and live. 1 — the walk
+link is on the project row (`PROJECT_WALK.sql`). 2 — the account row counts
+and names refused rows. 3 — `scripts/check-live-schema.mjs` runs in the gate,
+the build and CI. 4 — `supabase/functions/remind`, called every fifteen
+minutes by pg_cron, pushes to every device that said yes
+(`PUSH_REMINDERS.sql`, `cloud/push.ts`, `public/push-sw.js`). 5 — the loser
+of a merge is told by name in the account sheet. Items 6 to 8 stand.*
+
 1. **A stage-gate job's filmed walk lives on one device.** The link from a
    project to its walk workspace is kept in the device's `meta` store
    (`db/pace.ts`, `walkKey`) and never syncs. The walk's frames and snags sync
