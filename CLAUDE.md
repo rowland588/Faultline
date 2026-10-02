@@ -152,6 +152,20 @@ the connector's per-tool permission, set under the connector's Tools at
 claude.ai/customize/connectors, and the fallback is the file above pasted
 into the Supabase SQL editor — in the same breath as "finished", never later.
 
+**The files in `supabase/` are a history, not a playbook.** Never replay them
+all. Four of them move the database backwards if run today: `WORKSPACE_TEAMS`
+and `PROJECT_TEAMS` overwrite the membership function with an old version,
+`TEAM_UPGRADE` reopens every table with `true` policies, and `FRESH_START` is
+for an empty project. The question "is the live database missing anything?"
+is answered by a diff, not a re-run: parse every file for the objects it
+intends (columns, tables, indexes, triggers, publication, constraints,
+functions), hand the list to the database in one `with want(...) as (values
+…)` query against `information_schema` and `pg_*`, and read the check
+constraints and `pg_policies` by hand. Done 2 October: nothing was missing,
+and nothing was run. Supabase's migration history (36 entries) is shorter
+than the file count (46) because the early files were pasted by hand; from
+here each new file goes through `apply_migration`, so the two move together.
+
 ## Things that will bite
 
 - **A policy test that reads a null as `true`.** `SECURITY_RLS.sql` part C2
