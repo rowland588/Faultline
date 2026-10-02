@@ -131,8 +131,10 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
         return (
           <div key={m.id} className="nm-measure">
             {series && <MeasureChart series={series} who={{ name: line.name, owner: line.owner, sponsor: line.sponsor, variant: line.variant }} />}
-            <AddReading measure={m}
-              onAdd={(at, v, note) => state.addReading(line.id, m.id, at, v, note)} />
+            <AddFold label="Record a reading" start={rows.length === 0}>
+              <AddReading measure={m}
+                onAdd={(at, v, note) => state.addReading(line.id, m.id, at, v, note)} />
+            </AddFold>
             <Recent rows={rows} unit={m.unit} onRemove={state.removeReading} />
           </div>
         );

@@ -31,10 +31,20 @@ const GROUPS: { id: State; title: string; blurb: string }[] = [
   { id: 'done', title: 'Done', blurb: '' },
 ];
 
-function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
+/* ON A PHONE THE EDITOR OPENS ON THE ROW YOU TAP. Every action's eight boxes
+ * open at once made the list four screens long for six actions; the row shows
+ * what · who · when and its state, and the boxes come out when it is wanted —
+ * the line-balance pattern. A new, empty row opens by itself. A laptop has
+ * the room and keeps the table as it was. */
+const phone = (): boolean => {
+  try { return window.matchMedia('(max-width: 720px)').matches; } catch { return false; }
+};
+
+function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact, open, onToggle }: {
   row: PaceTodoRow; onPatch: (p: Partial<PaceTodoRow>) => void; onDelete: () => void;
   onOpen: (m: MediaRef) => void;
   focusOutcome: boolean; onFocused: () => void;
+  compact: boolean; open: boolean; onToggle: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const media = row.media ?? [];
@@ -61,8 +71,22 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused }: {
     if (!window.confirm('Remove this?')) return;
     onPatch({ media: media.filter(x => x.id !== m.id) });
   };
+  const sum = [row.who.trim(), row.when.trim()].filter(Boolean).join(' · ');
+  const summary = compact && (
+    <tr className={'ns-sum is-' + row.state}>
+      <td colSpan={8}>
+        <button type="button" className="ns-sum-b" aria-expanded={open} onClick={onToggle}>
+          <span className="ns-sum-t">{row.what.trim() || 'Untitled'}</span>
+          {sum && <span className="ns-sum-s">{sum}</span>}
+          <span className="ns-sum-st">{row.state === 'todo' ? 'To do' : row.state === 'waiting' ? 'Waiting' : 'Done'}</span>
+        </button>
+      </td>
+    </tr>
+  );
+  if (compact && !open) return summary;
   return (
     <>
+    {summary}
     <tr className={'ns-row is-' + row.state}>
       <td data-h="What"><DraftArea className="ns-in ns-grow" rows={2} value={row.what} ariaLabel="What"
         placeholder="e.g. test the Tesco Express trays" onSave={v => onPatch({ what: v })} /></td>
@@ -138,6 +162,8 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [justDone, setJustDone] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const compact = phone();
   const root = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => { setRows(await listPaceTodos(projectId, lineId)); setLoading(false); }, [projectId, lineId]);
@@ -167,6 +193,7 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
       state: 'todo', createdAt: Date.now(), updatedAt: Date.now(),
     };
     setRows([...rows, row]);
+    setEditing(row.id);   // on a phone the new row stays open while it is filled in
     await putPaceTodo(row);
   };
 
@@ -232,7 +259,10 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
                       onDelete={() => void remove(r)}
                       onOpen={setViewing}
                       focusOutcome={justDone === r.id}
-                      onFocused={() => setJustDone(null)} />
+                      onFocused={() => setJustDone(null)}
+                      compact={compact}
+                      open={editing === r.id || !r.what.trim()}
+                      onToggle={() => setEditing(editing === r.id ? null : r.id)} />
                   ))}
                 </tbody>
               </table>

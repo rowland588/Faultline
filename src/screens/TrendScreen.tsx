@@ -4,6 +4,7 @@
  * list of which losses are moving and which just sit there. */
 import { useMemo } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
+import { nav } from '../state/useRoute';
 import { snagsForWorkspace } from '../db';
 import { useEffect, useState } from 'react';
 import { weeklyLoss, headline, categoryTrends, closedEvents, type ClosedEvent, type WeekPoint } from '../lib/stats';
@@ -33,7 +34,8 @@ export function TrendPanel() {
   return (
     <div className="trend-panel">
       {!enough ? (
-        <EmptyState icon="📈" title="Not enough history yet">
+        <EmptyState icon="📈" title="Not enough history yet"
+          action={<button className="btn btn-primary" onClick={() => nav(`/w/${workspace.id}/capture`)}>Time a stop</button>}>
           The trend starts telling the truth after a couple of weeks of logging.
           Keep capturing — every entry lands on this chart.
         </EmptyState>

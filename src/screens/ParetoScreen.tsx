@@ -18,6 +18,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useProjectPareto } from '../lib/paretoFromLog';
+import { usePaceLines } from '../lib/usePaceLines';
+import { createWorkspace } from '../db';
 import { paretoView, moveSentence, type ParetoMove } from '../lib/paretoView';
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -52,6 +54,19 @@ function Row({ m, max, showMove }: { m: ParetoMove; max: number; showMove: boole
 export function ParetoScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const pareto = useProjectPareto(projectId);
+  const lines = usePaceLines(projectId);
+  /* THE EMPTY STATE CARRIES THE FIRST ACTION. With nothing timed, the page used
+     to send you to the lines to find the door; now the door is here, one per
+     line: it makes the line's study the first time (the same way the line's
+     own screen does — lib/usePaceWorkspace) and opens the stopwatch. */
+  const timeOn = async (l: { id: string; name: string; workspaceId?: string }) => {
+    let ws = l.workspaceId;
+    if (!ws) {
+      ws = (await createWorkspace(l.name, 'food-packing')).id;
+      await lines.editLine(l.id, { workspaceId: ws });
+    }
+    nav(`/w/${ws}/capture`);
+  };
   const view = useMemo(
     () => (pareto.now ? paretoView(pareto.now, pareto.before) : null),
     [pareto.now, pareto.before],
@@ -91,12 +106,19 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
         <div className="bd-empty">
           <p className="bd-empty-t">Nothing timed on the line in the last four weeks</p>
           <p className="sub">
-            Time the stops on the floor — open a line and press <b>Where is this line’s time going?</b>,
-            then log each stop with its category and the stopwatch. They rank themselves here by what
-            they cost.
+            Time the stops on the floor — each one with its category and the stopwatch. They rank
+            themselves here by what they cost.
           </p>
-          <button className="btn btn-primary" style={{ marginTop: 16 }}
-            onClick={() => nav(`/project/${projectId}?view=lines`)}>Open the lines</button>
+          {lines.lines.length > 0 ? (
+            <div className="pr-empty-acts">
+              {lines.lines.map(l => (
+                <button key={l.id} className="btn btn-primary" onClick={() => void timeOn(l)}>Time a stop on {l.name}</button>
+              ))}
+            </div>
+          ) : (
+            <button className="btn btn-primary" style={{ marginTop: 16 }}
+              onClick={() => nav(`/project/${projectId}/setup`)}>Add a line</button>
+          )}
         </div>
       ) : (
         <>

@@ -2258,6 +2258,17 @@ button.st-pill { cursor: pointer; }
     font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
   }
   .ns-row td:first-child { box-shadow: none !important; }
+  /* the row shut: one line, the state in words, its colour on the edge */
+  .ns-sum { padding: 0 !important; }
+  .ns-sum > td { padding: 0 !important; }
+  .ns-sum-b { appearance: none; width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 12px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+  .ns-sum.is-todo .ns-sum-b { box-shadow: inset 3px 0 0 var(--st-w); }
+  .ns-sum.is-waiting .ns-sum-b { box-shadow: inset 3px 0 0 var(--st-a); }
+  .ns-sum.is-done .ns-sum-b { box-shadow: inset 3px 0 0 var(--st-g); color: var(--muted); }
+  .ns-sum-t { flex: 1 1 auto; font-weight: 700; font-size: 14px; }
+  .ns-sum-s { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .ns-sum-st { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .ns-sum-b[aria-expanded="true"] { background: var(--surface-2); }
 }
 
 @media print {
@@ -7894,3 +7905,6 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .add-fold-x { position: absolute; top: 12px; right: 14px; z-index: 1; }
 /* a station shut: its numbers in one line */
 .cap-sum { margin: 2px 0 0 34px; font-size: 12.5px; color: var(--ink-2); }
+
+/* Pareto with nothing timed: one door per line, the first action on the page. */
+.pr-empty-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
