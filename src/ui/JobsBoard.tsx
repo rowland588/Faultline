@@ -335,6 +335,19 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
         </div>
       )}
 
+      {/* --------------------------- no date agreed --------------------------- */}
+      {/* Fixes booked with no date agreed — Rowland's "we've agreed a date, or
+          we haven't". The ones we haven't are chased from here. */}
+      {pf.undated.length > 0 && (
+        <div className="jb-week jb-undated">
+          <div className="jb-sec-h">
+            <h3>No date agreed</h3>
+            <span className="sub">{pf.undated.length} fix{pf.undated.length === 1 ? '' : 'es'} — agree a date with whoever has {pf.undated.length === 1 ? 'it' : 'them'}</span>
+          </div>
+          <WeekStrip items={pf.undated} />
+        </div>
+      )}
+
       {/* ---------------------------- this week ---------------------------- */}
       <div className="jb-week" ref={weekRef}>
         <div className="jb-sec-h">
@@ -404,7 +417,7 @@ function WeekStrip({ items }: { items: JobItem[] }) {
               <span className="jb-wk-job">{x.job}</span>
               <b className="jb-wk-what">{x.what}</b>
               <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the meeting notes' : `${KIND_WORD[x.kind]} · ${x.who || 'nobody yet'}`}</span>
-              <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? `WAS ${niceDay(x.on)}` : niceDay(x.on, { weekday: 'short' })) : 'no date'}</span>
+              <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? `WAS ${niceDay(x.on)}` : niceDay(x.on, { weekday: 'short' })) : x.kind === 'fix' ? 'NO DATE AGREED' : 'no date'}</span>
             </button>
           </li>
         ))}

@@ -35,6 +35,16 @@ describe('the plan on paper', () => {
     expect(said).toContain('1 of 1');
   });
 
+  it('prints the overlap the screen flags, with its key', () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const said = texts(doc);
+    const g = gantt(steps(3), { today: TODAY });
+    g.groups[0].rows[0].overlap = 'Dry run';
+    drawGanttDoc(doc, g, { name: 'Line 2A', printed: '2 Oct 2026' });
+    expect(said).toContain('overlaps Dry run');
+    expect(said).toContain('starts before the step ahead has finished');
+  });
+
   it('carries a long plan over the page, each row exactly once, each sheet landscape', () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     const said = texts(doc);

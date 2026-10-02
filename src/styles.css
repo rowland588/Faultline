@@ -7771,3 +7771,19 @@ button.gt-glab { appearance: none; border: 0; cursor: pointer; text-align: left;
   .gt-acts .gt-today-b { flex: 1 1 0; }
 }
 button.gt-lab.gt-glab { flex-direction: row; align-items: center; justify-content: flex-start; gap: 6px; line-height: 1; }
+
+/* the other dates that slip, the knock-on, and the overlap */
+.date-why { display: block; width: 100%; margin-top: 8px; }
+.why-knock { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.why-knock.is-into { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--st-a) 40%, transparent); }
+.why-knock-h { margin: 0; font-size: 13px; font-weight: 700; color: var(--st-a); }
+.gt-hand-moved {
+  appearance: none; display: block; width: 100%; text-align: left; margin: 0 0 10px; padding: 9px 12px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--st-r) 40%, var(--line)); border-left: 4px solid var(--st-r); border-radius: 10px;
+  background: color-mix(in srgb, var(--st-r) 5%, var(--surface)); font: inherit; font-size: 13px; color: var(--ink-2);
+}
+.gt-hand-moved b { color: var(--st-r); }
+.gt-lab-over { font-style: normal; font-weight: 700; color: var(--st-a); }
+.gt-row.has-overlap .gt-b { box-shadow: inset 4px 0 0 var(--st-a); }
+.gt-k-over { background: var(--surface) !important; border-color: var(--st-a) !important; box-shadow: inset 4px 0 0 var(--st-a); }
+.jb-undated .jb-sec-h h3 { color: var(--st-a); }

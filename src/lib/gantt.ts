@@ -15,7 +15,7 @@
  */
 import type { PlanMark } from './standing';
 import { windowWords } from './plan';
-import { storyOf } from './story';
+import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, type Test, type TestItem } from './testing';
 import { todayISO as isoDay } from './weeks';
 
@@ -43,6 +43,11 @@ export interface GanttRow {
   /** Its fixes, drawn directly under it: with their dates, or open-ended from
    *  the day they were booked when no date is agreed. */
   fixes?: (GanttRow & { open?: boolean })[];
+  /** Where its story is filed (lib/story keyOf) — a stage's own id, or
+   *  "asset:…", "material:…", "program:…". */
+  key?: string;
+  /** It starts before the step ahead of it on its machine has finished. */
+  overlap?: string;
 }
 
 export interface GanttGroup { kind: PlanMark['kind']; label: string; rows: GanttRow[] }
@@ -65,6 +70,8 @@ export interface Gantt {
   agreed?: { at: number; when: string };
   /** The scale that reads best for this length of job. */
   scale: GanttScale;
+  /** Each time the handover moved later, with why — from the records. */
+  handoverMoves?: { on: string; from: string; to: string; days: number; why: string }[];
 }
 
 /* The order a stage-gate job runs in: machines land, materials arrive, then the
@@ -107,8 +114,10 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
 
   /* WHAT HAPPENED TO EACH STAGE — its moves, what was found, its fixes. */
   const stories = new Map<string, ReturnType<typeof storyOf>>();
-  if (records) for (const m of marks) if (m.id && STAGE_KINDS.has(m.kind)) {
-    const st = storyOf(m.id, records.tests, records.items);
+  if (records) for (const m of marks) {
+    const key = keyOfMark(m.kind, m.id);
+    if (!m.id || !key) continue;
+    const st = storyOf(key, records.tests, records.items);
     if (st.moves.length || st.found.length || st.fixes.length) stories.set(m.id, st);
   }
   /* A fix that hangs under its stage is not drawn again among the Fixes. */
@@ -171,6 +180,13 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
           kind: m.kind, label: m.label, from: m.at, to: end, tone: m.tone,
           start: between(from, m.at), span: between(m.at, end) + 1, when: windowWords(m.at, end),
         };
+        const key = keyOfMark(m.kind, m.id);
+        if (key) row.key = key;
+        if (records && m.id && STAGE_KINDS.has(m.kind)) {
+          const step = records.tests.find(t => t.id === m.id);
+          const over = step ? overlapOf(step, records.tests) : undefined;
+          if (over) row.overlap = over.title;
+        }
         const st = m.id ? stories.get(m.id) : undefined;
         if (st) {
           if (st.original && st.original < end) {
@@ -186,6 +202,8 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
     if (rows.length) groups.push({ kind: g.kind, label: g.label, rows });
   }
 
+  const handoverMoves = records ? storyOf(HANDOVER_KEY, records.tests, records.items).moves
+    .map(m => ({ on: m.on, from: m.from, to: m.to, days: m.days, why: m.why })) : [];
   const inside = (iso?: string) => (iso && iso >= from && iso <= to ? between(from, iso) : undefined);
   const t = inside(today);
   const ex = inside(expectedAt);
@@ -196,6 +214,7 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
     ...(ex != null && expectedAt ? { expected: { at: ex, when: windowWords(expectedAt) } } : {}),
     ...(ag != null && plannedAt ? { agreed: { at: ag, when: windowWords(plannedAt) } } : {}),
     scale: days > WEEKS_AFTER ? 'week' : 'day',
+    ...(handoverMoves.length ? { handoverMoves } : {}),
   };
 }
 

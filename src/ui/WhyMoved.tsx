@@ -11,23 +11,46 @@
 import { useState } from 'react';
 import type { MediaRef } from '../types';
 import { plannedEnd, type Test } from '../lib/testing';
-import { movedLater } from '../lib/story';
+import { followingOf, movedLater, runsInto } from '../lib/story';
+import { putTestItem } from '../db';
 import { todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
 import type { useTesting } from '../lib/useTesting';
 import { deleteTest, deleteTestItem } from '../db';
 import { uid } from '../lib/ids';
-import { daysBetween, niceDay } from '../lib/weeks';
+import { addDays, daysBetween, niceDay } from '../lib/weeks';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceViewer } from './Evidence';
 
 type TT = ReturnType<typeof useTesting>;
 
-export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string } }
+export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string }; shiftFollowing?: boolean }
+
+/** What follows a stage on its machine, for the knock-on question. */
+export interface Following { n: number; into: string[] }
+export const followingSummary = (step: Test, tests: Test[], end: string): Following => {
+  const f = followingOf(step, tests);
+  return { n: f.length, into: runsInto(f, end).map(t => `${t.title}${t.plannedFor ? ` (${niceDay(t.plannedFor)})` : ''}`) };
+};
+
+/** THE KNOCK-ON, asked in the same breath. Ticked by itself when the new
+ *  finish runs into what comes next; never moved without saying. */
+function KnockOn({ following, days, on, set }: { following: Following; days: number; on: boolean; set: (v: boolean) => void }) {
+  if (!following.n || days <= 0) return null;
+  return (
+    <div className={'why-knock' + (following.into.length ? ' is-into' : '')}>
+      {following.into.length > 0 && (
+        <p className="why-knock-h">This now runs into {following.into.slice(0, 3).join(', ')}{following.into.length > 3 ? ` and ${following.into.length - 3} more` : ''}.</p>
+      )}
+      <label className="why-check"><input type="checkbox" checked={on} onChange={e => set(e.target.checked)} />
+        Move what follows on this machine by {days} day{days === 1 ? '' : 's'} too ({following.n} step{following.n === 1 ? '' : 's'})</label>
+    </div>
+  );
+}
 
 const QUICK = ['Problem found on the machine', 'Waiting on parts', 'Supplier not on site', 'Our side not ready', 'Rework needed'];
 
-export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, onSkip }: {
+export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, onSkip, following }: {
   /** The finish before, and the finish now asked for. */
   from: string; to: string;
   /** How many steps this moves, when planned in bulk. */
@@ -38,7 +61,10 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
   /** Move the date with no reason — re-planning, or a date typed wrong.
    *  Asked, never forced: nothing in the app is locked. */
   onSkip?: () => void;
+  /** What follows on the machine — offers to move it by the same days. */
+  following?: Following;
 }) {
+  const [shift, setShift] = useState(!!following?.into.length);
   const [why, setWhy] = useState('');
   const [media, setMedia] = useState<MediaRef[]>([]);
   const [fix, setFix] = useState(false);
@@ -68,9 +94,10 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
           )}
         </div>
       )}
+      {following && <KnockOn following={following} days={days} on={shift} set={setShift} />}
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}) })}>Save the move</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}), ...(shift && following?.n ? { shiftFollowing: true } : {}) })}>Save the move</button>
         {onSkip && <button type="button" className="btn btn-ghost" onClick={onSkip}>Just change the date — no reason</button>}
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel — keep the dates</button>
       </span>
@@ -105,12 +132,36 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
     });
     made.push({ item: id, ...(fixId ? { fix: fixId } : {}) });
   }
+  /* THE KNOCK-ON: what follows on the machine moves by the same days. */
+  const shifted: { id: string; plannedFor?: string; plannedTo?: string }[] = [];
+  const one = steps.length === 1 ? steps[0] : undefined;
+  if (a.shiftFollowing && one?.from && one.to) {
+    const days = daysBetween(one.from, one.to);
+    for (const f of followingOf(one.step, tt.tests)) {
+      shifted.push({ id: f.id, plannedFor: f.plannedFor, plannedTo: f.plannedTo });
+      await tt.patchTest(f.id, { plannedFor: f.plannedFor && addDays(f.plannedFor, days), plannedTo: f.plannedTo && addDays(f.plannedTo, days) });
+    }
+  }
   return async () => {
     for (const m of made) {
       await deleteTestItem(m.item);
       if (m.fix) await deleteTest(m.fix, steps[0].step.projectId);
     }
+    for (const f of shifted) await tt.patchTest(f.id, { plannedFor: f.plannedFor, plannedTo: f.plannedTo });
   };
+}
+
+/** WHY ONE OF THE OTHER DATES MOVED — the handover, a machine, a material, a
+ *  program. Kept as something found under the key that names it (lib/story),
+ *  so the plan can draw it and print the reason. Returns how to take it back. */
+export async function recordThingMove(projectId: string, key: string, from: string, to: string, a: WhyAnswer): Promise<() => Promise<void>> {
+  const at = Date.now(), id = uid();
+  await putTestItem({
+    id, projectId, testId: key, kind: 'found', what: a.why,
+    ...(a.media.length ? { media: a.media } : {}),
+    movedFrom: from, movedTo: to, sort: at, createdAt: at, updatedAt: at,
+  });
+  return async () => { await deleteTestItem(id); };
 }
 
 /* HIT A PROBLEM — one short form, the date asked in the same breath.
@@ -121,8 +172,10 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
  * whether it pushes the finish — and to when — and a fix, are one answer. A
  * later finish is kept as a move with this problem as its reason, so the Gantt
  * shows the overrun and why. */
-export function ProblemForm({ step, onSave, onCancel }: {
+export function ProblemForm({ step, onSave, onCancel, tests = [] }: {
   step: Test;
+  /** The job's steps — for what follows on the machine. */
+  tests?: Test[];
   onSave: (a: WhyAnswer & { to?: string }) => void;
   onCancel: () => void;
 }) {
@@ -134,6 +187,8 @@ export function ProblemForm({ step, onSave, onCancel }: {
   const [fixOn, setFixOn] = useState('');
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const later = movedLater(end, to || undefined);
+  const following = later && to ? followingSummary(step, tests, to) : undefined;
+  const [shift, setShift] = useState(true);
   return (
     <div className="why">
       <p className="why-h">What's the problem?</p>
@@ -148,6 +203,7 @@ export function ProblemForm({ step, onSave, onCancel }: {
         <span>Does it push the finish? <span className="cw-f-opt">{end ? `now ${niceDay(end)}` : 'no date yet'} · blank = no</span></span>
         <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
       {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(to)}</b> · <b>+{daysBetween(end, to)} day{daysBetween(end, to) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
+      {following && end && <KnockOn following={following} days={daysBetween(end, to)} on={shift && following.into.length > 0 ? true : shift} set={setShift} />}
       <div className="why-fix">
         <label className="why-check"><input type="checkbox" checked={fix} onChange={e => setFix(e.target.checked)} /> Book it in as a fix</label>
         {fix && (
@@ -157,7 +213,7 @@ export function ProblemForm({ step, onSave, onCancel }: {
       </div>
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}) })}>Save the problem</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}), ...(following?.n && shift && following.into.length ? { shiftFollowing: true } : {}) })}>Save the problem</button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}

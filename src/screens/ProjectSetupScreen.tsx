@@ -16,6 +16,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { useStanding } from '../lib/useStanding';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
+import { DateWhy } from '../ui/DateWhy';
+import { HANDOVER_KEY } from '../lib/story';
 import { MODELS, planModel, setPlanModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
@@ -456,11 +458,13 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
               <input className="pset-cell is-wide" type="date" value={project.plannedAt ?? ''}
                 onChange={e => void rename(project, { plannedAt: e.target.value || undefined })} />
             </label>
-            <label className="proj-field">
+            <div className="proj-field">
               <span className="field-label">Now expected</span>
-              <input className="pset-cell is-wide" type="date" value={project.expectedAt ?? ''}
-                onChange={e => void rename(project, { expectedAt: e.target.value || undefined })} />
-            </label>
+              {/* Later than it was? Asks why — the handover slip a client asks about first. */}
+              <DateWhy className="pset-cell is-wide" ariaLabel="Handover now expected" value={project.expectedAt}
+                projectId={project.id} storyKey={HANDOVER_KEY} what="Handover"
+                onChange={v => rename(project, { expectedAt: v })} />
+            </div>
           </>
         )}
       </div>

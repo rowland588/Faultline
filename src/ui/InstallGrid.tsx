@@ -19,7 +19,7 @@ import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
-import { ProblemForm, WhyMoved, recordMove, recordProblem, type WhyAnswer } from './WhyMoved';
+import { ProblemForm, WhyMoved, followingSummary, recordMove, recordProblem, type Following, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
@@ -219,7 +219,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
           {/* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
               the finish and to when, a fix. The plan hears all of it. */}
           {problem ? (
-            <ProblemForm step={t} onCancel={() => setProblem(false)}
+            <ProblemForm step={t} tests={tt.tests} onCancel={() => setProblem(false)}
               onSave={a => {
                 void recordProblem(tt, t, a, `${t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`);
                 setProblem(false); setOpen(null);
@@ -250,6 +250,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
               sheet open. Now they are held until Save, which writes both,
               says so, and closes. Finish empty = one day. */}
           <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
+            following={end => followingSummary(t, tt.tests, end)}
             onMove={(from, to, a) => {
               void moveWithWhy([t], from, to, a, `${t.title} moved to ${short(to ?? from)} — reason kept${a.fix ? ', fix booked' : ''}`);
               setOpen(null);
@@ -477,8 +478,10 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
 }
 
 /** ONE STEP'S START AND FINISH, held until Save. */
-export function DatesForm({ start, finish, was, onSave, onMove }: {
+export function DatesForm({ start, finish, was, onSave, onMove, following }: {
   start?: string; finish?: string;
+  /** What follows on the machine, for a finish this late — the knock-on. */
+  following?: (end: string) => Following;
   /** The finish it has now — a push past it asks why. */
   was?: string;
   onSave: (from: string | undefined, to: string | undefined) => void;
@@ -490,7 +493,7 @@ export function DatesForm({ start, finish, was, onSave, onMove }: {
   const changed = from !== (start ?? '') || to !== (finish ?? '');
   const end = from ? (to || from) : undefined;
   if (asking && was && end) {
-    return <WhyMoved from={was} to={end} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)}
+    return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)}
       onSkip={() => onSave(from || undefined, from ? (to || undefined) : undefined)} />;
   }
   return (

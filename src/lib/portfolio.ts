@@ -148,6 +148,9 @@ export interface Portfolio {
   /** Reminders set on meeting notes, every job, gone first — a week ahead.
    *  Kept apart from `items`: a reminder is not something a party owes. */
   reminders: JobItem[];
+  /** Fixes nobody has agreed a date for, every job — "no date agreed" is a
+   *  thing to chase, and nothing with no date reaches "this week". */
+  undated: JobItem[];
   owes: Owed[];
   /** Suppliers typed more than one way — the records disagree with each other. */
   variants: Company[];
@@ -409,6 +412,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
 
   return {
     axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency), reminders,
+    undated: all.flat().filter(x => x.kind === 'fix' && !x.on).sort((a, b) => a.job.localeCompare(b.job) || a.what.localeCompare(b.what)),
     totals: { jobs: jobs.length, outstanding, late, week: week.length },
     says: saysOf(jobs, owes, late),
   };

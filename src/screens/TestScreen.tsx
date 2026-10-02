@@ -15,7 +15,7 @@
  */
 import { OnTheLine } from '../ui/OnTheLine';
 import { Evidence } from '../ui/EvidenceDoors';
-import { WhyMoved, recordMove } from '../ui/WhyMoved';
+import { WhyMoved, followingSummary, recordMove } from '../ui/WhyMoved';
 import { movedLater } from '../lib/story';
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
@@ -263,6 +263,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         {moving && (
           <div className="cw-f-wide">
             <WhyMoved from={plannedEnd(test) as string} to={(moving.plannedTo ?? moving.plannedFor) as string}
+              following={followingSummary(test, tt.tests, (moving.plannedTo ?? moving.plannedFor) as string)}
               onCancel={() => setMoving(null)}
               onSkip={() => { save(moving); setMoving(null); }}
               onSave={a => void (async () => {

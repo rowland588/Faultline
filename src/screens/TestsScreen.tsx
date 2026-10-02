@@ -9,6 +9,8 @@
  * grouped by stage, an asset × pack grid with material supersession. The job
  * never had any of those. It has a cycle, and this is the list of times round it.
  */
+import { DateWhy } from '../ui/DateWhy';
+import { HANDOVER_KEY, keyOf } from '../lib/story';
 import { useState, type ChangeEvent } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -170,9 +172,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           <label className="cw-f"><span>Handover agreed — never moves</span>
             <input type="date" value={project.plannedAt ?? ''}
               onChange={e => void updateProject({ ...project, plannedAt: e.target.value || undefined, updatedAt: Date.now() })} /></label>
-          <label className="cw-f"><span>Handover now expected</span>
-            <input type="date" value={project.expectedAt ?? ''}
-              onChange={e => void updateProject({ ...project, expectedAt: e.target.value || undefined, updatedAt: Date.now() })} /></label>
+          <div className="cw-f"><span>Handover now expected</span>
+            <DateWhy ariaLabel="Handover now expected" value={project.expectedAt} projectId={project.id} storyKey={HANDOVER_KEY} what="Handover"
+              onChange={v => updateProject({ ...project, expectedAt: v, updatedAt: Date.now() })} /></div>
         </div>
       )}
 
@@ -344,8 +346,9 @@ export function MachineCard({ a, ran, save, remove }: {
           <label className="cw-f tw-oem"><span>Who supplied it</span>
             <DraftField value={a.oem ?? ''} placeholder="Ilapak UK"
               onSave={v => void save({ ...a, oem: v.trim() || undefined })} /></label>
-          <label className="cw-f"><span>Expected on site</span>
-            <input type="date" value={a.dueOn ?? ''} onChange={set('dueOn')} /></label>
+          <div className="cw-f"><span>Expected on site</span>
+            <DateWhy ariaLabel="Expected on site" value={a.dueOn} projectId={a.projectId} storyKey={keyOf('machine', a.id)} what={`${a.name} due on site`}
+              onChange={v => save({ ...a, dueOn: v })} /></div>
           <label className="cw-f"><span>On site</span>
             <input type="date" value={a.onSiteOn ?? ''} onChange={set('onSiteOn')} /></label>
           <label className="cw-f"><span>Installed</span>

@@ -14,6 +14,8 @@
  * The plan is kept here, one thing at a time — nothing is pasted in from a
  * spreadsheet any more.
  */
+import { DateWhy } from '../ui/DateWhy';
+import { keyOf } from '../lib/story';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -138,8 +140,9 @@ function Row({ m, today, lineName, state }: {
       <div className="mt-when">
         <span className={'mt-when-n is-' + where}>{when(m, today)}</span>
         {!isHere(m) && (
-          <input className="mt-due" type="date" aria-label={`Date ${m.what} is due`}
-            value={m.due ?? ''} onChange={e => void state.save({ ...m, due: e.target.value || undefined })} />
+          <DateWhy className="mt-due" ariaLabel={`Date ${m.what} is due`} value={m.due}
+            projectId={m.projectId} storyKey={keyOf('material', m.id)} what={m.what}
+            onChange={v => state.save({ ...m, due: v })} />
         )}
       </div>
 

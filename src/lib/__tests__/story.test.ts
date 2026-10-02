@@ -67,3 +67,72 @@ describe('the story on the Gantt', () => {
     expect(bare.groups.find(x => x.kind === 'fix')?.rows.length).toBe(1);   // the dated fix, on its own
   });
 });
+
+import { followingOf, runsInto, overlapOf, keyOf, keyOfMark, moveLines, HANDOVER_KEY } from '../story';
+import { portfolio } from '../portfolio';
+import type { Project } from '../../types';
+
+describe('the knock-on and the other dates', () => {
+  const mk = (id: string, gate: 'install' | 'setup', from: string, to?: string, over: Partial<Test> = {}): Test => ({
+    id, projectId: 'p', kind: 'install', gate: gate === 'install' ? undefined : gate, title: id, assetId: 'a', outcome: 'planned', plannedFor: from, plannedTo: to, sort: 1, createdAt: 1, updatedAt: 1, ...over,
+  });
+  const install = mk('Install', 'install', '2026-10-05', '2026-10-09');
+  const setup = mk('Setup', 'setup', '2026-10-12', '2026-10-14');
+  const handover = mk('Handover', 'setup', '2026-10-20');
+  const other = { ...mk('Other machine', 'setup', '2026-10-10'), assetId: 'b' };
+  const done = mk('Done one', 'setup', '2026-10-11', undefined, { outcome: 'passed' });
+  const tests = [install, setup, handover, other, done];
+
+  it('what follows a stage is every later, unfinished step on the same machine', () => {
+    expect(followingOf(install, tests).map(t => t.id)).toEqual(['Setup', 'Handover']);
+  });
+
+  it('a later finish says what it now runs into', () => {
+    const f = followingOf(install, tests);
+    expect(runsInto(f, '2026-10-12').map(t => t.id)).toEqual(['Setup']);
+    expect(runsInto(f, '2026-10-11')).toEqual([]);
+  });
+
+  it('flags a step that starts before the one ahead of it has finished', () => {
+    const pushed = { ...install, plannedTo: '2026-10-13' };
+    expect(overlapOf(setup, [pushed, setup, handover])?.id).toBe('Install');
+    expect(overlapOf(setup, tests)).toBeUndefined();
+  });
+
+  it('files the other dates under keys that name them', () => {
+    expect(keyOf('handover')).toBe(HANDOVER_KEY);
+    expect(keyOf('machine', 'x')).toBe('asset:x');
+    expect(keyOfMark('material', 'm')).toBe('material:m');
+    expect(keyOfMark('install', 's')).toBe('s');
+    expect(keyOfMark('note', 'n')).toBeUndefined();
+  });
+
+  it('prints the handover first, then the others, each with its reason', () => {
+    const items: TestItem[] = [
+      { id: 'h', projectId: 'p', testId: HANDOVER_KEY, kind: 'found', what: 'OEM engineer delayed', movedFrom: '2026-10-30', movedTo: '2026-11-03', sort: 1, createdAt: at('2026-10-02'), updatedAt: 1 },
+      { id: 'm', projectId: 'p', testId: 'asset:w', kind: 'found', what: 'Shipping held at port', movedFrom: '2026-10-01', movedTo: '2026-10-04', sort: 2, createdAt: at('2026-10-01'), updatedAt: 1 },
+    ];
+    const lines = moveLines([{ id: 'w', label: 'Wrapper', key: 'asset:w' }], [], items);
+    expect(lines.map(l => [l.stage, l.days, l.why])).toEqual([['Wrapper', 3, 'Shipping held at port'], ['Handover', 4, 'OEM engineer delayed']]);
+  });
+
+  it('draws a machine that arrived late as an overrun, and tells the plan when the handover moved', () => {
+    const items: TestItem[] = [
+      { id: 'h', projectId: 'p', testId: HANDOVER_KEY, kind: 'found', what: 'OEM engineer delayed', movedFrom: '2026-10-30', movedTo: '2026-11-03', sort: 1, createdAt: at('2026-10-02'), updatedAt: 1 },
+      { id: 'm', projectId: 'p', testId: 'asset:w', kind: 'found', what: 'Shipping held', movedFrom: '2026-10-01', movedTo: '2026-10-04', sort: 2, createdAt: at('2026-10-01'), updatedAt: 1 },
+    ];
+    const g = gantt([{ id: 'w', kind: 'machine', at: '2026-10-04', label: 'Wrapper', tone: 'booked' }], { today: TODAY, expectedAt: '2026-11-03' }, { tests: [], items });
+    const row = g.groups.find(x => x.kind === 'machine')!.rows[0];
+    expect(row.key).toBe('asset:w');
+    expect(row.slip?.days).toBe(3);
+    expect(g.handoverMoves?.[0]).toMatchObject({ days: 4, why: 'OEM engineer delayed' });
+  });
+
+  it('puts fixes with no date agreed on Home, apart from what is due', () => {
+    const project = { id: 'p', name: 'Line 2A', color: '#123', commissioning: true, createdAt: 1, updatedAt: 1 } as Project;
+    const fixA: Test = { id: 'f1', projectId: 'p', kind: 'fix', title: 'Order guard', outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1, withWhom: 'Ilapak' };
+    const fixB: Test = { id: 'f2', projectId: 'p', kind: 'fix', title: 'Dated fix', outcome: 'planned', plannedFor: '2026-10-05', sort: 2, createdAt: 1, updatedAt: 1 };
+    const pf = portfolio([{ project, tests: [fixA, fixB], items: [], materials: [], programs: [], assets: [] }], TODAY);
+    expect(pf.undated.map(x => [x.what, x.who])).toEqual([['Order guard', 'Ilapak']]);
+  });
+});

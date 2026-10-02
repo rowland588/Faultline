@@ -58,12 +58,14 @@ export function slipOf(s: StageStory, finishNow?: string): number {
 
 /** Every push later on these stages, oldest first, in words for paper — the
  *  "Why the plan moved" list under the printed Gantt. */
-export function moveLines(stages: { id?: string; label: string }[], tests: Test[], items: TestItem[]):
+export function moveLines(stages: { id?: string; label: string; key?: string }[], tests: Test[], items: TestItem[]):
   { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string }[] {
   const out: { at: string; line: { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string } }[] = [];
-  for (const s of stages) {
-    if (!s.id) continue;
-    const st = storyOf(s.id, tests, items);
+  /* The handover first among equals: it is the date the client asks about. */
+  for (const s of [{ label: 'Handover', key: HANDOVER_KEY } as { id?: string; label: string; key?: string }, ...stages]) {
+    const key = s.key ?? s.id;
+    if (!key) continue;
+    const st = storyOf(key, tests, items);
     for (const m of st.moves) {
       const f = m.fixId ? st.fixes.find(x => x.id === m.fixId) : undefined;
       const fix = f ? `${f.title} — ${f.outcome === 'passed' ? 'done' : f.plannedFor ? `date agreed ${niceDay(f.plannedFor)}` : 'no date agreed yet'}` : undefined;
@@ -71,4 +73,55 @@ export function moveLines(stages: { id?: string; label: string }[], tests: Test[
     }
   }
   return out.sort((a, b) => a.at.localeCompare(b.at)).map(x => x.line);
+}
+
+/* ---------------------------------------------------------------------------
+ * THE OTHER DATES THAT SLIP. Rowland: "do 1 to 3" — the first being that the
+ * handover, a machine's arrival, a material and a program's test date could
+ * all move with no reason asked. Their reasons are kept the same way a stage's
+ * are — something found, with the date it moved from and to — filed under a
+ * key that names what moved. A stage's key is its own id.
+ * ------------------------------------------------------------------------- */
+export const HANDOVER_KEY = 'job:handover';
+export type MovedThing = 'stage' | 'machine' | 'material' | 'program' | 'handover';
+export const keyOf = (thing: MovedThing, id?: string): string =>
+  thing === 'handover' ? HANDOVER_KEY
+    : thing === 'machine' ? `asset:${id}` : thing === 'material' ? `material:${id}` : thing === 'program' ? `program:${id}` : (id as string);
+/** The key a plan mark's story is filed under, when it has one. */
+export function keyOfMark(kind: string, id?: string): string | undefined {
+  if (!id) return undefined;
+  if (kind === 'machine') return keyOf('machine', id);
+  if (kind === 'material') return keyOf('material', id);
+  if (kind === 'program') return keyOf('program', id);
+  if (kind === 'install' || kind === 'setup' || kind === 'handover' || kind === 'test') return id;
+  return undefined;
+}
+
+/* ---------------------------------------------------------------------------
+ * WHAT FOLLOWS A STAGE. Rowland: when Install runs three days over, "Set up
+ * doesn't move and nothing says the two now overlap." What follows is every
+ * step or test on the same machine that starts after this one, not yet done.
+ * ------------------------------------------------------------------------- */
+export function followingOf(step: Test, tests: Test[]): Test[] {
+  const start = step.plannedFor ?? step.plannedTo;
+  if (!start) return [];
+  return live(tests)
+    .filter(t => t.id !== step.id && t.kind !== 'fix' && t.assetId === step.assetId && !!t.plannedFor
+      && (t.plannedFor as string) > start && t.outcome !== 'passed')
+    .sort((a, b) => (a.plannedFor as string).localeCompare(b.plannedFor as string) || a.sort - b.sort);
+}
+
+/** Of those, the ones a finish this late now runs into. */
+export const runsInto = (following: Test[], newEnd: string): Test[] =>
+  following.filter(t => (t.plannedFor as string) <= newEnd);
+
+/** A step that starts before the one ahead of it on its machine has finished:
+ *  the overlap, and which step it overlaps. */
+export function overlapOf(step: Test, tests: Test[]): Test | undefined {
+  if (!step.plannedFor || step.outcome === 'passed') return undefined;
+  const end = (t: Test) => (t.plannedTo && t.plannedTo > (t.plannedFor ?? '') ? t.plannedTo : t.plannedFor) as string;
+  return live(tests)
+    .filter(t => t.id !== step.id && t.kind !== 'fix' && t.assetId === step.assetId && !!t.plannedFor
+      && (t.plannedFor as string) < (step.plannedFor as string) && t.outcome !== 'passed' && end(t) >= (step.plannedFor as string))
+    .sort((a, b) => end(b).localeCompare(end(a)))[0];
 }

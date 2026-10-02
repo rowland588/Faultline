@@ -184,7 +184,13 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       }
       if (ww + 6 <= bw) doc.text(san(r.when), bx + 3, by + bh / 2 + 2.1);
       else { font(6, 'bold', INK2); doc.text(san(r.when), after, by + bh / 2 + 2.1); after += doc.getTextWidth(san(r.when)) + 3; }
-      if (r.slip) { font(6, 'bold', DANGER); doc.text(`+${r.slip.days}d`, after, by + bh / 2 + 2.1); }
+      if (r.slip) { font(6, 'bold', DANGER); doc.text(`+${r.slip.days}d`, after, by + bh / 2 + 2.1); after += doc.getTextWidth(`+${r.slip.days}d`) + 3; }
+      /* STARTS BEFORE THE STEP AHEAD HAS FINISHED — the same amber edge and
+         words the screen shows, so the client reads the overlap too. */
+      if (r.overlap) {
+        doc.setFillColor(AMBER); doc.rect(M + 1, y + 3, 2, ROW_H - 6, 'F');
+        font(6, 'bold', AMBER); doc.text(san(`overlaps ${r.overlap}`), after, by + bh / 2 + 2.1);
+      }
       /* SOMETHING HAPPENED HERE — a small red diamond on the day. */
       for (const mk of r.marks ?? []) {
         const cx = X(mk.at + 0.5), cy = y + 3;
@@ -229,6 +235,11 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
       font(7, 'normal', INK2); doc.text('past the finish first planned', kx + 15, ky);
       kx += 24 + doc.getTextWidth('past the finish first planned');
+    }
+    if (g.groups.some(x => x.rows.some(r => r.overlap))) {
+      doc.setFillColor(AMBER); doc.rect(kx, ky - 6, 2.5, 8, 'F');
+      font(7, 'normal', INK2); doc.text('starts before the step ahead has finished', kx + 6, ky);
+      kx += 15 + doc.getTextWidth('starts before the step ahead has finished');
     }
     if (g.groups.some(x => x.rows.some(r => r.marks))) {
       doc.setFillColor(DANGER); doc.setDrawColor('#ffffff'); doc.setLineWidth(0.5);

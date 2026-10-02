@@ -14,6 +14,8 @@
  * DATE. Marking something proved asks which day, because the word on its own is
  * an opinion and the date is the fact.
  */
+import { DateWhy } from '../ui/DateWhy';
+import { keyOf } from '../lib/story';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -283,8 +285,9 @@ function Row({ p, today, lineName, assets, state }: {
       <div className="mt-when">
         <span className={'mt-when-n is-pg-' + where}>{when(p, today)}</span>
         {!isProved(p) && (
-          <input className="mt-due" type="date" aria-label={`Date ${p.what} is being tested`}
-            value={p.testOn ?? ''} onChange={e => void state.save({ ...p, testOn: e.target.value || undefined })} />
+          <DateWhy className="mt-due" ariaLabel={`Date ${p.what} is being tested`} value={p.testOn}
+            projectId={p.projectId} storyKey={keyOf('program', p.id)} what={`${p.what} test`}
+            onChange={v => state.save({ ...p, testOn: v })} />
         )}
       </div>
 
