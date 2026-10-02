@@ -53,6 +53,11 @@ export interface SyncStatus {
    *  has not sent it. No amount of waiting on THIS device brings it down, so
    *  it is counted apart from what is merely still on its way. */
   missingDown?: number;
+  /** Of those, how many are films — the rest are photos. */
+  missingFilms?: number;
+  /** Missing files somebody has said to stop waiting for. Still fetched the
+   *  moment they reach the cloud; no longer counted. */
+  quietMissing?: number;
 }
 let status: SyncStatus = { state: 'signedout', lastSyncedAt: null };
 const listeners = new Set<() => void>();
@@ -203,6 +208,7 @@ let queueLock: Promise<unknown> = Promise.resolve();
  *  drain both change it, and two overlapping writes would lose one. */
 function withQueue<T>(fn: (q: Map<string, DownEntry>) => Promise<T> | T): Promise<T> {
   const run = queueLock.then(async () => {
+    await loadQuiet();
     const q = new Map<string, DownEntry>();
     for (const s of await keySet(DOWN_KEY)) {
       const i = s.indexOf('|');
@@ -224,9 +230,37 @@ const absent = new Set<string>();
 
 const isFilm = (key: string) => (mimes.get(key) ?? '').startsWith('video/');
 
+/* STOP WAITING FOR THESE. Rowland: "it says seven things only available on
+   the phone, I click repair sync, nothing happens." Nothing could: a file that
+   never left the phone that took it is not in the cloud for any repair to
+   fetch. Said once, it can be set aside — kept in the queue, so it still comes
+   down the moment that phone sends it, but no longer counted on every screen. */
+const QUIET_KEY = 'quietMissing';
+const quiet = new Set<string>();
+let quietLoad: Promise<void> | null = null;
+const loadQuiet = (): Promise<void> =>
+  (quietLoad ??= keySet(QUIET_KEY).then(ks => { for (const k of ks) quiet.add(k); }));
+
 function countDown(q: Map<string, DownEntry>) {
-  const missing = [...q.keys()].filter(k => absent.has(k)).length;
-  set({ pendingDown: q.size - missing, missingDown: missing });
+  const gone = [...q.keys()].filter(k => absent.has(k));
+  const missing = gone.filter(k => !quiet.has(k));
+  set({
+    pendingDown: q.size - gone.length,
+    missingDown: missing.length,
+    missingFilms: missing.filter(isFilm).length,
+    quietMissing: gone.length - missing.length,
+  });
+}
+
+/** Set aside every file that is only on the phone that took it. */
+export async function stopWaitingForMissing(): Promise<void> {
+  await loadQuiet();
+  await withQueue(async q => {
+    for (const k of q.keys()) if (absent.has(k)) quiet.add(k);
+    for (const k of [...quiet]) if (!q.has(k)) quiet.delete(k);
+    await keySetPut(QUIET_KEY, quiet);
+    countDown(q);
+  });
 }
 
 let draining = false;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
 import { useSession, useSyncStatus, signIn, signUp, signOut } from './session';
-import { syncNow, fullResync } from './sync';
+import { syncNow, fullResync, stopWaitingForMissing } from './sync';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 
@@ -13,6 +13,18 @@ export function CloudPanel() {
   const { session, loading } = useSession();
   const status = useSyncStatus();
   const [open, setOpen] = useState(false);
+  /* REPAIR SAYS WHAT IT DID. It used to close the sheet and work out of sight,
+     so a tap looked like nothing. Now the sheet stays, says it is working, and
+     ends with what it found. */
+  const [repair, setRepair] = useState<'idle' | 'running' | 'done'>('idle');
+  const runRepair = async () => {
+    setRepair('running');
+    try { await fullResync(); } finally { setRepair('done'); }
+  };
+  const missingWords = (n: number, films = 0) => {
+    const photos = n - films;
+    return [films ? `${films} film${films === 1 ? '' : 's'}` : '', photos ? `${photos} photo${photos === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+  };
 
   // Unreachable in practice — the Router blocks an unconfigured build before any
   // screen renders — but kept honest rather than silently rendering nothing.
@@ -81,16 +93,31 @@ export function CloudPanel() {
             Tests, fixes and notes are already here — this is only photos and films.{' '}
             {status.pendingUp ? <><b>{status.pendingUp}</b> file{status.pendingUp === 1 ? '' : 's'} still going up from this device. </> : null}
             {status.pendingDown ? <><b>{status.pendingDown}</b> coming down now, photos first — films are the slow part. </> : null}
-            {status.missingDown ? <><b>{status.missingDown}</b> never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}. Open Faultline on that phone with a signal and {status.missingDown === 1 ? 'it' : 'they'} will come across.</> : null}
+            {status.missingDown ? <><b>{status.missingDown}</b> — {missingWords(status.missingDown, status.missingFilms)} — never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}, and no repair on this device can fetch {status.missingDown === 1 ? 'it' : 'them'}. If that phone still has {status.missingDown === 1 ? 'it' : 'them'}, opening Faultline on it with a signal sends {status.missingDown === 1 ? 'it' : 'them'} across.</> : null}
           </p>
         ) : status.lastSyncedAt ? (
           <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up ✓</p>
         ) : null}
+        {status.missingDown ? (
+          <div style={{ marginBottom: 12 }}>
+            <button className="btn" onClick={() => void stopWaitingForMissing()}>Stop waiting for {status.missingDown === 1 ? 'it' : 'these'}</button>
+            <p className="sub" style={{ marginTop: 6 }}>
+              {status.missingDown === 1 ? 'It stops' : 'They stop'} being counted here. If {status.missingDown === 1 ? 'it ever reaches' : 'any ever reach'} the cloud, {status.missingDown === 1 ? 'it' : 'they'} still come{status.missingDown === 1 ? 's' : ''} down by {status.missingDown === 1 ? 'itself' : 'themselves'}.
+            </p>
+          </div>
+        ) : null}
+        {repair !== 'idle' && (
+          <p className="sub" role="status" style={{ marginBottom: 10, color: repair === 'running' ? 'var(--ink-2)' : 'var(--ok, #1e6b4b)' }}>
+            {repair === 'running'
+              ? 'Repairing — re-sending everything from this device and fetching everything back…'
+              : `Repair finished — everything re-sent and re-fetched${status.missingDown ? `. ${status.missingDown} still ${status.missingDown === 1 ? 'is' : 'are'} only on the phone that took ${status.missingDown === 1 ? 'it' : 'them'} — repair cannot bring ${status.missingDown === 1 ? 'that' : 'those'}` : ''}.`}
+          </p>
+        )}
         {status.state === 'error' && status.error && (
           <p className="sub" style={{ color: 'var(--danger)', marginBottom: 10 }}>{status.error}</p>
         )}
         <SheetRow label="Check for changes now" hint="usually unnecessary" onClick={() => { void syncNow(); setOpen(false); }} />
-        <SheetRow label="Repair sync" hint="re-send and re-fetch everything" onClick={() => { void fullResync(); setOpen(false); }} />
+        <SheetRow label={repair === 'running' ? 'Repairing…' : 'Repair sync'} hint="re-send and re-fetch everything" onClick={() => { if (repair !== 'running') void runRepair(); }} />
         <SheetRow label="Sign out" danger onClick={() => { setOpen(false); void signOut().then(r => { if (!r.ok) window.alert(r.reason); }); }} />
       </Sheet>
     </>
