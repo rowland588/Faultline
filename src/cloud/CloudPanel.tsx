@@ -9,6 +9,19 @@ import { fmtRelative } from '../lib/format';
  *  Supabase credentials the app still works (purely local) — but we SAY SO
  *  rather than silently hiding sign-in, because an unexplained missing login
  *  screen is impossible to diagnose from the outside. */
+/* The record kinds in the words the screens use. */
+const KIND_WORD: Record<string, string> = {
+  workspaces: 'line studies', cases: 'cases', observations: 'timed stops', segments: 'walk clips',
+  snag_assets: 'frames', snags: 'snags', projects: 'projects', project_targets: 'targets', project_actuals: 'actuals',
+  pace_ppm: 'lines', pace_todos: 'actions', pace_snapshots: 'uploads', pace_wins: 'wins',
+  tree_nodes: 'tree boxes', commission_assets: 'machines', tests: 'tests and steps', test_items: 'findings and fixes',
+  targets: 'targets', readings: 'readings', materials: 'materials', programs: 'programs', standards: 'line standards',
+};
+const refusedRows = (r: { rows: number }[]): string => {
+  const n = r.reduce((a, x) => a + x.rows, 0);
+  return `${n} row${n === 1 ? '' : 's'}`;
+};
+
 export function CloudPanel() {
   const { session, loading } = useSession();
   const status = useSyncStatus();
@@ -54,7 +67,14 @@ export function CloudPanel() {
           <span className={'cloud-ic' + (status.state === 'syncing' ? ' spin' : '')} aria-hidden>☁</span>
           <span className="cloud-main">
             <b>{session.user.email}</b>
-            {status.state === 'error' && <span className="sub">Backup paused — it will retry by itself</span>}
+            {status.state === 'error' && !status.refused?.length && <span className="sub">Backup paused — it will retry by itself</span>}
+            {/* A refused row is work that has left nobody's device. It is the
+                one thing here that must never read as "backed up". */}
+            {!!status.refused?.length && (
+              <span className="sub" style={{ color: 'var(--st-r)' }}>
+                {refusedRows(status.refused)} the cloud refused — {status.refused.map(r => KIND_WORD[r.kind] ?? r.kind).join(', ')}
+              </span>
+            )}
             {/* "Is everything synced?" answered with a number. Silence means
                 yes; a count means the files still moving, and how many. */}
             {status.state !== 'error' && (status.pendingUp || status.pendingDown || status.missingDown) ? (
@@ -88,6 +108,19 @@ export function CloudPanel() {
             itself. What is not in the cloud at all will not, however long this
             device waits — it is on the phone that took it, and saying "it
             carries on by itself" about those was not true. */}
+        {!!status.refused?.length && (
+          <div className="cloud-refused" style={{ marginBottom: 12 }}>
+            <p className="sub" style={{ color: 'var(--st-r)', fontWeight: 700 }}>
+              {refusedRows(status.refused)} on this device the cloud refused. {status.refused.length === 1 ? 'It stays' : 'They stay'} here and {status.refused.length === 1 ? 'is' : 'are'} sent again every pass.
+            </p>
+            {status.refused.map(r => (
+              <p key={r.kind} className="sub" style={{ margin: '4px 0 0' }}>
+                <b>{KIND_WORD[r.kind] ?? r.kind}</b> · {r.rows} row{r.rows === 1 ? '' : 's'} · <code>{r.message}</code>
+              </p>
+            ))}
+            <p className="sub" style={{ marginTop: 6 }}>If the same message is still here tomorrow, send it to whoever runs the database — it is a rule or a column on their side, not this device.</p>
+          </div>
+        )}
         {(status.pendingUp || status.pendingDown || status.missingDown) ? (
           <p className="sub" style={{ marginBottom: 10 }}>
             Tests, fixes and notes are already here — this is only photos and films.{' '}
@@ -95,7 +128,7 @@ export function CloudPanel() {
             {status.pendingDown ? <><b>{status.pendingDown}</b> coming down now, photos first — films are the slow part. </> : null}
             {status.missingDown ? <><b>{status.missingDown}</b> — {missingWords(status.missingDown, status.missingFilms)} — never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}, and no repair on this device can fetch {status.missingDown === 1 ? 'it' : 'them'}. If that phone still has {status.missingDown === 1 ? 'it' : 'them'}, opening Faultline on it with a signal sends {status.missingDown === 1 ? 'it' : 'them'} across.</> : null}
           </p>
-        ) : status.lastSyncedAt ? (
+        ) : status.lastSyncedAt && !status.refused?.length ? (
           <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up ✓</p>
         ) : null}
         {status.missingDown ? (

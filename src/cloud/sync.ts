@@ -58,12 +58,21 @@ export interface SyncStatus {
   /** Missing files somebody has said to stop waiting for. Still fetched the
    *  moment they reach the cloud; no longer counted. */
   quietMissing?: number;
+  /** ROWS THE CLOUD REFUSED on the last pass, by kind — a policy that said no,
+   *  a column the cloud has not got, a bad legacy row. They stay on this
+   *  device and go again next pass. Counted and named because for nine days
+   *  every workspace write was refused and nothing on screen said so
+   *  (docs/REVIEW.md, item 2): silence has to mean accepted, not unknown. */
+  refused?: { kind: string; rows: number; message: string }[];
 }
 let status: SyncStatus = { state: 'signedout', lastSyncedAt: null };
 const listeners = new Set<() => void>();
 export const onSyncChange = (fn: () => void): (() => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 export const syncStatus = (): SyncStatus => status;
 function set(s: Partial<SyncStatus>) { status = { ...status, ...s }; listeners.forEach(f => { try { f(); } catch { /* ignore */ } }); }
+// A dev-only seam so the account row can be driven in a browser with a status
+// the sandbox cannot reach for real (a refused push). Not in the built app.
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __faultlineSyncSet?: typeof set }).__faultlineSyncSet = set;
 
 async function userId(): Promise<string | null> {
   if (!supabase) return null;
@@ -538,6 +547,7 @@ export async function syncNow(): Promise<void> {
     const alive = new Set<string>();          // every row still here, for the prune
     const liveBlobs = new Set<string>();      // every blob a live row names, for the other prune
     const named = new Map<string, DownEntry>(); // …and who took it, for fetching it
+    const refused: NonNullable<SyncStatus['refused']> = [];
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
       const batch: { key: string; clock: number; row: Record<string, unknown>; local: Record<string, unknown> }[] = [];
@@ -560,6 +570,8 @@ export async function syncNow(): Promise<void> {
         const slice = batch.slice(i, i + CHUNK);
         const { error } = await supabase.from(kind).upsert(slice.map(b => b.row), { onConflict: 'id' });
         if (error) {
+          // Every row from here on in this kind stays on the device: say so.
+          refused.push({ kind, rows: batch.length - i, message: error.message });
           // rows for this kind wait for their SQL. Nothing is recorded as sent,
           // so they simply go again next pass — no cursor to hold back.
           if (isMissingTable(error) || isMissingColumn(error)) { set({ schemaOutdated: true }); break; }
@@ -613,8 +625,8 @@ export async function syncNow(): Promise<void> {
       countDown(q);
     });
 
-    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size });
-    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size });
+    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused });
+    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused });
     void drainDownloads(uid);
   } catch (e) {
     set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });
