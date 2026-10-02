@@ -90,10 +90,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   return (
     <div className="wrap">
       <div className="subhead">
-        {/* No back button here any more — the crumb bar above says where this
-            frame sits and steps up to any of it. What is left is the SIDEWAYS
-            move: out of this one frame and into everything the line has. */}
-        <button className="btn" data-tour="asset-back" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
+        {/* No back button and no "All evidence" button: the crumb bar above
+            steps up, and the Evidence tab below is the list — the same door
+            drawn twice was one more thing to look past. */}
         <div style={{ flex: 1 }} />
         {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}>⏱ Through time</button>}
         {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}

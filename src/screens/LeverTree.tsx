@@ -687,10 +687,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Lever tree</h1>
-          <p className="pace-lede">
-            The outcome, what has to be true for it, and the work underneath. Type into any box;
-            paste a list to fill a row in one go.
-          </p>
+          <p className="pace-lede">The outcome, what has to be true for it, and the work underneath.</p>
         </div>
         <div className="pace-head-actions">
           {actionParents.length > 0 && (

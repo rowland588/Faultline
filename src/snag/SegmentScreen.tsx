@@ -155,10 +155,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   return (
     <div className="wrap">
       <div className="subhead">
-        {/* Stepping up is the crumb bar's job now. What is left here is the
-            sideways move: out of the footage and into what the footage was
-            for. */}
-        <button className="btn" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ All evidence</button>
+        {/* Stepping up is the crumb bar's job and the Evidence tab below is
+            the list, so nothing here repeats either. */}
         <div style={{ flex: 1 }} />
         {segs.length > 1 && (
           <div className="seg-nav">

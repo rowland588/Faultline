@@ -239,7 +239,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Meeting notes</h1>
-          <p className="pace-lede">What you want to raise at the next meeting — about the whole project, a gate, a machine, or one step. Tick each one once it has been talked about.</p>
+          <p className="pace-lede">What to raise at the next meeting — tick each one once it has been talked about.</p>
         </div>
         <div className="pace-head-actions">
           {open.length > 0 && <button className="btn btn-ghost" onClick={copy}>{copied ? 'Copied' : 'Copy as a list'}</button>}

@@ -13,7 +13,7 @@
  * What rolls upward: the project's client report reads every line's next steps,
  * wins and snags, so the owners filling these in ARE what the client ends up
  * reading. One source at the top, fed from underneath. */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
@@ -33,11 +33,14 @@ import { useLinePackCounts } from '../lib/useLinePack';
 import { CapacityPanel } from './CapacityPanel';
 import { analyse } from '../lib/capacity';
 
-type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data' | 'capacity';
+type Lens = 'overview' | 'next' | 'wins' | 'snags' | 'data' | 'capacity';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'this line' },
-  { id: 'meeting',  label: 'Actions',    sub: 'by owner, on the board' },
-  { id: 'next',     label: 'Next steps', sub: 'to do & tests' },
+  /* ONE TAB FOR THE ACTIONS. "Actions" and "Next steps" sat side by side and
+     showed the same records — a 3P action IS a next step (lib/actions.ts) —
+     one grouped by owner, one as a list. One place now, with the grouping as
+     a switch inside it. */
+  { id: 'next',     label: 'Actions',    sub: 'to do, tests, by owner' },
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Numbers',    sub: 'record and chart' },
@@ -68,7 +71,10 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
 export function ProjectLineScreen({ projectId, lineId }: { projectId: string; lineId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const asked: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' || raw === 'capacity' ? raw : 'overview';
+  /* A saved ?view=meeting link lands on the actions, grouped by owner. */
+  const asked: Lens = raw === 'meeting' || raw === 'next' ? 'next'
+    : raw === 'data' || raw === 'snags' || raw === 'wins' || raw === 'capacity' ? raw : 'overview';
+  const [byOwner, setByOwner] = useState(raw === 'meeting');
 
   const { loading: projLoading, project } = useProject(projectId);
   const ppm = usePaceLines(projectId);
@@ -148,13 +154,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
             {line.sponsor && <> · sponsor {line.sponsor}</>}
           </p>
           <h1 className="pace-title">{line.name}</h1>
-          <p className="pace-lede">
-            {paced
-              ? <>This line’s own pack — its numbers, its actions, what is next, what worked and what the walk found.
-                  Everything here rolls up into the {project.name} report.</>
-              : <>This line’s own pack — what is next, what worked, and what the walk found. The rate it has to
-                  hit lives in Testing, agreed once and either proved or not.</>}
-          </p>
+          <p className="pace-lede">{paced ? `This line’s numbers, actions, wins and walk — all of it rolls up into the ${project.name} report.` : 'This line’s actions, wins and walk — its rate is agreed and proved in Testing.'}</p>
         </div>
         <div className="pace-head-actions">
           {/* The deck is drawn from the plan — the measures, their targets and the
@@ -254,26 +254,20 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
         </>
       )}
 
-      {lens === 'meeting' && (
+      {lens === 'next' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">Actions on {line.name}</h2>
             <p className="pace-sec-sub">
-              This line’s actions, by owner · {mine.length} action{mine.length === 1 ? '' : 's'}
+              {mine.length} action{mine.length === 1 ? '' : 's'} · what still needs doing here, what we are waiting on, and tests
               {' '}· the ones written for every line show here too
             </p>
+            <span className="gt-seg pace-sec-seg" role="group" aria-label="Show as">
+              <button type="button" className={byOwner ? '' : 'on'} onClick={() => setByOwner(false)}>List</button>
+              <button type="button" className={byOwner ? 'on' : ''} onClick={() => setByOwner(true)}>By owner</button>
+            </span>
           </div>
-          <PaceMeeting actions={mine} />
-        </section>
-      )}
-
-      {lens === 'next' && (
-        <section className="pace-sec">
-          <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Next steps on {line.name}</h2>
-            <p className="pace-sec-sub">What still needs doing here, what we are waiting on, and tests — with the write-up and the evidence</p>
-          </div>
-          <PaceNextSteps projectId={projectId} lineId={lineId} />
+          {byOwner ? <PaceMeeting actions={mine} /> : <PaceNextSteps projectId={projectId} lineId={lineId} />}
         </section>
       )}
 

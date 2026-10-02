@@ -14,6 +14,7 @@
  * the last FULL week so a Tuesday never reads as a miracle. */
 import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Sheet } from '../ui/Sheet';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, goBack } from '../state/useRoute';
 import { listSnagAssets, snagsForWorkspace, updateSnag, listCases, listSegments } from '../db';
@@ -107,6 +108,7 @@ export function MeetingScreen() {
   // The meeting's birth moment — Act 5 diffs everything against it.
   const [sessionStart] = useState(() => Date.now());
   const [act, setAct] = useState(0);
+  const [reports, setReports] = useState(false);
 
   const [snags, setSnags] = useState<Snag[]>([]);
   const [cases, setCases] = useState<Case[]>([]);
@@ -220,9 +222,24 @@ export function MeetingScreen() {
             {[...fullWeeks].reverse().map(w => <option key={w.start} value={w.start}>{weekOf(w.start)}</option>)}
             <option value="all">All time</option>
           </select>
-          <button className="btn btn-ghost meet-print" title="The printable one-page report" onClick={() => nav(`/w/${workspace.id}/report`)}>📄 Report</button>
+          {/* ONE DOOR TO PAPER. The one-page report had two buttons on this
+              screen and the evidence cards a third; everything printed from
+              the meeting is behind this one, named for what it is. */}
+          <button className="btn btn-ghost meet-print" onClick={() => setReports(true)}>📄 Reports</button>
           {act !== 0 && <button className="btn btn-ghost meet-home" onClick={() => setAct(0)}>⌂ Overview</button>}
         </div>
+        {reports && (
+          <Sheet open onClose={() => setReports(false)} title="On paper">
+            <div className="meet-reports">
+              <button type="button" className="meet-report" onClick={() => nav(`/w/${workspace.id}/report`)}>
+                <b>One-page report</b><small>The week on one page — lost time, where it went, the snags needing a push.</small>
+              </button>
+              <button type="button" className="meet-report" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>
+                <b>Evidence cards</b><small>One page per snag, with its picture — the list, printed or sent as a PDF.</small>
+              </button>
+            </div>
+          </Sheet>
+        )}
 
         {/* ═══ Act 0 — THE OVERVIEW BOARD. Every tile is a door. ═══ */}
         <div style={show(0)}>
@@ -288,8 +305,6 @@ export function MeetingScreen() {
           {/* the doors the Present tab used to open — the meeting adds, never removes */}
           <div className="meet-links">
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>Evidence report (print) ›</button>
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/report`)}>One-page report ›</button>
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/present`)}>Present the board ›</button>
           </div>
         </div>

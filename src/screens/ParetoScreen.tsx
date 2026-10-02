@@ -80,11 +80,7 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Pareto</h1>
-          <p className="pace-lede">
-            Where the time is actually going, ranked. Run at the start it says where to aim; run again
-            during the work it is <b>evidence</b> — whether the category you went after got smaller.
-            Drawn from the stops timed on the line, the last four weeks against the four before.
-          </p>
+          <p className="pace-lede">Where the time is going, ranked — the last four weeks against the four before.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>

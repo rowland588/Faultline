@@ -65,7 +65,8 @@ function ActionCard({ a }: { a: PaceAction }) {
         <span className="pm-line">{a.line}</span>
         <span className="pm-cat">{a.category}</span>
         {a.due && <span className="pm-due">due {a.due}</span>}
-        <span className="pm-ref">{a.ref}</span>
+        {/* No ref: it was the workbook's row number, and since actions live in
+            the app it is the record's id — a 36-character word nobody reads. */}
       </header>
       {a.problem && <p className="pm-problem">{a.problem}</p>}
       {a.action && <p className="pm-do"><b>Action</b> {a.action}</p>}

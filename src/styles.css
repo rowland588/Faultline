@@ -7860,3 +7860,20 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .wp-meta { font-size: 12px; color: var(--muted); }
 .wp-all { align-self: flex-start; }
 @media (max-width: 640px) { .wp-row { grid-template-columns: 92px 1fr; } .wp-pic .otl-frame { max-width: 92px; } }
+
+/* the actions on a line: list, or by owner — one tab, one switch */
+.pace-sec-seg { margin-left: auto; align-self: center; }
+@media (max-width: 640px) { .pace-sec-seg { margin-left: 0; } }
+
+/* the meeting's one door to paper */
+.meet-reports { display: flex; flex-direction: column; gap: 10px; }
+.meet-report {
+  appearance: none; display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 12px 14px; text-align: left; cursor: pointer;
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+.meet-report:hover { border-color: var(--line-2); }
+.meet-report b { font-size: 15px; }
+.meet-report small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.pace-sec-head:has(.pace-sec-seg) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.pace-sec-head:has(.pace-sec-seg) .pace-sec-title { margin: 0; }
+.pace-sec-head:has(.pace-sec-seg) .pace-sec-sub { flex: 1 1 100%; order: 3; margin: 0; }
