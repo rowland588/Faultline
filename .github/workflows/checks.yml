@@ -38,6 +38,16 @@ jobs:
       - name: Tests
         run: npx vitest run
 
+      # The live database is where drift bites. With the two Supabase values in
+      # the repository's secrets this reads the live API's schema and fails on
+      # a column the app writes that the cloud has not got; without them the
+      # script says "skipped" and passes.
+      - name: Live schema
+        run: node scripts/check-live-schema.mjs
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
       # The build also runs check-env, so a missing environment variable is
       # caught here rather than by a white screen in production.
       - name: Build

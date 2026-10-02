@@ -100,6 +100,7 @@ npx eslint src --max-warnings 69      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
+node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
 
 The lint number is a **ceiling that only ever comes down**. The remaining
