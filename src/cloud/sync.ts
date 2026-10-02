@@ -64,6 +64,28 @@ export interface SyncStatus {
    *  every workspace write was refused and nothing on screen said so
    *  (docs/REVIEW.md, item 2): silence has to mean accepted, not unknown. */
   refused?: { kind: string; rows: number; message: string }[];
+  /** EDITS OF OURS A NEWER COPY REPLACED. Last-write-wins is the right rule
+   *  for a team this size, but the loser used to lose in silence. Kept in
+   *  meta until somebody says they have seen them (docs/REVIEW.md, 5). */
+  overwritten?: Overwritten[];
+}
+export interface Overwritten { kind: string; id: string; title: string; at: number }
+const OVERWRITTEN_KEY = 'overwritten';
+async function readOverwritten(): Promise<Overwritten[]> {
+  const m = (await metaGet(OVERWRITTEN_KEY)) as { rows?: Overwritten[] } | undefined;
+  return m?.rows ?? [];
+}
+/** The title a person would know the row by, whatever kind it is. */
+export function titleOf(row: Record<string, unknown>): string {
+  for (const k of ['what', 'title', 'name', 'problem', 'text', 'product', 'note']) {
+    const v = row[k]; if (typeof v === 'string' && v.trim()) return v.trim().slice(0, 80);
+  }
+  return 'an item';
+}
+/** They have been seen: forget them. */
+export async function clearOverwritten(): Promise<void> {
+  await metaPut(OVERWRITTEN_KEY, { rows: [] });
+  set({ overwritten: [] });
 }
 let status: SyncStatus = { state: 'signedout', lastSyncedAt: null };
 const listeners = new Set<() => void>();
@@ -398,6 +420,8 @@ export async function syncNow(): Promise<void> {
     set({ state: 'syncing', error: undefined });
     const cursor = await getSyncCursor();       // the LEGACY PULL cursor only — the push no longer reads it
     const sent = await readSent();
+    const overwritten = await readOverwritten();
+    const overwrittenBefore = overwritten.length;
     const uploaded = await keySet('uploaded');
     const wantedUploads = await keySet('pendingUploads');   // prior failures — retried AFTER the rows
 
@@ -483,6 +507,11 @@ export async function syncNow(): Promise<void> {
              fetch any blob it is missing. The rule is remoteWins(), above. */
           /* Its files are the end-of-pass sweep's business, not this row's. */
           if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) return;
+          /* A newer copy is about to replace an edit this device never got
+             to push. The loser is told, once, by name. */
+          if (needsPush(sent, kind, id, localClock)) {
+            overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
+          }
         }
 
         const incoming = map.fromRow(r);
@@ -625,8 +654,10 @@ export async function syncNow(): Promise<void> {
       countDown(q);
     });
 
-    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused });
-    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused });
+    if (overwritten.length !== overwrittenBefore) await metaPut(OVERWRITTEN_KEY, { rows: overwritten.slice(-20) });
+    const over = overwritten.slice(-20);
+    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over });
+    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over });
     void drainDownloads(uid);
   } catch (e) {
     set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });

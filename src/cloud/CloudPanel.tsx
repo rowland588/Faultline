@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
 import { useSession, useSyncStatus, signIn, signUp, signOut } from './session';
-import { syncNow, fullResync, stopWaitingForMissing } from './sync';
+import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten } from './sync';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 
@@ -70,6 +70,11 @@ export function CloudPanel() {
             {status.state === 'error' && !status.refused?.length && <span className="sub">Backup paused — it will retry by itself</span>}
             {/* A refused row is work that has left nobody's device. It is the
                 one thing here that must never read as "backed up". */}
+            {!!status.overwritten?.length && !status.refused?.length && (
+              <span className="sub" style={{ color: 'var(--st-a)' }}>
+                {status.overwritten.length === 1 ? 'An edit of yours was replaced by a newer one' : `${status.overwritten.length} edits of yours were replaced by newer ones`} — see Account
+              </span>
+            )}
             {!!status.refused?.length && (
               <span className="sub" style={{ color: 'var(--st-r)' }}>
                 {refusedRows(status.refused)} the cloud refused — {status.refused.map(r => KIND_WORD[r.kind] ?? r.kind).join(', ')}
@@ -119,6 +124,20 @@ export function CloudPanel() {
               </p>
             ))}
             <p className="sub" style={{ marginTop: 6 }}>If the same message is still here tomorrow, send it to whoever runs the database — it is a rule or a column on their side, not this device.</p>
+          </div>
+        )}
+        {!!status.overwritten?.length && (
+          <div className="cloud-overwritten" style={{ marginBottom: 12 }}>
+            <p className="sub" style={{ color: 'var(--st-a)', fontWeight: 700 }}>
+              {status.overwritten.length === 1 ? 'An edit of yours was replaced' : `${status.overwritten.length} edits of yours were replaced`} by a newer copy from another device:
+            </p>
+            {status.overwritten.map(o => (
+              <p key={`${o.kind}:${o.id}`} className="sub" style={{ margin: '4px 0 0' }}>
+                <b>{o.title}</b> · {KIND_WORD[o.kind] ?? o.kind} · {fmtRelative(o.at)}
+              </p>
+            ))}
+            <p className="sub" style={{ marginTop: 6 }}>Two people changed the same thing while one was offline, and the later change won. Check it says what you meant.</p>
+            <button className="btn btn-sm" style={{ marginTop: 6 }} onClick={() => void clearOverwritten()}>OK, seen</button>
           </div>
         )}
         {(status.pendingUp || status.pendingDown || status.missingDown) ? (
