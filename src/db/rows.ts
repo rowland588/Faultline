@@ -7,6 +7,7 @@
 import type { ID, MediaRef } from '../types';
 import type { WinProof } from '../lib/measureProof';
 import type { TrackerBind } from '../lib/treeBind';
+import type { Capacity } from '../lib/capacity';
 
 export interface PaceTodoRow {
   id: string;
@@ -100,6 +101,10 @@ export interface PaceLineRow {
   /** This line's own workspace — its snag walk, its captures, its reports.
    *  Created on first use, never on first view. */
   workspaceId?: string;
+
+  /** WHERE THIS LINE IS LIMITED — its stations in order, each with a unit and a
+   *  speed (lib/capacity). One document on the line; empty until filled in. */
+  capacity?: Capacity;
 
   /** Display order within the project. Lines are added and reordered by hand,
    *  so the order is data, not the order they happened to be created in. */

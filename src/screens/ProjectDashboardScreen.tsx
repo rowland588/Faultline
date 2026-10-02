@@ -39,6 +39,7 @@ import { niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
+import { analyse, shortSays } from '../lib/capacity';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
 import { statusOfAction } from '../lib/treeBind';
 import type { PaceAction } from '../lib/tracker';
@@ -459,6 +460,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     l.id, lineSeries(nums.measures, nums.periods, nums.targets, nums.readings, l.id),
   ]));
   const headline = nums.measures[0];
+  const limited = ppm.lines.flatMap(l => {
+    const says = l.capacity ? shortSays(analyse(l.capacity)) : undefined;
+    return says ? [{ line: l, says }] : [];
+  });
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
   /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
@@ -616,6 +621,22 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           <Fold id="p3-board" title="The board" says={boardSays}>
             <BoardPanel projectId={projectId} actions={actions} bare />
           </Fold>
+
+          {/* WHERE EACH LINE IS LIMITED — what the Pareto cannot say. Only drawn
+              once a line has its stations in: a card that asks for work before
+              it has anything to say is a gimmick on the front page. */}
+          {limited.length > 0 && (
+            <Fold id="p3-capacity" title="Where each line is limited" says={limited.length === 1 ? limited[0].says : `${limited.length} lines counted`}>
+              <ul className="dw-list">
+                {limited.map(x => (
+                  <li key={x.line.id} className="dw-row">
+                    <button className="dw-t" onClick={() => nav(`/project/${projectId}/line/${x.line.id}?view=capacity`)}>{x.line.name}</button>
+                    <span className="dw-w">{x.says}</span>
+                  </li>
+                ))}
+              </ul>
+            </Fold>
+          )}
 
           {/* DID IT WORK? Each closed action, judged by the line's own numbers
               either side of the day it closed — the same proof a Win carries.

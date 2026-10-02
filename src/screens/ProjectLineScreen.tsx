@@ -30,8 +30,10 @@ import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { planModel } from '../lib/planModel';
 import { useLinePackCounts } from '../lib/useLinePack';
+import { CapacityPanel } from './CapacityPanel';
+import { analyse } from '../lib/capacity';
 
-type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data';
+type Lens = 'overview' | 'meeting' | 'next' | 'wins' | 'snags' | 'data' | 'capacity';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'this line' },
   { id: 'meeting',  label: 'Actions',    sub: 'from the tracker' },
@@ -39,6 +41,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'wins',     label: 'Success',    sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Numbers',    sub: 'record and chart' },
+  { id: 'capacity', label: 'Capacity',   sub: 'where it is limited' },
 ];
 
 /* WHAT A LINE ON A COMMISSIONING JOB HAS.
@@ -65,7 +68,7 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
 export function ProjectLineScreen({ projectId, lineId }: { projectId: string; lineId: string }) {
   const route = useRoute();
   const raw = route.query.get('view');
-  const asked: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' ? raw : 'overview';
+  const asked: Lens = raw === 'meeting' || raw === 'data' || raw === 'snags' || raw === 'next' || raw === 'wins' || raw === 'capacity' ? raw : 'overview';
 
   const { loading: projLoading, project } = useProject(projectId);
   const ppm = usePaceLines(projectId);
@@ -123,6 +126,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
      with a number rather than an assertion is what keeps it that way. */
   const off = head?.meeting === false && head.margin != null
     ? say(Math.abs(head.margin), head.measure.unit) : null;
+
+  const capLine = line.capacity && line.capacity.stations.length > 0 ? analyse(line.capacity).sentence : undefined;
 
   const go = (l: Lens) => nav(l === 'overview'
     ? `/project/${projectId}/line/${lineId}`
@@ -200,6 +205,19 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
                 green nought reads as "all good" when it means "nothing yet" */}
             <Kpi n={String(counts.wins)} label="wins logged" sub="what worked" tone={counts.wins > 0 ? 'good' : undefined} />
           </div>
+
+          {/* WHERE THE LINE IS LIMITED, one line on the overview — what the
+              Pareto cannot say. Quiet until the stations are filled in. */}
+          {paced && (
+            <button className={'why-door cap-door' + (capLine ? ' is-set' : '')} onClick={() => go('capacity')}>
+              <span className="why-door-t">{capLine ?? 'Where is this line limited?'}</span>
+              <span className="why-door-s">
+                {capLine
+                  ? 'Open the capacity view — each station at its own speed, in one unit.'
+                  : 'List the machines and people in order, each at its own speed. The shortest one is what holds the line back.'}
+              </span>
+            </button>
+          )}
 
           {paced && head && (
           <section className="pace-sec">
@@ -291,6 +309,10 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           </div>
           <LineNumbers projectId={projectId} line={line} />
         </section>
+      )}
+
+      {lens === 'capacity' && paced && (
+        <CapacityPanel projectId={projectId} line={line} onSave={cap => ppm.editLine(lineId, { capacity: cap })} />
       )}
 
       <footer className="pace-foot">

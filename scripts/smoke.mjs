@@ -104,6 +104,7 @@ const ROUTES = [
   ['measured numbers', `#/project/${seeded.pacedProjectId}?view=data`],
   ['measured lines', `#/project/${seeded.pacedProjectId}?view=lines`],
   ['measured line', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}`],
+  ['line capacity', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=capacity`],
   ['line numbers', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=data`],
   ['line success', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=wins`],
   ['materials', `#/project/${seeded.pacedProjectId}/materials`],

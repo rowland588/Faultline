@@ -306,10 +306,36 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const periods: Period[] = quarters(iso(-40), uid);
   await updateProject({ ...paced, measures: [ppm, waste], periods, updatedAt: t });
 
+  /* LINE 2A's STATIONS — the worked line from lib/capacity's tests: a bagger at
+     70 a minute, baskets of 12 at 5.5 a minute (running 94% of the time, so it
+     is its STOPS that limit the line, not its speed), a person carrying two
+     baskets every 20 s, and a palletiser at 8 pallets an hour. Its stops are
+     logged on the line's own workspace, against those machine names. */
+  const capWs = await createWorkspace('Line 2A — capacity');
   const pacedLine = await addPaceLine({
     projectId: paced.id, key: '2A', name: 'Line 2A', variant: 'measured independently',
-    owner: 'Rob Scott', sponsor: 'Tanya', sort: 0,
+    owner: 'Rob Scott', sponsor: 'Tanya', sort: 0, workspaceId: capWs.id,
+    capacity: {
+      targetPerMin: 66, plannedHoursPerWeek: 10,
+      stations: [
+        { id: 'cap-bagger', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', source: 'plate' },
+        { id: 'cap-basketer', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 5.5, ratePer: 'min', runningPct: 94, source: 'timed', note: 'Timed 30 baskets, 2 Oct' },
+        { id: 'cap-carrier', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap' },
+        { id: 'cap-palletiser', name: 'Palletiser', kind: 'machine', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour', source: 'plate' },
+      ],
+    },
   });
+  const stop = (asset: string, mins: number, daysAgo: number, category = 'Breakdown', subcategory = 'Mechanical'): Observation => ({
+    id: uid(), workspaceId: capWs.id, category, subcategory, asset, shift: 'Days',
+    startedAt: t - daysAgo * 86_400_000, endedAt: t - daysAgo * 86_400_000 + mins * 60_000, durationMs: mins * 60_000,
+    count: 1, timing: 'stopwatch', media: [], createdAt: t, updatedAt: t,
+  });
+  for (const o of [
+    stop('Basketer', 52, 2), stop('Basketer', 38, 5), stop('Basketer', 54, 9),
+    stop('Basketer', 12, 4, 'Waiting', 'Blocked downstream'),
+    stop('Palletiser', 8, 3), stop('Bagger', 6, 6),
+    stop('Bagger', 9, 7, 'Waiting', 'Starved upstream'),
+  ]) await addObservation(o);
   const otherLine = await addPaceLine({
     projectId: paced.id, key: '7', name: 'Line 7', owner: 'Lee Carty', sponsor: 'Tanya', sort: 1,
   });

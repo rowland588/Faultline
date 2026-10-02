@@ -268,6 +268,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         line_owner: p.owner ?? null, line_owner_email: p.ownerEmail ?? null,
         sponsor: p.sponsor ?? null, sponsor_email: p.sponsorEmail ?? null,
         workspace_id: p.workspaceId ?? null, sort: p.sort ?? 0,
+        capacity: p.capacity ?? null,
         /* q1..q4 and weekly are still columns on this table and are no longer
            written: the numbers moved to `targets` and `readings`. They default
            to 0 and [] in the cloud, so an insert without them is accepted —
@@ -282,6 +283,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       owner: (r.line_owner as string) ?? undefined, ownerEmail: (r.line_owner_email as string) ?? undefined,
       sponsor: (r.sponsor as string) ?? undefined, sponsorEmail: (r.sponsor_email as string) ?? undefined,
       workspaceId: (r.workspace_id as string) ?? undefined, sort: Number(r.sort) || 0,
+      capacity: (r.capacity as PaceLineRow['capacity']) ?? undefined,
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
