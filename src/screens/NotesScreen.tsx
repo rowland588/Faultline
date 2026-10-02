@@ -12,34 +12,80 @@ import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { GATE_WORD } from '../lib/install';
-import { gateOf, live, WHOLE_JOB, type Test, type TestItem } from '../lib/testing';
+import { live, WHOLE_JOB, type Asset, type Test, type TestItem } from '../lib/testing';
+import {
+  NOTE_GATES, decodeScope, encodeScope, gateOfRecord, parentScope, recordsUnder, scopeLabel, scopeRank, type NoteScope,
+} from '../lib/noteScope';
 import { Crumbs } from '../ui/Crumbs';
 
 const TICK = '✓';
 
-type TT = ReturnType<typeof useTesting>;
-type Options = { label: string; rows: Test[] }[];
+/** Where each gate lives, the same paths the tabs go to. */
+const GATE_PATH: Record<string, string> = {
+  install: 'install', setup: 'set-up', commission: 'testing', handover: 'handover', fixes: 'fixes', materials: 'materials',
+};
 
-/** The step picker, shared by a new note and an edited one. */
-function AboutSelect({ value, onChange, options, machine }: {
-  value: string; onChange: (v: string) => void; options: Options; machine: (id?: string) => string | undefined;
-}) {
+type TT = ReturnType<typeof useTesting>;
+/** What a picker needs to say what a note can be about. */
+type Job = { tests: Test[]; assets: Asset[] };
+
+/** WHAT A NOTE IS ABOUT, in two steps that mirror the job's own tabs. The first
+ *  box is the whole project, then Install · Set up · Commission · Hand over ·
+ *  Fixes · Materials — every one of them, whether or not anything has been
+ *  planned there yet — then each machine. The second box appears when there is
+ *  something finer to point at: one step, test or fix, grouped under the machine
+ *  (or the gate) it belongs to and in the order the job runs. Left on "anything
+ *  in it", the note is about the whole gate or the whole machine. */
+function AboutPicker({ value, onChange, job }: { value: string; onChange: (v: string) => void; job: Job }) {
+  const scope = decodeScope(value, job.tests, job.assets);
+  /* The first box remembers what was chosen, rather than recomputing it from the
+     value: a record picked under a machine belongs to a gate too, and the box
+     must not jump from the machine to the gate under the person's hand. */
+  const [first, setFirst] = useState<string>(() => encodeScope(parentScope(scope, job.tests)));
+  const firstScope = decodeScope(first, job.tests, job.assets);
+  const records = recordsUnder(firstScope, job.tests, job.assets);
+  const machine = (id?: string) => job.assets.find(a => a.id === id)?.name;
+  /* Grouped under the machine for a gate, under the gate for a machine. */
+  const groups: { label: string; rows: Test[] }[] = [];
+  for (const t of records) {
+    const label = firstScope.kind === 'machine'
+      ? NOTE_GATES.find(g => g.id === gateOfRecord(t))?.label ?? ''
+      : machine(t.assetId) ?? 'The line itself';
+    let g = groups.find(x => x.label === label);
+    if (!g) { g = { label, rows: [] }; groups.push(g); }
+    g.rows.push(t);
+  }
   return (
-    <select value={value} onChange={e => onChange(e.target.value)}>
-      <option value={WHOLE_JOB}>The whole project</option>
-      {options.map(g => (
-        <optgroup key={g.label} label={g.label}>
-          {g.rows.map(t => <option key={t.id} value={t.id}>{t.title}{machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}</option>)}
+    <span className="nt-pick">
+      <select value={first} aria-label="About" onChange={e => { setFirst(e.target.value); onChange(e.target.value); }}>
+        <option value={encodeScope({ kind: 'job' })}>The whole project</option>
+        <optgroup label="A gate">
+          {NOTE_GATES.map(g => <option key={g.id} value={encodeScope({ kind: 'gate', gate: g.id })}>{g.label}</option>)}
         </optgroup>
-      ))}
-    </select>
+        {job.assets.filter(a => !a.deletedAt).length > 0 && (
+          <optgroup label="A machine">
+            {job.assets.filter(a => !a.deletedAt).map(a => <option key={a.id} value={encodeScope({ kind: 'machine', assetId: a.id })}>{a.name}</option>)}
+          </optgroup>
+        )}
+      </select>
+      {records.length > 0 && (
+        <select value={scope.kind === 'record' ? value : ''} aria-label="Which one"
+          onChange={e => onChange(e.target.value || first)}>
+          <option value="">Anything in {scopeLabel(firstScope, job.tests, job.assets)}</option>
+          {groups.map(g => (
+            <optgroup key={g.label} label={g.label}>
+              {g.rows.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      )}
+    </span>
   );
 }
 
 /** One note: tick it once raised; tap the words to change them, or what the
  *  note is about. */
-function Row({ n, tt, options, machine }: { n: TestItem; tt: TT; options: Options; machine: (id?: string) => string | undefined }) {
+function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
   const done = n.doneAt != null;
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(n.what);
@@ -63,7 +109,7 @@ function Row({ n, tt, options, machine }: { n: TestItem; tt: TT; options: Option
               if (e.key === 'Escape') setEditing(false);
             }} />
           <label className="nt-about"><span>About</span>
-            <AboutSelect value={about} onChange={setAbout} options={options} machine={machine} /></label>
+            <AboutPicker value={about} onChange={setAbout} job={job} /></label>
           <span className="nt-edit-acts">
             <button className="btn btn-primary btn-sm" onClick={save} disabled={!text.trim()}>Save</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
@@ -75,14 +121,6 @@ function Row({ n, tt, options, machine }: { n: TestItem; tt: TT; options: Option
       <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}>×</button>
     </div>
   );
-}
-
-/** What a note is about, in words: "Install · Guarding fitted — Pick and place". */
-function aboutWords(t: Test | undefined, machine: (id?: string) => string | undefined): string {
-  if (!t) return 'The whole project';
-  const face = t.kind === 'fix' ? 'Fix' : t.kind === 'install' ? GATE_WORD[gateOf(t)] : 'Test';
-  const m = machine(t.assetId);
-  return `${face} · ${t.title}${m ? ` — ${m}` : ''}`;
 }
 
 export function NotesScreen({ projectId }: { projectId: string }) {
@@ -97,23 +135,25 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
 
-  const tests = live(tt.tests);
-  const machine = (id?: string) => tt.assets.find(a => a.id === id)?.name;
-  const byId = new Map(tests.map(t => [t.id, t]));
+  const job: Job = { tests: tt.tests, assets: tt.assets };
   const notes = live(tt.items).filter(i => i.kind === 'note').sort((a, b) => a.createdAt - b.createdAt);
   const open = notes.filter(n => n.doneAt == null);
   const raised = notes.filter(n => n.doneAt != null);
 
-  /* Grouped by what they are about: the whole project first, then each step
-     in the order its first note was written. */
-  const groups: { key: string; notes: TestItem[] }[] = [];
+  /* Grouped by what they are about, in the order the job runs: the whole
+     project, then Install · Set up · Commission · Hand over · Fixes, then each
+     machine, then single steps. */
+  const scopeOf = (n: TestItem) => decodeScope(n.testId, tt.tests, tt.assets);
+  const groups: { key: string; scope: NoteScope; notes: TestItem[] }[] = [];
   for (const n of open) {
-    const key = n.testId && byId.has(n.testId) ? n.testId : WHOLE_JOB;
+    const sc = scopeOf(n);
+    const key = encodeScope(sc);
     let g = groups.find(x => x.key === key);
-    if (!g) { g = { key, notes: [] }; groups.push(g); }
+    if (!g) { g = { key, scope: sc, notes: [] }; groups.push(g); }
     g.notes.push(n);
   }
-  groups.sort((a, b) => (a.key === WHOLE_JOB ? -1 : b.key === WHOLE_JOB ? 1 : 0));
+  groups.sort((a, b) => scopeRank(a.scope, tt.tests, tt.assets) - scopeRank(b.scope, tt.tests, tt.assets));
+  const words = (sc: NoteScope) => scopeLabel(sc, tt.tests, tt.assets);
 
   const add = async () => {
     if (!what.trim()) return;
@@ -122,19 +162,9 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   };
   const copy = () => {
     const text = [`${project.name} — to raise`, '',
-      ...groups.flatMap(g => [aboutWords(byId.get(g.key), machine), ...g.notes.map(n => `• ${n.what}`), ''])].join('\n');
+      ...groups.flatMap(g => [words(g.scope), ...g.notes.map(n => `• ${n.what}`), ''])].join('\n');
     void navigator.clipboard?.writeText(text).then(() => setCopied(true), () => setCopied(false));
   };
-
-  const pick = (kind: Test['kind'] | 'step', gate?: string) => tests.filter(t =>
-    kind === 'step' ? t.kind === 'install' && gateOf(t) === gate : (t.kind ?? 'test') === kind);
-  const optgroups: { label: string; rows: Test[] }[] = [
-    { label: 'Install steps', rows: pick('step', 'install') },
-    { label: 'Set-up steps', rows: pick('step', 'setup') },
-    { label: 'Tests', rows: pick('test') },
-    { label: 'Fixes', rows: pick('fix') },
-    { label: 'Hand-over items', rows: pick('step', 'handover') },
-  ].filter(g => g.rows.length > 0);
 
   return (
     <div className="wrap pace nt">
@@ -147,7 +177,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Meeting notes</h1>
-          <p className="pace-lede">What you want to raise at the next meeting — about the whole project, or about one step. Tick each one once it has been talked about.</p>
+          <p className="pace-lede">What you want to raise at the next meeting — about the whole project, a gate, a machine, or one step. Tick each one once it has been talked about.</p>
         </div>
         <div className="pace-head-actions">
           {open.length > 0 && <button className="btn btn-ghost" onClick={copy}>{copied ? 'Copied' : 'Copy as a list'}</button>}
@@ -160,7 +190,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void add(); } }} />
         <div className="nt-add-row">
           <label className="nt-about"><span>About</span>
-            <AboutSelect value={about} onChange={setAbout} options={optgroups} machine={machine} />
+            <AboutPicker value={about} onChange={setAbout} job={job} />
           </label>
           <button className="btn btn-primary" type="submit" disabled={!what.trim()}>Add note</button>
         </div>
@@ -168,14 +198,15 @@ export function NotesScreen({ projectId }: { projectId: string }) {
 
       {open.length === 0 && <p className="sub" style={{ marginTop: 14 }}>Nothing to raise yet.</p>}
       {groups.map(g => {
-        const t = byId.get(g.key);
+        const link = g.scope.kind === 'record' ? `/project/${projectId}/testing/${encodeURIComponent(g.scope.testId)}`
+          : g.scope.kind === 'gate' ? GATE_PATH[g.scope.gate] ? `/project/${projectId}/${GATE_PATH[g.scope.gate]}` : undefined
+            : undefined;
         return (
           <section key={g.key || 'job'} className="nt-group">
             <h3 className="nt-group-h">
-              {t ? <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(t.id)}`)}>{aboutWords(t, machine)} ›</button>
-                : aboutWords(undefined, machine)}
+              {link ? <button className="cw-link" onClick={() => nav(link)}>{words(g.scope)} ›</button> : words(g.scope)}
             </h3>
-            {g.notes.map(n => <Row key={n.id} n={n} tt={tt} options={optgroups} machine={machine} />)}
+            {g.notes.map(n => <Row key={n.id} n={n} tt={tt} job={job} />)}
           </section>
         );
       })}
@@ -187,8 +218,8 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           </button>
           {showRaised && raised.map(n => (
             <div key={n.id}>
-              <span className="nt-about-sm">{aboutWords(byId.get(n.testId), machine)}</span>
-              <Row n={n} tt={tt} options={optgroups} machine={machine} />
+              <span className="nt-about-sm">{words(scopeOf(n))}</span>
+              <Row n={n} tt={tt} job={job} />
             </div>
           ))}
         </section>

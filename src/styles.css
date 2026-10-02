@@ -7478,3 +7478,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-cp-val { text-align: right; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; }
 .exec-cp-val small { font-size: 9px; font-weight: 600; color: var(--muted); }
 .exec-cp-key { margin: 6px 0 0; font-size: 10px; color: var(--muted); }
+
+/* The two-step "About" on a meeting note: the gate or machine, then (when there is
+   something finer) the one step, test or fix. */
+.nt-pick { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.nt-pick select { flex: 1 1 200px; }
