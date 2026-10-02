@@ -127,7 +127,41 @@ database write on every keystroke, and no way to delete a mistyped row.
 On the deployed app, the Home screen prints `Build <timestamp>`. That is the
 one-glance answer to "is the fix actually live", and it is why it exists.
 
+## Database changes ship from here, like code
+
+The Supabase connector is connected with its write tools allowed (checked 2
+October: `execute_sql` and `apply_migration` both go through; the project is
+`eqdigvzbljofxznqtfia`, "Faultline"). So a schema or policy change is not a
+file handed to Rowland to paste into the SQL editor. It is:
+
+1. the SQL written to `supabase/<NAME>.sql` in the house shape — a header
+   saying what it is for and why, "Run ONCE. Safe to re-run", every statement
+   create-if-missing or create-or-replace, and a `select` at the end that
+   prints back what it did;
+2. applied to the live database with `apply_migration` under the same name,
+   so the migration history matches the file;
+3. **read back** — `pg_policies`, `pg_get_functiondef`, `pg_indexes` — before
+   anything is reported, because a tool result that says "cancelled" or
+   "success" is not the database;
+4. and only then the app change that depends on it is pushed to `main`, so a
+   sentence on a screen is never true before the database makes it true.
+
+The connection drops (`ERR_PROXY_TUNNEL`) and comes back; a failed call is
+retried, not reported as "no access". If a write comes back "cancelled" it is
+the connector's per-tool permission, set under the connector's Tools at
+claude.ai/customize/connectors, and the fallback is the file above pasted
+into the Supabase SQL editor — in the same breath as "finished", never later.
+
 ## Things that will bite
+
+- **A policy test that reads a null as `true`.** `SECURITY_RLS.sql` part C2
+  meant to drop any policy whose rule was literally `true`, but tested
+  `coalesce(with_check, 'true')` — null for every SELECT policy — and silently
+  dropped the workspaces' select and insert. For nine days no line study could
+  be read or created through the API, and nothing on screen said so.
+  `LINE_STUDY_ACCESS.sql` restored them. When a migration drops policies by
+  pattern, read `pg_policies` back for every table it touched, and remember a
+  select policy has no `with_check` and an insert policy no `qual`.
 
 - **Schema drift is silent.** The app's mapper and the SQL migrations are two
   descriptions of the same columns. When they disagree the push is rejected, the
