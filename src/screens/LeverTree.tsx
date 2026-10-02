@@ -2,14 +2,18 @@
  *
  * The desired outcome at the top; what has to be true for it underneath; the
  * conditions under those; and the work at the bottom. Every box is typed by the
- * person who owns the project, and every colour is set by them too.
+ * person who owns the project, and every colour is set by them too — unless
+ * they bind the box to one of the project's numbers, in which case the colour
+ * is the line's latest reading against its target (lib/treeBind, boundNumber)
+ * and the box says so in words.
  *
- * That last part is deliberate and was argued about. An earlier design had the
- * app compute each colour from the tracker's statuses and the ppm readings —
+ * The default is deliberate and was argued about. An earlier design had the
+ * app compute EVERY colour from the tracker's statuses and the ppm readings —
  * clever, and wrong. This is a thinking surface before it is a reporting one:
  * you draw the tree to work out what has to be true, often before there is any
  * data about it at all. A tool that overrides the colour you chose is arguing
- * with the person holding the pen.
+ * with the person holding the pen. Binding is the pen-holder's choice, box by
+ * box, and undone the same way.
  *
  * The only thing that arrives from elsewhere is the work at the bottom, and it
  * arrives by being pasted — a block of lines from the tracker becomes one node
@@ -34,7 +38,11 @@ import { parsePastedRows } from '../lib/pastedRows';
 import { TrackerPicker, actionText } from './TrackerPicker';
 import { useActions } from '../lib/actions';
 import { usePaceLines } from '../lib/usePaceLines';
-import { withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, unplacedActions, whyUnplaced, bindActionText, type TrackerBind } from '../lib/treeBind';
+import { useMeasures } from '../lib/useMeasures';
+import {
+  withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, unplacedActions, whyUnplaced, bindActionText,
+  bindsWork, bindsNumber, boundNumber, numberChoices, withoutNumber, withoutWork, type TrackerBind, type BoundNumber,
+} from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
 
@@ -96,9 +104,18 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 function Box({
   t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove,
   folded, onFold, drag, moving, onPickUp, onPutHere, onBind, boundCount,
-  onSuggest, suggestNew,
+  onSuggest, suggestNew, numbers,
 }: {
   t: Tree;
+  /** Bind this box's colour to one of the project's numbers. Absent on a box
+   *  that cannot carry one, and when the project has no measures or lines. */
+  numbers?: {
+    choices: { measureId: string; lineId: string; label: string }[];
+    /** Where the number stands, when this box is bound to one. */
+    bound?: BoundNumber;
+    pick: (measureId: string, lineId: string) => void;
+    unbind: () => void;
+  };
   /** Build this line's conditions off the tracker. Absent once they are linked. */
   onSuggest?: () => void;
   /** Nothing under it yet, so the wording is "build" rather than "add". */
@@ -135,6 +152,10 @@ function Box({
    * its colour on the tree would be a lie the next upload silently undoes — the
    * tracker is where it gets changed, and it says so rather than pretending. */
   const fromTracker = isBoundNode(node.id);
+  /** Choosing which number this box follows — a list that comes out on the box
+   *  only when asked for, and goes away once picked. */
+  const [pickingNumber, setPickingNumber] = useState(false);
+  const bound = numbers?.bound;
 
   // Follow the stored value when it changes underneath us (another device,
   // an undo) — but never while this box is the one being typed into.
@@ -168,7 +189,7 @@ function Box({
   return (
     <div
       className={'lt-box is-' + node.rag + (act ? ' is-act' : '')
-        + (fromTracker ? ' is-bound' : '') + (node.bind ? ' is-linked' : '')
+        + (fromTracker ? ' is-bound' : '') + (bindsWork(node.bind) ? ' is-linked' : '')
         + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')
         + (isMoving ? ' is-lifted' : '')}
       draggable={!fromTracker}
@@ -209,6 +230,21 @@ function Box({
             if (e.key === 'Escape') { setText(node.text); (e.target as HTMLTextAreaElement).blur(); }
           }}
         />
+      )}
+
+      {/* THE NUMBER BESIDE THE NAME. A box bound to a measure says what the
+          line last read and what it was judged against — "52 vs 44 ppm" — so
+          the colour never has to be taken on trust. */}
+      {bound && numbers && (
+        <span className="lt-num" title={`${bound.measure.name}${bound.period ? ` · ${bound.period.name} target` : ''}`}>
+          <span className="lt-num-f">{bound.figure}</span>
+          {/* The colour follows the number, so the hand-typed state is not
+              offered below — one thing, one place. This is the way back. */}
+          <button type="button" className="lt-from lt-unbind" onClick={numbers.unbind}
+            title="Go back to setting the state by hand">
+            from the number — unbind
+          </button>
+        </span>
       )}
 
       {/* Fold this branch away. On a condition that is "hide the actions"; on a
@@ -270,6 +306,13 @@ function Box({
             <span className="lt-status-dot" aria-hidden />
             <span className="lt-status-l">{statusLabel(node.rag)}</span>
           </span>
+        ) : bound ? (
+          /* The pill says the state in words the number means ("Behind
+             target") and offers nothing: the colour is the number's. */
+          <span className={'lt-status is-' + node.rag + ' is-ro'} title={bound.figure}>
+            <span className="lt-status-dot" aria-hidden />
+            <span className="lt-status-l">{bound.words}</span>
+          </span>
         ) : (
           <label className={'lt-status is-' + node.rag}>
             <span className="lt-status-dot" aria-hidden />
@@ -313,15 +356,43 @@ function Box({
               already put here. */}
           {onBind && (
             <button
-              type="button" className={'lt-mini lt-link' + (node.bind ? ' is-on' : '')}
-              title={node.bind ? 'Change what the board fills this with' : 'Fill this from the board'}
-              aria-label={node.bind ? 'Change what the board fills this with' : 'Fill this from the board'}
+              type="button" className={'lt-mini lt-link' + (bindsWork(node.bind) ? ' is-on' : '')}
+              title={bindsWork(node.bind) ? 'Change what the board fills this with' : 'Fill this from the board'}
+              aria-label={bindsWork(node.bind) ? 'Change what the board fills this with' : 'Fill this from the board'}
               onClick={onBind}
             >⛓</button>
+          )}
+          {/* Bind the COLOUR to a number. Offered on any box the author drew,
+              the outcome included — "Line 2B holds 60 ppm" is a number before
+              it is anything else. */}
+          {numbers && !bound && numbers.choices.length > 0 && (
+            <button
+              type="button" className={'lt-mini lt-numb' + (pickingNumber ? ' is-on' : '')}
+              title="Bind to a number" aria-label="Bind to a number"
+              onClick={() => setPickingNumber(v => !v)}
+            >#</button>
           )}
           <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}>×</button>
         </div>
       </div>
+      )}
+
+      {/* The project's measures × its lines, as one list. Native select: one
+          tap on a phone, keyboard-reachable, never off the edge of the canvas. */}
+      {pickingNumber && numbers && !bound && (
+        <div className="lt-numpick">
+          <select
+            className="lt-numpick-sel" aria-label="Which number" autoFocus defaultValue=""
+            onChange={e => {
+              const c = numbers.choices[Number(e.target.value)];
+              if (c) { numbers.pick(c.measureId, c.lineId); setPickingNumber(false); }
+            }}
+          >
+            <option value="" disabled>Which number…</option>
+            {numbers.choices.map((c, i) => <option key={c.measureId + c.lineId} value={i}>{c.label}</option>)}
+          </select>
+          <button type="button" className="lt-mini" aria-label="Cancel" title="Cancel" onClick={() => setPickingNumber(false)}>×</button>
+        </div>
       )}
     </div>
   );
@@ -396,11 +467,19 @@ export function LeverTree({ projectId }: { projectId: string }) {
   // keys it "2A".
   const ppm = usePaceLines(projectId);
   const trackerActions = ax.actions;
+  // The project's numbers — a box's colour can follow one (lib/treeBind).
+  const nums = useMeasures(projectId);
+  const numSources = useMemo(
+    () => ({ measures: nums.measures, periods: nums.periods, targets: nums.targets, readings: nums.readings }),
+    [nums.measures, nums.periods, nums.targets, nums.readings]);
+  const choices = useMemo(() => numberChoices(nums.measures, ppm.lines), [nums.measures, ppm.lines]);
 
   /* The project's own Next steps — work the team decided that never came out of
    * a spreadsheet. A condition can read these instead of the tracker. */
   const [todos, setTodos] = useState<PaceTodoRow[]>([]);
-  const sources = useMemo(() => bindSources(trackerActions, todos, ppm.lines), [trackerActions, todos, ppm.lines]);
+  const sources = useMemo(
+    () => bindSources(trackerActions, todos, ppm.lines, numSources),
+    [trackerActions, todos, ppm.lines, numSources]);
 
   const load = useCallback(async () => {
     setRows(await listTreeNodes(projectId));
@@ -492,8 +571,12 @@ export function LeverTree({ projectId }: { projectId: string }) {
     await load();
   };
 
+  /* Written from the STORED row, not the drawn one: a box bound to a number is
+     drawn in the number's colour, and editing its words must not save that
+     colour over the one the author typed. */
   const change = async (n: TreeNodeRow, patch: Partial<TreeNodeRow>) => {
-    await putTreeNode({ ...n, ...patch });
+    const stored = nodes.find(x => x.id === n.id) ?? n;
+    await putTreeNode({ ...stored, ...patch });
     await load();
   };
 
@@ -633,13 +716,19 @@ export function LeverTree({ projectId }: { projectId: string }) {
            (nothing hangs off the tracker at that level) and never on a row the
            tracker itself put there. */
         onBind={isBoundNode(t.node.id) || t.depth === 0 ? undefined : () => setBinding(t.node)}
-        boundCount={t.node.bind ? bindCount(t.node.bind, sources) : undefined}
+        boundCount={t.node.bind && bindsWork(t.node.bind) ? bindCount(t.node.bind, sources) : undefined}
+        numbers={isBoundNode(t.node.id) || choices.length === 0 ? undefined : {
+          choices,
+          bound: boundNumber(t.node.bind, numSources),
+          pick: (measureId, lineId) => void change(t.node, { bind: { ...t.node.bind, measureId, lineId } }),
+          unbind: () => void change(t.node, { bind: withoutNumber(t.node.bind) }),
+        }}
         /* Offered on a line whose conditions are not linked yet — NOT only on an
            empty one. Keyed to emptiness it vanished the moment somebody typed a
            condition by hand, which is most trees, and left the chain glyph as
            the only way in: 22 pixels, unlabelled, in a row of eight. */
         onSuggest={t.depth === 1 && !isBoundNode(t.node.id) && trackerActions.length > 0
-          && !t.kids.some(k => k.node.bind)
+          && !t.kids.some(k => bindsWork(k.node.bind))
           ? () => setSuggesting(t.node) : undefined}
         suggestNew={t.kids.length === 0}
         onDropText={text => { setPasteInto(t.node); setPasteText(text); setAddMode('type'); }}
@@ -743,7 +832,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
             {/* Said once, out loud, until it has been used. The whole feature was
                 otherwise invisible on a tree that already had boxes in it, and
                 a thing nobody can find is a thing nobody has. */}
-            {trackerActions.length > 0 && !nodes.some(n => n.bind) && (
+            {trackerActions.length > 0 && !nodes.some(n => bindsWork(n.bind)) && (
               <div className="lt-prompt">
                 <span className="lt-prompt-t">
                   <b>{trackerActions.length} action{trackerActions.length === 1 ? '' : 's'}</b> on the project’s board — none of them on this tree yet.
@@ -806,9 +895,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
             <span className="sub">
-              Tap a box for its tools: ☰ hang the board’s actions under it · ⠿ move it · ↑ ↓ reorder
-              {' '}· ＋ another below · ＋› the next level along · pinch to zoom, or tap the
-              percentage to fit it all on.
+              Tap a box for its tools: ☰ hang the board’s actions under it · # bind its colour to a number
+              {' '}· ⠿ move it · ↑ ↓ reorder · ＋ another below · ＋› the next level along · pinch to zoom,
+              or tap the percentage to fit it all on.
             </span>
           </div>
         </>
@@ -829,10 +918,15 @@ export function LeverTree({ projectId }: { projectId: string }) {
           title={binding.text}
           lines={ppm.lines}
           actions={trackerActions}
-          initial={binding.bind}
+          initial={bindsWork(binding.bind) ? binding.bind : undefined}
           onClose={() => setBinding(null)}
-          onClear={() => { void change(binding, { bind: undefined }); setBinding(null); }}
-          onSave={b => { void change(binding, { bind: b }); setBinding(null); }}
+          /* Unlinking the board's work leaves a number binding where it is,
+             and linking the work keeps it — the two halves are independent. */
+          onClear={() => { void change(binding, { bind: withoutWork(binding.bind) }); setBinding(null); }}
+          onSave={b => {
+            const keep = bindsNumber(binding.bind) ? { measureId: binding.bind?.measureId, lineId: binding.bind?.lineId } : {};
+            void change(binding, { bind: { ...b, ...keep } }); setBinding(null);
+          }}
         />
       )}
 

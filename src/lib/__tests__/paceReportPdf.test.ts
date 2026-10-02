@@ -120,7 +120,8 @@ const board = (areas: number, perPillar = 4): Board =>
 const tree = (): Tree => [
   { id: 'r', text: 'Output', rag: 'g', sort: 0 },
   { id: 'a', parentId: 'r', text: 'Availability', rag: 'a', sort: 0 },
-  { id: 'p', parentId: 'r', text: 'Performance', rag: 'r', sort: 1 },
+  // a box whose colour follows a number: the figure and the state in words
+  { id: 'p', parentId: 'r', text: 'Performance', rag: 'r', sort: 1, number: '52 vs 55 ppm', state: 'Behind target' },
   { id: 'a1', parentId: 'a', text: 'Changeover time', rag: 'a', sort: 0 },
 ];
 

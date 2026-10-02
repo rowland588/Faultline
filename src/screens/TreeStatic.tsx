@@ -12,6 +12,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listTreeNodes, type TreeNodeRow, type NodeStatus } from '../db';
+import { boundNumber, type NumberSources } from '../lib/treeBind';
 
 const LABEL: Record<NodeStatus, string> = {
   n: 'Not started', w: 'In progress', a: 'At risk', r: 'Overdue', g: 'Done',
@@ -41,24 +42,33 @@ export function useTreeNodes(projectId: string): TreeNodeRow[] | null {
   return rows;
 }
 
-function Branch({ n }: { n: Node }) {
+function Branch({ n, numbers }: { n: Node; numbers?: NumberSources }) {
+  /* A box whose colour follows a number says the number and what it means, the
+     same way the live tree does — the colour on paper is never the only carrier. */
+  const num = boundNumber(n.row.bind, numbers);
   return (
     <li className="lt-node">
       <span className="lt-arm lt-arm-up" aria-hidden />
       <span className="lt-arm lt-arm-dn" aria-hidden />
       <div className={'lt-box is-' + n.row.rag + (n.depth >= 3 ? ' is-act' : '')}>
         <p className="lt-text-s">{n.row.text || '—'}</p>
+        {num && <span className="lt-num">{num.figure}</span>}
         <span className={'lt-status is-' + n.row.rag}>
           <span className="lt-status-dot" aria-hidden />
-          <span className="lt-status-l">{LABEL[n.row.rag] ?? LABEL.n}</span>
+          <span className="lt-status-l">{num ? num.words : LABEL[n.row.rag] ?? LABEL.n}</span>
         </span>
       </div>
-      {n.kids.length > 0 && <ul className="lt-kids">{n.kids.map(k => <Branch key={k.row.id} n={k} />)}</ul>}
+      {n.kids.length > 0 && <ul className="lt-kids">{n.kids.map(k => <Branch key={k.row.id} n={k} numbers={numbers} />)}</ul>}
     </li>
   );
 }
 
-export function TreeStatic({ rows, maxW, maxH }: { rows: TreeNodeRow[]; maxW: number; maxH: number }) {
+export function TreeStatic({ rows, numbers, maxW, maxH }: {
+  rows: TreeNodeRow[];
+  /** The project's numbers, for the boxes whose colour follows one. */
+  numbers?: NumberSources;
+  maxW: number; maxH: number;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -77,7 +87,7 @@ export function TreeStatic({ rows, maxW, maxH }: { rows: TreeNodeRow[]; maxW: nu
   return (
     <div className="lt-static" style={{ width: maxW, height: maxH }}>
       <div ref={box} className="lt-static-in" style={{ zoom: scale }}>
-        <ul className="lt-root">{tree.map(n => <Branch key={n.row.id} n={n} />)}</ul>
+        <ul className="lt-root">{tree.map(n => <Branch key={n.row.id} n={n} numbers={numbers} />)}</ul>
       </div>
     </div>
   );

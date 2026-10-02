@@ -388,12 +388,24 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      bound to the board (so the tree draws derived rows), a Pareto, and actions
      written on its board against its own line. */
   const tree = await createProject('Line 2B to 60 ppm', '#7c3aed', 'Rowland', 'r@example.com', 'tree');
-  await updateProject({ ...tree, pareto: true, updatedAt: t });
   const treeLine = await addPaceLine({ projectId: tree.id, key: '2B', name: 'Line 2B', owner: 'Rob Scott', sponsor: 'Tanya', sort: 0 });
   const treeBox = (text: string, sort: number, o: Partial<TreeNodeRow> = {}): TreeNodeRow =>
     ({ id: uid(), projectId: tree.id, text, rag: 'n', sort, createdAt: t, updatedAt: t, ...o });
+  /* THE TREE'S OWN NUMBER: one measure, this quarter's target, three weeks of
+     readings — behind the target, so the box bound to it draws red, which is
+     the branch of the rule a seed has to prove. "Line 2B achieves its ppm rate"
+     is bound to it in the seed; the outcome above is left for a person to bind
+     through the real controls. */
+  const treePpm: Measure = { id: uid(), name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 10 };
+  const treePeriods: Period[] = quarters(iso(-40), uid);
+  await updateProject({ ...tree, pareto: true, measures: [treePpm], periods: treePeriods, updatedAt: t });
+  await putTarget({ id: uid(), projectId: tree.id, lineId: treeLine.id, measureId: treePpm.id, periodId: treePeriods[0].id, value: 60, updatedAt: t });
+  await putReadings([48, 51, 54].map((v, i): Reading => ({
+    id: uid(), projectId: tree.id, lineId: treeLine.id, measureId: treePpm.id,
+    at: iso(-7 * (3 - i)), value: v, createdAt: t, updatedAt: t,
+  })));
   const outcome = treeBox('Line 2B holds 60 ppm', 0);
-  const truth = treeBox('Line 2B achieves its ppm rate', 0, { parentId: outcome.id });
+  const truth = treeBox('Line 2B achieves its ppm rate', 0, { parentId: outcome.id, bind: { measureId: treePpm.id, lineId: treeLine.id } });
   const cond = treeBox('The machine runs without stopping us', 0, { parentId: truth.id, bind: { line: '2B', categories: ['Plant'] } });
   for (const n of [outcome, truth, cond]) await putTreeNode(n);
   for (const a of [
