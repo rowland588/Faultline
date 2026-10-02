@@ -17,6 +17,8 @@ import { WalkPanel } from './WalkPanel';
 import { walkMarkers, type WalkSnag } from '../lib/walkSnags';
 import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
+import { useSyncStatus } from '../cloud/session';
+import { asOfWords } from '../lib/asOf';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -93,6 +95,11 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
      fitted across a landscape A4 — no scrolling on paper — drawn by the same
      code the client report uses for its plan page. */
   const [busy, setBusy] = useState(false);
+  /* Whether what is on the screen is current — the one thing to know before
+     the laptop is turned round for somebody (lib/asOf). */
+  const sync = useSyncStatus();
+  const asOf = asOfWords(sync.lastSyncedAt, sync.state !== 'signedout');
+
   const print = async () => {
     if (busy) return;
     setBusy(true);
@@ -109,6 +116,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
       drawGanttDoc(doc, g, {
         moves: tests && items ? moveLines(g.groups.flatMap(x => x.rows), tests, items) : [],
         name, printed: niceDay(today, { year: true }),
+        asOf: asOf?.words,
         dates: when ? `Handover ${moved ? 'expected ' : ''}${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(plannedAt, { year: true })}` : ''}` : undefined,
       });
       await deliverPdf(doc, pdfFileName(name, 'plan', today));
@@ -163,6 +171,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
           <button type="button" className={scale === 'week' ? 'on' : ''} onClick={() => setScale('week')}>Weeks</button>
         </span>
         <span className="gt-acts">
+          {asOf && <span className={'gt-asof' + (asOf.stale ? ' is-stale' : '')} role="status">{asOf.words}</span>}
           {g.today != null && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
           <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </span>

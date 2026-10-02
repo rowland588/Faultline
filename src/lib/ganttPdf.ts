@@ -339,11 +339,12 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
 export interface MoveLine { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string }
 
 /** The plan on its own — landscape A4, a foot on every page. */
-export function drawGanttDoc(doc: jsPDF, g: Gantt, opts: { name: string; printed: string; dates?: string; moves?: MoveLine[] }): void {
+export function drawGanttDoc(doc: jsPDF, g: Gantt, opts: { name: string; printed: string; dates?: string; moves?: MoveLine[]; asOf?: string }): void {
   const pages = drawGantt(doc, g, {
     eyebrow: `THE PLAN · ${opts.name.toUpperCase()}`,
     title: 'The plan',
-    sub: [`Printed ${opts.printed}`, opts.dates].filter(Boolean).join('   ·   '),
+    // The same stamp as the screen: a reader of the paper knows how current it was.
+    sub: [`Printed ${opts.printed}`, opts.asOf, opts.dates].filter(Boolean).join('   ·   '),
   }, opts.moves);
   pages.forEach((p, i) => {
     doc.setPage(p);
