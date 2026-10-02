@@ -33,7 +33,7 @@ export function WorkspaceMenu({ open, onClose }: { open: boolean; onClose: () =>
       <SheetRow label="The log" hint={`${observations.length} logged`} onClick={() => go(`/w/${workspace.id}/log`)} />
       {cloudConfigured && <SheetRow label="People" hint="invite someone to this line" onClick={() => go(`/w/${workspace.id}/people`)} />}
       <SheetRow label="Settings" hint="the categories, the labour rate" onClick={() => go(`/w/${workspace.id}/settings`)} />
-      <SheetRow label="Delete this workspace" danger onClick={remove} />
+      <SheetRow label="Delete everything captured on this line" danger onClick={remove} />
     </Sheet>
   );
 }

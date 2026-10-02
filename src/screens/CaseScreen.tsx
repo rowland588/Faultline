@@ -484,7 +484,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
       {/* ── the proof: re-measure the same thing, the same way ── */}
       <section className="case-box" data-tour="proof">
-        <h2 className="case-box-h">The proof</h2>
+        <h2 className="case-box-h">Did it work?</h2>
         <ProofBox kase={kase} scopedCount={scoped.length} result={studyResult(kase, scoped)}
           costable={costable} factor={factor} onChange={mutateCase} />
       </section>

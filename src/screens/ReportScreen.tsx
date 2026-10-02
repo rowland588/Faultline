@@ -65,7 +65,7 @@ export function ReportScreen() {
       <div className="report-page">
         <div className="report-head">
           <span className="report-brand"><LogoMark size={28} /> Faultline</span>
-          <span className="report-meta">LINE HEALTH<br />{workspace.name} · {today}</span>
+          <span className="report-meta">ONE-PAGE REPORT<br />{workspace.name} · {today}</span>
         </div>
 
         <h1 className="report-h1">{workspace.name} — the week on one page</h1>

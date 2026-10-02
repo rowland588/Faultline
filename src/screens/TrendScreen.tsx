@@ -39,7 +39,7 @@ export function TrendScreen() {
         <button className="btn" onClick={() => nav(`/w/${workspace.id}/report`)}>📄 One-page report</button>
       </div>
 
-      <p className="eyebrow">The proof</p>
+      <p className="eyebrow">{workspace.name}</p>
       <h1 className="h1">Is it getting better?</h1>
       <p className="sub" style={{ marginTop: 4 }}>Lost time per week, and what changed it.</p>
 

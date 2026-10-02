@@ -249,7 +249,7 @@ export function SnagListScreen() {
           {carding ? 'Building…' : 'Evidence cards'}
         </button>
       </div>
-      <p className="eyebrow">The eyes</p>
+      <p className="eyebrow">{workspace.name}</p>
       <h1 className="h1">Evidence</h1>
 
       {/* THE COUNTS ARE THE FILTERS. They sat above a row of chips that said

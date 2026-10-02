@@ -398,7 +398,7 @@ export function WorkspaceHome() {
       {profile?.is_super && (
         <>
           <button className="home-guide-link" onClick={() => void seedDemo()} disabled={!!seeding}>
-            ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo workspace ›'}
+            ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo line ›'}
           </button>
           {/* The demo build is the only thing on this screen that can fail with
               something worth reading. It used to report into the create card's

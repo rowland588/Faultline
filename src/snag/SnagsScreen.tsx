@@ -175,7 +175,7 @@ export function SnagsScreen() {
         {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>⚑ Evidence</button>}
       </div>
 
-      <p className="eyebrow">The eyes</p>
+      <p className="eyebrow">{workspace.name}</p>
       <h1 className="h1">Walks</h1>
       <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'segment')} · {plural(totalAssets, 'asset')} · {openSnags} open</p>
 

@@ -224,8 +224,7 @@ export function ProjectsScreen() {
                           : 'nothing else — it is empty';
                         const ok = confirm(
                           `Delete “${p.name}” for ever?\n\nThis also deletes:\n  ${what}\n\n` +
-                          'The filmed walks are NOT deleted — a workspace belongs to the machine, not to the project, ' +
-                          'and stays in the workspace list.\n\n' +
+                          'The filmed walks are NOT deleted — a walk belongs to its line and stays with it.\n\n' +
                           'This cannot be undone, on any device.',
                         );
                         if (ok) await purge(p.id);
