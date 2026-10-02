@@ -7,11 +7,16 @@ import { useState } from 'react';
 import { useTeam, displayName } from '../cloud/team';
 import { useMembers } from '../cloud/members';
 import { useProfile } from '../cloud/admin';
+import { useOwningProject } from '../lib/usePaceWorkspace';
 
 export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string }) {
   const { whoIs, myId, members: team } = useTeam();
   const { profile } = useProfile();
   const { members, loaded, myEmail, add, remove } = useMembers(wsId);
+  // A line's study is under its project: everyone on the project sees it
+  // (supabase/LINE_STUDY_ACCESS.sql). This list is for anyone on the line
+  // who is not on the project.
+  const project = useOwningProject(wsId);
   const [text, setText] = useState('');
   const [note, setNote] = useState('');
 
@@ -38,9 +43,12 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
     <div className="card" style={{ marginTop: 12 }}>
       <div className="field-label">Who can see this line’s study</div>
       <p className="sub" style={{ margin: '4px 0 6px' }}>
+        {project && <>Everyone on <b>{project.name}</b> sees it. </>}
         {iAmOwner
-          ? 'Everyone here sees and works on the same stops, walks and evidence, including all history.'
-          : `${displayName(ownerEmail) || 'The owner'} runs this line’s study and chooses who’s in it.`}
+          ? (project
+              ? 'Add anyone on the line who is not on the project — they see the same stops, walks and evidence, including all history.'
+              : 'Everyone here sees and works on the same stops, walks and evidence, including all history.')
+          : `${displayName(ownerEmail) || 'The owner'} runs this line’s study and chooses who else is in it.`}
       </p>
       <div className="chip-row" style={{ marginTop: 8 }}>
         <span className="chip" title={ownerEmail}>{iAmOwner ? 'You' : displayName(ownerEmail)} · owner</span>
