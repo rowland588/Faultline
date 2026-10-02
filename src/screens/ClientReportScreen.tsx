@@ -93,7 +93,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Client report</h1>
-          <p className="pace-lede">The job in the order it is run: where it is, each gate, the fixes, who owes what — and the line standard. Drawn from what is kept here; nothing typed for it.</p>
+          <p className="pace-lede">The job in the order it is run: where it is, the plan as a Gantt chart, each gate, the fixes, who owes what — and the line standard. Drawn from what is kept here; nothing typed for it.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'Download PDF'}</button>
@@ -112,6 +112,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       <div className={'cr-body' + (wide ? ' is-wide' : '')}>
         <ol className="cr-toc">
           <li><b>Where the job is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
+          {report.plan.length > 0 && <li><b>The plan</b><span>A Gantt chart, landscape — {report.plan.length} dated, on a calendar</span></li>}
           {report.sections.map(s => <li key={s.gate}><b>{s.label}</b><span>{s.says}</span></li>)}
           <li><b>Fixes</b><span>{report.fixes.open.length} open · {report.fixes.done.length} done</span></li>
           {report.waiting.length > 0 && <li><b>What we’re waiting on</b><span>{report.waiting.map(w => `${w.what} ${w.open}`).join(' · ')}</span></li>}

@@ -5,6 +5,8 @@ import type { ClientReport, CellTone, FixRow } from './clientReport';
 import type { GateTone } from './install';
 import type { Shot } from './testReport';
 import { san } from './reportKit';
+import { gantt } from './gantt';
+import { drawGantt } from './ganttPdf';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
@@ -130,6 +132,20 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
       y += 20;
     }
     y += 8;
+  }
+
+  /* ================================ THE PLAN ================================ */
+  /* The Gantt the project page draws, on a landscape page of its own straight
+     after the front page: the calendar across the top, a bar per thing on the
+     days it means. Rowland: "print the Gantt charts as well, and PDF." */
+  let planPages: number[] = [];
+  if (r.plan.length) {
+    doc.addPage('a4', 'landscape');
+    planPages = drawGantt(doc, gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }), {
+      eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
+      sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
+    });
+    newPage();
   }
 
   /* ================================ 2 · GATE BY GATE ================================ */
@@ -278,7 +294,7 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-    if (pw > ph) continue;   // a line standard page carries its own foot
+    if (pw > ph && !planPages.includes(i)) continue;   // a line standard page carries its own foot
     font(7.5, 'normal', MUTED);
     doc.text(`${r.name}  ·  client report  ·  ${r.printed}`, M, ph - 18);
     doc.text(`${i} of ${pages}`, pw - M, ph - 18, { align: 'right' });

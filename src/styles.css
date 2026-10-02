@@ -7609,3 +7609,4 @@ button.gt-lab small { font-size: 10.5px; color: var(--muted); }
 .gt-key-say { margin-left: auto; }
 .gt-today-b { appearance: none; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--brand); padding: 7px 14px; min-height: 36px; cursor: pointer; }
 .gt-today-b:hover { background: var(--surface-2); }
+.gt-acts { display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }

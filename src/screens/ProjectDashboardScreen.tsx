@@ -352,7 +352,7 @@ function NotesButton({ projectId }: { projectId: string }) {
   );
 }
 
-function TestingOverview({ projectId }: { projectId: string }) {
+function TestingOverview({ projectId, name }: { projectId: string; name: string }) {
   const tt = useTesting(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
      to form its own opinion from the trials alone, which meant it could say
@@ -421,7 +421,7 @@ function TestingOverview({ projectId }: { projectId: string }) {
                   The timeline wrote each date beside its mark; here the days are
                   the columns and a bar sits on the days it means. Same marks —
                   the Home drawer and the client report still draw the timeline. */}
-              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} />
+              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} name={name} />
             </Fold>
           )}
 
@@ -618,7 +618,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           None of it belongs to a handover, and every one of them was the first
           thing somebody saw on opening the project. */}
       {lens === 'overview' && model === 'commissioning' && (
-        <TestingOverview projectId={projectId} />
+        <TestingOverview projectId={projectId} name={project.name} />
       )}
 
       {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE: the verdict in one

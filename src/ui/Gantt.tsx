@@ -18,8 +18,10 @@ const TONE_WORD: Record<PlanMark['tone'], string> = {
   booked: 'still ahead', late: 'the day has gone', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, projectId }: {
+export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name }: {
   marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string; projectId: string;
+  /** The job's name, for the printed copy. */
+  name: string;
 }) {
   const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }), [marks, today, expectedAt, plannedAt]);
   /* On a phone a day column leaves room for six days; weeks show the month. */
@@ -56,6 +58,33 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId }: {
 
   const open = (href?: string) => { if (href) nav(href); };
 
+  /* ON PAPER. Rowland: "print the Gantt charts as well, and PDF." The whole job
+     fitted across a landscape A4 — no scrolling on paper — drawn by the same
+     code the client report uses for its plan page. */
+  const [busy, setBusy] = useState(false);
+  const print = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { loadPdfLib, deliverPdf } = await import('../lib/savePdf');
+      const { drawGanttDoc } = await import('../lib/ganttPdf');
+      const { pdfFileName } = await import('../lib/fileName');
+      const { niceDay } = await import('../lib/weeks');
+      const { jsPDF } = await loadPdfLib();
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const moved = !!expectedAt && !!plannedAt && expectedAt !== plannedAt;
+      const when = expectedAt ?? plannedAt;
+      drawGanttDoc(doc, g, {
+        name, printed: niceDay(today, { year: true }),
+        dates: when ? `Handover ${moved ? 'expected ' : ''}${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(plannedAt, { year: true })}` : ''}` : undefined,
+      });
+      await deliverPdf(doc, pdfFileName(name, 'plan', today));
+    } catch (e) {
+      console.error('plan PDF failed', e);
+      window.alert('Sorry — the plan could not be made into a PDF. Please try again.');
+    } finally { setBusy(false); }
+  };
+
   return (
     <div className="gt">
       <div className="gt-top">
@@ -63,7 +92,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId }: {
           <button type="button" className={scale === 'day' ? 'on' : ''} onClick={() => setScale('day')}>Days</button>
           <button type="button" className={scale === 'week' ? 'on' : ''} onClick={() => setScale('week')}>Weeks</button>
         </span>
-        {g.today != null && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
+        <span className="gt-acts">
+          {g.today != null && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
+          <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'Print / PDF'}</button>
+        </span>
       </div>
 
       <div className="gt-scroll" ref={ref}>

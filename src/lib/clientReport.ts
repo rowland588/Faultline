@@ -22,7 +22,7 @@
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import type { Project } from '../types';
 import { GATE_WORD, installGrid, jobJourney, journeyNow, journeyOf, usualStages, type GateTone, type JourneyGate } from './install';
-import { standing, slipWords, type OutstandingRow } from './standing';
+import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { stateOf, type Program } from './programs';
 import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
@@ -76,6 +76,12 @@ export interface ClientReport {
   fixes: { open: FixRow[]; done: FixRow[] };
   waiting: OutstandingRow[];
   standards: Standard[];
+  /** The job's dated marks — the same ones the project page's Gantt draws —
+   *  for "The plan" page, with the day it was printed and both handover dates. */
+  plan: PlanMark[];
+  today: string;
+  expectedAt?: string;
+  plannedAt?: string;
 }
 
 export interface ClientReportInput {
@@ -207,6 +213,10 @@ export function clientReport(x: ClientReportInput): ClientReport {
     fixes: { open: fixes.filter(f => f.tone !== 'done'), done: fixes.filter(f => f.tone === 'done') },
     waiting: st.rows,
     standards: live(x.standards),
+    plan: st.plan,
+    today,
+    ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
+    ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),
   };
 }
 
