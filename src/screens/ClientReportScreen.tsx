@@ -98,7 +98,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           <p className="pace-lede">The job in the order it is run, drawn from what is kept here — nothing typed for it.</p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'Download PDF'}</button>
+          <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </div>
       </header>
 

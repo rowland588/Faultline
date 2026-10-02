@@ -157,12 +157,14 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           <p className="pace-lede">{paced ? `This line’s numbers, actions, wins and walk — all of it rolls up into the ${project.name} report.` : 'This line’s actions, wins and walk — its rate is agreed and proved in Testing.'}</p>
         </div>
         <div className="pace-head-actions">
-          {/* The deck is drawn from the plan — the measures, their targets and the
-              tracker's actions. A handover has none of them, and its own A3 is
-              printed from testing. */}
+          {/* The line's client report is drawn from the plan — the measures,
+              their targets and the board's actions. A handover has none of
+              them, and its own A3 is printed from testing. It is the same
+              document the project's Reports door lists, so it carries the
+              same name. */}
           {paced && (
             <button className="btn btn-primary" onClick={() => nav(`/pace-report?project=${projectId}&line=${lineId}`)}>
-              This line’s deck
+              Client report
             </button>
           )}
           {!paced && (

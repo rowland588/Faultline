@@ -155,7 +155,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
 
       <div className="tc-send dy-send">
         <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
-          {busy ? 'Building…' : 'Day report (PDF)'}
+          {busy ? 'Building…' : 'PDF'}
         </button>
         {said && <span className="tc-ok">{said}</span>}
       </div>

@@ -90,7 +90,7 @@ function PrintSheet({ list, project, onClose }: { list: Standard[]; project: Pro
   return (
     <Sheet open onClose={onClose} title={list.length === 1 ? `Line standard — ${list[0].product}` : `Line standard — ${list.length} products`}>
       <div className="ls-print-acts">
-        <button className="btn btn-primary" onClick={() => void go('download')} disabled={busy || !cards}>{busy ? 'Making it…' : 'Download PDF'}</button>
+        <button className="btn btn-primary" onClick={() => void go('download')} disabled={busy || !cards}>{busy ? 'Making it…' : 'PDF'}</button>
         {wide && <button className="btn" onClick={() => void go('print')} disabled={busy || !cards}>Print</button>}
         <span className="sub">A4 landscape · {list.length === 1 ? 'one page' : `${list.length} pages, one a product`}</span>
       </div>
@@ -178,7 +178,7 @@ function Products({ project, list }: { project: Project; list: Standard[] }) {
           </p>
         </div>
         <div className="pace-head-actions">
-          {list.length > 0 && <button className="btn btn-ghost" onClick={() => setPrinting(true)}>Print all</button>}
+          {list.length > 0 && <button className="btn btn-ghost" onClick={() => setPrinting(true)}>PDF (all products)</button>}
           <button className="btn btn-primary" onClick={() => setAdding(true)}>New map</button>
         </div>
       </header>
@@ -479,7 +479,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
           <datalist id="ls-products">{progs.programs.map(p => <option key={p.id} value={p.what} />)}</datalist>
         </div>
         <div className="ls-head-actions">
-          <button className="btn btn-ghost" onClick={() => setPrinting(true)}>Print</button>
+          <button className="btn btn-ghost" onClick={() => setPrinting(true)}>PDF</button>
           <button className="btn btn-ghost" onClick={() => setCopying(true)}>Copy to another product</button>
         </div>
       </header>

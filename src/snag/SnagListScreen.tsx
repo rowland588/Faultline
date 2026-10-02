@@ -246,7 +246,7 @@ export function SnagListScreen() {
         <button className="btn btn-primary" disabled={carding || ordered.length === 0}
           onClick={() => void sendCards(ordered)}
           title="One page each, with its photo — the PDF to email">
-          {carding ? 'Building…' : 'Evidence cards'}
+          {carding ? 'Building…' : 'PDF'}
         </button>
       </div>
       <p className="eyebrow">{workspace.name}</p>

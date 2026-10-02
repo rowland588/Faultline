@@ -50,6 +50,7 @@ import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
+import { ReportsSheet } from '../ui/ReportsSheet';
 import { StandardsCard } from '../ui/StandardsCard';
 import { Outstanding } from '../ui/Outstanding';
 import { Gantt } from '../ui/Gantt';
@@ -142,7 +143,7 @@ function BoardPanel({ projectId, actions, bare }: { projectId: string; actions: 
             </div>
           ))}
           <div className="pb-foot">
-            <button className="btn btn-primary" onClick={open}>Run the meeting off the board</button>
+            <button className="btn btn-primary" onClick={open}>Open the board</button>
             {b.unplaced.length > 0 && (
               <span className="sub pb-gap">
                 {b.unplaced.length} action{b.unplaced.length === 1 ? '' : 's'} not given a column yet
@@ -458,6 +459,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   }, [raw, projectId]);
 
   const { loading: projLoading, project } = useProject(projectId);
+  const [reports, setReports] = useState(false);
   const ax = useActions(projectId);
   const methodCounts = useMethodCounts(projectId);
   const { impacts } = useImpacts(projectId);
@@ -587,11 +589,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {project.leverTree && model !== 'tree' && (
             <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
           )}
-          <button className="btn btn-ghost" onClick={() => nav(model === 'commissioning'
-            ? `/project/${projectId}/report` : `/pace-report?project=${projectId}`)}>Client report</button>
+          {/* ONE DOOR TO PAPER — everything printable, with a line each. */}
+          <button className="btn btn-ghost" onClick={() => setReports(true)}>Reports</button>
         </div>
       </header>
       )}
+      {reports && <ReportsSheet project={project} onClose={() => setReports(false)} />}
 
       {/* The row is the running order, left to right: where we are, the board
           we walk, then everything that comes out of walking it.

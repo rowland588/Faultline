@@ -20,8 +20,6 @@ export function ProjectsScreen() {
   const { loading, projects, archived, create, restore, purge, contents } = useProjects();
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
   const [adding, setAdding] = useState(q.get('new') === '1');
-  const [exporting, setExporting] = useState(false);
-  const [exportSaid, setExportSaid] = useState('');
   /* THE ARCHIVE IS OPEN HERE. This page used to list the live projects again
      (Home already does) with the archive shut underneath; now Home is the list
      and this is where a project starts and where the archive lives. */
@@ -70,24 +68,11 @@ export function ProjectsScreen() {
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
             {adding ? 'Cancel' : 'New project'}
           </button>
-          {/* EVERYTHING OUT, IN ONE FILE. The business is moving to an Excel
-              tool for the whole start-up, and the job already run in here has
-              to arrive in it whole. See lib/exportWorkbook. */}
-          <button className="btn btn-ghost" disabled={exporting} onClick={() => void (async () => {
-            setExporting(true); setExportSaid('');
-            try {
-              const { exportEverything } = await import('../lib/exportAll');
-              const r = await exportEverything();
-              setExportSaid(r.how === 'shared' ? `Shared ${r.name}.` : `Saved ${r.name}.`);
-            } catch (e) {
-              setExportSaid(`The export could not be built — ${e instanceof Error ? e.message : 'try again'}.`);
-            } finally { setExporting(false); }
-          })()}>
-            {exporting ? 'Building…' : 'Export to Excel'}
-          </button>
+          {/* The Excel export of everything used to be a button here; it is a
+              line in every project's Reports door now (ui/ReportsSheet), with
+              the rest of what goes on paper. */}
         </div>
       </header>
-      {exportSaid && <p className="sub" role="status" style={{ margin: '0 0 12px' }}>{exportSaid}</p>}
 
       {adding && (
         <section className="card proj-new">

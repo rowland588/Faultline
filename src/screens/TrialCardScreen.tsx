@@ -212,7 +212,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           because somebody reading it down arrives there having read it. */}
       <div className="tc-send">
         <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
-          {busy ? 'Building…' : 'Send as a PDF'}
+          {busy ? 'Building…' : 'PDF'}
         </button>
         <span className="sub">A4, landscape — everything below, on a page.</span>
         {said && <span className="tc-ok">{said}</span>}
@@ -287,7 +287,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           instead of two. */}
       <div className="tc-send is-foot">
         <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
-          {busy ? 'Building…' : 'Send as a PDF'}
+          {busy ? 'Building…' : 'PDF'}
         </button>
       </div>
     </div>

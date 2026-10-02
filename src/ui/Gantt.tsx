@@ -164,7 +164,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         </span>
         <span className="gt-acts">
           {g.today != null && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
-          <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'Print / PDF'}</button>
+          <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </span>
       </div>
 

@@ -1595,7 +1595,7 @@ export function PaceExecReport() {
         <div className="exec-bar-r">
           <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
           <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
-            {saving ? 'Building PDF…' : 'Download PDF'}
+            {saving ? 'Building…' : 'PDF'}
           </button>
         </div>
       </div>
