@@ -27,7 +27,7 @@ export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string
 
 const QUICK = ['Problem found on the machine', 'Waiting on parts', 'Supplier not on site', 'Our side not ready', 'Rework needed'];
 
-export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel }: {
+export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, onSkip }: {
   /** The finish before, and the finish now asked for. */
   from: string; to: string;
   /** How many steps this moves, when planned in bulk. */
@@ -35,6 +35,9 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel }: 
   allowFix?: boolean;
   onSave: (a: WhyAnswer) => void;
   onCancel: () => void;
+  /** Move the date with no reason — re-planning, or a date typed wrong.
+   *  Asked, never forced: nothing in the app is locked. */
+  onSkip?: () => void;
 }) {
   const [why, setWhy] = useState('');
   const [media, setMedia] = useState<MediaRef[]>([]);
@@ -68,9 +71,13 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel }: 
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
           onClick={() => onSave({ why: why.trim(), media, ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}) })}>Save the move</button>
+        {onSkip && <button type="button" className="btn btn-ghost" onClick={onSkip}>Just change the date — no reason</button>}
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel — keep the dates</button>
       </span>
-      {!why.trim() && <p className="sub why-need">Say what happened to save it — that is what the plan shows when somebody taps the overrun.</p>}
+      <p className="sub why-need">
+        {why.trim() ? 'The plan will show the overrun, and this is what it says when somebody taps it.'
+          : 'Say what happened and the plan shows the overrun with the reason. Re-planning, or a date typed wrong? Just change the date — no overrun is drawn.'}
+      </p>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
         onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
     </div>

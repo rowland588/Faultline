@@ -402,9 +402,12 @@ button { font-family: inherit; }
 .board-cta-main { flex: 1; font-size: 15px; font-weight: 800; color: var(--ink); }
 .board-cta-go { color: var(--accent); font-size: 20px; font-weight: 700; }
 
-/* ---------- toast ---------- */
+/* ---------- toast ----------
+   ABOVE EVERY SHEET. It sat at 45, under the sheets (50) and the grid's sheet
+   (60), so an Undo offered while a sheet was open could not be tapped until the
+   sheet was closed — and nothing may be locked. */
 .toast {
-  position: fixed; left: 12px; right: 12px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 45;
+  position: fixed; left: 12px; right: 12px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 80;
   display: flex; align-items: center; gap: 10px; padding: 12px 14px;
   background: var(--brand); color: var(--on-brand); border-radius: 12px; box-shadow: var(--shadow);
 }
@@ -7731,3 +7734,7 @@ button.gt-fixlab small { font-size: 10px; }
 .why-need { margin: 0; }
 .ig-why-note { margin: 6px 0 0; color: var(--st-r); font-weight: 600; }
 .sp-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-row-acts { display: inline-flex; gap: 14px; }
+.sp-rm { color: var(--danger) !important; }
+.sp-edit { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.sp-edit-acts { display: inline-flex; gap: 8px; }

@@ -30,6 +30,7 @@ export function StagePanel({ stepId, title, tests, items, projectId, onClose }: 
      finish). Rowland: "how does the date move from this?" */
   const tt = useTesting(projectId);
   const [doing, setDoing] = useState<'dates' | 'problem' | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   const step = live(tt.loading ? tests : tt.tests).find(t => t.id === stepId);
   if (!step) return null;
   const st = storyOf(stepId, tt.loading ? tests : tt.tests, tt.loading ? items : tt.items);
@@ -39,21 +40,52 @@ export function StagePanel({ stepId, title, tests, items, projectId, onClose }: 
     : f.plannedFor ? `date agreed ${niceDay(f.plannedFor)}${f.plannedTo && f.plannedTo > f.plannedFor ? ` – ${niceDay(f.plannedTo)}` : ''}`
       : 'no date agreed yet';
 
+  /* NOTHING HERE IS LOCKED. Rowland: "everything must be editable, nothing
+     locked in." Every reason can be reworded or taken off — taking a move off
+     leaves the dates where they are and stops drawing it as an overrun — and
+     Undo puts it back. */
+  const itemOf = (id: string) => tt.items.find(i => i.id === id);
+  const editor = (id: string, text: string) => (
+    <span className="sp-edit">
+      <textarea className="text-area" rows={2} defaultValue={text} autoFocus id={`sp-e-${id}`} aria-label="What happened" />
+      <span className="sp-edit-acts">
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => {
+          const v = (document.getElementById(`sp-e-${id}`) as HTMLTextAreaElement | null)?.value.trim();
+          const it = itemOf(id);
+          if (it && v && v !== it.what) {
+            void tt.saveItem({ ...it, what: v });
+            offerUndo('Reason changed', () => tt.saveItem(it));
+          }
+          setEditing(null);
+        }}>Save</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+      </span>
+    </span>
+  );
+  const entryActs = (id: string, text: string) => (
+    <span className="sp-row-acts">
+      <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
+      <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(id)} title={`Remove “${text}”`}>Remove</button>
+    </span>
+  );
+
   type Line = { on: string; key: string; node: React.ReactNode };
   const lines: Line[] = [
     ...st.moves.map(m => ({ on: m.on, key: m.id, node: (
       <>
         <span className="sp-k is-move">Moved</span>
         <p className="sp-t"><b>{niceDay(m.from)} → {niceDay(m.to)}</b> · +{m.days} day{m.days === 1 ? '' : 's'}</p>
-        <p className="sp-why">{m.why}</p>
+        {editing === m.id ? editor(m.id, m.why) : <p className="sp-why">{m.why}</p>}
         {m.media.length > 0 && <span className="sp-ev">{m.media.map(x => <EvidenceThumb key={x.id} media={x} size={64} onClick={() => setViewing(x)} />)}</span>}
+        {editing !== m.id && entryActs(m.id, m.why)}
       </>
     ) })),
     ...st.found.map(f => ({ on: f.on, key: f.id, node: (
       <>
         <span className="sp-k is-found">Found</span>
-        <p className="sp-why">{f.what}</p>
+        {editing === f.id ? editor(f.id, f.what) : <p className="sp-why">{f.what}</p>}
         {f.media.length > 0 && <span className="sp-ev">{f.media.map(x => <EvidenceThumb key={x.id} media={x} size={64} onClick={() => setViewing(x)} />)}</span>}
+        {editing !== f.id && entryActs(f.id, f.what)}
       </>
     ) })),
     ...st.fixes.map(f => ({ on: niceIso(f.createdAt), key: f.id, node: (

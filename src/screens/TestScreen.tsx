@@ -264,6 +264,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           <div className="cw-f-wide">
             <WhyMoved from={plannedEnd(test) as string} to={(moving.plannedTo ?? moving.plannedFor) as string}
               onCancel={() => setMoving(null)}
+              onSkip={() => { save(moving); setMoving(null); }}
               onSave={a => void (async () => {
                 const before = { plannedFor: test.plannedFor, plannedTo: test.plannedTo };
                 const was = plannedEnd(test) as string, end = (moving.plannedTo ?? moving.plannedFor) as string;

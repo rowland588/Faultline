@@ -490,7 +490,8 @@ export function DatesForm({ start, finish, was, onSave, onMove }: {
   const changed = from !== (start ?? '') || to !== (finish ?? '');
   const end = from ? (to || from) : undefined;
   if (asking && was && end) {
-    return <WhyMoved from={was} to={end} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)} />;
+    return <WhyMoved from={was} to={end} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)}
+      onSkip={() => onSave(from || undefined, from ? (to || undefined) : undefined)} />;
   }
   return (
     <div className="ig-plan">
@@ -526,6 +527,7 @@ function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
   const push = end && pushes ? pushes(end) : { n: 0 };
   if (asking && push.was && end && onMove) {
     return <WhyMoved from={push.was} to={end} many={push.n} allowFix={false} onCancel={() => setAsking(false)}
+      onSkip={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); setAsking(false); }}
       onSave={a => { onMove(from, to || undefined, a); setFrom(''); setTo(''); setAsking(false); }} />;
   }
   return (
