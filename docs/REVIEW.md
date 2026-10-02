@@ -55,6 +55,19 @@ minutes by pg_cron, pushes to every device that said yes
 (`PUSH_REMINDERS.sql`, `cloud/push.ts`, `public/push-sw.js`). 5 — the loser
 of a merge is told by name in the account sheet. Items 6 to 8 stand.*
 
+*Update, 2 October, night: 7 and 8 are live too. 7 — a lever's colour can
+follow a number: bind a box to a measure on a line and its colour is the
+latest reading against the period's target, with the figure and the state in
+words on the box, the report sheet and the PDF; the hand-typed colour stays
+for every unbound box. 8 — the owner's add is the invite
+(`OWNER_INVITES.sql`): a project or line-study owner adding an email puts it
+on the front door and the people list in one call, and the screen says the
+true thing. 6 — checked against the live database at the end of the day:
+nothing has synced from a device since the fixes, so the first open with a
+signal will push everything up; re-check then. Also added: the plan says
+whether it is current ("Up to date as of 09:12", amber after a day), on the
+screen and the PDF.*
+
 1. **A stage-gate job's filmed walk lives on one device.** The link from a
    project to its walk workspace is kept in the device's `meta` store
    (`db/pace.ts`, `walkKey`) and never syncs. The walk's frames and snags sync
