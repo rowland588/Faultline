@@ -120,3 +120,19 @@ export function methodPeers(projectId: string, method: 'board' | 'tree', here: s
     p('materials', 'Materials', `/project/${projectId}/materials`),
   ];
 }
+
+/** The row on a line study — the floor's three modes and the meeting, in the
+ *  order a study runs: time the stops, see where the time goes, film what is
+ *  wrong, then talk about it. The frame and the clip of a walk count as
+ *  Evidence; the case and the trend as Analyse. */
+export function studyPeers(wsId: string, here: string): Peer[] {
+  const under: Record<string, string> = {
+    capture: 'capture', log: 'capture',
+    analyse: 'analyse', trend: 'analyse', case: 'analyse',
+    snags: 'snags', snaglist: 'snags', line: 'snags', segment: 'snags', asset: 'snags', history: 'snags', walk: 'snags',
+    meeting: 'meeting', report: 'meeting', present: 'meeting',
+  };
+  const on = under[here] ?? '';
+  const p = (key: string, label: string, to: string): Peer => ({ label, to: `/w/${wsId}/${to}`, on: on === key });
+  return [p('capture', 'Capture', 'capture'), p('analyse', 'Analyse', 'analyse'), p('snags', 'Evidence', 'snaglist'), p('meeting', 'Meeting', 'meeting')];
+}

@@ -4,7 +4,6 @@
  * list of which losses are moving and which just sit there. */
 import { useMemo } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav } from '../state/useRoute';
 import { snagsForWorkspace } from '../db';
 import { useEffect, useState } from 'react';
 import { weeklyLoss, headline, categoryTrends, closedEvents, type ClosedEvent, type WeekPoint } from '../lib/stats';
@@ -18,7 +17,7 @@ const fmtH = (ms: number) => {
   return h >= 10 ? `${Math.round(h)} h` : h >= 1 ? `${(Math.round(h * 10) / 10)} h` : `${Math.round(ms / 60_000)} min`;
 };
 
-export function TrendScreen() {
+export function TrendPanel() {
   const { workspace, observations } = useWorkspace();
   const [snags, setSnags] = useState<Snag[]>([]);
   const syncedAt = useSyncedAt();
@@ -32,17 +31,7 @@ export function TrendScreen() {
   const enough = observations.length > 0 && weeks.filter(w => w.ms > 0).length >= 2;
 
   return (
-    <div className="wrap">
-      <div className="subhead">
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/analyse`)}>‹ Analyse</button>
-        <div style={{ flex: 1 }} />
-        <button className="btn" onClick={() => nav(`/w/${workspace.id}/report`)}>📄 One-page report</button>
-      </div>
-
-      <p className="eyebrow">{workspace.name}</p>
-      <h1 className="h1">Is it getting better?</h1>
-      <p className="sub" style={{ marginTop: 4 }}>Lost time per week, and what changed it.</p>
-
+    <div className="trend-panel">
       {!enough ? (
         <EmptyState icon="📈" title="Not enough history yet">
           The trend starts telling the truth after a couple of weeks of logging.

@@ -52,7 +52,7 @@ export function ReportScreen() {
     <div className={`report-stage paper-${paper}`}>
       <style>{`@page { size: ${paper} portrait; margin: 12mm; }`}</style>
       <div className="report-actions no-print">
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/trend`)}>‹ Back</button>
+        <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/analyse`)}>‹ Back</button>
         <div style={{ flex: 1 }} />
         <div className="paper-toggle" role="group" aria-label="Paper size">
           {(['A4', 'A3'] as Paper[]).map(sz => (

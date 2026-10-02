@@ -4,7 +4,7 @@
  * it's in use). Each change confirms with a quiet toast. */
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { goBack } from '../state/useRoute';
+import { goBack, nav } from '../state/useRoute';
 import { renameInObservations } from '../db';
 import { Toast } from '../ui/Toast';
 import { hasCost, costPerHour, labourPerHour, outputPerHour, burdenOf, fmtGBP } from '../lib/cost';
@@ -79,7 +79,7 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
   );
 }
 
-export function WorkspaceSettings() {
+export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
   const [toast, setToast] = useState<string | null>(null);
   // refinements stay visible for anyone already using them; hidden until asked otherwise
@@ -148,15 +148,26 @@ export function WorkspaceSettings() {
 
   const renameAsset = (from: string, to: string) => void rename('asset', from, to, { assets: workspace.assets.map(a => (a === from ? to : a)) });
 
+  /* Deleting a line's study is the most destructive tap in the app — it gets
+     a confirm AND an undo window. Nothing is actually deleted here: Home holds
+     the study in limbo for a few seconds and only then commits. */
+  const removeAll = () => {
+    if (!window.confirm(`Delete "${workspace.name}" and everything captured on it?`)) return;
+    sessionStorage.setItem('faultline-pending-delete', JSON.stringify({ id: workspace.id, name: workspace.name, until: Date.now() + 8000 }));
+    nav('/');
+  };
+
   return (
-    <div className="wrap">
-      <div className="subhead">
-        <button className="back-btn" onClick={() => goBack(`/w/${workspace.id}/analyse`)}>‹ Back</button>
-        <span className="subhead-title">Settings</span>
-      </div>
+    <div className={bare ? 'ws-setup' : 'wrap'}>
+      {!bare && (
+        <div className="subhead">
+          <button className="back-btn" onClick={() => goBack(`/w/${workspace.id}/analyse`)}>‹ Back</button>
+          <span className="subhead-title">Set up</span>
+        </div>
+      )}
 
       <div className="card">
-        <label className="field-label">Workspace name</label>
+        <label className="field-label">Name</label>
         <input className="text-input" defaultValue={workspace.name} maxLength={60}
           onBlur={e => { const v = e.target.value.trim(); if (v && v !== workspace.name) void save({ name: v }); }} />
       </div>
@@ -347,6 +358,11 @@ export function WorkspaceSettings() {
             <span className="tax-sub">{t.sub}</span>
           </button>
         ))}
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <button type="button" className="btn ws-setup-del" onClick={removeAll}>Delete everything captured on this line</button>
+        <p className="sub" style={{ margin: '6px 0 0' }}>The stops, the walks and the evidence. It asks first, and Home gives you a few seconds to undo.</p>
       </div>
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}

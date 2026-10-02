@@ -208,20 +208,12 @@ button { font-family: inherit; }
 .app { min-height: 100%; display: flex; flex-direction: column; }
 .app-main { flex: 1; }
 /* ---------- bottom tabs ---------- */
-.tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  background: var(--chrome); border-top: 1px solid var(--chrome-line);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.tab {
-  min-height: 66px; position: relative;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  background: transparent; border: none; color: var(--chrome-muted); cursor: pointer;
-}
-.tab.on { color: var(--brand); box-shadow: inset 0 2px 0 var(--brand); }
-.tab-ic { font-size: 21px; line-height: 1; }
-.tab-lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.01em; }
+/* the line study has the same row of tabs the project has (ui/Peers) */
+.app-peers { padding-top: 10px; }
+.ws-setup .card { box-shadow: none; }
+.ws-setup-del { color: var(--st-r); border-color: color-mix(in srgb, var(--st-r) 40%, var(--line)); }
+.cap-setup { margin-left: auto; }
+.trend-panel .kpi-row { margin-top: 0; }
 
 /* ---------- home / workspaces ---------- */
 .home-head { padding: 20px 4px 22px; }
@@ -3238,7 +3230,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   box-shadow: 0 8px 28px rgba(16, 32, 48, 0.18);
 }
 /* clear of the tab bar when there is one */
-.app .autoconv { bottom: calc(66px + env(safe-area-inset-bottom)); }
+.app .autoconv { bottom: calc(16px + env(safe-area-inset-bottom)); }
 .autoconv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .autoconv-main b { font-size: 13.5px; color: var(--ink); }
 .autoconv-main .sub { font-size: 11.5px; }

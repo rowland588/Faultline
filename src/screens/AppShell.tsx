@@ -1,67 +1,76 @@
-/* The in-workspace frame: the breadcrumb on top, the active screen in the
- * middle, the mode tabs fixed at the bottom. Present and the snag walkthrough
- * take the whole screen. */
-import { useState } from 'react';
+/* The line-study frame: the breadcrumb on top, the same row of tabs the
+ * project screens have — Capture · Analyse · Evidence · Meeting — and the
+ * active screen under it. The meeting, the walkthrough and the printable
+ * report take the whole screen.
+ *
+ * ONE WAY TO GET AROUND. The line study used to have its own: a bar fixed to
+ * the bottom with four tabs and a "More" menu holding seven more screens. The
+ * line study is a tool under a line (CLAUDE.md), and now it moves like one:
+ * the Log is Capture's own list, Present is the Meeting's second act, the trend
+ * is a fold on Analyse, Settings and People are one sheet opened where they
+ * are wanted. Old links to all of them land where they went. */
+import { useEffect } from 'react';
 import type { Route } from '../state/useRoute';
-import { WorkspaceMenu } from '../ui/WorkspaceMenu';
-import { TabBar } from '../ui/TabBar';
+import { navReplace, withQuery } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { Peers, studyPeers } from '../ui/Peers';
+import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { useWsChain, useDeepCrumbs, wsTrail } from '../lib/useTrail';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { CaptureScreen } from './CaptureScreen';
 import { AnalyseScreen } from './AnalyseScreen';
-import { PresentScreen } from './PresentScreen';
 import { MeetingScreen } from './MeetingScreen';
-import { LogScreen } from './LogScreen';
-import { WorkspaceSettings } from './WorkspaceSettings';
-import { PeopleScreen } from './PeopleScreen';
 import { SnagsScreen } from '../snag/SnagsScreen';
 import { LineScreen } from '../snag/LineScreen';
 import { SegmentScreen } from '../snag/SegmentScreen';
 import { AssetScreen } from '../snag/AssetScreen';
 import { SnagListScreen } from '../snag/SnagListScreen';
 import { WalkthroughScreen } from '../snag/WalkthroughScreen';
-import { TrendScreen } from './TrendScreen';
 import { ReportScreen } from './ReportScreen';
 import { AssetHistoryScreen } from '../snag/AssetHistoryScreen';
 import { CaseScreen } from './CaseScreen';
 
+/** A saved link to a screen that folded into another lands on the other. */
+function Go({ to }: { to: string }) {
+  useEffect(() => { navReplace(to); }, [to]);
+  return null;
+}
+
 export function AppShell({ route }: { route: Route }) {
   const screen = route.name;
-  // The trail is built here, once, rather than in each screen: a back button
-  // written per screen is how you end up with three of them disagreeing.
   const { workspace } = useWorkspace();
   const chain = useWsChain(route.wsId);
   const deep = useDeepCrumbs(route);
-  const [more, setMore] = useState(false);
+  const ws = route.wsId as string;
+  const setup = route.query.get('setup') === '1';
 
-  // The meeting, Present, the snag walkthrough and the printable report are
-  // calm, chrome-free full-bleed surfaces.
+  if (screen === 'log') return <Go to={`/w/${ws}/capture`} />;
+  if (screen === 'present') return <Go to={`/w/${ws}/meeting`} />;
+  if (screen === 'trend') return <Go to={`/w/${ws}/analyse?trend=1`} />;
+  if (screen === 'settings' || screen === 'people') return <Go to={`/w/${ws}/capture?setup=1`} />;
+
+  // The meeting, the snag walkthrough and the printable report are calm,
+  // chrome-free full-bleed surfaces.
   if (screen === 'meeting') return <MeetingScreen />;
-  if (screen === 'present') return <PresentScreen route={route} />;
-  if (screen === 'walk') return <WalkthroughScreen wsId={route.wsId!} />;
+  if (screen === 'walk') return <WalkthroughScreen wsId={ws} />;
   if (screen === 'report') return <ReportScreen />;
 
   return (
     <div className="app">
       <Crumbs trail={wsTrail(route, chain, workspace.name, deep)} />
+      <div className="wrap app-peers"><Peers peers={studyPeers(ws, screen)} /></div>
       <main className="app-main">
         {screen === 'capture' && <CaptureScreen />}
         {screen === 'analyse' && <AnalyseScreen route={route} />}
-        {screen === 'log' && <LogScreen />}
-        {screen === 'settings' && <WorkspaceSettings />}
-        {screen === 'people' && <PeopleScreen />}
         {screen === 'snags' && <SnagsScreen />}
-        {screen === 'line' && <LineScreen wsId={route.wsId!} />}
-        {screen === 'segment' && <SegmentScreen wsId={route.wsId!} segmentId={route.id!} />}
-        {screen === 'asset' && <AssetScreen wsId={route.wsId!} assetId={route.id!} />}
+        {screen === 'line' && <LineScreen wsId={ws} />}
+        {screen === 'segment' && <SegmentScreen wsId={ws} segmentId={route.id as string} />}
+        {screen === 'asset' && <AssetScreen wsId={ws} assetId={route.id as string} />}
         {screen === 'snaglist' && <SnagListScreen />}
-        {screen === 'trend' && <TrendScreen />}
-        {screen === 'history' && <AssetHistoryScreen wsId={route.wsId!} assetId={route.id!} />}
-        {screen === 'case' && <CaseScreen caseId={route.id!} />}
+        {screen === 'history' && <AssetHistoryScreen wsId={ws} assetId={route.id as string} />}
+        {screen === 'case' && <CaseScreen caseId={route.id as string} />}
       </main>
-      <TabBar active={screen} wsId={route.wsId!} onMore={() => setMore(true)} />
-      <WorkspaceMenu open={more} onClose={() => setMore(false)} />
+      {setup && <StudySetupSheet onClose={() => withQuery('setup', null, true)} />}
     </div>
   );
 }

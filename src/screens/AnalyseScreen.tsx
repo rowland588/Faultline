@@ -5,9 +5,10 @@
  * RANK by — time or frequency — so you can flip the lens and watch the order
  * change. When the two rankings disagree, the app says so. All state in the URL. */
 import { LOSS } from '../charts/loss';
+import { TrendPanel } from './TrendScreen';
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../state/useRoute';
-import { nav, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
+import { nav, withQuery, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { useSyncedAt } from '../cloud/session';
 import { listCases, listSegments, addCase } from '../db';
@@ -102,6 +103,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
   const [cases, setCases] = useState<Case[]>([]);
   const [walkTimes, setWalkTimes] = useState<number[]>([]);
   const [winsOpen, setWinsOpen] = useState(false);
+  const [trendOpen, setTrendOpen] = useState(route.query.get('trend') === '1');
   const [film, setFilm] = useState(false); // the tutorial film, played in place
   const syncedAt = useSyncedAt();
   useEffect(() => {
@@ -175,6 +177,17 @@ export function AnalyseScreen({ route }: { route: Route }) {
       )}
       {periodChips}
       <LineBoard since={cutoff} periodKey={period} />
+      {/* IS IT GETTING BETTER? It was a screen of its own, reached by a link
+          from here; it is the other half of this screen's question, so it is
+          a fold at its foot. ?trend=1 opens it — old links land on it. */}
+      <section className={'fold study-trend' + (trendOpen ? ' is-open' : '')}>
+        <button type="button" className="fold-h" aria-expanded={trendOpen} onClick={() => setTrendOpen(o => !o)}>
+          <span className="fold-t">Is it getting better?</span>
+          <span className="fold-s">lost time per week, and what changed it</span>
+          <span className="fold-chev" aria-hidden />
+        </button>
+        {trendOpen && <div className="fold-b"><TrendPanel /></div>}
+      </section>
       {film && (
         <div className="film-overlay" onClick={() => setFilm(false)} role="dialog" aria-label="Tutorial film">
           <video controls autoPlay playsInline onClick={e => e.stopPropagation()}>
@@ -278,7 +291,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}` : ''} · {periodWord(period)}
               </div>
               {!costable && (
-                <button className="cost-hint" onClick={() => nav(`/w/${workspace.id}/settings`)}>
+                <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
                   💷 Put a £ on this lost time — add crew &amp; labour rate ›
                 </button>
               )}
@@ -308,12 +321,9 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 ? <button className="linkish" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}>📌 Open its Case — {existing.title} ›</button>
                 : <button className="linkish" data-tour="case-cta" onClick={() => void openCaseHere()}>📌 Open a Case on this ›</button>
             )}
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/trend`)}>📈 Is it getting better? ›</button>
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/meeting`)}>Show this in the meeting ›</button>
           </div>
 
-          <button className="linkish present-link" onClick={() => nav(buildAnalyseHash(workspace.id, 'present', view.measure, view.path, view.dimensionOrder, period))}>
-            Present this ›
-          </button>
         </>
       )}
     </div>

@@ -219,3 +219,13 @@ export function readWorkstreamView(route: Route, wsId: ID): WorkstreamView | nul
     mode: route.name === 'present' ? 'present' : 'analyse',
   };
 }
+
+/** Set (or with null, clear) one query key on the screen you are on. Used for
+ *  state a link should carry — the study's set-up sheet, the trend fold. */
+export const withQuery = (key: string, value: string | null, replace = false): void => {
+  const [path, q] = window.location.hash.slice(1).split('?');
+  const params = new URLSearchParams(q ?? '');
+  if (value == null) params.delete(key); else params.set(key, value);
+  const qs = params.toString();
+  (replace ? navReplace : nav)(qs ? `${path}?${qs}` : path);
+};

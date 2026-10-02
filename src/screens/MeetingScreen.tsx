@@ -305,7 +305,6 @@ export function MeetingScreen() {
           {/* the doors the Present tab used to open — the meeting adds, never removes */}
           <div className="meet-links">
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/present`)}>Present the board ›</button>
           </div>
         </div>
 

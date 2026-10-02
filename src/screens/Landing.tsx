@@ -111,7 +111,6 @@ export function Landing() {
           </button>
         </form>
 
-        <button type="button" className="door-link door-guide" onClick={() => nav('/guide')}>How it works →</button>
       </main>
     </div>
   );

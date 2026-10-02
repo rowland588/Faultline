@@ -4,7 +4,7 @@
  * The line and every machine's story on one screen — built for the daily huddle
  * and for presales. Reused in Present (calm, full-screen). */
 import { LOSS } from '../charts/loss';
-import { nav, buildAnalyseHash } from '../state/useRoute';
+import { nav, withQuery, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { buildCompare, divergenceTags } from '../engine/compare';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
@@ -94,7 +94,7 @@ export function LineBoard({ present = false, since = 0, periodKey }: { present?:
       </div>
 
       {!costable && !present && (
-        <button className="cost-hint" onClick={() => nav(`/w/${workspace.id}/settings`)}>
+        <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
           💷 Put a £ on this lost time — add crew &amp; labour rate ›
         </button>
       )}
@@ -112,16 +112,7 @@ export function LineBoard({ present = false, since = 0, periodKey }: { present?:
         ))}
       </div>
 
-      {/* ONE exit (owner cut, Aug 2026): the question-cards duplicated the
-          chart's own chips and the drill, and Present lives inside the
-          meeting — one door per verb is what makes the system instantly
-          legible. Frequency ranking, shift cuts and presenting all remain,
-          exactly one press deeper, where playing finds them. */}
-      {!present && (
-        <button className="btn btn-primary present-cta" onClick={() => nav(`/w/${workspace.id}/meeting`)}>
-          Run the meeting ›
-        </button>
-      )}
+      {/* No door to the meeting here: it is a tab in the row above. */}
     </>
   );
 }

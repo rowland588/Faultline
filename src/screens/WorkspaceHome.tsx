@@ -80,7 +80,6 @@ function contentsLabel(c: WsContents | undefined): string {
 export function WorkspaceHome() {
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
-  const [casesTotal, setCasesTotal] = useState(0);
   // A deleted workspace sits in limbo here for a few seconds with an Undo —
   // committed only when the toast expires. A flag left by a closed app is
   // treated as CANCELLED: losing an intent beats losing a workspace.
@@ -188,7 +187,6 @@ export function WorkspaceHome() {
           cases: away ? 0 : cases.length,
         }] as const;
       }));
-      if (alive) setCasesTotal(entries.reduce((a, [, c]) => a + (c.cases ?? 0), 0));
       if (!alive) return;
       const byId = Object.fromEntries(entries);
       setCounts(byId);
@@ -286,14 +284,6 @@ export function WorkspaceHome() {
           </p>
         )}
       </section>
-
-      {casesTotal > 0 && (
-        <button className="admin-row pf-door" onClick={() => nav('/portfolio')}>
-          <span className="admin-ic" aria-hidden>▥</span>
-          <span className="cloud-main"><b>Improvement work</b><span className="sub">every case, every line — at stake &amp; proven</span></span>
-          <span className="cloud-go" aria-hidden>›</span>
-        </button>
-      )}
 
       {/* NOT A DOOR. There is no "＋ New workspace" here any more: a line makes
           its own, and a second way to make one by hand is the thing he tripped
@@ -413,11 +403,6 @@ export function WorkspaceHome() {
           taken up by things you do once. */}
       <InstallPanel />
       <CloudPanel />
-
-      {/* documentation, not a demo — THE demo is the film on the demo board */}
-      <button className="home-guide-link" onClick={() => nav('/guide')}>
-        📖 User guide — how Faultline works ›
-      </button>
 
       {pendingDel && (
         <Toast message={`Deleted “${pendingDel.name}”`} onUndo={undoDelete} onDismiss={() => void commitDelete()} />

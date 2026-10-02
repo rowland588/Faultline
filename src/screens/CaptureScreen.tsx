@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Case, Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav } from '../state/useRoute';
+import { nav, withQuery } from '../state/useRoute';
 import { deleteBlobs, listCases } from '../db';
 import { applyDrill } from '../engine/drill';
 import { studyResult } from '../lib/proof';
@@ -185,7 +185,10 @@ export function CaptureScreen() {
   };
 
   const total = observations.reduce((a, o) => a + o.durationMs, 0);
-  const recent = [...observations].sort((a, b) => b.createdAt - a.createdAt).slice(0, 6);
+  /* THE LOG IS THIS LIST. It had a page of its own behind "More" that showed
+     the same rows; "See all" opens them here. */
+  const [showAll, setShowAll] = useState(false);
+  const recent = [...observations].sort((a, b) => b.createdAt - a.createdAt).slice(0, showAll ? undefined : 6);
 
   return (
     <div className="wrap cap">
@@ -294,20 +297,16 @@ export function CaptureScreen() {
         {pending.length > 0 && <p className="sub" style={{ marginTop: 6 }}>{plural(pending.length, 'clip')} ready — attaches to the next log.</p>}
       </div>
 
-      {/* the bridge to the payoff — a quiet link; Start timing stays the one
-          loud thing on this screen (the calm rule) */}
-      {observations.length > 0 && (
-        <button className="linkish cap-board-link" onClick={() => nav(`/w/${workspace.id}/analyse`)}>
-          ▤ See where the line's losing time ›
-        </button>
-      )}
+      {/* No link to Analyse here: it is the next tab in the row above. */}
 
       {/* THE CHECK SHEET — every log lands here, newest first */}
       <div className="cap-feed">
         <div className="cap-feed-head">
-          <span className="cap-feed-title-lbl">Logged this workspace</span>
+          <span className="cap-feed-title-lbl">Logged on this line</span>
           <span className="cap-feed-count"><b>{observations.length}</b> {observations.length === 1 ? 'entry' : 'entries'}{total > 0 && <> · <b>{fmtDurationWords(total)}</b></>}</span>
-        </div>
+        
+          <button type="button" className="cw-link cap-setup" onClick={() => withQuery('setup', '1')}>Set up ›</button>
+</div>
         {recent.length === 0 ? (
           <p className="cap-feed-empty">Nothing yet. Pick an asset, say what you saw, put a time to it — it lands here.</p>
         ) : (
@@ -328,7 +327,7 @@ export function CaptureScreen() {
               </div>
             ))}
             {observations.length > recent.length && (
-              <button className="cap-feed-more" onClick={() => nav(`/w/${workspace.id}/log`)}>
+              <button className="cap-feed-more" onClick={() => setShowAll(true)}>
                 See all {observations.length} ›
               </button>
             )}

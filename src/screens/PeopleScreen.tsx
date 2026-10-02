@@ -4,9 +4,6 @@
  * the owner (or the app admin) manages the list. People management is
  * live-online: it talks straight to the cloud. */
 import { useState } from 'react';
-import { useWorkspace } from '../state/WorkspaceProvider';
-import { goBack } from '../state/useRoute';
-import { supabase } from '../cloud/client';
 import { useTeam, displayName } from '../cloud/team';
 import { useMembers } from '../cloud/members';
 import { useProfile } from '../cloud/admin';
@@ -26,11 +23,11 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
   const doAdd = async () => {
     const t = text.trim().toLowerCase();
     if (!t) return;
-    if (t === ownerEmail || members.some(m => m.email === t)) { setNote(`${t} is already in this workspace`); setText(''); return; }
+    if (t === ownerEmail || members.some(m => m.email === t)) { setNote(`${t} is already on it`); setText(''); return; }
     try {
       await add(t);
       const registered = team.some(m => m.email.toLowerCase() === t);
-      setNote(registered ? '' : `${t} isn’t in the app yet — the administrator needs to invite them before they can sign in. Once they do, this workspace will be waiting for them.`);
+      setNote(registered ? '' : `${t} isn’t in the app yet — the administrator needs to invite them before they can sign in. Once they do, this line will be waiting for them.`);
       setText('');
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Couldn’t add them — are you online?');
@@ -39,11 +36,11 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
-      <div className="field-label">People in this workspace</div>
+      <div className="field-label">Who can see this line’s study</div>
       <p className="sub" style={{ margin: '4px 0 6px' }}>
         {iAmOwner
-          ? 'Your workspace, your team — everyone here sees and works on the same data, including all history.'
-          : `${displayName(ownerEmail) || 'The owner'} runs this workspace and chooses who’s in it.`}
+          ? 'Everyone here sees and works on the same stops, walks and evidence, including all history.'
+          : `${displayName(ownerEmail) || 'The owner'} runs this line’s study and chooses who’s in it.`}
       </p>
       <div className="chip-row" style={{ marginTop: 8 }}>
         <span className="chip" title={ownerEmail}>{iAmOwner ? 'You' : displayName(ownerEmail)} · owner</span>
@@ -79,17 +76,3 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
 }
 
 /** The 👥 destination — straight to inviting, nothing else in the way. */
-export function PeopleScreen() {
-  const { workspace } = useWorkspace();
-  return (
-    <div className="wrap">
-      <div className="subhead">
-        <button className="back-btn" onClick={() => goBack(`/w/${workspace.id}/capture`)}>‹ Back</button>
-        <span className="subhead-title">People</span>
-      </div>
-      {supabase
-        ? <PeoplePanel wsId={workspace.id} ownerId={workspace.ownerId} />
-        : <p className="sub" style={{ marginTop: 16 }}>Sharing needs the cloud — sign in to invite people to this workspace.</p>}
-    </div>
-  );
-}

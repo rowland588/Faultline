@@ -4,8 +4,8 @@
  * The front door is invite-only and there is no way around it: signed out means
  * the Landing (sign in / create account, and only invited emails can register).
  * Once signed in the session is cached locally, so the app still works offline. */
-import { lazy, Suspense } from 'react';
-import { useRoute } from './state/useRoute';
+import { lazy, Suspense, useEffect } from 'react';
+import { useRoute, navReplace } from './state/useRoute';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
@@ -30,8 +30,6 @@ import { ServiceUnavailable } from './screens/ServiceUnavailable';
    these load the first time they are opened, behind the same splash. */
 const AppShell = lazy(() => import('./screens/AppShell').then(m => ({ default: m.AppShell })));
 const Landing = lazy(() => import('./screens/Landing').then(m => ({ default: m.Landing })));
-const GuideScreen = lazy(() => import('./screens/GuideScreen').then(m => ({ default: m.GuideScreen })));
-const PortfolioScreen = lazy(() => import('./screens/PortfolioScreen').then(m => ({ default: m.PortfolioScreen })));
 const LeverTree = lazy(() => import('./screens/LeverTree').then(m => ({ default: m.LeverTree })));
 const BoardScreen = lazy(() => import('./screens/BoardScreen').then(m => ({ default: m.BoardScreen })));
 const ParetoScreen = lazy(() => import('./screens/ParetoScreen').then(m => ({ default: m.ParetoScreen })));
@@ -46,6 +44,11 @@ import { useSession } from './cloud/session';
 import { AutoConvert } from './snag/AutoConvert';
 import type { Route } from './state/useRoute';
 
+function GoHome() {
+  useEffect(() => { navReplace('/'); }, []);
+  return null;
+}
+
 export function Router() {
   const route = useRoute();
   usePersistRoute(route.wsId);
@@ -57,7 +60,10 @@ export function Router() {
   if (!cloudConfigured) return <ServiceUnavailable />;
 
   // The "how it works" tour is public — an invitee reads it BEFORE signing up.
-  if (route.name === 'guide') return <Suspense fallback={<BootSplash />}><GuideScreen /></Suspense>;
+  /* INVENTORY OUT. The guide described the first version; the portfolio was
+     one number; a deck with no project chosen was a page saying "pick one".
+     Home is the control room — their links land there. */
+  if (route.name === 'guide' || route.name === 'portfolio') return <GoHome />;
 
   // Hold the branded splash while the session resolves, so a returning signed-in
   // visitor never flashes the app or the landing on the way in.
@@ -75,7 +81,6 @@ function app(route: Route) {
 
   // The portfolio/ledger reads across every workspace, so it lives beside
   // Home, outside any single WorkspaceProvider scope.
-  if (route.name === 'portfolio') return <PortfolioScreen />;
 
   // Projects span several lines each, so like the portfolio they live outside
   // any single WorkspaceProvider scope. The door opens on the LIST.
@@ -133,7 +138,7 @@ function app(route: Route) {
 
   // The client report — its own route so the print output carries no app
   // chrome, only the two A3 pages.
-  if (route.name === 'paceReport') return <PaceExecReport />;
+  if (route.name === 'paceReport') return route.query.get('project') ? <PaceExecReport /> : <GoHome />;
 
   return (
     route.name === 'home' || !route.wsId
