@@ -16,13 +16,14 @@
  */
 import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
-import { useState } from 'react';
-import { nav } from '../state/useRoute';
+import { useEffect, useState } from 'react';
+import { nav, navReplace } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers, methodPeers } from '../ui/Peers';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
+import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useAssets } from '../lib/useTesting';
@@ -58,79 +59,15 @@ function when(p: Program, today: string): string {
 /* `today` is used for ONE thing here: whether a booked test date has gone. The
    colours themselves come off the program's own two dates, not off a comparison
    with now — something proved in March is green in March. */
-function Grid({ rows, weeks, today, assets }: { rows: Program[]; weeks: Week[]; today: string; assets: Asset[] }) {
-  if (!rows.length || !weeks.length) return null;
-  /* WHICH MACHINE, but only once there is more than one in play. Rowland, on
-     giving a second machine the programs the first one has: "a lot of them
-     could be real correlated with the same name." Two rows reading "P-104
-     perforation" with nothing between them is a grid nobody can use — and on a
-     job with one machine, printing its name against every row is noise. The
-     list below has always said it; the grid is the same picture and must not
-     say less than the thing beside it. */
-  const machineOf = (p: Program) => assets.find(a => a.id === p.assetId)?.name;
-  const several = new Set(rows.map(p => p.assetId ?? '')).size > 1;
+/* ================== the weeks, on each row (ui/Weeks) ===================== */
+function Strip({ p, weeks }: { p: Program; weeks: Week[] }) {
   return (
-    <div className="mt-grid-wrap">
-      <table className="mt-grid">
-        <thead>
-          <tr>
-            <th className="mt-grid-item" rowSpan={2} scope="col">Program</th>
-            <th className="mt-grid-when" rowSpan={2} scope="col">Where it&rsquo;s got to</th>
-            {monthSpans(weeks).map(m => (
-              <th key={m.month} colSpan={m.span} scope="colgroup" className="mt-grid-month">{m.month}</th>
-            ))}
-          </tr>
-          <tr>
-            {weeks.map(w => (
-              <th key={w.start} scope="col" className="mt-grid-wk" title={`week commencing ${nice(w.start)}`}>
-                {w.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(p => (
-            <tr key={p.id}>
-              <th scope="row" className="mt-grid-item">
-                {p.what}
-                {several && <span className="pg-grid-on">{machineOf(p) ?? 'the line itself'}</span>}
-                {p.runs && <span className="pg-grid-runs">{p.runs}</span>}
-              </th>
-              {/* The state AND its date. The word alone cannot answer "when are
-                  we testing them", which is half of what this screen is for,
-                  and the report's version of this grid already said both —
-                  the two drawings of one picture should not disagree. */}
-              <td className={'mt-grid-when is-pg-' + stateOf(p)}>
-                {isProved(p) ? nice(p.provedOn) : STATE_WORD[stateOf(p)]}
-                {!isProved(p) && p.testOn && (
-                  <span className="mt-grid-test">test {nice(p.testOn)}</span>
-                )}
-                {daysOverdue(p, today) != null && (
-                  <span className="mt-grid-late">{daysOverdue(p, today)}d ago</span>
-                )}
-              </td>
-              {weeks.map(w => {
-                const fill = fillIn(p, w);
-                const booked = testedIn(p, w);
-                return (
-                  <td key={w.start}
-                    className={`mt-cell pg-cell is-${fill}` + (booked ? ' is-booked' : '')}
-                    aria-label={`${p.what}: ${
-                      fill === 'proved' ? 'proved' : fill === 'machine' ? 'on the machine, not proved' : 'not written'
-                    }${booked ? ', test booked' : ''} in the week of ${nice(w.start)}`} />
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="pg-key">
-        <span className="pg-key-i"><span className="pg-sw is-proved" aria-hidden /> Proved</span>
-        <span className="pg-key-i"><span className="pg-sw is-machine" aria-hidden /> On the machine</span>
-        <span className="pg-key-i"><span className="pg-sw is-none" aria-hidden /> Not written</span>
-        <span className="pg-key-i"><span className="pg-ring" aria-hidden /> Test booked</span>
-      </p>
-    </div>
+    <WeekStrip n={weeks.length} label={`${p.what}: ${isProved(p) ? `proved ${nice(p.provedOn)}` : STATE_WORD[stateOf(p)]}${p.testOn && !isProved(p) ? `, test ${nice(p.testOn)}` : ''}`}>
+      {weeks.map(w => {
+        const fill = fillIn(p, w), booked = testedIn(p, w);
+        return <span key={w.start} className={`mt-cell pg-cell is-${fill}` + (booked ? ' is-booked' : '')} />;
+      })}
+    </WeekStrip>
   );
 }
 
@@ -223,8 +160,8 @@ function PutAllOn({ state, assets, addAsset }: {
   );
 }
 
-function Row({ p, today, lineName, assets, state }: {
-  p: Program; today: string; lineName?: string; assets: Asset[];
+function Row({ p, today, lineName, assets, state, weeks }: {
+  p: Program; today: string; lineName?: string; assets: Asset[]; weeks: Week[];
   state: ReturnType<typeof usePrograms>;
 }) {
   const [proving, setProving] = useState(false);
@@ -311,6 +248,7 @@ function Row({ p, today, lineName, assets, state }: {
 
       <button className="pset-x" aria-label={`Remove ${p.what}`}
         onClick={() => void state.remove(p.id)}>×</button>
+      <Strip p={p} weeks={weeks} />
     </div>
   );
 }
@@ -507,6 +445,8 @@ export function ProgramsScreen({ projectId, embedded = false }: {
                 <b>{t.proved} of {t.total} proved</b>
                 {t.overdue > 0 && <span className="sub in-late">{t.overdue} past the test date</span>}
                 {t.onMachine > 0 && <span className="sub">{t.onMachine} on the machine</span>}
+                {t.needed > 0 && <span className="sub">{t.needed} not written{t.nextTest ? `, next test ${nice(t.nextTest)}` : ''}</span>}
+                {t.undated > 0 && <span className="sub">{t.undated} with no date</span>}
               </>}
           </p>
         </div>
@@ -526,63 +466,26 @@ export function ProgramsScreen({ projectId, embedded = false }: {
         </>
       ) : (
         <>
-          <div className="pace-kpis">
-            <div className={'pace-kpi' + (t.proved > 0 ? ' is-good' : '')}>
-              <span className="pace-kpi-n">{t.proved}</span>
-              <span className="pace-kpi-l">proved</span>
-              <span className="pace-kpi-s">of {t.total} on the list</span>
-            </div>
-            <div className="pace-kpi">
-              <span className="pace-kpi-n">{t.onMachine}</span>
-              <span className="pace-kpi-l">on the machine</span>
-              <span className="pace-kpi-s">written, not proved</span>
-            </div>
-            <div className="pace-kpi">
-              <span className="pace-kpi-n">{t.needed}</span>
-              <span className="pace-kpi-l">not written</span>
-              <span className="pace-kpi-s">
-                {t.nextTest ? `next test ${nice(t.nextTest)}` : 'nobody has made them'}
-              </span>
-            </div>
-            {t.overdue > 0 && (
-              <div className="pace-kpi is-bad">
-                <span className="pace-kpi-n">{t.overdue}</span>
-                <span className="pace-kpi-l">test date gone</span>
-                <span className="pace-kpi-s">the day came and went</span>
-              </div>
-            )}
-            {t.undated > 0 && (
-              <div className="pace-kpi is-warn">
-                <span className="pace-kpi-n">{t.undated}</span>
-                <span className="pace-kpi-l">no date</span>
-                <span className="pace-kpi-s">nobody has said when</span>
-              </div>
-            )}
-          </div>
-
+          {/* ONE LIST — see MaterialsScreen. */}
           <section className="pace-sec">
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">Can we run it?</h2>
-              <p className="pace-sec-sub">
-                Every row a program, every column a week · green from the week it was proved · this prints on the report
-              </p>
-            </div>
-            <Grid rows={state.programs} weeks={state.weeks} today={today} assets={assets} />
-          </section>
-
-          <section className="pace-sec">
-            <div className="pace-sec-head">
-              <h2 className="pace-sec-title">What is going to bite</h2>
-              <p className="pace-sec-sub">Test dates that have gone first, then what is booked, then what nobody has dated, then what is proved</p>
+              <h2 className="pace-sec-title">What the line has to run</h2>
+              <p className="pace-sec-sub">Test dates that have gone first, then what is booked, then what nobody has dated, then what is proved · green from the week it was proved · this prints on the report</p>
             </div>
             <PutAllOn state={state} assets={assets} addAsset={addAsset} />
             <div className="mt-list">
+              <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.programs.map(p => (
-                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} />
+                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} />
               ))}
             </div>
+            <p className="pg-key">
+              <span className="pg-key-i"><span className="pg-sw is-proved" aria-hidden /> Proved</span>
+              <span className="pg-key-i"><span className="pg-sw is-machine" aria-hidden /> On the machine</span>
+              <span className="pg-key-i"><span className="pg-sw is-none" aria-hidden /> Not written</span>
+              <span className="pg-key-i"><span className="pg-ring" aria-hidden /> Test booked</span>
+            </p>
           </section>
-
         </>
       )}
 
@@ -601,4 +504,17 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       )}
     </div>
   );
+}
+
+/* PROGRAMS ARE SHOWN ONCE ON A JOB. They are set up under Set up on a stage-gate
+ * job and live under Materials on a 3P or tree job; this page drew them a
+ * second time on their own, with the Materials tab lit. A link to /programs —
+ * from the plan, from a date's story — lands on the page that holds them. */
+export function ProgramsDoor({ projectId }: { projectId: string }) {
+  const { loading, project } = useProject(projectId);
+  useEffect(() => {
+    if (loading) return;
+    navReplace(`/project/${projectId}/${project?.commissioning ? 'set-up' : 'materials'}`);
+  }, [loading, project, projectId]);
+  return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 }

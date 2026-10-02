@@ -24,6 +24,7 @@ import { useMethodCounts } from '../lib/useMethodCounts';
 import { ProgramsScreen } from './ProgramsScreen';
 import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
+import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMaterials } from '../lib/useMaterials';
@@ -65,61 +66,23 @@ function monthSpans(weeks: Week[]): { month: string; span: number }[] {
   return out;
 }
 
-function Grid({ rows, weeks, today }: { rows: Material[]; weeks: Week[]; today: string }) {
-  if (!rows.length || !weeks.length) return null;
+/* ================== the weeks, on each row (ui/Weeks) ===================== */
+function Strip({ m, weeks, today }: { m: Material; weeks: Week[]; today: string }) {
+  const from = weeks.find(w => coveredIn(m, w, today));
   return (
-    <div className="mt-grid-wrap">
-      <table className="mt-grid">
-        <thead>
-          <tr>
-            <th className="mt-grid-item" rowSpan={2} scope="col">What we need</th>
-            <th className="mt-grid-when" rowSpan={2} scope="col">Planned for arrival</th>
-            {monthSpans(weeks).map(m => (
-              <th key={m.month} colSpan={m.span} scope="colgroup" className="mt-grid-month">{m.month}</th>
-            ))}
-          </tr>
-          <tr>
-            {weeks.map(w => (
-              <th key={w.start} scope="col" className="mt-grid-wk" title={`week commencing ${nice(w.start)}`}>
-                {w.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(m => (
-            <tr key={m.id}>
-              <th scope="row" className="mt-grid-item">{m.what}</th>
-              <td className={'mt-grid-when is-' + stateOf(m, today)}>
-                {isHere(m) ? 'In stock' : m.due ? nice(m.due) : '—'}
-              </td>
-              {weeks.map(w => {
-                const on = coveredIn(m, w, today);
-                const lands = landsIn(m, w, today);
-                return (
-                  /* The date goes IN the week it lands, not only in the column
-                     at the side. The grid said whether a week was covered and
-                     never when, so anybody wanting the day had to break off,
-                     find the row in the side column and come back. */
-                  <td key={w.start} className={'mt-cell' + (on ? ' is-on' : '') + (lands ? ' is-lands' : '')}
-                    aria-label={`${m.what}: ${on ? 'covered' : 'not covered'} in the week of ${nice(w.start)}${
-                      lands ? `, due ${nice(m.due)}` : ''}`}>
-                    {lands && <span className="mt-cell-d">{nice(m.due)}</span>}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <WeekStrip n={weeks.length} label={`${m.what}: ${from ? `covered from the week of ${nice(from.start)}` : 'not covered in these weeks'}`}>
+      {weeks.map(w => {
+        const on = coveredIn(m, w, today), lands = landsIn(m, w, today);
+        return <span key={w.start} className={'mt-cell' + (on ? ' is-on' : '') + (lands ? ' is-lands' : '')}>{lands && <span className="mt-cell-d">{nice(m.due)}</span>}</span>;
+      })}
+    </WeekStrip>
   );
 }
 
 /* ================================== the list ================================ */
 
-function Row({ m, today, lineName, state }: {
-  m: Material; today: string; lineName?: string;
+function Row({ m, today, lineName, state, weeks }: {
+  m: Material; today: string; lineName?: string; weeks: Week[];
   state: ReturnType<typeof useMaterials>;
 }) {
   const [marking, setMarking] = useState(false);
@@ -166,6 +129,7 @@ function Row({ m, today, lineName, state }: {
 
       <button className="pset-x" aria-label={`Remove ${m.what}`}
         onClick={() => void state.remove(m.id)}>×</button>
+      <Strip m={m} weeks={weeks} today={today} />
     </div>
   );
 }
@@ -281,7 +245,8 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
               : <>
                 <b>{t.here} of {t.total} here</b>
                 {t.late > 0 && <span className="sub in-late">{t.late} late</span>}
-                {t.waiting > 0 && <span className="sub">{t.waiting} waiting</span>}
+                {t.waiting > 0 && <span className="sub">{t.waiting} waiting{t.nextDue ? `, next due ${nice(t.nextDue)}` : ''}</span>}
+                {t.undated > 0 && <span className="sub">{t.undated} with no date</span>}
               </>}
           </p>
         </div>
@@ -300,49 +265,18 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         </>
       ) : (
         <>
-          <div className="pace-kpis">
-            <div className={'pace-kpi' + (t.late > 0 ? ' is-bad' : '')}>
-              <span className="pace-kpi-n">{t.late}</span>
-              <span className="pace-kpi-l">late</span>
-              <span className="pace-kpi-s">past the date, still not here</span>
-            </div>
-            <div className="pace-kpi">
-              <span className="pace-kpi-n">{t.waiting}</span>
-              <span className="pace-kpi-l">waiting</span>
-              <span className="pace-kpi-s">{t.nextDue ? `next one due ${nice(t.nextDue)}` : 'nothing dated'}</span>
-            </div>
-            <div className={'pace-kpi' + (t.here > 0 ? ' is-good' : '')}>
-              <span className="pace-kpi-n">{t.here}</span>
-              <span className="pace-kpi-l">here</span>
-              <span className="pace-kpi-s">of {t.total} on the list</span>
-            </div>
-            {t.undated > 0 && (
-              <div className="pace-kpi is-warn">
-                <span className="pace-kpi-n">{t.undated}</span>
-                <span className="pace-kpi-l">no date</span>
-                <span className="pace-kpi-s">nobody has said when</span>
-              </div>
-            )}
-          </div>
-
+          {/* ONE LIST. The tiles said what the header line says; the week
+              grid and the list were the same records twice. Each row carries
+              its weeks now; the A3 report still prints the grid. */}
           <section className="pace-sec">
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">Are we covered?</h2>
-              <p className="pace-sec-sub">
-                Every row a thing we need, every column a week · green from the week it lands · this prints on the report
-              </p>
-            </div>
-            <Grid rows={state.materials} weeks={state.weeks} today={today} />
-          </section>
-
-          <section className="pace-sec">
-            <div className="pace-sec-head">
-              <h2 className="pace-sec-title">What is holding us up</h2>
-              <p className="pace-sec-sub">Late first, then what is coming, then what nobody has dated, then what is in</p>
+              <h2 className="pace-sec-title">What we are waiting on</h2>
+              <p className="pace-sec-sub">Late first, then what is coming, then what nobody has dated, then what is in · green from the week it lands · this prints on the report</p>
             </div>
             <div className="mt-list">
+              <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.materials.map(m => (
-                <Row key={m.id} m={m} today={today} lineName={lineName(m.lineId)} state={state} />
+                <Row key={m.id} m={m} today={today} lineName={lineName(m.lineId)} state={state} weeks={state.weeks} />
               ))}
             </div>
           </section>

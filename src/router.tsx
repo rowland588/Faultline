@@ -15,7 +15,7 @@ import { ProjectsScreen } from './screens/ProjectsScreen';
 import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
 import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
-import { ProgramsScreen } from './screens/ProgramsScreen';
+import { ProgramsDoor } from './screens/ProgramsScreen';
 import { TestsScreen } from './screens/TestsScreen';
 import { TrialCardScreen } from './screens/TrialCardScreen';
 import { FixesScreen } from './screens/FixesScreen';
@@ -111,7 +111,7 @@ function app(route: Route) {
   if (route.name === 'handover' && route.id) return <InstallScreen projectId={route.id} gate="handover" />;
   if (route.name === 'day' && route.id) return <DayScreen projectId={route.id} />;
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
-  if (route.name === 'programs' && route.id) return <ProgramsScreen projectId={route.id} />;
+  if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
   if (route.name === 'clientReport' && route.id) return <ClientReportScreen projectId={route.id} />;
   if (route.name === 'notes' && route.id) return <NotesScreen projectId={route.id} />;
   if (route.name === 'standard' && route.id) return <StandardScreen projectId={route.id} standardId={route.lineId} />;
