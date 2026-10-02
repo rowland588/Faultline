@@ -2911,6 +2911,16 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   padding: 9px 16px 10px; border-top: 1px solid var(--line);
   background: color-mix(in srgb, var(--line) 22%, transparent);
 }
+.lc-bal {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 10px 16px;
+  text-align: left; cursor: pointer; font: inherit; background: transparent;
+  border: 0; border-top: 1px solid var(--line); color: var(--ink-2);
+}
+.lc-bal:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.lc-bal-k { flex: none; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand); }
+.lc-bal-t { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; }
+.lc-bal.is-set .lc-bal-t { font-weight: 700; color: var(--ink); }
+.lc-bal-go { flex: none; color: var(--brand); font-weight: 800; }
 .pace-lines-foot { margin-top: 14px; }
 
 /* a line's pack shows one chart, so it should not be stretched to fill a row

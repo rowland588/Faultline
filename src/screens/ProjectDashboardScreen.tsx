@@ -178,8 +178,10 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series }: {
+function LineCard({ line, pack, projectId, series, balance }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
+  /** What the line's balance says, once its stations are in; absent until then. */
+  balance?: string;
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the
    *  card then simply carries no number rather than a dash meaning nothing. */
@@ -215,6 +217,13 @@ function LineCard({ line, pack, projectId, series }: {
           <span className={'lc-pip' + (pack.openSnags > 0 ? ' is-warn' : '')}>{pack.openSnags}<span className="lc-pip-l">open evidence</span></span>
           <span className="lc-pip is-good">{pack.wins}<span className="lc-pip-l">wins</span></span>
         </div>
+      </button>
+      {/* LINE BALANCE, on the card of the line it is about — where each machine
+          and person runs at its own speed and the slowest is the limit. */}
+      <button className={'lc-bal' + (balance ? ' is-set' : '')} onClick={() => nav(`/project/${projectId}/line/${line.id}?view=capacity`)}>
+        <span className="lc-bal-k">Line balance</span>
+        <span className="lc-bal-t">{balance ?? 'Not counted yet — add the machines and people, each at its own speed'}</span>
+        <span className="lc-bal-go" aria-hidden>›</span>
       </button>
       <footer className="lc-foot">
         <span className="sub">{line.workspaceId ? 'Has its own workspace' : 'Workspace made on first walk'}</span>
@@ -728,7 +737,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} />
                 ))}
               </div>
               <div className="pace-lines-foot">
