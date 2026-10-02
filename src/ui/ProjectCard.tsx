@@ -15,11 +15,8 @@ import type { PaceLineRow } from '../db';
 import { methodOf, planModel } from '../lib/planModel';
 import { niceDay } from '../lib/weeks';
 
-export function ProjectCard({ p, lines, compact, onArchive }: {
+export function ProjectCard({ p, lines, compact }: {
   p: Project; lines: PaceLineRow[]; compact?: boolean;
-  /** Put this project away. Absent means it cannot be archived — the default
-   *  project, whose lines carry the ppm history. */
-  onArchive?: () => void;
 }) {
   const withOwner = lines.filter(l => l.owner).length;
   /* A COMMISSIONING JOB IS JUDGED ON A DATE, NOT ON LINES. "2 lines · 0 owned"
@@ -61,15 +58,10 @@ export function ProjectCard({ p, lines, compact, onArchive }: {
             : <>{lines.length} line{lines.length === 1 ? '' : 's'}{lines.length > 0 && ` · ${withOwner} owned`}</>}
         </span>
         <span className="proj-foot-actions">
-          {/* ARCHIVE, NOT DELETE, on the card. Nothing on the main list may
-              destroy anything in one step; the only way to delete is from
-              inside the archive, which is a second, deliberate journey. */}
-          {onArchive && (
-            <button className="btn btn-ghost proj-archive" title={`Archive ${p.name}`}
-              onClick={() => { if (confirm(`Archive “${p.name}”?\n\nIt leaves the list and loses nothing. You can restore it whenever you like.`)) onArchive(); }}>
-              Archive
-            </button>
-          )}
+          {/* NO ARCHIVE ON THE CARD. It was on every card on two pages — a
+              destructive action always on show. Putting a project away is done
+              from its details ("Put this project away"), a deliberate journey;
+              deleting only from inside the archive. */}
           <button className="btn btn-ghost" onClick={() => nav(`/project/${p.id}/setup`)}>
             {commissioning ? 'Details' : 'Lines & people'}
           </button>

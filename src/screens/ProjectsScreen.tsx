@@ -9,40 +9,23 @@
  * person's page, opening straight onto the A3 was right. Now that people are
  * invited into it, "which project?" is a real question and has to be asked
  * before the answer is shown. */
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
-import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
-import { allPaceLines, onDataChange, STORE_WORDS, type PaceLineRow } from '../db';
-
-/** The lines, grouped by project — the counts and the names shown on each card. */
-function useLinesByProject(): Map<string, PaceLineRow[]> {
-  const [lines, setLines] = useState<PaceLineRow[]>([]);
-  useEffect(() => {
-    const read = () => { void allPaceLines().then(setLines); };
-    read();
-    return onDataChange(read);
-  }, []);
-  return useMemo(() => {
-    const by = new Map<string, PaceLineRow[]>();
-    for (const l of lines) {
-      const k = l.projectId ?? '';
-      if (!by.has(k)) by.set(k, []);
-      by.get(k)!.push(l);
-    }
-    return by;
-  }, [lines]);
-}
+import { STORE_WORDS } from '../db';
 
 export function ProjectsScreen() {
-  const { loading, projects, archived, create, archive, restore, purge, contents } = useProjects();
-  const byProject = useLinesByProject();
-  const [adding, setAdding] = useState(false);
+  const { loading, projects, archived, create, restore, purge, contents } = useProjects();
+  const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+  const [adding, setAdding] = useState(q.get('new') === '1');
   const [exporting, setExporting] = useState(false);
   const [exportSaid, setExportSaid] = useState('');
-  const [showArchive, setShowArchive] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('view') === 'archive');
+  /* THE ARCHIVE IS OPEN HERE. This page used to list the live projects again
+     (Home already does) with the archive shut underneath; now Home is the list
+     and this is where a project starts and where the archive lives. */
+  const [showArchive, setShowArchive] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');
@@ -81,7 +64,7 @@ export function ProjectsScreen() {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{MODELS.map(m => m.label).join(' · ')}</p>
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">Every project is a change to a line. Say what you are trying to do and it is run the right way: <b>stage gate</b> takes new equipment through its gates to handover, <b>3P</b> runs a line’s improvement week by week, and a <b>lever tree</b> works one number down to what has to be true for it.</p>
+          <p className="pace-lede">Every project is a change to a line. The live ones are on Home; this is where one starts, and where the archive is.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
@@ -197,13 +180,11 @@ export function ProjectsScreen() {
             </button>
           </div>
         )
-      ) : (
-        <div className="proj-grid">
-          {projects.map(p => (
-            <ProjectCard key={p.id} p={p} lines={byProject.get(p.id) ?? []}
-              onArchive={() => void archive(p.id)} />
-          ))}
-        </div>
+      ) : !adding && (
+        <p className="sub proj-live">
+          {projects.length} project{projects.length === 1 ? '' : 's'} running —{' '}
+          <button type="button" className="cw-link" onClick={() => nav('/')}>on Home ›</button>
+        </p>
       )}
 
       {/* THE ARCHIVE. Behind one tap, and closed by default — it is where things
