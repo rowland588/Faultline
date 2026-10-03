@@ -3,140 +3,164 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>How Faultline works — real screens, two minutes</title>
-  <meta name="description" content="How a food factory runs improvement work in Faultline, screen by screen: log losses on the floor, watch them rank on a £-priced Pareto, pin faults on video walks, see the line glow where it hurts, and prove each fix held with a dated receipt." />
+  <title>How Faultline works — the control room for change on your lines</title>
+  <meta name="description" content="How an operations lead runs every change on their production lines in Faultline, screen by screen: the control room, a stage-gate job, a 3P line, the line balance, a lever tree, and the report the client gets." />
   <link rel="canonical" href="https://faultline.opexelevate.co.uk/how-it-works.html" />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="Faultline" />
-  <meta property="og:title" content="How Faultline works — real screens, two minutes" />
-  <meta property="og:description" content="The whole system, picture by picture. Every screen is the live product, not a mock-up." />
+  <meta property="og:title" content="How Faultline works — the control room for change on your lines" />
+  <meta property="og:description" content="The control room, the three methods and the client report — every picture is the live app." />
   <meta property="og:url" content="https://faultline.opexelevate.co.uk/how-it-works.html" />
   <meta property="og:image" content="https://faultline.opexelevate.co.uk/og.png" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
-  <meta name="theme-color" content="#eaf4f1" />
+  <meta name="theme-color" content="#f5f8fc" />
   <link rel="icon" type="image/svg+xml" href="/mark.svg" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=Outfit:wght@200;500&display=swap" rel="stylesheet" />
   <style>
-    /* The identity's own tokens, kept in step with src/styles.css by hand — this
-       page is served straight out of public/ and never touches the bundle. */
+    /* The app's own tokens (src/styles.css), kept in step by hand — this page is
+       served straight out of public/ and never touches the bundle. */
     :root {
-      --ink: #0c1f26; --sub: #35505a; --brand: #0b7d68; --line: #dbe8e6; --bg: #f3f8f7;
-      --sweep: linear-gradient(135deg, #0b7d68 0%, #13727f 45%, #1c6fb8 100%);
+      --bg: #f5f8fc; --surface: #ffffff; --ink: #0f1a2e; --ink-2: #44526a; --muted: #56647c;
+      --line: #e1e8f2; --brand: #1f63e0; --shell: #0d1f3c;
+      --st-r: #9b3227; --st-a: #8a5f14; --st-w: #4f46b8; --st-g: #1e6b4b;
+      --sweep: linear-gradient(135deg, #0d1f3c 0%, #14306a 58%, #1f63e0 100%);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
-    .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px 64px; }
-    header a { color: var(--brand); font-weight: 700; text-decoration: none; }
-    h1 { font-size: clamp(28px, 5vw, 38px); letter-spacing: -0.5px; margin: 14px 0 8px; }
-    .lede { color: var(--sub); font-size: 17px; max-width: 62ch; }
-    .part { color: var(--brand); font-weight: 800; font-size: 12.5px; letter-spacing: 1.4px; text-transform: uppercase; margin: 40px 0 0; border-top: 0; padding-top: 16px; display: block; background-image: var(--sweep); background-size: 74px 3px; background-repeat: no-repeat; background-position: 0 0; }
-    h2 { font-size: clamp(21px, 4vw, 26px); margin: 4px 0; letter-spacing: -0.4px; }
-    .chlede { color: var(--sub); margin: 0 0 8px; max-width: 56ch; }
-    .step { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: center; padding: 24px 0; border-bottom: 1px solid var(--line); }
-    @media (min-width: 700px) { .step { grid-template-columns: 1fr 340px; gap: 36px; } .step:nth-child(even) figure { order: -1; } .step.wide { grid-template-columns: 1fr; } }
-    .n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sweep); color: #fff; font-weight: 800; font-size: 15px; }
-    h3 { font-size: 20px; margin: 8px 0 6px; letter-spacing: -0.3px; }
-    .step p { margin: 0; color: var(--sub); font-size: 15.5px; max-width: 58ch; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Instrument Sans", -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 72px; }
+    @media (min-width: 720px) { .wrap { padding: 32px 24px 96px; } }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+    .brand img { width: 34px; height: 34px; border-radius: 8px; box-shadow: 0 2px 8px rgba(20,24,31,.16); }
+    .brand span { font-family: "Outfit", sans-serif; font-weight: 500; font-size: 26px; letter-spacing: -0.02em; }
+    .signin { font-weight: 700; color: var(--brand); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+    .hero { margin: 40px 0 8px; }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+    h1 { font-family: "Outfit", sans-serif; font-weight: 200; font-size: clamp(36px, 7vw, 60px); line-height: 1.05; letter-spacing: -0.02em; margin: 10px 0 14px; }
+    .lede { color: var(--ink-2); font-size: 18px; max-width: 62ch; margin: 0; }
+    .quote { margin: 18px 0 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
+    .methods { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 28px 0 8px; }
+    @media (min-width: 720px) { .methods { grid-template-columns: repeat(3, 1fr); } }
+    .method { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .method b { display: block; font-size: 17px; }
+    .method span { color: var(--ink-2); font-size: 14.5px; }
+    .part { display: block; margin: 56px 0 4px; padding-top: 14px; background: var(--sweep) no-repeat 0 0 / 64px 3px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+    h2 { font-size: clamp(22px, 4vw, 28px); letter-spacing: -0.02em; margin: 2px 0 6px; }
+    .chlede { color: var(--ink-2); margin: 0 0 8px; max-width: 62ch; }
+    .step { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: center; padding: 26px 0; border-bottom: 1px solid var(--line); }
+    @media (min-width: 760px) { .step { grid-template-columns: 1fr 1.25fr; gap: 40px; } .step.phone { grid-template-columns: 1fr 320px; } .step.wide { grid-template-columns: 1fr; } }
+    .step h3 { font-size: 20px; letter-spacing: -0.015em; margin: 0 0 6px; }
+    .step p { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 58ch; }
+    .says { margin-top: 10px !important; font-style: italic; color: var(--muted) !important; }
     figure { margin: 0; }
-    figure img { width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(12, 31, 38, .08); display: block; }
-    .faq h3 { margin: 18px 0 4px; }
-    .faq p { color: var(--sub); max-width: 68ch; margin: 0; }
-    .cta { margin-top: 44px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; text-align: center; }
-    .cta a { display: inline-block; background: var(--sweep); color: #fff; font-weight: 700; text-decoration: none; padding: 14px 28px; border-radius: 999px; font-size: 17px; }
-    .cta p { color: var(--sub); margin: 0 0 12px; }
+    figure img { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(13,31,60,.05), 0 8px 24px rgba(13,31,60,.08); background: var(--surface); }
+    .faq h3 { margin: 22px 0 4px; font-size: 17px; }
+    .faq p { color: var(--ink-2); max-width: 68ch; margin: 0; }
+    .cta { margin-top: 56px; background: var(--shell); color: #fff; border-radius: 22px; padding: 28px 24px; text-align: center; }
+    .cta p { margin: 0 0 16px; color: #c1cde0; }
+    .cta a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 28px; border-radius: 999px; background: var(--brand); color: #fff; font-weight: 700; text-decoration: none; }
+    footer { margin-top: 32px; color: var(--muted); font-size: 13px; text-align: center; }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <header><a href="/">‹ Faultline</a></header>
-  <h1>How Faultline works</h1>
-  <p class="lede">Walk your line with a phone. Faultline turns what you see into evidence, a cost, a tracked snag list — and proof it's getting better. Every picture below is the real app, and the <a href="/">app itself</a> plays a two-minute film of all of it.</p>
+  <div class="top">
+    <a class="brand" href="/"><img src="/icon-192.png" alt="" /><span>Faultline</span></a>
+    <a class="signin" href="/">Sign in ›</a>
+  </div>
 
-  <span class="part">Part 1</span>
-  <h2>The Pareto system</h2>
-  <p class="chlede">Log what you see on the floor, and the losses rank themselves.</p>
-  <div class="step">
-    <div><span class="n">1</span><h3>Walk the line. Log what you see.</h3>
-      <p>Tap the asset, tap what you saw, put a time to it — stopwatch it live, type it, or just log that it happened. Photo or video evidence attaches in one tap. It works with no signal; everything syncs itself later.</p></div>
-    <figure><img src="/guide/capture.png" alt="Faultline capture screen: choosing a machine and a loss type with large chips" width="800" height="1640" loading="lazy" /></figure>
-  </div>
-  <div class="step">
-    <div><span class="n">2</span><h3>See where the line is bleeding — in hours and pounds.</h3>
-      <p>Every log lands on a live Pareto: the vital few problems ranked by lost time and what they cost in idle labour. The big bar on the left is where your week is going.</p></div>
-    <figure><img src="/guide/pareto.png" alt="Faultline board: a Pareto of losses by machine with £ and time on each bar" width="800" height="1640" loading="lazy" /></figure>
-  </div>
-  <div class="step">
-    <div><span class="n">3</span><h3>Tap a bar. Ask why.</h3>
-      <p>Drill from the problem into the kind of problem, the machine it lives on, the shift it bites hardest. Three taps from "we lose time to changeovers" to "size changes on the filler, on lates". That's where the fix goes.</p></div>
-    <figure><img src="/guide/drill.png" alt="Faultline drill view inside one machine's losses with the prize line" width="800" height="1640" loading="lazy" /></figure>
-  </div>
+  <section class="hero">
+    <span class="eyebrow">How it works</span>
+    <h1>The control room for change on your lines</h1>
+    <p class="lede">New equipment through its gates. A line made to perform better. A number hit by a date. Many changes happen on a line at once — Faultline runs each one the way it should be run, measures it before and after, and puts all of them in one view that answers the only question that matters: am I in control?</p>
+    <p class="quote">"Show the business a formal process, to show that I am in control of the project." — the ops lead it was built with</p>
+    <div class="methods">
+      <div class="method"><b>Stage gate</b><span>New equipment through Install, Set up, Commission and Hand over — with the supplier.</span></div>
+      <div class="method"><b>3P</b><span>A running line improved week by week on the board: People, Plant, Process.</span></div>
+      <div class="method"><b>Lever tree</b><span>One outcome worked down to what has to be true for it.</span></div>
+    </div>
+  </section>
+
+  <span class="part">The control room</span>
+  <h2>Every job, every line, on one screen</h2>
+  <p class="chlede">What is running, what is late, and who owes what by when — across all three kinds of change.</p>
   <div class="step wide">
-    <div><span class="n">4</span><h3>Present it. Boardroom standard, straight from the floor.</h3>
-      <p>One tap turns the same live numbers into a full-screen stage — headline hours and cost, the ranked bars, the story so far. No export, no slide deck, no "let me get back to you".</p></div>
-    <figure><img src="/guide/present.png" alt="Faultline present mode: headline lost hours, cost and the ranked Pareto full screen" width="1920" height="1200" loading="lazy" /></figure>
+    <div><h3>Open the app and know where you stand</h3>
+      <p>One sentence says how many jobs are running, which hands over first and how many things are past their day. Who owes what is split by company — the supplier, the site, nobody named — so the chase list writes itself. Each job is a row on one shared calendar.</p>
+      <p class="says">What it lets you say to your manager: "Three jobs, Line 2 hands over first, and these six things are late — here is whose each one is."</p></div>
+    <figure><img src="/guide/control-room.png" width="1366" height="900" alt="Faultline Home: a dark summary card with jobs running and things past their day, who owes what by company, and every job on one calendar" loading="lazy" /></figure>
   </div>
 
-  <span class="part">Part 2</span>
-  <h2>The snag system</h2>
-  <p class="chlede">Film the walk, and pin every fault to the exact spot on the machine.</p>
+  <span class="part">Stage gate</span>
+  <h2>New equipment, proved to what was agreed</h2>
+  <p class="chlede">Machines through their install stages, tests with agreed pass marks, the fixes they raise, and what the job waits on.</p>
   <div class="step">
-    <div><span class="n">5</span><h3>Film the walk. Pin the faults.</h3>
-      <p>Film the line on your phone, freeze any frame into a named machine, and drop a red dot exactly where the problem is. Every snag gets an owner, a status, and an age — so it can't quietly rot in a notebook.</p></div>
-    <figure><img src="/guide/asset.png" alt="A machine still from a filmed walk with numbered snags pinned on the exact spots" width="800" height="1640" loading="lazy" /></figure>
+    <div><h3>Where the job is, in one sentence</h3>
+      <p>Days to handover, things outstanding, how many are late, and the date's movement from what was agreed. Each machine across the four gates, red only where it is late or failed.</p>
+      <p class="says">To the supplier: "Two of your three machines have something late, and this is what is holding each one."</p></div>
+    <figure><img src="/guide/stage-gate.png" width="1366" height="900" alt="A stage-gate job: where the job is, then each machine across Install, Set up, Commission and Hand over" loading="lazy" /></figure>
   </div>
-  <div class="step">
-    <div><span class="n">6</span><h3>The same machine, then vs now.</h3>
-      <p>Walk the line again next month and Faultline lines the walks up: the same machine side by side across time, snags visibly closed, new ones visibly appearing, and the one that's been open 200 days impossible to ignore.</p></div>
-    <figure><img src="/guide/history.png" alt="Two walks of the same machine compared side by side, with snags closed since" width="800" height="1640" loading="lazy" /></figure>
-  </div>
-
-  <span class="part">Part 3</span>
-  <h2>The living line</h2>
-  <p class="chlede">Your machines in floor order — and every number lands on the machine it belongs to.</p>
-  <div class="step">
-    <div><span class="n">7</span><h3>The line itself, glowing where it hurts.</h3>
-      <p>Every marked machine becomes a card in walking order, built straight from your own footage. Flip to £ heat and the machine bleeding most literally glows — the Pareto's verdict, standing on the equipment that earned it.</p></div>
-    <figure><img src="/guide/line.png" alt="The Line view: a machine card glowing with a £/week lost tag on the £ heat layer" width="800" height="1640" loading="lazy" /></figure>
-  </div>
-  <div class="step">
-    <div><span class="n">8</span><h3>Receipts, hanging on the machines.</h3>
-      <p>The proof layer puts each case where it physically lives: a proven fix wears its ✓ £/week receipt on the machine it fixed, and the case still being worked says so. Tap either and you're on its A3.</p></div>
-    <figure><img src="/guide/line-proof.png" alt="The Line's proof layer: a proven £/week receipt badge on the machine it fixed" width="800" height="1640" loading="lazy" /></figure>
+  <div class="step phone">
+    <div><h3>The install grid, on the phone at the machine</h3>
+      <p>Tap a square to mark a stage done or plan it. A date that moves asks why — and the plan, the day's report and the client report all carry the reason.</p></div>
+    <figure><img src="/guide/install.png" width="390" height="844" alt="The install grid on a phone: each machine's stages, done in green, late in red" loading="lazy" /></figure>
   </div>
 
-  <span class="part">Part 4</span>
-  <h2>The report system</h2>
-  <p class="chlede">Proof it's working — without writing a single report.</p>
+  <span class="part">3P</span>
+  <h2>A line made to perform better, week by week</h2>
+  <p class="chlede">The board is the meeting: every action sorted People, Plant or Process, with an owner and a date.</p>
   <div class="step">
-    <div><span class="n">9</span><h3>Prove it's getting better.</h3>
-      <p>Lost hours per week, falling — with a green flag on the week each fix landed. And the honest list underneath: which losses are responding, and which are flat and need a different idea.</p></div>
-    <figure><img src="/guide/trend.png" alt="Faultline trend: lost hours by week with green flags where fixes closed" width="800" height="1640" loading="lazy" /></figure>
+    <div><h3>The lines against target, and the board under them</h3>
+      <p>Each line's number against its target for the period, the actions open on each, and what is late. Done actions are judged by the line's own numbers either side of the day they closed — the verdict is allowed to say not yet proven.</p>
+      <p class="says">To the sponsor: "Both lines are at target, five actions are open, one is past its day."</p></div>
+    <figure><img src="/guide/board.png" width="1366" height="900" alt="A 3P job: lines at target, then the board sorted People, Plant and Process" loading="lazy" /></figure>
   </div>
+  <div class="step phone">
+    <div><h3>Where the line is limited — and what if</h3>
+      <p>Every machine and person in one unit, the slowest bar is the limit. Make a what-if — a new machine, a second person — and the bars move to show where the limit goes. Make it so, and it lands on the board with the prediction as its reason.</p></div>
+    <figure><img src="/guide/line-balance.png" width="390" height="1000" alt="The line balance on a phone: each station's bar, the limit in red, a what-if tab beside the line as run" loading="lazy" /></figure>
+  </div>
+
+  <span class="part">Lever tree</span>
+  <h2>One number, worked down to what has to be true</h2>
+  <p class="chlede">The outcome, the conditions under it, and the work under each — every colour following its number or its actions.</p>
   <div class="step wide">
-    <div><span class="n">10</span><h3>The week on one page.</h3>
-      <p>One tap turns it all into a clean page — lost time, cost, who closed what, what needs a push — ready to print (A4 or A3) or save as a PDF for Monday's meeting. No manual reporting, ever.</p></div>
-    <figure><img src="/guide/report.png" alt="Faultline one-page weekly report: lost time, cost, snags needing a push, closed this week" width="1600" height="1800" loading="lazy" /></figure>
+    <div><h3>The tree, read at a glance</h3>
+      <p>A condition bound to a measure takes that measure's colour: behind target is red, on target is green. Work hung from the board shows the board's own state. The outcome and what is off track also show on the job's front page and on Home.</p></div>
+    <figure><img src="/guide/lever-tree.png" width="1366" height="900" alt="A lever tree: the outcome, what needs to be true, the conditions and the actions from the board" loading="lazy" /></figure>
+  </div>
+
+  <span class="part">The client report</span>
+  <h2>The story of the job, on paper</h2>
+  <p class="chlede">Built from the same records the screens show, in the same words — on screen first, then as a PDF to send.</p>
+  <div class="step">
+    <div><h3>What the client reads</h3>
+      <p>Where the job is, the gates and each machine, what is late and whose it is, the plan, the tests and fixes or the board, the numbers against target and where the line is limited. A report that tells the story of the project, not a list of records.</p>
+      <p class="says">To the client: "Here is exactly where your line is, and what each side owes before we meet again."</p></div>
+    <figure><img src="/guide/client-report.png" width="910" height="1287" alt="The first page of a stage-gate client report PDF, with the Faultline mark" loading="lazy" /></figure>
   </div>
 
   <section class="faq">
     <span class="part">Questions</span>
-    <h2>Frequently asked</h2>
-    <h3>What is Faultline?</h3>
-    <p>Faultline is improvement software for food factories: teams log production-line losses on a phone, the losses rank themselves on a live Pareto priced in £/week, fixes become owned and dated actions, and a before/after study proves whether each fix held — recorded as a dated receipt, not a claim.</p>
-    <h3>Who is it for?</h3>
-    <p>Ops and continuous-improvement teams in small and mid-size food manufacturing sites, usually introduced by an improvement consultant. It answers "does the line work and what does it cost?" — it is deliberately not a compliance or audit-checklist tool.</p>
+    <h2>Common questions</h2>
     <h3>Does it need sensors, integrations or an IT project?</h3>
-    <p>No. Faultline is an installable web app that runs offline-first on the phones a team already owns. Losses are observed and logged by people, everything syncs itself when there is signal, and there is no hardware to fit and nothing to integrate.</p>
-    <h3>How is it different from OEE or machine-monitoring systems?</h3>
-    <p>Sensor-based OEE tools see that a machine stopped; they cannot see why, or the changeover, labour and quality losses around it, and they do not run the fix or prove it worked. Faultline captures the why with human eyes and video walks, prices every loss in pounds, and closes the loop with a proof study. The two approaches complement each other.</p>
-    <h3>How does it prove a saving is real?</h3>
-    <p>A study re-measures the same scope the same way and compares average time per event before and after the fix, with both sample sizes and the calendar they cover always shown. The verdict passes a statistical significance test, and calling it freezes the numbers into a dated receipt that later data cannot quietly rewrite. Fixes are then watched for slipping.</p>
+    <p>No. Faultline is an installable web app on the phones and laptops a team already has.</p>
+    <h3>Does it work on the floor with no signal?</h3>
+    <p>Yes. Every screen works offline and syncs itself to the rest of the team when coverage returns.</p>
+    <h3>Who sees what?</h3>
+    <p>It is invite-only. A project's owner adds people by email, and they see that project on their own device.</p>
+    <h3>Does it replace OEE or machine monitoring?</h3>
+    <p>No — those see that a machine stopped. Faultline runs the change: what has to be done, who owes it, and whether it worked.</p>
   </section>
 
   <div class="cta">
-    <p>Faultline is invite-only — teams are set up by their consultant or admin.</p>
-    <a href="/">Open Faultline — watch the two-minute demo</a>
+    <p>Faultline is invite-only. If you have been invited, create your account with the email the invitation went to.</p>
+    <a href="/">Sign in to Faultline</a>
   </div>
+  <footer>Faultline · made by OpEx Elevate</footer>
 </div>
 </body>
 </html>
