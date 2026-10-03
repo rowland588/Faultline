@@ -8000,3 +8000,6 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 @media (max-width: 640px) {
   .peer, .spine-up { min-height: 44px; }
 }
+
+/* a link to a line-standard map that is gone: said at the top of the list */
+.ls-gone { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--st-a) 45%, var(--line)); font-size: 13px; color: var(--ink-2); }

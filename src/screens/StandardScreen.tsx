@@ -130,12 +130,14 @@ export function StandardScreen({ projectId, standardId }: { projectId: string; s
   }
   const one = standardId ? list.find(s => s.id === standardId) : undefined;
   if (standardId && one) return <MapEditor project={project} s={one} all={list} />;
-  return <Products project={project} list={list} />;
+  /* A link to a map that is gone lands on the list AND says so — it fell
+     through silently, which read as the wrong page rather than a deleted map. */
+  return <Products project={project} list={list} gone={!!standardId && !one} />;
 }
 
 /* ------------------------------ the products ----------------------------- */
 
-function Products({ project, list }: { project: Project; list: Standard[] }) {
+function Products({ project, list, gone }: { project: Project; list: Standard[]; gone?: boolean }) {
   const progs = usePrograms(project.id);
   const [adding, setAdding] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -168,6 +170,7 @@ function Products({ project, list }: { project: Project; list: Standard[] }) {
           : { label: 'Lines', to: `/project/${project.id}?view=lines` },
         { label: 'Line standard' },
       ]} />
+      {gone && <p className="ls-gone">That map isn’t here any more — it was deleted, or the link is to a map on another project. The maps that are here:</p>}
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">A tool · {commissioning ? 'part of handing over' : 'People'}</p>

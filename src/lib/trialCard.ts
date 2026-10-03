@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, type Asset, type Test, type TestItem, type TestKind } from './testing';
+import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
   what: string;
@@ -102,8 +102,11 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
      reads them off the tests that came out of this one rather than off items
      underneath it. See db/testing's actionsBecomeFixes for why there is no
      longer a second word for a line. */
+  /* The same reading the test's own page uses: a fix belongs to the nearest
+     TEST above it (testOfFix), so a fix raised off another fix — old data —
+     prints on the test's card as the page already shows it under the test. */
   const nexts = live(tests)
-    .filter(t => t.fromTestId === test.id)
+    .filter(t => ((t.kind ?? 'test') === 'fix' ? testOfFix(t, tests)?.id === test.id : t.fromTestId === test.id))
     .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
 
   const tally = foundTally(findings, items);

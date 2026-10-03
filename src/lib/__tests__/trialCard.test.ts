@@ -124,6 +124,14 @@ describe('what we do next', () => {
     ]);
   });
 
+  it('a fix raised off another fix prints on the test it is for, as the page shows it', () => {
+    const mine = test({ id: 't1' });
+    const fix = test({ id: 'f1', kind: 'fix', title: 'Fit the heater', fromTestId: 't1', sort: 1 });
+    const fixOfFix = test({ id: 'f2', kind: 'fix', title: 'Then re-wire it', fromTestId: 'f1', sort: 2 });
+    const c = trialCard(mine, [mine, fix, fixOfFix], [], []);
+    expect(c.next.map(x => x.what)).toEqual(['Fit the heater', 'Then re-wire it']);
+  });
+
   it('counts only what is still to do', () => {
     const mine = test({ id: 't1' });
     const out = [
