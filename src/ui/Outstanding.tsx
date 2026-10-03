@@ -56,8 +56,11 @@ export function Outstanding({ rows, projectId }: { rows: OutstandingRow[]; proje
 
       {rows.map(r => {
         const w = WHERE[r.key];
+        /* THE WHOLE ROW IS THE WAY IN. Only the "Install ›" at its end was a
+           button — 15px tall on a phone — and the row it ends read as the
+           thing to press and did nothing. */
         return (
-          <div key={r.key} className="og-row">
+          <button type="button" key={r.key} className="og-row" onClick={() => nav(w.to(projectId))}>
             <span className="og-what">
               <span className={'og-dot ' + TONE[r.key]} aria-hidden />
               {r.what}
@@ -65,10 +68,8 @@ export function Outstanding({ rows, projectId }: { rows: OutstandingRow[]; proje
             <span className="og-n">{r.open}</span>
             <span className={'og-n' + (r.late ? ' is-late' : ' is-none')}>{r.late || '—'}</span>
             <span className="og-whose">{r.whose ?? '—'}</span>
-            <span className="og-go">
-              <button className="cw-link" onClick={() => nav(w.to(projectId))}>{w.go} ›</button>
-            </span>
-          </div>
+            <span className="og-go"><span className="cw-link">{w.go} ›</span></span>
+          </button>
         );
       })}
 

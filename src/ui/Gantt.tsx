@@ -266,9 +266,11 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                       <div className={'gt-row' + (r.slip || r.marks ? ' has-story' : '') + (r.overlap ? ' has-overlap' : '')}>
                         <button type="button" className={'gt-lab' + (r.kind === 'note' ? ' is-note' : '')} title={tip} disabled={!href && !r.id} onClick={go}>
                           {/* "Wrapper — Dry run" reads as the step, with its machine under
-                              it: cut short on a phone, every row began "Checkweigher —…". */}
-                          {r.kind !== 'note' && r.label.includes(' — ')
-                            ? <><b>{r.label.slice(r.label.indexOf(' — ') + 3)}</b><small>{r.label.slice(0, r.label.indexOf(' — '))}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</small></>
+                              it: cut short on a phone, every row began "Checkweigher —…".
+                              Only the machine is split off: "Weight accuracy — 400g" read
+                              as a step called "400g" on a machine called "Weight accuracy". */}
+                          {r.on && r.label.startsWith(`${r.on} — `)
+                            ? <><b>{r.label.slice(r.on.length + 3)}</b><small>{r.on}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</small></>
                             : <b>{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>}
                         </button>
                         <div className="gt-track" style={{ width: T }}>

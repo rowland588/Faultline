@@ -316,6 +316,21 @@ describe('a plan that is a block of days, not one day', () => {
     expect(s.plan[0]).toMatchObject({ at: '2026-09-08', until: '2026-09-10' });
   });
 
+  /* "Weight accuracy — 400g" drew on the Gantt as a step called "400g" on a
+     machine called "Weight accuracy": the chart split every label at its
+     first dash. The machine is said apart now, and only when it is there. */
+  it('says the machine apart from a title that has a dash of its own', () => {
+    const m = asset({ name: 'Wrapper' }), w = asset({ name: 'Weigher' });
+    const s = at({ assets: [m, w], tests: [
+      test({ title: 'Weight accuracy — 400g', assetId: w.id, plannedFor: '2026-09-21' }),
+      test({ title: 'Dry run', assetId: m.id, plannedFor: '2026-09-21' }),
+      test({ title: 'Dry run', assetId: w.id, plannedFor: '2026-09-21' }),
+    ] });
+    expect(s.plan[0]).toMatchObject({ label: 'Weight accuracy — 400g' });
+    expect(s.plan[0]!.on).toBeUndefined();
+    expect(s.plan[1]).toMatchObject({ label: 'Wrapper — Dry run', on: 'Wrapper' });
+  });
+
   it('is a point, not a bar, when the window is one day', () => {
     const s = at({ tests: [test({ plannedFor: '2026-09-21', plannedTo: '2026-09-21' })] });
     expect(s.plan[0]!.until).toBeUndefined();

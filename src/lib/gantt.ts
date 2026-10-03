@@ -26,6 +26,8 @@ export interface GanttRow {
   id?: string;
   kind: PlanMark['kind'];
   label: string;
+  /** The machine, when the label is "Machine — title" (PlanMark.on). */
+  on?: string;
   from: string;
   to: string;
   tone: PlanMark['tone'];
@@ -184,6 +186,7 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
         const end = endOf(m);
         const row: GanttRow = {
           ...(m.id ? { id: m.id } : {}),
+          ...(m.on ? { on: m.on } : {}),
           kind: m.kind, label: m.label, from: m.at, to: end, tone: m.tone,
           start: between(from, m.at), span: between(m.at, end) + 1, when: windowWords(m.at, end),
         };

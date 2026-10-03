@@ -188,7 +188,12 @@ export function ProblemForm({ step, onSave, onCancel, tests = [] }: {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const later = movedLater(end, to || undefined);
   const following = later && to ? followingSummary(step, tests, to) : undefined;
-  const [shift, setShift] = useState(true);
+  /* Ticked by itself only when the new finish runs into what follows — the
+     same rule as WhyMoved. It started ticked whatever the date, and Save then
+     ignored the tick unless the finish ran into the next step: the box said
+     "move what follows too" and nothing moved. Now the tick is what happens. */
+  const [picked, setShift] = useState<boolean | null>(null);
+  const shift = picked ?? !!following?.into.length;
   return (
     <div className="why">
       <p className="why-h">What's the problem?</p>
@@ -203,7 +208,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [] }: {
         <span>Does it push the finish? <span className="cw-f-opt">{end ? `now ${niceDay(end)}` : 'no date yet'} · blank = no</span></span>
         <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
       {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(to)}</b> · <b>+{daysBetween(end, to)} day{daysBetween(end, to) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
-      {following && end && <KnockOn following={following} days={daysBetween(end, to)} on={shift && following.into.length > 0 ? true : shift} set={setShift} />}
+      {following && end && <KnockOn following={following} days={daysBetween(end, to)} on={shift} set={setShift} />}
       <div className="why-fix">
         <label className="why-check"><input type="checkbox" checked={fix} onChange={e => setFix(e.target.checked)} /> Book it in as a fix</label>
         {fix && (
@@ -213,7 +218,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [] }: {
       </div>
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}), ...(following?.n && shift && following.into.length ? { shiftFollowing: true } : {}) })}>Save the problem</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}) })}>Save the problem</button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}

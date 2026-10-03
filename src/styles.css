@@ -5778,6 +5778,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .og-col.is-l { text-align: left; padding-left: 18px; }
 
 .og-row { padding: 8px 0; border-bottom: 1px solid var(--surface-2); }
+button.og-row {
+  appearance: none; width: 100%; margin: 0; border: 0; border-bottom: 1px solid var(--surface-2); border-radius: 0;
+  background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
 .og-what { display: flex; align-items: center; gap: 11px; font-size: 13.5px; font-weight: 600; }
 .og-dot { width: 3px; height: 22px; border-radius: 2px; flex: none; background: var(--muted); }
 .og-dot.is-booked { background: var(--blue); }
@@ -7224,8 +7229,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .fold { margin: 10px 0; }
   /* Each machine: its name and gate on one line, the four gates small. */
   .fold-b .jr-row { grid-template-columns: 1fr; gap: 6px; padding: 8px 0; }
-  .fold-b .jr-m { flex-direction: row; align-items: baseline; gap: 8px; }
-  .fold-b .jr-seg { min-height: 28px; font-size: 10.5px; }
+  .fold-b .jr-m { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+  /* Why it is red goes UNDER the name: beside it, the name was cut to
+     "Ilapak flo…" and "at Set up" wrapped a word to a line. */
+  .fold-b .jr-why { flex-basis: 100%; }
+  /* A gate is a way in — a full finger's height, not 28px. */
+  .fold-b .jr-seg { min-height: 44px; font-size: 10.5px; }
   .fold-b .jr-key { display: none; }
 
   /* Home: who owes what, one chip a party — the per-job split is the
@@ -7895,6 +7904,17 @@ button.gt-glab { appearance: none; border: 0; cursor: pointer; text-align: left;
   .gt-acts .gt-today-b { flex: 1 1 0; }
 }
 button.gt-lab.gt-glab { flex-direction: row; align-items: center; justify-content: flex-start; gap: 6px; line-height: 1; }
+/* ON A PHONE THE WHOLE ROW IS THE WAY IN — the name above and the strip of
+   calendar under it. The name alone was 17–21px tall, and the bar under it
+   could be a sliver; the bar opens the same thing, so the name's tap area is
+   stretched over both. Not on the walk's lane, whose markers each open their
+   own day. */
+.gt.is-stacked button.gt-lab:not(.gt-walklab)::after {
+  content: ""; position: absolute; left: 0; top: 0; width: calc(100vw - 40px); height: calc(100% + 30px);
+}
+.gt.is-stacked button.gt-fixlab::after { height: calc(100% + 24px) !important; }
+.gt.is-stacked button.gt-lab:not(.gt-walklab) { overflow: visible; }
+.gt.is-stacked button.gt-lab:not(.gt-walklab) > b, .gt.is-stacked button.gt-lab:not(.gt-walklab) > small { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* the other dates that slip, the knock-on, and the overlap */
 .date-why { display: block; width: 100%; margin-top: 8px; }
