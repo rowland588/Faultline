@@ -3473,6 +3473,33 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .lt-fold-c { font-size: 9px; }
 .lt-fold-n { font-weight: 800; font-variant-numeric: tabular-nums; }
 .lt-box { position: relative; }
+/* A THUMB ON THE TREE. Every way to change a box — add, move, hang work,
+   bind, delete — was a 22px glyph in a row of eight, and the fold that opens
+   a branch a 22px circle: the controls that make a node open were the
+   hardest things on the page to hit. On a phone the tools are 40px and wrap
+   onto a second row (they only show on the box being worked on), the state
+   pill is 32px, and the fold carries an invisible ring a fingertip can find. */
+@media (max-width: 720px) {
+  .lt-acts { flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
+  /* Two rows of hidden 40px tools would make every box tall, and growing the
+     box when it is tapped moves it under the finger (a box is centred on its
+     branch). So the tools come out as a bar just under the box being worked
+     on, over the tree, and nothing on the page moves. */
+  .lt-box .lt-acts { display: none; }
+  .lt-box:focus-within, .lt-box:has(.lt-move.is-on) { z-index: 7; }
+  .lt-box:focus-within .lt-acts, .lt-box:has(.lt-move.is-on) .lt-acts {
+    display: flex; position: absolute; left: -1px; right: -1px; top: calc(100% + 4px);
+    justify-content: flex-start; padding: 4px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow);
+  }
+  /* Room under the lowest box for its bar — the canvas scrolls sideways, so
+     it clips, and the bar's second row went under "Another outcome". */
+  .lt-scroll { padding-bottom: 100px; }
+  .lt-mini, .lt-box.is-act .lt-mini { min-width: 40px; height: 40px; font-size: 16px; }
+  .lt-status:not(.is-ro) { min-height: 32px; }
+  .lt-fold::before { content: ''; position: absolute; inset: -11px; border-radius: 999px; }
+  .lt-unbind, .lt-gap-b { min-height: 32px; display: inline-flex; align-items: center; }
+}
 
 /* ---------- paste a list ---------- */
 .lt-paste-back {
