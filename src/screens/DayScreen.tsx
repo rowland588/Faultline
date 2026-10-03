@@ -99,15 +99,15 @@ export function DayScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'The day' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'day', stand.counts)} />
-
-      <header className="cm-head dy-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
-          <h1>{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
+      <header className="pace-head dy-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
           <p className="dy-headline">{day.headline}</p>
         </div>
       </header>
+      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
+      <Peers peers={projectPeers(projectId, 'day', stand.counts)} />
 
       <nav className="dy-nav" aria-label="Pick a day">
         <button className="btn btn-ghost" disabled={!prev} onClick={() => prev && go(prev)}>

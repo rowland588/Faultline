@@ -429,16 +429,11 @@ export function ProgramsScreen({ projectId, embedded = false }: {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Programs' },
       ]} />
-      {/* The gates are a stage-gate job's — see MaterialsScreen. */}
-      {project.commissioning
-        ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
-        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
-
       {/* The header its peers wear — see MaterialsScreen. */}
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
-          <h1>Programs</h1>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">Programs</h1>
           <p className="cw-handover">
             {t.total === 0
               ? <b>Nothing on the list yet</b>
@@ -452,6 +447,11 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           </p>
         </div>
       </header>
+      {/* The row under the header, and the gates are a stage-gate job's —
+          see MaterialsScreen. */}
+      {project.commissioning
+        ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
+        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
       </>}
 
       {t.total === 0 ? (

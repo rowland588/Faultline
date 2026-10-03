@@ -134,14 +134,12 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Board' },
       ]} />
-      <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'board', counts)} />
-
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
           {/* "3P" is a method's name; on a lever tree job this board is where
               the tree's work is written, and the job is not a 3P job. */}
-          <h1>{planModel(project) === 'tree' ? 'Board' : '3P Board'}</h1>
+          <h1 className="pace-title">{planModel(project) === 'tree' ? 'Board' : '3P Board'}</h1>
           <p className="cw-handover">
             {ax.steps.length === 0
               ? <b>No actions yet</b>
@@ -155,8 +153,14 @@ export function BoardScreen({ projectId }: { projectId: string }) {
             )}
           </p>
         </div>
-        <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print</button>
+        <div className="pace-head-actions">
+          <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print</button>
+        </div>
       </header>
+      {/* THE ROW UNDER THE HEADER, on every page — see "THE PAGE FRAME" in
+          styles.css. It sat above the title here and below it on the
+          project's front page, so the tabs jumped as you moved between them. */}
+      <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'board', counts)} />
 
       {areas.length > 1 && (
         <div className="bd-filters">

@@ -143,9 +143,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         { label: test.title },
       ]} />
 
-      <header className="cm-head">
-        <div>
-          <h1>{test.title}</h1>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <h1 className="pace-title">{test.title}</h1>
           <p className="cw-handover">
             <b>{outcomeWord(test)}</b>
             {test.ranOn && <span className="sub">{nice(test.ranOn)}</span>}

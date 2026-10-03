@@ -139,15 +139,13 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Commission' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'testing', stand.counts)} />
-
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
           {/* COMMISSION — the gate where each machine is proved against what
               was agreed. It was called Testing; the tests are what it is made
               of, and the URL keeps the old name so no link breaks. */}
-          <h1>Commission</h1>
+          <h1 className="pace-title">Commission</h1>
           {/* Where the gate has got to FIRST, as the other three gates say it —
               then the handover date this gate is driving at. "Rowland leading"
               is on the project itself; the four gate headers read alike. */}
@@ -166,6 +164,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
+      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
+      <Peers peers={projectPeers(projectId, 'testing', stand.counts)} />
 
       {dates && (
         <div className="cx-dates">

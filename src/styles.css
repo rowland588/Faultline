@@ -121,7 +121,7 @@
 /* HEADINGS ARE SET, NOT JUST BIGGER. The display face, tracked in, so a screen
    has a voice at a glance. Numbers line up in a column wherever they are
    compared, which on this app is most places. */
-h1, h2, h3, .cm-head h1, .pk-title {
+h1, h2, h3, .pk-title {
   font-family: var(--display);
   letter-spacing: -0.021em;
   font-feature-settings: "ss01";
@@ -152,11 +152,13 @@ body {
 h1, h2, h3, p { margin: 0; }
 button { font-family: inherit; }
 
-/* page shell */
+/* page shell — THE PAGE FRAME. Every screen is one of these: one width, one
+   gutter, the spine at the top of it. See "THE PAGE FRAME" near the foot of
+   this file for the width, the gutter and why there is only one. */
 .wrap {
-  max-width: 720px;
+  max-width: calc(var(--frame) + 2 * var(--gutter));
   margin: 0 auto;
-  padding: 18px 16px calc(96px + env(safe-area-inset-bottom));
+  padding: 18px var(--gutter) calc(96px + env(safe-area-inset-bottom));
 }
 
 .eyebrow {
@@ -1671,7 +1673,10 @@ button.st-pill { cursor: pointer; }
  *  validated (actual/target dE 28.7 normal, 25.1 CVD); status colours ride with
  *  their label so nothing depends on hue alone.
  * ============================================================ */
-.pace { max-width: 1180px; padding-bottom: 56px; }
+/* (No width of its own: it was 1180px against Home's 1320px and the line
+   study's 720px, so every move between them changed the page's edges. The
+   width is the frame's — .wrap.) */
+.pace { padding-bottom: 56px; }
 
 .pace-head {
   display: flex; justify-content: space-between; align-items: flex-start; gap: 18px;
@@ -3344,7 +3349,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
  * last drops its lower, which leaves one bar running exactly from the first
  * centre to the last, with nobody measuring anything.
  */
-.lt-screen { max-width: none; }
+/* (It ran edge to edge — `max-width: none` — so the tree's spine, title and
+   tabs sat 16px from the window while every other page's sat in the frame.
+   The tree now sits in the frame too; .lt-canvas still scrolls sideways when
+   a tree is wider than it, and the zoom's fit brings the whole of it on.) */
 
 /* The level names sit across the top, on the same pitch as the columns, so
    each one is a heading for the column beneath it. */
@@ -4636,17 +4644,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
  * it does on the walk and on the board.
  * ========================================================================== */
 
-.cm-head {
-  margin: 4px 0 14px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;            /* the button drops under the title on a phone
-                                 rather than squeezing it to two words */
-}
-.cm-head h1 { margin: 0 0 2px; font-size: 22px; letter-spacing: -0.2px; }
-.cm-head > button { flex: 0 0 auto; }
+/* (The gates' own smaller header, .cm-head, is gone: every page wears the
+   one header now — .pace-head, see "THE PAGE FRAME". Its job, the button
+   dropping under the title on a phone rather than squeezing it, is done there
+   by the head stacking below 720px.) */
 
 /* ---- the answer ---- */
 .cm-verdict-card {
@@ -4821,7 +4822,6 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
  * report. It also styled a screen that no longer exists. */
 @media print {
   .cm-screen .cm-add,
-  .cm-screen .cm-head > button,
   .cm-screen .cm-foot,
   .cm-screen .crumbs { display: none !important; }
   /* A verdict split across a page break is a verdict somebody reads half of. */
@@ -5787,7 +5787,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   /* On a phone it scrolls sideways rather than wrapping to three rows. */
   .peers {
     flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
-    margin-inline: -16px; padding-inline: 16px;
+    margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter);
   }
   .peers::-webkit-scrollbar { display: none; }
   .peer { flex: 0 0 auto; min-height: 42px; }
@@ -5801,11 +5801,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 
 /* The project's name sits ABOVE the heading now, small — the heading itself
-   says which screen you are on. Four screens used to share one h1. */
-.cm-eyebrow {
-  margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
-  text-transform: uppercase; color: var(--muted);
-}
+   says which screen you are on. Four screens used to share one h1. (That is
+   .pace-eyebrow now, the one eyebrow every page header wears.) */
 
 /* ===========================================================================
  * THE VERDICT — the answer to "are you in control of this?", on one card.
@@ -6665,7 +6662,8 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
    needs (1320px, a 16px gutter each side on a smaller window) and the lists
    under it fill that width as rows of cards rather than one long strip, so
    everything on Home starts and ends in the same place. */
-.wrap.home { max-width: 1320px; }
+/* (Home's own 1320px is gone: it is the frame's width now, on every screen —
+   Home set it, because the board is the widest thing the app draws.) */
 .home .home-proj-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); align-items: start; }
 .jb-focus-acts .btn { white-space: nowrap; }
 @media (max-width: 719px) {
@@ -8155,3 +8153,40 @@ button.gt-walklab small.is-done { color: var(--st-g); }
   font-weight: 500; letter-spacing: -0.02em; color: var(--ink);
 }
 .wordmark-name { font-size: 31px; }
+
+/* ===========================================================================
+ * THE PAGE FRAME — one width, one top bar, one header, one row of tabs.
+ *
+ * Moving between screens used to move the page: Home ran 1290px wide, a
+ * project 1150px, the lever tree edge to edge, and the line study's tools sat
+ * in a 690px column with their tabs centred. Each was right on its own; next
+ * to each other they read as four apps.
+ *
+ * So every screen is the same frame, top to bottom:
+ *
+ *   .wrap          one width (--frame) with one gutter (--gutter, 16px on a
+ *                  phone) — Home's width, because the board on Home is the
+ *                  widest thing the app draws and it should not have to break
+ *                  out of the page to fit;
+ *   .spine         the trail and the account button (ui/Crumbs), first;
+ *   .pace-head     eyebrow · title · one line of where it has got to, and the
+ *                  page's own actions on the right;
+ *   .peers         the one row of tabs (ui/Peers), under the header.
+ *
+ * Wide working surfaces — the tree's canvas, the plan, the report sheets —
+ * scroll or scale inside the frame; their spine, header and tabs line up with
+ * every other page's.
+ * ========================================================================= */
+:root { --frame: 1288px; --gutter: 16px; }
+@media (min-width: 720px) { :root { --gutter: 24px; } }
+
+/* The header's status line, under the title — the gates' "4 of 6 steps done ·
+   1 late", the day's headline, the card's trial — spaced as the lede is. */
+.pace-head .cw-handover, .pace-head .dy-headline, .pace-head .tc-which { margin-top: 8px; }
+.pace-head .dy-headline + .cw-handover, .pace-head .tc-which + .cw-handover { margin-top: 4px; }
+
+/* On a phone the header is tighter, so the tabs and the work under it start
+   where the thumb is, not a screen down. */
+@media (max-width: 719px) {
+  .pace-head { padding: 14px 0 12px; margin-bottom: 14px; gap: 10px; }
+}
