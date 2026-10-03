@@ -655,10 +655,17 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                 : counted.length === 1 && ppm.lines.length === 1 ? counted[0].says
                   : `${counted.length} of ${ppm.lines.length} lines counted`}>
               <ul className="dw-list">
+                {/* THE WHOLE ROW IS THE WAY IN. The name alone was the button
+                    — 45 by 20 pixels on a phone — and the sentence under it,
+                    ending in a chevron, read as the thing to press and did
+                    nothing (Rowland: "press line balancing, doesn't open"). */}
                 {limited.map(x => (
                   <li key={x.line.id} className="dw-row">
-                    <button className="dw-t" onClick={() => nav(`/project/${projectId}/line/${x.line.id}?view=capacity`)}>{x.line.name}</button>
-                    <span className="dw-w">{x.says ?? 'Not counted yet — list the machines and people, each at its own speed ›'}</span>
+                    <button className="dw-go" onClick={() => nav(`/project/${projectId}/line/${x.line.id}?view=capacity`)}>
+                      <b>{x.line.name}</b>
+                      <span className="dw-w">{x.says ?? 'Not counted yet — list the machines and people, each at its own speed'}</span>
+                      <span className="dw-go-c" aria-hidden>›</span>
+                    </button>
                   </li>
                 ))}
               </ul>

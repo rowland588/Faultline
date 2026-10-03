@@ -7445,6 +7445,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .dw-row:first-child { border-top: 0; }
 .dw-t { appearance: none; background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; }
 .dw-w { flex: 1 1 100%; font-size: 12.5px; color: var(--ink-2); }
+/* a row that is one door: name, what it says, chevron — all of it the button, tall enough for a thumb */
+.dw-go {
+  appearance: none; background: none; border: 0; padding: 4px 0; margin: 0; font: inherit; color: var(--ink); cursor: pointer;
+  text-align: left; width: 100%; min-height: 44px; display: grid; grid-template-columns: 1fr auto; column-gap: 10px; row-gap: 2px; align-items: center;
+}
+.dw-go b { font-weight: 700; }
+.dw-go .dw-w { grid-column: 1; }
+.dw-go-c { grid-column: 2; grid-row: 1 / span 2; color: var(--brand); font-weight: 800; font-size: 20px; line-height: 1; }
+.dw-go:hover { color: var(--brand); }
 .exec-done-proof { margin: 2px 0 0; font-size: 10.5px; color: var(--ink-2); }
 .exec-done-proof b { text-transform: uppercase; letter-spacing: 0.04em; margin-right: 4px; }
 .exec-done-proof.is-proven b { color: var(--ok); }
