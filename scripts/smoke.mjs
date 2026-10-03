@@ -128,6 +128,26 @@ const ROUTES = [
   ['history', `#/w/${seeded.wsId}/history`],
   ['report', `#/w/${seeded.wsId}/report`],
   ['case', `#/w/${seeded.wsId}/case/${seeded.caseId}`],
+  /* THE ROUTES THE MAP LISTS THAT THIS NEVER OPENED (docs/MAP.md, 3 Oct): the
+     lenses on the project and line pages, the tree job's setup, notes,
+     programs and client report, the workspace line and evidence screens, and
+     an asset's history with its id — the one that took the app down once. */
+  ['project — next steps', `#/project/${seeded.projectId}?view=next`],
+  ['project — wins', `#/project/${seeded.projectId}?view=wins`],
+  ['project — evidence', `#/project/${seeded.projectId}?view=snags`],
+  ['project — lines', `#/project/${seeded.projectId}?view=lines`],
+  ['measured — next steps', `#/project/${seeded.pacedProjectId}?view=next`],
+  ['measured — wins', `#/project/${seeded.pacedProjectId}?view=wins`],
+  ['measured — evidence', `#/project/${seeded.pacedProjectId}?view=snags`],
+  ['line actions', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=next`],
+  ['line evidence', `#/project/${seeded.pacedProjectId}/line/${seeded.pacedLineId}?view=snags`],
+  ['lever tree — setup', `#/project/${seeded.treeProjectId}/setup`],
+  ['lever tree — notes', `#/project/${seeded.treeProjectId}/notes`],
+  ['lever tree — programs', `#/project/${seeded.treeProjectId}/programs`],
+  ['lever tree — client report', `#/pace-report?project=${seeded.treeProjectId}`],
+  ['workspace line', `#/w/${seeded.wsId}/line`],
+  ['workspace evidence tab', `#/w/${seeded.wsId}/snags`],
+  ['asset history', `#/w/${seeded.wsId}/history/${seeded.assetId}`],
 ];
 
 const rows = [];
