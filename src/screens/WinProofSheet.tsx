@@ -71,8 +71,12 @@ export function WinProofSheet({ projectId, lines, initial, onCall, onClose }: {
     return out;
   }, [lines, state.measures, state.readings]);
 
+  /* Re-opening a called win starts on the line AND the measure it was called
+     on, at the day it was called from. It matched the line only, so a win
+     called on Waste reopened on Packs per minute at the middle date. */
+  const onInitial = (p: (typeof pairs)[number]) => !!initial && p.line.key === initial.lineKey;
   const chosen = pairs.find(p => p.line.id === lineId && p.measureId === measureId)
-    ?? pairs.find(p => p.line.id === (initial ? lines.find(l => l.key === initial.lineKey)?.id : undefined))
+    ?? (!lineId ? pairs.find(p => onInitial(p) && p.name === initial?.measureName) ?? pairs.find(onInitial) : undefined)
     ?? pairs[0];
 
   /** Every split that has enough readings on both sides. */
@@ -83,7 +87,11 @@ export function WinProofSheet({ projectId, lines, initial, onCall, onClose }: {
     return out;
   }, [chosen]);
 
-  const at = from != null && splits.includes(from) ? from : splits[Math.floor(splits.length / 2)] ?? null;
+  const calledFrom = from == null && !lineId && initial?.fromAt && chosen && onInitial(chosen) && chosen.name === initial.measureName
+    ? chosen.dates.indexOf(initial.fromAt) : -1;
+  const at = from != null && splits.includes(from) ? from
+    : splits.includes(calledFrom) ? calledFrom
+    : splits[Math.floor(splits.length / 2)] ?? null;
   const measure = state.measures.find(m => m.id === chosen?.measureId);
   const live = chosen && at != null && measure
     ? numberProof(chosen.values, at, measure.direction)

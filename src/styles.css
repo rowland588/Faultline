@@ -1910,6 +1910,12 @@ button.st-pill { cursor: pointer; }
 .ms-tnum { width: 84px; text-align: center; }
 .ms-tnum .pset-cell { width: 76px; text-align: center; font-variant-numeric: tabular-nums; }
 .ms-unit-tag { font-weight: 600; color: var(--muted); }
+/* On a phone the measure's name was squeezed to four letters ("Pack",
+   "Wast") and a period's end date cut in half: the name and the dates keep
+   room to be read, and the table scrolls sideways inside its card instead. */
+.ms-table:not(.ms-targets) td:first-child { min-width: 140px; }
+.ms-table td.ms-unit { min-width: 64px; }
+.ms-table input[type="date"] { min-width: 150px; }
 .ms-add, .ms-quarters {
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
   padding-top: 10px; border-top: 1px solid var(--line);
@@ -2235,6 +2241,7 @@ button.st-pill { cursor: pointer; }
   border-radius: var(--radius-sm); resize: none;
 }
 .ns-in::placeholder { color: var(--muted); }
+.ns-due { margin-bottom: 2px; min-height: 34px; }
 .ns-in:hover { border-color: var(--line); }
 .ns-in:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: transparent; background: var(--surface); }
 .ns-grow { field-sizing: content; min-height: 34px; }   /* grows with the text where supported */
@@ -7780,6 +7787,7 @@ button.gt-lab small { font-size: 10.5px; color: var(--muted); }
 .nt-rem-plan { font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); }
 .nt-row.is-done .nt-rem { opacity: 0.6; }
 .nt-rem-add { appearance: none; background: none; border: 0; padding: 2px 0; font: inherit; font-size: 13px; font-weight: 700; color: var(--remind); cursor: pointer; }
+@media (max-width: 640px) { .nt-rem-add { min-height: 44px; } }
 .nt-rem-form, .nt-rem-new {
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; width: 100%; box-sizing: border-box;
   padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--remind) 30%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--remind) 4%, var(--surface));

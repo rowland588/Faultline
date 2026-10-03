@@ -19,6 +19,7 @@ import { DraftArea, DraftField } from '../ui/Draft';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listPaceTodos, putPaceTodo, deletePaceTodo, onDataChange, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
+import { niceDay } from '../lib/weeks';
 import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
@@ -71,7 +72,9 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
     if (!window.confirm('Remove this?')) return;
     onPatch({ media: media.filter(x => x.id !== m.id) });
   };
-  const sum = [row.who.trim(), row.when.trim()].filter(Boolean).join(' · ');
+  /* The day it is due is the board's — the one "late" is judged by — so it
+     is what the shut row says; the words in When only stand in without one. */
+  const sum = [row.who.trim(), row.due ? `due ${niceDay(row.due)}` : row.when.trim()].filter(Boolean).join(' · ');
   const summary = compact && (
     <tr className={'ns-sum is-' + row.state}>
       <td colSpan={8}>
@@ -90,14 +93,24 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
     <tr className={'ns-row is-' + row.state}>
       <td data-h="What"><DraftArea className="ns-in ns-grow" rows={2} value={row.what} ariaLabel="What"
         placeholder="e.g. test the Tesco Express trays" onSave={v => onPatch({ what: v })} /></td>
+      {/* "e.g." on every example: bare, "Line 10 robot" and "w/c 22nd" sat in
+          empty boxes on every row and read as what had been written. */}
       <td data-h="Where"><DraftArea className="ns-in ns-grow" rows={1} value={row.where} ariaLabel="Where"
-        placeholder="Line 10 robot" onSave={v => onPatch({ where: v })} /></td>
+        placeholder="e.g. the infeed" onSave={v => onPatch({ where: v })} /></td>
       <td data-h="Why"><DraftArea className="ns-in ns-grow" rows={2} value={row.why} ariaLabel="Why"
-        placeholder="Prove the robot can pack them at speed" onSave={v => onPatch({ why: v })} /></td>
+        placeholder="e.g. prove it can pack them at speed" onSave={v => onPatch({ why: v })} /></td>
       <td data-h="Who"><DraftArea className="ns-in ns-grow" rows={1} value={row.who} ariaLabel="Who"
         placeholder="Name" onSave={v => onPatch({ who: v })} /></td>
-      <td data-h="When"><DraftField className="ns-in" value={row.when} ariaLabel="When"
-        placeholder="w/c 22nd" onSave={v => onPatch({ when: v })} /></td>
+      {/* THE DUE DATE THE BOARD KEEPS, here too. This list only had the words,
+          so an action due (and late) on the board showed an empty When — and
+          could not be given a date from here. The words stay for an answer a
+          date cannot hold. */}
+      <td data-h="When">
+        <input className="ns-in ns-due" type="date" value={row.due ?? ''} aria-label="Due"
+          onChange={e => onPatch({ due: e.target.value || undefined })} />
+        <DraftField className="ns-in" value={row.when} ariaLabel="When, in words"
+          placeholder={row.due ? 'or in words' : 'or in words — e.g. w/c 22nd'} onSave={v => onPatch({ when: v })} />
+      </td>
       <td data-h="Photos">
         <div className="ns-pics">
           {media.map(m => (
@@ -120,7 +133,7 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
             onSave={v => onPatch({ outcome: v })}
           />
         ) : (
-          <span className="ns-outcome-wait" title="Mark this line Done to record the outcome">
+          <span className="ns-outcome-wait" title="Mark it Done to record the outcome">
             {row.outcome ? row.outcome : '—'}
           </span>
         )}
@@ -135,7 +148,7 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
             </button>
           ))}
         </div>
-        <button className="ns-del" onClick={onDelete} aria-label="Delete this line">Delete</button>
+        <button className="ns-del" onClick={onDelete} aria-label="Delete this action">Delete</button>
       </td>
     </tr>
     {/* What happened, written up afterwards. Full width and always here rather
@@ -143,10 +156,12 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
         to-do simply leaves it empty, where it takes one line. */}
     <tr className={'ns-noterow is-' + row.state}>
       <td colSpan={8}>
-        <textarea
-          className="ns-in ns-notes" rows={1} value={row.notes ?? ''} aria-label="What happened"
+        {/* Its own draft, written as you pause and when you leave it — it
+            wrote the whole action to the database on every keystroke. */}
+        <DraftArea
+          className="ns-in ns-notes" rows={1} value={row.notes ?? ''} ariaLabel="What happened"
           placeholder="What happened — how the run went, the numbers, what we do next"
-          onChange={e => onPatch({ notes: e.target.value })}
+          onSave={v => onPatch({ notes: v || undefined })}
         />
       </td>
     </tr>
@@ -156,8 +171,10 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
 
 /** `lineId` narrows the list to one line's own next steps, which is what makes
  *  a line's pack a pack rather than a filtered view of the project's. Left off,
- *  the project sees everything — its lines' items and anything spanning them. */
-export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId?: string }) {
+ *  the project sees everything — its lines' items and anything spanning them.
+ *  `withWhole` keeps the ones written for every line in a line's list too, as
+ *  a 3P line's board, KPIs and by-owner view already do. */
+export function PaceNextSteps({ projectId, lineId, withWhole }: { projectId: string; lineId?: string; withWhole?: boolean }) {
   const [rows, setRows] = useState<PaceTodoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
@@ -166,7 +183,11 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
   const compact = phone();
   const root = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async () => { setRows(await listPaceTodos(projectId, lineId)); setLoading(false); }, [projectId, lineId]);
+  const load = useCallback(async () => {
+    const all = await listPaceTodos(projectId, withWhole ? undefined : lineId);
+    setRows(withWhole && lineId ? all.filter(r => r.lineId === lineId || !r.lineId) : all);
+    setLoading(false);
+  }, [projectId, lineId, withWhole]);
 
   // A line added on the laptop appears here without a reload — that is the
   // point of syncing it. Held back while somebody is typing in this table,
@@ -200,7 +221,7 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
   const remove = async (r: PaceTodoRow) => {
     // An empty line was a mis-tap, not a decision — no dialog for that.
     const filled = [r.what, r.where, r.why, r.who, r.when].some(v => v.trim());
-    if (filled && !window.confirm(`Delete this line?\n\n"${r.what || '(no description)'}"`)) return;
+    if (filled && !window.confirm(`Delete this action?\n\n"${r.what || '(no description)'}"`)) return;
     setRows(rows.filter(x => x.id !== r.id));
     await deletePaceTodo(r.id);
   };
@@ -220,16 +241,16 @@ export function PaceNextSteps({ projectId, lineId }: { projectId: string; lineId
           <b>{counts.todo}</b> to do · <b>{counts.waiting}</b> waiting
           {counts.done > 0 && <> · {counts.done} done</>}
         </div>
-        <button className="btn btn-primary" onClick={() => void add()}>+ Add a line</button>
+        <button className="btn btn-primary" onClick={() => void add()}>+ Add an action</button>
       </div>
 
       {rows.length === 0 ? (
         <div className="ns-empty">
           <p className="ns-empty-title">Nothing written down yet</p>
           <p className="ns-empty-sub">
-            The things that are not tracker actions yet — a test to run, a quote to chase,
-            an answer someone owes you. Say what it is, where, why it matters, who has it and when,
-            then write up what happened and attach the pictures or video.
+            A test to run, a quote to chase, an answer someone owes you. Say what it is, where,
+            why it matters, who has it and when, then write up what happened and attach the
+            pictures or video.
           </p>
           <button className="btn btn-primary btn-lg" onClick={() => void add()}>+ Add the first one</button>
         </div>

@@ -34,7 +34,9 @@ function AddReading({ measure, onAdd }: {
   const [note, setNote] = useState('');
 
   const add = async () => {
-    const n = Number(value.trim());
+    // "3,1" is what a phone's decimal keypad types in much of Europe; it was
+    // silently refused — the button pressed and nothing happened.
+    const n = Number(value.trim().replace(',', '.'));
     if (!Number.isFinite(n) || !at) return;
     await onAdd(at, n, note.trim() || undefined);
     setValue(''); setNote('');

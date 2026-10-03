@@ -49,7 +49,7 @@ function Card({ win, onPatch, onDelete, onProve }: {
             claiming the same thing is how a report loses a room. */}
         {!proof && (
           <DraftField className="win-in win-impact" ariaLabel="Impact" value={win.impact}
-            placeholder="44 → 49 ppm" onSave={v => onPatch({ impact: v })} />
+            placeholder="e.g. 44 → 49 ppm" onSave={v => onPatch({ impact: v })} />
         )}
       </div>
 
@@ -77,7 +77,7 @@ function Card({ win, onPatch, onDelete, onProve }: {
         <DraftField className="win-in win-who" ariaLabel="Who to credit" value={win.who}
           placeholder="Who made it happen" onSave={v => onPatch({ who: v })} />
         <DraftField className="win-in win-where" ariaLabel="Where" value={win.where}
-          placeholder="Line 10" onSave={v => onPatch({ where: v })} />
+          placeholder="Where — e.g. the bagger" onSave={v => onPatch({ where: v })} />
         <span className="win-date">{when(win.createdAt)}</span>
         <button className="win-del" onClick={onDelete} aria-label="Delete this win">Delete</button>
       </div>

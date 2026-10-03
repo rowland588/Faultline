@@ -269,7 +269,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               <button type="button" className={byOwner ? 'on' : ''} onClick={() => setByOwner(true)}>By owner</button>
             </span>
           </div>
-          {byOwner ? <PaceMeeting actions={mine} /> : <PaceNextSteps projectId={projectId} lineId={lineId} />}
+          {byOwner ? <PaceMeeting actions={mine} /> : <PaceNextSteps projectId={projectId} lineId={lineId} withWhole={paced} />}
         </section>
       )}
 
