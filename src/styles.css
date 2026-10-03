@@ -787,6 +787,13 @@ button { font-family: inherit; }
 
 /* ---------- actions raised from the Pareto board ---------- */
 .action-form { margin-top: 10px; }
+/* Owner, due, Raise, Cancel on one row ran off a phone: the owner box was
+   squeezed to a sliver and Cancel sat past the edge, unreachable. The row
+   wraps, and on a phone the owner gets a line of its own. */
+.action-form .row-inline { flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .action-form .row-inline > .text-input:not(.due-input) { flex: 1 1 100%; }
+}
 .action-raised {
   margin-top: 10px; padding: 12px 14px; border-radius: 12px;
   background: color-mix(in srgb, var(--ok) 12%, var(--surface));
@@ -1748,6 +1755,7 @@ button.st-pill { cursor: pointer; }
   background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .pace-fbtn.on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+@media (max-width: 640px) { .pace-fbtn { min-height: 44px; padding: 5px 14px; font-size: 13px; } }
 
 /* ---- actions ---- */
 .pace-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 10px; }
@@ -2261,7 +2269,7 @@ button.st-pill { cursor: pointer; }
   /* the row shut: one line, the state in words, its colour on the edge */
   .ns-sum { padding: 0 !important; }
   .ns-sum > td { padding: 0 !important; }
-  .ns-sum-b { appearance: none; width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 12px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+  .ns-sum-b { appearance: none; width: 100%; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 12px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
   .ns-sum.is-todo .ns-sum-b { box-shadow: inset 3px 0 0 var(--st-w); }
   .ns-sum.is-waiting .ns-sum-b { box-shadow: inset 3px 0 0 var(--st-a); }
   .ns-sum.is-done .ns-sum-b { box-shadow: inset 3px 0 0 var(--st-g); color: var(--muted); }
@@ -2873,6 +2881,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
 }
 .pace-who-go:hover { text-decoration: underline; }
+@media (max-width: 640px) { .pace-who-go { min-height: 44px; padding: 0 4px; } }
 /* the chart inside a people-carrying cell loses its own bottom corners so the
    two read as one card rather than two stacked ones */
 .pace-chart-cell:has(.pace-line-people) .pace-chart { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: 0; }
@@ -7433,6 +7442,12 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .bd-un-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
 .bd-un { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-top: 1px solid var(--line); }
 .bd-un-t { all: unset; cursor: pointer; flex: 1 1 260px; font-size: 14px; font-weight: 600; color: var(--ink); }
+/* On a phone the board's + Add and an unsorted action's title are tapped
+   with a thumb: 44 px, and the title is a row, not a word. */
+@media (max-width: 640px) {
+  .bd-add { min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .bd-un-t { box-sizing: border-box; min-height: 44px; display: flex; align-items: center; }
+}
 .ax-form { display: flex; flex-direction: column; gap: 12px; }
 .ax-form textarea {
   width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--ink);
@@ -7530,6 +7545,7 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .cap-tab { appearance: none; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 6px 12px; cursor: pointer; }
 .cap-tab.on { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, var(--surface)); }
 .cap-tab.is-add { border-style: dashed; color: var(--brand); }
+@media (max-width: 640px) { .cap-tab { min-height: 44px; padding: 8px 14px; } }
 .cap-whatif { padding: 12px 16px; margin: 0 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .cap-whatif-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 .cap-whatif-h .cap-whatif-name { flex: 1 1 220px; }

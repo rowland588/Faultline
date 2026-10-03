@@ -122,7 +122,8 @@ function BoardPanel({ projectId, actions, bare }: { projectId: string; actions: 
                       ? <p className="pb-none">—</p>
                       : <>
                           {c.rows.slice(0, AREA_PEEK).map((x, i) => (
-                            <button key={x.uid || x.ref || i} className={'pb-act is-' + statusOfAction(x)} onClick={open}>
+                            <button key={x.uid || x.ref || i} className={'pb-act is-' + statusOfAction(x)}
+                              onClick={() => nav(`/project/${projectId}/board${x.uid ? `?a=${x.uid}` : ''}`)}>
                               {/* the text is clamped on a span of its own: a line
                                   clamp applied to the button itself is unreliable,
                                   and an action cut through the middle of a word reads
@@ -682,10 +683,18 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                   const im = impacts.get(s.id);
                   return (
                     <li key={s.id} className="dw-row">
-                      <button className="dw-t" onClick={() => nav(`/project/${projectId}/board`)}>{s.what}</button>
-                      <span className="sub">{[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}</span>
-                      {im && im.state !== 'none' && <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span>}
-                      {im?.words && <span className="dw-w">{im.words}</span>}
+                      {/* THE WHOLE ROW OPENS THAT ACTION — the title alone was
+                          the button, 20 px tall on a phone, and it dropped you
+                          on the board to find the action again. */}
+                      <button className="dw-go" onClick={() => nav(`/project/${projectId}/board?a=${s.id}`)}>
+                        <b>{s.what}</b>
+                        <span className="dw-w">
+                          {[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}
+                          {im && im.state !== 'none' && <> <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span></>}
+                        </span>
+                        {im?.words && <span className="dw-w">{im.words}</span>}
+                        <span className="dw-go-c" aria-hidden>›</span>
+                      </button>
                     </li>
                   );
                 })}

@@ -18,8 +18,8 @@
  * somebody in the room. Nothing is ever dropped: a step not yet given a column
  * is listed under the board with the three to choose from.
  */
-import { useMemo, useState } from 'react';
-import { nav } from '../state/useRoute';
+import { useEffect, useMemo, useState } from 'react';
+import { nav, navReplace, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { Peers, methodPeers } from '../ui/Peers';
@@ -72,6 +72,17 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   const today = todayISO();
 
   const stepById = useMemo(() => new Map(ax.steps.map(s => [s.id, s])), [ax.steps]);
+  /* ?a=<id> OPENS THAT ACTION. An action tapped on the project page, or under
+     "Did it work?", lands on its own sheet — not on the whole board with the
+     one you tapped somewhere in it. The address is put back to the board's
+     own, so closing the sheet leaves you on the board. */
+  const wanted = useRoute().query.get('a');
+  useEffect(() => {
+    if (!wanted || ax.loading) return;
+    const s = stepById.get(wanted);
+    if (s) setEditing({ step: s, isNew: false });
+    navReplace(`/project/${projectId}/board`);
+  }, [wanted, ax.loading, stepById, projectId]);
   const open = (a: PaceAction) => { const s = a.uid ? stepById.get(a.uid) : undefined; if (s) setEditing({ step: s, isNew: false }); };
   const add = (pillar: PillarKey, lineId?: string) => {
     const t = Date.now();
