@@ -74,7 +74,13 @@ export const setFont = (d: Doc, size: number, weight: 'normal' | 'bold', colour:
 };
 
 
-export function fit(d: Doc, text: string, maxW: number): string {
+/** Text cut to a width, with "…" when it does not fit — and SANITISED, because
+ *  this is the door most typed text reaches the page through: station names,
+ *  action titles, wins, problems, machines. Measuring and drawing an arrow the
+ *  font does not have printed "!'" and mis-sized the cut; san() is idempotent,
+ *  so text a caller already cleaned passes through unchanged. */
+export function fit(d: Doc, raw: string, maxW: number): string {
+  const text = san(raw);
   if (d.getTextWidth(text) <= maxW) return text;
   let lo = 0, hi = text.length;
   while (lo < hi) {

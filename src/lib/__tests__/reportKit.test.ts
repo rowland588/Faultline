@@ -9,7 +9,7 @@
  * worth testing here rather than trusting each of a hundred call sites.
  */
 import { describe, it, expect } from 'vitest';
-import { san, wash } from '../reportKit';
+import { fit, san, wash } from '../reportKit';
 
 /** Everything WinAnsi can render, plus the handful of Unicode punctuation the
  *  encoder maps for us. Anything else in a PDF string is a defect. */
@@ -138,5 +138,19 @@ describe('wash mixes a colour towards white', () => {
         }
       }
     }
+  });
+});
+
+describe('fit — the door typed text reaches the page through', () => {
+  // a stand-in for jsPDF's width: one unit a character
+  const d = { getTextWidth: (t: string) => t.length } as unknown as Parameters<typeof fit>[0];
+  it('cleans what it is given, so an arrow or an emoji never reaches the font', () => {
+    expect(fit(d, 'Basketer → New basketer 😀', 100)).toBe('Basketer to New basketer');
+  });
+  it('cuts the cleaned text, not the raw one', () => {
+    expect(fit(d, 'A → B → C → D', 9)).toBe('A to B t…');   // nine wide, the ellipsis included
+  });
+  it('leaves text that was already clean alone', () => {
+    expect(fit(d, san('8 baskets a minute instead of 5.5'), 100)).toBe('8 baskets a minute instead of 5.5');
   });
 });
