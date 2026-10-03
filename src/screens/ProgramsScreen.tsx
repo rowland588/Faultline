@@ -35,6 +35,7 @@ import {
   STATE_WORD, stateOf, testedIn, todayISO,
   type Program, type Week,
 } from '../lib/programs';
+import { Icon } from '../ui/Icon';
 
 const nice = (iso?: string): string => {
   if (!iso) return '—';
@@ -248,7 +249,7 @@ function Row({ p, today, lineName, assets, state, weeks }: {
       )}
 
       <button className="pset-x" aria-label={`Remove ${p.what}`}
-        onClick={() => void state.remove(p.id)}>×</button>
+        onClick={() => void state.remove(p.id)}><Icon name="close" size="0.85em" /></button>
       <Strip p={p} weeks={weeks} />
     </div>
   );

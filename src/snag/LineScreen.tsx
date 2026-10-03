@@ -32,6 +32,7 @@ import { studyResult, provenWin } from '../lib/proof';
 import { dueWord } from './TimeStrip';
 import { SNAG_STATUS_META, isOverdue, type Snag, type SnagAsset } from './types';
 import type { Case } from '../types';
+import { Icon } from '../ui/Icon';
 
 const STALE_MS = 7 * 24 * 3600_000; // an old photo is a claim about the past
 
@@ -72,7 +73,7 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
         <span className="line-actions">
           {stop.actions.length === 0 ? <span className="la-none">no open actions here</span> : stop.actions.slice(0, 3).map(a => (
             <span key={a.id} className={'la-row' + (isOverdue(a) ? ' over' : '')}>
-              ⚑ {a.problem}{a.owner ? <b> — {a.owner}</b> : ''}{dueWord(a) ? ` · ${dueWord(a)}` : ''}
+              <Icon name="flag" size="1.15em" /> {a.problem}{a.owner ? <b> — {a.owner}</b> : ''}{dueWord(a) ? ` · ${dueWord(a)}` : ''}
             </span>
           ))}
           {stop.actions.length > 3 && <span className="la-more">+ {stop.actions.length - 3} more on the evidence list</span>}
@@ -82,12 +83,12 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
         <span className="line-proof">
           {stop.win && (
             <span className="lp-badge lp-win" role="button" tabIndex={0} onClick={e => openCase(e, stop.win!.c.id)}>
-              {stop.win.slipping ? '⚠' : '✓'} {money(stop.win.savedMsWeek)}/wk proven{stop.win.slipping ? ' · slipping' : ''} — {stop.win.c.title} ›
+              <Icon name={stop.win.slipping ? 'warning' : 'check'} size="1.15em" /> {money(stop.win.savedMsWeek)}/wk proven{stop.win.slipping ? ' · slipping' : ''} — {stop.win.c.title} ›
             </span>
           )}
           {stop.openCase && (
             <span className="lp-badge lp-live" role="button" tabIndex={0} onClick={e => openCase(e, stop.openCase!.id)}>
-              📌 being worked — {stop.openCase.title} ›
+              <Icon name="case" size="1.15em" /> being worked — {stop.openCase.title} ›
             </span>
           )}
           {!stop.win && !stop.openCase && <span className="la-none">no case on this machine</span>}
@@ -100,7 +101,7 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
     return (
       <div className="line-slide">
         <div className="line-frame line-gap">
-          <span className="line-gap-ic" aria-hidden>▦</span>
+          <span className="line-gap-ic" aria-hidden><Icon name="video" size="1em" /></span>
           <b>{stop.name}</b>
           <span className="sub">Not filmed yet — mark it on your next walk</span>
           {overlays}
@@ -213,7 +214,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
       {/* the tab's landing (owner cut, Aug 2026): the Line IS the eyes' front
           door — ONE action (film), and the filing lives in the back room */}
       <div className="subhead">
-        <button className="btn" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}>🎥 Film a walk</button>
+        <button className="btn" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}><Icon name="video" /> Film a walk</button>
         <span className="subhead-title">The line</span>
         <div style={{ flex: 1 }} />
         <span className="sub line-count">{at + 1} / {stops.length}</span>
@@ -221,10 +222,10 @@ export function LineScreen({ wsId }: { wsId: string }) {
 
       {/* the lenses — same pressable-legend language as the Pareto's chips */}
       <div className="pk-picker line-layers" role="group" aria-label="Choose what the line shows">
-        <button type="button" className={'pk-pick' + (layer === 'faults' ? ' on' : '')} onClick={() => setLayer('faults')}>📍 Faults</button>
-        <button type="button" className={'pk-pick' + (layer === 'cost' ? ' on' : '')} onClick={() => setLayer('cost')}>{costable ? '£ heat' : '⏱ heat'}</button>
-        <button type="button" className={'pk-pick' + (layer === 'actions' ? ' on' : '')} onClick={() => setLayer('actions')}>⚑ Actions</button>
-        <button type="button" className={'pk-pick' + (layer === 'proof' ? ' on' : '')} onClick={() => setLayer('proof')}>✓ Proof</button>
+        <button type="button" className={'pk-pick' + (layer === 'faults' ? ' on' : '')} onClick={() => setLayer('faults')}><Icon name="pin" size="1.15em" />Faults</button>
+        <button type="button" className={'pk-pick' + (layer === 'cost' ? ' on' : '')} onClick={() => setLayer('cost')}>{costable ? <><Icon name="pound" size="1.15em" />heat</> : <><Icon name="time" size="1.15em" />heat</>}</button>
+        <button type="button" className={'pk-pick' + (layer === 'actions' ? ' on' : '')} onClick={() => setLayer('actions')}><Icon name="flag" size="1.15em" />Actions</button>
+        <button type="button" className={'pk-pick' + (layer === 'proof' ? ' on' : '')} onClick={() => setLayer('proof')}><Icon name="check" size="1.15em" />Proof</button>
       </div>
 
       <div className="line-strip" ref={strip} onScroll={onScroll}>
@@ -251,7 +252,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
           : 'Swipe along the line · tap the machine to zoom & pin'}
       </p>
       <div className="next-row line-links">
-        <button className="linkish" onClick={() => nav(`/w/${wsId}/snaglist`)}>⚑ Evidence ›</button>
+        <button className="linkish" onClick={() => nav(`/w/${wsId}/snaglist`)}><Icon name="flag" size="1.15em" /> Evidence ›</button>
         <button className="linkish" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}>Manage walks ›</button>
       </div>
     </div>

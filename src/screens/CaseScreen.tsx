@@ -21,6 +21,7 @@ import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput, type Snag, type SnagStatus } from '../snag/types';
 import { studyResult, defaultTargetN, studyTarget, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
+import { Icon } from '../ui/Icon';
 
 /** Mean-per-event, in words a room can read aloud. */
 export const fmtMean = (ms: number): string =>
@@ -107,7 +108,7 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
             onBlur={() => setTN(String(target))} />
           <button className="btn btn-primary" disabled={scopedCount === 0}
             onClick={() => void onChange({ study: { startedAt: Date.now(), targetN: target } })}>
-            🔬 Start the study
+            <Icon name="study" /> Start the study
           </button>
         </div>
         {scopedCount === 0 && <p className="sub" style={{ marginTop: 6 }}>Needs a baseline first — capture some observations in this scope, then come back.</p>}
@@ -170,7 +171,7 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
   if (called) {
     const won = provenWin(result);
     const noise = better && result.significant === false; // improved on average, but within noise
-    const stamp = won ? '✓ PROVEN' : noise ? '✗ NOT PROVEN — within noise' : '✗ NO IMPROVEMENT';
+    const stamp = <><Icon name={won ? 'check' : 'close'} size="1.1em" /> {won ? 'PROVEN' : noise ? 'NOT PROVEN — within noise' : 'NO IMPROVEMENT'}</>;
     const since = result.sinceCall;
     return (
       <div>
@@ -196,7 +197,7 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
           since.n === 0
             ? <p className="sub">Holding? Nothing logged in this scope since the call — silence is fine; watch the Line.</p>
             : <p className={'sub' + (since.slipping ? ' mt-bad' : '')}>
-                {since.slipping ? '⚠ SLIPPING' : '✓ Holding'} — {plural(since.n, 'event')} since the call, averaging <b>{fmtMean(since.meanMs)}</b>
+                <Icon name={since.slipping ? 'warning' : 'check'} size="1.15em" /> {since.slipping ? 'SLIPPING' : 'Holding'} — {plural(since.n, 'event')} since the call, averaging <b>{fmtMean(since.meanMs)}</b>
                 {result.afterMeanMs > 0 ? <> vs <b>{fmtMean(result.afterMeanMs)}</b> proven</> : null}.
                 {since.slipping ? ' The fix is drifting — reopen the case and look.' : ''}
               </p>
@@ -214,12 +215,12 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
         <span className="pp-fill" style={{ width: `${Math.min(100, (result.afterN / result.targetN) * 100)}%` }} />
       </div>
       <p className="sub" style={{ marginTop: 4 }}>
-        🔬 Study running since {dateNice(kase.study.startedAt)} — <b>{result.afterN} of {result.targetN}</b> samples collected.
+        <Icon name="study" size="1.15em" /> Study running since {dateNice(kase.study.startedAt)} — <b>{result.afterN} of {result.targetN}</b> samples collected.
         Capture in this scope and they count automatically.
       </p>
       {result.stale && (
         <p className="sub mt-bad">
-          ⚠ This study has drifted — armed over 60 days and still short of target. The line may have changed
+          <Icon name="warning" size="1.15em" /> This study has drifted — armed over 60 days and still short of target. The line may have changed
           underneath it; abandon and re-arm for a clean before/after.
         </p>
       )}
@@ -359,7 +360,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
           <span className={'report-stat ' + (kase.status === 'open' ? 'st-prog' : 'st-closed')}><b>{kase.status === 'open' ? 'Open' : 'Closed'}</b></span>
           <span className="report-stat"><b>{money(kase.baselineMsWeek)}</b> baseline</span>
           <span className="report-stat"><b>{money(nowMsWeek)}</b> now</span>
-          {kase.targetMsWeek != null && <span className={'report-stat' + (targetMet ? ' st-closed' : '')}><b>{money(kase.targetMsWeek)}</b> target {targetMet ? '✓ met' : 'not yet'}</span>}
+          {kase.targetMsWeek != null && <span className={'report-stat' + (targetMet ? ' st-closed' : '')}><b>{money(kase.targetMsWeek)}</b> target {targetMet ? <><Icon name="check" size="1.15em" /> met</> : 'not yet'}</span>}
           {vsBase != null && <span className={'report-stat ' + (vsBase <= 0 ? 'st-closed' : 'st-open')}><b>{vsBase <= 0 ? '▼' : '▲'} {Math.abs(vsBase)}%</b> vs baseline</span>}
         </div>
       </header>
@@ -395,14 +396,14 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             <div className="cw-line cw-base" style={{ bottom: `${(kase.baselineMsWeek / maxWeekMs) * 100}%` }} title={`Baseline ${money(kase.baselineMsWeek)}`} />
             {weeks.map(w => (
               <div key={w.start} className={'cw-col' + (w.current ? ' cur' : '')} title={`${fmtH(w.ms)}${costable ? ` · ${fmtGBP(w.ms * factor)}` : ''}`}>
-                <span className="cw-flag">{closedFlagWeeks.has(w.start) ? '⚑' : ''}</span>
+                <span className="cw-flag">{closedFlagWeeks.has(w.start) ? <Icon name="flag" size="1.1em" /> : ''}</span>
                 <span className="cw-bar" style={{ height: `${Math.max(2, (w.ms / maxWeekMs) * 100)}%`, background: LOSS }} />
                 <span className="cw-lbl">{w.current ? 'now' : w.label}</span>
               </div>
             ))}
           </div>
         )}
-        <p className="sub">— baseline · - - target · ⚑ a fix closed that week. The last 3 full weeks average <b>{money(nowMsWeek)}</b>.</p>
+        <p className="sub">— baseline · - - target · <Icon name="flag" size="1.15em" /> a fix closed that week. The last 3 full weeks average <b>{money(nowMsWeek)}</b>.</p>
       </section>
 
       {/* ── analysis ── */}
@@ -416,7 +417,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
                 <span className="mt-bar-lbl">{sl.key} · {Math.round(sl.share * 100)}%{costable ? ` · ${fmtGBP(sl.value * factor)}` : ` · ${fmtH(sl.value)}`}</span>
               </div>
             ))}
-            {node.disagreement?.message && <p className="sub" style={{ marginTop: 6 }}>⚑ {node.disagreement.message}</p>}
+            {node.disagreement?.message && <p className="sub" style={{ marginTop: 6 }}><Icon name="flag" size="1.15em" /> {node.disagreement.message}</p>}
           </>
         )}
         <button className="linkish no-print" style={{ marginTop: 8 }}
@@ -443,7 +444,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             <div className="ma-main">
               <span className="ma-problem">{t.what}</span>
               {t.why ? <span className="sub case-why">{t.why}</span> : null}
-              {t.outcome ? <span className="case-upd">↻ {t.outcome}</span> : null}
+              {t.outcome ? <span className="case-upd"><Icon name="refresh" size="1.15em" /> {t.outcome}</span> : null}
             </div>
             <div className="ma-controls">
               <span className="mini-select">{t.state === 'done' ? 'Done' : t.state === 'waiting' ? 'Waiting' : 'To do'}</span>
@@ -459,7 +460,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <span className="ma-problem">{s.problem}</span>
               <input className="mini-update ma-update no-print" defaultValue={s.latestUpdate ?? ''} placeholder="Latest update…" maxLength={200}
                 onBlur={e => { const t = e.target.value.trim(); if (t !== (s.latestUpdate ?? '')) void mutateSnag({ ...s, latestUpdate: t || undefined, latestUpdateAt: t ? Date.now() : undefined }); }} />
-              {s.latestUpdate ? <span className="print-only case-upd">↻ {s.latestUpdate}</span> : null}
+              {s.latestUpdate ? <span className="print-only case-upd"><Icon name="refresh" size="1.15em" /> {s.latestUpdate}</span> : null}
             </div>
             <div className="ma-controls">
               <select className="mini-select no-print" value={s.status} aria-label="Status"
@@ -482,7 +483,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             <p className="sub">Actions already raised on this scope — pull them in?</p>
             {suggestions.map(s => (
               <div key={s.id} className="case-suggest">
-                <span className="cs-problem">⚑ {s.problem}{s.owner ? ` — ${s.owner}` : ''}</span>
+                <span className="cs-problem"><Icon name="flag" size="1.15em" /> {s.problem}{s.owner ? ` — ${s.owner}` : ''}</span>
                 <button className="btn" onClick={() => void mutateSnag({ ...s, caseId: kase.id })}>Attach</button>
               </div>
             ))}

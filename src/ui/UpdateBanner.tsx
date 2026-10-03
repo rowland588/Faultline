@@ -11,6 +11,7 @@
  * off a screen mid-task — but the choice is now visible instead of hidden
  * behind a "check for update" link at the bottom of Home. */
 import { useEffect, useState } from 'react';
+import { Icon } from './Icon';
 
 export function UpdateBanner() {
   const [ready, setReady] = useState(false);
@@ -56,7 +57,7 @@ export function UpdateBanner() {
     <div className="upd" role="status">
       <span className="upd-txt">A new version of Faultline is ready.</span>
       <button className="upd-btn" onClick={() => location.reload()}>Reload</button>
-      <button className="upd-x" onClick={() => setReady(false)} aria-label="Dismiss">×</button>
+      <button className="upd-x" onClick={() => setReady(false)} aria-label="Dismiss"><Icon name="close" size="0.85em" /></button>
     </div>
   );
 }

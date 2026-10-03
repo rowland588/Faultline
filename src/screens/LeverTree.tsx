@@ -47,6 +47,7 @@ import {
 } from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
+import { Icon } from '../ui/Icon';
 
 /* How far in and out the tree will go. Below about a third the words stop being
  * words; above 1.6 there is no reason to be on this screen rather than reading
@@ -272,7 +273,7 @@ function Box({
           title={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
           aria-label={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
         >
-          <span className="lt-fold-c" aria-hidden>{folded ? '▸' : '▾'}</span>
+          <span className="lt-fold-c" aria-hidden><Icon name={folded ? 'chevron' : 'chevronDown'} size="1.3em" /></span>
           {/* Folded away, a bare count says how much is hidden but not how it
               is going. "8, 3 done" is the difference between a branch you can
               leave folded and one you need to open. */}
@@ -353,18 +354,18 @@ function Box({
             title={isMoving ? 'Cancel the move' : 'Move this box somewhere else'}
             aria-label={isMoving ? 'Cancel the move' : 'Move this box somewhere else'}
             onClick={onPickUp}
-          >⠿</button>
-          <button type="button" className="lt-mini" title="Move up" aria-label="Move up" onClick={() => onMove(-1)}>↑</button>
-          <button type="button" className="lt-mini" title="Move down" aria-label="Move down" onClick={() => onMove(1)}>↓</button>
+          ><Icon name="grip" size="1.15em" /></button>
+          <button type="button" className="lt-mini" title="Move up" aria-label="Move up" onClick={() => onMove(-1)}><Icon name="arrowUp" size="1.15em" /></button>
+          <button type="button" className="lt-mini" title="Move down" aria-label="Move down" onClick={() => onMove(1)}><Icon name="arrowDown" size="1.15em" /></button>
           {/* ＋ is the one that gets pressed, so it does the common thing:
               another box at THIS level, below this one. Going a level deeper is
               the rarer move and gets its own button rather than the default. */}
-          <button type="button" className="lt-mini" title="Add another below" aria-label="Add another below" onClick={onAddBelow}>＋</button>
-          <button type="button" className="lt-mini" title="Add the next level to its right" aria-label="Add the next level to its right" onClick={onAddRight}>＋›</button>
+          <button type="button" className="lt-mini" title="Add another below" aria-label="Add another below" onClick={onAddBelow}><Icon name="plus" size="1.15em" /></button>
+          <button type="button" className="lt-mini" title="Add the next level to its right" aria-label="Add the next level to its right" onClick={onAddRight}><Icon name="plusNext" size="1.15em" /></button>
           {/* The tracker is already in the app, so this opens THIS WEEK'S
               ACTIONS to be picked from rather than sending anybody back to
               Excel to copy a column. Typing is behind a link inside it. */}
-          <button type="button" className="lt-mini" title="Add work from the board" aria-label="Add work from the board" onClick={onPaste}>☰</button>
+          <button type="button" className="lt-mini" title="Add work from the board" aria-label="Add work from the board" onClick={onPaste}><Icon name="board" size="1.15em" /></button>
           {/* Link this box to the tracker once, and its work arrives every week
               by itself. The chain is only offered where it means something: a
               box that holds work, not the outcome and not a row the tracker
@@ -375,7 +376,7 @@ function Box({
               title={bindsWork(node.bind) ? 'Change what the board fills this with' : 'Fill this from the board'}
               aria-label={bindsWork(node.bind) ? 'Change what the board fills this with' : 'Fill this from the board'}
               onClick={onBind}
-            >⛓</button>
+            ><Icon name="link" size="1.15em" /></button>
           )}
           {/* Bind the COLOUR to a number. Offered on any box the author drew,
               the outcome included — "Line 2B holds 60 ppm" is a number before
@@ -385,9 +386,9 @@ function Box({
               type="button" className={'lt-mini lt-numb' + (pickingNumber ? ' is-on' : '')}
               title="Bind to a number" aria-label="Bind to a number"
               onClick={() => setPickingNumber(v => !v)}
-            >#</button>
+            ><Icon name="hash" size="1.15em" /></button>
           )}
-          <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}>×</button>
+          <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}><Icon name="close" size="1.15em" /></button>
         </div>
       </div>
       )}
@@ -406,7 +407,7 @@ function Box({
             <option value="" disabled>Which number…</option>
             {numbers.choices.map((c, i) => <option key={c.measureId + c.lineId} value={i}>{c.label}</option>)}
           </select>
-          <button type="button" className="lt-mini" aria-label="Cancel" title="Cancel" onClick={() => setPickingNumber(false)}>×</button>
+          <button type="button" className="lt-mini" aria-label="Cancel" title="Cancel" onClick={() => setPickingNumber(false)}><Icon name="close" size="1.15em" /></button>
         </div>
       )}
     </div>
@@ -810,9 +811,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
             </button>
           )}
           <div className="lt-zoom" role="group" aria-label="Zoom">
-            <button className="lt-zoom-b" aria-label="Zoom out" onClick={() => setZoom(clampZoom(zoom - 0.15))}>−</button>
+            <button className="lt-zoom-b" aria-label="Zoom out" onClick={() => setZoom(clampZoom(zoom - 0.15))}><Icon name="minus" size="1.1em" /></button>
             <button className="lt-zoom-n" onClick={fit} title="Fit the whole tree on screen">{Math.round(zoom * 100)}%</button>
-            <button className="lt-zoom-b" aria-label="Zoom in" onClick={() => setZoom(clampZoom(zoom + 0.15))}>＋</button>
+            <button className="lt-zoom-b" aria-label="Zoom in" onClick={() => setZoom(clampZoom(zoom + 0.15))}><Icon name="plus" size="1.1em" /></button>
           </div>
           <button className="btn" onClick={() => window.print()}>Print</button>
         </div>
@@ -841,7 +842,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <button
             className={'btn btn-lg ' + (trackerLines(ppm.lines).length ? 'btn-ghost' : 'btn-primary')}
             onClick={() => void addNode(undefined)}>
-            ＋ Add the desired outcome
+            <Icon name="plus" /> Add the desired outcome
           </button>
         </div>
       ) : (
@@ -920,10 +921,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
           )}
 
           <div className="lt-foot">
-            <button className="btn" onClick={() => void addNode(undefined)}>＋ Another outcome</button>
+            <button className="btn" onClick={() => void addNode(undefined)}><Icon name="plus" /> Another outcome</button>
             <span className="sub">
-              Tap a box for its tools: ☰ hang the board’s actions under it · # bind its colour to a number
-              {' '}· ⠿ move it · ↑ ↓ reorder · ＋ another below · ＋› the next level along · pinch to zoom,
+              Tap a box for its tools: <Icon name="board" size="1.15em" /> hang the board’s actions under it · <Icon name="hash" size="1.15em" /> bind its colour to a number
+              {' '}· <Icon name="grip" size="1.15em" /> move it · <Icon name="arrowUp" size="1.15em" /> <Icon name="arrowDown" size="1.15em" /> reorder · <Icon name="plus" size="1.15em" /> another below · <Icon name="plusNext" size="1.15em" /> the next level along · pinch to zoom,
               or tap the percentage to fit it all on.
             </span>
           </div>

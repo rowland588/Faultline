@@ -35,6 +35,7 @@ import { useProjects } from '../lib/useProjects';
 import { allPaceLines, chainForWorkspace, inArchivedProject, onDataChange, type PaceLineRow } from '../db';
 import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
 import { JobsBoard } from '../ui/JobsBoard';
+import { Icon } from '../ui/Icon';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -248,7 +249,7 @@ export function WorkspaceHome() {
       {profile?.is_super && (
         <>
           <button className="admin-row" onClick={() => setAdminOpen(true)}>
-            <span className="admin-ic" aria-hidden>◆</span>
+            <span className="admin-ic" aria-hidden><Icon name="people" size="1.2em" /></span>
             <span className="cloud-main"><b>Team &amp; invites</b><span className="sub">invite people, see who's joined</span></span>
             <span className="cloud-go" aria-hidden>›</span>
           </button>
@@ -392,7 +393,7 @@ export function WorkspaceHome() {
       {profile?.is_super && (
         <>
           <button className="home-guide-link" onClick={() => void seedDemo()} disabled={!!seeding}>
-            ◈ {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo line ›'}
+            <Icon name="spark" size="1.15em" /> {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo line ›'}
           </button>
           {/* The demo build is the only thing on this screen that can fail with
               something worth reading. It used to report into the create card's

@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Icon, type IconName } from './Icon';
 
 /** A bottom sheet — the switcher, menus, quick edits. Tap the scrim to close.
  *  Rendered via a PORTAL to <body>: a sheet opened from inside the sticky top
@@ -56,12 +57,12 @@ export function Sheet({ open, onClose, title, children }: {
 }
 
 /** A tappable row inside a sheet. */
-export function SheetRow({ label, hint, danger, onClick }: {
-  label: string; hint?: string; danger?: boolean; onClick: () => void;
+export function SheetRow({ label, hint, danger, icon, onClick }: {
+  label: string; hint?: string; danger?: boolean; icon?: IconName; onClick: () => void;
 }) {
   return (
     <button type="button" className={'sheet-row' + (danger ? ' danger' : '')} onClick={onClick}>
-      <span>{label}</span>
+      <span>{icon && <><Icon name={icon} size="1.15em" /> </>}{label}</span>
       {hint && <span className="sheet-row-hint">{hint}</span>}
     </button>
   );

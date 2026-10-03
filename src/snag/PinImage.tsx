@@ -1,4 +1,5 @@
 import { useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { Icon } from '../ui/Icon';
 
 export interface Pin { id: string; xPct: number; yPct: number; color: string; label?: string; n?: number; active?: boolean; }
 
@@ -90,8 +91,8 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
         ))}
       </div>
       <div className="pin-zoom" onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
-        <button type="button" aria-label="Zoom out" disabled={scale <= 1} onClick={e => { e.stopPropagation(); zoomBy(1 / 1.5); }}>−</button>
-        <button type="button" aria-label="Zoom in" disabled={scale >= 5} onClick={e => { e.stopPropagation(); zoomBy(1.5); }}>＋</button>
+        <button type="button" aria-label="Zoom out" disabled={scale <= 1} onClick={e => { e.stopPropagation(); zoomBy(1 / 1.5); }}><Icon name="minus" size="1.1em" /></button>
+        <button type="button" aria-label="Zoom in" disabled={scale >= 5} onClick={e => { e.stopPropagation(); zoomBy(1.5); }}><Icon name="plus" size="1.1em" /></button>
       </div>
       {scale > 1 && <button className="pin-reset" onClick={() => { setScale(1); setTx(0); setTy(0); }}>Reset</button>}
     </div>

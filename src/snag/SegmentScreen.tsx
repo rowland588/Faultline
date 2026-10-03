@@ -12,6 +12,7 @@ import { sectionLabel } from './labels';
 import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useSyncedAt } from '../cloud/session';
 import type { Segment, SnagAsset } from './types';
+import { Icon } from '../ui/Icon';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
   // the workspace's machine list is the LINE — marking picks from it, so the
@@ -191,7 +192,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             uploading takes footage that already exists on the phone or laptop. */}
         <button className="seg-chip seg-chip-add" disabled={addingVideo}
           onClick={() => (videoCaptureSupported() ? setAdding(true) : addRef.current?.click())} title="Add another video">
-          {addingVideo ? '…' : '＋ Video'}
+          {addingVideo ? '…' : <><Icon name="plus" size="1.15em" /> Video</>}
         </button>
       </div>
 
@@ -199,7 +200,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         <button className="asset-title" style={{ width: 'auto' }} onClick={() => seg && setRenamingSeg(true)}>
           <span className="mark" style={{ fontSize: 22 }}>{seg ? sectionLabel(seg, assets.map(a => a.name)) : '…'}</span>
         </button>
-        {seg && <button className="btn seg-rename-btn" onClick={() => setRenamingSeg(true)}>✎ Name this video</button>}
+        {seg && <button className="btn seg-rename-btn" onClick={() => setRenamingSeg(true)}><Icon name="pencil" /> Name this video</button>}
       </div>
       <p className="sub" style={{ marginTop: 4 }}>Scrub to a machine, pause, and mark it. That exact frame becomes its still.{segs.length > 1 ? ' Switch videos with the numbers above.' : ''}</p>
 
@@ -231,7 +232,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
             onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
         ) : videoState === 'ready' && noPicture ? (
           <div className="video-msg seg-video">
-            <span className="video-msg-ic" aria-hidden>⚠</span>
+            <span className="video-msg-ic" aria-hidden><Icon name="warning" size="1em" /></span>
             <b>{noPicture === 'video-track' ? "This browser can't show the picture" : "This browser can't play this clip"}</b>
             <span className="sub">
               {noPicture === 'video-track'
@@ -246,16 +247,16 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           </div>
         ) : (
           <div className="video-msg seg-video">
-            <span className="video-msg-ic" aria-hidden>☁</span>
+            <span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span>
             <b>{videoState === 'loading' ? 'Loading…' : 'Not on this device yet'}</b>
             {videoState === 'missing' && <span className="sub">This video will download on the next sync — keep this device online for a moment.</span>}
           </div>
         )}
         <div className="seg-controls">
-          <button className="btn" onClick={() => step(-1)}>◄ 1s</button>
-          <button className="btn" onClick={() => step(1)}>1s ►</button>
+          <button className="btn" onClick={() => step(-1)}><Icon name="chevronLeft" /> 1s</button>
+          <button className="btn" onClick={() => step(1)}>1s <Icon name="chevron" /></button>
           <span className="seg-time">{t.toFixed(1)}s{dur ? ` / ${dur.toFixed(0)}s` : ''}</span>
-          <button className="btn btn-primary" onClick={mark} disabled={busy || !videoUrl || !!noPicture}>＋ Mark asset</button>
+          <button className="btn btn-primary" onClick={mark} disabled={busy || !videoUrl || !!noPicture}><Icon name="plus" /> Mark asset</button>
         </div>
         {dur > 0 && (
           <div className="seg-timeline">
@@ -300,9 +301,9 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       {filming && <VideoRecorder onCapture={b => void addFilmed(b)} onClose={() => setFilming(false)} />}
 
       <Sheet open={adding} onClose={() => setAdding(false)} title="Add a video">
-        <SheetRow label="🎥 Film a new section" hint="records in a format every device plays"
+        <SheetRow icon="video" label="Film a new section" hint="records in a format every device plays"
           onClick={() => { setAdding(false); setFilming(true); }} />
-        <SheetRow label="⬆ Upload a video" hint="from this phone or computer"
+        <SheetRow icon="upload" label="Upload a video" hint="from this phone or computer"
           onClick={() => { setAdding(false); addRef.current?.click(); }} />
       </Sheet>
 

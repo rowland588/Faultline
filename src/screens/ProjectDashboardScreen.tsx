@@ -58,6 +58,7 @@ import { Gantt } from '../ui/Gantt';
 import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
+import { Icon } from '../ui/Icon';
 
 /* THE 3P BOARD, ON THE PAGE ITSELF.
  *
@@ -588,7 +589,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             {/* On every method: a 3P job's lines, people and measures are set
                 here, once — they were a header button, "Lines & people". */}
             <button className="btn btn-ghost pace-gear" aria-label="Details" title="Details"
-              onClick={() => nav(`/project/${projectId}/setup`)}>⚙</button>
+              onClick={() => nav(`/project/${projectId}/setup`)}><Icon name="gear" size={20} /></button>
           </div>
           {/* No method's page explains itself in a paragraph any more: the
               verdict card under this says what the job is, in its own numbers. */}

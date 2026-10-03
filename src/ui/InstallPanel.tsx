@@ -4,6 +4,7 @@
  * offer the action itself or it's effectively undiscoverable on a phone. */
 import { useEffect, useState } from 'react';
 import { Sheet } from './Sheet';
+import { Icon } from './Icon';
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -53,7 +54,7 @@ export function InstallPanel() {
   return (
     <>
       <button className="cloud-row" onClick={() => void go()}>
-        <span className="cloud-ic" aria-hidden>⇩</span>
+        <span className="cloud-ic" aria-hidden><Icon name="download" size="1em" /></span>
         <span className="cloud-main"><b>Add to phone</b><span className="sub">install Faultline like an app — opens from your home screen, works offline</span></span>
         <span className="cloud-go" aria-hidden>›</span>
       </button>

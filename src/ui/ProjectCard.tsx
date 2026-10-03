@@ -14,6 +14,7 @@ import type { Project } from '../types';
 import type { PaceLineRow } from '../db';
 import { methodOf, planModel } from '../lib/planModel';
 import { niceDay } from '../lib/weeks';
+import { Icon } from './Icon';
 
 export function ProjectCard({ p, lines, compact }: {
   p: Project; lines: PaceLineRow[]; compact?: boolean;
@@ -39,7 +40,7 @@ export function ProjectCard({ p, lines, compact }: {
 
       {!commissioning && <div className="proj-lines">
         {lines.length === 0
-          ? <button className="proj-chip is-add" onClick={() => nav(`/project/${p.id}/setup`)}>＋ Add a line</button>
+          ? <button className="proj-chip is-add" onClick={() => nav(`/project/${p.id}/setup`)}><Icon name="plus" size="1.15em" /> Add a line</button>
           : lines.map(l => (
               <button key={l.id} className="proj-chip" onClick={() => nav(`/project/${p.id}/line/${l.id}`)}
                 title={l.owner ? `${l.name} · ${l.owner}` : l.name}>

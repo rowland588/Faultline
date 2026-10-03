@@ -8144,3 +8144,9 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .lt-word { font-weight: 700; }
 .lt-word.is-r { color: var(--st-r); }
 .lt-word.is-a { color: color-mix(in srgb, var(--st-a) 75%, var(--ink)); }
+
+/* ---------- ICONS (src/ui/Icon.tsx) — the one drawn icon family ----------
+   Inline SVG line icons that replaced the emoji. They take the colour of the
+   words beside them; this only sits them on the text's middle when they are
+   inline (in a flex row the row's own gap and align-items do it). */
+.icon { display: inline-block; flex: none; vertical-align: -0.2em; overflow: visible; }

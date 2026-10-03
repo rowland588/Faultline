@@ -11,6 +11,7 @@ import {
   type Snag, type SnagStatus, type SnagAsset,
 } from './types';
 import { TimeStrip, dueWord } from './TimeStrip';
+import { Icon } from '../ui/Icon';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
@@ -210,7 +211,7 @@ export function SnagListScreen() {
       <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
       <td data-label="Asset">{r.assetId
         ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
-        : <span className="st-target" title="Raised from the Pareto board">⚑ {r.assetName}</span>}</td>
+        : <span className="st-target" title="Raised from the Pareto board"><Icon name="flag" size="1.15em" /> {r.assetName}</span>}</td>
       <td className="st-problem" data-label="Problem">
         {r.snag.problem}{r.snag.proposedSolution ? <span className="st-sol"> → {r.snag.proposedSolution}</span> : ''}
         {/* the answer to "what's happening with this?" — editable right in the review */}
@@ -242,7 +243,7 @@ export function SnagListScreen() {
         {/* ?manage: the walks list itself. Without it the hub forwards to the
             Line once a machine is marked, so a button called "Walks" landed
             on a screen called Machines. */}
-        <button className="btn" onClick={() => nav(`/w/${workspace.id}/snags?manage`)}>🎥 Walks</button>
+        <button className="btn" onClick={() => nav(`/w/${workspace.id}/snags?manage`)}><Icon name="video" /> Walks</button>
         <div style={{ flex: 1 }} />
         <button className="btn" onClick={exportCsv}>CSV</button>
         <button className="btn" onClick={() => setPrinting(true)}>Print</button>
@@ -328,7 +329,7 @@ export function SnagListScreen() {
                 <p className="sub">Nothing here yet. Evidence comes off a walk: film the line, freeze the frames that
                   matter, then pin what you see on each one.</p>
                 <button className="btn btn-primary" style={{ marginTop: 12 }}
-                  onClick={() => nav(`/w/${workspace.id}/snags`)}>🎥 Film the line</button>
+                  onClick={() => nav(`/w/${workspace.id}/snags`)}><Icon name="video" /> Film the line</button>
               </div>
             )
             : <p className="sub">Nothing matches these filters.</p>
@@ -390,7 +391,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
 
       {actions.length > 0 && (
         <section className="print-asset">
-          <h2 className="print-asset-name">⚑ Actions from the board<span className="print-asset-count">{actions.length} action{actions.length === 1 ? '' : 's'}</span></h2>
+          <h2 className="print-asset-name"><Icon name="flag" size="1.15em" /> Actions from the board<span className="print-asset-count">{actions.length} action{actions.length === 1 ? '' : 's'}</span></h2>
           <ol className="print-snag-list">
             {actions.map((s, i) => (
               <li key={s.id}>
@@ -428,7 +429,7 @@ function PrintSnagBody({ snag: s, target }: { snag: Snag; target?: string }) {
         {s.status !== 'closed' && d != null && d < 0 ? <b className="print-over">· {-d}d overdue</b> : null}
         {s.closedAt ? <span>· closed {dateNice(s.closedAt)}{late != null ? (late <= 0 ? ' (on time)' : ` (${late}d late)`) : ''}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
       </div>
-      {s.latestUpdate ? <div className="print-snag-update">↻ {s.latestUpdate}{s.latestUpdateAt ? ` — ${dateNice(s.latestUpdateAt)}` : ''}</div> : null}
+      {s.latestUpdate ? <div className="print-snag-update"><Icon name="refresh" size="1.15em" /> {s.latestUpdate}{s.latestUpdateAt ? ` — ${dateNice(s.latestUpdateAt)}` : ''}</div> : null}
       {s.fixedPhotoKey ? <FixedProof photoKey={s.fixedPhotoKey} /> : null}
     </div>
   );
@@ -441,7 +442,7 @@ function FixedProof({ photoKey }: { photoKey: string }) {
   return (
     <div className="fixed-proof">
       <img src={url} alt="After — fixed" />
-      <span className="fixed-proof-lbl">✓ after</span>
+      <span className="fixed-proof-lbl"><Icon name="check" size="1.15em" /> after</span>
     </div>
   );
 }

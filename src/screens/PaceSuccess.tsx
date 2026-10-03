@@ -30,6 +30,7 @@ import { uid } from '../lib/ids';
 import { usePaceLines } from '../lib/usePaceLines';
 import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib/measureProof';
 import { WinProofSheet } from './WinProofSheet';
+import { Icon } from '../ui/Icon';
 
 const when = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -143,7 +144,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
         <div className="win-bar-stats">
           <b>{wins.length}</b> {wins.length === 1 ? 'win' : 'wins'} logged
         </div>
-        <button className="btn btn-primary" onClick={() => void add()}>+ Log a win</button>
+        <button className="btn btn-primary" onClick={() => void add()}><Icon name="plus" /> Log a win</button>
       </div>
 
       {wins.length === 0 ? (
@@ -154,7 +155,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
             beat. Say what it was, what you did, the number that proves it, and who made it happen.
             This is the tab you open the meeting with.
           </p>
-          <button className="btn btn-primary btn-lg" onClick={() => void add()}>+ Log the first win</button>
+          <button className="btn btn-primary btn-lg" onClick={() => void add()}><Icon name="plus" /> Log the first win</button>
         </div>
       ) : (
         <div className="win-list">

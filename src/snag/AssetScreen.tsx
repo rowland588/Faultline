@@ -15,6 +15,7 @@ import { useTeam } from '../cloud/team';
 import { useSyncedAt } from '../cloud/session';
 import PinImage, { type Pin } from './PinImage';
 import { SNAG_STATUS_META, ageDays, isStaleOpen, dueToInput, dueFromInput, type SnagAsset, type Snag, type SnagStatus } from './types';
+import { Icon } from '../ui/Icon';
 
 const obsLabel = (o: Observation) => `${o.category}${o.subcategory ? ' · ' + o.subcategory : ''}${o.note ? ' — ' + o.note : ''}`;
 
@@ -104,8 +105,8 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
             steps up, and the Evidence tab below is the list — the same door
             drawn twice was one more thing to look past. */}
         <div style={{ flex: 1 }} />
-        {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}>⏱ Through time</button>}
-        {asset && <button className="btn" onClick={() => setRenaming(true)}>✎ Rename</button>}
+        {asset && <button className="btn" onClick={() => nav(`/w/${wsId}/history/${asset.id}`)}><Icon name="time" /> Through time</button>}
+        {asset && <button className="btn" onClick={() => setRenaming(true)}><Icon name="pencil" /> Rename</button>}
         {hiddenClosed > 0 && <button className="btn" onClick={() => setShowClosed(v => !v)}>{showClosed ? 'Hide closed' : `Show closed (${hiddenClosed})`}</button>}
       </div>
       <button className="asset-title" onClick={() => asset && setRenaming(true)}>
@@ -118,7 +119,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
             add anything to. The button drops the pin in the middle and the
             editor lets you move it. */}
         <button className="btn btn-primary" data-tour="add-snag" onClick={() => place(50, 50)}>
-          {job ? '＋ Raise a fix here' : '＋ Add evidence'}
+          <Icon name="plus" /> {job ? 'Raise a fix here' : 'Add evidence'}
         </button>
         <span className="sub">{job
           ? `${((n: number) => `${n} ${n === 1 ? 'fix' : 'fixes'}`)(job.fixes.filter(f => f.outcome !== 'passed').length)} open here · or tap the picture where the problem is`
@@ -143,7 +144,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           it hasn't synced to this device yet, rather than the button vanishing. */}
       {videoKey && (
         <button className="btn watch-video-btn" onClick={() => setWatching(true)}>
-          ▶ Watch the video — see it live
+          <Icon name="play" /> Watch the video — see it live
         </button>
       )}
 
@@ -185,7 +186,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
               <span className="snag-dot-sm" style={{ background: SNAG_STATUS_META[s.status].color }}>{numById.get(s.id)}</span>
               <span className="snag-line-main">
                 <span className="snag-line-problem">{s.problem}</span>
-                <span className="snag-line-meta">{SNAG_STATUS_META[s.status].label}{s.owner ? ` · ${s.owner}` : ''} · {ageDays(s.raisedAt)}d{isStaleOpen(s) ? ' · ⚠ stale' : ''}</span>
+                <span className="snag-line-meta">{SNAG_STATUS_META[s.status].label}{s.owner ? ` · ${s.owner}` : ''} · {ageDays(s.raisedAt)}d{isStaleOpen(s) ? <> · <Icon name="warning" size="1.15em" /> stale</> : ''}</span>
               </span>
             </button>
           ))}
@@ -368,7 +369,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
             <div className="field-label" style={{ marginTop: 10 }}>After photo <span className="opt">the proof it's fixed</span></div>
             <input ref={fixedRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) void addFixed(f); }} />
             {fixedUrl ? <button className="mark-still-btn" onClick={() => fixedRef.current?.click()}><img className="mark-still" src={fixedUrl} alt="after — fixed" /></button>
-              : <button className="btn" onClick={() => fixedRef.current?.click()}>📷 Add the after photo</button>}
+              : <button className="btn" onClick={() => fixedRef.current?.click()}><Icon name="camera" /> Add the after photo</button>}
           </>)}
 
           <div className="field-label" style={{ marginTop: 12 }}>Detail photo <span className="opt">optional</span></div>
@@ -376,11 +377,11 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
               photos — a close-up often already exists on the phone or a laptop. */}
           <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) void addPhoto(f); }} />
           {photoUrl ? <button className="mark-still-btn" onClick={() => photoRef.current?.click()}><img className="mark-still" src={photoUrl} alt="detail" /></button>
-            : <button className="btn" onClick={() => photoRef.current?.click()}>📷 Add close-up of the fault</button>}
+            : <button className="btn" onClick={() => photoRef.current?.click()}><Icon name="camera" /> Add close-up of the fault</button>}
 
           <div className="field-label" style={{ marginTop: 12 }}>Related losses <span className="opt">optional</span></div>
           {links.map(id => { const o = obsById.get(id); return (
-            <div key={id} className="loss-link"><span className="loss-link-label">{o ? obsLabel(o) : 'logged loss'}{o ? <span className="loss-link-ctx"> · {o.asset}</span> : ''}</span><button className="loss-link-x" onClick={() => setLinks(ls => ls.filter(x => x !== id))} aria-label="Unlink">×</button></div>
+            <div key={id} className="loss-link"><span className="loss-link-label">{o ? obsLabel(o) : 'logged loss'}{o ? <span className="loss-link-ctx"> · {o.asset}</span> : ''}</span><button className="loss-link-x" onClick={() => setLinks(ls => ls.filter(x => x !== id))} aria-label="Unlink"><Icon name="close" size="0.85em" /></button></div>
           ); })}
           <input className="text-input" value={q} placeholder="Search this workspace's logged losses…" onChange={e => setQ(e.target.value)} />
           {candidates.length > 0 && (

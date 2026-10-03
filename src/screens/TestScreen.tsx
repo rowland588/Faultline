@@ -38,6 +38,7 @@ import { offerUndo } from '../ui/Undo';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type Change, type VoiceResult } from '../lib/voice';
 import { GATE_PATH, GATE_WORD } from '../lib/install';
+import { Icon } from '../ui/Icon';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -490,7 +491,7 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
       {/* ONE DOOR TO MAKE A FIX, and it is on the Fixes screen. This takes you
           there with this test already picked. */}
       <button className="cw-add" onClick={() => nav(`/project/${test.projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
-        <span className="cw-add-p" aria-hidden>+</span> Add a fix for this {noun}
+        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a fix for this {noun}
       </button>
       {out.length === 0 ? null : (
         <div className="cw-list">
@@ -710,7 +711,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
             return became ? ` · fix: ${became.title}` : '';
           })()}
           {item.fromItemId && ' · from an observation'}
-          {item.pin && ' · 📍 on the line'}
+          {item.pin && <> · <Icon name="pin" size="1.15em" /> on the line</>}
         </span>
       </button>
       {(item.media ?? []).length > 0 && !open && (
@@ -814,7 +815,7 @@ function Docs({ test, tt }: { test: Test; tt: TT }) {
         </div>
       ))}
       <button className="cw-add" onClick={() => pick.current?.click()}>
-        <span className="cw-add-p" aria-hidden>+</span> Attach a PDF
+        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Attach a PDF
       </button>
       <input ref={pick} type="file" accept="application/pdf,image/*" multiple hidden
         onChange={e => { void take(e.target.files); e.target.value = ''; }} />

@@ -34,6 +34,7 @@ import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
+import { Icon } from '../ui/Icon';
 
 const nice = (iso?: string): string => {
   if (!iso) return '';
@@ -101,7 +102,7 @@ function Next({ rows, one }: { rows: CardNext[]; one: string }) {
     <ol className="tc-list">
       {rows.map((n, i) => (
         <li key={i} className={'tc-row' + (n.done ? ' is-done' : '')}>
-          <span className="tc-row-n">{n.done ? '✓' : i + 1}</span>
+          <span className="tc-row-n">{n.done ? <Icon name="check" size="1em" /> : i + 1}</span>
           <div className="tc-row-b">
             <p className="tc-row-t">{n.what}</p>
             <p className="tc-row-m sub">

@@ -12,6 +12,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 import type { Observation, DimensionKey } from '../types';
+import { Icon } from '../ui/Icon';
 
 // 'shift' rides at the end of every order: the drill only offers a cut when it
 // actually splits the rows, so workspaces without shift data never see it.
@@ -49,11 +50,11 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
   if (live.length === 0) {
     const anyEver = observations.some(o => o.deletedAt == null);
     return anyEver && since > 0 ? (
-      <EmptyState title="A quiet window" icon="▤">
+      <EmptyState title="A quiet window" icon={<Icon name="list" size="1em" />}>
         Nothing logged in this period. Widen the period above — or better, get to the line and log what you see.
       </EmptyState>
     ) : (
-      <EmptyState title="Nothing logged yet" icon="▤">
+      <EmptyState title="Nothing logged yet" icon={<Icon name="list" size="1em" />}>
         Head to Capture and log what you see on the line — the board builds itself.
       </EmptyState>
     );
@@ -98,7 +99,7 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
 
       {!costable && (
         <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
-          💷 Put a £ on this lost time — add crew &amp; labour rate ›
+          <Icon name="pound" size="1.15em" /> Put a £ on this lost time — add crew &amp; labour rate ›
         </button>
       )}
 

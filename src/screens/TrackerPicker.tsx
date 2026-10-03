@@ -22,6 +22,7 @@
 import { useMemo, useState } from 'react';
 import { useDismiss } from '../ui/Sheet';
 import type { PaceAction } from '../lib/tracker';
+import { Icon } from '../ui/Icon';
 
 const DONE = /^(done|complete|completed|closed)$/i;
 
@@ -124,7 +125,7 @@ export function TrackerPicker({
                 aria-pressed={on}
                 onClick={() => toggle(a)}
               >
-                <span className="lt-pick-tick" aria-hidden>{on ? '✓' : ''}</span>
+                <span className="lt-pick-tick" aria-hidden>{on ? <Icon name="check" size="1em" /> : ''}</span>
                 <span className="lt-pick-main">
                   <span className="lt-pick-what">{a.action || a.problem || `Action ${a.ref}`}</span>
                   <span className="lt-pick-meta">

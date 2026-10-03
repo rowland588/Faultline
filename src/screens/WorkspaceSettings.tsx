@@ -13,6 +13,7 @@ import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
 import { TAXONOMIES, type LossTaxonomy } from '../lib/taxonomy';
 import type { Shift } from '../types';
+import { Icon } from '../ui/Icon';
 
 function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete, onMove }: {
   title?: string;
@@ -63,7 +64,7 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
             {onMove && <button className="chip-move" disabled={i === 0} onClick={() => onMove(i, -1)} aria-label={`Move ${it} earlier on the line`}>‹</button>}
             <button className="chip-label" onClick={() => { setEditing(it); setEditText(it); }} title={`Rename “${it}”`}>{it}</button>
             {onMove && <button className="chip-move" disabled={i === items.length - 1} onClick={() => onMove(i, 1)} aria-label={`Move ${it} later on the line`}>›</button>}
-            <button className="chip-x" onClick={() => del(it)} aria-label={`Remove ${it}`}>×</button>
+            <button className="chip-x" onClick={() => del(it)} aria-label={`Remove ${it}`}><Icon name="close" size="0.85em" /></button>
           </span>
         ))}
         {items.length === 0 && <span className="sub">None yet.</span>}
@@ -337,7 +338,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
             <input className="text-input shift-time" type="time" value={s.end} aria-label="Ends"
               onChange={e => patchShift(s.name, { end: e.target.value })} />
             <span className="sub shift-use">{usageShift(s.name) > 0 ? plural(usageShift(s.name), 'entry', 'entries') : ''}</span>
-            <button className="chip-x" onClick={() => removeShift(s.name)} aria-label={`Remove ${s.name}`}>×</button>
+            <button className="chip-x" onClick={() => removeShift(s.name)} aria-label={`Remove ${s.name}`}><Icon name="close" size="0.85em" /></button>
           </div>
         ))}
         <div className="row-inline" style={{ marginTop: shifts.length ? 10 : 4 }}>
@@ -354,7 +355,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
         <p className="sub" style={{ margin: '4px 0 8px' }}>Merge a pre-built loss tree into this workspace. Only adds what's missing — your existing categories, kinds and assets are untouched.</p>
         {TAXONOMIES.filter(t => t.id !== 'lean').map(t => (
           <button key={t.id} className="tax-opt" style={{ width: '100%', marginBottom: 6 }} onClick={() => void mergeTaxonomy(t)}>
-            <span className="tax-name">＋ {t.name}</span>
+            <span className="tax-name"><Icon name="plus" size="1.15em" /> {t.name}</span>
             <span className="tax-sub">{t.sub}</span>
           </button>
         ))}

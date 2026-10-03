@@ -29,6 +29,7 @@ import { MeasuresSetup } from './MeasuresSetup';
 import { displayName } from '../cloud/team';
 import { supabase } from '../cloud/client';
 import { DraftText as Cell } from '../ui/Draft';
+import { Icon } from '../ui/Icon';
 
 /* The write-on-blur inputs are shared — see ui/Draft.tsx for why a cell owns its
    draft while it has focus. */
@@ -131,9 +132,9 @@ function LineRow({ line, first, last, state, projectId, members }: {
     <tr className="pset-row">
       <td className="pset-order">
         <button className="pset-move" disabled={first} aria-label={`Move ${line.name} up`}
-          onClick={() => void state.moveLine(line.id, -1)}>↑</button>
+          onClick={() => void state.moveLine(line.id, -1)}><Icon name="arrowUp" size="1.1em" /></button>
         <button className="pset-move" disabled={last} aria-label={`Move ${line.name} down`}
-          onClick={() => void state.moveLine(line.id, 1)}>↓</button>
+          onClick={() => void state.moveLine(line.id, 1)}><Icon name="arrowDown" size="1.1em" /></button>
       </td>
       <td><span className="pset-key">{line.key}</span></td>
       <td><Cell value={line.name} placeholder="Line name" wide
@@ -152,7 +153,7 @@ function LineRow({ line, first, last, state, projectId, members }: {
         <button className="btn btn-ghost pset-ws" disabled={busy} onClick={() => void openWorkspace()}>
           {busy ? 'Opening…' : line.workspaceId ? 'Workspace' : 'Workspace +'}
         </button>
-        <button className="pset-x" onClick={remove} aria-label={`Remove ${line.name}`}>×</button>
+        <button className="pset-x" onClick={remove} aria-label={`Remove ${line.name}`}><Icon name="close" size="0.85em" /></button>
       </td>
     </tr>
   );
@@ -261,7 +262,7 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
               <span className="pset-role"> · {m.role}</span>
             </span>
             <button className="chip-x" onClick={() => { void remove(m.email).catch(() => setNote('Couldn’t remove them — are you online?')); }}
-              aria-label={`Remove ${m.email}`}>×</button>
+              aria-label={`Remove ${m.email}`}><Icon name="close" size="0.85em" /></button>
           </span>
         ))}
         {loaded && members.length === 0 && !error && <span className="sub">Nobody else yet.</span>}

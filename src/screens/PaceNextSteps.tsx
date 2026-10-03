@@ -23,6 +23,7 @@ import { niceDay } from '../lib/weeks';
 import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
+import { Icon } from '../ui/Icon';
 
 type State = PaceTodoRow['state'];
 
@@ -117,7 +118,7 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
             <span key={m.id} className="ns-pic">
               {/* tap the picture to throw it up full screen in the meeting */}
               <EvidenceThumb media={m} size={46} onClick={() => onOpen(m)} />
-              <button className="ns-pic-x" onClick={() => drop(m)} aria-label="Remove this">×</button>
+              <button className="ns-pic-x" onClick={() => drop(m)} aria-label="Remove this"><Icon name="close" size="0.85em" /></button>
             </span>
           ))}
           <button className="ns-pic-add" onClick={() => void add()} disabled={busy}
@@ -241,7 +242,7 @@ export function PaceNextSteps({ projectId, lineId, withWhole }: { projectId: str
           <b>{counts.todo}</b> to do · <b>{counts.waiting}</b> waiting
           {counts.done > 0 && <> · {counts.done} done</>}
         </div>
-        <button className="btn btn-primary" onClick={() => void add()}>+ Add an action</button>
+        <button className="btn btn-primary" onClick={() => void add()}><Icon name="plus" /> Add an action</button>
       </div>
 
       {rows.length === 0 ? (
@@ -252,7 +253,7 @@ export function PaceNextSteps({ projectId, lineId, withWhole }: { projectId: str
             why it matters, who has it and when, then write up what happened and attach the
             pictures or video.
           </p>
-          <button className="btn btn-primary btn-lg" onClick={() => void add()}>+ Add the first one</button>
+          <button className="btn btn-primary btn-lg" onClick={() => void add()}><Icon name="plus" /> Add the first one</button>
         </div>
       ) : GROUPS.map(g => {
         const mine = rows.filter(r => r.state === g.id);

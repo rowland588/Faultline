@@ -33,6 +33,7 @@ import {
   coveredIn, daysLate, isHere, landsIn, stateOf, todayISO,
   type Material, type Week,
 } from '../lib/materials';
+import { Icon } from '../ui/Icon';
 
 const nice = (iso?: string): string => {
   if (!iso) return '—';
@@ -129,7 +130,7 @@ function Row({ m, today, lineName, state, weeks }: {
       )}
 
       <button className="pset-x" aria-label={`Remove ${m.what}`}
-        onClick={() => void state.remove(m.id)}>×</button>
+        onClick={() => void state.remove(m.id)}><Icon name="close" size="0.85em" /></button>
       <Strip m={m} weeks={weeks} today={today} />
     </div>
   );

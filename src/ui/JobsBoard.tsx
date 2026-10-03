@@ -50,6 +50,7 @@ import { nav } from '../state/useRoute';
 import { Timeline } from './Timeline';
 import type { GateTone } from '../lib/install';
 import { gateSpans } from '../lib/plan';
+import { Icon } from './Icon';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
@@ -200,7 +201,7 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
         <h3>{title}</h3>
         <span className="jb-focus-acts">
           {items.length > 0 && <button className="btn btn-ghost btn-sm" onClick={copy}>{copied ? 'Copied' : 'Copy as a list'}</button>}
-          <button className="jb-x" onClick={onClose} aria-label="Close">×</button>
+          <button className="jb-x" onClick={onClose} aria-label="Close"><Icon name="close" size="0.85em" /></button>
         </span>
       </div>
       {items.length === 0

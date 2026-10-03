@@ -1,6 +1,7 @@
 /* Selectable pill + a wrapping picker with add-inline. The floor's whole
  * vocabulary (what / where / why) is chips you can grow with one tap. */
 import { useState } from 'react';
+import { Icon } from './Icon';
 
 export function Chip({ label, on, color, onClick }: {
   label: string; on?: boolean; color?: string; onClick?: () => void;
@@ -49,7 +50,7 @@ export function ChipPicker({ options, value, onChange, onAdd, color, addLabel = 
           <button type="button" onClick={commit} disabled={!text.trim()}>Add</button>
         </span>
       ) : (
-        <button type="button" className="chip chip-add" onClick={() => setAdding(true)} aria-label="Add option">＋</button>
+        <button type="button" className="chip chip-add" onClick={() => setAdding(true)} aria-label="Add option"><Icon name="plus" /></button>
       ))}
     </div>
   );

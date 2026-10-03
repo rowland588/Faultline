@@ -19,6 +19,7 @@ import { MeasureChart } from '../charts/MeasureChart';
 import { useMeasures } from '../lib/useMeasures';
 import { lineSeries, seriesFor, say, todayISO, type Measure } from '../lib/measures';
 import type { PaceLineRow } from '../db';
+import { Icon } from '../ui/Icon';
 
 const shortDay = (iso: string) =>
   new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -94,7 +95,7 @@ function Recent({ rows, onRemove, unit, limit = 8 }: {
             <span className="nm-val">{say(r.value, unit)}</span>
             {r.note && <span className="nm-note">{r.note}</span>}
             <button className="pset-x" aria-label={`Remove the reading of ${r.value} on ${r.at}`}
-              onClick={() => { if (window.confirm(`Delete the reading of ${say(r.value, unit)} on ${shortDay(r.at)}?`)) void onRemove(r.id); }}>×</button>
+              onClick={() => { if (window.confirm(`Delete the reading of ${say(r.value, unit)} on ${shortDay(r.at)}?`)) void onRemove(r.id); }}><Icon name="close" size="0.85em" /></button>
           </li>
         ))}
       </ul>
@@ -235,7 +236,7 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
                 <span className="nm-val">{say(r.value, r.measure.unit)}</span>
                 {r.note && <span className="nm-note">{r.note}</span>}
                 <button className="pset-x" aria-label={`Remove ${r.lineName} ${r.measure.name} on ${r.at}`}
-                  onClick={() => { if (window.confirm(`Delete ${r.lineName}’s ${r.measure.name} of ${say(r.value, r.measure.unit)} on ${shortDay(r.at)}?`)) void state.removeReading(r.id); }}>×</button>
+                  onClick={() => { if (window.confirm(`Delete ${r.lineName}’s ${r.measure.name} of ${say(r.value, r.measure.unit)} on ${shortDay(r.at)}?`)) void state.removeReading(r.id); }}><Icon name="close" size="0.85em" /></button>
               </li>
             ))}
           </ul>

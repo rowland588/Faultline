@@ -5,6 +5,7 @@
  * so the tap silently does nothing. Recording straight from a live getUserMedia
  * stream keeps you on this screen, so the next clip is one more tap away. */
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from './Icon';
 
 export function videoCaptureSupported(): boolean {
   return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
@@ -85,7 +86,7 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
 
   return (
     <div className="rec-stage">
-      <button className="rec-close" onClick={onClose} aria-label="Close camera">✕</button>
+      <button className="rec-close" onClick={onClose} aria-label="Close camera"><Icon name="close" size="1.1em" /></button>
 
       {error ? (
         <div className="rec-error"><p>{error}</p></div>

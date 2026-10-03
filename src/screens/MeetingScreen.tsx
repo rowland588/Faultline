@@ -38,6 +38,7 @@ import {
 } from '../snag/types';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import type { Case, Observation, DrillPath, DimensionKey, WorkstreamView } from '../types';
+import { Icon } from '../ui/Icon';
 
 const WEEK_MS = 7 * 24 * 3600_000;
 const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory', 'shift'];
@@ -90,7 +91,7 @@ function WeekBars({ weeks, sel, flags, onPick }: {
           className={'mw-col' + (sel === w.start ? ' on' : '') + (w.current ? ' cur' : '')}
           title={`${weekOf(w.start)} — ${fmtH(w.ms)}`}
           onClick={() => onPick && !w.current && onPick(w.start)}>
-          <span className="mw-flags">{flags?.get(w.start) ? '⚑'.repeat(Math.min(3, flags.get(w.start)!)) : ''}</span>
+          <span className="mw-flags">{flags?.get(w.start) ? Array.from({ length: Math.min(3, flags.get(w.start)!) }, (_, i) => <Icon key={i} name="flag" size="1.1em" />) : ''}</span>
           <span className="mw-bar" style={{ height: `${Math.max(3, (w.ms / max) * 100)}%` }} />
           <span className="mw-lbl">{w.current ? 'now' : w.label}</span>
         </button>
@@ -220,7 +221,7 @@ export function MeetingScreen() {
     <div className="present meet">
       {/* ✕ returns WHERE YOU CAME FROM — the meeting is a room you step into,
           not a corridor that dumps you somewhere else on the way out */}
-      <button className="present-exit" onClick={() => goBack(`/w/${workspace.id}/analyse`)} aria-label="Exit meeting">✕</button>
+      <button className="present-exit" onClick={() => goBack(`/w/${workspace.id}/analyse`)} aria-label="Exit meeting"><Icon name="close" size="1.1em" /></button>
       <div className="present-body meet-body">
 
         <div className="meet-top">
@@ -233,8 +234,8 @@ export function MeetingScreen() {
           {/* ONE DOOR TO PAPER. The one-page report had two buttons on this
               screen and the evidence cards a third; everything printed from
               the meeting is behind this one, named for what it is. */}
-          <button className="btn btn-ghost meet-print" onClick={() => setReports(true)}>📄 Reports</button>
-          {act !== 0 && <button className="btn btn-ghost meet-home" onClick={() => setAct(0)}>⌂ Overview</button>}
+          <button className="btn btn-ghost meet-print" onClick={() => setReports(true)}><Icon name="document" /> Reports</button>
+          {act !== 0 && <button className="btn btn-ghost meet-home" onClick={() => setAct(0)}><Icon name="home" /> Overview</button>}
         </div>
         {reports && (
           <Sheet open onClose={() => setReports(false)} title="On paper">
@@ -256,7 +257,7 @@ export function MeetingScreen() {
             const fr = freshness(live, walkTimes);
             return (
               <p className={'meet-gemba gm-' + fr.level}>
-                👁 Eyes on the line: observed <b>{agoWord(fr.daysSinceObs)}</b> · walked <b>{agoWord(fr.daysSinceWalk)}</b>
+                <Icon name="eye" size="1.15em" /> Eyes on the line: observed <b>{agoWord(fr.daysSinceObs)}</b> · walked <b>{agoWord(fr.daysSinceWalk)}</b>
                 {fr.level !== 'fresh' && <b> — go and see before you decide.</b>}
               </p>
             );
@@ -300,7 +301,7 @@ export function MeetingScreen() {
                     .filter(r => !!r && provenWin(r));
                   const total = wins.reduce((a, r) => a + (r!.savedMsWeek ?? 0), 0);
                   return total > 0
-                    ? <span className="mt-sub">🏆 <b className="mt-good">{money(total)}/wk proven recovered all-time</b> · {plural(wins.length, 'win')}</span>
+                    ? <span className="mt-sub"><Icon name="trophy" size="1.15em" /> <b className="mt-good">{money(total)}/wk proven recovered all-time</b> · {plural(wins.length, 'win')}</span>
                     : <span className="mt-sub">Green flags on the trend mark the weeks a fix landed.</span>;
                 })()}
               </button>
@@ -312,7 +313,7 @@ export function MeetingScreen() {
           )}
           {/* the doors the Present tab used to open — the meeting adds, never removes */}
           <div className="meet-links">
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/walk`)}><Icon name="play" size="1.15em" /> Walkthrough</button>
           </div>
         </div>
 
@@ -392,7 +393,7 @@ export function MeetingScreen() {
                   <div key={s.id} className={'meet-action' + (isOverdueNow(s) ? ' over' : '') + (s.status === 'closed' ? ' done' : '')}>
                     <div className="ma-main">
                       <span className="ma-problem">{s.problem}</span>
-                      {whereOf(s) ? <span className="ma-where">⚑ {whereOf(s)}</span> : null}
+                      {whereOf(s) ? <span className="ma-where"><Icon name="flag" size="1.15em" /> {whereOf(s)}</span> : null}
                       <input className="mini-update ma-update" defaultValue={s.latestUpdate ?? ''} placeholder="Latest update…" maxLength={200}
                         onBlur={e => { const t = e.target.value.trim(); if (t !== (s.latestUpdate ?? '')) void mutate({ ...s, latestUpdate: t || undefined, latestUpdateAt: t ? Date.now() : undefined }); }} />
                     </div>
@@ -427,7 +428,9 @@ export function MeetingScreen() {
             return (
               <button key={c.id} className="meet-hold meet-receipt" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
                 <span className={'mh-verdict ' + (called ? (slipping ? 'mt-bad' : good ? 'mt-good' : 'mt-bad') : 'mm-flat')}>
-                  {called ? (slipping ? '⚠ slipping' : good ? '✓ proven' : '✗ not proven') : `🔬 ${r.afterN}/${r.targetN}`}
+                  {called
+                    ? <><Icon name={slipping ? 'warning' : good ? 'check' : 'close'} size="1.15em" /> {slipping ? 'slipping' : good ? 'proven' : 'not proven'}</>
+                    : <><Icon name="study" size="1.15em" /> {r.afterN}/{r.targetN}</>}
                 </span>
                 <div className="mh-body">
                   <span className="mh-problem">{c.title}</span>
@@ -449,7 +452,7 @@ export function MeetingScreen() {
                 return (
                   <div key={s.id} className="meet-hold">
                     <span className={'mh-verdict ' + (v?.verdict === 'improving' ? 'mt-good' : v?.verdict === 'worsening' ? 'mt-bad' : 'mm-flat')}>
-                      {v ? (v.verdict === 'improving' ? '✓ holding' : v.verdict === 'worsening' ? '✗ slipping' : '→ steady') : '· closed'}
+                      {v ? (v.verdict === 'improving' ? <><Icon name="check" size="1.15em" /> holding</> : v.verdict === 'worsening' ? <><Icon name="close" size="1.15em" /> slipping</> : '→ steady') : '· closed'}
                     </span>
                     <div className="mh-body">
                       <span className="mh-problem">{s.problem}</span>
@@ -492,7 +495,7 @@ export function MeetingScreen() {
                 })}
               </div>
               <button className="btn meet-copy" onClick={copyMinutes} aria-live="polite">
-                {copied === 'done' ? 'Copied ✓ — paste them anywhere' : copied === 'failed' ? 'This browser would not copy — select the list above' : 'Copy the minutes'}
+                {copied === 'done' ? <>Copied <Icon name="check" size="1.15em" /> — paste them anywhere</> : copied === 'failed' ? 'This browser would not copy — select the list above' : 'Copy the minutes'}
               </button>
             </>
           )}
@@ -502,7 +505,7 @@ export function MeetingScreen() {
 
       {/* the agenda rail — sideways axis, fixed order, always visible */}
       <nav className="meet-rail" aria-label="Meeting agenda">
-        <button className={'mr-step' + (act === 0 ? ' on' : '')} onClick={() => setAct(0)}>⌂<span className="mr-lbl">Overview</span></button>
+        <button className={'mr-step' + (act === 0 ? ' on' : '')} onClick={() => setAct(0)}><Icon name="home" /><span className="mr-lbl">Overview</span></button>
         {ACTS.map(a => (
           <button key={a.n} className={'mr-step' + (act === a.n ? ' on' : '')} onClick={() => { if (a.n === 2) setPath([]); setAct(a.n); }}>
             {a.n}<span className="mr-lbl">{a.label}</span>

@@ -8,6 +8,7 @@ import { useTeam, displayName } from '../cloud/team';
 import { useMembers } from '../cloud/members';
 import { useProfile } from '../cloud/admin';
 import { useOwningProject } from '../lib/usePaceWorkspace';
+import { Icon } from '../ui/Icon';
 
 export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string }) {
   const { whoIs, myId, members: team } = useTeam();
@@ -65,7 +66,7 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
               ? <>
                   <span className="chip-label">{m.email === myEmail ? 'You' : displayName(m.email)}</span>
                   <button className="chip-x" onClick={() => { void remove(m.email).catch(() => setNote('Couldn’t remove them — are you online?')); }}
-                    aria-label={`Remove ${m.email}`}>×</button>
+                    aria-label={`Remove ${m.email}`}><Icon name="close" size="0.85em" /></button>
                 </>
               : (m.email === myEmail ? 'You' : displayName(m.email))}
           </span>

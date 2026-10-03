@@ -35,6 +35,7 @@ import {
   type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
+import { Icon } from '../ui/Icon';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
@@ -59,7 +60,7 @@ function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; t
         return (
           <li key={x.station.id} className={'cap-row' + (isLimit ? ' is-limit' : '') + (was ? ' is-changed' : '')}>
             <span className="cap-who">
-              <span className="cap-ic" aria-hidden>{x.station.kind === 'people' ? '●' : '▣'}</span>
+              <span className="cap-ic" aria-hidden><Icon name={x.station.kind === 'people' ? 'person' : 'machine'} size={14} /></span>
               <b>{x.station.name.trim() || `Station ${x.index + 1}`}</b>
               {isLimit && <span className="cap-flag">{moved ? 'would limit the line' : 'limits the line'}</span>}
               {was && <span className="cap-moved">changed</span>}
@@ -122,9 +123,9 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
           ))}
         </span>
         <span className="cap-st-acts">
-          <button className="btn btn-ghost in-usual-b" onClick={() => move(-1)} disabled={i === 0} aria-label="Move earlier in the line">↑</button>
-          <button className="btn btn-ghost in-usual-b" onClick={() => move(1)} disabled={last} aria-label="Move later in the line">↓</button>
-          <button className="btn btn-ghost in-usual-b" onClick={remove} aria-label={`Remove ${s.name || 'this station'}`}>✕</button>
+          <button className="btn btn-ghost in-usual-b" onClick={() => move(-1)} disabled={i === 0} aria-label="Move earlier in the line"><Icon name="arrowUp" size="1.1em" /></button>
+          <button className="btn btn-ghost in-usual-b" onClick={() => move(1)} disabled={last} aria-label="Move later in the line"><Icon name="arrowDown" size="1.1em" /></button>
+          <button className="btn btn-ghost in-usual-b" onClick={remove} aria-label={`Remove ${s.name || 'this station'}`}><Icon name="close" size="1.1em" /></button>
           <button type="button" className={'btn btn-sm' + (open ? ' btn-primary' : ' btn-ghost')} onClick={onToggle} aria-expanded={open}>{open ? 'Done' : 'Edit'}</button>
         </span>
       </div>
@@ -449,10 +450,10 @@ export function CapacityPanel({ projectId, line, onSave }: {
         <button type="button" role="tab" aria-selected={!w} className={'cap-tab' + (!w ? ' on' : '')} onClick={() => setView('asRun')}>As run</button>
         {whatIfs.map(x => (
           <button key={x.id} type="button" role="tab" aria-selected={w?.id === x.id} className={'cap-tab' + (w?.id === x.id ? ' on' : '')} onClick={() => setView(x.id)}>
-            {onBoard(x) && <span aria-hidden>⚑ </span>}{x.name}
+            {onBoard(x) && <><Icon name="flag" size="1.15em" /> </>}{x.name}
           </button>
         ))}
-        <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on">+ What if</button>
+        <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on"><Icon name="plus" size="1.15em" /> What if</button>
       </div>
 
       {w && (
@@ -499,12 +500,12 @@ export function CapacityPanel({ projectId, line, onSave }: {
       {w ? (
         w.action && !gone ? (
           <p className="action-raised" role="status">
-            ⚑ On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${niceDay(made.doneOn)}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${niceDay(made.due)}` : ''}</> : null}.
+            <Icon name="flag" size="1.15em" /> On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${niceDay(made.doneOn)}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${niceDay(made.due)}` : ''}</> : null}.
             {made?.state === 'done' && <> The line’s numbers either side of that day judge it — see <b>Did it work?</b> on the project.</>}
             <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button>
           </p>
         ) : raised ? (
-          <p className="action-raised" role="status">⚑ Action raised — <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button></p>
+          <p className="action-raised" role="status"><Icon name="flag" size="1.15em" /> Action raised — <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button></p>
         ) : !asking ? (
           <>
           {gone && <p className="sub" role="status">The action made from this what-if has been deleted from the board.</p>}
@@ -512,14 +513,14 @@ export function CapacityPanel({ projectId, line, onSave }: {
               to carry yet, and it put "Finish the line as it runs first" on
               the board as the action's why. */}
           <button className="board-cta" onClick={openMake} disabled={!compare || r.line == null || asRun.line == null}>
-            <span className="board-cta-ic" aria-hidden>⚑</span>
+            <span className="board-cta-ic" aria-hidden><Icon name="flag" size="1em" /></span>
             <span className="board-cta-main">Make it so — put {w.name} on the board, with this prediction as its why</span>
             <span className="board-cta-go" aria-hidden>›</span>
           </button>
           </>
         ) : (
           <div className="card action-form">
-            <div className="field-label">⚑ Make it so — <b>{w.name}</b></div>
+            <div className="field-label"><Icon name="flag" size="1.15em" /> Make it so — <b>{w.name}</b></div>
             <textarea className="text-area" autoFocus rows={2} maxLength={300} value={what} onChange={e => setWhat(e.target.value)} />
             <p className="sub cap-why">Why, as the board will show it: {compare}</p>
             <div className="cw-seg" role="group" aria-label="People, Plant or Process" style={{ marginTop: 8 }}>
@@ -539,18 +540,18 @@ export function CapacityPanel({ projectId, line, onSave }: {
       ) : limit && (
         raised ? (
           <p className="action-raised" role="status">
-            ⚑ Action raised on <b>{limit.station.name.trim()}</b> — it is on the project’s board with this sentence as its why.
+            <Icon name="flag" size="1.15em" /> Action raised on <b>{limit.station.name.trim()}</b> — it is on the project’s board with this sentence as its why.
             <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button>
           </p>
         ) : !asking ? (
           <button className="board-cta" onClick={openRaise}>
-            <span className="board-cta-ic" aria-hidden>⚑</span>
+            <span className="board-cta-ic" aria-hidden><Icon name="flag" size="1em" /></span>
             <span className="board-cta-main">Raise an action on {limit.station.name.trim() || 'the limit'}</span>
             <span className="board-cta-go" aria-hidden>›</span>
           </button>
         ) : (
           <div className="card action-form">
-            <div className="field-label">⚑ Action on <b>{limit.station.name.trim()}</b></div>
+            <div className="field-label"><Icon name="flag" size="1.15em" /> Action on <b>{limit.station.name.trim()}</b></div>
             <textarea className="text-area" autoFocus rows={2} maxLength={300} value={what} onChange={e => setWhat(e.target.value)} />
             <div className="cw-seg" role="group" aria-label="People, Plant or Process" style={{ marginTop: 8 }}>
               {PILLARS.map(x => (
@@ -611,8 +612,8 @@ export function CapacityPanel({ projectId, line, onSave }: {
         ))}
       </ol>
       <div className="row-inline">
-        <button className="cw-add" onClick={() => add('machine')}><span className="cw-add-p" aria-hidden>+</span> Add a machine</button>
-        <button className="cw-add" onClick={() => add('people')}><span className="cw-add-p" aria-hidden>+</span> Add a person or crew</button>
+        <button className="cw-add" onClick={() => add('machine')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine</button>
+        <button className="cw-add" onClick={() => add('people')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew</button>
       </div>
 
       {r.ok.length > 0 && (

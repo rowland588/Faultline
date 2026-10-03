@@ -5,6 +5,7 @@ import { signOutAsked } from '../ui/AccountMenu';
 import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus } from './sync';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
+import { Icon } from '../ui/Icon';
 
 /** The one bit of cloud UI: a backup/sync row on Home. When the build has no
  *  Supabase credentials the app still works (purely local) — but we SAY SO
@@ -51,7 +52,7 @@ export function CloudPanel() {
     return (
       <>
         <button className="cloud-row" onClick={() => setOpen(true)}>
-          <span className="cloud-ic" aria-hidden>☁</span>
+          <span className="cloud-ic" aria-hidden><Icon name="cloud" size="1em" /></span>
           <span className="cloud-main"><b>Back up &amp; sync</b><span className="sub">sign in to save your work to the cloud and across devices</span></span>
           <span className="cloud-go" aria-hidden>›</span>
         </button>
@@ -68,7 +69,7 @@ export function CloudPanel() {
     <>
       <div className="cloud-row cloud-signedin">
         <button className="cloud-account" onClick={() => setOpen(true)} title="Account">
-          <span className={'cloud-ic' + (status.state === 'syncing' ? ' spin' : '')} aria-hidden>☁</span>
+          <span className={'cloud-ic' + (status.state === 'syncing' ? ' spin' : '')} aria-hidden><Icon name="cloud" size="1em" /></span>
           <span className="cloud-main">
             <b>{session.user.email}</b>
             {status.state === 'error' && !status.refused?.length && <span className="sub">Backup paused — it will retry by itself</span>}
@@ -97,7 +98,7 @@ export function CloudPanel() {
             ) : status.state === 'idle' && status.lastSyncedAt && !status.refused?.length ? (
               /* Never beside a refusal: "3 rows the cloud refused" and
                  "Everything is backed up ✓" were shown together. */
-              <span className="sub">Everything is backed up ✓</span>
+              <span className="sub">Everything is backed up <Icon name="check" size="1.15em" /></span>
             ) : null}
             {status.schemaOutdated && (
               <span className="sub" style={{ color: 'var(--warn)' }}>
@@ -154,7 +155,7 @@ export function CloudPanel() {
             {status.missingDown ? <><b>{status.missingDown}</b> — {missingWords(status.missingDown, status.missingFilms)} — never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}, and no repair on this device can fetch {status.missingDown === 1 ? 'it' : 'them'}. If that phone still has {status.missingDown === 1 ? 'it' : 'them'}, opening Faultline on it with a signal sends {status.missingDown === 1 ? 'it' : 'them'} across.</> : null}
           </p>
         ) : status.lastSyncedAt && !status.refused?.length ? (
-          <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up ✓</p>
+          <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up <Icon name="check" size="1.15em" /></p>
         ) : null}
         {status.missingDown ? (
           <div style={{ marginBottom: 12 }}>

@@ -17,6 +17,7 @@ import { nav } from '../state/useRoute';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { Sheet } from './Sheet';
 import PinImage from '../snag/PinImage';
+import { Icon } from './Icon';
 
 type Frame = { frame: SnagAsset; wsId: string };
 
@@ -100,7 +101,7 @@ export function OnTheLine({ projectId, pin, onSave, quiet }: {
           <button className="cw-link" onClick={() => onSave(undefined)}>Take it off</button>
         </p>
       ) : frames.length > 0 ? (
-        <button className="btn otl-add" onClick={() => open()}>📍 Pin it on the line</button>
+        <button className="btn otl-add" onClick={() => open()}><Icon name="pin" /> Pin it on the line</button>
       ) : quiet ? null : (
         <p className="sub otl-none">
           Film the line on Install and freeze a frame — then this can be pinned on the picture.{' '}

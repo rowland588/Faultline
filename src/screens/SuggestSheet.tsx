@@ -20,6 +20,7 @@ import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { suggestConditions, trackerLines, allLinesCount, ALL_LINES, type TrackerBind } from '../lib/treeBind';
 import { SourceStrip } from './BindSheet';
+import { Icon } from '../ui/Icon';
 
 export function SuggestSheet({
   title, lines, actions, onBuild, onClose,
@@ -111,7 +112,7 @@ export function SuggestSheet({
                   aria-pressed={!off.has(p.text)}
                   onClick={() => toggle(p.text)}
                 >
-                  <span className="sg-tick" aria-hidden>{off.has(p.text) ? '' : '✓'}</span>
+                  <span className="sg-tick" aria-hidden>{off.has(p.text) ? '' : <Icon name="check" size="1em" />}</span>
                   <span className="sg-main">
                     <span className="sg-t">{p.text}</span>
                     <span className="sg-s">

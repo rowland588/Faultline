@@ -14,6 +14,7 @@ import { backedUp } from '../cloud/sync';
 import { cloudConfigured } from '../cloud/client';
 import { sectionLabel } from './labels';
 import type { Segment } from './types';
+import { Icon } from '../ui/Icon';
 
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
@@ -26,11 +27,11 @@ function SegRow({ seg, assetNames, first, last, backed, onOpen, onUp, onDown, on
   return (
     <div className="seg-row">
       <div className="seg-order">
-        <button className="seg-arrow" disabled={first} onClick={onUp} aria-label="Move earlier">▲</button>
+        <button className="seg-arrow" disabled={first} onClick={onUp} aria-label="Move earlier"><Icon name="chevronUp" size="1.3em" /></button>
         <span className="seg-seq">{seg.sequence}</span>
-        <button className="seg-arrow" disabled={last} onClick={onDown} aria-label="Move later">▼</button>
+        <button className="seg-arrow" disabled={last} onClick={onDown} aria-label="Move later"><Icon name="chevronDown" size="1.3em" /></button>
       </div>
-      <button className="seg-poster" onClick={onOpen}>{poster ? <img src={poster} alt="" /> : <span>▶</span>}</button>
+      <button className="seg-poster" onClick={onOpen}>{poster ? <img src={poster} alt="" /> : <Icon name="play" size={20} />}</button>
       <button className="seg-main" onClick={onOpen}>
         <span className="seg-name">{label}</span>
         <span className="seg-meta">
@@ -39,13 +40,13 @@ function SegRow({ seg, assetNames, first, last, backed, onOpen, onUp, onDown, on
               walk quietly failing to reach the cloud for days */}
           {cloudConfigured && backed !== undefined && (
             backed
-              ? <span className="seg-backup ok"> · ✓ backed up</span>
-              : <span className="seg-backup pending"> · ↻ backing up…</span>
+              ? <span className="seg-backup ok"> · <Icon name="check" size="1.15em" /> backed up</span>
+              : <span className="seg-backup pending"> · <Icon name="refresh" size="1.15em" /> backing up…</span>
           )}
         </span>
       </button>
-      <button className="seg-edit" onClick={onRename} aria-label="Rename segment">✎</button>
-      <button className="seg-del" onClick={onDelete} aria-label="Delete segment">×</button>
+      <button className="seg-edit" onClick={onRename} aria-label="Rename segment"><Icon name="pencil" size="1.1em" /></button>
+      <button className="seg-del" onClick={onDelete} aria-label="Delete segment"><Icon name="close" size="0.85em" /></button>
     </div>
   );
 }
@@ -171,8 +172,8 @@ export function SnagsScreen() {
     <div className="wrap">
       <div className="subhead">
         <div style={{ flex: 1 }} />
-        {segs.length > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>}
-        {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>⚑ Evidence</button>}
+        {segs.length > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/walk`)}><Icon name="play" /> Walkthrough</button>}
+        {totalAssets > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/snaglist`)}><Icon name="flag" /> Evidence</button>}
       </div>
 
       <p className="eyebrow">{workspace.name}</p>
@@ -183,7 +184,7 @@ export function SnagsScreen() {
           stays the filing cabinet; the Line is where you stand and look. */}
       {totalAssets > 0 && (
         <button className="line-door" onClick={() => nav(`/w/${workspace.id}/line`)}>
-          <span className="line-door-ic" aria-hidden>⟷</span>
+          <span className="line-door-ic" aria-hidden><Icon name="route" size="1.1em" /></span>
           <span className="board-cta-main">Walk the line — machine by machine</span>
           <span className="board-cta-go" aria-hidden>›</span>
         </button>
@@ -244,18 +245,18 @@ export function SnagsScreen() {
               the fallback, not the headline action. */}
           {videoCaptureSupported() && (
             <button className={'btn' + (segs.length === 0 ? ' btn-primary btn-lg' : '')} onClick={() => setFilming(true)}>
-              🎥 {segs.length === 0 ? 'Film the walk' : 'Film another'}
+              <Icon name="video" /> {segs.length === 0 ? 'Film the walk' : 'Film another'}
             </button>
           )}
           <button className={segs.length === 0 ? ('btn btn-lg' + (videoCaptureSupported() ? '' : ' btn-primary')) : 'btn'}
             onClick={() => fileRef.current?.click()}>
-            ⬆ Upload video{videoCaptureSupported() ? 's' : ''}
+            <Icon name="upload" /> Upload video{videoCaptureSupported() ? 's' : ''}
           </button>
         </div>
       )}
 
       {segs.length === 0 && !busy && (
-        <EmptyState icon="🎥" title="No footage yet">Film the line infeed-to-outfeed — several clips for a long line — and add them in walk order. Then scrub each to mark its assets.</EmptyState>
+        <EmptyState icon={<Icon name="video" size="1em" />} title="No footage yet">Film the line infeed-to-outfeed — several clips for a long line — and add them in walk order. Then scrub each to mark its assets.</EmptyState>
       )}
 
       {filming && <VideoRecorder onCapture={b => void onRecorded(b)} onClose={() => setFilming(false)} />}
