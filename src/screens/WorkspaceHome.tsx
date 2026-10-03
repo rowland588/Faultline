@@ -26,16 +26,14 @@ import { nav } from '../state/useRoute';
 import { Wordmark } from '../ui/Logo';
 import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
-import { AdminPanel } from '../cloud/AdminPanel';
-import { useProfile } from '../cloud/admin';
+import { AccountMenu } from '../ui/AccountMenu';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
 import { allPaceLines, chainForWorkspace, inArchivedProject, onDataChange, type PaceLineRow } from '../db';
-import { seedDemoWorkspace, DEMO_NAME } from '../lib/demo';
+import { DEMO_NAME } from '../lib/demo';
 import { JobsBoard } from '../ui/JobsBoard';
-import { Icon } from '../ui/Icon';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -129,31 +127,11 @@ export function WorkspaceHome() {
     setPendingDel(null);
     if (target) { await deleteWorkspace(target.id); setDelTick(t => t + 1); }
   };
-  const [error, setError] = useState('');
-  const [seeding, setSeeding] = useState<string | null>(null);
-  const seedDemo = async () => {
-    if (seeding) return;
-    setSeeding('starting…');
-    try {
-      // REBUILD, never duplicate: any existing demo workspace goes first (the
-      // delete cascades and syncs to every device, same as any delete).
-      const existing = (await listWorkspaces()).filter(w => w.name === DEMO_NAME);
-      for (const w of existing) { setSeeding('removing the old demo…'); await deleteWorkspace(w.id); }
-      const id = await seedDemoWorkspace(setSeeding);
-      // lands on the board, where ▶ Watch the demo (the film) sits
-      nav(`/w/${id}/analyse`);
-    } catch (e) {
-      setSeeding(null);
-      setError(e instanceof Error ? e.message : 'Demo seeding failed — try again.');
-    }
-  };
-  const { profile } = useProfile();
-  const [adminOpen, setAdminOpen] = useState(false);
 
   // The projects lead this screen now. They are how the work is actually
   // organised — a workspace is the container underneath a line, not the thing
   // anybody sets out to open.
-  const { projects, archived: archivedProjects } = useProjects();
+  const { projects } = useProjects();
   // Every job, on every method — the control room is not a stage-gate board.
   const jobs = projects;
   const [lines, setLines] = useState<PaceLineRow[]>([]);
@@ -230,7 +208,10 @@ export function WorkspaceHome() {
   return (
     <div className="wrap home">
       <div className="home-head">
-        <Wordmark />
+        {/* The account button, top right as on every other screen — and with
+            it Team & invites, the archive, the demo, backup and Sign out,
+            none of which is the work (ui/AccountMenu). */}
+        <div className="home-top"><Wordmark /><AccountMenu /></div>
         {/* The pitch is for somebody with nothing running yet. Once a job is,
             the board under it says more than the paragraph could. */}
         {!jobs.length && (
@@ -245,17 +226,6 @@ export function WorkspaceHome() {
           reviewing the board: it lived one tap in, on Projects, which is not
           where the app opens. Everything below it on this screen stays. */}
       {jobs.length > 0 && <JobsBoard projects={jobs} />}
-
-      {profile?.is_super && (
-        <>
-          <button className="admin-row" onClick={() => setAdminOpen(true)}>
-            <span className="admin-ic" aria-hidden><Icon name="people" size="1.2em" /></span>
-            <span className="cloud-main"><b>Team &amp; invites</b><span className="sub">invite people, see who's joined</span></span>
-            <span className="cloud-go" aria-hidden>›</span>
-          </button>
-          <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
-        </>
-      )}
 
       {/* THE DOOR. Not "first" among several — the only one. What he opens the
           app to do is go to a project, then to his line, and a line is one tap
@@ -280,13 +250,6 @@ export function WorkspaceHome() {
           <div className="home-proj-list">
             {projects.map(p => <ProjectCard key={p.id} p={p} lines={linesOf(p.id)} compact />)}
           </div>
-        )}
-        {archivedProjects.length > 0 && (
-          <p className="sub home-sec-sub">
-            <button className="cw-link" onClick={() => nav('/projects?view=archive')}>
-              Archived · {archivedProjects.length} — restore or delete ›
-            </button>
-          </p>
         )}
       </section>
 
@@ -388,20 +351,6 @@ export function WorkspaceHome() {
         </section>
       )}
 
-      {/* the showcase builder, tucked at the bottom — a superadmin tool, not a
-          headline. 14 weeks of story-shaped data; replaces any existing demo. */}
-      {profile?.is_super && (
-        <>
-          <button className="home-guide-link" onClick={() => void seedDemo()} disabled={!!seeding}>
-            <Icon name="spark" size="1.15em" /> {seeding ? `Building the demo… ${seeding}` : 'Build / rebuild the demo line ›'}
-          </button>
-          {/* The demo build is the only thing on this screen that can fail with
-              something worth reading. It used to report into the create card's
-              error line, which no longer exists — so a failure said nothing at
-              all and the button simply came back. */}
-          {error && <p className="sub" style={{ color: 'var(--danger)' }}>{error}</p>}
-        </>
-      )}
 
       {/* Signing in and installing are settings, not destinations. They used to
           sit above everything, so the first third of the app's front door was

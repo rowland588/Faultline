@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
 import { useSession, useSyncStatus, signIn, signUp } from './session';
-import { signOutAsked } from '../ui/AccountMenu';
 import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus } from './sync';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
@@ -28,22 +27,6 @@ export function CloudPanel() {
   const { session, loading } = useSession();
   const status = useSyncStatus();
   const [open, setOpen] = useState(false);
-  /* REPAIR SAYS WHAT IT DID. It used to close the sheet and work out of sight,
-     so a tap looked like nothing. Now the sheet stays, says it is working, and
-     ends with what it found. */
-  /* And says it when it did NOT: with no signal the pass fails, and the sheet
-     still announced "everything re-sent and re-fetched". */
-  const [repair, setRepair] = useState<'idle' | 'running' | 'done' | 'failed'>('idle');
-  const runRepair = async () => {
-    setRepair('running');
-    try { await fullResync(); setRepair(syncStatus().state === 'idle' ? 'done' : 'failed'); }
-    catch { setRepair('failed'); }
-  };
-  const missingWords = (n: number, films = 0) => {
-    const photos = n - films;
-    return [films ? `${films} film${films === 1 ? '' : 's'}` : '', photos ? `${photos} photo${photos === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
-  };
-
   // Unreachable in practice — the Router blocks an unconfigured build before any
   // screen renders — but kept honest rather than silently rendering nothing.
   if (!cloudConfigured || loading) return null;
@@ -61,6 +44,14 @@ export function CloudPanel() {
     );
   }
 
+  /* NORMAL RECEDES. Signed in and backed up, Home says nothing about backup —
+   * the account menu (top right, on every screen) says "Everything is backed
+   * up" and holds the repair tools and Sign out. This row only appears when
+   * something is wrong: work the cloud refused, an edit replaced, files still
+   * to leave this device, or backup paused. It used to be a full-width card on
+   * Home with the email and a large Sign out button, every visit. */
+  if (!syncTrouble(status)) return null;
+
   /* Signed in: just the account. Sync is automatic and invisible — surfacing
    * "Sync now" / "Full re-sync" here made the product wear its plumbing on the
    * outside. Those remain as RECOVERY tools behind a tap on the account row;
@@ -68,10 +59,10 @@ export function CloudPanel() {
   return (
     <>
       <div className="cloud-row cloud-signedin">
-        <button className="cloud-account" onClick={() => setOpen(true)} title="Account">
+        <button className="cloud-account" onClick={() => setOpen(true)} title="Backup">
           <span className={'cloud-ic' + (status.state === 'syncing' ? ' spin' : '')} aria-hidden><Icon name="cloud" size="1em" /></span>
           <span className="cloud-main">
-            <b>{session.user.email}</b>
+            <b>Backup</b>
             {status.state === 'error' && !status.refused?.length && <span className="sub">Backup paused — it will retry by itself</span>}
             {/* A refused row is work that has left nobody's device. It is the
                 one thing here that must never read as "backed up". */}
@@ -107,10 +98,46 @@ export function CloudPanel() {
             )}
           </span>
         </button>
-        <button className="btn btn-ghost" onClick={() => void signOutAsked()}>Sign out</button>
       </div>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Account">
+      <Sheet open={open} onClose={() => setOpen(false)} title="Backup">
+        <SyncDetail onDone={() => setOpen(false)} />
+      </Sheet>
+    </>
+  );
+}
+
+/** Whether backup has anything to say — the one test for whether Home shows
+ *  the backup row at all. Files still coming DOWN are not trouble: they arrive
+ *  by themselves. Files still to go UP are: that work is on this device only. */
+export function syncTrouble(status: ReturnType<typeof useSyncStatus>): boolean {
+  return status.state === 'error' || !!status.refused?.length || !!status.overwritten?.length
+    || !!status.pendingUp || !!status.missingDown || !!status.schemaOutdated;
+}
+
+/** Backup, in full: what is backed up, what is not and why, and the two
+ *  recovery tools. Drawn in the account menu, and in the sheet Home's backup
+ *  row opens when there is trouble — one body, so the two cannot disagree. */
+export function SyncDetail({ onDone }: { onDone?: () => void }) {
+  const status = useSyncStatus();
+  /* REPAIR SAYS WHAT IT DID. It used to close the sheet and work out of sight,
+     so a tap looked like nothing. Now the sheet stays, says it is working, and
+     ends with what it found. */
+  /* And says it when it did NOT: with no signal the pass fails, and the sheet
+     still announced "everything re-sent and re-fetched". */
+  const [repair, setRepair] = useState<'idle' | 'running' | 'done' | 'failed'>('idle');
+  const runRepair = async () => {
+    setRepair('running');
+    try { await fullResync(); setRepair(syncStatus().state === 'idle' ? 'done' : 'failed'); }
+    catch { setRepair('failed'); }
+  };
+  const missingWords = (n: number, films = 0) => {
+    const photos = n - films;
+    return [films ? `${films} film${films === 1 ? '' : 's'}` : '', photos ? `${photos} photo${photos === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+  };
+
+  return (
+    <>
         <p className="sub" style={{ marginBottom: 10 }}>
           Your work backs up and syncs to your devices automatically
           {status.lastSyncedAt ? ` — last checked in ${fmtRelative(status.lastSyncedAt)}` : ''}.
@@ -177,10 +204,8 @@ export function CloudPanel() {
         {status.state === 'error' && status.error && (
           <p className="sub" style={{ color: 'var(--danger)', marginBottom: 10 }}>{status.error}</p>
         )}
-        <SheetRow label="Check for changes now" hint="usually unnecessary" onClick={() => { void syncNow(); setOpen(false); }} />
+        <SheetRow label="Check for changes now" hint="usually unnecessary" onClick={() => { void syncNow(); onDone?.(); }} />
         <SheetRow label={repair === 'running' ? 'Repairing…' : 'Repair sync'} hint="re-send and re-fetch everything" onClick={() => { if (repair !== 'running') void runRepair(); }} />
-        <SheetRow label="Sign out" danger onClick={() => { setOpen(false); void signOutAsked(); }} />
-      </Sheet>
     </>
   );
 }

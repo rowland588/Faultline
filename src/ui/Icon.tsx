@@ -67,7 +67,6 @@ const ICONS = {
   cloud: <path d="M7.25 18.5a4.5 4.5 0 0 1-.7-8.95 6 6 0 0 1 11.4-.3 4.75 4.75 0 0 1-.45 9.25z" />,
   refresh: <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.75 4.25v4.25H15.5" />,
   pointer: <path d="M5.5 4.5 18.5 11l-5.75 1.75L10 18.5z" />,
-  spark: <path d="M12 3.5l1.9 5.6 5.6 1.9-5.6 1.9-1.9 5.6-1.9-5.6L4.5 11l5.6-1.9z" />,
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICONS;

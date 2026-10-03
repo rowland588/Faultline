@@ -11,17 +11,32 @@ export interface Invite { email: string; created_at: string }
 const norm = (e: string) => e.trim().toLowerCase();
 
 /** The current user's profile — carries the `is_super` flag that gates the panel. */
+/* READ ONCE A SESSION, not once a screen. The account button is on every
+ * screen and asks this to decide whether to offer Team & invites; a fetch on
+ * every mount would be a request per tap of Back. The first real answer is
+ * kept for the user until the app is reloaded — whether someone is an admin
+ * does not change mid-visit. */
+let known: { uid: string; profile: Profile | null } | null = null;
+
 export function useProfile(): { profile: Profile | null; loading: boolean } {
   const { session } = useSession();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const uid = session?.user.id;
+  const cached = known && known.uid === uid ? known.profile : null;
+  const [profile, setProfile] = useState<Profile | null>(cached);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     let alive = true;
     if (!supabase || !session) { setProfile(null); setLoading(false); return; }
+    if (known && known.uid === session.user.id) { setProfile(known.profile); setLoading(false); return; }
     setLoading(true);
     void supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
-      .then(({ data }) => { if (alive) { setProfile((data as Profile) ?? null); setLoading(false); } });
+      .then(({ data, error }) => {
+        const p = (data as Profile) ?? null;
+        // Only a real answer is remembered — a failed read (no signal) asks again next time.
+        if (!error) known = { uid: session.user.id, profile: p };
+        if (alive) { setProfile(p); setLoading(false); }
+      });
     return () => { alive = false; };
   }, [session]);
 

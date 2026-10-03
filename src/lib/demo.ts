@@ -21,7 +21,7 @@ import type { Case, Observation, DrillPath, Workspace } from '../types';
 import type { Snag, SnagAsset } from '../snag/types';
 import {
   createWorkspace, updateWorkspace, addObservation, addSnag, addCase,
-  addSegment, addSnagAsset, putBlob,
+  addSegment, addSnagAsset, putBlob, listWorkspaces, deleteWorkspace,
 } from '../db';
 import { uid } from './ids';
 import { readVideoMeta } from '../snag/frame';
@@ -290,6 +290,15 @@ const scopedMs = (obs: Observation[], path: DrillPath, from: number, to: number)
     .reduce((a, o) => a + o.durationMs, 0);
 
 /* ---------- the seed ---------- */
+/** REBUILD, never duplicate: any existing demo workspace goes first (the
+ *  delete cascades and syncs to every device, same as any delete), then a
+ *  fresh one is built. Returns the new workspace's id. */
+export async function rebuildDemo(onProgress?: (note: string) => void): Promise<string> {
+  const existing = (await listWorkspaces()).filter(w => w.name === DEMO_NAME);
+  for (const w of existing) { onProgress?.('removing the old demo…'); await deleteWorkspace(w.id); }
+  return seedDemoWorkspace(onProgress);
+}
+
 export async function seedDemoWorkspace(onProgress?: (note: string) => void): Promise<string> {
   const note = (s: string) => onProgress?.(s);
   const now = Date.now();

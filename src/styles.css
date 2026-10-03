@@ -219,6 +219,9 @@ button { font-family: inherit; }
 
 /* ---------- home / workspaces ---------- */
 .home-head { padding: 20px 4px 22px; }
+/* The wordmark and the account button on one line — the account button where
+   it is on every other screen, top right. */
+.home-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mark { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
 .wordmark { display: inline-flex; align-items: center; gap: 11px; }
 .wordmark .logo-mark { border-radius: 8px; box-shadow: 0 2px 8px rgba(20, 24, 31, 0.18); }
@@ -8217,3 +8220,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
    where a header's actions sit. The spine is not on the paper. */
 .exec-report > .spine + .exec-bar { justify-content: flex-end; margin-top: 14px; }
 @media print { .exec-report > .spine { display: none !important; } }
+
+/* A heading inside the account sheet — "Backup" — so its rows read as one
+   group, apart from the doors above and Sign out below. */
+.acct-sec { margin: 16px 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
