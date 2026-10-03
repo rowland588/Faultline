@@ -686,6 +686,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <ul className="dw-list">
                 {closed.map(s => {
                   const im = impacts.get(s.id);
+                  /* THE WHOLE ROW IS THE WAY IN, as the Line balance rows are:
+                     the action's name alone was the button, 20px tall, and the
+                     verdict and the sentence beside it pressed nothing. */
                   return (
                     <li key={s.id} className="dw-row">
                       {/* THE WHOLE ROW OPENS THAT ACTION — the title alone was

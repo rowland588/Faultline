@@ -3592,9 +3592,13 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .lt-zoom-n:active { background: var(--surface-2); }
 
-/* Printing is the tree and nothing else — no chrome, no tools, no spine. */
+/* Printing is the tree and nothing else — no chrome, no tools, no spine.
+   The STATE stays: it sat in .lt-tools with the buttons and was hidden with
+   them, so paper carried the colours and not one word of what they meant —
+   nothing at all in black and white. Only the buttons go now. */
 @media print {
-  .lt-tools, .lt-foot, .spine, .pace-head-actions { display: none !important; }
+  .lt-acts, .lt-foot, .spine, .pace-head-actions, .lt-screen .peers,
+  .lt-fold, .lt-unbind, .lt-gap-b, .lt-gap-list, .lt-prompt, .lt-suggest, .lt-take, .lt-moving { display: none !important; }
   .lt-canvas { overflow: visible; }
   .lt-scroll { zoom: 1 !important; }   /* paper is not a screen */
   .lt-box { box-shadow: none; break-inside: avoid; }
