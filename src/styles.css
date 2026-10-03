@@ -7728,6 +7728,7 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 }
 .gt-hand.is-agreed { border-left-color: var(--muted); }
 .gt-hand.is-agreed b { color: var(--muted); bottom: 22px; box-shadow: 0 0 0 1px var(--line); }
+.gt-hand.is-left b { left: auto; right: 6px; }
 .gt-row { display: flex; height: 38px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 .gt-row:last-child { border-bottom: 0; }
 .gt-lab {
@@ -7941,7 +7942,7 @@ button.gt-lab.gt-glab { flex-direction: row; align-items: center; justify-conten
    stretched over both. Not on the walk's lane, whose markers each open their
    own day. */
 .gt.is-stacked button.gt-lab:not(.gt-walklab)::after {
-  content: ""; position: absolute; left: 0; top: 0; width: calc(100vw - 40px); height: calc(100% + 30px);
+  content: ""; position: absolute; left: 0; top: 0; width: calc(100vw - 64px); height: calc(100% + 30px);
 }
 .gt.is-stacked button.gt-fixlab::after { height: calc(100% + 24px) !important; }
 .gt.is-stacked button.gt-lab:not(.gt-walklab) { overflow: visible; }

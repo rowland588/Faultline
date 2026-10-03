@@ -85,6 +85,9 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   /* Open on today — a few days of what has gone, then what is ahead. */
   const toToday = () => {
     const el = ref.current;
+    /* Fitted, the whole job is already on the screen — nothing to scroll to,
+       and scrolling cut the first days off ("4 Sep" for "14 Sep"). */
+    if (el && fit) { el.scrollLeft = 0; return; }
     if (el && g.today != null) el.scrollLeft = Math.max(0, (g.today - (scale === 'day' ? 3 : 10)) * px);
   };
   useLayoutEffect(toToday, [scale, g.today]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -172,7 +175,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         </span>
         <span className="gt-acts">
           {asOf && <span className={'gt-asof' + (asOf.stale ? ' is-stale' : '')} role="status">{asOf.words}</span>}
-          {g.today != null && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
+          {/* Not when fitted: today is already on the screen, and the button did nothing. */}
+          {g.today != null && !fit && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
           <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </span>
       </div>
@@ -219,8 +223,11 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                 ? g.dayList.filter(d => d.weekend).map(d => <span key={d.iso} className="gt-we" style={{ left: d.at * px, width: px }} />)
                 : g.weeks.map(w => <span key={w.start} className="gt-wk" style={{ left: w.start * px }} />)}
               {g.months.slice(1).map(m => <span key={m.label + m.start} className="gt-mo" style={{ left: m.start * px }} />)}
-              {g.agreed && <span className="gt-hand is-agreed" style={{ left: (g.agreed.at + 0.5) * px }}><b>Agreed {g.agreed.when}</b></span>}
-              {g.expected && <span className="gt-hand" style={{ left: (g.expected.at + 0.5) * px }}><b>Handover {g.expected.when}</b></span>}
+              {/* FITTED, the track ends at the last day, so a date near the end
+                  hangs its words to the LEFT of its line — they ran off the
+                  card ("Handover 3…") and made the fitted chart scroll. */}
+              {g.agreed && <span className={'gt-hand is-agreed' + (fit && g.agreed.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.agreed.at + 0.5) * px }}><b>Agreed {g.agreed.when}</b></span>}
+              {g.expected && <span className={'gt-hand' + (fit && g.expected.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.expected.at + 0.5) * px }}><b>Handover {g.expected.when}</b></span>}
               {g.today != null && <span className="gt-today" style={{ left: (g.today + 0.5) * px }} />}
             </div>
 
