@@ -78,6 +78,17 @@ const line = (key: string): PaceReportData['lines'][number] => ({
 /* What the job is waiting on, in the shape the sheet is drawn from: a row per
    thing, one flag per week. One of every state — in stock, late, on its way,
    and nobody has given a date — because each one draws differently. */
+/* Three programs — short enough to share a sheet with the materials above. */
+const programs = (): NonNullable<PaceReportData['programs']> => ({
+  total: 3, proved: 1, onMachine: 1, needed: 1, overdue: 0,
+  weeks: [{ start: '2026-09-21', label: 'WK3', month: 'September' }, { start: '2026-09-28', label: 'WK4', month: 'September' }],
+  rows: [
+    { what: 'P-104', runs: 'Finest Red 2kg', when: 'Proved 14 Sep', state: 'proved', fill: ['proved', 'proved'], booked: [false, false] },
+    { what: 'P-121', when: 'On the machine', state: 'onMachine', fill: ['machine', 'machine'], booked: [false, true] },
+    { what: 'P-141', when: 'Not written', state: 'needed', fill: ['none', 'none'], booked: [false, false] },
+  ],
+});
+
 const materials = (): NonNullable<PaceReportData['materials']> => ({
   total: 4, here: 1, waiting: 3, late: 1, nextDue: '2026-09-28',
   weeks: [
@@ -258,6 +269,10 @@ const SHAPES: [string, Partial<PaceReportData>][] = [
   ['a board big enough to need several sheets', { board: board(9) }],
   ['everything at once', { pareto: pareto(), tree: tree(), board: board(4) }],
   ['everything, with a board over several sheets', { pareto: pareto(), tree: tree(), board: board(12) }],
+  /* Materials and programs on one sheet, then the board: the board was stamped
+     with the shared sheet's number, so two pages said "page 5". */
+  ['materials and programs sharing a sheet, then the board', { programs: programs(), board: board(2) }],
+  ['materials and programs sharing a sheet, then the tree and the board', { programs: programs(), tree: tree(), board: board(2) }],
   ['no lines at all — a project on its first day', { lines: [], byLine: [] }],
   /* THE COMMISSIONING SHAPE, where the front page is the tests. These are the
      cases the footer arithmetic had never seen: the sheets the tests need are

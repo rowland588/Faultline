@@ -2293,7 +2293,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     if (owesUnder && !hasPlan && owesPlan) { owesSheet(d, data, owesPlan, 0, page, pages, { top: afterPlanTop }); bits.push('who owes what'); }
     return bits.length ? `what we are proving, ${bits.join(', and ')}` : 'what we are proving';
   };
-  const frontTail = lastSheet === 0 ? rideTail(1) : data.tracker ? 'line pace' : 'what we are proving';
+  /* A tracker's front page is the numbers — the same words the screen's
+     footer says. It printed "what we are proving", a stage-gate job's. */
+  const frontTail = data.tracker ? 'the numbers' : lastSheet === 0 ? rideTail(1) : 'what we are proving';
 
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} · client report · page 1 of ${pages} — ${frontTail}`, CW * 0.8), M, H - M + 6);
@@ -2319,7 +2321,10 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   /* Programs sit directly behind materials, because the two answer one question
      between them: what is this line waiting on. */
   const programsPage = shareSheet ? materialsPage : materialsPage + matSheets;
-  const planPage = programsPage + (hasPrograms && !shareSheet ? progSheets : 0);
+  /* Behind every sheet materials and programs take — on a shared sheet that is
+     the materials' sheet, not none: the board after them was stamped with the
+     same page number as the sheet before it ("5", then "5" again). */
+  const planPage = materialsPage + matSheets + (hasPrograms && !shareSheet ? progSheets : 0);
   const boardPage = planPage + (data.tree.length > 0 ? 1 : 0);
 
   /* ============== WHERE THE JOB IS — the verdict, the plan, the table =======
@@ -2389,7 +2394,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         : `${pv.period ?? 'the measured period'} \u2014 ${Math.round(pv.totalMins).toLocaleString()} minutes across ${pv.totalStops} stops`);
 
     setFont(d, 9, 'bold', INK);
-    d.text(fit(d, `${pv.vitalCount} categories carry ${Math.round(pv.vitalShare * 100)}% of the lost time`, CW - 24), M + 12, py + 16);
+    d.text(fit(d, `${pv.vitalCount} ${pv.vitalCount === 1 ? 'category carries' : 'categories carry'} ${Math.round(pv.vitalShare * 100)}% of the lost time`, CW - 24), M + 12, py + 16);
     if (pv.headline) {
       setFont(d, 7.5, 'normal', MUTED);
       d.text(fit(d, pv.headline, CW - 24), M + 12, py + 28);
@@ -2466,7 +2471,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
     d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${paretoPage} of ${pages} \u2014 where the time is going`, CW * 0.8), M, H - M + 6);
     d.text(pv.comparable && pv.beforePeriod
       ? `Measured against the Pareto covering ${pv.beforePeriod}.`
-      : 'One Pareto so far \u2014 no movement can be claimed from a single reading.',
+      /* There is no upload: the Pareto is four weeks timed in the app against
+         the four before, the same words the screen says. */
+      : 'Nothing timed in the four weeks before \u2014 no movement can be claimed yet.',
       W - M, H - M + 6, { align: 'right' });
   }
 
