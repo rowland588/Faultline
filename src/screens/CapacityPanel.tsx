@@ -24,7 +24,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
-import { listPaceTodos, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PILLARS, type PillarKey } from '../lib/pillars';
@@ -341,7 +342,13 @@ export function CapacityPanel({ projectId, line, onSave }: {
      different machine name". Short or mostly vertical moves are scrolling. */
   const order = ['asRun', ...whatIfs.map(x => x.id)];
   const touch = useRef<{ x: number; y: number } | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => { const t = e.touches[0]; touch.current = t ? { x: t.clientX, y: t.clientY } : null; };
+  /* Not from inside a box being typed in: dragging the caret along a station's
+     name is a sideways move too, and it made a new what-if. */
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    const typing = (e.target as Element).closest?.('input, textarea, select');
+    touch.current = t && !typing ? { x: t.clientX, y: t.clientY } : null;
+  };
   const onTouchEnd = (e: React.TouchEvent) => {
     const t = touch.current; touch.current = null;
     const c = e.changedTouches[0];
@@ -400,15 +407,23 @@ export function CapacityPanel({ projectId, line, onSave }: {
     } else return;
     setAsking(false); setRaised(true);
   };
-  /* The action a what-if was made into, read from the board so the what-if
-     can say where it has got to — raised, waiting, or done. */
-  const [made, setMade] = useState<PaceTodoRow | null>(null);
+  /* The action a what-if was made into, read from the board — live — so the
+     what-if can say where it has got to: raised, waiting, or done. An action
+     since deleted from the board is not "on the board": the what-if says so
+     and can be made so again. (It used to read once, and a deleted action
+     left "⚑ On the board." standing over nothing.) */
+  const [boardRows, setBoardRows] = useState<PaceTodoRow[] | null>(null);
   useEffect(() => {
     let live = true;
-    if (!w?.action) { setMade(null); return; }
-    void listPaceTodos(projectId, line.id).then(rows => { if (live) setMade(rows.find(x => x.id === w.action?.id) ?? null); });
-    return () => { live = false; };
-  }, [projectId, line.id, w?.action, raised]);
+    const load = () => void listPaceTodos(projectId, line.id).then(rows => { if (live) setBoardRows(rows); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId, line.id]);
+  const onBoard = (x?: WhatIf) => !!x?.action && (boardRows == null || boardRows.some(t => t.id === x.action?.id));
+  const made = w?.action ? boardRows?.find(x => x.id === w.action?.id) ?? null : null;
+  // `raised`: the action just written may land a beat before the re-read does.
+  const gone = !!w?.action && boardRows != null && !made && !raised;
 
   const worth = !w && limit && r.next && r.line != null
     ? lineIfRaised(r, limit.index, limit.running) : undefined;
@@ -429,7 +444,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
         <button type="button" role="tab" aria-selected={!w} className={'cap-tab' + (!w ? ' on' : '')} onClick={() => setView('asRun')}>As run</button>
         {whatIfs.map(x => (
           <button key={x.id} type="button" role="tab" aria-selected={w?.id === x.id} className={'cap-tab' + (w?.id === x.id ? ' on' : '')} onClick={() => setView(x.id)}>
-            {x.action && <span aria-hidden>⚑ </span>}{x.name}
+            {onBoard(x) && <span aria-hidden>⚑ </span>}{x.name}
           </button>
         ))}
         <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on">+ What if</button>
@@ -477,20 +492,23 @@ export function CapacityPanel({ projectId, line, onSave }: {
       {/* THE DOOR TO THE WORK. As run: raise an action on the limit. A what-if:
           make it so — the action carries the prediction as its why. */}
       {w ? (
-        w.action ? (
+        w.action && !gone ? (
           <p className="action-raised" role="status">
-            ⚑ On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${made.doneOn}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${made.due}` : ''}</> : null}.
+            ⚑ On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${niceDay(made.doneOn)}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${niceDay(made.due)}` : ''}</> : null}.
             {made?.state === 'done' && <> The line’s numbers either side of that day judge it — see <b>Did it work?</b> on the project.</>}
             <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button>
           </p>
         ) : raised ? (
           <p className="action-raised" role="status">⚑ Action raised — <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button></p>
         ) : !asking ? (
+          <>
+          {gone && <p className="sub" role="status">The action made from this what-if has been deleted from the board.</p>}
           <button className="board-cta" onClick={openMake} disabled={!compare || r.line == null}>
             <span className="board-cta-ic" aria-hidden>⚑</span>
             <span className="board-cta-main">Make it so — put {w.name} on the board, with this prediction as its why</span>
             <span className="board-cta-go" aria-hidden>›</span>
           </button>
+          </>
         ) : (
           <div className="card action-form">
             <div className="field-label">⚑ Make it so — <b>{w.name}</b></div>
