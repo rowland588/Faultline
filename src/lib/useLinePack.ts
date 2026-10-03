@@ -47,10 +47,12 @@ export function useLinePackCounts(projectId: string, lineId: string, workspaceId
 
   useEffect(() => {
     void refresh();
-    return onDataChange(() => {
+    const off = onDataChange(() => {
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => { void refresh(); }, 300);
     });
+    // A re-read still waiting for the line just left must not land on this one.
+    return () => { off(); window.clearTimeout(timer.current); };
   }, [refresh]);
 
   return pack;
@@ -79,10 +81,12 @@ export function useAllLinePacks(projectId: string, lines: PaceLineRow[]): Map<st
 
   useEffect(() => {
     void refresh();
-    return onDataChange(() => {
+    const off = onDataChange(() => {
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => { void refresh(); }, 300);
     });
+    // A re-read still waiting for the line just left must not land on this one.
+    return () => { off(); window.clearTimeout(timer.current); };
   }, [refresh]);
 
   return packs;

@@ -57,6 +57,19 @@ describe('undo after a delete', () => {
     expect((await db.listTests('p'))[0].assetId).toBe('a1');
   });
 
+  it('puts a lever tree branch back whole, and leaves the rest of the tree alone', async () => {
+    const db = await import('../db');
+    const box = (id: string, parentId?: string) => ({ id, projectId: 'p', parentId, text: id, rag: 'n' as const, sort: 0, createdAt: 1, updatedAt: 1 });
+    await db.putTreeNodes([box('top'), box('line', 'top'), box('cond', 'line'), box('other', 'top')]);
+    const undo = await db.deleteTreeBranch('p', 'line');
+    expect((await db.listTreeNodes('p')).map(n => n.id).sort()).toEqual(['other', 'top']);
+    expect((await db.listTombstones()).map(t => t.id).sort()).toEqual(['cond', 'line']);
+    await undo();
+    expect((await db.listTreeNodes('p')).map(n => n.id).sort()).toEqual(['cond', 'line', 'other', 'top']);
+    expect((await db.listTreeNodes('p')).find(n => n.id === 'cond')?.parentId).toBe('line');
+    expect(await db.listTombstones()).toEqual([]);
+  });
+
   it('puts a material and a program back', async () => {
     const db = await import('../db');
     await db.putMaterial({ id: 'm1', projectId: 'p', what: 'Film', sort: 1, createdAt: 1, updatedAt: 1 });

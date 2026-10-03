@@ -28,6 +28,7 @@ import {
 import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { offerUndo } from '../ui/Undo';
 import { Peers, methodPeers } from '../ui/Peers';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { Sweep } from '../ui/Sweep';
@@ -172,7 +173,14 @@ function Box({
   }, []);
   useEffect(fit, [text, fit]);
 
-  const commit = () => { if (text !== node.text) onChange({ text }); };
+  /* Escape puts the words back and then blurs — and the blur commits. Without
+     this flag the commit read the text from before the reset and saved the
+     very words Escape was pressed to throw away. */
+  const discard = useRef(false);
+  const commit = () => {
+    if (discard.current) { discard.current = false; return; }
+    if (text !== node.text) onChange({ text });
+  };
 
   // The work at the bottom is a LIST, and should look like one: tight rows in a
   // column, not full cards. Four actions rendered as cards made their branch
@@ -192,6 +200,12 @@ function Box({
         + (fromTracker ? ' is-bound' : '') + (bindsWork(node.bind) ? ' is-linked' : '')
         + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')
         + (isMoving ? ' is-lifted' : '')}
+      /* THE WHOLE BOX OPENS IT. Its tools come out on focus, and only the one
+         line of words could take focus — a tap anywhere else on the box, the
+         blank half where the tools sit included, did nothing at all. Focusable
+         itself, a tap anywhere brings out the tools without raising the
+         keyboard, and a row off the board shows its whole wording. */
+      tabIndex={-1}
       draggable={!fromTracker}
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
       onDragOver={e => {
@@ -227,7 +241,7 @@ function Box({
           onBlur={commit}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); }
-            if (e.key === 'Escape') { setText(node.text); (e.target as HTMLTextAreaElement).blur(); }
+            if (e.key === 'Escape') { discard.current = true; setText(node.text); (e.target as HTMLTextAreaElement).blur(); }
           }}
         />
       )}
@@ -530,7 +544,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const rootId = uid();
     await putTreeNodes([
       {
-        id: rootId, projectId, text: `${ls.map(l => l.label.replace(/^Line /, '')).join(', ')} hold their ppm rate`,
+        /* One line is "Line 7 holds its ppm rate", not "7 hold their ppm rate". */
+        id: rootId, projectId, text: ls.length === 1 ? `${ls[0].label} holds its ppm rate`
+          : `${ls.map(l => l.label.replace(/^Line /, '')).join(', ')} hold their ppm rate`,
         rag: 'n' as NodeStatus, sort: 0, createdAt: t, updatedAt: t,
       },
       ...ls.map((l, i) => ({
@@ -587,8 +603,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
       ? `Delete “${what}” and the ${kids} box${kids === 1 ? '' : 'es'} under it?`
       : `Delete “${what}”?`;
     if (!window.confirm(msg + '\n\nNothing on the board is touched.')) return;
-    await deleteTreeBranch(projectId, n.id);
+    const back = await deleteTreeBranch(projectId, n.id);
     await load();
+    /* Every other delete in the app can be taken back for a few seconds; the
+       tree's — a whole branch at a time — could not. */
+    offerUndo(kids ? `Deleted “${what}” and the ${kids} under it` : `Deleted “${what}”`, back);
   };
 
   /** Swap with the sibling either side — reordering without dragging, which is
@@ -598,7 +617,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const i = sibs.findIndex(s => s.id === n.id);
     const j = i + dir;
     if (i < 0 || j < 0 || j >= sibs.length) return;
-    await putTreeNodes([{ ...n, sort: sibs[j].sort }, { ...sibs[j], sort: n.sort }]);
+    /* The STORED row, as `change` does: the drawn one carries a bound number's
+       colour, and a reorder wrote that colour over the author's own. */
+    await putTreeNodes([{ ...sibs[i], sort: sibs[j].sort }, { ...sibs[j], sort: sibs[i].sort }]);
     await load();
   };
 
@@ -808,7 +829,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
               somebody press ＋› three times and write the obvious. */}
           {trackerLines(ppm.lines).length > 0 && (
             <button className="btn btn-primary btn-lg" onClick={() => void startFromLines()}>
-              Start from the {trackerLines(ppm.lines).length} lines
+              {trackerLines(ppm.lines).length === 1
+                ? `Start from ${trackerLines(ppm.lines)[0].label}`
+                : `Start from the ${trackerLines(ppm.lines).length} lines`}
             </button>
           )}
           <button
