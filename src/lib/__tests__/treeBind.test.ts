@@ -20,11 +20,11 @@ import { describe, it, expect } from 'vitest';
 import {
   boundNumber, statusOfNumber, numberWords, numberFigure, numberChoices,
   bindsWork, bindsNumber, withoutNumber, withoutWork,
-  withTrackerRows, bindSources, bindCount, unplacedActions,
+  withTrackerRows, bindSources, bindCount, unplacedActions, statusOfTodo,
   type NumberSources, type TrackerBind,
 } from '../treeBind';
 import type { Measure, Period, Reading, Target } from '../measures';
-import type { PaceLineRow, TreeNodeRow } from '../../db';
+import type { PaceLineRow, PaceTodoRow, TreeNodeRow } from '../../db';
 import type { PaceAction } from '../tracker';
 
 const ppm: Measure = { id: 'm-ppm', name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 10 };
@@ -181,3 +181,16 @@ describe('a number binding on the tree', () => {
     expect(numberChoices([ppm], [])).toEqual([]);
   });
 });
+
+describe('a Next step on the tree', () => {
+  const step = (o: Partial<PaceTodoRow>): PaceTodoRow =>
+    ({ id: 's', projectId: 'p', what: 'x', who: '', where: '', why: '', when: '', state: 'todo', createdAt: 1, updatedAt: 1, ...o }) as PaceTodoRow;
+  it('is red only when its day has gone, amber when it waits on somebody', () => {
+    expect(statusOfTodo(step({ state: 'waiting' }), '2026-10-03')).toBe('a');
+    expect(statusOfTodo(step({ state: 'todo', due: '2026-10-01' }), '2026-10-03')).toBe('r');
+    expect(statusOfTodo(step({ state: 'waiting', due: '2026-10-01' }), '2026-10-03')).toBe('r');
+    expect(statusOfTodo(step({ state: 'todo', due: '2026-10-09' }), '2026-10-03')).toBe('w');
+    expect(statusOfTodo(step({ state: 'done', due: '2026-10-01' }), '2026-10-03')).toBe('g');
+  });
+});
+

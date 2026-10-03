@@ -50,10 +50,10 @@ import { standing, slipWords } from '../lib/standing';
 import { layoutPlan, labelGap, planSays } from '../lib/plan';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
-import { withTrackerRows, bindSources, statusOfAction, boundNumber, type NumberSources } from '../lib/treeBind';
+import { withTrackerRows, bindSources, statusOfAction, boundNumber, boardWords, type NumberSources } from '../lib/treeBind';
 import { methodOf } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
-  BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX } from '../lib/pillars';
+  BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX, boardName } from '../lib/pillars';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -671,8 +671,10 @@ function ProgramsPage({ p, title, scale, sheetH, n, of }: {
  * the SHAPE is the message. Three columns handed across a table say "these are
  * the three kinds of problem and here is where each stands"; the same actions as
  * a list say something much weaker. */
-function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet, fill }: {
+function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet, fill, board }: {
   rows: PaceReportData['board']; unplaced: number; title: string;
+  /** What the board is called on this job — see boardName in lib/pillars. */
+  board: string;
   scale: number; sheetH: number; n: number; of: number;
   /** The areas this particular sheet carries — see boardSheets in lib/pillars. */
   areas: string[]; sheet: number;
@@ -714,7 +716,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-1">
           <section className="exec-box">
-            <SectionHead n={String(n)} title={'3P Board — People · Plant · Process' + (sheet > 1 ? ' (continued)' : '')}
+            <SectionHead n={String(n)} title={`${board} — People · Plant · Process` + (sheet > 1 ? ' (continued)' : '')}
               sowhat="One card per line · every action on the project’s board" />
             <div className="exec-areas" style={geom}>
             {areas.map(area => {
@@ -756,7 +758,7 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · client report · page {n} of {of} — the 3P board{sheet > 1 ? ` (${sheet})` : ''}</span>
+          <span>{title} · client report · page {n} of {of} — the {board === '3P Board' ? '3P board' : 'board'}{sheet > 1 ? ` (${sheet})` : ''}</span>
           <span>{unplaced > 0
             ? `${unplaced} action${unplaced === 1 ? '' : 's'} not given a column yet`
             : 'Every action is on the board.'}</span>
@@ -1318,7 +1320,7 @@ export function PaceExecReport() {
   const materialsPageNo = onFile(/^What we are waiting on/, guess.materials);
   const programsPageNo = onFile(/^What the machine can run/, guess.programs);
   const treePageNo = onFile(/^The plan$/, guess.tree);
-  const boardPageNo = onFile(/^3P Board/, guess.board);
+  const boardPageNo = onFile(/^(3P )?Board — /, guess.board);
   const pageCount = file?.of ?? guess.of;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
@@ -1533,7 +1535,7 @@ export function PaceExecReport() {
       const num = boundNumber(n.bind, numSources);
       return {
         id: n.id, parentId: n.parentId, text: n.text, rag: n.rag, sort: n.sort,
-        number: num?.figure, state: num?.words,
+        number: num?.figure, state: num?.words ?? boardWords(n.id, n.rag),
       };
     }),
     // A line's deck is titled for the LINE and led by its owner — it is that
@@ -1782,6 +1784,7 @@ export function PaceExecReport() {
           "not on the board yet" list is where an unsorted action is fixed. */}
       {boardPlan.map((sheetAreas, i) => (
         <BoardPage key={i} rows={boardRows} unplaced={boardData.unplaced.length} title={title}
+          board={boardName(project ? methodOf(project).label : undefined)}
           scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount}
           areas={sheetAreas.map(a => a.name)} sheet={i + 1}
           fill={boardScale(runHeight(sheetAreas))} />

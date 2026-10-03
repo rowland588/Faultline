@@ -42,7 +42,7 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
 import {
   withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, unplacedActions, whyUnplaced, bindActionText,
-  bindsWork, bindsNumber, boundNumber, numberChoices, withoutNumber, withoutWork, type TrackerBind, type BoundNumber,
+  bindsWork, bindsNumber, boundNumber, numberChoices, withoutNumber, withoutWork, boardWords, type TrackerBind, type BoundNumber,
 } from '../lib/treeBind';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
@@ -303,7 +303,7 @@ function Box({
         <div className="lt-tools is-ro">
           <span className={'lt-status is-' + node.rag + ' is-ro'} title="Its state on the board">
             <span className="lt-status-dot" aria-hidden />
-            <span className="lt-status-l">{statusLabel(node.rag)}</span>
+            <span className="lt-status-l">{boardWords(node.id, node.rag) ?? statusLabel(node.rag)}</span>
           </span>
           <span className="lt-from">from the board</span>
         </div>
