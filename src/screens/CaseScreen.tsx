@@ -19,7 +19,7 @@ import { plural } from '../lib/format';
 import { ActionComposer } from './ActionComposer';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput, type Snag, type SnagStatus } from '../snag/types';
-import { studyResult, defaultTargetN, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
+import { studyResult, defaultTargetN, studyTarget, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
 
 /** Mean-per-event, in words a room can read aloud. */
@@ -33,7 +33,7 @@ const fmtH = (ms: number) => {
 };
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
-export const scopeLabel = (c: Pick<Case, 'path'>): string =>
+export const scopeLabel =(c: Pick<Case, 'path'>): string =>
   c.path.length ? c.path.map(s => s.value).join(' · ') : 'the whole line';
 
 /** Recent truth for a case: avg weekly loss of its scoped rows over the last
@@ -82,11 +82,14 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
   kase: Case; scopedCount: number; result: ReturnType<typeof studyResult>;
   costable: boolean; factor: number; onChange: (patch: Partial<Case>) => Promise<void>;
 }) {
-  const [tN, setTN] = useState<number | null>(null);
+  /* THE BOX HOLDS WHAT WAS TYPED; the number is clamped when it is used. It
+     used to clamp on every keystroke, so the "1" of "12" became 3 at once and
+     the "2" made it 32 — twelve could not be typed at all. */
+  const [tN, setTN] = useState<string | null>(null);
 
   if (!kase.study) {
     const suggested = defaultTargetN(scopedCount);
-    const target = tN ?? suggested;
+    const target = studyTarget(tN, suggested);
     return (
       <div>
         <p className="sub">
@@ -100,7 +103,8 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
         <div className="row-inline no-print" style={{ marginTop: 10 }}>
           <label className="sub" htmlFor="study-n">Samples to collect:</label>
           <input id="study-n" className="text-input case-target" type="number" min={3} max={50} step={1}
-            value={target} onChange={e => setTN(Math.max(3, Math.min(50, Number(e.target.value) || suggested)))} />
+            value={tN ?? String(suggested)} onChange={e => setTN(e.target.value)}
+            onBlur={() => setTN(String(target))} />
           <button className="btn btn-primary" disabled={scopedCount === 0}
             onClick={() => void onChange({ study: { startedAt: Date.now(), targetN: target } })}>
             🔬 Start the study

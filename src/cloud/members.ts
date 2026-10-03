@@ -76,21 +76,27 @@ export async function removeMember(workspaceId: string, email: string): Promise<
 /** The people list for one workspace, with add/remove that refresh in place. */
 export function useMembers(workspaceId: string): {
   members: WsMember[]; loaded: boolean; myEmail: string;
+  /** The list could not be read (offline, or the cloud refused). The panel
+   *  must not then say "nobody else" — it does not know. */
+  unreached: boolean;
   add: (email: string) => Promise<AddResult>; remove: (email: string) => Promise<void>;
 } {
   const { session } = useSession();
   const [members, setMembers] = useState<WsMember[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [unreached, setUnreached] = useState(false);
 
   const refresh = useCallback(async () => {
-    try { setMembers(await listMembers(workspaceId)); } catch { /* offline — panel shows what it has */ }
+    try { setMembers(await listMembers(workspaceId)); setUnreached(false); } catch { setUnreached(true); /* offline — panel shows what it has */ }
     setLoaded(true);
   }, [workspaceId]);
 
-  useEffect(() => { if (session) void refresh(); else setLoaded(true); }, [session, refresh]);
+  /* Loaded means READ. Before the session arrives nothing has been asked, so
+     the panel says nothing yet rather than "nobody else". */
+  useEffect(() => { if (session) void refresh(); }, [session, refresh]);
 
   return {
-    members, loaded,
+    members, loaded, unreached,
     myEmail: norm(session?.user.email ?? ''),
     add: async (email: string) => { const r = await addMember(workspaceId, email); await refresh(); return r; },
     remove: async (email: string) => { await removeMember(workspaceId, email); await refresh(); },

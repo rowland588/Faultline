@@ -19,7 +19,7 @@
  *   page is the workbench. So this screen is READ-ONLY: tap the machine and
  *   you land on its asset page to zoom, pin, and close; Back returns here. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
+import { nav, withQuery } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { listSnagAssets, snagsForWorkspace, listCases } from '../db';
 import { useSyncedAt } from '../cloud/session';
@@ -199,7 +199,11 @@ export function LineScreen({ wsId }: { wsId: string }) {
         <div className="subhead">
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ Walks</button>
         </div>
-        <p className="sub" style={{ marginTop: 16 }}>No machines yet — add them in Settings, or film a walk and mark them.</p>
+        {/* There is no Settings page any more — the machines are listed in the
+            study's Set up sheet, so the sentence opens it rather than naming
+            a place that is not there. */}
+        <p className="sub" style={{ marginTop: 16 }}>No machines yet — list them in Set up, or film a walk and mark them.</p>
+        <button className="btn" style={{ marginTop: 10 }} onClick={() => withQuery('setup', '1')}>Set up the machines ›</button>
       </div>
     );
   }

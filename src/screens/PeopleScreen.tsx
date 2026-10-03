@@ -12,7 +12,7 @@ import { useOwningProject } from '../lib/usePaceWorkspace';
 export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string }) {
   const { whoIs, myId, members: team } = useTeam();
   const { profile } = useProfile();
-  const { members, loaded, myEmail, add, remove } = useMembers(wsId);
+  const { members, loaded, unreached, myEmail, add, remove } = useMembers(wsId);
   // A line's study is under its project: everyone on the project sees it
   // (supabase/LINE_STUDY_ACCESS.sql). This list is for anyone on the line
   // who is not on the project.
@@ -70,8 +70,10 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
               : (m.email === myEmail ? 'You' : displayName(m.email))}
           </span>
         ))}
+        {/* "Nobody else yet" only when the list was actually read: offline it
+            said so anyway, which is a claim the screen could not know. */}
         {loaded && members.filter(m => m.email !== ownerEmail).length === 0 && (
-          <span className="sub">{canManage ? 'Nobody else yet.' : ''}</span>
+          <span className="sub">{unreached ? 'Couldn’t reach the people list — are you online?' : canManage ? 'Nobody else yet.' : ''}</span>
         )}
       </div>
       {note && <p className="chip-note">{note}</p>}
@@ -83,7 +85,7 @@ export function PeoplePanel({ wsId, ownerId }: { wsId: string; ownerId?: string 
               onKeyDown={e => { if (e.key === 'Enter') void doAdd(); }} />
             <button className="btn" onClick={() => void doAdd()} disabled={!text.trim()}>Add</button>
           </div>
-          <p className="chip-hint">They’ll see this workspace — and its full history — the next time the app syncs</p>
+          <p className="chip-hint">They’ll see this line’s study — and its full history — the next time the app syncs</p>
         </>
       )}
     </div>

@@ -251,7 +251,9 @@ export function AnalyseScreen({ route }: { route: Route }) {
   return (
     <div className="wrap analyse">
       <div className="analyse-top">
-        <button className="link-btn" onClick={() => nav(`/w/${workspace.id}/analyse`)}>‹ Question</button>
+        {/* Back to the board in the SAME period — it dropped the period, so
+            "All" on the breadcrumb and this button landed on different boards. */}
+        <button className="link-btn" onClick={() => jump(0)}>‹ Question</button>
         <div className="measure-toggle" role="group" aria-label="Rank by">
           <span className="mt-label">Rank by</span>
           <button className={'mt' + (!rankByFreq ? ' on' : '')} onClick={() => goto('time')}>Lost time</button>

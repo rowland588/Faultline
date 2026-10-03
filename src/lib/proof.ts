@@ -237,6 +237,17 @@ export const provenWin = (r: StudyResult): boolean =>
 /** Default sample size to promise: match the baseline's n, kept humane. */
 export const defaultTargetN = (beforeN: number): number => Math.min(20, Math.max(5, beforeN));
 
+/** How many samples a study asks for, from what was typed in the box: a whole
+ *  number from 3 to 50, or the suggestion when the box is empty or not a
+ *  number. Clamped when USED, never while typing — clamping each keystroke
+ *  turned the "1" of "12" into 3, so twelve could not be typed at all. */
+export function studyTarget(typed: string | null, suggested: number): number {
+  if (typed == null || typed.trim() === '') return suggested;
+  const n = Math.round(Number(typed));
+  if (!Number.isFinite(n) || n <= 0) return suggested;
+  return Math.max(3, Math.min(50, n));
+}
+
 /** A span of calendar, in words a room reads aloud: "6 days", "8 wks". */
 export function fmtSpan(ms: number): string {
   const d = ms / (24 * 3600_000);

@@ -5,7 +5,7 @@
 import { LOSS, LOSS_TOP } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav } from '../state/useRoute';
+import { goBack } from '../state/useRoute';
 import { snagsForWorkspace } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { weeklyLoss, headline } from '../lib/stats';
@@ -52,7 +52,10 @@ export function ReportScreen() {
     <div className={`report-stage paper-${paper}`}>
       <style>{`@page { size: ${paper} portrait; margin: 12mm; }`}</style>
       <div className="report-actions no-print">
-        <button className="btn btn-ghost" onClick={() => nav(`/w/${workspace.id}/analyse`)}>‹ Back</button>
+        {/* Back is back: the report is opened from the meeting's Reports and
+            from a project's, and "‹ Back" used to land on Analyse, where the
+            person had not been. The meeting is the fallback for a cold link. */}
+        <button className="btn btn-ghost" onClick={() => goBack(`/w/${workspace.id}/meeting`)}>‹ Back</button>
         <div style={{ flex: 1 }} />
         <div className="paper-toggle" role="group" aria-label="Paper size">
           {(['A4', 'A3'] as Paper[]).map(sz => (

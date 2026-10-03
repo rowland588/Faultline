@@ -202,8 +202,16 @@ export function MeetingScreen() {
       lines.push(`- [${kind}] ${s.problem}${s.owner ? ` — ${s.owner}` : ''}${s.dueAt ? ` — due ${dateNice(s.dueAt)}` : ''}${s.latestUpdate ? ` — ${s.latestUpdate}` : ''}`);
     }
     if (touched.length === 0) lines.push('(no changes this meeting)');
-    void navigator.clipboard?.writeText(lines.join('\n'));
+    /* SAY WHAT HAPPENED. The button copied in silence — or, where the
+       clipboard is not allowed, did nothing in silence — so it read as a
+       button that does nothing either way. */
+    const text = lines.join('\n');
+    const write = navigator.clipboard?.writeText(text);
+    if (!write) { setCopied('failed'); return; }
+    write.then(() => setCopied('done'), () => setCopied('failed'));
   };
+  const [copied, setCopied] = useState<'done' | 'failed' | null>(null);
+  useEffect(() => { if (!copied) return; const t = window.setTimeout(() => setCopied(null), 2500); return () => window.clearTimeout(t); }, [copied]);
 
   // ---- act renderers (all mounted; hidden acts keep their state/position)
   const show = (n: number) => ({ display: act === n ? undefined : 'none' } as const);
@@ -310,7 +318,9 @@ export function MeetingScreen() {
 
         {/* ═══ Act 1 — THE NUMBER ═══ */}
         <div style={show(1)}>
-          <h1 className="present-q meet-q">What {sel === 'all' ? 'it has' : 'last week'} cost us</h1>
+          {/* The week that is CHOSEN — the picker and the week bars can make it
+              any week, and the heading said "last week" whichever it was. */}
+          <h1 className="present-q meet-q">What {sel === 'all' ? 'it has' : sel === lastFull?.start ? 'last week' : weekOf(sel).replace('Week', 'the week')} cost us</h1>
           <div className="meet-hero">
             <span className="meet-hero-n">{money(ms)}</span>
             <span className="meet-hero-sub">
@@ -481,7 +491,9 @@ export function MeetingScreen() {
                   );
                 })}
               </div>
-              <button className="btn meet-copy" onClick={copyMinutes}>Copy the minutes</button>
+              <button className="btn meet-copy" onClick={copyMinutes} aria-live="polite">
+                {copied === 'done' ? 'Copied ✓ — paste them anywhere' : copied === 'failed' ? 'This browser would not copy — select the list above' : 'Copy the minutes'}
+              </button>
             </>
           )}
         </div>

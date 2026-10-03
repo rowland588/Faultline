@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
 import { live, type Test, type TestItem } from '../lib/testing';
 import { fixTone } from '../lib/fixTone';
@@ -34,6 +34,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
      the fixes pinned on it, and a problem raised on it becomes a fix. */
   const [job, setJob] = useState<{ projectId: string; fixes: Test[]; found: { item: TestItem; on?: Test }[] } | null>(null);
   const [fixDraft, setFixDraft] = useState<{ xPct: number; yPct: number } | null>(null);
+  /* A frame that is gone says so, rather than bouncing to the walks list
+     without a word (and leaving Back pointing at the dead link). */
+  const [gone, setGone] = useState(false);
 
   const load = async () => {
     let a = await getSnagAsset(assetId);
@@ -42,9 +45,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       // user back to the hub — re-read once before concluding it's gone
       await new Promise(r => setTimeout(r, 400));
       a = await getSnagAsset(assetId);
-      if (!a) { nav(`/w/${wsId}/snags`); return; }
+      if (!a) { setGone(true); return; }
     }
-    setAsset(a); setSnags(await snagsForAsset(a.id));
+    setGone(false); setAsset(a); setSnags(await snagsForAsset(a.id));
     // No segment id means the clip it was cut from has since been deleted.
     // The still and everything pinned on it are still here — there is just no
     // video to jump back to.
@@ -86,6 +89,13 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
     setEditing(null);
     if (job) { setDraft(null); setFixDraft({ xPct: x, yPct: y }); } else setDraft({ xPct: x, yPct: y });
   };
+
+  if (gone) return (
+    <div className="wrap">
+      <p className="sub" style={{ marginTop: 24 }}>That frame isn’t here any more — it was deleted, or it has not synced to this device yet.</p>
+      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/w/${wsId}/snaglist`)}>All the evidence</button>
+    </div>
+  );
 
   return (
     <div className="wrap">
@@ -272,12 +282,18 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
   };
   /* ONE PROBLEM, ONE RECORD. The pin becomes a fix in the same spot, carrying
      what was written and the close-up; the pin is closed with a note saying
-     where it went, never deleted — its photo is now the fix's too. */
+     where it went, never deleted — the fix carries its own copy of the photo. */
   const makeFix = async () => {
     if (!snag || !jobId) return;
     setBusy(true);
     try {
       const t = now(), id = uid();
+      /* The close-up goes with the fix as ITS OWN copy. Sharing the pin's key
+         meant deleting the closed pin later (which takes its photo with it)
+         silently took the fix's picture too. */
+      const photo = snag.detailPhotoKey ? await getBlob(snag.detailPhotoKey) : undefined;
+      const photoKey = photo ? `blob-${uid()}` : undefined;
+      if (photo && photoKey) await putBlob(photoKey, photo);
       const due = snag.dueAt ? new Date(snag.dueAt) : undefined;
       const iso = due ? `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}-${String(due.getDate()).padStart(2, '0')}` : undefined;
       await putTest({
@@ -285,7 +301,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         title: (snag.proposedSolution || snag.problem).trim(), passesIf: snag.problem.trim(),
         withWhom: snag.owner || undefined, plannedFor: iso,
         pin: { frameId: asset.id, x: snag.xPct ?? 50, y: snag.yPct ?? 50 },
-        media: snag.detailPhotoKey ? [{ id: uid(), kind: 'photo', blobKey: snag.detailPhotoKey, mime: 'image/jpeg', capturedAt: snag.raisedAt }] : undefined,
+        media: photoKey ? [{ id: uid(), kind: 'photo', blobKey: photoKey, mime: photo?.type || 'image/jpeg', capturedAt: snag.raisedAt }] : undefined,
         sort: t, createdAt: t, updatedAt: t,
       });
       await updateSnag({ ...snag, status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
