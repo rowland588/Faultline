@@ -367,9 +367,12 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
   const progs = usePrograms(projectId);
   if (tt.loading || all.loading) return <p className="sub">Loading…</p>;
 
-  const empty = tt.tests.length === 0 && tt.assets.length === 0;
   const today = todayISO();
   const st = all.standing;
+  /* EMPTY MEANS NOTHING ON ANY LIST — not "no tests and no machines". A job
+     with only materials said "Nothing planned on this line yet" over a
+     material three days late, with no verdict, no alarm and no plan. */
+  const empty = tt.tests.length === 0 && tt.assets.length === 0 && st.outstanding === 0 && st.plan.length === 0;
 
   /* WHAT EACH FOLDED CARD SAYS — the answer, so closing a card hides the
      detail and never the news. */
@@ -389,7 +392,9 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
     <section className="pace-sec">
       {/* The same row every screen under this project carries, with the same
           counts — one way around, not a second one for the front page. */}
-      {!empty && <Peers peers={projectPeers(projectId, 'overview', all.counts)} />}
+      {/* On an empty job too: the gates are where a job is started — Install
+          first — and without the row the only way off this page was a test. */}
+      <Peers peers={projectPeers(projectId, 'overview', all.counts)} />
       {empty ? (
         <div className="pace-empty">
           <p className="sub">Nothing planned on this line yet.</p>
