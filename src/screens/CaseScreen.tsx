@@ -331,6 +331,10 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
   return (
     <div className="wrap case-root print-root">
+      {/* "Print A3" must print on A3: with no page rule the browser used its
+          default sheet (A4 or Letter). The same injected rule the one-page
+          report uses for its paper choice. */}
+      <style>{'@page { size: A3 portrait; margin: 12mm; }'}</style>
       <div className="subhead no-print">
         <button className="btn btn-ghost" data-tour="case-back" onClick={() => goBack(`/w/${workspace.id}/analyse`)}>‹ Back</button>
         <div style={{ flex: 1 }} />
@@ -348,10 +352,14 @@ export function CaseScreen({ caseId }: { caseId: string }) {
           {kase.status === 'closed' ? ` · closed ${dateNice(kase.closedAt ?? kase.openedAt)}` : ''}
         </p>
         <div className="report-stats">
-          <span className={'report-stat ' + (kase.status === 'open' ? 'st-open' : 'st-closed')}><b>{kase.status === 'open' ? 'Open' : 'Closed'}</b></span>
+          {/* One colour, one meaning: a case being worked is under way (indigo),
+              and a target not met YET is the work, not a failure — neutral.
+              Both wore the red of "the day has gone". Worse than the
+              baseline is still red: that is the number going the wrong way. */}
+          <span className={'report-stat ' + (kase.status === 'open' ? 'st-prog' : 'st-closed')}><b>{kase.status === 'open' ? 'Open' : 'Closed'}</b></span>
           <span className="report-stat"><b>{money(kase.baselineMsWeek)}</b> baseline</span>
           <span className="report-stat"><b>{money(nowMsWeek)}</b> now</span>
-          {kase.targetMsWeek != null && <span className={'report-stat ' + (targetMet ? 'st-closed' : 'st-open')}><b>{money(kase.targetMsWeek)}</b> target {targetMet ? '✓ met' : 'not yet'}</span>}
+          {kase.targetMsWeek != null && <span className={'report-stat' + (targetMet ? ' st-closed' : '')}><b>{money(kase.targetMsWeek)}</b> target {targetMet ? '✓ met' : 'not yet'}</span>}
           {vsBase != null && <span className={'report-stat ' + (vsBase <= 0 ? 'st-closed' : 'st-open')}><b>{vsBase <= 0 ? '▼' : '▲'} {Math.abs(vsBase)}%</b> vs baseline</span>}
         </div>
       </header>
@@ -427,7 +435,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       <section className="case-box">
         <h2 className="case-box-h">Countermeasures — {openMine.length + boardOpen} open · {closedMine.length + boardDone} closed</h2>
         {kase.whys?.length ? (
-          <p className="case-root">Aimed at the root cause: <b>{kase.whys[kase.whys.length - 1]}</b></p>
+          <p className="case-cause">Aimed at the root cause: <b>{kase.whys[kase.whys.length - 1]}</b></p>
         ) : null}
         {mine.length + boardActs.length === 0 && <p className="sub">No actions on this case yet. Raise the first one below.</p>}
         {boardActs.map(t => (

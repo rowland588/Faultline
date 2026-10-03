@@ -91,12 +91,12 @@ export function useDeepCrumbs(route: Route): Crumb[] {
       if (!id || !wsId) { if (alive) setDeep([]); return; }
       if (name === 'segment') {
         const s = await getSegment(id);
-        if (alive) setDeep(s ? [{ label: s.name || `Segment ${s.sequence}` }] : []);
+        if (alive) setDeep(s ? [{ label: s.name || `Segment ${s.sequence}` }] : [{ label: 'Not here any more' }]);   // a gone clip still names where you are
         return;
       }
       if (name === 'asset' || name === 'history') {
         const a = await getSnagAsset(id);
-        if (!a) { if (alive) setDeep([]); return; }
+        if (!a) { if (alive) setDeep([{ label: 'Not here any more' }]); return; }
         const seg = a.segmentId ? await getSegment(a.segmentId) : undefined;
         const out: Crumb[] = [];
         if (seg) out.push({ label: seg.name || `Segment ${seg.sequence}`, to: `/w/${wsId}/segment/${seg.id}` });

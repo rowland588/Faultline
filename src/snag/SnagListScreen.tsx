@@ -239,7 +239,10 @@ export function SnagListScreen() {
         {/* Filming is somewhere you GO from here, not the thing you land in.
             This screen is what the Snags tab opens, because it is what the
             question "what have we got?" actually means. */}
-        <button className="btn" onClick={() => nav(`/w/${workspace.id}/snags`)}>🎥 Walks</button>
+        {/* ?manage: the walks list itself. Without it the hub forwards to the
+            Line once a machine is marked, so a button called "Walks" landed
+            on a screen called Machines. */}
+        <button className="btn" onClick={() => nav(`/w/${workspace.id}/snags?manage`)}>🎥 Walks</button>
         <div style={{ flex: 1 }} />
         <button className="btn" onClick={exportCsv}>CSV</button>
         <button className="btn" onClick={() => setPrinting(true)}>Print</button>
