@@ -379,7 +379,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
     setAsking(true); setRaised(false);
   };
   const openMake = () => {
-    if (!w || !compare) return;
+    if (!w || !compare || asRun.line == null) return;
     const m = makeItSoWords(line.name, w, changed, compare);
     setWhat(m.what);
     const touched = w.stations.filter(s => changed.some(c => c.includes(s.name.trim() || '§')));
@@ -503,7 +503,10 @@ export function CapacityPanel({ projectId, line, onSave }: {
         ) : !asking ? (
           <>
           {gone && <p className="sub" role="status">The action made from this what-if has been deleted from the board.</p>}
-          <button className="board-cta" onClick={openMake} disabled={!compare || r.line == null}>
+          {/* Not until the line as run can be counted: there is no prediction
+              to carry yet, and it put "Finish the line as it runs first" on
+              the board as the action's why. */}
+          <button className="board-cta" onClick={openMake} disabled={!compare || r.line == null || asRun.line == null}>
             <span className="board-cta-ic" aria-hidden>⚑</span>
             <span className="board-cta-main">Make it so — put {w.name} on the board, with this prediction as its why</span>
             <span className="board-cta-go" aria-hidden>›</span>

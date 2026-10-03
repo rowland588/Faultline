@@ -754,7 +754,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             
             <p className="pace-sec-sub">
               Each line has an owner and a pack of its own — its pace, its actions, its next steps, its wins and its
-              filmed walk. Open one to work in it; everything in it rolls up into the report above.
+              filmed walk. Open one to work in it; everything in it rolls up into the client report.
             </p>
           </div>
           {ppm.lines.length === 0 ? (
