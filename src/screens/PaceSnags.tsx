@@ -148,10 +148,19 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
     let alive = true;
     void (async () => {
       const out: { label: string; wsId: string; snag: Snag; asset?: SnagAsset }[] = [];
+      /* ONE READ PER WALK. Two lines can share a walk (a workspace), and reading
+         it once per line listed every snag on it twice — the same evidence
+         counted double, and React refusing the duplicate keys. Its lines are
+         named together instead: "Line 7 · Line 8". */
+      const byWalk = new Map<string, string[]>();
       for (const part of alsoSig.split(',').filter(Boolean)) {
         const i = part.indexOf(':');
         const id = part.slice(0, i), label = part.slice(i + 1);
         if (!id || id === wsId) continue;              // never list this walk twice
+        byWalk.set(id, [...(byWalk.get(id) ?? []), label]);
+      }
+      for (const [id, labels] of byWalk) {
+        const label = labels.join(' · ');
         const [as, sn] = await Promise.all([listSnagAssets(id), snagsForWorkspace(id)]);
         const byId = new Map(as.map(a => [a.id, a]));
         for (const s of sn) out.push({ label, wsId: id, snag: s, asset: s.assetId ? byId.get(s.assetId) : undefined });
