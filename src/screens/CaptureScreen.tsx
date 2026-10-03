@@ -273,7 +273,10 @@ export function CaptureScreen() {
               <div className="cap-typed">
                 <input className="text-input" type="number" min="0" placeholder="min" value={tMin} onChange={e => setTMin(e.target.value)} />
                 <input className="text-input" type="number" min="0" max="59" placeholder="sec" value={tSec} onChange={e => setTSec(e.target.value)} />
-                <button className="btn btn-primary" onClick={logTyped}>Log</button>
+                {/* Greyed until there is a time to log: with both boxes empty it
+                    was a primary button that did nothing at all when pressed. */}
+                <button className="btn btn-primary" onClick={logTyped}
+                  disabled={(parseInt(tMin, 10) || 0) * 60 + (parseInt(tSec, 10) || 0) <= 0}>Log</button>
               </div>
             )}
           </>

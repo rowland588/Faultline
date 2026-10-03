@@ -39,7 +39,9 @@ const WALK_SCREENS = new Set(['snags', 'snaglist', 'line', 'segment', 'asset', '
 /** The steps above a workspace: Projects › the project › the line. `screen` is
  *  the route you are on, which decides which face of the line Back lands on. */
 export function chainCrumbs(chain: WsChain | null, wsName: string, screen?: string): Crumb[] {
-  if (!chain) return [{ label: 'Workspaces', to: '/' }, { label: wsName, to: undefined }];
+  // Free-standing: Home lists it under "Not on a project"; there is no
+  // "Workspaces" page for the crumb to name.
+  if (!chain) return [{ label: 'Home', to: '/' }, { label: wsName, to: undefined }];
   const filmed = !screen || WALK_SCREENS.has(screen);
   const out: Crumb[] = [
     { label: 'Projects', to: '/projects' },
