@@ -224,3 +224,10 @@ export function boardSheets<T extends { counts: number[] }>(areas: T[], avail: n
   if (cur.length) out.push(cur);
   return out;
 }
+
+/** What the board is called on a job. "3P" is a method's name: on a lever tree
+ *  job the board is where the tree's work is written, and the job is not 3P.
+ *  The report's screen sheet and its PDF call it the same thing. */
+export function boardName(method?: string): string {
+  return method === 'Lever tree' ? 'Board' : '3P Board';
+}

@@ -27,6 +27,7 @@
  * and would leave last week's deleted rows stranded on the tree forever.
  */
 import type { PaceAction } from './tracker';
+import { todayISO } from './weeks';
 import type { PaceLineRow, PaceTodoRow, TreeNodeRow, NodeStatus } from '../db';
 import { standingFor, bySort, say, type Measure, type Period, type Target, type Reading, type Standing } from './measures';
 
@@ -250,9 +251,14 @@ export function actionsForBind(actions: PaceAction[], bind: TrackerBind): PaceAc
 }
 
 /** Where a Next step has got to, in the tree's own five states. */
-export function statusOfTodo(t: PaceTodoRow): NodeStatus {
+export function statusOfTodo(t: PaceTodoRow, today = todayISO()): NodeStatus {
   if (t.state === 'done') return 'g';
-  if (t.state === 'waiting') return 'r';
+  /* The same rule as statusOfAction and the board: red is the day that has
+     gone, amber is waiting on somebody. Waiting was drawn red — "Overdue" on
+     the tree for a step nobody was late with — and a step past its day was
+     drawn indigo, as if it were fine. */
+  if (t.due && t.due < today) return 'r';
+  if (t.state === 'waiting') return 'a';
   return 'w';
 }
 
@@ -282,6 +288,13 @@ export function todosForBind(todos: PaceTodoRow[], bind: TrackerBind, lineIds: s
  *  to know "is this row the tracker's or the user's" asks this. */
 export const BOUND_PREFIX = 'tracker:';
 export const isBoundNode = (id: string): boolean => id.startsWith(BOUND_PREFIX);
+
+/** The state of a row the board put on the tree, in the BOARD'S words. Amber
+ *  there is "Waiting" — on somebody — and the tree called the same action "At
+ *  risk", so one action read two ways on two screens and on paper. A box the
+ *  author drew keeps the tree's own words; undefined means "use those". */
+export const boardWords = (id: string, rag: NodeStatus): string | undefined =>
+  isBoundNode(id) && rag === 'a' ? 'Waiting' : undefined;
 
 /** Build the derived children of one bound node. They look like ordinary rows
  *  so that everything which draws a tree — the editor, the report, the PDF —

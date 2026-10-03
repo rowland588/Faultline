@@ -21,7 +21,7 @@ import {
   san, setFont, fit, panel, table, wash, type Doc,
 } from './reportKit';
 import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
-  BOARD_AREA_CHROME, BOARD_AREA_GAP } from './pillars';
+  BOARD_AREA_CHROME, BOARD_AREA_GAP, boardName } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
 import type { Shot } from './testReport';
 import { ASK, type Owes, type OweTone, type Party } from './owes';
@@ -1579,7 +1579,7 @@ const PILL_KEYS = ['people', 'plant', 'process'] as const;
 function footBoard(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the 3P board${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the ${boardName(data.method) === '3P Board' ? '3P board' : 'board'}${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
   d.text(data.boardUnplaced > 0
     ? `${data.boardUnplaced} action${data.boardUnplaced === 1 ? '' : 's'} not given a column yet`
     : 'Every action is on the board.', W - 28, H - 28 + 6, { align: 'right' });
@@ -2670,7 +2670,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
    * has been handed different information. */
   if (data.board.length > 0) {
     d.addPage('a3', 'landscape');
-    const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), '3P Board — People · Plant · Process',
+    const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), `${boardName(data.method)} — People · Plant · Process`,
       'One card per line \u00b7 every action on the project\u2019s board');
 
     const PILL: { key: 'people' | 'plant' | 'process'; label: string; c: string }[] = [
@@ -2702,7 +2702,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         d.addPage('a3', 'landscape');
         sheet++;
         ay = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage),
-          '3P Board — People · Plant · Process (continued)',
+          `${boardName(data.method)} — People · Plant · Process (continued)`,
           'One card per line \u00b7 every action on the project\u2019s board') + 14;
       }
       const k = boardScale(runHeight(plan));

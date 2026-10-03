@@ -12,7 +12,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listTreeNodes, type TreeNodeRow, type NodeStatus } from '../db';
-import { boundNumber, type NumberSources } from '../lib/treeBind';
+import { boundNumber, boardWords, type NumberSources } from '../lib/treeBind';
 
 const LABEL: Record<NodeStatus, string> = {
   n: 'Not started', w: 'In progress', a: 'At risk', r: 'Overdue', g: 'Done',
@@ -55,7 +55,7 @@ function Branch({ n, numbers }: { n: Node; numbers?: NumberSources }) {
         {num && <span className="lt-num">{num.figure}</span>}
         <span className={'lt-status is-' + n.row.rag}>
           <span className="lt-status-dot" aria-hidden />
-          <span className="lt-status-l">{num ? num.words : LABEL[n.row.rag] ?? LABEL.n}</span>
+          <span className="lt-status-l">{num ? num.words : boardWords(n.row.id, n.row.rag) ?? LABEL[n.row.rag] ?? LABEL.n}</span>
         </span>
       </div>
       {n.kids.length > 0 && <ul className="lt-kids">{n.kids.map(k => <Branch key={k.row.id} n={k} numbers={numbers} />)}</ul>}
