@@ -27,25 +27,31 @@ export interface Peer {
   n?: number;
   /** Any of that number past the day it was wanted. */
   late?: number;
+  /** A few words on what the tab holds — the line page's "what worked",
+   *  "record and chart". Said beside the name where the row has the room (a
+   *  desk), left off on a phone where it never had room. */
+  hint?: string;
 }
 
-export function Peers({ peers }: { peers: Peer[] }) {
+export function Peers({ peers, label = 'The rest of this project' }: { peers: Peer[]; label?: string }) {
   const shown = peers.filter(p => p.label);
   if (shown.length < 2) return null;
 
   return (
-    <nav className="peers" aria-label="The rest of this project">
+    <nav className="peers" aria-label={label}>
       {shown.map(p => (
         p.on
           ? (
             <span key={p.to} className="peer is-on" aria-current="page">
               {p.label}
+              {p.hint && <span className="peer-hint">{p.hint}</span>}
               {!!p.n && <span className={'peer-n' + (p.late ? ' is-late' : '')}>{p.n}</span>}
             </span>
           )
           : (
             <button key={p.to} className="peer" onClick={() => nav(p.to)}>
               {p.label}
+              {p.hint && <span className="peer-hint">{p.hint}</span>}
               {!!p.n && <span className={'peer-n' + (p.late ? ' is-late' : '')}>{p.n}</span>}
             </button>
           )

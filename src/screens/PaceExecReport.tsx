@@ -1020,7 +1020,7 @@ export function PaceExecReport() {
 
   if (loading) {
     return (
-      <div className="exec-report">
+      <div className="wrap exec-report">
         <div className="exec-bar no-print">
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>← Back</button>
         </div>
@@ -1035,7 +1035,7 @@ export function PaceExecReport() {
      the one project the app invented, and there is no such thing now. */
   if (!project) {
     return (
-      <div className="exec-report">
+      <div className="wrap exec-report">
         <div className="exec-bar no-print">
           <button className="btn btn-ghost" onClick={() => nav('/projects')}>← Projects</button>
         </div>
@@ -1052,7 +1052,7 @@ export function PaceExecReport() {
      report under that line's address — which is what it silently became. */
   if (lineId && !line) {
     return (
-      <div className="exec-report">
+      <div className="wrap exec-report">
         <div className="exec-bar no-print">
           <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>← Back</button>
         </div>
@@ -1696,20 +1696,22 @@ export function PaceExecReport() {
   fileData.current = reportData();
 
   return (
-    <div className="exec-report" ref={root}>
+    <div className="wrap exec-report" ref={root}>
       {/* the second before it goes up on the wall */}
       <Sweep id={'report:' + projectId + (lineId ?? '')} />
+      {/* THE SPINE, NOT A LONE BACK BUTTON. This screen and the walk were the
+          only two in the app with no trail at all — and they are the two you
+          most need to get out of, because both fill the window. A back button
+          that knows one destination cannot tell you where you are.
+          Its own row at the top of the frame, as on every page; it was
+          squeezed into a box beside the PDF button. */}
+      <Crumbs trail={[
+        { label: 'Projects', to: '/projects' },
+        ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
+        ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
+        { label: 'Client report' },
+      ]} />
       <div className="exec-bar no-print">
-        {/* THE SPINE, NOT A LONE BACK BUTTON. This screen and the walk were the
-            only two in the app with no trail at all — and they are the two you
-            most need to get out of, because both fill the window. A back button
-            that knows one destination cannot tell you where you are. */}
-        <Crumbs trail={[
-          { label: 'Projects', to: '/projects' },
-          ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
-          ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
-          { label: 'Client report' },
-        ]} />
         <div className="exec-bar-r">
           <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
           <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
