@@ -34,9 +34,9 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
       manifest: {
-        name: 'Faultline — prove the fix held',
+        name: 'Faultline — control room for change',
         short_name: 'Faultline',
-        description: 'See the loss, price it in £/week, fix it with owned actions, and prove the fix held — with dated receipts. Offline-first improvement software for food factories.',
+        description: 'The control room for change on your production lines: new equipment through its gates, a line improved week by week, a number hit by a date — each measured before and after, all of it in one view. Works offline on the floor.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

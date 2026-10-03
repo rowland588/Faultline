@@ -1,31 +1,37 @@
 # Faultline
 
-> Faultline is where a factory runs its improvement work — and the only system where that work has to prove itself. Offline-first improvement software for SME food-manufacturing sites: log production-line losses on a phone, price them in £/week on a live Pareto, fix them with owned and dated actions, and prove each fix held with a dated, statistically-checked receipt.
+> Faultline is a control room for change on production lines. Every change to a line — new equipment, a line that has to perform better, a number that has to be hit — is run on the method that fits it, measured before and after, and shown in one view that answers "am I in control?" across every line and job. Offline-first, installable on the phones and laptops a team already has.
 
-Faultline is made by OpEx Elevate (UK) and is usually introduced to a factory by an improvement consultant. It is invite-only — there is no public sign-up.
+Faultline is made by OpEx Elevate (UK). It is invite-only — there is no public sign-up.
 
-## What it does (the four verbs)
+## The three methods — three kinds of change
 
-- **See it — both ways.** Time losses with a stopwatch on the floor, or film the line and pin faults to the exact spot on a frozen frame of the footage. Works with no signal; everything syncs itself.
-- **Price it in pounds.** Every lost minute meets the crew's labour rate. The Pareto ranks losses by lost time, frequency and £/week, drillable by machine, problem type and shift, over a chosen period (4 weeks, 12 weeks, year, all time).
-- **Fix it — owned and dated.** Every action carries an owner and a due date, ages visibly when it slips, and lands in a weekly meeting that runs on live data with minutes that write themselves.
-- **Prove it held — or admit it didn't.** A confirmation study re-measures the same scope the same way and compares mean time per event before and after, with both sample sizes and their calendar spans shown. The verdict passes a one-sided statistical significance test; calling it freezes the numbers into a receipt that later data cannot rewrite. Proven fixes are then watched for slipping.
+- **Stage gate.** New equipment taken through its gates — Install, Set up, Commission, Hand over — with the supplier: install stages, tests against what was agreed, the fixes they raise, the materials and programs it waits on, and the handover date.
+- **3P.** A running line improved week by week on the board, every action sorted People, Plant or Process, with an owner and a due date. Kept entirely in the app.
+- **Lever tree.** One outcome worked down to what has to be true for it; each condition's colour follows its number or the work under it.
 
-## What makes it different
+## Inside every change
 
-- OEE and sensor machine-monitoring systems see that a machine stopped, never why, and they do not run the fix or prove it worked. Faultline uses human observation and video walks to capture the why, and closes the loop with proof. The two complement each other.
-- Audit and inspection apps answer "does it comply?". Faultline deliberately does not — it answers "does it work and what does it cost?".
-- A "win" in Faultline is a receipt: frozen at the moment it was called, dated, £-stamped, significance-gated, and auditable later. Multi-site groups see all receipts on one portfolio ledger (£/yr at stake, £/yr proven).
-- No sensors, no integrations, no IT project: it is an installable, offline-first web app on the phones a team already owns.
+- **A measured before and after**, judged against the line's own numbers — allowed to say not proven.
+- **The plan as a live Gantt** that asks why a date moved and shows the knock-on.
+- **Line balance**: every machine and person in one unit, the limit found, and what-ifs that show where the limit moves — and can be put on the board.
+- **The line filmed on a phone**, faults pinned to the spot on the footage, each one a fix with an owner.
+- **The control room**: every job across every method, what is late, and who owes what by when.
+- **A client report** for each change — on screen and as a PDF — in the same words as the screens.
+
+## What it is not
+
+- Not a sensor or OEE system: people record what they see, and the app runs the change and proves it.
+- Not a compliance or audit-checklist tool.
+- No sensors, no integrations, no IT project.
 
 ## Key pages
 
-- [Home / the app](https://faultline.opexelevate.co.uk/): sign-in, the two-minute demo film, and the full how-it-works story.
-- [How it works — real screens](https://faultline.opexelevate.co.uk/how-it-works.html): the whole system, screen by screen, with a FAQ.
+- [Home / the app](https://faultline.opexelevate.co.uk/): sign-in.
+- [How it works — real screens](https://faultline.opexelevate.co.uk/how-it-works.html): the control room and the three methods, screen by screen.
 
 ## Facts
 
-- Audience: performance/ops side of SME food factories; distributed via improvement consultants.
+- Audience: operations and engineering leads running several changes on production lines, who report to a general manager, a client or an equipment supplier.
 - Platform: installable web app (PWA), offline-first, background sync; phones, tablets, laptops.
-- Data model: observations, video walks, pinned snags, actions, cases (thin A3s), proof studies with receipts.
-- Access: invite-only; a workspace admin or consultant adds teammates by email.
+- Access: invite-only; a project's owner adds people by email.
