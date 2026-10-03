@@ -126,13 +126,19 @@ export async function addPaceLine(row: Omit<PaceLineRow, 'id' | 'updatedAt'>): P
 }
 
 /** Soft delete — a tombstone, so removing a line on the laptop also removes it
- *  on the phone rather than the phone pushing it back. */
-export async function deletePaceLine(id: ID): Promise<void> {
+ *  on the phone rather than the phone pushing it back. Hands back how to put
+ *  it back — the same Undo every other delete offers: clearing the mark,
+ *  stamped now, so every device takes the line back too. */
+export async function deletePaceLine(id: ID): Promise<(() => Promise<void>) | undefined> {
   const db = await getDB();
   const row = await db.get('pace_ppm', id);
-  if (!row) return;
+  if (!row) return undefined;
   await db.put('pace_ppm', { ...row, deletedAt: now(), updatedAt: now() });
   signalWrite();
+  return async () => {
+    const cur = (await (await getDB()).get('pace_ppm', id)) ?? row;
+    await putPaceLine({ ...cur, deletedAt: undefined });
+  };
 }
 
 export async function putPaceLine(row: PaceLineRow): Promise<void> {

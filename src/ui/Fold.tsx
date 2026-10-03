@@ -31,6 +31,12 @@ function read(id: string, start: boolean): boolean {
   } catch { return start; }
 }
 
+/** Open a card before arriving at it — the same stored choice a tap makes.
+ *  For a door that lands on one card of another page. */
+export function openFold(id: string): void {
+  try { localStorage.setItem(KEY + id, '1'); } catch { /* fine */ }
+}
+
 export function Fold({ id, title, says, start = true, need = false, children }: {
   id: string;
   title: string;

@@ -70,6 +70,16 @@ describe('undo after a delete', () => {
     expect(await db.listTombstones()).toEqual([]);
   });
 
+  it('puts a line back on its project, as it was', async () => {
+    const db = await import('../db');
+    const kept = await db.addPaceLine({ projectId: 'p', key: '7', name: 'Line 7', owner: 'Rob', sort: 0 } as Parameters<typeof db.addPaceLine>[0]);
+    const undo = await db.deletePaceLine(kept.id);
+    expect((await db.loadPaceLines('p')).map(l => l.id)).toEqual([]);
+    await undo?.();
+    const back = await db.loadPaceLines('p');
+    expect(back.map(l => [l.id, l.name, l.owner, l.deletedAt])).toEqual([[kept.id, 'Line 7', 'Rob', undefined]]);
+  });
+
   it('puts a material and a program back', async () => {
     const db = await import('../db');
     await db.putMaterial({ id: 'm1', projectId: 'p', what: 'Film', sort: 1, createdAt: 1, updatedAt: 1 });

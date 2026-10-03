@@ -13,6 +13,7 @@
 import { Fold } from '../ui/Fold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
+import { offerUndo } from '../ui/Undo';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { useStanding } from '../lib/useStanding';
@@ -123,7 +124,7 @@ function LineRow({ line, first, last, state, projectId, members }: {
     if (!window.confirm(
       `Remove ${line.name} from this project?\n\nIts readings and targets go with it. Anything captured on it — stops, walks, evidence — stays where it is.`
     )) return;
-    void state.removeLine(line.id);
+    void state.removeLine(line.id).then(back => { if (back) offerUndo(`Removed ${line.name}`, back); });
   };
 
   return (
@@ -376,6 +377,17 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
       <Fold id="pset-project" title={commissioning ? 'The project' : 'The project'} says={`${project.name} · led by ${project.lead || 'nobody yet'}`}>
         <ProjectIdentity projectId={projectId} />
       </Fold>
+
+      {/* WHERE THE MACHINES ARE. A stage-gate job's machines, who supplied
+          them and their stage lists live on Install, the first gate — the
+          grid they are worked on. Details does not hold them, and said nothing
+          about where they were. */}
+      {commissioning && (
+        <button className="why-door" onClick={() => nav(`/project/${project.id}/install`)}>
+          <span className="why-door-t">Machines, who supplied them, and their stage lists</span>
+          <span className="why-door-s">They are kept on Install, the first gate, where each one is worked through its stages ›</span>
+        </button>
+      )}
 
       {!commissioning && linesSection}
 

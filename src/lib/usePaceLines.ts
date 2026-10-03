@@ -32,7 +32,8 @@ export interface PaceLinesState {
   /** Setting up the project: the lines themselves, and who is against them. */
   addLine: (line: NewLine) => Promise<void>;
   editLine: (id: string, patch: Partial<PaceLineRow>) => Promise<void>;
-  removeLine: (id: string) => Promise<void>;
+  /** Hands back how to put the line back (for Undo). */
+  removeLine: (id: string) => Promise<(() => Promise<void>) | undefined>;
   moveLine: (id: string, delta: -1 | 1) => Promise<void>;
 }
 
@@ -102,8 +103,9 @@ export function usePaceLines(projectId: string): PaceLinesState {
 
   const removeLine = useCallback(async (id: string) => {
     setLines(lines.filter(r => r.id !== id));
-    await deletePaceLine(id);
+    const back = await deletePaceLine(id);
     await refresh();
+    return back && (async () => { await back(); await refresh(); });
   }, [lines, refresh]);
 
   /** Swap with the neighbour and write both — order is data, so it has to

@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { Peers, projectPeers, methodPeers } from '../ui/Peers';
 import { Journey } from '../ui/Journey';
-import { Fold } from '../ui/Fold';
+import { Fold, openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
 import { journeyNow, journeyOf } from '../lib/install';
 import { planSays } from '../lib/plan';
@@ -448,6 +448,11 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
   );
 }
 
+function ToInstallFilmed({ projectId }: { projectId: string }) {
+  useEffect(() => { openFold('filmed'); navReplace(`/project/${projectId}/install`); }, [projectId]);
+  return null;
+}
+
 export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   /* Which lenses this project even has. A commissioning job keeps the evidence
      (the walk is how a defect gets proved) and drops the measures, the
@@ -543,6 +548,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      rendered the weekly-tracker upload and the ppm grid on a handover, because
      the body below reads the URL rather than the row. Resolve it once, here. */
   const lens: Lens = shownLenses.some(l => l.id === asked) ? asked : 'overview';
+  /* ONE PLACE FOR A STAGE-GATE JOB'S FILMED LINE. ?view=snags was a second
+     route to the same walk Install holds, with the project's header on top —
+     two pages for one thing. The address is replaced, so Back is not caught in
+     a loop, and Install opens with that card open. */
+  if (model === 'commissioning' && lens === 'snags') return <ToInstallFilmed projectId={projectId} />;
 
   return (
     <div className={'wrap pace is-' + lens}>

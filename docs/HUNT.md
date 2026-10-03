@@ -14,10 +14,10 @@ works. Each has a recommendation. Nothing here is broken in the sense of a
 control that does nothing; these are the calls to make next.
 
 ## Stage gate — the gates and the plan
-1. **Machines and stage lists are not on Details** on a stage-gate job; they live on Install. Recommend a one-line pointer on Details that opens Install, rather than moving them.
-2. **`?view=snags` is a second route to Install's filmed line**, with the project header on top. Recommend it opens Install with that fold open.
-3. **Removing a line on Details has no Undo**, unlike every other delete in the area. Recommend Undo.
-4. **A grid cell's "Who is doing it" Save leaves the sheet open**, while Done today and the dates close it. Recommend closing on Save.
+1. ~~**Machines and stage lists are not on Details** on a stage-gate job.~~ **Done 3 Oct:** Details carries a door that says where they are and opens Install.
+2. ~~**`?view=snags` is a second route to Install's filmed line.**~~ **Done 3 Oct:** it opens Install with "The line, filmed" open; the address is replaced, so Back does not loop.
+3. ~~**Removing a line on Details has no Undo.**~~ **Done 3 Oct:** Undo is offered and brings the line back on every device.
+4. ~~**A grid cell's "Who is doing it" Save leaves the sheet open.**~~ **Done 3 Oct:** all three of the grid's "Who is doing it" boxes close their sheet on Save.
 5. **The empty job says "on this line" and plans a test first**, though Install is the first gate. Recommend "on this job" and "Add the first machine". This changes how the method starts.
 
 ## Stage gate — tests, fixes, the record and the report

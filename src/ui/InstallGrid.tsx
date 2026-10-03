@@ -260,7 +260,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                 `${t.title} ${from ? (to && to > from ? `planned ${short(from)} to ${short(to)}` : `planned ${short(from)}`) : 'has no dates'}`);
               setOpen(null);
             }} />
-          <Who names={names} value={t.withWhom ?? ''} onSave={v => void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`)} />
+          {/* Save closes the sheet, as Done today and the dates do. */}
+          <Who names={names} value={t.withWhom ?? ''} onSave={v => { void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`); setOpen(null); }} />
           <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
           </>}
         </Sheet>
@@ -326,7 +327,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                 pushes={end => pushesOf(left, end)}
                 onMove={(from, to, a) => { void moveWithWhy(left, from, to, a, `${col} moved — reason kept`); setOpen(null); }} />
               <Who names={names} value="" label="Who is doing it, on every machine not done"
-                onSave={v => v && void change(left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`)} />
+                onSave={v => { if (!v) return; void change(left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`); setOpen(null); }} />
             </>
           )}
         </Sheet>
@@ -376,7 +377,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
               pushes={end => pushesOf(left, end)}
               onMove={(from, to, a) => { void moveWithWhy(left, from, to, a, `${rowName(row.asset)} moved — reason kept`); setOpen(null); }} />
             <Who names={names} value="" label="Who is doing every step left on it"
-              onSave={v => v && void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`)} />
+              onSave={v => { if (!v) return; void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`); setOpen(null); }} />
           </>
         )}
       </Sheet>
