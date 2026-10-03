@@ -152,6 +152,8 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
         const i = part.indexOf(':');
         const id = part.slice(0, i), label = part.slice(i + 1);
         if (!id || id === wsId) continue;              // never list this walk twice
+        // nor a walk two lines share — the same snag listed twice under each
+        if (out.some(o => o.wsId === id)) continue;
         const [as, sn] = await Promise.all([listSnagAssets(id), snagsForWorkspace(id)]);
         const byId = new Map(as.map(a => [a.id, a]));
         for (const s of sn) out.push({ label, wsId: id, snag: s, asset: s.assetId ? byId.get(s.assetId) : undefined });
