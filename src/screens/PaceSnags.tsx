@@ -236,6 +236,55 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
   const open = pinned.filter(OPEN);
   const assetById = new Map(shownAssets.map(a => [a.id, a]));
 
+  /* WHAT THE WALK'S OWN LIST HOLDS AND NO FRAME DOES, and the lines' walks.
+     Both used to vanish behind "No walk filmed yet" whenever this page's own
+     walk had no footage — while the line's KPI and the client report counted
+     them as open evidence. Drawn under either state now. */
+  const loose = shownSnags.filter(s => !s.assetId);
+  const beyond = (
+    <>
+      {loose.length > 0 && wsId && (
+        <>
+          <h3 className="ps-h">Written without a frame</h3>
+          <div className="ps-snags">
+            {[...loose]
+              .sort((a, b) => (OPEN(b) ? 1 : 0) - (OPEN(a) ? 1 : 0) || b.raisedAt - a.raisedAt)
+              .map(s => (
+                <PinnedSnag
+                  key={s.id} snag={s}
+                  onOpen={() => nav(`/w/${wsId}/snaglist`)}
+                  onDelete={() => void removeSnag(s)}
+                  onCard={() => void sendCardFor(s)}
+                  carding={carding === s.id}
+                />
+              ))}
+          </div>
+        </>
+      )}
+      {elsewhere.length > 0 && (
+        <>
+          <h3 className="ps-h">On the lines&rsquo; own walks</h3>
+          <p className="sub" style={{ margin: '-4px 0 10px' }}>
+            Filmed inside a line&rsquo;s pack rather than on the project&rsquo;s walk — shown here so nothing is
+            hidden by which page you opened.
+          </p>
+          <div className="ps-snags">
+            {[...elsewhere]
+              .sort((a, b) => (OPEN(b.snag) ? 1 : 0) - (OPEN(a.snag) ? 1 : 0) || b.snag.raisedAt - a.snag.raisedAt)
+              .map(e => (
+                <PinnedSnag
+                  key={e.snag.id} snag={e.snag} asset={e.asset} from={e.label}
+                  onOpen={() => nav(e.snag.assetId ? `/w/${e.wsId}/asset/${e.snag.assetId}` : `/w/${e.wsId}/snaglist`)}
+                  onDelete={() => { /* a line's snags are deleted in that line's pack */ }}
+                  onCard={() => void sendCardFor(e.snag, e.asset, e.label)} carding={carding === e.snag.id}
+                />
+              ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+
   if (!wsId || shownSegments.length === 0) {
     return (
       <div className="ps-empty">
@@ -250,6 +299,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
         {pending && (
           <Toast message={pendingSummary(pending)} onUndo={undoRemove} onDismiss={() => void commitPending()} />
         )}
+        {beyond}
       </div>
     );
   }
@@ -318,27 +368,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
         </>
       )}
 
-      {elsewhere.length > 0 && (
-        <>
-          <h3 className="ps-h">On the lines&rsquo; own walks</h3>
-          <p className="sub" style={{ margin: '-4px 0 10px' }}>
-            Filmed inside a line&rsquo;s pack rather than on the project&rsquo;s walk — shown here so nothing is
-            hidden by which page you opened.
-          </p>
-          <div className="ps-snags">
-            {[...elsewhere]
-              .sort((a, b) => (OPEN(b.snag) ? 1 : 0) - (OPEN(a.snag) ? 1 : 0) || b.snag.raisedAt - a.snag.raisedAt)
-              .map(e => (
-                <PinnedSnag
-                  key={e.snag.id} snag={e.snag} asset={e.asset} from={e.label}
-                  onOpen={() => nav(e.snag.assetId ? `/w/${e.wsId}/asset/${e.snag.assetId}` : `/w/${e.wsId}/snaglist`)}
-                  onDelete={() => { /* a line's snags are deleted in that line's pack */ }}
-                  onCard={() => void sendCardFor(e.snag, e.asset, e.label)} carding={carding === e.snag.id}
-                />
-              ))}
-          </div>
-        </>
-      )}
+      {beyond}
 
       {pending && (
         <Toast message={pendingSummary(pending)} onUndo={undoRemove} onDismiss={() => void commitPending()} />

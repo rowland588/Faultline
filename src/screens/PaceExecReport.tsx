@@ -52,7 +52,7 @@ import { Timeline } from '../ui/Timeline';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { withTrackerRows, bindSources, statusOfAction, boundNumber, boardWords, type NumberSources } from '../lib/treeBind';
-import { methodOf } from '../lib/planModel';
+import { methodOf, planModel } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX, boardName } from '../lib/pillars';
 
@@ -1254,7 +1254,10 @@ export function PaceExecReport() {
      a 3P board, an action tracker. A commissioning job has none of those, so it
      printed three pages of empty scaffolding and buried the two things it does
      carry behind them. What prints is now what the project HAS. */
-  const hasTracker = actions.length > 0 || nums.measures.length > 0;
+  /* A 3P or tree job is reported as one from its first day — an empty one
+     printed the stage-gate front page ("Tests being proved on this job",
+     "plan the first one under Testing") until something was on its board. */
+  const hasTracker = (!!project && planModel(project) !== 'commissioning') || actions.length > 0 || nums.measures.length > 0;
 
   /* WHO OWES WHAT, BY WHEN — page 3. Every line read off a record the pages
      before it already draw: the strands' owed lines (so page 1 and page 3
