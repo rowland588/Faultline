@@ -438,13 +438,19 @@ export function changedWords(asRun: Station[], w: Station[]): string[] {
 export function changedIds(asRun: Station[], w: Station[]): Set<string> {
   return new Set(changedList(asRun, w).map(c => c.id));
 }
-function changedList(asRun: Station[], w: Station[]): { id: string; said: string }[] {
-  const out: { id: string; said: string }[] = [];
+/** What changed AT EACH STATION, by id, without the station's name — the
+ *  words a ladder row carries under its bar: "5.5 baskets a minute → 8
+ *  baskets a minute", "added", "renamed". A station not in the map is as run. */
+export function changedByStation(asRun: Station[], w: Station[]): Map<string, string> {
+  return new Map(changedList(asRun, w).filter(c => c.at).map(c => [c.id, c.at as string]));
+}
+function changedList(asRun: Station[], w: Station[]): { id: string; said: string; at?: string }[] {
+  const out: { id: string; said: string; at?: string }[] = [];
   const before = new Map(asRun.map((s, i) => [s.id, { s, i }]));
   const after = new Map(w.map((s, i) => [s.id, { s, i }]));
   w.forEach((s, i) => {
     const b = before.get(s.id);
-    if (!b) { out.push({ id: s.id, said: `+ ${nm(s, i)} (${speedWords(s)})` }); return; }
+    if (!b) { out.push({ id: s.id, said: `+ ${nm(s, i)} (${speedWords(s)})`, at: `added · ${speedWords(s)}` }); return; }
     const a = b.s;
     const who = a.name.trim() !== s.name.trim() ? `${nm(a, b.i)} → ${nm(s, i)}` : nm(s, i);
     const bits: string[] = [];
@@ -454,8 +460,8 @@ function changedList(asRun: Station[], w: Station[]): { id: string; said: string
     if ((a.runningPct ?? 100) !== (s.runningPct ?? 100)) bits.push(`running ${fmtN(s.runningPct ?? 100)}% instead of ${fmtN(a.runningPct ?? 100)}%`);
     if ((a.goodPct ?? 100) !== (s.goodPct ?? 100)) bits.push(`${fmtN(s.goodPct ?? 100)}% good instead of ${fmtN(a.goodPct ?? 100)}%`);
     if (a.unit.trim() !== s.unit.trim()) bits.push(`counts in ${s.unit.trim() || 'units'} instead of ${a.unit.trim() || 'units'}`);
-    if (who !== nm(s, i) && !bits.length) out.push({ id: s.id, said: who });
-    else if (bits.length) out.push({ id: s.id, said: `${who}: ${bits.join(', ')}` });
+    if (who !== nm(s, i) && !bits.length) out.push({ id: s.id, said: who, at: `was ${nm(a, b.i)}` });
+    else if (bits.length) out.push({ id: s.id, said: `${who}: ${bits.join(', ')}`, at: bits.join(', ') });
   });
   asRun.forEach((s, i) => { if (!after.has(s.id)) out.push({ id: s.id, said: `− ${nm(s, i)}` }); });
   return out;

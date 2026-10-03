@@ -348,7 +348,7 @@ describe('the report block', () => {
 });
 
 /* ---- what arrives, what-ifs, make it so (3 October) ---- */
-import { changedWords, compareSays, makeItSoWords, whatIfCapacity, stationDetail, lineSheetUnits, type WhatIf } from '../capacity';
+import { changedByStation, changedWords, compareSays, makeItSoWords, whatIfCapacity, stationDetail, lineSheetUnits, type WhatIf } from '../capacity';
 
 /* 70 bags a minute; 8 bags to a basket; 40 baskets to a pallet (320 bags).
    Basketer: 5.5 baskets/min = 44 bags/min — the limit. Palletiser: 20 pallets
@@ -434,6 +434,13 @@ describe('a what-if beside the line', () => {
     expect(rep.lines[0].rows[1].limit).toBe(true);
     const longest = Math.max(...rep.lines[0].rows.map(r => r.running), ...wi.rows.map(r => r.running));
     expect(rep.lines[0].top).toBeCloseTo(longest * 1.06, 5);
+  });
+  it('says what changed at each station, for the row under its bar', () => {
+    const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], name: 'New basketer', rate: 9 }, { id: 'x', name: 'Checker', kind: 'machine', unit: 'baskets', contains: 1, rate: 20, ratePer: 'min' }] };
+    const m = changedByStation(chain, w.stations);
+    expect(m.get(chain[1].id)).toBe('5.5 baskets a minute → 9 baskets a minute');
+    expect(m.get('x')).toBe('added · 20 baskets a minute');
+    expect(m.has(chain[0].id)).toBe(false);
   });
   it('make it so carries the prediction onto the board as the why', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: chain };

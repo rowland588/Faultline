@@ -29,7 +29,7 @@ import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PILLARS, type PillarKey } from '../lib/pillars';
 import {
-  EMPTY_CAPACITY, analyse, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
+  EMPTY_CAPACITY, analyse, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, whatIfCapacity,
   type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
@@ -42,20 +42,28 @@ const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
 
 /* ================================ the ladder ================================ */
 
-function Ladder({ r }: { r: ReturnType<typeof analyse> }) {
-  const top = Math.max(...r.ok.map(x => x.running), r.target ?? 0) * 1.06 || 1;
+/* The ladder. `top` is the scale every view of this line shares — as run and
+ * every what-if — so flipping tabs shows a bar GROW or SHRINK rather than the
+ * whole ladder re-fitting itself and nothing seeming to move. `moved` is what
+ * a what-if changed at each station, said under its bar ("5.5 baskets a minute
+ * → 8 baskets a minute"), so the reason for the new shape is on the row. */
+function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; top?: number; moved?: Map<string, string> }) {
+  const top = sharedTop ?? (Math.max(...r.ok.map(x => x.running), r.target ?? 0) * 1.06 || 1);
   const at = (v: number) => `${Math.min(100, (v / top) * 100)}%`;
   return (
     <ol className="cap-ladder" aria-label={`Each station’s capacity in ${r.unit} a minute`}>
       {r.ok.map(x => {
         const isLimit = r.limit?.index === x.index;
+        const was = moved?.get(x.station.id);
         return (
-          <li key={x.station.id} className={'cap-row' + (isLimit ? ' is-limit' : '')}>
+          <li key={x.station.id} className={'cap-row' + (isLimit ? ' is-limit' : '') + (was ? ' is-changed' : '')}>
             <span className="cap-who">
               <span className="cap-ic" aria-hidden>{x.station.kind === 'people' ? '●' : '▣'}</span>
               <b>{x.station.name.trim() || `Station ${x.index + 1}`}</b>
-              {isLimit && <span className="cap-flag">limits the line</span>}
+              {isLimit && <span className="cap-flag">{moved ? 'would limit the line' : 'limits the line'}</span>}
+              {was && <span className="cap-moved">changed</span>}
               {x.chain && <span className="cap-chain">{x.chain}</span>}
+              {was && <span className="cap-was">{was}</span>}
             </span>
             <span className="cap-track">
               {/* what it does at running speed, behind what it does once its own
@@ -282,6 +290,13 @@ export function CapacityPanel({ projectId, line, onSave }: {
   const asRun = useMemo(() => analyse(cap), [cap]);
   const compare = w ? compareSays(asRun, r, w.name) : undefined;
   const changed = useMemo(() => (w ? changedWords(cap.stations, w.stations) : []), [cap.stations, w]);
+  const moved = useMemo(() => (w ? changedByStation(cap.stations, w.stations) : undefined), [cap.stations, w]);
+  /* One scale for every view of the line, so a what-if's bar is longer or
+     shorter ON SCREEN than the same station as run — not re-fitted to full width. */
+  const top = useMemo(() => {
+    const all = [asRun, ...(cap.whatIfs ?? []).map(x => analyse(whatIfCapacity(cap, x)))];
+    return Math.max(...all.flatMap(a => [...a.ok.map(x => x.running), a.target ?? 0])) * 1.06 || 1;
+  }, [cap, asRun]);
   const check = useMemo(() => crossCheck(r, stats), [r, stats]);
   const why = (id: string) => r.skipped.find(x => x.station.id === id)?.why;
   const result = (id: string) => r.ok.find(x => x.station.id === id);
@@ -450,7 +465,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
         )}
       </div>
 
-      {r.ok.length > 0 && <Ladder r={r} />}
+      {r.ok.length > 0 && <Ladder r={r} top={top} moved={moved} />}
 
       {(check || r.notes.length > 0) && (
         <ul className="cap-notes" role="note">
