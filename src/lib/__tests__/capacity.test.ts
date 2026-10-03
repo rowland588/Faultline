@@ -416,8 +416,24 @@ describe('a what-if beside the line', () => {
   it('the report carries each what-if and its sentence beside the line', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]], action: { id: 'a1', raisedAt: 1 } };
     const rep = capacityReport([{ name: 'Line 2A', capacity: { ...asRun, whatIfs: [w] } }]);
-    expect(rep?.lines[0].whatIfs).toEqual([{ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true, changed: ['Basketer: 5.5 baskets a minute → 9 baskets a minute'] }]);
+    const wi = rep?.lines[0].whatIfs[0];
+    expect(wi).toMatchObject({ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true, changed: ['Basketer: 5.5 baskets a minute → 9 baskets a minute'] });
     expect(rep?.lines[0].rows[1].feed).toBe('8.8 baskets a minute arrive · it does 5.5 — holds the line back');
+  });
+  it('the report draws each what-if as its own ladder on the as-run scale', () => {
+    const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]] };
+    const rep = capacityReport([{ name: 'Line 2A', capacity: { ...asRun, whatIfs: [w] } }])!;
+    const wi = rep.lines[0].whatIfs[0];
+    // the what-if's own line and target, and a row per station with the limit moved
+    expect(wi.line).toBe(70);
+    expect(wi.target).toBe(60);
+    expect(wi.rows.map(r => [r.name, r.limit, r.changed])).toEqual([['Bagger', true, false], ['Basketer', false, true], ['Palletiser', false, false]]);
+    expect(wi.rows[1].effective).toBeCloseTo(72, 5);
+    // as run, Basketer limits; the what-if's bars are drawn against the same top,
+    // which now reaches the longest bar in either ladder
+    expect(rep.lines[0].rows[1].limit).toBe(true);
+    const longest = Math.max(...rep.lines[0].rows.map(r => r.running), ...wi.rows.map(r => r.running));
+    expect(rep.lines[0].top).toBeCloseTo(longest * 1.06, 5);
   });
   it('make it so carries the prediction onto the board as the why', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: chain };
@@ -440,6 +456,6 @@ describe('the report carries the detail behind every bar', () => {
     const rep = capacityReport([{ name: 'Line 2A', capacity: { targetPerMin: 60, stations: chain, whatIfs: [w] } }])!;
     expect(rep.lines[0].rows[0].detail).toBe('70 bags a minute · 1 of it · 100% running · a guess');
     expect(rep.lines[0].whatIfs[0].changed).toEqual(['Basketer: 5.5 baskets a minute → 9 baskets a minute']);
-    expect(lineSheetUnits(rep.lines[0])).toBeCloseTo(3 + 3 * 1.6 + 1 + 0.5, 5);
+    expect(lineSheetUnits(rep.lines[0])).toBeCloseTo(3 + 3 * 1.6 + 1 + 0.5 + 3 * 0.8 + 0.5, 5);
   });
 });

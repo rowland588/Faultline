@@ -431,12 +431,20 @@ const speedWords = (s: Station): string => {
  *  instead of 12", "+ Second packer", "− Carrier". Matched by station id, so a
  *  renamed machine is "Basketer → New basketer", not a removal and an addition. */
 export function changedWords(asRun: Station[], w: Station[]): string[] {
-  const out: string[] = [];
+  return changedList(asRun, w).map(c => c.said);
+}
+/** The ids of the what-if's stations that differ from the line as run — the
+ *  rows the report marks on the what-if's ladder. */
+export function changedIds(asRun: Station[], w: Station[]): Set<string> {
+  return new Set(changedList(asRun, w).map(c => c.id));
+}
+function changedList(asRun: Station[], w: Station[]): { id: string; said: string }[] {
+  const out: { id: string; said: string }[] = [];
   const before = new Map(asRun.map((s, i) => [s.id, { s, i }]));
   const after = new Map(w.map((s, i) => [s.id, { s, i }]));
   w.forEach((s, i) => {
     const b = before.get(s.id);
-    if (!b) { out.push(`+ ${nm(s, i)} (${speedWords(s)})`); return; }
+    if (!b) { out.push({ id: s.id, said: `+ ${nm(s, i)} (${speedWords(s)})` }); return; }
     const a = b.s;
     const who = a.name.trim() !== s.name.trim() ? `${nm(a, b.i)} → ${nm(s, i)}` : nm(s, i);
     const bits: string[] = [];
@@ -446,10 +454,10 @@ export function changedWords(asRun: Station[], w: Station[]): string[] {
     if ((a.runningPct ?? 100) !== (s.runningPct ?? 100)) bits.push(`running ${fmtN(s.runningPct ?? 100)}% instead of ${fmtN(a.runningPct ?? 100)}%`);
     if ((a.goodPct ?? 100) !== (s.goodPct ?? 100)) bits.push(`${fmtN(s.goodPct ?? 100)}% good instead of ${fmtN(a.goodPct ?? 100)}%`);
     if (a.unit.trim() !== s.unit.trim()) bits.push(`counts in ${s.unit.trim() || 'units'} instead of ${a.unit.trim() || 'units'}`);
-    if (who !== nm(s, i) && !bits.length) out.push(who);
-    else if (bits.length) out.push(`${who}: ${bits.join(', ')}`);
+    if (who !== nm(s, i) && !bits.length) out.push({ id: s.id, said: who });
+    else if (bits.length) out.push({ id: s.id, said: `${who}: ${bits.join(', ')}` });
   });
-  asRun.forEach((s, i) => { if (!after.has(s.id)) out.push(`− ${nm(s, i)}`); });
+  asRun.forEach((s, i) => { if (!after.has(s.id)) out.push({ id: s.id, said: `− ${nm(s, i)}` }); });
   return out;
 }
 
@@ -513,9 +521,16 @@ export interface CapacityReportLine {
     detail: string }[];
   /** Stations counted but not drawn, when a line has more than a sheet holds. */
   more: number;
-  /** Each what-if kept beside the line, the sentence that compares it, and
-   *  what was changed, station by station. */
-  whatIfs: { name: string; says: string; onBoard: boolean; changed: string[] }[];
+  /** Each what-if kept beside the line, the sentence that compares it, what
+   *  was changed station by station, AND ITS OWN LADDER — the same bars drawn
+   *  to the same scale (`top`), so the reader sees the picture move, not just
+   *  a sentence saying it would. A changed station is marked; the station
+   *  that would limit the line is red, as on the line as run. */
+  whatIfs: {
+    name: string; says: string; onBoard: boolean; changed: string[];
+    line?: number; target?: number;
+    rows: { name: string; kind: StationKind; running: number; effective: number; limit: boolean; changed: boolean }[];
+  }[];
 }
 
 const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', estimate: 'a guess' };
@@ -536,11 +551,12 @@ export function stationDetail(s: Station): string {
 }
 
 /** How much of a sheet one line costs: its heading and sentence, its rows
- *  (three lines each, so more than a unit), and each what-if with the changes
- *  it lists. Shared by the sheet plan and the PDF so they cannot disagree. */
+ *  (three lines each, so more than a unit), and each what-if — its sentence,
+ *  the changes it lists, and its own compact ladder (a short row a station,
+ *  plus its key). Shared by the sheet plan and the PDF so they cannot disagree. */
 export function lineSheetUnits(l: Pick<CapacityReportLine, 'rows' | 'more' | 'whatIfs'>): number {
   return 3 + l.rows.length * 1.6 + (l.more > 0 ? 1 : 0)
-    + l.whatIfs.reduce((n, w) => n + 1 + Math.min(w.changed.length, 3) * 0.5, 0);
+    + l.whatIfs.reduce((n, w) => n + 1 + Math.min(w.changed.length, 3) * 0.5 + w.rows.length * 0.8 + (w.rows.length ? 0.5 : 0), 0);
 }
 export interface CapacityReport { lines: CapacityReportLine[] }
 
@@ -560,19 +576,32 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
     const r = analyse(l.capacity);
     if (!r.limit || !r.next || r.line == null) continue;
     const shown = r.ok.slice(0, CAP_REPORT_ROWS);
+    const cap = l.capacity;
+    /* Each what-if analysed on its own, its rows cut to the same count. Its bars
+       share the as-run scale, so a longer bar IS a faster station — the reader
+       compares the two ladders without reading a number. */
+    const whatIfs = (cap.whatIfs ?? []).map(w => {
+      const wr = analyse(whatIfCapacity(cap, w));
+      const moved = changedIds(cap.stations, w.stations);
+      const rows = wr.ok.slice(0, CAP_REPORT_ROWS).map(x => ({
+        name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind,
+        running: x.running, effective: x.effective, limit: wr.limit != null && x.index === wr.limit.index,
+        changed: moved.has(x.station.id),
+      }));
+      return { name: w.name, says: compareSays(r, wr, w.name), onBoard: !!w.action, changed: changedWords(cap.stations, w.stations),
+        line: wr.line ?? undefined, target: wr.target, rows };
+    });
+    const top = Math.max(...shown.map(x => x.running), ...whatIfs.flatMap(w => w.rows.map(x => x.running)), r.target ?? 0, ...whatIfs.map(w => w.target ?? 0)) * 1.06 || 1;
     out.push({
       name: l.name, owner: l.owner, unit: r.unit, sentence: r.sentence, line: r.line, target: r.target,
-      top: Math.max(...shown.map(x => x.running), r.target ?? 0) * 1.06 || 1,
+      top,
       rows: shown.map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
         running: x.running, effective: x.effective, limit: x.index === (r.limit as StationResult).index,
         feed: x.feed, detail: stationDetail(x.station),
       })),
       more: r.ok.length - shown.length,
-      whatIfs: (l.capacity.whatIfs ?? []).map(w => ({
-        name: w.name, says: compareSays(r, analyse(whatIfCapacity(l.capacity as Capacity, w)), w.name), onBoard: !!w.action,
-        changed: changedWords((l.capacity as Capacity).stations, w.stations),
-      })),
+      whatIfs,
     });
   }
   return out.length ? { lines: out } : undefined;

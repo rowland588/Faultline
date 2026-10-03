@@ -2535,17 +2535,52 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         y = bottom + 2;
         setFont(d, 6.6 * f, 'normal', MUTED);
         d.text(`${l.unit} a minute \u00b7 solid bar: with its own stops \u00b7 pale: at running speed${l.target != null ? ` \u00b7 dashed: target ${fmtN(l.target)}` : ''}${l.more > 0 ? ` \u00b7 +${l.more} more station${l.more === 1 ? '' : 's'} not shown` : ''}`, x0, y + 6);
-        // the what-ifs beside the line, each judged against it in one sentence
+        // the what-ifs beside the line, each judged against it in one sentence,
+        // then DRAWN — its own ladder on the same scale, so the bars move too
         for (const x of l.whatIfs) {
           y += 11 * f;
           setFont(d, 7 * f, 'bold', INK);
-          const head = `What if ${x.name}${x.onBoard ? ' \u00b7 on the board' : ''} \u2014 `;
+          const head = san(`What if ${x.name}${x.onBoard ? ' \u00b7 on the board' : ''} \u2014`);
           d.text(head, x0, y + 6);
+          const headW = d.getTextWidth(head) + 3;
           setFont(d, 7 * f, 'normal', INK2);
-          d.text(fit(d, x.says, wAll - d.getTextWidth(head) - 4), x0 + d.getTextWidth(head), y + 6);
-          // what was changed, station by station
-          for (const c of x.changed.slice(0, 3)) { y += 9 * f; setFont(d, 6.4 * f, 'normal', MUTED); d.text(fit(d, `\u2022 ${c}`, wAll - 12), x0 + 10, y + 6); }
+          d.text(fit(d, san(x.says), wAll - headW - 4), x0 + headW, y + 6);
+          // what was changed, station by station (san: the arrow is not in the PDF font)
+          for (const c of x.changed.slice(0, 3)) { y += 9 * f; setFont(d, 6.4 * f, 'normal', MUTED); d.text(fit(d, san(`\u2022 ${c}`), wAll - 12), x0 + 10, y + 6); }
           if (x.changed.length > 3) { y += 9 * f; setFont(d, 6.4 * f, 'normal', MUTED); d.text(`\u2022 +${x.changed.length - 3} more`, x0 + 10, y + 6); }
+          if (!x.rows.length) continue;
+          // the what-if's ladder: shorter rows, no detail (that is on the line as
+          // run above), a changed station underlined and said, the limit red
+          const wRowH = 14 * k, wBh = 7 * k;
+          const wTop = y + 10 * f;
+          x.rows.forEach((r, i) => {
+            const ry = wTop + i * wRowH;
+            setFont(d, 6.8 * f, 'bold', r.limit ? DANGER : INK);
+            const nameW = labelW - 10 - (r.limit ? 76 * f : r.changed ? 34 * f : 6);
+            d.text(fit(d, r.name, nameW), x0 + 10, ry + wBh * 0.9);
+            if (r.changed) { const tw = d.getTextWidth(fit(d, r.name, nameW)); d.setDrawColor(INK2); d.setLineWidth(0.5); d.line(x0 + 10, ry + wBh * 0.9 + 1.4, x0 + 10 + tw, ry + wBh * 0.9 + 1.4); }
+            if (r.limit) { setFont(d, 5.6 * f, 'bold', DANGER); d.text('WOULD LIMIT THE LINE', x0 + labelW - 4, ry + wBh * 0.9, { align: 'right' }); }
+            else if (r.changed) { setFont(d, 5.6 * f, 'bold', INK2); d.text('CHANGED', x0 + labelW - 4, ry + wBh * 0.9, { align: 'right' }); }
+            d.setFillColor(SURF2); d.roundedRect(barX, ry + 1, barW, wBh, 1.5, 1.5, 'F');
+            const [pr, pg, pb] = wash(r.limit ? DANGER : BRAND, 0.28);
+            d.setFillColor(pr, pg, pb);
+            d.roundedRect(barX, ry + 1, Math.max(2, at(r.running) - barX), wBh, 1.5, 1.5, 'F');
+            d.setFillColor(r.limit ? DANGER : BRAND);
+            d.roundedRect(barX, ry + 1, Math.max(2, at(r.effective) - barX), wBh, 1.5, 1.5, 'F');
+            setFont(d, 7.6 * f, 'bold', INK);
+            d.text(fmtN(r.effective), valX, ry + wBh * 0.95, { align: 'right' });
+            if (r.effective < r.running - 1e-9) { setFont(d, 5.4 * f, 'normal', MUTED); d.text(`${fmtN(r.running)} running`, valX - 24 * f, ry + wBh * 0.95, { align: 'right' }); }
+          });
+          const wBottom = wTop + x.rows.length * wRowH;
+          if (x.target != null) {
+            const tx = at(x.target);
+            d.setDrawColor(INK); d.setLineWidth(0.7); d.setLineDashPattern([2.2, 1.6], 0);
+            d.line(tx, wTop - 2, tx, wBottom - (wRowH - wBh - 1));
+            d.setLineDashPattern([], 0);
+          }
+          y = wBottom - 4;
+          setFont(d, 6 * f, 'normal', MUTED);
+          d.text(`${l.unit} a minute, on the same scale as the line as run${x.line != null ? ` \u00b7 would do ${fmtN(x.line)}` : ''}${x.target != null ? ` \u00b7 dashed: target ${fmtN(x.target)}` : ''}`, x0 + 10, y + 6);
         }
         y += 22 * f;
         d.setDrawColor(LINE); d.setLineWidth(0.6); d.line(x0, y - 8, x0 + wAll, y - 8);

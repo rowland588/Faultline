@@ -7565,6 +7565,17 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-cp-whatifs { list-style: none; margin: 6px 0 0; padding: 0; font-size: 10.5px; color: var(--ink-2); }
 .exec-cp-whatifs li { margin: 2px 0; }
 .exec-cp-whatifs em { font-style: normal; font-weight: 800; color: var(--brand); }
+/* A what-if's own ladder: the same bars on the same scale, shorter rows (no
+   detail under the name — that is on the line as run), a changed station marked. */
+.exec-cp-rows.is-whatif { margin: 4px 0 6px; padding-left: 10px; }
+.exec-cp-rows.is-whatif .exec-cp-row { padding: 2px 0; }
+.exec-cp-rows.is-whatif .exec-cp-who b { font-size: 10.5px; }
+.exec-cp-rows.is-whatif .exec-cp-who em { color: var(--danger); }
+.exec-cp-rows.is-whatif .exec-cp-track { height: 9px; }
+.exec-cp-rows.is-whatif .exec-cp-val { font-size: 11px; }
+.exec-cp-rows.is-whatif .exec-cp-val small { font-size: 8px; }
+.exec-cp-who .exec-cp-moved { flex-basis: auto; font-size: 8px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.exec-cp-row.is-changed .exec-cp-who b { text-decoration: underline; text-decoration-color: var(--ink-2); text-underline-offset: 2px; }
 .exec-cp-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 3px; }
 .exec-cp-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
 .exec-cp-bar.is-run { background: color-mix(in srgb, var(--brand) 28%, var(--surface-2)); }
