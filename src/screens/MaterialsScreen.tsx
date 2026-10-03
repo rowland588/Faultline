@@ -225,21 +225,15 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Materials' },
       ]} />
-      {/* The gates are a stage-gate job's. A 3P job's Materials showed
-          Install, Set up, Commission — tabs for a method it is not run on. */}
-      {project.commissioning
-        ? <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
-        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
-
       {/* The header every peer of this screen wears — the project above, the
           screen's name, then where it has got to in one line. It had its own
           eyebrow, a lede paragraph and a rule, and read as a different app
           from the Install tab beside it. The lede says what the screen is for,
           so it is said where that is news: on the empty list. */}
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
-          <h1>Materials</h1>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">Materials</h1>
           <p className="cw-handover">
             {t.total === 0
               ? <b>Nothing on the list yet</b>
@@ -252,6 +246,12 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
+      {/* The row under the header — see "THE PAGE FRAME" in styles.css.
+          The gates are a stage-gate job's. A 3P job's Materials showed
+          Install, Set up, Commission — tabs for a method it is not run on. */}
+      {project.commissioning
+        ? <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
+        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
 
       {t.total === 0 ? (
         <>

@@ -131,12 +131,10 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         { label: project.name, to: `/project/${projectId}` },
         { label: GATE_WORD[gate] },
       ]} />
-      <Peers peers={projectPeers(projectId, face.peer, stand.counts)} />
-
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
-          <h1>{GATE_WORD[gate]}</h1>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">{GATE_WORD[gate]}</h1>
           <p className="cw-handover">
             {steps.length === 0
               ? <b>Nothing planned yet</b>
@@ -150,6 +148,8 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           </p>
         </div>
       </header>
+      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
+      <Peers peers={projectPeers(projectId, face.peer, stand.counts)} />
 
       {onGrid
         ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate}

@@ -355,9 +355,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${project.id}` },
         { label: commissioning ? 'Details' : 'Lines & people' },
       ]} />
-      {/* The gates row belongs to a stage-gate job, and this page is none of
-          them: 'setup' lit the Set up GATE while you stood on the Details. */}
-      {commissioning && <Peers peers={projectPeers(project.id, 'details', stand.counts)} />}
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
@@ -371,6 +368,10 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-actions">
         </div>
       </header>
+      {/* The gates row belongs to a stage-gate job, and this page is none of
+          them: 'setup' lit the Set up GATE while you stood on the Details.
+          Under the header, as on every page — see "THE PAGE FRAME". */}
+      {commissioning && <Peers peers={projectPeers(project.id, 'details', stand.counts)} />}
 
       {/* FOLDS. Project, lines, measures and people were all open at once —
           2,900px on a phone. Each is a line until it is the one being worked on. */}

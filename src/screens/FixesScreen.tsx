@@ -99,12 +99,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Fixes' },
       ]} />
-      <Peers peers={projectPeers(projectId, 'fixes', stand.counts)} />
-
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name}</p>
-          <h1>Fixes</h1>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name}</p>
+          <h1 className="pace-title">Fixes</h1>
           <p className="cw-handover">
             {st.upcoming.length > 0
               ? <>
@@ -118,6 +116,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
+      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
+      <Peers peers={projectPeers(projectId, 'fixes', stand.counts)} />
 
       {(st.upcoming.length + st.done.length) > 0 && (
         <p className="fx-key" aria-label="What the colours mean">

@@ -210,10 +210,10 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           second screen in the app with that exact heading. scripts/navmap.mjs
           called it, and it was right — two screens with one name is how you
           lose track of which one you are on. */}
-      <header className="cm-head">
-        <div>
-          <p className="cm-eyebrow">{project.name} · {words.one.toLowerCase()}</p>
-          <h1>{words.one} card</h1>
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{project.name} · {words.one.toLowerCase()}</p>
+          <h1 className="pace-title">{words.one} card</h1>
           <p className="tc-which">{c.title}</p>
           <p className="cw-handover">
             <b>{c.outcomeWord}</b>

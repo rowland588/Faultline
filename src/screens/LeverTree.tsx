@@ -792,11 +792,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Lever tree' },
       ]} />
-      {/* On a lever tree job the tree is the first of the row's tabs. */}
-      {project.leverTree && !project.commissioning && (
-        <Peers peers={methodPeers(projectId, 'tree', 'tree', methodCounts)} />
-      )}
-
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
@@ -817,6 +812,12 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <button className="btn" onClick={() => window.print()}>Print</button>
         </div>
       </header>
+      {/* On a lever tree job the tree is the first of the row's tabs — the
+          row under the header, as on every page (see "THE PAGE FRAME" in
+          styles.css). It sat above the title here alone. */}
+      {project.leverTree && !project.commissioning && (
+        <Peers peers={methodPeers(projectId, 'tree', 'tree', methodCounts)} />
+      )}
 
       {rows === null ? (
         <p className="sub">Loading…</p>

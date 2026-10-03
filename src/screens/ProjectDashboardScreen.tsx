@@ -630,16 +630,18 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {model === 'commissioning' && lens === 'snags' && (
         <Peers peers={projectPeers(projectId, 'install', stand.counts)} />
       )}
-      {model !== 'commissioning' && (
-        <Peers peers={methodPeers(projectId, model === 'tree' ? 'tree' : 'board', lens, methodCounts)} />
-      )}
       {model !== 'commissioning' && lens !== 'overview' && (
-        <header className="cm-head">
-          <div>
-            <p className="cm-eyebrow">{project.name}</p>
-            <h1>{LENSES.find(l => l.id === lens)?.label}</h1>
+        <header className="pace-head">
+          <div className="pace-head-main">
+            <p className="pace-eyebrow">{project.name}</p>
+            <h1 className="pace-title">{LENSES.find(l => l.id === lens)?.label}</h1>
           </div>
         </header>
+      )}
+      {/* Under the header on the front page and on a lens alike — see "THE
+          PAGE FRAME" in styles.css. */}
+      {model !== 'commissioning' && (
+        <Peers peers={methodPeers(projectId, model === 'tree' ? 'tree' : 'board', lens, methodCounts)} />
       )}
 
 
