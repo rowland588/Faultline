@@ -33,9 +33,13 @@ function AddReading({ measure, onAdd }: {
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
 
+  /* A number, or nothing to add. "12,5" off a phone keyboard that writes a
+     decimal comma is twelve and a half; "abc" left the button lit and a tap
+     on it did nothing at all. */
+  const n = Number(value.trim().replace(',', '.'));
+  const valid = value.trim() !== '' && Number.isFinite(n);
   const add = async () => {
-    const n = Number(value.trim());
-    if (!Number.isFinite(n) || !at) return;
+    if (!valid || !at) return;
     await onAdd(at, n, note.trim() || undefined);
     setValue(''); setNote('');
   };
@@ -58,7 +62,7 @@ function AddReading({ measure, onAdd }: {
           onChange={e => setNote(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
       </label>
-      <button className="btn btn-primary nm-add-btn" disabled={!value.trim() || !at} onClick={() => void add()}>
+      <button className="btn btn-primary nm-add-btn" disabled={!valid || !at} onClick={() => void add()}>
         Add reading
       </button>
     </div>
