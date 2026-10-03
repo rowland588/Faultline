@@ -38,7 +38,7 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
   }, [wsId, assetId, syncedAt]);
 
   if (gone) return (
-    <div className="wrap">
+    <div>
       <p className="sub" style={{ marginTop: 24 }}>That frame isn’t here any more — it was deleted, or it has not synced to this device yet.</p>
       <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/w/${wsId}/snaglist`)}>All the evidence</button>
     </div>
@@ -50,7 +50,7 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
   const verdict = compareVerdict(history, snags);
 
   return (
-    <div className="wrap">
+    <div>
       <div className="subhead">
         <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/asset/${assetId}`)}>‹ Asset</button>
       </div>

@@ -158,14 +158,14 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const cancel = () => { if (marking) URL.revokeObjectURL(marking.still); setMarking(null); };
 
   if (gone) return (
-    <div className="wrap">
+    <div>
       <p className="sub" style={{ marginTop: 24 }}>That video isn’t here any more — it was deleted, or it has not synced to this device yet. The frames marked in it stay on the evidence list.</p>
       <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/w/${wsId}/snags?manage`)}>All the walks</button>
     </div>
   );
 
   return (
-    <div className="wrap">
+    <div>
       <div className="subhead">
         {/* Stepping up is the crumb bar's job and the Evidence tab below is
             the list, so nothing here repeats either. */}

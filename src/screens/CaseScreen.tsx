@@ -292,7 +292,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
   if (kase === undefined) return null;
   if (kase === null) return (
-    <div className="wrap"><p className="sub" style={{ marginTop: 20 }}>This case is gone — deleted, or not synced to this device yet.</p></div>
+    <div><p className="sub" style={{ marginTop: 20 }}>This case is gone — deleted, or not synced to this device yet.</p></div>
   );
 
   const mutateCase = async (patch: Partial<Case>) => { await updateCase({ ...kase, ...patch }); await load(); };
@@ -331,7 +331,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   };
 
   return (
-    <div className="wrap case-root print-root">
+    <div className="case-root print-root">
       {/* "Print A3" must print on A3: with no page rule the browser used its
           default sheet (A4 or Letter). The same injected rule the one-page
           report uses for its paper choice. */}

@@ -196,7 +196,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
 
   if (stops.length === 0) {
     return (
-      <div className="wrap">
+      <div>
         <div className="subhead">
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags`)}>‹ Walks</button>
         </div>
@@ -210,7 +210,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
   }
 
   return (
-    <div className="wrap line-wrap">
+    <div className="line-wrap">
       {/* the tab's landing (owner cut, Aug 2026): the Line IS the eyes' front
           door — ONE action (film), and the filing lives in the back room */}
       <div className="subhead">

@@ -92,14 +92,14 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   };
 
   if (gone) return (
-    <div className="wrap">
+    <div>
       <p className="sub" style={{ marginTop: 24 }}>That frame isn’t here any more — it was deleted, or it has not synced to this device yet.</p>
       <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/w/${wsId}/snaglist`)}>All the evidence</button>
     </div>
   );
 
   return (
-    <div className="wrap">
+    <div>
       <div className="subhead">
         {/* No back button and no "All evidence" button: the crumb bar above
             steps up, and the Evidence tab below is the list — the same door

@@ -235,7 +235,7 @@ export function SnagListScreen() {
   );
 
   return (
-    <div className="wrap">
+    <div>
       <div className="subhead">
         {/* Filming is somewhere you GO from here, not the thing you land in.
             This screen is what the Snags tab opens, because it is what the
@@ -366,7 +366,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="wrap print-root">
+    <div className="print-root">
       <div className="subhead no-print">
         <button className="btn btn-ghost" onClick={onDone}>‹ Back</button>
         <div style={{ flex: 1 }} />
