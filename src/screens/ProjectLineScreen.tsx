@@ -215,7 +215,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               <span className="why-door-t">{capLine ?? 'Where is this line limited?'}</span>
               <span className="why-door-s">
                 {capLine
-                  ? 'Open the capacity view — each station at its own speed, in one unit.'
+                  ? 'Open the line balance — each station at its own speed, in one unit.'
                   : 'List the machines and people in order, each at its own speed. The shortest one is what holds the line back.'}
               </span>
             </button>

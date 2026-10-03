@@ -19,6 +19,7 @@ import {
   type PaceTodoRow, type PaceWinRow, type PaceLineRow,
 } from '../db';
 import { proposeLines, type LineProposal } from '../lib/guessLine';
+import type { PlanModel } from '../lib/planModel';
 
 type Row =
   | { kind: 'todo'; p: LineProposal<PaceTodoRow> }
@@ -28,19 +29,27 @@ const label = (r: Row) =>
   r.kind === 'todo' ? (r.p.item.what || 'Untitled next step')
                     : (r.p.item.title || r.p.item.story || 'Untitled win');
 
-export function LineTidyPanel({ projectId, lines }: { projectId: string; lines: PaceLineRow[] }) {
+export function LineTidyPanel({ projectId, lines, planModel }: { projectId: string; lines: PaceLineRow[]; planModel: PlanModel }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState<string | null>(null);
 
+  /* NOT THE ACTIONS. An action for no one line is filed under "All lines" on
+     the board and shows in every line's pack — written that way on purpose
+     ("Weekly 5S walk, every line"), not lost. Offering it here said the line's
+     owner "never sees" it, which is untrue, and the panel could never go away.
+     A win with no line really is missing from every line's pack, so wins stay. */
   const load = useCallback(async () => {
-    const [todos, wins] = await Promise.all([listPaceTodos(projectId), listPaceWins(projectId)]);
+    const [todos, wins] = await Promise.all([
+      planModel === 'commissioning' ? listPaceTodos(projectId) : Promise.resolve([] as PaceTodoRow[]),
+      listPaceWins(projectId),
+    ]);
     setRows([
       ...proposeLines(todos, lines).map(p => ({ kind: 'todo', p } as Row)),
       ...proposeLines(wins, lines).map(p => ({ kind: 'win', p } as Row)),
     ]);
-  }, [projectId, lines]);
+  }, [projectId, lines, planModel]);
 
   useEffect(() => { void load(); }, [load]);
 

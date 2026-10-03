@@ -46,8 +46,9 @@ import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { coveredIn, daysLate, isHere, landsIn, todayISO } from '../lib/materials';
 import { usePrograms } from '../lib/usePrograms';
-import { standing, slipWords } from '../lib/standing';
+import { standing, slipWords, type PlanMark } from '../lib/standing';
 import { layoutPlan, labelGap, planSays } from '../lib/plan';
+import { Timeline } from '../ui/Timeline';
 import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { withTrackerRows, bindSources, statusOfAction, boundNumber, type NumberSources } from '../lib/treeBind';
@@ -169,7 +170,7 @@ function ParetoPage({ view, title, scale, sheetH, n, of }: {
                 ? `${view.period} against ${view.beforePeriod} — what moved`
                 : `${view.period ?? 'the measured period'} — ${Math.round(view.totalMins).toLocaleString()} minutes across ${view.totalStops} stops`} />
             <p className="exec-pr-vital">
-              <b>{view.vitalCount}</b> categories carry <b>{Math.round(view.vitalShare * 100)}%</b> of
+              <b>{view.vitalCount}</b> {view.vitalCount === 1 ? 'category carries' : 'categories carry'} <b>{Math.round(view.vitalShare * 100)}%</b> of
               the lost time{view.headline ? ` · ${view.headline}` : ''}
             </p>
             <table className="exec-pr">
@@ -211,7 +212,7 @@ function ParetoPage({ view, title, scale, sheetH, n, of }: {
           <span>{title} · client report · page {n} of {of} — where the time is going</span>
           <span>{view.comparable
             ? `Measured against the Pareto covering ${view.beforePeriod}.`
-            : 'One Pareto so far — no movement can be claimed from a single reading.'}</span>
+            : 'Nothing timed in the four weeks before — no movement can be claimed yet.'}</span>
         </footer>
       </section>
     </div>
@@ -300,6 +301,55 @@ function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
   );
 }
 
+/* WHERE THE JOB IS — the screen's copy of the sheet the file prints behind the
+ * front page on a 3P job: the sentence, the dates on one axis, and what is
+ * outstanding with whose it mostly is. The file printed it and the preview
+ * did not, so the client was sent a page nobody had seen, and every page after
+ * it was numbered one more than the screen could account for. The same
+ * standing() call and the same rows as the file's block. */
+function PlanPage({ pl, marks, today, expectedAt, plannedAt, title, scale, sheetH, n, of }: {
+  pl: NonNullable<PaceReportData['plan']>; marks: PlanMark[]; today: string;
+  expectedAt?: string; plannedAt?: string;
+  title: string; scale: number; sheetH: number; n: number; of: number;
+}) {
+  return (
+    <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
+      <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
+        <div className="exec-body-1">
+          <section className="exec-box">
+            <SectionHead n={String(n)} title="Where the job is" sowhat={pl.counted} />
+            <p className="exec-plan-says">{pl.says}</p>
+            {pl.slip && <p className="exec-plan-slip">{pl.slip}</p>}
+            <Timeline marks={marks} today={today} expectedAt={expectedAt} plannedAt={plannedAt} />
+            {pl.outstanding.length > 0 && (
+              <>
+                <h3 className="exec-plan-h">What we are waiting on <span>and whose it is</span></h3>
+                <table className="exec-list">
+                  <thead><tr><th scope="col" /><th scope="col">Open</th><th scope="col">Late</th><th scope="col">Mostly whose</th></tr></thead>
+                  <tbody>
+                    {pl.outstanding.map(r => (
+                      <tr key={r.what}>
+                        <th scope="row">{r.what}</th>
+                        <td>{r.open}</td>
+                        <td className={r.late ? 'is-late' : undefined}>{r.late || '—'}</td>
+                        <td>{r.whose || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </section>
+        </div>
+        <footer className="exec-foot">
+          <span>{title} · client report · page {n} of {of} — where the job is</span>
+          <span>Read off the same records the site and the OEM are working to.</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 /* WHAT WE ARE WAITING ON gets its own sheet, drawn the way the plan it comes
  * off is drawn: rows of what we need, weeks across the top, green from the week
  * each one lands. A list of dates would fit in a corner of another page — the
@@ -352,7 +402,7 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
                     <tr key={r.what}>
                       <th scope="row" className="mt-grid-item">{r.what}</th>
                       <td className={'mt-grid-when is-' + (r.here ? 'here' : r.late != null ? 'late' : r.due ? 'waiting' : 'undated')}>
-                        {r.here ? 'In stock' : r.due ? r.due : '—'}
+                        {r.here ? 'In stock' : r.due ? r.due : 'no date'}
                         {r.late != null && <span className="mt-grid-late">{r.late}d late</span>}
                       </td>
                       {r.covered.map((on, i) => (
@@ -621,18 +671,22 @@ function ProgramsPage({ p, title, scale, sheetH, n, of }: {
                 across eight week columns produced eight columns of one colour.
                 Two lists across the sheet instead, saying the four things
                 somebody actually asks. */}
+            {/* The file's columns: one, read down, while the list is short;
+                two halves once it is long. The page dealt rows out alternately
+                into two columns, so a proved program sat above one still on
+                the machine and the order the file prints was lost. */}
             <div className="pg-cols">
-              {[0, 1].map(col => (
+              {(rows.length > 16 ? [rows.slice(0, Math.ceil(rows.length / 2)), rows.slice(Math.ceil(rows.length / 2))] : [rows]).map((colRows, col) => (
                 <table className="pg-list" key={col}>
                   <thead>
                     <tr>
                       <th scope="col">Program</th>
                       <th scope="col">What it runs</th>
-                      <th scope="col">Where it&rsquo;s got to</th>
+                      <th scope="col">Where it has got to</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.filter((_, i) => i % 2 === col).map(r => (
+                    {colRows.map(r => (
                       <tr key={r.what}>
                         <th scope="row">
                           <span className={'pg-dot is-' + (r.overdue != null ? 'late' : r.state)} aria-hidden />
@@ -870,7 +924,9 @@ export function PaceExecReport() {
   const walkSig = ppm.lines.map(l => `${l.id}:${l.workspaceId ?? ''}`).join(',');
   useEffect(() => {
     void (async () => {
-      setTodos(await listPaceTodos(projectId, lineId));
+      /* A line's deck carries the actions written for every line as well, the
+         way its board sheet and the line's own Actions list do. */
+      setTodos((await listPaceTodos(projectId)).filter(t => !lineId || t.lineId === lineId || !t.lineId));
       setWins(await listPaceWins(projectId, lineId));
       /* THE TRIALS. A commissioning job's whole story is here — what is planned,
          what it passes on, and what happened on the day — and the report had no
@@ -986,6 +1042,20 @@ export function PaceExecReport() {
             ? 'That project isn’t here any more, so there is nothing to report on.'
             : 'A deck is a report on one project. Pick which, and it opens on its own.'}
         </p>
+      </div>
+    );
+  }
+
+  /* A deck for a line that has gone is a dead link, not the whole project's
+     report under that line's address — which is what it silently became. */
+  if (lineId && !line) {
+    return (
+      <div className="exec-report">
+        <div className="exec-bar no-print">
+          <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}`)}>← Back</button>
+        </div>
+        <p className="sub" style={{ padding: '40px 40px 12px' }}>That line isn’t on {project.name} any more, so it has no deck of its own.</p>
+        <button className="btn btn-primary" style={{ margin: '0 40px' }} onClick={() => nav(`/pace-report?project=${projectId}`)}>The project’s client report</button>
       </div>
     );
   }
@@ -1276,6 +1346,40 @@ export function PaceExecReport() {
     };
   })();
 
+  /* WHERE THE JOB IS — the sheet that leads the report, off the same two calls
+     the project screen makes. Not a second opinion assembled here: standing()
+     gives the sentence and the rows, layoutPlan() gives the marks, and the only
+     thing this decides is the minGap, which is the width of a label — an A3
+     fits far more across than a phone, so it stacks fewer lines.
+
+     Left off a line's own deck, like materials and programs: the position
+     belongs to the job, not to one line's page. */
+  const planStanding = line ? undefined : standing({
+    tests, items: testItems, assets: machines,
+    materials: mats.materials, programs: progs.programs,
+    expectedAt: project?.expectedAt, plannedAt: project?.plannedAt, today,
+  });
+  const planLayout = layoutPlan(planStanding?.plan ?? [], {
+    today, expectedAt: project?.expectedAt, plannedAt: project?.plannedAt,
+    /* The A3's own geometry: 1190pt wide, 26pt margins, 14pt inset each side
+       and a 74pt lane column leave ~1036pt of track. A label is drawn at 7.5pt
+       bold with its date beside it, so ~3.9pt a character plus 46pt of date
+       and padding. See labelGap — an estimate on purpose, and a generous one. */
+    widthOf: m => labelGap(m.label, 3.9, 46, 1036),
+  });
+  const planBlock: PaceReportData['plan'] = !planStanding || planStanding.plan.length === 0
+    ? undefined
+    : {
+      says: planStanding.sentence,
+      slip: slipWords(planStanding.slipDays),
+      counted: planSays(planStanding.plan, today),
+      axis: planLayout.axis,
+      lanes: planLayout.lanes,
+      outstanding: planStanding.rows.map(r => ({
+        what: r.what, open: r.open, late: r.late, whose: r.whose,
+      })),
+    };
+
   /* One order, counted once. Pace, then where the time is going, then the plan,
      then the work, then the detail — and every page number falls out of the
      same arithmetic the pages themselves are rendered from. */
@@ -1295,8 +1399,12 @@ export function PaceExecReport() {
   const hasDetail = hasTracker && (actions.length > 0 || (wins?.length ?? 0) > 0
     || (snags ?? []).some(sn => sn.status !== 'closed'));
   /* The preview's own count, used until the file has been read — see above. */
+  /* The file prints WHERE THE JOB IS as its own sheet behind the front page on
+     a tracker's report (on a commissioning one it rides under the tests). */
+  const hasPlanSheet = hasTracker && !!planBlock;
   const guess = (() => {
-    const owes = 2;
+    const plan = 2;
+    const owes = plan + (hasPlanSheet ? 1 : 0);
     const install = owes + (hasOwes ? 1 : 0);
     const pareto = install + (hasInstall ? 1 : 0);
     const capacity = pareto + (hasPareto ? 1 : 0);
@@ -1304,18 +1412,20 @@ export function PaceExecReport() {
     const programs = materials + (hasMaterials ? 1 : 0);
     const tree = programs + (hasPrograms ? 1 : 0);
     const board = tree + (hasTree ? 1 : 0);
-    const of = 1 + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + capSheetCount
+    const of = 1 + (hasPlanSheet ? 1 : 0) + (hasOwes ? 1 : 0) + (hasInstall ? 1 : 0) + (hasDetail ? 1 : 0) + (hasPareto ? 1 : 0) + capSheetCount
       + (hasMaterials ? 1 : 0) + (hasPrograms ? 1 : 0) + (hasTree ? 1 : 0) + boardPlan.length;
-    return { owes, install, pareto, capacity, materials, programs, tree, board, of };
+    return { plan, owes, install, pareto, capacity, materials, programs, tree, board, of };
   })();
   /* Inline rather than imported: the drawing module is loaded only when needed. */
-  const onFile = (re: RegExp, fallback: number): number =>
-    (file ? file.texts.find(t => re.test(t.text))?.page ?? fallback : fallback);
+  const onFile = (re: RegExp, fallback: number, notOn?: number): number =>
+    (file ? file.texts.find(t => t.page !== notOn && re.test(t.text))?.page ?? fallback : fallback);
+  const planPageNo = onFile(/^Where the job is$/, guess.plan);
   const owesPageNo = onFile(/^Who owes what, by when/, guess.owes);
   const installPageNo = onFile(/^Installation/, guess.install);
   const paretoPageNo = onFile(/^Where the time is going/, guess.pareto);
   const capacityPageNo = onFile(/^Where the line is limited/, guess.capacity);
-  const materialsPageNo = onFile(/^What we are waiting on/, guess.materials);
+  // Not the plan's page: its table is headed "What we are waiting on" too.
+  const materialsPageNo = onFile(/^What we are waiting on/, guess.materials, hasPlanSheet ? planPageNo : undefined);
   const programsPageNo = onFile(/^What the machine can run/, guess.programs);
   const treePageNo = onFile(/^The plan$/, guess.tree);
   const boardPageNo = onFile(/^3P Board/, guess.board);
@@ -1470,39 +1580,6 @@ export function PaceExecReport() {
 
   /* Everything the PDF needs, as plain numbers and strings. The drawer never
    * looks at the DOM, so this is the whole contract between screen and file. */
-  /* WHERE THE JOB IS — the sheet that leads the report, off the same two calls
-     the project screen makes. Not a second opinion assembled here: standing()
-     gives the sentence and the rows, layoutPlan() gives the marks, and the only
-     thing this decides is the minGap, which is the width of a label — an A3
-     fits far more across than a phone, so it stacks fewer lines.
-
-     Left off a line's own deck, like materials and programs: the position
-     belongs to the job, not to one line's page. */
-  const planStanding = line ? undefined : standing({
-    tests, items: testItems, assets: machines,
-    materials: mats.materials, programs: progs.programs,
-    expectedAt: project?.expectedAt, plannedAt: project?.plannedAt, today,
-  });
-  const planLayout = layoutPlan(planStanding?.plan ?? [], {
-    today, expectedAt: project?.expectedAt, plannedAt: project?.plannedAt,
-    /* The A3's own geometry: 1190pt wide, 26pt margins, 14pt inset each side
-       and a 74pt lane column leave ~1036pt of track. A label is drawn at 7.5pt
-       bold with its date beside it, so ~3.9pt a character plus 46pt of date
-       and padding. See labelGap — an estimate on purpose, and a generous one. */
-    widthOf: m => labelGap(m.label, 3.9, 46, 1036),
-  });
-  const planBlock: PaceReportData['plan'] = !planStanding || planStanding.plan.length === 0
-    ? undefined
-    : {
-      says: planStanding.sentence,
-      slip: slipWords(planStanding.slipDays),
-      counted: planSays(planStanding.plan, today),
-      axis: planLayout.axis,
-      lanes: planLayout.lanes,
-      outstanding: planStanding.rows.map(r => ({
-        what: r.what, open: r.open, late: r.late, whose: r.whose,
-      })),
-    };
 
   const reportData = (shots?: Map<string, Shot[]>): PaceReportData => ({
     now,
@@ -1755,6 +1832,11 @@ export function PaceExecReport() {
       </section>
       </div>
 
+      {hasPlanSheet && planBlock && planStanding && (
+        <PlanPage pl={planBlock} marks={planStanding.plan} today={today} expectedAt={project?.expectedAt} plannedAt={project?.plannedAt}
+          title={title} scale={scale} sheetH={SHEET_H} n={planPageNo} of={pageCount} />
+      )}
+
       {hasOwes && owesBlock && (
         <OwesPage o={owesBlock} title={title} scale={scale} sheetH={SHEET_H} n={owesPageNo} of={pageCount} />
       )}
@@ -1936,7 +2018,7 @@ export function PaceExecReport() {
           <section className="exec-box exec-box-snags">
             <SectionHead n={String(sec + 3)} title="Line walk" sowhat={`${openSnags.length} open on the walk`} />
             {openSnags.length === 0 ? (
-              <p className="exec-empty">{snags.length ? 'Everything pinned on the walk is closed.' : 'No walk recorded this week.'}</p>
+              <p className="exec-empty">Nothing open on the walk.</p>
             ) : (
               <ul className="exec-snags">
                 {openSnags
@@ -1963,7 +2045,7 @@ export function PaceExecReport() {
                 success is the kind of small lie that costs a report its credibility. */}
             <SectionHead n={String(sec + 4)} title="What we tried" sowhat="What worked, what didn’t, and the weeks behind each" />
             {showWins.length === 0 ? (
-              <p className="exec-empty">No wins logged yet.</p>
+              <p className="exec-empty">Nothing logged yet.</p>
             ) : (
               <ul className="exec-wins">
                 {showWins.map(w => (

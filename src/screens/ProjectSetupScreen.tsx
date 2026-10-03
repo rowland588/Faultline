@@ -343,7 +343,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
 
         {/* Work written before lines had packs of their own — offered for
             placing, once, and gone from the page as soon as it is placed. */}
-        <LineTidyPanel projectId={project.id} lines={lines.lines} />
+        <LineTidyPanel projectId={project.id} lines={lines.lines} planModel={planModel(project)} />
       </Fold>
   );
 
