@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
-import { useSession, useSyncStatus, signIn, signUp, signOut } from './session';
-import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten } from './sync';
+import { useSession, useSyncStatus, signIn, signUp } from './session';
+import { signOutAsked } from '../ui/AccountMenu';
+import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus } from './sync';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 
@@ -29,10 +30,13 @@ export function CloudPanel() {
   /* REPAIR SAYS WHAT IT DID. It used to close the sheet and work out of sight,
      so a tap looked like nothing. Now the sheet stays, says it is working, and
      ends with what it found. */
-  const [repair, setRepair] = useState<'idle' | 'running' | 'done'>('idle');
+  /* And says it when it did NOT: with no signal the pass fails, and the sheet
+     still announced "everything re-sent and re-fetched". */
+  const [repair, setRepair] = useState<'idle' | 'running' | 'done' | 'failed'>('idle');
   const runRepair = async () => {
     setRepair('running');
-    try { await fullResync(); } finally { setRepair('done'); }
+    try { await fullResync(); setRepair(syncStatus().state === 'idle' ? 'done' : 'failed'); }
+    catch { setRepair('failed'); }
   };
   const missingWords = (n: number, films = 0) => {
     const photos = n - films;
@@ -90,7 +94,9 @@ export function CloudPanel() {
                   status.missingDown ? `${status.missingDown} only on the phone that took ${status.missingDown === 1 ? 'it' : 'them'}` : '',
                 ].filter(Boolean).join(' · ')}
               </span>
-            ) : status.state === 'idle' && status.lastSyncedAt ? (
+            ) : status.state === 'idle' && status.lastSyncedAt && !status.refused?.length ? (
+              /* Never beside a refusal: "3 rows the cloud refused" and
+                 "Everything is backed up ✓" were shown together. */
               <span className="sub">Everything is backed up ✓</span>
             ) : null}
             {status.schemaOutdated && (
@@ -100,7 +106,7 @@ export function CloudPanel() {
             )}
           </span>
         </button>
-        <button className="btn btn-ghost" onClick={() => void signOut().then(r => { if (!r.ok) window.alert(r.reason); })}>Sign out</button>
+        <button className="btn btn-ghost" onClick={() => void signOutAsked()}>Sign out</button>
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
@@ -159,9 +165,11 @@ export function CloudPanel() {
           </div>
         ) : null}
         {repair !== 'idle' && (
-          <p className="sub" role="status" style={{ marginBottom: 10, color: repair === 'running' ? 'var(--ink-2)' : 'var(--ok, #1e6b4b)' }}>
+          <p className="sub" role="status" style={{ marginBottom: 10, color: repair === 'running' ? 'var(--ink-2)' : repair === 'failed' ? 'var(--st-r)' : 'var(--ok, #1e6b4b)' }}>
             {repair === 'running'
               ? 'Repairing — re-sending everything from this device and fetching everything back…'
+              : repair === 'failed'
+              ? 'Repair could not reach the cloud — nothing on this device is lost, and it tries again by itself once there is a signal.'
               : `Repair finished — everything re-sent and re-fetched${status.missingDown ? `. ${status.missingDown} still ${status.missingDown === 1 ? 'is' : 'are'} only on the phone that took ${status.missingDown === 1 ? 'it' : 'them'} — repair cannot bring ${status.missingDown === 1 ? 'that' : 'those'}` : ''}.`}
           </p>
         )}
@@ -170,7 +178,7 @@ export function CloudPanel() {
         )}
         <SheetRow label="Check for changes now" hint="usually unnecessary" onClick={() => { void syncNow(); setOpen(false); }} />
         <SheetRow label={repair === 'running' ? 'Repairing…' : 'Repair sync'} hint="re-send and re-fetch everything" onClick={() => { if (repair !== 'running') void runRepair(); }} />
-        <SheetRow label="Sign out" danger onClick={() => { setOpen(false); void signOut().then(r => { if (!r.ok) window.alert(r.reason); }); }} />
+        <SheetRow label="Sign out" danger onClick={() => { setOpen(false); void signOutAsked(); }} />
       </Sheet>
     </>
   );

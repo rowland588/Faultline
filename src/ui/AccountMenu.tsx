@@ -11,6 +11,16 @@ import { Sheet, SheetRow } from './Sheet';
 import { cloudConfigured } from '../cloud/client';
 import { useSession, signOut } from '../cloud/session';
 
+/** Sign out, after asking — the one way out, wherever it is pressed. Home's
+ *  account row and its sheet signed out in one tap, with no question, and
+ *  signing out clears this device's copy of every job. */
+export async function signOutAsked(): Promise<boolean> {
+  if (!window.confirm('Sign out of Faultline on this device? Its copy of the job is cleared — everything is in the cloud and comes back when you sign in again.')) return false;
+  const r = await signOut(); // session clears → the app returns to the sign-in screen
+  if (!r.ok) window.alert(r.reason);
+  return r.ok;
+}
+
 export function AccountMenu() {
   const { session } = useSession();
   const [open, setOpen] = useState(false);
@@ -19,10 +29,8 @@ export function AccountMenu() {
   const email = session.user.email ?? 'signed in';
 
   const logout = async () => {
-    if (!window.confirm('Sign out of Faultline on this device? Its copy of the job is cleared — everything is in the cloud and comes back when you sign in again.')) return;
     setOpen(false);
-    const r = await signOut(); // session clears → the app returns to the sign-in screen
-    if (!r.ok) window.alert(r.reason);
+    await signOutAsked();
   };
 
   return (

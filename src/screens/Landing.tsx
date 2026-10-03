@@ -48,7 +48,12 @@ export function Landing() {
         if (needsConfirm) setOk('Account created — check your email to confirm, then sign in.');
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Something went wrong');
+      const said = e instanceof Error ? e.message : '';
+      /* The browser's own words for no signal — "Failed to fetch", "Load
+         failed" — mean nothing to somebody at a door; say what happened. */
+      setErr(/failed to fetch|load failed|networkerror|network request failed/i.test(said)
+        ? 'Faultline could not be reached — check the signal and try again.'
+        : said || 'Something went wrong');
     } finally {
       setBusy(false);
     }
