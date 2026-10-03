@@ -14,6 +14,7 @@
 import { AddFold } from '../ui/AddFold';
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
+import { readNumber } from '../lib/format';
 import { MeasureChart } from '../charts/MeasureChart';
 import { useMeasures } from '../lib/useMeasures';
 import { lineSeries, seriesFor, say, todayISO, type Measure } from '../lib/measures';
@@ -35,9 +36,9 @@ function AddReading({ measure, onAdd }: {
 
   const add = async () => {
     // "3,1" is what a phone's decimal keypad types in much of Europe; it was
-    // silently refused — the button pressed and nothing happened.
-    const n = Number(value.trim().replace(',', '.'));
-    if (!Number.isFinite(n) || !at) return;
+    // silently refused. "1,200" is a UK thousand. Both read as meant.
+    const n = readNumber(value);
+    if (n == null || !at) return;
     await onAdd(at, n, note.trim() || undefined);
     setValue(''); setNote('');
   };

@@ -10,6 +10,7 @@
  * Escape abandons the draft. That is the only way to get out of a half-typed
  * cell without writing it. */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { readNumber } from '../lib/format';
 
 /* ---------------------------------------------------------------------------
  * WHAT IS TYPED IS WRITTEN WITHIN A SECOND, AND WRITTEN BEFORE THE PHONE SLEEPS.
@@ -142,9 +143,9 @@ export function DraftNumber({ value, onSave, className = 'pset-cell is-num', pla
     if (draft == null || abandoned.current) return;
     const t = draft.trim();
     if (t === '') { if (value != null) onSave(undefined); setDraft(null); return; }
-    const n = Number(t.replace(',', '.'));   // a decimal comma is a decimal point
+    const n = readNumber(t);   // "1,200" and "3,1" both read as meant — see lib/format
     // A number that isn't one is discarded rather than stored as 0 or NaN.
-    if (Number.isFinite(n) && n !== value) onSave(n);
+    if (n != null && n !== value) onSave(n);
     setDraft(null);
   };
   useFlush(commit);

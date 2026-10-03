@@ -38,3 +38,18 @@ export const plural = (n: number, one: string, many = one + 's'): string =>
 /** A short clock time, e.g. "14:32". */
 export const fmtClock = (at: number): string =>
   new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+/** A number as a person types it on the floor — or undefined when it is not
+ *  one. A COMMA IS READ BOTH WAYS IT IS MEANT: "1,200" is twelve hundred, as a
+ *  UK keyboard writes thousands, and "3,1" is three point one, as a European
+ *  phone's decimal keypad writes it. Treating every comma as a point turned
+ *  1,200 packs into 1.2; refusing commas made "3,1" do nothing at all. */
+export function readNumber(typed: string): number | undefined {
+  const t = typed.trim().replace(/\s+/g, '');
+  if (t === '') return undefined;
+  const plain = /^[-+]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t) ? t.replace(/,/g, '')   // 1,200 · 12,500.5
+    : /^[-+]?\d*,\d+$/.test(t) ? t.replace(',', '.')                                // 3,1 · ,5
+    : t;
+  const n = Number(plain);
+  return Number.isFinite(n) ? n : undefined;
+}
