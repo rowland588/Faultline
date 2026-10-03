@@ -34,10 +34,14 @@ function AddReading({ measure, onAdd }: {
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
 
+  /* A number, or nothing to add. "12,5" off a phone keyboard that writes a
+     decimal comma is twelve and a half; "abc" left the button lit and a tap
+     on it did nothing at all. */
+  // "3,1" (a European decimal keypad) and "1,200" (a UK thousand) both read as
+  // meant — lib/format readNumber; "abc" is no number, and the button stays off.
+  const n = readNumber(value);
+  const valid = n != null;
   const add = async () => {
-    // "3,1" is what a phone's decimal keypad types in much of Europe; it was
-    // silently refused. "1,200" is a UK thousand. Both read as meant.
-    const n = readNumber(value);
     if (n == null || !at) return;
     await onAdd(at, n, note.trim() || undefined);
     setValue(''); setNote('');
@@ -61,7 +65,7 @@ function AddReading({ measure, onAdd }: {
           onChange={e => setNote(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
       </label>
-      <button className="btn btn-primary nm-add-btn" disabled={!value.trim() || !at} onClick={() => void add()}>
+      <button className="btn btn-primary nm-add-btn" disabled={!valid || !at} onClick={() => void add()}>
         Add reading
       </button>
     </div>
