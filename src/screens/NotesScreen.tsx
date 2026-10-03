@@ -196,7 +196,15 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   const [copied, setCopied] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-  if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
+  // A dead end said so and offered nothing; every other screen gives the way out.
+  if (!project) {
+    return (
+      <div className="wrap pace">
+        <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+      </div>
+    );
+  }
 
   const job: Job = { tests: tt.tests, assets: tt.assets };
   const notes = live(tt.items).filter(i => i.kind === 'note').sort((a, b) => a.createdAt - b.createdAt);

@@ -27,6 +27,7 @@ import { useMethodCounts } from '../lib/useMethodCounts';
 import { useImpacts } from '../lib/useImpacts';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
+import { planModel } from '../lib/planModel';
 import { useActions, WHOLE_PROJECT, isLate } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
 import { PILLARS, actionTitle, meetingOrder, type PillarKey } from '../lib/pillars';
@@ -127,7 +128,9 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       <header className="cm-head">
         <div>
           <p className="cm-eyebrow">{project.name}</p>
-          <h1>3P Board</h1>
+          {/* "3P" is a method's name; on a lever tree job this board is where
+              the tree's work is written, and the job is not a 3P job. */}
+          <h1>{planModel(project) === 'tree' ? 'Board' : '3P Board'}</h1>
           <p className="cw-handover">
             {ax.steps.length === 0
               ? <b>No actions yet</b>
