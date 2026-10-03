@@ -86,6 +86,12 @@ describe('the other ends of an installation', () => {
     expect(installOf({ ...packer, installedOn: '2026-09-29' }, done, [], TODAY)).toMatchObject({ ready: false, says: 'Installed — all 6 steps done.' });
   });
 
+  it('says one step as one step — never "All 1 steps done"', () => {
+    const one = [step({ title: 'Coder mounted', assetId: packer.id, outcome: 'passed', ranOn: '2026-09-29' })];
+    expect(installOf(packer, one, [], TODAY).says).toBe('The one step done.');
+    expect(installOf({ ...packer, installedOn: '2026-09-29' }, one, [], TODAY).says).toBe('Installed — the one step done.');
+  });
+
   it('keeps the line’s own steps apart from any machine’s', () => {
     const lineStep = step({ title: 'Mezzanine handrail', plannedFor: '2026-10-05' });
     expect(installOf(undefined, [...steps, lineStep], [], TODAY).steps.map(s => s.step.title)).toEqual(['Mezzanine handrail']);

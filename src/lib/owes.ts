@@ -2,7 +2,7 @@
  *
  * Page 1 tells the story of each thing being proved. Page 2 says where the job
  * is. Neither answers the question the meeting actually ends on: what does each
- * side have to do before we meet again. A GM reading page 1 has to collect
+ * side have to do before we meet again. A client reading page 1 has to collect
  * Ilapak's debts from six different strands; the OEM's project manager has to
  * find his own name in them. This is the same debts, turned the other way up —
  * one block per party, dated, late in red, each line naming what it hangs off.
