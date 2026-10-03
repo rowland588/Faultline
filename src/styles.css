@@ -5046,6 +5046,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .cw-addf input { flex: 1 1 180px; min-width: 0; }
 .cw-addf .cw-num { flex: 0 0 76px; text-align: right; }
 .cw-addf select:focus, .cw-addf input:focus { border-color: var(--accent); }
+/* A thumb target on the floor: "Plan a test", "Add a fix for this test" and
+   "Attach a PDF" measured 42px on a phone — two short of the house minimum. */
+.cw-add { min-height: 44px; }
 
 @media (max-width: 560px) {
   .cw-who { display: none; }         /* the owner is in the editor; the row keeps its date */

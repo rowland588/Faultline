@@ -557,9 +557,10 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView, glow, focu
       </span>
 
       {kind === 'found' && rows.length > 0 && (
+        /* "against this test" on an install step was a word that was not true. */
         <p className="sub tw-note tw-obs-note">
           What you saw, as you saw it. Anything that needs doing is a fix, added below — on the
-          Fixes screen, against this test.
+          Fixes screen, against this {test.kind === 'install' ? 'step' : 'test'}.
         </p>
       )}
 
