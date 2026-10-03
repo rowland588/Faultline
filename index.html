@@ -125,7 +125,9 @@
     <div id="root">
       <!-- Static mirror for crawlers that don't run JavaScript (AI answer
            engines fetch raw HTML). Replaced by the app the moment it mounts;
-           <noscript>
+           inside a noscript element so users never see a flash. Keep in step
+           with the landing page and /how-it-works.html. -->
+      <noscript>
         <main>
           <h1>Faultline — the control room for change on your lines</h1>
           <p>Show the business a formal process, and that you are in control of every change on your lines.</p>
