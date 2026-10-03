@@ -307,8 +307,14 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
   const commissioning = planModel(project) === 'commissioning';
 
   // Another device's edit, or an undo, arrives as a new record: take it,
-  // unless something is being dragged right now.
-  useEffect(() => { if (!drag.current) setMarks(s.marks); }, [s.marks]);
+  // unless something is being dragged right now — or TYPED. Leaving the role
+  // box writes the map, the store reloads it a beat later, and this adopted
+  // that copy over the first letters already typed into the task box beside
+  // it: "Watch the splice" came back "atch the splice". A box that has focus
+  // keeps its draft, the rule every other field in the app follows; the
+  // record is taken again the moment it is left.
+  const typing = useRef(false);
+  useEffect(() => { if (!drag.current && !typing.current && !editing) setMarks(s.marks); }, [s.marks, editing]);
   useEffect(() => { setProduct(s.product); }, [s.product]);
   /* The board's size in pixels: shapes are drawn in pixels so a square stays
      square and a line stays a line at any width. */
@@ -563,11 +569,13 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
             <div key={p.id} className="ls-person">
               <MarkIcon kind="person" size={22} />
               <input className="ls-role" value={p.label ?? ''} aria-label="Role" placeholder="Op 1"
+                onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { label: e.target.value })}
-                onBlur={() => void putStandard({ ...s, marks })} />
+                onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
               <textarea className="ls-task" rows={2} value={p.task ?? ''} aria-label="What they do" placeholder="What they do on this product"
+                onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { task: e.target.value })}
-                onBlur={() => void putStandard({ ...s, marks })} />
+                onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
             </div>
           ))}
           <button className="btn btn-ghost btn-sm ls-del" onClick={() => void remove()}>Delete this map</button>

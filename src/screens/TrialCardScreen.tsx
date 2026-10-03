@@ -135,10 +135,27 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
 
   const test = tt.tests.find(t => t.id === testId);
   if (!test) {
+    /* The same dead end the test's own page draws: it says which thing is
+       gone and keeps the spine, so a stale link to a card reads as a deleted
+       record rather than as the app having broken. It was one bare grey line
+       and a button to "testing", a word no screen is called any more. */
     return (
-      <div className="wrap pace">
-        <p className="sub">That record isn’t here any more.</p>
-        <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>Back to testing</button>
+      <div className="wrap pace cm-screen">
+        <Crumbs trail={[
+          { label: 'Projects', to: '/projects' },
+          { label: project.name, to: `/project/${projectId}` },
+          { label: 'Commission', to: `/project/${projectId}/testing` },
+          { label: 'Card' },
+        ]} />
+        <section className="cmp-empty">
+          <h2>That record isn’t here any more</h2>
+          <p>
+            The test, fix or step this card was for has been deleted, or the link is to one on a
+            different project. Everything else on {project.name} is still where it was.
+          </p>
+          <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>Back to the tests</button>
+          <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav(`/project/${projectId}/fixes`)}>The fixes</button>
+        </section>
       </div>
     );
   }

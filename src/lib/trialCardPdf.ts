@@ -212,10 +212,19 @@ function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): numbe
  * is: the client report prints the fundamentals and may fairly shorten them,
  * this one prints everything and paginates. "…" on the sheet whose entire job
  * is the detail would be absurd. */
+/** A finding's row: its wrapped words, and a second line when it was filmed.
+ *  "1 filmed" is drawn 24pt down the row, so a one-line observation with a
+ *  photo needs 30pt — at 18 the count printed through the rule and into the
+ *  row below it on the client's copy. One arithmetic for measuring and
+ *  drawing, so the table cannot be sized by one and filled by another. */
+export const findingRowHeight = (lines: number, photos: number): number =>
+  Math.max(photos ? 30 : 18, 8 + lines * 11);
+
 function findingHeights(d: Doc, c: TrialCard, w: number): number[] {
   setFont(d, 8.5, 'normal', INK);
+  /* Measured at the width the WHAT WE SAW column is drawn at (half), not 0.44. */
   return c.findings.map(f =>
-    Math.max(18, 8 + (d.splitTextToSize(san(f.what), 0.44 * w - 10) as string[]).length * 11));
+    findingRowHeight((d.splitTextToSize(san(f.what), 0.5 * w - 10) as string[]).length, f.photos));
 }
 
 function nextHeights(d: Doc, c: TrialCard, w: number): number[] {
@@ -254,7 +263,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
        run off the bottom belongs on the next sheet whole, not half. */
     setFont(d, 8.5, 'normal', INK);
     const lines = d.splitTextToSize(san(f.what), cols[0] * w - 10) as string[];
-    const rowH = Math.max(18, 8 + lines.length * 11);
+    const rowH = findingRowHeight(lines.length, f.photos);
     if (cy + rowH > maxY) break;
 
     if (drawn % 2 === 1) { d.setFillColor('#faf9f5'); d.rect(x - 4, cy + 2, w + 8, rowH, 'F'); }
