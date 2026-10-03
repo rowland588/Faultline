@@ -35,8 +35,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import type { Project } from '../types';
 import {
   listAssets, listMaterials, listPrograms, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
-  loadPaceLines, onDataChange, renameSupplier,
+  loadPaceLines, onDataChange, renameSupplier, listTreeNodes,
 } from '../db';
+import { bindSources, treeStanding, withTrackerRows } from '../lib/treeBind';
+import { stepAction } from '../lib/actions';
 import { planModel } from '../lib/planModel';
 import { lineSeries } from '../lib/measures';
 import { offerUndo } from './Undo';
@@ -109,6 +111,10 @@ function Count({ n, still }: { n: number; still: boolean }) {
 
 interface Jobs { gate: JobInput[]; paced: PacedInput[] }
 
+/** A tree box's state as one of the row's tiles: red overdue, amber at risk,
+ *  indigo under way, green done, grey not started — the house colours. */
+const TREE_TONE: Record<string, string> = { r: 'late', a: 'risk', w: 'going', g: 'done', n: 'none' };
+
 /** Every project, read the way its own method reads it. */
 function useJobs(projects: Project[]): Jobs | null {
   const [inputs, setInputs] = useState<Jobs | null>(null);
@@ -133,8 +139,16 @@ function useJobs(projects: Project[]): Jobs | null {
         ]);
         // The same call the project's own page makes, so the row and the page agree.
         const series = lines.map(l => lineSeries(project.measures ?? [], project.periods ?? [], targets, readings, l.id));
+        /* A lever tree job's tree, drawn the way the tree and the report draw
+           it — board rows hung in, and a box bound to a number in that
+           number's colour — so the row cannot say something the tree does not. */
+        const tree = planModel(project) === 'tree'
+          ? treeStanding(withTrackerRows(await listTreeNodes(project.id), bindSources(
+            steps.map(s => stepAction(s, lines)), steps, lines,
+            { measures: project.measures ?? [], periods: project.periods ?? [], targets, readings })))
+          : undefined;
         return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'),
+          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
         };
@@ -472,6 +486,18 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 <span key={g.gate} className={'jb-gate is-' + g.tone + (g.label === v.at ? ' is-now' : '')}
                   title={`${g.label}: ${GATE_WORD[g.tone]}`}>{g.label}</span>
               ))}
+            </span>
+          ) : v.tree ? (
+            /* A LEVER TREE JOB LEADS WITH ITS TREE: the outcome, then the
+               conditions that are off track — only the abnormal ones carry a
+               colour, and each says its state in words. */
+            <span className="jb-gates" aria-label={v.tree.says}>
+              <span className={'jb-gate is-' + TREE_TONE[v.tree.outcome.rag]} title={v.tree.says}>Outcome {v.tree.outcome.word}</span>
+              {v.tree.late > 0 && <span className="jb-gate is-late">{v.tree.late} overdue</span>}
+              {v.tree.risk > 0 && <span className="jb-gate is-risk">{v.tree.risk} at risk</span>}
+              {v.tree.total > 0 && v.tree.late + v.tree.risk === 0 && (
+                <span className={'jb-gate is-' + (v.tree.done === v.tree.total ? 'done' : 'none')}>{v.tree.done} of {v.tree.total} done</span>
+              )}
             </span>
           ) : (
             <span className="jb-gates" aria-label={v.pillars.map(x => `${x.label}: ${x.open} open`).join(', ')}>

@@ -21,22 +21,22 @@ control that does nothing; these are the calls to make next.
 5. **The empty job says "on this line" and plans a test first**, though Install is the first gate. Recommend "on this job" and "Add the first machine". This changes how the method starts.
 
 ## Stage gate — tests, fixes, the record and the report
-6. **`lib/testReport.ts`'s A3 testing sheet has no caller** since the card and client report replaced it. Recommend deleting the drawer and keeping the photo helpers.
+6. ~~**`lib/testReport.ts`'s A3 testing sheet has no caller** since the card and client report replaced it.~~ **Done 3 Oct:** the A3 drawer is removed; the photo helpers it shared stay in `lib/testReport.ts`, which now says why.
 7. **An old "not a problem" observation** prints on the card but shows nothing on the test page. Recommend showing it on the page too.
 8. **The spreadsheet export does not carry the line standard**, though its door says "everything". Recommend adding it, or changing the door's words.
 
 ## 3P and the line
-9. **What-ifs are frozen copies of the line.** Edit the line as run and a what-if keeps the old stations, reports changes nobody made in it, and Make it so writes those into the action. Recommend storing a what-if as changes against station ids.
+9. ~~**What-ifs are frozen copies of the line.** Edit the line as run and a what-if keeps the old stations, reports changes nobody made in it, and Make it so writes those into the action.~~ **Done 3 Oct:** a what-if stores only what it changes against the line as run (`WhatIfDiff`) and follows the line in everything else; old what-ifs convert without inventing changes. Make it so and the report read the same derived stations. Tested and driven.
 10. **Line balance is not on Home.** Recommend one clause in the 3P verdict naming the limited station.
 11. **Programs on a 3P job ask for a machine**, which creates a stage-gate machine record. Recommend programs belong to a line on 3P.
-12. **The method switch in Details is one tap with no confirm**, and it reshapes every screen and the report (the tree is kept but hidden). Recommend a confirm saying what the job will look like after, and that nothing is deleted. Raised by two areas.
+12. ~~**The method switch in Details is one tap with no confirm**, and it reshapes every screen and the report (the tree is kept but hidden).~~ **Done 3 Oct:** switching method asks first, says what the job becomes, and that nothing is deleted.
 13. **A 3P meeting note can only be about the whole project.** Recommend letting it point at a line or an action.
 14. **By-owner cards are read-only.** Recommend they open the action sheet, as the board's do.
 15. **The project's Pareto rows are not doors.** Recommend each opens the line's drill for that category.
 16. **The project-level walk sits beside each line's.** Recommend filming from the project page asks which line.
 
 ## The walk and the tools inside a workspace
-17. **Dead code:** `engine/questions.ts` and `engine/tools.ts` are imported by nothing; LineBoard's `present` prop is never passed. Recommend deleting.
+17. ~~**Dead code:** `engine/questions.ts` and `engine/tools.ts` are imported by nothing; LineBoard's `present` prop is never passed.~~ **Done 3 Oct:** `engine/questions.ts`, `engine/tools.ts` and LineBoard's `present` prop are removed.
 18. **Duplicate back buttons** on the case and on Through time do what the breadcrumb does. Recommend removing them (a removal, so your call).
 19. **The one-page report mixes periods**: "lost last week" is the last full week, the bars are the last 7 days. Recommend one period.
 20. **A gone workspace link** goes Home with no sentence. Recommend a note.
@@ -47,7 +47,7 @@ control that does nothing; these are the calls to make next.
 25. **Date boxes save on every change, app-wide**: typing a year digit by digit writes several times.
 
 ## The lever tree, the control room, and getting around
-26. **The tree is invisible from the control room.** Neither a tree job's front page nor its Home row says how the outcome stands or which condition is red. Recommend a "The tree" fold on the front page ("1 of 3 conditions at risk · outcome behind") and the same count on Home's chip.
+26. ~~**The tree is invisible from the control room.** Neither a tree job's front page nor its Home row says how the outcome stands or which condition is red.~~ **Done 3 Oct:** a tree job's front page has a "The tree" card (the outcome, then each condition off track, each opening the tree), and its row on Home leads with the outcome and the conditions off track instead of People · Plant · Process.
 27. **Every trail starts at "Projects"**, which is no longer the list of jobs. Recommend starting at Home.
 28. **"Start from the lines" writes "holds its ppm rate"** whatever the project measures. Recommend the first measure's name, or neutral words.
 29. **"Workspace +" on a line row** is the old name for the line's study and walk. Recommend naming it for what it opens.

@@ -30,7 +30,7 @@ import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PILLARS, type PillarKey } from '../lib/pillars';
 import {
-  EMPTY_CAPACITY, analyse, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
+  EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, whatIfCapacity,
   type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
@@ -268,7 +268,10 @@ export function CapacityPanel({ projectId, line, onSave }: {
     setCap(stored);
   }, [stored]);
 
-  const commit = (next: Capacity) => { setCap(next); sent.current = JSON.stringify(next); void onSave(next); };
+  /* Every save brings the what-ifs up to the line (syncWhatIfs): each keeps
+     only what it changes, and its snapshot is redrawn over the line as it now
+     is — so editing the line as run carries into every what-if. */
+  const commit = (raw: Capacity) => { const next = syncWhatIfs(cap, raw); setCap(next); sent.current = JSON.stringify(next); void onSave(next); };
 
   /* WHICH LINE IS ON THE SCREEN — the line as it runs, or one of its what-ifs.
      Everything below edits `current`; the stations are written back to
@@ -279,7 +282,9 @@ export function CapacityPanel({ projectId, line, onSave }: {
   useEffect(() => { if (view !== 'asRun' && !w) setView('asRun'); }, [view, w]);
   const current: Capacity = w ? whatIfCapacity(cap, w) : cap;
   const putWhatIf = (id: string, p: Partial<WhatIf>) => commit({ ...cap, whatIfs: whatIfs.map(x => (x.id === id ? { ...x, ...p } : x)) });
-  const setStations = (stations: Station[]) => (w ? putWhatIf(w.id, { stations }) : commit({ ...cap, stations }));
+  const setStations = (stations: Station[]) => (w
+    ? commit({ ...cap, whatIfs: whatIfs.map(x => (x.id === w.id ? withWhatIfStations(cap.stations, x, stations) : x)) })
+    : commit({ ...cap, stations }));
   const patchStation = (id: string, p: Partial<Station>) =>
     setStations(current.stations.map(s => (s.id === id ? { ...s, ...p } : s)));
 
@@ -290,8 +295,8 @@ export function CapacityPanel({ projectId, line, onSave }: {
   const r = useMemo(() => analyse(current), [current]);
   const asRun = useMemo(() => analyse(cap), [cap]);
   const compare = w ? compareSays(asRun, r, w.name) : undefined;
-  const changed = useMemo(() => (w ? changedWords(cap.stations, w.stations) : []), [cap.stations, w]);
-  const moved = useMemo(() => (w ? changedByStation(cap.stations, w.stations) : undefined), [cap.stations, w]);
+  const changed = useMemo(() => (w ? changedWords(cap.stations, current.stations) : []), [cap.stations, w, current.stations]);
+  const moved = useMemo(() => (w ? changedByStation(cap.stations, current.stations) : undefined), [cap.stations, w, current.stations]);
   /* One scale for every view of the line, so a what-if's bar is longer or
      shorter ON SCREEN than the same station as run — not re-fitted to full width. */
   const top = useMemo(() => {
@@ -325,7 +330,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
   const addWhatIf = () => {
     const id = uid();
     const n = whatIfs.length + 1;
-    const nw: WhatIf = { id, name: `What if ${n}`, stations: current.stations.map(s => ({ ...s })), targetPerMin: current.targetPerMin, createdAt: Date.now() };
+    const nw: WhatIf = withWhatIfStations(cap.stations, { id, name: `What if ${n}`, stations: [], targetPerMin: current.targetPerMin, createdAt: Date.now() }, current.stations.map(s => ({ ...s })));
     commit({ ...cap, whatIfs: [...whatIfs, nw] });
     setView(id);
     setEditing(null);
@@ -382,7 +387,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
     if (!w || !compare || asRun.line == null) return;
     const m = makeItSoWords(line.name, w, changed, compare);
     setWhat(m.what);
-    const touched = w.stations.filter(s => changed.some(c => c.includes(s.name.trim() || '§')));
+    const touched = current.stations.filter(s => changed.some(c => c.includes(s.name.trim() || '§')));
     setPillar(touched.length && touched.every(s => s.kind === 'people') ? 'people' : 'plant');
     setOwner(line.owner ?? '');
     setAsking(true); setRaised(false);

@@ -2,7 +2,7 @@
  * ASSET (which machine bleeds most: time + frequency + £), then a sharp, compact
  * Pareto for every asset (its own losses), worst-first. Tap any bar to walk in.
  * The line and every machine's story on one screen — built for the daily huddle
- * and for presales. Reused in Present (calm, full-screen). */
+ * and for presales. Drawn on Analyse; its drills stay on Analyse. */
 import { LOSS } from '../charts/loss';
 import { nav, withQuery, buildAnalyseHash } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
@@ -35,13 +35,16 @@ function toSlices(rows: Observation[], dimension: DimensionKey, costable: boolea
   }));
 }
 
-export function LineBoard({ present = false, since = 0, periodKey }: { present?: boolean; since?: number; periodKey?: string }) {
+/* There was a `present` switch here for a full-screen Present view. No screen
+   ever passed it, and had one done so its drills would have opened /present
+   with the drill dropped — removed 3 Oct 2026 (docs/HUNT.md). */
+export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?: string }) {
   const { workspace, observations } = useWorkspace();
   // the period lens: the board ranks what happened INSIDE the window
   const live = observations.filter(o => o.deletedAt == null && o.startedAt >= since);
   const costable = hasCost(workspace);
   const factor = costPerMs(workspace);
-  const screen = present ? 'present' : 'analyse';
+  const screen = 'analyse';
 
   if (live.length === 0) {
     const anyEver = observations.some(o => o.deletedAt == null);
@@ -93,7 +96,7 @@ export function LineBoard({ present = false, since = 0, periodKey }: { present?:
         {plural(live.length, 'observation')} · {fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}
       </div>
 
-      {!costable && !present && (
+      {!costable && (
         <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
           💷 Put a £ on this lost time — add crew &amp; labour rate ›
         </button>

@@ -42,7 +42,8 @@ import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { analyse, shortSays } from '../lib/capacity';
 import { board as buildBoard, actionTitle } from '../lib/pillars';
-import { statusOfAction } from '../lib/treeBind';
+import { statusOfAction, treeStanding, withTrackerRows, bindSources } from '../lib/treeBind';
+import { useTreeNodes } from './TreeStatic';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { listTestItems, onDataChange } from '../db';
@@ -476,6 +477,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const { impacts } = useImpacts(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
+  const treeRows = useTreeNodes(projectId);
   const stand = useStanding(projectId);
   const { actions } = ax;
   // Every line's own pack, counted. This is the roll-up: each number below was
@@ -553,6 +555,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      two pages for one thing. The address is replaced, so Back is not caught in
      a loop, and Install opens with that card open. */
   if (model === 'commissioning' && lens === 'snags') return <ToInstallFilmed projectId={projectId} />;
+  const tree = model === 'tree' && treeRows
+    ? treeStanding(withTrackerRows(treeRows, bindSources(ax.actions, ax.steps, ppm.lines,
+      { measures: nums.measures, periods: nums.periods, targets: nums.targets, readings: nums.readings })))
+    : undefined;
 
   return (
     <div className={'wrap pace is-' + lens}>
@@ -655,6 +661,34 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
           <ProjectReminders projectId={projectId} />
           <LateAlarms projectId={projectId} />
+
+          {/* THE TREE, ON THE FRONT PAGE OF A TREE JOB. The outcome and the
+              conditions under it are what this job is run against, and the
+              page said only lines and the board: a manager could not tell how
+              the outcome stood without opening the tree. Drawn from the same
+              rows the tree and the report draw. */}
+          {tree && (
+            <Fold id="p3-tree" title="The tree" says={tree.says}>
+              <ul className="dw-list">
+                <li className="dw-row">
+                  <button className="dw-go" onClick={() => nav(`/project/${projectId}/tree`)}>
+                    <b>{tree.outcome.text}</b>
+                    <span className="dw-w">The outcome — <span className={'lt-word is-' + tree.outcome.rag}>{tree.outcome.word}</span></span>
+                    <span className="dw-go-c" aria-hidden>›</span>
+                  </button>
+                </li>
+                {tree.off.map(c => (
+                  <li key={c.id} className="dw-row">
+                    <button className="dw-go" onClick={() => nav(`/project/${projectId}/tree`)}>
+                      <b>{c.text}</b>
+                      <span className="dw-w"><span className={'lt-word is-' + c.rag}>{c.rag === 'r' ? 'Overdue' : 'At risk'}</span></span>
+                      <span className="dw-go-c" aria-hidden>›</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Fold>
+          )}
 
           <Fold id="p3-board" title="The board" says={boardSays}>
             <BoardPanel projectId={projectId} actions={actions} bare />

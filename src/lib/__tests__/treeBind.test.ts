@@ -20,7 +20,7 @@ import { describe, it, expect } from 'vitest';
 import {
   boundNumber, statusOfNumber, numberWords, numberFigure, numberChoices,
   bindsWork, bindsNumber, withoutNumber, withoutWork,
-  withTrackerRows, bindSources, bindCount, unplacedActions, statusOfTodo,
+  withTrackerRows, bindSources, bindCount, unplacedActions, statusOfTodo, treeStanding,
   type NumberSources, type TrackerBind,
 } from '../treeBind';
 import type { Measure, Period, Reading, Target } from '../measures';
@@ -194,3 +194,23 @@ describe('a Next step on the tree', () => {
   });
 });
 
+
+describe('the tree, as the control room reads it', () => {
+  const box = (id: string, rag: 'n' | 'w' | 'a' | 'r' | 'g', parentId?: string, sort = 0) =>
+    ({ id, projectId: 'p', parentId, text: id, rag, sort, createdAt: 1, updatedAt: 1 });
+  it('says the outcome and how many conditions are off track, in words', () => {
+    const s = treeStanding([box('Hold 60 ppm', 'a'), box('lever', 'w', 'Hold 60 ppm'), box('c1', 'r', 'lever'), box('c2', 'a', 'lever'), box('c3', 'g', 'lever')])!;
+    expect(s.outcome).toMatchObject({ text: 'Hold 60 ppm', rag: 'a', word: 'at risk' });
+    expect([s.total, s.late, s.risk, s.done]).toEqual([4, 1, 1, 1]);
+    expect(s.says).toBe('The outcome is at risk · 2 of 4 conditions off track — 1 overdue, 1 at risk');
+  });
+  it('leaves the board rows hung under a box to the board', () => {
+    const s = treeStanding([box('out', 'w'), box('c1', 'g', 'out'), box('tracker:abc', 'r', 'c1')])!;
+    expect(s.total).toBe(1);
+    expect(s.says).toBe('The outcome is in progress · all 1 condition done');
+  });
+  it('says so when nothing is written under the outcome, and is nothing with no tree', () => {
+    expect(treeStanding([box('out', 'n')])!.says).toBe('The outcome is not started · nothing written under it yet');
+    expect(treeStanding([])).toBeUndefined();
+  });
+});

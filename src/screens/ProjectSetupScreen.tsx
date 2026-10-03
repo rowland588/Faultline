@@ -20,7 +20,7 @@ import { useStanding } from '../lib/useStanding';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY } from '../lib/story';
-import { MODELS, planModel, setPlanModel } from '../lib/planModel';
+import { MODELS, methodOf, planModel, setPlanModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
@@ -500,7 +500,20 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           {MODELS.map(m => (
             <button key={m.id} type="button"
               className={'proj-model-opt' + (planModel(project) === m.id ? ' on' : '')}
-              onClick={() => void rename(project, setPlanModel(m.id))}>
+              onClick={() => {
+                /* ASKED, NOT ASSUMED. One tap reshaped every screen and the
+                   client report, and a lever tree vanished behind the new
+                   method with nothing said. It says what the job becomes, and
+                   that nothing is deleted — switch back and it is all there. */
+                const now = methodOf(project);
+                if (now.id === m.id) return;
+                if (!window.confirm(
+                  `Run ${project.name} as ${m.label} instead of ${now.label}?\n\n`
+                  + `${m.label}: ${m.organised}. Every screen and the client report change to it.\n\n`
+                  + `Nothing is deleted. What belongs to ${now.label} is kept out of sight, and comes back if you switch back.`,
+                )) return;
+                void rename(project, setPlanModel(m.id));
+              }}>
               <span className="proj-model-t">{m.label}</span>
               <span className="proj-model-s">{m.blurb}</span>
             </button>

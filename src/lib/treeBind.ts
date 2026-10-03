@@ -484,3 +484,51 @@ export function whyUnplaced(a: PaceAction): string {
   if (!(a.category ?? '').trim()) return 'no category on the tracker row';
   return `${a.category} on ${a.line} — no box is linked to it`;
 }
+
+/* ---------- the tree, as the control room reads it ---------- */
+
+/** Where a lever tree stands, in one breath — what Home and the tree job's
+ *  front page say without opening the tree. Read off the DRAWN rows (after
+ *  withTrackerRows), so a box whose colour follows a number counts in that
+ *  colour, exactly as the tree and the report show it. The board's own rows
+ *  hung under a box are work, counted on the board, not here. */
+export interface TreeStanding {
+  outcome: { id: string; text: string; rag: NodeStatus; word: string };
+  /** What the author wrote under the outcome: the levers and conditions. */
+  total: number;
+  late: number;
+  risk: number;
+  done: number;
+  /** The conditions off track, overdue before at risk, in the tree's order. */
+  off: { id: string; text: string; rag: NodeStatus }[];
+  /** "The outcome is at risk · 2 of 5 conditions off track — 1 overdue, 1 at risk" */
+  says: string;
+}
+
+const OUTCOME_WORD: Record<NodeStatus, string> = { g: 'reached', r: 'behind', a: 'at risk', w: 'in progress', n: 'not started' };
+
+export function treeStanding(rows: TreeNodeRow[]): TreeStanding | undefined {
+  const byId = new Map(rows.map(r => [r.id, r]));
+  const roots = rows.filter(r => !r.parentId || !byId.has(r.parentId)).sort((a, b) => a.sort - b.sort);
+  const root = roots[0];
+  if (!root) return undefined;
+  const under = rows.filter(r => r.id !== root.id && !isBoundNode(r.id));
+  const late = under.filter(r => r.rag === 'r').length;
+  const risk = under.filter(r => r.rag === 'a').length;
+  const done = under.filter(r => r.rag === 'g').length;
+  const word = OUTCOME_WORD[root.rag] ?? OUTCOME_WORD.n;
+  const n = under.length;
+  const off = late + risk;
+  const plural = (k: number) => `condition${k === 1 ? '' : 's'}`;
+  const conditions = n === 0 ? 'nothing written under it yet'
+    : off > 0 ? `${off} of ${n} ${plural(n)} off track — ${[late && `${late} overdue`, risk && `${risk} at risk`].filter(Boolean).join(', ')}`
+    : done === n ? `all ${n} ${plural(n)} done`
+    : `${n} ${plural(n)}, none off track`;
+  return {
+    outcome: { id: root.id, text: root.text.trim() || 'The outcome', rag: root.rag, word },
+    total: n, late, risk, done,
+    off: [...under.filter(r => r.rag === 'r'), ...under.filter(r => r.rag === 'a')]
+      .map(r => ({ id: r.id, text: r.text.trim() || 'A condition', rag: r.rag })),
+    says: `The outcome is ${word} · ${conditions}`,
+  };
+}

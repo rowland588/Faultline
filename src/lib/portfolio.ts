@@ -37,6 +37,7 @@ import { methodOf, planModel, type PlanModel } from './planModel';
 import { isLate as stepIsLate } from './actions';
 import { PILLARS } from './pillars';
 import { remindersOf } from './reminders';
+import type { TreeStanding } from './treeBind';
 
 export interface JobInput {
   project: Project;
@@ -61,6 +62,8 @@ export interface PacedInput {
   judged: number;
   /** Its meeting notes — for their reminders (lib/reminders). */
   notes?: TestItem[];
+  /** A lever tree job's tree, read the way the tree draws it (treeStanding). */
+  tree?: TreeStanding;
 }
 
 /** One thing owed, on one job. */
@@ -94,6 +97,9 @@ export interface JobView {
   reach?: string;
   /** The board's three columns: what is open in each, and how it stands. */
   pillars: { key: string; label: string; open: number; tone: GateTone }[];
+  /** A lever tree job: how its outcome and conditions stand — what its row
+   *  leads with instead of the board's columns. */
+  tree?: TreeStanding;
   name: string;
   color: string;
   lead?: string;
@@ -314,7 +320,10 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
         ? Math.round((Date.parse(p.expectedAt + 'T12:00:00') - Date.parse(today + 'T12:00:00')) / 86_400_000) : undefined;
       return {
         ...base,
-        sentence: pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
+        /* A tree job says its tree first: the outcome and its conditions are
+           what it is being run against; the board is the work under them. */
+        sentence: (j.tree ? `${j.tree.says}. ` : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
+        tree: j.tree,
         slip: undefined, daysToGo, outstanding: open, late,
         done: e.plan.filter(m => m.tone === 'done').length, total: e.plan.length,
         reach: j.judged > 0 ? `${j.atTarget} of ${j.judged} at target` : undefined,

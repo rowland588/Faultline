@@ -89,7 +89,16 @@ export interface WhatIf {
   id: string;
   /** What was changed, in the owner's words: "New basketer", "12 to a basket". */
   name: string;
+  /** The what-if's stations as last saved — a snapshot, refreshed on every
+   *  save (syncWhatIfs), kept so an older copy of the app on another device
+   *  still reads a whole line. The TRUTH is `diff` when it is there. */
   stations: Station[];
+  /** WHAT THIS WHAT-IF CHANGES, against the line as run — and nothing else.
+   *  It used to be a frozen copy: edit the line as run and every what-if kept
+   *  the old stations, reported changes nobody made in it, and Make it so
+   *  wrote those onto the board. Stored as changes, a what-if follows the
+   *  line in everything it did not change. Absent on one saved before this. */
+  diff?: WhatIfDiff;
   targetPerMin?: number;
   createdAt: number;
   /** DECIDED. The action raised on the board to make it real — the what-if
@@ -98,10 +107,109 @@ export interface WhatIf {
   action?: { id: string; raisedAt: number };
 }
 
+/** A what-if's changes against the line as run. */
+export interface WhatIfDiff {
+  /** Per station of the line as run: the fields this what-if sets differently.
+   *  `null` is a field it clears (a rate swapped for a cycle). */
+  set: Record<string, Record<string, unknown>>;
+  /** Stations only the what-if has, each after the station it follows
+   *  (absent = at the front). */
+  added: { after?: string; station: Station }[];
+  /** Stations of the line as run that the what-if leaves out. */
+  removed: string[];
+  /** The what-if's own order of stations, when it moved one. */
+  order?: string[];
+}
+
+const same = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+/** Lay the changes over the line as run: the what-if's stations, now. A
+ *  station the line gained since is in it too, where the line has it; one the
+ *  line lost is gone from it too. */
+export function applyWhatIf(asRun: Station[], d: WhatIfDiff): Station[] {
+  const gone = new Set(d.removed);
+  let list = asRun.filter(s => !gone.has(s.id)).map(s => {
+    const p = d.set[s.id];
+    if (!p) return s;
+    const out: Record<string, unknown> = { ...s };
+    for (const [k, v] of Object.entries(p)) { if (v === null) delete out[k]; else out[k] = v; }
+    return out as unknown as Station;
+  });
+  for (const a of d.added) {
+    const i = a.after ? list.findIndex(s => s.id === a.after) : -1;
+    list = a.after && i < 0 ? [...list, a.station] : [...list.slice(0, i + 1), a.station, ...list.slice(i + 1)];
+  }
+  if (d.order?.length) {
+    const rank = new Map(d.order.map((id, i) => [id, i]));
+    const known = list.filter(s => rank.has(s.id)).sort((a, b) => (rank.get(a.id) as number) - (rank.get(b.id) as number));
+    // a station the order does not know (the line gained it since) keeps its place after the one before it
+    const out = [...known];
+    list.forEach((s, i) => {
+      if (rank.has(s.id)) return;
+      const before = list.slice(0, i).reverse().find(x => out.some(o => o.id === x.id));
+      const at = before ? out.findIndex(o => o.id === before.id) + 1 : 0;
+      out.splice(at, 0, s);
+    });
+    list = out;
+  }
+  return list;
+}
+
+/** The changes that turn the line as run into these stations — what a
+ *  what-if stores when it is edited. applyWhatIf(asRun, diffWhatIf(asRun, x))
+ *  gives back x. */
+export function diffWhatIf(asRun: Station[], mine: Station[]): WhatIfDiff {
+  const theirs = new Map(asRun.map(s => [s.id, s]));
+  const ours = new Set(mine.map(s => s.id));
+  const set: WhatIfDiff['set'] = {};
+  for (const m of mine) {
+    const a = theirs.get(m.id);
+    if (!a) continue;
+    const p: Record<string, unknown> = {};
+    const keys = new Set([...Object.keys(a), ...Object.keys(m)]);
+    for (const k of keys) {
+      if (k === 'id') continue;
+      const av = (a as unknown as Record<string, unknown>)[k], mv = (m as unknown as Record<string, unknown>)[k];
+      if (!same(av, mv)) p[k] = mv === undefined ? null : mv;
+    }
+    if (Object.keys(p).length) set[m.id] = p;
+  }
+  const added = mine.flatMap((m, i) => (theirs.has(m.id) ? [] : [{ ...(i > 0 ? { after: mine[i - 1].id } : {}), station: m }]));
+  const removed = asRun.filter(s => !ours.has(s.id)).map(s => s.id);
+  const plain: WhatIfDiff = { set, added, removed };
+  const laid = applyWhatIf(asRun, plain).map(s => s.id);
+  const ids = mine.map(s => s.id);
+  return same(laid, ids) ? plain : { ...plain, order: ids };
+}
+
+/** A what-if's stations against the line as run now. One saved before what-ifs
+ *  were stored as changes is its own snapshot until it is next saved. */
+export const whatIfStations = (asRun: Station[], w: WhatIf): Station[] =>
+  (w.diff ? applyWhatIf(asRun, w.diff) : w.stations);
+
+/** A what-if with these stations, stored as changes against the line as run. */
+export const withWhatIfStations = (asRun: Station[], w: WhatIf, stations: Station[]): WhatIf =>
+  ({ ...w, stations, diff: diffWhatIf(asRun, stations) });
+
+/** Every what-if brought up to the line before it is saved: changes worked out
+ *  for one that has none — against the line as it WAS (`prev`), so an edit to
+ *  the line as run is never read as a change the what-if made — and each
+ *  snapshot redrawn over the line as it now is. */
+export function syncWhatIfs(prev: Capacity, next: Capacity): Capacity {
+  if (!next.whatIfs?.length) return next;
+  return {
+    ...next,
+    whatIfs: next.whatIfs.map(w => {
+      const diff = w.diff ?? diffWhatIf(prev.stations, w.stations);
+      return { ...w, diff, stations: applyWhatIf(next.stations, diff) };
+    }),
+  };
+}
+
 /** The what-if as a line of its own to analyse: its stations, its target if it
  *  set one, the line's planned hours. */
 export const whatIfCapacity = (cap: Capacity, w: WhatIf): Capacity =>
-  ({ targetPerMin: w.targetPerMin ?? cap.targetPerMin, plannedHoursPerWeek: cap.plannedHoursPerWeek, stations: w.stations });
+  ({ targetPerMin: w.targetPerMin ?? cap.targetPerMin, plannedHoursPerWeek: cap.plannedHoursPerWeek, stations: whatIfStations(cap.stations, w) });
 
 export const EMPTY_CAPACITY: Capacity = { stations: [] };
 
@@ -617,13 +725,14 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
        compares the two ladders without reading a number. */
     const whatIfs = (cap.whatIfs ?? []).map(w => {
       const wr = analyse(whatIfCapacity(cap, w));
-      const moved = changedIds(cap.stations, w.stations);
+      const mine = whatIfStations(cap.stations, w);
+      const moved = changedIds(cap.stations, mine);
       const rows = wr.ok.slice(0, CAP_REPORT_ROWS).map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind,
         running: x.running, effective: x.effective, limit: wr.limit != null && x.index === wr.limit.index,
         changed: moved.has(x.station.id),
       }));
-      return { name: w.name, says: compareSays(r, wr, w.name), onBoard: !!w.action, changed: changedWords(cap.stations, w.stations),
+      return { name: w.name, says: compareSays(r, wr, w.name), onBoard: !!w.action, changed: changedWords(cap.stations, mine),
         line: wr.line ?? undefined, target: wr.target, rows };
     });
     const top = Math.max(...shown.map(x => x.running), ...whatIfs.flatMap(w => w.rows.map(x => x.running)), r.target ?? 0, ...whatIfs.map(w => w.target ?? 0)) * 1.06 || 1;

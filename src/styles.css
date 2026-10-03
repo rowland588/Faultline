@@ -6514,6 +6514,8 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .jb-gate.is-done { background: color-mix(in srgb, var(--st-g) 11%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 35%, transparent); color: var(--st-g); }
 .jb-gate.is-going { background: var(--blue-soft); border-color: var(--st-w); color: var(--st-w); }
 .jb-gate.is-late { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); border: 1.5px solid var(--st-r); color: var(--st-r); font-weight: 800; }
+/* a lever tree's condition at risk — waiting on somebody, not yet late */
+.jb-gate.is-risk { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); border-color: var(--st-a); color: color-mix(in srgb, var(--st-a) 75%, var(--ink)); }
 /* A gate nothing has been kept at yet is AHEAD, not switched off. It was a solid
    grey fill, which on a new job turned every gate after Install grey and read as
    disabled; it is now drawn exactly like "still ahead". */
@@ -8136,3 +8138,9 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 
 /* a link to a line-standard map that is gone: said at the top of the list */
 .ls-gone { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--st-a) 45%, var(--line)); font-size: 13px; color: var(--ink-2); }
+
+/* a tree box's state said in words on the tree job's front page — the colour
+   only on what is abnormal (overdue red, at risk amber); the rest stays ink */
+.lt-word { font-weight: 700; }
+.lt-word.is-r { color: var(--st-r); }
+.lt-word.is-a { color: color-mix(in srgb, var(--st-a) 75%, var(--ink)); }

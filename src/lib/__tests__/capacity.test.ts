@@ -475,3 +475,49 @@ describe('the report carries the detail behind every bar', () => {
     expect(lineSheetUnits(rep.lines[0])).toBeCloseTo(3 + 3 * 1.6 + 1 + 0.5 + 3 * 0.8 + 0.5, 5);
   });
 });
+
+import { applyWhatIf, diffWhatIf, syncWhatIfs, whatIfStations, withWhatIfStations } from '../capacity';
+
+describe('a what-if follows the line in everything it did not change', () => {
+  const basketer8: Station[] = [chain[0], { ...chain[1], name: 'New basketer', rate: 8 }, chain[2]];
+  const w0: WhatIf = withWhatIfStations(chain, { id: 'w', name: 'New basketer', createdAt: 0, stations: [] }, basketer8);
+
+  it('stores only what it changes', () => {
+    expect(w0.diff).toEqual({ set: { b: { name: 'New basketer', rate: 8 } }, added: [], removed: [] });
+  });
+
+  it('gives back exactly what was typed, however it was changed', () => {
+    const cases: Station[][] = [
+      basketer8,
+      [chain[0], chain[2]],                                                    // one left out
+      [chain[0], { id: 'x', name: 'Checker', kind: 'people', unit: 'baskets', contains: 1, rate: 9, ratePer: 'min' }, ...chain.slice(1)],
+      [chain[2], chain[0], chain[1]],                                          // moved
+      [chain[0], { ...chain[1], rate: undefined, cycleSec: 8, perCycle: 1 }, chain[2]],   // a rate swapped for a cycle
+    ];
+    for (const mine of cases) expect(applyWhatIf(chain, diffWhatIf(chain, mine))).toEqual(mine);
+  });
+
+  it('takes an edit to the line as run, and keeps its own change', () => {
+    const edited: Station[] = [{ ...chain[0], rate: 80 }, { ...chain[1], crew: 2 }, chain[2]];
+    const mine = whatIfStations(edited, w0);
+    expect(mine[0].rate).toBe(80);                       // the line's edit is carried in
+    expect(mine[1]).toMatchObject({ name: 'New basketer', rate: 8, crew: 2 });   // its own change kept, the line's crew taken
+    // and it does not report the line's edit as a change it made
+    expect(changedWords(edited, mine)).toEqual(['Basketer → New basketer: 8 baskets a minute instead of 5.5']);
+  });
+
+  it('gains a station the line gains, where the line has it, and loses one the line loses', () => {
+    const grown: Station[] = [chain[0], { id: 'n', name: 'Labeller', kind: 'machine', unit: 'bags', contains: 1, rate: 90, ratePer: 'min' }, ...chain.slice(1)];
+    expect(whatIfStations(grown, w0).map(s => s.name)).toEqual(['Bagger', 'Labeller', 'New basketer', 'Palletiser']);
+    expect(whatIfStations([chain[0], chain[1]], w0).map(s => s.name)).toEqual(['Bagger', 'New basketer']);
+  });
+
+  it('an old what-if — a frozen copy — is read against the line as it WAS, so nothing is invented', () => {
+    const legacy: WhatIf = { id: 'old', name: 'Old', createdAt: 0, stations: basketer8 };
+    const before: Capacity = { stations: chain, whatIfs: [legacy] };
+    const after = syncWhatIfs(before, { ...before, stations: [{ ...chain[0], rate: 80 }, chain[1], chain[2]] });
+    const w = after.whatIfs![0];
+    expect(w.diff).toEqual({ set: { b: { name: 'New basketer', rate: 8 } }, added: [], removed: [] });
+    expect(w.stations[0].rate).toBe(80);                 // its snapshot redrawn over the line as it now is
+  });
+});
