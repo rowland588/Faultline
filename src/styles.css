@@ -5772,9 +5772,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface-2); color: var(--ink-2);
 }
 .peer.is-on .peer-n { background: rgba(255, 255, 255, 0.16); color: #fff; }
-/* Late is red, wherever it is counted — amber is waiting, not past the day. */
-.peer-n.is-late { background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r); }
-.peer.is-on .peer-n.is-late { background: var(--st-r); color: #fff; }
+/* Late is red, wherever it is counted — amber is waiting, not past the day.
+   Only the late part wears it: the count beside it is the work (Peers.Count). */
+.peer-late {
+  display: inline-flex; align-items: center; height: 19px; padding: 0 6px; margin-left: -3px;
+  border-radius: 999px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r);
+}
+.peer.is-on .peer-late { background: var(--st-r); color: #fff; }
 
 @media (max-width: 720px) {
   /* On a phone it scrolls sideways rather than wrapping to three rows. */

@@ -42,7 +42,7 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
      one grouped by owner, one as a list. One place now, with the grouping as
      a switch inside it. */
   { id: 'next',     label: 'Actions',    sub: 'to do, tests, by owner' },
-  { id: 'wins',     label: 'Success',    sub: 'what worked' },
+  { id: 'wins',     label: 'Wins',       sub: 'what worked' },
   { id: 'snags',    label: 'Evidence',   sub: 'the line, filmed' },
   { id: 'data',     label: 'Numbers',    sub: 'record and chart' },
   { id: 'capacity', label: 'Line balance', sub: 'where it is limited' },
@@ -278,7 +278,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
       {lens === 'wins' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            <h2 className="pace-sec-title">Success on {line.name}</h2>
+            <h2 className="pace-sec-title">Wins on {line.name}</h2>
             <p className="pace-sec-sub">What this line did and what worked · the wins to show the team</p>
           </div>
           <PaceSuccess projectId={projectId} lineId={lineId} />

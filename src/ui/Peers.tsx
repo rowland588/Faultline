@@ -33,6 +33,22 @@ export interface Peer {
   hint?: string;
 }
 
+/* THE COUNT, AND WHAT IS LATE IN IT, SAID APART. The whole number used to turn
+ * red when any of it was late, so "Board 5" read as five things late when one
+ * was. Five open is the work and stays neutral; the late part is the abnormal
+ * number, so it alone is red, and it says "late" in words so it survives a
+ * black-and-white print and colour-blind eyes (CLAUDE.md, visual management
+ * rules 3 and 4). */
+function Count({ n, late }: { n?: number; late?: number }) {
+  if (!n) return null;
+  return (
+    <>
+      <span className="peer-n">{n}</span>
+      {!!late && <span className="peer-late">{late} late</span>}
+    </>
+  );
+}
+
 export function Peers({ peers, label = 'The rest of this project' }: { peers: Peer[]; label?: string }) {
   const shown = peers.filter(p => p.label);
   if (shown.length < 2) return null;
@@ -45,14 +61,14 @@ export function Peers({ peers, label = 'The rest of this project' }: { peers: Pe
             <span key={p.to} className="peer is-on" aria-current="page">
               {p.label}
               {p.hint && <span className="peer-hint">{p.hint}</span>}
-              {!!p.n && <span className={'peer-n' + (p.late ? ' is-late' : '')}>{p.n}</span>}
+              <Count n={p.n} late={p.late} />
             </span>
           )
           : (
             <button key={p.to} className="peer" onClick={() => nav(p.to)}>
               {p.label}
               {p.hint && <span className="peer-hint">{p.hint}</span>}
-              {!!p.n && <span className={'peer-n' + (p.late ? ' is-late' : '')}>{p.n}</span>}
+              <Count n={p.n} late={p.late} />
             </button>
           )
       ))}
