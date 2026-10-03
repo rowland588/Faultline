@@ -11,7 +11,7 @@ import type { PlanMark } from '../standing';
 const TODAY = '2026-10-02';
 const steps = (n: number): PlanMark[] => Array.from({ length: n }, (_, i) => ({
   id: `t${i}`, kind: i % 3 === 0 ? 'setup' : 'install', at: `2026-10-${String(5 + (i % 20)).padStart(2, '0')}`,
-  until: `2026-10-${String(6 + (i % 20)).padStart(2, '0')}`, label: `Machine ${i} — Step ${i}`, tone: i % 4 === 0 ? 'done' : 'booked',
+  until: `2026-10-${String(6 + (i % 20)).padStart(2, '0')}`, label: `Machine ${i} — Step ${i}`, on: `Machine ${i}`, tone: i % 4 === 0 ? 'done' : 'booked',
 }));
 const texts = (doc: jsPDF) => {
   const out: string[] = [];
@@ -33,6 +33,15 @@ describe('the plan on paper', () => {
     for (let i = 0; i < 6; i++) expect(said).toContain(`Step ${i}`);
     expect(said).toContain('Handover 30 Oct');
     expect(said).toContain('1 of 1');
+  });
+
+  it('keeps a title with a dash of its own whole — only a machine is split off', () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const said = texts(doc);
+    const marks: PlanMark[] = [{ id: 'w', kind: 'test', at: '2026-10-05', label: 'Weight accuracy — 400g', tone: 'booked' }];
+    drawGanttDoc(doc, gantt(marks, { today: TODAY }), { name: 'Line 2A', printed: '2 Oct 2026' });
+    expect(said).toContain('Weight accuracy — 400g');
+    expect(said).not.toContain('400g');
   });
 
   it('prints the overlap the screen flags, with its key', () => {

@@ -180,10 +180,10 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
         y += ROW_H;
         continue;
       }
-      /* "Wrapper — Dry run": the step, with its machine under it. */
-      const cut = r.kind === 'note' ? -1 : r.label.indexOf(' — ');
-      const step = cut >= 0 ? r.label.slice(cut + 3) : r.label;
-      const mach = cut >= 0 ? r.label.slice(0, cut) : '';
+      /* "Wrapper — Dry run": the step, with its machine under it. Only the
+         machine is split off — a title with a dash of its own stays whole. */
+      const mach = r.on && r.label.startsWith(`${r.on} — `) ? r.on : '';
+      const step = mach ? r.label.slice(mach.length + 3) : r.label;
       font(7.5, 'bold', INK);
       const s1 = (doc.splitTextToSize(san(step), LAB - 12) as string[])[0] ?? '';
       doc.text(s1, M + 6, y + (mach ? 7.5 : 11));

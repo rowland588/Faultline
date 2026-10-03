@@ -62,6 +62,10 @@ export interface PlanMark {
   at: string;
   until?: string;
   label: string;
+  /** The machine's name when the label is "Machine — title" — said apart, so
+   *  a title that has a dash of its own ("Weight accuracy — 400g") is never
+   *  read as a machine and a step. */
+  on?: string;
   /** done = it happened and it was good · failed = it happened and it wasn't
    *  ran = it happened and nobody has said which yet
    *  booked = still ahead of us · late = the day has gone · none = no date agreed */
@@ -239,14 +243,16 @@ export function standing(input: StandingInput): Standing {
     const at = stuck ? t.plannedFor : t.ranOn ?? t.plannedFor;
     const until = stuck ? t.plannedTo : t.ranOn ? t.ranTo : t.plannedTo;
     if (!at) continue;
+    const label = titleOnMachine(t, tests, assets);
     plan.push({
       id: t.id,
+      ...(label !== t.title ? { on: label.slice(0, label.length - t.title.length - 3) } : {}),
       kind: t.kind === 'fix' ? 'fix' : t.kind === 'install' ? gateOf(t) : 'test', at,
       /* A block of days draws as a BAR, the same shape a machine already uses
          and for the same reason — it occupies time rather than happening on a
          day. Nothing new had to be drawn for this. */
       until: until && until > at ? until : undefined,
-      label: titleOnMachine(t, tests, assets),
+      label,
       /* notRun is "the day has gone" (hollow red), not "ran, didn't pass"
          (filled red) — the key says filled means it happened, and it didn't.
          Ran and not yet called is its own thing: it happened (filled), and
