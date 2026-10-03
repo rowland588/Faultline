@@ -16,6 +16,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { Peers } from '../ui/Peers';
 import { MeasureChart } from '../charts/MeasureChart';
 import { PaceMeeting } from './PaceMeeting';
 import { PaceNextSteps } from './PaceNextSteps';
@@ -135,9 +136,10 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   const capLine = line.capacity && line.capacity.stations.length > 0 ? analyse(line.capacity).sentence : undefined;
 
-  const go = (l: Lens) => nav(l === 'overview'
+  const lensUrl = (l: Lens) => l === 'overview'
     ? `/project/${projectId}/line/${lineId}`
-    : `/project/${projectId}/line/${lineId}?view=${l}`);
+    : `/project/${projectId}/line/${lineId}?view=${l}`;
+  const go = (l: Lens) => nav(lensUrl(l));
 
   return (
     <div className={'wrap pace is-' + lens}>
@@ -175,15 +177,15 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
         </div>
       </header>
 
-      <nav className="pace-lenses" aria-label="View">
-        {shownLenses.map(l => (
-          <button key={l.id} className={'pace-lens' + (lens === l.id ? ' on' : '')}
-            aria-current={lens === l.id ? 'page' : undefined} onClick={() => go(l.id)}>
-            <span className="pace-lens-l">{l.label}</span>
-            <span className="pace-lens-s">{l.sub}</span>
-          </button>
-        ))}
-      </nav>
+      {/* THE ONE ROW OF TABS (ui/Peers), under the header like every page's.
+          The line had its own — underlined tabs with a hint under each, and on
+          a phone a 3-by-2 grid — so it was the one page whose tabs looked and
+          moved differently. The hints stay, beside each name on a desk; a
+          phone never showed them. On a phone the row scrolls sideways and
+          fades where it carries on, as every other row of tabs does. */}
+      <Peers label="View" peers={shownLenses.map(l => ({
+        label: l.label, hint: l.sub, on: lens === l.id, to: lensUrl(l.id),
+      }))} />
 
       {lens === 'overview' && (
         <>
