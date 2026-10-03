@@ -110,14 +110,22 @@ function app(route: Route) {
       </RequireModel>
     );
   }
-  if (route.name === 'fixes' && route.id) return <FixesScreen projectId={route.id} />;
-  if (route.name === 'install' && route.id) return <InstallScreen projectId={route.id} />;
-  if (route.name === 'gateSetup' && route.id) return <InstallScreen projectId={route.id} gate="setup" />;
-  if (route.name === 'handover' && route.id) return <InstallScreen projectId={route.id} gate="handover" />;
-  if (route.name === 'day' && route.id) return <DayScreen projectId={route.id} />;
+  /* THE STAGE-GATE SURFACES, behind their model like the paced ones above.
+     Unguarded, a lever tree or 3P job's link with /install, /fixes, /testing,
+     /handover, /day or /report on the end drew that job as a stage-gate one —
+     gates, a commissioning list and a handover client report over a job that
+     has none of them. Materials, programs (which sends a paced job to its
+     materials), notes and the line standard belong to every method. */
+  const gate = (id: string, screen: React.ReactNode) =>
+    <RequireModel projectId={id} model="commissioning">{screen}</RequireModel>;
+  if (route.name === 'fixes' && route.id) return gate(route.id, <FixesScreen projectId={route.id} />);
+  if (route.name === 'install' && route.id) return gate(route.id, <InstallScreen projectId={route.id} />);
+  if (route.name === 'gateSetup' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="setup" />);
+  if (route.name === 'handover' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="handover" />);
+  if (route.name === 'day' && route.id) return gate(route.id, <DayScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
-  if (route.name === 'clientReport' && route.id) return <ClientReportScreen projectId={route.id} />;
+  if (route.name === 'clientReport' && route.id) return gate(route.id, <ClientReportScreen projectId={route.id} />);
   if (route.name === 'notes' && route.id) return <NotesScreen projectId={route.id} />;
   if (route.name === 'standard' && route.id) return <StandardScreen projectId={route.id} standardId={route.lineId} />;
   /* Narrowed once rather than asserted three times: a test route without a
@@ -125,12 +133,12 @@ function app(route: Route) {
      project list below. */
   /* The trial read back whole, before it is sent. See TrialCardScreen. */
   if (route.name === 'trialCard' && route.id && route.lineId) {
-    return <TrialCardScreen projectId={route.id} testId={route.lineId} />;
+    return gate(route.id, <TrialCardScreen projectId={route.id} testId={route.lineId} />);
   }
   if ((route.name === 'testing' || route.name === 'test') && route.id) {
-    return route.name === 'test' && route.lineId
+    return gate(route.id, route.name === 'test' && route.lineId
       ? <TestScreen key={route.lineId} projectId={route.id} testId={route.lineId} />
-      : <TestsScreen projectId={route.id} />;
+      : <TestsScreen projectId={route.id} />);
   }
   if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;
   if (route.name === 'projectLine') return <ProjectLineScreen projectId={route.id!} lineId={route.lineId!} />;

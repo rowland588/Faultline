@@ -233,7 +233,10 @@ export function WorkspaceHome() {
         {/* The pitch is for somebody with nothing running yet. Once a job is,
             the board under it says more than the paragraph could. */}
         {!jobs.length && (
-          <p className="home-tag">Walk the line, find the problems — lost time and pinned faults alike — and make what you find visible: a Pareto, a cost, a tracked snag list.</p>
+          /* What the app is now — the control room for change on the lines. The
+             old pitch ("walk the line … a tracked snag list") described the
+             line-study tool it began as, which is now a tool inside a change. */
+          <p className="home-tag">A control room for change on your lines — new equipment brought into use, a line made to perform better, a number hit by a date — and one view of whether all of it is in hand.</p>
         )}
       </div>
 
@@ -267,9 +270,10 @@ export function WorkspaceHome() {
         </div>
         {projects.length === 0 ? (
           <p className="sub home-sec-sub">
-            Start here. A project runs a set of lines; each line gets an owner, a sponsor and a
-            pack of its own — its pace, its actions, its walk and the evidence off it. Nothing
-            else needs setting up: a line makes everything underneath it as you go.
+            Start here. Say what you are trying to change — new equipment, a line that has to
+            perform better, or a number to hit by a date — and the project is run the way that
+            kind of change is run. Every project you start shows up on this screen, with what is
+            late and who owes what.
           </p>
         ) : (
           <div className="home-proj-list">

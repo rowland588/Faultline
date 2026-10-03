@@ -33,7 +33,7 @@ const fmtH = (ms: number) => {
 };
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
-export const scopeLabel =(c: Pick<Case, 'path'>): string =>
+export const scopeLabel = (c: Pick<Case, 'path'>): string =>
   c.path.length ? c.path.map(s => s.value).join(' · ') : 'the whole line';
 
 /** Recent truth for a case: avg weekly loss of its scoped rows over the last

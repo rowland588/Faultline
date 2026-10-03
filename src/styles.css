@@ -7264,7 +7264,8 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
   .proj-card.is-compact .proj-name { font-size: 16px; }
   .proj-card.is-compact .proj-lead { display: none; }
   .proj-card.is-compact .proj-foot { padding: 6px 14px 10px; border-top: 0; background: none; }
-  .proj-card.is-compact .proj-foot .btn { min-height: 36px; padding: 6px 14px; font-size: 13.5px; }
+  /* 44, not 36: Open is the card's primary door and a thumb's target. */
+  .proj-card.is-compact .proj-foot .btn { min-height: 44px; padding: 6px 14px; font-size: 13.5px; }
 }
 
 /* ---- A fix, on the line (ui/OnTheLine) — the walk's frame with one dot. ---- */
