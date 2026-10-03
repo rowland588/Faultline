@@ -76,7 +76,32 @@ export interface Capacity {
    *  against. Only used to SUGGEST a running percentage, never silently. */
   plannedHoursPerWeek?: number;
   stations: Station[];
+  /** WHAT-IFS. Rowland: "I have a line, but I may take a machine out and put
+   *  another machine in… swipe left, add a different machine name — oh look,
+   *  it changes, that's a different bottleneck." A what-if is a copy of the
+   *  stations with one thing changed, kept beside the line as it runs, and
+   *  compared with it in a sentence. It lives here on the line, with the
+   *  stations it was copied from; nothing new is stored anywhere else. */
+  whatIfs?: WhatIf[];
 }
+
+export interface WhatIf {
+  id: string;
+  /** What was changed, in the owner's words: "New basketer", "12 to a basket". */
+  name: string;
+  stations: Station[];
+  targetPerMin?: number;
+  createdAt: number;
+  /** DECIDED. The action raised on the board to make it real — the what-if
+   *  remembers it so the screen can say "on the board" and, once it is done,
+   *  the board's own proof judges the prediction. */
+  action?: { id: string; raisedAt: number };
+}
+
+/** The what-if as a line of its own to analyse: its stations, its target if it
+ *  set one, the line's planned hours. */
+export const whatIfCapacity = (cap: Capacity, w: WhatIf): Capacity =>
+  ({ targetPerMin: w.targetPerMin ?? cap.targetPerMin, plannedHoursPerWeek: cap.plannedHoursPerWeek, stations: w.stations });
 
 export const EMPTY_CAPACITY: Capacity = { stations: [] };
 
@@ -128,6 +153,16 @@ export interface StationResult {
   loadAtLine: number;
   /** Room above what the line is doing. 0 at the limit. */
   headroom: number;
+  /** WHAT ARRIVES, in THIS station's own unit a minute — the stations before
+   *  it, at their slowest, put into its unit: 70 bags a minute and 8 to a
+   *  basket is 8.75 baskets a minute arriving. The speed it has to beat.
+   *  Undefined at the front of the line. */
+  arrives?: number;
+  /** What it does once its own stops are counted, in its own unit a minute. */
+  does: number;
+  /** The two said together: "8.75 baskets a minute arrive · it does 5.5 —
+   *  holds the line back". The sentence a person types the next speed against. */
+  feed: string;
 }
 
 export interface Skipped { station: Station; index: number; why: string }
@@ -180,6 +215,7 @@ export function analyse(cap: Capacity): CapacityResult {
   let factor = 1;
   let chainBroken: string | undefined;
   let goodSoFar = 1;                      // product of upstream good fractions
+  const upGood = new Map<string, number>(); // each counted station's upstream good fraction
   stations.forEach((s, i) => {
     if (i > 0) {
       if (chainBroken) { skipped.push({ station: s, index: i, why: `the chain of units breaks at ${chainBroken}` }); return; }
@@ -198,8 +234,31 @@ export function analyse(cap: Capacity): CapacityResult {
     const running = (speed * crew * factor) / upstream;
     const effective = running * pct(s.runningPct, 1);
     const chain = i === 0 ? '' : `${s.unit.trim()} · ${fmtN(factor)} ${unit} each`;
-    ok.push({ station: s, index: i, factor, chain, running, effective, loadAtLine: 0, headroom: 0 });
+    ok.push({ station: s, index: i, factor, chain, running, effective, loadAtLine: 0, headroom: 0, does: 0, feed: '' });
+    upGood.set(s.id, upstream);
   });
+
+  /* WHAT ARRIVES AT EACH STATION, in its own unit. The stations before it, at
+     the slowest of them, are what reach it — put back into its own unit by the
+     chain (÷ factor) and thinned by the rejects before it (× upstream good). A
+     person typing the next speed sees the number it has to beat, and the
+     sentence says at once whether this station keeps up. */
+  let slowestBefore = Infinity;
+  for (const x of ok) {
+    const up = upGood.get(x.station.id) ?? 1;
+    const own = x.station.unit.trim() || unit;
+    x.does = (x.effective * up) / x.factor;
+    if (Number.isFinite(slowestBefore)) {
+      x.arrives = (slowestBefore * up) / x.factor;
+      const gap = x.does - x.arrives;
+      x.feed = gap < -1e-9
+        ? `${fmtN(x.arrives)} ${own} a minute arrive · it does ${fmtN(x.does)} — holds the line back`
+        : `${fmtN(x.arrives)} ${own} a minute arrive · it does ${fmtN(x.does)} — keeps up${gap > 1e-9 ? `, ${fmtN(gap)} to spare` : ''}`;
+    } else {
+      x.feed = `the front of the line · it does ${fmtN(x.does)} ${own} a minute`;
+    }
+    slowestBefore = Math.min(slowestBefore, x.effective);
+  }
 
   /* Soft hints on the conversions — a one-to-one between two different words
      is usually a missing number, and the chain is silently multiplied by 1. */
@@ -359,6 +418,77 @@ export function blankStation(id: string, kind: StationKind, first: boolean): Sta
   return { id, name: '', kind, unit: first ? 'units' : '', contains: 1, ratePer: 'min', crew: 1, source: 'estimate' };
 }
 
+/* ================================ what-ifs ================================= */
+
+const nm = (s: Station, i: number) => s.name.trim() || `Station ${i + 1}`;
+const speedWords = (s: Station): string => {
+  const v = perMinute(s);
+  return v == null ? 'no speed' : `${fmtN(v)} ${s.unit.trim() || 'units'} a minute`;
+};
+
+/** WHAT CHANGED between the line as run and a what-if, in words a person
+ *  would say: "Basketer: 5.5 → 8 baskets a minute", "Basketer: 8 to a basket
+ *  instead of 12", "+ Second packer", "− Carrier". Matched by station id, so a
+ *  renamed machine is "Basketer → New basketer", not a removal and an addition. */
+export function changedWords(asRun: Station[], w: Station[]): string[] {
+  const out: string[] = [];
+  const before = new Map(asRun.map((s, i) => [s.id, { s, i }]));
+  const after = new Map(w.map((s, i) => [s.id, { s, i }]));
+  w.forEach((s, i) => {
+    const b = before.get(s.id);
+    if (!b) { out.push(`+ ${nm(s, i)} (${speedWords(s)})`); return; }
+    const a = b.s;
+    const who = a.name.trim() !== s.name.trim() ? `${nm(a, b.i)} → ${nm(s, i)}` : nm(s, i);
+    const bits: string[] = [];
+    if (perMinute(a) !== perMinute(s)) bits.push(`${speedWords(a)} → ${speedWords(s)}`);
+    if (i > 0 && a.contains !== s.contains) bits.push(`${fmtN(s.contains)} to a ${s.unit.trim().replace(/s$/i, '') || 'unit'} instead of ${fmtN(a.contains)}`);
+    if ((a.crew ?? 1) !== (s.crew ?? 1)) bits.push(`${fmtN(s.crew ?? 1)} of it instead of ${fmtN(a.crew ?? 1)}`);
+    if ((a.runningPct ?? 100) !== (s.runningPct ?? 100)) bits.push(`running ${fmtN(s.runningPct ?? 100)}% instead of ${fmtN(a.runningPct ?? 100)}%`);
+    if ((a.goodPct ?? 100) !== (s.goodPct ?? 100)) bits.push(`${fmtN(s.goodPct ?? 100)}% good instead of ${fmtN(a.goodPct ?? 100)}%`);
+    if (a.unit.trim() !== s.unit.trim()) bits.push(`counts in ${s.unit.trim() || 'units'} instead of ${a.unit.trim() || 'units'}`);
+    if (who !== nm(s, i) && !bits.length) out.push(who);
+    else if (bits.length) out.push(`${who}: ${bits.join(', ')}`);
+  });
+  asRun.forEach((s, i) => { if (!after.has(s.id)) out.push(`− ${nm(s, i)}`); });
+  return out;
+}
+
+/** THE COMPARISON, in one sentence: what the line would do with the what-if
+ *  against what it does now, and whether the limit moves. "With New basketer,
+ *  the line would do 72 bags/min instead of 62 (+10). Basketer no longer
+ *  limits it; Palletiser does." A what-if that changes nothing says so. */
+export function compareSays(asRun: CapacityResult, w: CapacityResult, name: string): string {
+  const who = (x?: StationResult) => (x ? x.station.name.trim() || `Station ${x.index + 1}` : 'nothing');
+  if (asRun.line == null || !asRun.next) return `Finish the line as it runs first — the what-if is compared with it.`;
+  if (w.line == null || !w.next) return `${name} cannot be counted yet — ${w.skipped.length ? `${w.skipped.length} station${w.skipped.length === 1 ? '' : 's'} not counted` : 'add its stations'}.`;
+  const per = `${asRun.unit}/min`;
+  const d = w.line - asRun.line;
+  const sameLimit = asRun.limit?.station.id === w.limit?.station.id;
+  const tgt = w.target == null ? ''
+    : (w.gap as number) > 0 ? ` Still ${fmtN(w.gap as number)} short of the ${fmtN(w.target)} target.` : ` That meets the ${fmtN(w.target)} target.`;
+  if (Math.abs(d) <= asRun.line * 0.01) {
+    return `${name} changes nothing the line can do: still ${fmtN(w.line)} ${per}, limited by ${who(w.limit)}.`;
+  }
+  if (d > 0) {
+    const limitWords = sameLimit
+      ? `${who(w.limit)} still limits it.`
+      : `${who(asRun.limit)} no longer limits it; ${who(w.limit)} does.`;
+    return `With ${name}, the line would do ${fmtN(w.line)} ${per} instead of ${fmtN(asRun.line)} (+${fmtN(d)}). ${limitWords}${tgt}`;
+  }
+  return `With ${name}, the line would do ${fmtN(w.line)} ${per} — ${fmtN(-d)} less than now. ${who(w.limit)} would limit it.${tgt}`;
+}
+
+/** The action that makes a what-if real, in the words the board shows: what
+ *  to do, where, and why — the comparison, so the prediction travels with the
+ *  work and the board's own proof can judge it afterwards. */
+export function makeItSoWords(lineName: string, w: WhatIf, changed: string[], compare: string): { what: string; where: string; why: string } {
+  return {
+    what: `Make it so on ${lineName}: ${w.name}`,
+    where: changed.length ? changed.join('; ') : lineName,
+    why: `Predicted on the line balance — ${compare}`,
+  };
+}
+
 /* ============================ the client report ============================= */
 
 /** One line's ladder, flattened to numbers and sentences — what the PDF draws
@@ -373,9 +503,13 @@ export interface CapacityReportLine {
   target?: number;
   /** The most any bar reaches — the scale both drawings share. */
   top: number;
-  rows: { name: string; kind: StationKind; chain: string; running: number; effective: number; limit: boolean }[];
+  rows: { name: string; kind: StationKind; chain: string; running: number; effective: number; limit: boolean;
+    /** What arrives against what it does, in its own unit (StationResult.feed). */
+    feed: string }[];
   /** Stations counted but not drawn, when a line has more than a sheet holds. */
   more: number;
+  /** Each what-if kept beside the line, and the sentence that compares it. */
+  whatIfs: { name: string; says: string; onBoard: boolean }[];
 }
 export interface CapacityReport { lines: CapacityReportLine[] }
 
@@ -401,8 +535,12 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
       rows: shown.map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
         running: x.running, effective: x.effective, limit: x.index === (r.limit as StationResult).index,
+        feed: x.feed,
       })),
       more: r.ok.length - shown.length,
+      whatIfs: (l.capacity.whatIfs ?? []).map(w => ({
+        name: w.name, says: compareSays(r, analyse(whatIfCapacity(l.capacity as Capacity, w)), w.name), onBoard: !!w.action,
+      })),
     });
   }
   return out.length ? { lines: out } : undefined;
@@ -414,7 +552,7 @@ export function capacityPlan(report: CapacityReport): number[][] {
   const sheets: number[][] = [];
   let used = 0;
   report.lines.forEach((l, i) => {
-    const w = 3 + l.rows.length + (l.more > 0 ? 1 : 0);
+    const w = 3 + l.rows.length + (l.more > 0 ? 1 : 0) + l.whatIfs.length;
     if (!sheets.length || used + w > CAP_SHEET_UNITS) { sheets.push([]); used = 0; }
     sheets[sheets.length - 1].push(i);
     used += w;

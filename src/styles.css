@@ -7493,6 +7493,21 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 .cap-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 14px 0 6px; }
 .cap-h { margin: 18px 0 8px; font-size: 15px; }
+/* as run, and every what-if beside it — one row of tabs; brand blue is what you press */
+.cap-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.cap-tab { appearance: none; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 6px 12px; cursor: pointer; }
+.cap-tab.on { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, var(--surface)); }
+.cap-tab.is-add { border-style: dashed; color: var(--brand); }
+.cap-whatif { padding: 12px 16px; margin: 0 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.cap-whatif-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.cap-whatif-h .cap-whatif-name { flex: 1 1 220px; }
+.cap-changed { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); }
+.cap-changed li { margin: 2px 0; }
+/* what arrives against what it does — the line a station is read by */
+.cap-feed { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.cap-feed.is-short { color: var(--st-r); font-weight: 700; }
+.cap-arrives { display: block; margin-top: 4px; }
+.cap-why { margin: 6px 0 0; }
 .cap-sts { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }
 .cap-st { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .cap-st.has-problem { border-color: var(--st-r); }
@@ -7544,6 +7559,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .exec-cp-who b { font-size: 12px; }
 .exec-cp-who em { font-style: normal; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--danger); margin-left: auto; }
 .exec-cp-who small { flex-basis: 100%; font-size: 9.5px; color: var(--muted); }
+.exec-cp-who .exec-cp-feed { font-size: 9px; }
+.exec-cp-whatifs { list-style: none; margin: 6px 0 0; padding: 0; font-size: 10.5px; color: var(--ink-2); }
+.exec-cp-whatifs li { margin: 2px 0; }
+.exec-cp-whatifs em { font-style: normal; font-weight: 800; color: var(--brand); }
 .exec-cp-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 3px; }
 .exec-cp-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
 .exec-cp-bar.is-run { background: color-mix(in srgb, var(--brand) 28%, var(--surface-2)); }

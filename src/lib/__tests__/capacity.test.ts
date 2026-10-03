@@ -344,3 +344,84 @@ describe('the report block', () => {
     expect(capacityPlan(rep as NonNullable<typeof rep>)).toEqual([[0, 1, 2], [3, 4]]);   // 7 × 3 = 21, a fourth would make 28 > 26
   });
 });
+
+/* ---- what arrives, what-ifs, make it so (3 October) ---- */
+import { changedWords, compareSays, makeItSoWords, whatIfCapacity, type WhatIf } from '../capacity';
+
+/* 70 bags a minute; 8 bags to a basket; 40 baskets to a pallet (320 bags).
+   Basketer: 5.5 baskets/min = 44 bags/min — the limit. Palletiser: 20 pallets
+   an hour = 0.33/min = 106.7 bags/min — plenty. */
+const chain: Station[] = [
+  { id: 'a', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min' },
+  { id: 'b', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 8, rate: 5.5, ratePer: 'min' },
+  { id: 'c', name: 'Palletiser', kind: 'machine', unit: 'pallets', contains: 40, rate: 20, ratePer: 'hour' },
+];
+
+describe('what arrives at each station, in its own unit', () => {
+  const r = analyse({ stations: chain });
+  it('70 bags a minute and 8 to a basket is 8.75 baskets a minute arriving', () => {
+    const b = r.ok[1];
+    expect(b.arrives).toBeCloseTo(8.75, 5);
+    expect(b.does).toBeCloseTo(5.5, 5);
+    expect(b.feed).toBe('8.8 baskets a minute arrive · it does 5.5 — holds the line back');
+  });
+  it('the front of the line has nothing arriving and says what it does', () => {
+    expect(r.ok[0].arrives).toBeUndefined();
+    expect(r.ok[0].feed).toBe('the front of the line · it does 70 bags a minute');
+  });
+  it('downstream of the limit, what arrives is what the limit lets through', () => {
+    // 5.5 baskets/min reach the palletiser; 40 to a pallet → 0.1375 pallets/min arrive; it does 0.33
+    const p = r.ok[2];
+    expect(p.arrives).toBeCloseTo(0.1375, 5);
+    expect(p.does).toBeCloseTo(20 / 60, 5);
+    expect(p.feed).toBe('0.14 pallets a minute arrive · it does 0.33 — keeps up, 0.2 to spare');
+  });
+  it('a station that keeps up says what it has to spare', () => {
+    const fast = analyse({ stations: [chain[0], { ...chain[1], rate: 12 }] });
+    expect(fast.ok[1].feed).toBe('8.8 baskets a minute arrive · it does 12 — keeps up, 3.3 to spare');
+  });
+  it('rejects before a station thin what arrives', () => {
+    const rej = analyse({ stations: [{ ...chain[0], goodPct: 90 }, chain[1]] });
+    expect(rej.ok[1].arrives).toBeCloseTo((70 * 0.9) / 8, 5);
+  });
+});
+
+describe('a what-if beside the line', () => {
+  const asRun = { targetPerMin: 60, stations: chain };
+  const base = analyse(asRun);
+  it('says what changed, by station, in words', () => {
+    const w: Station[] = [chain[0], { ...chain[1], name: 'New basketer', rate: 9 }, { ...chain[2], contains: 48 }];
+    expect(changedWords(chain, w)).toEqual([
+      'Basketer → New basketer: 5.5 baskets a minute → 9 baskets a minute',
+      'Palletiser: 48 to a pallet instead of 40',
+    ]);
+    expect(changedWords(chain, [...chain, { id: 'd', name: 'Checker', kind: 'people', unit: 'pallets', contains: 1, rate: 2, ratePer: 'min' }])).toEqual(['+ Checker (2 pallets a minute)']);
+    expect(changedWords(chain, chain.slice(0, 2))).toEqual(['− Palletiser']);
+  });
+  it('compares: the limit moves and the number says by how much', () => {
+    const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]] };
+    const says = compareSays(base, analyse(whatIfCapacity(asRun, w)), w.name);
+    expect(says).toBe('With New basketer, the line would do 70 bags/min instead of 44 (+26). Basketer no longer limits it; Bagger does. That meets the 60 target.');
+  });
+  it('a what-if that changes nothing says so', () => {
+    const w: WhatIf = { id: 'w', name: 'Faster palletiser', createdAt: 0, stations: [chain[0], chain[1], { ...chain[2], rate: 60 }] };
+    expect(compareSays(base, analyse(whatIfCapacity(asRun, w)), w.name)).toBe('Faster palletiser changes nothing the line can do: still 44 bags/min, limited by Basketer.');
+  });
+  it('a what-if can be worse, and says so', () => {
+    const w: WhatIf = { id: 'w', name: 'Smaller baskets', createdAt: 0, stations: [chain[0], { ...chain[1], contains: 6 }, chain[2]] };
+    expect(compareSays(base, analyse(whatIfCapacity(asRun, w)), w.name)).toBe('With Smaller baskets, the line would do 33 bags/min — 11 less than now. Basketer would limit it. Still 27 short of the 60 target.');
+  });
+  it('the report carries each what-if and its sentence beside the line', () => {
+    const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]], action: { id: 'a1', raisedAt: 1 } };
+    const rep = capacityReport([{ name: 'Line 2A', capacity: { ...asRun, whatIfs: [w] } }]);
+    expect(rep?.lines[0].whatIfs).toEqual([{ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true }]);
+    expect(rep?.lines[0].rows[1].feed).toBe('8.8 baskets a minute arrive · it does 5.5 — holds the line back');
+  });
+  it('make it so carries the prediction onto the board as the why', () => {
+    const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: chain };
+    const a = makeItSoWords('Line 2A', w, ['Basketer: 5.5 → 9 baskets a minute'], 'With New basketer, the line would do 70 bags/min instead of 44 (+26).');
+    expect(a.what).toBe('Make it so on Line 2A: New basketer');
+    expect(a.where).toBe('Basketer: 5.5 → 9 baskets a minute');
+    expect(a.why).toMatch(/^Predicted on the line balance — With New basketer/);
+  });
+});

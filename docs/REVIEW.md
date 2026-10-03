@@ -68,6 +68,19 @@ signal will push everything up; re-check then. Also added: the plan says
 whether it is current ("Up to date as of 09:12", amber after a day), on the
 screen and the PDF.*
 
+*3 October: the line balance got the three things Rowland asked for after
+the first one synced from his phone. Every station says what ARRIVES from
+the one before, in its own unit, against what it does ("5.8 baskets a minute
+arrive · it does 5.2 — holds the line back"), on the card, in the editor as
+the speed to beat, in the working, on the report and the PDF. WHAT-IFS: copies
+of the line with one thing changed, kept on the same record beside it, tabs on
+the laptop and a swipe on the phone (a swipe past the last one makes a new
+one), each compared with the line as run in one sentence that says whether
+the limit moves and by how much; the report prints them under the ladder.
+MAKE IT SO: a what-if becomes an action on the board with the prediction as
+its why, the what-if says where it has got to, and the board's own proof
+judges it once it is done.*
+
 1. **A stage-gate job's filmed walk lives on one device.** The link from a
    project to its walk workspace is kept in the device's `meta` store
    (`db/pace.ts`, `walkKey`) and never syncs. The walk's frames and snags sync

@@ -242,7 +242,7 @@ function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
                   <ol className="exec-cp-rows">
                     {l.rows.map(r => (
                       <li key={r.name} className={'exec-cp-row' + (r.limit ? ' is-limit' : '')}>
-                        <span className="exec-cp-who"><b>{r.name}</b>{r.limit && <em>limits the line</em>}{r.chain && <small>{r.chain}</small>}</span>
+                        <span className="exec-cp-who"><b>{r.name}</b>{r.limit && <em>limits the line</em>}{r.chain && <small>{r.chain}</small>}{/arrive/.test(r.feed) && <small className="exec-cp-feed">{r.feed}</small>}</span>
                         <span className="exec-cp-track">
                           <span className="exec-cp-bar is-run" style={{ width: at(r.running) }} />
                           <span className="exec-cp-bar is-eff" style={{ width: at(r.effective) }} />
@@ -257,6 +257,14 @@ function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
                     {l.target != null && <> · dashed: target {fmtN(l.target)}</>}
                     {l.more > 0 && <> · +{l.more} more station{l.more === 1 ? '' : 's'} not shown</>}
                   </p>
+                  {/* The what-ifs kept beside the line, each judged against it in
+                      one sentence — the client sees what was considered, and
+                      which one is on the board. */}
+                  {l.whatIfs.length > 0 && (
+                    <ul className="exec-cp-whatifs">
+                      {l.whatIfs.map(x => <li key={x.name}><b>What if {x.name}</b> — {x.says}{x.onBoard && <em> · on the board</em>}</li>)}
+                    </ul>
+                  )}
                 </div>
               );
             })}

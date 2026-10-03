@@ -323,6 +323,18 @@ export async function seedForSmokeTest(): Promise<Seeded> {
         { id: 'cap-carrier', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap' },
         { id: 'cap-palletiser', name: 'Palletiser', kind: 'machine', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour', source: 'plate' },
       ],
+      /* A what-if beside the line: the basketer swapped for a faster one. It
+         moves the limit to the palletiser and gains only 2 — the honest cap
+         the compare sentence has to say. */
+      whatIfs: [{
+        id: 'cap-wi-1', name: 'New basketer', createdAt: t,
+        stations: [
+          { id: 'cap-bagger', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', source: 'plate' },
+          { id: 'cap-basketer', name: 'New basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 8, ratePer: 'min', runningPct: 94, source: 'plate' },
+          { id: 'cap-carrier', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap' },
+          { id: 'cap-palletiser', name: 'Palletiser', kind: 'machine', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour', source: 'plate' },
+        ],
+      }],
     },
   });
   const stop = (asset: string, mins: number, daysAgo: number, category = 'Breakdown', subcategory = 'Mechanical'): Observation => ({

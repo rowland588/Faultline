@@ -1,6 +1,17 @@
 /* WHERE THIS LINE IS LIMITED — the line's stations, in order, and the one that
  * holds everything else back.
  *
+ * THREE THINGS ADDED 3 OCTOBER, in Rowland's words:
+ *  · "the step previous should help you understand" — every station says what
+ *    ARRIVES from the one before, in its own unit, beside what it does
+ *    (lib/capacity, StationResult.feed): the speed to beat, drawn, not implied.
+ *  · "swipe left, add a different machine name — oh look, it changes" — WHAT-IFS:
+ *    copies of the line with one thing changed, kept beside it on the same
+ *    record, each compared with the line as run in one sentence. Tabs on the
+ *    laptop, a swipe on the phone; a swipe past the last one makes a new one.
+ *  · MAKE IT SO — a what-if you decide to do becomes an action on the board,
+ *    with the prediction as its why, so the board's own proof judges it later.
+ *
  * Belongs to 3P, at the Size step beside the Pareto: the Pareto says where TIME
  * is lost, this says where the LINE is limited even when nothing breaks. It
  * reads the line's own timed stops (the log the Pareto is drawn from) and writes
@@ -13,13 +24,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
-import { putPaceTodo, type PaceLineRow } from '../db';
+import { listPaceTodos, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
 import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PILLARS, type PillarKey } from '../lib/pillars';
 import {
-  EMPTY_CAPACITY, analyse, blankStation, crossCheck, fmtN, lineIfRaised, stopStats, suggestRunning,
-  type Capacity, type RatePer, type Station, type StationResult,
+  EMPTY_CAPACITY, analyse, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
+  stopStats, suggestRunning, whatIfCapacity,
+  type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 
@@ -72,9 +84,11 @@ function Ladder({ r }: { r: ReturnType<typeof analyse> }) {
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested, patch, move, remove, assets, open, onToggle }: {
-  s: Station; i: number; last: boolean; prevUnit?: string; planned?: number;
+function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, suggested, feed, arrives, patch, move, remove, assets, open, onToggle }: {
+  s: Station; i: number; last: boolean; prevUnit?: string; prevName?: string; planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
+  /** What arrives against what it does, in its own unit — the station's own sentence. */
+  feed?: string; arrives?: number;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
   /** ONE STATION OPEN AT A TIME. Every station's eight boxes were open at once
    *  — 57 buttons on the page — when the work is on one of them. Shut, a
@@ -117,6 +131,10 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested,
           {' · '}{s.runningPct ?? 100}% running · {s.goodPct ?? 100}% good
         </p>
       )}
+      {/* THE STEP BEFORE, SAID HERE. 70 bags a minute and 8 to a basket is 8.8
+          baskets a minute arriving — the number this station has to beat, and
+          whether it does. Shut or open, it is the line this card is read by. */}
+      {feed && <p className={'cap-feed' + (/holds the line back/.test(feed) ? ' is-short' : '')}>{feed}</p>}
 
       {open && <>
       <div className="cap-grid">
@@ -161,6 +179,11 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, suggested,
             </span>
           )}
           {s.kind === 'people' && <span className="cap-hint">Use the pace they can keep up all shift — not their best lap.</span>}
+          {arrives != null && (
+            <span className="cap-hint cap-arrives">
+              Arriving from {prevName || 'the station before'}: <b>{fmtN(arrives)} {s.unit.trim() || 'units'} a minute</b> — the speed to beat.
+            </span>
+          )}
         </div>
 
         <label className="proj-field">
@@ -237,36 +260,87 @@ export function CapacityPanel({ projectId, line, onSave }: {
   }, [stored]);
 
   const commit = (next: Capacity) => { setCap(next); sent.current = JSON.stringify(next); void onSave(next); };
+
+  /* WHICH LINE IS ON THE SCREEN — the line as it runs, or one of its what-ifs.
+     Everything below edits `current`; the stations are written back to
+     wherever they came from. */
+  const [view, setView] = useState<string>('asRun');
+  const whatIfs = cap.whatIfs ?? [];
+  const w = whatIfs.find(x => x.id === view);
+  useEffect(() => { if (view !== 'asRun' && !w) setView('asRun'); }, [view, w]);
+  const current: Capacity = w ? whatIfCapacity(cap, w) : cap;
+  const putWhatIf = (id: string, p: Partial<WhatIf>) => commit({ ...cap, whatIfs: whatIfs.map(x => (x.id === id ? { ...x, ...p } : x)) });
+  const setStations = (stations: Station[]) => (w ? putWhatIf(w.id, { stations }) : commit({ ...cap, stations }));
   const patchStation = (id: string, p: Partial<Station>) =>
-    commit({ ...cap, stations: cap.stations.map(s => (s.id === id ? { ...s, ...p } : s)) });
+    setStations(current.stations.map(s => (s.id === id ? { ...s, ...p } : s)));
 
   const stops = useLineStops(line.workspaceId);
-  const stats = useMemo(() => stopStats(stops.obs, cap.stations, stops.from, stops.to), [stops.obs, stops.from, stops.to, cap.stations]);
+  const stats = useMemo(() => stopStats(stops.obs, current.stations, stops.from, stops.to), [stops.obs, stops.from, stops.to, current.stations]);
   const assets = useMemo(() => [...new Set(stops.obs.filter(o => !o.deletedAt && o.asset?.trim()).map(o => o.asset.trim()))].sort(), [stops.obs]);
 
-  const r = useMemo(() => analyse(cap), [cap]);
+  const r = useMemo(() => analyse(current), [current]);
+  const asRun = useMemo(() => analyse(cap), [cap]);
+  const compare = w ? compareSays(asRun, r, w.name) : undefined;
+  const changed = useMemo(() => (w ? changedWords(cap.stations, w.stations) : []), [cap.stations, w]);
   const check = useMemo(() => crossCheck(r, stats), [r, stats]);
   const why = (id: string) => r.skipped.find(x => x.station.id === id)?.why;
+  const result = (id: string) => r.ok.find(x => x.station.id === id);
 
   const add = (kind: Station['kind'], name = '') => {
-    const s = { ...blankStation(uid(), kind, cap.stations.length === 0), name };
-    commit({ ...cap, stations: [...cap.stations, s] });
+    const s = { ...blankStation(uid(), kind, current.stations.length === 0), name };
+    setStations([...current.stations, s]);
   };
   const move = (i: number, by: -1 | 1) => {
     const j = i + by;
-    if (j < 0 || j >= cap.stations.length) return;
-    const list = [...cap.stations];
+    if (j < 0 || j >= current.stations.length) return;
+    const list = [...current.stations];
     [list[i], list[j]] = [list[j], list[i]];
-    commit({ ...cap, stations: list });
+    setStations(list);
   };
   const remove = (s: Station) => {
     const before = cap;
-    commit({ ...cap, stations: cap.stations.filter(x => x.id !== s.id) });
+    setStations(current.stations.filter(x => x.id !== s.id));
     offerUndo(`Removed ${s.name || 'the station'}`, async () => commit(before));
   };
 
-  /* RAISING AN ACTION FROM THE FINDING. The sentence IS the why; the pillar is
-     the limit's own — a machine is Plant, a crew is People — and can be changed. */
+  /* WHAT-IFS. A new one is a copy of whatever is on the screen — the line as
+     run, or another what-if — so "the same line with one thing changed" is
+     one tap, then the change. */
+  const addWhatIf = () => {
+    const id = uid();
+    const n = whatIfs.length + 1;
+    const nw: WhatIf = { id, name: `What if ${n}`, stations: current.stations.map(s => ({ ...s })), targetPerMin: current.targetPerMin, createdAt: Date.now() };
+    commit({ ...cap, whatIfs: [...whatIfs, nw] });
+    setView(id);
+    setEditing(null);
+  };
+  const removeWhatIf = () => {
+    if (!w) return;
+    const before = cap;
+    commit({ ...cap, whatIfs: whatIfs.filter(x => x.id !== w.id) });
+    setView('asRun');
+    offerUndo(`Removed ${w.name}`, async () => commit(before));
+  };
+  /* SWIPE, on a phone: left to the next what-if, right to the one before. A
+     swipe left past the last one makes a new one — "swipe left, add a
+     different machine name". Short or mostly vertical moves are scrolling. */
+  const order = ['asRun', ...whatIfs.map(x => x.id)];
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => { const t = e.touches[0]; touch.current = t ? { x: t.clientX, y: t.clientY } : null; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const t = touch.current; touch.current = null;
+    const c = e.changedTouches[0];
+    if (!t || !c) return;
+    const dx = c.clientX - t.x, dy = c.clientY - t.y;
+    if (Math.abs(dx) < 80 || Math.abs(dy) > 60) return;
+    const i = order.indexOf(view);
+    if (dx < 0) { if (i + 1 < order.length) setView(order[i + 1]); else addWhatIf(); }
+    else if (i > 0) setView(order[i - 1]);
+  };
+
+  /* RAISING AN ACTION FROM THE FINDING (the line as run), or MAKING A WHAT-IF
+     SO. One form: what, pillar, owner, due. The sentence IS the why; on a
+     what-if the why is the prediction, so the board's proof can judge it. */
   const limit = r.limit;
   const [asking, setAsking] = useState(false);
   const [what, setWhat] = useState('');
@@ -274,29 +348,58 @@ export function CapacityPanel({ projectId, line, onSave }: {
   const [owner, setOwner] = useState('');
   const [due, setDue] = useState('');
   const [raised, setRaised] = useState(false);
-  const open = () => {
+  useEffect(() => { setAsking(false); setRaised(false); }, [view]);
+  const openRaise = () => {
     if (!limit) return;
     setWhat(`Lift ${limit.station.name.trim() || 'the limiting station'} — it limits ${line.name}`);
     setPillar(limit.station.kind === 'people' ? 'people' : 'plant');
     setOwner(line.owner ?? '');
     setAsking(true); setRaised(false);
   };
+  const openMake = () => {
+    if (!w || !compare) return;
+    const m = makeItSoWords(line.name, w, changed, compare);
+    setWhat(m.what);
+    const touched = w.stations.filter(s => changed.some(c => c.includes(s.name.trim() || '§')));
+    setPillar(touched.length && touched.every(s => s.kind === 'people') ? 'people' : 'plant');
+    setOwner(line.owner ?? '');
+    setAsking(true); setRaised(false);
+  };
   const raise = async () => {
-    if (!limit || !what.trim()) return;
+    if (!what.trim()) return;
     const t = Date.now();
-    await putPaceTodo({
-      id: uid(), projectId, lineId: line.id, what: what.trim(), where: limit.station.name.trim(),
-      why: r.sentence, who: owner.trim(), when: '', due: due || undefined, pillar,
-      state: 'todo', createdAt: t, updatedAt: t,
-    });
+    const id = uid();
+    if (w && compare) {
+      const m = makeItSoWords(line.name, w, changed, compare);
+      await putPaceTodo({
+        id, projectId, lineId: line.id, what: what.trim(), where: m.where, why: m.why,
+        who: owner.trim(), when: '', due: due || undefined, pillar, state: 'todo', createdAt: t, updatedAt: t,
+      });
+      putWhatIf(w.id, { action: { id, raisedAt: t } });
+    } else if (limit) {
+      await putPaceTodo({
+        id, projectId, lineId: line.id, what: what.trim(), where: limit.station.name.trim(),
+        why: r.sentence, who: owner.trim(), when: '', due: due || undefined, pillar,
+        state: 'todo', createdAt: t, updatedAt: t,
+      });
+    } else return;
     setAsking(false); setRaised(true);
   };
+  /* The action a what-if was made into, read from the board so the what-if
+     can say where it has got to — raised, waiting, or done. */
+  const [made, setMade] = useState<PaceTodoRow | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!w?.action) { setMade(null); return; }
+    void listPaceTodos(projectId, line.id).then(rows => { if (live) setMade(rows.find(x => x.id === w.action?.id) ?? null); });
+    return () => { live = false; };
+  }, [projectId, line.id, w?.action, raised]);
 
-  const worth = limit && r.next && r.line != null
+  const worth = !w && limit && r.next && r.line != null
     ? lineIfRaised(r, limit.index, limit.running) : undefined;
 
   return (
-    <section className="pace-sec cap">
+    <section className="pace-sec cap" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">Where {line.name} is limited</h2>
         <p className="pace-sec-sub">
@@ -305,9 +408,40 @@ export function CapacityPanel({ projectId, line, onSave }: {
         </p>
       </div>
 
+      {/* AS RUN, AND EVERY WHAT-IF BESIDE IT. One row; the one on the screen is
+          marked; a what-if that is on the board carries the flag. */}
+      <div className="cap-tabs" role="tablist" aria-label="The line as run, and what-ifs">
+        <button type="button" role="tab" aria-selected={!w} className={'cap-tab' + (!w ? ' on' : '')} onClick={() => setView('asRun')}>As run</button>
+        {whatIfs.map(x => (
+          <button key={x.id} type="button" role="tab" aria-selected={w?.id === x.id} className={'cap-tab' + (w?.id === x.id ? ' on' : '')} onClick={() => setView(x.id)}>
+            {x.action && <span aria-hidden>⚑ </span>}{x.name}
+          </button>
+        ))}
+        <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on">+ What if</button>
+      </div>
+
+      {w && (
+        <div className="cap-whatif">
+          <div className="cap-whatif-h">
+            <span className="field-label">What if…</span>
+            <DraftText value={w.name} placeholder="Name the change — New basketer, 12 to a basket, second packer" className="text-input cap-whatif-name" max={60}
+              ariaLabel="What this what-if changes" onSave={v => putWhatIf(w.id, { name: v.trim() || w.name })} />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={removeWhatIf}>Delete this what-if</button>
+          </div>
+          {changed.length > 0 ? (
+            <ul className="cap-changed" aria-label="What is different from the line as run">
+              {changed.map(c => <li key={c}>{c}</li>)}
+            </ul>
+          ) : (
+            <p className="sub">The same as the line as run — change a station below, or add one, and watch the limit move.</p>
+          )}
+        </div>
+      )}
+
       <div className="cap-verdict">
-        <span className="cap-eyebrow">What the sums say</span>
-        <p className="cap-says">{r.sentence}</p>
+        <span className="cap-eyebrow">{w ? 'What the sums say — against the line as run' : 'What the sums say'}</span>
+        <p className="cap-says">{w ? compare : r.sentence}</p>
+        {w && r.limit && <p className="cap-sub">{r.sentence}</p>}
         {worth != null && r.line != null && worth > r.line + 1e-9 && limit && (
           <p className="cap-sub">
             With none of {limit.station.name.trim() || 'its'}’s stops it would run {fmtN(limit.running)} {r.unit}/min — the line would then do {fmtN(worth)}
@@ -325,14 +459,50 @@ export function CapacityPanel({ projectId, line, onSave }: {
         </ul>
       )}
 
-      {limit && (
+      {/* THE DOOR TO THE WORK. As run: raise an action on the limit. A what-if:
+          make it so — the action carries the prediction as its why. */}
+      {w ? (
+        w.action ? (
+          <p className="action-raised" role="status">
+            ⚑ On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${made.doneOn}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${made.due}` : ''}</> : null}.
+            {made?.state === 'done' && <> The line’s numbers either side of that day judge it — see <b>Did it work?</b> on the project.</>}
+            <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button>
+          </p>
+        ) : raised ? (
+          <p className="action-raised" role="status">⚑ Action raised — <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button></p>
+        ) : !asking ? (
+          <button className="board-cta" onClick={openMake} disabled={!compare || r.line == null}>
+            <span className="board-cta-ic" aria-hidden>⚑</span>
+            <span className="board-cta-main">Make it so — put {w.name} on the board, with this prediction as its why</span>
+            <span className="board-cta-go" aria-hidden>›</span>
+          </button>
+        ) : (
+          <div className="card action-form">
+            <div className="field-label">⚑ Make it so — <b>{w.name}</b></div>
+            <textarea className="text-area" autoFocus rows={2} maxLength={300} value={what} onChange={e => setWhat(e.target.value)} />
+            <p className="sub cap-why">Why, as the board will show it: {compare}</p>
+            <div className="cw-seg" role="group" aria-label="People, Plant or Process" style={{ marginTop: 8 }}>
+              {PILLARS.map(x => (
+                <button key={x.key} type="button" className={'chip' + (pillar === x.key ? ' on' : '')}
+                  aria-pressed={pillar === x.key} onClick={() => setPillar(x.key)}>{x.label}</button>
+              ))}
+            </div>
+            <div className="row-inline" style={{ marginTop: 8 }}>
+              <input className="text-input" value={owner} placeholder="Owner (who drives it)" maxLength={80} onChange={e => setOwner(e.target.value)} />
+              <input className="text-input due-input" type="date" value={due} aria-label="Due date" onChange={e => setDue(e.target.value)} />
+              <button className="btn btn-primary" onClick={() => void raise()} disabled={!what.trim()}>Raise</button>
+              <button className="btn btn-ghost" onClick={() => setAsking(false)}>Cancel</button>
+            </div>
+          </div>
+        )
+      ) : limit && (
         raised ? (
           <p className="action-raised" role="status">
             ⚑ Action raised on <b>{limit.station.name.trim()}</b> — it is on the project’s board with this sentence as its why.
             <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button>
           </p>
         ) : !asking ? (
-          <button className="board-cta" onClick={open}>
+          <button className="board-cta" onClick={openRaise}>
             <span className="board-cta-ic" aria-hidden>⚑</span>
             <span className="board-cta-main">Raise an action on {limit.station.name.trim() || 'the limit'}</span>
             <span className="board-cta-go" aria-hidden>›</span>
@@ -360,38 +530,41 @@ export function CapacityPanel({ projectId, line, onSave }: {
       <div className="cap-settings">
         <label className="proj-field">
           <span className="field-label">What the line should do — {r.unit} a minute</span>
-          <DraftNumber className="text-input cap-num" value={cap.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
-            onSave={v => commit({ ...cap, targetPerMin: v })} />
+          <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
+            onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
         </label>
-        <label className="proj-field">
-          <span className="field-label">Planned running hours a week</span>
-          <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
-            onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
-          <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
-        </label>
+        {!w && (
+          <label className="proj-field">
+            <span className="field-label">Planned running hours a week</span>
+            <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
+              onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
+            <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
+          </label>
+        )}
       </div>
 
-      <h3 className="cap-h">The stations, in order</h3>
-      {cap.stations.length === 0 && (
+      <h3 className="cap-h">{w ? `The stations with ${w.name}, in order` : 'The stations, in order'}</h3>
+      {current.stations.length === 0 && (
         <div className="pace-empty">
           <p className="sub">
             Start at the front of the line. A bagger that does 70 a minute, then baskets that hold 12 bags and run 5½ a minute,
             then someone carrying them, then the palletiser. Each says what it counts in and how many of the one before make one of
-            its own — and the app puts them all in the first one’s unit.
+            its own — and the app puts them all in the first one’s unit, and tells each station what arrives from the one before.
           </p>
           {assets.length > 0 && (
-            <button className="btn btn-ghost" onClick={() => commit({ ...cap, stations: assets.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })) })}>
+            <button className="btn btn-ghost" onClick={() => setStations(assets.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
               Start from the machines in your stops log ({assets.length})
             </button>
           )}
         </div>
       )}
       <ol className="cap-sts">
-        {cap.stations.map((s, i) => (
-          <StationCard key={s.id} s={s} i={i} last={i === cap.stations.length - 1}
-            prevUnit={cap.stations[i - 1]?.unit} planned={cap.plannedHoursPerWeek} why={why(s.id)}
+        {current.stations.map((s, i) => (
+          <StationCard key={s.id} s={s} i={i} last={i === current.stations.length - 1}
+            prevUnit={current.stations[i - 1]?.unit} prevName={current.stations[i - 1]?.name} planned={cap.plannedHoursPerWeek} why={why(s.id)}
             wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
             suggested={suggestRunning(stats[s.id]?.ownMins ?? 0, cap.plannedHoursPerWeek, stops.weeks)}
+            feed={result(s.id)?.feed} arrives={result(s.id)?.arrives}
             patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets}
             open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} />
         ))}
@@ -424,13 +597,15 @@ function Working({ r }: { r: ReturnType<typeof analyse> }) {
         <td className="is-num">{fmtN(x.running)}</td>
         <td>{s.runningPct != null && s.runningPct < 100 ? `× ${fmtN(s.runningPct)}%` : '—'}</td>
         <td className="is-num"><b>{fmtN(x.effective)}</b></td>
+        <td className="is-num">{x.arrives != null ? `${fmtN(x.arrives)} ${s.unit.trim()}` : '—'}</td>
+        <td className="is-num">{fmtN(x.does)} {s.unit.trim()}</td>
       </tr>
     );
   };
   return (
     <div className="cap-working">
       <table>
-        <thead><tr><th /><th>speed</th><th>crew</th><th>to the line’s unit</th><th>running</th><th>stops</th><th>with stops</th></tr></thead>
+        <thead><tr><th /><th>speed</th><th>crew</th><th>to the line’s unit</th><th>running</th><th>stops</th><th>with stops</th><th>arrives, its unit</th><th>does, its unit</th></tr></thead>
         <tbody>{r.ok.map(row)}</tbody>
       </table>
       <p className="sub">
