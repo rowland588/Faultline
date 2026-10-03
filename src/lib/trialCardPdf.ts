@@ -25,7 +25,7 @@
  */
 import {
   ACCENT, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
-  fit, san, setFont, wash, type Doc,
+  SHELL_MUTED, drawMark, fit, nameFont, san, setFont, wash, type Doc,
 } from './reportKit';
 import { verdictLine, type TrialCard } from './trialCard';
 import type { Shot } from './testReport';
@@ -68,16 +68,23 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   d.setFillColor(INK);
   d.rect(0, 0, W, page === 1 ? 74 : 44, 'F');
 
-  setFont(d, 7, 'bold', '#9fc3b4');
+  /* The band's small type in the shell's muted blues (a green left over from
+     an older palette), and the Faultline mark top right in the band — the
+     corner stamp other documents carry would sit on the dark. "Built" moves
+     beside the project, where it reads as part of the line it belongs to. */
+  setFont(d, 7, 'bold', SHELL_MUTED);
   const kicker = `${wordsOf(c).one.toUpperCase()} CARD`;
   d.text(kicker, M, 20);
   // Placed after the kicker, not at a fixed 58pt: "INSTALL STEP CARD" ran into the project name.
   const after = M + d.getTextWidth(kicker) + 14;
-  setFont(d, 7, 'normal', '#8fae9f');
-  d.text(fit(d, san(meta.project), W / 2), after, 20);
+  setFont(d, 7, 'normal', SHELL_MUTED);
+  const built = `Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+  d.text(fit(d, san(`${meta.project}  ·  ${built}`), W / 2), after, 20);
 
-  setFont(d, 6.5, 'normal', '#7f9b8d');
-  d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, W - M, 20, { align: 'right' });
+  nameFont(d, 8, '#ffffff');
+  const brand = 'Faultline', bw = d.getTextWidth(brand);
+  d.text(brand, W - M, 20, { align: 'right' });
+  drawMark(d, W - M - bw - 15, 11.5, 11);
 
   if (page === 1) {
     setFont(d, 16, 'bold', '#ffffff');
@@ -85,7 +92,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
 
     const line = [c.machine, c.withWhom && `with ${c.withWhom}`, nice(c.ranOn ?? c.plannedFor)]
       .filter(Boolean).join('  ·  ');
-    setFont(d, 8.5, 'normal', '#9fc3b4');
+    setFont(d, 8.5, 'normal', SHELL_MUTED);
     d.text(fit(d, san(line), W - 2 * M - 150), M, 60);
 
     /* The verdict, as a pill, top right — the one thing somebody looks for

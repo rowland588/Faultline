@@ -76,11 +76,11 @@ function PrintSheet({ list, project, onClose }: { list: Standard[]; project: Pro
       if (how === 'print') {
         const url = URL.createObjectURL(doc.output('blob') as Blob);
         const w = window.open(url, '_blank');
-        if (!w) { const { deliverPdf } = await import('../lib/savePdf'); await deliverPdf(doc, pdfName(list, project)); }
+        if (!w) { const { deliverPdf } = await import('../lib/savePdf'); await deliverPdf(doc, pdfName(list, project), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */ }
         setTimeout(() => URL.revokeObjectURL(url), 120_000);
       } else {
         const { deliverPdf } = await import('../lib/savePdf');
-        await deliverPdf(doc, pdfName(list, project));
+        await deliverPdf(doc, pdfName(list, project), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */
       }
     } catch (e) {
       console.error('line standard PDF failed', e);

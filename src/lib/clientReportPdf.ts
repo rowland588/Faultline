@@ -4,7 +4,7 @@ import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow } from './clientReport';
 import type { GateTone } from './install';
 import type { Shot } from './testReport';
-import { san } from './reportKit';
+import { pdfFamily, san } from './reportKit';
 import { gantt } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { moveLines } from './story';
@@ -55,7 +55,7 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
   const r = sanAll(report);
   let y = M;
   const font = (size: number, style: 'normal' | 'bold' | 'italic' = 'normal', colour = INK) => {
-    doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(colour);
+    doc.setFont(pdfFamily(), style); doc.setFontSize(size); doc.setTextColor(colour);
   };
   const newPage = () => { doc.addPage('a4', 'portrait'); y = M; };
   const room = (h: number) => { if (y + h > H - M - 20) newPage(); };

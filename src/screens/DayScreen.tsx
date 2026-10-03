@@ -82,7 +82,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       const shots = await shotsFor(day.media.map(shotKey).filter((k): k is string => !!k), 4);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
-      const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date));
+      const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date), { brand: false }); // its band carries the mark
       setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
     } catch (e) {
       console.error('Day report failed', e);

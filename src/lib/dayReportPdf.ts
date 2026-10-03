@@ -10,7 +10,7 @@
  * went badly is the day with the most to say, and it is the one that most
  * needs every line.
  */
-import { ACCENT, DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, fit, san, setFont, type Doc } from './reportKit';
+import { ACCENT, DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, SHELL_MUTED, drawMark, fit, nameFont, san, setFont, type Doc } from './reportKit';
 import type { Day, DayTone } from './day';
 import type { Shot } from './testReport';
 import { niceDay } from './weeks';
@@ -35,12 +35,19 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
   const band = (first: boolean): number => {
     d.setFillColor(INK);
     d.rect(0, 0, W, first ? 96 : 40, 'F');
-    setFont(d, 7, 'bold', '#9fc3b4');
+    /* The band's small type in the shell's own muted blues (it was a green
+       left over from an older palette), and the Faultline mark in the band —
+       the corner stamp every other document carries would sit on the dark. */
+    setFont(d, 7, 'bold', SHELL_MUTED);
     d.text('DAY REPORT', M, 20);
-    setFont(d, 7, 'normal', '#8fae9f');
+    setFont(d, 7, 'normal', SHELL_MUTED);
     d.text(fit(d, san(meta.project), W / 2), M + 62, 20);
-    setFont(d, 6.5, 'normal', '#7f9b8d');
-    d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`, W - M, 20, { align: 'right' });
+    nameFont(d, 8, '#ffffff');
+    const word = 'Faultline', tw = d.getTextWidth(word);
+    d.text(word, W - M, 20, { align: 'right' });
+    drawMark(d, W - M - tw - 15, 11.5, 11);
+    setFont(d, 6.5, 'normal', SHELL_MUTED);
+    d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`, W - M, 32, { align: 'right' });
     if (!first) {
       setFont(d, 9, 'bold', '#ffffff');
       d.text(`${san(niceDay(day.date, { weekday: 'short', year: true }))} — continued`, M, 32);

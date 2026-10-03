@@ -180,7 +180,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       const shots = await shotsFor(media.map(shotKey).filter((k): k is string => !!k));
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
-      const how = await deliverPdf(pdf, pdfFileName(project.name, `${c.title} ${c.kind === 'fix' ? 'fix' : c.kind === 'install' ? 'step' : 'test'} card`, when ?? todayISO()));
+      const how = await deliverPdf(pdf, pdfFileName(project.name, `${c.title} ${c.kind === 'fix' ? 'fix' : c.kind === 'install' ? 'step' : 'test'} card`, when ?? todayISO()), { brand: false }); // its band carries the mark
       setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
     } catch (e) {
       console.error('Card failed', e);

@@ -13,7 +13,7 @@
 import type { jsPDF } from 'jspdf';
 import type { Gantt, GanttRow } from './gantt';
 import type { PlanMark } from './standing';
-import { san } from './reportKit';
+import { pdfFamily, san } from './reportKit';
 import { walkMarkers } from './walkSnags';
 
 const PW = 842, PH = 595, M = 30, LAB = 186;
@@ -53,7 +53,7 @@ type Line = { group: string; n: number; cont?: boolean } | { row: GanttRow; fix?
  *  so a report can put its own foot on them. */
 export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: string; sub?: string }, moves: MoveLine[] = []): number[] {
   const font = (size: number, style: 'normal' | 'bold' = 'normal', colour = INK) => {
-    doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(colour);
+    doc.setFont(pdfFamily(), style); doc.setFontSize(size); doc.setTextColor(colour);
   };
   const x0 = M + LAB, CW = PW - 2 * M - LAB;
   const px = CW / Math.max(1, g.days);
@@ -348,7 +348,7 @@ export function drawGanttDoc(doc: jsPDF, g: Gantt, opts: { name: string; printed
   }, opts.moves);
   pages.forEach((p, i) => {
     doc.setPage(p);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(MUTED);
+    doc.setFont(pdfFamily(), 'normal'); doc.setFontSize(7.5); doc.setTextColor(MUTED);
     doc.text(san(`${opts.name}  ·  the plan  ·  ${opts.printed}`), M, PH - 16);
     doc.text(`${i + 1} of ${pages.length}`, PW - M, PH - 16, { align: 'right' });
   });

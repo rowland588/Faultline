@@ -6,6 +6,8 @@ import { startSync } from './cloud/sync';
    factory floor with no signal. Variable weight axis only — one file a family. */
 import '@fontsource-variable/instrument-sans/wght.css';
 import '@fontsource-variable/schibsted-grotesk/wght.css';
+/* Outfit — the face of the NAME: the landing's wordmark, the install icon's, Home's and every PDF's. */
+import '@fontsource-variable/outfit/wght.css';
 import './styles.css';
 
 // Boot the cloud sync loop. No-ops unless Supabase is configured AND a session

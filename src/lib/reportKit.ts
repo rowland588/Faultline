@@ -67,8 +67,27 @@ export function san(t: string): string {
     .trim();
 }
 
+/* THE TYPEFACE EVERY PDF PRINTS IN. The app's own — Instrument Sans, cut to a
+   static Regular and Bold (src/assets/pdf-fonts) — once loadPdfLib has
+   embedded it; Helvetica until then, which is what a test or a device that
+   could not fetch the files gets. A client report in the app's own type reads
+   as the app's document, not as a printout from somewhere. */
+let family = 'helvetica';
+export const pdfFamily = (): string => family;
+export const usePdfFamily = (f: string): void => { family = f; };
+/* The NAME's own face — Outfit, the letters the landing page and the install
+   icon set "Faultline" in — used only for the word in the mark's lockup. */
+let nameFamily: string | null = null;
+export const usePdfNameFamily = (f: string): void => { nameFamily = f; };
+/** The word "Faultline" beside the mark, in the name's own face when it is
+ *  embedded, the body's bold when not. */
+export function nameFont(d: Doc, size: number, colour: string): void {
+  if (nameFamily) d.setFont(nameFamily, 'normal'); else d.setFont(family, 'bold');
+  d.setFontSize(size); d.setTextColor(colour);
+}
+
 export const setFont = (d: Doc, size: number, weight: 'normal' | 'bold', colour: string) => {
-  d.setFont('helvetica', weight);
+  d.setFont(family, weight);
   d.setFontSize(size);
   d.setTextColor(colour);
 };
@@ -186,4 +205,43 @@ export function wash(hex: string, amount: number): [number, number, number] {
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   const m = (c: number) => Math.round(255 - (255 - c) * amount);
   return [m(r), m(g), m(b)];
+}
+
+/* ---------------------------- the Faultline mark ---------------------------- */
+
+/** The mark — the same drawing as ui/Logo's LogoMark, at `size` points: a pale
+ *  tile, the flat line in soft blue, the fault ripping through it in navy and
+ *  brand blue. Drawn in vector, so it is sharp at any print size. */
+export function drawMark(d: Doc, x: number, y: number, size: number): void {
+  const k = size / 32;
+  const P = (px: number, py: number): [number, number] => [x + px * k, y + py * k];
+  d.setFillColor('#eef4fd'); d.setDrawColor('#d3e2f9'); d.setLineWidth(0.4 * Math.max(1, k * 2));
+  d.roundedRect(x, y, size, size, 8 * k, 8 * k, 'FD');
+  d.setLineCap('round'); d.setLineJoin('round');
+  d.setDrawColor('#8fb7f2'); d.setLineWidth(2.4 * k);
+  d.line(...P(5, 20), ...P(11.5, 20)); d.line(...P(22, 20), ...P(27, 20));
+  d.setLineWidth(3.2 * k);
+  d.setDrawColor(SHELL); d.line(...P(11.5, 20), ...P(15, 8.5));
+  d.setDrawColor(BRAND); d.line(...P(15, 8.5), ...P(19, 25)); d.line(...P(19, 25), ...P(22, 20));
+  d.setLineCap('butt'); d.setLineJoin('miter');
+}
+
+/** The mark and the name, top right of every page, in the margin above the
+ *  content — so a client report, a test card or the day's sheet arrives as
+ *  Faultline's document wherever it is forwarded. */
+export function stampBrand(d: Doc): void {
+  const pages = d.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    d.setPage(i);
+    const W = d.internal.pageSize.getWidth();
+    // one size on every sheet: larger on an A3 crowded the header's own corner line
+    const k = 1;
+    const size = 11 * k, top = 7 * k;
+    nameFont(d, 8 * k, INK);
+    const word = 'Faultline';
+    const tw = d.getTextWidth(word);
+    const right = W - 14 * k;
+    d.text(word, right, top + size * 0.72, { align: 'right' });
+    drawMark(d, right - tw - 4 * k - size, top, size);
+  }
 }

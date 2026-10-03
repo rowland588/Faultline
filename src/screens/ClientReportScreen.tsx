@@ -62,7 +62,9 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (!report || !wide) return;
     let live = true, url: string | null = null;
-    void buildPdf(report, withStandards).then(doc => {
+    void buildPdf(report, withStandards).then(async doc => {
+      if (!live) return;
+      (await import('../lib/reportKit')).stampBrand(doc);   // previewed as it is sent: with the mark
       if (!live) return;
       url = URL.createObjectURL(doc.output('blob') as Blob);
       setPreview(url);

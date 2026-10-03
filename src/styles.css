@@ -8144,3 +8144,14 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .lt-word { font-weight: 700; }
 .lt-word.is-r { color: var(--st-r); }
 .lt-word.is-a { color: color-mix(in srgb, var(--st-a) 75%, var(--ink)); }
+
+/* THE NAME, ONE FACE EVERYWHERE. "Faultline" is set in Outfit — the letters of
+   the landing page, the share image and the install icon — wherever it
+   appears beside the mark: Home, the one-page report, the unavailable page,
+   and (embedded) every PDF. It was the heavy display face on Home and black
+   900 on the report, so the app showed two logos. */
+.wordmark-name, .report-brand, .landing-name {
+  font-family: "Outfit Variable", var(--display);
+  font-weight: 500; letter-spacing: -0.02em; color: var(--ink);
+}
+.wordmark-name { font-size: 31px; }

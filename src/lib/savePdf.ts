@@ -36,12 +36,50 @@ export function isStaleBuildError(e: unknown): boolean {
 let cached: Promise<typeof import('jspdf')> | null = null;
 export function loadPdfLib(): Promise<typeof import('jspdf')> {
   if (!cached) {
-    cached = import('jspdf').catch(e => {
+    cached = import('jspdf').then(async lib => { await embedBrandFonts(lib); return lib; }).catch(e => {
       cached = null;              // a failed load must not poison every retry
       throw e;
     });
   }
   return cached;
+}
+
+/* THE APP'S TYPEFACE, IN EVERY PDF. Instrument Sans, cut to a static Regular
+ * and Bold (the app ships it as a variable web font, which a PDF cannot
+ * embed). Read once, then handed to every new document through jsPDF's
+ * addFonts hook, and reportKit's family switched to it — so each drawer keeps
+ * calling setFont as it always has. If the files cannot be read (offline on a
+ * device that has never fetched them), the documents print in Helvetica, as
+ * they did before: a report in the wrong typeface beats no report. */
+/* Runs once: loadPdfLib caches its promise, and only a failed import (before
+   this is reached) clears it. */
+async function embedBrandFonts(lib: typeof import('jspdf')): Promise<void> {
+  try {
+    const [{ default: regularUrl }, { default: boldUrl }, { default: nameUrl }, kit] = await Promise.all([
+      import('../assets/pdf-fonts/InstrumentSans-Regular.ttf?url'),
+      import('../assets/pdf-fonts/InstrumentSans-Bold.ttf?url'),
+      import('../assets/pdf-fonts/Outfit-Medium.ttf?url'),
+      import('./reportKit'),
+    ]);
+    const [regular, bold, name] = await Promise.all([regularUrl, boldUrl, nameUrl].map(async u => toBase64(await (await fetch(u)).arrayBuffer())));
+    lib.jsPDF.API.events.push(['addFonts', function (this: jsPDF) {
+      this.addFileToVFS('Faultline-Regular.ttf', regular);
+      this.addFont('Faultline-Regular.ttf', 'Faultline', 'normal');
+      this.addFileToVFS('Faultline-Bold.ttf', bold);
+      this.addFont('Faultline-Bold.ttf', 'Faultline', 'bold');
+      this.addFileToVFS('Faultline-Name.ttf', name);
+      this.addFont('Faultline-Name.ttf', 'FaultlineName', 'normal');
+    }]);
+    kit.usePdfFamily('Faultline');
+    kit.usePdfNameFamily('FaultlineName');
+  } catch { /* Helvetica it is — see above */ }
+}
+
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 /** Reload onto the current build, discarding the worker that is holding the old
@@ -65,7 +103,11 @@ export async function reloadOntoNewBuild(): Promise<void> {
  *
  *  Returns how it went out, so the caller can say something true afterwards
  *  ("opened in a new tab" is worth saying; a silent nothing is not). */
-export async function deliverPdf(doc: jsPDF, filename: string): Promise<'shared' | 'downloaded' | 'opened'> {
+export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<'shared' | 'downloaded' | 'opened'> {
+  /* Every page leaves with the Faultline mark in its top margin — the one door
+     all of them go out through, so no document can be missed. A sheet that is
+     a picture edge to edge (the line standard) opts out. */
+  if (opts.brand !== false) (await import('./reportKit')).stampBrand(doc);
   return deliverBlob(doc.output('blob') as Blob, filename);
 }
 
