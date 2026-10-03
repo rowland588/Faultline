@@ -69,7 +69,7 @@ function Mark({ t }: { t: Test }) {
       </span>
     );
   }
-  return <span className={'tw-mark is-ring' + (t.outcome === 'notRun' ? ' is-a' : '')} aria-hidden />;
+  return <span className={'tw-mark is-ring' + (t.outcome === 'notRun' ? ' is-late' : '')} aria-hidden />;
 }
 
 export function TestsScreen({ projectId }: { projectId: string }) {

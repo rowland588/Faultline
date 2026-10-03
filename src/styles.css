@@ -5110,14 +5110,18 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tw-row:last-child { border-bottom: 0; }
 .tw-row:hover { background: var(--surface-2); }
 .tw-row.is-failed { background: #fdf1ef; }
-.tw-row.is-notRun { background: #fdf6ec; }
+/* DIDN'T RUN IS RED, NOT AMBER. "The day came and it did not happen" is the day
+   that has gone (lib/testing isOverdue, standing: hollow red), and the header,
+   the client report and the fixes list already said so in red while this list
+   and the verdict segment said amber — two colours for one word. */
+.tw-row.is-notRun { background: #fdf1ef; }
 .tw-row-m { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-grow: 1; }
 .tw-row-m b { font-size: 14.5px; }
 .tw-row-m .is-r { color: var(--danger); }
 .tw-res { font-size: 12.5px; }
 .tw-res.is-passed { color: var(--st-g); }
 .tw-res.is-failed { color: var(--st-r); }
-.tw-res.is-notRun { color: var(--st-a); }
+.tw-res.is-notRun { color: var(--st-r); }
 .tw-mark {
   width: 22px; height: 22px; border-radius: 50%; flex: none; margin-top: 2px;
   display: flex; align-items: center; justify-content: center; box-sizing: border-box;
@@ -5125,7 +5129,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tw-mark.is-g { background: var(--st-g); }
 .tw-mark.is-r { background: var(--danger); }
 .tw-mark.is-ring { border: 2px solid var(--line-2); background: none; }
-.tw-mark.is-ring.is-a { border-color: var(--st-a); }
+.tw-mark.is-ring.is-late { border-color: var(--st-r); }   /* hollow red: the day has gone, nothing ran */
 
 /* PLANNING A TEST. The title, then which machines it is for — several makes
    several tests, because each machine wants the same sort of stages and typing
@@ -5216,7 +5220,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .tw-seg-b.on.is-passed { background: var(--st-g); border-color: var(--st-g); color: #fff; }
 .tw-seg-b.on.is-failed { background: var(--danger); border-color: var(--danger); color: #fff; }
-.tw-seg-b.on.is-notRun { background: var(--st-a); border-color: var(--st-a); color: #fff; }
+.tw-seg-b.on.is-notRun { background: var(--danger); border-color: var(--danger); color: #fff; }
 .tw-seg-b.on.is-planned { background: var(--surface-2); border-color: var(--line-2); color: var(--ink); }
 
 /* WHAT WE FOUND / WHAT WE DO NEXT. */
@@ -5497,7 +5501,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .tr-out.is-planned { color: var(--blue); }
 .tr-out.is-passed  { color: var(--ok); }
 .tr-out.is-failed  { color: var(--danger); }
-.tr-out.is-notRun  { color: var(--warn); }
+.tr-out.is-notRun  { color: var(--danger); }
 .tr-res { display: block; font-size: 10px; color: var(--muted); }
 
 /* ===========================================================================
@@ -5620,7 +5624,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .tr-card.is-passed  { border-left-color: var(--ok); }
 .tr-card.is-failed  { border-left-color: var(--danger); }
-.tr-card.is-notRun  { border-left-color: var(--warn); }
+.tr-card.is-notRun  { border-left-color: var(--danger); }
 .tr-card.is-planned { border-left-color: var(--blue); }
 .tr-card header { display: flex; align-items: flex-start; gap: 10px; }
 .tr-card h4 { margin: 0; flex-grow: 1; font-size: 13.5px; line-height: 1.25; }
@@ -7989,3 +7993,10 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 
 /* Pareto with nothing timed: one door per line, the first action on the page. */
 .pr-empty-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+/* THUMB TARGETS SHARED BY EVERY SCREEN. The peers row and the spine's back pill
+   measured 38 and 34 px on a phone; the house minimum for anything primary is
+   44. Phone only — on a desktop the pills keep their size. */
+@media (max-width: 640px) {
+  .peer, .spine-up { min-height: 44px; }
+}
