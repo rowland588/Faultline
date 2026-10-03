@@ -129,7 +129,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
         !!x && !!x.r && provenWin(x.r));
     const totalSavedWk = wins.reduce((a, w) => a + (w.r.savedMsWeek ?? 0), 0);
     return (
-    <div className="wrap analyse board" data-tour="board">
+    <div className="analyse board" data-tour="board">
       <p className="eyebrow">The line</p>
       <h1 className="h1" style={{ marginBottom: 14 }}>Where's the line losing time?</h1>
       {/* THE demo (owner decision, Aug 2026): one automatic film — the whole
@@ -249,7 +249,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
   }));
 
   return (
-    <div className="wrap analyse">
+    <div className="analyse">
       <div className="analyse-top">
         {/* Back to the board in the SAME period — it dropped the period, so
             "All" on the breadcrumb and this button landed on different boards. */}

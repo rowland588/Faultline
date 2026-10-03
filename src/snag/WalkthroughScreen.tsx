@@ -54,7 +54,7 @@ export function WalkthroughScreen({ wsId, route }: { wsId: string; route: Route 
 
   return (
     <div className="walk-stage">
-      <div className="walk-stage-head">
+      <div className="wrap walk-stage-head">
         {/* The walk had neither a trail NOR a heading, so it offered no answer
             to "where am I" and one guess at "where do I go". It fills the
             window, which is exactly why it needs the spine more than a screen

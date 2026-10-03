@@ -168,7 +168,7 @@ export function SnagsScreen() {
   }, [totalAssets]);
 
   return (
-    <div className="wrap">
+    <div>
       <div className="subhead">
         <div style={{ flex: 1 }} />
         {segs.length > 0 && <button className="btn" onClick={() => nav(`/w/${workspace.id}/walk`)}>▶ Walkthrough</button>}

@@ -55,10 +55,16 @@ export function AppShell({ route }: { route: Route }) {
   if (screen === 'walk') return <WalkthroughScreen wsId={ws} route={route} />;
   if (screen === 'report') return <ReportScreen />;
 
+  /* THE SAME FRAME AS EVERY OTHER PAGE (see "THE PAGE FRAME" in styles.css):
+     the spine and the tabs inside one .wrap with the screen under them. The
+     spine ran edge to edge above a 720px column and the tabs were centred in
+     it, so stepping from a project into its line study changed the page's
+     width, its top bar and where the tabs were. The screens below no longer
+     carry a .wrap of their own — this is it. */
   return (
-    <div className="app">
+    <div className="wrap app">
       <Crumbs trail={wsTrail(route, chain, workspace.name, deep)} />
-      <div className="wrap app-peers"><Peers peers={studyPeers(ws, screen)} /></div>
+      <Peers peers={studyPeers(ws, screen)} />
       <main className="app-main">
         {screen === 'capture' && <CaptureScreen />}
         {screen === 'analyse' && <AnalyseScreen route={route} />}

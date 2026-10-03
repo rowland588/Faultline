@@ -191,7 +191,7 @@ export function CaptureScreen() {
   const recent = [...observations].sort((a, b) => b.createdAt - a.createdAt).slice(0, showAll ? undefined : 6);
 
   return (
-    <div className="wrap cap">
+    <div className="cap">
       <StudyChips wsId={workspace.id} observations={observations} />
       {/* pickers lock while a timer runs so the elapsed time can't be re-attributed */}
       <fieldset className="cap-fields" data-tour="cap-fields" disabled={timing}>
