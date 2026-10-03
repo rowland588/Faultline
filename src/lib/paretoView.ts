@@ -85,10 +85,13 @@ export function paretoView(now: PaceParetoSheet, before?: PaceParetoSheet): Pare
      question and they must not each answer it differently. */
   const samePeriod = !!before?.period && !!now.period && before.period === now.period;
   const comparable = !!before && before.rows.length > 0 && !samePeriod;
-  const whyNot = !before
-    ? 'Only one Pareto has been uploaded, so there is nothing to measure movement against yet.'
+  /* Said in the app's own terms: the Pareto is drawn from the stops timed in
+     the app, four weeks against the four before. It said "only one Pareto has
+     been uploaded" — there has been no upload since the workbook went. */
+  const whyNot = !before || before.rows.length === 0
+    ? 'Nothing was timed in the four weeks before these, so there is nothing to measure movement against yet.'
     : samePeriod
-      ? `Both Paretos cover ${now.period}. That is the same measurement twice, not a change — re-run the loss analysis over a later window and upload it.`
+      ? `Both windows cover ${now.period}. That is the same measurement twice, not a change.`
       : undefined;
 
   const was = new Map(before?.rows.map(r => [r.category.toLowerCase(), r]) ?? []);

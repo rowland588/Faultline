@@ -35,6 +35,12 @@ describe('the Pareto, from what was timed on the line', () => {
     expect(v.comparable).toBe(true);
     expect(v.rows.find(r => r.category === 'Changeover')?.verdict).toBe('down');
   });
+  it('with nothing timed before, says so in the app\'s terms — not "uploaded"', () => {
+    const v = paretoView(now, undefined);
+    expect(v.comparable).toBe(false);
+    expect(v.whyNot).toMatch(/four weeks before/);
+    expect(v.whyNot).not.toMatch(/upload/i);
+  });
   it('nothing timed is nothing to draw', () => {
     expect(paretoFromLog([], T - 28 * DAY, T, lineOf)).toBeUndefined();
   });

@@ -73,7 +73,9 @@ function ActionCard({ a }: { a: PaceAction }) {
       <footer className="pm-card-foot">
         <span className="pm-status">{a.status}</span>
         {a.who && <span>{a.who}</span>}
-        <span>Priority {a.priority}</span>
+        {/* No priority: it was the workbook's column, and an action written in
+            the app has none — every card said "Priority 3", which is not true
+            of any of them. */}
       </footer>
     </article>
   );
@@ -186,7 +188,8 @@ export function PaceMeeting({ actions, roster }: { actions: PaceAction[]; roster
         <div className="pm-stage-head">
           <h3 className="pm-stage-name">{selected ? selected.name : 'Everyone'}</h3>
           <p className="pm-stage-sub">
-            {shown.length} {status === 'all' ? 'action' : status} action{shown.length === 1 ? '' : 's'}
+            {/* "4 open actions", "4 actions" — it said "4 action actions" on All */}
+            {shown.length} {status === 'all' ? '' : `${status} `}action{shown.length === 1 ? '' : 's'}
             {selected && selected.done > 0 && status !== 'done' && status !== 'all' && ` · ${selected.done} closed`}
           </p>
           <div className="pm-nav">

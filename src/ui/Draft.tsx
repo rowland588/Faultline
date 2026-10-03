@@ -142,7 +142,7 @@ export function DraftNumber({ value, onSave, className = 'pset-cell is-num', pla
     if (draft == null || abandoned.current) return;
     const t = draft.trim();
     if (t === '') { if (value != null) onSave(undefined); setDraft(null); return; }
-    const n = Number(t);
+    const n = Number(t.replace(',', '.'));   // a decimal comma is a decimal point
     // A number that isn't one is discarded rather than stored as 0 or NaN.
     if (Number.isFinite(n) && n !== value) onSave(n);
     setDraft(null);

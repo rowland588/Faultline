@@ -12,6 +12,7 @@ import { AddFold } from '../ui/AddFold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
+import { planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { live, WHOLE_JOB, type Asset, type Test, type TestItem } from '../lib/testing';
 import {
@@ -32,7 +33,14 @@ const GATE_PATH: Record<string, string> = {
 
 type TT = ReturnType<typeof useTesting>;
 /** What a picker needs to say what a note can be about. */
-type Job = { tests: Test[]; assets: Asset[] };
+type Job = { tests: Test[]; assets: Asset[]; gates: boolean };
+/* THE GATES ARE A STAGE-GATE JOB'S. A 3P job's notes offered Install, Set up,
+   Commission, Hand over and Fixes to be "about" — gates it does not have, the
+   same leak Materials had — and a note filed under one linked to a screen the
+   job does not run. On a 3P or tree job a note is about the whole project
+   (or a machine, where it has any), and with nothing else to choose the box
+   is not drawn at all. */
+const pickable = (job: Job) => job.gates || job.assets.some(a => !a.deletedAt);
 
 /* "Yesterday · Fri, 2 Oct" → "yesterday · Fri, 2 Oct" — the whole line
    lowercased read "fri, 2 oct". */
@@ -69,9 +77,11 @@ function AboutPicker({ value, onChange, job }: { value: string; onChange: (v: st
     <span className="nt-pick">
       <select value={first} aria-label="About" onChange={e => { setFirst(e.target.value); onChange(e.target.value); }}>
         <option value={encodeScope({ kind: 'job' })}>The whole project</option>
-        <optgroup label="A gate">
-          {NOTE_GATES.map(g => <option key={g.id} value={encodeScope({ kind: 'gate', gate: g.id })}>{g.label}</option>)}
-        </optgroup>
+        {job.gates && (
+          <optgroup label="A gate">
+            {NOTE_GATES.map(g => <option key={g.id} value={encodeScope({ kind: 'gate', gate: g.id })}>{g.label}</option>)}
+          </optgroup>
+        )}
         {job.assets.filter(a => !a.deletedAt).length > 0 && (
           <optgroup label="A machine">
             {job.assets.filter(a => !a.deletedAt).map(a => <option key={a.id} value={encodeScope({ kind: 'machine', assetId: a.id })}>{a.name}</option>)}
@@ -154,8 +164,8 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
               if (e.key === 'Escape') setEditing(false);
             }} />
-          <label className="nt-about"><span>About</span>
-            <AboutPicker value={about} onChange={setAbout} job={job} /></label>
+          {pickable(job) && <label className="nt-about"><span>About</span>
+            <AboutPicker value={about} onChange={setAbout} job={job} /></label>}
           <span className="nt-edit-acts">
             <button className="btn btn-primary btn-sm" onClick={save} disabled={!text.trim()}>Save</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
@@ -211,7 +221,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
     );
   }
 
-  const job: Job = { tests: tt.tests, assets: tt.assets };
+  const job: Job = { tests: tt.tests, assets: tt.assets, gates: planModel(project) === 'commissioning' };
   const notes = live(tt.items).filter(i => i.kind === 'note').sort((a, b) => a.createdAt - b.createdAt);
   const open = notes.filter(n => n.doneAt == null);
   const raised = notes.filter(n => n.doneAt != null);
@@ -266,9 +276,9 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           onChange={e => setWhat(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void add(); } }} />
         <div className="nt-add-row">
-          <label className="nt-about"><span>About</span>
+          {pickable(job) && <label className="nt-about"><span>About</span>
             <AboutPicker value={about} onChange={setAbout} job={job} />
-          </label>
+          </label>}
           <button className="btn btn-primary" type="submit" disabled={!what.trim()}>Add note</button>
         </div>
         {/* A reminder, if wanted, set as the note is written. */}
