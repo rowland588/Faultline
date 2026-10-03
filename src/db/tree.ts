@@ -3,7 +3,7 @@ import type { ID } from '../types';
 import { now } from '../lib/ids';
 import type { TreeNodeRow } from './rows';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows, type Restore } from './sync';
 
 /* ---------- THE LEVER TREE ----------
  *
@@ -45,7 +45,9 @@ export async function putTreeNodes(nodes: TreeNodeRow[]): Promise<void> {
 
 /** A branch, not a node: deleting a condition takes the work under it, because
  *  leaving orphans in a tree means leaving them invisible. */
-export async function deleteTreeBranch(projectId: string, id: ID): Promise<number> {
+/** Deletes a box and everything under it, and hands back how to take it back
+ *  — the same Undo every other delete in the app offers (ui/Undo). */
+export async function deleteTreeBranch(projectId: string, id: ID): Promise<Restore> {
   const all = await listTreeNodes(projectId);
   const kids = new Map<string, TreeNodeRow[]>();
   for (const n of all) {
@@ -62,5 +64,6 @@ export async function deleteTreeBranch(projectId: string, id: ID): Promise<numbe
   await tx.done;
   await recordTombstones('tree_nodes', doomed);
   signalWrite();
-  return doomed.length;
+  const gone = all.filter(n => doomed.includes(n.id));
+  return () => restoreRows('tree_nodes', gone);
 }

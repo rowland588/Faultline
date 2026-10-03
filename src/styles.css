@@ -4006,6 +4006,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* Clamped to three lines it read whole only on hover, which a phone has not
+   got. Tapped, the box takes focus and opens to its full wording. */
+.lt-box.is-bound:focus-within .lt-text-ro { -webkit-line-clamp: unset; display: block; }
 .lt-tools.is-ro { display: flex; align-items: center; gap: 8px; }
 .lt-status.is-ro { cursor: default; }
 .lt-from {

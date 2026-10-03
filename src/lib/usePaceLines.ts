@@ -40,10 +40,21 @@ export function usePaceLines(projectId: string): PaceLinesState {
   const [lines, setLines] = useState<PaceLineRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /* WHICH PROJECT THIS SCREEN IS ON NOW. Opening another project re-uses the
+     same mounted screen, and a read for the one just left — a debounced
+     re-read still waiting, or a slow one in flight — could land after the new
+     project's and put the old project's lines on it. The lever tree then
+     offered "Start from Line 2B" on a job whose only line is Line 7, and
+     wrote it. */
+  const current = useRef(projectId);
+  current.current = projectId;
+
   const refresh = useCallback(async () => {
     // db does the migrating and the folding onto the shared id — one place, so
     // two callers cannot disagree about which row is which line.
-    setLines(await loadPaceLines(projectId));
+    const read = await loadPaceLines(projectId);
+    if (current.current !== projectId) return;
+    setLines(read);
     setLoading(false);
   }, [projectId]);
 
@@ -54,10 +65,11 @@ export function usePaceLines(projectId: string): PaceLinesState {
   useEffect(() => {
     setLoading(true);
     void refresh();
-    return onDataChange(() => {
+    const off = onDataChange(() => {
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => { void refresh(); }, 300);
     });
+    return () => { off(); window.clearTimeout(timer.current); };
   }, [refresh]);
 
   /* ---------- setting the project up ---------- */
