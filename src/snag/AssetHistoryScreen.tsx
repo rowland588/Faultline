@@ -18,12 +18,15 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
   const [history, setHistory] = useState<AssetAppearance[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
   const [focus, setFocus] = useState<string | null>(null); // asset id shown on the RIGHT
+  const [gone, setGone] = useState(false);
 
   const syncedAt = useSyncedAt();
   useEffect(() => {
     void (async () => {
       const a = await getSnagAsset(assetId);
-      if (!a) { nav(`/w/${wsId}/snags`); return; }
+      // Gone says so — the silent bounce to the walks left Back on a dead link.
+      if (!a) { setGone(true); return; }
+      setGone(false);
       const [assets, segments, sn] = await Promise.all([
         listSnagAssets(wsId), listSegments(wsId), snagsForWorkspace(wsId),
       ]);
@@ -33,6 +36,12 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
     })();
   }, [wsId, assetId, syncedAt]);
 
+  if (gone) return (
+    <div className="wrap">
+      <p className="sub" style={{ marginTop: 24 }}>That frame isn’t here any more — it was deleted, or it has not synced to this device yet.</p>
+      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/w/${wsId}/snaglist`)}>All the evidence</button>
+    </div>
+  );
   if (!target) return null;
   const latest = history.find(h => h.asset.id === (focus ?? history[history.length - 1]?.asset.id)) ?? history[history.length - 1];
   const latestIdx = history.findIndex(h => h.asset.id === latest?.asset.id);

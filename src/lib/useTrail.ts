@@ -28,16 +28,25 @@ export function useWsChain(wsId?: string): WsChain | null {
   return chain;
 }
 
-/** The steps above a workspace: Projects › the project › the line. Ends with the
- *  line's FILMED lens, because that is the page a walk actually hangs off. */
-export function chainCrumbs(chain: WsChain | null, wsName: string): Crumb[] {
+/** The walk's screens — the filmed line and everything cut from it. Their
+ *  step up is the FILMED lens of the line (or the project), because that is the
+ *  page a walk hangs off. The study's screens — Capture, Analyse, the case, the
+ *  meeting — are reached from the line itself (its "where is the time going?"
+ *  door), so their step up is the line's own page. Sending them to the filmed
+ *  lens put Back on a page the person had never been on. */
+const WALK_SCREENS = new Set(['snags', 'snaglist', 'line', 'segment', 'asset', 'history', 'walk']);
+
+/** The steps above a workspace: Projects › the project › the line. `screen` is
+ *  the route you are on, which decides which face of the line Back lands on. */
+export function chainCrumbs(chain: WsChain | null, wsName: string, screen?: string): Crumb[] {
   if (!chain) return [{ label: 'Workspaces', to: '/' }, { label: wsName, to: undefined }];
+  const filmed = !screen || WALK_SCREENS.has(screen);
   const out: Crumb[] = [
     { label: 'Projects', to: '/projects' },
-    { label: chain.projectName, to: `/project/${chain.projectId}` },
+    { label: chain.projectName, to: `/project/${chain.projectId}${filmed && !chain.lineId && !chain.stageGate ? '?view=snags' : ''}` },
   ];
   if (chain.lineId) {
-    out.push({ label: chain.lineName ?? 'the line', to: `/project/${chain.projectId}/line/${chain.lineId}?view=snags` });
+    out.push({ label: chain.lineName ?? 'the line', to: `/project/${chain.projectId}/line/${chain.lineId}${filmed ? '?view=snags' : ''}` });
   } else if (chain.stageGate) {
     /* On a stage-gate job the filmed line lives on Install — so that is the
        step above the walk, and where Back lands. */
@@ -50,7 +59,7 @@ export function chainCrumbs(chain: WsChain | null, wsName: string): Crumb[] {
 const SCREEN_LABEL: Record<string, string> = {
   capture: 'Capture', analyse: 'Analyse', log: 'The log', settings: 'Settings',
   people: 'People', snaglist: 'Evidence', snags: 'Walks', line: 'Machines',
-  trend: 'Trend', history: 'Through time', case: 'The case',
+  trend: 'Trend', history: 'Through time', case: 'The case', walk: 'Walk',
 };
 
 /** The whole trail for a workspace screen. `deep` is anything below the screen
@@ -59,7 +68,7 @@ export function wsTrail(
   route: Route, chain: WsChain | null, wsName: string, deep: Crumb[] = [],
 ): Crumb[] {
   const wsId = route.wsId;
-  const base = chainCrumbs(chain, wsName);
+  const base = chainCrumbs(chain, wsName, route.name);
   // Inside a walk, "Walks" is the step above a segment and a frame both.
   const walkFamily = route.name === 'segment' || route.name === 'asset' || route.name === 'history';
   if (walkFamily) base.push({ label: 'Walks', to: `/w/${wsId}/snags?manage` });

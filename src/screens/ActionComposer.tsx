@@ -77,7 +77,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
     <div className="action-raised" role="status">
       ⚑ Action raised{targetLabel ? <> on <b>{targetLabel}</b></> : null} — {raised.board
         ? 'it is on the project’s board, with the loss that raised it.'
-        : 'it is on the snag list with an owner and an age.'}
+        : 'it is on the evidence list with an owner and an age.'}
       <button className="linkish" onClick={() => nav(raised.board ?? `/w/${wsId}/snaglist`)}>{raised.board ? 'See it on the board ›' : 'See it ›'}</button>
       <button className="linkish" onClick={() => setRaised(null)}>Raise another</button>
     </div>
@@ -96,7 +96,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
       <div className="field-label">⚑ Action{targetLabel ? <> on <b>{targetLabel}</b></> : null}</div>
       <p className="sub" style={{ margin: '4px 0 8px' }}>{home
         ? 'What’s the fix? It goes on the project’s board with the loss that raised it — same owners, same report, same “is it getting better”.'
-        : 'What’s the fix? It joins the snag list — same owners, same report, same “is it getting better”.'}</p>
+        : 'What’s the fix? It joins the evidence list — same owners, same report, same “is it getting better”.'}</p>
       <textarea className="text-area" autoFocus rows={2} maxLength={300} value={problem}
         placeholder="e.g. Run a SMED workshop on the size change…"
         onChange={e => setProblem(e.target.value)} />

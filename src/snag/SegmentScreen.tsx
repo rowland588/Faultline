@@ -38,6 +38,10 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   const [adding, setAdding] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [codec, setCodec] = useState<string | null>(null);
+  /* A LINK TO A CLIP THAT IS GONE SAYS SO. It used to bounce to the walks
+     list without a word — and with a history entry, so Back landed on the
+     dead link and bounced again: a loop with no way out but the crumbs. */
+  const [gone, setGone] = useState(false);
 
   const loadAssets = async () => {
     const list = await assetsForSegment(segmentId);
@@ -50,8 +54,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
   useEffect(() => {
     (async () => {
       const s = await getSegment(segmentId);
-      if (!s) { nav(`/w/${wsId}/snags`); return; }
-      setSeg(s); await loadAssets();
+      if (!s) { setGone(true); return; }
+      setGone(false); setSeg(s); await loadAssets();
     })();
     // syncedAt: the segment RECORD too (a rename or re-encode from another
     // device), not just its asset list.
@@ -151,6 +155,13 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
     if (id) { setMarking(null); await loadAssets(); seek(ts); }
   };
   const cancel = () => { if (marking) URL.revokeObjectURL(marking.still); setMarking(null); };
+
+  if (gone) return (
+    <div className="wrap">
+      <p className="sub" style={{ marginTop: 24 }}>That video isn’t here any more — it was deleted, or it has not synced to this device yet. The frames marked in it stay on the evidence list.</p>
+      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/w/${wsId}/snags?manage`)}>All the walks</button>
+    </div>
+  );
 
   return (
     <div className="wrap">

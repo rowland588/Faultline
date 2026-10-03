@@ -52,7 +52,7 @@ export function AppShell({ route }: { route: Route }) {
   // The meeting, the snag walkthrough and the printable report are calm,
   // chrome-free full-bleed surfaces.
   if (screen === 'meeting') return <MeetingScreen />;
-  if (screen === 'walk') return <WalkthroughScreen wsId={ws} />;
+  if (screen === 'walk') return <WalkthroughScreen wsId={ws} route={route} />;
   if (screen === 'report') return <ReportScreen />;
 
   return (

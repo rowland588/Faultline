@@ -1,7 +1,8 @@
 import { Crumbs } from '../ui/Crumbs';
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { useOwningProject } from '../lib/usePaceWorkspace';
+import { useWsChain, wsTrail } from '../lib/useTrail';
+import type { Route } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForAsset } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { Sheet } from '../ui/Sheet';
@@ -12,9 +13,9 @@ import { SNAG_STATUS_META, type Segment, type SnagAsset, type Snag } from './typ
 
 interface Flat { asset: SnagAsset; sequence: number; open: number }
 
-export function WalkthroughScreen({ wsId }: { wsId: string }) {
+export function WalkthroughScreen({ wsId, route }: { wsId: string; route: Route }) {
   const { workspace } = useWorkspace();
-  const project = useOwningProject(wsId);
+  const chain = useWsChain(wsId);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [flat, setFlat] = useState<Flat[]>([]);
   const [snagsBy, setSnagsBy] = useState<Map<string, Snag[]>>(new Map());
@@ -57,13 +58,10 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
         {/* The walk had neither a trail NOR a heading, so it offered no answer
             to "where am I" and one guess at "where do I go". It fills the
             window, which is exactly why it needs the spine more than a screen
-            you can see past. */}
-        <Crumbs trail={[
-          { label: 'Projects', to: '/projects' },
-          ...(project ? [{ label: project.name, to: `/project/${project.id}` }] : []),
-          { label: workspace.name, to: `/w/${wsId}/snaglist` },
-          { label: 'Walk' },
-        ]} />
+            you can see past. The same trail as every other screen in the
+            workspace (lib/useTrail), so Back lands on the line it hangs off
+            — it used to skip the line and name the workspace instead. */}
+        <Crumbs trail={wsTrail(route, chain, workspace.name)} />
         <span className="walk-stage-title">{curSeg ? sectionLabel(curSeg, inSeg.map(f => f.asset.name)) : 'The line, filmed'}</span>
       </div>
       <div className="walk-stage-body">
