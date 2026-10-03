@@ -987,7 +987,8 @@ describe('the capacity sheet', () => {
     expect(txt).toContain('baskets \u00b7 12 bags each');
   });
 
-  it('does not split a line across sheets — five lines of four stations take two sheets', () => {
-    expect(pagesFor({ capacity: cap(5) })).toBe(pagesFor({}) + 2);
+  it('does not split a line across sheets — five lines of four stations take three sheets, two a sheet', () => {
+    // each station row carries three lines (chain, what arrives, the detail), so two lines of four fill a sheet
+    expect(pagesFor({ capacity: cap(5) })).toBe(pagesFor({}) + 3);
   });
 });

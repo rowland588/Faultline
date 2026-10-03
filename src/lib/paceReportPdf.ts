@@ -29,7 +29,7 @@ import { strandsOf, orderStrands, strandWord, type Strand, type StrandFix, type 
 export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
 export type { Strand, StrandState, StrandStep } from './strands';
 import { vsTarget } from './measures';
-import { CAP_SHEET_UNITS, capacityPlan, fmtN, type CapacityReport } from './capacity';
+import { CAP_SHEET_UNITS, capacityPlan, fmtN, lineSheetUnits, type CapacityReport } from './capacity';
 import type { LineSeries } from './measures';
 
 
@@ -2485,10 +2485,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       /* A SHEET WITH ROOM TO SPARE SCALES UP. One short ladder on an A3 read as a
          thumbnail on a mostly empty page; the sheet's rows are stretched to the
          room there is, up to a little over twice, and the type grows more gently. */
-      const used = idx.reduce((n, li) => {
-        const l = (data.capacity as CapacityReport).lines[li];
-        return n + 3 + l.rows.length + (l.more > 0 ? 1 : 0) + l.whatIfs.length;
-      }, 0);
+      const used = idx.reduce((n, li) => n + lineSheetUnits((data.capacity as CapacityReport).lines[li]), 0);
       const k = Math.min(2.2, Math.max(1, CAP_SHEET_UNITS / Math.max(used, 1)));
       const f = 1 + (k - 1) * 0.4;
       let y = cy0 + 12 * f;
@@ -2503,7 +2500,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
         for (const ln of said) { d.text(ln, x0, y); y += 11 * f; }
         y += 8 * f + 4;
 
-        const rowH = 28 * k;          // room for the chain and what arrives under the name
+        const rowH = 35 * k;          // room under the name for the chain, what arrives, and the detail behind the bar
         const bh = 11 * k;
         const top = y;
         const at = (v: number) => barX + Math.min(1, v / l.top) * barW;
@@ -2515,6 +2512,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
           if (r.chain) { setFont(d, 6.4 * f, 'normal', MUTED); d.text(fit(d, r.chain, labelW - 6), x0, ry + bh * 0.8 + 8.5 * f); }
           // what arrives against what it does, in its own unit — the number the station is read by
           if (/arrive/.test(r.feed)) { setFont(d, 6 * f, 'normal', r.feed.includes('holds the line back') ? DANGER : MUTED); d.text(fit(d, r.feed, labelW + barW * 0.5), x0, ry + bh * 0.8 + 15.5 * f); }
+          // the detail behind the bar: the speed as typed, crew, running, good, and how it is known
+          setFont(d, 5.8 * f, 'normal', MUTED); d.text(fit(d, r.detail, labelW + barW * 0.5), x0, ry + bh * 0.8 + 22 * f);
           d.setFillColor(SURF2); d.roundedRect(barX, ry + 1, barW, bh, 2, 2, 'F');
           const [pr, pg, pb] = wash(r.limit ? DANGER : BRAND, 0.28);
           d.setFillColor(pr, pg, pb);
@@ -2544,6 +2543,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
           d.text(head, x0, y + 6);
           setFont(d, 7 * f, 'normal', INK2);
           d.text(fit(d, x.says, wAll - d.getTextWidth(head) - 4), x0 + d.getTextWidth(head), y + 6);
+          // what was changed, station by station
+          for (const c of x.changed.slice(0, 3)) { y += 9 * f; setFont(d, 6.4 * f, 'normal', MUTED); d.text(fit(d, `\u2022 ${c}`, wAll - 12), x0 + 10, y + 6); }
+          if (x.changed.length > 3) { y += 9 * f; setFont(d, 6.4 * f, 'normal', MUTED); d.text(`\u2022 +${x.changed.length - 3} more`, x0 + 10, y + 6); }
         }
         y += 22 * f;
         d.setDrawColor(LINE); d.setLineWidth(0.6); d.line(x0, y - 8, x0 + wAll, y - 8);

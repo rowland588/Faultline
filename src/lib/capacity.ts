@@ -505,11 +505,42 @@ export interface CapacityReportLine {
   top: number;
   rows: { name: string; kind: StationKind; chain: string; running: number; effective: number; limit: boolean;
     /** What arrives against what it does, in its own unit (StationResult.feed). */
-    feed: string }[];
+    feed: string;
+    /** THE DETAIL BEHIND THE BAR — the speed as it was typed, in its own unit,
+     *  the crew, running and good percentages, and how the speed is known with
+     *  its note: "2 baskets every 20 s · 1 person · 94% running · timed — Timed
+     *  30 baskets, 2 Oct". A reader can question any bar from this line. */
+    detail: string }[];
   /** Stations counted but not drawn, when a line has more than a sheet holds. */
   more: number;
-  /** Each what-if kept beside the line, and the sentence that compares it. */
-  whatIfs: { name: string; says: string; onBoard: boolean }[];
+  /** Each what-if kept beside the line, the sentence that compares it, and
+   *  what was changed, station by station. */
+  whatIfs: { name: string; says: string; onBoard: boolean; changed: string[] }[];
+}
+
+const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', estimate: 'a guess' };
+const PER_WORDS: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
+
+/** One station's detail line for the report — every figure that went into
+ *  its bar, as the person typed it. */
+export function stationDetail(s: Station): string {
+  const unit = s.unit.trim() || 'units';
+  const speed = s.rate != null && s.rate > 0 ? `${fmtN(s.rate)} ${unit} ${PER_WORDS[s.ratePer ?? 'min']}`
+    : s.perCycle != null && s.cycleSec != null ? `${fmtN(s.perCycle)} ${unit} every ${fmtN(s.cycleSec)} s` : 'no speed';
+  const crew = s.crew ?? 1;
+  const who = s.kind === 'people' ? `${fmtN(crew)} ${crew === 1 ? 'person' : 'people'}` : crew === 1 ? '1 of it' : `${fmtN(crew)} of it`;
+  const bits = [speed, who, `${fmtN(s.runningPct ?? 100)}% running`];
+  if ((s.goodPct ?? 100) !== 100) bits.push(`${fmtN(s.goodPct ?? 100)}% good`);
+  const how = SOURCE_WORD[s.source ?? 'estimate'] + (s.note?.trim() ? ` — ${s.note.trim()}` : '');
+  return `${bits.join(' · ')} · ${how}`;
+}
+
+/** How much of a sheet one line costs: its heading and sentence, its rows
+ *  (three lines each, so more than a unit), and each what-if with the changes
+ *  it lists. Shared by the sheet plan and the PDF so they cannot disagree. */
+export function lineSheetUnits(l: Pick<CapacityReportLine, 'rows' | 'more' | 'whatIfs'>): number {
+  return 3 + l.rows.length * 1.6 + (l.more > 0 ? 1 : 0)
+    + l.whatIfs.reduce((n, w) => n + 1 + Math.min(w.changed.length, 3) * 0.5, 0);
 }
 export interface CapacityReport { lines: CapacityReportLine[] }
 
@@ -535,11 +566,12 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
       rows: shown.map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
         running: x.running, effective: x.effective, limit: x.index === (r.limit as StationResult).index,
-        feed: x.feed,
+        feed: x.feed, detail: stationDetail(x.station),
       })),
       more: r.ok.length - shown.length,
       whatIfs: (l.capacity.whatIfs ?? []).map(w => ({
         name: w.name, says: compareSays(r, analyse(whatIfCapacity(l.capacity as Capacity, w)), w.name), onBoard: !!w.action,
+        changed: changedWords((l.capacity as Capacity).stations, w.stations),
       })),
     });
   }
@@ -552,7 +584,7 @@ export function capacityPlan(report: CapacityReport): number[][] {
   const sheets: number[][] = [];
   let used = 0;
   report.lines.forEach((l, i) => {
-    const w = 3 + l.rows.length + (l.more > 0 ? 1 : 0) + l.whatIfs.length;
+    const w = lineSheetUnits(l);
     if (!sheets.length || used + w > CAP_SHEET_UNITS) { sheets.push([]); used = 0; }
     sheets[sheets.length - 1].push(i);
     used += w;

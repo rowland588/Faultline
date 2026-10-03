@@ -242,7 +242,7 @@ function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
                   <ol className="exec-cp-rows">
                     {l.rows.map(r => (
                       <li key={r.name} className={'exec-cp-row' + (r.limit ? ' is-limit' : '')}>
-                        <span className="exec-cp-who"><b>{r.name}</b>{r.limit && <em>limits the line</em>}{r.chain && <small>{r.chain}</small>}{/arrive/.test(r.feed) && <small className="exec-cp-feed">{r.feed}</small>}</span>
+                        <span className="exec-cp-who"><b>{r.name}</b>{r.limit && <em>limits the line</em>}{r.chain && <small>{r.chain}</small>}{/arrive/.test(r.feed) && <small className="exec-cp-feed">{r.feed}</small>}<small className="exec-cp-detail">{r.detail}</small></span>
                         <span className="exec-cp-track">
                           <span className="exec-cp-bar is-run" style={{ width: at(r.running) }} />
                           <span className="exec-cp-bar is-eff" style={{ width: at(r.effective) }} />
@@ -262,7 +262,12 @@ function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
                       which one is on the board. */}
                   {l.whatIfs.length > 0 && (
                     <ul className="exec-cp-whatifs">
-                      {l.whatIfs.map(x => <li key={x.name}><b>What if {x.name}</b> — {x.says}{x.onBoard && <em> · on the board</em>}</li>)}
+                      {l.whatIfs.map(x => (
+                        <li key={x.name}>
+                          <b>What if {x.name}</b> — {x.says}{x.onBoard && <em> · on the board</em>}
+                          {x.changed.length > 0 && <span className="exec-cp-changed">{x.changed.slice(0, 3).join(' · ')}{x.changed.length > 3 ? ` · +${x.changed.length - 3} more` : ''}</span>}
+                        </li>
+                      ))}
                     </ul>
                   )}
                 </div>

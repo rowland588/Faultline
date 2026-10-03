@@ -339,14 +339,16 @@ describe('the report block', () => {
     expect(l?.more).toBe(3);
   });
   it('packs lines onto sheets without splitting one', () => {
-    const four = line({}, bagger(), basketer(), carrier(), palletiser());      // costs 3 + 4 = 7 rows
+    // a station row is three lines now (the chain, what arrives, the detail), so
+    // it costs 1.6 units: a line of four is 3 + 6.4 = 9.4, and two fit a sheet
+    const four = line({}, bagger(), basketer(), carrier(), palletiser());
     const rep = capacityReport([1, 2, 3, 4, 5].map(i => lineRow(`L${i}`, four)));
-    expect(capacityPlan(rep as NonNullable<typeof rep>)).toEqual([[0, 1, 2], [3, 4]]);   // 7 × 3 = 21, a fourth would make 28 > 26
+    expect(capacityPlan(rep as NonNullable<typeof rep>)).toEqual([[0, 1], [2, 3], [4]]);   // 9.4 × 2 = 18.8, a third would make 28.2 > 26
   });
 });
 
 /* ---- what arrives, what-ifs, make it so (3 October) ---- */
-import { changedWords, compareSays, makeItSoWords, whatIfCapacity, type WhatIf } from '../capacity';
+import { changedWords, compareSays, makeItSoWords, whatIfCapacity, stationDetail, lineSheetUnits, type WhatIf } from '../capacity';
 
 /* 70 bags a minute; 8 bags to a basket; 40 baskets to a pallet (320 bags).
    Basketer: 5.5 baskets/min = 44 bags/min — the limit. Palletiser: 20 pallets
@@ -414,7 +416,7 @@ describe('a what-if beside the line', () => {
   it('the report carries each what-if and its sentence beside the line', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]], action: { id: 'a1', raisedAt: 1 } };
     const rep = capacityReport([{ name: 'Line 2A', capacity: { ...asRun, whatIfs: [w] } }]);
-    expect(rep?.lines[0].whatIfs).toEqual([{ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true }]);
+    expect(rep?.lines[0].whatIfs).toEqual([{ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true, changed: ['Basketer: 5.5 baskets a minute → 9 baskets a minute'] }]);
     expect(rep?.lines[0].rows[1].feed).toBe('8.8 baskets a minute arrive · it does 5.5 — holds the line back');
   });
   it('make it so carries the prediction onto the board as the why', () => {
@@ -423,5 +425,21 @@ describe('a what-if beside the line', () => {
     expect(a.what).toBe('Make it so on Line 2A: New basketer');
     expect(a.where).toBe('Basketer: 5.5 → 9 baskets a minute');
     expect(a.why).toMatch(/^Predicted on the line balance — With New basketer/);
+  });
+});
+
+describe('the report carries the detail behind every bar', () => {
+  it('says the speed as typed, the crew, running and good, and how it is known', () => {
+    expect(stationDetail({ id: 'c', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap' }))
+      .toBe('2 baskets every 20 s · 1 person · 100% running · timed — Sustained pace, not best lap');
+    expect(stationDetail({ id: 'b', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 5.5, ratePer: 'min', runningPct: 94, goodPct: 98, crew: 2, source: 'plate' }))
+      .toBe('5.5 baskets a minute · 2 of it · 94% running · 98% good · on the plate');
+  });
+  it('the report rows and what-ifs carry it, and the sheet plan counts it', () => {
+    const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]] };
+    const rep = capacityReport([{ name: 'Line 2A', capacity: { targetPerMin: 60, stations: chain, whatIfs: [w] } }])!;
+    expect(rep.lines[0].rows[0].detail).toBe('70 bags a minute · 1 of it · 100% running · a guess');
+    expect(rep.lines[0].whatIfs[0].changed).toEqual(['Basketer: 5.5 baskets a minute → 9 baskets a minute']);
+    expect(lineSheetUnits(rep.lines[0])).toBeCloseTo(3 + 3 * 1.6 + 1 + 0.5, 5);
   });
 });
