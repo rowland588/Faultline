@@ -13,6 +13,7 @@ import { fmtGBP, costPerMs } from '../lib/cost';
 import { fmtDurationWords } from '../lib/format';
 import { LogoMark } from '../ui/Logo';
 import { ageDays, type Snag } from '../snag/types';
+import { Icon } from '../ui/Icon';
 
 const WEEK_MS = 7 * 24 * 3600_000;
 
@@ -62,7 +63,7 @@ export function ReportScreen() {
             <button key={sz} className={'pt' + (paper === sz ? ' on' : '')} onClick={() => setPaper(sz)}>{sz}</button>
           ))}
         </div>
-        <button className="btn btn-primary" onClick={() => window.print()}>🖨 Print / save PDF</button>
+        <button className="btn btn-primary" onClick={() => window.print()}><Icon name="printer" /> Print / save PDF</button>
       </div>
 
       <div className="report-page">
@@ -107,7 +108,7 @@ export function ReportScreen() {
 
           <div>
             <h2 className="report-h2">Snags needing a push</h2>
-            {open.length === 0 ? <p className="report-empty">None open. 🎉</p> : open.slice(0, 4).map(s => (
+            {open.length === 0 ? <p className="report-empty">None open.</p> : open.slice(0, 4).map(s => (
               <div className="rsnag" key={s.id}>
                 <span>{s.problem}</span>
                 <span className={'rbadge ' + (ageDays(s.raisedAt) > 30 ? 'bad' : ageDays(s.raisedAt) > 7 ? 'warn' : 'new')}>
@@ -118,11 +119,11 @@ export function ReportScreen() {
 
             {closedThisWeek.length > 0 && (
               <>
-                <h2 className="report-h2" style={{ marginTop: 16 }}>Closed this week ✓</h2>
+                <h2 className="report-h2" style={{ marginTop: 16 }}>Closed this week <Icon name="check" size="1.15em" /></h2>
                 {closedThisWeek.slice(0, 5).map(s => (
                   <div className="rsnag" key={s.id}>
                     <span>{s.problem}</span>
-                    <span className="rbadge good">{s.owner || '✓'}</span>
+                    <span className="rbadge good">{s.owner || <Icon name="check" size="1.15em" />}</span>
                   </div>
                 ))}
               </>

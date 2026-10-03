@@ -20,6 +20,7 @@ import { costPerMs } from '../lib/cost';
 import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useTeam } from '../cloud/team';
+import { Icon } from '../ui/Icon';
 
 const blobKeysOf = (media: MediaRef[]): string[] =>
   media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]);
@@ -43,7 +44,7 @@ function StudyChips({ wsId, observations }: { wsId: string; observations: Observ
         return (
           <button key={c.id} className="st-pill study-chip" onClick={() => nav(`/w/${wsId}/case/${c.id}`)}
             title={`Confirmation study on ${c.title} — every capture in its scope counts automatically`}>
-            🔬 {c.title} · <b>{r.afterN}/{r.targetN}</b>{r.enough ? ' ✓' : ''}
+            <Icon name="study" size="1.15em" /> {c.title} · <b>{r.afterN}/{r.targetN}</b>{r.enough ? <> <Icon name="check" size="1.15em" /></> : ''}
           </button>
         );
       })}
@@ -256,14 +257,14 @@ export function CaptureScreen() {
             <div className="cap-clock"><span className="cap-dot" />{startedAt !== null && <Stopwatch startedAt={startedAt} />}</div>
             {startedAt !== null && <CostTicker startedAt={startedAt} perMs={costPerMs(workspace)} />}
             <div className="cap-timer-actions">
-              <button className="btn btn-primary btn-lg cap-stop" onClick={stopAndLog}>■ Stop &amp; log</button>
+              <button className="btn btn-primary btn-lg cap-stop" onClick={stopAndLog}><Icon name="stop" /> Stop &amp; log</button>
               <button className="btn btn-ghost" onClick={discard}>Discard</button>
             </div>
           </>
         ) : (
           <>
             <button className="btn btn-primary cap-start" disabled={!canLog} onClick={start}>
-              ▶ Start timing
+              <Icon name="play" /> Start timing
             </button>
             <div className="cap-secondary">
               <button className="btn" data-tour="log-now" disabled={!canLog} onClick={logInstant}>Log now</button>
@@ -286,9 +287,9 @@ export function CaptureScreen() {
       {/* EVIDENCE */}
       <div className="cap-block cap-evidence">
         <div className="cap-ev-row">
-          <button className="btn cap-ev-btn" onClick={() => attach('photo')}>📷 Photo</button>
-          <button className="btn cap-ev-btn" onClick={() => attach('video')}>🎥 Video</button>
-          <button className="btn cap-ev-btn" onClick={upload}>⬆ Upload</button>
+          <button className="btn cap-ev-btn" onClick={() => attach('photo')}><Icon name="camera" size={16} /> Photo</button>
+          <button className="btn cap-ev-btn" onClick={() => attach('video')}><Icon name="video" size={16} /> Video</button>
+          <button className="btn cap-ev-btn" onClick={upload}><Icon name="upload" size={16} /> Upload</button>
           {pending.map(m => <EvidenceThumb key={m.id} media={m} onClick={() => setViewing(m)} />)}
         </div>
         {converting && (
@@ -321,12 +322,12 @@ export function CaptureScreen() {
                   <div className="cap-feed-what">{o.asset} · <b>{o.category}</b>{o.subcategory ? ` · ${o.subcategory}` : ''}</div>
                   <div className="cap-feed-meta">
                     {o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.createdAt)}
-                    {o.media.length > 0 && <> · 📷 {o.media.length}</>}
+                    {o.media.length > 0 && <> · <Icon name="camera" size="1.15em" /> {o.media.length}</>}
                     {/* a teammate's entry says whose it is — shared workspace, no mystery rows */}
                     {o.ownerId && myId && o.ownerId !== myId && <> · <b>{whoIs(o.ownerId)?.name ?? 'teammate'}</b></>}
                   </div>
                 </div>
-                <button className="cap-feed-del" onClick={() => void delFeed(o)} aria-label={`Delete ${o.category} on ${o.asset}`}>×</button>
+                <button className="cap-feed-del" onClick={() => void delFeed(o)} aria-label={`Delete ${o.category} on ${o.asset}`}><Icon name="close" size="0.85em" /></button>
               </div>
             ))}
             {observations.length > recent.length && (

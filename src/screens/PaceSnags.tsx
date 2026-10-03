@@ -17,6 +17,7 @@ import { ConvertBanner } from '../snag/ConvertBanner';
 import { usePaceWorkspace, useLineWorkspace } from '../lib/usePaceWorkspace';
 import { useBlobUrl } from '../snag/useBlobUrl';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
+import { Icon } from '../ui/Icon';
 
 const OPEN = (s: Snag) => s.status !== 'closed';
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
@@ -31,7 +32,7 @@ function SegmentCard({ seg, assets, snags, onOpen, onDelete }: {
   return (
     <div className="ps-seg">
       <button className="ps-seg-open" onClick={onOpen}>
-        <span className="ps-seg-poster">{poster ? <img src={poster} alt="" /> : <span aria-hidden>▶</span>}</span>
+        <span className="ps-seg-poster">{poster ? <img src={poster} alt="" /> : <Icon name="play" size={20} />}</span>
         <span className="ps-seg-main">
           <span className="ps-seg-name">{seg.name || `Walk ${seg.sequence}`}</span>
           <span className="ps-seg-meta">
@@ -60,7 +61,7 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
     <div className={'ps-snag is-' + tone}>
       <button className="ps-snag-open" onClick={onOpen}>
       <span className="ps-snag-still">
-        {still ? <img src={still} alt="" /> : <span aria-hidden>▦</span>}
+        {still ? <img src={still} alt="" /> : <Icon name="photo" size={20} />}
         {/* the pin, in percentages, so it stays put at any size */}
         {snag.xPct != null && snag.yPct != null && (
           <span className="ps-pin" style={{ left: `${snag.xPct}%`, top: `${snag.yPct}%` }} aria-hidden />
@@ -321,7 +322,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
           {pinned.length > 0 && <> · <b className={open.length ? 'is-open' : ''}>{open.length}</b> open</>}
         </div>
         <div className="ps-bar-actions">
-          <button className="btn btn-primary" onClick={() => nav(`/w/${wsId}/walk`)}>▶ Show the walk</button>
+          <button className="btn btn-primary" onClick={() => nav(`/w/${wsId}/walk`)}><Icon name="play" /> Show the walk</button>
           {/* ?manage, or the walk hub redirects to the machine board and a
               button that says "Film" lands somewhere with no films on it. */}
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags?manage`)}>Film / edit</button>

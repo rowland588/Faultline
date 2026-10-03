@@ -19,6 +19,7 @@ import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { useSyncStatus } from '../cloud/session';
 import { asOfWords } from '../lib/asOf';
+import { Icon } from './Icon';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -237,7 +238,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
               <div className={'gt-group' + (isOpen(gr.kind) ? ' is-open' : ' is-shut')}>
                 <div className="gt-row gt-grow">
                   <button type="button" className="gt-lab gt-glab" onClick={() => toggle(gr.kind)} aria-expanded={isOpen(gr.kind)}>
-                    <span className="gt-fold" aria-hidden>{isOpen(gr.kind) ? '▾' : '▸'}</span>{gr.label}<span className="gt-n">{gr.rows.length}</span>
+                    <span className="gt-fold" aria-hidden><Icon name={isOpen(gr.kind) ? 'chevronDown' : 'chevron'} size="1.2em" /></span>{gr.label}<span className="gt-n">{gr.rows.length}</span>
                   </button>
                   <div className="gt-track" style={{ width: T }}>
                     {/* FOLDED: the gate as one bar, first start to last finish. */}

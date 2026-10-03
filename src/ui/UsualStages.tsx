@@ -21,6 +21,7 @@ import { offerUndo } from './Undo';
 import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type usualStages } from '../lib/install';
 import type { StepGate, Test } from '../lib/testing';
 import type { Project } from '../types';
+import { Icon } from './Icon';
 
 export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install' }: {
   /** Which gate's list — each is the job's own, edited as freely. */
@@ -171,15 +172,15 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
             <span className="in-usual-n">{i + 1}</span>
             <input value={s} onChange={e => set(i, e.target.value)} aria-label={`Stage ${i + 1}`}
               placeholder="Name the stage" autoFocus={i === draft.length - 1 && s === ''} />
-            <button className="btn btn-ghost in-usual-b" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</button>
-            <button className="btn btn-ghost in-usual-b" onClick={() => move(i, 1)} disabled={i === draft.length - 1} aria-label="Move down">↓</button>
+            <button className="btn btn-ghost in-usual-b" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up"><Icon name="arrowUp" size="1.1em" /></button>
+            <button className="btn btn-ghost in-usual-b" onClick={() => move(i, 1)} disabled={i === draft.length - 1} aria-label="Move down"><Icon name="arrowDown" size="1.1em" /></button>
             <button className="btn btn-ghost in-usual-b" onClick={() => setDraft(d => (d ? d.filter((_, k) => k !== i) : d))}
-              aria-label={`Remove ${s || 'this stage'}`}>✕</button>
+              aria-label={`Remove ${s || 'this stage'}`}><Icon name="close" size="1.1em" /></button>
           </li>
         ))}
       </ol>
       <button className="cw-add" onClick={() => setDraft(d => (d ? [...d, ''] : d))}>
-        <span className="cw-add-p" aria-hidden>+</span> Add a stage
+        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a stage
       </button>
       <div className="in-usual-go">
         <button className="btn" onClick={() => void save()} disabled={cleaned.length === 0}>

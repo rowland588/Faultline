@@ -55,6 +55,7 @@ import { withTrackerRows, bindSources, statusOfAction, boundNumber, boardWords, 
 import { methodOf, planModel } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX, boardName } from '../lib/pillars';
+import { Icon } from '../ui/Icon';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -1729,7 +1730,7 @@ export function PaceExecReport() {
               Reload the app
             </button>
           )}
-          <button className="exec-saveerr-x" onClick={() => setSaveErr(null)} aria-label="Dismiss">×</button>
+          <button className="exec-saveerr-x" onClick={() => setSaveErr(null)} aria-label="Dismiss"><Icon name="close" size="0.85em" /></button>
         </div>
       )}
 

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState, type VideoHTMLAttributes } from 'reac
 import { useBlobSource } from '../lib/useBlobUrl';
 import { getBlob } from '../db';
 import { sniffVideoCodec, browserCanPlay } from '../lib/mime';
+import { Icon } from './Icon';
 
 type Fail = null | 'undecodable' | 'video-track';
 
@@ -49,7 +50,7 @@ export function VideoPlayer({ blobKey, className, poster, onLoadedMetadata, ...r
   if (state === 'missing') {
     return (
       <div className={'video-msg ' + (className ?? '')}>
-        <span className="video-msg-ic" aria-hidden>☁</span>
+        <span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span>
         <b>Not on this device yet</b>
         <span className="sub">It'll download on the next sync — keep this device online for a moment.</span>
       </div>
@@ -63,7 +64,7 @@ export function VideoPlayer({ blobKey, className, poster, onLoadedMetadata, ...r
     const named = codec && !browserCanPlay(codec) ? codec : null;
     return (
       <div className={'video-msg ' + (className ?? '')}>
-        <span className="video-msg-ic" aria-hidden>⚠</span>
+        <span className="video-msg-ic" aria-hidden><Icon name="warning" size="1em" /></span>
         <b>{fail === 'video-track' ? "This browser can't show the picture" : "This browser can't play this clip"}</b>
         <span className="sub">
           {fail === 'video-track'

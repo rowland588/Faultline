@@ -29,6 +29,7 @@ import { offerUndo } from './Undo';
 import { VoiceNote, VoiceReview } from './Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 import type { useTesting } from '../lib/useTesting';
+import { Icon } from './Icon';
 
 type TT = ReturnType<typeof useTesting>;
 type Open = { t: 'cell'; row: number; col: number } | { t: 'col'; col: number } | { t: 'row'; row: number } | { t: 'stages' } | null;
@@ -428,7 +429,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                     /* A machine with no stages yet: one button, not six empty
                        squares asking the same question six times. */
                     <td colSpan={grid.columns.length}>
-                      <button className="ig-give" onClick={() => void giveStages([r])}>+ Add the {usual.length} stages</button>
+                      <button className="ig-give" onClick={() => void giveStages([r])}><Icon name="plus" size="1.15em" /> Add the {usual.length} stages</button>
                     </td>
                   ) : r.cells.map((s, ci) => (
                     <td key={ci}>
@@ -470,7 +471,7 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
       <div className="ig-sheet" role="dialog" aria-label={title} onClick={e => e.stopPropagation()}>
         <div className="ig-sheet-h">
           <span><b>{title}</b>{sub && <span className="sub">{sub}</span>}</span>
-          <button className="ig-x" onClick={onClose} aria-label="Close">✕</button>
+          <button className="ig-x" onClick={onClose} aria-label="Close"><Icon name="close" size="1.1em" /></button>
         </div>
         {children}
       </div>

@@ -36,6 +36,7 @@ import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
 import type { PaceAction } from '../lib/tracker';
 import type { NodeStatus } from '../db';
+import { Icon } from '../ui/Icon';
 
 const STATUS: Record<NodeStatus, string> = {
   n: 'To do', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done',
@@ -201,7 +202,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
                 </header>
                 <div className="bd-col-b">
                   {c.rows.map(x => <Card key={x.uid} a={x} impact={x.uid ? impacts.get(x.uid) : undefined} onOpen={() => open(x)} />)}
-                  <button className="bd-add" onClick={() => add(c.key, a.lineId)}>＋ Add</button>
+                  <button className="bd-add" onClick={() => add(c.key, a.lineId)}><Icon name="plus" size="1.15em" /> Add</button>
                 </div>
               </section>
             ))}

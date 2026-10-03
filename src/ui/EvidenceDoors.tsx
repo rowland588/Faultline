@@ -6,6 +6,7 @@ import type { MediaRef } from '../types';
 import { EvidenceThumb } from './Evidence';
 import { VideoRecorder, videoCaptureSupported } from './VideoRecorder';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
+import { Icon } from './Icon';
 
 /** THE EVIDENCE — photos and clips, on a test, on a fix, or on one thing found.
  *
@@ -91,14 +92,14 @@ export function Evidence({ media, kind, onAdd, onView }: {
             const r = await captureMedia('photo');
             return r ? [r] : [];
           })}>
-          <span aria-hidden>📷</span>Camera
+          <Icon name="camera" />Camera
         </button>
         {videoCaptureSupported() && (
-          <button className="tw-door" onClick={() => setFilming(true)}><span aria-hidden>🎥</span>Video</button>
+          <button className="tw-door" onClick={() => setFilming(true)}><Icon name="video" />Video</button>
         )}
         <button className="tw-door"
           onClick={() => void take('Adding…', () => pickExistingMedia())}>
-          <span aria-hidden>🖼</span>On the phone
+          <Icon name="photo" />On the phone
         </button>
       </div>
       {note && <span className="sub" role="status">{note}</span>}

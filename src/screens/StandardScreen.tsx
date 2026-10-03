@@ -25,6 +25,7 @@ import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import type { SnagAsset } from '../snag/types';
+import { Icon } from '../ui/Icon';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -495,7 +496,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
 
       <div className="ls-tools" role="toolbar" aria-label="What to place">
         <button className={'ls-tool' + (tool.t === 'select' ? ' is-on' : '')} aria-pressed={tool.t === 'select'} onClick={() => setTool({ t: 'select' })}>
-          <span className="ls-ti" aria-hidden>↖</span><span>Select</span>
+          <span className="ls-ti" aria-hidden><Icon name="pointer" size="1.15em" /></span><span>Select</span>
         </button>
         <span className="ls-tool-sep" aria-hidden />
         {SHAPES.map(sh => (
@@ -515,7 +516,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
             <MarkIcon kind={tool.kind} size={24} /><span>{markOf(tool.kind).word}</span>
           </button>
         )}
-        <button className="ls-tool" onClick={() => setIcons(true)}><span className="ls-ti" aria-hidden>＋</span><span>Icons</span></button>
+        <button className="ls-tool" onClick={() => setIcons(true)}><span className="ls-ti" aria-hidden><Icon name="plus" size="1.15em" /></span><span>Icons</span></button>
       </div>
       <p className="sub ls-tools-say">{say}</p>
 
@@ -608,7 +609,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
             <div className="snag-editor-foot">
               <button className="btn btn-primary" onClick={() => { void putStandard({ ...s, marks }); setEditing(null); }}>Done</button>
               {editingMark.shape !== 'text' && (
-                <button className="btn" onClick={() => { const sh = editingMark; void putStandard({ ...s, marks }); setEditing(null); addOperatorBy(sh); }}>＋ Add an operator here</button>
+                <button className="btn" onClick={() => { const sh = editingMark; void putStandard({ ...s, marks }); setEditing(null); addOperatorBy(sh); }}><Icon name="plus" /> Add an operator here</button>
               )}
               <button className="btn btn-ghost" style={{ color: 'var(--danger)' }}
                 onClick={() => { saveMarks(marks.filter(m => m.id !== editingMark.id)); setEditing(null); setSelected(null); }}>Delete</button>
@@ -656,7 +657,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
       <Sheet open={picture} onClose={() => setPicture(false)} title="The picture of the line">
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) void addPhoto(f); }} />
-        <button className="btn btn-primary" onClick={() => fileRef.current?.click()}>📷 Take or choose a photo</button>
+        <button className="btn btn-primary" onClick={() => fileRef.current?.click()}><Icon name="camera" /> Take or choose a photo</button>
         <WalkFrames projectId={project.id} onPick={async f => { await save({ photoKey: f.stillKey }); setPicture(false); }} />
         {url && <button className="btn btn-ghost" style={{ marginTop: 12 }} onClick={() => { void save({ photoKey: undefined }); setPicture(false); }}>Use a plain board and draw it instead</button>}
       </Sheet>

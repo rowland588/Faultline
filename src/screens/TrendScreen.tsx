@@ -12,6 +12,7 @@ import { fmtGBP } from '../lib/cost';
 import { useSyncedAt } from '../cloud/session';
 import { EmptyState } from '../ui/EmptyState';
 import type { Snag } from '../snag/types';
+import { Icon } from '../ui/Icon';
 
 const fmtH = (ms: number) => {
   const h = ms / 3600_000;
@@ -34,7 +35,7 @@ export function TrendPanel() {
   return (
     <div className="trend-panel">
       {!enough ? (
-        <EmptyState icon="📈" title="Not enough history yet"
+        <EmptyState icon={<Icon name="chart" size="1em" />} title="Not enough history yet"
           action={<button className="btn btn-primary" onClick={() => nav(`/w/${workspace.id}/capture`)}>Time a stop</button>}>
           The trend starts telling the truth after a couple of weeks of logging.
           Keep capturing — every entry lands on this chart.
@@ -88,7 +89,7 @@ export function TrendPanel() {
                     </span>
                   </div>
                   <span className={'cat-verdict ' + c.verdict}>
-                    {c.verdict === 'improving' ? '▼ WORKING' : c.verdict === 'worsening' ? '▲ WORSE' : '⚠ FLAT'}
+                    {c.verdict === 'improving' ? '▼ WORKING' : c.verdict === 'worsening' ? '▲ WORSE' : <><Icon name="warning" size="1.15em" /> FLAT</>}
                   </span>
                 </div>
               ))}

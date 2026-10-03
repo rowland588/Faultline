@@ -26,6 +26,7 @@ import { backedUp } from '../cloud/sync';
 import { cloudConfigured } from '../cloud/client';
 import { plural } from '../lib/format';
 import type { Segment } from './types';
+import { Icon } from '../ui/Icon';
 
 interface Progress { index: number; total: number; fraction: number }
 
@@ -140,7 +141,7 @@ export function ConvertBanner({ wsId, tick, onDone }: { wsId: string; tick?: unk
               <div className="convert-files">
                 {stuck.map(s => (
                   <button key={s.id} className="btn" onClick={() => void download(s)}>
-                    ⤓ {s.name || `Walk ${s.sequence}`}
+                    <Icon name="download" /> {s.name || `Walk ${s.sequence}`}
                   </button>
                 ))}
               </div>

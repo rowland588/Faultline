@@ -10,6 +10,7 @@ import { useBlobUrl } from './useBlobUrl';
 import PinImage, { type Pin } from './PinImage';
 import { SNAG_STATUS_META, type Snag, type SnagAsset } from './types';
 import { assetHistory, compareVerdict, type AssetAppearance } from './history';
+import { Icon } from '../ui/Icon';
 
 const fmtDay = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
@@ -67,9 +68,9 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
         </div>
         {history.length > 1 && (
           <div className="hist-verdict">
-            {verdict.closedSincePrev > 0 && <span className="chipv good">✓ {verdict.closedSincePrev} closed since {prev ? fmtDay(prev.day) : 'last walk'}</span>}
+            {verdict.closedSincePrev > 0 && <span className="chipv good"><Icon name="check" size="1.15em" /> {verdict.closedSincePrev} closed since {prev ? fmtDay(prev.day) : 'last walk'}</span>}
             {verdict.newOnLatest > 0 && <span className="chipv bad">{verdict.newOnLatest} open now</span>}
-            {verdict.oldestOpenDays != null && verdict.oldestOpenDays > 30 && <span className="chipv warn">⚠ open {verdict.oldestOpenDays} days</span>}
+            {verdict.oldestOpenDays != null && verdict.oldestOpenDays > 30 && <span className="chipv warn"><Icon name="warning" size="1.15em" /> open {verdict.oldestOpenDays} days</span>}
           </div>
         )}
       </div>
@@ -105,7 +106,7 @@ function FilmFrame({ appearance, active, onTap }: { appearance: AssetAppearance;
   const url = useBlobUrl(appearance.asset.stillKey);
   return (
     <button className={'hist-frame' + (active ? ' on' : '')} onClick={onTap}>
-      {url ? <img src={url} alt="" /> : <span className="hist-frame-ph">▶</span>}
+      {url ? <img src={url} alt="" /> : <span className="hist-frame-ph"><Icon name="play" size={20} /></span>}
       <small>{fmtDay(appearance.day)}</small>
       {appearance.open > 0 && <span className="hist-dot" />}
     </button>

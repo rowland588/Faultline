@@ -19,6 +19,7 @@ import { dueFromInput } from '../snag/types';
 import { PILLARS, type PillarKey } from '../lib/pillars';
 import { lossContext } from '../lib/lossContext';
 import type { DrillPath } from '../types';
+import { Icon } from '../ui/Icon';
 
 const fromPath = (path: DrillPath, dim: string): string | undefined =>
   path.find(s => s.dimension === dim)?.value;
@@ -75,7 +76,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
 
   if (raised) return (
     <div className="action-raised" role="status">
-      ⚑ Action raised{targetLabel ? <> on <b>{targetLabel}</b></> : null} — {raised.board
+      <Icon name="flag" size="1.15em" /> Action raised{targetLabel ? <> on <b>{targetLabel}</b></> : null} — {raised.board
         ? 'it is on the project’s board, with the loss that raised it.'
         : 'it is on the evidence list with an owner and an age.'}
       <button className="linkish" onClick={() => nav(raised.board ?? `/w/${wsId}/snaglist`)}>{raised.board ? 'See it on the board ›' : 'See it ›'}</button>
@@ -85,7 +86,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
 
   if (!open) return (
     <button className="board-cta" onClick={() => setOpen(true)}>
-      <span className="board-cta-ic" aria-hidden>⚑</span>
+      <span className="board-cta-ic" aria-hidden><Icon name="flag" size="1em" /></span>
       <span className="board-cta-main">Raise an action{targetLabel ? ` on ${targetLabel}` : ' from this'}</span>
       <span className="board-cta-go" aria-hidden>›</span>
     </button>
@@ -93,7 +94,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
 
   return (
     <div className="card action-form">
-      <div className="field-label">⚑ Action{targetLabel ? <> on <b>{targetLabel}</b></> : null}</div>
+      <div className="field-label"><Icon name="flag" size="1.15em" /> Action{targetLabel ? <> on <b>{targetLabel}</b></> : null}</div>
       <p className="sub" style={{ margin: '4px 0 8px' }}>{home
         ? 'What’s the fix? It goes on the project’s board with the loss that raised it — same owners, same report, same “is it getting better”.'
         : 'What’s the fix? It joins the evidence list — same owners, same report, same “is it getting better”.'}</p>

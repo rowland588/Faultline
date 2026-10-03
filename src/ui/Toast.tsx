@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Icon } from './Icon';
 
 /** The just-logged confirmation slab, with one-tap Undo. Auto-dismisses. */
 export function Toast({ message, onUndo, onDismiss, ms = 4500 }: {
@@ -14,7 +15,7 @@ export function Toast({ message, onUndo, onDismiss, ms = 4500 }: {
 
   return (
     <div className="toast" role="status">
-      <span className="toast-tick" aria-hidden>✓</span>
+      <span className="toast-tick" aria-hidden><Icon name="check" size="1.1em" /></span>
       <span className="toast-msg">{message}</span>
       {onUndo && <button className="toast-undo" onClick={onUndo}>Undo</button>}
     </div>

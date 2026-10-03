@@ -209,7 +209,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         ) : (
           <div className="vo-pair">
             <button className="cw-add" onClick={() => setAdding(true)}>
-              <span className="cw-add-p" aria-hidden>+</span> Plan a fix
+              <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a fix
             </button>
             <VoiceNote form="fix" label="Say a fix" context={() => contextFor(tt.assets, tt.tests, todayISO())} onHeard={setHeard} />
           </div>
@@ -256,6 +256,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
 export { DUE_SOON_DAYS, fixTone, type FixTone } from '../lib/fixTone';
 import { DUE_SOON_DAYS, fixTone } from '../lib/fixTone';
+import { Icon } from '../ui/Icon';
 
 /** One fix, as a box: where it stands, the machine, the fix, the problem, and
  *  who is on it and what it is for — the same things in the same places on

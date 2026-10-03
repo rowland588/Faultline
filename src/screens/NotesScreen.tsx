@@ -23,8 +23,7 @@ import { offerUndo } from '../ui/Undo';
 import { remindersOf, remindWords } from '../lib/reminders';
 import { niceDay, todayISO } from '../lib/weeks';
 import { ReminderPermission } from '../ui/Reminders';
-
-const TICK = '✓';
+import { Icon } from '../ui/Icon';
 
 /** Where each gate lives, the same paths the tabs go to. */
 const GATE_PATH: Record<string, string> = {
@@ -155,7 +154,7 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
   return (
     <div className={'nt-row' + (done ? ' is-done' : '')}>
       <button className={'tw-tick' + (done ? ' is-on' : '')} aria-label={done ? 'Not raised yet' : 'Raised'}
-        onClick={() => void tt.saveItem({ ...n, doneAt: done ? undefined : Date.now() })}>{done ? TICK : null}</button>
+        onClick={() => void tt.saveItem({ ...n, doneAt: done ? undefined : Date.now() })}>{done ? <Icon name="check" size="1em" /> : null}</button>
       {editing ? (
         <div className="nt-edit">
           <textarea className="text-area" rows={2} autoFocus value={text} aria-label="Note"
@@ -187,11 +186,11 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
               {n.onPlan && <span className="nt-rem-plan">on the plan</span>}
             </button>
           ) : !done && (
-            <button className="nt-rem-add" onClick={() => setReminding(true)}>+ Remind me</button>
+            <button className="nt-rem-add" onClick={() => setReminding(true)}><Icon name="plus" size="1.15em" /> Remind me</button>
           )}
         </div>
       )}
-      <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}>×</button>
+      <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}><Icon name="close" size="0.85em" /></button>
     </div>
   );
 }
@@ -293,7 +292,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAddRem(false); setNewDue(''); setNewPlan(false); }}>No reminder</button>
           </div>
         ) : (
-          <button type="button" className="nt-rem-add" onClick={() => setAddRem(true)}>+ Remind me about it on a date</button>
+          <button type="button" className="nt-rem-add" onClick={() => setAddRem(true)}><Icon name="plus" size="1.15em" /> Remind me about it on a date</button>
         )}
       </form>
       </AddFold>
@@ -334,7 +333,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
       {raised.length > 0 && (
         <section className="nt-group is-raised">
           <button className="nt-group-h nt-toggle" onClick={() => setShowRaised(v => !v)} aria-expanded={showRaised}>
-            Raised · {raised.length} {showRaised ? '▴' : '▾'}
+            Raised · {raised.length} <Icon name={showRaised ? 'chevronUp' : 'chevronDown'} size="1em" />
           </button>
           {showRaised && raised.map(n => (
             <div key={n.id}>

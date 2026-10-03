@@ -32,6 +32,7 @@ import { ActionComposer } from './ActionComposer';
 import { EmptyState } from '../ui/EmptyState';
 import { fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { Icon } from '../ui/Icon';
 
 /** Average weekly loss of the scope over its last 4 full weeks — the honest,
  *  measured "before" a new Case is born with. */
@@ -65,7 +66,7 @@ function PrizeLine({ weeklyMs, costable, factor }: { weeklyMs: number; costable:
   const year = (ms: number) => (costable ? fmtGBP(ms * factor * 52) : fmtHrs(ms * 52));
   return (
     <div className="prize-line" data-tour="prize">
-      <span className="prize-ic" aria-hidden>💰</span>
+      <span className="prize-ic" aria-hidden><Icon name="pound" size="1.2em" /></span>
       <span>
         Running at <b>{money(weeklyMs)}/wk</b> ({year(weeklyMs)}/yr).
         Halve it and you recover <b>{money(weeklyMs / 2)}/wk ≈ {year(weeklyMs / 2)}/yr</b>.
@@ -135,7 +136,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
       {/* THE demo (owner decision, Aug 2026): one automatic film — the whole
           app used start to finish, narrated as it goes. */}
       {workspace.name === DEMO_NAME && (
-        <button className="chip demo-tour-pill" onClick={() => setFilm(true)}>▶ Watch the demo — the app, start to finish</button>
+        <button className="chip demo-tour-pill" onClick={() => setFilm(true)}><Icon name="play" /> Watch the demo — the app, start to finish</button>
       )}
       {/* ONE quiet status row — the calm rule: signals share a strip, the
           chart is the hero. Each pill expands or navigates on tap. */}
@@ -143,12 +144,12 @@ export function AnalyseScreen({ route }: { route: Route }) {
         {(live.length > 0 || walkTimes.length > 0) && (
           <span className={'st-pill gm-' + fr.level} data-tour="gemba"
             title={`Eyes on the line: observed ${agoWord(fr.daysSinceObs)} · walked ${agoWord(fr.daysSinceWalk)}. The board is only as honest as the last visit.`}>
-            👁 {agoWord(fr.daysSinceObs)}{fr.level !== 'fresh' ? ' — go and see' : ''}
+            <Icon name="eye" size="1.15em" /> {agoWord(fr.daysSinceObs)}{fr.level !== 'fresh' ? ' — go and see' : ''}
           </span>
         )}
         {wins.length > 0 && (
           <button className="st-pill st-wins" data-tour="wins" onClick={() => setWinsOpen(o => !o)}>
-            🏆 <b>{perYr(totalSavedWk)}</b> proven · {plural(wins.length, 'win')} {winsOpen ? '▾' : '›'}
+            <Icon name="trophy" size="1.15em" /> <b>{perYr(totalSavedWk)}</b> proven · {plural(wins.length, 'win')} <Icon name={winsOpen ? 'chevronDown' : 'chevron'} size="1em" />
           </button>
         )}
         {openCases.length > 0 && (
@@ -158,7 +159,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
               const vs = c.baselineMsWeek > 0 ? Math.round(((now - c.baselineMsWeek) / c.baselineMsWeek) * 100) : null;
               return (
                 <button key={c.id} className="st-pill st-case" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)} title={scopeLabel(c)}>
-                  📌 {c.title}{vs != null ? <b className={vs <= 0 ? 'mt-good' : 'mt-bad'}> {vs <= 0 ? '▼' : '▲'}{Math.abs(vs)}%</b> : null}
+                  <Icon name="case" size="1.15em" /> {c.title}{vs != null ? <b className={vs <= 0 ? 'mt-good' : 'mt-bad'}> {vs <= 0 ? '▼' : '▲'}{Math.abs(vs)}%</b> : null}
                 </button>
               );
             })}
@@ -169,7 +170,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
         <div className="wins-shelf">
           {wins.map(({ c, r }) => (
             <button key={c.id} className="win-row" onClick={() => nav(`/w/${workspace.id}/case/${c.id}`)}>
-              <span className="win-title">{r.sinceCall?.slipping ? '⚠' : '✓'} {c.title}</span>
+              <span className="win-title"><Icon name={r.sinceCall?.slipping ? 'warning' : 'check'} size="1.15em" /> {c.title}</span>
               <span className="win-meta">{fmtMean(r.beforeMeanMs)} → {fmtMean(r.afterMeanMs)} per event · {perYr(r.savedMsWeek ?? 0)} · proven {dn(c.study!.closedAt!)}{r.sinceCall?.slipping ? ' · slipping since' : ''}</span>
             </button>
           ))}
@@ -195,7 +196,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
             <source src="/demo/tutorial.mp4" type="video/mp4" />
             <source src="/demo/tutorial.webm" type="video/webm" />
           </video>
-          <button className="film-close" onClick={() => setFilm(false)} aria-label="Close the film">×</button>
+          <button className="film-close" onClick={() => setFilm(false)} aria-label="Close the film"><Icon name="close" size="0.85em" /></button>
         </div>
       )}
     </div>
@@ -265,7 +266,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
       {periodChips}
 
       {noRows ? (
-        <EmptyState title={observations.length === 0 ? 'Nothing logged yet' : 'Nothing here'} icon="▤">
+        <EmptyState title={observations.length === 0 ? 'Nothing logged yet' : 'Nothing here'} icon={<Icon name="list" size="1em" />}>
           {observations.length === 0
             ? 'Head to Capture and log what you see — the Pareto builds itself.'
             : 'No observations match this drill. Step back up with the breadcrumb.'}
@@ -294,7 +295,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
               </div>
               {!costable && (
                 <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
-                  💷 Put a £ on this lost time — add crew &amp; labour rate ›
+                  <Icon name="pound" size="1.15em" /> Put a £ on this lost time — add crew &amp; labour rate ›
                 </button>
               )}
             </>
@@ -320,8 +321,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
           <div className="next-row">
             {view.path.length > 0 && (
               existing
-                ? <button className="linkish" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}>📌 Open its Case — {existing.title} ›</button>
-                : <button className="linkish" data-tour="case-cta" onClick={() => void openCaseHere()}>📌 Open a Case on this ›</button>
+                ? <button className="linkish" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}><Icon name="case" size="1.15em" /> Open its Case — {existing.title} ›</button>
+                : <button className="linkish" data-tour="case-cta" onClick={() => void openCaseHere()}><Icon name="case" size="1.15em" /> Open a Case on this ›</button>
             )}
             <button className="linkish" onClick={() => nav(`/w/${workspace.id}/meeting`)}>Show this in the meeting ›</button>
           </div>

@@ -26,6 +26,7 @@ import {
   ASSET_STATE_WORD, WORDS, assetStateOn, outcomeWord, isOverdue, itemsOf, latestAttempts, standing, testOfFix, weeksTo,
   type Asset, type Test, type TestKind,
 } from '../lib/testing';
+import { Icon } from '../ui/Icon';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
@@ -258,7 +259,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
              themselves — two "add" buttons on a page that only lists one of
              the two was a door leading off the page it was on. */
           <button className="cw-add" onClick={() => setAdding('test')}>
-            <span className="cw-add-p" aria-hidden>+</span> Plan a test
+            <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test
           </button>
         )}
       </section>
@@ -368,7 +369,7 @@ export function AddAsset({ add }: { add: (name: string, oem?: string) => Promise
   if (!open) {
     return (
       <button className="cw-add" onClick={() => setOpen(true)}>
-        <span className="cw-add-p" aria-hidden>+</span> Add a machine
+        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine
       </button>
     );
   }

@@ -3,6 +3,7 @@
  * past the promise. Closed actions get a verdict instead of a bar. Shared by
  * the snag list and the meeting so the same action never tells two stories. */
 import { isOverdue, isDueSoon, closedDaysLate, dueInDays, type Snag } from './types';
+import { Icon } from '../ui/Icon';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
@@ -10,7 +11,7 @@ export function TimeStrip({ snag }: { snag: Snag }) {
   const late = closedDaysLate(snag);
   if (snag.status === 'closed') {
     if (late == null) return null;
-    return <span className={'ts-verdict ' + (late <= 0 ? 'ts-ontime' : 'ts-late')}>{late <= 0 ? 'on time ✓' : `${late}d late`}</span>;
+    return <span className={'ts-verdict ' + (late <= 0 ? 'ts-ontime' : 'ts-late')}>{late <= 0 ? <>on time <Icon name="check" size="1.15em" /></> : `${late}d late`}</span>;
   }
   if (snag.dueAt == null) return null;
   const start = snag.raisedAt, nowMs = Date.now();
