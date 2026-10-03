@@ -208,8 +208,11 @@ button { font-family: inherit; }
 .app { min-height: 100%; display: flex; flex-direction: column; }
 .app-main { flex: 1; }
 /* ---------- bottom tabs ---------- */
-/* the line study has the same row of tabs the project has (ui/Peers) */
-.app-peers { padding-top: 10px; }
+/* the line study has the same row of tabs the project has (ui/Peers). It
+   borrows .wrap for its width, and with it the 96px of room .wrap leaves at
+   the foot of a page — which put a blank band under the tabs on every
+   workspace screen. The row is not the foot of anything. */
+.app-peers { padding-top: 10px; padding-bottom: 0; }
 .ws-setup .card { box-shadow: none; }
 .ws-setup-del { color: var(--st-r); border-color: color-mix(in srgb, var(--st-r) 40%, var(--line)); }
 .cap-setup { margin-left: auto; }
@@ -762,7 +765,7 @@ button { font-family: inherit; }
 .rbadge { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 2px 9px; flex: none; }
 .rbadge.bad { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
 .rbadge.warn { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); color: var(--warn); }
-.rbadge.new { background: var(--accent-soft); color: var(--accent); }
+.rbadge.new { background: var(--surface-2); color: var(--ink-2); }   /* brand blue is for what you press, never a state */
 .rbadge.good { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
 .report-foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 10.5px; }
 .report-foot > span:first-child { flex: 1; } /* keeps the halves apart even when print collapses widths */
@@ -774,11 +777,39 @@ button { font-family: inherit; }
 @media print {
   .no-print, .tabbar, .topbar { display: none !important; }
   body, .report-stage { background: #fff !important; }
-  .report-stage { padding: 0; }
+  /* min-height 100vh is a screen nicety; on paper it pushed a blank second
+     page out of the one-page report. */
+  .report-stage { padding: 0; min-height: 0; }
   .report-page { border: none; box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
   /* A3 is √2 the linear size of A4 — scale the content so it fills the sheet
      at boardroom-readable size instead of floating in a corner of it. */
   .paper-A3 .report-page { zoom: 1.38; }
+}
+
+/* THE TOOLS INSIDE A WORKSPACE, ON A PHONE — a thumb's worth of target.
+ * Measured at 390px: the controls a person uses all day here were 11–36px
+ * tall (Set up 15, the period and lens chips 25, the meeting's agenda 34, the
+ * evidence counts 34, a frame's name on the evidence list 16). Each gets 44px
+ * and, where it is a word in a row, the height to go with it. Nothing moves on
+ * a desktop. */
+@media (max-width: 720px) {
+  .cap-setup, .line-links .linkish, .meet-links .linkish, .case-root > .case-box .linkish,
+  .case-delete, .snag-table td .linkish {
+    display: inline-flex; align-items: center; min-height: 44px;
+  }
+  .cap-feed-del { min-width: 44px; min-height: 44px; }
+  .cap-feed-more { min-height: 44px; }
+  .period-row .pk-pick, .line-layers .pk-pick, .measure-toggle .mt, .paper-toggle .pt { min-height: 44px; }
+  .mr-step, .ss-pill, .walk-seg, .seg-chip, .walk-overlay { min-height: 44px; }
+  .walk-seg { min-width: 44px; }
+  .asset-card-head, .asset-title { min-height: 44px; }
+  .status-strip button.st-pill { min-height: 44px; align-items: center; }
+  .pin-zoom button { width: 44px; height: 44px; }
+  .seg-arrow { min-width: 44px; min-height: 30px; }
+  .seg-edit, .seg-del { min-width: 44px; min-height: 44px; }
+  .analyse .pk-pick, .present-chart .pk-pick, .seg-rename-btn, .asset-line, .cost-hint { min-height: 44px; }
+  .ws-setup .linkish { display: inline-flex; align-items: center; min-height: 44px; }
+  .ws-setup .chip-editable > button { min-height: 44px; min-width: 36px; }
 }
 
 /* the walk's backup state — quiet truth, not sync machinery */
@@ -897,7 +928,7 @@ button { font-family: inherit; }
 .ss-pill.on { box-shadow: 0 0 0 2px var(--ink); border-color: var(--ink); }
 .ss-all { align-self: center; }
 .ss-pill.ss-open b { color: var(--st-r); }
-.ss-pill.ss-prog b { color: var(--st-a); }
+.ss-pill.ss-prog b { color: var(--st-w); }   /* under way is indigo; amber is waiting on somebody */
 .ss-pill.ss-closed b { color: var(--st-g); }
 /* Overdue is the loudest thing on the list — solid, the one count that is a
    promise already broken. */
@@ -969,7 +1000,7 @@ button { font-family: inherit; }
 .report-stat { font-size: 13px; padding: 4px 11px; border: 1px solid var(--line); border-radius: 999px; }
 .report-stat b { font-weight: 800; }
 .report-stat.st-open b { color: var(--danger); }
-.report-stat.st-prog b { color: var(--warn); }
+.report-stat.st-prog b { color: var(--st-w); }
 .report-stat.st-closed b { color: var(--ok); }
 .report-stat.st-stale { border-color: var(--danger); color: var(--danger); }
 .report-stat.st-overdue { border-color: var(--danger); color: var(--danger); }
@@ -994,7 +1025,7 @@ button { font-family: inherit; }
 .print-over { color: var(--danger); font-weight: 800; }
 .print-snag-update { font-size: 12px; color: var(--ink-2); font-style: italic; margin-top: 3px; }
 .print-badge.st-open { color: var(--danger); }
-.print-badge.st-in_progress { color: var(--warn); }
+.print-badge.st-in_progress { color: var(--st-w); }
 .print-badge.st-closed { color: var(--ok); }
 .report-foot { display: none; }
 
@@ -1033,7 +1064,13 @@ button { font-family: inherit; }
 
 @page { margin: 15mm; }
 @media print {
-  .no-print, .topbar, .tabbar { display: none !important; }
+  /* the sideways row (ui/Peers) is a way around the screen, not part of what
+     is printed — it came out on the case A3 and every printed screen with one */
+  .no-print, .topbar, .tabbar, .peers { display: none !important; }
+  /* the screen fills the window (height: 100%); paper is as long as what is
+     on it — the full-height root pushed a blank second page out of the
+     one-page report */
+  html, body, #root { height: auto; }
   .wrap, .print-root { max-width: 100%; padding: 0; }
   .print-asset, .print-still, .print-still img, .print-snag-list li { page-break-inside: avoid; break-inside: avoid; }
   .report-foot { display: block; text-align: center; color: var(--muted); font-size: 11px; margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); }
@@ -1397,8 +1434,12 @@ button { font-family: inherit; }
 .why-n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font-size: 11px; font-weight: 800; display: grid; place-items: center; font-family: var(--mono); }
 .why-word { flex: none; font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .why-input { flex: 1; }
-.why-root { flex: none; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: var(--ok); border: 1.5px solid var(--ok); border-radius: 6px; padding: 2px 7px; }
-.case-root { font-size: 13px; background: color-mix(in srgb, var(--ok) 7%, var(--surface)); border-left: 3px solid var(--ok); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
+.why-root { flex: none; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink); border: 1.5px solid var(--ink-2); border-radius: 6px; padding: 2px 7px; }
+/* The root cause the countermeasures aim at. It shared the class name of the
+   page itself (.case-root), so the WHOLE case wore this box — a green wash and
+   a green rule down the left, the colour of done, on every case. Renamed, and
+   neutral: a root cause is not good news. */
+.case-cause { font-size: 13px; background: var(--surface-2); border-left: 3px solid var(--ink-2); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
 
 /* the landing demo film */
 .landing-demo { width: 100%; max-width: 960px; margin: 40px auto 48px; padding: 0 24px; text-align: center; }
@@ -2123,7 +2164,7 @@ button.st-pill { cursor: pointer; }
   background: none; border: 0; text-align: left; cursor: pointer; padding: 4px 0;
 }
 .ps-snag.is-open { border-left-color: var(--st-r); }
-.ps-snag.is-prog { border-left-color: var(--warn); }
+.ps-snag.is-prog { border-left-color: var(--st-w); }
 .ps-snag.is-done { border-left-color: var(--ok); opacity: 0.75; }
 .ps-snag-still {
   position: relative; width: 88px; height: 58px; flex-shrink: 0; border-radius: var(--radius-sm);
@@ -2142,7 +2183,7 @@ button.st-pill { cursor: pointer; }
 .ps-snag-asset { font-weight: 700; color: var(--ink-2); }
 .ps-snag-status { font-weight: 800; }
 .ps-snag-status.is-open { color: var(--st-r); }
-.ps-snag-status.is-prog { color: var(--warn); }
+.ps-snag-status.is-prog { color: var(--st-w); }
 .ps-snag-status.is-done { color: var(--ok); }
 
 @media (max-width: 720px) {
@@ -7937,12 +7978,12 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .wp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .wp-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; padding: 10px; border: 1px solid var(--line); border-left: 4px solid var(--st-r); border-radius: var(--radius-sm); background: var(--surface); }
 .wp-row.is-late { background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
-.wp-row.is-prog { border-left-color: var(--st-a); }
+.wp-row.is-prog { border-left-color: var(--st-w); }
 .wp-row.is-done { border-left-color: var(--st-g); opacity: 0.8; }
 .wp-pic .otl-frame { max-width: 120px; }
 .wp-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; align-items: flex-start; }
 .wp-state { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--st-r); }
-.wp-state.is-prog { color: var(--st-a); }
+.wp-state.is-prog { color: var(--st-w); }
 .wp-state.is-done { color: var(--st-g); }
 .wp-what { font-size: 14px; line-height: 1.3; }
 .wp-meta { font-size: 12px; color: var(--muted); }

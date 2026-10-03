@@ -81,7 +81,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
   const numById = new Map(snags.map((s, i) => [s.id, i + 1] as const));
   const pins: Pin[] = visible.map(s => ({ id: s.id, xPct: s.xPct ?? 0, yPct: s.yPct ?? 0, color: SNAG_STATUS_META[s.status].color, label: s.problem, n: numById.get(s.id), active: editing?.id === s.id }));
   if (draft) pins.push({ id: '__draft', xPct: draft.xPct, yPct: draft.yPct, color: 'var(--brand)', n: snags.length + 1, active: true });
-  const FIX_COLOUR: Record<string, string> = { done: 'var(--ok)', late: 'var(--danger)', notRun: 'var(--danger)', soon: 'var(--warn)', ahead: 'var(--brand)' };
+  const FIX_COLOUR: Record<string, string> = { done: 'var(--ok)', late: 'var(--danger)', notRun: 'var(--danger)', soon: 'var(--warn)', ahead: 'var(--st-w)' };
   for (const f of job?.fixes ?? []) if (f.pin) pins.push({ id: 'fix:' + f.id, xPct: f.pin.x, yPct: f.pin.y, color: FIX_COLOUR[fixTone(f).tone], label: f.title });
   for (const { item } of job?.found ?? []) if (item.pin) pins.push({ id: 'item:' + item.id, xPct: item.pin.x, yPct: item.pin.y, color: 'var(--warn)', label: item.what });
   if (fixDraft) pins.push({ id: '__fix', xPct: fixDraft.xPct, yPct: fixDraft.yPct, color: 'var(--danger)', active: true });

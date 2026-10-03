@@ -80,9 +80,12 @@ export interface Snag {
 
 export const SNAG_STALE_DAYS = 30;
 
+/* One colour, one meaning (CLAUDE.md): an open snag is a problem — red; one
+   being worked is under way — indigo, not the amber of "waiting on somebody"
+   it used to wear; closed is the quiet green. The snag card PDF uses the same. */
 export const SNAG_STATUS_META: Record<SnagStatus, { label: string; color: string }> = {
   open:        { label: 'Open',        color: 'var(--danger)' },
-  in_progress: { label: 'In progress', color: 'var(--warn)' },
+  in_progress: { label: 'In progress', color: 'var(--st-w)' },
   closed:      { label: 'Closed',      color: 'var(--ok)' },
 };
 
