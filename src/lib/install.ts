@@ -83,9 +83,11 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
   }
   const fixes = fixesOpen ? ` ${fixesOpen} fix${fixesOpen === 1 ? '' : 'es'} still open from it.` : '';
   if (done === steps.length) {
+    /* "All 1 steps done" read as a fault: one step is "the one step". */
+    const all = steps.length === 1 ? 'the one step done' : `all ${steps.length} steps done`;
     return gate === 'install' && (asset?.installedOn || asset?.runningOn)
-      ? `Installed — all ${steps.length} steps done.${fixes}`
-      : `All ${steps.length} steps done.${fixes}`;
+      ? `Installed — ${all}.${fixes}`
+      : `${all[0].toUpperCase()}${all.slice(1)}.${fixes}`;
   }
   const head = `${done} of ${steps.length} done.`;
   /* A problem is the story before the plan: it is why the next step waits. */
