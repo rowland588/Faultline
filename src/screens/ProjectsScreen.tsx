@@ -57,7 +57,7 @@ export function ProjectsScreen() {
 
   return (
     <div className="wrap pace projects-screen">
-      <Crumbs trail={[{ label: 'Home', to: '/' }, { label: 'Projects' }]} />
+      <Crumbs trail={[{ label: 'Control room', to: '/' }, { label: 'Projects' }]} />
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{MODELS.map(m => m.label).join(' · ')}</p>

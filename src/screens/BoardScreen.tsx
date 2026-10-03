@@ -131,7 +131,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace bd-screen">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Board' },
       ]} />

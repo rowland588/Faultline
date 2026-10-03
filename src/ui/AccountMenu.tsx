@@ -42,7 +42,7 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
-        <SheetRow label="Home" hint="every job" onClick={() => { setOpen(false); nav('/'); }} />
+        <SheetRow label="Control room" hint="every job" onClick={() => { setOpen(false); nav('/'); }} />
         <SheetRow label="Sign out" danger onClick={logout} />
       </Sheet>
     </>

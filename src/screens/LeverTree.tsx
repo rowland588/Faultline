@@ -789,7 +789,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
     <div className="wrap pace lt-screen">
       <Sweep id={'tree:' + projectId} />
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Lever tree' },
       ]} />

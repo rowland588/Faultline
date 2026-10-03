@@ -77,7 +77,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
     return (
       <div className="wrap pace cm-screen">
         <Crumbs trail={[
-          { label: 'Projects', to: '/projects' },
+          { label: 'Control room', to: '/' },
           ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
           { label: 'Commission' },
         ]} />
@@ -131,7 +131,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   return (
     <div className="wrap pace cm-screen">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         /* A fix walks back to Fixes, a test to Testing — the spine has to lead
            where you came from, which for a fix has not been Testing since it

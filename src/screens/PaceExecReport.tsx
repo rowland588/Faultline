@@ -1038,7 +1038,7 @@ export function PaceExecReport() {
     return (
       <div className="wrap exec-report">
         <div className="exec-bar no-print">
-          <button className="btn btn-ghost" onClick={() => nav('/projects')}>← Projects</button>
+          <button className="btn btn-ghost" onClick={() => nav('/')}>← Control room</button>
         </div>
         <p className="sub" style={{ padding: '40px' }}>
           {projectId
@@ -1707,7 +1707,7 @@ export function PaceExecReport() {
           Its own row at the top of the frame, as on every page; it was
           squeezed into a box beside the PDF button. */}
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
         ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
         { label: 'Client report' },

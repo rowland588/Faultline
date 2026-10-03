@@ -426,7 +426,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
         </div>
       ) : <>
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Programs' },
       ]} />

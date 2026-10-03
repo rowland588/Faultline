@@ -222,7 +222,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Materials' },
       ]} />

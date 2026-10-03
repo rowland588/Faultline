@@ -254,7 +254,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace nt">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Meeting notes' },
       ]} />

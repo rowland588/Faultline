@@ -163,7 +163,7 @@ function Products({ project, list, gone }: { project: Project; list: Standard[];
   return (
     <div className="wrap pace">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${project.id}` },
         // Where it is held: Hand over on a stage-gate job, Lines on the others.
         commissioning
@@ -470,7 +470,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
   return (
     <div className="wrap pace ls">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${project.id}` },
         // Where it is held: Hand over on a stage-gate job, Lines on the others.
         commissioning

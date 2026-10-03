@@ -274,7 +274,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       {/* ------------------------------ the band ------------------------------ */}
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
-        <p className="jb-eyebrow">Every job · {niceDay(today, { weekday: 'short' })}</p>
+        <p className="jb-eyebrow">Control room · every job · {niceDay(today, { weekday: 'short' })}</p>
         <h2 className="jb-says">{pf.says}</h2>
         <div className="jb-stats">
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>

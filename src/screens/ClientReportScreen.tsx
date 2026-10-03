@@ -89,7 +89,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace cr">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Client report' },
       ]} />

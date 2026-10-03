@@ -352,7 +352,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace project-setup">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${project.id}` },
         { label: commissioning ? 'Details' : 'Lines & people' },
       ]} />

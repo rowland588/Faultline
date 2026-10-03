@@ -564,12 +564,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   return (
     <div className={'wrap pace is-' + lens}>
       <Crumbs trail={lens === 'snags' && model === 'commissioning'
-        ? [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Install', to: `/project/${projectId}/install` }, { label: 'The line, filmed' }]
+        ? [{ label: 'Control room', to: '/' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Install', to: `/project/${projectId}/install` }, { label: 'The line, filmed' }]
         : lens === 'overview'
-          ? [{ label: 'Projects', to: '/projects' }, { label: project.name }]
+          ? [{ label: 'Control room', to: '/' }, { label: project.name }]
           // A lens is a page of its own now, reached from the row — so the trail
           // says which, and the project's name is the way back.
-          : [{ label: 'Projects', to: '/projects' }, { label: project.name, to: `/project/${projectId}` },
+          : [{ label: 'Control room', to: '/' }, { label: project.name, to: `/project/${projectId}` },
             { label: LENSES.find(l => l.id === lens)?.label ?? '' }]} />
       {/* A 3P or tree job's lens is a page under the project, like a gate is
           on a stage-gate job: the project's own header stays on its front

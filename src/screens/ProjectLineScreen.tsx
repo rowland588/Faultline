@@ -144,7 +144,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   return (
     <div className={'wrap pace is-' + lens}>
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}?view=lines` },
         { label: line.name },
       ]} />

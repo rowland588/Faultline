@@ -143,7 +143,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
     return (
       <div className="wrap pace cm-screen">
         <Crumbs trail={[
-          { label: 'Projects', to: '/projects' },
+          { label: 'Control room', to: '/' },
           { label: project.name, to: `/project/${projectId}` },
           { label: 'Commission', to: `/project/${projectId}/testing` },
           { label: 'Card' },
@@ -194,7 +194,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   return (
     <div className="wrap pace cm-screen tc-screen">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         c.kind === 'fix'
           ? { label: 'Fixes', to: `/project/${projectId}/fixes` }

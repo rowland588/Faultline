@@ -13,7 +13,7 @@
  *
  * So there is exactly one of these, and every screen shows it:
  *
- *     Projects › Project Pace › Line 7 › Walks › Bagger 3
+ *     Control room › Project Pace › Line 7 › Walks › Bagger 3
  *
  * Rules it keeps, because they are what "never locked in, never the wrong
  * place" actually means:

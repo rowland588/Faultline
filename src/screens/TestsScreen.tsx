@@ -136,7 +136,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace cm-screen">
       <Crumbs trail={[
-        { label: 'Projects', to: '/projects' },
+        { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
         { label: 'Commission' },
       ]} />

@@ -41,10 +41,10 @@ const WALK_SCREENS = new Set(['snags', 'snaglist', 'line', 'segment', 'asset', '
 export function chainCrumbs(chain: WsChain | null, wsName: string, screen?: string): Crumb[] {
   // Free-standing: Home lists it under "Not on a project"; there is no
   // "Workspaces" page for the crumb to name.
-  if (!chain) return [{ label: 'Home', to: '/' }, { label: wsName, to: undefined }];
+  if (!chain) return [{ label: 'Control room', to: '/' }, { label: wsName, to: undefined }];
   const filmed = !screen || WALK_SCREENS.has(screen);
   const out: Crumb[] = [
-    { label: 'Projects', to: '/projects' },
+    { label: 'Control room', to: '/' },
     { label: chain.projectName, to: `/project/${chain.projectId}${filmed && !chain.lineId && !chain.stageGate ? '?view=snags' : ''}` },
   ];
   if (chain.lineId) {
