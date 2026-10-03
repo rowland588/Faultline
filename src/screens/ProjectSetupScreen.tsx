@@ -314,7 +314,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
 
   const commissioning = planModel(project) === 'commissioning';
   const linesSection = (
-      <Fold id="pset-lines" title="Lines"
+      <Fold id="pset-lines" title="Lines" need={lines.lines.length === 0}
         says={lines.lines.length === 0 ? 'none yet' : `${lines.lines.length} line${lines.lines.length === 1 ? '' : 's'} · ${lines.lines.filter(l => l.owner).length} with an owner`}>
 
         {lines.lines.length === 0

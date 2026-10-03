@@ -680,12 +680,20 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <ul className="dw-list">
                 {closed.map(s => {
                   const im = impacts.get(s.id);
+                  /* THE WHOLE ROW IS THE WAY IN, as the Line balance rows are:
+                     the action's name alone was the button, 20px tall, and the
+                     verdict and the sentence beside it pressed nothing. */
                   return (
                     <li key={s.id} className="dw-row">
-                      <button className="dw-t" onClick={() => nav(`/project/${projectId}/board`)}>{s.what}</button>
-                      <span className="sub">{[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}</span>
-                      {im && im.state !== 'none' && <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span>}
-                      {im?.words && <span className="dw-w">{im.words}</span>}
+                      <button className="dw-go" onClick={() => nav(`/project/${projectId}/board`)}>
+                        <b>{s.what}</b>
+                        <span className="dw-w">
+                          {[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}
+                          {im && im.state !== 'none' && <> <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span></>}
+                          {im?.words && <> · {im.words}</>}
+                        </span>
+                        <span className="dw-go-c" aria-hidden>›</span>
+                      </button>
                     </li>
                   );
                 })}

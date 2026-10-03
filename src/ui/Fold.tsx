@@ -31,16 +31,20 @@ function read(id: string, start: boolean): boolean {
   } catch { return start; }
 }
 
-export function Fold({ id, title, says, start = true, children }: {
+export function Fold({ id, title, says, start = true, need = false, children }: {
   id: string;
   title: string;
   /** What the card would tell you if you opened it, in one line. */
   says?: ReactNode;
   /** Open the first time, before anybody has chosen. */
   start?: boolean;
+  /** The next thing to do is inside — open even on a phone, until somebody
+   *  chooses. A new project's Lines card, the one its Create button sent you
+   *  to, was shut on a phone with "none yet" on it. */
+  need?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(() => read(id, start && !phone()));
+  const [open, setOpen] = useState(() => read(id, need || (start && !phone())));
   const toggle = () => setOpen(o => {
     try { localStorage.setItem(KEY + id, o ? '0' : '1'); } catch { /* fine */ }
     return !o;

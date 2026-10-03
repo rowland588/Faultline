@@ -21,6 +21,7 @@ function Door({ title, says, onClick }: { title: string; says: string; onClick: 
 
 export function ReportsSheet({ project, onClose }: { project: Project; onClose: () => void }) {
   const stageGate = planModel(project) === 'commissioning';
+  const tree = planModel(project) === 'tree';
   const { lines } = usePaceLines(project.id);
   const [walk, setWalk] = useState<string | null>(null);
   const [said, setSaid] = useState('');
@@ -40,11 +41,18 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
   return (
     <Sheet open onClose={onClose} title="On paper">
       <div className="meet-reports">
-        <Door title="Client report" says={stageGate ? 'The job in the order it is run — the gates, the plan, the fixes, who owes what.' : 'The numbers, the board, where each line is limited, the walk.'}
+        {/* A lever tree job's report leads with the tree; the door said only
+            what a 3P job's carries. */}
+        <Door title="Client report" says={stageGate ? 'The job in the order it is run — the gates, the plan, the fixes, who owes what.'
+          : tree ? 'The outcome and what has to be true for it, the numbers, the board, the walk.'
+          : 'The numbers, the board, where each line is limited, the walk.'}
           onClick={() => go(stageGate ? `/project/${project.id}/report` : `/pace-report?project=${project.id}`)} />
         {!stageGate && lines.map(l => (
           <Door key={l.id} title={`Client report — ${l.name}`} says="The same report, for one line." onClick={() => go(`/pace-report?project=${project.id}&line=${l.id}`)} />
         ))}
+        {/* What the method prints (lib/planModel: "the tree on one page") was
+            the one printable thing this index did not list. */}
+        {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
         {stageGate && <Door title="Today" says="The day's story — what got done, what was found, with the pictures — one page." onClick={() => go(`/project/${project.id}/day`)} />}
         {stageGate && <Door title="Line standard" says="Who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
         {walk && <Door title="Evidence cards" says="One page per snag on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
