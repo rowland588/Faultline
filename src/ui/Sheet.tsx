@@ -6,6 +6,23 @@ import { createPortal } from 'react-dom';
  *  bar would otherwise be trapped in that bar's stacking context (z 20) and
  *  sit BELOW the bottom tab bar (z 30) — leaving its lowest rows ("Sign out",
  *  "Delete this workspace") visible but untappable wherever they overlap. */
+/** THE SAME WAY OUT OF EVERY SHEET, for the ones that draw their own panel
+ *  (the lever tree's Fill from the board, Build the conditions, Add from the
+ *  board, Type a list): Escape closes it, and so does a tap on the dimmed
+ *  page around it — not a tap inside it, and not the tap that opened it.
+ *  Spread the result onto the backdrop element. */
+export function useDismiss(onClose: () => void, open = true): { onClick: (e: React.MouseEvent) => void } {
+  const openedAt = useRef(Date.now());
+  useEffect(() => { if (open) openedAt.current = Date.now(); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, open]);
+  return { onClick: e => { if (e.target === e.currentTarget && Date.now() - openedAt.current > 450) onClose(); } };
+}
+
 export function Sheet({ open, onClose, title, children }: {
   open: boolean; onClose: () => void; title?: string; children: ReactNode;
 }) {

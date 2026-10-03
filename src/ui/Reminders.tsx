@@ -80,9 +80,12 @@ export function ReminderPermission() {
   // once the push address is registered, so the sentence is never ahead of it.
   const [reach, setReach] = useState<boolean | null>(null);
   useEffect(() => { if (state === 'granted') void pushRegistered().then(setReach); }, [state]);
+  /* Dismissing the browser's question leaves the permission at "default": the
+     button came back as if nothing had happened. Say it was not turned on. */
+  const [asked, setAsked] = useState(false);
   const grant = async () => {
     const s = await Notification.requestPermission();
-    setState(s);
+    setState(s); setAsked(true);
     if (s === 'granted') setReach(await subscribePush());
   };
   if (state === 'none') return <p className="sub nt-perm">This device cannot show notifications — reminders show on Home and on the project instead.</p>;
@@ -101,7 +104,9 @@ export function ReminderPermission() {
   return (
     <p className="sub nt-perm">
       <button type="button" className="btn btn-sm" onClick={() => void grant()}>Notify me on this device</button>
-      {' '}Reminders always show on Home and on the project; this adds a notification on the day, even when Faultline is closed.
+      {' '}{asked
+        ? 'Not turned on — the browser’s question was closed without a yes. Press it again to be asked again; reminders still show on Home and on the project.'
+        : 'Reminders always show on Home and on the project; this adds a notification on the day, even when Faultline is closed.'}
     </p>
   );
 }

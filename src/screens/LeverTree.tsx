@@ -28,6 +28,7 @@ import {
 import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
+import { useDismiss } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Peers, methodPeers } from '../ui/Peers';
 import { useMethodCounts } from '../lib/useMethodCounts';
@@ -422,6 +423,9 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const [pasteText, setPasteText] = useState('');
   /** 'pick' = choose off the tracker (the normal way); 'type' = write it out. */
   const [addMode, setAddMode] = useState<'pick' | 'type'>('pick');
+  /* Escape, or a tap on the page around it, closes the type-a-list sheet — as every sheet. */
+  const closeTyping = useCallback(() => setPasteInto(null), []);
+  const typingDismiss = useDismiss(closeTyping, !!pasteInto && addMode === 'type');
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
@@ -965,7 +969,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
       )}
 
       {pasteInto && addMode === 'type' && (
-        <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Type or paste a list">
+        <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Type or paste a list" {...typingDismiss}>
           <div className="lt-paste">
             <h2 className="lt-paste-t">Type underneath “{pasteInto.text.trim() || 'this box'}”</h2>
             <p className="sub">

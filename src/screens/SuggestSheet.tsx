@@ -15,6 +15,7 @@
  * want to improve rather than one they would leave alone.
  */
 import { useMemo, useState } from 'react';
+import { useDismiss } from '../ui/Sheet';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import { suggestConditions, trackerLines, allLinesCount, ALL_LINES, type TrackerBind } from '../lib/treeBind';
@@ -53,8 +54,9 @@ export function SuggestSheet({
   const toggle = (t: string) =>
     setOff(o => { const n = new Set(o); if (n.has(t)) n.delete(t); else n.add(t); return n; });
 
+  const dismiss = useDismiss(onClose);
   return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Build the conditions from the board">
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Build the conditions from the board" {...dismiss}>
       <div className="bs">
         <h2 className="lt-paste-t">Build the conditions</h2>
         <p className="sub bs-lede">

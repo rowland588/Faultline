@@ -16,6 +16,7 @@
  * headings is the day it stops being worth putting on a wall.
  */
 import { useMemo, useState } from 'react';
+import { useDismiss } from '../ui/Sheet';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceLineRow } from '../db';
 import {
@@ -84,8 +85,9 @@ export function BindSheet({
   const toggle = (c: string) =>
     setCats(cs => (cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c]));
 
+  const dismiss = useDismiss(onClose);
   return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Fill this box from the board">
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Fill this box from the board" {...dismiss}>
       <div className="bs">
         <h2 className="lt-paste-t">Fill from the board</h2>
         <p className="sub bs-lede">

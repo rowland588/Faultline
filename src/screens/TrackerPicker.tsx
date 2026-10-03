@@ -20,6 +20,7 @@
  * not in the tracker yet. It is the exception now rather than the route.
  */
 import { useMemo, useState } from 'react';
+import { useDismiss } from '../ui/Sheet';
 import type { PaceAction } from '../lib/tracker';
 
 const DONE = /^(done|complete|completed|closed)$/i;
@@ -79,8 +80,9 @@ export function TrackerPicker({
 
   const chosen = actions.filter(a => picked.has(key(a)));
 
+  const dismiss = useDismiss(onClose);
   return (
-    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Add work from the board">
+    <div className="lt-paste-back" role="dialog" aria-modal="true" aria-label="Add work from the board" {...dismiss}>
       <div className="lt-pick">
         <div className="lt-pick-head">
           <h2 className="lt-paste-t">Add under “{title}”</h2>
