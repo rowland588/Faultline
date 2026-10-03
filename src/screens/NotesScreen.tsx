@@ -34,6 +34,9 @@ type TT = ReturnType<typeof useTesting>;
 /** What a picker needs to say what a note can be about. */
 type Job = { tests: Test[]; assets: Asset[] };
 
+/* "Yesterday · Fri, 2 Oct" → "yesterday · Fri, 2 Oct" — the whole line
+   lowercased read "fri, 2 oct". */
+const lowerFirst = (w: string) => w.charAt(0).toLowerCase() + w.slice(1);
 const daysFrom = (iso: string) => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${todayISO()}T12:00:00Z`)) / 86_400_000);
 
 /** WHAT A NOTE IS ABOUT, in two steps that mirror the job's own tabs. The first
@@ -170,7 +173,7 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
             <button className={'nt-rem' + (!done && n.due < todayISO() ? ' is-late' : '') + (!done && n.due === todayISO() ? ' is-today' : '')}
               onClick={() => setReminding(true)} title="Change the reminder">
               <i className="nt-rem-dot" aria-hidden />
-              {done ? `Reminder was ${remindWords({ due: n.due, days: daysFrom(n.due) }).toLowerCase()}` : `Reminder · ${remindWords({ due: n.due, days: daysFrom(n.due) })}`}
+              {done ? `Reminder was ${lowerFirst(remindWords({ due: n.due, days: daysFrom(n.due) }))}` : `Reminder · ${remindWords({ due: n.due, days: daysFrom(n.due) })}`}
               {n.onPlan && <span className="nt-rem-plan">on the plan</span>}
             </button>
           ) : !done && (
@@ -196,7 +199,17 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   const [copied, setCopied] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-  if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
+  /* A link to a project that has gone is a dead end, not a crash — and it
+     says where to go, the way the project page and Materials do. It was the
+     sentence alone, with nothing on the screen to press. */
+  if (!project) {
+    return (
+      <div className="wrap pace">
+        <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+      </div>
+    );
+  }
 
   const job: Job = { tests: tt.tests, assets: tt.assets };
   const notes = live(tt.items).filter(i => i.kind === 'note').sort((a, b) => a.createdAt - b.createdAt);
@@ -294,7 +307,10 @@ export function NotesScreen({ projectId }: { projectId: string }) {
       {groups.map(g => {
         const link = g.scope.kind === 'record' ? `/project/${projectId}/testing/${encodeURIComponent(g.scope.testId)}`
           : g.scope.kind === 'gate' ? GATE_PATH[g.scope.gate] ? `/project/${projectId}/${GATE_PATH[g.scope.gate]}` : undefined
-            : undefined;
+            /* A machine lives on Install — the same door the waiting-on
+               table gives it. Its heading was the one that went nowhere. */
+            : g.scope.kind === 'machine' ? `/project/${projectId}/install`
+              : undefined;
         return (
           <section key={g.key || 'job'} className="nt-group">
             <h3 className="nt-group-h">

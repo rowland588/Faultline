@@ -98,7 +98,17 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const filmed = useFilmed(projectId, tt.tests, tt.items);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-  if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
+  /* A link to a project that has gone is a dead end, not a crash — and it
+     says where to go, the way the project page and Materials do. It was the
+     sentence alone, with nothing on the screen to press. */
+  if (!project) {
+    return (
+      <div className="wrap pace">
+        <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+      </div>
+    );
+  }
 
   const today = todayISO();
   const stages = usualStages(project, projects, gate);

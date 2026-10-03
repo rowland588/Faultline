@@ -262,7 +262,6 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
               you are waiting on.
             </p>
           </div>
-          <AddMaterial state={state} lines={lines.lines} />
         </>
       ) : (
         <>
@@ -281,10 +280,14 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
               ))}
             </div>
           </section>
-
-          <AddFold label="Add what you need"><AddMaterial state={state} lines={lines.lines} /></AddFold>
         </>
       )}
+
+      {/* OUTSIDE THE BRANCH ON PURPOSE — the fix Programs already has. It sat
+          in both arms, so adding the FIRST thing swapped arms, unmounted the
+          form and folded it shut: the line just picked was gone and the
+          second thing needed "+ Add what you need" first. */}
+      <AddFold label="Add what you need" start={t.total === 0}><AddMaterial state={state} lines={lines.lines} /></AddFold>
 
       {/* WHAT THE MACHINE CAN RUN, beside what it is waiting for — the two
           answer one question between them. On a stage-gate job Programs is

@@ -36,7 +36,9 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const stand = useStanding(projectId);
   const asked = useRoute().query.get('d') ?? '';
   const today = todayISO();
-  const date = ISO.test(asked) ? asked : today;
+  /* A day still to come has no story, and a link to one said "Nothing was
+     logged" over bars marked "by the end of the day" — read as today. */
+  const date = ISO.test(asked) && asked <= today ? asked : today;
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
@@ -46,7 +48,17 @@ export function DayScreen({ projectId }: { projectId: string }) {
   useEffect(() => { setSaid(null); setErr(null); }, [date]);
 
   if (loading || tt.loading || mats.loading || progs.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-  if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
+  /* A link to a project that has gone is a dead end, not a crash — and it
+     says where to go, the way the project page and Materials do. It was the
+     sentence alone, with nothing on the screen to press. */
+  if (!project) {
+    return (
+      <div className="wrap pace">
+        <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+      </div>
+    );
+  }
 
   const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs };
   const day = dayOf(input, date, today);
@@ -92,7 +104,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       <header className="cm-head dy-head">
         <div>
           <p className="cm-eyebrow">{project.name}</p>
-          <h1>{date === today ? 'Today' : niceDay(date, { weekday: 'short' })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
+          <h1>{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
           <p className="dy-headline">{day.headline}</p>
         </div>
       </header>
