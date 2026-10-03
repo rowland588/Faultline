@@ -2846,6 +2846,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 .pset-role { font-weight: 600; color: var(--muted); text-transform: capitalize; }
 .pset-role-pick { flex: 0 0 auto; width: auto; margin-top: 0; }
+/* THE INVITE BOX TAKES THE ROW. Beside the role and the button it was
+   squeezed to 62px on a phone — "Invit" — too narrow to see an address. */
+.project-setup .row-inline { flex-wrap: wrap; }
+.project-setup .row-inline input[type="email"] { flex: 1 1 220px; min-width: 0; }
 
 @media (max-width: 720px) {
   .pset-add-grid { grid-template-columns: 1fr 1fr; }
@@ -3152,7 +3156,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border-radius: 6px;
 }
 .spine-crumb:active { background: var(--surface-2); }
-.spine-crumb.is-here { color: var(--ink); font-weight: 800; padding: 4px 3px; white-space: nowrap; }
+.spine-crumb.is-here { color: var(--ink); font-weight: 800; padding: 4px 3px; white-space: nowrap; cursor: default; }
 
 /* Roomier once there is width for it, and no longer pinned to the top edge —
    on a laptop the whole trail is visible at once and does not need to chase
@@ -3168,6 +3172,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   .spine-up { display: none; }
   .spine-trail { -webkit-mask-image: none; mask-image: none; }
   .spine-crumb:hover { color: var(--accent); background: var(--surface-2); }
+  /* Where you are is not a link: it wore the hand and the hover of one. */
+  .spine-crumb.is-here:hover { color: var(--ink); background: none; }
 }
 
 /* ---------- the front door: the work first, the containers after ---------- */
@@ -7217,7 +7223,7 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
   .vd-tiles { display: none; }
   .vd-sentence { font-size: 19px; line-height: 1.22; }
   /* The day: one line, not a card. */
-  .dy-link { grid-template-columns: auto 1fr auto; align-items: baseline; gap: 8px; margin: 10px 0; padding: 10px 12px; }
+  .dy-link { grid-template-columns: auto 1fr auto; align-items: baseline; gap: 8px; margin: 10px 0; padding: 10px 12px; min-height: 44px; }
   .dy-link .cmp-h-n { font-size: 10px; }
   .dy-link-t { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dy-link-go { font-size: 0; }
