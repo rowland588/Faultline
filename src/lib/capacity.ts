@@ -425,9 +425,36 @@ const speedWords = (s: Station): string => {
   const v = perMinute(s);
   return v == null ? 'no speed' : `${fmtN(v)} ${s.unit.trim() || 'units'} a minute`;
 };
+const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
+const byRate = (s: Station) => s.rate != null && s.rate > 0;
+const byCycle = (s: Station) => !byRate(s) && s.cycleSec != null && s.cycleSec > 0 && s.perCycle != null && s.perCycle > 0;
+/** A SPEED CHANGE IN THE WORDS IT WAS TYPED IN. A person who changed 8 s to
+ *  10 s must read "every 10 s instead of every 8 s", not "6 a minute instead
+ *  of 7.5" — the number they never typed. Only when the way of saying the speed
+ *  itself changed does it fall back to a minute. */
+function speedChange(a: Station, s: Station): string | undefined {
+  if (perMinute(a) === perMinute(s)) return undefined;
+  const unit = s.unit.trim() || 'units';
+  if (byRate(a) && byRate(s) && (a.ratePer ?? 'min') === (s.ratePer ?? 'min')) return `${fmtN(s.rate as number)} ${unit} ${PER_WORD[s.ratePer ?? 'min']} instead of ${fmtN(a.rate as number)}`;
+  if (byCycle(a) && byCycle(s)) {
+    if (a.perCycle === s.perCycle) return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of every ${fmtN(a.cycleSec as number)} s`;
+    if (a.cycleSec === s.cycleSec) return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of ${fmtN(a.perCycle as number)}`;
+    return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of ${fmtN(a.perCycle as number)} every ${fmtN(a.cycleSec as number)} s`;
+  }
+  // the way of saying it changed (a minute → an hour, a rate → a timing): both, as typed
+  const typed = (x: Station, withUnit: boolean) => {
+    const u = withUnit ? `${unit} ` : '';
+    if (byRate(x)) return `${fmtN(x.rate as number)} ${u}${PER_WORD[x.ratePer ?? 'min']}`;
+    if (byCycle(x)) return `${fmtN(x.perCycle as number)} ${u}every ${fmtN(x.cycleSec as number)} s`;
+    return withUnit ? speedWords(x) : speedWords(x).replace(` ${unit}`, '');
+  };
+  return `${typed(s, true)} instead of ${typed(a, false)}`;
+}
+const crewWords = (s: Station, n: number) => (s.kind === 'people' ? `${fmtN(n)} ${n === 1 ? 'person' : 'people'}` : `${fmtN(n)} of them`);
 
 /** WHAT CHANGED between the line as run and a what-if, in words a person
- *  would say: "Basketer: 5.5 → 8 baskets a minute", "Basketer: 8 to a basket
+ *  would say: "Basketer: 8 baskets a minute instead of 5.5", "Packing: 1 baskets
+ *  every 10 s instead of every 8 s", "Basketer: 8 to a basket
  *  instead of 12", "+ Second packer", "− Carrier". Matched by station id, so a
  *  renamed machine is "Basketer → New basketer", not a removal and an addition. */
 export function changedWords(asRun: Station[], w: Station[]): string[] {
@@ -439,29 +466,31 @@ export function changedIds(asRun: Station[], w: Station[]): Set<string> {
   return new Set(changedList(asRun, w).map(c => c.id));
 }
 /** What changed AT EACH STATION, by id, without the station's name — the
- *  words a ladder row carries under its bar: "5.5 baskets a minute → 8
- *  baskets a minute", "added", "renamed". A station not in the map is as run. */
-export function changedByStation(asRun: Station[], w: Station[]): Map<string, string> {
-  return new Map(changedList(asRun, w).filter(c => c.at).map(c => [c.id, c.at as string]));
+ *  lines a ladder row carries under its bar, ONE CHANGE A LINE: "1 baskets
+ *  every 10 s instead of every 8 s", "2 people instead of 1". A station not in
+ *  the map is as run. */
+export function changedByStation(asRun: Station[], w: Station[]): Map<string, string[]> {
+  return new Map(changedList(asRun, w).filter(c => c.at?.length).map(c => [c.id, c.at as string[]]));
 }
-function changedList(asRun: Station[], w: Station[]): { id: string; said: string; at?: string }[] {
-  const out: { id: string; said: string; at?: string }[] = [];
+function changedList(asRun: Station[], w: Station[]): { id: string; said: string; at?: string[] }[] {
+  const out: { id: string; said: string; at?: string[] }[] = [];
   const before = new Map(asRun.map((s, i) => [s.id, { s, i }]));
   const after = new Map(w.map((s, i) => [s.id, { s, i }]));
   w.forEach((s, i) => {
     const b = before.get(s.id);
-    if (!b) { out.push({ id: s.id, said: `+ ${nm(s, i)} (${speedWords(s)})`, at: `added · ${speedWords(s)}` }); return; }
+    if (!b) { out.push({ id: s.id, said: `+ ${nm(s, i)} (${speedWords(s)})`, at: [`added · ${speedWords(s)}`] }); return; }
     const a = b.s;
     const who = a.name.trim() !== s.name.trim() ? `${nm(a, b.i)} → ${nm(s, i)}` : nm(s, i);
     const bits: string[] = [];
-    if (perMinute(a) !== perMinute(s)) bits.push(`${speedWords(a)} → ${speedWords(s)}`);
+    const sp = speedChange(a, s);
+    if (sp) bits.push(sp);
     if (i > 0 && a.contains !== s.contains) bits.push(`${fmtN(s.contains)} to a ${s.unit.trim().replace(/s$/i, '') || 'unit'} instead of ${fmtN(a.contains)}`);
-    if ((a.crew ?? 1) !== (s.crew ?? 1)) bits.push(`${fmtN(s.crew ?? 1)} of it instead of ${fmtN(a.crew ?? 1)}`);
+    if ((a.crew ?? 1) !== (s.crew ?? 1)) bits.push(`${crewWords(s, s.crew ?? 1)} instead of ${fmtN(a.crew ?? 1)}`);
     if ((a.runningPct ?? 100) !== (s.runningPct ?? 100)) bits.push(`running ${fmtN(s.runningPct ?? 100)}% instead of ${fmtN(a.runningPct ?? 100)}%`);
     if ((a.goodPct ?? 100) !== (s.goodPct ?? 100)) bits.push(`${fmtN(s.goodPct ?? 100)}% good instead of ${fmtN(a.goodPct ?? 100)}%`);
     if (a.unit.trim() !== s.unit.trim()) bits.push(`counts in ${s.unit.trim() || 'units'} instead of ${a.unit.trim() || 'units'}`);
-    if (who !== nm(s, i) && !bits.length) out.push({ id: s.id, said: who, at: `was ${nm(a, b.i)}` });
-    else if (bits.length) out.push({ id: s.id, said: `${who}: ${bits.join(', ')}`, at: bits.join(', ') });
+    if (who !== nm(s, i) && !bits.length) out.push({ id: s.id, said: who, at: [`was ${nm(a, b.i)}`] });
+    else if (bits.length) out.push({ id: s.id, said: `${who}: ${bits.join(', ')}`, at: bits });
   });
   asRun.forEach((s, i) => { if (!after.has(s.id)) out.push({ id: s.id, said: `− ${nm(s, i)}` }); });
   return out;

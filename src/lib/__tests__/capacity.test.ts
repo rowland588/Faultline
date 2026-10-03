@@ -394,7 +394,7 @@ describe('a what-if beside the line', () => {
   it('says what changed, by station, in words', () => {
     const w: Station[] = [chain[0], { ...chain[1], name: 'New basketer', rate: 9 }, { ...chain[2], contains: 48 }];
     expect(changedWords(chain, w)).toEqual([
-      'Basketer → New basketer: 5.5 baskets a minute → 9 baskets a minute',
+      'Basketer → New basketer: 9 baskets a minute instead of 5.5',
       'Palletiser: 48 to a pallet instead of 40',
     ]);
     expect(changedWords(chain, [...chain, { id: 'd', name: 'Checker', kind: 'people', unit: 'pallets', contains: 1, rate: 2, ratePer: 'min' }])).toEqual(['+ Checker (2 pallets a minute)']);
@@ -417,7 +417,7 @@ describe('a what-if beside the line', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]], action: { id: 'a1', raisedAt: 1 } };
     const rep = capacityReport([{ name: 'Line 2A', capacity: { ...asRun, whatIfs: [w] } }]);
     const wi = rep?.lines[0].whatIfs[0];
-    expect(wi).toMatchObject({ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true, changed: ['Basketer: 5.5 baskets a minute → 9 baskets a minute'] });
+    expect(wi).toMatchObject({ name: 'New basketer', says: expect.stringMatching(/^With New basketer/), onBoard: true, changed: ['Basketer: 9 baskets a minute instead of 5.5'] });
     expect(rep?.lines[0].rows[1].feed).toBe('8.8 baskets a minute arrive · it does 5.5 — holds the line back');
   });
   it('the report draws each what-if as its own ladder on the as-run scale', () => {
@@ -438,9 +438,18 @@ describe('a what-if beside the line', () => {
   it('says what changed at each station, for the row under its bar', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], name: 'New basketer', rate: 9 }, { id: 'x', name: 'Checker', kind: 'machine', unit: 'baskets', contains: 1, rate: 20, ratePer: 'min' }] };
     const m = changedByStation(chain, w.stations);
-    expect(m.get(chain[1].id)).toBe('5.5 baskets a minute → 9 baskets a minute');
-    expect(m.get('x')).toBe('added · 20 baskets a minute');
+    expect(m.get(chain[1].id)).toEqual(['9 baskets a minute instead of 5.5']);
+    expect(m.get('x')).toEqual(['added · 20 baskets a minute']);
     expect(m.has(chain[0].id)).toBe(false);
+  });
+  it('a change is said in the words it was typed in, one a line', () => {
+    const packing: Station = { id: 'p', name: 'Packing', kind: 'people', unit: 'Baskets', contains: 8, cycleSec: 8, perCycle: 1, crew: 1, source: 'timed' };
+    const m = changedByStation([chain[0], packing], [chain[0], { ...packing, cycleSec: 10, crew: 2 }]);
+    expect(m.get('p')).toEqual(['1 Baskets every 10 s instead of every 8 s', '2 people instead of 1']);
+    expect(changedByStation([chain[0], packing], [chain[0], { ...packing, crew: 2 }]).get('p')).toEqual(['2 people instead of 1']);
+    expect(changedByStation([chain[0], packing], [chain[0], { ...packing, perCycle: 2 }]).get('p')).toEqual(['2 Baskets every 8 s instead of 1']);
+    const m2 = changedByStation([chain[1]], [{ ...chain[1], rate: 300, ratePer: 'hour', crew: 2 }]);
+    expect(m2.get(chain[1].id)).toEqual(['300 baskets an hour instead of 5.5 a minute', '2 of them instead of 1']);
   });
   it('make it so carries the prediction onto the board as the why', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: chain };
@@ -462,7 +471,7 @@ describe('the report carries the detail behind every bar', () => {
     const w: WhatIf = { id: 'w', name: 'New basketer', createdAt: 0, stations: [chain[0], { ...chain[1], rate: 9 }, chain[2]] };
     const rep = capacityReport([{ name: 'Line 2A', capacity: { targetPerMin: 60, stations: chain, whatIfs: [w] } }])!;
     expect(rep.lines[0].rows[0].detail).toBe('70 bags a minute · 1 of it · 100% running · a guess');
-    expect(rep.lines[0].whatIfs[0].changed).toEqual(['Basketer: 5.5 baskets a minute → 9 baskets a minute']);
+    expect(rep.lines[0].whatIfs[0].changed).toEqual(['Basketer: 9 baskets a minute instead of 5.5']);
     expect(lineSheetUnits(rep.lines[0])).toBeCloseTo(3 + 3 * 1.6 + 1 + 0.5 + 3 * 0.8 + 0.5, 5);
   });
 });

@@ -47,7 +47,7 @@ const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
  * whole ladder re-fitting itself and nothing seeming to move. `moved` is what
  * a what-if changed at each station, said under its bar ("5.5 baskets a minute
  * → 8 baskets a minute"), so the reason for the new shape is on the row. */
-function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; top?: number; moved?: Map<string, string> }) {
+function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; top?: number; moved?: Map<string, string[]> }) {
   const top = sharedTop ?? (Math.max(...r.ok.map(x => x.running), r.target ?? 0) * 1.06 || 1);
   const at = (v: number) => `${Math.min(100, (v / top) * 100)}%`;
   return (
@@ -63,7 +63,7 @@ function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; t
               {isLimit && <span className="cap-flag">{moved ? 'would limit the line' : 'limits the line'}</span>}
               {was && <span className="cap-moved">changed</span>}
               {x.chain && <span className="cap-chain">{x.chain}</span>}
-              {was && <span className="cap-was">{was}</span>}
+              {was && was.map(x => <span key={x} className="cap-was">{x}</span>)}
             </span>
             <span className="cap-track">
               {/* what it does at running speed, behind what it does once its own
