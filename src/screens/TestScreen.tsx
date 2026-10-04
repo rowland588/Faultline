@@ -39,6 +39,7 @@ import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type Change, type VoiceResult } from '../lib/voice';
 import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -258,10 +259,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             reads any differently, and the extra box only matters to somebody
             who needs it. */}
         <label className={'cw-f' + hl('plannedFor')}><span>Planned from</span>
-          <input type="date" value={moving?.plannedFor ?? test.plannedFor ?? ''} onChange={e => redate({ plannedFor: e.target.value || undefined })} /></label>
+          <DateInput value={moving?.plannedFor ?? test.plannedFor ?? ''} onCommit={v => redate({ plannedFor: v || undefined })} /></label>
         <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
-          <input type="date" value={moving ? moving.plannedTo ?? '' : test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
-            onChange={e => redate({ plannedTo: e.target.value || undefined })} /></label>
+          <DateInput value={moving ? moving.plannedTo ?? '' : test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
+            onCommit={v => redate({ plannedTo: v || undefined })} /></label>
         {/* PUSHED LATER: asked why before it is kept — the plan shows the answer. */}
         {moving && (
           <div className="cw-f-wide">
@@ -327,10 +328,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               onSave={v => save({ product: v.trim() || undefined })} /></label>
         )}
         <label className={'cw-f' + hl('ranOn')}><span>On the day</span>
-          <input type="date" value={test.ranOn ?? ''} onChange={e => save({ ranOn: e.target.value || undefined })} /></label>
+          <DateInput value={test.ranOn ?? ''} onCommit={v => save({ ranOn: v || undefined })} /></label>
         <label className="cw-f" title="Leave blank when it took one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
-          <input type="date" value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
-            onChange={e => save({ ranTo: e.target.value || undefined })} /></label>
+          <DateInput value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
+            onCommit={v => save({ ranTo: v || undefined })} /></label>
         <label className={'cw-f cw-f-wide' + hl('result')}><span>{words.happened}</span>
           <DraftArea rows={5} value={test.result ?? ''}
             placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
@@ -739,7 +740,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
             <DraftField value={item.owner ?? ''} placeholder="Ilapak UK" onSave={v => void tt.saveItem({ ...item, owner: v.trim() || undefined })} /></label>
           {item.kind === 'next' && (
             <label className="cw-f"><span>By when</span>
-              <input type="date" value={item.due ?? ''} onChange={e => void tt.saveItem({ ...item, due: e.target.value || undefined })} /></label>
+              <DateInput value={item.due ?? ''} onCommit={v => void tt.saveItem({ ...item, due: v || undefined })} /></label>
           )}
           <Evidence media={item.media ?? []} onView={onView} kind="found"
             onAdd={refs => tt.patchItem(item.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />

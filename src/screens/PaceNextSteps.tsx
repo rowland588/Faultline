@@ -24,6 +24,7 @@ import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 type State = PaceTodoRow['state'];
 
@@ -107,8 +108,8 @@ function Row({ row, onPatch, onDelete, onOpen, focusOutcome, onFocused, compact,
           could not be given a date from here. The words stay for an answer a
           date cannot hold. */}
       <td data-h="When">
-        <input className="ns-in ns-due" type="date" value={row.due ?? ''} aria-label="Due"
-          onChange={e => onPatch({ due: e.target.value || undefined })} />
+        <DateInput className="ns-in ns-due" value={row.due ?? ''} aria-label="Due"
+          onCommit={v => onPatch({ due: v || undefined })} />
         <DraftField className="ns-in" value={row.when} ariaLabel="When, in words"
           placeholder={row.due ? 'or in words' : 'or in words — e.g. w/c 22nd'} onSave={v => onPatch({ when: v })} />
       </td>

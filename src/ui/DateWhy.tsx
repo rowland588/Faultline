@@ -12,6 +12,7 @@ import { movedLater } from '../lib/story';
 import { niceDay } from '../lib/weeks';
 import { WhyMoved, recordThingMove } from './WhyMoved';
 import { offerUndo } from './Undo';
+import { DateInput } from './DateInput';
 
 export function DateWhy({ value, onChange, projectId, storyKey, what, className, ariaLabel, min }: {
   value?: string;
@@ -29,10 +30,10 @@ export function DateWhy({ value, onChange, projectId, storyKey, what, className,
   const [pending, setPending] = useState<string | null>(null);
   return (
     <>
-      <input type="date" className={className} aria-label={ariaLabel} min={min}
+      <DateInput className={className} aria-label={ariaLabel} min={min}
         value={pending ?? value ?? ''}
-        onChange={e => {
-          const v = e.target.value || undefined;
+        onCommit={raw => {
+          const v = raw || undefined;
           if (v && movedLater(value, v)) { setPending(v); return; }
           setPending(null);
           void onChange(v);

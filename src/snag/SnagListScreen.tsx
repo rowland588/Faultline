@@ -12,6 +12,7 @@ import {
 } from './types';
 import { TimeStrip, dueWord } from './TimeStrip';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 const dateNice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 
@@ -224,7 +225,7 @@ export function SnagListScreen() {
       <td className="st-due" data-label="Due">
         <div className="due-cell">
           <div className="due-cell-top">
-            <input type="date" className="mini-due" defaultValue={dueToInput(r.snag.dueAt)} onChange={e => changeDue(r, e.target.value)} />
+            <DateInput className="mini-due" value={dueToInput(r.snag.dueAt)} onCommit={v => changeDue(r, v)} />
             {dueWord(r.snag) ? <span className={'due-word' + (isOverdue(r.snag) ? ' dw-over' : isDueSoon(r.snag) ? ' dw-soon' : '')}>{dueWord(r.snag)}</span> : null}
           </div>
           <TimeStrip snag={r.snag} />

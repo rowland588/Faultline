@@ -22,6 +22,7 @@ import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueF
 import { studyResult, defaultTargetN, studyTarget, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 /** Mean-per-event, in words a room can read aloud. */
 export const fmtMean = (ms: number): string =>
@@ -471,8 +472,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <input className="mini-owner no-print" defaultValue={s.owner ?? ''} placeholder="Owner" aria-label="Owner"
                 onBlur={e => { const o = e.target.value.trim(); if (o !== (s.owner ?? '')) void mutateSnag({ ...s, owner: o || undefined }); }} />
               {s.owner ? <span className="print-only">· {s.owner}</span> : null}
-              <input type="date" className="mini-due no-print" defaultValue={dueToInput(s.dueAt)} aria-label="Due date"
-                onChange={e => { const dueAt = dueFromInput(e.target.value); if (dueAt !== s.dueAt) void mutateSnag({ ...s, dueAt }); }} />
+              <DateInput className="mini-due no-print" value={dueToInput(s.dueAt)} aria-label="Due date"
+                onCommit={v => { const dueAt = dueFromInput(v); if (dueAt !== s.dueAt) void mutateSnag({ ...s, dueAt }); }} />
               {s.dueAt ? <span className="print-only">· due {dateNice(s.dueAt)}</span> : null}
               <span className="ma-strip"><TimeStrip snag={s} />{dueWord(s) ? <span className={'due-word' + (isOverdue(s) ? ' dw-over' : isDueSoon(s) ? ' dw-soon' : '')}>{dueWord(s)}</span> : null}</span>
             </div>

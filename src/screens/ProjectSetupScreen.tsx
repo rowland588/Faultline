@@ -30,6 +30,7 @@ import { displayName } from '../cloud/team';
 import { supabase } from '../cloud/client';
 import { DraftText as Cell } from '../ui/Draft';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 /* The write-on-blur inputs are shared — see ui/Draft.tsx for why a cell owns its
    draft while it has focus. */
@@ -479,8 +480,8 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           <>
             <label className="proj-field">
               <span className="field-label">Handover agreed</span>
-              <input className="pset-cell is-wide" type="date" value={project.plannedAt ?? ''}
-                onChange={e => void rename(project, { plannedAt: e.target.value || undefined })} />
+              <DateInput className="pset-cell is-wide" value={project.plannedAt ?? ''}
+                onCommit={v => void rename(project, { plannedAt: v || undefined })} />
             </label>
             <div className="proj-field">
               <span className="field-label">Now expected</span>

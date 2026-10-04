@@ -39,6 +39,7 @@ import {
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
 import type { Case, Observation, DrillPath, DimensionKey, WorkstreamView } from '../types';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 const WEEK_MS = 7 * 24 * 3600_000;
 const BOARD_ORDER: DimensionKey[] = ['asset', 'category', 'subcategory', 'shift'];
@@ -412,8 +413,8 @@ export function MeetingScreen() {
                       </select>
                       <input className="mini-owner" defaultValue={s.owner ?? ''} placeholder="Owner" aria-label="Owner"
                         onBlur={e => { const o = e.target.value.trim(); if (o !== (s.owner ?? '')) void mutate({ ...s, owner: o || undefined }); }} />
-                      <input type="date" className="mini-due" defaultValue={dueToInput(s.dueAt)} aria-label="Due date"
-                        onChange={e => { const dueAt = dueFromInput(e.target.value); if (dueAt !== s.dueAt) void mutate({ ...s, dueAt }); }} />
+                      <DateInput className="mini-due" value={dueToInput(s.dueAt)} aria-label="Due date"
+                        onCommit={v => { const dueAt = dueFromInput(v); if (dueAt !== s.dueAt) void mutate({ ...s, dueAt }); }} />
                       <span className="ma-strip"><TimeStrip snag={s} />{dueWord(s) ? <span className={'due-word' + (isOverdueNow(s) ? ' dw-over' : isDueSoon(s) ? ' dw-soon' : '')}>{dueWord(s)}</span> : null}</span>
                     </div>
                   </div>

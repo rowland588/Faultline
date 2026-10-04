@@ -11,7 +11,7 @@
  */
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
-import { useState, type ChangeEvent } from 'react';
+import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
@@ -27,6 +27,7 @@ import {
   type Asset, type Test, type TestKind,
 } from '../lib/testing';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
@@ -171,8 +172,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       {dates && (
         <div className="cx-dates">
           <label className="cw-f"><span>Handover agreed — never moves</span>
-            <input type="date" value={project.plannedAt ?? ''}
-              onChange={e => void updateProject({ ...project, plannedAt: e.target.value || undefined, updatedAt: Date.now() })} /></label>
+            <DateInput value={project.plannedAt ?? ''}
+              onCommit={v => void updateProject({ ...project, plannedAt: v || undefined, updatedAt: Date.now() })} /></label>
           <div className="cw-f"><span>Handover now expected</span>
             <DateWhy ariaLabel="Handover now expected" value={project.expectedAt} projectId={project.id} storyKey={HANDOVER_KEY} what="Handover"
               onChange={v => updateProject({ ...project, expectedAt: v, updatedAt: Date.now() })} /></div>
@@ -320,7 +321,7 @@ export function MachineCard({ a, ran, save, remove }: {
   const on = assetStateOn(a);
   const late = a.state === 'awaited' && !!a.dueOn && a.dueOn < todayISO();
   const set = (k: 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn') =>
-    (e: ChangeEvent<HTMLInputElement>) => void save({ ...a, [k]: e.target.value || undefined });
+    (v: string) => void save({ ...a, [k]: v || undefined });
   return (
     <div className="tw-asset">
       <div className="tw-asset-r">
@@ -351,11 +352,11 @@ export function MachineCard({ a, ran, save, remove }: {
             <DateWhy ariaLabel="Expected on site" value={a.dueOn} projectId={a.projectId} storyKey={keyOf('machine', a.id)} what={`${a.name} due on site`}
               onChange={v => save({ ...a, dueOn: v })} /></div>
           <label className="cw-f"><span>On site</span>
-            <input type="date" value={a.onSiteOn ?? ''} onChange={set('onSiteOn')} /></label>
+            <DateInput value={a.onSiteOn ?? ''} onCommit={set('onSiteOn')} /></label>
           <label className="cw-f"><span>Installed</span>
-            <input type="date" value={a.installedOn ?? ''} onChange={set('installedOn')} /></label>
+            <DateInput value={a.installedOn ?? ''} onCommit={set('installedOn')} /></label>
           <label className="cw-f"><span>Running</span>
-            <input type="date" value={a.runningOn ?? ''} onChange={set('runningOn')} /></label>
+            <DateInput value={a.runningOn ?? ''} onCommit={set('runningOn')} /></label>
         </div>
       )}
     </div>

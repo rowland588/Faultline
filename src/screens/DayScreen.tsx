@@ -25,6 +25,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import type { MediaRef } from '../types';
+import { DateInput } from '../ui/DateInput';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -113,8 +114,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
         <button className="btn btn-ghost" disabled={!prev} onClick={() => prev && go(prev)}>
           ‹ {prev ? niceDay(prev, { weekday: 'short' }) : 'Earlier'}
         </button>
-        <input type="date" value={date} max={today} aria-label="Go to a day"
-          onChange={e => ISO.test(e.target.value) && go(e.target.value)} />
+        <DateInput value={date} max={today} aria-label="Go to a day"
+          onCommit={v => { if (ISO.test(v)) go(v); }} />
         <button className="btn btn-ghost" disabled={!next} onClick={() => next && go(next)}>
           {next ? (next === today ? 'Today' : niceDay(next, { weekday: 'short' })) : 'Later'} ›
         </button>

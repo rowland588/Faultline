@@ -22,6 +22,7 @@ import { DraftText, DraftNumber } from '../ui/Draft';
 import { useMeasures } from '../lib/useMeasures';
 import { todayISO, type Direction } from '../lib/measures';
 import type { PaceLineRow } from '../db';
+import { DateInput } from '../ui/DateInput';
 
 const DIRECTIONS: { id: Direction; label: string }[] = [
   { id: 'up', label: 'higher is better' },
@@ -154,12 +155,12 @@ function Periods({ state }: { state: ReturnType<typeof useMeasures> }) {
                   <td><DraftText value={p.name} placeholder="Q1"
                     onSave={v => void state.savePeriod({ ...p, name: v || p.name })} /></td>
                   <td>
-                    <input className="pset-cell" type="date" value={p.from ?? ''}
-                      onChange={e => void state.savePeriod({ ...p, from: e.target.value || undefined })} />
+                    <DateInput className="pset-cell" value={p.from ?? ''}
+                      onCommit={v => void state.savePeriod({ ...p, from: v || undefined })} />
                   </td>
                   <td>
-                    <input className="pset-cell" type="date" value={p.to ?? ''}
-                      onChange={e => void state.savePeriod({ ...p, to: e.target.value || undefined })} />
+                    <DateInput className="pset-cell" value={p.to ?? ''}
+                      onCommit={v => void state.savePeriod({ ...p, to: v || undefined })} />
                   </td>
                   <td className="ms-x">
                     <button className="pset-x" aria-label={`Remove ${p.name}`}
