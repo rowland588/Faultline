@@ -385,7 +385,7 @@ describe('measureOf', () => {
     expect(mm?.unit).toBe('ppm');
     expect(mm?.better).toBe('higher');
     expect(mm?.before).toBe(42);          // the reading in the 4 weeks before it opened
-    expect(mm?.now).toBe(47.75);          // mean of the last 4 weeks: 44, 46, 49, 52
+    expect(mm?.now).toBe(47.8);           // mean of the last 4 weeks: 44, 46, 49, 52
     expect(mm?.target).toBe(50);
     expect(mm?.moved).toBeUndefined();
     const acts = [action({ status: 'Done', causeRef: 'C1:k1', doneOn: iso(25) })];
@@ -427,7 +427,7 @@ describe('buildView', () => {
   it('the gap says the line against its target', () => {
     const ppm: Measure = { id: 'ppm', name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 1 };
     const v = buildView(problem({ source: { kind: 'gap' } }), data({ measures: [ppm], readings: [{ id: 'r', projectId: 'P', lineId: 'L1', measureId: 'ppm', at: iso(3), value: 47, createdAt: 1, updatedAt: 1 }] }), TODAY);
-    expect(v.says).toBe('Packs per minute on Line 2A: 47 ppm');
+    expect(v.says).toBe('Packs per minute on Line 2A: 47 ppm on the four-week average');
   });
 });
 

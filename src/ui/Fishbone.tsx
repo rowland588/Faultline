@@ -88,9 +88,10 @@ const FRAME_X = { drawn: 2 + 2 * 18, lanes: 2 + 2 * 12 };
 const laneId = (v: ProblemView, m: SixM) => `fb-lane-${v.problem.id}-${m}`;
 const gradeLabel = (c: Cause) => GRADES.find(g => g.key === c.grade)?.label ?? '';
 
-/** 3.2 · 48 · 1,250 — a tenth below ten, whole numbers above. */
+/** 3.2 · 47.8 · 1,250 — a tenth below a hundred, whole numbers above: the
+ *  same figure the sentence and the paper print (lib/fishbone rounds to a tenth). */
 export function num(n: number): string {
-  return Math.abs(n) < 10 ? n.toFixed(1).replace(/\.0$/, '') : Math.round(n).toLocaleString('en-GB');
+  return Math.abs(n) < 100 ? n.toFixed(1).replace(/\.0$/, '') : Math.round(n).toLocaleString('en-GB');
 }
 
 /** What a cause is, said in full — the mark's name for a screen reader, and its peek. */

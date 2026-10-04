@@ -628,7 +628,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
 
       {saw && (
         <SawSheet open projectId={projectId} line={line} problems={mine} api={api as ProblemsApi}
-          problemId={view?.problem.id}
+          problemId={view?.problem.id} short={doors.some(d => d.key === 'gap')}
           onClose={() => setSaw(false)}
           onSaved={id => { setSaw(false); setQuery({ problem: id }); }} />
       )}
@@ -655,7 +655,7 @@ export function FishboneScreen({ projectId }: { projectId: string }) {
     return (
       <div className="wrap pace">
         <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
       </div>
     );
   }

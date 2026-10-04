@@ -602,7 +602,6 @@ function movedOf(before: number, after: number, better: 'lower' | 'higher', tol:
 }
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined);
 const round1 = (n: number) => Math.round(n * 10) / 10;
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** The problem's own number, before and now (lib/problems ProblemMeasure).
  *
@@ -638,8 +637,10 @@ export function measureOf(problem: Case, data: FishboneData, today = Date.now())
     return {
       label: `${s.measure.name} on ${line.name}`,
       unit: s.measure.unit ?? '',
-      ...(before != null ? { before: round2(before) } : {}),
-      ...(now != null ? { now: round2(now) } : {}),
+      /* A tenth: an average of readings is not known to the hundredth, and the
+         fish's head, its sentence and the paper must say the same figure. */
+      ...(before != null ? { before: round1(before) } : {}),
+      ...(now != null ? { now: round1(now) } : {}),
       ...(s.target != null ? { target: s.target } : {}),
       better,
       ...(before != null && after != null ? { moved: movedOf(before, after, better, 0.05) } : {}),
@@ -677,7 +678,10 @@ function saysOf(problem: Case, data: FishboneData, measure: ProblemMeasure | nul
   if (!measure) return problem.title;
   if (problem.source?.kind === 'gap') {
     if (measure.now == null) return `${measure.label}: nothing measured yet`;
-    return `${measure.label}: ${say(measure.now, measure.unit)}${measure.target != null ? ` against a target of ${say(measure.target, measure.unit)}` : ''}`;
+    /* "the four-week average": the line's own sentence (lib/measures gapOf)
+       quotes the latest reading, so the two figures side by side must say
+       which is which. */
+    return `${measure.label}: ${say(measure.now, measure.unit)} on the four-week average${measure.target != null ? `, against a target of ${say(measure.target, measure.unit)}` : ''}`;
   }
   const scope = scopeOf(problem, data);
   const { from, to } = fullWeeks(today);

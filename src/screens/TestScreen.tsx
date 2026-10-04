@@ -107,7 +107,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             {project ? ` ${project.name}` : ' this project'} is still where it was.
           </p>
           <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>Back to the tests</button>
-          <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav('/projects')}>All projects</button>
+          <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav('/')}>Back to the control room</button>
         </section>
       </div>
     );

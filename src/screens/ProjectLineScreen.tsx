@@ -244,7 +244,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
       {saw && (
         <SawSheet open projectId={projectId} line={line} problems={lineProblems} api={problems}
-          problemId={route.query.get('problem') ?? undefined}
+          problemId={route.query.get('problem') ?? undefined} short={head?.meeting === false}
           onClose={() => setSaw(false)}
           onSaved={id => { setSaw(false); nav(`/project/${projectId}/line/${lineId}?problem=${id}`); }} />
       )}

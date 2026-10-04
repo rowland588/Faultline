@@ -108,7 +108,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
     return (
       <div className="wrap pace">
         <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
       </div>
     );
   }
