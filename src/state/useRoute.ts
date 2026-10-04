@@ -8,7 +8,8 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport';
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
+  | 'share';
 
 export interface Route {
   name: RouteName;
@@ -55,6 +56,12 @@ export function parseRoute(hash: string): Route {
   const query = new URLSearchParams(qs || '');
   const segs = path.split('/').filter(Boolean);
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
+  /* A share link: #/s/<token> opens one picture or clip for somebody with no
+     account (src/cloud/shares.ts). Public, like the guide. The token is taken
+     as it stands — its alphabet needs no decoding, and decodeURIComponent
+     throws on a stray % in a mangled link. A missing token is still the share
+     page, which says the link is not complete. */
+  if (segs[0] === 's') return { name: 'share', id: segs[1] ?? '', query };
   if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the client report

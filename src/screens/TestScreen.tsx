@@ -42,6 +42,9 @@ import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
+import { supabase } from '../cloud/client';
+import { useSession } from '../cloud/session';
+import { SharedLinks } from '../ui/ShareLink';
 import { mayWriteAgreement, type Can } from '../lib/access';
 
 const kb = (b?: number): string =>
@@ -62,6 +65,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
      where the owner agreed it. */
   const can = useAccess(projectId);
   const ro = !can.edit;
+  /* SENDING A PICTURE OUTSIDE is the owner's call, like inviting somebody
+     (supabase/SHARE_LINKS.sql), and only means anything with the cloud there
+     to serve the link. Nobody else is offered it or shown what was sent. */
+  const { session } = useSession();
+  const mayShare = can.people && !!supabase && !!session;
+  /* Bumped when a link is made, so the list under the pictures reads again. */
+  const [shareRev, setShareRev] = useState(0);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   /* 2 · THE DAY folds the same way once the verdict is in. */
@@ -391,6 +401,11 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       </section>
       )}
 
+      {/* WHAT HAS BEEN SENT — the links to this test's pictures, once, under
+          them, whether block 2 is open or folded. Made from the picture itself
+          (the viewer's "Share a link"); stopped from here. */}
+      {mayShare && <SharedLinks key={shareRev} projectId={projectId} testId={test.id} />}
+
       {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
           These are OBSERVATIONS: written down live, while it is running. Whether
           any of them is a fix is a decision somebody makes afterwards. */}
@@ -454,6 +469,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       </div>}
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        share={mayShare && (test.media ?? []).some(m => m.id === viewing.id)
+          ? { projectId, testId: test.id, onMade: () => setShareRev(r => r + 1) } : undefined}
         onRemove={!can.remove ? undefined : () => void (async () => {
           const gone = viewing;
           setViewing(null);

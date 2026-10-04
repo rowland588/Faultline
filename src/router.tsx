@@ -37,6 +37,7 @@ const StandardScreen = lazy(() => import('./screens/StandardScreen').then(m => (
 const NotesScreen = lazy(() => import('./screens/NotesScreen').then(m => ({ default: m.NotesScreen })));
 const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').then(m => ({ default: m.ClientReportScreen })));
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
+const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
@@ -58,6 +59,11 @@ export function Router() {
   // A build with no backend can't offer accounts. Say so — never fall through to
   // an unauthenticated app, and never ask the user to supply credentials.
   if (!cloudConfigured) return <ServiceUnavailable />;
+
+  /* A SHARE LINK opens for somebody with no account and never will have one:
+     one picture or clip, before the session is even asked about. It must not
+     wait on the session or show the sign-in door — it is not the app. */
+  if (route.name === 'share') return <Suspense fallback={<BootSplash />}><ShareScreen token={route.id ?? ''} /></Suspense>;
 
   // The "how it works" tour is public — an invitee reads it BEFORE signing up.
   /* INVENTORY OUT. The guide described the first version; the portfolio was

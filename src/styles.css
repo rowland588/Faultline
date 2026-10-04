@@ -8397,3 +8397,84 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 }
 .in-usual-edit input:focus { border-color: var(--accent); }
 @media (pointer: coarse) { .in-usual-edit input { font-size: 16px; } }
+
+/* ===========================================================================
+ * Share link page — #/s/<token> (src/screens/ShareScreen.tsx).
+ *
+ * The one page of Faultline somebody with no account sees: one picture or
+ * clip from a test, opened from WhatsApp or an email, mostly on a phone. Not
+ * the app — no shell, no tabs — so it sets its own calm column: the mark,
+ * what this is, the thing at full width (to 960px on a laptop), and a quiet
+ * foot. Nothing here wears a state colour; nothing on it is a state.
+ * =========================================================================== */
+.sh { min-height: 100%; display: flex; justify-content: center; }
+.sh-page {
+  width: 100%; max-width: calc(960px + 2 * 16px);
+  padding: 18px 16px calc(32px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column;
+}
+.sh-page-solo { max-width: calc(520px + 2 * 16px); justify-content: center; min-height: 80vh; }
+.sh-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.sh-brand .logo-mark { border-radius: 8px; box-shadow: 0 2px 8px rgba(20, 24, 31, 0.16); }
+.sh-name { font-family: "Outfit Variable", var(--display); font-weight: 500; font-size: 22px; letter-spacing: -0.02em; color: var(--ink); }
+
+.sh-head { margin-bottom: 16px; min-width: 0; }
+.sh-project {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px; overflow-wrap: anywhere;
+}
+.sh-title { font-size: clamp(23px, 4.4vw, 32px); line-height: 1.15; color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
+.sh-machine { font-size: 15.5px; font-weight: 600; color: var(--ink-2); margin-top: 6px; overflow-wrap: anywhere; }
+.sh-by { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+.sh-by b { color: var(--ink-2); font-weight: 600; }
+
+.sh-item { margin: 0; }
+.sh-video {
+  display: block; width: 100%; max-height: 78vh;
+  background: var(--shell); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.sh-photo-btn {
+  display: block; width: 100%; padding: 0; border: 0; background: transparent;
+  cursor: zoom-in; border-radius: var(--radius);
+}
+.sh-photo {
+  display: block; max-width: 100%; max-height: 78vh; margin: 0 auto;
+  border-radius: var(--radius); box-shadow: var(--shadow); background: var(--surface-2);
+}
+.sh-caption {
+  margin-top: 12px; font-size: 15.5px; line-height: 1.5; color: var(--ink);
+  white-space: pre-wrap; overflow-wrap: anywhere; max-width: 70ch;
+}
+.sh-hint { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.sh-foot {
+  margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--muted);
+}
+
+/* the picture at the size of the screen, then (a tap) at its own size */
+.sh-full {
+  position: fixed; inset: 0; z-index: 50; background: rgba(9, 18, 36, 0.94);
+  display: flex; align-items: center; justify-content: center; overflow: auto;
+}
+.sh-full img { max-width: 100vw; max-height: 100vh; object-fit: contain; cursor: zoom-in; }
+.sh-full.is-actual { align-items: flex-start; justify-content: flex-start; }
+.sh-full.is-actual img { max-width: none; max-height: none; cursor: zoom-out; }
+.sh-full-x {
+  position: fixed; top: calc(12px + env(safe-area-inset-top)); right: 12px;
+  min-height: 44px; padding: 0 16px; border-radius: 999px; border: 0;
+  background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer;
+}
+
+/* the link no longer opens: one sentence, and who to ask */
+.sh-gone-h { font-size: clamp(21px, 4.6vw, 26px); line-height: 1.25; color: var(--ink); text-wrap: balance; }
+.sh-gone-ask { margin-top: 12px; font-size: 15.5px; color: var(--ink-2); line-height: 1.5; }
+.sh-retry { margin-top: 18px; align-self: flex-start; min-height: 48px; padding: 0 22px; }
+
+.sh-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.sh-loading .logo-mark { border-radius: 12px; box-shadow: 0 6px 20px rgba(20, 24, 31, 0.22); }
+.sh-loading-txt { font-size: 14px; color: var(--muted); }
+
+@media (min-width: 720px) {
+  .sh-page { padding-top: 32px; }
+  .sh-brand { margin-bottom: 30px; }
+}
