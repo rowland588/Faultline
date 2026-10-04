@@ -132,7 +132,7 @@ function keyBlock(only: Set<CellTone>): Block {
       font(f.doc, SIZE.tiny, 'normal', MUTED);
       f.doc.text(p.w, f.x + p.x + 12, y + 9 + p.line * 12);
     }
-  });
+  }, f => (items.length ? gap(f.density, 's') : 0));
 }
 
 function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPlan: (pages: number[]) => void): Block[] {
@@ -154,7 +154,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     font(f.doc, 7.5, 'bold', '#8fa3c4'); f.doc.text('WHERE THE JOB IS', f.x + 16, y + 16);
     font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
     if (sl.length) { font(f.doc, 9, 'normal', '#c9d4e6'); f.doc.text(sl, f.x + 16, y + 34 + l.length * 17); }
-  }));
+  }, f => gap(f.density, 'l')));
 
   // the four gates, for the whole job
   out.push(label('The four gates'));
@@ -172,7 +172,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       font(f.doc, 11, 'bold', g.tone === 'done' ? OK : c.text === MUTED ? INK2 : c.text); f.doc.text(g.label, x + 7, y + 15);
       font(f.doc, 8, 'normal', INK2); f.doc.text(ls[i], x + 7, y + 27);
     });
-  }));
+  }, f => gap(f.density, 'l')));
 
   // where each machine is — one row per machine, as tall as its name
   if (r.machines.length) {
@@ -393,5 +393,5 @@ function fixCard(fx: FixRow, shot: Shot | undefined): Block {
       try { f.doc.addImage(shot.data, 'JPEG', f.x + f.w - iw, y + 2, iw, ih); f.doc.setDrawColor(LINE); f.doc.rect(f.x + f.w - iw, y + 2, iw, ih); } catch { /* the words carry it */ }
     }
     f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.4); f.doc.line(f.x, y + h + 4, f.x + f.w, y + h + 4);
-  });
+  }, () => 3);
 }

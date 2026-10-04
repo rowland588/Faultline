@@ -176,3 +176,85 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
 
   return { projectId: proj.id, testId: longest.id, fixId };
 }
+
+
+/* ---------------------------------------------------------------------------
+ * A RANDOM JOB — for proving the reports on jobs nobody hand-picked.
+ *
+ * Every count from none to hundreds, every field sometimes empty, and the
+ * things people actually type: a part number with no spaces in it, an emoji, a
+ * name from the shop floor (Łukasz, Zoë, Ştefan), quotes and ampersands, a line
+ * break pasted from a spreadsheet cell. scripts/report-stress.mjs --fuzz runs
+ * these by seed, so a failure is the same failure on the next run.
+ * ------------------------------------------------------------------------- */
+const AWKWARD = [
+  'PN-4471-0098-2231-ABCD-EFGH-IJKL-MNOP-QRST-UVWX-REV-C-FINAL-FINAL2',
+  'Łukasz Wójcik', 'Zoë Brontë', 'Ştefan Ionescu', 'Agnieszka Szczęsna', 'Ørjan Høgh',
+  'Seal "A" & seal "B" — both re-cut', 'Line 2 <infeed> & outfeed',
+  'Guard fitted ✅ — retest 🔧', 'Two lines\npasted from a cell', '   ', '',
+  'Within ±1.5 g · 2 m² · 50 µm · ½ turn · 90°',
+  'Gap ≤ 0.5 mm, speed ≥ 120 ppm', '€12,400 of spares', 'Antonín Dvořák', 'Gülşen Öztürk',
+];
+
+export async function seedRandomJob(seed: number): Promise<ReportJob> {
+  r = seed * 7919 % 2147483646 + 1;
+  const t = Date.now();
+  const many = (max: number) => (rand() < 0.15 ? 0 : rand() < 0.2 ? max : Math.floor(rand() * max * 0.5));
+  const words = (n: number) => Array.from({ length: n }, () => pick(['seal', 'jaw', 'film', 'guard', 'belt', 'infeed', 'reject', 'weigher', 'coder', 'pallet', 'splice', 'tracking'])).join(' ');
+  const say = () => { const x = rand(); return x < 0.12 ? pick(AWKWARD) : x < 0.2 ? '' : x < 0.35 ? words(40 + Math.floor(rand() * 60)) : words(3 + Math.floor(rand() * 12)); };
+  const name = () => (rand() < 0.15 ? pick(AWKWARD) : pick(MACHINES)[0]);
+  const proj = await createProject(rand() < 0.2 ? pick(AWKWARD) || 'Line X' : `Line ${seed} ${words(1 + Math.floor(rand() * 8))}`, '#1f63e0', rand() < 0.3 ? pick(AWKWARD) : 'Rowland', undefined, 'commissioning');
+  await updateProject({ ...proj, plannedAt: rand() < 0.8 ? iso(-20 + Math.floor(rand() * 80)) : undefined, expectedAt: rand() < 0.85 ? iso(-10 + Math.floor(rand() * 90)) : undefined, updatedAt: t });
+
+  const machines: Asset[] = Array.from({ length: many(16) }, (_, i) => ({
+    id: uid(), projectId: proj.id, name: name() || `Machine ${i + 1}`, oem: rand() < 0.2 ? pick(AWKWARD) : pick(WHO),
+    state: pick(['awaited', 'running', 'installed'] as const), sort: i, updatedAt: t,
+  }));
+  for (const a of machines) await putAsset(a);
+
+  const tests: Test[] = [];
+  const T = (o: Partial<Test> & { title: string }): Test => {
+    const x: Test = { id: uid(), projectId: proj.id, outcome: 'planned', sort: tests.length, createdAt: t, updatedAt: t, ...o };
+    tests.push(x); return x;
+  };
+  const day = () => (rand() < 0.2 ? undefined : iso(-40 + Math.floor(rand() * 90)));
+  const outcome = () => pick(['planned', 'planned', 'passed', 'passed', 'failed', 'notRun'] as const);
+  const STAGES = { install: ['Positioned and levelled', 'Air and power connected', 'Dry run', 'Sensors and controls checked (I/O)'], setup: ['Programs loaded', 'Change parts fitted'], handover: ['Manuals handed over', 'Operators trained'] };
+  for (const a of machines) for (const [g, names] of Object.entries(STAGES)) {
+    if (rand() < 0.25) continue;
+    for (const title of names) {
+      const o = outcome();
+      T({ kind: 'install', gate: g === 'install' ? undefined : g as Test['gate'], title, assetId: a.id, plannedFor: day(), outcome: o, ranOn: o === 'planned' ? undefined : day() });
+    }
+  }
+  let firstProof: Test | undefined;
+  for (let i = 0; i < many(60); i++) {
+    const o = outcome();
+    const x = T({ title: say() || `Test ${i + 1}`, assetId: machines.length && rand() < 0.85 ? pick(machines).id : undefined, withWhom: rand() < 0.5 ? pick(WHO) : undefined,
+      plannedFor: day(), passesIf: say() || undefined, result: o === 'planned' ? undefined : say() || undefined, outcome: o, ranOn: o === 'planned' ? undefined : day(),
+      product: rand() < 0.5 ? say() || undefined : undefined });
+    firstProof ??= x;
+  }
+  let fixId: string | undefined;
+  for (let i = 0; i < many(50); i++) {
+    const o = pick(['planned', 'planned', 'passed', 'failed'] as const);
+    const f = T({ kind: 'fix', title: say() || `Fix ${i + 1}`, assetId: machines.length ? pick(machines).id : undefined, withWhom: rand() < 0.7 ? pick([...WHO, ...AWKWARD]) : undefined,
+      plannedFor: day(), passesIf: say() || undefined, outcome: o, ranOn: o === 'planned' ? undefined : day(), fromTestId: firstProof && rand() < 0.5 ? firstProof.id : undefined });
+    fixId ??= f.id;
+  }
+  // A card always has one test to open, even on a job with none.
+  const card = firstProof ?? T({ title: 'The only test', plannedFor: day() });
+  for (const x of tests) await putTest(x);
+  const items: TestItem[] = [];
+  for (let i = 0; i < many(80); i++) {
+    items.push({ id: uid(), projectId: proj.id, testId: pick(tests).id, kind: 'found', what: say() || 'Something seen', owner: rand() < 0.6 ? pick([...WHO, ...AWKWARD]) : undefined, sort: i, createdAt: t - i * 3_600_000, updatedAt: t });
+  }
+  for (const i of items) await putTestItem(i);
+  await putMaterials(Array.from({ length: many(30) }, (_, i): Material => ({
+    id: uid(), projectId: proj.id, what: say() || `Material ${i + 1}`, howMuch: rand() < 0.5 ? `${i} off` : undefined, from: rand() < 0.5 ? pick(WHO) : undefined, due: day(), here: rand() < 0.3, sort: i, createdAt: t, updatedAt: t,
+  })));
+  await putPrograms(Array.from({ length: many(40) }, (_, i): Program => ({
+    id: uid(), projectId: proj.id, what: say() || `P-${i}`, assetId: machines.length ? pick(machines).id : undefined, state: pick(['needed', 'onMachine', 'proved'] as const), testOn: day(), sort: i, createdAt: t, updatedAt: t,
+  })));
+  return { projectId: proj.id, testId: card.id, fixId };
+}

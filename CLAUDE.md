@@ -101,6 +101,7 @@ npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
 node scripts/report-stress.mjs        # every report at tiny, ordinary and huge — same server
+node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every fact reconciled
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
 

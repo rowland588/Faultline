@@ -81,18 +81,55 @@ them, so a client report, a card and the day report are visibly one family.
 
 ### 4. Proved at every size, every time
 
-`scripts/report-stress.mjs` builds the tiny, ordinary and huge jobs
-(`src/dev/reportSeeds.ts`), downloads every report from its real button and
-reads every page back. It fails on:
+Rowland, 4 October: "how do you know that you built it correctly ... that it
+will work every single time?" Four layers, each catching what the one before
+cannot:
 
-- **off the page** — a word outside the safe margin;
-- **overprinted** — two words drawn over each other;
-- **near-empty** — a page, not the last, less than a fifth used;
-- **lost** — any record's title, or the last words of any long field, not
-  found on the paper (taken from the job's own data, not a hand-picked list).
+1. **The engine's rules, on 4,000 random reports** —
+   `src/lib/report/__tests__/flow.test.ts` pours reports nobody hand-picked
+   (1 to 30 blocks; paragraphs of up to 90 lines; tables of up to 120 rows,
+   some rows and boxes taller than a page; landscape inserts, some floating)
+   through the real engine and blocks into a stand-in document that records
+   where every line and row landed, and checks on every one: nothing past the
+   foot; every line and row drawn exactly once, in order; no heading ending a
+   page; no row stranded when it could have been helped; no blank page; the
+   dry run agrees with the drawing; and a floating insert moves no page break.
+   **The test is tested**: each rule was broken on purpose in the engine
+   (twelve mutations) and the test failed every time.
+2. **Every report from its real button** — `scripts/report-stress.mjs` builds
+   the tiny, ordinary and huge jobs (`src/dev/reportSeeds.ts`), downloads
+   every stage-gate PDF and reads every page back. It fails on:
+   - **off the page** — a word outside the safe margin;
+   - **overprinted** — two words drawn over each other;
+   - **near-empty** — a page, not the last, less than a fifth used;
+   - **lost** — accuracy: the app's own models (`lib/clientReport`,
+     `lib/trialCard`, `lib/day`) are built in the page exactly as the screens
+     build them, and every sentence, name, count and date they hold must be on
+     the paper — character for character as sent, and every letter and digit
+     as typed (the second is what caught the font dropping "Ł" from Łukasz).
+     It prints how many facts it checked per report, so a check that found
+     nothing to check cannot pass quietly.
+3. **Random jobs** — `report-stress.mjs --fuzz 40` makes forty jobs of random
+   size and shape — no machines or sixteen, nothing written or pages of it,
+   names from across Europe, a 60-character part number, quotes, `<`, `&`,
+   emoji, pasted line breaks, `±`, `≤`, `€` — and runs every check on each.
+   `--seeds 5,17` re-runs the ones that failed.
+4. **The fonts** — `src/lib/__tests__/pdfFonts.test.ts` asks `san()` about
+   every character there is and fails if it would let through one the PDF
+   fonts cannot draw (jsPDF drops the rest of the line when it meets one).
+
+What the random jobs found on 4 October, all fixed: names with Polish,
+Czech, Romanian or Turkish letters printed without them; "≤ 0.5 mm" printed
+as "0.5 mm"; a reason written for a test that did not happen was replaced on
+the card by a stock sentence; a tie for "mostly whose" named whichever owner
+came first; a gate marked done with no steps read "nothing kept" in a green
+box; and the plan's landscape pages stranded one line on the page before them.
+
+What is not proved by any of this: how a person reads the page. That is
+still done by eye, on the PDFs the stress run leaves behind.
 
 It runs in the gate beside `smoke.mjs`. A report change is not done until
-all three sizes pass.
+all three sizes and the random jobs pass.
 
 ## Effect on the screen and on paper (house rule 2)
 
@@ -106,7 +143,8 @@ both come out as composed documents.
 ## Slices — each ships live on its own, with the stress check green
 
 Progress, 4 October — `report-stress.mjs`: 11 of 11 stage-gate reports clean
-at all three sizes (it began at 9 of 11 with checks that missed the cuts).
+at all three sizes (it began at 9 of 11 with checks that missed the cuts), and
+155 of 155 across forty random jobs with every fact reconciled.
 Client report: tiny 3 → 2 pages, ordinary 6 → 4, huge 25 → 15. Slices 1–3
 are live; slice 4 is next.
 
@@ -120,9 +158,9 @@ are live; slice 4 is next.
    is absorbed by tightening the rows' air (never the type), a plan too long
    to read folds — each stage one lane with every machine's mark, marks on
    the same days merged with a count — and the handover labels sit under the
-   chart. A short plan's landscape page now waits until the portrait pages
-   after it are poured, so it no longer strands a small table on a page of
-   its own.
+   chart. The plan's landscape pages float: they wait for the next page
+   break the flow makes anyway and go there, so no page is left short to make
+   room for them.
 4. **The 3P and lever tree report, the evidence card and the line standard**
    — the largest renderer (3,100 lines) last, once the engine has carried the
    others.

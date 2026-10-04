@@ -183,7 +183,10 @@ export function verdictLine(c: TrialCard): string {
     if (!needsVerdict(c)) return 'Not run yet';
     return c.result ? `${c.result} — no verdict yet` : 'Ran — no verdict yet';
   }
-  if (c.outcome === 'notRun') return 'The day came and it did not happen';
+  /* What somebody wrote about why it did not happen is the point of the
+     line — the card used to replace it with the stock sentence, so the client
+     never read it (found by the random-job stress run). */
+  if (c.outcome === 'notRun') return c.result ? `Did not happen — ${c.result}` : 'The day came and it did not happen';
   if (!c.result) return c.outcomeWord;
   return c.result;
 }

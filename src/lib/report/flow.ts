@@ -34,18 +34,24 @@ export interface Block {
   draw(f: Frame, y: number): void;
   /** Break into a first part no taller than `room` and the rest — or null
    *  when no useful first part fits (the block then starts the next page). */
-  split?(f: Frame, room: number): [Block, Block] | null;
+  split?(f: Frame, room: number, o?: { allowOne?: boolean }): [Block, Block] | null;
   /** Keep with the start of the next block: a heading. */
   keepWithNext?: boolean;
+  /** The space after it, included in `height`. It may fall off the foot of a
+   *  page — only ink has to fit. Counting it as ink moved a table that fitted
+   *  to the next page, stranding its heading (found by the random test). */
+  after?(f: Frame): number;
   /** The least of this block worth starting a page with — what a heading
    *  before it asks to come with it. Defaults to the whole block, capped. */
   lead?(f: Frame): number;
   /** Pages of its own (a landscape plan, the line standard): the flow ends
    *  the page it is on, calls this, and carries on on a fresh page. */
   insert?(f: Frame): Promise<void> | void;
-  /** An insert that may wait: when everything after it (up to the next
-   *  insert) fits in the room left on this page, that goes first and the
-   *  insert follows — rather than a page holding one small table alone. */
+  /** An insert that waits for the next page break the flow makes anyway, and
+   *  goes there — so the pages around it break exactly where they would
+   *  without it. Placed at once, it left a page holding one line before the
+   *  plan (found by the random-job stress run); moved only when everything
+   *  after it fitted, it still did whenever that was not so. */
   float?: boolean;
 }
 
@@ -59,53 +65,73 @@ export interface Poured {
 /** Pour blocks into pages. `newPage` adds a page (never called on a dry run). */
 export async function pour(f: Frame, blocks: Block[], newPage: () => void): Promise<Poured> {
   const queue = blocks.slice();
-  let y = f.top, pages = 1, fresh = true;
+  let y = f.top, pages = 1;
   /* A NEW PAGE ONLY WHEN SOMETHING GOES ON IT. Breaking marks a page as
      wanted; it is added when the next block is drawn — so pages of their own
      at the end (the line standard) leave no blank page behind them. */
   let wanted = false;
-  const nextPage = () => { wanted = true; y = f.top; fresh = true; };
+  /** Nothing on this page yet but headings — the run that travels together. */
+  let headOnly = true;
+  /** Floating inserts waiting for the next break, and whether one is due. */
+  const waiting: Block[] = [];
+  let due = false;
+  const nextPage = () => { wanted = true; y = f.top; headOnly = true; if (waiting.length) due = true; };
   const place = () => { if (wanted) { if (!f.dry) newPage(); pages++; wanted = false; } };
+  /* Its own pages follow whatever page the flow is on; the flow resumes on a
+     fresh one. The state is set before the await, never after it. */
+  const insert = async (list: Block[]) => {
+    for (const x of list) {
+      wanted = true; y = f.top; headOnly = true;
+      if (!f.dry) await x.insert?.(f);
+    }
+  };
 
   for (let i = 0; i < queue.length; i++) {
+    if (due) { due = false; await insert(waiting.splice(0)); }
     const b = queue[i];
     if (b.insert) {
-      if (b.float) {
-        let j = i + 1, rest = 0;
-        while (j < queue.length && !queue[j].insert) rest += queue[j++].height(f);
-        if (rest > 0 && y + rest <= f.bottom) {
-          // What follows fits here: it goes first, the insert after it.
-          queue.splice(i, 1);
-          queue.splice(j - 1, 0, { ...b, float: false });
-          i--;
-          continue;
-        }
-      }
-      // Its own pages follow whatever page the flow is on; the flow resumes on a fresh one.
-      wanted = true; y = f.top; fresh = true;
-      if (!f.dry) await b.insert(f);
+      // A float waits — unless the flow is at a break already (nothing on the page to come).
+      if (b.float && !wanted) { waiting.push(b); continue; }
+      await insert([...waiting.splice(0), b]);
       continue;
     }
     const h = b.height(f);
     if (h <= 0) continue;
 
-    /* A heading travels with the start of what follows it. */
-    let need = h;
-    if (b.keepWithNext) {
-      const next = queue.slice(i + 1).find(n => n.insert || n.height(f) > 0);
-      if (next && !next.insert) need += Math.min(next.lead ? next.lead(f) : next.height(f), (f.bottom - f.top) / 3);
+    /* A heading travels with the start of what follows it — and "the start"
+       is checked, not guessed: the whole run of headings from here (a section
+       heading and a sub-heading under it) and then the first thing they
+       introduce must be able to begin in the room left, whole or split there.
+       Found by the random-report test: a guessed allowance, or checking only
+       the next heading, left headings alone at the foot of a page. */
+    const ink = h - (b.after?.(f) ?? 0);
+    let fits = y + ink <= f.bottom;
+    if (fits && b.keepWithNext && !headOnly) {
+      let j = i + 1, chain = h;
+      // A floating insert is not in the way: it waits for a break and is placed at it.
+      const skip = (x: Block) => x.insert ? !!x.float : x.keepWithNext || x.height(f) <= 0;
+      while (j < queue.length && skip(queue[j])) { if (!queue[j].insert) chain += queue[j].height(f); j++; }
+      const next = queue[j];
+      if (next && !next.insert) {
+        const after = f.bottom - (y + chain);
+        const want = Math.min(next.lead ? next.lead(f) : next.height(f), (f.bottom - f.top) / 3);
+        fits = after >= want && (next.height(f) - (next.after?.(f) ?? 0) <= after || !!next.split?.(f, after));
+      } else fits = y + chain <= f.bottom;
     }
 
-    if (y + need <= f.bottom) {
+    if (fits) {
       place();
       if (!f.dry) b.draw(f, y);
-      y += h; fresh = false;
+      y += h;
+      if (!b.keepWithNext) headOnly = false;
       continue;
     }
 
     // It does not fit in the room left.
     if (b.split && !b.keepWithNext) {
-      const parts = b.split(f, f.bottom - y);
+      /* Under headings, a table may start with a single row: a heading left
+         alone at the foot is worse than a heading with one row under it. */
+      const parts = b.split(f, f.bottom - y, { allowOne: headOnly && y > f.top + 0.5 });
       if (parts) {
         place();
         if (!f.dry) parts[0].draw(f, y);
@@ -115,7 +141,11 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
         continue;
       }
     }
-    if (!fresh) { nextPage(); i--; continue; }
+    /* Not at the top of a page: move on. (A page holding only headings has
+       already offered this block its room — a split into it was tried above;
+       if not even that fits, the block and the headings could never share a
+       page, and the block starts the next one.) */
+    if (!headOnly || y > f.top + 0.5) { nextPage(); i--; continue; }
 
     /* At the top of a page and still too tall: split it if it can be split
        at all; a block that cannot (a picture) is drawn and runs to the foot. */
@@ -129,9 +159,13 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
       continue;
     }
     if (!f.dry) b.draw(f, y);
-    y += h; fresh = false;
+    y += h;
+    if (!b.keepWithNext) headOnly = false;
   }
-  return { pages, lastFill: Math.min(1, (y - f.top) / (f.bottom - f.top)) };
+  const lastFill = Math.min(1, (y - f.top) / (f.bottom - f.top));
+  // No break came: what still waits goes after the last page.
+  await insert(waiting.splice(0));
+  return { pages, lastFill };
 }
 
 /** Pour once to measure at each density and keep the one that wastes least:

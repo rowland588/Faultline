@@ -10,12 +10,15 @@
  *   off the page   a word outside the page's safe margin
  *   overprinted    two words drawn over each other
  *   near-empty     a page, not the last, less than a fifth used
- *   lost           a sentence from the job that never reached the paper
+ *   lost           a fact the app's own models hold that never reached the paper
+ *
+ * --fuzz N makes N random jobs instead (seedRandomJob: any size, awkward names
+ * and symbols); --seeds 5,17 re-runs chosen ones. docs/REPORTS.md §4.
  *
  * Needs a dev server on 5191 (scripts/smoke.mjs's), Chromium, and poppler's
  * pdftotext. Prints a table; exits 1 if any page fails.
  *
- *     node scripts/report-stress.mjs [outDir]
+ *     node scripts/report-stress.mjs [outDir] [--fuzz N | --seeds a,b]
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -23,7 +26,7 @@ import pkg from 'playwright';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
-const OUT = process.argv[2] ?? '/tmp/report-stress';
+const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '/tmp/report-stress';
 mkdirSync(OUT, { recursive: true });
 
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -67,7 +70,10 @@ function pagesOf(pdf) {
   }));
 }
 
-const textOf = pdf => execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\s+/g, ' ');
+/* In the order it was DRAWN (-raw), not the order the eye reads a page: two
+   columns side by side read across, so a test's title came back with the
+   machine beside it spliced into the middle — a "lost" that was the reader's. */
+const textOf = pdf => execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\s+/g, ' ');
 
 function check(pdf, mustSay = []) {
   const pages = pagesOf(pdf);
@@ -97,52 +103,105 @@ function check(pdf, mustSay = []) {
     }
   });
   const all = textOf(pdf);
-  const lost = [...new Set(mustSay)].filter(s => !all.includes(s.replace(/\s+/g, ' ')));
-  if (lost.length) faults.push(`lost ×${lost.length}: ${lost.slice(0, 3).map(s => `"${s.slice(0, 50)}"`).join(', ')}`);
-  return { pages: pages.length, faults };
+  // Spacing ignored: a long word broken across lines, or a line break, is still the same words.
+  const flat = all.replace(/\s+/g, '');
+  /* Twice over: what san() hands the PDF must be there character for
+     character, AND san() must have dropped no letter or digit of what was
+     TYPED (they must all still be there, in order — it may add "to" for an
+     arrow, never lose an "Ł"). The second caught the font dropping Ł from
+     "Łukasz": it dropped it from both sides of the first compare, so that
+     one could not see it. */
+  const letters = x => [...x.normalize('NFC').replace(/[^\p{L}\p{N}]/gu, '')];
+  const kept = (typed, sent) => { const have = letters(sent); let k = 0; for (const c of letters(typed)) { while (k < have.length && have[k] !== c) k++; if (k++ >= have.length) return false; } return true; };
+  const lost = [...new Set(mustSay)].filter(([typed, sent]) => !flat.includes(sent.replace(/\s+/g, '')) || !kept(typed, sent)).map(([typed, , where]) => `${where}: ${typed}`);
+  if (lost.length) faults.push(`lost ×${lost.length}:\n          ${lost.slice(0, 8).map(s => s.slice(0, 90)).join('\n          ')}`);
+  return { pages: pages.length, faults, said: new Set(mustSay.map(m => m[0])).size };
 }
 
 /* -------------------------------- the run --------------------------------- */
 
 const rows = [];
-for (const size of ['tiny', 'ordinary', 'huge']) {
+const fuzzAt = process.argv.indexOf('--fuzz'), seedsAt = process.argv.indexOf('--seeds');
+const SIZES = seedsAt > 0 ? process.argv[seedsAt + 1].split(',').map(n => `random-${n}`)
+  : fuzzAt > 0 ? Array.from({ length: Number(process.argv[fuzzAt + 1] ?? 10) }, (_, i) => `random-${i + 1}`)
+  : ['tiny', 'ordinary', 'huge'];
+for (const size of SIZES) {
   const { ctx, page, errors } = await device();
   const job = await page.evaluate(async size => {
     if (size === 'ordinary') {
       const sd = await (await import('/src/dev/seed.ts')).seedForSmokeTest();
       return { projectId: sd.projectId, testId: sd.testId };
     }
-    return (await import('/src/dev/reportSeeds.ts')).seedReportJob(size);
+    const seeds = await import('/src/dev/reportSeeds.ts');
+    if (size.startsWith('random-')) return seeds.seedRandomJob(Number(size.slice(7)));
+    return seeds.seedReportJob(size);
   }, size);
   const fixId = job.fixId ?? await page.evaluate(async pid => (await (await import('/src/db/testing.ts')).listTests(pid)).find(t => t.kind === 'fix' && !t.deletedAt)?.id, job.projectId);
-  /* WHAT MUST REACH THE PAPER, taken from the job itself: every machine's
-     name, whole; and the last words of every test's "passes if" and result
-     — the end of a sentence is what a cap cuts off first. */
-  const must = await page.evaluate(async ({ pid, tid }) => {
-    const T = await import('/src/db/testing.ts');
-    const san = (await import('/src/lib/reportKit.ts')).san;
-    const tests = (await T.listTests(pid)).filter(t => !t.deletedAt);
-    const tail = s => (s ? san(s).split(' ').slice(-5).join(' ') : '');
-    const proofs = tests.filter(t => !t.kind);
-    const card = tests.find(t => t.id === tid);
-    return {
-      client: [...(await T.listAssets(pid)).filter(a => !a.deletedAt).map(a => san(a.name)),
-        ...proofs.flatMap(t => [tail(t.passesIf), tail(t.result)]).filter(Boolean)],
-      trial: card ? [san(card.title), tail(card.passesIf), tail(card.result)].filter(Boolean) : [],
+  /* WHAT MUST REACH THE PAPER — ACCURACY, NOT JUST LAYOUT. The app's own
+     models are built here exactly as the screens build them (lib/clientReport,
+     lib/trialCard, lib/day — each tested against the records in its own unit
+     tests), and every word they say must be found on the paper. The plan
+     pages are not included: on a long job they fold by design. */
+  const must = await page.evaluate(async ({ pid, tid, fid }) => {
+    const db = await import('/src/db/testing.ts');
+    const P = await import('/src/db/projects.ts');
+    const { san } = await import('/src/lib/reportKit.ts');
+    // The PDF's own fonts, as a download loads them — san() keeps what they can draw.
+    await (await import('/src/lib/savePdf.ts')).loadPdfLib();
+    const { clientReport } = await import('/src/lib/clientReport.ts');
+    const { trialCard } = await import('/src/lib/trialCard.ts');
+    const { dayOf } = await import('/src/lib/day.ts');
+    const { todayISO } = await import('/src/lib/weeks.ts');
+    const { listMaterials } = await import('/src/db/materials.ts');
+    const { listPrograms } = await import('/src/db/programs.ts');
+    const project = await P.getProject(pid);
+    const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
+    const today = todayISO();
+    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], today });
+    const out = { client: [], card: [], fix: [], day: [] };
+    const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
+    let from = '';
+    from = 'top'; add('client', r.name, r.sentence, r.slip);
+    from = 'gates'; for (const g of r.gates) add('client', g.label, g.says);
+    from = 'machines'; for (const mc of r.machines) add('client', mc.name, mc.at);
+    for (const s2 of r.sections) {
+      const said = s2.grid?.rows.length || s2.late.length || s2.programs?.total || s2.tests?.length;
+      if (!said) continue;
+      from = `section ${s2.gate}`; add('client', s2.label, s2.says);
+      for (const row of s2.grid?.rows ?? []) add('client', row.machine);
+      if (s2.gate !== 'commission') add('client', ...s2.late);
+      for (const pr of s2.programs?.notYet ?? []) add('client', pr.what);
+      from = `section ${s2.gate} test`; for (const t of s2.tests ?? []) add('client', t.title, t.passesIf, t.result, t.outcome);
+    }
+    from = 'fixes'; for (const fx of [...r.fixes.open, ...r.fixes.done]) add('client', fx.title, fx.when);
+    for (const fx of r.fixes.open) add('client', fx.problem, fx.machine, fx.who);
+    from = 'waiting'; for (const w of r.waiting) add('client', w.what, w.open, w.whose);
+    const cardOf = (id, k) => {
+      const t = tests.find(x => x.id === id); if (!t) return;
+      const c = trialCard(t, tests, items, assets);
+      from = 'card'; add(k, c.title, c.passesIf, c.result, c.plannedProduct, c.product);
+      from = 'finding'; for (const fd of c.findings) add(k, fd.what, fd.owner, fd.action);
+      from = 'next'; for (const n of c.next) add(k, n.what, n.owner);
     };
-  }, { pid: job.projectId, tid: job.testId });
+    cardOf(tid, 'card'); if (fid) cardOf(fid, 'fix');
+    const d = dayOf({ tests, items, assets, materials, programs }, today, today);
+    from = 'day'; add('day', d.headline);
+    for (const sec of d.sections) for (const l of sec.lines) add('day', l.text, l.detail);
+    return out;
+  }, { pid: job.projectId, tid: job.testId, fid: fixId });
+
   const reports = [
     ['client', `#/project/${job.projectId}/report`, [['PDF']], must.client],
-    ['test card', `#/project/${job.projectId}/testing/${job.testId}/card`, [['PDF']], must.trial],
-    ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}/card`, [['PDF']]]] : []),
-    ['day', `#/project/${job.projectId}/day`, [['PDF']]],
+    ['test card', `#/project/${job.projectId}/testing/${job.testId}/card`, [['PDF']], must.card],
+    ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}/card`, [['PDF']], must.fix]] : []),
+    ['day', `#/project/${job.projectId}/day`, [['PDF']], must.day],
   ];
   for (const [name, hash, steps, mustSay] of reports) {
     const file = `${OUT}/${size}-${name.replace(/ /g, '-')}.pdf`;
     try {
       await download(page, hash, file, steps);
       const r = check(file, mustSay ?? []);
-      rows.push({ size, report: name, pages: r.pages, faults: r.faults });
+      rows.push({ size, report: name, pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
@@ -156,7 +215,7 @@ let bad = 0;
 for (const r of rows) {
   const ok = r.faults.length === 0;
   if (!ok) bad++;
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${r.size.padEnd(8)} ${r.report.padEnd(10)} ${String(r.pages).padStart(2)} page${r.pages === 1 ? ' ' : 's'}${ok ? '' : '\n        ' + r.faults.join('\n        ')}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${r.size.padEnd(9)} ${r.report.padEnd(10)} ${String(r.pages).padStart(2)} page${r.pages === 1 ? ' ' : 's'}  ${String(r.said ?? 0).padStart(4)} facts checked${ok ? '' : '\n        ' + r.faults.join('\n        ')}`);
 }
 writeFileSync(`${OUT}/result.json`, JSON.stringify(rows, null, 2));
 console.log(`\n${rows.length - bad} of ${rows.length} reports clean — PDFs in ${OUT}`);

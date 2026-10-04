@@ -8,7 +8,8 @@
  * they cannot draw. */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { san } from '../reportKit';
+// Renamed: the lint reads anything called use… as a React hook.
+import { pdfFamily, san, usePdfFamily as setPdfFamily } from '../reportKit';
 
 /** The Unicode → glyph map of a TrueType font (cmap format 4, BMP). */
 function cmapOf(path: string): Set<number> {
@@ -40,11 +41,23 @@ function cmapOf(path: string): Set<number> {
 }
 
 const FONTS = ['InstrumentSans-Regular.ttf', 'InstrumentSans-Bold.ttf'];
-// Every character san() can let through.
-const ALLOWED = [...Array(0x7f - 0x20).keys()].map(i => 0x20 + i)
-  .concat([...Array(0x100 - 0xa0).keys()].map(i => 0xa0 + i))
-  .concat([0x2013, 0x2014, 0x2018, 0x2019, 0x201c, 0x201d, 0x2026])
-  .filter(c => san(`a${String.fromCodePoint(c)}b`).length === 3 || c === 0x20 || c === 0xa0);
+/* Every character san() can let through, found by asking it about every
+   character there is (the whole Basic Multilingual Plane), with the app's own
+   fonts in use — not a list kept beside it, which is how the two drifted. */
+function allowed(): number[] {
+  const was = pdfFamily();
+  setPdfFamily('Faultline');
+  try {
+    const out: number[] = [];
+    for (let c = 0x20; c < 0x10000; c++) {
+      if (c >= 0xd800 && c <= 0xdfff) continue;
+      const ch = String.fromCodePoint(c);
+      for (const x of san(`a${ch}b`).slice(1, -1)) out.push(x.codePointAt(0) ?? 0);
+    }
+    return [...new Set(out)].filter(c => c !== 0x20);
+  } finally { setPdfFamily(was); }
+}
+const ALLOWED = allowed();
 
 describe('the PDF fonts', () => {
   for (const f of FONTS) {
@@ -54,6 +67,26 @@ describe('the PDF fonts', () => {
       expect(missing).toEqual([]);
     });
   }
+  it('prints the names on a European site whole', () => {
+    const was = pdfFamily();
+    setPdfFamily('Faultline');
+    try {
+      for (const n of ['Łukasz Wójcik', 'Ştefan Ionescu', 'Agnieszka Szczęsna', 'Antonín Dvořák', 'Gülşen Öztürk', 'Ørjan Høgh', 'Zoë Brontë', 'Ffion Ŵyn', '€12,400'])
+        expect(san(n)).toBe(n);
+      // A letter the font lacks keeps its base letter rather than vanishing.
+      expect(san('Ĉu Ĝi')).toBe('Cu Gi');
+    } finally { setPdfFamily(was); }
+  });
+  it('in Helvetica (fonts not fetched), keeps the plain letter', () => {
+    expect(pdfFamily()).toBe('helvetica');
+    expect(san('Łukasz Wójcik · Dvořák · €5')).toBe('Lukasz Wójcik · Dvorák · EUR5');
+  });
+  it('spells out a limit sign rather than dropping it', () => {
+    expect(san('Gap ≤ 0.5 mm, speed ≥ 120 ppm, 50 μm')).toBe('Gap <= 0.5 mm, speed >= 120 ppm, 50 µm');
+  });
+  it('drops what no font can draw, and the gap it leaves', () => {
+    expect(san('rate 😀 ok\u0007')).toBe('rate ok');
+  });
   it('keeps the tolerances a factory writes', () => {
     expect(san('Within ±1.5 g · 2 m² · 50 µm · ½ turn')).toBe('Within ±1.5 g · 2 m² · 50 µm · ½ turn');
   });

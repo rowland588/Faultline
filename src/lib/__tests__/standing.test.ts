@@ -127,6 +127,13 @@ describe('whose it is', () => {
     expect(row(s, 'materials')?.whose).toBe('Brillopak × 2');
   });
 
+  it('names everyone in a tie, the same way whatever order the list is in', () => {
+    const a = [mat({ from: 'the site' }), mat({ from: 'Brillopak' }), mat({ from: 'Brillopak' }), mat({ from: 'the site' })];
+    expect(row(at({ materials: a }), 'materials')?.whose).toBe('Brillopak × 2 · the site × 2');
+    expect(row(at({ materials: [...a].reverse() }), 'materials')?.whose).toBe('Brillopak × 2 · the site × 2');
+    expect(row(at({ materials: [mat({ from: 'C' }), mat({ from: 'A' }), mat({ from: 'B' })] }), 'materials')?.whose).toBe('A, B and 1 more');
+  });
+
   it('names a single owner without a count', () => {
     expect(row(at({ materials: [mat({ from: 'Brillopak' })] }), 'materials')?.whose).toBe('Brillopak');
   });

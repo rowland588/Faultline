@@ -141,7 +141,10 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const unplanned = rows.reduce((n, r) => n + r.cells.filter(c => c === 'none').length, 0);
     return {
       gate, label: GATE_WORD[gate], tone,
-      says: steps.length === 0 ? 'Nothing kept at this gate yet'
+      /* A gate the machines are marked past with no steps kept is done, and
+         says so — a green box reading "nothing kept" told the client two
+         things at once (seen on a random-job report, 4 Oct). */
+      says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : 'Nothing kept at this gate yet')
         : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,

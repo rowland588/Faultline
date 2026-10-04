@@ -77,3 +77,14 @@ describe('a test that was run again', () => {
     expect(c.tests?.map(t => t.tone)).toEqual(['failed', 'done', 'done']);
   });
 });
+
+describe('a gate the machines are past with nothing kept', () => {
+  it('says it is done, rather than a green box reading "nothing kept"', () => {
+    const done = clientReport({ project, projects: [project], assets: [{ ...asset('a', 'Loma IQ4', 1), state: 'installed' } as Asset], tests: [], items: [], materials: [], programs: [], standards: [], today: T });
+    const install = done.gates.find(g => g.gate === 'install');
+    expect(install?.tone).toBe('done');
+    expect(install?.says).toBe('Done — no steps kept for it');
+    const ahead = clientReport({ project, projects: [project], assets: [asset('a', 'Loma IQ4', 1)], tests: [], items: [], materials: [], programs: [], standards: [], today: T });
+    expect(ahead.gates.find(g => g.gate === 'install')?.says).toBe('Nothing kept at this gate yet');
+  });
+});

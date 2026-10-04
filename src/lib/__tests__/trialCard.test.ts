@@ -207,6 +207,11 @@ describe('the one line a client reads', () => {
       .toBe('The day came and it did not happen');
   });
 
+  it('keeps what was written about why the day did not happen', () => {
+    expect(verdictLine(trialCard(test({ outcome: 'notRun', result: 'Film not delivered' }), [], [], [])))
+      .toBe('Did not happen — Film not delivered');
+  });
+
   it('falls back to the outcome word when nobody wrote anything down', () => {
     expect(verdictLine(trialCard(test({ outcome: 'passed' }), [], [], [])))
       .toBe('Passed');

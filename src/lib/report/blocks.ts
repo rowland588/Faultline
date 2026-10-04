@@ -46,6 +46,7 @@ export function text(o: {
     const pad = (f: Frame) => (first ? o.before ?? 0 : 0) + (last ? o.after ?? gap(f.density, 's') : 0);
     return {
       height: f => { const l = get(f); return l.length ? l.length * lead(size, f.density) + pad(f) : 0; },
+      after: f => (last && get(f).length ? o.after ?? gap(f.density, 's') : 0),
       lead: f => Math.min(get(f).length, 2) * lead(size, f.density) + (first ? o.before ?? 0 : 0),
       draw: (f, y) => {
         const l = get(f), lh = lead(size, f.density), top = y + (first ? o.before ?? 0 : 0);
@@ -114,18 +115,34 @@ export function rows(o: { header?: Row; rows: Row[]; after?: 's' | 'm' | 'l' }):
     const after = (f: Frame) => (last ? gap(f.density, o.after ?? 'm') : 0);
     return {
       height: f => (list.length ? head(f) + list.reduce((s, r) => s + r.h(f), 0) + after(f) : 0),
+      after: f => (list.length ? after(f) : 0),
       lead: f => head(f) + list.slice(0, list.length <= 3 ? list.length : 2).reduce((s, r) => s + r.h(f), 0),
       draw: (f, y) => {
         let yy = y;
         if (o.header) { o.header.draw(f, yy); yy += o.header.h(f); }
         for (const r of list) { r.draw(f, yy); yy += r.h(f); }
       },
-      split: (f, room) => {
+      split: (f, room, opt) => {
         let used = head(f), k = 0;
         while (k < list.length && used + list[k].h(f) <= room) { used += list[k].h(f); k++; }
         if (list.length - k === 1 && k > 2) k--;   // not one row alone overleaf
+        const page = f.bottom - f.top;
+        /* LOOK ONE ROW AHEAD. If the row that would open the next page cannot
+           share it with the row after (both too tall together), it would stand
+           alone there — so carry the last row here over to keep it company,
+           when that pair fits a page and this page keeps at least two. */
+        if (k >= 3 && k + 1 < list.length) {
+          const opens = list[k].h(f), then = list[k + 1].h(f), carried = list[k - 1].h(f);
+          if (head(f) + opens + then > page && head(f) + carried + opens <= page) k--;
+        }
+        /* A row taller than a whole page: on a fresh page it goes alone (it is
+           the one thing that may run to the foot) and the rest carry on. Without
+           this the whole table was drawn in one go, off the bottom of the page. */
+        if (k === 0 && room >= page - 0.5 && list.length > 1) k = 1;
         if (k === 0 || k >= list.length) return null;
-        if (k === 1 && list.length > 2) return null; // not one row alone here
+        /* Not one row alone here — unless no page could hold two of them, when
+           one alone is the best a page can do. */
+        if (k === 1 && list.length > 2 && !opt?.allowOne && head(f) + list[0].h(f) + list[1].h(f) <= page) return null;
         return [make(list.slice(0, k), false), make(list.slice(k), last)];
       },
     };
@@ -134,8 +151,8 @@ export function rows(o: { header?: Row; rows: Row[]; after?: 's' | 'm' | 'l' }):
 }
 
 /** Something drawn whole — a band, a row of boxes. Measured, never split. */
-export function box(height: (f: Frame) => number, draw: (f: Frame, y: number) => void): Block {
-  return { height, draw };
+export function box(height: (f: Frame) => number, draw: (f: Frame, y: number) => void, after?: (f: Frame) => number): Block {
+  return { height, draw, after };
 }
 
 /** Pages of its own, between the flow's pages. */

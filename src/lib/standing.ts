@@ -119,9 +119,17 @@ function mostlyWhose(names: (string | undefined)[]): string | undefined {
     const name = n?.trim();
     if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
   }
-  let best: string | undefined, most = 0;
-  for (const [name, n] of counts) if (n > most) { best = name; most = n; }
-  return best && most > 1 ? `${best} × ${most}` : best;
+  const most = Math.max(0, ...counts.values());
+  if (!most) return undefined;
+  /* A TIE NAMES EVERYONE IN IT. It used to name whoever came first in the
+     list, so two owners with two each printed "Brillopak × 2" on one device
+     and "the site × 2" on another — both untrue as "mostly whose" (found by
+     the random-job stress run). Sorted, so the same job always says the same. */
+  const top = [...counts].filter(([, n]) => n === most).map(([name]) => name).sort((a, b) => a.localeCompare(b));
+  const one = (name: string) => (most > 1 ? `${name} × ${most}` : name);
+  if (top.length === 1) return one(top[0]);
+  if (top.length === 2) return `${one(top[0])} · ${one(top[1])}`;
+  return `${one(top[0])}, ${one(top[1])} and ${top.length - 2} more`;
 }
 
 const plural = (n: number, one: string, many = one + 's'): string =>

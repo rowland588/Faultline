@@ -27,6 +27,27 @@ export const OK = '#1e6b4b', WARN = '#a97822', DANGER = '#9b3227', BLUE = '#4f46
  *  two never rely on colour alone). */
 export const ACTUAL = '#1f4fb8', TARGET = '#a97822';
 
+/* THE LETTERS BEYOND LATIN-1 THE PDF FONTS DRAW — the names on a European
+   site: Łukasz, Ştefan, Dvořák, Gülşen, Ørjan. Before 4 October san() dropped
+   them, so "Łukasz Wójcik" printed as "ukasz Wójcik" on the client report
+   (found by the random-job stress run). scripts/make-pdf-fonts.py copies the
+   same list into the fonts; pdfFonts.test.ts fails if the two ever disagree.
+   jsPDF's own Helvetica (a device that could not fetch the fonts) is WinAnsi
+   and cannot draw them, so there the old Latin-1 rule stands. */
+const EXTENDED = new Set('ĀāĂăĄąĆćĊċČčĎďĐđĒēĖėĘęĚěĞğĠġĢģĦħĪīĮįİıĲĳĶķĹĺĻļĽľŁłŃńŅņŇňŊŋŌōŐőŒœ'
+  + 'ŔŕŖŗŘřŚśŞşŠšŤťŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžǍǎȘșȚțẀẁẂẃẄẅẞỲỳ€™−');
+const PUNCT = new Set('\u2013\u2014\u2018\u2019\u201C\u201D\u2026');
+const canDraw = (c: string): boolean => {
+  const n = c.codePointAt(0) ?? 0;
+  return (n >= 0x20 && n <= 0x7e) || (n >= 0xa0 && n <= 0xff) || PUNCT.has(c) || (family !== 'helvetica' && EXTENDED.has(c));
+};
+/** The letters that have no accent to strip — what Helvetica prints for them. */
+const PLAIN: Record<string, string> = { 'Ł': 'L', 'ł': 'l', 'Đ': 'D', 'đ': 'd', 'Ħ': 'H', 'ħ': 'h', 'ı': 'i', 'Œ': 'OE', 'œ': 'oe', 'ẞ': 'SS', 'Ŋ': 'N', 'ŋ': 'n', '€': 'EUR', '−': '-' };
+const SPELT: Record<string, string> = {
+  '\u2264': '<=', '\u2265': '>=', '\u2260': '!=', '\u2248': '~', '\u03BC': '\u00B5',
+  '\u2032': "'", '\u2033': '"', '\u2717': 'x', '\u2718': 'x', '\u0162': '\u021A', '\u0163': '\u021B',
+};
+
 /** jsPDF's built-in fonts are WinAnsi-encoded, which has no arrows and no
  *  general Unicode: an impact typed as "44 → 49 ppm" came out as "44 !' 49 ppm"
  *  and mis-measured its own pill. Map the characters people actually type onto
@@ -57,14 +78,23 @@ export function san(t: string): string {
        jsPDF, meeting a character its font cannot draw, drops the rest of the
        line (scripts/make-pdf-fonts.py). */
     .replace(/\u00AD/g, '')
-    /* Then drop everything the encoding cannot draw — INCLUDING the C0 and C1
+    /* A sign with no glyph is spelt out, never dropped: "≤ 0.5 mm" losing its
+       ≤ printed a limit as a target. Greek mu is the micro sign people meant. */
+    .replace(/[\u2264\u2265\u2260\u2248\u03BC\u2032\u2033\u2717\u2718\u0162\u0163]/gu, c => SPELT[c])
+    /* Then drop everything the fonts cannot draw — INCLUDING the C0 and C1
        control characters, which this used to keep. The old range started at
        \u0000, so a NUL, a BEL or an ESC out of an Excel cell went straight into
        the PDF. That is not a wrong word on the page: a control character inside
        a text object corrupts the stream, and the damage shows up as a file that
        will not open at all. Excel cells really do carry them, out of CSV
-       imports and copy-paste. */
-    .replace(/[^\u0020-\u007E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026]/g, '')
+       imports and copy-paste. A letter the font lacks keeps its base letter
+       rather than vanishing: Ĉ prints as C, not as nothing (and in Helvetica,
+       Łukasz as Lukasz). */
+    .replace(/[^\u0020-\u007E\u00A0-\u00FF]/gu, c => {
+      if (canDraw(c)) return c;
+      const base = (PLAIN[c] ?? c).normalize('NFKD').replace(/[\u0300-\u036F]/g, '');
+      return base && [...base].every(canDraw) ? base : '';
+    })
     /* Collapse again at the end, because dropping a character leaves the spaces
        that were around it: "rate 😀 ok" came out as "rate  ok". */
     .replace(/\s+/g, ' ')
