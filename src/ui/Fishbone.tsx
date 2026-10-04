@@ -41,8 +41,13 @@ export interface FishboneProps {
  *  so it is right wherever it is put, not just at the page's width. */
 const DRAWN_MIN = 820;
 
-export function Fishbone({ view, can, onCause, onSuggestion, onAdd, compact }: FishboneProps) {
+export function Fishbone({ view: whole, can, onCause, onSuggestion, onAdd, compact }: FishboneProps) {
   const [ref, w] = useWidth<HTMLDivElement>();
+  /* A suggestion is an offer to whoever works the fishbone ("add this?").
+     Someone who only reads it (a client) is shown what is on the fish, not
+     the data's guesses they cannot act on. */
+  const view = useMemo(() => can.edit ? whole
+    : { ...whole, bones: whole.bones.map(b => b.suggestions.length ? { ...b, suggestions: [] } : b) }, [whole, can.edit]);
   const mode = compact ? 'compact' : w >= DRAWN_MIN ? 'drawn' : 'lanes';
   /* The drawn fish and the lanes sit in a framed box; the drawing is laid
      out in the room inside its frame and padding (FRAME_X). */

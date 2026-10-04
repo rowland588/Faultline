@@ -588,7 +588,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
           {can.edit
             ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
                 onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
-            : <b>{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
+            : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
         </label>
         {!w && (
           <label className="proj-field">
@@ -597,7 +597,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
               <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
                 onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
               <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
-            </> : <b>{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
+            </> : <b className="cap-ro-v">{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
           </label>
         )}
       </div>

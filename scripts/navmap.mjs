@@ -76,7 +76,7 @@ const ROUTES = [
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],
   ['lever tree', `#/project/${seeded.pacedProjectId}/tree`],
-  ['3P board', `#/project/${seeded.pacedProjectId}/board`],
+  ['6M board', `#/project/${seeded.pacedProjectId}/board`],
   ['pareto', `#/project/${seeded.pacedProjectId}/pareto`],
 ];
 

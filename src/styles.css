@@ -8959,7 +8959,7 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 /* On a phone a chip row scrolls sideways rather than wrapping to three rows
    and pushing the board off the first screen. */
 @media (max-width: 720px) {
-  .bd6-frow[role="group"] { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -16px; padding-right: 16px; }
+  .bd6-frow[role="group"] { flex-wrap: nowrap; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
   .bd6-frow[role="group"] .chip, .bd6-frow[role="group"] .bd6-fk { flex: 0 0 auto; }
 }
 .bd6-owner { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
@@ -9005,6 +9005,7 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .bd6-un-seg .chip { font-size: 12.5px; }
 
 /* The one editor. Fields are locked for a client, still readable. */
+.ax-form { min-width: 0; }
 .ax-fs { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .ax-fs:disabled input, .ax-fs:disabled textarea, .ax-fs:disabled select { color: var(--ink); background: var(--surface-2); opacity: 1; -webkit-text-fill-color: var(--ink); }
 .ax-fs:disabled .chip { cursor: default; }
@@ -9058,4 +9059,5 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .win-card.is-ro .win-foot { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
 .pm-pip.is-soon { background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); color: color-mix(in srgb, var(--st-a) 72%, var(--ink)); }
 .cap-name-ro { flex: 1 1 auto; font-size: 15px; }
+.cap-ro-v { display: block; margin-top: 2px; font-size: 16px; color: var(--ink); }
 @media print { .bd6-lanes { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .bd6-filters { display: none !important; } }

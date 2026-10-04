@@ -88,7 +88,7 @@ const FIX_STATUS: Record<Test['outcome'], string> = {
   planned: 'Open', passed: 'Done', failed: 'Didn’t fix it', notRun: 'Didn’t happen',
 };
 const KIND: Record<ReturnType<typeof planModel>, string> = {
-  commissioning: 'Stage gate', board: '3P', tree: 'Lever tree',
+  commissioning: 'Stage gate', board: '6M', tree: 'Lever tree',
 };
 
 /** A name per record that is unique inside its project — the Excel tool links

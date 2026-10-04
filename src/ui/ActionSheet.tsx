@@ -147,10 +147,10 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
             <label className="cw-f"><span>DUE{late ? <b className="ax-late"> · past its day</b> : soon ? <b className="ax-soon"> · due soon</b> : null}</span>
               <input type="date" value={s.due ?? ''} onChange={e => set({ due: e.target.value || undefined })} /></label>
             <label className="cw-f"><span>WHEN, IN WORDS <i className="cw-f-opt">optional</i></span>
-              <input value={s.when} placeholder="e.g. before the Tesco launch" onChange={e => set({ when: e.target.value })} /></label>
+              <input value={s.when} placeholder="e.g. w/c 22nd" onChange={e => set({ when: e.target.value })} /></label>
           </div>
           <label className="cw-f cw-f-wide"><span>WHAT IT SHOULD CHANGE</span>
-            <input value={s.expect ?? ''} placeholder="e.g. changeover 48 → 30 min, or splice breaks gone"
+            <input value={s.expect ?? ''} placeholder="e.g. changeover 48 → 30 min"
               onChange={e => set({ expect: e.target.value })} /></label>
           <label className="cw-f cw-f-wide"><span>WHERE <i className="cw-f-opt">optional</i></span>
             <input value={s.where} placeholder="e.g. the infeed" onChange={e => set({ where: e.target.value })} /></label>

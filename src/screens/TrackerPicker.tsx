@@ -1,6 +1,6 @@
 /* PICK THE WORK OFF THE BOARD AND HANG IT ON THE TREE.
  *
- * The list is the project's own actions, kept on its 3P board — there is no
+ * The list is the project's own actions, kept on its 6M board — there is no
  * workbook any more (Rowland: "switch to full app only"). What follows is why
  * picking beats copying, which still holds.
  *
@@ -111,7 +111,7 @@ export function TrackerPicker({
           {shown.length === 0 ? (
             <p className="sub lt-pick-none">
               {actions.length === 0
-                ? 'No actions on the board yet — write them on the 3P board, or type one here.'
+                ? 'No actions on the board yet — write them on the 6M board, or type one here.'
                 : 'Nothing matches. Try a different word, or clear the filters.'}
             </p>
           ) : shown.map(a => {

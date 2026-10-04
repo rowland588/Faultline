@@ -33,7 +33,7 @@ export function SourceStrip({ count }: { count: number }) {
     <p className="bs-src">
       {count > 0
         ? <>From the project’s <b>board</b> · {count} action{count === 1 ? '' : 's'}</>
-        : <>No actions on the project’s board yet — write them on the 3P board first.</>}
+        : <>No actions on the project’s board yet — write them on the 6M board first.</>}
     </p>
   );
 }
