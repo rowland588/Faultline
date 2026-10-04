@@ -308,7 +308,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
-  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every job</p><h2 className="jb-says">Reading every job…</h2></div></section>;
+  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every job</p><h1 className="jb-says">Reading every job…</h1></div></section>;
   if (pf.jobs.length === 0) return null;
 
   const glow = { '--g1': pf.jobs[0]?.color, '--g2': pf.jobs[1]?.color ?? pf.jobs[0]?.color } as CSSProperties;
@@ -321,7 +321,9 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
         <p className="jb-eyebrow">Control room · every job · {niceDay(today, { weekday: 'short' })}</p>
-        <h2 className="jb-says">{pf.says}</h2>
+        {/* The page's one heading: Home had none, so a screen reader landed on
+            the logo and "Who owes what" with no name for the page itself. */}
+        <h1 className="jb-says">{pf.says}</h1>
         <div className="jb-stats">
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.jobs} still={still} /></b>{pf.totals.jobs === 1 ? 'job running' : 'jobs running'}

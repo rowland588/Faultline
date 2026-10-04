@@ -17,7 +17,7 @@
 import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nav, navReplace } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers, methodPeers } from '../ui/Peers';
@@ -292,10 +292,16 @@ function AddProgram({ state, lines, assets }: {
 
   const onMachine = assetId ?? busiestMachine(state.programs, assets);
 
-  const add = async () => {
-    if (!what.trim()) return;
-    await state.add({ what, runs, testOn, lineId, assetId: onMachine, from });
-    setWhat(''); setRuns(''); setTestOn(''); setFrom('');
+  /* ONE TAP, ONE PROGRAM. The boxes cleared only once the write came back,
+     so a double tap on "Add it" added the same program twice (it did on
+     Materials, which shares the shape). */
+  const busy = useRef(false);
+  const add = () => {
+    if (!what.trim() || busy.current) return;
+    busy.current = true;
+    void state.add({ what, runs, testOn, lineId, assetId: onMachine, from })
+      .then(() => { setWhat(''); setRuns(''); setTestOn(''); setFrom(''); })
+      .finally(() => { busy.current = false; });
     /* The machine and the line STAY. Adding programs is done in runs — five
        for the pick and place, then five for the wrapper — and clearing the
        machine after each one makes you set it five times. */
@@ -329,7 +335,7 @@ function AddProgram({ state, lines, assets }: {
         <label className="proj-field mt-add-what">
           <span className="field-label">Name or number</span>
           <input className="text-input" value={what} maxLength={160} placeholder="P-104 perforation"
-            onChange={e => setWhat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+            onChange={e => setWhat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
           {/* DIRECTLY UNDER THE BOX THEY FILL. They used to sit at the foot of
               the card, 350px below it on a phone — so tapping one filled a box
               that was off the top of the screen and the whole thing read as
@@ -367,7 +373,7 @@ function AddProgram({ state, lines, assets }: {
         <label className="proj-field mt-add-much">
           <span className="field-label">What it runs</span>
           <input className="text-input" value={runs} maxLength={80} placeholder="Finest Red 2kg"
-            onChange={e => setRuns(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+            onChange={e => setRuns(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
         <label className="proj-field mt-add-due">
           <span className="field-label">Testing on</span>
@@ -385,9 +391,9 @@ function AddProgram({ state, lines, assets }: {
         <label className="proj-field">
           <span className="field-label">From</span>
           <input className="text-input" value={from} maxLength={80} placeholder="Who owes it"
-            onChange={e => setFrom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+            onChange={e => setFrom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
-        <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => void add()}>Add it</button>
+        <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => add()}>Add it</button>
       </div>
       <p className="chip-hint">
         Only the first box is needed. A new program starts as <b>not written</b>, and a program nobody has
@@ -411,16 +417,13 @@ export function ProgramsScreen({ projectId, embedded = false }: {
   const state = usePrograms(projectId);
   /* The machines, so a program can say which one it is for. */
   const { assets, addAsset } = useAssets(projectId);
-  /* The numbers on the peers row come from lib/standing.ts, the same call the
-     dashboard and the client report make — a row that said something different
-     from the page under it would be the whole problem back again. */
-  const stand = useStanding(projectId);
-  const counts = useMethodCounts(projectId);
   const can = useAccess(projectId);
   const today = todayISO();
 
+  /* Embedded, the page around it is the frame — a second .wrap inside it
+     indented the word and gave it a page's margins. */
   if (loading || state.loading || lines.loading) {
-    return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+    return embedded ? <p className="sub">Loading…</p> : <div className="wrap pace"><p className="sub">Loading…</p></div>;
   }
   if (!project) {
     return (
@@ -469,9 +472,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       </header>
       {/* The row under the header, and the gates are a stage-gate job's —
           see MaterialsScreen. */}
-      {project.commissioning
-        ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
-        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
+      <ProgramsPeers projectId={projectId} commissioning={!!project.commissioning} leverTree={!!project.leverTree} />
       {/* Embedded, the page around it already says this once. */}
       <AccessNote can={can} owner={project.lead} />
       </>}
@@ -526,6 +527,21 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       )}
     </div>
   );
+}
+
+/* THE PEERS ROW, AND THE COUNTS ON IT, ONLY WHERE THE ROW IS DRAWN. The
+   numbers come from lib/standing.ts, the same call the dashboard and the
+   client report make — a row that said something different from the page under
+   it would be the whole problem back again. They were worked out at the top of
+   the screen, so Set up (which draws this embedded, with no row) read and
+   judged the whole job a second time on every change for nothing: on a job a
+   long way in that was the slowest page in the app. */
+function ProgramsPeers({ projectId, commissioning, leverTree }: { projectId: string; commissioning: boolean; leverTree: boolean }) {
+  const stand = useStanding(projectId);
+  const counts = useMethodCounts(projectId);
+  return commissioning
+    ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
+    : <Peers peers={methodPeers(projectId, leverTree ? 'tree' : 'board', 'materials', counts)} />;
 }
 
 /* PROGRAMS ARE SHOWN ONCE ON A JOB. They are set up under Set up on a stage-gate

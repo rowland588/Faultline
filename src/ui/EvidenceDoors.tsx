@@ -109,9 +109,14 @@ export function Evidence({ media, kind, onAdd, onView }: {
       </div>}
       {note && <span className="sub" role="status">{note}</span>}
 
+      {/* THE CAMERA STAYS UP AFTER A CLIP, as it does on the walk and the
+          capture screen: the recorder counts what it has saved ("keep filming
+          or tap Done"), and closing it on the first Stop meant that count was
+          never seen and a second clip of the same fault was a second trip
+          through the Video door. Done closes it. */}
       {filming && (
         <VideoRecorder
-          onCapture={b => { void take('Saving the clip…', async () => [await saveVideoBlob(b)]); setFilming(false); }}
+          onCapture={b => { void take('Saving the clip…', async () => [await saveVideoBlob(b)]); }}
           onClose={() => setFilming(false)} />
       )}
     </div>

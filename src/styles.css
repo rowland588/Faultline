@@ -8270,3 +8270,130 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 /* A reader is not offered the owner's add rows, remove marks or how-to-fill hints. */
 .pset-ro .ms-add, .pset-ro .ms-quarters, .pset-ro .pset-x, .pset-ro .chip-hint { display: none; }
 .pset-role.is-access { text-transform: none; }
+
+/* UI audit — tests & docs. Appended rather than edited into the shared rules
+   above, each scoped to the screen it was found on. */
+
+/* A test's fixes and re-tests: the whole width of the block on a desk, like
+   every other list on the page — as a flex item it shrank to its words. */
+.tw-block > .cw-list { flex: 1 1 100%; min-width: 0; }
+
+/* Meeting notes: the add form's Close sat on the corner of the box being typed
+   in. It gets a strip of its own at the top of the form. */
+.nt .add-fold > .nt-add { padding-top: 40px; }
+.nt .add-fold-x { top: 4px; right: 6px; min-height: 36px; padding: 0 10px; }
+
+/* The day's own date box, dressed as the other boxes — it was the browser's
+   bare square with a black edge. 16px so a phone does not zoom on it. */
+.dy-nav input[type="date"] {
+  padding: 0 12px; font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+.dy-nav input[type="date"]:focus { border-color: var(--accent); }
+
+@media (max-width: 720px) {
+  .nt .add-fold > .nt-add { padding-top: 48px; }
+  .nt .add-fold-x { min-height: 44px; min-width: 44px; }
+  /* Below 16px iOS zooms the page on focus — see "TYPING ON A PHONE". */
+  .nt-add .text-area, .nt-edit .text-area, .nt-pick select { font-size: 16px; }
+  .nt-pick select { min-height: 44px; }
+  /* The Evidence doors at a full finger's height. */
+  .tw-door { min-height: 44px; }
+  /* Small links set in a line of words ("Dates", "for …", a group's heading,
+     "Go to …"): a finger-sized target, with the layout left where it was. */
+  .cm-screen .cw-handover .cw-link, .nt-group-h .cw-link, .tw-note .cw-link, .otl-none .cw-link { padding: 15px 6px; margin: -15px -6px; }
+  /* The client report's one option: the whole row is the target, and the box
+     big enough to see ticked. */
+  .cr-opt { min-height: 44px; }
+  .cr-opt input { width: 20px; height: 20px; flex: none; }
+}
+
+/* ===========================================================================
+ * UI audit — gates & job. Found by using the control room, the job page, the
+ * three gates, Materials and Programs at 390, 360, 1366 and 1440 wide, on a
+ * job just started and on one a long way in.
+ * ========================================================================= */
+
+/* THE PLAN'S HANDOVER FLAGS GET THEIR OWN STRIP. "Agreed 23 Oct" and
+   "Handover 31 Oct" sat at the foot of the chart, which is where its last row
+   is — on a phone they were printed over "Found on the walk 1 open · 2 closed"
+   and over the hand-over bar itself. The strip under the last row is theirs;
+   the day lines run down through it, so the flag stays on its line. */
+.gt-body { padding-bottom: 44px; }
+
+/* A LATE ALARM ON A PHONE (the job page's "4 programs are past their test
+   date"): wrapped, its › went down to a line of its own under the text, an
+   arrow on an empty row. The words stack and the arrow stays beside them. */
+@media (max-width: 720px) {
+  .mt-alarm { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .mt-alarm-t, .mt-alarm-s { grid-column: 1; }
+  .mt-alarm-go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+}
+
+/* WHERE YOU ARE, ON A PHONE, WITH A LONG NAME. The trail is scrolled to its
+   end and this crumb never shrank, so a long job name was cut at its START —
+   "ction, case packing and pallet" — which reads as a fault. It now ends in
+   an ellipsis like the back pill beside it. */
+@media (max-width: 719px) {
+  .spine-w:last-child { flex: 0 1 auto; min-width: 0; }
+  .spine-w:last-child .spine-crumb.is-here { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* THE GRID ON A PHONE. A row that spans every stage — "Running since 24 Sept
+   — no install steps kept", "+ Add the 6 stages" — was as wide as all six
+   columns, so its words ran off the right of the screen and the button's end
+   was out of sight. They keep to what is on screen beside the machine's name. */
+@media (max-width: 720px) {
+  .ig-in, .ig-give { max-width: calc(100vw - 32px - 132px - 18px); }
+  .ig-in { flex-wrap: wrap; padding-block: 6px; line-height: 1.35; }
+}
+/* A stage's name and a machine's name are buttons: a finger's height. */
+@media (pointer: coarse) {
+  .ig-colh, .ig-rowh { min-height: 44px; }
+}
+
+/* MATERIALS AND PROGRAMS, BY THUMB. A row's date box measured 28px high and
+   the name, which is the box you edit it in, 22px. */
+@media (pointer: coarse) {
+  .mt-row .mt-due, .mt-row .mt-what { min-height: 44px; }
+}
+
+/* THE CONTROL ROOM WITH A LONG JOB NAME. "Line 2 — complete rebuild: bagging,
+   weighing, coding, inspection, case packing and palletising" took four lines
+   of capitals on every card of "This week", and set the width of the job
+   column of the late list row by row, so no two rows lined up. The name is
+   kept to a line or three, and the full name is a tap away on the job itself.
+   (Who owes what keeps it whole: the count is at the end of the name.) */
+.jb-wk-job { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.jb-fi { grid-template-columns: minmax(0, 8.5em) 1fr auto; }
+.jb-fi-job { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; align-self: center; }
+
+/* A row's open/close chevron on a phone: 28px wide — under a thumb. The name
+   opens the row too; this is the one people aim at on the right. */
+@media (max-width: 719px) {
+  .jb-row-h { grid-template-columns: 1fr 44px; }
+  .jb-chev-b { width: 44px; }
+}
+
+/* The job's Details (the gear beside its name): 36px high on a phone. */
+@media (max-width: 720px) {
+  .pace-gear { min-height: 44px; min-width: 44px; }
+}
+
+/* The late list on a phone: three columns in 360px left the thing itself a
+   word wide, five lines to an item. The job goes on a line of its own over
+   it, the date stays on the right. */
+@media (max-width: 719px) {
+  .jb-fi { grid-template-columns: 1fr auto; grid-template-areas: "job when" "what what" "m m"; padding-block: 10px; }
+  .jb-fi-job { -webkit-line-clamp: 1; line-clamp: 1; padding: 0 0 0 8px; }
+}
+
+/* THE STAGE EDITOR'S NAME BOXES wore the browser's own square black border —
+   the one set of fields in the app that did — beside the rounded, quiet
+   boxes of the sheet they sit in. They take the sheet fields' look. */
+.in-usual-edit input {
+  width: 100%; padding: 7px 10px; font: inherit; font-size: 13.5px; color: var(--ink); box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+}
+.in-usual-edit input:focus { border-color: var(--accent); }
+@media (pointer: coarse) { .in-usual-edit input { font-size: 16px; } }

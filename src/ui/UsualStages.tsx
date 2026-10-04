@@ -136,7 +136,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
           <span className="sub">
             {usual.from === 'job' ? 'this job’s own'
               : usual.from === 'other' ? `taken from ${otherName ?? 'another job'}`
-                : can.agree ? 'the app’s — make them yours' : 'the app’s'}
+                : can.agree ? 'the app’s standard set — make them yours' : 'the app’s standard set'}
           </span>
           {can.agree && <button className="cw-link" onClick={() => setDraft([...usual.stages])}>Edit</button>}
         </div>
@@ -191,7 +191,9 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a stage
       </button>
       <div className="in-usual-go">
-        <button className="btn" onClick={() => void save()} disabled={cleaned.length === 0}>
+        {/* The one thing to press here, so it wears the press colour, as Save does
+            on every other sheet. */}
+        <button className="btn btn-primary" onClick={() => void save()} disabled={cleaned.length === 0}>
           Save {cleaned.length} stage{cleaned.length === 1 ? '' : 's'}
         </button>
         <button className="btn btn-ghost" onClick={() => setDraft(null)}>Cancel</button>

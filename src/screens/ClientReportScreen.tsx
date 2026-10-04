@@ -50,7 +50,22 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const [withStandards, setWithStandards] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 900px)').matches;
+  /* What happened to the last press, said beside the button the way the test
+     card and the day say it — a download with no word back read as nothing
+     having happened, and a failure was an alert box. */
+  const [said, setSaid] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  /* The preview beside the contents is for a desk. Followed, not read once: a
+     laptop window snapped to half the screen and back kept whichever it
+     opened at. */
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(min-width: 900px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(min-width: 900px)');
+    if (!mq) return;
+    const on = () => setWide(mq.matches);
+    mq.addEventListener?.('change', on);
+    return () => mq.removeEventListener?.('change', on);
+  }, []);
 
   const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !!project;
   const report = useMemo(() => (ready && project ? clientReport({
@@ -74,13 +89,14 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
 
   const download = async () => {
     if (!report || busy) return;
-    setBusy(true);
+    setBusy(true); setSaid(null); setErr(null);
     try {
       const { deliverPdf } = await import('../lib/savePdf');
-      await deliverPdf(await buildPdf(report, withStandards), fileName(report));
+      const how = await deliverPdf(await buildPdf(report, withStandards), fileName(report));
+      setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
     } catch (e) {
       console.error('client report failed', e);
-      window.alert('Sorry — the report could not be made. Please try again.');
+      setErr(`The report could not be made${e instanceof Error && e.message ? ` — ${e.message}` : ''}. Try again; if it fails again, reload the app.`);
     } finally { setBusy(false); }
   };
 
@@ -103,6 +119,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </div>
       </header>
+      {said && <p className="tc-ok" role="status">{said}</p>}
+      {err && <p className="sub tw-err" role="alert">{err}</p>}
 
       {report.standards.length > 0 && (
         <label className="cr-opt">

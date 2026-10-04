@@ -17,7 +17,7 @@
 import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers, methodPeers } from '../ui/Peers';
@@ -156,10 +156,15 @@ function AddMaterial({ state, lines }: {
   const [lineId, setLineId] = useState('');
   const [from, setFrom] = useState('');
 
-  const add = async () => {
-    if (!what.trim()) return;
-    await state.add({ what, howMuch, due, lineId, from });
-    setWhat(''); setHowMuch(''); setDue(''); setFrom('');
+  /* ONE TAP, ONE THING. The boxes cleared only once the write came back, so a
+     double tap on "Add it" put the same material on the list twice. */
+  const busy = useRef(false);
+  const add = () => {
+    if (!what.trim() || busy.current) return;
+    busy.current = true;
+    void state.add({ what, howMuch, due, lineId, from })
+      .then(() => { setWhat(''); setHowMuch(''); setDue(''); setFrom(''); })
+      .finally(() => { busy.current = false; });
   };
 
   return (
@@ -169,12 +174,12 @@ function AddMaterial({ state, lines }: {
         <label className="proj-field mt-add-what">
           <span className="field-label">What it is</span>
           <input className="text-input" value={what} maxLength={160} placeholder="TESC03163A Finest Red 2kg"
-            onChange={e => setWhat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+            onChange={e => setWhat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
         <label className="proj-field mt-add-much">
           <span className="field-label">How much</span>
           <input className="text-input" value={howMuch} maxLength={40} placeholder="10 reels"
-            onChange={e => setHowMuch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+            onChange={e => setHowMuch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
         <label className="proj-field mt-add-due">
           <span className="field-label">Due</span>
@@ -192,9 +197,9 @@ function AddMaterial({ state, lines }: {
         <label className="proj-field">
           <span className="field-label">From</span>
           <input className="text-input" value={from} maxLength={80} placeholder="Who is bringing it"
-            onChange={e => setFrom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void add(); }} />
+            onChange={e => setFrom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
-        <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => void add()}>Add it</button>
+        <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => add()}>Add it</button>
       </div>
       <p className="chip-hint">Only the first box is needed. A thing with no date agreed is a real state, and the list says so rather than inventing one.</p>
     </div>

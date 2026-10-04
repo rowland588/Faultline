@@ -180,8 +180,12 @@ export function useProjectMembers(projectId: string): {
     catch (e) {
       // A missing table means the project-teams migration has not been run yet.
       // Say that plainly rather than showing an empty list as if nobody is here.
-      const msg = e instanceof Error ? e.message : '';
-      setError(/project_members/.test(msg) ? 'Sharing isn’t switched on yet — run PROJECT_TEAMS.sql in Supabase.' : '');
+      const msg = e instanceof Error ? e.message : (e as { message?: string })?.message ?? '';
+      /* Not reached is not "nobody": the panel said "Nobody else yet" with no
+         signal, a claim it could not know (found by the UI audit). */
+      setError(/project_members/.test(msg) && !/fetch|network|load failed/i.test(msg)
+        ? 'Sharing isn’t switched on yet — run PROJECT_TEAMS.sql in Supabase.'
+        : 'Couldn’t reach the cloud — who is on this project shows once this device is online.');
     }
     setLoaded(true);
   }, [projectId]);

@@ -262,10 +262,13 @@ function ProjectPeople({ lead, people, can }: { lead?: string; people: ReturnTyp
   const [kind, setKind] = useState(KINDS[0].id);
   const [note, setNote] = useState('');
 
+  // One invite at a time: a double tap sent two (found by the UI audit).
+  const [sending, setSending] = useState(false);
   const doAdd = async () => {
     const t = text.trim().toLowerCase();
-    if (!t) return;
+    if (!t || sending) return;
     if (members.some(m => m.email === t)) { setNote(`${t} is already on this project`); setText(''); return; }
+    setSending(true);
     try {
       const k = KINDS.find(x => x.id === kind) ?? KINDS[0];
       const r = await add(t, k.role, k.access);
@@ -280,6 +283,7 @@ function ProjectPeople({ lead, people, can }: { lead?: string; people: ReturnTyp
         : `${t} can sign up now — tell them to open Faultline and create an account with that address. This project will be waiting for them.`);
     }
     catch (e) { setNote(e instanceof Error ? e.message : 'Couldn’t add them — are you online?'); }
+    finally { setSending(false); }
   };
 
   if (!supabase) {
@@ -331,7 +335,7 @@ function ProjectPeople({ lead, people, can }: { lead?: string; people: ReturnTyp
             onChange={e => setKind(e.target.value)}>
             {KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}
           </select>
-          <button className="btn" onClick={() => void doAdd()} disabled={!text.trim()}>Invite</button>
+          <button className="btn" onClick={() => void doAdd()} disabled={!text.trim() || sending}>{sending ? 'Inviting…' : 'Invite'}</button>
         </div>
         <p className="chip-hint">
           The team and line owners do the work — steps, tests, fixes, findings, photos. What was agreed
@@ -468,11 +472,17 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         : <MeasuresRead projectId={project.id} lines={lines.lines} />)}
 
       <Fold id="pset-people" title="People" start={false}
-        says={people.members.length ? peopleSays(people.members) : can.people ? 'nobody else yet — invite by email' : 'nobody else yet'}>
+        says={people.members.length ? peopleSays(people.members) : people.error ? 'not reached — shows once online' : can.people ? 'nobody else yet — invite by email' : 'nobody else yet'}>
         <div className="card">
           <ProjectPeople lead={project.lead} people={people} can={can} />
         </div>
       </Fold>
+
+      {/* A COMMISSIONING JOB'S LINES GO LAST. It has them — materials can be
+          for one line — but they are not what anybody comes here to change.
+          Last of what is kept here, above putting the project away: below it,
+          the fold read as part of the archive. */}
+      {commissioning && linesSection}
 
       {/* PUT IT AWAY. Rowland: "you removed the archive and delete system for
           projects." It was only ever on the All projects page — nowhere on the
@@ -494,10 +504,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <span className="sub">Delete for ever is offered from the archive, after it says what it will take.</span>
         </div>
       </section>}
-
-      {/* A COMMISSIONING JOB'S LINES GO LAST. It has them — materials can be
-          for one line — but they are not what anybody comes here to change. */}
-      {commissioning && linesSection}
     </div>
   );
 }

@@ -538,22 +538,25 @@ export function DatesForm({ start, finish, was, onSave, onMove, following }: {
     return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)}
       onSkip={() => onSave(from || undefined, from ? (to || undefined) : undefined)} />;
   }
+  /* A FORM, so Enter in a date box saves, as it does in "Who is doing it"
+     beside it. On a laptop the dates were the one pair Enter did nothing in. */
   return (
-    <div className="ig-plan">
+    <form className="ig-plan" onSubmit={e => {
+      e.preventDefault();
+      if (!changed) return;
+      /* PUSHED LATER? Then it asks why before anything is kept. */
+      if (movedLater(was, end)) { setAsking(true); return; }
+      onSave(from || undefined, from ? (to || undefined) : undefined);
+    }}>
       <div className="ig-dates">
         <label className="cw-f ig-f"><span>Starts</span>
           <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
         <label className="cw-f ig-f"><span>Finishes <span className="cw-f-opt">blank = one day</span></span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
-        <button className="btn btn-primary" type="button" disabled={!changed}
-          onClick={() => {
-            /* PUSHED LATER? Then it asks why before anything is kept. */
-            if (movedLater(was, end)) { setAsking(true); return; }
-            onSave(from || undefined, from ? (to || undefined) : undefined);
-          }}>Save</button>
+        <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>
       </div>
       {movedLater(was, end) && <p className="sub ig-why-note">That is later than it was ({short(was)}) — Save will ask why.</p>}
-    </div>
+    </form>
   );
 }
 
@@ -575,22 +578,24 @@ function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
       onSkip={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); setAsking(false); }}
       onSave={a => { onMove(from, to || undefined, a); setFrom(''); setTo(''); setAsking(false); }} />;
   }
+  /* A form for the same reason as DatesForm: Enter saves. */
   return (
-    <div className="ig-plan">
+    <form className="ig-plan" onSubmit={e => {
+      e.preventDefault();
+      if (!from) return;
+      if (push.n > 0 && onMove) { setAsking(true); return; }
+      onPlan(from, to || undefined); setFrom(''); setTo('');
+    }}>
       <span className="ig-plan-l">{label}</span>
       <div className="ig-dates">
         <label className="cw-f ig-f"><span>Starts</span>
           <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
         <label className="cw-f ig-f"><span>Finishes</span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
-        <button className="btn" type="button" disabled={!from}
-          onClick={() => {
-            if (push.n > 0 && onMove) { setAsking(true); return; }
-            onPlan(from, to || undefined); setFrom(''); setTo('');
-          }}>{saveLabel}</button>
+        <button className="btn" type="submit" disabled={!from}>{saveLabel}</button>
       </div>
       {push.n > 0 && <p className="sub ig-why-note">That pushes {push.n === 1 ? 'one machine' : `${push.n} machines`} later than planned — Save will ask why.</p>}
-    </div>
+    </form>
   );
 }
 

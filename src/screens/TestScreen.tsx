@@ -568,10 +568,13 @@ function NextFixes({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
       || ((t.kind ?? 'test') === 'test' && t.fromTestId === test.id)))
     .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
   const noun = test.kind === 'install' ? 'step' : 'test';
+  /* The list carries the re-tests planned from it as well; a heading that
+     said "Fixes" over a row marked RE-TEST was a word that was not true. */
+  const retests = out.some(t => (t.kind ?? 'test') === 'test');
 
   return (
     <section className="tw-block">
-      <span className="tw-block-h">4 · Fixes for this {noun}</span>
+      <span className="tw-block-h">4 · {retests ? 'Fixes and re-tests' : 'Fixes'} for this {noun}</span>
       {out.length === 0 && (
         <p className="sub tw-note">No fixes for this {noun} yet.</p>
       )}
