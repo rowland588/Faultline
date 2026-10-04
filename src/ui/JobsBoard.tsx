@@ -40,10 +40,13 @@ import {
 import { bindSources, treeStanding, withTrackerRows } from '../lib/treeBind';
 import { stepAction } from '../lib/actions';
 import { planModel } from '../lib/planModel';
-import { lineSeries } from '../lib/measures';
+import { gapOf, lineSeries } from '../lib/measures';
+import { loadProblems, viewsOf } from '../lib/useProblems';
+import { fishboneUrl } from '../screens/FishboneScreen';
 import { offerUndo } from './Undo';
 import {
   clusterMarks, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
+  type Said, type SixMProblem,
 } from '../lib/portfolio';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
@@ -152,8 +155,26 @@ function useJobs(projects: Project[]): Jobs | null {
             steps.map(s => stepAction(s, lines)), steps, lines,
             { measures: project.measures ?? [], periods: project.periods ?? [], targets, readings })))
           : undefined;
+        /* A 6M job's problems, read by the engine its fishbone and its client
+           report read them with — the phase is phaseOf's, not worked out here —
+           and each line against its target in the report's own sentence. */
+        let problems: SixMProblem[] | undefined;
+        let gaps: PacedInput['gaps'];
+        if (planModel(project) === 'board') {
+          const day = todayISO();
+          const loaded = await loadProblems(project.id).catch(() => null);
+          problems = loaded
+            ? viewsOf(loaded, project.id, undefined, Date.parse(`${day}T23:59:59`)).map(v => ({
+              id: v.problem.id, title: v.problem.title, phase: v.phase, says: v.says,
+              ...(v.problem.lineId ? { lineId: v.problem.lineId } : {}),
+            }))
+            : undefined;
+          gaps = (project.measures ?? []).length
+            ? lines.map((l, i) => ({ lineId: l.id, line: l.name, ...gapOf(l.name, series[i]) }))
+            : [];
+        }
         return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree,
+          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
         };
@@ -490,6 +511,16 @@ function WeekStrip({ items }: { items: JobItem[] }) {
   );
 }
 
+/** A sentence in pieces, the abnormal piece in its colour — late or slipped
+ *  red, waiting amber, nothing-there grey — and the rest plain ink. */
+function SaidLine({ parts, className }: { parts: Said[]; className: string }) {
+  return (
+    <span className={className}>
+      {parts.map((x, k) => (x.tone ? <span key={k} className={'jb-said is-' + x.tone}>{x.text}</span> : x.text))}
+    </span>
+  );
+}
+
 function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
   v: JobView; i: number; open: boolean; onToggle: () => void; span: string[]; today: string;
   tip: string | null; setTip: (k: string | null) => void;
@@ -535,7 +566,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 <span className="jb-chip is-at is-none">{v.methodLabel}</span>
                 {v.reach && <span className="jb-chip is-at is-going">{v.reach}</span>}
               </>}
-            {v.late > 0 && <span className="jb-chip is-late">{v.late} late</span>}
+            {/* A 6M row says what is late in the line under it, with which
+                bones — the same number twice on one row is one too many. */}
+            {v.late > 0 && !v.sixm && <span className="jb-chip is-late">{v.late} late</span>}
           </span>
           {v.method === 'commissioning' ? (
             <span className="jb-gates" aria-label={v.gates.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
@@ -556,10 +589,17 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 <span className={'jb-gate is-' + (v.tree.done === v.tree.total ? 'done' : 'none')}>{v.tree.done} of {v.tree.total} done</span>
               )}
             </span>
+          ) : v.sixm ? (
+            /* A 6M JOB (docs/SIXM.md, "Home / control room"): its problems by
+               phase, then its open countermeasures by bone — in words, the
+               abnormal piece alone in colour. They were six-bone tiles with a
+               number each, which said how much was open but not whether the
+               root causes were being found, acted on or held. */
+            <span className="jb-6m">
+              <SaidLine className="jb-6m-l" parts={v.sixm.phases} />
+              <SaidLine className="jb-6m-l" parts={v.sixm.bones} />
+            </span>
           ) : (
-            /* A 6M JOB: its open countermeasures by bone, only the bones with
-               something open — "Machine 3 · Method 1 · People 2". A bone with
-               something late on it is the one tile that carries a colour. */
             <span className="jb-gates jb-bones" aria-label={v.pillars.length
               ? 'Open by bone: ' + v.pillars.map(x => `${x.label} ${x.open}${x.tone === 'late' ? ', some late' : ''}`).join(', ')
               : 'Nothing open on the board'}>
@@ -658,7 +698,46 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
               {/* The job in words, and its doors, in the column under its name —
                   the calendar keeps the board's width. */}
               <aside className="jb-aside">
-                <p className="jb-sent">{v.sentence}{v.slip ? ` ${v.slip}` : ''}</p>
+                {v.sixm ? (
+                  /* A 6M JOB'S DRAWER LEADS WITH THE GAP — each line against
+                     its target, in the sentence its client report opens with —
+                     then its problems, each one tap from its fishbone, then
+                     the countermeasures by bone. It said "2 of 2 lines at
+                     target, with 7 actions open", which named neither the
+                     number nor the problem anybody is working on. */
+                  <>
+                    <div className="jb-gap">
+                      {v.sixm.gaps.length === 0
+                        ? <p className="sub">No measure is set on this job yet, so there is no gap to show.</p>
+                        : v.sixm.gaps.map(g => {
+                          const k = g.short ? g.says.indexOf(g.short) : -1;
+                          return (
+                            <p key={g.lineId} className="jb-gap-l">
+                              {k < 0 ? g.says : <>{g.says.slice(0, k)}<span className="jb-said is-late">{g.short}</span>{g.says.slice(k + (g.short ?? '').length)}</>}
+                            </p>
+                          );
+                        })}
+                    </div>
+                    {v.sixm.problems.length > 0 ? (
+                      <ul className="jb-probs" aria-label="Problems">
+                        {v.sixm.problems.map(x => (
+                          <li key={x.id}>
+                            <button className={'jb-prob' + (x.slipped ? ' is-slipped' : '')}
+                              onClick={() => nav(fishboneUrl(v.id, { line: x.lineId, problem: x.id }))}>
+                              <span className="jb-prob-t">
+                                <b>{x.title}</b>
+                                <span className={'jb-prob-ph' + (x.slipped ? ' jb-said is-late' : '')}>{x.word}</span>
+                              </span>
+                              {x.says && x.says !== x.title && <span className="jb-prob-s">{x.says}</span>}
+                              <span className="jb-prob-c" aria-hidden>›</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <SaidLine className="jb-6m-l jb-6m-d" parts={v.sixm.phases} />}
+                    <SaidLine className="jb-6m-l jb-6m-d" parts={v.sixm.bones} />
+                  </>
+                ) : <p className="jb-sent">{v.sentence}{v.slip ? ` ${v.slip}` : ''}</p>}
                 {v.lead && <p className="sub jb-led">Led by {v.lead}</p>}
                 {/* THE LINES, ONE TAP EACH — from the project card this row
                     replaced on Home. Each says its owner, so "that is my line"
@@ -681,6 +760,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 )}
                 <span className="jb-doors">
                   <button className="btn btn-primary" onClick={() => nav(`/project/${v.id}`)}>Open the job ›</button>
+                  {/* The fishbone is a 6M job's journey, as the plan is a
+                      stage-gate job's — its door comes first. */}
+                  {v.sixm && <button className="btn btn-ghost" onClick={() => nav(fishboneUrl(v.id))}>Fishbone</button>}
                   {v.method === 'commissioning' ? <>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Commission</button>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Fixes</button>

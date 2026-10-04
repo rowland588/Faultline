@@ -6,7 +6,8 @@
  * asserted here, because a board that disagrees with the job it opens is
  * worse than no board. */
 import { describe, it, expect } from 'vitest';
-import { clusterMarks, jobItems, owedBy, pacedSays, portfolio, shortName, type JobInput, type PacedInput } from '../portfolio';
+import { bonesSaid, clusterMarks, jobItems, owedBy, pacedSays, portfolio, problemsSaid, saidText, shortName, type JobInput, type PacedInput } from '../portfolio';
+import { gapOf, type LineSeries } from '../measures';
 import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
 import type { Project } from '../../types';
@@ -282,6 +283,80 @@ describe('every job on every method', () => {
   it('says nothing is on the board when nothing is', () => {
     expect(pf.jobs.find(j => j.id === 'lt')!.sentence).toBe('Nothing on the board yet.');
     expect(pacedSays({ atTarget: 2, judged: 2, open: 0, late: 0, any: true })).toBe('2 of 2 lines at target, with nothing open on the board.');
+  });
+});
+
+/* A 6M JOB, IN WORDS (docs/SIXM.md, "Home / control room"): its problems by
+ * phase and its open countermeasures by bone, the abnormal piece alone in a
+ * colour; and its drawer leads with each line against its target in the
+ * sentence the 6M client report opens with. */
+describe('a 6M job in the control room', () => {
+  const step = (o: Record<string, unknown>) =>
+    ({ id: `s${++n}`, projectId: 'p', what: 'An action', where: '', why: '', who: '', when: '', state: 'todo', createdAt: 1, updatedAt: 1, ...o }) as PacedInput['steps'][number];
+  const tones = (xs: { text: string; tone?: string }[]) => xs.filter(x => x.tone).map(x => [x.text, x.tone]);
+
+  it('says the open problems by phase, then the closed ones', () => {
+    const said = problemsSaid(['finding', 'acting', 'holding']);
+    expect(saidText(said)).toBe('2 problems — 1 finding the cause, 1 acting on it · 1 holding');
+    expect(tones(said)).toEqual([]);
+  });
+  it('says one open problem without counting it twice', () => {
+    expect(saidText(problemsSaid(['acting']))).toBe('1 problem — acting on it');
+  });
+  it('puts a slipped one in red, in words', () => {
+    const said = problemsSaid(['proving', 'slipped', 'holding', 'holding']);
+    expect(saidText(said)).toBe('1 problem — checking it worked · 1 slipped back · 2 holding');
+    expect(tones(said)).toEqual([['1 slipped back', 'late']]);
+  });
+  it('says when there is none, in grey', () => {
+    expect(problemsSaid([])).toEqual([{ text: 'No problem opened yet', tone: 'none' }]);
+    expect(saidText(problemsSaid(['closed']))).toBe('No problem open · 1 closed');
+  });
+
+  it('says the open countermeasures by bone, biggest first, then what is late and waiting', () => {
+    const said = bonesSaid([
+      step({ pillar: 'machine', due: '2026-09-20' }), step({ pillar: 'machine' }), step({ pillar: 'plant' }),
+      step({ pillar: 'people', state: 'waiting', due: '2026-10-08' }), step({ pillar: 'people', due: '2026-09-28' }),
+      step({ pillar: 'material' }), step({ pillar: 'material' }),
+      step({ pillar: 'method', state: 'done' }),
+    ], TODAY);
+    expect(saidText(said)).toBe('7 open: Machine 3 · People 2 · Material 2, 2 past their day, 1 waiting on somebody');
+    expect(tones(said)).toEqual([['2 past their day', 'late'], ['1 waiting on somebody', 'waiting']]);
+  });
+  it('counts an action on no bone, and says nothing open in grey', () => {
+    expect(saidText(bonesSaid([step({ pillar: 'people' }), step({})], TODAY))).toBe('2 open: People 1 · 1 not on a bone yet');
+    expect(bonesSaid([step({ state: 'done' })], TODAY)).toEqual([{ text: 'Nothing open on the board', tone: 'none' }]);
+    expect(bonesSaid([], TODAY)).toEqual([{ text: 'Nothing on the board yet', tone: 'none' }]);
+  });
+
+  it('gives a 6M row its problems and bones, worst problem first, and leaves the other methods alone', () => {
+    const sixm: PacedInput = {
+      project: project({ id: 's6', name: 'Line 7 pace', commissioning: undefined }),
+      steps: [step({ pillar: 'machine', due: '2026-09-20' })], lines: [], atTarget: 0, judged: 0,
+      problems: [
+        { id: 'a', title: 'Basketer minor stops', phase: 'acting', says: 'Minor stops — 3 h a week' },
+        { id: 'b', title: 'Line 2A below rate', phase: 'slipped', says: '' },
+      ],
+      gaps: [{ lineId: 'l', line: 'Line 2A', says: 'Line 2A is at 52 ppm (1 Oct) against the Q4 target of 60 ppm — 8 ppm short of target.', short: '8 ppm short of target' }],
+    };
+    const tree: PacedInput = { project: project({ id: 't', name: 'Tree', commissioning: undefined, leverTree: true }), steps: [], lines: [], atTarget: 0, judged: 0 };
+    const pf = portfolio([], TODAY, [sixm, tree]);
+    const v = pf.jobs.find(j => j.id === 's6')!;
+    expect(saidText(v.sixm!.phases)).toBe('1 problem — acting on it · 1 slipped back');
+    expect(saidText(v.sixm!.bones)).toBe('1 open: Machine 1, 1 past its day');
+    expect(v.sixm!.problems.map(x => [x.id, x.word, x.slipped])).toEqual([['b', 'Slipped back', true], ['a', 'Acting on it', false]]);
+    expect(v.sixm!.gaps[0].short).toBe('8 ppm short of target');
+    expect(pf.jobs.find(j => j.id === 't')!.sixm).toBeUndefined();
+  });
+
+  it('says the gap in the one sentence the client report uses', () => {
+    const s = {
+      measure: { id: 'm', name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 0 },
+      points: [{ at: '2026-10-01', value: 52 }], period: { id: 'q', name: 'Q4', from: '2026-10-01', to: '2026-12-31', sort: 0 },
+      target: 60, across: [], latest: 52, margin: -8, meeting: false,
+    } as unknown as LineSeries;
+    expect(gapOf('Line 2A', s)).toEqual({ says: 'Line 2A is at 52 ppm (1 Oct) against the Q4 target of 60 ppm — 8 ppm short of target.', short: '8 ppm short of target' });
+    expect(gapOf('Line 7', undefined).says).toBe('Line 7: no measure set yet.');
   });
 });
 

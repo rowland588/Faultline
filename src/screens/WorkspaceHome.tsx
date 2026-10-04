@@ -285,7 +285,7 @@ export function WorkspaceHome() {
               <p className="sub home-sec-sub">
                 These hold captures, film or evidence but hang off no line — from before there were
                 projects, or a walk that never got one. Open one to read it, or archive it. Anything
-                on a project is on its project card above.
+                on a project opens from its line, one tap from its row in the control room above.
               </p>
               <div className="ws-list">
                 {/* A ROW, NOT A CARD-SHAPED BUTTON. Archiving needs its own

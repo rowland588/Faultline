@@ -26,7 +26,7 @@ import { PHASE_WORD } from './problems';
 import { GRADES, SIXM, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
 import type { FishboneData } from './fishbone';
 import { therefore } from './fishbone';
-import { lineSeries, say, type LineSeries } from './measures';
+import { gapOf, lineSeries, say } from './measures';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
 import { analyse, fmtN } from './capacity';
@@ -183,24 +183,6 @@ function actionState(t: PaceTodoRow, today: string): { tone: Tone; when: string;
 }
 const TONE_RANK: Record<Tone, number> = { failed: 0, late: 1, waiting: 2, going: 3, ahead: 4, done: 5 };
 
-/** A line against its target, in one sentence. */
-function gapOf(name: string, s: LineSeries | undefined): Pick<GapLine, 'says' | 'short'> {
-  if (!s) return { says: `${name}: no measure set yet.` };
-  const unit = s.measure.unit;
-  const last = s.points[s.points.length - 1];
-  const period = s.period ? `${s.period.name} target` : 'target';
-  if (!last) return { says: s.target != null ? `${name}: ${period} ${say(s.target, unit)} — nothing measured yet.` : `${name}: nothing measured yet, and no target set.` };
-  const at = `${name} is at ${say(last.value, unit)} (${day(last.at)})`;
-  if (s.target == null || s.margin == null) return { says: `${at} — no target set.` };
-  const m = Math.abs(s.margin);
-  if (m === 0) return { says: `${at}, on its ${period} of ${say(s.target, unit)}.` };
-  const up = s.measure.direction === 'up';
-  if (s.margin < 0) {
-    const short = `${say(m, unit)} ${up ? 'short of' : 'over'} target`;
-    return { says: `${at} against the ${period} of ${say(s.target, unit)} — ${short}.`, short };
-  }
-  return { says: `${at} against the ${period} of ${say(s.target, unit)} — ${say(m, unit)} ${up ? 'better than' : 'under'} target.` };
-}
 
 /** The report, from the records — the screen lists it, the paper prints it. */
 export function sixmReport(o: SixMInput): SixMReport {
