@@ -45,6 +45,12 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   3P asks for a workbook.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
+`docs/OPEX.md` is the knowledge base behind the running-line method — what
+Lean/TPS, industrial engineering, Theory of Constraints, TPM, WCM, Six Sigma
+and Shingo each say, the six-move loop they share (standard, gap, priority,
+cause, proof, hold), how each family is evidenced, and what is left out on
+purpose. Read it before changing that method.
+
 They are separate methods, not one loop pretending to be cohesive; each is
 defined once, the same way, in `src/lib/planModel.ts` (the question, when to
 use it, how it is organised, rhythm, done, what it prints). A fourth method is
