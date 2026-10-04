@@ -93,3 +93,31 @@ describe('the ordinary routes still parse', () => {
     expect(parseRoute('#/').name).toBe('home');
   });
 });
+
+describe('a share link opens the share page, whatever state it arrives in', () => {
+  // #/s/<token> is opened from WhatsApp or an email by somebody with no
+  // account. The router puts it ahead of the sign-in door, so it must parse
+  // to 'share' and nothing else — a stray % or a missing token included.
+  const T = 'q3Zp0vKx_7-aBcDeFgHiJkLmNoPqRsTuVwXyZ012';
+
+  it('#/s/<token> is the share page, with the token as its id', () => {
+    expect(parseRoute(`#/s/${T}`)).toMatchObject({ name: 'share', id: T });
+  });
+
+  it('the token is taken as it stands — a mangled link does not throw', () => {
+    expect(parseRoute('#/s/abc%E0').id).toBe('abc%E0');
+  });
+
+  it('a link cut off after /s/ is still the share page, with no token', () => {
+    expect(parseRoute('#/s').name).toBe('share');
+    expect(parseRoute('#/s/').id).toBe('');
+  });
+
+  it('a query string tacked on by a messenger stays out of the token', () => {
+    expect(parseRoute(`#/s/${T}?utm_source=whatsapp`).id).toBe(T);
+  });
+
+  it('does not swallow other routes that begin with s', () => {
+    expect(parseRoute('#/settings').name).not.toBe('share');
+  });
+});

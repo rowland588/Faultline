@@ -27,8 +27,15 @@ type State =
   | { at: 'open'; item: Item }
   | { at: 'gone'; why: string; by: string | null };
 
-/** The function's reasons that are about the moment, not the link. */
-const passing = (why: string): boolean => /signal|try again/i.test(why);
+/** What a closed page can honestly offer. The function's reasons for a link
+ *  that is over (expired, stopped, taken off the job, not complete) send the
+ *  reader back to the sender. A reason that is about the moment — no signal,
+ *  a file still on its way — offers to try again; a link that is fine would
+ *  not need replacing. An answer that says neither offers both. */
+const offer = (why: string): 'ask' | 'retry' | 'both' =>
+  /signal|try again/i.test(why) || (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'retry'
+    : /could not be opened/i.test(why) ? 'both'
+    : 'ask';
 
 /** "11 Oct" — the day the link stops, in the reader's own zone. */
 const untilDay = (iso: string): string => {
@@ -117,13 +124,13 @@ function Loading() {
 }
 
 function Gone({ why, by, retry }: { why: string; by: string | null; retry: () => void }) {
+  const o = offer(why);
   return (
     <main className="sh-page sh-page-solo">
       <Brand />
       <h1 className="sh-gone-h">{why}</h1>
-      {passing(why)
-        ? <button type="button" className="btn btn-primary sh-retry" onClick={retry}>Try again</button>
-        : <p className="sh-gone-ask">Ask {by ?? 'whoever sent it'} for a new link.</p>}
+      {o !== 'retry' && <p className="sh-gone-ask">{o === 'both' ? 'If it still won’t open, ask' : 'Ask'} {by ?? 'whoever sent it'} for a new link.</p>}
+      {o !== 'ask' && <button type="button" className="btn btn-primary sh-retry" onClick={retry}>Try again</button>}
     </main>
   );
 }

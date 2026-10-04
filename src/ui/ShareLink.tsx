@@ -90,44 +90,44 @@ export function ShareSheet({ open, onClose, projectId, testId, media, onMade }: 
 
   return (
     <Sheet open={open} onClose={onClose} title={`Send a link to this ${what}`}>
-      <div className="sh-body">
+      <div className="sl-body">
         {!made ? <>
-          <div className="sh-f">
-            <span className="sh-lab" id="sh-for">Opens for</span>
-            <div className="sh-seg" role="group" aria-labelledby="sh-for">
+          <div className="sl-f">
+            <span className="sl-lab" id="sl-for">Opens for</span>
+            <div className="sl-seg" role="group" aria-labelledby="sl-for">
               {SHARE_FOR.map(o => (
-                <button key={o.days} type="button" className={'sh-seg-b' + (days === o.days ? ' on' : '')}
+                <button key={o.days} type="button" className={'sl-seg-b' + (days === o.days ? ' on' : '')}
                   aria-pressed={days === o.days} onClick={() => setDays(o.days)}>{o.label}</button>
               ))}
             </div>
           </div>
-          <label className="sh-f">
-            <span className="sh-lab">What they’re looking at <span className="cw-f-opt">optional</span></span>
-            <input className="sh-in" value={caption} maxLength={140} placeholder="The film creasing at the seal jaws"
+          <label className="sl-f">
+            <span className="sl-lab">What they’re looking at <span className="cw-f-opt">optional</span></span>
+            <input className="sl-in" value={caption} maxLength={140} placeholder="The film creasing at the seal jaws"
               onChange={e => setCaption(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !busy) void make(); }} />
           </label>
-          <p className="sh-terms">
+          <p className="sl-terms">
             Anyone with the link can {verb} this {what} until {until(ends)} — nothing else from the job.
             You can stop it at any time.
           </p>
-          {error && <p className="sh-err" role="alert">{error}</p>}
-          <button type="button" className="btn btn-primary sh-go" disabled={busy} onClick={() => void make()}>
+          {error && <p className="sl-err" role="alert">{error}</p>}
+          <button type="button" className="btn btn-primary sl-go" disabled={busy} onClick={() => void make()}>
             {busy ? 'Making the link…' : 'Make the link'}
           </button>
         </> : <>
-          <p className="sh-terms">
+          <p className="sl-terms">
             The link opens this {what} until {until(made.expires_at)}. Send it to whoever needs to {verb} it.
           </p>
-          <input className="sh-in sh-url" readOnly value={url} aria-label="The link"
+          <input className="sl-in sl-url" readOnly value={url} aria-label="The link"
             onFocus={e => e.currentTarget.select()} />
-          <div className="sh-acts">
+          <div className="sl-acts">
             {canSend && <button type="button" className="btn btn-primary" onClick={send}>Send…</button>}
             <button type="button" className={'btn' + (canSend ? '' : ' btn-primary')} onClick={copy}>Copy link</button>
           </div>
-          {copied && <p className={'sh-said' + (copied === 'failed' ? ' is-failed' : '')} role="status">
+          {copied && <p className={'sl-said' + (copied === 'failed' ? ' is-failed' : '')} role="status">
             {copied === 'done' ? 'Copied.' : 'This browser wouldn’t copy it — select the link above and copy it by hand.'}
           </p>}
-          <button type="button" className="btn btn-ghost sh-done" onClick={onClose}>Done</button>
+          <button type="button" className="btn btn-ghost sl-done" onClick={onClose}>Done</button>
         </>}
       </div>
     </Sheet>
@@ -151,31 +151,31 @@ export function SharedLinks({ projectId, testId }: { projectId: string; testId: 
   };
 
   return (
-    <section className="sh-list" aria-label="Shared links">
+    <section className="sl-list" aria-label="Shared links">
       {live.map(s => (
-        <div key={s.token} className="sh-row">
-          <span className="sh-row-t">
+        <div key={s.token} className="sl-row">
+          <span className="sl-row-t">
             <b>Shared</b> · {noun(s.kind)}{s.caption ? ` “${s.caption}”` : ''}, until {until(s.expires_at)} · {opened(s.views)}
           </span>
           {asking === s.token ? (
-            <span className="sh-row-ask">
-              <span className="sh-row-q">The link stops opening at once.</span>
-              <button type="button" className="btn sh-row-b" onClick={() => void end(s.token)}>Stop it</button>
-              <button type="button" className="btn btn-ghost sh-row-b" onClick={() => setAsking(null)}>Keep it</button>
+            <span className="sl-row-ask">
+              <span className="sl-row-q">The link stops opening at once.</span>
+              <button type="button" className="btn sl-row-b" onClick={() => void end(s.token)}>Stop it</button>
+              <button type="button" className="btn btn-ghost sl-row-b" onClick={() => setAsking(null)}>Keep it</button>
             </span>
           ) : (
-            <button type="button" className="btn btn-ghost sh-row-b" onClick={() => { setError(''); setAsking(s.token); }}>Stop sharing</button>
+            <button type="button" className="btn btn-ghost sl-row-b" onClick={() => { setError(''); setAsking(s.token); }}>Stop sharing</button>
           )}
         </div>
       ))}
       {past.map(s => (
-        <div key={s.token} className="sh-row is-over">
-          <span className="sh-row-t">
+        <div key={s.token} className="sl-row is-over">
+          <span className="sl-row-t">
             {s.kind === 'video' ? 'Clip' : 'Photo'}{s.caption ? ` “${s.caption}”` : ''} · {s.revoked_at ? `stopped ${until(s.revoked_at, false)}` : `ended ${until(s.expires_at, false)}`} · {opened(s.views)}
           </span>
         </div>
       ))}
-      {error && <p className="sh-err" role="alert">{error}</p>}
+      {error && <p className="sl-err" role="alert">{error}</p>}
     </section>
   );
 }

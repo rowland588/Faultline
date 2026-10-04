@@ -8468,7 +8468,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 /* the link no longer opens: one sentence, and who to ask */
 .sh-gone-h { font-size: clamp(21px, 4.6vw, 26px); line-height: 1.25; color: var(--ink); text-wrap: balance; }
 .sh-gone-ask { margin-top: 12px; font-size: 15.5px; color: var(--ink-2); line-height: 1.5; }
-.sh-retry { margin-top: 18px; align-self: flex-start; min-height: 48px; padding: 0 22px; }
+.sh-retry { margin-top: 18px; align-self: flex-start; }
 
 .sh-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .sh-loading .logo-mark { border-radius: 12px; box-shadow: 0 6px 20px rgba(20, 24, 31, 0.22); }
@@ -8478,3 +8478,54 @@ button.gt-walklab small.is-done { color: var(--st-g); }
   .sh-page { padding-top: 32px; }
   .sh-brand { margin-bottom: 30px; }
 }
+
+/* Share a link — ui/ShareLink: the owner sends ONE photo or clip from a test
+   to somebody with no account. The button on the picture in the viewer, the
+   sheet it opens, and the quiet list on the test of what has been sent. A
+   live link is information, not a state, so nothing here wears a state
+   colour; one that has ended or been stopped is muted grey. */
+.ev-share {
+  position: absolute; top: 14px; right: 72px; height: 44px; padding: 0 16px; border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.35); color: #fff;
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; z-index: 1;
+}
+.ev-share:hover { background: rgba(255, 255, 255, 0.16); }
+/* The sheet opens OVER the viewer (z 60), not behind it, and on a laptop is
+   a readable column rather than the width of the screen. */
+.sheet-scrim:has(.sl-body) { z-index: 70; }
+.sheet:has(.sl-body) { max-width: 560px; margin: 0 auto; }
+.sl-body { display: flex; flex-direction: column; gap: 12px; padding: 0 4px 4px; }
+.sl-f { display: flex; flex-direction: column; gap: 6px; }
+.sl-lab { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.sl-seg { display: flex; gap: 6px; }
+.sl-seg-b {
+  flex: 1 1 0; min-height: 44px; padding: 0 6px; font: inherit; font-size: 14px; font-weight: 700;
+  color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; cursor: pointer;
+}
+.sl-seg-b.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.sl-in {
+  width: 100%; box-sizing: border-box; min-height: 44px; padding: 9px 12px; font: inherit; font-size: 15px;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px;
+}
+.sl-in:focus { outline: none; border-color: var(--accent); }
+@media (pointer: coarse) { .sl-in { font-size: 16px; } }
+.sl-url { font-size: 13.5px; color: var(--ink-2); background: var(--surface-2); text-overflow: ellipsis; }
+.sl-terms { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.sl-err { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--danger); }
+.sl-go { width: 100%; }
+.sl-acts { display: flex; gap: 8px; }
+.sl-acts .btn { flex: 1 1 0; }
+.sl-said { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.sl-said.is-failed { font-weight: 500; color: var(--ink-2); }
+.sl-done { align-self: center; }
+
+/* On the test, under its pictures: one line per link, no box, no colour. */
+.sl-list { display: flex; flex-direction: column; margin: -5px 0 13px; padding: 0 4px; }
+.sl-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 10px; }
+.sl-row-t { flex: 1 1 220px; min-width: 0; padding: 6px 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); overflow-wrap: anywhere; }
+.sl-row-t b { font-weight: 700; color: var(--ink); }
+.sl-row.is-over .sl-row-t { color: var(--muted); }
+.sl-row-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sl-row-q { font-size: 13px; color: var(--ink-2); }
+.sl-row-b { min-height: 44px; padding: 0 12px; font-size: 13.5px; border-radius: 10px; }
+.sl-list .sl-err { padding-bottom: 6px; }
