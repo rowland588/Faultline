@@ -28,6 +28,8 @@ import {
 } from '../lib/testing';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
+import { AccessNote } from '../ui/AccessNote';
+import { useAccess } from '../cloud/access';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
@@ -81,6 +83,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
   const stand = useStanding(projectId);
+  /* Who is looking (lib/access). The handover dates are what was agreed, so
+     only the owner opens them; a client plans nothing and answers nothing. */
+  const can = useAccess(projectId);
   const [dates, setDates] = useState(false);
   /* `adding` is which FACE is being planned, not merely whether the form is
      open — a fix and a test are the same record and the same form, and the only
@@ -162,14 +167,15 @@ export function TestsScreen({ projectId }: { projectId: string }) {
             {project.expectedAt
               ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'} to go` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}`}</span>
               : <span className="sub">No handover date yet</span>}
-            <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>
+            {can.agree && <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>}
           </p>
         </div>
       </header>
       {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
       <Peers peers={projectPeers(projectId, 'testing', stand.counts)} />
+      <AccessNote can={can} owner={project.lead} />
 
-      {dates && (
+      {dates && can.agree && (
         <div className="cx-dates">
           <label className="cw-f"><span>Handover agreed — never moves</span>
             <DateInput value={project.plannedAt ?? ''}
@@ -191,17 +197,17 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           section leads; once there is one, tests lead, as they should. */}
       {/* MACHINES LIVE ON INSTALL, where they arrive and go in. A test asks
           which machine when there is one; with none named yet, say where. */}
-      {tt.assets.length === 0 && (
+      {tt.assets.length === 0 && (can.edit ? (
         <p className="sub tw-note">
           No machines named yet — <button className="cw-link" onClick={() => nav(`/project/${projectId}/install`)}>add them on Install</button>, and each test can then say which one it is on.
         </p>
-      )}
+      ) : <p className="sub tw-note">No machines named yet.</p>)}
 
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}
-      <Verdicts tests={st.done} projectId={projectId}
+      {can.edit && <Verdicts tests={st.done} projectId={projectId}
         onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
-        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />
+        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />}
 
       <section className="cmp-sec">
         <div className="cw-sec-h">
@@ -255,14 +261,14 @@ export function TestsScreen({ projectId }: { projectId: string }) {
               <button className="btn btn-ghost" type="button" onClick={() => { setAdding(null); setOn([]); }}>Cancel</button>
             </span>
           </form>
-        ) : (
+        ) : can.edit ? (
           /* ONE DOOR. Planning a fix moved to the Fixes screen with the fixes
              themselves — two "add" buttons on a page that only lists one of
              the two was a door leading off the page it was on. */
           <button className="cw-add" onClick={() => setAdding('test')}>
             <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test
           </button>
-        )}
+        ) : st.upcoming.length === 0 && <p className="sub tw-note">Nothing planned.</p>}
       </section>
 
       {/* WHAT HAPPENED. Newest first, because a list of past tests reads
@@ -315,7 +321,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
  *  the moment it is picked, exactly like "Now expecting" at the top of this
  *  screen. Expected → landed → installed → running is the order they happen. */
 export function MachineCard({ a, ran, save, remove }: {
-  a: Asset; ran: number; save: (a: Asset) => Promise<void>; remove: (id: string) => Promise<void>;
+  a: Asset; ran: number; save: (a: Asset) => Promise<void>;
+  /** Absent for somebody who deletes nothing (lib/access) — no ×. */
+  remove?: (id: string) => Promise<void>;
 }) {
   const [dates, setDates] = useState(false);
   const on = assetStateOn(a);
@@ -327,9 +335,9 @@ export function MachineCard({ a, ran, save, remove }: {
       <div className="tw-asset-r">
         <DraftField value={a.name} ariaLabel="Machine name"
           onSave={v => v.trim() && void save({ ...a, name: v.trim() })} />
-        <button className="tw-x" aria-label={`Remove ${a.name}`} onClick={() => {
+        {remove && <button className="tw-x" aria-label={`Remove ${a.name}`} onClick={() => {
           if (confirm(`Remove “${a.name}”?\n\nIts tests stay — they just stop naming a machine.`)) void remove(a.id);
-        }}>×</button>
+        }}>×</button>}
       </div>
       <div className="tw-asset-r">
         <span className={'sub' + (late ? ' is-r' : '')}>

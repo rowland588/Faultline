@@ -62,7 +62,10 @@ function Placer({ f, start, onPin, onBack }: {
 }
 
 export function OnTheLine({ projectId, pin, onSave, quiet }: {
-  projectId: string; pin: Test['pin']; onSave: (pin: Test['pin'] | undefined) => void;
+  projectId: string; pin: Test['pin'];
+  /** Absent for somebody who changes nothing (a client, lib/access): the
+   *  pinned frame is shown, without Pin, Move it or Take it off. */
+  onSave?: (pin: Test['pin'] | undefined) => void;
   /** Inside a finding's row: no heading, and nothing said when there is
    *  nothing filmed — the row has enough words already. */
   quiet?: boolean;
@@ -77,6 +80,7 @@ export function OnTheLine({ projectId, pin, onSave, quiet }: {
   }, [projectId]);
 
   if (!frames) return null;
+  if (!onSave && !pin) return null;
   const pinId = pin?.frameId;
   const pinned = pinId ? frames.find(f => f.frame.id === pinId) : undefined;
   const open = (f?: Frame) => { setChosen(f ?? null); setPicking(true); };
@@ -91,14 +95,16 @@ export function OnTheLine({ projectId, pin, onSave, quiet }: {
           <span className="otl-acts">
             <span className="sub">{pinned.frame.name}</span>
             <button className="btn btn-ghost btn-sm" onClick={() => nav(`/w/${pinned.wsId}/asset/${pinned.frame.id}`)}>Open on the walk ›</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => open(pinned)}>Move it</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => onSave(undefined)}>Take it off</button>
+            {onSave && <>
+              <button className="btn btn-ghost btn-sm" onClick={() => open(pinned)}>Move it</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => onSave(undefined)}>Take it off</button>
+            </>}
           </span>
         </>
       ) : pin ? (
         <p className="sub otl-none">
-          Pinned on a frame that is not on this device yet — it arrives with the next sync.{' '}
-          <button className="cw-link" onClick={() => onSave(undefined)}>Take it off</button>
+          Pinned on a frame that is not on this device yet — it arrives with the next sync.
+          {onSave && <>{' '}<button className="cw-link" onClick={() => onSave(undefined)}>Take it off</button></>}
         </p>
       ) : frames.length > 0 ? (
         <button className="btn otl-add" onClick={() => open()}><Icon name="pin" /> Pin it on the line</button>
@@ -109,17 +115,19 @@ export function OnTheLine({ projectId, pin, onSave, quiet }: {
         </p>
       )}
 
-      <Sheet open={picking} onClose={() => setPicking(false)} title={chosen ? chosen.frame.name : 'Pin it on the line — which frame?'}>
-        {chosen ? (
-          <Placer f={chosen} start={pin?.frameId === chosen.frame.id ? pin : undefined}
-            onBack={() => setChosen(null)}
-            onPin={(x, y) => { onSave({ frameId: chosen.frame.id, x, y }); setPicking(false); }} />
-        ) : (
-          <div className="otl-grid">
-            {frames.map(f => <Thumb key={f.frame.id} f={f} onPick={() => setChosen(f)} />)}
-          </div>
-        )}
-      </Sheet>
+      {onSave && (
+        <Sheet open={picking} onClose={() => setPicking(false)} title={chosen ? chosen.frame.name : 'Pin it on the line — which frame?'}>
+          {chosen ? (
+            <Placer f={chosen} start={pin?.frameId === chosen.frame.id ? pin : undefined}
+              onBack={() => setChosen(null)}
+              onPin={(x, y) => { onSave({ frameId: chosen.frame.id, x, y }); setPicking(false); }} />
+          ) : (
+            <div className="otl-grid">
+              {frames.map(f => <Thumb key={f.frame.id} f={f} onPick={() => setChosen(f)} />)}
+            </div>
+          )}
+        </Sheet>
+      )}
     </div>
   );
 }

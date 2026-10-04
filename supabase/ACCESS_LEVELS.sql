@@ -19,9 +19,9 @@
 --    administrator's invite — start your own projects) or 'project' (an
 --    owner's invite — only what you were invited to). Existing rows are 'app',
 --    so nobody already here loses anything.
--- 2. CLIENTS CHANGE NOTHING. Insert and update on the project's rows need
---    is_project_editor (owner, administrator, or a team member) instead of
---    is_project_member. Reading is unchanged. The app never pushes a client's
+-- 2. CLIENTS CHANGE NOTHING. Insert and update on the project's rows also
+--    need is_project_editor (owner, administrator, or a team member), as a
+--    restrictive policy beside the member ones. Reading is unchanged. The app never pushes a client's
 --    rows (src/cloud/sync.ts), so a refusal here never stalls a sync.
 -- 3. THE AGREEMENT IS THE OWNER'S. A trigger keeps, for anyone but the owner
 --    or the administrator: the handover dates, the stage lists, the method,
@@ -33,7 +33,12 @@
 --
 -- Depends on: FRESH_START (allowed_emails, profiles), PROJECT_TEAMS
 -- (project_members, is_project_member, is_project_owner), SECURITY_RLS (the
--- member policies this replaces, faultline_confirmed), OWNER_INVITES.
+-- member policies this sits beside, faultline_confirmed), OWNER_INVITES.
+--
+-- Applied 4 October through apply_migration in five parts — the connector
+-- cancelled the whole file at once (it drops and replaces), so it went as
+-- ACCESS_LEVELS_columns, _functions, _invite, _agreement and _editors, and
+-- this file was rewritten to be exactly what they did.
 -- ============================================================================
 
 -- ---------------------------------------------------------------- columns
@@ -123,8 +128,12 @@ begin
 end $$;
 
 -- ------------------------------------------------- 2 · clients change nothing
+-- RESTRICTIVE policies, added beside the member policies rather than replacing
+-- them: Postgres ANDs a restrictive policy with the permissive ones, so a row
+-- now needs membership (the old policy) AND to be an editor (this one). No
+-- policy is dropped — nothing that worked is taken away to make this true.
 do $c$
-declare t text; r record; q text;
+declare t text; q text;
 begin
   foreach t in array array[
     'project_targets','project_actuals','pace_ppm','pace_todos','pace_snapshots','pace_wins',
@@ -132,25 +141,26 @@ begin
     'tests','test_items','targets','readings','materials','programs'
   ] loop
     if to_regclass('public.' || t) is null then continue; end if;
-    for r in select policyname from pg_policies where schemaname = 'public' and tablename = t and cmd in ('INSERT', 'UPDATE') loop
-      execute format('drop policy if exists %I on public.%I', r.policyname, t);
-    end loop;
     q := '(public.is_project_editor(project_id) or (project_id is null and owner_id = (select auth.uid())))';
-    execute format('create policy "editor %1$s insert" on public.%1$I for insert to authenticated with check %2$s', t, q);
-    execute format('create policy "editor %1$s update" on public.%1$I for update to authenticated using %2$s with check %2$s', t, q);
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'editors only insert') then
+      execute format('create policy "editors only insert" on public.%1$I as restrictive for insert to authenticated with check %2$s', t, q);
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'editors only update') then
+      execute format('create policy "editors only update" on public.%1$I as restrictive for update to authenticated using %2$s with check %2$s', t, q);
+    end if;
   end loop;
-end $c$;
 
--- The project row itself: a new one only by somebody who may start projects;
--- an existing one changed only by its editors.
-drop policy if exists "member projects insert" on public.projects;
-drop policy if exists "member projects update" on public.projects;
-drop policy if exists "editor projects insert" on public.projects;
-drop policy if exists "editor projects update" on public.projects;
-create policy "editor projects insert" on public.projects for insert to authenticated
-  with check ((owner_id = (select auth.uid()) and public.can_start_projects()) or public.is_project_editor(id));
-create policy "editor projects update" on public.projects for update to authenticated
-  using (public.is_project_editor(id)) with check (public.is_project_editor(id));
+  -- The project row itself: a new one only by somebody who may start
+  -- projects; an existing one changed only by its editors.
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'projects' and policyname = 'editors only insert') then
+    create policy "editors only insert" on public.projects as restrictive for insert to authenticated
+      with check ((owner_id = (select auth.uid()) and public.can_start_projects()) or public.is_project_editor(id));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'projects' and policyname = 'editors only update') then
+    create policy "editors only update" on public.projects as restrictive for update to authenticated
+      using (public.is_project_editor(id)) with check (public.is_project_editor(id));
+  end if;
+end $c$;
 
 -- ------------------------------------------------- 3 · the agreement is the owner's
 create or replace function public.faultline_keep_agreement()
@@ -181,22 +191,21 @@ begin
   return new;
 end $$;
 
-do $t$
-declare t text;
-begin
-  foreach t in array array['projects','tests','test_items','commission_assets','commission_items','commission_phases','materials','programs'] loop
-    if to_regclass('public.' || t) is null then continue; end if;
-    execute format('drop trigger if exists faultline_keep_agreement on public.%I', t);
-    execute format('create trigger faultline_keep_agreement before update on public.%I for each row execute function public.faultline_keep_agreement()', t);
-  end loop;
-end $t$;
+create or replace trigger faultline_keep_agreement before update on public.projects          for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.tests             for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.test_items        for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.commission_assets for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.commission_items  for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.commission_phases for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.materials         for each row execute function public.faultline_keep_agreement();
+create or replace trigger faultline_keep_agreement before update on public.programs          for each row execute function public.faultline_keep_agreement();
 
 -- ---------------------------------------------------------------- read back
 select 'column' as what, table_name || '.' || column_name as name from information_schema.columns
   where table_schema = 'public' and ((table_name = 'project_members' and column_name = 'access') or (table_name = 'allowed_emails' and column_name = 'scope'))
 union all
 select 'policy', tablename || ': ' || policyname from pg_policies
-  where schemaname = 'public' and policyname like 'editor %'
+  where schemaname = 'public' and policyname like 'editors only %'
 union all
 select 'trigger', event_object_table || ': ' || trigger_name from information_schema.triggers
   where trigger_schema = 'public' and trigger_name = 'faultline_keep_agreement'

@@ -34,6 +34,9 @@ import {
   type Material, type Week,
 } from '../lib/materials';
 import { Icon } from '../ui/Icon';
+import { useAccess } from '../cloud/access';
+import { AccessNote } from '../ui/AccessNote';
+import type { Can } from '../lib/access';
 
 const nice = (iso?: string): string => {
   if (!iso) return '—';
@@ -83,9 +86,11 @@ function Strip({ m, weeks, today }: { m: Material; weeks: Week[]; today: string 
 
 /* ================================== the list ================================ */
 
-function Row({ m, today, lineName, state, weeks }: {
+function Row({ m, today, lineName, state, weeks, can }: {
   m: Material; today: string; lineName?: string; weeks: Week[];
   state: ReturnType<typeof useMaterials>;
+  /** A client reads the row; only the owner removes one (lib/access). */
+  can: Can;
 }) {
   const [marking, setMarking] = useState(false);
   const [on, setOn] = useState(todayISO());
@@ -96,22 +101,25 @@ function Row({ m, today, lineName, state, weeks }: {
   return (
     <div className={'mt-row is-' + where}>
       <div className="mt-row-main">
-        <DraftText className="mt-what" value={m.what} placeholder="What it is"
-          onSave={v => void state.save({ ...m, what: v || m.what })} />
+        {can.edit
+          ? <DraftText className="mt-what" value={m.what} placeholder="What it is"
+              onSave={v => void state.save({ ...m, what: v || m.what })} />
+          : <div className="mt-what" style={{ borderColor: 'transparent' }}>{m.what}</div>}
         {facts && <div className="mt-facts">{facts}</div>}
         {m.note && <div className="mt-facts">{m.note}</div>}
       </div>
 
       <div className="mt-when">
         <span className={'mt-when-n is-' + where}>{when(m, today)}</span>
-        {!isHere(m) && (
+        {!isHere(m) && !can.edit && m.due && <span className="mt-facts">{nice(m.due)}</span>}
+        {!isHere(m) && can.edit && (
           <DateWhy className="mt-due" ariaLabel={`Date ${m.what} is due`} value={m.due}
             projectId={m.projectId} storyKey={keyOf('material', m.id)} what={m.what}
             onChange={v => state.save({ ...m, due: v })} />
         )}
       </div>
 
-      {marking ? (
+      {!can.edit ? null : marking ? (
         <div className="mt-mark">
           <label className="mt-mark-l" htmlFor={`in-${m.id}`}>In on</label>
           <input id={`in-${m.id}`} className="mt-due" type="date" value={on} onChange={e => setOn(e.target.value)} />
@@ -129,8 +137,10 @@ function Row({ m, today, lineName, state, weeks }: {
         </button>
       )}
 
-      <button className="pset-x" aria-label={`Remove ${m.what}`}
-        onClick={() => void state.remove(m.id)}><Icon name="close" size="0.85em" /></button>
+      {can.remove && (
+        <button className="pset-x" aria-label={`Remove ${m.what}`}
+          onClick={() => void state.remove(m.id)}><Icon name="close" size="0.85em" /></button>
+      )}
       <Strip m={m} weeks={weeks} today={today} />
     </div>
   );
@@ -202,6 +212,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
      from the page under it would be the whole problem back again. */
   const stand = useStanding(projectId);
   const counts = useMethodCounts(projectId);
+  const can = useAccess(projectId);
   const today = todayISO();
 
   if (loading || state.loading || lines.loading) {
@@ -253,14 +264,14 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
       {project.commissioning
         ? <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
         : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
+      <AccessNote can={can} owner={project.lead} />
 
       {t.total === 0 ? (
         <>
           <div className="pace-empty">
             <p className="sub">
               What this job needs before it can run properly, when each thing is due, and whether it has
-              turned up — the same list you keep in the plan, except it works out what is late. Add what
-              you are waiting on.
+              turned up — the same list you keep in the plan, except it works out what is late.{can.edit && ' Add what you are waiting on.'}
             </p>
           </div>
         </>
@@ -277,7 +288,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
             <div className="mt-list">
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.materials.map(m => (
-                <Row key={m.id} m={m} today={today} lineName={lineName(m.lineId)} state={state} weeks={state.weeks} />
+                <Row key={m.id} m={m} today={today} lineName={lineName(m.lineId)} state={state} weeks={state.weeks} can={can} />
               ))}
             </div>
           </section>
@@ -288,7 +299,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           in both arms, so adding the FIRST thing swapped arms, unmounted the
           form and folded it shut: the line just picked was gone and the
           second thing needed "+ Add what you need" first. */}
-      <AddFold label="Add what you need" start={t.total === 0}><AddMaterial state={state} lines={lines.lines} /></AddFold>
+      {can.edit && <AddFold label="Add what you need" start={t.total === 0}><AddMaterial state={state} lines={lines.lines} /></AddFold>}
 
       {/* WHAT THE MACHINE CAN RUN, beside what it is waiting for — the two
           answer one question between them. On a stage-gate job Programs is

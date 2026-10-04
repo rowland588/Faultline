@@ -26,6 +26,8 @@ import { pdfFileName } from '../lib/fileName';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import type { MediaRef } from '../types';
 import { DateInput } from '../ui/DateInput';
+import { AccessNote } from '../ui/AccessNote';
+import { useAccess } from '../cloud/access';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -35,6 +37,9 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
   const stand = useStanding(projectId);
+  /* Nothing on the day is typed here, so a client reads all of it; the line
+     at the top only says who runs the job (lib/access). */
+  const can = useAccess(projectId);
   const asked = useRoute().query.get('d') ?? '';
   const today = todayISO();
   /* A day still to come has no story, and a link to one said "Nothing was
@@ -109,6 +114,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       </header>
       {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
       <Peers peers={projectPeers(projectId, 'day', stand.counts)} />
+      <AccessNote can={can} owner={project.lead} />
 
       <nav className="dy-nav" aria-label="Pick a day">
         <button className="btn btn-ghost" disabled={!prev} onClick={() => prev && go(prev)}>

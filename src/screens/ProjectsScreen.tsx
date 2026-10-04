@@ -15,11 +15,19 @@ import { Crumbs } from '../ui/Crumbs';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
 import { STORE_WORDS, updateProject } from '../db';
+import { useCanStartProjects } from '../cloud/access';
+import { useAccessByJob } from '../ui/JobsBoard';
 
 export function ProjectsScreen() {
   const { loading, projects, archived, create, restore, purge, contents } = useProjects();
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
-  const [adding, setAdding] = useState(q.get('new') === '1');
+  /* Somebody let in by a project invite works on the projects they were
+     invited to and starts none of their own (supabase/ACCESS_LEVELS.sql). */
+  const mayStart = useCanStartProjects();
+  const [asked, setAdding] = useState(q.get('new') === '1');
+  const adding = asked && mayStart;
+  /* Restoring or deleting a project is its owner's (lib/access). */
+  const accessOn = useAccessByJob(archived);
   /* THE ARCHIVE IS OPEN HERE. This page used to list the live projects again
      (Home already does) with the archive shut underneath; now Home is the list
      and this is where a project starts and where the archive lives. */
@@ -71,14 +79,20 @@ export function ProjectsScreen() {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{MODELS.map(m => m.label).join(' · ')}</p>
           <h1 className="pace-title">Projects</h1>
-          <p className="pace-lede">Every project is a change to a line. The live ones are on Home; this is where one starts, and where the archive is.</p>
+          <p className="pace-lede">
+            {mayStart
+              ? 'Every project is a change to a line. The live ones are on Home; this is where one starts, and where the archive is.'
+              : 'Every project is a change to a line. The ones you’ve been invited to are on Home; the archive is here.'}
+          </p>
         </div>
         <div className="pace-head-actions">
           {/* One blue button on the page: while the form is open, that is its
               Create — Cancel steps back to a quiet one. */}
-          <button className={'btn ' + (adding ? 'btn-ghost' : 'btn-primary')} onClick={() => setAdding(a => !a)}>
-            {adding ? 'Cancel' : 'New project'}
-          </button>
+          {mayStart && (
+            <button className={'btn ' + (adding ? 'btn-ghost' : 'btn-primary')} onClick={() => setAdding(a => !a)}>
+              {adding ? 'Cancel' : 'New project'}
+            </button>
+          )}
           {/* The Excel export of everything used to be a button here; it is a
               line in every project's Reports door now (ui/ReportsSheet), with
               the rest of what goes on paper. */}
@@ -162,24 +176,28 @@ export function ProjectsScreen() {
             <h2 className="proj-empty-title">Everything is archived</h2>
             <p className="sub">
               Nothing is lost — {archived.length === 1 ? 'one project is' : `all ${archived.length} projects are`} in the
-              archive below, with everything they hold. Restore whichever you want back, or start a new one.
+              archive below, with everything they hold. {mayStart ? 'Restore whichever you want back, or start a new one.' : 'Its owner can bring it back.'}
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
               <button className="btn btn-ghost" onClick={() => setShowArchive(true)}>Open the archive</button>
-              <button className="btn btn-primary" onClick={() => setAdding(true)}>Start a project</button>
+              {mayStart && <button className="btn btn-primary" onClick={() => setAdding(true)}>Start a project</button>}
             </div>
           </div>
         ) : (
           <div className="card proj-empty">
             <h2 className="proj-empty-title">No projects yet</h2>
-            <p className="sub">
-              A project is an initiative with lines under it — each line with an owner, a sponsor and a
-              workspace of its own. Start one, or wait to be invited to somebody else’s: a project you are
-              invited to appears here the next time the app syncs.
-            </p>
-            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setAdding(true)}>
-              Start a project
-            </button>
+            {mayStart ? <>
+              <p className="sub">
+                A project is an initiative with lines under it — each line with an owner, a sponsor and a
+                workspace of its own. Start one, or wait to be invited to somebody else’s: a project you are
+                invited to appears here the next time the app syncs.
+              </p>
+              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setAdding(true)}>
+                Start a project
+              </button>
+            </> : (
+              <p className="sub">You’ll see the projects you’ve been invited to here, the next time the app syncs.</p>
+            )}
           </div>
         )
       ) : !adding && (
@@ -211,6 +229,7 @@ export function ProjectsScreen() {
                       Archived {new Date(p.archivedAt ?? 0).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                   </span>
+                  {accessOn(p.id).remove ? <>
                   <button className="btn btn-ghost btn-sm" disabled={busy === p.id}
                     onClick={() => void restore(p.id)}>Restore</button>
                   {/* DELETING IS ONLY REACHABLE FROM HERE, and it says what it
@@ -234,6 +253,7 @@ export function ProjectsScreen() {
                     })()}>
                     Delete for ever
                   </button>
+                  </> : <span className="sub">Its owner can restore it</span>}
                 </div>
               ))}
             </div>

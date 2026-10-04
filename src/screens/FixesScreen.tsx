@@ -37,6 +37,8 @@ import { gateOf, isOverdue, plannedEnd, standing, testOfFix, type Test } from '.
 import { GATE_WORD } from '../lib/install';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
+import { AccessNote } from '../ui/AccessNote';
+import { useAccess } from '../cloud/access';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -44,6 +46,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
   const stand = useStanding(projectId);
+  /* Who is looking (lib/access) — a client reads the fixes and plans none. */
+  const can = useAccess(projectId);
   /* Arriving from a test's "Add a fix for this test" opens the form with that
      test picked. */
   const forParam = useRoute().query.get('for') ?? '';
@@ -118,6 +122,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       </header>
       {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
       <Peers peers={projectPeers(projectId, 'fixes', stand.counts)} />
+      <AccessNote can={can} owner={project.lead} />
 
       {(st.upcoming.length + st.done.length) > 0 && (
         <p className="fx-key" aria-label="What the colours mean">
@@ -129,9 +134,9 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       )}
 
       {/* A fix that was done and never signed off asks first. */}
-      <Verdicts tests={fixes} projectId={projectId}
+      {can.edit && <Verdicts tests={fixes} projectId={projectId}
         onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
-        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />
+        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />}
 
       {/* STILL TO DO, soonest first — the list somebody works off. */}
       <section className="cmp-sec">
@@ -140,7 +145,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           {st.upcoming.length > 0 && <span className="cmp-h-n">{st.upcoming.length}</span>}
         </div>
 
-        {adding ? (
+        {!can.edit ? null : adding ? (
           <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
             <input autoFocus placeholder="What are we fixing?" value={title} onChange={e => setTitle(e.target.value)} />
             <label className="tw-plan-l" htmlFor="fix-for">{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</label>
@@ -225,12 +230,12 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
         )}
 
-        {st.upcoming.length === 0 && !adding && (
+        {st.upcoming.length === 0 && !(adding && can.edit) && (can.edit ? (
           <p className="sub tw-note">
             Every fix is planned here. Pick the test it is for, and it shows on that test's page and
             in its card on the client report.
           </p>
-        )}
+        ) : <p className="sub tw-note">Nothing still to do.</p>)}
       </section>
 
       {/* DONE, newest first — a list of past work reads backwards from today. */}

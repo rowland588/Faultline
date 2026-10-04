@@ -22,8 +22,12 @@ import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type usua
 import type { StepGate, Test } from '../lib/testing';
 import type { Project } from '../types';
 import { Icon } from './Icon';
+import { can as canOf, type Can } from '../lib/access';
 
-export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install' }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install', can = canOf('owner') }: {
+  /** What this person may do (lib/access). The list is what was AGREED, so
+   *  only the owner edits it; the team may still move steps into a stage. */
+  can?: Can;
   /** Which gate's list — each is the job's own, edited as freely. */
   gate?: StepGate;
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
@@ -132,9 +136,9 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
           <span className="sub">
             {usual.from === 'job' ? 'this job’s own'
               : usual.from === 'other' ? `taken from ${otherName ?? 'another job'}`
-                : 'the app’s — make them yours'}
+                : can.agree ? 'the app’s — make them yours' : 'the app’s'}
           </span>
-          <button className="cw-link" onClick={() => setDraft([...usual.stages])}>Edit</button>
+          {can.agree && <button className="cw-link" onClick={() => setDraft([...usual.stages])}>Edit</button>}
         </div>
         <ol className="in-usual-list">
           {usual.stages.map((s, i) => <li key={i}>{s}</li>)}
@@ -142,18 +146,22 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         {extras.length > 0 && (
           <div className="in-extra">
             <b className="in-extra-h">Also on the grid — not one of these stages</b>
-            <p className="sub tw-note">Steps given this name before the stages changed. Move them into a stage, remove the ones never started, or keep it as a stage of its own.</p>
+            <p className="sub tw-note">
+              {can.agree ? 'Steps given this name before the stages changed. Move them into a stage, remove the ones never started, or keep it as a stage of its own.'
+                : can.edit ? 'Steps given this name before the stages changed. Move them into a stage, or leave it for the owner to keep or remove.'
+                  : 'Steps given this name before the stages changed.'}
+            </p>
             {extras.map(x => (
               <div key={x.col} className="in-extra-row">
                 <span className="in-extra-n"><b>{x.col}</b> <span className="sub">on {x.n} machine{x.n === 1 ? '' : 's'}</span></span>
-                <span className="in-extra-acts">
+                {can.edit && <span className="in-extra-acts">
                   <select defaultValue="" aria-label={`Move “${x.col}” into`} onChange={e => { if (e.target.value) onMove?.(x.col, e.target.value); e.target.value = ''; }}>
                     <option value="">Move into…</option>
                     {usual.stages.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
-                  {x.fresh > 0 && <button className="btn btn-ghost in-extra-b is-bad" onClick={() => onRemove?.(x.col)}>Remove{x.fresh < x.n ? ` ${x.fresh} never started` : ''}</button>}
-                  <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, ...keepStages(project, gate, cleanStages([...usual.stages, x.col], gate)), updatedAt: Date.now() })}>Make it a stage</button>
-                </span>
+                  {x.fresh > 0 && can.remove && <button className="btn btn-ghost in-extra-b is-bad" onClick={() => onRemove?.(x.col)}>Remove{x.fresh < x.n ? ` ${x.fresh} never started` : ''}</button>}
+                  {can.agree && <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, ...keepStages(project, gate, cleanStages([...usual.stages, x.col], gate)), updatedAt: Date.now() })}>Make it a stage</button>}
+                </span>}
               </div>
             ))}
           </div>

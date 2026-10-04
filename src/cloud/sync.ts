@@ -400,6 +400,15 @@ function ensureMigrated(): Promise<void> {
   return migrationDone;
 }
 
+/** The projects this person may only read (supabase/ACCESS_LEVELS.sql). A
+ *  cloud without the column, or no signal, is none: everything goes, as before. */
+async function readOnlyProjects(email: string): Promise<Set<string>> {
+  if (!supabase || !email) return new Set();
+  const { data, error } = await supabase.from('project_members').select('project_id').eq('email', email.toLowerCase()).eq('access', 'client');
+  if (error || !data) return new Set();
+  return new Set((data as { project_id: string }[]).map(r => r.project_id));
+}
+
 /* ---------- the sync ---------- */
 let running = false;
 let runQueued = false;
@@ -577,6 +586,12 @@ export async function syncNow(): Promise<void> {
     const liveBlobs = new Set<string>();      // every blob a live row names, for the other prune
     const named = new Map<string, DownEntry>(); // …and who took it, for fetching it
     const refused: NonNullable<SyncStatus['refused']> = [];
+    /* A CLIENT'S ROWS STAY HOME (lib/access, supabase/ACCESS_LEVELS.sql). A
+       client may read a project and change nothing; the cloud refuses their
+       writes, and one refused row holds back every row after it of that kind.
+       The screens offer a client nothing to change, so this only ever catches
+       a stray local write — and keeps it from stalling the pass. */
+    const clientOf = await readOnlyProjects((await supabase.auth.getUser()).data.user?.email ?? '');
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
       const batch: { key: string; clock: number; row: Record<string, unknown>; local: Record<string, unknown> }[] = [];
@@ -590,7 +605,9 @@ export async function syncNow(): Promise<void> {
         }
         const clock = map.clock(local);
         if (needsPush(sent, kind, local.id as string, clock)) {
-          batch.push({ key, clock, row: map.toRow(local, uid), local });
+          const row = map.toRow(local, uid);
+          if (clientOf.has(String(kind === 'projects' ? row.id : row.project_id))) continue;
+          batch.push({ key, clock, row, local });
         }
       }
       if (!batch.length) continue;

@@ -8259,3 +8259,14 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 /* lib/access — the one line a non-owner reads at the top of a job. Quiet:
    it is information, not a state, so it wears no state colour. */
 .access-note { margin: 8px 0 12px; padding: 9px 12px; border-radius: 10px; background: var(--surf2, #eef3f9); color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+/* Access levels (lib/access): the project as agreed, read by anyone but its
+   owner; the measures in a switched-off fieldset under the owner's own fold;
+   a person's chip saying what they are in lower case ("Dave · team"). */
+.pset-read { font-size: 14px; gap: 6px 14px; margin: 0; }
+.pset-read dt { padding-top: 3px; }
+.pset-ro { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pset-ro > .pace-sec > .pace-sec-head .pace-sec-title { display: none; }
+/* A reader is not offered the owner's add rows, remove marks or how-to-fill hints. */
+.pset-ro .ms-add, .pset-ro .ms-quarters, .pset-ro .pset-x, .pset-ro .chip-hint { display: none; }
+.pset-role.is-access { text-transform: none; }

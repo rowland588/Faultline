@@ -54,7 +54,9 @@ export async function addInvite(email: string): Promise<void> {
   if (!supabase) throw new Error('Cloud isn’t configured.');
   const clean = norm(email);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error('That doesn’t look like an email address.');
-  const { error } = await supabase.from('allowed_emails').upsert({ email: clean }, { onConflict: 'email' });
+  /* The administrator's invite is to the APP — start projects of your own —
+     and lifts a project-only invite to that (supabase/ACCESS_LEVELS.sql). */
+  const { error } = await supabase.from('allowed_emails').upsert({ email: clean, scope: 'app' }, { onConflict: 'email' });
   if (error) throw error;
 }
 

@@ -42,7 +42,10 @@ import { Icon } from './Icon';
 export function Evidence({ media, kind, onAdd, onView }: {
   media: MediaRef[];
   kind: 'test' | 'fix' | 'install' | 'found';
-  onAdd: (refs: MediaRef[]) => Promise<void>;
+  /** Absent for somebody who changes nothing (a client, lib/access): the
+   *  pictures without the doors that take them, and nothing at all when there
+   *  are none. */
+  onAdd?: (refs: MediaRef[]) => Promise<void>;
   onView: (m: MediaRef) => void;
 }) {
   const [filming, setFilming] = useState(false);
@@ -56,6 +59,7 @@ export function Evidence({ media, kind, onAdd, onView }: {
      off. A second tap while one is open is a far cheaper fault than a row
      that cannot be tapped at all, so the word is the only thing that changes. */
   const take = async (busyNote: string | null, get: () => Promise<MediaRef[]>) => {
+    if (!onAdd) return;
     setNote(busyNote);
     try {
       const refs = await get();
@@ -74,6 +78,7 @@ export function Evidence({ media, kind, onAdd, onView }: {
     : kind === 'install' ? 'How it was left — a picture is the proof it is done, or of what stopped it.'
     : kind === 'test' ? 'What the machine did, as it did it. The card prints them.'
       : 'A picture of what you saw.';
+  if (!onAdd && media.length === 0) return null;
 
   return (
     <div className="tw-ev">
@@ -86,7 +91,7 @@ export function Evidence({ media, kind, onAdd, onView }: {
           {media.map(m => <EvidenceThumb key={m.id} media={m} size={72} onClick={() => onView(m)} />)}
         </div>
         : <p className="sub tw-ev-why">{why}</p>}
-      <div className="tw-ev-doors">
+      {onAdd && <div className="tw-ev-doors">
         <button className="tw-door"
           onClick={() => void take(null, async () => {
             const r = await captureMedia('photo');
@@ -101,7 +106,7 @@ export function Evidence({ media, kind, onAdd, onView }: {
           onClick={() => void take('Adding…', () => pickExistingMedia())}>
           <Icon name="photo" />On the phone
         </button>
-      </div>
+      </div>}
       {note && <span className="sub" role="status">{note}</span>}
 
       {filming && (

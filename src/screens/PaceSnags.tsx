@@ -18,12 +18,15 @@ import { usePaceWorkspace, useLineWorkspace } from '../lib/usePaceWorkspace';
 import { useBlobUrl } from '../snag/useBlobUrl';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import { Icon } from '../ui/Icon';
+import { can as canOf, type Can } from '../lib/access';
 
 const OPEN = (s: Snag) => s.status !== 'closed';
 const fmtDur = (s?: number) => (!s || s <= 0 ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
 function SegmentCard({ seg, assets, snags, onOpen, onDelete }: {
-  seg: Segment; assets: SnagAsset[]; snags: Snag[]; onOpen: () => void; onDelete: () => void;
+  seg: Segment; assets: SnagAsset[]; snags: Snag[]; onOpen: () => void;
+  /** Absent for somebody who deletes nothing (lib/access). */
+  onDelete?: () => void;
 }) {
   const poster = useBlobUrl(seg.posterKey);
   const ids = new Set(assets.map(a => a.id));
@@ -42,13 +45,15 @@ function SegmentCard({ seg, assets, snags, onOpen, onDelete }: {
         </span>
         <span className="ps-seg-go" aria-hidden>›</span>
       </button>
-      <button className="ps-del" onClick={onDelete} aria-label={`Delete ${seg.name || 'walk ' + seg.sequence}`}>Delete</button>
+      {onDelete && <button className="ps-del" onClick={onDelete} aria-label={`Delete ${seg.name || 'walk ' + seg.sequence}`}>Delete</button>}
     </div>
   );
 }
 
 function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
-  snag: Snag; asset?: SnagAsset; onOpen: () => void; onDelete: () => void;
+  snag: Snag; asset?: SnagAsset; onOpen: () => void;
+  /** Absent for somebody who deletes nothing (lib/access). */
+  onDelete?: () => void;
   onCard: () => void; carding: boolean;
   /** Which line's walk this came off. Absent means this page's own walk — and
    *  a snag belonging to a line is deleted in that line's pack, not from here,
@@ -84,7 +89,7 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
       <button className="ps-card" onClick={onCard} disabled={carding}
         aria-label={`Send "${snag.problem}" as a PDF`}
         title="One page with the photo — the PDF to email">{carding ? '…' : 'PDF'}</button>
-      {!from && <button className="ps-del" onClick={onDelete} aria-label="Delete this">Delete</button>}
+      {!from && onDelete && <button className="ps-del" onClick={onDelete} aria-label="Delete this">Delete</button>}
     </div>
   );
 }
@@ -92,8 +97,12 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
 /** Whose walk this is. A project films the plant; a line films itself, into a
  *  workspace of its own — `line` is what switches between the two without the
  *  screen below needing to know which it is looking at. */
-export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
+export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = canOf('owner') }: {
   projectId?: string; projectName?: string;
+  /** What this person may do here (lib/access): a client watches the walk and
+   *  takes the PDFs but films and deletes nothing; the team films but deletes
+   *  nothing. */
+  can?: Can;
   line?: { workspaceId?: string; name: string; attach: (wsId: string) => Promise<void> };
   /* The other walks whose snags belong on this page.
    *
@@ -263,7 +272,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
                 <PinnedSnag
                   key={s.id} snag={s}
                   onOpen={() => nav(`/w/${wsId}/snaglist`)}
-                  onDelete={() => void removeSnag(s)}
+                  onDelete={can.remove ? () => void removeSnag(s) : undefined}
                   onCard={() => void sendCardFor(s)}
                   carding={carding === s.id}
                 />
@@ -285,7 +294,6 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
                 <PinnedSnag
                   key={e.snag.id} snag={e.snag} asset={e.asset} from={e.label}
                   onOpen={() => nav(e.snag.assetId ? `/w/${e.wsId}/asset/${e.snag.assetId}` : `/w/${e.wsId}/snaglist`)}
-                  onDelete={() => { /* a line's snags are deleted in that line's pack */ }}
                   onCard={() => void sendCardFor(e.snag, e.asset, e.label)} carding={carding === e.snag.id}
                 />
               ))}
@@ -299,13 +307,17 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
     return (
       <div className="ps-empty">
         <p className="ps-empty-title">No walk filmed yet</p>
-        <p className="ps-empty-sub">
-          Film the line infeed to outfeed, mark the frames that matter, then pin what is wrong
-          on the still — with a photo. In the meeting you play the footage and point at the pin.
-        </p>
-        <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => void start()}>
-          {busy ? 'Setting up…' : 'Film a walk'}
-        </button>
+        {can.edit ? <>
+          <p className="ps-empty-sub">
+            Film the line infeed to outfeed, mark the frames that matter, then pin what is wrong
+            on the still — with a photo. In the meeting you play the footage and point at the pin.
+          </p>
+          <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => void start()}>
+            {busy ? 'Setting up…' : 'Film a walk'}
+          </button>
+        </> : (
+          <p className="ps-empty-sub">When the team films the line, the walk and what is pinned on it show here.</p>
+        )}
         {pending && (
           <Toast message={pendingSummary(pending)} onUndo={undoRemove} onDismiss={() => void commitPending()} />
         )}
@@ -325,12 +337,12 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
           <button className="btn btn-primary" onClick={() => nav(`/w/${wsId}/walk`)}><Icon name="play" /> Show the walk</button>
           {/* ?manage, or the walk hub redirects to the machine board and a
               button that says "Film" lands somewhere with no films on it. */}
-          <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags?manage`)}>Film / edit</button>
+          {can.edit && <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snags?manage`)}>Film / edit</button>}
           <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/snaglist`)}>All evidence</button>
         </div>
       </div>
 
-      <ConvertBanner wsId={wsId} tick={segments.length} onDone={() => void load(wsId)} />
+      {can.edit && <ConvertBanner wsId={wsId} tick={segments.length} onDone={() => void load(wsId)} />}
 
       <div className="ps-segs">
         {shownSegments.map(seg => (
@@ -338,7 +350,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
             key={seg.id} seg={seg}
             assets={shownAssets.filter(a => a.segmentId === seg.id)} snags={shownSnags}
             onOpen={() => nav(`/w/${wsId}/segment/${seg.id}`)}
-            onDelete={() => void removeSegment(seg)}
+            onDelete={can.remove ? () => void removeSegment(seg) : undefined}
           />
         ))}
       </div>
@@ -352,7 +364,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
                 <span className="ps-asset-name">{a.name}</span>
                 <span className="ps-asset-meta">{(() => { const n = shownSnags.filter(sn => sn.assetId === a.id).length;
                   return n === 0 ? 'no snags' : `${n} snag${n === 1 ? '' : 's'}`; })()}</span>
-                <button className="ps-del" onClick={() => void removeAsset(a)} aria-label={`Delete ${a.name}`}>Delete</button>
+                {can.remove && <button className="ps-del" onClick={() => void removeAsset(a)} aria-label={`Delete ${a.name}`}>Delete</button>}
               </div>
             ))}
           </div>
@@ -369,7 +381,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [] }: {
                 <PinnedSnag
                   key={s.id} snag={s} asset={s.assetId ? assetById.get(s.assetId) : undefined}
                   onOpen={() => nav(`/w/${wsId}/asset/${s.assetId}`)}
-                  onDelete={() => void removeSnag(s)}
+                  onDelete={can.remove ? () => void removeSnag(s) : undefined}
                   onCard={() => void sendCardFor(s, s.assetId ? assetById.get(s.assetId) : undefined)}
                   carding={carding === s.id}
                 />

@@ -186,6 +186,27 @@ and nothing was run. Supabase's migration history (36 entries) is shorter
 than the file count (46) because the early files were pasted by hand; from
 here each new file goes through `apply_migration`, so the two move together.
 
+## Who can do what on a project
+
+Set 4 October, after studying how Asana, Fieldwire, Basecamp, Procore and
+Smartsheet do it (`supabase/ACCESS_LEVELS.sql`, `src/lib/access.ts`):
+
+- **Invited to the app** (the administrator's invite, `allowed_emails.scope =
+  'app'`) — may start projects of their own.
+- **Invited to a project** (an owner's invite, scope `'project'`) — only what
+  they were invited to. One of three levels, picked once per person:
+  **owner** (everything), **team** (does the work; what was agreed — the
+  handover dates, the stage lists, a written "passes if" — and deleting stay
+  with the owner), **client** (reads it and takes the reports).
+
+The database is the guarantee: restrictive policies refuse a client's writes,
+and a trigger keeps the agreed fields and every `deleted_at` for anyone but
+the owner. The screens follow the same rule through `useAccess(projectId)`,
+so **every new control that writes must check it** — `can.edit` to change the
+work, `can.agree` to change what was agreed, `can.remove` to delete. A button
+the database would refuse is a button that lies. A client's rows are never
+pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
+
 ## Things that will bite
 
 - **A policy test that reads a null as `true`.** `SECURITY_RLS.sql` part C2

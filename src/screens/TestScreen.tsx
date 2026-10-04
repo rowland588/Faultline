@@ -40,6 +40,9 @@ import { changesFor, contextFor, type Change, type VoiceResult } from '../lib/vo
 import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
+import { AccessNote } from '../ui/AccessNote';
+import { useAccess } from '../cloud/access';
+import { mayWriteAgreement, type Can } from '../lib/access';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -54,6 +57,11 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
      passed down rather than fetched inside the block: one subscription, and
      the dropdown cannot be a beat behind the Programs screen. */
   const { programs } = usePrograms(projectId);
+  /* Who is looking (lib/access): a client reads every box as text, a team
+     member does the work but deletes nothing and leaves a written "passes if"
+     where the owner agreed it. */
+  const can = useAccess(projectId);
+  const ro = !can.edit;
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   /* 2 · THE DAY folds the same way once the verdict is in. */
@@ -164,18 +172,19 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           </p>
         </div>
       </header>
+      <AccessNote can={can} owner={project.lead} />
 
       {/* SAY IT. One voice note fills this record's boxes AND adds what was
           found — it used to be two mics, one here and one under "what we
           found", for what is one breath on the floor. Shown first, put in only
           when you say so. */}
-      <SayIt test={test} tt={tt} onFilled={keys => {
+      {can.edit && <SayIt test={test} tt={tt} can={can} onFilled={keys => {
         setFilled(keys);
         if (keys.some(k => PLAN_KEYS.includes(k))) setPlanOpen(true);
         window.setTimeout(() => setFilled([]), 4000);
         /* To the first box it went into — on a phone it is often below. */
         window.setTimeout(() => document.querySelector('.is-filled')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
-      }} />
+      }} />}
 
       {/* WHAT YOU DO WITH IT, at the top. The card and the re-test were at the
           foot, under every block, on a page that is mostly read from the top
@@ -185,7 +194,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         {/* A RE-TEST FOLLOWS A RUN THAT DID NOT PROVE IT — didn't pass or
             didn't run. Offered on a test still planned (or one that passed)
             it was a door to a re-test of something not yet tried. */}
-        {kind === 'test' && (test.outcome === 'failed' || test.outcome === 'notRun') ? (
+        {kind === 'test' && (test.outcome === 'failed' || test.outcome === 'notRun') ? can.edit && (
           <button className="btn" title="Carries the machine, the product and the expectation forward, so the plan writes itself."
             onClick={() => void (async () => {
               const id = await tt.planNextFrom(test);
@@ -214,16 +223,22 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             {[machineOf(test), test.plannedFor && nice(test.plannedFor), test.withWhom && `with ${test.withWhom}`, test.passesIf]
               .filter(Boolean).join(' · ')}
           </span>
-          <span className="tw-fold-go">Edit</span>
+          <span className="tw-fold-go">{ro ? 'Show' : 'Edit'}</span>
         </button>
       ) : (
       <section className="tw-block">
         <span className="tw-block-h">1 · {words.plan}</span>
+        {ro ? <Ro wide label={kind === 'test' ? 'What we plan to do' : words.plan} text={test.title} /> : (
         <label className={'cw-f cw-f-wide' + hl('title')}><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
           <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
+        )}
         {/* WHICH TEST IT IS FOR. The one link a fix carries, and it can be
             changed — a fix put against the wrong test is moved, not re-made. */}
-        {kind === 'fix' && (
+        {kind === 'fix' && ro && (
+          <Ro wide label={stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}
+            text={forTest ? (forTest.kind === 'install' ? `${machineOf(forTest)} — ${forTest.title}` : forTest.title) : 'Not from a test'} />
+        )}
+        {kind === 'fix' && !ro && (
           <label className="cw-f cw-f-wide"><span>{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</span>
             <select value={forTest?.id ?? ''} onChange={e => save({ fromTestId: e.target.value || undefined })}>
               <option value="">{stepsToPick.length ? 'Not from a test or an install step' : 'Not from a test'}</option>
@@ -240,16 +255,22 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
                 : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select></label>
         )}
+        {ro ? <Ro label="Machine" text={machineOf(test)} /> : (
         <label className={'cw-f' + hl('machine')}><span>Machine</span>
           <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
             <option value="">The line itself</option>
             {tt.assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select></label>
+        )}
         {/* WHICH PROGRAM, when it is about one. Rowland: "you can have a setup
             of a program, a test of a program, then a fix of a program, or a fix
             of an asset." Offered only when the job HAS programs — an empty
             dropdown is a question with no answers. */}
-        {programs.length > 0 && (
+        {programs.length > 0 && ro && (() => {
+          const p = programs.find(x => x.id === test.programId);
+          return <Ro label="Program" text={p ? `${p.what}${p.runs ? ` — ${p.runs}` : ''}` : 'Not about one'} />;
+        })()}
+        {programs.length > 0 && !ro && (
           <label className="cw-f"><span>Program</span>
             <select value={test.programId ?? ''} onChange={e => save({ programId: e.target.value || undefined })}>
               <option value="">Not about one</option>
@@ -261,11 +282,16 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             default and empty means one day — so nothing that already exists
             reads any differently, and the extra box only matters to somebody
             who needs it. */}
+        {ro ? <>
+          <Ro label="Planned from" text={nice(test.plannedFor)} />
+          {test.plannedTo && <Ro label="Last day" text={nice(test.plannedTo)} />}
+        </> : <>
         <label className={'cw-f' + hl('plannedFor')}><span>Planned from</span>
           <DateInput value={moving?.plannedFor ?? test.plannedFor ?? ''} onCommit={v => redate({ plannedFor: v || undefined })} /></label>
         <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
           <DateInput value={moving ? moving.plannedTo ?? '' : test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
             onCommit={v => redate({ plannedTo: v || undefined })} /></label>
+        </>}
         {/* PUSHED LATER: asked why before it is kept — the plan shows the answer. */}
         {moving && (
           <div className="cw-f-wide">
@@ -283,32 +309,26 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               })()} />
           </div>
         )}
+        {ro ? <Ro label={words.withWhom} text={test.withWhom} /> : (
         <label className={'cw-f' + hl('withWhom')}><span>{words.withWhom}</span>
           <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
+        )}
         {/* A fix does not run a product down the machine, so the box is not
             offered — it is not hidden state, there is simply nothing to say. */}
-        {kind === 'test' && (
+        {kind === 'test' && (ro ? <Ro label="Product we plan to run" text={test.planned} /> : (
           <label className="cw-f"><span>Product we plan to run</span>
             <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
-        )}
-        <label className={'cw-f cw-f-wide' + hl('problem')}><span>{words.expectation}</span>
-          <DraftArea value={test.passesIf ?? ''}
-            placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
-              : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
-                : '65 ppm held for 30 minutes, under 2% waste'}
-            onSave={v => save({ passesIf: v.trim() || undefined })} /></label>
-        <p className="sub tw-note">
-          {kind !== 'test'
-            ? 'Written before the work. It is what the end result gets measured against.'
-            : 'Agreed before the day. It is what the result gets measured against.'}
-        </p>
+        ))}
+        <PassesIf key={test.id} test={test} can={can} label={words.expectation} glow={hl('problem')}
+          onSave={v => save({ passesIf: v.trim() || undefined })} />
       </section>
       )}
 
-      {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk. */}
-      {kind === 'fix' && (
+      {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk.
+          A client sees the pin, without the controls that place or move it. */}
+      {kind === 'fix' && (can.edit || test.pin) && (
         <section className="tw-block">
-          <OnTheLine projectId={projectId} pin={test.pin} onSave={pin => save({ pin })} />
+          <OnTheLine projectId={projectId} pin={test.pin} onSave={can.edit ? pin => save({ pin }) : undefined} />
         </section>
       )}
 
@@ -320,8 +340,19 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             {[outcomeWord(test), test.ranOn && nice(test.ranOn), test.result, (test.media?.length ?? 0) > 0 && `${test.media?.length} picture${test.media?.length === 1 ? '' : 's'}`]
               .filter(Boolean).join(' · ')}
           </span>
-          <span className="tw-fold-go">Edit</span>
+          <span className="tw-fold-go">{ro ? 'Show' : 'Edit'}</span>
         </button>
+      ) : ro ? (
+      /* A CLIENT READS THE DAY: the same boxes as text, the pictures without
+         the camera, and the verdict already said in the header. */
+      <section className="tw-block">
+        <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
+        {kind === 'test' && <Ro label="Product we ran" text={test.product} />}
+        <Ro label="On the day" text={nice(test.ranOn)} />
+        {test.ranTo && <Ro label="Last day" text={nice(test.ranTo)} />}
+        <Ro wide label={words.happened} text={test.result} />
+        <Evidence media={test.media ?? []} onView={setViewing} kind={kind} />
+      </section>
       ) : (
       <section className="tw-block">
         <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
@@ -368,7 +399,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       {/* An install step does — installing is where the missing part and the
           wrong drawing turn up, and they are the day's story. */}
       {(kind !== 'fix' || itemsOf(tt.items, test.id, 'found').length > 0) && (
-        <Items kind="found" test={test} tt={tt} onView={setViewing} glow={filled.includes('found')} focus={writingProblem}
+        <Items kind="found" test={test} tt={tt} can={can} onView={setViewing} glow={filled.includes('found')} focus={writingProblem}
           heading={kind === 'install' ? '3 · What we found doing it' : '3 · What we found on the day'}
           placeholder={kind === 'install' ? 'What was the problem?' : 'What did you see?'}
           empty={kind === 'install'
@@ -378,16 +409,16 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
       {/* FOR THE MEETING — what to raise about this one, written beforehand.
           The same list as every project note (the Notes screen), filed here. */}
-      <Items kind="note" test={test} tt={tt} onView={setViewing}
+      <Items kind="note" test={test} tt={tt} can={can} onView={setViewing}
         heading="For the meeting"
         placeholder="Something to raise about this?"
         empty="Anything you want to bring up about this at the next meeting — write it here so it isn't forgotten." />
 
       {/* 4 · THE FIXES FOR THIS TEST. Listed here, made on the Fixes screen —
           the button goes there with this test already picked. */}
-      {kind !== 'fix' && <NextFixes test={test} tt={tt} />}
+      {kind !== 'fix' && <NextFixes test={test} tt={tt} can={can} />}
 
-      <Docs test={test} tt={tt} />
+      <Docs test={test} tt={tt} can={can} />
 
       {/* THE LOOP IS A TEST'S — the re-test button, now at the top. On a fix
           it once made a TEST planned "from" the fix and turned fixes into tests
@@ -402,7 +433,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           under it. The fixes that came OUT of it are their own records now and
           survive — so saying they would go with it would be a lie, and a lie
           on a confirm box is the worst place for one. */}
-      <div className="cm-foot">
+      {/* Only the owner deletes (lib/access) — the database keeps the record
+          for anybody else, so the button is not offered to them. */}
+      {can.remove && <div className="cm-foot">
         <button className="btn btn-ghost cw-del" onClick={() => void (async () => {
           const c = await tt.testCost(test.id);
           const out = tt.tests.filter(x => x.fromTestId === test.id && !x.deletedAt).length;
@@ -418,10 +451,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : kind === 'install' ? GATE_PATH[gateOf(test)] : 'testing'}`);
           }
         })()}>Delete this {words.one.toLowerCase()}</button>
-      </div>
+      </div>}
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
-        onRemove={() => void (async () => {
+        onRemove={!can.remove ? undefined : () => void (async () => {
           const gone = viewing;
           setViewing(null);
           /* Kept in hand for the Undo: the file itself, and which record held it. */
@@ -465,6 +498,56 @@ function TrialCardButton({ test, project }: { test: Test; project: string }) {
   );
 }
 
+/** A box as a client reads it: the label, and what is in it as plain text.
+ *  An empty one says so, because a blank reads as a fault. */
+function Ro({ label, text, wide }: { label: string; text?: string; wide?: boolean }) {
+  const body = (text ?? '').trim();
+  return (
+    <div className={'cw-f' + (wide ? ' cw-f-wide' : '')}>
+      <span>{label}</span>
+      <p className={body ? '' : 'sub'} style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{body || '—'}</p>
+    </div>
+  );
+}
+
+/** WHAT IT PASSES ON — the agreement, and the one box on this page a team
+ *  member may write only once (lib/access, mayWriteAgreement). A new test's
+ *  "passes if" is proposed by whoever plans it; once written, it moves only
+ *  with the owner, and the database keeps it so for anybody else.
+ *
+ *  Judged on what the box held when it was OPENED, not on every save: the box
+ *  writes as it is typed, and a team member's own first wording would lock
+ *  under their fingers mid-sentence. Opened again, it reads as agreed. */
+function PassesIf({ test, can, label, glow, onSave }: {
+  test: Test; can: Can; label: string; glow: string; onSave: (v: string) => void;
+}) {
+  const [atOpen] = useState(test.passesIf);
+  const kind = test.kind ?? 'test';
+  const measured = kind !== 'test'
+    ? 'Written before the work. It is what the end result gets measured against.'
+    : 'Agreed before the day. It is what the result gets measured against.';
+  if (!can.edit || !mayWriteAgreement(can, atOpen)) {
+    return (
+      <>
+        <Ro wide label={label} text={test.passesIf} />
+        {/* The team's line says who moves it, in place of the general one. */}
+        <p className="sub tw-note">{can.edit ? 'Agreed — only the owner changes it. It is what the result gets measured against.' : measured}</p>
+      </>
+    );
+  }
+  return (
+    <>
+      <label className={'cw-f cw-f-wide' + glow}><span>{label}</span>
+        <DraftArea value={test.passesIf ?? ''}
+          placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
+            : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
+              : '65 ppm held for 30 minutes, under 2% waste'}
+          onSave={onSave} /></label>
+      <p className="sub tw-note">{measured}</p>
+    </>
+  );
+}
+
 /** WHAT COMES OUT OF THIS ONE — the fixes, and the next test if there is one.
  *
  *  This was a list of typed-in lines. It is a list of RECORDS now: a fix has
@@ -476,7 +559,7 @@ function TrialCardButton({ test, project }: { test: Test; project: string }) {
  *  in would be a fix with nothing behind it, which is how a list stops being
  *  evidence and starts being a wish list.
  */
-function NextFixes({ test, tt }: { test: Test; tt: TT }) {
+function NextFixes({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
   /* The fixes FOR this test — including an old fix hanging off another of its
      fixes — and the re-tests planned from it. */
   const out = tt.tests
@@ -494,9 +577,11 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
       )}
       {/* ONE DOOR TO MAKE A FIX, and it is on the Fixes screen. This takes you
           there with this test already picked. */}
-      <button className="cw-add" onClick={() => nav(`/project/${test.projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
-        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a fix for this {noun}
-      </button>
+      {can.edit && (
+        <button className="cw-add" onClick={() => nav(`/project/${test.projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
+          <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a fix for this {noun}
+        </button>
+      )}
       {out.length === 0 ? null : (
         <div className="cw-list">
           {out.map(t => (
@@ -523,8 +608,8 @@ function NextFixes({ test, tt }: { test: Test; tt: TT }) {
 /** What we found, or what we do next. One component, because they are the same
  *  shape and the only difference is the word at the top and whether a row can
  *  become the next test. */
-function Items({ kind, test, tt, heading, placeholder, empty, onView, glow, focus }: {
-  kind: ItemKind; test: Test; tt: TT; heading: string; placeholder: string; empty: string;
+function Items({ kind, test, tt, can, heading, placeholder, empty, onView, glow, focus }: {
+  kind: ItemKind; test: Test; tt: TT; can: Can; heading: string; placeholder: string; empty: string;
   onView: (m: MediaRef) => void;
   /** A voice note just added to this list. */
   glow?: boolean;
@@ -569,11 +654,11 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView, glow, focu
         </p>
       )}
 
-      {rows.length === 0 && <p className="sub tw-note">{empty}</p>}
+      {rows.length === 0 && <p className="sub tw-note">{can.edit ? empty : 'Nothing written down.'}</p>}
 
-      {rows.map(i => <ItemRow key={i.id} item={i} tt={tt} onView={onView} />)}
+      {rows.map(i => <ItemRow key={i.id} item={i} tt={tt} can={can} onView={onView} />)}
 
-      <form className="tw-addrow" onSubmit={e => {
+      {can.edit && <form className="tw-addrow" onSubmit={e => {
         e.preventDefault();
         if (!what.trim()) return;
         void tt.addItem(test.id, kind, what);
@@ -581,7 +666,7 @@ function Items({ kind, test, tt, heading, placeholder, empty, onView, glow, focu
       }}>
         <input ref={box} placeholder={rows.length ? 'Another one?' : placeholder} value={what} onChange={e => setWhat(e.target.value)} />
         <button className="btn btn-sm" type="submit" disabled={!what.trim()}>Add</button>
-      </form>
+      </form>}
     </section>
   );
 }
@@ -604,7 +689,7 @@ const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
    different day, a different name, a changed verdict — is still asked, so
    nothing anybody wrote is lost to a mishearing. And an account that fitted
    no box goes into the commentary box rather than being put to one side. */
-function SayIt({ test, tt, onFilled }: { test: Test; tt: TT; onFilled: (keys: string[]) => void }) {
+function SayIt({ test, tt, can, onFilled }: { test: Test; tt: TT; can: Can; onFilled: (keys: string[]) => void }) {
   const [asking, setAsking] = useState<{ heard: VoiceResult; changes: Change[] } | null>(null);
   const today = todayISO();
   const kind = test.kind ?? 'test';
@@ -619,6 +704,9 @@ function SayIt({ test, tt, onFilled }: { test: Test; tt: TT; onFilled: (keys: st
     if (changes.length === 0 && notes.length === 0 && r.transcript?.trim()) {
       changes = changesFor(test, { result: r.transcript.trim() }, tt.assets, today);
     }
+    /* A written "passes if" is the owner's to change — a voice note does not
+       get round that for anybody else (lib/access). */
+    if (!mayWriteAgreement(can, test.passesIf)) changes = changes.filter(c => c.key !== 'problem');
     const adds = (c: Change) => c.key === 'result' || !c.before || (c.key === 'outcome' && test.outcome === 'planned')
       || (c.key === 'ranOn' && !test.ranOn);
     const now = changes.filter(adds);
@@ -672,7 +760,7 @@ const TICK = (
   </svg>
 );
 
-function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: MediaRef) => void }) {
+function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; onView: (m: MediaRef) => void }) {
   const [open, setOpen] = useState(false);
   const done = item.doneAt != null;
 
@@ -685,8 +773,11 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
      one tap, with no confirm; Rowland: "me putting in what did we find and
      then sending it tick to fix is the messy part." A next step (the old
      line-under-a-test shape) keeps its done tick. */
-  const tick = observation ? undefined
+  /* A client reads the row: no tick (the words say raised or done), and it
+     does not open, because everything it opens to is a box to change. */
+  const tick = observation || !can.edit ? undefined
     : () => void tt.saveItem({ ...item, doneAt: done ? undefined : Date.now() });
+  const Main = can.edit ? 'button' : 'div';
 
   return (
     <div className={'tw-item' + (done && !observation ? ' is-done' : '') + (observation ? ' is-note' : '')}>
@@ -697,7 +788,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
         </button>
       )}
       {observation && <span className="tw-obs-dot" aria-hidden />}
-      <button className="tw-item-m" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+      <Main className="tw-item-m" {...(can.edit ? { onClick: () => setOpen(o => !o), 'aria-expanded': open } : { style: { cursor: 'default' } })}>
         <b>{item.what}</b>
         <span className="sub">
           {item.owner ?? (item.kind === 'next' ? 'nobody yet' : '')}
@@ -721,14 +812,14 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
           {item.fromItemId && ' · from an observation'}
           {item.pin && <> · <Icon name="pin" size="1.15em" /> on the line</>}
         </span>
-      </button>
+      </Main>
       {(item.media ?? []).length > 0 && !open && (
         <span className="tw-item-ev">
           {(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={44} onClick={() => onView(m)} />)}
         </span>
       )}
 
-      {open && (
+      {open && can.edit && (
         <div className="tw-item-edit">
           {/* WHERE ON THE LINE — the problem pointed at on a frame of the walk. */}
           {observation && (
@@ -755,8 +846,10 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
               does not make an action first: a line you never wanted is a line
               somebody has to close. */}
           <span className="cw-edit-end">
-            <button className="btn btn-ghost btn-sm cw-del"
-              onClick={() => void tt.removeItem(item.id)}>Delete</button>
+            {can.remove && (
+              <button className="btn btn-ghost btn-sm cw-del"
+                onClick={() => void tt.removeItem(item.id)}>Delete</button>
+            )}
             <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Close</button>
           </span>
         </div>
@@ -770,7 +863,7 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
 /** Files somebody was sent — an OEM report, a spec. Saved in the app so they
  *  open on the floor with no signal, by the same route a generated report
  *  leaves by. */
-function Docs({ test, tt }: { test: Test; tt: TT }) {
+function Docs({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
   const pick = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState<string | null>(null);
   const docs = test.docs ?? [];
@@ -797,6 +890,9 @@ function Docs({ test, tt }: { test: Test; tt: TT }) {
     await deliverBlob(blob, d.name);
   };
 
+  /* Nothing attached and nothing to attach with: no block to read. */
+  if (!can.edit && docs.length === 0) return null;
+
   return (
     <section className="tw-block">
       <span className="tw-block-h">
@@ -811,7 +907,7 @@ function Docs({ test, tt }: { test: Test; tt: TT }) {
             <span className="cx-doc-n">{d.name}</span>
             <span className="cx-doc-s">{kb(d.bytes)}</span>
           </button>
-          <button className="cw-del btn btn-ghost btn-sm"
+          {can.remove && <button className="cw-del btn btn-ghost btn-sm"
             onClick={() => void (async () => {
               await tt.patchTest(test.id, cur => ({ docs: (cur.docs ?? []).filter(x => x.id !== d.id) }));
               /* The file itself stays on the device until nothing names it,
@@ -819,14 +915,16 @@ function Docs({ test, tt }: { test: Test; tt: TT }) {
               offerUndo(`Removed “${d.name}”`, async () => {
                 await tt.patchTest(test.id, cur => ({ docs: [...(cur.docs ?? []), d] }));
               });
-            })()}>Remove</button>
+            })()}>Remove</button>}
         </div>
       ))}
-      <button className="cw-add" onClick={() => pick.current?.click()}>
-        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Attach a PDF
-      </button>
-      <input ref={pick} type="file" accept="application/pdf,image/*" multiple hidden
-        onChange={e => { void take(e.target.files); e.target.value = ''; }} />
+      {can.edit && <>
+        <button className="cw-add" onClick={() => pick.current?.click()}>
+          <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Attach a PDF
+        </button>
+        <input ref={pick} type="file" accept="application/pdf,image/*" multiple hidden
+          onChange={e => { void take(e.target.files); e.target.value = ''; }} />
+      </>}
     </section>
   );
 }

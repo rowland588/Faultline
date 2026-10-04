@@ -36,6 +36,9 @@ import {
   type Program, type Week,
 } from '../lib/programs';
 import { Icon } from '../ui/Icon';
+import { useAccess } from '../cloud/access';
+import { AccessNote } from '../ui/AccessNote';
+import type { Can } from '../lib/access';
 
 const nice = (iso?: string): string => {
   if (!iso) return '—';
@@ -162,9 +165,11 @@ function PutAllOn({ state, assets, addAsset }: {
   );
 }
 
-function Row({ p, today, lineName, assets, state, weeks }: {
+function Row({ p, today, lineName, assets, state, weeks, can }: {
   p: Program; today: string; lineName?: string; assets: Asset[]; weeks: Week[];
   state: ReturnType<typeof usePrograms>;
+  /** A client reads the row; only the owner removes one (lib/access). */
+  can: Can;
 }) {
   const [proving, setProving] = useState(false);
   const [on, setOn] = useState(todayISO());
@@ -181,14 +186,16 @@ function Row({ p, today, lineName, assets, state, weeks }: {
   return (
     <div className={'mt-row is-pg-' + where}>
       <div className="mt-row-main">
-        <DraftText className="mt-what" value={p.what} placeholder="Program name or number"
-          onSave={v => void state.save({ ...p, what: v || p.what })} />
+        {can.edit
+          ? <DraftText className="mt-what" value={p.what} placeholder="Program name or number"
+              onSave={v => void state.save({ ...p, what: v || p.what })} />
+          : <div className="mt-what" style={{ borderColor: 'transparent' }}>{p.what}</div>}
         {facts && <div className="mt-facts">{facts}</div>}
         {p.note && <div className="mt-facts">{p.note}</div>}
         {/* Changing it here rather than only on the way in: a list pasted from
             the OEM arrives with no machine on any row, and re-typing them was
             the alternative. */}
-        {assets.length > 0 && (
+        {assets.length > 0 && can.edit && (
           <label className="pg-machine">
             <span className="field-label">Machine</span>
             <select className="text-input" value={p.assetId ?? ''}
@@ -206,6 +213,13 @@ function Row({ p, today, lineName, assets, state, weeks }: {
 
       {/* Where it's got to. A select, not a toggle: three states are three
           states, and a cycling button hides the one you are not looking at. */}
+      {/* A client reads where it has got to as words. */}
+      {!can.edit ? (
+        <span className="pg-state">
+          <span className="field-label">Where it&rsquo;s got to</span>
+          <span className={'pg-state-sel is-pg-' + got}>{STATE_WORD[got]}</span>
+        </span>
+      ) : (
       <label className="pg-state">
         <span className="field-label">Where it&rsquo;s got to</span>
         <select className={'text-input pg-state-sel is-pg-' + got}
@@ -220,17 +234,19 @@ function Row({ p, today, lineName, assets, state, weeks }: {
           <option value="proved">Proved</option>
         </select>
       </label>
+      )}
 
       <div className="mt-when">
         <span className={'mt-when-n is-pg-' + where}>{when(p, today)}</span>
-        {!isProved(p) && (
+        {!isProved(p) && !can.edit && p.testOn && <span className="mt-facts">{nice(p.testOn)}</span>}
+        {!isProved(p) && can.edit && (
           <DateWhy className="mt-due" ariaLabel={`Date ${p.what} is being tested`} value={p.testOn}
             projectId={p.projectId} storyKey={keyOf('program', p.id)} what={`${p.what} test`}
             onChange={v => state.save({ ...p, testOn: v })} />
         )}
       </div>
 
-      {proving ? (
+      {!can.edit ? null : proving ? (
         <div className="mt-mark">
           <label className="mt-mark-l" htmlFor={`pv-${p.id}`}>Proved on</label>
           <input id={`pv-${p.id}`} className="mt-due" type="date" value={on} onChange={e => setOn(e.target.value)} />
@@ -248,8 +264,10 @@ function Row({ p, today, lineName, assets, state, weeks }: {
         </button>
       )}
 
-      <button className="pset-x" aria-label={`Remove ${p.what}`}
-        onClick={() => void state.remove(p.id)}><Icon name="close" size="0.85em" /></button>
+      {can.remove && (
+        <button className="pset-x" aria-label={`Remove ${p.what}`}
+          onClick={() => void state.remove(p.id)}><Icon name="close" size="0.85em" /></button>
+      )}
       <Strip p={p} weeks={weeks} />
     </div>
   );
@@ -398,6 +416,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
      from the page under it would be the whole problem back again. */
   const stand = useStanding(projectId);
   const counts = useMethodCounts(projectId);
+  const can = useAccess(projectId);
   const today = todayISO();
 
   if (loading || state.loading || lines.loading) {
@@ -453,6 +472,8 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       {project.commissioning
         ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
         : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
+      {/* Embedded, the page around it already says this once. */}
+      <AccessNote can={can} owner={project.lead} />
       </>}
 
       {t.total === 0 ? (
@@ -461,8 +482,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
             <p className="sub">
               {!embedded && <>What this line has to be able to run, whether the program exists yet, and when we
               find out it works. Having a program is not the same as trusting it — so there are three states
-              here, not two, and proved always carries the day it was proved. </>}Nothing on the list yet. Add
-              the programs this line needs, below.
+              here, not two, and proved always carries the day it was proved. </>}Nothing on the list yet.{can.edit && ' Add the programs this line needs, below.'}
             </p>
           </div>
         </>
@@ -474,11 +494,11 @@ export function ProgramsScreen({ projectId, embedded = false }: {
               <h2 className="pace-sec-title">What the line has to run</h2>
               <p className="pace-sec-sub">Test dates that have gone first, then what is booked, then what nobody has dated, then what is proved · green from the week it was proved · this prints on the report</p>
             </div>
-            <PutAllOn state={state} assets={assets} addAsset={addAsset} />
+            {can.edit && <PutAllOn state={state} assets={assets} addAsset={addAsset} />}
             <div className="mt-list">
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.programs.map(p => (
-                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} />
+                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} can={can} />
               ))}
             </div>
             <p className="pg-key">
@@ -497,7 +517,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           what was in it — which meant the machine you had just picked was
           gone by the time you typed the second program for it. Rendered once,
           in one position, it keeps its state across that change. */}
-      <AddFold label="Add a program" start={t.total === 0}><AddProgram state={state} lines={lines.lines} assets={assets} /></AddFold>
+      {can.edit && <AddFold label="Add a program" start={t.total === 0}><AddProgram state={state} lines={lines.lines} assets={assets} /></AddFold>}
 
       {!embedded && (
         <footer className="pace-foot">

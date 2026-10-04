@@ -59,6 +59,8 @@ import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
 import { Icon } from '../ui/Icon';
+import { useAccess } from '../cloud/access';
+import { AccessNote } from '../ui/AccessNote';
 
 /* THE 3P BOARD, ON THE PAGE ITSELF.
  *
@@ -75,7 +77,7 @@ import { Icon } from '../ui/Icon';
  * is imply it is showing everything when it is not. */
 const AREA_PEEK = 3;
 
-function BoardPanel({ projectId, actions, bare }: { projectId: string; actions: PaceAction[]; bare?: boolean }) {
+function BoardPanel({ projectId, actions, bare, edit = true }: { projectId: string; actions: PaceAction[]; bare?: boolean; edit?: boolean }) {
   const b = buildBoard(actions);
   const open = () => nav(`/project/${projectId}/board`);
 
@@ -98,7 +100,9 @@ function BoardPanel({ projectId, actions, bare }: { projectId: string; actions: 
         <div className="pace-empty">
           <p className="sub">
             {actions.length === 0
-              ? <>No actions yet. Write each one in its column — People, Plant or Process — with who has it and when it is due.</>
+              ? (edit
+                ? <>No actions yet. Write each one in its column — People, Plant or Process — with who has it and when it is due.</>
+                : <>No actions on the board yet.</>)
               : <>{actions.length} action{actions.length === 1 ? ' is' : 's are'} waiting to be given a column.</>}
           </p>
           <div className="pb-foot" style={{ marginTop: 10 }}>
@@ -358,7 +362,7 @@ function NotesButton({ projectId }: { projectId: string }) {
   );
 }
 
-function TestingOverview({ projectId, name }: { projectId: string; name: string }) {
+function TestingOverview({ projectId, name, edit }: { projectId: string; name: string; edit: boolean }) {
   const tt = useTesting(projectId);
   /* What the filmed walk found — one lane on the plan. */
   const walk = useWalkSnags(projectId);
@@ -405,8 +409,11 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
               when a stage-gate job starts at Install with the machines
               (HUNT 5). */}
           <p className="sub">Nothing planned on this job yet. It starts at Install, with the machines it is putting in.</p>
-          <button className="btn btn-primary" style={{ marginTop: 10 }}
-            onClick={() => nav(`/project/${projectId}/install`)}>Add the first machine</button>
+          {/* A client reads the job and adds nothing (lib/access). */}
+          {edit && (
+            <button className="btn btn-primary" style={{ marginTop: 10 }}
+              onClick={() => nav(`/project/${projectId}/install`)}>Add the first machine</button>
+          )}
         </div>
       ) : (
         <>
@@ -476,6 +483,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   }, [raw, projectId]);
 
   const { loading: projLoading, project } = useProject(projectId);
+  /* What this person may do here (lib/access). Nothing on this page deletes
+     or changes what was agreed, so only a client's view differs: no door that
+     leads to adding something. */
+  const can = useAccess(projectId);
   const [reports, setReports] = useState(false);
   const ax = useActions(projectId);
   const methodCounts = useMethodCounts(projectId);
@@ -622,6 +633,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       </header>
       )}
       {reports && <ReportsSheet project={project} onClose={() => setReports(false)} />}
+      {(lens === 'overview' || model === 'commissioning') && <AccessNote can={can} owner={project.lead} />}
 
       {/* The row is the running order, left to right: where we are, the board
           we walk, then everything that comes out of walking it.
@@ -656,7 +668,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           None of it belongs to a handover, and every one of them was the first
           thing somebody saw on opening the project. */}
       {lens === 'overview' && model === 'commissioning' && (
-        <TestingOverview projectId={projectId} name={project.name} />
+        <TestingOverview projectId={projectId} name={project.name} edit={can.edit} />
       )}
 
       {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE: the verdict in one
@@ -698,7 +710,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           )}
 
           <Fold id="p3-board" title="The board" says={boardSays}>
-            <BoardPanel projectId={projectId} actions={actions} bare />
+            <BoardPanel projectId={projectId} actions={actions} bare edit={can.edit} />
           </Fold>
 
           {/* WHERE EACH LINE IS BALANCED — what the Pareto cannot say. Always
@@ -777,17 +789,27 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             {ppm.lines.length === 0 ? (
               <div className="pace-empty">
                 <p className="sub">No lines on this project yet.</p>
-                <button className="btn btn-primary" style={{ marginTop: 10 }}
-                  onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+                {can.edit && (
+                  <button className="btn btn-primary" style={{ marginTop: 10 }}
+                    onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+                )}
               </div>
             ) : !headline ? (
               <div className="pace-empty">
-                <p className="sub">
-                  Say what this project measures — a name, a unit and which way is good — and every
-                  line’s chart draws itself from the readings.
-                </p>
-                <button className="btn btn-primary" style={{ marginTop: 10 }}
-                  onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up</button>
+                {/* The measures are agreed, so set by the owner (Details). */}
+                {can.agree ? <>
+                  <p className="sub">
+                    Say what this project measures — a name, a unit and which way is good — and every
+                    line’s chart draws itself from the readings.
+                  </p>
+                  <button className="btn btn-primary" style={{ marginTop: 10 }}
+                    onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up</button>
+                </> : (
+                  <p className="sub">
+                    {project.lead || 'The owner'} hasn’t said what this project measures yet. When they do, every
+                    line’s chart draws itself from the readings.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="pace-charts">
@@ -819,8 +841,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {ppm.lines.length === 0 ? (
             <div className="pace-empty">
               <p className="sub">No lines on this project yet.</p>
-              <button className="btn btn-primary" style={{ marginTop: 10 }}
-                onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+              {can.edit && (
+                <button className="btn btn-primary" style={{ marginTop: 10 }}
+                  onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+              )}
             </div>
           ) : (
             <>
@@ -830,11 +854,13 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} />
                 ))}
               </div>
-              <div className="pace-lines-foot">
-                <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>
-                  Add or change lines
-                </button>
-              </div>
+              {can.edit && (
+                <div className="pace-lines-foot">
+                  <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/setup`)}>
+                    Add or change lines
+                  </button>
+                </div>
+              )}
             </>
           )}
           {/* WHO STANDS WHERE, product by product — held with the lines it is

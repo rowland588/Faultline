@@ -31,6 +31,9 @@ export function useAccess(projectId: string): Can {
 
   useEffect(() => {
     if (!supabase || !session || !email) return;
+    // The remembered answer, now the address is known (the first render had none).
+    const known = read(`${projectId}.${email}`);
+    if (known) setMine({ access: known });
     let alive = true;
     void supabase.from('project_members').select('access').eq('project_id', projectId).eq('email', email).maybeSingle()
       .then(({ data, error }) => {
@@ -59,6 +62,10 @@ export function useCanStartProjects(): boolean {
   const [ok, setOk] = useState<boolean>(() => read(`start.${email}`) !== 'no');
   useEffect(() => {
     if (!supabase || !session) { setOk(true); return; }
+    /* What was known last time, now the address is known — the first render
+       came before the session, with no address to look up, so with no signal
+       a project-only person was offered New project (found by the Home agent). */
+    setOk(read(`start.${email}`) !== 'no');
     let alive = true;
     void supabase.rpc('can_start_projects').then(({ data, error }) => {
       if (!alive || error) return;   // a cloud without the function: everyone may, as before
@@ -69,13 +76,4 @@ export function useCanStartProjects(): boolean {
     return () => { alive = false; };
   }, [session, email]);
   return ok;
-}
-
-/** The projects I may only read — the sync never pushes their rows, so a
- *  stray local change can never stall a pass on a refusal. */
-export async function readOnlyProjects(email: string): Promise<Set<string>> {
-  if (!supabase || !email) return new Set();
-  const { data, error } = await supabase.from('project_members').select('project_id').eq('email', email.toLowerCase()).eq('access', 'client');
-  if (error || !data) return new Set();
-  return new Set((data as { project_id: string }[]).map(r => r.project_id));
 }

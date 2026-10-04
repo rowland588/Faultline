@@ -18,6 +18,7 @@ import { todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { offerUndo } from './Undo';
 import { pushRegistered, pushSupported, subscribePush } from '../cloud/push';
+import { useAccess } from '../cloud/access';
 
 const SAID_KEY = 'faultline.reminded';
 const supported = () => typeof window !== 'undefined' && 'Notification' in window;
@@ -112,9 +113,11 @@ export function ReminderPermission() {
 }
 
 /** The card at the top of a project while a reminder is due today, has gone,
- *  or is coming this week. Tick one off here, the same tick as on the note. */
+ *  or is coming this week. Tick one off here, the same tick as on the note —
+ *  for those who may change the job; a client reads the card (lib/access). */
 export function ProjectReminders({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
+  const can = useAccess(projectId);
   if (tt.loading) return null;
   const rs = remindersOf(tt.items, todayISO());
   if (!rs.length) return null;
@@ -130,12 +133,12 @@ export function ProjectReminders({ projectId }: { projectId: string }) {
           const item = tt.items.find(i => i.id === r.id);
           return (
             <li key={r.id} className={r.days < 0 ? 'is-late' : r.days === 0 ? 'is-today' : ''}>
-              <button type="button" className="tw-tick" aria-label="Talked about — done"
+              {can.edit && <button type="button" className="tw-tick" aria-label="Talked about — done"
                 onClick={() => {
                   if (!item) return;
                   void tt.saveItem({ ...item, doneAt: Date.now() });
                   offerUndo('Reminder done', () => tt.saveItem(item));
-                }} />
+                }} />}
               <span className="rem-what">{r.what}</span>
               <span className="rem-when">{remindWords(r)}{r.onPlan ? ' · on the plan' : ''}</span>
             </li>

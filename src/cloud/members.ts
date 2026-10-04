@@ -114,28 +114,44 @@ export function useMembers(workspaceId: string): {
  * project; the role says why they are there, which is what the report prints. */
 export type ProjectRole = 'lead' | 'sponsor' | 'owner' | 'member';
 
-export interface ProjectMember { project_id: string; email: string; role: ProjectRole; created_at: string }
+/** What a person may do on the project (lib/access, supabase/ACCESS_LEVELS.sql):
+ *  the team does the work; a client reads it and takes the reports. */
+export type ProjectAccess = 'team' | 'client';
+
+export interface ProjectMember { project_id: string; email: string; role: ProjectRole; access?: ProjectAccess; created_at: string }
 
 export async function listProjectMembers(projectId: string): Promise<ProjectMember[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.from('project_members')
-    .select('project_id, email, role, created_at')
+    .select('*')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data as ProjectMember[]) ?? [];
 }
 
-export async function addProjectMember(projectId: string, email: string, role: ProjectRole = 'member'): Promise<AddResult> {
+export async function addProjectMember(projectId: string, email: string, role: ProjectRole = 'member', access: ProjectAccess = 'team'): Promise<AddResult> {
   if (!supabase) throw new Error('Cloud isn’t configured.');
   const clean = norm(email);
   if (!EMAIL.test(clean)) throw new Error('That doesn’t look like an email address.');
   const done = await invite('project', projectId, clean, role);
-  if (done) return done;
+  if (!done) {
+    const { error } = await supabase.from('project_members')
+      .upsert({ project_id: projectId, email: clean, role }, { onConflict: 'project_id,email' });
+    if (error) throw asError(error);
+  }
+  /* The invite writes the person as the team (the column's default); a client
+     is set straight after, by the owner, who manages this list anyway. */
+  if (access !== 'team') await setProjectAccess(projectId, clean, access, role);
+  return done ?? { invited: false };
+}
+
+/** Change what somebody may do on the project — and the role that goes with it. */
+export async function setProjectAccess(projectId: string, email: string, access: ProjectAccess, role?: ProjectRole): Promise<void> {
+  if (!supabase) throw new Error('Cloud isn’t configured.');
   const { error } = await supabase.from('project_members')
-    .upsert({ project_id: projectId, email: clean, role }, { onConflict: 'project_id,email' });
+    .update(role ? { access, role } : { access }).eq('project_id', projectId).eq('email', norm(email));
   if (error) throw asError(error);
-  return { invited: false };
 }
 
 export async function removeProjectMember(projectId: string, email: string): Promise<void> {
@@ -150,7 +166,8 @@ export async function removeProjectMember(projectId: string, email: string): Pro
  *  reading the project must never depend on being online. */
 export function useProjectMembers(projectId: string): {
   members: ProjectMember[]; loaded: boolean; myEmail: string; error: string;
-  add: (email: string, role?: ProjectRole) => Promise<AddResult>;
+  add: (email: string, role?: ProjectRole, access?: ProjectAccess) => Promise<AddResult>;
+  setAccess: (email: string, access: ProjectAccess, role?: ProjectRole) => Promise<void>;
   remove: (email: string) => Promise<void>;
 } {
   const { session } = useSession();
@@ -174,7 +191,8 @@ export function useProjectMembers(projectId: string): {
   return {
     members, loaded, error,
     myEmail: norm(session?.user.email ?? ''),
-    add: async (email: string, role: ProjectRole = 'member') => { const r = await addProjectMember(projectId, email, role); await refresh(); return r; },
+    add: async (email: string, role: ProjectRole = 'member', access: ProjectAccess = 'team') => { const r = await addProjectMember(projectId, email, role, access); await refresh(); return r; },
+    setAccess: async (email: string, access: ProjectAccess, role?: ProjectRole) => { await setProjectAccess(projectId, email, access, role); await refresh(); },
     remove: async (email: string) => { await removeProjectMember(projectId, email); await refresh(); },
   };
 }

@@ -33,6 +33,7 @@ import { useProjects } from '../lib/useProjects';
 import { chainForWorkspace, inArchivedProject, onDataChange } from '../db';
 import { DEMO_NAME } from '../lib/demo';
 import { JobsBoard } from '../ui/JobsBoard';
+import { useCanStartProjects } from '../cloud/access';
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -131,6 +132,9 @@ export function WorkspaceHome() {
   // organised — a workspace is the container underneath a line, not the thing
   // anybody sets out to open.
   const { projects } = useProjects();
+  /* Let in by a project invite: the projects they were invited to, and no
+     door to start one of their own (supabase/ACCESS_LEVELS.sql). */
+  const mayStart = useCanStartProjects();
   // Every job, on every method — the control room is not a stage-gate board.
   const jobs = projects;
 
@@ -213,7 +217,7 @@ export function WorkspaceHome() {
               Projects section's button, and that section was a second list
               of the jobs the control room already lists. */}
           <span className="home-top-acts">
-            {projects.length > 0 && <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>}
+            {mayStart && projects.length > 0 && <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>}
             <AccountMenu />
           </span>
         </div>
@@ -237,7 +241,17 @@ export function WorkspaceHome() {
           into the rows: each row's drawer now carries what only the card had —
           the lines with their owners, one tap each, and the Details door — and
           New project is at the top. Until there is a job, this is the start. */}
-      {projects.length === 0 && (
+      {projects.length === 0 && !mayStart && (
+        <section className="home-projects">
+          <div className="home-sec-head">
+            <h2 className="home-sec-title">Projects</h2>
+          </div>
+          <p className="sub home-sec-sub">
+            You’ll see the projects you’ve been invited to here, with what is late and who owes what.
+          </p>
+        </section>
+      )}
+      {projects.length === 0 && mayStart && (
         <section className="home-projects">
           <div className="home-sec-head">
             <h2 className="home-sec-title">Projects</h2>

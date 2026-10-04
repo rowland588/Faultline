@@ -62,8 +62,8 @@ export const mayWriteAgreement = (c: Can, current: string | null | undefined): b
 
 /** The one line a non-owner reads at the top of a job, saying what they can do. */
 export function accessLine(c: Can, ownerName: string): string {
-  const who = ownerName.trim() || 'The owner';
-  if (c.level === 'client') return `You can read this job and take its reports. ${who} runs it.`;
-  if (c.level === 'team') return `You’re on the team: do the work here. What was agreed — the dates, the stages, what a test must show — and deleting stay with ${who}.`;
+  const name = ownerName.trim();
+  if (c.level === 'client') return `You can read this job and take its reports. ${name || 'The owner'} runs it.`;
+  if (c.level === 'team') return `You’re on the team: do the work here. What was agreed — the dates, the stages, what a test must show — and deleting stay with ${name || 'the owner'}.`;
   return '';
 }

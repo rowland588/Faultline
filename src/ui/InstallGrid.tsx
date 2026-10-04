@@ -30,6 +30,7 @@ import { VoiceNote, VoiceReview } from './Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 import type { useTesting } from '../lib/useTesting';
 import { Icon } from './Icon';
+import { can as canOf, type Can } from '../lib/access';
 
 type TT = ReturnType<typeof useTesting>;
 type Open = { t: 'cell'; row: number; col: number } | { t: 'col'; col: number } | { t: 'row'; row: number } | { t: 'stages' } | null;
@@ -58,8 +59,11 @@ function cellWord(s: StepView): string {
   }
 }
 
-export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }: {
+export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner') }: {
   tt: TT; project: Project;
+  /** What this person may do here (lib/access): a client reads the grid and
+   *  opens a step; the team does the work but removes nothing. */
+  can?: Can;
   /** The job's usual stages, and where they came from — see lib/install. */
   stages: ReturnType<typeof usualStages>;
   otherName?: string;
@@ -176,7 +180,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
     if (open.t === 'stages') {
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
-          <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate}
+          <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate} can={can}
             extras={extras} onMove={moveColumn} onRemove={removeColumn} onDrop={dropColumns}
             isFresh={t => untouched(t, tt.tests, tt.items)}
             renameSteps={async (pairs) => {
@@ -194,6 +198,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
       const col = grid.columns[open.col];
       const s = row.cells[open.col];
       if (!s) {
+        if (!can.edit) return null;
         return (
           <Sheet title={`${rowName(row.asset)} — ${col}`} sub="Not on this machine yet" onClose={() => setOpen(null)}>
             <button className="btn btn-primary ig-big" onClick={() => { void add([{ title: col, assetId: row.asset?.id }], `Added “${col}” to ${rowName(row.asset)}`); setOpen(null); }}>
@@ -219,6 +224,10 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         <Sheet title={`${rowName(row.asset)} — ${t.title}`}
           sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${spanShort(t.plannedFor, plannedEnd(t))}` : 'no day yet'].join(' · ')}
           onClose={() => { setOpen(null); setProblem(false); }}>
+          {/* A CLIENT READS where it stands (the line above) and opens the step. */}
+          {!can.edit ? (
+            <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
+          ) : <>
           {/* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
               the finish and to when, a fix. The plan hears all of it. */}
           {problem ? (
@@ -267,10 +276,12 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
           <Who names={names} value={t.withWhom ?? ''} onSave={v => { void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`); setOpen(null); }} />
           <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
           </>}
+          </>}
         </Sheet>
       );
     }
     if (open.t === 'col') {
+      if (!can.edit) return null;
       const col = grid.columns[open.col];
       const cells = grid.rows.map(r => r.cells[open.col]);
       const steps = cells.filter((c): c is StepView => !!c).map(c => c.step);
@@ -295,7 +306,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                 <option value="">Choose a stage…</option>
                 {usual.map(u => <option key={u} value={u}>{u}</option>)}
               </select></label>
-            {fresh.length > 0 && (
+            {fresh.length > 0 && can.remove && (
               <button className="btn ig-big ig-bad" onClick={() => { if (removeColumn(col)) setOpen(null); }}>Remove from the {fresh.length === 1 ? 'one' : fresh.length} never started</button>
             )}
             {worked.length > 0 && (
@@ -339,6 +350,16 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
     const row = grid.rows[open.row];
     const left = row.cells.filter((c): c is StepView => !!c && !isSettled(c.step)).map(c => c.step);
     const missing = grid.columns.slice(0, usual.length).filter((_, i) => !row.cells[i]);
+    /* A CLIENT READS the machine — who supplied it and where it has got to. */
+    if (!can.edit) {
+      const a = row.asset;
+      const on = a ? assetStateOn(a) : undefined;
+      return (
+        <Sheet title={rowName(a)} sub={row.view.says} onClose={() => setOpen(null)}>
+          {a && <p className="sub">{a.oem && <>{a.oem} · </>}{ASSET_STATE_WORD[assetStateOf(a)]}{on && (assetStateOf(a) === 'awaited' ? ` — due ${short(on)}` : ` since ${short(on)}`)}</p>}
+        </Sheet>
+      );
+    }
     return (
       <Sheet title={rowName(row.asset)} sub={row.view.says} onClose={() => setOpen(null)}>
         <div className="ig-acts">
@@ -357,7 +378,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
         {row.asset && (
           <MachineCard a={row.asset}
             ran={tt.tests.filter(t => t.assetId === row.asset?.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length}
-            save={tt.saveAsset} remove={async id => { await tt.removeAsset(id); setOpen(null); }} />
+            save={tt.saveAsset} remove={can.remove ? async id => { await tt.removeAsset(id); setOpen(null); } : undefined} />
         )}
         {/* A stage of its own, for this machine only — the guard run, the
             conveyor tie-in. */}
@@ -390,8 +411,10 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
   return (
     <section className="ig">
       <p className="sub ig-hint">
-        Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.
-        {bare.length > 1 && (
+        {can.edit
+          ? 'Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.'
+          : 'Tap a square to read its step, or a machine to read where it has got to.'}
+        {bare.length > 1 && can.edit && (
           <> <button className="cw-link" onClick={() => void giveStages(bare)}>Give the {bare.length} new machines the {usual.length} stages</button></>
         )}
       </p>
@@ -401,11 +424,14 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
             <tr>
               <th scope="col" className="ig-corner">
                 {/* The stages themselves are edited here, where they are read. */}
-                <button className="ig-colh ig-edit" onClick={() => setOpen({ t: 'stages' })}>Machine · <u>edit stages</u></button>
+                <button className="ig-colh ig-edit" onClick={() => setOpen({ t: 'stages' })}>Machine · <u>{can.agree ? 'edit stages' : 'the stages'}</u></button>
               </th>
               {grid.columns.map((c, i) => (
                 <th key={c} scope="col">
-                  <button className="ig-colh" onClick={() => setOpen({ t: 'col', col: i })}>{c}</button>
+                  {/* A client has nothing to do for a whole stage: its name, read. */}
+                  {can.edit
+                    ? <button className="ig-colh" onClick={() => setOpen({ t: 'col', col: i })}>{c}</button>
+                    : <span className="ig-colh" style={{ cursor: 'default' }}>{c}</span>}
                 </th>
               ))}
             </tr>
@@ -427,6 +453,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                         {r.asset && `${ASSET_STATE_WORD[assetStateOf(r.asset)]}${assetStateOn(r.asset) ? ` since ${short(assetStateOn(r.asset))}` : ''} — no install steps kept`}
                       </span>
                     </td>
+                  ) : r.view.total === 0 && !can.edit ? (
+                    <td colSpan={grid.columns.length}><span className="ig-in">No stages added yet</span></td>
                   ) : r.view.total === 0 ? (
                     /* A machine with no stages yet: one button, not six empty
                        squares asking the same question six times. */
@@ -437,8 +465,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                     <td key={ci}>
                       <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
                         onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
+                        disabled={!s && !can.edit}
                         aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}`}>
-                        {s ? cellWord(s) : '+'}
+                        {s ? cellWord(s) : can.edit ? '+' : ''}
                       </button>
                     </td>
                   ))}
@@ -450,7 +479,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                   <td colSpan={grid.columns.length + 1}>
                     <span className="ig-says">
                       {r.view.says}
-                      {r.view.ready && r.asset && (
+                      {r.view.ready && r.asset && can.edit && (
                         <button className="cw-link" onClick={() => { if (r.asset) void markInstalled(r.asset); }}>Mark it installed today</button>
                       )}
                     </span>

@@ -51,6 +51,10 @@ import { Timeline } from './Timeline';
 import type { GateTone } from '../lib/install';
 import { gateSpans } from '../lib/plan';
 import { Icon } from './Icon';
+import { supabase } from '../cloud/client';
+import { useSession } from '../cloud/session';
+import { useProfile } from '../cloud/admin';
+import { accessOf, can as canOf, type Can } from '../lib/access';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
@@ -226,10 +230,52 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
   );
 }
 
+/* ------------------------- who may do what, per job ------------------------
+ * The rule useAccess applies on a job's own pages (lib/access), read once for
+ * a whole list of jobs: the owner from the project's own owner id, a client
+ * from one read of the people lists — useAccess per row would read the
+ * project list once a row. Offline, a client's projects are the ones useAccess
+ * last remembered as such on this device. */
+export function useAccessByJob(projects: Project[]): (id: string) => Can {
+  const { session } = useSession();
+  const { profile } = useProfile();
+  const email = (session?.user.email ?? '').toLowerCase();
+  const [clientOf, setClientOf] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!supabase || !email) return;
+    let alive = true;
+    void supabase.from('project_members').select('project_id').eq('email', email).eq('access', 'client')
+      .then(({ data, error }) => {
+        if (!alive || error) return;   // no signal, or a cloud without the column: keep what was remembered
+        setClientOf(new Set(((data as { project_id: string }[] | null) ?? []).map(r => r.project_id)));
+      });
+    return () => { alive = false; };
+  }, [email]);
+  const remembered = (id: string): boolean => {
+    try { return localStorage.getItem(`faultline.access.${id}.${email}`) === 'client'; } catch { return false; }
+  };
+  /* The same development switch useAccess reads. */
+  let forced: string | null = null;
+  if (import.meta.env.DEV) { try { forced = localStorage.getItem('faultline.access.force'); } catch { /* fine */ } }
+  return (id: string) => {
+    if (forced === 'owner' || forced === 'team' || forced === 'client') return canOf(forced);
+    const client = clientOf ? clientOf.has(id) : remembered(id);
+    return canOf(accessOf({
+      signedIn: !!supabase && !!session, myId: session?.user.id, myEmail: email,
+      isSuper: !!profile?.is_super, ownerId: projects.find(p => p.id === id)?.ownerId,
+      mine: client ? { access: 'client' } : null,
+    }));
+  };
+}
+
 /* ------------------------------- the board ------------------------------ */
 
 export function JobsBoard({ projects }: { projects: Project[] }) {
   const inputs = useJobs(projects);
+  const accessOn = useAccessByJob(projects);
+  /* The supplier tidy rewrites records, so only on the jobs this person may
+     change — a client's are read, never written. */
+  const editable = projects.filter(p => accessOn(p.id).edit).map(p => p.id);
   const today = todayISO();
   const pf = useMemo(() => (inputs ? portfolio(inputs.gate, today, inputs.paced) : null), [inputs, today]);
   const [still] = useState(seenThisSession);
@@ -257,7 +303,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
     return next;
   });
   const tidy = async (to: string, spellings: string[]) => {
-    const { changed, undo } = await renameSupplier(projects.map(p => p.id), spellings, to);
+    const { changed, undo } = await renameSupplier(editable, spellings, to);
     if (changed > 0) offerUndo(`${changed} ${changed === 1 ? 'record now says' : 'records now say'} “${to}”`, undo);
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
@@ -318,7 +364,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
         {/* THE RECORDS DISAGREE. The same company typed two ways is counted as
             one here and on the client report already; this makes the records
             say it one way too, in a tap, and it can be undone. */}
-        {pf.variants.map(c => (
+        {editable.length > 0 && pf.variants.map(c => (
           <p key={c.name} className="jb-tidy">
             <span><b>{c.spellings.map(sp => sp.name).join(' and ')}</b> look like one company.</span>
             <span className="jb-tidy-acts">
@@ -387,7 +433,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
             {axis.today != null && <span className="jb-today" style={{ left: PCT(axis.today) }} />}
           </div>
           {pf.jobs.map((v, i) => (
-            <JobRow key={v.id} v={v} i={i} open={open.has(v.id)} onToggle={() => toggle(v.id)}
+            <JobRow key={v.id} v={v} i={i} open={open.has(v.id)} onToggle={() => toggle(v.id)} edit={accessOn(v.id).edit}
               span={pf.span} today={today} tip={tip} setTip={setTip} />
           ))}
         </div>
@@ -442,9 +488,11 @@ function WeekStrip({ items }: { items: JobItem[] }) {
   );
 }
 
-function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
+function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
   v: JobView; i: number; open: boolean; onToggle: () => void; span: string[]; today: string;
   tip: string | null; setTip: (k: string | null) => void;
+  /** May add to this job — false for its client, who reads it. */
+  edit: boolean;
 }) {
   const style = { '--job': v.color, '--i': i } as CSSProperties;
   const slip = v.axis.agreed && v.axis.expected
@@ -524,11 +572,13 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
           {empty ? (
             <span className="jb-empty">
               {v.method === 'commissioning'
-                ? 'Nothing dated yet — add the machines and when they are due.'
-                : 'No action has a due date yet — write them on the board.'}
-              <button className="btn btn-ghost btn-sm" onClick={() => nav(v.method === 'commissioning' ? `/project/${v.id}/testing` : `/project/${v.id}/board`)}>
-                {v.method === 'commissioning' ? 'Add them ›' : 'Open the board ›'}
-              </button>
+                ? (edit ? 'Nothing dated yet — add the machines and when they are due.' : 'Nothing dated yet.')
+                : (edit ? 'No action has a due date yet — write them on the board.' : 'No action has a due date yet.')}
+              {(edit || v.method !== 'commissioning') && (
+                <button className="btn btn-ghost btn-sm" onClick={() => nav(v.method === 'commissioning' ? `/project/${v.id}/testing` : `/project/${v.id}/board`)}>
+                  {v.method === 'commissioning' ? 'Add them ›' : 'Open the board ›'}
+                </button>
+              )}
             </span>
           ) : (
             <>
@@ -603,7 +653,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 {v.lines && (
                   <span className="proj-lines jb-lines">
                     {v.lines.length === 0
-                      ? <button className="proj-chip is-add" onClick={() => nav(`/project/${v.id}/setup`)}><Icon name="plus" size="1.15em" /> Add a line</button>
+                      ? (edit
+                        ? <button className="proj-chip is-add" onClick={() => nav(`/project/${v.id}/setup`)}><Icon name="plus" size="1.15em" /> Add a line</button>
+                        : <span className="sub">No lines yet</span>)
                       : v.lines.map(l => (
                           <button key={l.id} className="proj-chip" onClick={() => nav(`/project/${v.id}/line/${l.id}`)}
                             title={l.owner ? `${l.name} · ${l.owner}` : l.name}>

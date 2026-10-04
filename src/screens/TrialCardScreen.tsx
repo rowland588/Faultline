@@ -35,6 +35,8 @@ import { Crumbs } from '../ui/Crumbs';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { Icon } from '../ui/Icon';
+import { AccessNote } from '../ui/AccessNote';
+import { useAccess } from '../cloud/access';
 
 const nice = (iso?: string): string => {
   if (!iso) return '';
@@ -74,8 +76,8 @@ function Field({ label, text, empty = '—' }: { label: string; text?: string; e
   );
 }
 
-function Found({ rows, one }: { rows: CardFinding[]; one: string }) {
-  if (rows.length === 0) return <p className="sub tc-empty">Nothing was written down on this {one}. Go back to it to add what you saw.</p>;
+function Found({ rows, one, edit }: { rows: CardFinding[]; one: string; edit: boolean }) {
+  if (rows.length === 0) return <p className="sub tc-empty">Nothing was written down on this {one}.{edit && ' Go back to it to add what you saw.'}</p>;
   return (
     <ol className="tc-list">
       {rows.map((f, i) => (
@@ -96,8 +98,8 @@ function Found({ rows, one }: { rows: CardFinding[]; one: string }) {
   );
 }
 
-function Next({ rows, one }: { rows: CardNext[]; one: string }) {
-  if (rows.length === 0) return <p className="sub tc-empty">Nothing has been agreed out of this {one} yet — decide an observation is a fix, or plan the next test from it.</p>;
+function Next({ rows, one, edit }: { rows: CardNext[]; one: string; edit: boolean }) {
+  if (rows.length === 0) return <p className="sub tc-empty">Nothing has been agreed out of this {one} yet{edit ? ' — decide an observation is a fix, or plan the next test from it' : ''}.</p>;
   return (
     <ol className="tc-list">
       {rows.map((n, i) => (
@@ -125,6 +127,9 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
   const [err, setErr] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  /* The card is read by everyone; only its two empty lines, which tell you
+     what to go and do, are for the people who can do it (lib/access). */
+  const can = useAccess(projectId);
 
   /* The 350KB of jsPDF is fetched when this screen OPENS, not when the button
      is pressed — the same rule savePdf.ts sets out, and the reason the button
@@ -224,6 +229,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
           </p>
         </div>
       </header>
+      <AccessNote can={can} owner={project.lead} />
 
       {/* THE SEND IS AT THE TOP AND THE BOTTOM. At the top because somebody who
           already knows this card wants it gone in one tap; at the bottom
@@ -261,13 +267,13 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
 
       <Block n="3" title={words.found}
         sub={c.found.written === 0 ? undefined : foundWords(c.found)}>
-        <Found rows={c.findings} one={words.one.toLowerCase()} />
+        <Found rows={c.findings} one={words.one.toLowerCase()} edit={can.edit} />
       </Block>
 
       <Block n="4" title="What we do next"
         sub={c.next.length === 0 ? undefined
           : `${c.openNext} of ${c.next.length} still open`}>
-        <Next rows={c.next} one={words.one.toLowerCase()} />
+        <Next rows={c.next} one={words.one.toLowerCase()} edit={can.edit} />
       </Block>
 
       {/* THE PICTURES — the same ones the A4 prints, in the same order. Only

@@ -9,7 +9,12 @@
  * Deliberately one page rather than a wizard: setting a project up is not a
  * one-off, it is something you come back to every time a line changes hands.
  *
- * Everything saves as you type (on blur). There is no Save button to forget. */
+ * Everything saves as you type (on blur). There is no Save button to forget.
+ *
+ * WHO MAY CHANGE WHAT (lib/access). The project itself — its name, lead, dates,
+ * method — and what its lines are measured against were agreed, so they are
+ * the owner's; the team reads them here and works the lines; a client reads
+ * all of it. Only the owner invites, removes or puts the project away. */
 import { Fold } from '../ui/Fold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -21,11 +26,17 @@ import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY } from '../lib/story';
 import { MODELS, methodOf, planModel, setPlanModel } from '../lib/planModel';
+import { niceDay } from '../lib/weeks';
+import type { Project } from '../types';
+import type { Can } from '../lib/access';
+import { useAccess } from '../cloud/access';
+import { AccessNote } from '../ui/AccessNote';
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
 import { LineTidyPanel } from './LineTidyPanel';
 import { MeasuresSetup } from './MeasuresSetup';
+import { useMeasures } from '../lib/useMeasures';
 import { displayName } from '../cloud/team';
 import { supabase } from '../cloud/client';
 import { DraftText as Cell } from '../ui/Draft';
@@ -102,10 +113,11 @@ function PersonPicker({ name, email, members, onChange }: {
   );
 }
 
-function LineRow({ line, first, last, state, projectId, members }: {
+function LineRow({ line, first, last, state, projectId, members, can }: {
   line: PaceLineRow; first: boolean; last: boolean; projectId: string;
   state: ReturnType<typeof usePaceLines>;
   members: { email: string }[];
+  can: Can;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -132,18 +144,27 @@ function LineRow({ line, first, last, state, projectId, members }: {
   return (
     <tr className="pset-row">
       <td className="pset-order">
-        <button className="pset-move" disabled={first} aria-label={`Move ${line.name} up`}
-          onClick={() => void state.moveLine(line.id, -1)}><Icon name="arrowUp" size="1.1em" /></button>
-        <button className="pset-move" disabled={last} aria-label={`Move ${line.name} down`}
-          onClick={() => void state.moveLine(line.id, 1)}><Icon name="arrowDown" size="1.1em" /></button>
+        {can.edit && <>
+          <button className="pset-move" disabled={first} aria-label={`Move ${line.name} up`}
+            onClick={() => void state.moveLine(line.id, -1)}><Icon name="arrowUp" size="1.1em" /></button>
+          <button className="pset-move" disabled={last} aria-label={`Move ${line.name} down`}
+            onClick={() => void state.moveLine(line.id, 1)}><Icon name="arrowDown" size="1.1em" /></button>
+        </>}
       </td>
       <td><span className="pset-key">{line.key}</span></td>
-      <td><Cell value={line.name} placeholder="Line name" wide
-        onSave={v => void state.editLine(line.id, { name: v || line.key })} /></td>
-      <td><PersonPicker name={line.owner ?? ''} email={line.ownerEmail ?? ''} members={members}
-        onChange={(n, e) => void state.editLine(line.id, { owner: n || undefined, ownerEmail: e || undefined })} /></td>
-      <td><PersonPicker name={line.sponsor ?? ''} email={line.sponsorEmail ?? ''} members={members}
-        onChange={(n, e) => void state.editLine(line.id, { sponsor: n || undefined, sponsorEmail: e || undefined })} /></td>
+      {/* A client reads the line; the team and the owner work it. */}
+      {can.edit ? <>
+        <td><Cell value={line.name} placeholder="Line name" wide
+          onSave={v => void state.editLine(line.id, { name: v || line.key })} /></td>
+        <td><PersonPicker name={line.owner ?? ''} email={line.ownerEmail ?? ''} members={members}
+          onChange={(n, e) => void state.editLine(line.id, { owner: n || undefined, ownerEmail: e || undefined })} /></td>
+        <td><PersonPicker name={line.sponsor ?? ''} email={line.sponsorEmail ?? ''} members={members}
+          onChange={(n, e) => void state.editLine(line.id, { sponsor: n || undefined, sponsorEmail: e || undefined })} /></td>
+      </> : <>
+        <td>{line.name}</td>
+        <td>{line.owner || <span className="sub">nobody yet</span>}</td>
+        <td>{line.sponsor || <span className="sub">nobody yet</span>}</td>
+      </>}
       <td className="pset-actions">
         {/* The pack is where this line's owner actually works, so it leads. The
             workspace is inside it too, but a direct way in is worth keeping for
@@ -151,12 +172,14 @@ function LineRow({ line, first, last, state, projectId, members }: {
         <button className="btn btn-ghost pset-ws" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
           Open pack
         </button>
-        <button className="btn btn-ghost pset-ws" disabled={busy} onClick={() => void openWorkspace()}>
-          {/* NAMED FOR WHAT IT OPENS — the line's stopwatch and its filmed
-              walk. "Workspace +" was the old container's name (HUNT 29). */}
-          {busy ? 'Opening…' : 'Time & film'}
-        </button>
-        <button className="pset-x" onClick={remove} aria-label={`Remove ${line.name}`}><Icon name="close" size="0.85em" /></button>
+        {can.edit && (
+          <button className="btn btn-ghost pset-ws" disabled={busy} onClick={() => void openWorkspace()}>
+            {/* NAMED FOR WHAT IT OPENS — the line's stopwatch and its filmed
+                walk. "Workspace +" was the old container's name (HUNT 29). */}
+            {busy ? 'Opening…' : 'Time & film'}
+          </button>
+        )}
+        {can.remove && <button className="pset-x" onClick={remove} aria-label={`Remove ${line.name}`}><Icon name="close" size="0.85em" /></button>}
       </td>
     </tr>
   );
@@ -215,16 +238,28 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
   );
 }
 
-const ROLES: { id: ProjectRole; label: string }[] = [
-  { id: 'sponsor', label: 'Sponsor' },
-  { id: 'owner', label: 'Line owner' },
-  { id: 'member', label: 'Member' },
+/* ONE CHOICE PER PERSON: what they may do and why they are here, picked
+   together (lib/access). The role still prints on the report; the access is
+   what the app and the database let them do. A line owner is on the team. */
+type Access = 'team' | 'client';
+const KINDS: { id: string; label: string; role: ProjectRole; access: Access }[] = [
+  { id: 'team', label: 'Team — does the work', role: 'member', access: 'team' },
+  { id: 'owner', label: 'Line owner — does the work', role: 'owner', access: 'team' },
+  { id: 'client', label: 'Client — reads it and takes the reports', role: 'sponsor', access: 'client' },
 ];
 
-function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typeof useProjectMembers> }) {
-  const { members, loaded, myEmail, error, add, remove } = people;
+/** What somebody on the project is, in words: "team", "line owner", "client".
+ *  A row from before the access levels has none, and is on the team. */
+const whatTheyAre = (m: { role: ProjectRole; access?: Access }): string =>
+  m.access === 'client' ? 'client'
+    : m.role === 'owner' ? 'line owner'
+    : m.role === 'member' ? 'team'
+    : `${m.role} · team`;
+
+function ProjectPeople({ lead, people, can }: { lead?: string; people: ReturnType<typeof useProjectMembers>; can: Can }) {
+  const { members, loaded, myEmail, error, add, remove, setAccess } = people;
   const [text, setText] = useState('');
-  const [role, setRole] = useState<ProjectRole>('member');
+  const [kind, setKind] = useState(KINDS[0].id);
   const [note, setNote] = useState('');
 
   const doAdd = async () => {
@@ -232,7 +267,8 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
     if (!t) return;
     if (members.some(m => m.email === t)) { setNote(`${t} is already on this project`); setText(''); return; }
     try {
-      const r = await add(t, role);
+      const k = KINDS.find(x => x.id === kind) ?? KINDS[0];
+      const r = await add(t, k.role, k.access);
       setText('');
       // The invite is the add (supabase/OWNER_INVITES.sql): somebody with an
       // account hears nothing new; somebody without can create one now. On a
@@ -259,28 +295,50 @@ function ProjectPeople({ lead, people }: { lead?: string; people: ReturnType<typ
       {error && <p className="chip-note">{error}</p>}
       <div className="chip-row">
         {members.map(m => (
-          <span key={m.email} className="chip chip-editable" title={m.email}>
+          <span key={m.email} className={'chip' + (can.people ? ' chip-editable' : '')} title={m.email}>
             <span className="chip-label">
               {m.email === myEmail ? 'You' : displayName(m.email)}
-              <span className="pset-role"> · {m.role}</span>
+              <span className="pset-role is-access"> · {whatTheyAre(m)}</span>
             </span>
-            <button className="chip-x" onClick={() => { void remove(m.email).catch(() => setNote('Couldn’t remove them — are you online?')); }}
-              aria-label={`Remove ${m.email}`}><Icon name="close" size="0.85em" /></button>
+            {/* Inviting, moving between team and client, and removing are the
+                owner's (lib/access). The words beside the name say what they
+                are; this says the one other thing they could be. */}
+            {can.people && (
+              <button className="cw-link" style={{ padding: '9px 2px' }}
+                onClick={() => {
+                  const toClient = m.access !== 'client';
+                  void setAccess(m.email, toClient ? 'client' : 'team', toClient ? 'sponsor' : 'member')
+                    .catch(() => setNote('Couldn’t change that — are you online?'));
+                }}>
+                {m.access === 'client' ? 'make team' : 'make client'}
+              </button>
+            )}
+            {can.people && (
+              <button className="chip-x" onClick={() => { void remove(m.email).catch(() => setNote('Couldn’t remove them — are you online?')); }}
+                aria-label={`Remove ${m.email}`}><Icon name="close" size="0.85em" /></button>
+            )}
           </span>
         ))}
         {loaded && members.length === 0 && !error && <span className="sub">Nobody else yet.</span>}
       </div>
       {note && <p className="chip-note">{note}</p>}
-      <div className="row-inline" style={{ marginTop: 10 }}>
-        <input className="text-input" type="email" value={text} placeholder="Invite by email…" maxLength={120}
-          onChange={e => { setText(e.target.value); setNote(''); }}
-          onKeyDown={e => { if (e.key === 'Enter') void doAdd(); }} />
-        <select className="text-input pset-role-pick" value={role} onChange={e => setRole(e.target.value as ProjectRole)}>
-          {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-        </select>
-        <button className="btn" onClick={() => void doAdd()} disabled={!text.trim()}>Invite</button>
-      </div>
-      <p className="chip-hint">They’ll see this project the next time the app syncs. The role is a label — it says why they’re here, and it prints on the report.</p>
+      {can.people && <>
+        <div className="row-inline" style={{ marginTop: 10 }}>
+          <input className="text-input" type="email" value={text} placeholder="Invite by email…" maxLength={120}
+            onChange={e => { setText(e.target.value); setNote(''); }}
+            onKeyDown={e => { if (e.key === 'Enter') void doAdd(); }} />
+          <select className="text-input pset-role-pick" value={kind} aria-label="What they are on this project"
+            onChange={e => setKind(e.target.value)}>
+            {KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}
+          </select>
+          <button className="btn" onClick={() => void doAdd()} disabled={!text.trim()}>Invite</button>
+        </div>
+        <p className="chip-hint">
+          The team and line owners do the work — steps, tests, fixes, findings, photos. What was agreed
+          (the dates, the stages, what a test must show) and deleting stay with you. A client reads it and
+          takes the reports, and changes nothing. They’ll see this project the next time the app syncs.
+        </p>
+      </>}
     </>
   );
 }
@@ -301,6 +359,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   // One people list, read by the invite box AND by the owner/sponsor pickers on
   // every line — so the moment somebody is invited they are assignable.
   const people = useProjectMembers(projectId);
+  const can = useAccess(projectId);
   // The project's owner does not appear in project_members — they are the owner
   // — but they are very often the one running a line, so they are pickable too.
   const assignable = people.myEmail && !people.members.some(m => m.email === people.myEmail)
@@ -323,7 +382,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
         says={lines.lines.length === 0 ? 'none yet' : `${lines.lines.length} line${lines.lines.length === 1 ? '' : 's'} · ${lines.lines.filter(l => l.owner).length} with an owner`}>
 
         {lines.lines.length === 0
-          ? <p className="sub">No lines yet — add the first one below.</p>
+          ? <p className="sub">{can.edit ? 'No lines yet — add the first one below.' : 'No lines yet.'}</p>
           : (
             <div className="pset-table-wrap">
               <table className="pset-table">
@@ -336,7 +395,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
                 </thead>
                 <tbody>
                   {lines.lines.map((l, i) => (
-                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable}
+                    <LineRow key={l.id} line={l} state={lines} projectId={project.id} members={assignable} can={can}
                       first={i === 0} last={i === lines.lines.length - 1} />
                   ))}
                 </tbody>
@@ -344,11 +403,11 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
             </div>
           )}
 
-        <AddLine state={lines} />
+        {can.edit && <AddLine state={lines} />}
 
         {/* Work written before lines had packs of their own — offered for
             placing, once, and gone from the page as soon as it is placed. */}
-        <LineTidyPanel projectId={project.id} lines={lines.lines} planModel={planModel(project)} />
+        {can.edit && <LineTidyPanel projectId={project.id} lines={lines.lines} planModel={planModel(project)} />}
       </Fold>
   );
 
@@ -376,11 +435,12 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           them: 'setup' lit the Set up GATE while you stood on the Details.
           Under the header, as on every page — see "THE PAGE FRAME". */}
       {commissioning && <Peers peers={projectPeers(project.id, 'details', stand.counts)} />}
+      <AccessNote can={can} owner={project.lead} />
 
       {/* FOLDS. Project, lines, measures and people were all open at once —
           2,900px on a phone. Each is a line until it is the one being worked on. */}
       <Fold id="pset-project" title={commissioning ? 'The project' : 'The project'} says={`${project.name} · led by ${project.lead || 'nobody yet'}`}>
-        <ProjectIdentity projectId={projectId} />
+        {can.agree ? <ProjectIdentity projectId={projectId} /> : <ProjectIdentityRead project={project} />}
       </Fold>
 
       {/* WHERE THE MACHINES ARE. A stage-gate job's machines, who supplied
@@ -399,12 +459,18 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
       {/* WHAT THIS BUSINESS MEASURES. Only on a project that runs a plan — a
           commissioning job proves a rate once, per pack, and has no periods to
           set targets across. */}
-      {paced && <MeasuresSetup projectId={project.id} lines={lines.lines} fold />}
+      {/* The measures and their targets are what the lines were agreed to be
+          judged on, so they are the owner's: anyone else reads them, the
+          controls shown but switched off (MeasuresSetup has no read-only of
+          its own). */}
+      {paced && (can.agree
+        ? <MeasuresSetup projectId={project.id} lines={lines.lines} fold />
+        : <MeasuresRead projectId={project.id} lines={lines.lines} />)}
 
       <Fold id="pset-people" title="People" start={false}
-        says={people.members.length ? `${people.members.length} invited · they see this project on their own device` : 'nobody else yet — invite by email'}>
+        says={people.members.length ? peopleSays(people.members) : can.people ? 'nobody else yet — invite by email' : 'nobody else yet'}>
         <div className="card">
-          <ProjectPeople lead={project.lead} people={people} />
+          <ProjectPeople lead={project.lead} people={people} can={can} />
         </div>
       </Fold>
 
@@ -413,7 +479,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           job itself or on Home, so from where he works it was not there. Archive
           is here, on the job, and Home's cards carry it too. Deleting for ever
           stays where it was: inside the archive, after it says what it takes. */}
-      <section className="pace-sec">
+      {/* Archiving is the owner's (lib/access), so nobody else is offered it. */}
+      {can.remove && <section className="pace-sec">
         <div className="pace-sec-head">
           <h2 className="pace-sec-title">Put this project away</h2>
           <p className="pace-sec-sub">Archive takes it off Home and the project list · nothing is deleted · restore it whenever you like</p>
@@ -426,12 +493,57 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           <button className="btn btn-ghost" onClick={() => nav('/projects?view=archive')}>Open the archive</button>
           <span className="sub">Delete for ever is offered from the archive, after it says what it will take.</span>
         </div>
-      </section>
+      </section>}
 
       {/* A COMMISSIONING JOB'S LINES GO LAST. It has them — materials can be
           for one line — but they are not what anybody comes here to change. */}
       {commissioning && linesSection}
     </div>
+  );
+}
+
+/** "3 invited — 2 team · 1 client": who is here, by what they may do. */
+function peopleSays(members: { access?: Access }[]): string {
+  const client = members.filter(m => m.access === 'client').length;
+  const team = members.length - client;
+  return `${members.length} invited — ${[team && `${team} team`, client && `${client} client${client === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}`;
+}
+
+/** The project as agreed, for anyone who is not its owner: the same facts the
+ *  owner's form holds, as words — not a form that refuses to save. */
+function ProjectIdentityRead({ project }: { project: Project }) {
+  const paced = planModel(project) !== 'commissioning';
+  const m = methodOf(project);
+  return (
+    <section className="card pset-identity">
+      <dl className="proj-model-dl pset-read">
+        <dt>Project</dt><dd>{project.name}</dd>
+        <dt>Lead</dt><dd>{project.lead || 'nobody named yet'}</dd>
+        {project.description && <><dt>What it is</dt><dd>{project.description}</dd></>}
+        {!paced && <>
+          <dt>Handover agreed</dt><dd>{project.plannedAt ? niceDay(project.plannedAt, { year: true }) : 'not agreed yet'}</dd>
+          <dt>Now expected</dt><dd>{project.expectedAt ? niceDay(project.expectedAt, { year: true }) : 'not set yet'}</dd>
+        </>}
+        <dt>How it runs</dt><dd>{m.label} — {m.blurb}</dd>
+        {paced && project.pareto && <><dt>Extra tools</dt><dd>Pareto</dd></>}
+      </dl>
+    </section>
+  );
+}
+
+/** The measures, read-only: the owner's own panel inside a disabled fieldset,
+ *  under the same fold the owner sees. */
+function MeasuresRead({ projectId, lines }: { projectId: string; lines: PaceLineRow[] }) {
+  const { loading, measures, periods } = useMeasures(projectId);
+  if (loading) return null;
+  const n = measures.length, k = periods.length;
+  return (
+    <Fold id="pset-measures" title="What this project measures" start={false}
+      says={n === 0 ? 'none set yet' : `${n} measure${n === 1 ? '' : 's'} · ${k} period${k === 1 ? '' : 's'} · set by the owner`}>
+      <fieldset className="pset-ro" disabled>
+        <MeasuresSetup projectId={projectId} lines={lines} />
+      </fieldset>
+    </Fold>
   );
 }
 

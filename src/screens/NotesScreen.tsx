@@ -24,6 +24,9 @@ import { remindersOf, remindWords } from '../lib/reminders';
 import { niceDay, todayISO } from '../lib/weeks';
 import { ReminderPermission } from '../ui/Reminders';
 import { Icon } from '../ui/Icon';
+import { AccessNote } from '../ui/AccessNote';
+import { useAccess } from '../cloud/access';
+import type { Can } from '../lib/access';
 
 /** Where each gate lives, the same paths the tabs go to. */
 const GATE_PATH: Record<string, string> = {
@@ -130,8 +133,8 @@ function ReminderForm({ due, onPlan, onSave, onCancel, onRemove }: {
 }
 
 /** One note: tick it once raised; tap the words to change them, or what the
- *  note is about. */
-function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
+ *  note is about. A client reads it as it stands; only the owner deletes. */
+function Row({ n, tt, job, can }: { n: TestItem; tt: TT; job: Job; can: Can }) {
   const done = n.doneAt != null;
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(n.what);
@@ -153,9 +156,20 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
   };
   return (
     <div className={'nt-row' + (done ? ' is-done' : '')}>
-      <button className={'tw-tick' + (done ? ' is-on' : '')} aria-label={done ? 'Not raised yet' : 'Raised'}
-        onClick={() => void tt.saveItem({ ...n, doneAt: done ? undefined : Date.now() })}>{done ? <Icon name="check" size="1em" /> : null}</button>
-      {editing ? (
+      {can.edit && <button className={'tw-tick' + (done ? ' is-on' : '')} aria-label={done ? 'Not raised yet' : 'Raised'}
+        onClick={() => void tt.saveItem({ ...n, doneAt: done ? undefined : Date.now() })}>{done ? <Icon name="check" size="1em" /> : null}</button>}
+      {!can.edit ? (
+        <div className="nt-main">
+          <p className="nt-what" style={{ cursor: 'default' }}>{n.what}</p>
+          {n.due && (
+            <span className={'nt-rem' + (!done && n.due < todayISO() ? ' is-late' : '') + (!done && n.due === todayISO() ? ' is-today' : '')}>
+              <i className="nt-rem-dot" aria-hidden />
+              {done ? `Reminder was ${lowerFirst(remindWords({ due: n.due, days: daysFrom(n.due) }))}` : `Reminder · ${remindWords({ due: n.due, days: daysFrom(n.due) })}`}
+              {n.onPlan && <span className="nt-rem-plan">on the plan</span>}
+            </span>
+          )}
+        </div>
+      ) : editing ? (
         <div className="nt-edit">
           <textarea className="text-area" rows={2} autoFocus value={text} aria-label="Note"
             onChange={e => setText(e.target.value)}
@@ -190,7 +204,7 @@ function Row({ n, tt, job }: { n: TestItem; tt: TT; job: Job }) {
           )}
         </div>
       )}
-      <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}><Icon name="close" size="0.85em" /></button>
+      {can.remove && <button className="nt-x" aria-label="Delete this note" onClick={() => void tt.removeItem(n.id)}><Icon name="close" size="0.85em" /></button>}
     </div>
   );
 }
@@ -199,6 +213,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   const { projects, loading } = useProjects();
   const project = projects.find(p => p.id === projectId);
   const tt = useTesting(projectId);
+  const can = useAccess(projectId);
   const [what, setWhat] = useState('');
   const [about, setAbout] = useState<string>(WHOLE_JOB);
   const [showRaised, setShowRaised] = useState(false);
@@ -262,14 +277,15 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Meeting notes</h1>
-          <p className="pace-lede">What to raise at the next meeting — tick each one once it has been talked about.</p>
+          <p className="pace-lede">{can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}</p>
         </div>
         <div className="pace-head-actions">
           {open.length > 0 && <button className="btn btn-ghost" onClick={copy}>{copied ? 'Copied' : 'Copy as a list'}</button>}
         </div>
       </header>
+      <AccessNote can={can} owner={project.lead} />
 
-      <AddFold label="Add a note" start={open.length === 0}>
+      {can.edit && <AddFold label="Add a note" start={open.length === 0}>
       <form className="nt-add" onSubmit={e => { e.preventDefault(); void add(); }}>
         <textarea className="text-area" rows={2} value={what} autoFocus placeholder="What do you want to raise?"
           onChange={e => setWhat(e.target.value)}
@@ -295,7 +311,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           <button type="button" className="nt-rem-add" onClick={() => setAddRem(true)}><Icon name="plus" size="1.15em" /> Remind me about it on a date</button>
         )}
       </form>
-      </AddFold>
+      </AddFold>}
 
       {/* WHAT IS DUE, FIRST. And whether this device will say so on the day. */}
       {(() => {
@@ -307,7 +323,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
                 ? `${due.filter(r => r.days <= 0).length} reminder${due.filter(r => r.days <= 0).length === 1 ? '' : 's'} today or gone`
                 : `${due.length} reminder${due.length === 1 ? '' : 's'} this week`}</p>
             )}
-            <ReminderPermission />
+            {can.edit && <ReminderPermission />}
           </section>
         );
       })()}
@@ -325,7 +341,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
             <h3 className="nt-group-h">
               {link ? <button className="cw-link" onClick={() => nav(link)}>{words(g.scope)} ›</button> : words(g.scope)}
             </h3>
-            {g.notes.map(n => <Row key={n.id} n={n} tt={tt} job={job} />)}
+            {g.notes.map(n => <Row key={n.id} n={n} tt={tt} job={job} can={can} />)}
           </section>
         );
       })}
@@ -338,7 +354,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
           {showRaised && raised.map(n => (
             <div key={n.id}>
               <span className="nt-about-sm">{words(scopeOf(n))}</span>
-              <Row n={n} tt={tt} job={job} />
+              <Row n={n} tt={tt} job={job} can={can} />
             </div>
           ))}
         </section>

@@ -42,6 +42,8 @@ import { GATE_WORD, installGrid, installOf, usualStages } from '../lib/install';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { ProgramsScreen } from './ProgramsScreen';
 import { AddAsset } from './TestsScreen';
+import { useAccess } from '../cloud/access';
+import { AccessNote } from '../ui/AccessNote';
 
 /* THE GATES OF A STAGE-GATE JOB — Install, Set up and Hand over are one
    screen with three faces: machines down the side, that gate's stages across
@@ -96,6 +98,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const stand = useStanding(projectId);
   const face = FACE[gate];
   const filmed = useFilmed(projectId, tt.tests, tt.items);
+  const can = useAccess(projectId);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   /* A link to a project that has gone is a dead end, not a crash — and it
@@ -152,19 +155,23 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       </header>
       {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
       <Peers peers={projectPeers(projectId, face.peer, stand.counts)} />
+      <AccessNote can={can} owner={project.lead} />
 
       {onGrid
-        ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate}
+        ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can}
             otherName={projects.find(p => p.id === stages.otherId)?.name} />
         : (
           <p className="sub tw-note">
-            {tt.assets.length === 0 || gate !== 'install'
-              ? face.empty
-              : 'Every machine here is already installed. Add the next one to install it step by step.'}
+            {/* A client is never told to add what they cannot. */}
+            {!can.edit
+              ? (tt.assets.length === 0 || gate !== 'install' ? 'No machines here yet.' : 'Every machine here is already installed.')
+              : tt.assets.length === 0 || gate !== 'install'
+                ? face.empty
+                : 'Every machine here is already installed. Add the next one to install it step by step.'}
           </p>
         )}
 
-      {gate === 'install' && (
+      {gate === 'install' && can.edit && (
         <div className="cx-assets in-add-machine">
           <AddAsset add={tt.addAsset} />
         </div>
@@ -178,7 +185,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           and the film is what you reach for when the grid shows a problem. */}
       {gate === 'install' && (
         <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed)}>
-          <PaceSnags projectId={projectId} projectName={project.name} />
+          <PaceSnags projectId={projectId} projectName={project.name} can={can} />
         </Fold>
       )}
 
@@ -187,7 +194,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       {/* HOW THE LINE IS RUN, PRODUCT BY PRODUCT — handed over with the line.
           The line standard is a tool; Hand over is where a stage-gate job
           uses it. */}
-      {gate === 'handover' && <StandardsCard projectId={projectId} />}
+      {gate === 'handover' && <StandardsCard projectId={projectId} can={can} />}
     </div>
   );
 }

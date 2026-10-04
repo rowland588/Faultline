@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import type { MediaRef } from '../types';
 import { live, plannedEnd, type Test, type TestItem } from '../lib/testing';
-import { storyOf } from '../lib/story';
+import { keyOf, storyOf } from '../lib/story';
 import { daysBetween, niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
@@ -20,6 +20,7 @@ import { useTesting } from '../lib/useTesting';
 import { DatesForm } from './InstallGrid';
 import { ProblemForm, followingSummary, recordMove, recordProblem } from './WhyMoved';
 import { offerUndo } from './Undo';
+import { useAccess } from '../cloud/access';
 
 export function StagePanel({ stepId, title, href, tests, items, projectId, onClose }: {
   stepId: string; title: string; href?: string; tests: Test[]; items: TestItem[]; projectId: string; onClose: () => void;
@@ -29,6 +30,8 @@ export function StagePanel({ stepId, title, href, tests, items, projectId, onClo
      when it is later) or say it hit a problem (asked whether it moves the
      finish). Rowland: "how does the date move from this?" */
   const tt = useTesting(projectId);
+  /* A client reads the story; the team rewords a reason but removes none. */
+  const can = useAccess(projectId);
   const [doing, setDoing] = useState<'dates' | 'problem' | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const step = live(tt.loading ? tests : tt.tests).find(t => t.id === stepId);
@@ -64,10 +67,10 @@ export function StagePanel({ stepId, title, href, tests, items, projectId, onClo
       </span>
     </span>
   );
-  const entryActs = (id: string, text: string) => (
+  const entryActs = (id: string, text: string) => can.edit && (
     <span className="sp-row-acts">
       <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
-      <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(id)} title={`Remove “${text}”`}>Remove</button>
+      {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(id)} title={`Remove “${text}”`}>Remove</button>}
     </span>
   );
 
@@ -138,8 +141,8 @@ export function StagePanel({ stepId, title, href, tests, items, projectId, onClo
         )}
         {!doing && (
           <span className="sp-acts">
-            <button type="button" className="btn btn-primary" onClick={() => setDoing('dates')}>Change the dates</button>
-            <button type="button" className="btn ig-bad" onClick={() => setDoing('problem')}>Hit a problem</button>
+            {can.edit && <button type="button" className="btn btn-primary" onClick={() => setDoing('dates')}>Change the dates</button>}
+            {can.edit && <button type="button" className="btn ig-bad" onClick={() => setDoing('problem')}>Hit a problem</button>}
             <button type="button" className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(stepId)}`)}>Open the step ›</button>
           </span>
         )}
@@ -160,6 +163,7 @@ function ThingPanel({ thingKey, title, href, projectId, onClose }: {
   thingKey: string; title: string; href?: string; projectId: string; onClose: () => void;
 }) {
   const tt = useTesting(projectId);
+  const can = useAccess(projectId);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const st = storyOf(thingKey, tt.tests, tt.items);
@@ -192,10 +196,10 @@ function ThingPanel({ thingKey, title, href, projectId, onClose }: {
                     </span>
                   ) : <p className="sp-why">{m.why}</p>}
                   {m.media.length > 0 && <span className="sp-ev">{m.media.map(x => <EvidenceThumb key={x.id} media={x} size={64} onClick={() => setViewing(x)} />)}</span>}
-                  {editing !== m.id && (
+                  {editing !== m.id && can.edit && (
                     <span className="sp-row-acts">
                       <button type="button" className="cw-link" onClick={() => setEditing(m.id)}>Edit</button>
-                      <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(m.id)}>Remove</button>
+                      {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(m.id)}>Remove</button>}
                     </span>
                   )}
                 </div>
@@ -203,7 +207,10 @@ function ThingPanel({ thingKey, title, href, projectId, onClose }: {
             ))}
           </ol>
         )}
-        {href && <button type="button" className="btn btn-primary sp-open" onClick={() => nav(href)}>Change the date ›</button>}
+        {/* The handover date was agreed: only the owner changes it. */}
+        {href && <button type="button" className="btn btn-primary sp-open" onClick={() => nav(href)}>
+          {can.edit && (can.agree || thingKey !== keyOf('handover')) ? 'Change the date ›' : 'Where the date is kept ›'}
+        </button>}
       </div>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </Sheet>
