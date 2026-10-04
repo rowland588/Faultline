@@ -699,17 +699,15 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
         <div className="jb-drawer-in">
           {open && (
             <div className="jb-drawer-grid">
-              {/* The job in words, and its doors, in the column under its name —
-                  the calendar keeps the board's width. */}
-              <aside className="jb-aside">
-                {v.sixm ? (
-                  /* A 6M JOB'S DRAWER LEADS WITH THE GAP — each line against
-                     its target, in the sentence its client report opens with —
-                     then its problems, each one tap from its fishbone, then
-                     the countermeasures by bone. It said "2 of 2 lines at
-                     target, with 7 actions open", which named neither the
-                     number nor the problem anybody is working on. */
-                  <>
+              {v.sixm && (
+                /* A 6M JOB'S DRAWER LEADS WITH THE GAP — each line against its
+                   target, in the sentence its client report opens with — then
+                   its problems, each one tap from its fishbone. Across the top
+                   of the drawer, over the column and the plan, so the gap is the
+                   first thing read on a phone and a laptop alike. It said "2 of
+                   2 lines at target, with 7 actions open", which named neither
+                   the number nor the problem anybody is working on. */
+                <div className="jb-6m-top">
                     <div className="jb-gap">
                       {v.sixm.gaps.length === 0
                         ? <p className="sub">No measure is set on this job yet, so there is no gap to show.</p>
@@ -739,9 +737,16 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                         ))}
                       </ul>
                     ) : <SaidLine className="jb-6m-l jb-6m-d" parts={v.sixm.phases} />}
-                    <SaidLine className="jb-6m-l jb-6m-d" parts={v.sixm.bones} />
-                  </>
-                ) : <p className="jb-sent">{v.sentence}{v.slip ? ` ${v.slip}` : ''}</p>}
+                </div>
+              )}
+              {/* The job in words, and its doors, in the column under its name —
+                  the calendar keeps the board's width. */}
+              <aside className="jb-aside">
+                {/* A 6M job's countermeasures by bone take the sentence's place:
+                    its lines against target are the gap above, its actions here. */}
+                {v.sixm
+                  ? <SaidLine className="jb-6m-l jb-6m-d" parts={v.sixm.bones} />
+                  : <p className="jb-sent">{v.sentence}{v.slip ? ` ${v.slip}` : ''}</p>}
                 {v.lead && <p className="sub jb-led">Led by {v.lead}</p>}
                 {/* THE LINES, ONE TAP EACH — from the project card this row
                     replaced on Home. Each says its owner, so "that is my line"
