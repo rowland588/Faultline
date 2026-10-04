@@ -3462,7 +3462,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    stay out while a box is being moved. Hidden, they cannot be pressed by
    accident: visibility, not opacity. */
 .lt-box .lt-acts { visibility: hidden; }
-.lt-box:focus-within .lt-acts,
+.lt-box:focus-within .lt-acts, .lt-box.is-open .lt-acts,
 .lt-box:has(.lt-move.is-on) .lt-acts { visibility: visible; }
 @media (hover: hover) { .lt-box:hover .lt-acts { visibility: visible; } }
 /* A real select underneath a pill that shows the state and its name. Native,
@@ -3583,13 +3583,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
      the tree under the box, so that nothing moved — and the bar covered the
      box below: after "Add another below" it sat on the new box's "Build the
      conditions from the board", and a tap meant for that pressed a tool. In
-     the box they cover nothing; the branch shifts as the box grows, and
-     LeverTree scrolls that away so the box stays under the finger. With no
+     the box they cover nothing. They open a tick after the tap (is-open, set
+     by LeverTree from the focus), so the click lands before anything moves,
+     and LeverTree puts the tapped box back where it was. With no
      bar hanging below the lowest box, the 100px of room kept for it under the
      tree goes too. */
   .lt-box .lt-acts { display: none; }
-  .lt-box:focus-within .lt-acts, .lt-box:has(.lt-move.is-on) .lt-acts {
-    display: flex; flex-basis: 100%; justify-content: flex-start; margin-left: 0;
+  .lt-box.is-open .lt-acts, .lt-box:has(.lt-move.is-on) .lt-acts {
+    display: flex; flex-basis: 100%; justify-content: flex-start; margin-left: 0; visibility: visible;
   }
   .lt-mini, .lt-box.is-act .lt-mini { min-width: 40px; height: 40px; font-size: 16px; }
   .lt-status:not(.is-ro) { min-height: 32px; }
@@ -3652,7 +3653,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    nothing at all in black and white. Only the buttons go now. */
 @media print {
   .lt-acts, .lt-foot, .spine, .pace-head-actions, .lt-screen .peers,
-  .lt-fold, .lt-unbind, .lt-gap-b, .lt-gap-list, .lt-prompt, .lt-suggest, .lt-take, .lt-moving { display: none !important; }
+  .lt-fold, .lt-unbind, .lt-gap-b, .lt-gap-list, .lt-prompt, .lt-suggest, .lt-take, .lt-moving,
+  .lt-screen .access-note { display: none !important; }
   .lt-canvas { overflow: visible; }
   .lt-scroll { zoom: 1 !important; }   /* paper is not a screen */
   .lt-box { box-shadow: none; break-inside: avoid; }
