@@ -4,13 +4,15 @@ import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow } from './clientReport';
 import type { GateTone } from './install';
 import type { Shot } from './testReport';
-import { brandedAlready, pdfFamily, san } from './reportKit';
+import { brandedAlready, san } from './reportKit';
+import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
+import { SIZE, box, font, gap, heading, label, pagesOf, rows, text, wrap } from './report/blocks';
 import { gantt } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { moveLines } from './story';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
+const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
 /* The app's own state colours, so paper and screen say the same thing in the
    same colour: one red (the day has gone), one amber (waiting), one indigo
    (under way, still ahead), one green (done — and quiet). */
@@ -54,253 +56,15 @@ function sanAll<T>(v: T): T {
 
 export async function drawClientReport(doc: jsPDF, report: ClientReport, extras: ClientReportExtras): Promise<void> {
   const r = sanAll(report);
-  let y = M;
-  const font = (size: number, style: 'normal' | 'bold' | 'italic' = 'normal', colour = INK) => {
-    doc.setFont(pdfFamily(), style); doc.setFontSize(size); doc.setTextColor(colour);
-  };
-  const newPage = () => { doc.addPage('a4', 'portrait'); y = M; };
-  const room = (h: number) => { if (y + h > H - M - 20) newPage(); };
-  const lines = (text: string, width: number): string[] => doc.splitTextToSize(text, width) as string[];
-  /** `need` is the room the heading's first block wants with it, so a short
-   *  table is never split to leave one row alone on the next page. */
-  const heading = (title: string, says?: string, need = 60) => {
-    room(need);
-    y += 8;
-    font(15, 'bold'); doc.text(title, M, y + 12);
-    if (says) { font(9.5, 'normal', MUTED); doc.text(says, M, y + 26); }
-    y += says ? 34 : 22;
-    doc.setDrawColor(LINE); doc.setLineWidth(0.8); doc.line(M, y, W - M, y);
-    y += 10;
-  };
-  const pill = (x: number, py: number, w: number, h: number, tone: GateTone, label: string) => {
-    const c = GATE_COLOUR[tone];
-    doc.setLineWidth(tone === 'none' ? 0.6 : 0.9);
-    if (tone === 'none') doc.setLineDashPattern([2, 1.5], 0); else doc.setLineDashPattern([], 0);
-    doc.setDrawColor(c.stroke);
-    if (c.fill) { doc.setFillColor(c.fill); doc.roundedRect(x, py, w, h, 3, 3, 'FD'); } else doc.roundedRect(x, py, w, h, 3, 3, 'S');
-    doc.setLineDashPattern([], 0);
-    font(7, 'bold', c.text);
-    doc.text(label, x + w / 2, py + h / 2 + 2.4, { align: 'center', maxWidth: w - 4 });
-  };
-
-  /* ================================ 1 · WHERE THE JOB IS ================================ */
-  font(8.5, 'bold', BRAND); doc.text('CLIENT REPORT · STAGE GATE', M, y + 6);
-  font(22, 'bold'); const nameLines = lines(r.name, CW); doc.text(nameLines, M, y + 30); y += 30 + (nameLines.length - 1) * 24;
-  font(9.5, 'normal', MUTED);
-  doc.text([r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`, r.dates ?? ''].filter(Boolean).join('   ·   '), M, y + 16);
-  y += 28;
-
-  // the sentence, on the dark band
-  font(14, 'bold', '#ffffff');
-  const said = lines(r.sentence, CW - 32);
-  const bandH = 30 + said.length * 17 + (r.slip ? 14 : 0);
-  doc.setFillColor(SHELL); doc.roundedRect(M, y, CW, bandH, 8, 8, 'F');
-  font(7.5, 'bold', '#8fa3c4'); doc.text('WHERE THE JOB IS', M + 16, y + 16);
-  font(14, 'bold', '#ffffff'); doc.text(said, M + 16, y + 34);
-  if (r.slip) { font(9, 'normal', '#c9d4e6'); doc.text(r.slip, M + 16, y + 34 + said.length * 17); }
-  y += bandH + 18;
-
-  // the four gates, for the whole job
-  font(8.5, 'bold', MUTED); doc.text('THE FOUR GATES', M, y); y += 8;
-  const gw = (CW - 3 * 8) / 4;
-  let maxH = 0;
-  r.gates.forEach((g, i) => {
-    const x = M + i * (gw + 8);
-    const c = GATE_COLOUR[g.tone];
-    font(8, 'normal', INK2);
-    const says = lines(g.says || c.word, gw - 14);
-    const h = 30 + says.length * 10;
-    maxH = Math.max(maxH, h);
-    doc.setDrawColor(c.stroke); doc.setLineWidth(1);
-    if (c.fill && g.tone !== 'done') { doc.setFillColor(c.fill); doc.roundedRect(x, y, gw, h, 5, 5, 'FD'); }
-    else if (g.tone === 'done') { doc.setFillColor('#e9f5ef'); doc.roundedRect(x, y, gw, h, 5, 5, 'FD'); }
-    else doc.roundedRect(x, y, gw, h, 5, 5, 'S');
-    font(11, 'bold', g.tone === 'done' ? OK : c.text === MUTED ? INK2 : c.text); doc.text(g.label, x + 7, y + 15);
-    font(8, 'normal', INK2); doc.text(says, x + 7, y + 27);
-  });
-  y += maxH + 20;
-
-  // where each machine is
-  if (r.machines.length) {
-    room(40 + r.machines.length * 20);
-    font(8.5, 'bold', MUTED); doc.text('WHERE EACH MACHINE IS', M, y); y += 8;
-    const nameW = 140, atW = 80, cellW = (CW - nameW - atW - 4 * 4) / 4;
-    font(7, 'bold', MUTED);
-    ['Install', 'Set up', 'Commission', 'Hand over'].forEach((g, i) => doc.text(g, M + nameW + i * (cellW + 4) + cellW / 2, y + 6, { align: 'center' }));
-    doc.text('AT', M + CW - atW + 4, y + 6);
-    y += 12;
-    for (const m of r.machines) {
-      room(22);
-      doc.setDrawColor(LINE); doc.setLineWidth(0.5); doc.line(M, y, W - M, y);
-      font(9.5, 'bold'); doc.text(m.name, M, y + 13, { maxWidth: nameW - 6 });
-      m.gates.forEach((t, i) => pill(M + nameW + i * (cellW + 4), y + 4, cellW, 13, t, GATE_COLOUR[t].word));
-      font(9, 'bold', INK2); doc.text(m.at, M + CW - atW + 4, y + 13);
-      y += 20;
-    }
-    y += 8;
-  }
-
-  /* ================================ 2 · GATE BY GATE ================================ */
-  for (const s of r.sections) {
-    heading(s.label, s.says);
-    if (s.grid) {
-      const nameW = 120, n = s.grid.columns.length, colW = Math.max(28, (CW - nameW) / Math.max(1, n));
-      const shown = s.grid.columns.slice(0, Math.floor((CW - nameW) / colW));
-      font(6.5, 'bold', MUTED);
-      const heads = shown.map(c => lines(c, colW - 4).slice(0, 3));
-      const headH = 8 + Math.max(...heads.map(h => h.length), 1) * 7.5;
-      room(headH + 20 * Math.min(4, s.grid.rows.length));
-      heads.forEach((h, i) => doc.text(h, M + nameW + i * colW + colW / 2, y + 7, { align: 'center' }));
-      y += headH;
-      for (const row of s.grid.rows) {
-        room(18);
-        doc.setDrawColor(LINE); doc.setLineWidth(0.5); doc.line(M, y, W - M, y);
-        font(8.5, 'bold'); doc.text(row.machine, M, y + 12, { maxWidth: nameW - 6 });
-        row.cells.slice(0, shown.length).forEach((c, i) => {
-          const cc = CELL_COLOUR[c], x = M + nameW + i * colW + colW / 2 - 7;
-          /* Late is drawn heavier than done — the abnormal stands out. */
-          doc.setDrawColor(cc.stroke); doc.setLineWidth(c === 'late' ? 1.8 : 0.9);
-          if (c === 'none') doc.setLineDashPattern([1.5, 1.5], 0);
-          if (cc.fill) { doc.setFillColor(cc.fill); doc.roundedRect(x, y + 4, 14, 10, 2, 2, 'FD'); } else doc.roundedRect(x, y + 4, 14, 10, 2, 2, 'S');
-          doc.setLineDashPattern([], 0);
-        });
-        y += 18;
-      }
-      // the key, once per grid, small
-      font(7, 'normal', MUTED);
-      let kx = M;
-      for (const [t, w] of [['problem', 'a problem'], ['late', 'late'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']] as [CellTone, string][]) {
-        const cc = CELL_COLOUR[t];
-        doc.setDrawColor(cc.stroke); doc.setLineWidth(0.8);
-        if (t === 'none') doc.setLineDashPattern([1.5, 1.5], 0);
-        if (cc.fill) { doc.setFillColor(cc.fill); doc.roundedRect(kx, y + 5, 9, 7, 1.5, 1.5, 'FD'); } else doc.roundedRect(kx, y + 5, 9, 7, 1.5, 1.5, 'S');
-        doc.setLineDashPattern([], 0);
-        doc.text(w, kx + 12, y + 11); kx += 18 + doc.getTextWidth(w);
-      }
-      y += 20;
-    }
-
-    if (s.late.length && s.gate !== 'commission') {
-      room(14 + s.late.length * 12);
-      font(8.5, 'bold', DANGER); doc.text('Late or a problem', M, y + 8); y += 14;
-      font(9, 'normal', INK2);
-      for (const l of s.late.slice(0, 12)) { room(12); doc.text(`•  ${l}`, M + 4, y + 8, { maxWidth: CW - 8 }); y += 12; }
-      y += 6;
-    }
-
-    if (s.programs) {
-      room(30);
-      font(10, 'bold'); doc.text(`Programs — ${s.programs.proved} of ${s.programs.total} proved`, M, y + 10); y += 18;
-      font(9, 'normal', INK2);
-      for (const p of s.programs.notYet.slice(0, 20)) {
-        room(12); doc.text(`•  ${p.what}${p.machine ? ` — ${p.machine}` : ''}: ${p.state}`, M + 4, y + 8, { maxWidth: CW - 8 }); y += 12;
-      }
-      y += 8;
-    }
-
-    if (s.tests) {
-      if (s.tests.length === 0) { font(9.5, 'normal', MUTED); doc.text('No tests planned yet.', M, y + 8); y += 18; }
-      for (const t of s.tests) {
-        font(9.5, 'bold');
-        const title = lines(t.title, CW - 150);
-        font(8.5, 'normal', MUTED);
-        const res = t.result ? lines(`Result: ${t.result}`, CW - 150) : [];
-        const agreed = t.passesIf ? lines(`Passes if: ${t.passesIf}`, CW - 150) : [];
-        const h = 10 + title.length * 12 + (res.length + agreed.length) * 10.5 + 6;
-        room(h);
-        doc.setDrawColor(LINE); doc.setLineWidth(0.5); doc.line(M, y, W - M, y);
-        font(9.5, 'bold'); doc.text(title, M, y + 13);
-        let ty = y + 13 + title.length * 12;
-        font(8.5, 'normal', MUTED);
-        if (agreed.length) { doc.text(agreed, M, ty); ty += agreed.length * 10.5; }
-        if (res.length) { font(8.5, 'normal', INK2); doc.text(res, M, ty); }
-        font(8, 'normal', MUTED); doc.text([t.machine, t.when].filter(Boolean).join(' · '), W - M - 140, y + 13, { maxWidth: 80 });
-        // A planned day is still ahead — indigo; no day yet stays grey (the colour rules).
-        const tc = t.tone === 'done' ? 'done' : t.tone === 'failed' || t.tone === 'late' ? 'late' : t.tone === 'booked' ? 'going' : 'ahead';
-        pill(W - M - 56, y + 5, 56, 12, tc, t.outcome);
-        y += h;
-      }
-      y += 6;
-    }
-  }
-
-  /* ================================ THE PLAN ================================ */
-  /* The Gantt the project page draws, on a landscape page of its own: the
-     calendar across the top, a bar per thing on the days it means. Rowland:
-     "print the Gantt charts as well, and PDF." AFTER the gates, not before
-     them: straight after the front page it left most of page 1 empty on a job
-     with few machines, and pushed the gate detail to page 3. */
+  /* POURED, NOT PLACED — docs/REPORTS.md. Every part below is a block that
+     measures itself; lib/report/flow decides the pages. Nothing is capped,
+     nothing is given a height it might not fit in, a gate with nothing kept
+     is not printed as a heading saying so, and a small overflow is absorbed
+     by the compact density rather than a near-empty page. */
   let planPages: number[] = [];
-  if (r.plan.length) {
-    doc.addPage('a4', 'landscape');
-    const g = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
-    planPages = drawGantt(doc, g, {
-      eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
-      sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
-    }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items));
-    newPage();
-  }
-
-  /* ================================ 3 · FIXES ================================ */
-  heading('Fixes', `${r.fixes.open.length} open · ${r.fixes.done.length} done`);
-  if (r.fixes.open.length === 0) { font(9.5, 'normal', MUTED); doc.text('Nothing open.', M, y + 8); y += 18; }
-  for (const f of r.fixes.open) drawFix(f);
-  if (r.fixes.done.length) {
-    room(30);
-    font(8.5, 'bold', OK); doc.text('Done', M, y + 10); y += 16;
-    font(9, 'normal', INK2);
-    for (const f of r.fixes.done) { room(12); doc.text(`•  ${f.title}${f.machine ? ` — ${f.machine}` : ''}  (${f.when})`, M + 4, y + 8, { maxWidth: CW - 8 }); y += 12; }
-    y += 6;
-  }
-
-  function drawFix(f: FixRow) {
-    const shot = extras.shots.get(f.id);
-    const textW = shot ? CW - 130 : CW - 12;
-    font(10, 'bold'); const title = lines(f.title, textW);
-    font(8.5, 'normal', INK2); const prob = f.problem ? lines(f.problem, textW) : [];
-    const h = Math.max(shot ? 76 : 0, 14 + title.length * 12 + prob.length * 10.5 + 14);
-    room(h + 6);
-    doc.setFillColor(FIX_COLOUR[f.tone] ?? BRAND); doc.rect(M, y, 3, h, 'F');
-    font(10, 'bold'); doc.text(title, M + 10, y + 13);
-    let fy = y + 13 + title.length * 12;
-    if (prob.length) { font(8.5, 'normal', INK2); doc.text(prob, M + 10, fy); fy += prob.length * 10.5; }
-    font(8, 'bold', FIX_COLOUR[f.tone] ?? BRAND); doc.text(f.when, M + 10, fy + 2);
-    const ww = doc.getTextWidth(f.when);
-    font(8, 'normal', MUTED); doc.text([f.machine, f.who].filter(Boolean).join(' · '), M + 20 + ww, fy + 2, { maxWidth: Math.max(40, textW - ww - 20) });
-    if (shot) {
-      const k = Math.min(116 / shot.w, 70 / shot.h);
-      const iw = shot.w * k, ih = shot.h * k;
-      try { doc.addImage(shot.data, 'JPEG', W - M - iw, y + 2, iw, ih); doc.setDrawColor(LINE); doc.rect(W - M - iw, y + 2, iw, ih); } catch { /* the words carry it */ }
-    }
-    y += h + 8;
-    doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y - 4, W - M, y - 4);
-  }
-
-  /* ================================ 4 · WHO OWES WHAT ================================ */
-  if (r.waiting.length) {
-    // A short table travels whole; a long one starts with at least three rows.
-    heading('What we’re waiting on', 'and whose it is', 46 + 12 + Math.min(r.waiting.length, 12) * 18);
-    font(7.5, 'bold', MUTED);
-    doc.text('OPEN', M + CW - 190, y + 6, { align: 'right' }); doc.text('LATE', M + CW - 150, y + 6, { align: 'right' }); doc.text('MOSTLY WHOSE', M + CW - 130, y + 6);
-    y += 12;
-    for (const w of r.waiting) {
-      room(18);
-      doc.setDrawColor(LINE); doc.setLineWidth(0.5); doc.line(M, y, W - M, y);
-      font(9.5, 'bold'); doc.text(w.what, M, y + 12);
-      font(10, 'bold'); doc.text(String(w.open), M + CW - 190, y + 12, { align: 'right' });
-      font(10, 'bold', w.late ? DANGER : '#aab6c8'); doc.text(w.late ? String(w.late) : '—', M + CW - 150, y + 12, { align: 'right' });
-      font(9, 'normal', INK2); doc.text(w.whose ?? '—', M + CW - 130, y + 12, { maxWidth: 130 });
-      y += 18;
-    }
-  }
-
-  /* ================================ 5 · LINE STANDARD ================================ */
-  if (extras.standards && r.standards.length) {
-    doc.addPage('a4', 'landscape');
-    const first = doc.getNumberOfPages();
-    await extras.standards(doc);
-    for (let i = first; i <= doc.getNumberOfPages(); i++) brandedAlready(doc, i);
-  }
+  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  const density = await chooseDensity(base, d => blocksOf(r, extras, d, p => { planPages = p; }));
+  await pour({ ...base, density, dry: false }, blocksOf(r, extras, density, p => { planPages = p; }), () => doc.addPage('a4', 'portrait'));
 
   /* ---- the foot of every page ---- */
   const pages = doc.getNumberOfPages();
@@ -308,8 +72,326 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
     doc.setPage(i);
     const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
     if (pw > ph && !planPages.includes(i)) continue;   // a line standard page carries its own foot
-    font(7.5, 'normal', MUTED);
-    doc.text(`${r.name}  ·  client report  ·  ${r.printed}`, M, ph - 18);
-    doc.text(`${i} of ${pages}`, pw - M, ph - 18, { align: 'right' });
+    font(doc, 7.5, 'normal', MUTED);
+    const num = `${i} of ${pages}`;
+    const room = pw - 2 * M - doc.getTextWidth(num) - 16;
+    doc.text(fitLine(doc, `${r.name}  ·  client report  ·  ${r.printed}`, room), M, ph - 18);
+    doc.text(num, pw - M, ph - 18, { align: 'right' });
   }
+}
+
+/** One line that fits, shortened at a word with "…" — for a running footer
+ *  only, where the full name is on page 1. */
+function fitLine(doc: jsPDF, t: string, w: number): string {
+  if (doc.getTextWidth(t) <= w) return t;
+  const words = t.split(' ');
+  while (words.length > 1 && doc.getTextWidth(words.join(' ') + '…') > w) words.pop();
+  return words.join(' ') + '…';
+}
+
+const pillPath = (doc: jsPDF, x: number, py: number, w: number, h: number, tone: GateTone, text: string) => {
+  const c = GATE_COLOUR[tone];
+  doc.setLineWidth(tone === 'none' ? 0.6 : 0.9);
+  if (tone === 'none') doc.setLineDashPattern([2, 1.5], 0); else doc.setLineDashPattern([], 0);
+  doc.setDrawColor(c.stroke);
+  if (c.fill) { doc.setFillColor(c.fill); doc.roundedRect(x, py, w, h, 3, 3, 'FD'); } else doc.roundedRect(x, py, w, h, 3, 3, 'S');
+  doc.setLineDashPattern([], 0);
+  font(doc, 7, 'bold', c.text);
+  doc.text(text, x + w / 2, py + h / 2 + 2.4, { align: 'center' });
+};
+
+const cellPath = (doc: jsPDF, c: CellTone, x: number, y: number, w = 14, h = 10) => {
+  const cc = CELL_COLOUR[c];
+  /* Late is drawn heavier than done — the abnormal stands out. */
+  doc.setDrawColor(cc.stroke); doc.setLineWidth(c === 'late' ? 1.8 : 0.9);
+  if (c === 'none') doc.setLineDashPattern([1.5, 1.5], 0);
+  if (cc.fill) { doc.setFillColor(cc.fill); doc.roundedRect(x, y, w, h, 2, 2, 'FD'); } else doc.roundedRect(x, y, w, h, 2, 2, 'S');
+  doc.setLineDashPattern([], 0);
+};
+
+const KEY: [CellTone, string][] = [['problem', 'a problem'], ['late', 'late'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']];
+
+/** The colour key, wrapping onto a second line when the page is narrow. */
+function keyBlock(only: Set<CellTone>): Block {
+  const items = KEY.filter(([t]) => only.has(t));
+  const layout = (f: Frame) => {
+    font(f.doc, SIZE.tiny, 'normal', MUTED);
+    const placed: { t: CellTone; w: string; x: number; line: number }[] = [];
+    let x = 0, line = 0;
+    for (const [t, w] of items) {
+      const span = 12 + f.doc.getTextWidth(w) + 10;
+      if (x + span > f.w && x > 0) { x = 0; line++; }
+      placed.push({ t, w, x, line }); x += span;
+    }
+    return { placed, lines: line + 1 };
+  };
+  return box(f => (items.length ? layout(f).lines * 12 + gap(f.density, 's') : 0), (f, y) => {
+    const { placed } = layout(f);
+    for (const p of placed) {
+      cellPath(f.doc, p.t, f.x + p.x, y + 3 + p.line * 12, 9, 7);
+      font(f.doc, SIZE.tiny, 'normal', MUTED);
+      f.doc.text(p.w, f.x + p.x + 12, y + 9 + p.line * 12);
+    }
+  });
+}
+
+function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPlan: (pages: number[]) => void): Block[] {
+  const out: Block[] = [];
+  const S = SIZE;
+
+  /* ================================ 1 · WHERE THE JOB IS ================================ */
+  out.push(text({ text: 'CLIENT REPORT · STAGE GATE', size: S.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  out.push(text({ text: r.name, size: S.title, style: 'bold', after: 4 }));
+  out.push(text({ text: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`, r.dates ?? ''].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+
+  // the sentence, on the dark band — as tall as its words
+  const said = (f: Frame) => wrap(f.doc, r.sentence, f.w - 32, 14, 'bold');
+  const slip = (f: Frame) => (r.slip ? wrap(f.doc, r.slip, f.w - 32, 9) : []);
+  out.push(box(f => 30 + said(f).length * 17 + slip(f).length * 12 + 6 + gap(f.density, 'l'), (f, y) => {
+    const l = said(f), sl = slip(f);
+    const bandH = 30 + l.length * 17 + sl.length * 12 + 6;
+    f.doc.setFillColor(SHELL); f.doc.roundedRect(f.x, y, f.w, bandH, 8, 8, 'F');
+    font(f.doc, 7.5, 'bold', '#8fa3c4'); f.doc.text('WHERE THE JOB IS', f.x + 16, y + 16);
+    font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
+    if (sl.length) { font(f.doc, 9, 'normal', '#c9d4e6'); f.doc.text(sl, f.x + 16, y + 34 + l.length * 17); }
+  }));
+
+  // the four gates, for the whole job
+  out.push(label('The four gates'));
+  const gw = (f: Frame) => (f.w - 3 * 8) / 4;
+  const gateLines = (f: Frame) => r.gates.map(g => wrap(f.doc, g.says || GATE_COLOUR[g.tone].word, gw(f) - 14, 8));
+  out.push(box(f => 24 + Math.max(...gateLines(f).map(l => l.length), 1) * 10 + gap(f.density, 'l'), (f, y) => {
+    const ls = gateLines(f);
+    const h = 24 + Math.max(...ls.map(l => l.length), 1) * 10;
+    r.gates.forEach((g, i) => {
+      const x = f.x + i * (gw(f) + 8), c = GATE_COLOUR[g.tone];
+      f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(1);
+      if (c.fill && g.tone !== 'done') { f.doc.setFillColor(c.fill); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
+      else if (g.tone === 'done') { f.doc.setFillColor('#e9f5ef'); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
+      else f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'S');
+      font(f.doc, 11, 'bold', g.tone === 'done' ? OK : c.text === MUTED ? INK2 : c.text); f.doc.text(g.label, x + 7, y + 15);
+      font(f.doc, 8, 'normal', INK2); f.doc.text(ls[i], x + 7, y + 27);
+    });
+  }));
+
+  // where each machine is — one row per machine, as tall as its name
+  if (r.machines.length) {
+    const nameW = 140, atW = 70;
+    const cellW = (f: Frame) => (f.w - nameW - atW - 4 * 4) / 4;
+    const nameLines = (f: Frame, n: string) => wrap(f.doc, n, nameW - 8, 9.5, 'bold');
+    out.push(label('Where each machine is'));
+    out.push(rows({
+      header: {
+        h: () => 13,
+        draw: (f, y) => {
+          font(f.doc, 7, 'bold', MUTED);
+          ['Install', 'Set up', 'Commission', 'Hand over'].forEach((g, i) => f.doc.text(g, f.x + nameW + i * (cellW(f) + 4) + cellW(f) / 2, y + 7, { align: 'center' }));
+          f.doc.text('AT', f.x + f.w - atW + 4, y + 7);
+        },
+      },
+      rows: r.machines.map(m => ({
+        h: f => Math.max(20, 8 + nameLines(f, m.name).length * 11),
+        draw: (f, y) => {
+          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+          font(f.doc, 9.5, 'bold'); f.doc.text(nameLines(f, m.name), f.x, y + 13);
+          m.gates.forEach((t, i) => pillPath(f.doc, f.x + nameW + i * (cellW(f) + 4), y + 4, cellW(f), 13, t, GATE_COLOUR[t].word));
+          font(f.doc, 9, 'bold', INK2); f.doc.text(wrap(f.doc, m.at, atW - 6, 9, 'bold'), f.x + f.w - atW + 4, y + 13);
+        },
+      })),
+    }));
+  }
+
+  /* ================================ 2 · GATE BY GATE ================================ */
+  /* A GATE WITH NOTHING KEPT IS ONE LINE, NOT A SECTION. A job just started
+     printed a heading per gate, each saying "nothing kept" — three of a
+     page's sections telling the client nothing. They are named together. */
+  const said2 = (s: ClientReport['sections'][number]) =>
+    !!(s.grid?.rows.length || s.late.length || s.programs?.total || s.tests?.length);
+  const quiet = r.sections.filter(s => !said2(s));
+  for (const s of r.sections.filter(said2)) {
+    out.push(heading(s.label, s.says));
+    if (s.grid && s.grid.rows.length) {
+      const nameW = 130, minCol = 46;
+      /* Every stage, however many: the columns are broken into bands that
+         fit the page — it used to drop whatever did not fit, silently. */
+      const perBand = (f: Frame) => Math.max(1, Math.floor((f.w - nameW) / minCol));
+      const grid = s.grid;
+      const bands = (f: Frame) => {
+        const n = perBand(f), cols = grid.columns, out2: number[][] = [];
+        for (let i = 0; i < cols.length; i += n) out2.push(cols.slice(i, i + n).map((_, k) => i + k));
+        return out2;
+      };
+      const used = new Set<CellTone>(grid.rows.flatMap(row => row.cells));
+      // Measured once per frame width; the bands are fixed for a given page.
+      const probe: Frame = { doc: null as unknown as jsPDF, x: 0, w: CW, top: 0, bottom: 0, density: d, dry: true };
+      const bandCount = Math.ceil(grid.columns.length / perBand(probe));
+      for (let b = 0; b < bandCount; b++) {
+        const colsOf = (f: Frame) => bands(f)[b] ?? [];
+        const colW = (f: Frame) => (f.w - nameW) / Math.max(1, colsOf(f).length);
+        const heads = (f: Frame) => colsOf(f).map(c => wrap(f.doc, grid.columns[c], colW(f) - 6, 6.5, 'bold'));
+        const nameLines = (f: Frame, n: string) => wrap(f.doc, n, nameW - 8, 8.5, 'bold');
+        out.push(rows({
+          header: {
+            h: f => 8 + Math.max(...heads(f).map(h => h.length), 1) * 7.5,
+            draw: (f, y) => {
+              font(f.doc, 6.5, 'bold', MUTED);
+              heads(f).forEach((h, i) => f.doc.text(h, f.x + nameW + i * colW(f) + colW(f) / 2, y + 7, { align: 'center' }));
+            },
+          },
+          rows: grid.rows.map(row => ({
+            h: f => Math.max(18, 7 + nameLines(f, row.machine).length * 10),
+            draw: (f, y) => {
+              f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+              font(f.doc, 8.5, 'bold'); f.doc.text(nameLines(f, row.machine), f.x, y + 12);
+              colsOf(f).forEach((c, i) => cellPath(f.doc, row.cells[c] ?? 'none', f.x + nameW + i * colW(f) + colW(f) / 2 - 7, y + 4));
+            },
+          })),
+          after: 's',
+        }));
+      }
+      out.push(keyBlock(used));
+    }
+
+    if (s.late.length && s.gate !== 'commission') {
+      out.push(text({ text: 'Late or a problem', size: S.small, style: 'bold', colour: DANGER, after: 3 }));
+      s.late.forEach((l, i) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === s.late.length - 1 ? gap(d, 's') : 1 })));
+    }
+
+    if (s.programs && s.programs.total) {
+      out.push(text({ text: `Programs — ${s.programs.proved} of ${s.programs.total} proved`, size: S.h2, style: 'bold', before: 4, after: 3 }));
+      s.programs.notYet.forEach((p, i, all) => out.push(text({
+        text: `${p.what}${p.machine ? ` — ${p.machine}` : ''}: ${p.state}`, size: 9, colour: INK2, indent: 12, bullet: '•',
+        after: i === all.length - 1 ? gap(d, 's') : 1,
+      })));
+    }
+
+    if (s.tests && s.tests.length) {
+      const sideW = 150;
+      const parts = (f: Frame, t: NonNullable<typeof s.tests>[number]) => ({
+        title: wrap(f.doc, t.title, f.w - sideW, 9.5, 'bold'),
+        agreed: t.passesIf ? wrap(f.doc, `Passes if: ${t.passesIf}`, f.w - sideW, 8.5) : [],
+        res: t.result ? wrap(f.doc, `Result: ${t.result}`, f.w - sideW, 8.5) : [],
+        side: wrap(f.doc, [t.machine, t.when].filter(Boolean).join(' · '), 84, 8),
+      });
+      out.push(rows({
+        rows: s.tests.map(t => ({
+          h: f => {
+            const p = parts(f, t);
+            return 10 + Math.max(p.title.length * 12 + (p.agreed.length + p.res.length) * 10.5, p.side.length * 10, 14) + 6;
+          },
+          draw: (f, y) => {
+            const p = parts(f, t);
+            f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+            font(f.doc, 9.5, 'bold'); f.doc.text(p.title, f.x, y + 13);
+            let ty = y + 13 + p.title.length * 12;
+            if (p.agreed.length) { font(f.doc, 8.5, 'normal', MUTED); f.doc.text(p.agreed, f.x, ty); ty += p.agreed.length * 10.5; }
+            if (p.res.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.res, f.x, ty); }
+            font(f.doc, 8, 'normal', MUTED); f.doc.text(p.side, f.x + f.w - sideW + 6, y + 13);
+            // A planned day is still ahead — indigo; no day yet stays grey (the colour rules).
+            const tc = t.tone === 'done' ? 'done' : t.tone === 'failed' || t.tone === 'late' ? 'late' : t.tone === 'booked' ? 'going' : 'ahead';
+            pillPath(f.doc, f.x + f.w - 56, y + 5, 56, 12, tc, t.outcome);
+          },
+        })),
+      }));
+    }
+  }
+  if (quiet.length) {
+    const names = quiet.map(s => s.label);
+    const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    out.push(text({ text: `Not started yet — ${list}: nothing kept at ${names.length === 1 ? 'this gate' : 'these gates'} so far.`, size: S.body, colour: MUTED, before: gap(d, 'm'), after: gap(d, 'm') }));
+  }
+
+  /* ================================ THE PLAN ================================ */
+  /* The Gantt the project page draws, on landscape pages of its own: the
+     calendar across the top, a bar per thing on the days it means. After the
+     gates, not before them. */
+  if (r.plan.length) {
+    out.push(pagesOf(f => {
+      f.doc.addPage('a4', 'landscape');
+      const g = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
+      onPlan(drawGantt(f.doc, g, {
+        eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
+        sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
+      }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items)));
+    }, { float: true }));
+  }
+
+  /* ================================ 3 · FIXES ================================ */
+  if (r.fixes.open.length || r.fixes.done.length) {
+    out.push(heading('Fixes', `${r.fixes.open.length} open · ${r.fixes.done.length} done`));
+    for (const fx of r.fixes.open) out.push(fixCard(fx, extras.shots.get(fx.id)));
+    if (r.fixes.done.length) {
+      out.push(text({ text: 'Done', size: S.small, style: 'bold', colour: OK, before: 4, after: 3 }));
+      r.fixes.done.forEach((fx, i, all) => out.push(text({
+        text: `${fx.title}${fx.machine ? ` — ${fx.machine}` : ''}  (${fx.when})`, size: 9, colour: INK2, indent: 12, bullet: '•',
+        after: i === all.length - 1 ? gap(d, 's') : 1,
+      })));
+    }
+  }
+
+  /* ================================ 4 · WHO OWES WHAT ================================ */
+  if (r.waiting.length) {
+    const whoW = 130;
+    const whoLines = (f: Frame, w: string) => wrap(f.doc, w, whoW - 4, 9);
+    const whatLines = (f: Frame, w: string) => wrap(f.doc, w, f.w - 210, 9.5, 'bold');
+    out.push(heading('What we’re waiting on', 'and whose it is'));
+    out.push(rows({
+      header: {
+        h: () => 13,
+        draw: (f, y) => {
+          font(f.doc, 7.5, 'bold', MUTED);
+          f.doc.text('OPEN', f.x + f.w - 190, y + 7, { align: 'right' }); f.doc.text('LATE', f.x + f.w - 150, y + 7, { align: 'right' }); f.doc.text('MOSTLY WHOSE', f.x + f.w - whoW, y + 7);
+        },
+      },
+      rows: r.waiting.map(w => ({
+        h: f => Math.max(18, 6 + Math.max(whoLines(f, w.whose ?? '—').length, whatLines(f, w.what).length) * 11),
+        draw: (f, y) => {
+          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+          font(f.doc, 9.5, 'bold'); f.doc.text(whatLines(f, w.what), f.x, y + 12);
+          font(f.doc, 10, 'bold'); f.doc.text(String(w.open), f.x + f.w - 190, y + 12, { align: 'right' });
+          font(f.doc, 10, 'bold', w.late ? DANGER : '#aab6c8'); f.doc.text(w.late ? String(w.late) : '—', f.x + f.w - 150, y + 12, { align: 'right' });
+          font(f.doc, 9, 'normal', INK2); f.doc.text(whoLines(f, w.whose ?? '—'), f.x + f.w - whoW, y + 12);
+        },
+      })),
+    }));
+  }
+
+  /* ================================ 5 · LINE STANDARD ================================ */
+  if (extras.standards && r.standards.length) {
+    const draw = extras.standards;
+    out.push(pagesOf(async f => {
+      f.doc.addPage('a4', 'landscape');
+      const first = f.doc.getNumberOfPages();
+      await draw(f.doc);
+      for (let i = first; i <= f.doc.getNumberOfPages(); i++) brandedAlready(f.doc, i);
+    }));
+  }
+  return out;
+}
+
+/** One fix: a coloured edge for its state, what it is, the problem, when and
+ *  whose — and its picture beside it. Measured whole; never split. */
+function fixCard(fx: FixRow, shot: Shot | undefined): Block {
+  const textW = (f: Frame) => (shot ? f.w - 130 : f.w - 12);
+  const parts = (f: Frame) => ({
+    title: wrap(f.doc, fx.title, textW(f), 10, 'bold'),
+    prob: fx.problem ? wrap(f.doc, fx.problem, textW(f), 8.5) : [],
+    meta: (() => { font(f.doc, 8, 'bold'); const ww = f.doc.getTextWidth(fx.when); return { ww, lines: wrap(f.doc, [fx.machine, fx.who].filter(Boolean).join(' · '), Math.max(40, textW(f) - ww - 20), 8) }; })(),
+  });
+  const inner = (f: Frame) => { const p = parts(f); return Math.max(shot ? 76 : 0, 14 + p.title.length * 12 + p.prob.length * 10.5 + Math.max(1, p.meta.lines.length) * 10 + 4); };
+  return box(f => inner(f) + 8, (f, y) => {
+    const p = parts(f), h = inner(f), tone = FIX_COLOUR[fx.tone] ?? BRAND;
+    f.doc.setFillColor(tone); f.doc.rect(f.x, y, 3, h, 'F');
+    font(f.doc, 10, 'bold'); f.doc.text(p.title, f.x + 10, y + 13);
+    let fy = y + 13 + p.title.length * 12;
+    if (p.prob.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.prob, f.x + 10, fy); fy += p.prob.length * 10.5; }
+    font(f.doc, 8, 'bold', tone); f.doc.text(fx.when, f.x + 10, fy + 2);
+    font(f.doc, 8, 'normal', MUTED); f.doc.text(p.meta.lines, f.x + 20 + p.meta.ww, fy + 2);
+    if (shot) {
+      const k = Math.min(116 / shot.w, 70 / shot.h);
+      const iw = shot.w * k, ih = shot.h * k;
+      try { f.doc.addImage(shot.data, 'JPEG', f.x + f.w - iw, y + 2, iw, ih); f.doc.setDrawColor(LINE); f.doc.rect(f.x + f.w - iw, y + 2, iw, ih); } catch { /* the words carry it */ }
+    }
+    f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.4); f.doc.line(f.x, y + h + 4, f.x + f.w, y + h + 4);
+  });
 }
