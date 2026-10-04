@@ -1,7 +1,7 @@
 /* THE WEEKS ACROSS THE TOP.
  *
  * The grid is what makes a plan readable — weeks along the top, each row going
- * green from the week its thing lands. Materials had it first. Programs want
+ * filled from the week its thing lands. Materials had it first. Programs want
  * exactly the same picture, for the same reason: a line is waiting on two kinds
  * of thing and nobody should have to learn two pictures.
  *

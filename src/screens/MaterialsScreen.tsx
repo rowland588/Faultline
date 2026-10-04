@@ -3,9 +3,12 @@
  * Two halves, deliberately, because they answer two different questions:
  *
  *   THE GRID answers "are we covered?" — every row a thing we need, every
- *   column a week, green from the week it lands. That is the picture Rowland
+ *   column a week, filled from the week it lands. That is the picture Rowland
  *   already reads his line off, and it is the one thing a list cannot show: you
  *   can see the whole plan close up week by week without reading a date.
+ *   The fill is indigo while it is still coming and green once it is in —
+ *   green is done, everywhere (Rowland, 4 October); it used to be green from
+ *   the week it was due, before anything had arrived.
  *
  *   THE LIST answers "what is holding us up?" — late first, then what is
  *   coming, then what nobody has dated, then what is already in. This is where
@@ -78,7 +81,7 @@ function Strip({ m, weeks, today }: { m: Material; weeks: Week[]; today: string 
     <WeekStrip n={weeks.length} label={`${m.what}: ${from ? `covered from the week of ${nice(from.start)}` : 'not covered in these weeks'}`}>
       {weeks.map(w => {
         const on = coveredIn(m, w, today), lands = landsIn(m, w, today);
-        return <span key={w.start} className={'mt-cell' + (on ? ' is-on' : '') + (lands ? ' is-lands' : '')}>{lands && <span className="mt-cell-d">{nice(m.due)}</span>}</span>;
+        return <span key={w.start} className={'mt-cell' + (on ? ' is-on' : '') + (on && isHere(m) ? ' is-here' : '') + (lands ? ' is-lands' : '')}>{lands && <span className="mt-cell-d">{nice(m.due)}</span>}</span>;
       })}
     </WeekStrip>
   );
@@ -288,7 +291,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">What we are waiting on</h2>
-              <p className="pace-sec-sub">Late first, then what is coming, then what nobody has dated, then what is in · green from the week it lands · this prints on the report</p>
+              <p className="pace-sec-sub">Late first, then what is coming, then what nobody has dated, then what is in · indigo from the week it is due, green once it is in · this prints on the report</p>
             </div>
             <div className="mt-list">
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />

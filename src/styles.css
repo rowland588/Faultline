@@ -5456,7 +5456,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 /* the cells: filled means covered that week. A white gap between them so the
    eye reads the run of green rather than counting boxes. */
 .mt-cell { height: 20px; border: 2px solid var(--surface); background: #eef3f5; padding: 0; text-align: center; }
-.mt-cell.is-on { background: var(--ok); }
+.mt-cell.is-on { background: var(--st-w); }          /* coming — still ahead */
+.mt-cell.is-on.is-here { background: var(--ok); }     /* in — done */
 /* THE DAY, IN THE WEEK IT LANDS. The grid used to say only whether a week was
    covered, so the date lived in a column at the side that is easy to read past
    — and the sheet ended up reading as a row of grey squares. White on the green
@@ -8136,7 +8137,8 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .mt-row { flex-wrap: wrap; }
 .mt-strip { flex: 1 1 100%; order: 10; display: grid; grid-template-columns: repeat(var(--wk), minmax(0, 1fr)); gap: 2px; margin-top: 6px; }
 .mt-strip .mt-cell { display: block; height: 12px; min-width: 0; border: 0; border-radius: 3px; background: color-mix(in srgb, var(--line) 60%, var(--surface)); overflow: hidden; }
-.mt-strip .mt-cell.is-on { background: var(--st-g); }
+.mt-strip .mt-cell.is-on { background: var(--st-w); }
+.mt-strip .mt-cell.is-on.is-here { background: var(--st-g); }
 .mt-strip .mt-cell.is-lands { height: 14px; margin-top: -1px; }
 .mt-strip .mt-cell-d { display: block; font-size: 9px; line-height: 14px; }
 .mt-strip .mt-cell.pg-cell.is-none { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }

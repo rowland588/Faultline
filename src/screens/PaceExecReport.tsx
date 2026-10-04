@@ -356,10 +356,10 @@ function PlanPage({ pl, marks, today, expectedAt, plannedAt, title, scale, sheet
 }
 
 /* WHAT WE ARE WAITING ON gets its own sheet, drawn the way the plan it comes
- * off is drawn: rows of what we need, weeks across the top, green from the week
- * each one lands. A list of dates would fit in a corner of another page — the
- * grid is here because coverage is a SHAPE, and a client reads the block of green
- * without reading a single date.
+ * off is drawn: rows of what we need, weeks across the top, filled from the week
+ * each one lands — indigo while it is coming, green once it is in. A list of
+ * dates would fit in a corner of another page — the grid is here because
+ * coverage is a SHAPE, and a client reads the block without reading a date.
  *
  * It takes the same block the PDF does, so the page and the file cannot shade
  * different weeks. */
@@ -412,7 +412,7 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
                       </td>
                       {r.covered.map((on, i) => (
                         <td key={m.weeks[i]?.start ?? i}
-                          className={'mt-cell' + (on ? ' is-on' : '') + (r.lands[i] ? ' is-lands' : '')}>
+                          className={'mt-cell' + (on ? ' is-on' : '') + (on && r.here ? ' is-here' : '') + (r.lands[i] ? ' is-lands' : '')}>
                           {r.lands[i] && <span className="mt-cell-d">{r.lands[i]}</span>}
                         </td>
                       ))}
@@ -426,7 +426,7 @@ function MaterialsPage({ m, title, scale, sheetH, n, of }: {
         </div>
         <footer className="exec-foot">
           <span>{title} · client report · page {n} of {of} — what we are waiting on</span>
-          <span>Green from the week it lands, the same as the plan it comes off.</span>
+          <span>Indigo from the week it is due · green once it is in.</span>
         </footer>
       </section>
     </div>

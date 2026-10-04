@@ -72,7 +72,9 @@ export interface PaceReportData {
     latest: number | null; meeting?: boolean; unit?: string;
   }[];
   /* WHAT THE JOB IS WAITING ON, drawn as the sheet it comes off: a row per
-     thing, a column per week, green from the week it lands. `covered` is worked
+     thing, a column per week, filled from the week it lands — indigo while it
+     is still coming, green once it is in (green is done, everywhere; Rowland,
+     4 October). `covered` is worked
      out by lib/materials alongside the screen's own grid, so the page and the
      file cannot disagree about which cells are green. Absent when the project
      is waiting on nothing, and then the sheet is not printed at all. */
@@ -921,16 +923,17 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
       d.text(`${r.late}d late`, x0 + itemW, y + 6);
     }
 
-    /* The green. A covered week is filled; an uncovered one is left as the
-       faintest wash, so the eye reads the BLOCK of green rather than counting
-       cells — which is exactly how the spreadsheet is read. */
+    /* The block. A covered week is filled; an uncovered one is left as the
+       faintest wash, so the eye reads the BLOCK rather than counting cells —
+       which is how the spreadsheet is read. Indigo while it is still coming
+       (ahead), green only once it is in (done): one colour, one meaning. */
     r.covered.forEach((on, c) => {
       const cx = gridX + c * wkW;
-      d.setFillColor(on ? OK : '#e9eff7');
+      d.setFillColor(on ? (r.here ? OK : BLUE) : '#e9eff7');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
 
-      /* THE DAY, IN THE WEEK IT LANDS. White on the green it sits on, so it
+      /* THE DAY, IN THE WEEK IT LANDS. White on the block it sits on, so it
          reads as part of the block rather than as something stuck over it. */
       const on_date = r.lands[c];
       if (on_date) {
@@ -943,7 +946,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
   if (withFoot) {
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 what we are waiting on`, CW * 0.8), M, H - M + 6);
-    d.text('Green from the week it lands, the same as the plan it comes off.',
+    d.text('Indigo from the week it is due \u00b7 green once it is in.',
       W - M, H - M + 6, { align: 'right' });
   }
   return y0 + panelH;
@@ -2740,8 +2743,9 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
 
   /* ============ WHAT WE ARE WAITING ON — the plan, as a grid ============
    * Its own sheet, because it is the one page a client can read coverage off in a
-   * look: rows of what we need, weeks across the top, green from the week each
-   * one lands. Only when there IS something outstanding. */
+   * look: rows of what we need, weeks across the top, filled from the week each
+   * one lands (indigo while coming, green once in). Only when there IS something
+   * outstanding. */
   for (let sheet = 0; sheet < matSheets; sheet++) {
     d.addPage('a3', 'landscape');
     const bottom = materialsSheet(d, data, materialsPage + sheet, pages, M, !shareSheet, sheet);
@@ -2752,7 +2756,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
       programsSheet(d, data, programsPage, pages, bottom + 14, false);
       setFont(d, 7, 'normal', MUTED);
       d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${materialsPage} of ${pages} \u2014 what we are waiting on, and what the machine can run`, CW * 0.8), M, H - M + 6);
-      d.text('Green from the week it lands. Proved carries the day it was proved.',
+      d.text('Indigo from the week it is due, green once it is in. Proved carries the day it was proved.',
         W - M, H - M + 6, { align: 'right' });
     }
   }
