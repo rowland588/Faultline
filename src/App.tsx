@@ -5,6 +5,7 @@ import { BootSplash } from './ui/Logo';
 import { UpdateBanner } from './ui/UpdateBanner';
 import { UndoHost } from './ui/Undo';
 import { ReminderNotifier } from './ui/Reminders';
+import { useRoute } from './state/useRoute';
 
 /** A render error becomes a recoverable message, never a blank screen — a field
  *  app must not silently vanish. Local data is safe (it's in IndexedDB). */
@@ -31,13 +32,16 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { err: Error | nu
 
 export default function App() {
   const ready = useBootResume(); // may replace the hash to resume the last workspace
+  /* A shared link is opened by somebody outside the app: no update banner, no
+     reminders, nothing of the app's own housekeeping (supabase/SHARE_LINKS.sql). */
+  const outside = useRoute().name === 'share';
   if (!ready) return <BootSplash />; // branded, not a blank flash, while we decide where to land
   return (
     <ErrorBoundary>
-      <UpdateBanner />
+      {!outside && <UpdateBanner />}
       <Router />
-      <UndoHost />
-      <ReminderNotifier />
+      {!outside && <UndoHost />}
+      {!outside && <ReminderNotifier />}
     </ErrorBoundary>
   );
 }

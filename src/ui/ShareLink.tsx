@@ -17,7 +17,7 @@
  * a link is how the evidence was sent, not part of what the job proved. */
 import { useEffect, useState } from 'react';
 import type { MediaRef } from '../types';
-import { createShare, isLive, shareUrl, useShares, SHARE_FOR, type Share } from '../cloud/shares';
+import { createShare, inCloud, isLive, shareUrl, useShares, SHARE_FOR, type Share } from '../cloud/shares';
 import { Sheet } from './Sheet';
 
 const noun = (k: 'photo' | 'video'): string => (k === 'video' ? 'clip' : 'photo');
@@ -55,10 +55,11 @@ export function ShareSheet({ open, onClose, projectId, testId, media, onMade }: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [made, setMade] = useState<Share | null>(null);
+  const [goingUp, setGoingUp] = useState(false);
   const [copied, setCopied] = useState<'done' | 'failed' | null>(null);
   useEffect(() => { if (!copied) return; const t = window.setTimeout(() => setCopied(null), 2500); return () => window.clearTimeout(t); }, [copied]);
   /* Each opening starts clean: a second picture is a second link. */
-  useEffect(() => { if (open) { setDays(7); setCaption(''); setError(''); setMade(null); setCopied(null); } }, [open, media.id]);
+  useEffect(() => { if (open) { setDays(7); setCaption(''); setError(''); setMade(null); setCopied(null); setGoingUp(false); } }, [open, media.id]);
 
   const what = noun(media.kind);
   const verb = media.kind === 'video' ? 'watch' : 'see';
@@ -72,6 +73,7 @@ export function ShareSheet({ open, onClose, projectId, testId, media, onMade }: 
       const s = await createShare({ projectId, testId, blobKey: media.blobKey, kind: media.kind, caption, days });
       setMade(s);
       onMade?.(s);
+      setGoingUp(!(await inCloud(media.blobKey)));
     } catch (e) {
       setError(said(e));
     } finally {
@@ -118,6 +120,9 @@ export function ShareSheet({ open, onClose, projectId, testId, media, onMade }: 
           <p className="sl-terms">
             The link opens this {what} until {until(made.expires_at)}. Send it to whoever needs to {verb} it.
           </p>
+          {goingUp && <p className="sl-said" role="status">
+            This {what} hasn’t finished going up to the cloud yet — the link opens once it has. Keep the app open with a signal.
+          </p>}
           <input className="sl-in sl-url" readOnly value={url} aria-label="The link"
             onFocus={e => e.currentTarget.select()} />
           <div className="sl-acts">

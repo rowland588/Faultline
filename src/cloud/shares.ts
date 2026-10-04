@@ -36,7 +36,18 @@ export const shareUrl = (token: string): string => `${location.origin}${location
 export const isLive = (s: Share, now = Date.now()): boolean => !s.revoked_at && Date.parse(s.expires_at) > now;
 
 const asError = (e: { message: string }): Error =>
-  new Error(/fetch|network|load failed/i.test(e.message) ? 'Couldn’t reach the cloud — sharing needs a signal.' : e.message);
+  new Error(/fetch|network|load failed/i.test(e.message) ? 'Couldn’t reach the cloud — sharing needs a signal.'
+    : /row-level security|permission denied|42501/i.test(e.message) ? 'Only the project’s owner can share from it.'
+    : e.message);
+
+/** Has this file reached the cloud yet? A clip filmed a minute ago may still be
+ *  going up — its link would say "not reached the cloud yet" to whoever opens
+ *  it, so the sheet says so to the owner first (found by the share agent). */
+export async function inCloud(blobKey: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase.storage.from('media').createSignedUrl(blobKey, 10);
+  return !error && !!data?.signedUrl;
+}
 
 export async function createShare(o: { projectId: string; testId: string; blobKey: string; kind: 'photo' | 'video'; caption?: string; days: number }): Promise<Share> {
   if (!supabase) throw new Error('Sharing needs the cloud.');
@@ -91,7 +102,11 @@ export async function openShare(token: string): Promise<Opened> {
   if (!supabase) return { gone: true, why: 'This app has no cloud to open the link from.' };
   const { data, error } = await supabase.functions.invoke('share', { body: { token } });
   if (error) {
-    return { gone: true, why: /fetch|network|load failed/i.test(error.message) ? 'Couldn’t reach Faultline — check the signal and try again.' : 'This link could not be opened.' };
+    /* supabase-js says a dropped signal as "Failed to send a request to the
+       Edge Function" (a FunctionsFetchError), which the browser's own words
+       do not cover (found by the share page's check). */
+    const noSignal = error.name === 'FunctionsFetchError' || /fetch|network|load failed|failed to send/i.test(error.message);
+    return { gone: true, why: noSignal ? 'Couldn’t reach Faultline — check the signal and try again.' : 'This link could not be opened.' };
   }
   const d = data as Record<string, unknown>;
   if (d?.gone) return { gone: true, why: String(d.why ?? 'This link no longer opens anything.') };
