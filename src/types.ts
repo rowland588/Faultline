@@ -1,3 +1,4 @@
+import type { Cause, HoldCheck, ProblemSource, SixM } from './lib/sixm';
 /* Faultline — the data model. One object matters: the Observation. Every one of
  * the seven quality tools is a *read* over Observation[], never a reshape.
  * Workspaces are the hard isolation boundary; time is epoch-ms; taxonomies are
@@ -93,6 +94,10 @@ export interface Observation {
   createdAt: Millis;
   updatedAt: Millis; // LWW clock
   deletedAt?: Millis; // soft delete — tombstone for future sync
+  /** The cause family the floor gave this stop, when they gave one — one tap
+   *  on the six chips when it is timed (docs/SIXM.md). Absent: the fishbone
+   *  suggests a bone from the category and reason, and says it is a guess. */
+  causeM?: SixM;
 }
 
 /* Aliased on the way in: `Measure` is already taken here by the engine's
@@ -191,6 +196,21 @@ export interface Case {
   closedAt?: Millis;
   updatedAt: Millis;     // LWW clock for cloud sync
   deletedAt?: Millis;    // soft delete (tombstone)
+  /* THE PROBLEM OF THE 6M METHOD (docs/SIXM.md). A Case was always the thin
+     A3 — a problem, its whys, a baseline and a target. On a running line it is
+     the head of the fishbone: the fields below put it on its project and line,
+     say what its head was taken from, carry the causes on its six bones and
+     the check that keeps the gain. Absent on Cases opened before — those still
+     read as they did. */
+  /** The project and line it belongs to. */
+  projectId?: string;
+  lineId?: string;
+  /** What the head of the fish was taken from: the gap, a Pareto bar, the constraint, or something seen. */
+  source?: ProblemSource;
+  /** The causes on the six bones, each with its whys. */
+  causes?: Cause[];
+  /** Keeping the gain, once it worked. */
+  hold?: HoldCheck;
 }
 
 /* ============ PROJECT — groups multiple workspaces (lines) under one initiative ============

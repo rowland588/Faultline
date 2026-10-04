@@ -17,13 +17,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listPaceTodos, loadPaceLines, onDataChange, type PaceLineRow, type PaceTodoRow } from '../db';
 import type { PaceAction } from './tracker';
-import type { PillarKey } from './pillars';
+import { sixmLabel, toSixM } from './sixm';
 import { todayISO } from './weeks';
 
 /** What a step that belongs to no one line is filed under on the board. */
 export const WHOLE_PROJECT = 'All lines';
 
-const PILLAR_WORD: Record<PillarKey, string> = { people: 'People', plant: 'Plant', process: 'Process' };
+/** The bone's word — the six (lib/sixm), with the old 3P words read across. */
+const boneWord = (v?: string): string => sixmLabel(toSixM(v));
 
 const short = (iso: string): string => {
   const [y, m, d] = iso.split('-').map(Number);
@@ -46,7 +47,7 @@ export function stepAction(s: PaceTodoRow, lines: PaceLineRow[], today = todayIS
     lineKey: line?.key ?? '',
     caseId: s.caseId,
     // The column, as the category the lever tree groups and binds by.
-    category: s.pillar ? PILLAR_WORD[s.pillar] : '',
+    category: boneWord(s.pillar),
     action: s.what,
     problem: s.why,
     owner: s.who,
@@ -57,7 +58,7 @@ export function stepAction(s: PaceTodoRow, lines: PaceLineRow[], today = todayIS
     // grey instead of red.
     status: s.state === 'done' ? 'Done' : s.state === 'waiting' ? 'Waiting' : 'To do',
     flag: isLate(s, today) ? 'Overdue' : '',
-    pillar: s.pillar ? PILLAR_WORD[s.pillar] : undefined,
+    pillar: boneWord(s.pillar) || undefined,
   };
 }
 

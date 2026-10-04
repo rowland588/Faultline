@@ -25,7 +25,13 @@ export interface PaceTodoRow {
    *  workbook, and Rowland: "there will be no Excel that needs to be uploaded
    *  ... this is about now fully using the app." Absent means not sorted yet,
    *  which the board says rather than dropping the row. */
-  pillar?: 'people' | 'plant' | 'process';
+  pillar?: 'people' | 'plant' | 'process' | 'machine' | 'method' | 'material' | 'measurement' | 'environment';
+  /** The cause on the fishbone this action is the countermeasure for —
+   *  "<caseId>:<causeId>" (docs/SIXM.md). Absent: a just-do-it action. */
+  causeRef?: string;
+  /** What it should change, said before it is done — the prediction it is
+   *  checked against ("changeover 48 → 30 min"). */
+  expect?: string;
   /** The day it is due, YYYY-MM-DD — what makes it late. `when` stays the free
    *  words ("before the Tesco launch"); this is the date the board counts. */
   due?: string;

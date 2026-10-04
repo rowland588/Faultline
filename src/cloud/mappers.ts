@@ -71,7 +71,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         id: o.id, owner_id: o.ownerId ?? fallbackOwner, workspace_id: o.workspaceId, category: o.category, subcategory: o.subcategory ?? null,
         asset: o.asset, shift: o.shift ?? null, started_at: o.startedAt, ended_at: o.endedAt ?? null,
         duration_ms: o.durationMs, timing: o.timing, count: o.count, value_num: o.valueNum ?? null, cost_per: o.costPer ?? null,
-        note: o.note ?? null, media: o.media, created_at: o.createdAt, updated_at: o.updatedAt, deleted_at: o.deletedAt ?? null,
+        note: o.note ?? null, media: o.media, cause_m: o.causeM ?? null, created_at: o.createdAt, updated_at: o.updatedAt, deleted_at: o.deletedAt ?? null,
       };
     },
     fromRow: (r) => ({
@@ -79,7 +79,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       subcategory: (r.subcategory as string) ?? undefined, asset: r.asset as string, shift: (r.shift as string) ?? undefined,
       startedAt: Number(r.started_at), endedAt: n(r.ended_at), durationMs: Number(r.duration_ms), timing: r.timing as Observation['timing'],
       count: Number(r.count) || 1, valueNum: n(r.value_num), costPer: n(r.cost_per), note: (r.note as string) ?? undefined,
-      media: (r.media as Observation['media']) ?? [], createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+      media: (r.media as Observation['media']) ?? [], causeM: (r.cause_m as Observation['causeM']) ?? undefined,
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
 
@@ -160,7 +161,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         title: c.title, path: c.path, note: c.note ?? null, whys: c.whys ?? null, study: c.study ?? null,
         baseline_ms_week: c.baselineMsWeek, target_ms_week: c.targetMsWeek ?? null,
         status: c.status, opened_at: c.openedAt, closed_at: c.closedAt ?? null,
-        updated_at: c.updatedAt ?? c.openedAt, deleted_at: c.deletedAt ?? null };
+        updated_at: c.updatedAt ?? c.openedAt, deleted_at: c.deletedAt ?? null,
+        project_id: c.projectId ?? null, line_id: c.lineId ?? null, source: c.source ?? null, causes: c.causes ?? [], hold: c.hold ?? null };
     },
     fromRow: (r) => ({
       id: r.id as string, ownerId: (r.owner_id as string) ?? undefined, workspaceId: r.workspace_id as string,
@@ -169,6 +171,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       baselineMsWeek: Number(r.baseline_ms_week) || 0, targetMsWeek: n(r.target_ms_week),
       status: (r.status as Case['status']) ?? 'open', openedAt: Number(r.opened_at), closedAt: n(r.closed_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+      projectId: (r.project_id as string) ?? undefined, lineId: (r.line_id as string) ?? undefined,
+      source: (r.source as Case['source']) ?? undefined, causes: (r.causes as Case['causes']) ?? undefined, hold: (r.hold as Case['hold']) ?? undefined,
     }),
   },
   // Projects — the initiative itself: its name, who leads it, and nothing more.
@@ -302,6 +306,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
         state: t.state, media: t.media ?? [], notes: t.notes ?? '', outcome: t.outcome ?? '',
         pillar: t.pillar ?? null, due: t.due ?? null, case_id: t.caseId ?? null, done_on: t.doneOn ?? null,
+        cause_ref: t.causeRef ?? null, expect: t.expect ?? null,
         created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
       };
     },
@@ -318,6 +323,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       due: (r.due as string) ?? undefined,
       caseId: (r.case_id as string) ?? undefined,
       doneOn: (r.done_on as string) ?? undefined,
+      causeRef: (r.cause_ref as string) ?? undefined,
+      expect: (r.expect as string) ?? undefined,
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },
