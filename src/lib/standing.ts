@@ -84,6 +84,8 @@ export interface Standing {
   slipDays?: number;
   outstanding: number;
   late: number;
+  /** Every machine through all four gates and nothing owed — the method's done. */
+  handedOver?: boolean;
   rows: OutstandingRow[];
   plan: PlanMark[];
 }
@@ -103,6 +105,7 @@ export function slipWords(slipDays?: number): string | undefined {
 }
 
 import { niceDay, todayISO } from './weeks';
+import { journeyOf } from './install';
 export { todayISO };
 
 const daysBetween = (a: string, b: string): number =>
@@ -321,10 +324,24 @@ export function standing(input: StandingInput): Standing {
   const problems = tests.filter(t => isStep(t) && t.outcome === 'failed')
     .map(t => ({ machine: assets.find(a => a.id === t.assetId)?.name ?? 'The line', stage: t.title.trim() || 'a stage' }));
 
+  /* HANDED OVER — what the method is done when, said when it is true. Every
+     machine through all four gates, by the same reading "Where each machine
+     is" and the report's journey use, and nothing left owed. The day is the
+     last hand-over step's; beside it, how that sits against the date agreed.
+     Before this the finished job read "Nothing outstanding. 4 of 4 tests have
+     run." — true, and not the sentence a client is waiting for. */
+  const handedOver = outstanding === 0 && assets.length > 0
+    && assets.every(a => journeyOf(a, input.tests, input.items, today, input.programs).every(g => g.tone === 'done'));
+  const handedOn = handedOver
+    ? tests.filter(t => isStep(t) && gateOf(t) === 'handover' && t.outcome === 'passed').map(t => t.ranTo ?? t.ranOn).filter((d): d is string => !!d).sort().pop()
+    : undefined;
+
   return {
     /* "N of M tests have run" is about tests — an install step is not one. */
-    sentence: sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests), problems }),
-    daysToGo, slipDays, outstanding, late, rows, plan,
+    sentence: handedOver
+      ? handedOverWords(handedOn, input.plannedAt, assets.length)
+      : sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests), problems }),
+    daysToGo, slipDays, outstanding, late, rows, plan, handedOver: handedOver || undefined,
   };
 }
 
@@ -339,6 +356,18 @@ export function unanswered(all: Test[]): number {
   const openAfter = (t: Test, depth = 0): boolean =>
     depth < 12 && kids(t).some(c => !isSettled(c) || c.outcome === 'notRun' || openAfter(c, depth + 1));
   return tests.filter(t => t.outcome === 'failed' && !passedAfter(t) && !openAfter(t)).length;
+}
+
+/** The finished job, in one breath: when, and against what was agreed. */
+function handedOverWords(on: string | undefined, agreed: string | undefined, machines: number): string {
+  const when = on ? ` on ${niceDay(on, { weekday: 'short' })}` : '';
+  const vs = on && agreed
+    ? (() => {
+      const d = daysBetween(agreed, on);
+      return d === 0 ? ', the day agreed' : d > 0 ? `, ${plural(d, 'day')} after the date agreed` : `, ${plural(-d, 'day')} before the date agreed`;
+    })()
+    : '';
+  return `Handed over${when}${vs} — ${machines === 1 ? 'the machine' : `all ${machines} machines`} through all four gates, nothing outstanding.`;
 }
 
 /** What somebody would say out loud if you asked where the job is.

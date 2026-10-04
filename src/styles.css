@@ -6829,8 +6829,12 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 }
 .dy-install:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dy-install-h { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.dy-bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-.dy-bar > span { display: block; height: 100%; background: var(--st-g); border-radius: 4px; }
+/* NORMAL RECEDES: done is a quiet green, not the loudest thing on the day;
+   late, after it, is the red the eye should land on. */
+.dy-bar { display: flex; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.dy-bar > span { display: block; height: 100%; }
+.dy-bar > .is-done { background: color-mix(in srgb, var(--st-g) 45%, var(--surface)); }
+.dy-bar > .is-late { background: var(--st-r); }
 .dy-sec { margin-top: 18px; }
 .dy-lines { list-style: none; margin: 8px 0 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .dy-lines li + li { border-top: 1px solid var(--line); }
@@ -6847,7 +6851,9 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .dy-line.is-bad .dy-dot { background: var(--st-r); border-color: var(--st-r); }
 .dy-line.is-slipped .dy-dot { border-color: var(--st-r); }
 .dy-line.is-asking .dy-dot { background: var(--st-a); border-color: var(--st-a); }
-.dy-line.is-found .dy-dot { background: var(--accent-soft); border-color: var(--accent); }
+/* Written down, nobody has decided yet: no state, so no state colour — and
+   never the brand blue, which is for what you press. */
+.dy-line.is-found .dy-dot { background: var(--surface); border-color: var(--ink-2); }
 .dy-line.is-booked .dy-dot { border-color: var(--st-w); background: var(--blue-soft); }
 .dy-line.is-bad .dy-line-m > span:first-child, .dy-line.is-slipped .dy-line-m > span:first-child { font-weight: 700; }
 .dy-pics { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

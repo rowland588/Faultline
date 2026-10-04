@@ -16,7 +16,7 @@
 import { isHere, type Material } from './materials';
 import { stateOf, type Program } from './programs';
 import {
-  gateOf, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
+  gateOf, isOverdue, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
 } from './testing';
 import type { MediaRef } from '../types';
 import { GATE_WORD } from './install';
@@ -65,7 +65,8 @@ export interface Day {
   /** Every gate with steps on the job — Install, Set up, Hand over — as it
    *  stood that evening. `install` is the first of these, kept for callers
    *  that only ever read Install. */
-  gates: { gate: StepGate; label: string; done: number; total: number }[];
+  /** `late`: by the end of that day, past its day or hit a problem. */
+  gates: { gate: StepGate; label: string; done: number; late: number; total: number }[];
   /** Nothing happened and nothing was booked. */
   empty: boolean;
 }
@@ -210,7 +211,13 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const gates = (['install', 'setup', 'handover'] as const)
     .map(g => ({ g, ts: tests.filter(t => t.kind === 'install' && gateOf(t) === g) }))
     .filter(x => x.ts.length > 0)
-    .map(x => ({ gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts), total: x.ts.length }));
+    /* THE BAR SHOWS WHAT IS WRONG TOO. It was a green length only, so a gate
+       with a step late read the same as one on time (the colour rules: the
+       abnormal stands out). Late by the end of THAT day — a past day reads as
+       it stood. */
+    .map(x => ({ gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts),
+      late: x.ts.filter(t => (t.outcome === 'failed' && (t.ranOn ?? '') <= date) || (t.outcome !== 'passed' && isOverdue(t, date))).length,
+      total: x.ts.length }));
   const first = gates.find(g => g.gate === 'install');
   const install = first ? { done: first.done, total: first.total } : undefined;
 

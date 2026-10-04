@@ -339,7 +339,8 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     const gates = jobJourney(j.assets, j.tests, j.items, today, j.programs);
     return {
       ...base,
-      sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.daysToGo,
+      // A handed-over job has nothing left to count down to.
+      sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.handedOver ? undefined : st.daysToGo,
       outstanding: st.outstanding, late: st.late,
       done: st.plan.filter(m => m.tone === 'done').length, total: st.plan.length,
       pillars: [], gates, at: journeyNow(gates),

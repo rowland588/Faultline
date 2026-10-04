@@ -27,7 +27,9 @@ import { headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standa
 export const CARD_W = 1754, CARD_H = 1240;
 const M = 64;
 const NAVY = '#0d1f3c', BLUE = '#1f63e0', INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', SOFT = '#f3f6fb';
-const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+/* The app's own face, as on every screen and every other PDF; the system
+   faces only if it has not loaded. */
+const FONT = '"Instrument Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 async function photoOf(key?: string): Promise<HTMLImageElement | null> {
   if (!key) return null;
@@ -144,7 +146,10 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
 
 /** The whole card, as a canvas. */
 export async function renderCard(s: Standard, projectName: string, printed: string): Promise<HTMLCanvasElement> {
-  /* The photo first: nothing below waits on anything once drawing starts. */
+  /* The photo first: nothing below waits on anything once drawing starts. A
+     canvas draws in whatever face is loaded at that instant, so the app's own
+     is asked for first — or the card came out in the system face. */
+  await Promise.all(['500', '700', '800'].map(w => document.fonts?.load(`${w} 20px "Instrument Sans Variable"`))).catch(() => undefined);
   const img = await photoOf(s.photoKey);
   const cv = document.createElement('canvas');
   cv.width = CARD_W; cv.height = CARD_H;

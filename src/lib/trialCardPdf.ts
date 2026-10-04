@@ -24,7 +24,7 @@
  * sheet" on the document whose entire job is the detail would be absurd.
  */
 import {
-  ACCENT, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
+  ACCENT, BLUE, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
   SHELL_MUTED, drawMark, fit, nameFont, san, setFont, wash, type Doc,
 } from './reportKit';
 import { verdictLine, type TrialCard } from './trialCard';
@@ -44,8 +44,10 @@ const span = (from?: string, to?: string): string => {
   return `${nice(from)} \u2013 ${nice(to)}`;
 };
 
+/* Planned is still ahead — indigo. It was the brand blue, which the colour
+   rules keep for what you press, never a state. */
 const toneOf = (o: TrialCard['outcome']): string =>
-  o === 'passed' ? OK : o === 'failed' ? DANGER : o === 'notRun' ? WARN : BRAND;
+  o === 'passed' ? OK : o === 'failed' ? DANGER : o === 'notRun' ? WARN : BLUE;
 
 export interface TrialCardMeta {
   project: string;

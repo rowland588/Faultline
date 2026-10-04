@@ -10,14 +10,14 @@
  * went badly is the day with the most to say, and it is the one that most
  * needs every line.
  */
-import { ACCENT, DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, SHELL_MUTED, drawMark, fit, nameFont, san, setFont, type Doc } from './reportKit';
+import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, SHELL_MUTED, drawMark, fit, nameFont, san, setFont, type Doc } from './reportKit';
 import type { Day, DayTone } from './day';
 import type { Shot } from './testReport';
 import { niceDay } from './weeks';
 
 const M = 36;
 const TONE: Record<DayTone, string> = {
-  done: OK, bad: DANGER, slipped: DANGER, asking: WARN, found: ACCENT, booked: BLUE,
+  done: OK, bad: DANGER, slipped: DANGER, asking: WARN, found: INK2, booked: BLUE,
 };
 
 export interface DayReportMeta {
@@ -72,14 +72,27 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
      length. Install, Set up and Hand over, whichever have steps: the same
      bars the day's screen draws. */
   for (const g of day.gates) {
-    const { done, total } = g;
+    const { done, total, late } = g;
     setFont(d, 6.5, 'bold', MUTED);
     d.text(`${g.label.toUpperCase()}, END OF THE DAY`, M, y);
-    setFont(d, 8, 'bold', INK);
-    d.text(`${done} of ${total} steps done`, W - M, y, { align: 'right' });
+    /* The same bar as the screen: done a quiet green, late red after it, and
+       late said in words so it survives a black-and-white print. */
+    const words = `${done} of ${total} steps done`;
+    if (late) {
+      setFont(d, 8, 'bold', DANGER);
+      const lw = d.getTextWidth(` · ${late} late`);
+      d.text(` · ${late} late`, W - M, y, { align: 'right' });
+      setFont(d, 8, 'bold', INK);
+      d.text(words, W - M - lw, y, { align: 'right' });
+    } else {
+      setFont(d, 8, 'bold', INK);
+      d.text(words, W - M, y, { align: 'right' });
+    }
     d.setFillColor('#e9eff7');
     d.roundedRect(M, y + 6, CW, 6, 3, 3, 'F');
-    if (done) { d.setFillColor(OK); d.roundedRect(M, y + 6, Math.max(6, CW * done / total), 6, 3, 3, 'F'); }
+    const doneW = done ? Math.max(6, CW * done / total) : 0;
+    if (done) { d.setFillColor('#a9cdbb'); d.roundedRect(M, y + 6, doneW, 6, 3, 3, 'F'); }
+    if (late) { d.setFillColor(DANGER); d.rect(M + doneW, y + 6, Math.max(3, CW * late / total), 6, 'F'); }
     y += 28;
   }
 
@@ -113,7 +126,8 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       const h = text.length * 12 + detail.length * 10.5 + 6;
       room(h);
       d.setFillColor(TONE[l.tone]);
-      if (l.tone === 'slipped' || l.tone === 'booked') {
+      // Hollow for what has no verdict yet — booked, slipped, or written down — as the screen draws it.
+      if (l.tone === 'slipped' || l.tone === 'booked' || l.tone === 'found') {
         d.setDrawColor(TONE[l.tone]);
         d.setLineWidth(1.2);
         d.circle(M + 3.5, y - 3, 2.6, 'S');

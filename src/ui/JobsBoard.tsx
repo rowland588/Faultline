@@ -474,7 +474,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                 is AT a gate; a 3P or tree job is a kind of change, and how its
                 lines are doing against target. */}
             {v.method === 'commissioning'
-              ? <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>
+              ? (v.at === 'Handed over'
+                ? <span className="jb-chip is-at is-done">Handed over</span>
+                : <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>)
               : <>
                 <span className="jb-chip is-at is-none">{v.methodLabel}</span>
                 {v.reach && <span className="jb-chip is-at is-going">{v.reach}</span>}

@@ -53,6 +53,10 @@ export function san(t: string): string {
     .replace(/[\u2713\u2714]/g, 'v')
     .replace(/[\u2022]/g, '·')
     .replace(/[\u00A0\u202F\u2009]/g, ' ')
+    /* The soft hyphen is invisible and the PDF font has no glyph for it — and
+       jsPDF, meeting a character its font cannot draw, drops the rest of the
+       line (scripts/make-pdf-fonts.py). */
+    .replace(/\u00AD/g, '')
     /* Then drop everything the encoding cannot draw — INCLUDING the C0 and C1
        control characters, which this used to keep. The old range started at
        \u0000, so a NUL, a BEL or an ESC out of an Excel cell went straight into
@@ -229,9 +233,19 @@ export function drawMark(d: Doc, x: number, y: number, size: number): void {
 /** The mark and the name, top right of every page, in the margin above the
  *  content — so a client report, a test card or the day's sheet arrives as
  *  Faultline's document wherever it is forwarded. */
+/* PAGES THAT CARRY THEIR OWN BRAND — the line standard card prints
+   "Faultline" in its own foot, and the corner stamp landed on its dark band. */
+const ownBrand = new WeakMap<Doc, Set<number>>();
+export function brandedAlready(d: Doc, page: number): void {
+  const set = ownBrand.get(d) ?? new Set<number>();
+  set.add(page);
+  ownBrand.set(d, set);
+}
+
 export function stampBrand(d: Doc): void {
   const pages = d.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
+    if (ownBrand.get(d)?.has(i)) continue;
     d.setPage(i);
     const W = d.internal.pageSize.getWidth();
     // one size on every sheet: larger on an A3 crowded the header's own corner line

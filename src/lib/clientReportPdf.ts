@@ -4,7 +4,7 @@ import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow } from './clientReport';
 import type { GateTone } from './install';
 import type { Shot } from './testReport';
-import { pdfFamily, san } from './reportKit';
+import { brandedAlready, pdfFamily, san } from './reportKit';
 import { gantt } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { moveLines } from './story';
@@ -297,7 +297,9 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
   /* ================================ 5 · LINE STANDARD ================================ */
   if (extras.standards && r.standards.length) {
     doc.addPage('a4', 'landscape');
+    const first = doc.getNumberOfPages();
     await extras.standards(doc);
+    for (let i = first; i <= doc.getNumberOfPages(); i++) brandedAlready(doc, i);
   }
 
   /* ---- the foot of every page ---- */

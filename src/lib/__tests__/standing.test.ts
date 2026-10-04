@@ -443,6 +443,24 @@ describe('the sentence', () => {
     expect(at({ materials: [mat({ due: '2026-09-29' })] }).sentence).toBe('No handover date yet, with 1 thing outstanding — none of it late.');
   });
 
+  /* What the method is done when, said when it is true. */
+  it('says Handed over, when, and against the date agreed, once every machine is through all four gates', () => {
+    const m = asset({ id: 'hm', name: 'Wrapper', state: 'running' });
+    const done = (o: Partial<Test>) => test({ assetId: 'hm', outcome: 'passed', ...o });
+    const tests = [
+      done({ kind: 'install', title: 'Positioned', ranOn: '2026-09-01' }),
+      done({ kind: 'install', gate: 'setup', title: 'Programs loaded', ranOn: '2026-09-05' }),
+      done({ title: 'Seal test', ranOn: '2026-09-10' }),
+      done({ kind: 'install', gate: 'handover', title: 'Manuals', ranOn: '2026-09-18' }),
+      done({ kind: 'install', gate: 'handover', title: 'Operators trained', ranOn: '2026-09-20' }),
+    ];
+    expect(at({ assets: [m], tests, plannedAt: '2026-09-17', expectedAt: '2026-09-20' }).sentence)
+      .toBe(`Handed over on ${niceDay('2026-09-20', { weekday: 'short' })}, 3 days after the date agreed — the machine through all four gates, nothing outstanding.`);
+    // One gate short is not handed over.
+    expect(at({ assets: [m], tests: tests.slice(0, 4).concat(test({ assetId: 'hm', kind: 'install', gate: 'handover', title: 'Operators trained' })) }).sentence)
+      .not.toMatch(/^Handed over/);
+  });
+
   /* The grid draws a step that hit a problem solid red; the sentence said
      nothing about it. */
   it('names a machine that hit a problem, beside what is late and when nothing is', () => {
