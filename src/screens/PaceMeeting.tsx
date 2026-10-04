@@ -12,7 +12,9 @@
  *
  * It writes nothing: the meeting is read off the board, and an action is
  * changed on the board's editor (ui/ActionSheet), where the access rules
- * (lib/access) are kept. */
+ * (lib/access) are kept. A card is that editor's door — the whole card, as on
+ * the board (HUNT 14): the caller passes `onOpen` and holds the sheet, and a
+ * client gets the sheet's read-only form, the same as on the board. */
 import { useEffect, useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceRoster } from '../lib/tracker';
@@ -59,11 +61,17 @@ export function buildRoster(actions: PaceAction[], roster?: PaceRoster): Person[
     || x.name.localeCompare(y.name));
 }
 
-function ActionCard({ a }: { a: PaceAction }) {
+function ActionCard({ a, onOpen }: { a: PaceAction; onOpen?: (a: PaceAction) => void }) {
   const tone = isDone(a) ? 'done' : isOverdue(a) ? 'over' : isDueSoon(a) ? 'soon' : 'track';
+  /* A DOOR, NOT A PICTURE OF ONE. It looked like the board's card and did
+     nothing when tapped (HUNT 14). The whole card is the button — spans, not
+     p/header/footer, so it is valid inside one. Without `onOpen` (an action
+     with no row behind it) it stays a plain card. */
+  const Tag = onOpen ? 'button' : 'article';
   return (
-    <article className={'pm-card is-' + tone}>
-      <header className="pm-card-top">
+    <Tag className={'pm-card is-' + tone + (onOpen ? ' is-door' : '')}
+      {...(onOpen ? { type: 'button' as const, onClick: () => onOpen(a) } : {})}>
+      <span className="pm-card-top">
         <span className="pm-flag">{a.flag || a.status}</span>
         <span className="pm-line">{a.line}</span>
         {/* The bone it sits on (lib/sixm) — "no bone yet" rather than a blank. */}
@@ -71,22 +79,26 @@ function ActionCard({ a }: { a: PaceAction }) {
         {a.due && <span className="pm-due">due {a.due}</span>}
         {/* No ref: it was the workbook's row number, and since actions live in
             the app it is the record's id — a 36-character word nobody reads. */}
-      </header>
-      {a.problem && <p className="pm-problem">{a.problem}</p>}
-      {a.action && <p className="pm-do"><b>Action</b> {a.action}</p>}
-      {a.expect && <p className="pm-problem"><b>Should change</b> {a.expect}</p>}
-      <footer className="pm-card-foot">
+      </span>
+      {a.problem && <span className="pm-problem">{a.problem}</span>}
+      {a.action && <span className="pm-do"><b>Action</b> {a.action}</span>}
+      {a.expect && <span className="pm-problem"><b>Should change</b> {a.expect}</span>}
+      <span className="pm-card-foot">
         <span className="pm-status">{a.status}</span>
         {a.who && <span>{a.who}</span>}
         {/* No priority: it was the workbook's column, and an action written in
             the app has none — every card said "Priority 3", which is not true
             of any of them. */}
-      </footer>
-    </article>
+      </span>
+    </Tag>
   );
 }
 
-export function PaceMeeting({ actions, roster }: { actions: PaceAction[]; roster?: PaceRoster }) {
+export function PaceMeeting({ actions, roster, onOpen }: {
+  actions: PaceAction[]; roster?: PaceRoster;
+  /** Opens the action's sheet (ui/ActionSheet) — the caller holds the sheet. */
+  onOpen?: (a: PaceAction) => void;
+}) {
   // "Open" here means not-yet-closed — what the meeting is for.
   const [status, setStatus] = useState<'open' | 'overdue' | 'done' | 'all'>('open');
   const [line, setLine] = useState('All');
@@ -212,7 +224,7 @@ export function PaceMeeting({ actions, roster }: { actions: PaceAction[]; roster
           </p>
         ) : (
           <div className="pm-cards">
-            {shown.map((a, i) => <ActionCard key={a.ref + '#' + i} a={a} />)}
+            {shown.map((a, i) => <ActionCard key={a.ref + '#' + i} a={a} onOpen={a.uid ? onOpen : undefined} />)}
           </div>
         )}
       </div>

@@ -2113,13 +2113,15 @@ button.st-pill { cursor: pointer; }
 }
 .pm-card.is-over  { border-left-color: var(--st-r); }
 .pm-card.is-soon  { border-left-color: var(--warn); }
-.pm-card.is-track { border-left-color: var(--st-g); }
+/* An open action on time is under way — indigo. It wore green, the colour of
+   done, so a meeting full of open work read as finished (CLAUDE.md, rule 1). */
+.pm-card.is-track { border-left-color: var(--st-w); }
 .pm-card.is-done  { border-left-color: var(--ok); opacity: 0.72; }
 .pm-card-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 7px; }
 .pm-flag { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 20px; background: var(--surface-2); color: var(--ink-2); }
 .is-over  .pm-flag { background: #fbeae8; color: var(--st-r); }
 .is-soon  .pm-flag { background: #fdf0e0; color: var(--warn); }
-.is-track .pm-flag { background: color-mix(in srgb, var(--st-g) 11%, var(--surface)); color: var(--st-g); }
+.is-track .pm-flag { background: color-mix(in srgb, var(--st-w) 11%, var(--surface)); color: var(--st-w); }
 .is-done  .pm-flag { background: #e6f4ec; color: #1f8a4c; }
 .pm-line, .pm-cat { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; background: var(--surface-2); color: var(--ink-2); }
 .pm-cat { background: var(--accent-soft); color: var(--accent); }
@@ -2133,6 +2135,12 @@ button.st-pill { cursor: pointer; }
   border-top: 1px solid var(--line); font-size: 11px; color: var(--muted);
 }
 .pm-status { font-weight: 700; color: var(--ink-2); }
+/* THE CARD AS A DOOR (HUNT 14) — the whole card opens the action's sheet. A
+   button, so its spans are laid out as the p/header/footer they replaced. */
+button.pm-card { display: block; width: 100%; min-height: 44px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.pm-card .pm-problem, button.pm-card .pm-do { display: block; }
+button.pm-card:hover { background: var(--surface-2); }
+button.pm-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .pm-nothing { margin: 0; padding: 26px 0; font-size: 13.5px; color: var(--muted); text-align: center; }
 
 @media (max-width: 720px) {
