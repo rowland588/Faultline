@@ -49,9 +49,10 @@ control that does nothing; these are the calls to make next.
 ## The lever tree, the control room, and getting around
 26. ~~**The tree is invisible from the control room.** Neither a tree job's front page nor its Home row says how the outcome stands or which condition is red.~~ **Done 3 Oct:** a tree job's front page has a "The tree" card (the outcome, then each condition off track, each opening the tree), and its row on Home leads with the outcome and the conditions off track instead of People · Plant · Process.
 27. ~~**Every trail starts at "Projects"**, which is no longer the list of jobs.~~ **Done 4 Oct:** every trail starts at "Control room" and goes to Home; the card says "Control room · every job"; the account menu's Home is Control room.
-28. **"Start from the lines" writes "holds its ppm rate"** whatever the project measures. Recommend the first measure's name, or neutral words.
-29. **"Workspace +" on a line row** is the old name for the line's study and walk. Recommend naming it for what it opens.
-30. **A linked condition's edge is brand blue**, which the house rules keep for what you press. Recommend a neutral mark.
+28. ~~**"Start from the lines" writes "holds its ppm rate"** whatever the project measures.~~ **Done 4 Oct:** it uses the project's first measure — "Line 9 hits its waste target", "… meets its waste target" — and plain "target" before the project names one.
+29. ~~**"Workspace +" on a line row** is the old name for the line's study and walk.~~ **Done 4 Oct:** the button says "Time & film", what it opens: the line's stopwatch and filmed walk.
+30. ~~**A linked condition's edge is brand blue**, which the house rules keep for what you press.~~ **Done 4 Oct:** the edge was indigo (`--blue`, "under way"), not brand blue — still a state hue on a mark that is not a state. It is an ink edge now.
 31. **Binding, unbinding and switching method have no Undo.** The tree's delete has Undo now. Recommend Undo for these too.
 
 Fixed after the hunt reported them: the tree's four sheets now close on Escape and on a tap outside, like every other sheet; "Notify me on this device" says when the browser's question was closed without a yes. Not driven: the update banner, because the harness blocks service workers.
+32. ~~**A lever tree job's outcome chip on Home was cut to "Outcome n…"** in a quarter of the row.~~ **Done 4 Oct** (found 3 Oct, not in the first hunt): it takes two quarters and reads in full.

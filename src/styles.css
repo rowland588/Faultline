@@ -4101,7 +4101,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 /* the condition holding the link — a quiet mark, not a badge. The box is still
    the author's sentence and should read as one. */
-.lt-box.is-linked { border-left-width: 3px; border-left-color: var(--blue); }
+/* INK, NOT INDIGO. Indigo is "under way" everywhere in the app; the edge
+   only says "this box is linked", which is not a state (HUNT 30). */
+.lt-box.is-linked { border-left-width: 3px; border-left-color: var(--ink-2); }
 .lt-link.is-on { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 40%, var(--line)); background: color-mix(in srgb, var(--blue) 9%, transparent); }
 
 /* a row the tracker put here. Flatter than a box somebody wrote, because it is
@@ -6506,6 +6508,9 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .jb-chip.is-at.is-late { background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r); }
 .jb-chip.is-at.is-done { background: color-mix(in srgb, var(--st-g) 11%, var(--surface)); color: var(--st-g); }
 .jb-gates { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; max-width: 280px; }
+/* "Outcome not started" in a quarter of the row was cut to "Outcome n…" —
+   the one chip a tree job leads with, unreadable. It takes two quarters. */
+.jb-gate.is-wide { grid-column: span 2; }
 .jb-gate {
   padding: 2px 0; border-radius: 5px; font-size: 9.5px; font-weight: 700; text-align: center; letter-spacing: 0.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--line-2); color: var(--ink-2); background: var(--surface);

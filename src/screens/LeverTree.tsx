@@ -545,18 +545,24 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const startFromLines = async () => {
     const ls = trackerLines(ppm.lines);
     if (!ls.length) return;
+    const first = [...(project?.measures ?? [])].sort((a, b) => a.sort - b.sort)[0];
+    const goal = first ? `${first.name.toLowerCase()} target` : 'target';
     const t = now();
     const rootId = uid();
     await putTreeNodes([
       {
-        /* One line is "Line 7 holds its ppm rate", not "7 hold their ppm rate". */
-        id: rootId, projectId, text: ls.length === 1 ? `${ls[0].label} holds its ppm rate`
-          : `${ls.map(l => l.label.replace(/^Line /, '')).join(', ')} hold their ppm rate`,
+        /* One line is "Line 7 hits its target", not "7 hit their target".
+           THE PROJECT'S OWN NUMBER, NOT "PPM". It wrote "holds its ppm rate"
+           whatever the job measured — waste or OEE included (HUNT 28). Now
+           the first measure the project names, or plain "target" when it has
+           none yet. */
+        id: rootId, projectId, text: ls.length === 1 ? `${ls[0].label} hits its ${goal}`
+          : `${ls.map(l => l.label.replace(/^Line /, '')).join(', ')} hit their ${goal}`,
         rag: 'n' as NodeStatus, sort: 0, createdAt: t, updatedAt: t,
       },
       ...ls.map((l, i) => ({
         id: uid(), projectId, parentId: rootId,
-        text: `${l.label} achieves its ppm rate`,
+        text: `${l.label} meets its ${goal}`,
         rag: 'n' as NodeStatus, sort: i, createdAt: t, updatedAt: t,
       })),
     ]);

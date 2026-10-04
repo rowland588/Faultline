@@ -151,7 +151,9 @@ function LineRow({ line, first, last, state, projectId, members }: {
           Open pack
         </button>
         <button className="btn btn-ghost pset-ws" disabled={busy} onClick={() => void openWorkspace()}>
-          {busy ? 'Opening…' : line.workspaceId ? 'Workspace' : 'Workspace +'}
+          {/* NAMED FOR WHAT IT OPENS — the line's stopwatch and its filmed
+              walk. "Workspace +" was the old container's name (HUNT 29). */}
+          {busy ? 'Opening…' : 'Time & film'}
         </button>
         <button className="pset-x" onClick={remove} aria-label={`Remove ${line.name}`}><Icon name="close" size="0.85em" /></button>
       </td>

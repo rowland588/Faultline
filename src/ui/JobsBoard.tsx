@@ -493,7 +493,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                conditions that are off track — only the abnormal ones carry a
                colour, and each says its state in words. */
             <span className="jb-gates" aria-label={v.tree.says}>
-              <span className={'jb-gate is-' + TREE_TONE[v.tree.outcome.rag]} title={v.tree.says}>Outcome {v.tree.outcome.word}</span>
+              <span className={'jb-gate is-wide is-' + TREE_TONE[v.tree.outcome.rag]} title={v.tree.says}>Outcome {v.tree.outcome.word}</span>
               {v.tree.late > 0 && <span className="jb-gate is-late">{v.tree.late} overdue</span>}
               {v.tree.risk > 0 && <span className="jb-gate is-risk">{v.tree.risk} at risk</span>}
               {v.tree.total > 0 && v.tree.late + v.tree.risk === 0 && (
