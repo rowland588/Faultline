@@ -20,7 +20,7 @@
  * per line, in one go, because typing twenty actions back in by hand is how a
  * tool gets abandoned in week two.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   listTreeNodes, putTreeNode, putTreeNodes, deleteTreeBranch, listPaceTodos, type PaceTodoRow,
   onDataChange, type TreeNodeRow, type NodeStatus,
@@ -111,9 +111,11 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 export function Box({
   t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove,
   folded, onFold, drag, moving, onPickUp, onPutHere, onBind, boundCount,
-  onSuggest, suggestNew, numbers, can,
+  onSuggest, suggestNew, numbers, can, open = false,
 }: {
   t: Tree;
+  /** This box's tools are out — on a phone they take room in the box. */
+  open?: boolean;
   /** What this person may do to the tree (lib/access). Without `edit` the box
    *  is READ-ONLY — a client sees every box whole, its state, its number and
    *  its link, and is offered nothing that writes, because the database
@@ -162,6 +164,10 @@ export function Box({
 }) {
   const { node } = t;
   const ta = useRef<HTMLTextAreaElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  /* The tree held this box still while its tools were out (LeverTree,
+     holdStill); they go away, and so does the push. */
+  useLayoutEffect(() => { if (!open && root.current) root.current.style.marginTop = ''; }, [open]);
   const [text, setText] = useState(node.text);
   /* A row the tracker put here is not this app's to edit. Changing its words or
    * its colour on the tree would be a lie the next upload silently undoes — the
@@ -215,17 +221,15 @@ export function Box({
       className={'lt-box is-' + node.rag + (act ? ' is-act' : '')
         + (fromTracker ? ' is-bound' : '') + (bindsWork(node.bind) ? ' is-linked' : '')
         + (drag.over === node.id ? ' is-drop' : '') + (drag.id === node.id ? ' is-dragging' : '')
-        + (isMoving ? ' is-lifted' : '')}
+        + (isMoving ? ' is-lifted' : '') + (open ? ' is-open' : '')}
       /* THE WHOLE BOX OPENS IT. Its tools come out on focus, and only the one
          line of words could take focus — a tap anywhere else on the box, the
          blank half where the tools sit included, did nothing at all. Focusable
          itself, a tap anywhere brings out the tools without raising the
          keyboard, and a row off the board shows its whole wording. */
       tabIndex={-1}
+      ref={root}
       data-box={node.id}
-      /* The tree held this box still while its tools were out (LeverTree,
-         holdStill); they go away with the focus, and so does the push. */
-      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) e.currentTarget.style.marginTop = ''; }}
       draggable={!fromTracker && !viewOnly}
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
       onDragOver={e => {
@@ -297,6 +301,9 @@ export function Box({
         <button
           type="button" className={'lt-fold' + (folded ? ' is-folded' : '')}
           onClick={onFold} aria-expanded={!folded}
+          /* Folding is looking, not working on the box: it does not take the
+             focus, so it does not bring the box's tools out with it. */
+          onMouseDown={e => e.preventDefault()}
           title={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
           aria-label={folded ? `Show the ${n} under this` : `Hide the ${n} under this`}
         >
@@ -511,10 +518,23 @@ export function LeverTree({ projectId }: { projectId: string }) {
    * tools used to be laid OVER the tree to avoid that, and covered the box
    * underneath: after "Add another below" the new box's "Build the conditions
    * from the board" sat under the old box's tools, and a tap on it pressed a
-   * tool. Now nothing is covered and the shift is scrolled away: where the
-   * box was before it opened is where it is after. */
-  const pinned = useRef<{ box: Element; top: number } | null>(null);
-  const holdStill = useCallback((box: Element, top: number, push = true) => {
+   * tool. Now nothing is covered, and two things keep the finger on target:
+   *
+   * - the tools open a moment AFTER the tap, not during it. A phone sends a
+   *   tap's press, release and click one after another; a box that grew
+   *   between the press and the click had the click land on whatever slid
+   *   under the finger. `openId` follows the focus a tick late.
+   * - the box that was tapped is put back where it was (holdStill). */
+  const [openId, setOpenId] = useState<string | null>(null);
+  const pinned = useRef<{ box: Element; top: number; push: boolean } | null>(null);
+  const followFocus = useCallback(() => {
+    window.setTimeout(() => {
+      const box = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('.lt-box');
+      const id = box && scroll.current?.contains(box) ? box.dataset.box ?? null : null;
+      setOpenId(prev => { if (prev === id) pinned.current = null; return id; });
+    }, 0);
+  }, []);
+  const holdStill = useCallback((box: Element, top: number, push: boolean) => {
     const moved = () => box.getBoundingClientRect().top - top;
     const first = moved();
     if (Math.abs(first) < 1) return;
@@ -522,7 +542,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
        rises. A top margin takes the rise back: it grows downwards, into the
        empty height its branch already has beside it, and nothing else on the
        tree moves. Found in two tries (a straight line through the first), so
-       it holds however the branch is laid out. Box (onBlur) lets go of it. */
+       it holds however the branch is laid out. Box lets go of it on closing. */
     const el = box as HTMLElement;
     if (push && first < 0) {
       const at = (m: number) => { el.style.marginTop = `${m}px`; return moved(); };
@@ -539,23 +559,29 @@ export function LeverTree({ projectId }: { projectId: string }) {
     while (up && !(up.scrollHeight > up.clientHeight && /auto|scroll/.test(getComputedStyle(up).overflowY))) up = up.parentElement;
     (up ?? document.scrollingElement ?? document.documentElement).scrollBy(0, rest);
   }, []);
-  const notePress = (e: React.PointerEvent) => {
-    const box = (e.target as Element).closest('.lt-box');
-    pinned.current = box && !box.contains(document.activeElement) ? { box, top: box.getBoundingClientRect().top } : null;
-  };
-  const keepPressed = (e: React.FocusEvent) => {
+  useLayoutEffect(() => {
     const p = pinned.current;
     pinned.current = null;
-    if (p && p.box.contains(e.target as Node)) holdStill(p.box, p.top);
+    if (p?.box.isConnected) holdStill(p.box, p.top, p.push);
+  }, [openId, holdStill]);
+  /** Where the box about to open stood when it was pressed. */
+  const notePress = (e: React.PointerEvent) => {
+    const box = (e.target as Element).closest<HTMLElement>('.lt-box');
+    if (box && box.dataset.box !== openId) pinned.current = { box, top: box.getBoundingClientRect().top, push: true };
   };
   /** The box just added — it takes the focus, so its tools are the ones out
    *  and the box whose ＋ was pressed puts its own away. */
   const [focusId, setFocusId] = useState<string | null>(null);
-  /** Where the box whose ＋ was pressed stood before the new one landed. */
-  const addedFrom = useRef<{ box: Element; top: number } | null>(null);
+  /** …or the box just moved up or down, with the button that moved it: the
+   *  move takes its box out of the page and puts it back, which drops the
+   *  focus, and the tools went away under the thumb after one step. */
+  const refocusOn = useRef<string | null>(null);
+  /** The box whose ＋ was pressed is where the finger is: it stays put, where
+   *  the page can scroll. (A new box in a centred column moves the column —
+   *  on a laptop too — and the new box is the one in hand now.) */
   const noteAdding = () => {
     const box = (document.activeElement as HTMLElement | null)?.closest('.lt-box');
-    addedFrom.current = box ? { box, top: box.getBoundingClientRect().top } : null;
+    pinned.current = box ? { box, top: box.getBoundingClientRect().top, push: false } : null;
   };
 
   /** Scale the whole tree to the width available — the "show me all of it" that
@@ -608,15 +634,12 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const box = scroll.current?.querySelector(`[data-box="${focusId}"]`);
     if (!box) return;
     setFocusId(null);
-    /* The box whose ＋ was pressed is where the finger is: it stays put,
-       where the page can scroll. A new box in a centred column moves the
-       column — on a laptop too — and the new box is the one in hand now. */
-    const from = addedFrom.current;
-    addedFrom.current = null;
-    (box.querySelector('textarea') ?? (box as HTMLElement)).focus({ preventScroll: true });
-    if (from?.box.isConnected) holdStill(from.box, from.top, false);
+    const on = refocusOn.current;
+    refocusOn.current = null;
+    const button = on ? box.querySelector<HTMLElement>(`button[aria-label="${on}"]`) : null;
+    (button ?? box.querySelector('textarea') ?? (box as HTMLElement)).focus({ preventScroll: true });
     box.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [rows, focusId, holdStill]);
+  }, [rows, focusId]);
 
   const nodes = rows ?? [];
   /* What is STORED and what is DRAWN are two different lists. A condition that
@@ -786,6 +809,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
        colour, and a reorder wrote that colour over the author's own. */
     await putTreeNodes([{ ...sibs[i], sort: sibs[j].sort }, { ...sibs[j], sort: sibs[i].sort }]);
     await load();
+    refocusOn.current = dir < 0 ? 'Move up' : 'Move down';
+    setFocusId(n.id);
   };
 
   /** Re-parent by dragging one box onto another. Refuses to drop a box inside
@@ -893,6 +918,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
       <Box
         t={t}
         can={can}
+        open={openId === t.node.id}
         folded={folded.has(t.node.id)}
         onFold={() => toggleFold(t.node.id)}
         moving={moving}
@@ -1080,7 +1106,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            <div className="lt-scroll" ref={scroll} style={{ zoom }} onPointerDownCapture={notePress} onFocus={keepPressed}>
+            <div className="lt-scroll" ref={scroll} style={{ zoom }} onPointerDownCapture={notePress} onFocus={followFocus} onBlur={followFocus}>
               {/* the level names, on the same pitch as the columns below */}
               <div className="lt-legend">
                 {LEVELS.slice(0, depth).map(l => <span key={l} className="lt-legend-i">{l}</span>)}
