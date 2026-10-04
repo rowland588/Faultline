@@ -45,7 +45,9 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
             what a 3P job's carries. */}
         <Door title="Client report" says={stageGate ? 'The job in the order it is run — the gates, the plan, the fixes, who owes what.'
           : tree ? 'The outcome and what has to be true for it, the numbers, the board, the walk.'
-          : 'The numbers, the board, where each line is limited, the walk.'}
+          /* A 6M job's report is the root cause story (lib/sixmReportPdf);
+             the old 3P words were not what it prints. */
+          : 'The gap, where the loss is, each problem’s fishbone and what is being done about it, the board by bone, the walk.'}
           onClick={() => go(stageGate ? `/project/${project.id}/report` : `/pace-report?project=${project.id}`)} />
         {!stageGate && lines.map(l => (
           <Door key={l.id} title={`Client report — ${l.name}`} says="The same report, for one line." onClick={() => go(`/pace-report?project=${project.id}&line=${l.id}`)} />

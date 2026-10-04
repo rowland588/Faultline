@@ -299,7 +299,7 @@ function LineCard({ line, pack, projectId, series, balance }: {
       </button>
       <footer className="lc-foot">
         <span className="sub">{line.workspaceId ? 'Has its own workspace' : 'Workspace made on first walk'}</span>
-        <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}&line=${line.id}`)}>Its deck</button>
+        <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}&line=${line.id}`)}>Client report</button>
       </footer>
     </article>
   );

@@ -968,7 +968,7 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
 
       <div className={'cr-body' + (wide ? ' is-wide' : '')}>
         <ol className="cr-toc">
-          <li><b>{report.gaps.length > 1 ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span><span className="sub">{report.slip}</span></li>
+          <li><b>{report.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span><span className="sub">{report.slip}</span></li>
           {report.gaps.length > 0 && <li><b>The gap</b>{report.gaps.map(g => <span key={g.line}>{g.says}</span>)}</li>}
           {(report.pareto || report.constraints.length > 0) && (
             <li><b>Where the loss is</b>
