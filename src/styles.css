@@ -3577,20 +3577,20 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    pill is 32px, and the fold carries an invisible ring a fingertip can find. */
 @media (max-width: 720px) {
   .lt-acts { flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
-  /* Two rows of hidden 40px tools would make every box tall, and growing the
-     box when it is tapped moves it under the finger (a box is centred on its
-     branch). So the tools come out as a bar just under the box being worked
-     on, over the tree, and nothing on the page moves. */
+  /* Two rows of hidden 40px tools would make every box tall, so they are not
+     there until the box is being worked on. They come out IN the box, on
+     their own rows under its state. They used to come out as a bar laid over
+     the tree under the box, so that nothing moved — and the bar covered the
+     box below: after "Add another below" it sat on the new box's "Build the
+     conditions from the board", and a tap meant for that pressed a tool. In
+     the box they cover nothing; the branch shifts as the box grows, and
+     LeverTree scrolls that away so the box stays under the finger. With no
+     bar hanging below the lowest box, the 100px of room kept for it under the
+     tree goes too. */
   .lt-box .lt-acts { display: none; }
-  .lt-box:focus-within, .lt-box:has(.lt-move.is-on) { z-index: 7; }
   .lt-box:focus-within .lt-acts, .lt-box:has(.lt-move.is-on) .lt-acts {
-    display: flex; position: absolute; left: -1px; right: -1px; top: calc(100% + 4px);
-    justify-content: flex-start; padding: 4px; border-radius: 8px;
-    background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow);
+    display: flex; flex-basis: 100%; justify-content: flex-start; margin-left: 0;
   }
-  /* Room under the lowest box for its bar — the canvas scrolls sideways, so
-     it clips, and the bar's second row went under "Another outcome". */
-  .lt-scroll { padding-bottom: 100px; }
   .lt-mini, .lt-box.is-act .lt-mini { min-width: 40px; height: 40px; font-size: 16px; }
   .lt-status:not(.is-ro) { min-height: 32px; }
   .lt-fold::before { content: ''; position: absolute; inset: -11px; border-radius: 999px; }
@@ -4139,6 +4139,12 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
    got. Tapped, the box takes focus and opens to its full wording. */
 .lt-box.is-bound:focus-within .lt-text-ro { -webkit-line-clamp: unset; display: block; }
 .lt-tools.is-ro { display: flex; align-items: center; gap: 8px; }
+/* A box read by somebody who may not change it (a client): the whole
+   wording, as typed, and nothing that looks like a field. */
+.lt-text-view { margin: 0; cursor: default; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lt-text-view.is-empty { font-weight: 500; color: var(--muted); }
+/* Only a box that can be picked up offers the grab hand. */
+.lt-box[draggable="false"] { cursor: default; }
 .lt-status.is-ro { cursor: default; }
 .lt-from {
   margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
