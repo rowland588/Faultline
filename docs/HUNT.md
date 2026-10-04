@@ -38,12 +38,12 @@ control that does nothing; these are the calls to make next.
 ## The walk and the tools inside a workspace
 17. ~~**Dead code:** `engine/questions.ts` and `engine/tools.ts` are imported by nothing; LineBoard's `present` prop is never passed.~~ **Done 3 Oct:** `engine/questions.ts`, `engine/tools.ts` and LineBoard's `present` prop are removed.
 18. **Duplicate back buttons** on the case and on Through time do what the breadcrumb does. Recommend removing them (a removal, so your call).
-19. **The one-page report mixes periods**: "lost last week" is the last full week, the bars are the last 7 days. Recommend one period.
-20. **A gone workspace link** goes Home with no sentence. Recommend a note.
-21. **The Line's rail dots are 11–14 px.** Recommend a 44 px invisible hit area.
+19. ~~**The one-page report mixes periods**: "lost last week" is the last full week, the bars are the last 7 days.~~ **Done 4 Oct:** one period — last week, Monday to Sunday, the week the headline and its 4-week comparison already used. The bars, the total and "closed last week" follow it, and the page names it: "Last week, Mon 21 Sept – Sun 27 Sept."
+20. ~~**A gone workspace link** goes Home with no sentence.~~ **Done 4 Oct:** it stays on the link and says "That line study isn’t here any more — it was deleted, or it has not synced to this device yet", in the gone video's words, with Back to the control room. It re-reads after each sync, so a study still on its way arrives by itself.
+21. ~~**The Line's rail dots are 11–14 px.**~~ **Done 4 Oct:** each dot is a 28 × 44 button with the same 11px dot drawn inside it.
 22. **Evidence counts:** "1 open" is red and "2 closed" green, against the rule that an outstanding count stays neutral — but a comment on the screen chose this on purpose. Your call.
-23. **"Show this in the meeting ›"** opens the meeting's overview, not the drill you were on.
-24. **The case's action sheet** offers "Open the Case it was raised for" while you are on that case.
+23. ~~**"Show this in the meeting ›"** opens the meeting's overview, not the drill you were on.~~ **Done 4 Oct:** the link carries the drill (`?act=2&path=…`, the encoding Analyse already uses) and the meeting opens on Where it hurt at that drill.
+24. ~~**The case's action sheet** offers "Open the Case it was raised for" while you are on that case.~~ **Done 4 Oct:** the door is left off when the sheet is open on that case.
 25. **Date boxes save on every change, app-wide**: typing a year digit by digit writes several times.
 
 ## The lever tree, the control room, and getting around

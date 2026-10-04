@@ -8,14 +8,12 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack } from '../state/useRoute';
 import { snagsForWorkspace } from '../db';
 import { useSyncedAt } from '../cloud/session';
-import { weeklyLoss, headline } from '../lib/stats';
+import { weeklyLoss, headline, weekStart } from '../lib/stats';
 import { fmtGBP, costPerMs } from '../lib/cost';
 import { fmtDurationWords } from '../lib/format';
 import { LogoMark } from '../ui/Logo';
 import { ageDays, type Snag } from '../snag/types';
 import { Icon } from '../ui/Icon';
-
-const WEEK_MS = 7 * 24 * 3600_000;
 
 type Paper = 'A4' | 'A3';
 
@@ -34,9 +32,19 @@ export function ReportScreen() {
   const kpi = useMemo(() => headline(weeks, workspace), [weeks, workspace]);
   const factor = costPerMs(workspace);
 
-  // "This week" on the report = the last 7 days, live.
-  const from = Date.now() - WEEK_MS;
-  const recent = observations.filter(o => o.startedAt >= from);
+  /* ONE PERIOD: LAST WEEK, MONDAY TO SUNDAY. The headline was the last full
+     week and the bars the last 7 days, so on a Monday it could say "0m lost
+     last week" above 49 minutes of bars (HUNT 19). The headline's week is the
+     one its 4-week comparison is built on, so everything follows it. */
+  const to = weekStart(Date.now());
+  const from = weekStart(to - 12 * 3600_000);
+  const dayWord = (t: number) => {
+    const x = new Date(t);
+    return `${x.toLocaleDateString('en-GB', { weekday: 'short' })} ${x.getDate()} ${x.toLocaleDateString('en-GB', { month: 'short' })}`;
+  };
+  const period = `${dayWord(from)} – ${dayWord(to - 12 * 3600_000)}`;
+  const inWeek = (t?: number) => t != null && t >= from && t < to;
+  const recent = observations.filter(o => inWeek(o.startedAt));
   const byCat = new Map<string, number>();
   for (const o of recent) byCat.set(o.category, (byCat.get(o.category) ?? 0) + o.durationMs);
   const cats = [...byCat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -45,7 +53,7 @@ export function ReportScreen() {
 
   const open = snags.filter(s => s.status !== 'closed').sort((a, b) => a.raisedAt - b.raisedAt);
   const stale = open.filter(s => ageDays(s.raisedAt) > 30);
-  const closedThisWeek = snags.filter(s => s.status === 'closed' && (s.closedAt ?? 0) >= from);
+  const closedThisWeek = snags.filter(s => s.status === 'closed' && inWeek(s.closedAt));
 
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -73,7 +81,7 @@ export function ReportScreen() {
         </div>
 
         <h1 className="report-h1">{workspace.name} — the week on one page</h1>
-        <p className="report-sub">Everything below comes from walks and floor logs. No manual reporting.</p>
+        <p className="report-sub">Last week, {period}. Everything below comes from walks and floor logs. No manual reporting.</p>
 
         <div className="report-stats">
           <div className="rstat">
@@ -88,15 +96,15 @@ export function ReportScreen() {
             {stale.length > 0 && <em className="bad">{stale.length} stale (30d+)</em>}
           </div>
           <div className="rstat">
-            <b>{closedThisWeek.length}</b><span>closed this week</span>
+            <b>{closedThisWeek.length}</b><span>closed last week</span>
             {closedThisWeek.length > 0 && <em className="good">keep going</em>}
           </div>
         </div>
 
         <div className="report-cols">
           <div>
-            <h2 className="report-h2">Where the time went <span className="report-note">last 7 days</span></h2>
-            {cats.length === 0 ? <p className="report-empty">Nothing logged this week.</p> : cats.map(([cat, ms], i) => (
+            <h2 className="report-h2">Where the time went <span className="report-note">last week</span></h2>
+            {cats.length === 0 ? <p className="report-empty">Nothing logged last week.</p> : cats.map(([cat, ms], i) => (
               <div className="rbar" key={cat}>
                 <span className="rbar-lbl">{cat}</span>
                 <span className="rbar-track" style={{ width: `${Math.max(8, (ms / maxMs) * 160)}px`, background: i === 0 ? LOSS_TOP : LOSS }} />
@@ -119,7 +127,7 @@ export function ReportScreen() {
 
             {closedThisWeek.length > 0 && (
               <>
-                <h2 className="report-h2" style={{ marginTop: 16 }}>Closed this week <Icon name="check" size="1.15em" /></h2>
+                <h2 className="report-h2" style={{ marginTop: 16 }}>Closed last week <Icon name="check" size="1.15em" /></h2>
                 {closedThisWeek.slice(0, 5).map(s => (
                   <div className="rsnag" key={s.id}>
                     <span>{s.problem}</span>

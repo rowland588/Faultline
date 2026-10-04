@@ -8,7 +8,7 @@ import { LOSS } from '../charts/loss';
 import { TrendPanel } from './TrendScreen';
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../state/useRoute';
-import { nav, withQuery, readWorkstreamView, buildAnalyseHash } from '../state/useRoute';
+import { nav, withQuery, readWorkstreamView, buildAnalyseHash, encodePath } from '../state/useRoute';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { useSyncedAt } from '../cloud/session';
 import { listCases, listSegments, addCase } from '../db';
@@ -324,7 +324,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 ? <button className="linkish" data-tour="case-cta" onClick={() => nav(`/w/${workspace.id}/case/${existing.id}`)}><Icon name="case" size="1.15em" /> Open its Case — {existing.title} ›</button>
                 : <button className="linkish" data-tour="case-cta" onClick={() => void openCaseHere()}><Icon name="case" size="1.15em" /> Open a Case on this ›</button>
             )}
-            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/meeting`)}>Show this in the meeting ›</button>
+            {/* "This" is the drill you are on — the meeting opens at it (HUNT 23). */}
+            <button className="linkish" onClick={() => nav(`/w/${workspace.id}/meeting?act=2${view.path.length ? `&path=${encodeURIComponent(encodePath(view.path))}` : ''}`)}>Show this in the meeting ›</button>
           </div>
 
         </>

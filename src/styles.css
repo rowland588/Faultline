@@ -1567,14 +1567,21 @@ button.st-pill { cursor: pointer; }
 .line-gap b { font-size: 17px; }
 
 /* the rail: the whole line at a glance */
-.line-rail { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+/* A DOT TO SEE, A BUTTON TO PRESS. The dots were 11px buttons — they look
+   tappable and were a poor target for a gloved finger (HUNT 21). The button
+   is now 28 × 44 and transparent; the dot drawn inside it is the same 11px. */
+.line-rail { display: flex; justify-content: center; gap: 0; margin-top: 6px; flex-wrap: wrap; }
 .line-dot {
-  width: 11px; height: 11px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
-  background: var(--line);
+  position: relative; width: 28px; height: 44px; border: none; cursor: pointer; padding: 0;
+  background: transparent;
 }
-.line-dot.on { background: var(--accent); transform: scale(1.25); }
-.line-dot.hot { box-shadow: 0 0 0 2.5px rgba(217, 79, 67, 0.55); }
-.line-dot.gap { background: transparent; border: 1.5px dashed var(--muted); }
+.line-dot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%; background: var(--line); box-sizing: border-box;
+}
+.line-dot.on::after { background: var(--accent); transform: scale(1.25); }
+.line-dot.hot::after { box-shadow: 0 0 0 2.5px rgba(217, 79, 67, 0.55); }
+.line-dot.gap::after { background: transparent; border: 1.5px dashed var(--muted); }
 .line-hint { text-align: center; margin-top: 8px; }
 
 /* ---------- stage 2: the layers — the portrait as the canvas ---------- */

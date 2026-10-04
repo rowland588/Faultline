@@ -8,7 +8,8 @@ import {
   getWorkspace, listObservations, addObservation, softDeleteObservation,
   restoreObservation, patchWorkspaceRecord, setLastWorkspace,
 } from '../db';
-import { navReplace } from './useRoute';
+import { nav } from './useRoute';
+import { Crumbs } from '../ui/Crumbs';
 import { useSyncedAt } from '../cloud/session';
 import { BootSplash } from '../ui/Logo';
 
@@ -46,7 +47,7 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
       setObservations(obs);
       void setLastWorkspace(wsId); // only remember it once we know it's real (no dangling pointer)
     } catch {
-      setMissing(true); // storage unavailable → bounce Home rather than hang blank
+      setMissing(true); // storage unavailable → say so rather than hang blank
     }
   }, [wsId]);
 
@@ -56,8 +57,6 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
     setMissing(false);
     void reload();
   }, [wsId, reload, syncedAt]);
-
-  useEffect(() => { if (missing) navReplace('/'); }, [missing]);
 
   const addObs = useCallback(async (o: Observation) => {
     await addObservation(o);
@@ -79,7 +78,18 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
     if (next) setWorkspace(next);
   }, [wsId]);
 
-  if (missing) return null; // redirect happens in the effect above
+  /* SAID, NOT BOUNCED. A link to a study that is not on this device went
+     straight to Home without a word, so a link that worked yesterday looked
+     like the app ignoring the tap (HUNT 20). It says why, in the words the
+     gone video and frame use, and offers the way back. It also re-reads after
+     every sync, so a study still on its way arrives here by itself. */
+  if (missing) return (
+    <div className="wrap">
+      <Crumbs trail={[{ label: 'Control room', to: '/' }, { label: 'Not here' }]} />
+      <p className="sub" style={{ marginTop: 24 }}>That line study isn’t here any more — it was deleted, or it has not synced to this device yet. If it was made on another phone, it appears here by itself once both have had a signal.</p>
+      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
+    </div>
+  );
   if (!workspace) return <BootSplash />; // branded, not a blank flash, while the workspace loads
 
   return (

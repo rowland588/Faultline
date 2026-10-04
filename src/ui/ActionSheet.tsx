@@ -29,6 +29,9 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
   };
   // The walk of the line this was raised on, where its Case lives.
   const caseWs = s.caseId ? lines.find(l => l.id === s.lineId)?.workspaceId : undefined;
+  /* NOT A DOOR TO ITSELF. Opened on the case it was raised for, the sheet
+     offered "Open the Case it was raised for" — the page underneath (HUNT 24). */
+  const onThatCase = !!s.caseId && window.location.hash.includes(`/case/${s.caseId}`);
   const remove = async () => {
     if (!window.confirm(`Delete this action?\n\n"${s.what}"`)) return;
     await deletePaceTodo(s.id);
@@ -44,7 +47,7 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
         <label className="cw-f cw-f-wide"><span>WHY — WHAT IT FIXES</span>
           <textarea rows={2} value={s.why} placeholder="Film breaks at the splice, 20 min a shift"
             onChange={e => set({ why: e.target.value })} /></label>
-        {s.caseId && caseWs && (
+        {s.caseId && caseWs && !onThatCase && (
           <button type="button" className="cw-link" style={{ alignSelf: 'flex-start' }}
             onClick={() => { onClose(); nav(`/w/${caseWs}/case/${s.caseId}`); }}>Open the Case it was raised for ›</button>
         )}

@@ -16,7 +16,7 @@ import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav, goBack } from '../state/useRoute';
+import { nav, goBack, decodePath } from '../state/useRoute';
 import { listSnagAssets, snagsForWorkspace, updateSnag, listCases, listSegments } from '../db';
 import { freshness, agoWord } from '../lib/gemba';
 import { useSyncedAt } from '../cloud/session';
@@ -108,7 +108,15 @@ export function MeetingScreen() {
 
   // The meeting's birth moment — Act 5 diffs everything against it.
   const [sessionStart] = useState(() => Date.now());
-  const [act, setAct] = useState(0);
+  /* ARRIVING FROM A DRILL. "Show this in the meeting ›" on Analyse opened
+     the overview and dropped the drill it was pressed on (HUNT 23). It now
+     says ?act=2&path=…, and the meeting opens on Where it hurt at that drill. */
+  const [arrived] = useState(() => {
+    const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    // The same encoding Analyse's own links use (useRoute encodePath).
+    return { act: q.get('act') === '2' ? 2 : 0, path: decodePath(q.get('path')) };
+  });
+  const [act, setAct] = useState(arrived.act);
   const [reports, setReports] = useState(false);
 
   const [snags, setSnags] = useState<Snag[]>([]);
@@ -156,7 +164,7 @@ export function MeetingScreen() {
   const touched = useMemo(() => snags.filter(s => (s.updatedAt ?? s.raisedAt) >= sessionStart), [snags, sessionStart]);
 
   // ---- act 2's zoom lives up here so Escape can pop it from the one keyboard handler
-  const [path, setPath] = useState<DrillPath>([]);
+  const [path, setPath] = useState<DrillPath>(arrived.path);
   const escBoard = useRef<() => boolean>(() => false);
   escBoard.current = () => { if (path.length) { setPath(p => p.slice(0, -1)); return true; } return false; };
 
