@@ -9075,6 +9075,8 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .jb-said.is-none { color: var(--muted); font-weight: 600; }
 /* The drawer: the gap first, then the problems — each row one door to its
    fishbone — then the board by bone. */
+.jb-6m-top { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; padding: 6px 5px 14px 4px; }
+.jb-6m-top .jb-probs { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 .jb-gap { display: flex; flex-direction: column; gap: 4px; }
 .jb-gap-l { margin: 0; font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
 .jb-probs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
