@@ -831,9 +831,11 @@ await run(8, 'a file over the 50 MB limit', async () => {
   check(/too (big|large)/i.test(home), 'Home says it in words', home.match(/[^.]*too (big|large)[^.]*/i)?.[0] ?? '(nothing)');
   check(cloud.rows('tests').find(r => r.id === tid)?.media?.some(m => m.blobKey === key), 'the record itself still synced');
 
-  /* The server's limit lower than the app believes (a bucket set to 200 kB):
-     the 413 itself must be read as final, not as a blip to retry. */
-  cloud.maxObjectBytes = 200_000;
+  /* The server's limit lower than the app believes: the 413 itself must be
+     read as final, not as a blip to retry. 1 kB, so ANY clip is over it — it
+     was 200 kB, and a three-second clip recorded on a busy machine came out
+     smaller than that, went up, and the scenario failed with no 413 at all. */
+  cloud.maxObjectBytes = 1_000;
   await go(p, `/project/${pid}/testing/${tid}`);
   await filmClip(p, 3);
   const small = (await testRow(p, tid)).media.at(-1);
@@ -843,7 +845,8 @@ await run(8, 'a file over the 50 MB limit', async () => {
   await syncViaUI(phone); await syncViaUI(phone);
   const a2 = cloud.log.filter(e => e.path.endsWith(`/${small.blobKey}`) && e.method === 'POST').length;
   const st2 = await status(p);
-  check(cloud.uploadsRefused.tooLarge >= 1 && a1 === 1 && a2 === 1, 'a 413 from the server is final: one attempt, not one a pass', `413s=${cloud.uploadsRefused.tooLarge}, attempts ${a1} then ${a2}`);
+  const sent = cloud.log.find(e => e.path.endsWith(`/${small.blobKey}`) && e.method === 'POST');
+  check(cloud.uploadsRefused.tooLarge >= 1 && a1 === 1 && a2 === 1, 'a 413 from the server is final: one attempt, not one a pass', `413s=${cloud.uploadsRefused.tooLarge}, attempts ${a1} then ${a2}, result ${sent?.result} ${sent?.bytes ?? ''}`);
   check(st2.tooBig?.some(x => x.key === small.blobKey) && !st2.pendingUp, 'and it is named too big, not “still to back up”', JSON.stringify({ tooBig: st2.tooBig?.length, pendingUp: st2.pendingUp }));
   /* Before Repair (which re-sends everything on purpose): no file has gone up
      twice — not from two passes racing, not from the laptop sending back a
