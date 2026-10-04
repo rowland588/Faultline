@@ -134,7 +134,27 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       <div className={'cr-body' + (wide ? ' is-wide' : '')}>
         <ol className="cr-toc">
           <li><b>Where the job is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
-          {report.sections.map(s => <li key={s.gate}><b>{s.label}</b><span>{s.says}</span></li>)}
+          {report.sections.map(s => (
+            <li key={s.gate}>
+              <b>{s.label}</b><span>{s.says}</span>
+              {/* How each stage went — the same rows, in the same words, as
+                  the paper prints under the gate's grid. */}
+              {s.accounts && s.accounts.length > 0 && (
+                <ul className="cr-said" aria-label={`How each stage went — ${s.label}`}>
+                  {s.accounts.map((a, i) => (
+                    <li key={i}>
+                      <p className="cr-said-h">
+                        <b>{a.machine} — {a.stage}</b>
+                        <span className="cr-said-when">{a.when}</span>
+                        <span className={`cr-said-st is-${a.tone}`}>{a.state}</span>
+                      </p>
+                      <p className="cr-said-t">{a.said}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
           {report.plan.length > 0 && <li><b>The plan</b><span>A Gantt chart, landscape — {report.plan.length} dated, on a calendar</span></li>}
           <li><b>Fixes</b><span>{report.fixes.open.length} open · {report.fixes.done.length} done</span></li>
           {report.waiting.length > 0 && <li><b>What we’re waiting on</b><span>{report.waiting.map(w => `${w.what} ${w.open}`).join(' · ')}</span></li>}

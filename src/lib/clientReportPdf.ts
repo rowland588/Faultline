@@ -1,7 +1,7 @@
 /* THE CLIENT REPORT, ON PAPER — A4, portrait, in the order the job is run.
  * See lib/clientReport.ts for what is on it and why. This only draws. */
 import type { jsPDF } from 'jspdf';
-import type { ClientReport, CellTone, FixRow } from './clientReport';
+import type { ClientReport, CellTone, FixRow, StepAccount } from './clientReport';
 import type { GateTone } from './install';
 import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
@@ -206,7 +206,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      printed a heading per gate, each saying "nothing kept" — three of a
      page's sections telling the client nothing. They are named together. */
   const said2 = (s: ClientReport['sections'][number]) =>
-    !!(s.grid?.rows.length || s.late.length || s.programs?.total || s.tests?.length);
+    !!(s.grid?.rows.length || s.late.length || s.accounts?.length || s.programs?.total || s.tests?.length);
   const quiet = r.sections.filter(s => !said2(s));
   for (const s of r.sections.filter(said2)) {
     out.push(heading(s.label, s.says));
@@ -255,6 +255,19 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     if (s.late.length && s.gate !== 'commission') {
       out.push(text({ text: 'Late or a problem', size: S.small, style: 'bold', colour: DANGER, after: 3 }));
       s.late.forEach((l, i) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === s.late.length - 1 ? gap(d, 's') : 1 })));
+    }
+
+    /* HOW EACH STAGE WENT — the team's account of every step that has one,
+       under its "machine — stage", its day and its state in the grid's own
+       colour and words. The account is a paragraph, so a long one wraps and
+       breaks across a page between its lines; the line over it is never left
+       at the foot of a page without it. */
+    if (s.accounts?.length) {
+      out.push(label(`How each stage went — ${s.label}`, INK2));
+      s.accounts.forEach((a, i, all) => {
+        out.push(accountHead(a));
+        out.push(text({ text: a.said, size: 9, colour: INK2, indent: 12, after: i === all.length - 1 ? gap(d, 'm') : gap(d, 's') + 2 }));
+      });
     }
 
     if (s.programs && s.programs.total) {
@@ -367,6 +380,36 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     }));
   }
   return out;
+}
+
+/* The state word beside a step's account, in the one colour that state wears
+   everywhere: done a quiet green, a problem or late red, waiting amber, still
+   ahead indigo, no day yet grey. */
+const ACCOUNT_INK: Record<StepAccount['tone'], string> = {
+  done: OK, problem: DANGER, late: DANGER, asking: AMBER, booked: BOOKED, ahead: MUTED,
+};
+
+/** "Machine — stage" on the left; its day and its state (the grid's square and
+ *  word) on the right. Kept with the account under it. */
+function accountHead(a: StepAccount): Block {
+  const sideW = 150;
+  const title = (f: Frame) => wrap(f.doc, `${a.machine} — ${a.stage}`, f.w - sideW - 8, 9, 'bold');
+  return {
+    ...box(f => 4 + title(f).length * 11.5, (f, y) => {
+      const t = title(f);
+      font(f.doc, 9, 'bold'); f.doc.text(t, f.x, y + 11);
+      // Right-aligned: the state's square and word, then the day before it.
+      const loud = a.tone === 'problem' || a.tone === 'late';
+      font(f.doc, 8, loud ? 'bold' : 'normal', ACCOUNT_INK[a.tone]);
+      const sw = f.doc.getTextWidth(a.state);
+      const right = f.x + f.w;
+      f.doc.text(a.state, right, y + 11, { align: 'right' });
+      cellPath(f.doc, a.tone, right - sw - 13, y + 4, 9, 7);
+      font(f.doc, 8, 'normal', MUTED);
+      f.doc.text(a.when, right - sw - 19, y + 11, { align: 'right' });
+    }, () => 1),
+    keepWithNext: true,
+  };
 }
 
 /** One fix: a coloured edge for its state, what it is, the problem, when and
