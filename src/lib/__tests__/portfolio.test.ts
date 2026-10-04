@@ -282,7 +282,7 @@ describe('every job on every method', () => {
     expect(pf.jobs.find(j => j.id === 'p3')!.marks.length).toBe(3);   // the three with a day
   });
   it('says nothing is on the board when nothing is', () => {
-    expect(pf.jobs.find(j => j.id === 'lt')!.sentence).toBe('Nothing on the board yet.');
+    expect(pf.jobs.find(j => j.id === 'lt')!.sentence).toBe('No tree yet — it starts from the outcome. Nothing on the board yet.');
     expect(pacedSays({ atTarget: 2, judged: 2, open: 0, late: 0, any: true })).toBe('2 of 2 lines at target, with nothing open on the board.');
   });
 });

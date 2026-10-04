@@ -404,7 +404,9 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
         ...base,
         /* A tree job says its tree first: the outcome and its conditions are
            what it is being run against; the board is the work under them. */
-        sentence: (j.tree ? `${j.tree.says}. ` : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
+        /* A tree job with no tree yet says so — its board alone would read
+           "Nothing open", as if the job were in hand. */
+        sentence: (j.tree ? `${j.tree.says}. ` : planModel(p) === 'tree' ? 'No tree yet — it starts from the outcome. ' : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
         tree: j.tree,
         lines: j.lines.map(l => ({ id: l.id, key: l.key, name: l.name, owner: l.owner || undefined })),
         slip: undefined, daysToGo, outstanding: open, late,

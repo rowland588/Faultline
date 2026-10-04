@@ -563,6 +563,10 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
             {v.method === 'commissioning'
               ? (v.at === 'Handed over'
                 ? <span className="jb-chip is-at is-done">Handed over</span>
+                /* Nothing started at any gate is not "at Install": the gates say
+                   "not started" in grey, and so does the row. */
+                : v.gates.length > 0 && v.gates.every(g => g.tone === 'none')
+                ? <span className="jb-chip is-at is-none">Not started</span>
                 : <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>)
               : <>
                 <span className="jb-chip is-at is-none">{v.methodLabel}</span>
