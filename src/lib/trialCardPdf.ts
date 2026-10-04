@@ -65,10 +65,23 @@ export interface TrialCardMeta {
 /** The band across the top of every page. Carries the trial's name on page one
  *  and a continuation line after that, because a second sheet that does not say
  *  what it belongs to gets separated from the first one within a day. */
+/* THE BAND GROWS WITH THE TITLE. A long title ended "…" at a fixed width —
+   on the sheet whose whole job is the detail (docs/REPORTS.md: nothing is cut). */
+function titleLines(d: Doc, c: TrialCard, W: number): { title: string[]; line: string[] } {
+  setFont(d, 16, 'bold', '#ffffff');
+  const title = d.splitTextToSize(san(c.title), W - 2 * M - 150) as string[];
+  const machine = [c.machine, c.withWhom && `with ${c.withWhom}`, nice(c.ranOn ?? c.plannedFor)].filter(Boolean).join('  ·  ');
+  setFont(d, 8.5, 'normal', SHELL_MUTED);
+  const line = d.splitTextToSize(san(machine), W - 2 * M - 150) as string[];
+  return { title, line };
+}
+
 function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   const W = d.internal.pageSize.getWidth();
+  const tl = titleLines(d, c, W);
+  const bandH = page === 1 ? 74 + (tl.title.length - 1) * 19 + (tl.line.length - 1) * 11 : 44;
   d.setFillColor(INK);
-  d.rect(0, 0, W, page === 1 ? 74 : 44, 'F');
+  d.rect(0, 0, W, bandH, 'F');
 
   /* The band's small type in the shell's muted blues (a green left over from
      an older palette), and the Faultline mark top right in the band — the
@@ -90,12 +103,10 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
 
   if (page === 1) {
     setFont(d, 16, 'bold', '#ffffff');
-    d.text(fit(d, san(c.title), W - 2 * M - 150), M, 44);
-
-    const line = [c.machine, c.withWhom && `with ${c.withWhom}`, nice(c.ranOn ?? c.plannedFor)]
-      .filter(Boolean).join('  ·  ');
+    d.text(tl.title, M, 44, { lineHeightFactor: 19 / 16 });
+    const lineY = 60 + (tl.title.length - 1) * 19;
     setFont(d, 8.5, 'normal', SHELL_MUTED);
-    d.text(fit(d, san(line), W - 2 * M - 150), M, 60);
+    d.text(tl.line, M, lineY, { lineHeightFactor: 11 / 8.5 });
 
     /* The verdict, as a pill, top right — the one thing somebody looks for
        before they read a word of it. */
@@ -105,7 +116,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
     d.setFillColor(toneOf(c.outcome));
     d.roundedRect(W - M - tw - 26, 34, tw + 26, 22, 11, 11, 'F');
     d.text(word, W - M - 13, 48.5, { align: 'right' });
-    return 74;
+    return bandH;
   }
 
   setFont(d, 9, 'bold', '#ffffff');
@@ -124,7 +135,9 @@ function foot(d: Doc, page: number, pages: number, meta: TrialCardMeta): void {
  *  this, so the box cannot be sized by one arithmetic and filled by another. */
 function fieldLines(d: Doc, w: number, text: string, size: number, empty: string): string[] {
   setFont(d, size, 'normal', INK);
-  return (d.splitTextToSize(san(text).trim() || empty, w) as string[]).slice(0, 6);
+  /* No cap. It stopped at six lines — "Passes if" ended mid-sentence on the
+     card a client signs against. The boxes grow instead (drawTrialCard). */
+  return d.splitTextToSize(san(text).trim() || empty, w) as string[];
 }
 
 /** How tall a field will be, without drawing it. */
@@ -181,18 +194,19 @@ function box(d: Doc, x: number, y: number, w: number, h: number, n: string, titl
  *  thing that was missing — "not any sort of loop, to show the structure". */
 function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number {
   if (!c.follows && c.ledTo.length === 0) return y;
-  const h = 26;
-  d.setFillColor(...wash(BRAND, 0.07));
-  d.roundedRect(x, y, w, h, 5, 5, 'F');
-
-  setFont(d, 6.5, 'bold', ACCENT);
-  d.text('WHERE THIS SITS', x + 12, y + 11);
-
   const bits: string[] = [];
   if (c.follows) bits.push(`follows "${san(c.follows)}"`);
   if (c.ledTo.length) bits.push(`led to ${c.ledTo.map(t => `"${san(t)}"`).join(', ')}`);
+  // Wraps and grows: every record it led to is named, not the first few and "…".
   setFont(d, 8.5, 'normal', INK2);
-  d.text(fit(d, bits.join('   ·   '), w - 24), x + 12, y + 21);
+  const lines = d.splitTextToSize(bits.join('   ·   '), w - 24) as string[];
+  const h = 16 + lines.length * 11;
+  d.setFillColor(...wash(BRAND, 0.07));
+  d.roundedRect(x, y, w, h, 5, 5, 'F');
+  setFont(d, 6.5, 'bold', ACCENT);
+  d.text('WHERE THIS SITS', x + 12, y + 11);
+  setFont(d, 8.5, 'normal', INK2);
+  d.text(lines, x + 12, y + 21, { lineHeightFactor: 11 / 8.5 });
   return y + h + 10;
 }
 
@@ -229,22 +243,46 @@ function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): numbe
 export const findingRowHeight = (lines: number, photos: number): number =>
   Math.max(photos ? 30 : 18, 8 + lines * 11);
 
+/* EVERY CELL WRAPS, AND THE ROW IS AS TALL AS ITS TALLEST. "Whose", "what it
+   became" and "where it came from" were cut to their column with "…"; one
+   function lays a row out for both measuring and drawing. */
+const FIND_COLS = [0.5, 0.17, 0.33];
+function findingCells(d: Doc, f: TrialCard['findings'][number], w: number) {
+  const lines = (t: string, col: number, size: number, style: 'normal' | 'bold' = 'normal') => {
+    setFont(d, size, style, INK); return d.splitTextToSize(t, FIND_COLS[col] * w - 10) as string[];
+  };
+  const became = f.action ? san(f.action) : f.decision ? f.decision.charAt(0).toUpperCase() + f.decision.slice(1) : '—';
+  const what = lines(san(f.what), 0, 8.5), owner = lines(san(f.owner ?? '—'), 1, 8), act = lines(became, 2, 8, f.action ? 'normal' : 'bold');
+  const ownerH = owner.length * 11 + (f.photos ? 11 : 0);
+  return { what, owner, act, h: Math.max(findingRowHeight(what.length, f.photos), 8 + ownerH, 8 + act.length * 11) };
+}
+
+const NEXT_COLS = [0.5, 0.15, 0.15, 0.2];
+function nextCells(d: Doc, n: TrialCard['next'][number], w: number) {
+  setFont(d, 8.5, n.done ? 'normal' : 'bold', INK);
+  const what = d.splitTextToSize(san(n.what), NEXT_COLS[0] * w - 10) as string[];
+  setFont(d, 8, 'normal', INK);
+  const owner = d.splitTextToSize(san(n.owner ?? 'nobody yet'), NEXT_COLS[1] * w - 10) as string[];
+  const fromWord = (n.becameTest ? 'became the next test' : n.fromFinding ? 'an observation' : 'agreed on the day') + (n.done ? ' · done' : '');
+  setFont(d, 7.5, 'normal', INK);
+  const from = d.splitTextToSize(fromWord, NEXT_COLS[3] * w - 10) as string[];
+  return { what, owner, from, h: Math.max(17, 6 + Math.max(what.length, owner.length, from.length) * 11) };
+}
+
 function findingHeights(d: Doc, c: TrialCard, w: number): number[] {
-  setFont(d, 8.5, 'normal', INK);
-  /* Measured at the width the WHAT WE SAW column is drawn at (half), not 0.44. */
-  return c.findings.map(f =>
-    findingRowHeight((d.splitTextToSize(san(f.what), 0.5 * w - 10) as string[]).length, f.photos));
+  return c.findings.map(f => findingCells(d, f, w).h);
 }
 
 function nextHeights(d: Doc, c: TrialCard, w: number): number[] {
-  setFont(d, 8.5, 'bold', INK);
-  return c.next.map(n =>
-    Math.max(17, 6 + (d.splitTextToSize(san(n.what), 0.5 * w - 10) as string[]).length * 11));
+  return c.next.map(n => nextCells(d, n, w).h);
 }
 
 /** Head, rule, rows and a little air. `rows` is the heights of what will go in. */
 const blockHeight = (rows: number[], empty: boolean): number =>
-  25 + 15 + (empty ? 22 : rows.reduce((a, b) => a + b, 0)) + 12;
+  /* Empty, a box is its heading and one quiet line — no table head to make
+     room for. Sized as if it had one, it missed the page by a few points and
+     took a sheet of its own to say "nothing agreed yet". */
+  empty ? 25 + 32 : 25 + 15 + rows.reduce((a, b) => a + b, 0) + 12;
 
 /** What we found: one row per observation, with what somebody decided about it.
  *  Returns how many it drew, so the caller knows whether to start a new page. */
@@ -252,7 +290,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
   /* Three columns. A decision of "not a problem" had its own 8% column and
      printed as "not a probl…" against WHOSE; it is what the finding became, so
      it is said there. */
-  const cols = [0.5, 0.17, 0.33];
+  const cols = FIND_COLS;
   const at = (i: number) => x + cols.slice(0, i).reduce((a, b) => a + b, 0) * w;
   /* "THE ACTION IT BECAME" outlived the noun. An observation becomes a FIX —
      its own record with its own card — so the column says what it became. */
@@ -270,35 +308,28 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
     const f = c.findings[i];
     /* Measure before committing: a long observation wraps, and a row that would
        run off the bottom belongs on the next sheet whole, not half. */
-    setFont(d, 8.5, 'normal', INK);
-    const lines = d.splitTextToSize(san(f.what), cols[0] * w - 10) as string[];
-    const rowH = findingRowHeight(lines.length, f.photos);
+    const cell = findingCells(d, f, w);
+    const rowH = cell.h;
     if (cy + rowH > maxY) break;
 
     if (drawn % 2 === 1) { d.setFillColor('#faf9f5'); d.rect(x - 4, cy + 2, w + 8, rowH, 'F'); }
 
-    lines.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
+    setFont(d, 8.5, 'normal', INK);
+    cell.what.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
 
     setFont(d, 8, 'normal', INK2);
-    d.text(fit(d, san(f.owner ?? '—'), cols[1] * w - 10), at(1), cy + 13);
+    cell.owner.forEach((l, k) => d.text(l, at(1), cy + 13 + k * 11));
 
     /* What it became: the fix if there is one, else the decision in its own
        tone ('not a problem' muted, an undecided one amber), else a dash. */
-    if (f.action) {
-      setFont(d, 8, 'normal', INK2);
-      d.text(fit(d, san(f.action), cols[2] * w - 10), at(2), cy + 13);
-    } else if (f.decision) {
-      const tone = f.decision === 'a fix' ? BLUE_DECIDED : f.decision === 'not a problem' ? MUTED : WARN;
-      setFont(d, 8, 'bold', tone);
-      d.text(fit(d, f.decision.charAt(0).toUpperCase() + f.decision.slice(1), cols[2] * w - 10), at(2), cy + 13);
-    } else {
-      setFont(d, 8, 'normal', MUTED);
-      d.text('—', at(2), cy + 13);
-    }
+    const tone = f.action ? INK2 : !f.decision ? MUTED
+      : f.decision === 'a fix' ? BLUE_DECIDED : f.decision === 'not a problem' ? MUTED : WARN;
+    setFont(d, 8, f.action || !f.decision ? 'normal' : 'bold', tone);
+    cell.act.forEach((l, k) => d.text(l, at(2), cy + 13 + k * 11));
 
     if (f.photos) {
       setFont(d, 6.5, 'normal', MUTED);
-      d.text(`${f.photos} filmed`, at(1), cy + 24);
+      d.text(`${f.photos} filmed`, at(1), cy + 13 + cell.owner.length * 11);
     }
 
     cy += rowH;
@@ -314,7 +345,7 @@ function findingsTable(d: Doc, c: TrialCard, x: number, y: number, w: number, ma
 const BLUE_DECIDED = '#4f46b8';
 
 function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: number): number {
-  const cols = [0.5, 0.15, 0.15, 0.2];
+  const cols = NEXT_COLS;
   const at = (i: number) => x + cols.slice(0, i).reduce((a, b) => a + b, 0) * w;
   ['WHAT WE DO NEXT', 'WHOSE', 'BY WHEN', 'WHERE IT CAME FROM']
     .forEach((h, i) => { setFont(d, 6.5, 'bold', MUTED); d.text(h, at(i), y + 11); });
@@ -323,25 +354,22 @@ function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: 
 
   let cy = y + 15, drawn = 0;
   for (const n of c.next) {
-    setFont(d, 8.5, n.done ? 'normal' : 'bold', n.done ? MUTED : INK);
-    const lines = d.splitTextToSize(san(n.what), cols[0] * w - 10) as string[];
-    const rowH = Math.max(17, 6 + lines.length * 11);
+    const cell = nextCells(d, n, w);
+    const rowH = cell.h;
     if (cy + rowH > maxY) break;
 
-    lines.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
+    setFont(d, 8.5, n.done ? 'normal' : 'bold', n.done ? MUTED : INK);
+    cell.what.forEach((l, k) => d.text(l, at(0), cy + 13 + k * 11));
     setFont(d, 8, 'normal', n.owner ? INK2 : DANGER);
-    d.text(fit(d, san(n.owner ?? 'nobody yet'), cols[1] * w - 10), at(1), cy + 13);
+    cell.owner.forEach((l, k) => d.text(l, at(1), cy + 13 + k * 11));
     /* A next step past its day says so, in red, on the document that goes to
        the people who owe it. It printed in plain ink two days late. */
     const gone = !!n.due && !n.done && n.due < todayISO();
     setFont(d, 8, gone ? 'bold' : 'normal', gone ? DANGER : n.due ? INK2 : MUTED);
     d.text(n.due ? (gone ? `WAS ${nice(n.due)}` : nice(n.due)) : '—', at(2), cy + 13);
 
-    const from = n.becameTest ? 'became the next test'
-      : n.fromFinding ? 'an observation'
-        : 'agreed on the day';
     setFont(d, 7.5, 'normal', MUTED);
-    d.text(fit(d, from + (n.done ? ' · done' : ''), cols[3] * w - 10), at(3), cy + 13);
+    cell.from.forEach((l, k) => d.text(l, at(3), cy + 13 + k * 11));
 
     cy += rowH;
     d.setDrawColor('#efede6'); d.setLineWidth(0.4);
@@ -349,6 +377,31 @@ function nextTable(d: Doc, c: TrialCard, x: number, y: number, w: number, maxY: 
     drawn++;
   }
   return drawn;
+}
+
+/** The plan above the day, each full width — for words too long to sit side
+ *  by side. Returns the y below them; starts a page between them if the day
+ *  would not fit under the plan. */
+function stackedBoxes(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom: number, newPage: () => number): number {
+  const fw = w - 28, words = wordsOf(c);
+  const one = (yy: number, n: string, title: string, fields: [string, string, { size?: number; empty?: string }][], dated: [string, string]) => {
+    const h = 25 + 12 + fields.reduce((a, [, t, o]) => a + fieldHeight(d, fw, t, o) + 8, 0) + 20;
+    if (yy + h > bottom) yy = newPage();
+    let fy = box(d, x, yy, w, h, n, title) + 12;
+    for (const [label, t, o] of fields) fy = field(d, x + 14, fy, fw, label, t, o) + 8;
+    setFont(d, 7.5, 'normal', dated[1]);
+    d.text(dated[0], x + 14, yy + h - 10);
+    return yy + h + 12;
+  };
+  let yy = one(y, '1', words.plan, [
+    [words.expectation, c.passesIf ?? '', { empty: words.noPlan }],
+    ...(c.kind === 'test' ? [['Product we planned to run', c.plannedProduct ?? '', { size: 8.5 }] as [string, string, { size: number }]] : []),
+  ], [`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, MUTED]);
+  yy = one(yy, '2', c.kind === 'test' ? 'What actually happened' : words.day, [
+    [words.happened, c.outcome === 'planned' && !c.result && !c.ranOn ? '' : verdictLine(c), { empty: 'Nothing written down yet' }],
+    ...(c.kind === 'test' ? [['Product we ran', c.product ?? '', { size: 8.5 }] as [string, string, { size: number }]] : []),
+  ], [c.ranOn ? `Ran ${span(c.ranOn, c.ranTo)}` : 'Not run yet', c.ranOn ? MUTED : WARN]);
+  return yy;
 }
 
 /* ---------- the whole card ---------- */
@@ -379,6 +432,19 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
      bottom of the frame. They are still the SAME height as each other, because
      the whole reason the plan and the day are two boxes is that somebody reads
      them across, and two frames at different heights stop being a pair. */
+  /* SIDE BY SIDE WHEN THEY FIT, STACKED WHEN THEY DO NOT. With nothing cut,
+     a long expectation and a long result could run two half-width boxes off
+     the sheet; full width, the same words take half the lines. */
+  const sideBySide = (() => {
+    const hw = half - 28;
+    const need = (fw2: number) => 25 + 12 + Math.max(
+      fieldHeight(d, fw2, c.passesIf ?? '', { empty: wordsOf(c).noPlan }) + (c.kind === 'test' ? 8 + fieldHeight(d, fw2, c.plannedProduct ?? '', { size: 8.5 }) : 0),
+      fieldHeight(d, fw2, c.result ?? '', { empty: 'Nothing written down yet' }) + (c.kind === 'test' ? 8 + fieldHeight(d, fw2, c.product ?? '', { size: 8.5 }) : 0)) + 26;
+    return planTop + need(hw) <= bottom - 80;
+  })();
+  if (!sideBySide) {
+    y = stackedBoxes(d, c, M, planTop, CW, bottom, () => { d.addPage(); return head(d, c, meta, 2) + 14; });
+  }
   const fw = half - 28;
   const planNeeds = 12 + fieldHeight(d, fw, c.passesIf ?? '',
     { empty: wordsOf(c).noPlan })
@@ -390,6 +456,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const boxH = 25 + Math.max(planNeeds, dayNeeds) + 26;
   const dateY = planTop + boxH - 12;
 
+  if (sideBySide) {
   let by = box(d, M, y, half, boxH, '1', w.plan) + 12;
   by = field(d, M + 14, by, fw, w.expectation, c.passesIf ?? '',
     { empty: wordsOf(c).noPlan }) + 8;
@@ -410,6 +477,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   d.text(c.ranOn ? `Ran ${span(c.ranOn, c.ranTo)}` : 'Not run yet', M + half + 28, dateY);
 
   y = planTop + boxH + 12;
+  }
   y = loopStrip(d, c, M, y, CW);
 
   /* ==================== WHAT WE FOUND, AND WHAT WE DO NEXT ==================
@@ -418,6 +486,8 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
    * they share this page, which is the common case and the one worth
    * optimising: a one-page card gets read on a phone; a two-page one gets
    * scrolled past. */
+  // Not a sliver of a box at the foot of a sheet: what we found starts the next one.
+  if (bottom - y < 90) { d.addPage(); y = head(d, c, meta, 2) + 14; }
   const fH = findingHeights(d, c, CW - 28);
   const nH = nextHeights(d, c, CW - 28);
   const room = bottom - y;
@@ -444,7 +514,9 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
     drawn = findingsTable(d, c, M + 14, fTop, CW - 28, y + foundH - 10, 0);
   }
 
-  let page = 1;
+  // The page the found box is on — the second sheet when the boxes above were stacked onto it.
+  const startPage = d.getNumberOfPages();
+  let page = startPage;
   let from = drawn;
 
   /* Every observation that did not fit, on sheets of its own. jsPDF cannot
@@ -469,7 +541,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
      and half of it at the foot of a page is how it stops being read. */
   let ny: number;
   let nRoom: number;
-  if (bothFit && page === 1) {
+  if (bothFit && page === startPage) {
     ny = y + foundH + 12;
     nRoom = wantNext;
   } else {
@@ -518,8 +590,9 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   }
 
   /* Page numbers last: "1 of 3" cannot be written until the third page exists. */
-  for (let p = 1; p <= page; p++) {
+  const total = d.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
     d.setPage(p);
-    foot(d, p, page, meta);
+    foot(d, p, total, meta);
   }
 }
