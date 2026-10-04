@@ -87,8 +87,8 @@ function useFilmed(projectId: string, tests: Test[], items: TestItem[]): { frame
   return { frames, open };
 }
 
-const filmedSays = (f: { frames: number; open: number } | null): string =>
-  !f ? '' : f.frames === 0 ? 'nothing filmed yet — film the line, then pin problems on it'
+const filmedSays = (f: { frames: number; open: number } | null, canFilm = true): string =>
+  !f ? '' : f.frames === 0 ? (canFilm ? 'nothing filmed yet — film the line, then pin problems on it' : 'nothing filmed yet')
     : `${f.frames} frame${f.frames === 1 ? '' : 's'} · ${f.open} problem${f.open === 1 ? '' : 's'} pinned`;
 
 export function InstallScreen({ projectId, gate = 'install' }: { projectId: string; gate?: StepGate }) {
@@ -184,7 +184,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           Below the grid, not above it: the grid is what this screen is for,
           and the film is what you reach for when the grid shows a problem. */}
       {gate === 'install' && (
-        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed)}>
+        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed, can.edit)}>
           <PaceSnags projectId={projectId} projectName={project.name} can={can} />
         </Fold>
       )}

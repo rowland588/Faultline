@@ -866,7 +866,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {/* WHO STANDS WHERE, product by product — held with the lines it is
               about, the way Hand over holds it on a stage-gate job. It was a
               lens of its own beside them. */}
-          <StandardsCard projectId={projectId} />
+          <StandardsCard projectId={projectId} can={can} />
         </section>
       )}
 
@@ -905,7 +905,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           </div>
           {/* every line's walk as well as the project's own, so a snag filmed
               inside a line's pack is not invisible from here */}
-          <PaceSnags projectId={projectId} projectName={project.name}
+          <PaceSnags projectId={projectId} projectName={project.name} can={can}
             alsoFrom={ppm.lines.filter(l => l.workspaceId).map(l => ({ wsId: l.workspaceId!, label: l.name }))} />
         </section>
       )}

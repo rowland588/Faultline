@@ -22,6 +22,7 @@ import { PaceMeeting } from './PaceMeeting';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { PaceSnags } from './PaceSnags';
+import { useAccess } from '../cloud/access';
 import { LineNumbers } from './NumbersPanel';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -70,6 +71,7 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
 }
 
 export function ProjectLineScreen({ projectId, lineId }: { projectId: string; lineId: string }) {
+  const can = useAccess(projectId);
   const route = useRoute();
   const raw = route.query.get('view');
   /* A saved ?view=meeting link lands on the actions, grouped by owner. */
@@ -291,7 +293,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
             <h2 className="pace-sec-title">{line.name}, filmed</h2>
             <p className="pace-sec-sub">This line’s own walk — film it, mark the frames, pin what you see · play it back in the meeting</p>
           </div>
-          <PaceSnags projectId={projectId} projectName={project.name}
+          <PaceSnags projectId={projectId} projectName={project.name} can={can}
             line={{ workspaceId: line.workspaceId, name: line.name, attach }} />
         </section>
       )}
