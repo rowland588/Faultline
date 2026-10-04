@@ -8588,6 +8588,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-holdline { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
 .fj-head-acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
 .fj-head-acts:empty { display: none; }
+.fj-head-acts .fj-remove { margin-left: auto; }
 .fj-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .fj-moved { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
 .fj-moved .is-worse { color: var(--st-r); }
@@ -8630,7 +8631,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-lead-t { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink); }
 .fj-lead-s { flex: 1 1 auto; font-size: 13px; color: var(--muted); }
 .fj-lead-go { min-height: 44px; }
-.fj-lead-says { margin: -4px 0 10px; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.fj-lead-says { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
 .fj-empty.is-lead { padding: 14px; }
 
 /* The board panel on the front page, with its six bones. */
@@ -8643,6 +8644,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
   display: inline-block; margin-top: 4px; padding: 6px 0; min-height: 32px; font: inherit; font-size: 12.5px; font-weight: 700;
   color: var(--accent); background: none; border: 0; cursor: pointer; text-align: left; white-space: nowrap;
 }
+@media (pointer: coarse) { .pr-rc { min-height: 44px; } }
 .pr-table tr.is-asked th, .pr-table tr.is-asked td { background: color-mix(in srgb, var(--brand) 7%, transparent); }
 
 /* Capture: the cause, if you know it — one row of six, skippable. */
@@ -8843,6 +8845,10 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .fb-dot.is-suspected { fill: var(--surface); stroke: var(--ink-2); }
 .fb-dot.is-ruled_out { fill: var(--surface); stroke: var(--line-2); }
 .fb-dot.is-sugg { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.4; }
+.fb-head-num { display: flex; flex-direction: column; align-items: center; line-height: 1.05; text-align: center; font-variant-numeric: tabular-nums; }
+.fb-head-num b { font-size: 17px; font-weight: 800; color: var(--ink); }
+.fb-head-num b.is-worse { color: var(--st-r); }
+.fb-head-num small { font-size: 9.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 
 /* the key */
 .fb-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 10px 2px 0; font-size: 12px; }

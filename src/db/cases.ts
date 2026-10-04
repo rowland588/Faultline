@@ -2,7 +2,7 @@
 import type { ID, Case } from '../types';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows } from './sync';
 
 /* ---------- cases (the thin A3 — always workspace-scoped) ---------- */
 export async function listCases(workspaceId: ID): Promise<Case[]> {
@@ -44,6 +44,30 @@ export async function patchCase(id: ID, change: (c: Case) => Case): Promise<Case
   await (await getDB()).put('cases', next);
   signalWrite();
   return next;
+}
+/** The row whatever its state — a removed one too. For the readers that must
+ *  tell "its problem was removed" from "not on this device yet" (an action's
+ *  causeRef). */
+export async function getCaseEvenRemoved(id: ID): Promise<Case | undefined> {
+  return (await getDB()).get('cases', id);
+}
+/** A problem opened by mistake, taken away (docs/SIXM.md): a SOFT delete —
+ *  `deletedAt` set and synced, so every device drops it, and the database lets
+ *  only the owner set it (faultline_keep_agreement). Returns the row as it was
+ *  before, for Undo, or undefined when it had already gone. Its countermeasures
+ *  are actions and stay on the board; their causeRef then points at a removed
+ *  problem, which every reader says in words. */
+export async function removeCase(id: ID): Promise<Case | undefined> {
+  const before = await getCase(id);
+  if (!before) return undefined;
+  await patchCase(id, c => ({ ...c, deletedAt: now() }));
+  return before;
+}
+/** Undo of removeCase: the row put back as it was, stamped now so it wins
+ *  over the removal on every device. */
+export async function restoreCase(before: Case): Promise<void> {
+  const { deletedAt: _gone, ...live } = before;
+  await restoreRows('cases', [live]);
 }
 /** Hard delete + tombstone. Actions keep their caseId (it just dangles —
  *  they lose the folder, never their own life). */

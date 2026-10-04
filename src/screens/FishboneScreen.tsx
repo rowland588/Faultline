@@ -45,7 +45,8 @@ import { SIXM, type Cause, type CauseSource, type SixM } from '../lib/sixm';
 import type { Suggestion } from '../lib/problems';
 import type { Can } from '../lib/access';
 import type { Case } from '../types';
-import { snagsForWorkspace, type PaceLineRow } from '../db';
+import { removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
+import { offerUndo } from '../ui/Undo';
 import { drillOfRef } from '../lib/fishbone';
 import { statusOfAction } from '../lib/treeBind';
 import { uid } from '../lib/ids';
@@ -290,9 +291,9 @@ function HoldSheet({ open, view, onClose, onDone }: {
 
 /* ------------------------------ the problem's head ------------------------------ */
 
-function HeadCard({ v, can, onClose, onReopen, onChecked }: {
+function HeadCard({ v, can, onClose, onReopen, onChecked, onRemove }: {
   v: ProblemView; can: Can;
-  onClose: () => void; onReopen: () => void; onChecked: () => void;
+  onClose: () => void; onReopen: () => void; onChecked: () => void; onRemove: () => void;
 }) {
   const m = v.measure;
   const hold = v.problem.hold;
@@ -331,6 +332,11 @@ function HeadCard({ v, can, onClose, onReopen, onChecked }: {
         {/* "It worked" is only true once something was done about it. */}
         {open && can.agree && <button className="btn" onClick={onClose}>{v.actions.length ? 'It worked — close it' : 'Close it'}</button>}
         {!open && can.agree && <button className="btn btn-ghost" onClick={onReopen}>Reopen</button>}
+        {/* A PROBLEM OPENED BY MISTAKE IS REMOVED, NOT CLOSED: closing asks how
+            the gain is kept, which is wrong for a problem that was never real.
+            Owner only (the database lets only the owner set deleted_at), quiet,
+            and undone for a few seconds like every delete (ui/Undo). */}
+        {can.remove && <button className="btn btn-ghost cw-del fj-remove" onClick={onRemove}>Remove this problem</button>}
       </div>
     </section>
   );
@@ -464,6 +470,24 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
     }
   };
 
+  /* Removed, with Undo: the problem leaves every list and count; its
+     countermeasures stay on the board, saying their problem was removed. */
+  const removeProblem = async (v: ProblemView) => {
+    if (!can.remove) return;
+    const before = await removeCase(v.problem.id);
+    if (!before) return;
+    setEditing(null);
+    setQuery({ problem: undefined });
+    const here = window.location.hash.slice(1).split('?')[0];
+    const t = v.problem.title.trim();
+    const n = v.actions.length;
+    offerUndo(`Removed “${t.length > 40 ? t.slice(0, 39) + '…' : t}”${n ? ` — ${n === 1 ? 'its countermeasure stays' : `its ${n} countermeasures stay`} on the board` : ''}`, async () => {
+      await restoreCase(before);
+      // Back on screen — if the page it was removed from is still the one open.
+      if (window.location.hash.slice(1).split('?')[0] === here) setQuery({ problem: before.id });
+    });
+  };
+
   const timeAStop = async () => { nav(`/w/${await ws.ensure()}/capture`); };
 
   if (ppm.loading || api.loading) return <p className="sub">Loading…</p>;
@@ -493,6 +517,12 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
         )}
       </div>
 
+      {/* A link to a problem that has gone — removed, or not on this device —
+          says so, rather than quietly showing another problem in its place. */}
+      {askedProblem && !asked && (
+        <p className="sub fj-gone" role="status">That problem isn’t on this job any more{view ? ' — this is the line’s main one.' : '.'}</p>
+      )}
+
       {!view ? (
         <div className="fj-empty">
           <p className="fj-empty-t">No problem opened{line ? ` on ${line.name}` : ''} yet</p>
@@ -507,7 +537,8 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
           <HeadCard v={view} can={can}
             onClose={() => setClosing(true)}
             onReopen={() => void api.reopen(view.problem.id)}
-            onChecked={() => void api.checked(view.problem.id)} />
+            onChecked={() => void api.checked(view.problem.id)}
+            onRemove={() => void removeProblem(view)} />
 
           {can.edit && (
             <div className="fj-tools">

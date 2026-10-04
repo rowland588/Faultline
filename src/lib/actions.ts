@@ -17,7 +17,7 @@
  * second one. The action's uid is the step's id — that is how the board finds
  * the row to edit when a card is tapped. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getCase, listPaceTodos, loadPaceLines, onDataChange, type PaceLineRow, type PaceTodoRow } from '../db';
+import { getCaseEvenRemoved, listPaceTodos, loadPaceLines, onDataChange, type PaceLineRow, type PaceTodoRow } from '../db';
 import type { PaceAction } from './tracker';
 import { sixmLabel, toSixM } from './sixm';
 import { addDays, todayISO } from './weeks';
@@ -119,12 +119,24 @@ export interface CauseName {
   /** Where to open it: the problem's walk, when it has one. */
   workspaceId?: string;
   caseId: string;
+  /** The ref points at something no longer there: its problem was removed
+   *  (opened by mistake), or the cause was taken off the fishbone. `text` is
+   *  then empty — the card says which, in words, and offers no way to it. */
+  gone?: 'problem' | 'cause';
 }
 
+/** What a gone cause link says, in words. */
+export const GONE_WORDS: Record<NonNullable<CauseName['gone']>, string> = {
+  problem: 'its problem was removed',
+  cause: 'its cause was taken off the fishbone',
+};
+
 /** The causes a set of actions point at, by causeRef — read from the problems
- *  (cases) they live on. A ref whose problem or cause has gone is simply not
- *  in the map, and the card says "on the fishbone" rather than inventing a
- *  sentence. */
+ *  (cases) they live on. A ref whose problem was removed, or whose cause was
+ *  taken off, is in the map marked `gone`, so the card says so rather than
+ *  "on the fishbone" (which was not true). A ref whose problem is not on this
+ *  device at all (not synced yet) is not in the map, and the card says "on the
+ *  fishbone" rather than inventing a sentence. */
 export function useCauseNames(refs: (string | undefined)[]): Map<string, CauseName> {
   const key = useMemo(() => [...new Set(refs.filter((r): r is string => !!parseCauseRef(r)))].sort().join('|'), [refs]);
   const [map, setMap] = useState<Map<string, CauseName>>(new Map());
@@ -133,17 +145,18 @@ export function useCauseNames(refs: (string | undefined)[]): Map<string, CauseNa
     let alive = true;
     const load = async () => {
       const wanted = key.split('|').flatMap(r => { const p = parseCauseRef(r); return p ? [{ r, ...p }] : []; });
-      const cases = new Map<string, Awaited<ReturnType<typeof getCase>>>();
+      const cases = new Map<string, Awaited<ReturnType<typeof getCaseEvenRemoved>>>();
       for (const p of wanted) {
-        if (!cases.has(p.caseId)) cases.set(p.caseId, await getCase(p.caseId));
+        if (!cases.has(p.caseId)) cases.set(p.caseId, await getCaseEvenRemoved(p.caseId));
       }
       const out = new Map<string, CauseName>();
       for (const { r, ...p } of wanted) {
         const c = cases.get(p.caseId);
-        if (!c || c.deletedAt) continue;
+        if (!c) continue;
+        const base = { problem: c.title, workspaceId: c.workspaceId, caseId: c.id };
+        if (c.deletedAt) { out.set(r, { ...base, text: '', gone: 'problem' }); continue; }
         const cause = (c.causes ?? []).find(x => x.id === p.causeId);
-        if (!cause) continue;
-        out.set(r, { text: cause.text, problem: c.title, workspaceId: c.workspaceId, caseId: c.id });
+        out.set(r, cause ? { ...base, text: cause.text } : { ...base, text: '', gone: 'cause' });
       }
       if (alive) setMap(out);
     };
