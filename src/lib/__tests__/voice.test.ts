@@ -1,8 +1,8 @@
 /* VOICE, AS DATA. What a voice note heard becomes changes a person sees
  * before any is made — asserted here, and the server's own tidying with it. */
 import { describe, it, expect } from 'vitest';
-import { flashModels, pickModel, schemaFor, tidy, promptFor } from '../../../api/voice';
-import { changesFor, contextFor, machineNamed, wav } from '../voice';
+import { flashModels, pickModel, schemaFor, tidy, tidyFor, promptFor } from '../../../api/voice';
+import { changesFor, contextFor, machineNamed, proposalFrom, wav } from '../voice';
 import type { Asset, Test } from '../testing';
 
 const TODAY = '2026-09-30';
@@ -91,6 +91,44 @@ describe('what a voice note would change', () => {
   it('gives the model the job’s machines and everybody named on it', () => {
     const ctx = contextFor([denester, packer], [rec({ withWhom: 'Dave' })], TODAY);
     expect(ctx).toMatchObject({ machines: ['Denester', 'Pick and place'], suppliers: ['Brillopak', 'Dave'] });
+  });
+});
+
+/* Rowland, 4 October: talked into a stage — "Testing to see if this actually
+   works … the entire principle is talk instead of writing" — and got
+   "Nothing in that fits these boxes". The reader had put it all in leftover. */
+describe('nothing said is lost, and saying more makes sense of it', () => {
+  const step = rec({ kind: 'install', title: 'Mechanical install', assetId: 'a1' });
+  it('a note the reader put all in "did not fit" becomes the stage’s account', () => {
+    const { changes } = proposalFrom(step, { transcript: 'Testing to see if this works', fields: {}, leftover: 'Testing to see if this works' }, [denester], TODAY);
+    expect(changes).toEqual([expect.objectContaining({ key: 'result', after: 'Testing to see if this works' })]);
+  });
+  it('words with no fields and no leftover at all are the account too', () => {
+    const { changes } = proposalFrom(step, { transcript: 'Frame bolted down, levelled', fields: {} }, [denester], TODAY);
+    expect(changes[0]).toMatchObject({ key: 'result', after: 'Frame bolted down, levelled' });
+  });
+  it('a merged account replaces the old one whole — corrections in place, nothing stacked twice', () => {
+    const was = rec({ ...step, result: 'Frame bolted down. Levelled to 2 mm.' });
+    const r = { transcript: 'actually it was 1 mm', fields: { result: 'Frame bolted down. Levelled to 1 mm.' }, merged: true };
+    expect(proposalFrom(was, r, [denester], TODAY).changes[0]).toMatchObject({ key: 'result', after: 'Frame bolted down. Levelled to 1 mm.' });
+  });
+  it('without the merge (an older reader), more words go under what is there, never over it', () => {
+    const was = rec({ ...step, result: 'Frame bolted down.' });
+    expect(proposalFrom(was, { transcript: 't', fields: { result: 'Cabled up.' } }, [denester], TODAY).changes[0])
+      .toMatchObject({ after: 'Frame bolted down.\nCabled up.' });
+  });
+  it('the reader is told the account as it stands, and asked for the whole account back', () => {
+    const ctx = contextFor([denester], [], TODAY, rec({ ...step, result: 'Frame bolted down.' }));
+    expect(ctx.on?.result).toBe('Frame bolted down.');
+    const p = promptFor('install', ctx);
+    expect(p).toContain('Frame bolted down.');
+    expect(p).toContain('WHOLE account as it should now read');
+    expect(promptFor('install', contextFor([denester], [], TODAY, step))).not.toContain('already reads');
+  });
+  it('says the account came back merged only when there was one to merge into', () => {
+    const raw = { transcript: 't', fields: { result: 'All of it' } };
+    expect(tidyFor('install', raw, { today: TODAY, on: { result: 'Some' } }).merged).toBe(true);
+    expect(tidyFor('install', raw, { today: TODAY, on: { title: 'x' } }).merged).toBeUndefined();
   });
 });
 

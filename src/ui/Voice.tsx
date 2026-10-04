@@ -126,13 +126,15 @@ function MicIcon() {
   );
 }
 
-/** One row of the review: a field and what it would become. */
-export interface ReviewRow { key: string; label: string; before?: string; after: string }
+/** One row of the review: a field and what it would become. `editable`: the
+ *  words can be put right before they go in — "can edit the speech". */
+export interface ReviewRow { key: string; label: string; before?: string; after: string; editable?: boolean }
 
 export function VoiceReview({ heard, rows, onApply, onDiscard, applyLabel = 'Put it in', onLeftover }: {
   heard: VoiceResult;
   rows: ReviewRow[];
-  onApply: (keys: string[]) => void;
+  /** The ticked rows, and the words of any editable row as the person left them. */
+  onApply: (keys: string[], edits: Record<string, string>) => void;
   onDiscard: () => void;
   applyLabel?: string;
   /** Keep what did not fit, as a note — offered, never done for them. */
@@ -141,6 +143,7 @@ export function VoiceReview({ heard, rows, onApply, onDiscard, applyLabel = 'Put
   const [on, setOn] = useState<Set<string>>(() => new Set(rows.map(r => r.key)));
   const toggle = (k: string) => setOn(s => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const [kept, setKept] = useState(false);
+  const [edits, setEdits] = useState<Record<string, string>>({});
   const spare = heard.leftover || (rows.length === 0 ? heard.transcript : '');
 
   return (
@@ -154,10 +157,18 @@ export function VoiceReview({ heard, rows, onApply, onDiscard, applyLabel = 'Put
                 <input type="checkbox" checked={on.has(r.key)} onChange={() => toggle(r.key)} />
                 <span className="vo-row-m">
                   <span className="vo-row-l">{r.label}</span>
-                  {r.before ? <span className="vo-before">{r.before}</span> : null}
-                  <span className="vo-after">{r.after}</span>
+                  {r.before && !r.editable ? <span className="vo-before">{r.before}</span> : null}
+                  {!r.editable && <span className="vo-after">{r.after}</span>}
                 </span>
               </label>
+              {/* The account, as words to put right before they go in — out
+                  of the label, so typing in it does not tick and untick it. */}
+              {r.editable && (
+                <textarea className="vo-edit" aria-label={`${r.label} — as it will read`}
+                  rows={Math.min(10, Math.max(3, Math.ceil((edits[r.key] ?? r.after).length / 60)))}
+                  value={edits[r.key] ?? r.after}
+                  onChange={e => { const v = e.target.value; setEdits(x => ({ ...x, [r.key]: v })); }} />
+              )}
             </li>
           ))}
         </ul>
@@ -174,7 +185,7 @@ export function VoiceReview({ heard, rows, onApply, onDiscard, applyLabel = 'Put
       )}
       <div className="vo-go">
         {rows.length > 0 && (
-          <button type="button" className="btn btn-primary" disabled={on.size === 0} onClick={() => onApply([...on])}>
+          <button type="button" className="btn btn-primary" disabled={on.size === 0} onClick={() => onApply([...on], edits)}>
             {applyLabel}{on.size < rows.length ? ` (${on.size})` : ''}
           </button>
         )}

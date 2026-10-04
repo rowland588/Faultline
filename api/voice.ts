@@ -31,8 +31,10 @@ export interface VoiceContext {
    *  supplier it plainly is. */
   machines?: string[];
   suppliers?: string[];
-  /** The record the person is on, when there is one. */
-  on?: { title?: string; machine?: string };
+  /** The record the person is on, when there is one — with its account as it
+   *  reads now, so a second note on the same record is worked into the first
+   *  rather than stacked under it. */
+  on?: { title?: string; machine?: string; result?: string };
 }
 
 export interface VoiceRequest {
@@ -50,6 +52,10 @@ export interface VoiceResult {
   fields: Record<string, unknown>;
   /** Anything said that does not belong in this form — never thrown away. */
   leftover?: string;
+  /** True when the record already had an account and `fields.result` is the
+   *  WHOLE account as it should now read (the old one with this note worked
+   *  in), not just what was said this time. */
+  merged?: boolean;
 }
 
 /* -------------------------------- the forms ------------------------------- */
@@ -142,7 +148,17 @@ export function promptFor(form: VoiceForm, ctx: VoiceContext): string {
     list('Suppliers and people on this job', ctx.suppliers),
     ctx.on?.title ? `They are on the record "${ctx.on.title}"${ctx.on.machine ? ` for the ${ctx.on.machine}` : ''}.` : '',
     `Today is ${ctx.today}. Turn "today", "tomorrow", "Friday" and the like into ISO dates from today.`,
-    'An account of the work always belongs in "result". Only something that is clearly about a different record goes in "leftover", word for word — never drop it.',
+    /* TALKING IS THE WRITING. Rowland: "the entire principle is talk instead
+       of writing". On a record the person chose, what they say is about it. */
+    'An account of the work always belongs in "result": how it went, what happened, what is worrying them, what comes next. When unsure, it belongs in "result". Only something plainly about a DIFFERENT machine or record goes in "leftover", word for word — never drop it.',
+    "Write \"result\" as clean sentences in the speaker's own words: drop the ums, false starts and repeats, fix obvious mis-hearings, keep every fact, name and number they said.",
+    /* SPEAKING AGAIN FOR THE SAME RECORD. Rowland: "if I have to speak again
+       for the same section, intelligence must make sense of what I am
+       saying." The account as it stands goes with the recording; what comes
+       back is the account as it should now read. */
+    ctx.on?.result?.trim() && FORMS[form].fields.result
+      ? `This record's account already reads:\n«${ctx.on.result.trim()}»\nIn "result", return the WHOLE account as it should now read: what was already there with what was just said worked in. Where the speaker corrects something, the correction replaces it; something said again is said once; nothing already there is dropped unless they corrected it. Keep it in the order things happened.`
+      : '',
     'British English. Do not add anything that was not said.',
   ].filter(Boolean).join('\n');
 }
@@ -171,6 +187,12 @@ export function tidy(form: VoiceForm, raw: unknown): VoiceResult {
   }
   const leftover = str(r.leftover);
   return { transcript: str(r.transcript), fields: out, ...(leftover ? { leftover } : {}) };
+}
+
+/** tidy(), and whether the account that came back is the whole merged one. */
+export function tidyFor(form: VoiceForm, raw: unknown, ctx: VoiceContext): VoiceResult {
+  const r = tidy(form, raw);
+  return ctx.on?.result?.trim() && typeof r.fields.result === 'string' ? { ...r, merged: true } : r;
 }
 
 /* ------------------------------- the model -------------------------------- */
@@ -344,7 +366,7 @@ export async function POST(request: Request): Promise<Response> {
   /* About three minutes of 16 kHz mono WAV, base64. */
   if (body.audio.length > 8_000_000) return json({ error: 'That recording is too long — keep it under two minutes.' }, 413);
   try {
-    return json(tidy(body.form, await understand(body, key)));
+    return json(tidyFor(body.form, await understand(body, key), body.context ?? { today: '' }));
   } catch (e) {
     if (e instanceof ModelError) {
       console.error('voice: model', e.status, e.detail);

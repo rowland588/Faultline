@@ -132,7 +132,8 @@ export function machineNamed(name: string | undefined, assets: Asset[]): Asset |
 
 /** What the fields heard would change on this record. Only fields that were
  *  heard and differ from what is there already. */
-export function changesFor(t: Test, fields: Record<string, unknown>, assets: Asset[], today: string): Change[] {
+export function changesFor(t: Test, fields: Record<string, unknown>, assets: Asset[], today: string,
+  opts: { merged?: boolean } = {}): Change[] {
   const s = (k: string) => (typeof fields[k] === 'string' ? (fields[k] as string).trim() : '');
   const out: Change[] = [];
   const text = (key: keyof Test, label: string) => {
@@ -154,9 +155,11 @@ export function changesFor(t: Test, fields: Record<string, unknown>, assets: Ass
   text('product', 'Product we ran');
   const said = s('result');
   if (said && said !== (t.result ?? '')) {
-    /* Added to what is there, never over it: a second voice note on the same
-       day is more of the story, not a correction of the first. */
-    const after = t.result?.trim() ? `${t.result.trim()}\n${said}` : said;
+    /* A second note on the same record is more of the story. When the reader
+       had the account as it stood (opts.merged), what came back IS the whole
+       account with the new words worked in — corrections in place, nothing
+       said twice. Without it, it is added under what is there, never over. */
+    const after = opts.merged || !t.result?.trim() ? said : `${t.result.trim()}\n${said}`;
     out.push({ key: 'result', label: t.kind === 'fix' || t.kind === 'install' ? 'What was done' : 'What happened', before: t.result ?? '', after, patch: { result: after } });
   }
   const ran = s('ranOn');
@@ -171,6 +174,27 @@ export function changesFor(t: Test, fields: Record<string, unknown>, assets: Ass
   return out;
 }
 
+/** What one voice note on a record proposes: the changes to its boxes, and
+ *  the things found along the way. Shared by every place a record is talked
+ *  into — the test page and the stage sheet on the install grid — so a note
+ *  lands the same wherever it was said.
+ *
+ *  NOTHING SAID IS LOST. Rowland, 4 October: "Nothing in that fits these
+ *  boxes" on a stage he had just talked into. On a record the person chose,
+ *  what did not fit a box joins its account, and when nothing landed at all
+ *  the words themselves are the account. */
+export function proposalFrom(t: Test, r: VoiceResult, assets: Asset[], today: string): { changes: Change[]; notes: { what: string; owner?: string }[] } {
+  const notes = t.kind === 'fix' ? [] : ((r.fields.notes as { what: string; owner?: string }[] | undefined) ?? []);
+  const said = typeof r.fields.result === 'string' ? r.fields.result.trim() : '';
+  const spare = (r.leftover ?? '').trim();
+  const account = [said, spare].filter(Boolean).join(' ');
+  let changes = changesFor(t, { ...r.fields, result: account }, assets, today, { merged: !!r.merged && !!said });
+  if (changes.length === 0 && notes.length === 0 && r.transcript?.trim()) {
+    changes = changesFor(t, { result: r.transcript.trim() }, assets, today);
+  }
+  return { changes, notes };
+}
+
 /** The job's names, for the model to spell against. */
 export function contextFor(assets: Asset[], tests: Test[], today: string, on?: Test): VoiceContext {
   const liveAssets = assets.filter(a => !a.deletedAt);
@@ -182,6 +206,6 @@ export function contextFor(assets: Asset[], tests: Test[], today: string, on?: T
     today,
     machines: liveAssets.map(a => a.name),
     suppliers,
-    ...(on ? { on: { title: on.title, machine: liveAssets.find(a => a.id === on.assetId)?.name } } : {}),
+    ...(on ? { on: { title: on.title, machine: liveAssets.find(a => a.id === on.assetId)?.name, ...(on.result?.trim() ? { result: on.result.trim() } : {}) } } : {}),
   };
 }

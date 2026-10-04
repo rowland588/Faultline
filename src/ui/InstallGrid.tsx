@@ -27,7 +27,7 @@ import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, 
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
 import { VoiceNote, VoiceReview } from './Voice';
-import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
+import { contextFor, proposalFrom, type VoiceResult } from '../lib/voice';
 import type { useTesting } from '../lib/useTesting';
 import { Icon } from './Icon';
 import { can as canOf, type Can } from '../lib/access';
@@ -255,7 +255,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
               }}>{backWord}</button>
             )}
           </div>
-          <SayStep step={t} tt={tt} onDone={() => setOpen(null)} />
+          <HowItWent key={`how-${t.id}`} step={t} tt={tt} />
           {/* A START AND A FINISH, SAVED TOGETHER. Rowland: "it doesn't have a
               save button, and it doesn't close." Two boxes that each wrote the
               moment they changed gave no sign anything was kept and left the
@@ -614,26 +614,81 @@ function Who({ names, value, label = 'Who is doing it', onSave }: {
   );
 }
 
-/** Say how a step went, from the square itself — shown, then put in. */
-function SayStep({ step, tt, onDone }: { step: Test; tt: TT; onDone: () => void }) {
+/** HOW IT WENT — the stage's account, on the sheet the stage opens.
+ *
+ * Rowland, 4 October: he talked into a stage and got "Nothing in that fits
+ * these boxes", and the sheet never showed the account at all — what was said
+ * went somewhere he could not see or put right. Now the sheet carries it: the
+ * words as they stand, a box to put them right (written on Save, not on every
+ * key), and the mic beside it. A note says the whole account back with the new
+ * words worked in (lib/voice proposalFrom; the reader merges a second note
+ * into the first), shown in a box to edit before it goes in. The same account
+ * prints on the day report and under its gate on the client report. */
+function HowItWent({ step, tt }: { step: Test; tt: TT }) {
   const [heard, setHeard] = useState<VoiceResult | null>(null);
+  const [typing, setTyping] = useState<string | null>(null);
   const today = todayISO();
-  if (!heard) {
-    return <VoiceNote form="install" label="Say how it went" context={() => contextFor(tt.assets, tt.tests, today, step)} onHeard={setHeard} />;
+  const now = step.result?.trim() ?? '';
+
+  if (heard) {
+    const { changes, notes } = proposalFrom(step, heard, tt.assets, today);
+    return (
+      <VoiceReview heard={heard}
+        rows={[
+          ...changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after, editable: c.key === 'result' })),
+          ...(notes.length ? [{ key: 'found', label: notes.length === 1 ? 'Found doing it' : `Found doing it — ${notes.length} things`, after: notes.map(n => n.what).join('\n') }] : []),
+        ]}
+        onApply={(keys, edits) => void (async () => {
+          const picked = changes.filter(c => keys.includes(c.key));
+          const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
+          if (keys.includes('result') && edits.result != null) patch.result = edits.result.trim() || undefined;
+          const before = Object.fromEntries(Object.keys(patch).map(k => [k, step[k as keyof Test]])) as Partial<Test>;
+          if (Object.keys(patch).length) {
+            await tt.patchTest(step.id, patch);
+            offerUndo(`${step.title}: put in what you said`, () => tt.patchTest(step.id, before));
+          }
+          if (keys.includes('found')) {
+            for (const [i, n] of notes.entries()) {
+              await tt.addItem(step.id, 'found', n.what, { owner: n.owner || undefined, note: i === 0 ? `Said: “${heard.transcript}”` : undefined });
+            }
+          }
+          setHeard(null);
+        })()}
+        /* What did not fit a box is already in the account above (proposalFrom);
+           offering it again as a note would say it twice. */
+        onLeftover={changes.some(c => c.key === 'result') ? undefined
+          : text => void tt.addItem(step.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
+        onDiscard={() => setHeard(null)} />
+    );
   }
-  const changes = changesFor(step, heard.fields, tt.assets, today);
   return (
-    <VoiceReview heard={heard}
-      rows={changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after }))}
-      onApply={keys => void (async () => {
-        const picked = changes.filter(c => keys.includes(c.key));
-        const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
-        const before = Object.fromEntries(Object.keys(patch).map(k => [k, step[k as keyof Test]])) as Partial<Test>;
-        await tt.patchTest(step.id, patch);
-        offerUndo(`${step.title}: put in what you said`, () => tt.patchTest(step.id, before));
-        onDone();
-      })()}
-      onLeftover={text => void tt.addItem(step.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
-      onDiscard={() => setHeard(null)} />
+    <section className="ig-how" aria-label="How it went">
+      <span className="ig-how-l">How it went</span>
+      {typing != null ? (
+        <>
+          <textarea rows={Math.min(10, Math.max(3, Math.ceil(typing.length / 60)))} value={typing} autoFocus
+            aria-label="How it went" placeholder="What was done, what stopped it, what comes next"
+            onChange={e => setTyping(e.target.value)} />
+          <span className="ig-how-go">
+            <button className="btn btn-primary" disabled={typing.trim() === now} onClick={() => void (async () => {
+              const was = step.result;
+              await tt.patchTest(step.id, { result: typing.trim() || undefined });
+              offerUndo(`${step.title}: how it went saved`, () => tt.patchTest(step.id, { result: was }));
+              setTyping(null);
+            })()}>Save</button>
+            <button className="btn btn-ghost" onClick={() => setTyping(null)}>Cancel</button>
+          </span>
+        </>
+      ) : (
+        <>
+          {now ? <p className="ig-how-t">{now}</p> : <p className="sub">Nothing said about it yet — say it, or write it.</p>}
+          <span className="ig-how-go">
+            <VoiceNote form="install" label={now ? 'Say more' : 'Say how it went'}
+              context={() => contextFor(tt.assets, tt.tests, today, step)} onHeard={setHeard} />
+            <button className="btn btn-ghost" onClick={() => setTyping(now)}>{now ? 'Put it right' : 'Write it'}</button>
+          </span>
+        </>
+      )}
+    </section>
   );
 }

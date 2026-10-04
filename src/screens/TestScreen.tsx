@@ -36,7 +36,7 @@ import type { MediaRef } from '../types';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from '../ui/Undo';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
-import { changesFor, contextFor, type Change, type VoiceResult } from '../lib/voice';
+import { proposalFrom, contextFor, type Change, type VoiceResult } from '../lib/voice';
 import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
@@ -715,20 +715,21 @@ function SayIt({ test, tt, can, onFilled }: { test: Test; tt: TT; can: Can; onFi
   const kind = test.kind ?? 'test';
 
   const heard = (r: VoiceResult) => void (async () => {
-    const notes = kind === 'fix' ? [] : (r.fields.notes as { what: string; owner?: string }[] | undefined) ?? [];
-    /* What did not fit a box joins the account in the commentary box. */
-    const said = typeof r.fields.result === 'string' ? r.fields.result.trim() : '';
-    const account = [said, (r.leftover ?? '').trim()].filter(Boolean).join(' ');
-    let changes = changesFor(test, { ...r.fields, result: account }, tt.assets, today);
-    /* Said something, and none of it landed anywhere: it is the account. */
-    if (changes.length === 0 && notes.length === 0 && r.transcript?.trim()) {
-      changes = changesFor(test, { result: r.transcript.trim() }, tt.assets, today);
-    }
+    /* What did not fit a box joins the account; said something and none of it
+       landed anywhere, it is the account (lib/voice proposalFrom — the stage
+       sheet on the install grid reads a note the same way). */
+    const proposed = proposalFrom(test, r, tt.assets, today);
+    const notes = proposed.notes;
+    let changes = proposed.changes;
     /* A written "passes if" is the owner's to change — a voice note does not
        get round that for anybody else (lib/access). */
     if (!mayWriteAgreement(can, test.passesIf)) changes = changes.filter(c => c.key !== 'problem');
-    const adds = (c: Change) => c.key === 'result' || !c.before || (c.key === 'outcome' && test.outcome === 'planned')
-      || (c.key === 'ranOn' && !test.ranOn);
+    /* The account goes straight in when it only adds: there was none, or the
+       new words go under it. When the reader rewrote the account with the new
+       note worked in (r.merged), it is asked — shown to edit — because it
+       changes words already there. */
+    const adds = (c: Change) => (c.key === 'result' ? !r.merged || !test.result?.trim() : !c.before)
+      || (c.key === 'outcome' && test.outcome === 'planned') || (c.key === 'ranOn' && !test.ranOn);
     const now = changes.filter(adds);
     const ask = changes.filter(c => !adds(c));
 
@@ -757,10 +758,11 @@ function SayIt({ test, tt, can, onFilled }: { test: Test; tt: TT; can: Can; onFi
         <>
           <p className="vo-ask">This would change what is already there — tick what should change.</p>
           <VoiceReview heard={asking.heard} applyLabel="Change it"
-            rows={asking.changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after }))}
-            onApply={keys => void (async () => {
+            rows={asking.changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after, editable: c.key === 'result' }))}
+            onApply={(keys, edits) => void (async () => {
               const picked = asking.changes.filter(c => keys.includes(c.key));
               const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
+              if (keys.includes('result') && edits.result != null) patch.result = edits.result.trim() || undefined;
               const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
               await tt.patchTest(test.id, patch);
               offerUndo(`Changed ${picked.length} thing${picked.length === 1 ? '' : 's'}`, () => tt.patchTest(test.id, before));
