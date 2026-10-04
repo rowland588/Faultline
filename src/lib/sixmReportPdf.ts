@@ -73,6 +73,8 @@ export interface CounterRep {
   tone: Tone;
   /** The state and the day in words: "Late · was due 1 Oct". */
   when: string;
+  /** The day in free words, when no date was given — as on the board. */
+  words?: string;
   expect?: string;
   /** What happened — the outcome written when it was done. */
   happened?: string;
@@ -101,6 +103,10 @@ export interface ProblemRep {
   roots: { cause: CauseRep; whys: { text: string; grade?: string }[]; therefore: string[] }[];
   /** Said when there is no root yet. */
   rootless?: string;
+  /** The five whys as written before the fishbone (the old `Case.whys`),
+   *  read back from the root, while they are not yet on a bone — so nothing
+   *  the team wrote is missing from the paper. */
+  written?: string;
   counter: CounterRep[];
   counterSays: string;
   hold?: { what: string; who?: string; every: string; since: string; last?: string; word: string; tone: Tone };
@@ -172,14 +178,30 @@ const causeOrder = (a: Cause, b: Cause) =>
   || GRADE_RANK[a.grade] - GRADE_RANK[b.grade]
   || a.at - b.at;
 
+/** The old five whys (`Case.whys`, written before the fishbone), read back
+ *  from the root up to the problem in one sentence — or nothing once every
+ *  one of them is on the fish (moved onto a bone as a cause or its whys). */
+function writtenBefore(p: Case): string | undefined {
+  const whys = (p.whys ?? []).map(w => w.trim().replace(/[.;:,\s]+$/, '')).filter(Boolean);
+  if (!whys.length) return undefined;
+  const onFish = new Set((p.causes ?? []).flatMap(c => [c.text, ...c.whys.map(w => w.text)]).map(t => t.trim().replace(/[.;:,\s]+$/, '')));
+  if (whys.every(w => onFish.has(w))) return undefined;
+  const low = (x: string) => (x.length > 1 && /[a-z]/.test(x[1]) ? x[0].toLowerCase() + x.slice(1) : x);
+  const chain = [...whys].reverse().concat(p.title.trim().replace(/[.;:,\s]+$/, ''));
+  return `${chain.map((x, i) => (i ? low(x) : x)).join(', therefore ')}.`;
+}
+
 /** An action's state and day, in words and a tone — the board's rule. */
 function actionState(t: PaceTodoRow, today: string): { tone: Tone; when: string; words?: string } {
   if (t.state === 'done') return { tone: 'done', when: t.doneOn ? `Done ${day(t.doneOn)}` : 'Done' };
   const late = !!t.due && t.due < today;
   if (late) return { tone: 'late', when: `Late · was due ${day(t.due)}` };
-  if (t.state === 'waiting') return { tone: 'waiting', when: t.due ? `Waiting · due ${day(t.due)}` : 'Waiting on someone' };
+  /* The day in words is the day when no date was given (lib/actions: `due`
+     falls back to it) — whether the action is waiting on someone or not. */
+  const words = !t.due && t.when?.trim() ? { words: t.when.trim() } : {};
+  if (t.state === 'waiting') return { tone: 'waiting', when: t.due ? `Waiting · due ${day(t.due)}` : 'Waiting on someone', ...words };
   if (t.due) return { tone: 'going', when: `Due ${day(t.due)}` };
-  return { tone: 'ahead', when: 'No day yet', ...(t.when?.trim() ? { words: t.when.trim() } : {}) };
+  return { tone: 'ahead', when: 'No day yet', ...words };
 }
 const TONE_RANK: Record<Tone, number> = { failed: 0, late: 1, waiting: 2, going: 3, ahead: 4, done: 5 };
 
@@ -276,6 +298,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       return {
         what: t?.what ?? a.action ?? '', bone: sixmLabel(toSixM(t?.pillar ?? a.pillar)) || 'Not on a bone',
         owner: (t?.who ?? a.owner ?? '').trim(), tone: st.tone, when: st.when,
+        ...('words' in st && st.words ? { words: st.words } : {}),
         ...(t?.expect?.trim() ? { expect: t.expect.trim() } : {}),
         ...(t?.state === 'done' ? { happened: t.outcome?.trim() || 'not written up yet' } : {}),
         ...(ref ? { cause: ref.text } : {}),
@@ -294,6 +317,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       };
     })() : undefined;
     const confirmed = causes.filter(c => c.status === 'confirmed').length, suspected = causes.filter(c => c.status === 'suspected').length;
+    const written = writtenBefore(p);
     return {
       id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase],
       says: v.says && v.says !== p.title ? v.says : '',
@@ -312,6 +336,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       ...(v.roots.length ? {} : { rootless: causes.length
         ? `No root found yet — ${plural(causes.length, 'cause')} on the fishbone: ${confirmed} confirmed, ${suspected} suspected, ${causes.length - confirmed - suspected} ruled out.`
         : `Nothing on the fishbone yet.` }),
+      ...(written ? { written } : {}),
       counter,
       counterSays: counter.length ? [`${open} open`, late ? `${late} late` : '', `${counter.length - open} done`].filter(Boolean).join(' · ') : '',
       ...(hold ? { hold } : {}),
@@ -683,7 +708,9 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
       }
     }
   } else if (p.rootless && p.causeCount) out.push(text({ text: p.rootless, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
-  else if (p.rootless) out.push(text({ text: `${p.rootless} Opened, and the causes are next.`, size: SIZE.body, colour: MUTED, after: gap(d, 's') }));
+  else if (p.rootless) out.push(text({ text: p.written ? p.rootless : `${p.rootless} Opened, and the causes are next.`, size: SIZE.body, colour: MUTED, after: gap(d, 's') }));
+  /* The whys written before the fishbone, until they are put on a bone. */
+  if (p.written) out.push(text({ text: `Written before the fishbone: ${p.written}`, size: SIZE.body - 0.5, colour: INK2, after: gap(d, 's') }));
 
   if (p.counter.length) {
     out.push(label(`Countermeasures — ${p.counterSays}`));
@@ -707,6 +734,7 @@ interface Placed { c: CauseRep; lines: string[]; d: number; h: number; x: number
 interface Region { m: SixM; label: string; up: boolean; xr: number; placed: Placed[]; total: number }
 interface FishLayout { up: number; down: number; regions: Region[]; head: { lines: string[]; h: number }; complete: boolean; height: number }
 
+const EMPTY_BONE = 'Nothing found yet';
 const causeStyle = (c: CauseRep) => (c.status === 'confirmed' ? 'bold' as const : 'normal' as const);
 const metaOf = (c: CauseRep) => `${c.grade} · ${c.statusWord}`;
 
@@ -820,8 +848,11 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
     font(doc, SIZE.small, 'bold', INK); doc.text(name, lx, ly);
     font(doc, SIZE.tiny, 'normal', MUTED); if (cnt) doc.text(cnt, lx + nw, ly);
     if (!g.placed.length) {
+      /* The screen's words for an empty bone (ui/fishbone/layout boneWords) —
+         never "looked", which was not true beside "the data suggests causes
+         not yet looked at" on the same bone. */
       font(doc, SIZE.tiny, 'normal', MUTED);
-      doc.text('looked — nothing found', g.xr - SLOPE * (PAD + 6) - 4 - doc.getTextWidth('looked — nothing found'), g.up ? spineY - PAD - 2 : spineY + PAD + 8);
+      doc.text(EMPTY_BONE, g.xr - SLOPE * (PAD + 6) - 4 - doc.getTextWidth(EMPTY_BONE), g.up ? spineY - PAD - 2 : spineY + PAD + 8);
     }
     /* each cause: its words on a rib that runs into the bone */
     for (const pc of g.placed) {
@@ -914,6 +945,7 @@ function counterRows(list: CounterRep[]): Block {
       what: wrap(f.doc, c.what, w, SIZE.body - 0.5, 'bold'),
       cause: c.cause ? wrap(f.doc, `For: ${c.cause}`, w, SIZE.small) : [],
       exp: c.expect ? wrap(f.doc, `Expected: ${c.expect}`, w, SIZE.small) : [],
+      words: c.words ? wrap(f.doc, `When: ${c.words}`, w, SIZE.small) : [],
       hap: c.happened ? wrap(f.doc, `What happened: ${c.happened}`, w, SIZE.small, 'bold') : [],
       side: wrap(f.doc, [c.bone, c.owner].filter(Boolean).join(' · '), sideW - 8, SIZE.small),
     };
@@ -922,7 +954,7 @@ function counterRows(list: CounterRep[]): Block {
     rows: list.map(c => ({
       h: f => {
         const p = parts(f, c);
-        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.hap.length) * 10.5, p.side.length * 10.5, 14) + 5;
+        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.words.length + p.hap.length) * 10.5, p.side.length * 10.5, 14) + 5;
       },
       draw: (f, y) => {
         const p = parts(f, c);
@@ -931,6 +963,7 @@ function counterRows(list: CounterRep[]): Block {
         font(f.doc, SIZE.body - 0.5, 'bold', INK); f.doc.text(p.what, f.x, ty); ty += p.what.length * 11.5;
         if (p.cause.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.cause, f.x, ty - 1); ty += p.cause.length * 10.5; }
         if (p.exp.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.exp, f.x, ty - 1); ty += p.exp.length * 10.5; }
+        if (p.words.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.words, f.x, ty - 1); ty += p.words.length * 10.5; }
         if (p.hap.length) { font(f.doc, SIZE.small, 'bold', c.happened === 'not written up yet' ? MUTED : INK2); f.doc.text(p.hap, f.x, ty - 1); }
         font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.side, f.x + f.w - sideW - stateW, y + 12);
         pill(f.doc, f.x + f.w - stateW, y + 4, stateW, c.tone, c.when);

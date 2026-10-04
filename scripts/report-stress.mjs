@@ -224,46 +224,67 @@ const SIXM_SIZES = fuzzAt > 0 || seedsAt > 0 ? [] : ['tiny', 'huge'];
 for (const size of SIXM_SIZES) {
   const { ctx, page, errors } = await device();
   const job = await page.evaluate(async size => (await import('/src/dev/reportSeeds.ts')).seedSixMJob(size), size);
-  const must = await page.evaluate(async ({ pid }) => {
-    const { san } = await import('/src/lib/reportKit.ts');
-    await (await import('/src/lib/savePdf.ts')).loadPdfLib();
-    const { loadProblems, viewsOf } = await import('/src/lib/useProblems.ts');
-    const { therefore } = await import('/src/lib/fishbone.ts');
-    const { PHASE_WORD } = await import('/src/lib/problems.ts');
-    const { listPaceTodos } = await import('/src/db/pace.ts');
-    const { getProject } = await import('/src/db/projects.ts');
-    const project = await getProject(pid);
-    const loaded = await loadProblems(pid);
-    const views = viewsOf(loaded, pid, undefined, Date.now());
-    const todos = await listPaceTodos(pid);
-    const out = [];
-    let from = '';
-    const add = (...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out.push([v, san(v), from]); } };
-    from = 'top'; add(project.name, project.lead);
-    from = 'lines'; for (const l of loaded.data.lines) add(l.name);
-    from = 'pareto';
-    const end = new Date().setHours(0, 0, 0, 0) + 86_400_000;
-    for (const o of loaded.data.observations) if (o.startedAt >= end - 28 * 86_400_000 && o.startedAt < end && (o.durationMs > 0 || o.count > 0)) add((o.category || 'Uncategorised').trim());
-    from = 'constraint'; for (const l of loaded.data.lines) if ((l.capacity?.stations.length ?? 0) >= 2) for (const st of l.capacity.stations) add(st.name);
-    for (const v of views) {
-      from = `problem`; add(v.problem.title, PHASE_WORD[v.phase]);
-      from = `cause of ${v.problem.title.slice(0, 30)}`; for (const c of v.problem.causes ?? []) add(c.text);
-      from = `why`; for (const c of v.roots) { for (const w of c.whys) add(w.text); for (const t of therefore(c, v.problem.title)) add(t); }
-      from = `countermeasure`;
-      for (const a of v.actions) { const t = todos.find(x => x.id === (a.uid ?? a.ref)); if (t) add(t.what, t.expect, t.state === 'done' ? t.outcome : undefined); }
-      from = 'hold'; if (v.problem.hold) add(v.problem.hold.what, v.problem.hold.who);
+  /* The project's report, and one line's own deck (?line=) — the same
+     drawer scoped to a line: its problems, its board and the actions for
+     every line, its walk, its Pareto and its constraint. */
+  for (const lineId of [undefined, job.lineId]) {
+    const must = await page.evaluate(async ({ pid, lineId }) => {
+      const { san } = await import('/src/lib/reportKit.ts');
+      await (await import('/src/lib/savePdf.ts')).loadPdfLib();
+      const { loadProblems, viewsOf } = await import('/src/lib/useProblems.ts');
+      const { therefore } = await import('/src/lib/fishbone.ts');
+      const { PHASE_WORD } = await import('/src/lib/problems.ts');
+      const { listPaceTodos } = await import('/src/db/pace.ts');
+      const { getProject } = await import('/src/db/projects.ts');
+      const project = await getProject(pid);
+      const loaded = await loadProblems(pid);
+      const views = viewsOf(loaded, pid, lineId, Date.now());
+      const todos = (await listPaceTodos(pid)).filter(t => !lineId || !t.lineId || t.lineId === lineId);
+      const lines = loaded.data.lines.filter(l => !lineId || l.id === lineId);
+      const ws = new Set(lines.map(l => l.workspaceId).filter(Boolean));
+      const out = [];
+      let from = '';
+      const add = (...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out.push([v, san(v), from]); } };
+      const words = t => (t.state !== 'done' && !t.due ? t.when?.trim() : undefined);
+      from = 'top'; add(project.name, project.lead);
+      from = 'lines'; for (const l of lines) add(l.name);
+      from = 'pareto';
+      const end = new Date().setHours(0, 0, 0, 0) + 86_400_000;
+      for (const o of loaded.data.observations) if ((!lineId || ws.has(o.workspaceId)) && o.startedAt >= end - 28 * 86_400_000 && o.startedAt < end && (o.durationMs > 0 || o.count > 0)) add((o.category || 'Uncategorised').trim());
+      from = 'constraint'; for (const l of lines) if ((l.capacity?.stations.length ?? 0) >= 2) for (const st of l.capacity.stations) add(st.name);
+      for (const v of views) {
+        from = `problem`; add(v.problem.title, PHASE_WORD[v.phase]);
+        from = `cause of ${v.problem.title.slice(0, 30)}`; for (const c of v.problem.causes ?? []) add(c.text);
+        from = `why`; for (const c of v.roots) { for (const w of c.whys) add(w.text); for (const t of therefore(c, v.problem.title)) add(t); }
+        /* The old five whys, read back from the root to the problem — each
+           why after the first starts lower-case, as every "therefore" does. */
+        from = 'written before the fishbone';
+        if (!(v.problem.causes ?? []).length) {
+          const clean = x => x.trim().replace(/[.;:,\s]+$/, '');
+          const low = x => (x.length > 1 && /[a-z]/.test(x[1]) ? x[0].toLowerCase() + x.slice(1) : x);
+          const chain = (v.problem.whys ?? []).map(clean).filter(Boolean).reverse();
+          if (chain.length) add(`${[...chain, clean(v.problem.title)].map((x, i) => (i ? low(x) : x)).join(', therefore ')}.`);
+        }
+        from = `countermeasure`;
+        for (const a of v.actions) { const t = todos.find(x => x.id === (a.uid ?? a.ref)); if (t) add(t.what, t.expect, t.state === 'done' ? t.outcome : undefined, words(t)); }
+        from = 'hold'; if (v.problem.hold) add(v.problem.hold.what, v.problem.hold.who);
+      }
+      from = 'board'; for (const t of todos) add(t.what, t.who, t.why, words(t));
+      from = 'walk'; for (const sn of loaded.data.snags) if (!lineId || ws.has(sn.wsId)) add(sn.what, sn.state !== 'closed' ? sn.owner : undefined);
+      return out;
+    }, { pid: job.projectId, lineId });
+    const label = lineId ? '6M line' : '6M client';
+    const file = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}.pdf`;
+    try {
+      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, file, [['PDF']]);
+      const r = check(file, must);
+      /* A client-safe document: no record's internal id on the paper. */
+      const ids = textOf(file).match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) ?? [];
+      if (ids.length) r.faults.push(`an internal id on the paper ×${ids.length}: ${ids[0]}`);
+      rows.push({ size: `6m-${size}`, report: label, pages: r.pages, faults: r.faults, said: r.said });
+    } catch (e) {
+      rows.push({ size: `6m-${size}`, report: label, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
-    from = 'board'; for (const t of todos) add(t.what, t.who, t.why);
-    from = 'walk'; for (const sn of loaded.data.snags) add(sn.what, sn.state !== 'closed' ? sn.owner : undefined);
-    return out;
-  }, { pid: job.projectId });
-  const file = `${OUT}/6m-${size}-client.pdf`;
-  try {
-    await download(page, `#/pace-report?project=${job.projectId}`, file, [['PDF']]);
-    const r = check(file, must);
-    rows.push({ size: `6m-${size}`, report: '6M client', pages: r.pages, faults: r.faults, said: r.said });
-  } catch (e) {
-    rows.push({ size: `6m-${size}`, report: '6M client', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
   }
   if (errors.length) rows.push({ size: `6m-${size}`, report: '(console)', pages: 0, faults: errors });
   await ctx.close();
