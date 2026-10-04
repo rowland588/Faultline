@@ -1,6 +1,6 @@
 /* The Pareto from the log timed in the app — no workbook. */
 import { describe, it, expect } from 'vitest';
-import { paretoFromLog, profileOf } from '../paretoFromLog';
+import { paretoFromLog, profileOf, barDrills, isTie, drillCategory, PROJECT_WALK } from '../paretoFromLog';
 import { paretoView } from '../paretoView';
 import type { Observation } from '../../types';
 
@@ -43,5 +43,36 @@ describe('the Pareto, from what was timed on the line', () => {
   });
   it('nothing timed is nothing to draw', () => {
     expect(paretoFromLog([], T - 28 * DAY, T, lineOf)).toBeUndefined();
+  });
+});
+
+describe('a bar is a door into the line it was timed on (HUNT 15)', () => {
+  const lines = [
+    { name: 'Line 2A', workspaceId: 'ws2a' },
+    { name: 'Line 3', workspaceId: 'ws3' },
+    { name: 'Line 4' },                       // never filmed — no study to drill
+  ];
+  it('most minutes first, each with its study', () => {
+    expect(barDrills({ 'Line 3': 20, 'Line 2A': 70 }, lines)).toEqual([
+      { wsId: 'ws2a', name: 'Line 2A', mins: 70 },
+      { wsId: 'ws3', name: 'Line 3', mins: 20 },
+    ]);
+  });
+  it('minutes on the project\'s own walk open the walk; a line with no study is left out', () => {
+    const d = barDrills({ [PROJECT_WALK]: 12, 'Line 4': 30 }, lines, 'walk');
+    expect(d).toEqual([{ wsId: 'walk', name: PROJECT_WALK, mins: 12 }]);
+    expect(barDrills({ [PROJECT_WALK]: 12 }, lines)).toEqual([]);
+    expect(barDrills(undefined, lines)).toEqual([]);
+    expect(barDrills({ 'Line 2A': 0 }, lines)).toEqual([]);
+  });
+  it('a tie is the same minutes as printed — not a near miss', () => {
+    expect(isTie(barDrills({ 'Line 2A': 12.04, 'Line 3': 12.01 }, lines))).toBe(true);
+    expect(isTie(barDrills({ 'Line 2A': 12.4, 'Line 3': 12.1 }, lines))).toBe(false);
+    expect(isTie(barDrills({ 'Line 2A': 140.2, 'Line 3': 139.9 }, lines))).toBe(true);
+    expect(isTie(barDrills({ 'Line 2A': 12 }, lines))).toBe(false);
+  });
+  it('a blank category drills as the drill spells it', () => {
+    expect(drillCategory('Uncategorised')).toBe('(uncategorised)');
+    expect(drillCategory('Changeover')).toBe('Changeover');
   });
 });

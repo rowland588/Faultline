@@ -24,7 +24,14 @@ import type { Case } from '../types';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
-import { useProjectPareto } from '../lib/paretoFromLog';
+import { useProjectPareto, barDrills, isTie, drillCategory, type BarDrill } from '../lib/paretoFromLog';
+import { buildAnalyseHash } from '../state/useRoute';
+import { Sheet, SheetRow } from '../ui/Sheet';
+import type { DimensionKey } from '../types';
+
+/** The drill from a category bar: category first (it is the path), then the
+ *  machine, the sub-category and the shift — the board's order after it. */
+const DRILL_ORDER: DimensionKey[] = ['category', 'asset', 'subcategory', 'shift'];
 import { usePaceLines } from '../lib/usePaceLines';
 import { createWorkspace } from '../db';
 import { paretoView, moveSentence, type ParetoMove } from '../lib/paretoView';
@@ -40,13 +47,25 @@ const mins = (n: number) => (n >= 100 ? Math.round(n).toLocaleString() : String(
  * problems. */
 type RootCause = { label: string; go: () => void } | null;
 
-function Row({ m, max, showMove, rc, on }: { m: ParetoMove; max: number; showMove: boolean; rc: RootCause; on?: boolean }) {
+/** The row's own door — the line's drill for this category (HUNT 15). */
+type Door = { label: string; go: () => void } | null;
+
+function Row({ m, max, showMove, rc, on, door }: { m: ParetoMove; max: number; showMove: boolean; rc: RootCause; on?: boolean; door?: Door }) {
   const w = max > 0 ? (m.mins / max) * 100 : 0;
   return (
     <tr id={'bar-' + encodeURIComponent(m.category)}
-      className={(m.vital ? 'is-vital' : '') + (m.verdict ? ' has-move is-' + m.verdict : '') + (on ? ' is-asked' : '')}>
+      className={(m.vital ? 'is-vital' : '') + (m.verdict ? ' has-move is-' + m.verdict : '') + (on ? ' is-asked' : '') + (door ? ' is-door' : '')}
+      /* THE WHOLE ROW IS THE DOOR, the category's button its keyboard way in.
+         A tap on any button in the row (the root cause's, or the door's own)
+         is that button's alone, so it never also opens the drill. */
+      onClick={door ? e => { if (!(e.target as Element).closest('button, a')) door.go(); } : undefined}>
       <th scope="row">
-        <span className="pr-cat">{m.category}</span>
+        {door
+          ? <button type="button" className="pr-door" onClick={door.go}>
+              <span className="pr-cat">{m.category}</span>
+              <span className="pr-on">{door.label} ›</span>
+            </button>
+          : <span className="pr-cat">{m.category}</span>}
         {m.profile && <span className="pr-prof">{m.profile}</span>}
         {rc && <button className="pr-rc" onClick={rc.go}>{rc.label} ›</button>}
       </th>
@@ -139,6 +158,30 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
     return can.edit ? { label: 'Find the root cause', go: () => void findRootCause(m) } : null;
   };
 
+  /* THE ROW'S DOOR — the line's drill for this category (HUNT 15). It opens
+     the line that lost the most minutes to it, because that is where the
+     machines, sub-categories and shifts behind the bar are, and the same line
+     "Find the root cause" files the problem on. When two lines lost the SAME
+     minutes (as printed), "mostly" would be a coin toss dressed as a finding,
+     so the row says so and asks which. Ranked by the next cut after category —
+     the machine — over the drill's default window, the same last four weeks. */
+  const [choosing, setChoosing] = useState<{ category: string; drills: BarDrill[] } | null>(null);
+  const openDrill = (wsId: string, category: string) => nav(buildAnalyseHash(
+    wsId, 'analyse', 'time', [{ dimension: 'category', value: drillCategory(category) }], DRILL_ORDER).slice(1));
+  const doorOf = (m: ParetoMove): Door => {
+    const d = barDrills(m.byLine, lines.lines, project?.walkWorkspaceId);
+    if (!d.length) return null;
+    const tie = isTie(d);
+    const tied = tie ? d.filter(x => isTie([d[0], x])) : [];
+    const label = d.length === 1 ? `on ${d[0].name}`
+      : tie ? `on ${tied.map(x => x.name).join(' and ')}, equally`
+      : `mostly on ${d[0].name}, also ${d.slice(1).map(x => x.name).join(', ')}`;
+    return {
+      label,
+      go: () => (tie ? setChoosing({ category: m.category, drills: tied }) : openDrill(d[0].wsId, m.category)),
+    };
+  };
+
   if (loading || pareto.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
     return (
@@ -228,7 +271,7 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
               <tbody>
                 {view.rows.map(m => (
                   <Row key={m.category} m={m} max={view.rows[0]?.mins ?? 0} showMove={view.comparable}
-                    rc={rcOf(m)} on={asked === m.category} />
+                    rc={rcOf(m)} on={asked === m.category} door={doorOf(m)} />
                 ))}
               </tbody>
             </table>
@@ -239,6 +282,16 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
             The profile says whether a category is a few long stops or many short ones.
           </p>
         </>
+      )}
+
+      {choosing && (
+        <Sheet open onClose={() => setChoosing(null)} title="Which line?">
+          <p className="sub">{choosing.category} lost the same minutes on each. Open its drill on:</p>
+          {choosing.drills.map(x => (
+            <SheetRow key={x.wsId} label={x.name} hint={`${mins(x.mins)} min`}
+              onClick={() => { setChoosing(null); openDrill(x.wsId, choosing.category); }} />
+          ))}
+        </Sheet>
       )}
 
       <footer className="pace-foot">
