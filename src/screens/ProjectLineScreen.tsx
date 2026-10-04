@@ -191,7 +191,9 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               Client report
             </button>
           )}
-          {sixM && can.edit && (
+          {/* One thing, one place: the fishbone lens carries its own "I saw…"
+              beside "Time a stop", so here it is for the other lenses. */}
+          {sixM && can.edit && lens !== 'fishbone' && (
             <button className="btn" onClick={() => setSaw(true)}>I saw…</button>
           )}
           {!paced && (

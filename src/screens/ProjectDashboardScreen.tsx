@@ -118,9 +118,6 @@ function FishboneLead({ projectId, can }: { projectId: string; can: Can }) {
         </div>
       ) : (
         <>
-          {/* The small fish carries the title, the number and the phase; the
-              sentence under the header is the one thing it has no room for. */}
-          {v.says && <p className="fj-lead-says">{v.says}</p>}
           {/* The small fish is a picture of the problem, and the whole of it
               is the way in — the causes are worked on the full screen. */}
           <div className="fj-lead-fish" role="link" tabIndex={0} aria-label={`Open the fishbone of ${v.problem.title}`}
@@ -130,6 +127,11 @@ function FishboneLead({ projectId, can }: { projectId: string; can: Can }) {
               onSuggestion={() => go(v.problem.id)}
               onAdd={() => go(v.problem.id)} />
           </div>
+          {/* The small fish carries the title, the number and the phase; the
+              sentence is the one thing it has no room for, so it is the
+              picture's caption — under it, not above the title it explains
+              (on a phone it read before the problem it was about). */}
+          {v.says && <p className="fj-lead-says">{v.says}</p>}
         </>
       )}
     </section>

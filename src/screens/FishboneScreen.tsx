@@ -493,6 +493,12 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
         )}
       </div>
 
+      {/* A link to a problem that has gone — removed, or not on this device —
+          says so, rather than quietly showing another problem in its place. */}
+      {askedProblem && !asked && (
+        <p className="sub fj-gone" role="status">That problem isn’t on this job any more{view ? ' — this is the line’s main one.' : '.'}</p>
+      )}
+
       {!view ? (
         <div className="fj-empty">
           <p className="fj-empty-t">No problem opened{line ? ` on ${line.name}` : ''} yet</p>
