@@ -510,6 +510,9 @@ async function basePrune(alive: Set<string>): Promise<void> {
    cloud's without anybody having changed anything. */
 const NOT_AN_EDIT = new Set(['rev', 'updated_at', 'owner_id']);
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+/** Every column we would send matches theirs — nothing but transport differs. */
+const sameEdits = (mine: CloudRow, theirs: CloudRow): boolean =>
+  Object.keys(mine).every(col => NOT_AN_EDIT.has(col) || same(mine[col], theirs[col]));
 const isIdList = (v: unknown): v is { id: string }[] =>
   Array.isArray(v) && v.every(x => !!x && typeof x === 'object' && typeof (x as { id?: unknown }).id === 'string');
 
@@ -737,11 +740,15 @@ export async function syncNow(): Promise<void> {
           /* BOTH CHANGED IT: merge column by column against the copy both
              last agreed (mergeRows, above). Without that copy, the old rule. */
           const base = needsPush(sent, kind, id, localClock) ? await baseGet(kind, id) : undefined;
-          /* Our own echo: now agreed. The same clock is only an echo when we
-             sent that copy — an unsent edit that happens to share the other
-             device's millisecond is still an edit, and is merged below (it
-             used to be taken for an echo and pushed whole over theirs). */
-          if (remoteClock === localClock && !base) { await basePut(kind, id, r); return; }
+          /* Our own echo: now agreed. The same clock with a different copy is
+             not an echo — another device's edit that happens to share this
+             one's millisecond, merged below (it used to be taken for an echo
+             and our whole copy pushed over theirs). A copy that matches ours
+             stays an echo and keeps its place in the push queue, which is what
+             Repair sync relies on to send everything again. */
+          if (remoteClock === localClock && (!base || sameEdits(map.toRow(localRow, uid), r))) {
+            await basePut(kind, id, r); return;
+          }
           if (base) {
             const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock);
             await basePut(kind, id, r);
