@@ -66,7 +66,8 @@ export interface StepAccount {
   when: string;
   /** The grid's own tone for the step, so the word and its colour match the square. */
   tone: Exclude<CellTone, 'none'>;
-  /** The state in words, the same words as the grid's key. */
+  /** The state in words, the same words as the grid's key — and "· late"
+   *  after "a problem" when its finish has gone too (two facts, both said). */
   state: string;
   /** What the team said, whole. */
   said: string;
@@ -173,13 +174,19 @@ export function clientReport(x: ClientReportInput): ClientReport {
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
-          tone, state: CELL_WORD[tone], said: (s.step.result ?? '').trim(),
+          tone, state: tone === 'problem' && s.late ? `${CELL_WORD.problem} · late` : CELL_WORD[tone], said: (s.step.result ?? '').trim(),
         };
       });
     });
-    const lateSteps = g.rows.flatMap(r => r.view.steps
-      .filter(s => s.tone === 'late' || s.tone === 'problem')
-      .map(s => `${r.asset?.name ?? 'The line'} — ${s.step.title}${s.tone === 'problem' ? ' (a problem)' : ' (late)'}`));
+    /* A PROBLEM AND LATE ARE TWO FACTS. Each step says every one that is true
+       — "(a problem)", "(late)", "(a problem · late)" — and the gate counts
+       them apart, a step in both counts in both (Rowland, 4 October). */
+    const all = g.rows.flatMap(r => r.view.steps.map(s => ({ r, s })));
+    const lateSteps = all
+      .filter(({ s }) => s.tone === 'problem' || s.late)
+      .map(({ r, s }) => `${r.asset?.name ?? 'The line'} — ${s.step.title} (${[s.tone === 'problem' ? 'a problem' : '', s.late ? 'late' : ''].filter(Boolean).join(' · ')})`);
+    const problems = all.filter(({ s }) => s.tone === 'problem').length;
+    const lateN = all.filter(({ s }) => s.late).length;
     const tone = job.find(j => j.gate === gate)?.tone ?? 'none';
     // Said as the gate's own screen says it — stages with nothing planned count.
     const unplanned = rows.reduce((n, r) => n + r.cells.filter(c => c === 'none').length, 0);
@@ -189,7 +196,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
          says so — a green box reading "nothing kept" told the client two
          things at once (seen on a random-job report, 4 Oct). */
       says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : 'Nothing kept at this gate yet')
-        : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
+        : `${done} of ${steps.length} done${problems ? ` · ${problems} a problem` : ''}${lateN ? ` · ${lateN} late` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
       ...(accounts.length ? { accounts } : {}),

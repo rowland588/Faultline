@@ -39,9 +39,28 @@ describe('the stage-gate client report', () => {
     expect(r.sections.map(s => s.label)).toEqual(['Install', 'Set up', 'Commission', 'Hand over']);
     const install = r.sections[0];
     // Six usual stages plus "Guarding fitted": seven squares, two planned.
-    expect(install.says).toBe('1 of 2 done · 1 late or a problem · 5 not added yet');
+    expect(install.says).toBe('1 of 2 done · 1 late · 5 not added yet');
     expect(install.grid?.rows.map(x => x.machine)).toEqual(['De-staker']);
-    expect(install.late[0]).toMatch(/De-staker — Guarding fitted/);
+    expect(install.late[0]).toBe('De-staker — Guarding fitted (late)');
+  });
+  /* Rowland, 4 October: "a problem doesn't mean it will cause a lateness … 2
+     different things can be both." Each step says every fact that is true,
+     and the gate counts them apart — a step in both counts in both. */
+  it('says a problem and late as two facts, each when true', () => {
+    const steps = [
+      test({ id: 'p1', kind: 'install', title: 'Cabled up', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-29', plannedFor: '2026-10-03' }),
+      test({ id: 'p2', kind: 'install', title: 'Air connected', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-25', plannedFor: '2026-09-25' }),
+      test({ id: 'p3', kind: 'install', title: 'Guarding fitted', assetId: 'ds', plannedFor: '2026-09-25' }),
+    ];
+    const x = clientReport({ project, projects: [project], assets, tests: steps, items: [], materials: [], programs: [], standards: [], today: T });
+    const install = x.sections[0];
+    expect(install.late).toEqual([
+      'De-staker — Cabled up (a problem)',
+      'De-staker — Air connected (a problem · late)',
+      'De-staker — Guarding fitted (late)',
+    ].sort((a, b) => install.late.indexOf(a) - install.late.indexOf(b)));
+    expect(install.late).toHaveLength(3);
+    expect(install.says).toMatch(/^0 of 3 done · 2 a problem · 2 late/);
   });
   it('Set up carries the programs; Commission the tests with their outcome', () => {
     expect(r.sections[1].programs).toMatchObject({ proved: 1, total: 2 });

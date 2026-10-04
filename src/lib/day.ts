@@ -65,8 +65,11 @@ export interface Day {
   /** Every gate with steps on the job — Install, Set up, Hand over — as it
    *  stood that evening. `install` is the first of these, kept for callers
    *  that only ever read Install. */
-  /** `late`: by the end of that day, past its day or hit a problem. */
-  gates: { gate: StepGate; label: string; done: number; late: number; total: number }[];
+  /** By the end of that day: `problem`, steps that had hit a problem; `late`,
+   *  steps past their finish and not done; `wrong`, steps that are either —
+   *  two facts, a step can be both (Rowland, 4 October), so the bar's red is
+   *  `wrong` and the words say each. */
+  gates: { gate: StepGate; label: string; done: number; problem: number; late: number; wrong: number; total: number }[];
   /** Nothing happened and nothing was booked. */
   empty: boolean;
 }
@@ -215,9 +218,13 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
        with a step late read the same as one on time (the colour rules: the
        abnormal stands out). Late by the end of THAT day — a past day reads as
        it stood. */
-    .map(x => ({ gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts),
-      late: x.ts.filter(t => (t.outcome === 'failed' && (t.ranOn ?? '') <= date) || (t.outcome !== 'passed' && isOverdue(t, date))).length,
-      total: x.ts.length }));
+    .map(x => {
+      const hit = (t: Test) => t.outcome === 'failed' && (t.ranOn ?? '') <= date;
+      const past = (t: Test) => t.outcome !== 'passed' && isOverdue(t, date);
+      return { gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts),
+        problem: x.ts.filter(hit).length, late: x.ts.filter(past).length,
+        wrong: x.ts.filter(t => hit(t) || past(t)).length, total: x.ts.length };
+    });
   const first = gates.find(g => g.gate === 'install');
   const install = first ? { done: first.done, total: first.total } : undefined;
 

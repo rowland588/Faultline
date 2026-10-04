@@ -76,16 +76,18 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
      length. Install, Set up and Hand over, whichever have steps: the same
      bars the day's screen draws. */
   for (const g of day.gates) {
-    const { done, total, late } = g;
+    const { done, total, late, problem, wrong } = g;
     setFont(d, 6.5, 'bold', MUTED);
     d.text(`${g.label.toUpperCase()}, END OF THE DAY`, M, y);
     /* The same bar as the screen: done a quiet green, late red after it, and
        late said in words so it survives a black-and-white print. */
     const words = `${done} of ${total} steps done`;
-    if (late) {
+    /* A problem and late are two facts — each said, a step in both counts in both. */
+    const bad = [problem ? `${problem} a problem` : '', late ? `${late} late` : ''].filter(Boolean).join(' \u00b7 ');
+    if (bad) {
       setFont(d, 8, 'bold', DANGER);
-      const lw = d.getTextWidth(` · ${late} late`);
-      d.text(` · ${late} late`, W - M, y, { align: 'right' });
+      const lw = d.getTextWidth(` \u00b7 ${bad}`);
+      d.text(` \u00b7 ${bad}`, W - M, y, { align: 'right' });
       setFont(d, 8, 'bold', INK);
       d.text(words, W - M - lw, y, { align: 'right' });
     } else {
@@ -96,7 +98,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     d.roundedRect(M, y + 6, CW, 6, 3, 3, 'F');
     const doneW = done ? Math.max(6, CW * done / total) : 0;
     if (done) { d.setFillColor('#a9cdbb'); d.roundedRect(M, y + 6, doneW, 6, 3, 3, 'F'); }
-    if (late) { d.setFillColor(DANGER); d.rect(M + doneW, y + 6, Math.max(3, CW * late / total), 6, 'F'); }
+    if (wrong) { d.setFillColor(DANGER); d.rect(M + doneW, y + 6, Math.max(3, CW * wrong / total), 6, 'F'); }
     y += 28;
   }
 

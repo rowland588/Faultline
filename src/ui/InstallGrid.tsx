@@ -50,7 +50,8 @@ function cellWord(s: StepView): string {
   const t = s.step;
   switch (s.tone) {
     case 'done': return t.ranOn ? short(t.ranOn) : 'Done';
-    case 'problem': return 'Problem';
+    /* Both facts, when both are true — a problem past its finish is late too. */
+    case 'problem': return s.late ? 'Problem · late' : 'Problem';
     case 'asking': return 'Done?';
     case 'late': return 'Late';
     /* No day yet: grey, and the one that is next says so in words — the
@@ -215,7 +216,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
          it was in, so a step pressed by mistake went red with nothing saying
          how to put it back. Whatever it is, one tap here puts it back. */
       const stateWord = t.outcome === 'passed' ? `Done${t.ranOn ? ` ${short(t.ranOn)}` : ''}`
-        : t.outcome === 'failed' ? `Hit a problem${t.ranOn ? ` ${short(t.ranOn)}` : ''}`
+        : t.outcome === 'failed' ? `Hit a problem${t.ranOn ? ` ${short(t.ranOn)}` : ''}${s.late ? ' · late' : ''}`
           : t.outcome === 'notRun' ? 'Did not happen'
             : t.outcome === 'planned' && t.ranOn ? 'Worked on — not called yet' : 'Not done yet';
       const backWord = t.outcome === 'passed' ? 'Not done after all — put it back'

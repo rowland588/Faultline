@@ -20,6 +20,11 @@ export type StepTone = 'done' | 'problem' | 'asking' | 'late' | 'ahead';
 export interface StepView {
   step: Test;
   tone: StepTone;
+  /** Its finish has gone and it is not done. A SEPARATE fact from a problem:
+   *  Rowland, 4 October — "a problem doesn't mean it will cause a lateness …
+   *  2 different things can be both." The tone gives the square one colour
+   *  (a problem is the louder red); the words say every fact that is true. */
+  late: boolean;
   /** The first step not yet done, in order — what the machine is waiting on. */
   next: boolean;
   /** Things written down under "what we found doing it". */
@@ -39,6 +44,13 @@ export interface MachineInstall {
   ready: boolean;
   /** What somebody would say about it, in one breath. */
   says: string;
+}
+
+/** What is wrong with a step, every fact that is true: "hit a problem",
+ *  "is late", or both — "hit a problem and is late". Empty when neither. */
+export function stepFacts(v: Pick<StepView, 'tone' | 'late'>): string {
+  const problem = v.tone === 'problem';
+  return problem && v.late ? 'hit a problem and is late' : problem ? 'hit a problem' : v.late ? 'is late' : '';
 }
 
 export function toneOf(t: Test, today: string): StepTone {
@@ -62,13 +74,15 @@ export function installOf(asset: Asset | undefined, all: Test[], items: TestItem
   const steps: StepView[] = mine.map(t => ({
     step: t,
     tone: toneOf(t, today),
+    late: isOverdue(t, today),
     next: t.id === nextId,
     found: liveItems.filter(i => i.testId === t.id && i.kind === 'found').length,
   }));
   const ids = new Set(mine.map(t => t.id));
   const fixesOpen = tests.filter(f => f.kind === 'fix' && !isSettled(f) && ids.has(testOfFix(f, tests)?.id ?? '')).length;
   const done = steps.filter(s => s.tone === 'done').length;
-  const late = steps.filter(s => s.tone === 'late').length;
+  /* Every step past its finish, a problem or not — "1 late" is about the day. */
+  const late = steps.filter(s => s.late).length;
   /* "Mark it installed" is the install gate's last word; the others have none. */
   const ready = gate === 'install' && !!asset && steps.length > 0 && done === steps.length && !asset.installedOn && !asset.runningOn;
 
@@ -95,7 +109,7 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
   const stuck = steps.find(s => s.tone === 'problem');
   if (stuck) {
     const why = stuck.step.result?.trim();
-    return `${head} ${stuck.step.title} hit a problem${why ? ` — ${why}` : ''}.${fixes}`;
+    return `${head} ${stuck.step.title} ${stepFacts(stuck)}${why ? ` — ${why}` : ''}.${fixes}`;
   }
   const next = steps.find(s => s.next);
   if (!next) return `${head}${fixes}`;
@@ -302,10 +316,10 @@ function currentProofs(asset: Asset, tests: Test[]): Test[] {
  *  leaving it to be found. Same rules journeyOf colours by. */
 export function redReasons(asset: Asset, tests: Test[], items: TestItem[], today: string): string[] {
   const out: string[] = [];
-  const stepWord = (v: StepView) => (v.tone === 'problem' ? 'hit a problem' : 'is late');
   for (const g of ['install', 'setup'] as const) {
     for (const v of installOf(asset, tests, items, today, g).steps) {
-      if (v.tone === 'problem' || v.tone === 'late') out.push(`${v.step.title} ${stepWord(v)}`);
+      const facts = stepFacts(v);
+      if (facts) out.push(`${v.step.title} ${facts}`);
     }
   }
   for (const t of currentProofs(asset, tests)) {

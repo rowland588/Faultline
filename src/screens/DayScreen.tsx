@@ -130,13 +130,15 @@ export function DayScreen({ projectId }: { projectId: string }) {
       {/* A bar per gate with steps — Install, Set up, Hand over. */}
       {day.gates.map(g => (
         <button key={g.gate} className="dy-install" onClick={() => nav(`/project/${projectId}/${GATE_PATH[g.gate]}`)}
-          aria-label={`${g.label}: ${g.done} of ${g.total} steps done${g.late ? `, ${g.late} late` : ''}`}>
+          aria-label={`${g.label}: ${g.done} of ${g.total} steps done${g.problem ? `, ${g.problem} a problem` : ''}${g.late ? `, ${g.late} late` : ''}`}>
           <span className="dy-install-h"><b>{g.label}</b><span className="sub">{g.done} of {g.total} steps done{date === today ? '' : ' by the end of the day'}</span>
+            {/* Two facts, said apart: a problem is not always late, and late is not always a problem. */}
+            {g.problem > 0 && <span className="sub in-late">{g.problem} a problem</span>}
             {g.late > 0 && <span className="sub in-late">{g.late} late</span>}</span>
-          {/* Done a quiet green, late red after it — the colour rules. */}
+          {/* Done a quiet green, what is wrong red after it — the colour rules. */}
           <span className="dy-bar">
             <span className="is-done" style={{ width: `${(100 * g.done) / g.total}%` }} />
-            {g.late > 0 && <span className="is-late" style={{ width: `${(100 * g.late) / g.total}%` }} />}
+            {g.wrong > 0 && <span className="is-late" style={{ width: `${(100 * g.wrong) / g.total}%` }} />}
           </span>
         </button>
       ))}
