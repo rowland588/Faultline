@@ -60,6 +60,9 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
     where: 'Line 5', who: 'Dave', createdAt: t, updatedAt: t,
   });
   await db.addPaceSnapshot({ id: 'sn1', projectId: id, takenAt: t, fileName: 'tracker.xlsx', actions: [] });
+  // the programs and the line standard — left behind by "delete for ever" until 4 October
+  await db.putProgram({ id: 'pg1', projectId: id, what: 'Maris Piper 2kg', state: 'needed', sort: 1, createdAt: t, updatedAt: t });
+  await db.putStandard({ id: 'st1', projectId: id, product: 'Maris Piper 2kg', marks: [], sort: 1, createdAt: t, updatedAt: t });
   return id;
 }
 
@@ -110,6 +113,8 @@ describe('deleting for good takes the whole file with it', () => {
     expect(by.pace_snapshots, 'its uploads').toBe(1);
     expect(by.readings).toBe(1);
     expect(by.targets).toBe(1);
+    expect(by.programs).toBe(1);
+    expect(by.standards).toBe(1);
   });
 
   it('leaves no orphans in any store the project owned', async () => {
@@ -129,6 +134,8 @@ describe('deleting for good takes the whole file with it', () => {
     expect(await db.listPaceSnapshots(id)).toEqual([]);
     expect(await db.listReadings(id)).toEqual([]);
     expect(await db.listTargets(id)).toEqual([]);
+    expect(await db.listPrograms(id)).toEqual([]);
+    expect(await db.listStandards(id)).toEqual([]);
     expect(await db.projectContents(id)).toEqual([]);
   });
 
@@ -148,6 +155,8 @@ describe('deleting for good takes the whole file with it', () => {
     expect(kinds.has('pace_todos'), 'its next steps').toBe(true);
     expect(kinds.has('pace_wins'), 'its wins').toBe(true);
     expect(kinds.has('readings'), 'its readings').toBe(true);
+    expect(kinds.has('standards'), 'its line standard').toBe(true);
+    expect(kinds.has('programs'), 'its programs').toBe(true);
     expect(stones.map(s => s.id)).toContain(id);
   });
 

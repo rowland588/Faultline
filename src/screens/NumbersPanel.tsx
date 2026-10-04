@@ -20,6 +20,7 @@ import { useMeasures } from '../lib/useMeasures';
 import { lineSeries, seriesFor, say, todayISO, type Measure } from '../lib/measures';
 import type { PaceLineRow } from '../db';
 import { Icon } from '../ui/Icon';
+import { useAccess } from '../cloud/access';
 
 const shortDay = (iso: string) =>
   new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -74,10 +75,12 @@ function AddReading({ measure, onAdd }: {
 }
 
 /** The readings themselves, newest first — so a mistyped number can be found
- *  and taken out. The grid this replaced had no way to delete a row at all. */
+ *  and taken out. The grid this replaced had no way to delete a row at all.
+ *  Taking one out is deleting, which is the owner's (lib/access): anyone else
+ *  gets no `onRemove`, and no ✕. */
 function Recent({ rows, onRemove, unit, limit = 8 }: {
   rows: { id: string; at: string; value: number; note?: string }[];
-  onRemove: (id: string) => Promise<void>;
+  onRemove?: (id: string) => Promise<void>;
   unit?: string;
   limit?: number;
 }) {
@@ -94,8 +97,8 @@ function Recent({ rows, onRemove, unit, limit = 8 }: {
             <span className="nm-when">{shortDay(r.at)}</span>
             <span className="nm-val">{say(r.value, unit)}</span>
             {r.note && <span className="nm-note">{r.note}</span>}
-            <button className="pset-x" aria-label={`Remove the reading of ${r.value} on ${r.at}`}
-              onClick={() => { if (window.confirm(`Delete the reading of ${say(r.value, unit)} on ${shortDay(r.at)}?`)) void onRemove(r.id); }}><Icon name="close" size="0.85em" /></button>
+            {onRemove && <button className="pset-x" aria-label={`Remove the reading of ${r.value} on ${r.at}`}
+              onClick={() => { if (window.confirm(`Delete the reading of ${say(r.value, unit)} on ${shortDay(r.at)}?`)) void onRemove(r.id); }}><Icon name="close" size="0.85em" /></button>}
           </li>
         ))}
       </ul>
@@ -111,15 +114,18 @@ function Recent({ rows, onRemove, unit, limit = 8 }: {
 /** Nothing measured yet, said once, with the way out. Shown instead of an empty
  *  chart, because "no measures defined" and "no readings yet" are two different
  *  problems with two different next moves. */
-function NoMeasures({ projectId }: { projectId: string }) {
+function NoMeasures({ projectId, agree }: { projectId: string; agree: boolean }) {
   return (
     <div className="pace-empty">
       <p className="sub">
         This project hasn’t said what it measures yet. A measure is a name, a unit and which way is
         good — packs per minute, waste, OEE, first-pass yield, whatever this business runs on.
+        {/* What the lines are judged on is agreed, so it is the owner's to set
+            (ProjectSetupScreen shows anyone else the measures read-only). */}
+        {!agree && ' The project’s owner sets them.'}
       </p>
-      <button className="btn btn-primary" style={{ marginTop: 10 }}
-        onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up</button>
+      {agree && <button className="btn btn-primary" style={{ marginTop: 10 }}
+        onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up</button>}
     </div>
   );
 }
@@ -128,8 +134,10 @@ function NoMeasures({ projectId }: { projectId: string }) {
 
 export function LineNumbers({ projectId, line }: { projectId: string; line: PaceLineRow }) {
   const state = useMeasures(projectId);
+  // A client reads the numbers; the team records them; deleting one is the owner's.
+  const can = useAccess(projectId);
   if (state.loading) return null;
-  if (!state.measures.length) return <NoMeasures projectId={projectId} />;
+  if (!state.measures.length) return <NoMeasures projectId={projectId} agree={can.agree} />;
 
   return (
     <>
@@ -139,11 +147,11 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
         return (
           <div key={m.id} className="nm-measure">
             {series && <MeasureChart series={series} who={{ name: line.name, owner: line.owner, sponsor: line.sponsor, variant: line.variant }} />}
-            <AddFold label="Record a reading" start={rows.length === 0}>
+            {can.edit && <AddFold label="Record a reading" start={rows.length === 0}>
               <AddReading measure={m}
                 onAdd={(at, v, note) => state.addReading(line.id, m.id, at, v, note)} />
-            </AddFold>
-            <Recent rows={rows} unit={m.unit} onRemove={state.removeReading} />
+            </AddFold>}
+            <Recent rows={rows} unit={m.unit} onRemove={can.remove ? state.removeReading : undefined} />
           </div>
         );
       })}
@@ -160,6 +168,7 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
  *  not for reading them. */
 export function ProjectNumbers({ projectId, lines }: { projectId: string; lines: PaceLineRow[] }) {
   const state = useMeasures(projectId);
+  const can = useAccess(projectId);
   const [lineId, setLineId] = useState('');
   const [measureId, setMeasureId] = useState('');
 
@@ -186,20 +195,20 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
   }, [state.readings, state.measures, lines]);
 
   if (state.loading) return null;
-  if (!state.measures.length) return <NoMeasures projectId={projectId} />;
+  if (!state.measures.length) return <NoMeasures projectId={projectId} agree={can.agree} />;
   if (!lines.length) {
     return (
       <div className="pace-empty">
         <p className="sub">No lines on this project yet — a reading belongs to a line.</p>
-        <button className="btn btn-primary" style={{ marginTop: 10 }}
-          onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
+        {can.edit && <button className="btn btn-primary" style={{ marginTop: 10 }}
+          onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>}
       </div>
     );
   }
 
   return (
     <>
-      <AddFold label="Record a reading" start={newest.length === 0}>
+      {can.edit && <AddFold label="Record a reading" start={newest.length === 0}>
       <div className="card nm-card">
         <div className="field-label">Record a reading</div>
         <div className="nm-pick">
@@ -221,7 +230,7 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
             onAdd={(at, v, note) => state.addReading(line.id, measure.id, at, v, note)} />
         )}
       </div>
-      </AddFold>
+      </AddFold>}
 
 
       {newest.length > 0 && (
@@ -235,8 +244,8 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
                 <span className="nm-what">{r.measure.name}</span>
                 <span className="nm-val">{say(r.value, r.measure.unit)}</span>
                 {r.note && <span className="nm-note">{r.note}</span>}
-                <button className="pset-x" aria-label={`Remove ${r.lineName} ${r.measure.name} on ${r.at}`}
-                  onClick={() => { if (window.confirm(`Delete ${r.lineName}’s ${r.measure.name} of ${say(r.value, r.measure.unit)} on ${shortDay(r.at)}?`)) void state.removeReading(r.id); }}><Icon name="close" size="0.85em" /></button>
+                {can.remove && <button className="pset-x" aria-label={`Remove ${r.lineName} ${r.measure.name} on ${r.at}`}
+                  onClick={() => { if (window.confirm(`Delete ${r.lineName}’s ${r.measure.name} of ${say(r.value, r.measure.unit)} on ${shortDay(r.at)}?`)) void state.removeReading(r.id); }}><Icon name="close" size="0.85em" /></button>}
               </li>
             ))}
           </ul>

@@ -994,7 +994,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             <div className="pace-sec-head">
               
               <p className="pace-sec-sub">
-                Your own measures · record each reading as it is taken · saves as you go
+                {/* A client records nothing (lib/access), so is not told to. */}
+                {can.edit ? 'Your own measures · record each reading as it is taken · saves as you go' : 'This project’s measures · each reading as it was taken'}
               </p>
             </div>
             <ProjectNumbers projectId={projectId} lines={ppm.lines} />

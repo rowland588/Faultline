@@ -77,7 +77,7 @@ describe('two rows claiming one line', () => {
     await db2.put('pace_ppm', { id: 'from-laptop', projectId: PROJ, key: '2A', name: 'Line 2A', updatedAt: 10 });
     await db2.put('pace_ppm', { id: 'from-phone', projectId: PROJ, key: '2A', name: 'Line 2A — renamed', updatedAt: 20 });
 
-    const after = await db.loadPaceLines(PROJ);
+    const after = await db.loadPaceLines(PROJ, { tidy: true });
 
     expect(after).toHaveLength(1);
     expect(after[0].name, 'the newer edit wins').toBe('Line 2A — renamed');
@@ -91,10 +91,30 @@ describe('two rows claiming one line', () => {
     await db2.put('pace_ppm', { id: 'from-laptop', projectId: PROJ, key: '2A', name: 'Line 2A', updatedAt: 10 });
     await db2.put('pace_ppm', { id: 'from-phone', projectId: PROJ, key: '2A', name: 'Line 2A', updatedAt: 20 });
 
-    await db.loadPaceLines(PROJ);
+    await db.loadPaceLines(PROJ, { tidy: true });
 
     const stones = (await db.listTombstones()).filter(s => s.kind === 'pace_ppm');
     expect(stones.map(s => s.id)).toContain('from-laptop');
+  });
+});
+
+describe('folding rivals is the owner’s, because it deletes', () => {
+  /* The database keeps every deleted_at for anyone but the owner
+     (faultline_keep_agreement). A team member's device that tombstoned the
+     folded row would have it pulled back on the next pass and fold it again,
+     for ever. Without `tidy` it reads one line, the newer edit, and writes
+     nothing at all. */
+  it('reads one line without deleting or re-keying anything', async () => {
+    const db = await freshDb();
+    const db2 = await db.getDB();
+    await db2.put('pace_ppm', { id: 'from-laptop', projectId: PROJ, key: '2A', name: 'Line 2A', updatedAt: 10 });
+    await db2.put('pace_ppm', { id: 'from-phone', projectId: PROJ, key: '2A', name: 'Line 2A — renamed', updatedAt: 20 });
+
+    const after = await db.loadPaceLines(PROJ);
+
+    expect(after.map(l => [l.id, l.name])).toEqual([['from-phone', 'Line 2A — renamed']]);
+    expect((await db.listTombstones()).filter(s => s.kind === 'pace_ppm')).toEqual([]);
+    expect((await db2.getAll('pace_ppm')).map(r => r.id).sort()).toEqual(['from-laptop', 'from-phone']);
   });
 });
 

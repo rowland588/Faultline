@@ -364,8 +364,10 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           <div className="pace-sec-head">
             <h2 className="pace-sec-title">This line’s numbers</h2>
             <p className="pace-sec-sub">
-              Every measure this project runs on · record each reading as it is taken · it shows on
-              the project the moment it lands
+              {/* A client records nothing (lib/access), so is not told to. */}
+              {can.edit
+                ? 'Every measure this project runs on · record each reading as it is taken · it shows on the project the moment it lands'
+                : 'Every measure this project runs on · each reading as it was taken'}
             </p>
           </div>
           <LineNumbers projectId={projectId} line={line} />

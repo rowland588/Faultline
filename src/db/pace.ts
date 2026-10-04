@@ -22,7 +22,14 @@ import { DEFAULT_PROJECT_ID, inProject, onLine, updateProject } from './projects
  * Nothing is seeded. Four lines of one factory's used to be filled in here for
  * the first project on every device; a project's lines are the ones somebody
  * added to it. */
-export async function loadPaceLines(projectId: string): Promise<PaceLineRow[]> {
+/** `tidy` folds rivals onto the shared id and deletes the rows it folded away.
+ *  DELETING IS THE OWNER'S (lib/access): the database keeps every deleted_at
+ *  for anyone else (faultline_keep_agreement), so a team member's device that
+ *  tombstoned a rival would see it pulled straight back, and fold it again,
+ *  on every pass. Without `tidy` the lines are read the same way — one per
+ *  line, the newer edit — and nothing is written; the owner's device does the
+ *  folding the next time it opens the project (usePaceLines passes can.remove). */
+export async function loadPaceLines(projectId: string, { tidy = false }: { tidy?: boolean } = {}): Promise<PaceLineRow[]> {
   const db = await getDB();
   const rows = await db.getAll('pace_ppm');
 
@@ -70,6 +77,7 @@ export async function loadPaceLines(projectId: string): Promise<PaceLineRow[]> {
    * used to be expressed as "not in the seed", and deleting the seed took the
    * rule with it — so every hand-added line was silently re-keyed on load, and
    * every link to one ("that line isn't on this project any more") broke. */
+  if (!tidy) return [...best.values()].sort(byLineOrder);
   const out: PaceLineRow[] = [];
   for (const [key, r] of best) {
     const want = ppmId(key, projectId);
