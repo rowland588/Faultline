@@ -566,7 +566,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 : <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>)
               : <>
                 <span className="jb-chip is-at is-none">{v.methodLabel}</span>
-                {v.reach && <span className="jb-chip is-at is-going">{v.reach}</span>}
+                {/* Indigo said "under way" of "2 of 2 at target". At target is
+                    normal and stays plain; a line short of it is the red. */}
+                {v.reach && <span className={'jb-chip is-at' + (v.reachShort ? ' is-late' : '')}>{v.reach}</span>}
               </>}
             {/* A 6M row says what is late in the line under it, with which
                 bones — the same number twice on one row is one too many. */}

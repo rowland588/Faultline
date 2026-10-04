@@ -114,6 +114,10 @@ export interface JobView {
   methodLabel: string;
   /** Lines at target, said in words, when there is a target to judge. */
   reach?: string;
+  /** Some judged line is short of its target — the one case the reach chip
+   *  carries a colour (red, as the gap's "short" is on the client report);
+   *  every line at target is normal, and normal recedes. */
+  reachShort?: boolean;
   /** The board's bones that have anything open on them — only those, in the
    *  fishbone's order — each with how many are open and how it stands
    *  (late if anything on it is). Empty when nothing is open. */
@@ -406,6 +410,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
         slip: undefined, daysToGo, outstanding: open, late,
         done: e.plan.filter(m => m.tone === 'done').length, total: e.plan.length,
         reach: j.judged > 0 ? `${j.atTarget} of ${j.judged} at target` : undefined,
+        reachShort: j.judged > 0 && j.atTarget < j.judged,
         pillars: pacedPillars(j, today),
         ...(planModel(p) === 'board' ? { sixm: {
           phases: problemsSaid((j.problems ?? []).map(x => x.phase)),

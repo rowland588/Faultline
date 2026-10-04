@@ -255,6 +255,7 @@ describe('every job on every method', () => {
     expect(v.outstanding).toBe(3);                // the done one is not owed
     expect(v.late).toBe(1);
     expect(v.reach).toBe('1 of 2 at target');
+    expect(v.reachShort).toBe(true);   // a line short of target is the abnormal one
     expect(v.sentence).toBe('1 of 2 lines at target, with 3 actions open — 1 past its day.');
   });
   it('gives it its open countermeasures by bone — only the bones with any open, old words read across — not four gates', () => {
@@ -347,6 +348,8 @@ describe('a 6M job in the control room', () => {
     expect(v.sixm!.problems.map(x => [x.id, x.word, x.slipped])).toEqual([['b', 'Slipped back', true], ['a', 'Acting on it', false]]);
     expect(v.sixm!.gaps[0].short).toBe('8 ppm short of target');
     expect(pf.jobs.find(j => j.id === 't')!.sixm).toBeUndefined();
+    expect(v.reachShort).toBe(false);
+    expect(portfolio([], TODAY, [{ ...sixm, atTarget: 2, judged: 2 }]).jobs[0]).toMatchObject({ reach: '2 of 2 at target', reachShort: false });
   });
 
   it('says the gap in the one sentence the client report uses', () => {
