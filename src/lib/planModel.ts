@@ -40,6 +40,14 @@ export const setPlanModel = (m: PlanModel): Pick<Project, 'leverTree' | 'commiss
   commissioning: m === 'commissioning' || undefined,
 });
 
+/** UNDO A SWITCH (HUNT 31): the patch that puts a project back exactly as it
+ *  ran before — the two stored flags as they were, so switching and switching
+ *  back is a round trip, and nothing else on the project is touched. */
+export const switchBack = (before: Pick<Project, 'leverTree' | 'commissioning'>): Pick<Project, 'leverTree' | 'commissioning'> => ({
+  leverTree: before.leverTree || undefined,
+  commissioning: before.commissioning || undefined,
+});
+
 /* THE THREE METHODS, DEFINED ONCE. Rowland: "I've built three individual
    project methods ... I want to be able to use this in multiple business
    scenarios." Each is a different way of running a project, and each is

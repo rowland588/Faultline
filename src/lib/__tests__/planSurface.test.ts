@@ -12,7 +12,7 @@
  * door is not the same as closing it.
  */
 import { describe, it, expect } from 'vitest';
-import { planModel, setPlanModel } from '../planModel';
+import { planModel, setPlanModel, switchBack } from '../planModel';
 import type { Project } from '../../types';
 
 const project = (over: Partial<Project> = {}): Project => ({
@@ -98,5 +98,24 @@ describe('an improvement project is untouched by any of this', () => {
     const tree = project(setPlanModel('tree'));
     expect(planModel(tree)).toBe('tree');
     expect(projectLensesFor(tree)).toEqual([...PROJECT_LENSES]);
+  });
+});
+
+describe('switching method can be taken back (HUNT 31)', () => {
+  it('switch, then switch back, is a round trip — for every pair of methods', () => {
+    for (const from of ['board', 'tree', 'commissioning'] as const) {
+      for (const to of ['board', 'tree', 'commissioning'] as const) {
+        const before = project({ name: 'Line 7 pace', pareto: true, ...setPlanModel(from) });
+        const back = switchBack(before);
+        const undone = { ...before, ...setPlanModel(to), ...back };
+        expect(planModel(undone)).toBe(from);
+        expect(undone.name).toBe('Line 7 pace');
+        expect(undone.pareto).toBe(true);
+      }
+    }
+  });
+  it('the patch carries the two flags and nothing else', () => {
+    expect(Object.keys(switchBack(project({ leverTree: true })))).toEqual(['leverTree', 'commissioning']);
+    expect(switchBack(project({ leverTree: true }))).toEqual({ leverTree: true, commissioning: undefined });
   });
 });
