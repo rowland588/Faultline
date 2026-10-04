@@ -95,7 +95,10 @@ snags, standards and capacity are unchanged and feed the fishbone.
 - **Home / control room:** a 6M job's row says its problems by phase and its
   open countermeasures by bone; the drawer leads with the gap.
 - Access levels apply everywhere (`useAccess`): the team works the fishbone;
-  only the owner closes a problem or deletes; a client reads.
+  only the owner closes a problem or deletes; a client reads — the causes on
+  the fish, never the data's suggestions, which are offers to whoever works
+  it. "It worked — close it" only once something was done (a countermeasure);
+  before that the button says "Close it".
 
 ## The client report (screen and paper together)
 
@@ -121,4 +124,4 @@ Built on the report engine (`src/lib/report/`), proved by
 | Screens and flow: the journey screen, line and dashboard, Pareto → problem, capture cause tap, "I saw…" | agent |
 | Board, actions, the 3P → 6M rename everywhere, access checks | agent |
 | The 6M client report on the engine, report seeds, stress coverage | agent |
-| Seeds, smoke, integration, the gate, live | lead |
+| Seeds, smoke (the fishbone in six states), integration, the gate, live | lead |

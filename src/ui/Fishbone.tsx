@@ -103,7 +103,9 @@ function causeSays(c: Cause, withRoot = true): string {
 }
 
 function suggestionSays(s: Suggestion): string {
-  return [s.detail, lossWords(s.minutesWeek ?? s.source.minutesWeek), s.guessed ? 'bone guessed from the stop’s words' : '']
+  /* The loss once: the detail line often says it already. */
+  const loss = lossWords(s.minutesWeek ?? s.source.minutesWeek);
+  return [s.detail, loss && !/ a week/.test(s.detail ?? '') ? loss : '', s.guessed ? 'bone guessed from the stop’s words' : '']
     .filter(Boolean).join(' · ');
 }
 

@@ -328,7 +328,8 @@ function HeadCard({ v, can, onClose, onReopen, onChecked }: {
       )}
       <div className="fj-head-acts">
         {!open && hold && can.edit && <button className="btn" onClick={onChecked}>Checked today</button>}
-        {open && can.agree && <button className="btn" onClick={onClose}>It worked — close it</button>}
+        {/* "It worked" is only true once something was done about it. */}
+        {open && can.agree && <button className="btn" onClick={onClose}>{v.actions.length ? 'It worked — close it' : 'Close it'}</button>}
         {!open && can.agree && <button className="btn btn-ghost" onClick={onReopen}>Reopen</button>}
       </div>
     </section>
