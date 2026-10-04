@@ -67,6 +67,28 @@ const RESULTS = [
   'Did not happen — OEM engineer off site with Covid; rebooked',
   'Passed',
 ];
+/* What the team said about how a stage went ("Say how it went") — the step's
+   account, which the client report prints under each gate. Short and long,
+   and one that runs past a page, to prove it wraps and breaks whole. */
+const ACCOUNTS = [
+  'Done to plan.',
+  'Levelled to within 1 mm across the frame. Took two hours longer than planned — the floor dips by the drain and we had to shim the rear feet.',
+  'Air on and tested at 6 bar. Regulator missing from the kit — fitted a loan one until Ishida send the right part.',
+  'Programs loaded from the OEM laptop; two recipes had the old 1.25 kg weights in them and were corrected on site with the engineer.',
+  'Operators on both shifts walked through start-up, changeover and clearing a jam. Nights want a second session before handover.',
+  'Started, then stopped — the panel door would not close over the new drive. Electrician back Thursday to re-route the cable.',
+];
+/** One account long enough to run over a page break on its own. Its last
+ *  sentence is what the stress run looks for at the end. */
+const LONG_ACCOUNT = [
+  'Arrived on the Monday on two artics, an hour late because of the roadworks on the ring road. Unloaded with the hired forklift and the site crane; the main frame came off first and went straight onto its feet in the bay we had marked out the week before.',
+  'Positioning went well until we found the floor falls by nearly 9 mm towards the drain on the operator side. Ilapak would not accept more than 2 mm across the frame, so we stopped, borrowed shims from maintenance and levelled each foot in turn with the laser. That cost most of the afternoon.',
+  'The infeed conveyor then fouled the existing guard rail by about 40 mm. We agreed with the OEM engineer to cut the rail back rather than move the machine, and the site fabricator did it the same evening with a permit; the cut ends are capped and painted.',
+  'Day two was the anchors. The drawings showed M16 resin anchors at 200 mm embedment; the floor is only 180 mm thick at that end, so we went to 150 mm with a wider base plate after a call with their structural engineer, who confirmed it by email the same day. That email is filed under the machine.',
+  'By the Wednesday the frame was square, level and anchored, the infeed and outfeed were lined up within 1 mm of the conveyors either side, and the OEM signed the positioning sheet. The only thing still open from this stage is the drain cover, which now sits under a foot and has to be moved before the hygiene audit.',
+  'Lessons for the next machine on this line: survey the floor level and thickness before the drawings are signed, and have shims and a fabricator on standby for the first two days. End of account: drain cover still to move before the audit.',
+].join(' ');
+
 const WHO = ['Ilapak UK', 'Ishida Europe', 'Domino UK', 'Mettler-Toledo', 'Brillopak', 'the site', 'Dave (shift fitter)', 'Herma UK'];
 
 export interface ReportJob { projectId: string; testId: string; fixId?: string }
@@ -92,7 +114,8 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
   };
 
   if (size === 'tiny') {
-    T({ kind: 'install', title: 'Positioned and levelled', assetId: machines[0].id, plannedFor: iso(3) });
+    T({ kind: 'install', title: 'Positioned and levelled', assetId: machines[0].id, plannedFor: iso(3),
+      result: 'Floor marked out and the fixings drilled; the labeller itself arrives Thursday.' });
     const only = tests[0];
     for (const x of tests) await putTest(x);
     return { projectId: proj.id, testId: only.id };
@@ -108,11 +131,18 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       const day = start + mi * 2 + si * 2;
       const done = si / names.length < share;
       const roll = rand();
+      const outcome: Test['outcome'] = done ? (roll < 0.08 ? 'failed' : 'passed') : 'planned';
+      /* Most stages that were worked on were talked about; the first machine's
+         first stage carries the account that runs past a page. */
+      const k = mi * 7 + si * 3 + (g === 'setup' ? 1 : g === 'handover' ? 2 : 0);
+      const result = mi === 0 && si === 0 && !g ? LONG_ACCOUNT
+        : outcome === 'failed' ? ACCOUNTS[5]
+        : done && k % 3 !== 0 ? ACCOUNTS[k % 5] : undefined;
       T({
         kind: 'install', gate: g, title, assetId: a.id, withWhom: a.oem,
         plannedFor: roll < 0.15 ? undefined : iso(day),
         ranOn: done ? iso(day) : undefined,
-        outcome: done ? (roll < 0.08 ? 'failed' : 'passed') : 'planned',
+        outcome, result,
       });
     });
     gate(INSTALL, undefined, -45, progress * 1.4);
@@ -233,7 +263,9 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
     if (rand() < 0.25) continue;
     for (const title of names) {
       const o = outcome();
-      T({ kind: 'install', gate: g === 'install' ? undefined : g as Test['gate'], title, assetId: a.id, plannedFor: day(), outcome: o, ranOn: o === 'planned' ? undefined : day() });
+      T({ kind: 'install', gate: g === 'install' ? undefined : g as Test['gate'], title, assetId: a.id, plannedFor: day(), outcome: o, ranOn: o === 'planned' ? undefined : day(),
+        // How it went, as the team said it — sometimes nothing, sometimes awkward, sometimes very long.
+        result: rand() < 0.45 ? say() || undefined : undefined });
     }
   }
   let firstProof: Test | undefined;

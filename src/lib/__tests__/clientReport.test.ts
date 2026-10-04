@@ -88,3 +88,52 @@ describe('a gate the machines are past with nothing kept', () => {
     expect(ahead.gates.find(g => g.gate === 'install')?.says).toBe('Nothing kept at this gate yet');
   });
 });
+
+describe('how each stage went — the team’s account of a step reaches the client', () => {
+  const said = [
+    ...tests,
+    // Out of order on purpose: the rows follow the grid (machine, then stage), not the sort.
+    test({ id: 's3', kind: 'install', title: 'Mechanically complete', assetId: 'ds', plannedFor: '2026-09-25', outcome: 'notRun', sort: 0,
+      result: '  Two guard panels short — could not finish; the rest come Friday.  ' }),
+    test({ id: 's4', kind: 'install', title: 'Positioned and levelled', assetId: 'bu', ranOn: '2026-09-18', outcome: 'passed', sort: 9,
+      result: 'Levelled to 1 mm across the frame. Took two hours longer — the floor dips by the drain.' }),
+    test({ id: 's5', kind: 'install', title: 'Dry run', assetId: 'bu', plannedFor: '2026-10-08', sort: 10, result: 'Ishida say Tuesday.' }),
+    test({ id: 's6', kind: 'install', title: 'Air and power connected', assetId: 'bu', ranOn: '2026-09-19', outcome: 'failed', sort: 11,
+      result: 'No 6 bar at the drop.' }),
+    test({ id: 's7', kind: 'install', title: 'Electrically complete', assetId: 'bu', sort: 12, result: 'Waiting on the panel.' }),
+    test({ id: 's8', kind: 'install', title: 'Mechanically complete', assetId: 'bu', sort: 13, result: '   ' }),
+    test({ id: 'h2', kind: 'install', gate: 'handover', title: 'Operators trained', assetId: 'pnp', ranOn: '2026-09-30', sort: 14,
+      result: 'Both shifts trained; nights need a second session.' }),
+  ];
+  const r3 = clientReport({ project, projects: [project], assets, tests: said, items, materials: [], programs, standards: [], today: T });
+  const install = r3.sections[0];
+
+  it('lists only the steps with an account, machine by machine, stage by stage in the grid’s order', () => {
+    expect(install.accounts?.map(a => `${a.machine} — ${a.stage}`)).toEqual([
+      'BU — Positioned and levelled', 'BU — Air and power connected', 'BU — Electrically complete', 'BU — Dry run',
+      'De-staker — Mechanically complete',
+    ]);
+  });
+  it('carries the account whole, the day it was done (else booked) and the state in the grid’s words', () => {
+    const [lev, air, elec, dry, guard] = install.accounts ?? [];
+    expect(lev).toMatchObject({ tone: 'done', state: 'done', said: 'Levelled to 1 mm across the frame. Took two hours longer — the floor dips by the drain.' });
+    expect(lev.when).toMatch(/18 Sep/);
+    expect(air).toMatchObject({ tone: 'problem', state: 'a problem' });
+    // Something said and nobody has called it: the app asks "Is it done?" — so does the paper.
+    expect(elec).toMatchObject({ tone: 'asking', state: 'waiting on a verdict', when: 'no date' });
+    expect(dry).toMatchObject({ tone: 'asking', state: 'waiting on a verdict' });
+    expect(dry.when).toMatch(/8 Oct/);
+    expect(guard).toMatchObject({ tone: 'late', state: 'late', said: 'Two guard panels short — could not finish; the rest come Friday.' });
+  });
+  it('a step worked on and not yet called is waiting on a verdict', () => {
+    expect(r3.sections[3].accounts).toEqual([
+      expect.objectContaining({ machine: 'Pick and place', stage: 'Operators trained', tone: 'asking', state: 'waiting on a verdict' }),
+    ]);
+  });
+  it('a gate where nobody said anything has no accounts — it prints exactly as before', () => {
+    expect(r.sections[0].accounts).toBeUndefined();
+    expect(r.sections[3].accounts).toBeUndefined();
+    expect(r3.sections[1].accounts).toBeUndefined();
+    expect(r3.sections[2].accounts).toBeUndefined();
+  });
+});

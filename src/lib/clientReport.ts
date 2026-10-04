@@ -11,8 +11,9 @@
  *   1  WHERE THE JOB IS      the sentence, the dates, the four gates for the
  *                            whole job, and where each machine is
  *   2  GATE BY GATE          Install · Set up · Commission · Hand over, each
- *                            with its checklist per machine (Set up also its
- *                            programs; Commission its tests)
+ *                            with its checklist per machine and, under it, how
+ *                            each stage went in the team's words (Set up also
+ *                            its programs; Commission its tests)
  *   3  FIXES                 open first, with where each is on the line
  *   4  WHO OWES WHAT         the same table the Overview shows
  *   5  LINE STANDARD         one page per product, when there are any
@@ -21,7 +22,7 @@
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import type { Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, journeyNow, journeyOf, usualStages, type GateTone, type JourneyGate } from './install';
+import { GATE_WORD, installGrid, jobJourney, journeyNow, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { stateOf, type Program } from './programs';
@@ -46,11 +47,36 @@ export interface GateSection {
   grid?: { columns: string[]; rows: { machine: string; cells: CellTone[] }[] };
   /** What is late or a problem at this gate, in words, for the line under it. */
   late: string[];
+  /** Install, Set up, Hand over: how each stage went, in the team's own words
+   *  (the step's "What was done" — typed or said into "Say how it went"), for
+   *  every step that has one, in the grid's order: machine, then stage. A step
+   *  with nothing said is not listed — the grid already gives its state. */
+  accounts?: StepAccount[];
   /** Set up only: the programs. */
   programs?: { proved: number; total: number; notYet: { what: string; machine?: string; state: string }[] };
   /** Commission only: the tests, in the order they were planned. */
   tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string }[];
 }
+
+/** One step's account, as the client reads it under its gate. */
+export interface StepAccount {
+  machine: string;
+  stage: string;
+  /** The day it was done, else the day it is booked for; "no date" when neither. */
+  when: string;
+  /** The grid's own tone for the step, so the word and its colour match the square. */
+  tone: Exclude<CellTone, 'none'>;
+  /** The state in words, the same words as the grid's key. */
+  state: string;
+  /** What the team said, whole. */
+  said: string;
+}
+
+/** The grid key's words — the account's state says the same as its square. */
+export const CELL_WORD: Record<CellTone, string> = {
+  done: 'done', problem: 'a problem', asking: 'waiting on a verdict', late: 'late',
+  booked: 'still ahead', ahead: 'no day yet', none: 'not added yet',
+};
 
 export interface FixRow {
   id: string;
@@ -129,10 +155,28 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const g = installGrid(assets, tests, items, today, usual, gate);
     const steps = tests.filter(t => t.kind === 'install' && (t.gate ?? 'install') === gate);
     const done = steps.filter(t => t.outcome === 'passed').length;
+    const cellOf = (c: StepView) => (c.tone === 'ahead' && c.step.plannedFor ? 'booked' : c.tone) as Exclude<CellTone, 'none'>;
     const rows = g.rows.filter(r => r.view.total > 0).map(r => ({
       machine: r.asset?.name ?? 'The line',
-      cells: r.cells.map(c => (!c ? 'none' : c.tone === 'ahead' && c.step.plannedFor ? 'booked' : c.tone) as CellTone),
+      cells: r.cells.map(c => (!c ? 'none' : cellOf(c)) as CellTone),
     }));
+    /* HOW EACH STAGE WENT. Rowland, 4 October: the account a step is given
+       ("Say how it went") is "part of the reports — how did it go, what
+       happened". It used to reach the paper only when the step hit a problem.
+       In the grid's order — machine, then stage — and then any step the grid
+       could not give a square of its own (two steps of one name on a machine). */
+    const accounts: StepAccount[] = g.rows.flatMap(r => {
+      const inGrid = r.cells.filter((c): c is StepView => !!c);
+      const rest = r.view.steps.filter(s => !inGrid.includes(s));
+      return [...inGrid, ...rest].filter(s => s.step.result?.trim()).map(s => {
+        const tone = cellOf(s);
+        return {
+          machine: r.asset?.name ?? 'The line', stage: s.step.title,
+          when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
+          tone, state: CELL_WORD[tone], said: (s.step.result ?? '').trim(),
+        };
+      });
+    });
     const lateSteps = g.rows.flatMap(r => r.view.steps
       .filter(s => s.tone === 'late' || s.tone === 'problem')
       .map(s => `${r.asset?.name ?? 'The line'} — ${s.step.title}${s.tone === 'problem' ? ' (a problem)' : ' (late)'}`));
@@ -148,6 +192,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
         : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
+      ...(accounts.length ? { accounts } : {}),
     };
   };
 

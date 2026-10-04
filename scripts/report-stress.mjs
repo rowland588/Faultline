@@ -75,7 +75,20 @@ function pagesOf(pdf) {
 /* In the order it was DRAWN (-raw), not the order the eye reads a page: two
    columns side by side read across, so a test's title came back with the
    machine beside it spliced into the middle — a "lost" that was the reader's. */
-const textOf = pdf => execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\s+/g, ' ');
+/* Each page's running foot (" · client report · 4 Oct 2026  2 of 19") and the
+   brand mark are drawn last on the page, so in drawn order they land in the
+   middle of a paragraph that carries on overleaf — a step's long account came
+   back "lost" when it was on the paper whole. The foot is taken off the end
+   of each page before the pages are joined. So is a bullet on a line of its
+   own: it is drawn after its paragraph's first lines, so a bulleted program
+   broken over a page came back with "•" spliced into its middle. */
+const textOf = pdf => execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  .split('\f').map(page => {
+    const lines = page.split('\n').filter(l => l.trim() && l.trim() !== '•');
+    if (lines.at(-1)?.trim() === 'Faultline') lines.pop();
+    if (/\b\d+ of \d+$/.test(lines.at(-1)?.trim() ?? '')) lines.pop();
+    return lines.join(' ');
+  }).join(' ').replace(/\s+/g, ' ');
 
 function check(pdf, mustSay = []) {
   const pages = pagesOf(pdf);
@@ -167,12 +180,16 @@ for (const size of SIZES) {
     from = 'gates'; for (const g of r.gates) add('client', g.label, g.says);
     from = 'machines'; for (const mc of r.machines) add('client', mc.name, mc.at);
     for (const s2 of r.sections) {
-      const said = s2.grid?.rows.length || s2.late.length || s2.programs?.total || s2.tests?.length;
+      const said = s2.grid?.rows.length || s2.late.length || s2.accounts?.length || s2.programs?.total || s2.tests?.length;
       if (!said) continue;
       from = `section ${s2.gate}`; add('client', s2.label, s2.says);
       for (const row of s2.grid?.rows ?? []) add('client', row.machine);
       if (s2.gate !== 'commission') add('client', ...s2.late);
       for (const pr of s2.programs?.notYet ?? []) add('client', pr.what);
+      /* How each stage went: every account whole — to its last word — with
+         the step it is about, its day and its state. */
+      from = `section ${s2.gate} account`; for (const a of s2.accounts ?? []) add('client', a.machine, a.stage, a.when, a.state, a.said);
+      from = `section ${s2.gate} account, its end`; for (const a of s2.accounts ?? []) if (a.said.length > 120) add('client', a.said.slice(-60));
       from = `section ${s2.gate} test`; for (const t of s2.tests ?? []) add('client', t.title, t.passesIf, t.result, t.outcome);
     }
     from = 'fixes'; for (const fx of [...r.fixes.open, ...r.fixes.done]) add('client', fx.title, fx.when);
