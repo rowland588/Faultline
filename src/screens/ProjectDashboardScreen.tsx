@@ -61,6 +61,12 @@ import { activeDays, dayOf } from '../lib/day';
 import { Icon } from '../ui/Icon';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
+import { Fishbone } from '../ui/Fishbone';
+import { useProblems } from '../lib/useProblems';
+import { PHASE_WORD, type Phase } from '../lib/problems';
+import { SIXM } from '../lib/sixm';
+import type { Can } from '../lib/access';
+import { fishboneUrl, isOpenProblem, mainProblem } from './FishboneScreen';
 
 /* THE 3P BOARD, ON THE PAGE ITSELF.
  *
@@ -77,6 +83,59 @@ import { AccessNote } from '../ui/AccessNote';
  * is imply it is showing everything when it is not. */
 const AREA_PEEK = 3;
 
+/* THE FISHBONE LEADS A 6M JOB'S FRONT PAGE (docs/SIXM.md), as the plan leads
+ * a stage-gate job's: under the gap sentence, the main open problem drawn
+ * small — its head, its six bones, its causes — with the way into the whole
+ * journey. Nothing is edited here; a tap anywhere on it opens that problem on
+ * its own screen, where the causes are worked. */
+function FishboneLead({ projectId, can }: { projectId: string; can: Can }) {
+  const api = useProblems(projectId);
+  if (api.loading) return null;
+  const v = mainProblem(api.problems);
+  const open = api.problems.filter(isOpenProblem);
+  const byPhase = new Map<Phase, number>();
+  for (const p of open) byPhase.set(p.phase, (byPhase.get(p.phase) ?? 0) + 1);
+  const says = open.length === 0
+    ? (api.problems.length ? `${api.problems.length} closed · none open` : 'no problem opened yet')
+    : [...byPhase].map(([ph, n]) => `${n} ${PHASE_WORD[ph].toLowerCase()}`).join(' · ');
+  const go = (problem?: string) => nav(fishboneUrl(projectId, { line: v?.problem.lineId, problem }));
+  return (
+    <section className="pace-sec fj-lead" aria-label="The fishbone">
+      <header className="fj-lead-h">
+        <h2 className="fj-lead-t">The fishbone</h2>
+        <span className="fj-lead-s">{says}</span>
+        <button className="cw-link fj-lead-go" onClick={() => go(v?.problem.id)}>
+          {v ? 'Open the fishbone ›' : 'Open the journey ›'}
+        </button>
+      </header>
+      {!v ? (
+        <div className="fj-empty is-lead">
+          <p className="fj-empty-t">No problem opened yet — open one from the gap or the Pareto</p>
+          <p className="sub">The biggest loss becomes the head of the fish; the six bones fill themselves from what the line has timed, filmed and counted.</p>
+          {can.edit && (
+            <button className="btn btn-primary" onClick={() => nav(`${fishboneUrl(projectId)}?open=1`)}>Open a problem</button>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* The small fish carries the title, the number and the phase; the
+              sentence under the header is the one thing it has no room for. */}
+          {v.says && <p className="fj-lead-says">{v.says}</p>}
+          {/* The small fish is a picture of the problem, and the whole of it
+              is the way in — the causes are worked on the full screen. */}
+          <div className="fj-lead-fish" role="link" tabIndex={0} aria-label={`Open the fishbone of ${v.problem.title}`}
+            onClick={() => go(v.problem.id)} onKeyDown={e => { if (e.key === 'Enter') go(v.problem.id); }}>
+            <Fishbone view={v} can={can} compact
+              onCause={() => go(v.problem.id)}
+              onSuggestion={() => go(v.problem.id)}
+              onAdd={() => go(v.problem.id)} />
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 function BoardPanel({ projectId, actions, bare, edit = true }: { projectId: string; actions: PaceAction[]; bare?: boolean; edit?: boolean }) {
   const b = buildBoard(actions);
   const open = () => nav(`/project/${projectId}/board`);
@@ -85,11 +144,11 @@ function BoardPanel({ projectId, actions, bare, edit = true }: { projectId: stri
     <section className="pace-sec pb-sec">
       {!bare && (
       <div className="pace-sec-head">
-        <h2 className="pace-sec-title">3P Board</h2>
+        <h2 className="pace-sec-title">The board</h2>
         <p className="pace-sec-sub">
           {b.total > 0
             ? <>The meeting agenda · {b.areas.length} card{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} inside them, {b.done} done — overdue and blocked first in every column</>
-            : <>The meeting agenda — one card per area, People, Plant and Process inside each</>}
+            : <>The meeting agenda — one card per area, its actions on the six bones inside each</>}
         </p>
       </div>
       )}
@@ -101,7 +160,7 @@ function BoardPanel({ projectId, actions, bare, edit = true }: { projectId: stri
           <p className="sub">
             {actions.length === 0
               ? (edit
-                ? <>No actions yet. Write each one in its column — People, Plant or Process — with who has it and when it is due.</>
+                ? <>No actions yet. Write each one on its bone — {SIXM.map(x => x.label).join(', ')} — with who has it and when it is due.</>
                 : <>No actions on the board yet.</>)
               : <>{actions.length} action{actions.length === 1 ? ' is' : 's are'} waiting to be given a column.</>}
           </p>
@@ -117,7 +176,10 @@ function BoardPanel({ projectId, actions, bare, edit = true }: { projectId: stri
                 <b>{a.name}</b>
                 <span>{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
               </p>
-              <div className="pb-cols">
+              {/* THE SIX BONES (lib/sixm.ts) — the board's columns, as many
+                  as lib/pillars says, laid out to fit: six across on a desk,
+                  three by two or two by three on a phone. */}
+              <div className={'pb-cols' + (a.columns.length > 3 ? ' is-six' : '')}>
                 {a.columns.map(c => (
                   <section key={c.key} className={'pb-col is-' + c.key}>
                     <header className="pb-col-h">
@@ -691,6 +753,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'overview' && model !== 'commissioning' && (
         <>
           <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
+          {model === 'board' && <FishboneLead projectId={projectId} can={can} />}
           <ProjectReminders projectId={projectId} />
           <LateAlarms projectId={projectId} />
 
@@ -891,7 +954,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                 one list, two ways of looking at it. */}
             
             <p className="pace-sec-sub">
-              The same actions the board sorts into People, Plant and Process — here with the where, the
+              The same actions the board sorts onto its six bones — here with the where, the
               photos and the write-up.{' '}
               <button className="cw-link" onClick={() => nav(`/project/${projectId}/board`)}>Back to the board</button>
             </p>

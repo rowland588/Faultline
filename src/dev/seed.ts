@@ -71,6 +71,10 @@ export interface Seeded {
    *  open the tree on the stage-gate job, which bounced to its front page, so
    *  the tree had never been rendered by it. */
   treeProjectId: string;
+  /** The 6M problems on Line 2A of the board project: one open and being
+   *  acted on (a Pareto bar), one closed and holding (the gap). */
+  problemId: string;
+  closedProblemId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -396,6 +400,84 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     act('Look at the reject bin full by 10am', { lineId: otherLine.id }),
   ]) await putPaceTodo(a);
 
+  /* THE 6M METHOD ON LINE 2A (docs/SIXM.md) — two problems, so every part of
+     the fishbone is drawn from data rather than an empty state.
+
+     The log first: five weeks of Basketer minor stops, most of them on
+     nights, some tapped onto a bone by the floor and the rest left for the
+     fishbone to guess; film splices on the bagger (a Material guess); and
+     two notes about condensation on the eye (Environment). */
+  const sixmStop = (o: Partial<Observation> & { daysAgo: number; mins: number }): Observation => {
+    const { daysAgo, mins, ...rest } = o;
+    const s = t - daysAgo * 86_400_000 - 3 * 3_600_000;
+    return {
+      id: uid(), workspaceId: capWs.id, category: 'Minor stop', subcategory: 'Misfeed', asset: 'Basketer', shift: 'Nights',
+      startedAt: s, endedAt: s + mins * 60_000, durationMs: mins * 60_000, count: 1, timing: 'stopwatch',
+      media: [], createdAt: t, updatedAt: t, ...rest,
+    };
+  };
+  for (const o of [
+    ...[3, 6, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29, 31, 33].map((d, i) =>
+      sixmStop({ daysAgo: d, mins: 6 + (i % 5) * 2, ...(i % 3 === 0 ? { causeM: 'machine' as const } : {}) })),
+    ...[4, 11, 18, 25, 32].map(d => sixmStop({ daysAgo: d, mins: 7, shift: 'Days' })),
+    sixmStop({ daysAgo: 9, mins: 9, subcategory: 'Sensor trip', note: 'condensation on the eye at start-up' }),
+    sixmStop({ daysAgo: 23, mins: 11, subcategory: 'Sensor trip', note: 'Condensation on the photo-eye again', shift: 'Days' }),
+    ...[5, 13, 20, 27].map(d => sixmStop({ daysAgo: d, mins: 14, asset: 'Bagger', subcategory: 'Film / packaging snag', shift: 'Days' })),
+  ]) await addObservation(o);
+
+  /* Problem 1 — a Pareto bar, being acted on: a confirmed root drilled with
+     its whys, suspected causes on three more bones, and two countermeasures
+     on the board pointing at the root (one late). */
+  const misfeeds: Case = {
+    id: uid(), workspaceId: capWs.id, title: 'Basketer minor stops', path: [{ dimension: 'asset', value: 'Basketer' }, { dimension: 'category', value: 'Minor stop' }],
+    baselineMsWeek: Math.round(3.4 * 3_600_000), status: 'open', openedAt: t - 12 * day, updatedAt: t,
+    projectId: paced.id, lineId: pacedLine.id, source: { kind: 'pareto', category: 'Minor stop', asset: 'Basketer' },
+    causes: [
+      { id: 'rail', m: 'machine', text: 'Baskets catch on the guide rail at the transfer', grade: 'observed', status: 'confirmed', root: true,
+        by: 'Rob Scott', at: t - 10 * day, source: { kind: 'observation', label: 'Seen on nights, 24 Sept' },
+        whys: [
+          { id: uid(), text: 'The guide rail has a groove worn at the transfer', grade: 'observed' },
+          { id: uid(), text: 'The rail has not been on the PM schedule since the basketer was moved', grade: 'counted' },
+          { id: uid(), text: 'Nobody owns the PM list for kit that has been moved', grade: 'reported' },
+        ] },
+      { id: 'nights', m: 'people', text: 'Most stops on Nights', grade: 'measured', status: 'suspected', whys: [], at: t - 9 * day,
+        source: { kind: 'pareto', ref: 'shift=Nights', label: 'Stops by shift — Nights' } },
+      { id: 'stack', m: 'material', text: 'Damaged baskets in the stack — bent lips', grade: 'reported', status: 'suspected', whys: [], at: t - 8 * day, by: 'Lee Carty' },
+      { id: 'eye', m: 'environment', text: 'Condensation on the photo-eye at start-up', grade: 'observed', status: 'ruled_out', at: t - 7 * day, by: 'Rob Scott',
+        whys: [{ id: uid(), text: 'Only on the first hour after a cold start — not the misfeeds', grade: 'observed' }] },
+    ],
+  };
+  /* Problem 2 — the gap, closed and holding: changeovers drilled to a root,
+     the countermeasure done three weeks ago, the rate up since, and the check
+     that keeps it. */
+  const gap: Case = {
+    id: uid(), workspaceId: capWs.id, title: 'Line 2A below its rate target', path: [],
+    baselineMsWeek: 0, status: 'closed', openedAt: t - 50 * day, closedAt: t - 4 * day, updatedAt: t,
+    projectId: paced.id, lineId: pacedLine.id, source: { kind: 'gap', measureId: ppm.id },
+    causes: [
+      { id: 'co', m: 'method', text: 'Changeovers take 48 min against a 25 min standard', grade: 'measured', status: 'confirmed', root: true, at: t - 45 * day, by: 'Rob Scott',
+        whys: [
+          { id: uid(), text: 'Every shift does the 2kg → 1.25kg change its own way', grade: 'observed' },
+          { id: uid(), text: 'There is no written changeover standard for the size change', grade: 'counted' },
+        ] },
+      { id: 'train', m: 'people', text: 'New starters not trained on the size change', grade: 'counted', status: 'confirmed', whys: [], at: t - 44 * day },
+      { id: 'jaw', m: 'machine', text: 'Sealing jaw slow to come up to heat', grade: 'reported', status: 'ruled_out', whys: [], at: t - 44 * day },
+    ],
+    hold: { what: 'One changeover timed against the standard each week', who: 'Rob Scott', everyDays: 7, since: iso(-4), lastChecked: iso(-1), standardUpdated: true },
+  };
+  await addCase(misfeeds);
+  await addCase(gap);
+  for (const a of [
+    act('Replace the basket guide rail', { lineId: pacedLine.id, pillar: 'machine', who: 'Engineering', due: iso(4), state: 'waiting',
+      causeRef: `${misfeeds.id}:rail`, expect: 'Basketer minor stops 3.4 → 1.5 h a week' }),
+    act('Put moved kit on the PM list, with an owner', { lineId: pacedLine.id, pillar: 'method', who: 'Rob Scott', due: iso(-1),
+      causeRef: `${misfeeds.id}:rail`, expect: 'No moved machine without a PM owner' }),
+    act('Write and train the 2kg → 1.25kg changeover standard', { lineId: pacedLine.id, pillar: 'method', who: 'Rob Scott', due: iso(-22),
+      state: 'done', doneOn: iso(-21), causeRef: `${gap.id}:co`, expect: 'Changeover 48 → 25 min, rate 41 → 48 ppm', outcome: 'Down to 24 minutes on every shift' }),
+    act('Size change on the new-starter training plan', { lineId: pacedLine.id, pillar: 'people', who: 'Tanya', due: iso(-20),
+      state: 'done', doneOn: iso(-20), causeRef: `${gap.id}:train` }),
+  ]) await putPaceTodo(a);
+
   /* A PROJECT ON THE LEVER TREE: an outcome, a line under it, a condition
      bound to the board (so the tree draws derived rows), a Pareto, and actions
      written on its board against its own line. */
@@ -508,5 +590,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pastDay: iso(-7),
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
+    problemId: misfeeds.id, closedProblemId: gap.id,
   };
 }

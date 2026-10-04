@@ -14,7 +14,16 @@
  * Nothing in the app imports this, so it is not in the bundle. */
 import {
   createProject, updateProject, putAsset, putTest, putTestItem, putMaterials, putPrograms,
+  addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace,
+  putPaceTodo, putReadings, putStandard, putTarget,
 } from '../db';
+import type { Case, Observation } from '../types';
+import type { PaceTodoRow } from '../db';
+import type { Measure, Period, Reading, Target } from '../lib/measures';
+import { quarters } from '../lib/measures';
+import type { Cause, CauseStatus, Grade, SixM, Why } from '../lib/sixm';
+import type { Segment, SnagAsset, Snag } from '../snag/types';
+
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
@@ -257,4 +266,291 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
     id: uid(), projectId: proj.id, what: say() || `P-${i}`, assetId: machines.length ? pick(machines).id : undefined, state: pick(['needed', 'onMachine', 'proved'] as const), testOn: day(), sort: i, createdAt: t, updatedAt: t,
   })));
   return { projectId: proj.id, testId: card.id, fixId };
+}
+
+
+/* ---------------------------------------------------------------------------
+ * A 6M JOB AT THE TWO EDGES — for proving the running line's client report.
+ *
+ * TINY is a job just started: one line, its measure and target, two readings,
+ * two actions nobody has tied to a cause yet — and no problem opened, which the
+ * report has to say honestly in a line rather than print empty sections.
+ *
+ * HUGE is a job a long way in: three lines (one named the way people really
+ * type), two measures pulling opposite ways, twelve weeks of readings, a line
+ * balance, two hundred timed stops (some tapped with their bone, most not),
+ * six problems in every phase — one with thirty causes that cannot all be
+ * drawn on the fish, one with none — why-chains to roots, causes accepted from
+ * suggestions, countermeasures with their predictions and what happened, a
+ * hold that is holding, sixty actions on every bone and none, and the walk's
+ * snags. The awkward strings from the random jobs are in there too.
+ * ------------------------------------------------------------------------- */
+export interface SixMJob { projectId: string; lineId: string }
+
+export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
+  r = 11;
+  const t = Date.now();
+  const huge = size === 'huge';
+  const proj = await createProject(huge
+    ? 'Site improvement — Lines 2A, 2B and the infeed: rate to 60 ppm and waste under 2% before the Christmas peak'
+    : 'Line 4 — bagger to 60 ppm', '#1b7f5a', huge ? 'Łukasz Wójcik' : 'Rowland', undefined, 'board');
+  const ppm: Measure = { id: uid(), name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 10 };
+  const waste: Measure = { id: uid(), name: 'Waste', unit: '%', direction: 'down', sort: 20 };
+  const periods: Period[] = quarters(iso(-60), uid);
+  await updateProject({ ...proj, measures: huge ? [ppm, waste] : [ppm], periods, pareto: true, updatedAt: t });
+
+  const target = (lineId: string, measureId: string, periodId: string, value: number): Target =>
+    ({ id: uid(), projectId: proj.id, lineId, measureId, periodId, value, updatedAt: t });
+  const reading = (lineId: string, measureId: string, at: string, value: number, note?: string): Reading =>
+    ({ id: uid(), projectId: proj.id, lineId, measureId, at, value, note, createdAt: t, updatedAt: t });
+  const act = (what: string, a: Partial<PaceTodoRow>): PaceTodoRow => ({
+    id: uid(), projectId: proj.id, what, where: '', why: '', who: '', when: '', state: 'todo',
+    createdAt: t, updatedAt: t, ...a,
+  });
+
+  if (!huge) {
+    const ws = await createWorkspace('Line 4 — 6M');
+    const line = await addPaceLine({ projectId: proj.id, key: '4', name: 'Line 4', owner: 'Rob Scott', sponsor: 'Tanya', sort: 0, workspaceId: ws.id });
+    for (const p of periods) await putTarget(target(line.id, ppm.id, p.id, 60));
+    await putReadings([reading(line.id, ppm.id, iso(-8), 47), reading(line.id, ppm.id, iso(-1), 49)]);
+    for (const a of [
+      act('Time the bagger stops for a week', { lineId: line.id, pillar: 'machine', who: 'Rob Scott', due: iso(6), why: 'So the Pareto says where the time goes' }),
+      act('Walk the line with the night shift', { lineId: line.id, who: 'Tanya', when: 'next week' }),
+    ]) await putPaceTodo(a);
+    return { projectId: proj.id, lineId: line.id };
+  }
+
+  /* ------------------------------ the lines ------------------------------ */
+  const wsA = await createWorkspace('Line 2A — 6M');
+  const wsB = await createWorkspace('Line 2B — 6M');
+  const wsC = await createWorkspace('Infeed — 6M');
+  const lineA = await addPaceLine({
+    projectId: proj.id, key: '2A', name: 'Line 2A', owner: 'Rob Scott', sponsor: 'Tanya', sort: 0, workspaceId: wsA.id,
+    capacity: {
+      targetPerMin: 60, plannedHoursPerWeek: 80,
+      stations: [
+        { id: 'c-bag', name: 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', runningPct: 82, source: 'timed', note: 'Timed over a week of nights' },
+        { id: 'c-wgh', name: 'Ishida multihead weigher', kind: 'machine', unit: 'bags', contains: 1, rate: 75, ratePer: 'min', source: 'plate' },
+        { id: 'c-chk', name: 'Checkweigher', kind: 'machine', unit: 'bags', contains: 1, rate: 90, ratePer: 'min', runningPct: 97, source: 'plate' },
+        { id: 'c-bsk', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 5.5, ratePer: 'min', runningPct: 94, source: 'timed' },
+        { id: 'c-car', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap' },
+        { id: 'c-pal', name: 'Palletiser', kind: 'machine', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour', source: 'plate' },
+      ],
+    },
+  });
+  const lineB = await addPaceLine({ projectId: proj.id, key: '2B', name: 'Line 2B', owner: 'Agnieszka Szczęsna', sponsor: 'Tanya', sort: 1, workspaceId: wsB.id });
+  const lineC = await addPaceLine({ projectId: proj.id, key: 'IN', name: 'Line 2 <infeed> & outfeed', owner: 'Ştefan Ionescu', sponsor: 'Gülşen Öztürk', sort: 2, workspaceId: wsC.id });
+  const lines = [lineA, lineB, lineC];
+
+  for (const [i, p] of periods.entries()) {
+    await putTarget(target(lineA.id, ppm.id, p.id, 52 + i * 3));
+    await putTarget(target(lineB.id, ppm.id, p.id, 48 + i * 3));
+    await putTarget(target(lineC.id, ppm.id, p.id, 55));
+    await putTarget(target(lineA.id, waste.id, p.id, 2));
+    await putTarget(target(lineB.id, waste.id, p.id, 2));
+  }
+  const rows: Reading[] = [];
+  for (let w = 0; w < 12; w++) {
+    const at = iso(-7 * (12 - w));
+    rows.push(reading(lineA.id, ppm.id, at, 44 + w * 0.9 + (rand() - 0.5) * 4, w === 5 ? 'Film supplier changed this week — Within ±1.5 g · 50 µm' : undefined));
+    rows.push(reading(lineB.id, ppm.id, at, 47 + w * 0.8 + (rand() - 0.5) * 3));
+    rows.push(reading(lineC.id, ppm.id, at, 58 + (rand() - 0.5) * 3));
+    if (w % 2 === 0) rows.push(reading(lineA.id, waste.id, at, 3.4 - w * 0.12));
+    if (w % 3 === 0) rows.push(reading(lineB.id, waste.id, at, 2.6 - w * 0.05));
+  }
+  await putReadings(rows);
+
+  /* ----------------------------- timed stops ----------------------------- */
+  const CATS: [string, string, string, string][] = [
+    ['Minor stop', 'Film tracking', 'Bagger', 'film wandered off the former after a splice'],
+    ['Minor stop', 'Bag jam at the jaws', 'Bagger', ''],
+    ['Minor stop', 'Photo-eye missed the print mark', 'Bagger', ''],
+    ['Breakdown', 'Seal jaw heater', 'Bagger', 'jaw ran cool on the rear face'],
+    ['Breakdown', 'Weigher bucket stuck', 'Weigher', ''],
+    ['Changeover', 'Size change 2kg to 1.25kg', 'Bagger', 'parts kit incomplete'],
+    ['Waiting', 'Starved upstream', 'Weigher', 'no operator on the infeed at start-up'],
+    ['Quality', 'Checkweigher rejecting good packs', 'Checkweigher', 'not calibrated since the move'],
+    ['Hygiene & cleaning', 'Product build-up on the chute', 'Weigher', 'humid in the hall, product sticks'],
+    ['Speed loss', 'Running below rated speed', 'Bagger', 'rated speed on the HMI is wrong'],
+  ];
+  const BONES: SixM[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment'];
+  for (let i = 0; i < 200; i++) {
+    const [category, subcategory, asset, note] = CATS[Math.floor(Math.pow(rand(), 1.6) * CATS.length)];
+    const ws = [wsA, wsA, wsA, wsB, wsC][i % 5];
+    const at = t - Math.floor(rand() * 27) * DAY - Math.floor(rand() * 20) * 3_600_000;
+    const mins = category === 'Breakdown' ? 20 + rand() * 60 : category === 'Changeover' ? 30 + rand() * 30 : 1 + rand() * 8;
+    const o: Observation = {
+      id: uid(), workspaceId: ws.id, category, subcategory, asset, shift: rand() < 0.6 ? 'Nights' : 'Days',
+      startedAt: at, endedAt: at + mins * 60_000, durationMs: Math.round(mins * 60_000), timing: 'stopwatch', count: 1,
+      note: note && rand() < 0.5 ? note : undefined, media: [], createdAt: t, updatedAt: t,
+      causeM: rand() < 0.3 ? pick(BONES) : undefined,
+    };
+    await addObservation(o);
+  }
+
+  /* ------------------------------ the walk ------------------------------- */
+  const snagIds: string[] = [];
+  for (const [li, ws] of [wsA, wsB, wsC].entries()) {
+    const seg: Segment = { id: uid(), workspaceId: ws.id, name: `walk ${li + 1}`, durationS: 120, sequence: 1, videoKey: `seed-video-${uid()}`, createdAt: t, updatedAt: t };
+    await addSegment(seg);
+    const frames: SnagAsset[] = ['Bagger former', 'Weigher discharge chute', 'Checkweigher reject arm', 'Line 2 <infeed> & outfeed'].map((name, k) => ({
+      id: uid(), workspaceId: ws.id, segmentId: seg.id, name, timestampS: 10 + k * 20, stillKey: `seed-still-${uid()}`, createdAt: t, updatedAt: t,
+    }));
+    for (const fr of frames) await addSnagAsset(fr);
+    const N = li === 0 ? 14 : 6;
+    for (let k = 0; k < N; k++) {
+      const st = (['open', 'open', 'in_progress', 'closed'] as const)[k % 4];
+      const s: Snag = {
+        id: uid(), workspaceId: ws.id, assetId: frames[k % frames.length].id, xPct: 20 + k * 3, yPct: 40,
+        problem: k % 5 === 0 ? pick(AWKWARD.filter(x => x.trim())) : k % 3 === 0 ? LONG[k % LONG.length]
+          : pick(['Guard on the infeed shelf missing', 'Film reel brake worn', 'Photo-eye bracket loose — vibrates', 'Air leak at the jaw cylinder', 'Product build-up under the chute', 'No standard for the splice']),
+        proposedSolution: k % 2 ? pick(['Fit the guard', 'Replace the brake pads', 'Re-bracket and lock', 'Clean down at every break']) : undefined,
+        status: st, owner: pick(['Dave (shift fitter)', 'Łukasz Wójcik', 'Engineering', 'Zoë Brontë']), raisedAt: t - (k + 1) * 2 * DAY,
+        closedAt: st === 'closed' ? t - k * DAY : undefined, linkedObsIds: [], updatedAt: t,
+      };
+      await addSnag(s);
+      snagIds.push(s.id);
+    }
+  }
+
+  /* A LINE STANDARD — its crew is what the People bone is counted against. */
+  await putStandard({
+    id: uid(), projectId: proj.id, product: 'Finest Red 2kg',
+    marks: [
+      { id: uid(), kind: 'person', x: 20, y: 40, label: 'Op 1', task: 'Load film, splice at the end of each reel' },
+      { id: uid(), kind: 'person', x: 50, y: 60, label: 'Op 2', task: 'Infeed — keep the weigher fed' },
+      { id: uid(), kind: 'person', x: 80, y: 50, label: 'Op 3', task: 'Basketer and carrying' },
+    ],
+    sort: 1, createdAt: t, updatedAt: t,
+  });
+
+  /* ------------------------------ problems ------------------------------- */
+  const why = (text: string, grade?: Grade): Why => ({ id: uid(), text, grade });
+  const cause = (m: SixM, text: string, o: Partial<Cause> = {}): Cause => ({
+    id: uid(), m, text, grade: 'reported', status: 'suspected', whys: [], at: t - Math.floor(rand() * 20) * DAY, by: pick(['Rob Scott', 'Łukasz Wójcik', 'Zoë Brontë']), ...o,
+  });
+  const problem = (title: string, line: typeof lineA, o: Partial<Case>): Case => ({
+    id: uid(), workspaceId: line.workspaceId as string, title, path: [], baselineMsWeek: 3 * 3_600_000, status: 'open',
+    openedAt: t - 30 * DAY, updatedAt: t, projectId: proj.id, lineId: line.id, causes: [], ...o,
+  });
+
+  // 1 — the biggest bar: drilled to roots, countermeasures open.
+  const c1 = [
+    cause('machine', 'Film tracks off the former after every splice', {
+      grade: 'measured', status: 'confirmed', root: true, source: { kind: 'pareto', label: 'Minor stop · Film tracking · Bagger', minutesWeek: 96 },
+      whys: [
+        why('The splice leaves a step in the film edge', 'observed'),
+        why('Operators splice by hand with no jig', 'observed'),
+        why('The operator didn\'t follow the splice method', 'reported'),
+        why('There is no written splice standard and nobody was trained on one', 'counted'),
+      ],
+    }),
+    cause('people', 'Night shift is one short at the infeed for the first hour', {
+      grade: 'counted', status: 'confirmed', root: true, source: { kind: 'standard', label: 'Line standard — 3 people, 2 on shift' },
+      whys: [why('Agency cover not booked for the 22:00 start', 'counted'), why('Nobody owns the night rota since the reorganisation', 'reported')],
+    }),
+    cause('material', 'New film from the second supplier is 3 µm thinner', { grade: 'measured', status: 'suspected', source: { kind: 'material', label: 'Perforated film — 2kg' } }),
+    cause('machine', 'Photo-eye bracket loose — vibrates', { grade: 'observed', status: 'confirmed', source: { kind: 'snag', label: 'Bagger former' } }),
+    cause('method', 'No standard for the splice', { grade: 'observed', status: 'confirmed' }),
+    cause('measurement', 'Short stops under a minute are not logged on days', { grade: 'counted', status: 'suspected', source: { kind: 'reading', label: '4 days with nothing logged' } }),
+    cause('environment', 'Hall humidity over 80% when the doors are open', { grade: 'reported', status: 'ruled_out' }),
+    cause('people', 'Łukasz Wójcik — only trained splicer on nights', { grade: 'counted', status: 'suspected' }),
+    cause('method', 'Seal "A" & seal "B" — both re-cut', { grade: 'reported', status: 'ruled_out' }),
+  ];
+  const p1 = problem('Bagger minor stops — film tracking', lineA, {
+    source: { kind: 'pareto', category: 'Minor stop', subcategory: 'Film tracking', asset: 'Bagger' },
+    path: [{ dimension: 'category', value: 'Minor stop' }], causes: c1,
+  });
+
+  // 2 — closed, the check set and looked at: holding.
+  const c2 = [
+    cause('method', 'Changeover 2kg → 1.25kg done three different ways', {
+      grade: 'measured', status: 'confirmed', root: true,
+      whys: [why('Each shift learned it from whoever showed them', 'observed'), why('No changeover standard existed for the bagger', 'counted')],
+    }),
+    cause('material', 'Changeover parts kit incomplete — the 1.25kg former kept in stores', { grade: 'observed', status: 'confirmed' }),
+    cause('people', 'Fitter called from another line mid-change', { grade: 'reported', status: 'ruled_out' }),
+  ];
+  const p2 = problem('Changeover 2kg → 1.25kg takes 48 minutes', lineA, {
+    source: { kind: 'gap', measureId: ppm.id }, causes: c2, status: 'closed', closedAt: t - 12 * DAY,
+    hold: { what: 'Time one changeover a week against the 25-minute standard', who: 'Rob Scott', everyDays: 7, since: iso(-12), lastChecked: iso(-2), standardUpdated: true },
+  });
+
+  // 3 — closed, the check not looked at for weeks.
+  const c3 = [
+    cause('measurement', 'Checkweigher not calibrated since the line was moved', {
+      grade: 'measured', status: 'confirmed', root: true,
+      whys: [why('Calibration is on the old asset number', 'counted'), why('The move did not carry the calibration schedule across', 'counted')],
+    }),
+  ];
+  const p3 = problem('Checkweigher rejects good packs', lineB, {
+    source: { kind: 'pareto', category: 'Quality', subcategory: 'Checkweigher rejecting good packs', asset: 'Checkweigher' },
+    causes: c3, status: 'closed', closedAt: t - 40 * DAY,
+    hold: { what: 'Calibration check every Monday with the test weights', who: 'Agnieszka Szczęsna', everyDays: 7, since: iso(-40), lastChecked: iso(-30) },
+  });
+
+  // 4 — seen on the floor, still finding the cause; awkward words.
+  const p4 = problem('Line 2 <infeed> & outfeed starves the weigher at start-up', lineC, {
+    source: { kind: 'observed' },
+    causes: [
+      cause('people', 'Two lines\npasted from a cell — no operator on the infeed', { grade: 'observed', status: 'suspected' }),
+      cause('machine', 'Gap ≤ 0.5 mm, speed ≥ 120 ppm on the infeed belt', { grade: 'reported', status: 'suspected' }),
+      cause('environment', 'Within ±1.5 g · 2 m² · 50 µm · ½ turn · 90°', { grade: 'reported', status: 'suspected' }),
+    ],
+  });
+
+  // 5 — a fishbone with far more than fits on the drawing.
+  const many: Cause[] = [];
+  for (let i = 0; i < 30; i++) {
+    const m = BONES[i % 6];
+    const status: CauseStatus = i % 7 === 0 ? 'ruled_out' : i % 3 === 0 ? 'confirmed' : 'suspected';
+    many.push(cause(m, i % 4 === 0 ? LONG[i % LONG.length] : `${pick(['Weigher bucket', 'Discharge chute', 'Timing hopper', 'Infeed vibrator', 'Product feed'])} ${pick(['sticks', 'runs dry', 'overfills', 'jams', 'bridges'])} — case ${i + 1}`, {
+      grade: (['measured', 'counted', 'observed', 'reported'] as const)[i % 4], status,
+      root: i === 3 || i === 9,
+      whys: i === 3 || i === 9 ? [why(LONG[(i + 1) % LONG.length], 'observed'), why('Nobody checks the chute at the break', 'counted'), why('The cleaning standard does not mention the chute', 'counted')] : [],
+      source: i % 5 === 0 ? { kind: 'pareto', label: 'Breakdown · Weigher bucket stuck · Weigher', minutesWeek: 40 + i } : undefined,
+    }));
+  }
+  const p5 = problem('Weigher breakdowns and build-up on the chute — PN-4471-0098-2231-ABCD-EFGH-IJKL-MNOP-QRST-UVWX-REV-C-FINAL-FINAL2', lineB, {
+    source: { kind: 'pareto', category: 'Breakdown', subcategory: 'Weigher bucket stuck', asset: 'Weigher' }, causes: many,
+  });
+
+  // 6 — just opened from the constraint: nothing on any bone yet.
+  const p6 = problem('Basketer limits Line 2A', lineA, { source: { kind: 'constraint', station: 'Basketer' }, causes: [], openedAt: t - DAY });
+
+  for (const p of [p1, p2, p3, p4, p5, p6]) await addCase(p);
+
+  /* --------------------------- countermeasures --------------------------- */
+  const ref = (p: Case, c: Cause) => `${p.id}:${c.id}`;
+  const counter: PaceTodoRow[] = [
+    act('Make a splice jig and fit it at the reel stand', { lineId: lineA.id, pillar: 'machine', who: 'Engineering', due: iso(-3), causeRef: ref(p1, c1[0]), caseId: p1.id, expect: 'Film tracking stops down from 18 a week to under 5', why: 'The splice leaves a step in the film edge' }),
+    act('Write the splice standard and train every shift on it', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(9), causeRef: ref(p1, c1[0]), caseId: p1.id, expect: 'Every splicer signed off by the end of the month' }),
+    act('Book agency cover for the 22:00 start', { lineId: lineA.id, pillar: 'people', who: 'Tanya', due: iso(-6), state: 'done', doneOn: iso(-5), causeRef: ref(p1, c1[1]), caseId: p1.id, expect: 'Three on the infeed from the first minute', outcome: 'Booked to Christmas — first week ran with three from 22:00' }),
+    act('Re-bracket the photo-eye and lock it', { lineId: lineA.id, pillar: 'machine', who: 'Dave (shift fitter)', due: iso(2), state: 'waiting', causeRef: ref(p1, c1[3]), caseId: p1.id, expect: 'No missed print marks over a week' }),
+    act('One changeover standard for 2kg to 1.25kg, on the line', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(-20), state: 'done', doneOn: iso(-14), causeRef: ref(p2, c2[0]), caseId: p2.id, expect: 'Changeover 48 → 25 minutes', outcome: 'Down to 22 minutes, three changeovers in a row' }),
+    act('Keep the 1.25kg former kit at the line, shadow-boarded', { lineId: lineA.id, pillar: 'material', who: 'Stores', due: iso(-18), state: 'done', doneOn: iso(-16), causeRef: ref(p2, c2[1]), caseId: p2.id, expect: 'Nothing fetched from stores during a changeover' }),
+    act('Move the calibration schedule to the new asset number', { lineId: lineB.id, pillar: 'measurement', who: 'Agnieszka Szczęsna', due: iso(-45), state: 'done', doneOn: iso(-42), causeRef: ref(p3, c3[0]), caseId: p3.id, expect: 'Good packs rejected: 40 a shift → under 5', outcome: 'Rejects fell to 3 a shift for a fortnight' }),
+    act('Clean the chute at every break and add it to the standard', { lineId: lineB.id, pillar: 'method', who: 'Zoë Brontë', due: iso(-1), causeRef: ref(p5, many[3]), caseId: p5.id, expect: LONG[1] }),
+    act('Guard fitted ✅ — retest 🔧', { lineId: lineB.id, pillar: 'machine', who: 'Ørjan Høgh', due: iso(4), causeRef: ref(p5, many[9]), caseId: p5.id, expect: 'Gap ≤ 0.5 mm, speed ≥ 120 ppm' }),
+  ];
+  for (const a of counter) await putPaceTodo(a);
+
+  /* ------------------------------ the board ------------------------------ */
+  const PILLARS: (PaceTodoRow['pillar'] | undefined)[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment', 'plant', 'process', undefined];
+  const WHATS = ['Weekly 5S walk on the line', 'Replace the worn sealing jaw', 'Second operator on the infeed at start-up', 'Order the thicker film for trial', 'Fix the stop logging on the HMI',
+    'Close the hall doors on humid days', 'Re-teach the robot pick positions for the 1.25kg case', 'Audit the crew against the standard every Monday', LONG[0], 'Seal "A" & seal "B" — both re-cut', '€12,400 of spares'];
+  for (let i = 0; i < 50; i++) {
+    const done = i % 5 === 0, waiting = i % 7 === 0 && !done;
+    const due = i % 9 === 0 ? undefined : iso(-12 + i);
+    await putPaceTodo(act(pick(WHATS), {
+      lineId: i % 4 === 3 ? undefined : lines[i % 3].id, pillar: PILLARS[i % PILLARS.length],
+      who: i % 11 === 0 ? '' : pick(['Rob Scott', 'Engineering', 'Tanya', 'Łukasz Wójcik', 'Antonín Dvořák', 'Gülşen Öztürk']),
+      due, when: due ? '' : pick(['before the Christmas peak', 'when the part lands', '']),
+      why: i % 3 === 0 ? pick(['Film breaks at the splice', 'Losing rate at start-up', LONG[2], 'Within ±1.5 g · 2 m² · 50 µm · ½ turn · 90°']) : '',
+      state: done ? 'done' : waiting ? 'waiting' : 'todo', doneOn: done ? iso(-30 + i) : undefined,
+      outcome: done && i % 2 === 0 ? 'Worked — two fewer stops a shift' : undefined,
+      caseId: i % 13 === 0 ? p4.id : undefined,
+    }));
+  }
+  return { projectId: proj.id, lineId: lineA.id };
 }

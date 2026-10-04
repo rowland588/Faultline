@@ -33,10 +33,18 @@ import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { planModel } from '../lib/planModel';
 import { useLinePackCounts } from '../lib/useLinePack';
 import { CapacityPanel } from './CapacityPanel';
+import { FishboneJourney } from './FishboneScreen';
+import { SawSheet } from '../ui/SawSheet';
+import { AccessNote } from '../ui/AccessNote';
+import { useProblems } from '../lib/useProblems';
 import { analyse } from '../lib/capacity';
 
-type Lens = 'overview' | 'next' | 'wins' | 'snags' | 'data' | 'capacity';
+type Lens = 'fishbone' | 'overview' | 'next' | 'wins' | 'snags' | 'data' | 'capacity';
 const LENSES: { id: Lens; label: string; sub: string }[] = [
+  /* THE JOURNEY FIRST ON A 6M JOB (docs/SIXM.md) — this line's problems,
+     each a fishbone, as a stage-gate job leads with its plan. Only a 6M job
+     has it; a lever tree job's line keeps the overview first. */
+  { id: 'fishbone', label: 'Fishbone',   sub: 'the problem and its causes' },
   { id: 'overview', label: 'Overview',   sub: 'this line' },
   /* ONE TAB FOR THE ACTIONS. "Actions" and "Next steps" sat side by side and
      showed the same records — a 3P action IS a next step (lib/actions.ts) —
@@ -75,8 +83,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   const route = useRoute();
   const raw = route.query.get('view');
   /* A saved ?view=meeting link lands on the actions, grouped by owner. */
-  const asked: Lens = raw === 'meeting' || raw === 'next' ? 'next'
-    : raw === 'data' || raw === 'snags' || raw === 'wins' || raw === 'capacity' ? raw : 'overview';
+  const asked: Lens | null = raw === 'meeting' || raw === 'next' ? 'next'
+    : raw === 'data' || raw === 'snags' || raw === 'wins' || raw === 'capacity' || raw === 'fishbone' || raw === 'overview' ? raw : null;
   const [byOwner, setByOwner] = useState(raw === 'meeting');
 
   const { loading: projLoading, project } = useProject(projectId);
@@ -84,6 +92,13 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   const ax = useActions(projectId);
   const nums = useMeasures(projectId);
   const line = ppm.lines.find(l => l.id === lineId);
+  /* "I saw…" from anywhere on the line — onto a bone of one of its problems. */
+  const problems = useProblems(projectId);
+  const [saw, setSaw] = useState(false);
+  const lineProblems = useMemo(
+    () => problems.problems.filter(p => !p.problem.lineId || p.problem.lineId === lineId),
+    [problems.problems, lineId],
+  );
 
   const counts = useLinePackCounts(projectId, lineId, line?.workspaceId);
 
@@ -118,10 +133,15 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   }
 
   const paced = planModel(project) !== 'commissioning';
-  const shownLenses = paced ? LENSES : LENSES.filter(l => COMMISSIONING_LENSES.includes(l.id));
-  /* A lens this line has not got lands on its overview rather than on a blank
-     page — hiding it from the row never stopped the URL reaching the body. */
-  const lens: Lens = shownLenses.some(l => l.id === asked) ? asked : 'overview';
+  const sixM = planModel(project) === 'board';
+  const shownLenses = sixM ? LENSES
+    : paced ? LENSES.filter(l => l.id !== 'fishbone')
+      : LENSES.filter(l => COMMISSIONING_LENSES.includes(l.id));
+  /* The lens a bare link opens — the fishbone on a 6M job, the overview
+     otherwise. A lens this line has not got lands there too, rather than on a
+     blank page: hiding it from the row never stopped the URL reaching the body. */
+  const first: Lens = shownLenses[0].id;
+  const lens: Lens = asked && shownLenses.some(l => l.id === asked) ? asked : first;
 
   const isDone = (s: string) => /^done$/i.test(s.trim());
   const done = mine.filter(a => isDone(a.status)).length;
@@ -138,7 +158,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   const capLine = line.capacity && line.capacity.stations.length > 0 ? analyse(line.capacity).sentence : undefined;
 
-  const lensUrl = (l: Lens) => l === 'overview'
+  const lensUrl = (l: Lens) => l === first
     ? `/project/${projectId}/line/${lineId}`
     : `/project/${projectId}/line/${lineId}?view=${l}`;
   const go = (l: Lens) => nav(lensUrl(l));
@@ -171,6 +191,9 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               Client report
             </button>
           )}
+          {sixM && can.edit && (
+            <button className="btn" onClick={() => setSaw(true)}>I saw…</button>
+          )}
           {!paced && (
             <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>
               Testing
@@ -188,6 +211,20 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
       <Peers label="View" peers={shownLenses.map(l => ({
         label: l.label, hint: l.sub, on: lens === l.id, to: lensUrl(l.id),
       }))} />
+
+      {lens === 'fishbone' && sixM && (
+        <>
+          <AccessNote can={can} owner={project.lead} />
+          <FishboneJourney projectId={projectId} lineId={lineId} can={can} />
+        </>
+      )}
+
+      {saw && (
+        <SawSheet open projectId={projectId} line={line} problems={lineProblems} api={problems}
+          problemId={route.query.get('problem') ?? undefined}
+          onClose={() => setSaw(false)}
+          onSaved={id => { setSaw(false); nav(`/project/${projectId}/line/${lineId}?problem=${id}`); }} />
+      )}
 
       {lens === 'overview' && (
         <>

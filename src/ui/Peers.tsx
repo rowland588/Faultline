@@ -116,7 +116,7 @@ export function projectPeers(projectId: string, here: string, counts?: Record<st
   ];
 }
 
-/** The row on a 3P or lever tree job — the same shape as the gates row, in
+/** The row on a 6M or lever tree job — the same shape as the gates row, in
  *  that method's own running order. Rowland, of the 3P page's fourteen
  *  buttons: "make it just like the other one."
  *
@@ -131,6 +131,10 @@ export function methodPeers(projectId: string, method: 'board' | 'tree', here: s
     label, to, on: here === key, n: counts?.[key]?.n || undefined, late: counts?.[key]?.late || undefined,
   });
   return [
+    /* THE FISHBONE FIRST ON A 6M JOB — it is the journey, as the gates are on
+       a stage-gate job (docs/SIXM.md): the problem, its causes on six bones,
+       what is being done. The board after it holds the countermeasures. */
+    ...(method === 'board' ? [p('fishbone', 'Fishbone', `/project/${projectId}/fishbone`)] : []),
     // A lever tree job keeps the board as well as the tree: the tree is built
     // out of the actions written on it, so it has to be somewhere to write them.
     ...(method === 'tree' ? [p('tree', 'Tree', `/project/${projectId}/tree`)] : []),

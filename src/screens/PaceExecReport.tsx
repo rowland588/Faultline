@@ -56,6 +56,10 @@ import { methodOf, planModel } from '../lib/planModel';
 import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX, boardName } from '../lib/pillars';
 import { Icon } from '../ui/Icon';
+import { onDataChange } from '../db';
+import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
+import type { SixMReport } from '../lib/sixmReportPdf';
+import type { jsPDF } from 'jspdf';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -823,7 +827,179 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
   );
 }
 
+/* WHICH REPORT A PROJECT GETS. A 6M job (the board model) is reported as
+ * the root cause story it is run as — the gap, where the loss is, each
+ * problem's fishbone, why-chains, countermeasures and hold, the board by bone
+ * and what was seen on the line (lib/sixmReportPdf, docs/SIXM.md). The lever
+ * tree keeps the A3 it has always had (lib/paceReportPdf, unchanged). */
 export function PaceExecReport() {
+  const route = useRoute();
+  const projectId = route.query.get('project') ?? '';
+  const lineId = route.query.get('line') || undefined;
+  const { loading, project } = useProject(projectId);
+  if (!loading && project && planModel(project) === 'board') {
+    return <SixMReportScreen projectId={projectId} lineId={lineId} name={project.name} lead={project.lead} />;
+  }
+  return <PaceExecReportA3 />;
+}
+
+async function sixmPdf(r: SixMReport): Promise<jsPDF> {
+  const { jsPDF } = await loadPdfLib();
+  const { drawSixMReport } = await import('../lib/sixmReportPdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  await drawSixMReport(doc, r);
+  return doc;
+}
+
+/* THE 6M CLIENT REPORT, ON SCREEN — what is on it in words, and the PDF
+ * itself beside it on a desk, so the screen and the paper cannot disagree. */
+function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string; lineId?: string; name: string; lead?: string }) {
+  const [loaded, setLoaded] = useState<LoadedProblems | null>(null);
+  const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
+  const [report, setReport] = useState<SixMReport | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const [err, setErr] = useState<{ stale: boolean; msg: string } | null>(null);
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(min-width: 900px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(min-width: 900px)');
+    if (!mq) return;
+    const on = () => setWide(mq.matches);
+    mq.addEventListener?.('change', on);
+    return () => mq.removeEventListener?.('change', on);
+  }, []);
+  useEffect(() => { void loadPdfLib().catch(() => { /* said when pressed */ }); }, []);
+
+  /* Read once, and again whenever anything is written (debounced). */
+  useEffect(() => {
+    let alive = true, timer: number | undefined;
+    const run = async () => {
+      const [l, t] = await Promise.all([loadProblems(projectId), listPaceTodos(projectId)]);
+      if (alive) { setLoaded(l); setTodos(t); }
+    };
+    void run();
+    const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => { void run(); }, 300); });
+    return () => { alive = false; off(); window.clearTimeout(timer); };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!loaded || !todos) return;
+    let alive = true;
+    void import('../lib/sixmReportPdf').then(({ sixmReport }) => {
+      const now = Date.now();
+      const r = sixmReport({ project: { name, lead }, data: loaded.data, problems: viewsOf(loaded, projectId, lineId, now), todos, lineId, now });
+      if (alive) setReport(r);
+    });
+    return () => { alive = false; };
+  }, [loaded, todos, projectId, lineId, name, lead]);
+
+  /* The preview is the PDF itself, with the mark it leaves with. */
+  useEffect(() => {
+    if (!report || !wide) return;
+    let live = true, url: string | null = null;
+    void sixmPdf(report).then(async doc => {
+      if (!live) return;
+      (await import('../lib/reportKit')).stampBrand(doc);
+      if (!live) return;
+      url = URL.createObjectURL(doc.output('blob') as Blob);
+      setPreview(url);
+    }).catch(() => undefined);
+    return () => { live = false; if (url) URL.revokeObjectURL(url); };
+  }, [report, wide]);
+
+  const line = lineId ? loaded?.data.lines.find(l => l.id === lineId) : undefined;
+  const download = async () => {
+    if (!report || busy) return;
+    setBusy(true); setSaid(null); setErr(null);
+    try {
+      const how = await deliverPdf(await sixmPdf(report), pdfFileName(line ? `${name} ${line.name}` : name, 'client report', todayISO()));
+      setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Your browser would not save it, so it is open in a new tab — share or print it from there.');
+    } catch (e) {
+      console.error('6M client report failed', e);
+      setErr(isStaleBuildError(e)
+        ? { stale: true, msg: 'This tab is still running an older version of the app, so the part that draws the PDF could not load.' }
+        : { stale: false, msg: `The report could not be made${e instanceof Error && e.message ? ` — ${e.message}` : ''}. Try again; if it fails again, reload the app.` });
+    } finally { setBusy(false); }
+  };
+
+  if (!report) return <div className="wrap pace"><p className="sub">Preparing the report…</p></div>;
+  if (lineId && loaded && !line) {
+    return (
+      <div className="wrap pace cr">
+        <p className="sub">That line isn’t on {name} any more, so it has no report of its own.</p>
+        <button className="btn btn-primary" onClick={() => nav(`/pace-report?project=${projectId}`)}>The project’s client report</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="wrap pace cr">
+      <Crumbs trail={[
+        { label: 'Control room', to: '/' },
+        { label: name, to: `/project/${projectId}` },
+        ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
+        { label: 'Client report' },
+      ]} />
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <p className="pace-eyebrow">{line ? `${name} · ${line.name}` : name}</p>
+          <h1 className="pace-title">Client report</h1>
+          <p className="pace-lede">The gap, where the loss is, each problem’s fishbone and what is being done about it — drawn from what is kept here, nothing typed for it.</p>
+        </div>
+        <div className="pace-head-actions">
+          <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
+        </div>
+      </header>
+      {said && <p className="tc-ok" role="status">{said}</p>}
+      {err && (
+        <p className="sub tw-err" role="alert">
+          {err.msg}{' '}
+          {err.stale && <button className="btn btn-primary" onClick={() => void reloadOntoNewBuild()}>Reload the app</button>}
+        </p>
+      )}
+
+      <div className={'cr-body' + (wide ? ' is-wide' : '')}>
+        <ol className="cr-toc">
+          <li><b>{report.gaps.length > 1 ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span><span className="sub">{report.slip}</span></li>
+          {report.gaps.length > 0 && <li><b>The gap</b>{report.gaps.map(g => <span key={g.line}>{g.says}</span>)}</li>}
+          {(report.pareto || report.constraints.length > 0) && (
+            <li><b>Where the loss is</b>
+              {report.pareto && <span>{report.pareto.says}{report.pareto.rows[0] ? ` — the biggest, ${report.pareto.rows[0].category}` : ''}</span>}
+              {report.constraints.map(c => <span key={c.line}>{c.line}: {c.says}</span>)}
+            </li>
+          )}
+          {report.noProblems && <li><b>Problems</b><span>{report.noProblems}</span></li>}
+          {report.problems.map(p => (
+            <li key={p.id}>
+              <b>Problem {p.n} — {p.title}</b>
+              <span>{p.phaseWord}{p.says ? ` · ${p.says}` : ''}</span>
+              <span className="sub">
+                {p.causeCount ? `${p.causeCount} cause${p.causeCount === 1 ? '' : 's'} on the fishbone (${p.bones.filter(b => b.causes.length).map(b => `${b.label} ${b.causes.length}`).join(', ')})` : 'Nothing on the fishbone yet'}
+                {p.roots.length ? ` · root${p.roots.length === 1 ? '' : 's'}: ${p.roots.map(r => r.cause.text).join('; ')}` : ''}
+                {p.counterSays ? ` · countermeasures ${p.counterSays}` : ''}
+                {p.hold ? ` · ${p.hold.word}` : ''}
+              </span>
+            </li>
+          ))}
+          {report.board.length > 0 && (
+            <li><b>The board by bone</b><span>{report.boardSays}</span>
+              <span className="sub">{report.board.map(b => `${b.label}: ${b.says}`).join(' · ')}</span>
+            </li>
+          )}
+          {report.seen && <li><b>What was seen on the line</b><span>{report.seen.says}</span></li>}
+        </ol>
+        {wide && (
+          <div className="cr-page">
+            {preview ? <iframe title="The client report" src={preview} /> : <p className="sub">Drawing the report…</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PaceExecReportA3() {
   /* Which project this is a report on. There is no default: a deck with no
      project named is a bad link, and it says so below rather than reporting on
      whichever project the app happened to invent. */
@@ -1082,7 +1258,12 @@ export function PaceExecReport() {
   const boardData = buildBoard(actions);
   const boardRows: PaceReportData['board'] = boardData.areas.flatMap(ar =>
     ar.columns.flatMap(c => c.rows.map(a => ({
-      area: ar.name, pillar: c.key, title: actionTitle(a),
+      /* The lever tree's sheet still draws three columns (lib/paceReportPdf,
+         unchanged); the six bones read across onto them the way OPEX.md's old
+         lens folded them — Material and Environment under Plant, Measurement
+         under Process. A 6M job never reaches this: it has its own report. */
+      area: ar.name, pillar: (c.key === 'people' ? 'people' : c.key === 'machine' || c.key === 'material' || c.key === 'environment' ? 'plant' : 'process') as 'people' | 'plant' | 'process',
+      title: actionTitle(a),
       owner: (a.owner || a.who || '').trim(), due: a.due ?? '',
       rag: statusOfAction(a),
     }))));

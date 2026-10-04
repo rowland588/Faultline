@@ -4,9 +4,12 @@
  * other — they are three different answers to "what are we doing and why", and
  * a project that showed all three would be a project whose team has not decided:
  *
- *   board         improvement work, grouped People / Plant / Process on a
- *                 board kept in the app — no workbook upload. What most
- *                 projects are.
+ *   board         6M — a running line made to perform better: the gap to its
+ *                 target, the problem behind it traced on the fishbone's six
+ *                 bones (People, Machine, Method, Material, Measurement,
+ *                 Environment) to a root, countermeasures on the board, proof
+ *                 on the same number, and holding (docs/SIXM.md). The id stays
+ *                 `board` because it is stored on devices and in the cloud.
  *   tree          one measurable outcome with a chain of conditions under it.
  *   commissioning STAGE GATE — new equipment taken through its gates: install
  *                 stages, tests against what was agreed, fixes, what it waits
@@ -75,14 +78,14 @@ export const MODELS: Method[] = [
     rhythm: 'Daily, at the line',
     done: 'Handed over',
     document: 'Client report · test and fix cards' },
-  { id: 'board', label: '3P',
+  { id: 'board', label: '6M',
     situation: 'Make a running line perform better',
-    blurb: 'What is holding this line back, and who is on it this week?',
-    useWhen: 'Running lines that need to perform better — a team, a weekly meeting, a rate to hit.',
-    organised: 'Lines with owners and sponsors · actions sorted People, Plant, Process on the board',
+    blurb: 'What is holding this line back, what is the root cause, and who is fixing it?',
+    useWhen: 'Running lines that need to perform better — a gap to a target, a team, a weekly meeting.',
+    organised: 'Lines with owners · problems traced on the fishbone — People, Machine, Method, Material, Measurement, Environment',
     rhythm: 'Weekly, in the meeting',
     done: 'At target, and holding',
-    document: 'The 3P board · client report' },
+    document: 'The fishbone · the 6M board · client report' },
   { id: 'tree', label: 'Lever tree',
     situation: 'Hit a number by a date',
     blurb: 'What has to be true to reach this outcome, and is it being done?',

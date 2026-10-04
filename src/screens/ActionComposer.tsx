@@ -3,12 +3,15 @@
  * countermeasure right there, tagged with that target, before it can escape
  * into a notebook.
  *
- * WHERE IT LANDS: on the project's board, when this line belongs to a 3P or
- * lever tree project — an ordinary next step (lib/actions) carrying the loss
- * that raised it, the Case it was raised for, and People / Plant / Process.
+ * WHERE IT LANDS: on the project's board, when this line belongs to a 6M or
+ * lever tree project — an ordinary action (lib/actions) carrying the loss
+ * that raised it, the Case it was raised for, and the bone it sits on (lib/
+ * sixm) — started from the loss's own category ("Changeover" → Method,
+ * "Breakdown" → Machine, a film or label → Material), one tap to change.
  * It used to become a snag, a second list beside the board's, and the control
  * room could only count one of them. A walk that belongs to no project, or to
- * a stage-gate job (which has no board), still raises a snag as before. */
+ * a stage-gate job (which has no board), still raises a snag as before.
+ * Access (lib/access): a project's client reads the board and raises nothing. */
 import { useEffect, useState } from 'react';
 import { addSnag, chainForWorkspace, putPaceTodo } from '../db';
 import { uid } from '../lib/ids';
@@ -16,7 +19,10 @@ import { nav } from '../state/useRoute';
 import { useTeam } from '../cloud/team';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { dueFromInput } from '../snag/types';
-import { PILLARS, type PillarKey } from '../lib/pillars';
+import { type PillarKey } from '../lib/pillars';
+import { boneOfStop, sixmLabel } from '../lib/sixm';
+import { BoneChips } from '../ui/ActionSheet';
+import { useAccess } from '../cloud/access';
 import { lossContext } from '../lib/lossContext';
 import type { DrillPath } from '../types';
 import { Icon } from '../ui/Icon';
@@ -32,6 +38,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
   const [due, setDue] = useState('');
   const [raised, setRaised] = useState<{ what: string; board?: string } | null>(null);
   const [pillar, setPillar] = useState<PillarKey | undefined>();
+  const [pillarSet, setPillarSet] = useState(false);
   const { observations } = useWorkspace();
   // The project this line's walk belongs to, if it has a board to put the action on.
   const [home, setHome] = useState<{ projectId: string; lineId?: string } | null>(null);
@@ -47,6 +54,10 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
     targetAsset: fromPath(path, 'asset'),
   };
   const targetLabel = [target.targetCategory, target.targetSubcategory, target.targetAsset].filter(Boolean).join(' · ');
+  const can = useAccess(home?.projectId ?? '');
+  /* The bone the loss most likely sits on, until somebody picks one. */
+  const guess: PillarKey | undefined = target.targetCategory ? boneOfStop(target.targetCategory, target.targetSubcategory) : undefined;
+  const bone = pillarSet ? pillar : guess;
 
   const raise = async () => {
     const p = problem.trim();
@@ -58,7 +69,7 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
         what: p, where: target.targetAsset ?? '',
         // The loss that made it matter, said once, now — also its "before".
         why: lossContext(observations, wsId, path, t),
-        who: owner.trim(), when: '', due: due || undefined, pillar,
+        who: owner.trim(), when: '', due: due || undefined, pillar: bone,
         state: 'todo', createdAt: t, updatedAt: t,
       });
       setRaised({ what: p, board: `/project/${home.projectId}/board` });
@@ -70,9 +81,12 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
       });
       setRaised({ what: p });
     }
-    setProblem(''); setOwner(''); setDue(''); setPillar(undefined); setOpen(false);
+    setProblem(''); setOwner(''); setDue(''); setPillar(undefined); setPillarSet(false); setOpen(false);
     onRaised?.();
   };
+
+  // A project's client reads the board; it raises nothing on it.
+  if (home && !can.edit) return null;
 
   if (raised) return (
     <div className="action-raised" role="status">
@@ -102,11 +116,9 @@ export function ActionComposer({ wsId, path, caseId, onRaised }: { wsId: string;
         placeholder="e.g. Run a SMED workshop on the size change…"
         onChange={e => setProblem(e.target.value)} />
       {home && (
-        <div className="cw-seg" role="group" aria-label="People, Plant or Process" style={{ marginTop: 8 }}>
-          {PILLARS.map(x => (
-            <button key={x.key} type="button" className={'chip' + (pillar === x.key ? ' on' : '')}
-              aria-pressed={pillar === x.key} onClick={() => setPillar(pillar === x.key ? undefined : x.key)}>{x.label}</button>
-          ))}
+        <div style={{ marginTop: 8 }}>
+          <BoneChips value={bone} optional onChange={k => { setPillar(k); setPillarSet(true); }} />
+          {!pillarSet && guess && <p className="sub ax-guess">Started on {sixmLabel(guess)} from the loss — tap another if it belongs elsewhere.</p>}
         </div>
       )}
       <div className="row-inline" style={{ marginTop: 8 }}>

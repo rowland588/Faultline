@@ -22,7 +22,10 @@
  * derived from the line's own readings, on whichever measure the business keeps:
  * both means, both counts, a significance test, frozen when it is called, and
  * allowed to come back "not proven" or "worse". The story stays; the number
- * stops being a claim. See lib/measureProof.ts. */
+ * stops being a claim. See lib/measureProof.ts.
+ *
+ * Access (lib/access): a client reads the wins; the team logs and proves
+ * them; only the owner deletes one. */
 import { DraftArea, DraftField } from '../ui/Draft';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, type PaceWinRow } from '../db';
@@ -31,15 +34,45 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { proofFromWin, proofSentence, verdictLabel, type WinProof } from '../lib/measureProof';
 import { WinProofSheet } from './WinProofSheet';
 import { Icon } from '../ui/Icon';
+import { useAccess } from '../cloud/access';
 
 const when = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-function Card({ win, onPatch, onDelete, onProve }: {
+function Card({ win, onPatch, onDelete, onProve, edit, remove }: {
   win: PaceWinRow; onPatch: (p: Partial<PaceWinRow>) => void; onDelete: () => void;
   onProve: () => void;
+  /** May change it (team and owner) / may delete it (owner). */
+  edit: boolean; remove: boolean;
 }) {
   const proof = win.proof ? proofFromWin(win.proof) : null;
+  if (!edit) {
+    return (
+      <article className={'win-card is-ro' + (proof ? ' is-' + proof.verdict : '')}>
+        <div className="win-top">
+          <b className="win-title">{win.title || 'A win'}</b>
+          {!proof && win.impact && <span className="win-impact">{win.impact}</span>}
+        </div>
+        {proof && win.proof && (
+          <div className={'win-proof is-' + proof.verdict}>
+            <span className="win-proof-badge">{verdictLabel(proof.verdict)}</span>
+            <span className="win-proof-line">{proofSentence(proof, win.proof.unit)}</span>
+            <span className="win-proof-meta">
+              {win.proof.lineName}
+              {win.proof.measureName && <> · {win.proof.measureName}</>}
+              {' · called '}{when(win.proof.calledAt)}
+            </span>
+          </div>
+        )}
+        {win.story && <p className="win-story">{win.story}</p>}
+        <div className="win-foot">
+          {win.who && <span className="win-who">{win.who}</span>}
+          {win.where && <span className="win-where">{win.where}</span>}
+          <span className="win-date">{when(win.createdAt)}</span>
+        </div>
+      </article>
+    );
+  }
   return (
     <article className={'win-card' + (proof ? ' is-' + proof.verdict : '')}>
       <div className="win-top">
@@ -80,7 +113,7 @@ function Card({ win, onPatch, onDelete, onProve }: {
         <DraftField className="win-in win-where" ariaLabel="Where" value={win.where}
           placeholder="Where — e.g. the bagger" onSave={v => onPatch({ where: v })} />
         <span className="win-date">{when(win.createdAt)}</span>
-        <button className="win-del" onClick={onDelete} aria-label="Delete this win">Delete</button>
+        {remove && <button className="win-del" onClick={onDelete} aria-label="Delete this win">Delete</button>}
       </div>
     </article>
   );
@@ -93,6 +126,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
   const [proving, setProving] = useState<string | null>(null);   // win id
   const root = useRef<HTMLDivElement>(null);
   const { lines } = usePaceLines(projectId);
+  const can = useAccess(projectId);
 
   /* On a line's own wins tab, only that line's weeks can prove anything — so
    * the picker is not offered a choice it would be wrong to take. */
@@ -114,6 +148,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
   }, [load]);
 
   const patch = async (id: string, p: Partial<PaceWinRow>) => {
+    if (!can.edit) return;
     const next = wins.map(w => (w.id === id ? { ...w, ...p } : w));
     setWins(next);                                   // optimistic: typing stays responsive
     const w = next.find(x => x.id === id);
@@ -121,6 +156,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
   };
 
   const add = async () => {
+    if (!can.edit) return;
     const w: PaceWinRow = {
       id: uid(), projectId, lineId, title: '', story: '', where: '', who: '', impact: '',
       createdAt: Date.now(), updatedAt: Date.now(),
@@ -130,6 +166,7 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
   };
 
   const remove = async (w: PaceWinRow) => {
+    if (!can.remove) return;
     const filled = [w.title, w.story, w.where, w.who, w.impact].some(v => v.trim()) || !!w.proof;
     if (filled && !window.confirm(`Delete this win?\n\n"${w.title || '(no title)'}"`)) return;
     setWins(wins.filter(x => x.id !== w.id));
@@ -144,18 +181,18 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
         <div className="win-bar-stats">
           <b>{wins.length}</b> {wins.length === 1 ? 'win' : 'wins'} logged
         </div>
-        <button className="btn btn-primary" onClick={() => void add()}><Icon name="plus" /> Log a win</button>
+        {can.edit && <button className="btn btn-primary" onClick={() => void add()}><Icon name="plus" /> Log a win</button>}
       </div>
 
       {wins.length === 0 ? (
         <div className="win-empty">
           <p className="win-empty-title">Nothing logged yet</p>
           <p className="win-empty-sub">
-            The things that worked — a test that passed, a changeover you cut, a fault you finally
-            beat. Say what it was, what you did, the number that proves it, and who made it happen.
-            This is the tab you open the meeting with.
+            {can.edit
+              ? 'The things that worked — a test that passed, a changeover you cut, a fault you finally beat. Say what it was, what you did, the number that proves it, and who made it happen. This is the tab you open the meeting with.'
+              : 'The things that worked, with the number that proves it and who made it happen. The team logs them here.'}
           </p>
-          <button className="btn btn-primary btn-lg" onClick={() => void add()}><Icon name="plus" /> Log the first win</button>
+          {can.edit && <button className="btn btn-primary btn-lg" onClick={() => void add()}><Icon name="plus" /> Log the first win</button>}
         </div>
       ) : (
         <div className="win-list">
@@ -163,12 +200,13 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
             <Card key={w.id} win={w}
               onPatch={p => void patch(w.id, p)}
               onDelete={() => void remove(w)}
-              onProve={() => setProving(w.id)} />
+              onProve={() => setProving(w.id)}
+              edit={can.edit} remove={can.remove} />
           ))}
         </div>
       )}
 
-      {proving && (
+      {proving && can.edit && (
         <WinProofSheet
           projectId={projectId}
           lines={provable}

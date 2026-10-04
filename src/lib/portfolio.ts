@@ -36,7 +36,7 @@ import { companies, resolver, type Company } from './names';
 import type { PaceLineRow, PaceTodoRow } from '../db';
 import { methodOf, planModel, type PlanModel } from './planModel';
 import { isLate as stepIsLate } from './actions';
-import { PILLARS } from './pillars';
+import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
 import type { TreeStanding } from './treeBind';
 
@@ -49,7 +49,7 @@ export interface JobInput {
   assets: Asset[];
 }
 
-/** A 3P or lever tree job, as the control room reads it: the actions kept on
+/** A 6M or lever tree job, as the control room reads it: the actions kept on
  *  its board, its lines, and how many of them are at target. Rowland: "turn it
  *  into a control room for change on your lines" — the board was a stage-gate
  *  board only, and a job on the other two methods did not appear on it. */
@@ -90,13 +90,16 @@ export interface JobItem {
 
 export interface JobView {
   id: string;
-  /** Which kind of change this is — a stage-gate row leads with its gates, the
-   *  others with the board's People, Plant and Process. */
+  /** Which kind of change this is — a stage-gate row leads with its gates, a
+   *  6M row with its open countermeasures by bone, a lever tree row with its
+   *  tree. */
   method: PlanModel;
   methodLabel: string;
   /** Lines at target, said in words, when there is a target to judge. */
   reach?: string;
-  /** The board's three columns: what is open in each, and how it stands. */
+  /** The board's bones that have anything open on them — only those, in the
+   *  fishbone's order — each with how many are open and how it stands
+   *  (late if anything on it is). Empty when nothing is open. */
   pillars: { key: string; label: string; open: number; tone: GateTone }[];
   /** A lever tree job: how its outcome and conditions stand — what its row
    *  leads with instead of the board's columns. */
@@ -104,7 +107,7 @@ export interface JobView {
   name: string;
   color: string;
   lead?: string;
-  /** A 3P or lever tree job's lines, each with its owner — the one-tap route
+  /** A 6M or lever tree job's lines, each with its owner — the one-tap route
    *  to the line you want, carried from the project card the row replaced. */
   lines?: { id: string; key: string; name: string; owner?: string }[];
   sentence: string;
@@ -224,7 +227,7 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
   return out;
 }
 
-/** What a 3P or lever tree job owes: every open action on its board. */
+/** What a 6M or lever tree job owes: every open action on its board. */
 export function pacedItems(j: PacedInput, today: string): JobItem[] {
   const p = j.project;
   const base = { jobId: p.id, job: shortName(p.name), color: p.color };
@@ -242,7 +245,7 @@ function pacedPlan(j: PacedInput, today: string): PlanMark[] {
   }));
 }
 
-/** Where a 3P or lever tree job stands, in one sentence — the line the project's
+/** Where a 6M or lever tree job stands, in one sentence — the line the project's
  *  own front page leads with, said once here so the two cannot differ. */
 export function pacedSays(a: { atTarget: number; judged: number; lines?: number; open: number; late: number; any: boolean }): string {
   const onTarget = a.judged > 0 ? `${a.atTarget} of ${a.judged} line${a.judged === 1 ? '' : 's'} at target` : '';
@@ -253,26 +256,22 @@ export function pacedSays(a: { atTarget: number; judged: number; lines?: number;
   return said ? said.charAt(0).toUpperCase() + said.slice(1) + '.' : 'Nothing on the board yet.';
 }
 
-/** People, Plant and Process, each as a tile on the row: late if anything in it
- *  is, under way if anything is open, done when all of it is. */
+/** The open countermeasures by bone — "Machine 3 · Method 1 · People 2" —
+ *  only the bones with something open, each late if anything on it is, under
+ *  way otherwise. A bone with nothing open is not drawn: six tiles of zeros
+ *  on every row is the noise the row is there to cut through. */
 function pacedPillars(j: PacedInput, today: string): JobView['pillars'] {
-  return PILLARS.map(p => {
-    const mine = j.steps.filter(s => s.pillar === p.key);
-    const open = mine.filter(s => s.state !== 'done');
-    const tone: GateTone = mine.length === 0 ? 'none'
-      : open.some(s => stepIsLate(s, today)) ? 'late'
-      : open.length > 0 ? 'going' : 'done';
-    return { key: p.key, label: p.label, open: open.length, tone };
-  });
+  return openByBone(j.steps.map(s => ({ pillar: s.pillar, open: s.state !== 'done', late: stepIsLate(s, today) })))
+    .map(b => ({ key: b.key, label: b.label, open: b.open, tone: b.late > 0 ? 'late' as const : 'going' as const }));
 }
 
 const byUrgency = (a: JobItem, b: JobItem) =>
   Number(b.late) - Number(a.late) || (a.on ?? '￿').localeCompare(b.on ?? '￿') || a.what.localeCompare(b.what);
 
 export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInput[] = []): Portfolio {
-  /* The job handing over first, first — that is the order they get asked
+  /* The job whose date comes first, first — that is the order they get asked
      about in. A job with no date yet goes last rather than first. Stage gate,
-     3P and lever tree jobs stand in one order. */
+     6M and lever tree jobs stand in one order. */
   type Entry = { project: Project; plan: PlanMark[]; items: JobItem[]; gate?: { j: JobInput; st: ReturnType<typeof standing> }; paced?: PacedInput };
   const entries: Entry[] = [
     ...unsorted.map((j): Entry => {
@@ -441,7 +440,11 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
     .filter(v => v.daysToGo != null && v.daysToGo >= 0)
     .sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0))[0];
   const bits = [plural(jobs.length, 'job') + ' running'];
-  if (next) bits.push(`${next.name} hands over first, in ${plural(next.daysToGo ?? 0, 'day')}`);
+  /* "Hands over" is a stage-gate job's word. A running line is not handed
+     over: its date is the day it should be at target. */
+  if (next) bits.push(next.method === 'commissioning'
+    ? `${next.name} hands over first, in ${plural(next.daysToGo ?? 0, 'day')}`
+    : `${next.name}’s date comes first, in ${plural(next.daysToGo ?? 0, 'day')}`);
   if (late === 0) return `${bits.join(' · ')}. Nothing is past its day.`;
   const top = [...owes].sort((a, b) => b.late - a.late)[0];
   const owner = top ? (top.kind === 'site' ? 'the site' : top.who) : '';

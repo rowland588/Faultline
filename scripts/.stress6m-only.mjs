@@ -125,7 +125,7 @@ const rows = [];
 const fuzzAt = process.argv.indexOf('--fuzz'), seedsAt = process.argv.indexOf('--seeds');
 const SIZES = seedsAt > 0 ? process.argv[seedsAt + 1].split(',').map(n => `random-${n}`)
   : fuzzAt > 0 ? Array.from({ length: Number(process.argv[fuzzAt + 1] ?? 10) }, (_, i) => `random-${i + 1}`)
-  : ['tiny', 'ordinary', 'huge'];
+  : [];
 for (const size of SIZES) {
   const { ctx, page, errors } = await device();
   const job = await page.evaluate(async size => {

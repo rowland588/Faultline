@@ -12,14 +12,18 @@
  *  · MAKE IT SO — a what-if you decide to do becomes an action on the board,
  *    with the prediction as its why, so the board's own proof judges it later.
  *
- * Belongs to 3P, at the Size step beside the Pareto: the Pareto says where TIME
- * is lost, this says where the LINE is limited even when nothing breaks. It
+ * Belongs to a running line's 6M work, beside the Pareto: the Pareto says
+ * where TIME is lost, this says where the LINE is limited even when nothing
+ * breaks — and its limiting station is a cause the fishbone can carry (a
+ * machine station on the Machine bone, a crew on People). It
  * reads the line's own timed stops (the log the Pareto is drawn from) and writes
  * one document on the line (`capacity`). What it says is the same sentence the
  * client report prints — see lib/capacity.
  *
  * Editing follows the rest of the app: every field keeps its own draft and
- * writes when you leave it, and removing a station can be undone. */
+ * writes when you leave it, and removing a station can be undone. Access
+ * (lib/access): a client reads the line and what the sums say; the team
+ * edits the stations and raises actions; only the owner deletes a what-if. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
@@ -28,7 +32,9 @@ import { listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTo
 import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { PILLARS, type PillarKey } from '../lib/pillars';
+import { type PillarKey } from '../lib/pillars';
+import { BoneChips } from '../ui/ActionSheet';
+import { useAccess } from '../cloud/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, whatIfCapacity,
@@ -94,7 +100,7 @@ function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; t
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, suggested, feed, arrives, patch, move, remove, assets, open, onToggle }: {
+function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, suggested, feed, arrives, patch, move, remove, assets, open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string; prevName?: string; planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
   /** What arrives against what it does, in its own unit — the station's own sentence. */
@@ -104,7 +110,10 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
    *  — 57 buttons on the page — when the work is on one of them. Shut, a
    *  station is its name and one line of its numbers; tap Edit to open it. */
   open: boolean; onToggle: () => void;
+  /** Read only — a client sees the station and its numbers, no controls. */
+  ro?: boolean;
 }) {
+  const open = wantOpen && !ro;
   const cyc = s.rate == null && (s.cycleSec != null || s.perCycle != null);
   const [mode, setMode] = useState<'rate' | 'cycle'>(cyc ? 'cycle' : 'rate');
   const key = (x: string) => x.trim().toLowerCase();
@@ -114,6 +123,10 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
     <li className={'cap-st' + (why ? ' has-problem' : '')}>
       <div className="cap-st-h">
         <span className="cap-st-n">{i + 1}</span>
+        {ro ? <>
+          <b className="cap-name cap-name-ro">{s.name.trim() || `Station ${i + 1}`}</b>
+          <span className="sub">{s.kind === 'people' ? 'People' : 'Machine'}</span>
+        </> : <>
         <DraftText value={s.name} placeholder="Name it — Bagger, Basketer, Carrier…" className="text-input cap-name" max={60}
           ariaLabel={`Station ${i + 1} name`} onSave={v => patch({ name: v })} />
         <span className="cw-seg" role="group" aria-label="Machine or people">
@@ -128,6 +141,7 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
           <button className="btn btn-ghost in-usual-b" onClick={remove} aria-label={`Remove ${s.name || 'this station'}`}><Icon name="close" size="1.1em" /></button>
           <button type="button" className={'btn btn-sm' + (open ? ' btn-primary' : ' btn-ghost')} onClick={onToggle} aria-expanded={open}>{open ? 'Done' : 'Edit'}</button>
         </span>
+        </>}
       </div>
 
       {why && <p className="cap-why" role="note">Not counted yet: {why}.</p>}
@@ -257,6 +271,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
   line: PaceLineRow;
   onSave: (cap: Capacity) => Promise<void>;
 }) {
+  const can = useAccess(projectId);
   const stored = line.capacity ?? EMPTY_CAPACITY;
   const [cap, setCap] = useState<Capacity>(stored);
   const [editing, setEditing] = useState<string | null>(null);
@@ -272,7 +287,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
   /* Every save brings the what-ifs up to the line (syncWhatIfs): each keeps
      only what it changes, and its snapshot is redrawn over the line as it now
      is — so editing the line as run carries into every what-if. */
-  const commit = (raw: Capacity) => { const next = syncWhatIfs(cap, raw); setCap(next); sent.current = JSON.stringify(next); void onSave(next); };
+  const commit = (raw: Capacity) => { if (!can.edit) return; const next = syncWhatIfs(cap, raw); setCap(next); sent.current = JSON.stringify(next); void onSave(next); };
 
   /* WHICH LINE IS ON THE SCREEN — the line as it runs, or one of its what-ifs.
      Everything below edits `current`; the stations are written back to
@@ -362,17 +377,21 @@ export function CapacityPanel({ projectId, line, onSave }: {
     const dx = c.clientX - t.x, dy = c.clientY - t.y;
     if (Math.abs(dx) < 80 || Math.abs(dy) > 60) return;
     const i = order.indexOf(view);
-    if (dx < 0) { if (i + 1 < order.length) setView(order[i + 1]); else addWhatIf(); }
+    if (dx < 0) { if (i + 1 < order.length) setView(order[i + 1]); else if (can.edit) addWhatIf(); }
     else if (i > 0) setView(order[i - 1]);
   };
 
   /* RAISING AN ACTION FROM THE FINDING (the line as run), or MAKING A WHAT-IF
-     SO. One form: what, pillar, owner, due. The sentence IS the why; on a
-     what-if the why is the prediction, so the board's proof can judge it. */
+     SO. One form: what, bone, owner, due. The bone starts where the station
+     says — a machine station on Machine, a crew on People — and Method is a
+     tap away, because the fix for a limit is as often the way the work is
+     done. The sentence IS the why; on a what-if the why is the prediction,
+     and its number is what the action should change, so the board's proof
+     can judge it. */
   const limit = r.limit;
   const [asking, setAsking] = useState(false);
   const [what, setWhat] = useState('');
-  const [pillar, setPillar] = useState<PillarKey>('plant');
+  const [pillar, setPillar] = useState<PillarKey>('machine');
   const [owner, setOwner] = useState('');
   const [due, setDue] = useState('');
   const [raised, setRaised] = useState(false);
@@ -380,7 +399,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
   const openRaise = () => {
     if (!limit) return;
     setWhat(`Lift ${limit.station.name.trim() || 'the limiting station'} — it limits ${line.name}`);
-    setPillar(limit.station.kind === 'people' ? 'people' : 'plant');
+    setPillar(limit.station.kind === 'people' ? 'people' : 'machine');
     setOwner(line.owner ?? '');
     setAsking(true); setRaised(false);
   };
@@ -389,7 +408,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
     const m = makeItSoWords(line.name, w, changed, compare);
     setWhat(m.what);
     const touched = current.stations.filter(s => changed.some(c => c.includes(s.name.trim() || '§')));
-    setPillar(touched.length && touched.every(s => s.kind === 'people') ? 'people' : 'plant');
+    setPillar(touched.length && touched.every(s => s.kind === 'people') ? 'people' : 'machine');
     setOwner(line.owner ?? '');
     setAsking(true); setRaised(false);
   };
@@ -401,6 +420,8 @@ export function CapacityPanel({ projectId, line, onSave }: {
       const m = makeItSoWords(line.name, w, changed, compare);
       await putPaceTodo({
         id, projectId, lineId: line.id, what: what.trim(), where: m.where, why: m.why,
+        // The prediction as a number the proof can be read against.
+        expect: asRun.line != null && r.line != null ? `${fmtN(asRun.line)} → ${fmtN(r.line)} ${r.unit}/min` : undefined,
         who: owner.trim(), when: '', due: due || undefined, pillar, state: 'todo', createdAt: t, updatedAt: t,
       });
       putWhatIf(w.id, { action: { id, raisedAt: t } });
@@ -453,16 +474,18 @@ export function CapacityPanel({ projectId, line, onSave }: {
             {onBoard(x) && <><Icon name="flag" size="1.15em" /> </>}{x.name}
           </button>
         ))}
-        <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on"><Icon name="plus" size="1.15em" /> What if</button>
+        {can.edit && <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on"><Icon name="plus" size="1.15em" /> What if</button>}
       </div>
 
       {w && (
         <div className="cap-whatif">
           <div className="cap-whatif-h">
             <span className="field-label">What if…</span>
-            <DraftText value={w.name} placeholder="Name the change — New basketer, 12 to a basket, second packer" className="text-input cap-whatif-name" max={60}
-              ariaLabel="What this what-if changes" onSave={v => putWhatIf(w.id, { name: v.trim() || w.name })} />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={removeWhatIf}>Delete this what-if</button>
+            {can.edit
+              ? <DraftText value={w.name} placeholder="Name the change — New basketer, 12 to a basket, second packer" className="text-input cap-whatif-name" max={60}
+                  ariaLabel="What this what-if changes" onSave={v => putWhatIf(w.id, { name: v.trim() || w.name })} />
+              : <b className="cap-whatif-name">{w.name}</b>}
+            {can.remove && <button type="button" className="btn btn-ghost btn-sm" onClick={removeWhatIf}>Delete this what-if</button>}
           </div>
           {changed.length > 0 ? (
             <ul className="cap-changed" aria-label="What is different from the line as run">
@@ -506,7 +529,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
           </p>
         ) : raised ? (
           <p className="action-raised" role="status"><Icon name="flag" size="1.15em" /> Action raised — <button className="linkish" onClick={() => nav(`/project/${projectId}/board`)}>See it on the board ›</button></p>
-        ) : !asking ? (
+        ) : !can.edit ? null : !asking ? (
           <>
           {gone && <p className="sub" role="status">The action made from this what-if has been deleted from the board.</p>}
           {/* Not until the line as run can be counted: there is no prediction
@@ -523,12 +546,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
             <div className="field-label"><Icon name="flag" size="1.15em" /> Make it so — <b>{w.name}</b></div>
             <textarea className="text-area" autoFocus rows={2} maxLength={300} value={what} onChange={e => setWhat(e.target.value)} />
             <p className="sub cap-why">Why, as the board will show it: {compare}</p>
-            <div className="cw-seg" role="group" aria-label="People, Plant or Process" style={{ marginTop: 8 }}>
-              {PILLARS.map(x => (
-                <button key={x.key} type="button" className={'chip' + (pillar === x.key ? ' on' : '')}
-                  aria-pressed={pillar === x.key} onClick={() => setPillar(x.key)}>{x.label}</button>
-              ))}
-            </div>
+            <div style={{ marginTop: 8 }}><BoneChips value={pillar} onChange={k => { if (k) setPillar(k); }} /></div>
             <div className="row-inline" style={{ marginTop: 8 }}>
               <input className="text-input" value={owner} placeholder="Owner (who drives it)" maxLength={80} onChange={e => setOwner(e.target.value)} />
               <input className="text-input due-input" type="date" value={due} aria-label="Due date" onChange={e => setDue(e.target.value)} />
@@ -537,7 +555,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
             </div>
           </div>
         )
-      ) : limit && (
+      ) : limit && can.edit && (
         raised ? (
           <p className="action-raised" role="status">
             <Icon name="flag" size="1.15em" /> Action raised on <b>{limit.station.name.trim()}</b> — it is on the project’s board with this sentence as its why.
@@ -553,12 +571,7 @@ export function CapacityPanel({ projectId, line, onSave }: {
           <div className="card action-form">
             <div className="field-label"><Icon name="flag" size="1.15em" /> Action on <b>{limit.station.name.trim()}</b></div>
             <textarea className="text-area" autoFocus rows={2} maxLength={300} value={what} onChange={e => setWhat(e.target.value)} />
-            <div className="cw-seg" role="group" aria-label="People, Plant or Process" style={{ marginTop: 8 }}>
-              {PILLARS.map(x => (
-                <button key={x.key} type="button" className={'chip' + (pillar === x.key ? ' on' : '')}
-                  aria-pressed={pillar === x.key} onClick={() => setPillar(x.key)}>{x.label}</button>
-              ))}
-            </div>
+            <div style={{ marginTop: 8 }}><BoneChips value={pillar} onChange={k => { if (k) setPillar(k); }} /></div>
             <div className="row-inline" style={{ marginTop: 8 }}>
               <input className="text-input" value={owner} placeholder="Owner (who drives it)" maxLength={80} onChange={e => setOwner(e.target.value)} />
               <input className="text-input due-input" type="date" value={due} aria-label="Due date" onChange={e => setDue(e.target.value)} />
@@ -572,15 +585,19 @@ export function CapacityPanel({ projectId, line, onSave }: {
       <div className="cap-settings">
         <label className="proj-field">
           <span className="field-label">What the line should do — {r.unit} a minute</span>
-          <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
-            onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
+          {can.edit
+            ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
+                onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
+            : <b>{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
         </label>
         {!w && (
           <label className="proj-field">
             <span className="field-label">Planned running hours a week</span>
-            <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
-              onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
-            <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
+            {can.edit ? <>
+              <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
+                onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
+              <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
+            </> : <b>{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
           </label>
         )}
       </div>
@@ -588,12 +605,12 @@ export function CapacityPanel({ projectId, line, onSave }: {
       <h3 className="cap-h">{w ? `The stations with ${w.name}, in order` : 'The stations, in order'}</h3>
       {current.stations.length === 0 && (
         <div className="pace-empty">
-          <p className="sub">
+          {!can.edit ? <p className="sub">No stations written down yet — the team keeps the line here.</p> : <p className="sub">
             Start at the front of the line. A bagger that does 70 a minute, then baskets that hold 12 bags and run 5½ a minute,
             then someone carrying them, then the palletiser. Each says what it counts in and how many of the one before make one of
             its own — and the app puts them all in the first one’s unit, and tells each station what arrives from the one before.
-          </p>
-          {assets.length > 0 && (
+          </p>}
+          {assets.length > 0 && can.edit && (
             <button className="btn btn-ghost" onClick={() => setStations(assets.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
               Start from the machines in your stops log ({assets.length})
             </button>
@@ -608,13 +625,13 @@ export function CapacityPanel({ projectId, line, onSave }: {
             suggested={suggestRunning(stats[s.id]?.ownMins ?? 0, cap.plannedHoursPerWeek, stops.weeks)}
             feed={result(s.id)?.feed} arrives={result(s.id)?.arrives}
             patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets}
-            open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} />
+            open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
         ))}
       </ol>
-      <div className="row-inline">
+      {can.edit && <div className="row-inline">
         <button className="cw-add" onClick={() => add('machine')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine</button>
         <button className="cw-add" onClick={() => add('people')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew</button>
-      </div>
+      </div>}
 
       {r.ok.length > 0 && (
         <Fold id="cap-working" title="The working" says={`${r.ok.length} station${r.ok.length === 1 ? '' : 's'} counted, in ${r.unit} a minute`} start={false}>

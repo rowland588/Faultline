@@ -222,7 +222,7 @@ describe('who owes what, on a real mess', () => {
 });
 
 
-/* THE CONTROL ROOM HOLDS EVERY METHOD. A 3P job and a lever tree job are
+/* THE CONTROL ROOM HOLDS EVERY METHOD. A 6M job and a lever tree job are
  * changes to a line too; the board that says "am I in control?" has to show
  * them beside the stage-gate jobs, on the same calendar, owed by the same
  * people. */
@@ -249,17 +249,29 @@ describe('every job on every method', () => {
     expect(pf.jobs.map(j => [j.id, j.method])).toEqual(expect.arrayContaining([['b', 'commissioning'], ['p3', 'board'], ['lt', 'tree']]));
     expect(pf.jobs).toHaveLength(3);
   });
-  it('counts a 3P job by its open actions and what is late', () => {
+  it('counts a 6M job by its open actions and what is late', () => {
     const v = pf.jobs.find(j => j.id === 'p3')!;
     expect(v.outstanding).toBe(3);                // the done one is not owed
     expect(v.late).toBe(1);
     expect(v.reach).toBe('1 of 2 at target');
     expect(v.sentence).toBe('1 of 2 lines at target, with 3 actions open — 1 past its day.');
   });
-  it('gives it the board’s three columns, not four gates', () => {
+  it('gives it its open countermeasures by bone — only the bones with any open, old words read across — not four gates', () => {
     const v = pf.jobs.find(j => j.id === 'p3')!;
     expect(v.gates).toEqual([]);
-    expect(v.pillars.map(x => [x.label, x.open, x.tone])).toEqual([['People', 1, 'late'], ['Plant', 1, 'going'], ['Process', 0, 'done']]);
+    // Plant reads as Machine; Process has nothing open, so it is not drawn.
+    expect(v.pillars.map(x => [x.label, x.open, x.tone])).toEqual([['People', 1, 'late'], ['Machine', 1, 'going']]);
+  });
+  it('draws no bone at all when nothing is open', () => {
+    const quiet: PacedInput = { ...threeP, project: project({ id: 'q', name: 'Quiet', commissioning: undefined }),
+      steps: [step({ pillar: 'material', state: 'done' })] };
+    expect(portfolio([], TODAY, [quiet]).jobs[0].pillars).toEqual([]);
+  });
+  it('does not say a running line "hands over" — that is a stage-gate word', () => {
+    const dated: PacedInput = { ...threeP, project: project({ id: 'd', name: 'Line 9', commissioning: undefined, expectedAt: '2026-10-29' }) };
+    const says = portfolio([], TODAY, [dated]).says;
+    expect(says).not.toMatch(/hands over/);
+    expect(says).toMatch(/Line 9’s date comes first, in \d+ days/);
   });
   it('puts its actions on the same calendar and in the same owed lists', () => {
     expect(pf.items.filter(x => x.jobId === 'p3').map(x => x.kind)).toEqual(['action', 'action', 'action']);

@@ -7,7 +7,7 @@
 import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav, goBack, buildAnalyseHash } from '../state/useRoute';
+import { nav, navReplace, goBack, buildAnalyseHash } from '../state/useRoute';
 import { getCase, updateCase, deleteCase, snagsForWorkspace, updateSnag, chainForWorkspace, listPaceTodos, loadPaceLines, type PaceLineRow, type PaceTodoRow } from '../db';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { isLate } from '../lib/actions';
@@ -291,7 +291,17 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const weeks = useMemo(() => weeklyLoss(scoped, workspace, 12), [scoped, workspace]);
   const nowMsWeek = caseNowMsWeek(weeks);
 
-  if (kase === undefined) return null;
+  /* A PROBLEM OF THE 6M METHOD IS WORKED ON ITS FISHBONE (docs/SIXM.md). A
+     Case with a project is the head of a fish — its causes, whys and
+     countermeasures live on the project's fishbone, so a link to it here (an
+     old bookmark, "Open the Case it was raised for") lands there. A Case
+     with no project is the A3 it always was, and stays on this page. */
+  const fishbone = kase?.projectId
+    ? `/project/${kase.projectId}/fishbone?${new URLSearchParams({ ...(kase.lineId ? { line: kase.lineId } : {}), problem: kase.id }).toString()}`
+    : null;
+  useEffect(() => { if (fishbone) navReplace(fishbone); }, [fishbone]);
+
+  if (kase === undefined || fishbone) return null;
   if (kase === null) return (
     <div><p className="sub" style={{ marginTop: 20 }}>This case is gone — deleted, or not synced to this device yet.</p></div>
   );

@@ -24,10 +24,9 @@ export interface PaceAction {
   due?: string;
   status: string;
   flag: string;
-  /** People / Process / Plant — the column this row sits in on the board.
-   *  Read from a "Pillar" (or "PPP") column on the tracker sheet. Absent on a
-   *  workbook that has not added the column yet, which the board says out loud
-   *  rather than quietly dropping the row. */
+  /** The bone it sits on — People, Machine, Method, Material, Measurement or
+   *  Environment (lib/sixm), as its word. Absent when nobody has said yet,
+   *  which the board says out loud rather than quietly dropping the row. */
   pillar?: string;
   /** The line it belongs to, by id, when it came from a next step (see
    *  lib/actions.ts). Absent on an action spanning every line. */
@@ -38,6 +37,14 @@ export interface PaceAction {
   lineKey?: string;
   /** The Case it was raised for, when it was (see lib/actions). */
   caseId?: string;
+  /** The cause on the fishbone it is the countermeasure for —
+   *  "<caseId>:<causeId>" (docs/SIXM.md). Absent: a just-do-it action. */
+  causeRef?: string;
+  /** What it should change, said before it is done — its prediction. */
+  expect?: string;
+  /** The day it is due, YYYY-MM-DD — `due` is that day as words. What the
+   *  board sorts by and "due soon" is judged from. */
+  dueISO?: string;
 }
 
 /** One row of a Pareto: where the time went, ranked. */

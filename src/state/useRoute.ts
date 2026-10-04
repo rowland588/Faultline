@@ -7,7 +7,7 @@ import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../ty
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
-  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto'
+  | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
   | 'share';
 
@@ -76,6 +76,9 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'tree') return { name: 'leverTree', id, query };
     if (segs[2] === 'board') return { name: 'board', id, query };
     if (segs[2] === 'pareto') return { name: 'pareto', id, query };
+    /* The 6M journey (docs/SIXM.md): the line's problems drawn as fishbones.
+       ?line=<lineId>&problem=<caseId> — which line, which problem. */
+    if (segs[2] === 'fishbone') return { name: 'fishbone', id, query };
     // What the job is waiting on — the films, the parts, the kit.
     if (segs[2] === 'materials') return { name: 'materials', id, query };
     if (segs[2] === 'programs') return { name: 'programs', id, query };

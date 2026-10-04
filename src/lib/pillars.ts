@@ -1,73 +1,48 @@
-/* THE 3P BOARD — People / Plant / Process, by area.
+/* THE 6M BOARD — a running line's countermeasures, on the six bones, by line.
  *
- * WHAT A CARD IS, BECAUSE GETTING THIS WRONG MAKES EVERY COUNT A LIE. A CARD IS
- * AN AREA. Line 2 is one card. Line 7 is one card. The workbook has five of
- * them — Line 2, Line 7, Line 10, Cellox, All lines — and that is the number
- * somebody means when they ask how many cards are on the board.
+ * WHAT A CARD IS, BECAUSE GETTING THIS WRONG MAKES EVERY COUNT A LIE. A block
+ * on the board is a LINE (or the work spanning every line); the things inside
+ * it are ACTIONS, in six lanes — the bones of the fishbone (lib/sixm): People,
+ * Machine, Method, Material, Measurement, Environment. "Five lines on the
+ * board" and "twenty-eight actions" are different objects, and calling the
+ * actions cards is how a board stops being something a person can hold in
+ * their head.
  *
- * The things INSIDE a card are ACTIONS, in three columns. There are 28 of those
- * on the current tracker, and calling them cards turns "five cards" into
- * "twenty-eight cards" — which describes a completely different object and is
- * how a board stops being something a person can hold in their head.
+ * The lanes are the fishbone's bones on purpose (docs/SIXM.md): an action is a
+ * countermeasure to a cause on a bone, so the board and the fishbone sort the
+ * same work the same way, and the client reads one picture on the screen and
+ * on the paper. It replaced People · Plant · Process, which was three of the
+ * six — an action stored with an old word is read across (Plant → Machine,
+ * Process → Method), never dropped.
  *
- * This is modelled on the workbook's own "3P Board" sheet, because that sheet
- * is the thing being presented and the app should hand back the same picture
- * rather than a nearby one. Its shape: one block per AREA (Line 2, Line 7,
- * Line 10, Cellox, All lines), and inside each block three columns in the
- * order PEOPLE · PLANT · PROCESS.
- *
- * WHY THE APP READS THE TRACKER AND NOT THAT SHEET. The 3P Board says so
- * itself, in its own subtitle: "Live view of Tracker actions grouped by...".
- * It is array formulas pointing back at the Tracker, with helper columns
- * holding the row numbers they came from. It carries only Ref, Action, Owner,
- * Due and Stage — Category, What's happening, Priority, Who and Flag are all
- * left behind, and those are what the Pareto page, the meeting screen and the
- * line packs run on. Reading a formula grid of merged blocks to get less data
- * than the source already offers would be fragile and lossy at once. So the
- * app reads the Tracker — which carries the 3P column — and draws the 3P
- * Board's shape from it. Same picture, nothing lost, nothing else broken.
- *
- * Nothing here is stored. Every card and every action on it is derived from the
- * latest upload each time the board is drawn, so next week's file simply
- * appears.
+ * Nothing here is stored. Every block and every action on it is derived from
+ * the project's actions (lib/actions) each time the board is drawn.
  */
 import type { PaceAction } from './tracker';
 import { statusOfAction } from './treeBind';
+import { SIXM, toSixM, type SixM } from './sixm';
 
-export type PillarKey = 'people' | 'plant' | 'process';
+/** A lane on the board — one of the six bones. The old name is kept because
+ *  the board, the report and the composers all import it. */
+export type PillarKey = SixM;
 
-/** In the workbook's own order — People, Plant, Process — because somebody
- *  reading the app beside the sheet should not have to re-find their place. */
-export const PILLARS: { key: PillarKey; label: string; blurb: string }[] = [
-  { key: 'people',  label: 'People',  blurb: 'who runs it, and whether they can' },
-  { key: 'plant',   label: 'Plant',   blurb: 'the machine and everything on it' },
-  { key: 'process', label: 'Process', blurb: 'the way of working itself' },
-];
+/** The six, in the fishbone's own order, so the board and the fishbone read
+ *  the same way round. */
+export const PILLARS: { key: PillarKey; label: string; blurb: string }[] = SIXM;
 
-/** The words the sheet is allowed to use for each column. Matched on the START
- *  of the cell, so "Plant / equipment" and "People — training" both land. */
-const MATCH: [PillarKey, RegExp][] = [
-  ['people',  /^(people|person|team|labour|labor|manning|training|skills?)\b/i],
-  ['plant',   /^(plant|machine|machinery|equipment|asset|kit|hardware|engineering)\b/i],
-  ['process', /^(process|procedure|method|sop|way of working|system|standard)\b/i],
-];
-
-/** Which column a row belongs in, or null when the sheet has not said.
- *  Deliberately forgiving about spelling and strict about meaning: a word the
- *  app does not recognise lands NOWHERE and is reported, because guessing would
- *  put an action in a column nobody chose. */
-export function pillarOf(a: PaceAction): PillarKey | null {
-  const v = (a.pillar ?? '').trim();
-  if (!v) return null;
-  for (const [key, re] of MATCH) if (re.test(v)) return key;
-  return null;
+/** Which lane an action belongs in, or null when nobody has said. The six
+ *  keys or their words, and the old 3P words read across (lib/sixm toSixM);
+ *  a word nobody recognises lands NOWHERE and is shown as not sorted, because
+ *  guessing would put an action on a bone nobody chose. */
+export function pillarOf(a: Pick<PaceAction, 'pillar'>): PillarKey | null {
+  return toSixM(a.pillar);
 }
 
-/** Areas in the workbook's own reading order: the numbered lines in order,
- *  then any named area (Cellox), then whatever spans everything, last.
+/** Blocks in reading order: the numbered lines in order, then any named
+ *  area (Cellox), then whatever spans everything, last.
  *
- *  The area is the Line cell VERBATIM — "Cellox" has no number in it and would
- *  vanish from anything that matched on digits, and an area the board silently
+ *  The name is the line's VERBATIM — "Cellox" has no number in it and would
+ *  vanish from anything that matched on digits, and a block the board silently
  *  dropped would be the one nobody notices is missing. */
 const areaRank = (name: string): [number, number, string] => {
   const n = name.match(/\d+/)?.[0];
@@ -78,6 +53,7 @@ const areaRank = (name: string): [number, number, string] => {
 
 export interface BoardArea {
   name: string;
+  /** All six lanes, in the fishbone's order, even when empty. */
   columns: { key: PillarKey; label: string; blurb: string; rows: PaceAction[] }[];
   total: number;
   done: number;
@@ -85,11 +61,10 @@ export interface BoardArea {
 
 export interface BoardResult {
   areas: BoardArea[];
-  /** Rows the workbook has not placed — no 3P value, or one nobody recognises. */
+  /** Actions not yet on a bone — none given, or a word nobody recognises. */
   unplaced: PaceAction[];
-  /** Told apart on purpose: a workbook with no 3P column at all needs the
-   *  column adding, while one that has it but left cells blank needs those
-   *  cells filling. Two different jobs, two different sentences. */
+  /** Whether any action has been given a bone at all — "sort these" and
+   *  "start sorting" are two different sentences. */
   hasPillarColumn: boolean;
   total: number;
   done: number;
@@ -97,18 +72,20 @@ export interface BoardResult {
 
 const isDone = (a: PaceAction): boolean => /^(done|complete|completed|closed)$/i.test((a.status ?? '').trim());
 
-/* THE ORDER A MEETING NEEDS. The board is what the meeting is now run off, so
- * the action at the top of a column has to be the one worth a question: overdue
- * first, then blocked — the two that need somebody in the room — then whatever
- * the workbook's own Priority says, and done last because it is the answer
- * rather than the question. It used to be Priority alone, which buried an
- * overdue action under three that merely started life as a 1. */
+/* THE ORDER A MEETING NEEDS. The board is what the meeting is run off, so the
+ * action at the top of a lane has to be the one worth a question: overdue
+ * first, then waiting on somebody — the two that need somebody in the room —
+ * then the soonest due, and done last because it is the answer rather than
+ * the question. The tie-break was the workbook's Priority column, which an
+ * action kept in the app does not have: every one said 3, so it sorted
+ * nothing. The day it is due does. */
 const MEETING_RANK: Record<string, number> = { r: 0, a: 1, w: 2, n: 3, g: 4 };
 export const meetingOrder = (x: PaceAction, y: PaceAction): number =>
   (MEETING_RANK[statusOfAction(x)] ?? 2) - (MEETING_RANK[statusOfAction(y)] ?? 2)
+  || (x.dueISO ?? '\uffff').localeCompare(y.dueISO ?? '\uffff')
   || (x.priority || 3) - (y.priority || 3);
 
-/** The whole board: every area, each with its three columns. */
+/** The whole board: every line, each with its six lanes. */
 export function board(actions: PaceAction[]): BoardResult {
   const unplaced: PaceAction[] = [];
   const byArea = new Map<string, PaceAction[]>();
@@ -125,10 +102,7 @@ export function board(actions: PaceAction[]): BoardResult {
     })
     .map(([name, rows]) => ({
       name,
-      columns: PILLARS.map(p => ({
-        ...p,
-        rows: rows.filter(a => pillarOf(a) === p.key).sort(meetingOrder),
-      })),
+      columns: lanes(rows),
       total: rows.length,
       done: rows.filter(isDone).length,
     }));
@@ -143,8 +117,26 @@ export function board(actions: PaceAction[]): BoardResult {
   };
 }
 
-/** What an action says on the board. The date stays in the workbook, which is where it gets
- *  changed and therefore where it stays right. */
+/** One block's six lanes, each in meeting order. The board screen, the
+ *  project page and the report all group by this, so a lane never holds a
+ *  different set of actions on one of them. */
+export function lanes(rows: PaceAction[]): BoardArea['columns'] {
+  return PILLARS.map(p => ({
+    ...p,
+    rows: rows.filter(a => pillarOf(a) === p.key).sort(meetingOrder),
+  }));
+}
+
+/** Open actions on each bone, only the bones that have any, in the
+ *  fishbone's order — "Machine 3 · Method 1 · People 2" said as data. */
+export function openByBone(rows: { pillar?: string; open: boolean; late?: boolean }[]): { key: PillarKey; label: string; open: number; late: number }[] {
+  return PILLARS.map(p => {
+    const mine = rows.filter(r => r.open && toSixM(r.pillar) === p.key);
+    return { key: p.key, label: p.label, open: mine.length, late: mine.filter(r => r.late).length };
+  }).filter(x => x.open > 0);
+}
+
+/** What an action says on the board. */
 export const actionTitle = (a: PaceAction): string =>
   (a.action || a.problem || '').trim() || `Action ${a.ref}`;
 
@@ -159,15 +151,15 @@ export const actionTitle = (a: PaceAction): string =>
  * spills onto a second page has failed at the one thing a board is for: being
  * taken in whole, at a glance, across a table. Two things buy the room:
  *
- *   1. A printed action is ONE line of text, not two. The workbook's
- *      Action cells run to paragraphs — several dated updates in one cell — and
- *      a wall board wants the gist with the detail a tap away in the app.
+ *   1. A printed action is ONE line of text, not two. An action's words can
+ *      run to a paragraph, and a wall board wants the gist with the detail a
+ *      tap away in the app.
  *   2. The whole drawing is then scaled to the page, DOWN to fit and UP to
  *      fill. A board that leaves the bottom third of an A3 blank is as wrong as
  *      one that runs off the edge; it just fails more quietly.
  *
  * Only when even the floor scale cannot hold it does it spill, and then it
- * spills whole areas rather than cutting one in half.
+ * spills whole lines rather than cutting one in half.
  */
 export const BOARD_ACT_H = 24;      // one line of action, plus its status row
 export const BOARD_ACT_GAP = 5;
@@ -225,9 +217,9 @@ export function boardSheets<T extends { counts: number[] }>(areas: T[], avail: n
   return out;
 }
 
-/** What the board is called on a job. "3P" is a method's name: on a lever tree
- *  job the board is where the tree's work is written, and the job is not 3P.
- *  The report's screen sheet and its PDF call it the same thing. */
+/** What the board is called on a job. "6M" is a method's name: on a lever
+ *  tree job the board is where the tree's work is written, and the job is not
+ *  a 6M job. The report's screen sheet and its PDF call it the same thing. */
 export function boardName(method?: string): string {
-  return method === 'Lever tree' ? 'Board' : '3P Board';
+  return method === 'Lever tree' ? 'Board' : '6M Board';
 }

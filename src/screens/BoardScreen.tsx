@@ -1,23 +1,26 @@
-/* PEOPLE · PLANT · PROCESS — the project on three columns, kept in the app.
+/* THE 6M BOARD — the countermeasures, on the six bones, line by line.
  *
- * Every improvement problem in a factory is one of three things: the people who
- * run the line, the machine itself, or the way the work is done. Three columns
- * is the whole design. It fits on a wall, it fits on a phone, and anybody can
- * read it without being taught what they are looking at.
+ * A running line's problems are traced on the fishbone (docs/SIXM.md); what is
+ * being DONE about them is written here, on the same six bones — People,
+ * Machine, Method, Material, Measurement, Environment (lib/sixm). The board
+ * and the fishbone sort the same work the same way, so a cause on the Machine
+ * bone has its countermeasures in the Machine lane, and a card says which
+ * cause it is for and what it should change.
  *
- * IT USED TO BE READ OFF AN UPLOADED WORKBOOK, and nothing on it could be
- * touched. Rowland: "There will be no Excel that needs to be uploaded ... this
- * is about now fully using the app to be able to do everything that we need to
- * do." So the board is where the actions are written now: add one in the
- * column it belongs to, tap one to change it. Each is a next step of the
- * project (see lib/actions.ts) — one list, read the same by the board, a
- * line's pack, the meeting and the client report.
+ * The lanes are told apart by place and name, never colour (CLAUDE.md, visual
+ * management): colour on a card is its state — red late, amber waiting, indigo
+ * under way, green done, grey not started.
+ *
+ * Each action is a next step of the project (lib/actions) — one list, read the
+ * same by the board, the list view, a line's pack, the meeting, the fishbone
+ * and the client report. A small obvious fix needs no fishbone: it is just
+ * written in its lane.
  *
  * One block per line, then one for work that spans every line. Overdue and
- * waiting first in every column, because those are the ones that need
- * somebody in the room. Nothing is ever dropped: a step not yet given a column
- * is listed under the board with the three to choose from.
- */
+ * waiting first in every lane, then the soonest due. Nothing is ever dropped:
+ * an action not yet on a bone is listed under the board with the six to pick
+ * from. Access (lib/access): a client reads it; the team adds and changes;
+ * only the owner deletes. */
 import { useEffect, useMemo, useState } from 'react';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
@@ -27,10 +30,11 @@ import { useMethodCounts } from '../lib/useMethodCounts';
 import { useImpacts } from '../lib/useImpacts';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
-import { planModel } from '../lib/planModel';
-import { useActions, WHOLE_PROJECT, isLate } from '../lib/actions';
+import { methodOf } from '../lib/planModel';
+import { useActions, useCauseNames, WHOLE_PROJECT, isLate, parseCauseRef, type CauseName } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
-import { PILLARS, actionTitle, meetingOrder, type PillarKey } from '../lib/pillars';
+import { PILLARS, actionTitle, boardName, lanes, pillarOf, type PillarKey } from '../lib/pillars';
+import { useAccess } from '../cloud/access';
 import { putPaceTodo } from '../db';
 import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
@@ -42,22 +46,31 @@ const STATUS: Record<NodeStatus, string> = {
   n: 'To do', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done',
 };
 
-function Card({ a, impact, onOpen }: { a: PaceAction; impact?: Impact; onOpen: () => void }) {
+const NOBODY = '__nobody__';
+
+function Card({ a, impact, cause, onOpen }: { a: PaceAction; impact?: Impact; cause?: CauseName; onOpen: () => void }) {
   const st = statusOfAction(a);
   const who = (a.owner || a.who || '').trim();
+  const soon = st !== 'g' && st !== 'r' && /due soon/i.test(a.flag);
   return (
     <button className={'bd-act is-' + st} onClick={onOpen}>
       <span className="bd-act-t">{actionTitle(a)}</span>
+      {/* THE CAUSE IT IS FOR, AND WHAT IT SHOULD CHANGE — what makes it a
+          countermeasure rather than a to-do (docs/SIXM.md). */}
+      {parseCauseRef(a.causeRef) && (
+        <span className="bd-for">{cause ? <>for: <b>{cause.text}</b></> : 'on the fishbone'}</span>
+      )}
+      {a.expect && <span className="bd-expect">should change: {a.expect}</span>}
       <span className="bd-act-f">
         <span className={'bd-chip is-' + st}>{STATUS[st]}</span>
         {who && <span className="bd-who">{who}</span>}
-        {a.caseId && <span className="bd-meta" title="Raised from a Pareto, for a Case">from a Case</span>}
+        {a.caseId && !a.causeRef && <span className="bd-meta" title="Raised from a Pareto, for a Case">from a Case</span>}
         {/* DID IT WORK? Once an action is closed, the line's own numbers either
             side of that day say whether they moved — the same proof the Wins use. */}
         {impact && impact.state !== 'none' && (
           <span className={'bd-proof is-' + impact.state} title={impact.words}>{IMPACT_WORD[impact.state]}</span>
         )}
-        {a.due && <span className="bd-meta">{st === 'g' ? '' : 'due '}{a.due}</span>}
+        {a.due && <span className={'bd-meta' + (soon ? ' is-soon' : '')}>{st === 'g' ? '' : 'due '}{a.due}{soon ? ' · soon' : ''}</span>}
       </span>
     </button>
   );
@@ -68,8 +81,12 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   const ax = useActions(projectId);
   const counts = useMethodCounts(projectId);
   const { impacts } = useImpacts(projectId);
+  const can = useAccess(projectId);
+  const causes = useCauseNames(useMemo(() => ax.steps.map(s => s.causeRef), [ax.steps]));
   const [hideDone, setHideDone] = useState(false);
-  const [only, setOnly] = useState<string | null>(null);     // a line id, '' for every line's, null for all
+  const [only, setOnly] = useState<string | null>(null);       // a line id, '' for every line's, null for all
+  const [bone, setBone] = useState<PillarKey | null>(null);    // one bone, or all six
+  const [owner, setOwner] = useState<string | null>(null);     // a name, NOBODY, or everyone
   const [editing, setEditing] = useState<Editing | null>(null);
   const today = todayISO();
 
@@ -87,6 +104,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   }, [wanted, ax.loading, stepById, projectId]);
   const open = (a: PaceAction) => { const s = a.uid ? stepById.get(a.uid) : undefined; if (s) setEditing({ step: s, isNew: false }); };
   const add = (pillar: PillarKey, lineId?: string) => {
+    if (!can.edit) return;
     const t = Date.now();
     setEditing({
       isNew: true,
@@ -94,29 +112,42 @@ export function BoardScreen({ projectId }: { projectId: string }) {
     });
   };
 
+  /* WHO HAS SOMETHING — the owner filter's names, as typed, most work first. */
+  const owners = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const s of ax.steps) {
+      const k = s.who.trim() || NOBODY;
+      n.set(k, (n.get(k) ?? 0) + (s.state === 'done' ? 0 : 1));
+    }
+    return [...n.entries()].sort((a, b) => (a[0] === NOBODY ? 1 : 0) - (b[0] === NOBODY ? 1 : 0) || b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [ax.steps]);
+
   /* Every line gets its block, even with nothing in it yet — the "+ Add" in
-     its columns is how its first action is written. Work for no one line
-     goes last, and only appears once there is some (or there are no lines). */
+     its lanes is how its first action is written. Work for no one line goes
+     last, and only appears once there is some (or there are no lines). */
   const areas = useMemo(() => {
+    const ownerOk = (a: PaceAction) => owner == null || ((a.owner ?? '').trim() || NOBODY) === owner;
     const blocks: { id: string; name: string; lineId?: string }[] = ax.lines.map(l => ({ id: l.id, name: l.name, lineId: l.id }));
     const whole = ax.actions.some(a => !a.lineId);
     if (whole || ax.lines.length === 0) blocks.push({ id: '', name: WHOLE_PROJECT });
     return blocks.map(b => {
-      const rows = ax.actions.filter(a => (a.lineId ?? '') === b.id && a.pillar);
-      const shown = hideDone ? rows.filter(a => statusOfAction(a) !== 'g') : rows;
+      const rows = ax.actions.filter(a => (a.lineId ?? '') === b.id && pillarOf(a));
+      const shown = rows.filter(a => (!hideDone || statusOfAction(a) !== 'g') && ownerOk(a));
       return {
         ...b,
         total: rows.length,
         done: rows.filter(a => statusOfAction(a) === 'g').length,
-        columns: PILLARS.map(p => ({ ...p, rows: shown.filter(a => a.pillar === p.label).sort(meetingOrder) })),
+        late: rows.filter(a => statusOfAction(a) === 'r').length,
+        columns: lanes(shown).filter(c => bone == null || c.key === bone),
       };
     });
-  }, [ax.actions, ax.lines, hideDone]);
+  }, [ax.actions, ax.lines, hideDone, bone, owner]);
 
-  const unsorted = ax.steps.filter(s => !s.pillar);
+  const unsorted = ax.steps.filter(s => !pillarOf(s));
   const late = ax.steps.filter(s => isLate(s, today)).length;
   const done = ax.steps.filter(s => s.state === 'done').length;
   const shownAreas = only == null ? areas : areas.filter(a => a.id === only);
+  const filtered = bone != null || owner != null || hideDone;
 
   if (loading || ax.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
@@ -129,7 +160,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="wrap pace bd-screen">
+    <div className="wrap pace bd-screen bd6">
       <Crumbs trail={[
         { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
@@ -138,9 +169,9 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="pace-eyebrow">{project.name}</p>
-          {/* "3P" is a method's name; on a lever tree job this board is where
-              the tree's work is written, and the job is not a 3P job. */}
-          <h1 className="pace-title">{planModel(project) === 'tree' ? 'Board' : '3P Board'}</h1>
+          {/* "6M" is a method's name; on a lever tree job this board is where
+              the tree's work is written, and the job is not a 6M job. */}
+          <h1 className="pace-title">{boardName(methodOf(project).label)}</h1>
           <p className="cw-handover">
             {ax.steps.length === 0
               ? <b>No actions yet</b>
@@ -163,26 +194,54 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           project's front page, so the tabs jumped as you moved between them. */}
       <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'board', counts)} />
 
-      {areas.length > 1 && (
-        <div className="bd-filters">
-          <button className={'chip is-all' + (only == null ? ' on' : '')} onClick={() => setOnly(null)}>Every line</button>
-          <span className="bd-filter-div" aria-hidden />
-          {areas.map(a => (
-            <button key={a.id || 'whole'} className={'chip' + (only === a.id ? ' on' : '')} onClick={() => setOnly(a.id)}>
-              {a.name} <span className="bs-n">{a.total}</span>
+      {ax.steps.length > 0 && (
+        <div className="bd-filters bd6-filters">
+          {areas.length > 1 && (
+            <div className="bd6-frow" role="group" aria-label="Line">
+              <span className="bd6-fk">Line</span>
+              <button className={'chip is-all' + (only == null ? ' on' : '')} aria-pressed={only == null} onClick={() => setOnly(null)}>Every line</button>
+              {areas.map(a => (
+                <button key={a.id || 'whole'} className={'chip' + (only === a.id ? ' on' : '')} aria-pressed={only === a.id} onClick={() => setOnly(only === a.id ? null : a.id)}>
+                  {a.name} <span className="bs-n">{a.total}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="bd6-frow" role="group" aria-label="Bone">
+            <span className="bd6-fk">Bone</span>
+            <button className={'chip is-all' + (bone == null ? ' on' : '')} aria-pressed={bone == null} onClick={() => setBone(null)}>All six</button>
+            {PILLARS.map(p => (
+              <button key={p.key} className={'chip' + (bone === p.key ? ' on' : '')} aria-pressed={bone === p.key}
+                onClick={() => setBone(bone === p.key ? null : p.key)}>{p.label}</button>
+            ))}
+          </div>
+          <div className="bd6-frow">
+            <label className="bd6-owner">
+              <span className="bd6-fk">Who</span>
+              <select value={owner ?? ''} onChange={e => setOwner(e.target.value || null)} aria-label="Whose actions">
+                <option value="">Everyone</option>
+                {owners.map(([name, n]) => (
+                  <option key={name} value={name}>{name === NOBODY ? 'Nobody named' : name}{n ? ` · ${n} open` : ''}</option>
+                ))}
+              </select>
+            </label>
+            <button className={'chip' + (hideDone ? ' on' : '')} aria-pressed={hideDone} onClick={() => setHideDone(v => !v)}>
+              {hideDone ? 'Hiding done' : 'Showing done'}
             </button>
-          ))}
-          <button className={'chip' + (hideDone ? ' on' : '')} onClick={() => setHideDone(v => !v)}>
-            {hideDone ? 'Hiding done' : 'Showing done'}
-          </button>
+            {filtered && (
+              <button className="cw-link" onClick={() => { setBone(null); setOwner(null); setHideDone(false); }}>Show everything</button>
+            )}
+          </div>
         </div>
       )}
 
       {ax.steps.length === 0 && (
         <p className="sub bd-intro">
-          Write each action in the column it belongs to — <b>People</b> (who runs it, and whether they can),
-          {' '}<b>Plant</b> (the machine) or <b>Process</b> (the way of working) — with who has it and when it is due.
-          This is the meeting: walk it line by line.
+          {can.edit
+            ? <>Write each countermeasure on the bone it belongs to — <b>People</b>, <b>Machine</b>, <b>Method</b>,
+              {' '}<b>Material</b>, <b>Measurement</b> or <b>Environment</b> — with who has it, when it is due and what it should change.
+              The causes behind them are traced on the fishbone. This is the meeting: walk it line by line.</>
+            : <>Nothing on the board yet. The team writes each countermeasure here, on the bone it belongs to.</>}
         </p>
       )}
 
@@ -190,19 +249,28 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         <section key={a.id || 'whole'} className="bd-area">
           <header className="bd-area-h">
             <h2 className="bd-area-t">{a.name}</h2>
-            <span className="bd-area-n">{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
+            <span className="bd-area-n">
+              {a.total} action{a.total === 1 ? '' : 's'} · {a.done} done{a.late > 0 && <> · <b className="in-late">{a.late} late</b></>}
+            </span>
           </header>
-          <div className="bd-cols">
+          <div className={'bd6-lanes' + (bone != null ? ' is-one' : '')}>
             {a.columns.map(c => (
-              <section key={c.key} className={'bd-col is-' + c.key}>
-                <header className="bd-col-h">
-                  <h3 className="bd-col-t">{c.label}</h3>
-                  <span className="bd-col-n">{c.rows.length}</span>
-                  <span className="bd-col-s">{c.blurb}</span>
+              <section key={c.key} className={'bd6-lane' + (c.rows.length === 0 ? ' is-empty' : '')} aria-label={`${a.name} — ${c.label}`}>
+                <header className="bd6-lane-h">
+                  <h3 className="bd6-lane-t">{c.label}</h3>
+                  <span className="bd6-lane-n">{c.rows.length}</span>
+                  <span className="bd6-lane-s">{c.blurb}</span>
                 </header>
-                <div className="bd-col-b">
-                  {c.rows.map(x => <Card key={x.uid} a={x} impact={x.uid ? impacts.get(x.uid) : undefined} onOpen={() => open(x)} />)}
-                  <button className="bd-add" onClick={() => add(c.key, a.lineId)}><Icon name="plus" size="1.15em" /> Add</button>
+                <div className="bd6-lane-b">
+                  {c.rows.map(x => (
+                    <Card key={x.uid} a={x} impact={x.uid ? impacts.get(x.uid) : undefined}
+                      cause={x.causeRef ? causes.get(x.causeRef) : undefined} onOpen={() => open(x)} />
+                  ))}
+                  {can.edit && (
+                    <button className="bd-add" onClick={() => add(c.key, a.lineId)} aria-label={`Add an action — ${a.name}, ${c.label}`}>
+                      <Icon name="plus" size="1.15em" /> Add
+                    </button>
+                  )}
                 </div>
               </section>
             ))}
@@ -210,21 +278,25 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </section>
       ))}
 
-      {/* Never lose a row: a step written before the board, or on the Next
-          steps list, is shown here until it is given its column. */}
+      {/* Never lose a row: an action written before the board, or on the list
+          without a bone, is shown here until it is given one. */}
       {unsorted.length > 0 && (
         <section className="bd-unsorted">
           <h2 className="bd-area-t">Not on the board yet</h2>
-          <p className="sub">{unsorted.length} action{unsorted.length === 1 ? ' has' : 's have'} no column — say which it is.</p>
+          <p className="sub">
+            {unsorted.length} action{unsorted.length === 1 ? ' has' : 's have'} no bone{can.edit ? ' — say which it is.' : '.'}
+          </p>
           <ul className="bd-un-list">
             {unsorted.map(s => (
               <li key={s.id} className="bd-un">
                 <button className="bd-un-t" onClick={() => setEditing({ step: s, isNew: false })}>{s.what || 'Untitled'}</button>
-                <span className="cw-seg">
-                  {PILLARS.map(p => (
-                    <button key={p.key} className="chip" onClick={() => void putPaceTodo({ ...s, pillar: p.key })}>{p.label}</button>
-                  ))}
-                </span>
+                {can.edit && (
+                  <span className="cw-seg bd6-un-seg" role="group" aria-label={`Which bone — ${s.what || 'this action'}`}>
+                    {PILLARS.map(p => (
+                      <button key={p.key} className="chip" title={p.blurb} onClick={() => void putPaceTodo({ ...s, pillar: p.key })}>{p.label}</button>
+                    ))}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

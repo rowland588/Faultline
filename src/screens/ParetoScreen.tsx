@@ -12,8 +12,15 @@
  * carries its movement against the last comparable upload, and the page refuses
  * to imply movement when there is none to claim.
  */
-import { useMemo } from 'react';
-import { nav } from '../state/useRoute';
+import { useEffect, useMemo, useState } from 'react';
+import { nav, useRoute } from '../state/useRoute';
+import { useAccess } from '../cloud/access';
+import { useProblems } from '../lib/useProblems';
+import { planModel } from '../lib/planModel';
+import { listObservations } from '../db';
+import { PARETO_WINDOW_DAYS } from '../lib/paretoFromLog';
+import { fishboneUrl, problemTitleOfBar, sameSource } from './FishboneScreen';
+import type { Case } from '../types';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
@@ -25,13 +32,23 @@ import { paretoView, moveSentence, type ParetoMove } from '../lib/paretoView';
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const mins = (n: number) => (n >= 100 ? Math.round(n).toLocaleString() : String(Math.round(n * 10) / 10));
 
-function Row({ m, max, showMove }: { m: ParetoMove; max: number; showMove: boolean }) {
+/* A BAR IS A PROBLEM WAITING TO BE OPENED (docs/SIXM.md). On a 6M job each
+ * bar carries "Find the root cause": it opens a problem with that bar as the
+ * head of the fish — its category, the line losing the most to it, and the
+ * machine it is mostly on — and goes to the fishbone. A bar that already has
+ * an open problem goes to that one instead, so the same loss is never two
+ * problems. */
+type RootCause = { label: string; go: () => void } | null;
+
+function Row({ m, max, showMove, rc, on }: { m: ParetoMove; max: number; showMove: boolean; rc: RootCause; on?: boolean }) {
   const w = max > 0 ? (m.mins / max) * 100 : 0;
   return (
-    <tr className={(m.vital ? 'is-vital' : '') + (m.verdict ? ' has-move is-' + m.verdict : '')}>
+    <tr id={'bar-' + encodeURIComponent(m.category)}
+      className={(m.vital ? 'is-vital' : '') + (m.verdict ? ' has-move is-' + m.verdict : '') + (on ? ' is-asked' : '')}>
       <th scope="row">
         <span className="pr-cat">{m.category}</span>
         {m.profile && <span className="pr-prof">{m.profile}</span>}
+        {rc && <button className="pr-rc" onClick={rc.go}>{rc.label} ›</button>}
       </th>
       <td className="pr-bar-cell">
         {/* The bar is the ranking. Everything else on the row is detail. */}
@@ -71,6 +88,56 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
     () => (pareto.now ? paretoView(pareto.now, pareto.before) : null),
     [pareto.now, pareto.before],
   );
+  const can = useAccess(projectId);
+  const problems = useProblems(projectId);
+  const asked = useRoute().query.get('bar');
+  const [busy, setBusy] = useState(false);
+  /* ?bar=<category> — opened from a cause on the fishbone: that bar, in view. */
+  useEffect(() => {
+    if (!asked || !view) return;
+    document.getElementById('bar-' + encodeURIComponent(asked))?.scrollIntoView({ block: 'center' });
+  }, [asked, view]);
+
+  /** The line a bar is mostly on (byLine is keyed by the line's name). */
+  const lineOfBar = (m: ParetoMove) => {
+    const top = Object.entries(m.byLine ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0];
+    return lines.lines.find(l => l.name === top) ?? (lines.lines.length === 1 ? lines.lines[0] : undefined);
+  };
+  const openFor = (m: ParetoMove) => problems.problems.find(p => p.problem.status === 'open'
+    && p.problem.source?.kind === 'pareto' && p.problem.source.category === m.category
+    && (p.problem.lineId ?? '') === (lineOfBar(m)?.id ?? ''));
+  const findRootCause = async (m: ParetoMove) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const line = lineOfBar(m);
+      /* The machine the bar is mostly on, from the same four weeks it was drawn from. */
+      let asset: string | undefined;
+      if (line?.workspaceId) {
+        const to = new Date().setHours(0, 0, 0, 0) + 86_400_000;
+        const from = to - PARETO_WINDOW_DAYS * 86_400_000;
+        const by = new Map<string, number>();
+        for (const o of await listObservations(line.workspaceId)) {
+          if (o.deletedAt || o.startedAt < from || o.startedAt >= to || (o.category || '').trim() !== m.category) continue;
+          by.set(o.asset, (by.get(o.asset) ?? 0) + o.durationMs);
+        }
+        asset = [...by.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      }
+      const source: NonNullable<Case['source']> = { kind: 'pareto', category: m.category, asset };
+      const already = problems.problems.find(p => p.problem.status === 'open'
+        && (p.problem.lineId ?? '') === (line?.id ?? '') && sameSource(p.problem.source, source)) ?? openFor(m);
+      const c = already?.problem
+        ?? await problems.create({ title: problemTitleOfBar(m.category, asset, line?.name), lineId: line?.id, source });
+      nav(fishboneUrl(projectId, { line: c.lineId ?? line?.id, problem: c.id }));
+    } finally { setBusy(false); }
+  };
+  const sixM = !!project && planModel(project) === 'board';
+  const rcOf = (m: ParetoMove): RootCause => {
+    if (!sixM || m.verdict === 'gone' || m.mins <= 0) return null;
+    const open = openFor(m);
+    if (open) return { label: 'Its fishbone', go: () => nav(fishboneUrl(projectId, { line: open.problem.lineId, problem: open.problem.id })) };
+    return can.edit ? { label: 'Find the root cause', go: () => void findRootCause(m) } : null;
+  };
 
   if (loading || pareto.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
@@ -160,7 +227,8 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
               </thead>
               <tbody>
                 {view.rows.map(m => (
-                  <Row key={m.category} m={m} max={view.rows[0]?.mins ?? 0} showMove={view.comparable} />
+                  <Row key={m.category} m={m} max={view.rows[0]?.mins ?? 0} showMove={view.comparable}
+                    rc={rcOf(m)} on={asked === m.category} />
                 ))}
               </tbody>
             </table>

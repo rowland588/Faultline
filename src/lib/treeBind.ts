@@ -28,6 +28,7 @@
  */
 import type { PaceAction } from './tracker';
 import { todayISO } from './weeks';
+import { toSixM } from './sixm';
 import type { PaceLineRow, PaceTodoRow, TreeNodeRow, NodeStatus } from '../db';
 import { standingFor, bySort, say, type Measure, type Period, type Target, type Reading, type Standing } from './measures';
 
@@ -236,6 +237,20 @@ export function bindActionText(a: PaceAction): string {
   return who ? `${what} · ${who}` : what;
 }
 
+/* A BOX BOUND TO "Plant" STILL COLLECTS ITS ACTIONS. An action's category is
+ * its bone's word (lib/actions), and the bones went from People · Plant ·
+ * Process to the six (lib/sixm) — so a box bound before then names "Plant"
+ * while its actions now say "Machine". A category matches as typed, or as
+ * the same bone read across; any other category is matched as typed. */
+function catMatches(cats: string[], category: string | undefined): boolean {
+  const c = (category ?? '').trim().toLowerCase();
+  if (cats.includes(c)) return true;
+  const bone = toSixM(c);
+  return !!bone && cats.some(x => toSixM(x) === bone && SIXM_WORDS.has(x));
+}
+/** The words a binding may name a bone by: the six and the old three. */
+const SIXM_WORDS = new Set(['people', 'machine', 'method', 'material', 'measurement', 'environment', 'plant', 'process']);
+
 /** The tracker rows a binding collects, in the tracker's own priority order. */
 export function actionsForBind(actions: PaceAction[], bind: TrackerBind): PaceAction[] {
   if (bind.source === 'next') return [];
@@ -244,7 +259,7 @@ export function actionsForBind(actions: PaceAction[], bind: TrackerBind): PaceAc
   return actions.filter(a => {
     if (bind.allLines) { if (!isAllLines(a)) return false; }
     else if (bind.line && !onLine(a, bind.line)) return false;
-    if (cats.length && !cats.includes((a.category ?? '').trim().toLowerCase())) return false;
+    if (cats.length && !catMatches(cats, a.category)) return false;
     if (needle && ![a.action, a.problem, a.owner, a.who].some(v => (v ?? '').toLowerCase().includes(needle))) return false;
     return true;
   });
@@ -411,8 +426,14 @@ export function suggestConditions(actions: PaceAction[], lineKey: string): { tex
  *  that is 90% right is worse than a blank box, because nobody edits what looks
  *  finished. Anything not in the table gets the honest generic form. */
 const INTENT: Record<string, string> = {
-  // The board's three columns — what a lever tree groups the actions by now.
+  // The board's six bones — what a lever tree groups the actions by now —
+  // and the two old words a box may have been bound by before them.
   'people': 'The people on the line can run it, every shift',
+  'machine': 'The machine runs without stopping us',
+  'method': 'The way of working is clear, and followed',
+  'material': 'What goes into the line and the pack is right first time',
+  'measurement': 'What we check and count is right, and tells us the truth',
+  'environment': 'The conditions around the line do not cost us',
   'plant': 'The machine runs without stopping us',
   'process': 'The way of working is clear, and followed',
   'changeovers': 'Changeovers are quick and repeatable, every time',

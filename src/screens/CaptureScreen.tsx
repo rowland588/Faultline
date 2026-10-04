@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Case, Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, withQuery } from '../state/useRoute';
-import { deleteBlobs, listCases } from '../db';
+import { deleteBlobs, listCases, updateObservation } from '../db';
+import { SIXM, type SixM } from '../lib/sixm';
 import { applyDrill } from '../engine/drill';
 import { studyResult } from '../lib/proof';
 import { shiftAtTime } from '../lib/shifts';
@@ -53,7 +54,7 @@ function StudyChips({ wsId, observations }: { wsId: string; observations: Observ
 }
 
 export function CaptureScreen() {
-  const { workspace, observations, addObs, removeObs, restoreObs, patchWorkspace } = useWorkspace();
+  const { workspace, observations, addObs, removeObs, restoreObs, patchWorkspace, reload } = useWorkspace();
   const { whoIs, myId } = useTeam();
 
   const [category, setCategory] = useState(workspace.lastCategory ?? workspace.categories[0] ?? '');
@@ -74,6 +75,19 @@ export function CaptureScreen() {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [recording, setRecording] = useState(false);
   const [converting, setConverting] = useState<{ label: string; fraction: number } | null>(null);
+  /* THE CAUSE, IF YOU KNOW IT (docs/SIXM.md). The stop just logged, offered
+     the six bones in one row: one tap says which family it is — People,
+     Machine, Method, Material, Measurement, Environment — and the fishbone
+     uses that rather than guessing from the category. Skippable, never in the
+     way: the next stop started clears it. */
+  const [justLogged, setJustLogged] = useState<Observation | null>(null);
+  const tagCause = async (m: SixM) => {
+    if (!justLogged) return;
+    const o: Observation = { ...justLogged, causeM: justLogged.causeM === m ? undefined : m };
+    setJustLogged(o);
+    await updateObservation(o);
+    await reload();
+  };
 
   // Resume a running stopwatch (and its what/where) that survived an app close.
   useEffect(() => {
@@ -114,6 +128,7 @@ export function CaptureScreen() {
       updatedAt: now(),
     };
     await addObs(o);
+    setJustLogged(o);
     await patchWorkspace({ lastCategory: category, lastAsset: asset, activeTimer: undefined });
     setPending([]);
     setStartedAt(null);
@@ -126,6 +141,7 @@ export function CaptureScreen() {
     if (!canLog) return;
     const t = now();
     setStartedAt(t);
+    setJustLogged(null);
     // patchWorkspace (not saveActiveTimer) so the running timer lives in memory too
     // — otherwise switching tabs and back loses it / resurrects a discarded one.
     await patchWorkspace({ activeTimer: { category, subcategory: subcategory || undefined, asset, startedAt: t } });
@@ -284,6 +300,22 @@ export function CaptureScreen() {
         )}
       </div>
 
+      {justLogged && !timing && (
+        <div className="cz" role="group" aria-label="Cause, if you know it">
+          <div className="cz-h">
+            <span className="cz-t">Cause, if you know it</span>
+            <span className="cz-s">{justLogged.asset} · {justLogged.category}</span>
+            <button type="button" className="cz-x" aria-label="Skip" onClick={() => setJustLogged(null)}><Icon name="close" size="0.85em" /></button>
+          </div>
+          <div className="cz-chips">
+            {SIXM.map(b => (
+              <button key={b.key} type="button" className={'chip cz-chip' + (justLogged.causeM === b.key ? ' on' : '')}
+                aria-pressed={justLogged.causeM === b.key} title={b.blurb} onClick={() => void tagCause(b.key)}>{b.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* EVIDENCE */}
       <div className="cap-block cap-evidence">
         <div className="cap-ev-row">
@@ -323,6 +355,7 @@ export function CaptureScreen() {
                   <div className="cap-feed-meta">
                     {o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.createdAt)}
                     {o.media.length > 0 && <> · <Icon name="camera" size="1.15em" /> {o.media.length}</>}
+                    {o.causeM && <> · {SIXM.find(b => b.key === o.causeM)?.label}</>}
                     {/* a teammate's entry says whose it is — shared workspace, no mystery rows */}
                     {o.ownerId && myId && o.ownerId !== myId && <> · <b>{whoIs(o.ownerId)?.name ?? 'teammate'}</b></>}
                   </div>

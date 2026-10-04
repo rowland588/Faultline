@@ -138,7 +138,10 @@ export function boneOfStop(category: string, subcategory?: string, note?: string
   const t = `${subcategory ?? ''} ${note ?? ''}`.toLowerCase();
   if (/film|splice|reel|label|carton|tray|bag|pack(ag)?ing|product|ingredient|spec|supplier|material/.test(t)) return 'material';
   if (/checkweigh|metal detect|vision|reject|calibrat|scale|gauge|counter|sensor read|not logged/.test(t)) return 'measurement';
-  if (/temperature|humid|heat|cold|dust|condensation|draught|lighting/.test(t)) return 'environment';
+  /* The room's conditions, not the machine's: "seal jaw temperature" is the
+     machine's own heat (Machine), "hot day", "humidity" or "condensation" is
+     the air around the line (found by the engine agent). */
+  if (/humid|condensation|dust|draught|lighting|ambient|room temp|hot day|cold day|weather|damp/.test(t)) return 'environment';
   if (/operator|crew|staff|labour|training|absence|short|agency|break|shift/.test(t)) return 'people';
   if (/changeover|set.?up|clean|sop|standard|procedure|method|schedule/.test(t)) return 'method';
   switch (category) {
@@ -153,7 +156,8 @@ export function boneOfStop(category: string, subcategory?: string, note?: string
 /** A why that ends at a person is not a root cause (docs/OPEX.md). Returns
  *  the prompt to ask instead, or null. */
 export function blamesAPerson(text: string): string | null {
-  return /\b(operator|human|they|he|she|staff|someone|somebody|fitter|engineer)\b.*\b(error|forgot|mistake|didn'?t|did not|failed to|careless|wrong)\b|\b(human error|operator error|not following|didn'?t follow|forgot)\b/i.test(text)
+  /* Phone keyboards type the curly apostrophe ("didn’t"): both count. */
+  return /\b(operator|human|they|he|she|staff|someone|somebody|fitter|engineer)\b.*\b(error|forgot|mistake|didn[’']?t|did not|failed to|careless|wrong)\b|\b(human error|operator error|not following|didn[’']?t follow|forgot)\b/i.test(text)
     ? 'What let that happen? A missing standard, an unclear instruction, no check, no training, or a design that allows it?'
     : null;
 }

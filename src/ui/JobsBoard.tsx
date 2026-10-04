@@ -1,11 +1,11 @@
 /* THE CONTROL ROOM — every job on every method, one calendar, one home.
  *
  * It was every STAGE-GATE job only. Rowland: "turn it into a control room for
- * change on your lines" — a 3P job or a lever tree job is a change to a line
+ * change on your lines" — a 6M job or a lever tree job is a change to a line
  * too, and the one place that says "am I in control?" has to hold all of them.
- * A stage-gate row leads with its four gates; the others with the board's
- * People, Plant and Process and how many lines are at target. Same calendar,
- * same "who owes what", same "this week".
+ * A stage-gate row leads with its four gates; a 6M row with its open
+ * countermeasures by bone and how many lines are at target; a lever tree row
+ * with its tree. Same calendar, same "who owes what", same "this week".
  *
  * Rowland: "When I have multiple projects all going on, how do I see that in
  * one home? … an immersive Gantt that drops down and up, so it's not massive —
@@ -515,13 +515,17 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
         <button className="jb-lab" onClick={onToggle} aria-expanded={open}>
           <span className="jb-name"><i className="jb-dot" aria-hidden />{v.name}</span>
           <span className="jb-chips">
+            {/* "Handover" is a stage-gate job's day. A running line is not
+                handed over — its date is the one it should be at target by. */}
             {v.daysToGo != null && (
               <span className={'jb-chip' + (v.daysToGo < 0 ? ' is-late' : '')}>
-                {v.daysToGo < 0 ? `${-v.daysToGo} days over handover` : `${v.daysToGo} days to handover`}
+                {v.method === 'commissioning'
+                  ? (v.daysToGo < 0 ? `${-v.daysToGo} days over handover` : `${v.daysToGo} days to handover`)
+                  : (v.daysToGo < 0 ? `${-v.daysToGo} days past its date` : `${v.daysToGo} days to its date`)}
               </span>
             )}
             {/* Where the job is, not how much is on its lists. A stage-gate job
-                is AT a gate; a 3P or tree job is a kind of change, and how its
+                is AT a gate; a 6M or tree job is a kind of change, and how its
                 lines are doing against target. */}
             {v.method === 'commissioning'
               ? (v.at === 'Handed over'
@@ -553,12 +557,20 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
               )}
             </span>
           ) : (
-            <span className="jb-gates" aria-label={v.pillars.map(x => `${x.label}: ${x.open} open`).join(', ')}>
-              {v.pillars.map(x => (
-                <span key={x.key} className={'jb-gate is-' + x.tone} title={`${x.label}: ${x.open} open`}>
-                  {x.label}{x.open > 0 ? ` ${x.open}` : ''}
-                </span>
-              ))}
+            /* A 6M JOB: its open countermeasures by bone, only the bones with
+               something open — "Machine 3 · Method 1 · People 2". A bone with
+               something late on it is the one tile that carries a colour. */
+            <span className="jb-gates jb-bones" aria-label={v.pillars.length
+              ? 'Open by bone: ' + v.pillars.map(x => `${x.label} ${x.open}${x.tone === 'late' ? ', some late' : ''}`).join(', ')
+              : 'Nothing open on the board'}>
+              {v.pillars.length === 0
+                ? <span className="jb-gate is-none">Nothing open</span>
+                : v.pillars.map(x => (
+                  <span key={x.key} className={'jb-gate jb-bone' + (x.tone === 'late' ? ' is-late' : '')}
+                    title={`${x.label}: ${x.open} open${x.tone === 'late' ? ', some past their day' : ''}`}>
+                    {x.label} {x.open}
+                  </span>
+                ))}
             </span>
           )}
           {v.next && (

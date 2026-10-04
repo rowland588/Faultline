@@ -22,6 +22,9 @@ import { FixesScreen } from './screens/FixesScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
 import { TestScreen } from './screens/TestScreen';
+/* Eager: the 6M job's front page and every line page lead with the fishbone,
+   so it is on the start-up path of that method already. */
+import { FishboneScreen } from './screens/FishboneScreen';
 import { ServiceUnavailable } from './screens/ServiceUnavailable';
 /* OFF THE START-UP PATH, so not in the first download. One chunk held every
    screen — the 1,500-line client report, the lever tree, the whole line-walk
@@ -115,6 +118,12 @@ function app(route: Route) {
         <ParetoScreen projectId={id} />
       </RequireModel>
     );
+  }
+  /* THE 6M JOURNEY — a running line's problems, each a fishbone. A 6M job's
+     own; a lever tree or stage-gate job has none (docs/SIXM.md). */
+  if (route.name === 'fishbone' && route.id) {
+    const id = route.id;
+    return <RequireModel projectId={id} model="board"><FishboneScreen projectId={id} /></RequireModel>;
   }
   /* THE STAGE-GATE SURFACES, behind their model like the paced ones above.
      Unguarded, a lever tree or 3P job's link with /install, /fixes, /testing,

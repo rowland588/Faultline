@@ -5,11 +5,14 @@
  * folding one section among many — with forty actions, a list that merely
  * re-styles itself is still forty actions to look past.
  *
- * The roster comes from the workbook's own Lists sheet, so it includes people
- * with nothing open this week. "Nothing from you" is a real answer at a
- * stand-up, and it can only be given if the person is there to be asked.
- * Anyone owning an action but missing from Lists is added, so nobody's work is
- * hidden by a list that was never updated. */
+ * The roster is everybody who owns an action on the board — and, when the
+ * caller passes one, a fuller list of names, so people with nothing open this
+ * week are still asked. "Nothing from you" is a real answer at a stand-up,
+ * and it can only be given if the person is there to be asked.
+ *
+ * It writes nothing: the meeting is read off the board, and an action is
+ * changed on the board's editor (ui/ActionSheet), where the access rules
+ * (lib/access) are kept. */
 import { useEffect, useMemo, useState } from 'react';
 import type { PaceAction } from '../lib/tracker';
 import type { PaceRoster } from '../lib/tracker';
@@ -63,13 +66,15 @@ function ActionCard({ a }: { a: PaceAction }) {
       <header className="pm-card-top">
         <span className="pm-flag">{a.flag || a.status}</span>
         <span className="pm-line">{a.line}</span>
-        <span className="pm-cat">{a.category}</span>
+        {/* The bone it sits on (lib/sixm) — "no bone yet" rather than a blank. */}
+        <span className="pm-cat">{a.category || 'no bone yet'}</span>
         {a.due && <span className="pm-due">due {a.due}</span>}
         {/* No ref: it was the workbook's row number, and since actions live in
             the app it is the record's id — a 36-character word nobody reads. */}
       </header>
       {a.problem && <p className="pm-problem">{a.problem}</p>}
       {a.action && <p className="pm-do"><b>Action</b> {a.action}</p>}
+      {a.expect && <p className="pm-problem"><b>Should change</b> {a.expect}</p>}
       <footer className="pm-card-foot">
         <span className="pm-status">{a.status}</span>
         {a.who && <span>{a.who}</span>}
@@ -116,7 +121,7 @@ export function PaceMeeting({ actions, roster }: { actions: PaceAction[]; roster
     .sort((a, b) =>
       (isOverdue(b) ? 1 : 0) - (isOverdue(a) ? 1 : 0)
       || (isDone(a) ? 1 : 0) - (isDone(b) ? 1 : 0)
-      || (a.priority || 3) - (b.priority || 3));
+      || (a.dueISO ?? '\uffff').localeCompare(b.dueISO ?? '\uffff'));
 
   const idx = selected ? people.findIndex(p => p.name === selected.name) : -1;
   const go = (d: number) => {
@@ -176,6 +181,7 @@ export function PaceMeeting({ actions, roster }: { actions: PaceAction[]; roster
                 ? <span className="pm-clear">nothing open</span>
                 : <>
                     {p.overdue > 0 && <span className="pm-pip is-over">{p.overdue} overdue</span>}
+                    {p.dueSoon > 0 && <span className="pm-pip is-soon">{p.dueSoon} due soon</span>}
                     <span className="pm-pip">{p.open} open</span>
                   </>}
             </span>

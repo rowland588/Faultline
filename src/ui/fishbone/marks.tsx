@@ -1,0 +1,42 @@
+/* THE SMALL MARKS THE FISHBONE IS DRAWN WITH — one family, used on the drawn
+ * fish, the phone's lanes, the cause sheet and the key, so a mark means the
+ * same thing wherever it is seen.
+ *
+ * None of them wears a state colour. Confirmed, suspected and the root are
+ * not "done" or "late" — they are how sure we are — so they are told apart by
+ * ink: solid, outline, struck. The grade is a three-step meter: measured
+ * fills it, reported leaves it empty. Every mark sits beside its words. */
+import type { CauseStatus, Grade } from '../../lib/sixm';
+import { GRADE_LEVEL } from './layout';
+
+/** Confirmed: a solid dot. Suspected: a ring. Ruled out: a ring with a stroke through. */
+export function StatusGlyph({ status, root, suggestion }: { status?: CauseStatus; root?: boolean; suggestion?: boolean }) {
+  const cls = 'fb-g' + (suggestion ? ' is-sugg' : status ? ` is-${status}` : '') + (root ? ' is-root' : '');
+  return (
+    <svg className={cls} width="14" height="14" viewBox="0 0 14 14" aria-hidden focusable="false">
+      {suggestion
+        ? <><circle cx="7" cy="7" r="5.6" className="fb-g-ring" strokeDasharray="2.2 1.8" /><path d="M7 4.4v5.2M4.4 7h5.2" className="fb-g-plus" /></>
+        : status === 'confirmed'
+          ? <circle cx="7" cy="7" r={root ? 5.6 : 4.6} className="fb-g-fill" />
+          : status === 'ruled_out'
+            ? <><circle cx="7" cy="7" r="4.6" className="fb-g-ring" /><path d="M3.2 10.8l7.6-7.6" className="fb-g-ring" /></>
+            : <circle cx="7" cy="7" r="4.6" className="fb-g-ring" />}
+    </svg>
+  );
+}
+
+/** How sure — three steps, measured full, reported empty. */
+export function GradeMeter({ grade }: { grade: Grade }) {
+  const n = GRADE_LEVEL[grade];
+  return (
+    <svg className="fb-meter" width="13" height="11" viewBox="0 0 13 11" aria-hidden focusable="false">
+      {[0, 1, 2].map(i => (
+        <rect key={i} x={i * 4.5} y={7 - i * 3} width="3.2" height={4 + i * 3} rx="0.8" className={i < n ? 'is-on' : ''} />
+      ))}
+    </svg>
+  );
+}
+
+export function RootTag() {
+  return <span className="fb-root">Root</span>;
+}
