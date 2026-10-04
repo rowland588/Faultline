@@ -7482,6 +7482,11 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .ls-task { grid-column: 2; font: inherit; font-size: 13px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--ink); resize: vertical; min-width: 0; }
 .ls-role:hover, .ls-role:focus { border-color: var(--line-2); outline: none; }
 .ls-del { justify-self: start; color: var(--danger); margin-top: 6px; }
+/* A client's map (lib/access): read, not worked — nothing grabs or moves. */
+.ls-product.is-read { margin: 0; border-bottom-color: transparent; }
+.ls-task-r { grid-column: 2; margin: 0; font-size: 13px; color: var(--ink-2); white-space: pre-wrap; }
+.ls-board.is-read .ls-mark, .ls-board.is-read .ls-shape { cursor: default; }
+span.ls-role:hover { border-color: transparent; }
 .ls-strip { margin: 16px 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .ls-strip-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .ls-strip-h h3 { margin: 0; font-size: 15.5px; }

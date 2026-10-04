@@ -26,6 +26,8 @@ import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
+import { useAccess } from '../cloud/access';
+import type { Can } from '../lib/access';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -120,6 +122,9 @@ export function StandardScreen({ projectId, standardId }: { projectId: string; s
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   useEffect(() => { void getProject(projectId).then(p => setProject(p ?? null)); }, [projectId]);
   const list = useStandards(projectId);
+  /* Who may do what (lib/access): the team draws and copies maps, deleting one
+     is the owner's, and a client reads them and takes the PDF. */
+  const can = useAccess(projectId);
   if (project === undefined || list == null) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
     return (
@@ -130,15 +135,15 @@ export function StandardScreen({ projectId, standardId }: { projectId: string; s
     );
   }
   const one = standardId ? list.find(s => s.id === standardId) : undefined;
-  if (standardId && one) return <MapEditor project={project} s={one} all={list} />;
+  if (standardId && one) return <MapEditor project={project} s={one} all={list} can={can} />;
   /* A link to a map that is gone lands on the list AND says so — it fell
      through silently, which read as the wrong page rather than a deleted map. */
-  return <Products project={project} list={list} gone={!!standardId && !one} />;
+  return <Products project={project} list={list} gone={!!standardId && !one} can={can} />;
 }
 
 /* ------------------------------ the products ----------------------------- */
 
-function Products({ project, list, gone }: { project: Project; list: Standard[]; gone?: boolean }) {
+function Products({ project, list, gone, can }: { project: Project; list: Standard[]; gone?: boolean; can: Can }) {
   const progs = usePrograms(project.id);
   const [adding, setAdding] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -183,14 +188,14 @@ function Products({ project, list, gone }: { project: Project; list: Standard[];
         </div>
         <div className="pace-head-actions">
           {list.length > 0 && <button className="btn btn-ghost" onClick={() => setPrinting(true)}>PDF (all products)</button>}
-          <button className="btn btn-primary" onClick={() => setAdding(true)}>New map</button>
+          {can.edit && <button className="btn btn-primary" onClick={() => setAdding(true)}>New map</button>}
         </div>
       </header>
 
       {list.length === 0 ? (
         <div className="pace-empty">
-          <p className="sub">No maps yet. Start with the product you run most.</p>
-          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => setAdding(true)}>Make the first map</button>
+          <p className="sub">{can.edit ? 'No maps yet. Start with the product you run most.' : 'No maps yet.'}</p>
+          {can.edit && <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={() => setAdding(true)}>Make the first map</button>}
         </div>
       ) : (
         <div className="ls-grid">
@@ -200,7 +205,7 @@ function Products({ project, list, gone }: { project: Project; list: Standard[];
 
       {printing && <PrintSheet list={list} project={project} onClose={() => setPrinting(false)} />}
 
-      <Sheet open={adding} onClose={() => setAdding(false)} title="Which product?">
+      <Sheet open={adding && can.edit} onClose={() => setAdding(false)} title="Which product?">
         {offered.length > 0 && (
           <>
             <p className="sub" style={{ marginTop: 0 }}>{commissioning ? 'From this job’s programs:' : 'From the programs:'}</p>
@@ -291,7 +296,10 @@ function ShapeSvg({ m, bw, bh, selected, onDown }: {
   );
 }
 
-function MapEditor({ project, s, all }: { project: Project; s: Standard; all: Standard[] }) {
+function MapEditor({ project, s, all, can }: { project: Project; s: Standard; all: Standard[]; can: Can }) {
+  /* A CLIENT READS THE MAP (lib/access): the picture, the marks and who does
+     what, and the PDF — no tools, nothing that moves, nothing to type into. */
+  const ro = !can.edit;
   const progs = usePrograms(project.id);
   const url = useBlobUrl(s.photoKey);
   const [tool, setTool] = useState<Tool>({ t: 'icon', kind: 'person' });
@@ -346,6 +354,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
 
   /* ---- the board: place an icon, draw a shape, or let go of a selection ---- */
   const boardDown = (e: RPointerEvent) => {
+    if (ro) return;
     if (e.target !== e.currentTarget && !(e.target as Element).classList.contains('ls-photo') && !(e.target as Element).classList.contains('ls-svg')) return;
     if (tool.t === 'shape') {
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -390,6 +399,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
   /* ---- dragging: an icon or a shape moves; a handle resizes ---- */
   const down = (e: RPointerEvent, id: string, mode: Drag['mode'] = 'move') => {
     e.stopPropagation();
+    if (ro) return;
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     const orig = marks.find(m => m.id === id);
     if (orig) drag.current = { id, mode, x0: e.clientX, y0: e.clientY, orig, moved: false };
@@ -483,17 +493,20 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
       <header className="ls-head">
         <div className="ls-head-main">
           <p className="pace-eyebrow">Line standard · {plural(people.length, 'person', 'people')}</p>
+          {ro ? <h1 className="ls-product is-read">{s.product}</h1> : <>
           <input className="ls-product" value={product} aria-label="Product" list="ls-products"
             onChange={e => setProduct(e.target.value)}
             onBlur={() => { const v = product.trim(); if (v && v !== s.product) void save({ product: v }); else setProduct(s.product); }} />
           <datalist id="ls-products">{progs.programs.map(p => <option key={p.id} value={p.what} />)}</datalist>
+          </>}
         </div>
         <div className="ls-head-actions">
           <button className="btn btn-ghost" onClick={() => setPrinting(true)}>PDF</button>
-          <button className="btn btn-ghost" onClick={() => setCopying(true)}>Copy to another product</button>
+          {!ro && <button className="btn btn-ghost" onClick={() => setCopying(true)}>Copy to another product</button>}
         </div>
       </header>
 
+      {!ro && <>
       <div className="ls-tools" role="toolbar" aria-label="What to place">
         <button className={'ls-tool' + (tool.t === 'select' ? ' is-on' : '')} aria-pressed={tool.t === 'select'} onClick={() => setTool({ t: 'select' })}>
           <span className="ls-ti" aria-hidden><Icon name="pointer" size="1.15em" /></span><span>Select</span>
@@ -519,10 +532,11 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
         <button className="ls-tool" onClick={() => setIcons(true)}><span className="ls-ti" aria-hidden><Icon name="plus" size="1.15em" /></span><span>Icons</span></button>
       </div>
       <p className="sub ls-tools-say">{say}</p>
+      </>}
 
       <div className="ls-body">
         <div className="ls-board-wrap">
-          <div ref={boardRef} className={'ls-board' + (url ? '' : ' is-blank') + (tool.t !== 'select' ? ' is-placing' : '')}
+          <div ref={boardRef} className={'ls-board' + (url ? '' : ' is-blank') + (tool.t !== 'select' && !ro ? ' is-placing' : '') + (ro ? ' is-read' : '')}
             onPointerDown={boardDown} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
             {url && <img className="ls-photo" src={url} alt="" draggable={false} onLoad={() => {
               const el = boardRef.current; if (el) setSize({ bw: el.clientWidth, bh: el.clientHeight });
@@ -550,7 +564,7 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
                 }}>{m.label}</span>
             ))}
             {icons_.map(m => (
-              <button key={m.id} type="button" className={'ls-mark' + (editing === m.id ? ' is-on' : '')}
+              <button key={m.id} type="button" className={'ls-mark' + (editing === m.id ? ' is-on' : '')} disabled={ro}
                 style={{ left: `${m.x}%`, top: `${m.y}%` }}
                 aria-label={`${markOf(m.kind).word}${m.label ? ` — ${m.label}` : ''}`}
                 onPointerDown={e => down(e, m.id)} onClick={e => e.stopPropagation()}>
@@ -559,17 +573,24 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
               </button>
             ))}
           </div>
-          <button className="btn btn-ghost btn-sm ls-pic-b" onClick={() => setPicture(true)}>
+          {!ro && <button className="btn btn-ghost btn-sm ls-pic-b" onClick={() => setPicture(true)}>
             {url ? 'Change the picture' : 'Add a picture of the line — or draw it with shapes'}
-          </button>
+          </button>}
         </div>
 
         <aside className="ls-side">
           <div className="ls-count"><b>{people.length}</b><span>{people.length === 1 ? 'person on this product' : 'people on this product'}</span></div>
           {thingsOf({ marks }) && <p className="sub ls-things">{thingsOf({ marks })}</p>}
           <h3 className="ls-side-h">Who does what</h3>
-          {people.length === 0 && <p className="sub">Pick Person and tap the board where they stand — or select a shape and add an operator to it.</p>}
-          {people.map(p => (
+          {people.length === 0 && <p className="sub">{ro ? 'Nobody placed on this product yet.' : 'Pick Person and tap the board where they stand — or select a shape and add an operator to it.'}</p>}
+          {ro && people.map(p => (
+            <div key={p.id} className="ls-person">
+              <MarkIcon kind="person" size={22} />
+              <span className="ls-role">{p.label || 'Unnamed'}</span>
+              {p.task && <p className="ls-task-r">{p.task}</p>}
+            </div>
+          ))}
+          {!ro && people.map(p => (
             <div key={p.id} className="ls-person">
               <MarkIcon kind="person" size={22} />
               <input className="ls-role" value={p.label ?? ''} aria-label="Role" placeholder="Op 1"
@@ -582,12 +603,14 @@ function MapEditor({ project, s, all }: { project: Project; s: Standard; all: St
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
             </div>
           ))}
-          <button className="btn btn-ghost btn-sm ls-del" onClick={() => void remove()}>Delete this map</button>
+          {/* Deleting is the owner's (lib/access) — the database keeps the
+              map for anyone else, so the button is not offered to them. */}
+          {can.remove && <button className="btn btn-ghost btn-sm ls-del" onClick={() => void remove()}>Delete this map</button>}
         </aside>
       </div>
 
       {/* One mark: a shape's words and colour, or who a person is and what they do. */}
-      <Sheet open={!!editingMark} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}
+      <Sheet open={!!editingMark && !ro} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}
         title={editingMark ? (isShape(editingMark) ? SHAPES.find(x => x.shape === editingMark.shape)?.word ?? 'Shape' : markOf(editingMark.kind).word) : ''}>
         {editingMark && isShape(editingMark) && (
           <>

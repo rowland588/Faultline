@@ -190,6 +190,9 @@ export async function restoreProject(id: ID): Promise<void> {
 const PROJECT_OWNED = [
   'commission_assets', 'tests', 'test_items', 'targets', 'readings', 'materials',
   'tree_nodes', 'project_targets', 'project_actuals',
+  // the programs and the line standards are the project's too; leaving them
+  // out of this list left both behind, syncing, after "delete for ever"
+  'programs', 'standards',
 ] as const;
 
 /** The same, for the four stores that predate the by_project index and are
@@ -213,6 +216,8 @@ export const STORE_WORDS: Record<string, string> = {
   tree_nodes: 'lever-tree boxes',
   project_targets: 'quarterly targets',
   project_actuals: 'weekly actuals',
+  programs: 'programs',
+  standards: 'line standard maps',
 };
 
 /** What a purge would take with it, counted before anybody is asked to confirm.

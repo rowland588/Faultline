@@ -18,6 +18,7 @@ import {
   loadPaceLines, putPaceLine, addPaceLine, deletePaceLine, onDataChange,
   type PaceLineRow,
 } from '../db';
+import { useAccess } from '../cloud/access';
 /** What a line needs to exist: what the team calls it, and nothing else. The
  *  people and the targets can all be filled in afterwards. */
 export interface NewLine {
@@ -49,15 +50,18 @@ export function usePaceLines(projectId: string): PaceLinesState {
      wrote it. */
   const current = useRef(projectId);
   current.current = projectId;
+  /* Folding two rival rows of one line deletes one of them, and deleting is
+     the owner's — on anybody else's device the lines are read, not tidied. */
+  const tidy = useAccess(projectId).remove;
 
   const refresh = useCallback(async () => {
     // db does the migrating and the folding onto the shared id — one place, so
     // two callers cannot disagree about which row is which line.
-    const read = await loadPaceLines(projectId);
+    const read = await loadPaceLines(projectId, { tidy });
     if (current.current !== projectId) return;
     setLines(read);
     setLoading(false);
-  }, [projectId]);
+  }, [projectId, tidy]);
 
   // Re-read when anything changes — including a number typed on the laptop and
   // pulled down here. Debounced, because a burst of writes is one change worth
