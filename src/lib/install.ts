@@ -108,7 +108,8 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
   /* A problem is the story before the plan: it is why the next step waits. */
   const stuck = steps.find(s => s.tone === 'problem');
   if (stuck) {
-    const why = stuck.step.result?.trim();
+    /* The account's own full stop is the sentence's — "bag.." read as a slip. */
+    const why = stuck.step.result?.trim().replace(/[.!?]+$/, '');
     return `${head} ${stuck.step.title} ${stepFacts(stuck)}${why ? ` — ${why}` : ''}.${fixes}`;
   }
   const next = steps.find(s => s.next);
