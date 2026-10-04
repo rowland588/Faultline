@@ -23,6 +23,7 @@
  * somebody for making more waste.
  */
 import type { ID } from '../types';
+import { niceDay } from './weeks';
 
 export type Direction = 'up' | 'down';
 
@@ -431,6 +432,29 @@ export function vsTarget(s: Pick<LineSeries, 'measure' | 'target' | 'period' | '
 export function say(value: number, unit?: string): string {
   const n = Math.round(value * 100) / 100;
   return unit ? `${n} ${unit}` : String(n);
+}
+
+/** A line against its target, in one sentence — "Line 2A is at 52 ppm (1 Oct)
+ *  against the Q4 target of 60 ppm — 8 ppm short of target." The gap, said once:
+ *  the 6M client report (lib/sixmReportPdf) leads with it and the control room's
+ *  drawer for a 6M job (ui/JobsBoard) leads with it, so the two cannot drift.
+ *  `short` is the one abnormal number, for the screen and paper to colour. */
+export function gapOf(name: string, s: LineSeries | undefined): { says: string; short?: string } {
+  if (!s) return { says: `${name}: no measure set yet.` };
+  const unit = s.measure.unit;
+  const last = s.points[s.points.length - 1];
+  const period = s.period ? `${s.period.name} target` : 'target';
+  if (!last) return { says: s.target != null ? `${name}: ${period} ${say(s.target, unit)} — nothing measured yet.` : `${name}: nothing measured yet, and no target set.` };
+  const at = `${name} is at ${say(last.value, unit)} (${niceDay(last.at)})`;
+  if (s.target == null || s.margin == null) return { says: `${at} — no target set.` };
+  const m = Math.abs(s.margin);
+  if (m === 0) return { says: `${at}, on its ${period} of ${say(s.target, unit)}.` };
+  const up = s.measure.direction === 'up';
+  if (s.margin < 0) {
+    const short = `${say(m, unit)} ${up ? 'short of' : 'over'} target`;
+    return { says: `${at} against the ${period} of ${say(s.target, unit)} — ${short}.`, short };
+  }
+  return { says: `${at} against the ${period} of ${say(s.target, unit)} — ${say(m, unit)} ${up ? 'better than' : 'under'} target.` };
 }
 
 /** Which of this project's lines a pasted cell is naming. Exact key first, then

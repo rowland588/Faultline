@@ -6572,6 +6572,16 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .jb-mk.is-late { border-color: var(--st-r); }
 .jb-mk.is-many.is-late { background: var(--st-r); }
 .jb-mk:hover, .jb-mk.is-on { transform: scale(1.35); z-index: 6; }
+/* A dot lifted to show its words lifted its ring too — 40px across, over the
+   next day's dot — so the neighbour could not be tapped until the first was
+   shut. Lifted, the ring shrinks to the dot; with a mouse (no finger to
+   allow for) the ring is the dot's own size at rest, so a hover never covers
+   the dot beside it either. */
+.jb-mk.is-on::before { inset: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .jb-mk::before { inset: -2px; }
+  .jb-mk.is-on::before, .jb-mk:hover::before { inset: 0; }
+}
 /* The tip: what the dot is, when, and what state — in words, not colour.
    Hover on a desk, a tap on a phone. */
 .jb-mk::after {
@@ -6658,6 +6668,8 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
   .jb-drawer .tl { margin: 0; }
   .jb-aside { padding: 0 4px; }
   .jb-aside .jb-doors { flex-direction: row; }
+  /* A line's chip in the drawer is the one tap to "my line" — a thumb's height. */
+  .jb-aside .proj-chip { min-height: 44px; align-items: center; }
 }
 
 /* Coming back from a job, the board is simply there — the arrival played
@@ -9053,6 +9065,33 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .jb-bones { display: flex; flex-wrap: wrap; gap: 3px; max-width: 300px; }
 .jb-bones .jb-gate { padding: 2px 7px; overflow: visible; text-overflow: clip; }
 .jb-bone { color: var(--ink); }
+
+/* A 6M job on Home, in words (docs/SIXM.md "Home / control room"): its
+   problems by phase and its open countermeasures by bone. Plain ink is the
+   work; only the abnormal piece carries a colour — past its day or slipped
+   back red, waiting amber, nothing there grey. */
+.jb-6m { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.jb-6m-l { font-size: 12px; line-height: 1.35; color: var(--ink-2); font-weight: 600; }
+.jb-said.is-late { color: var(--st-r); font-weight: 800; }
+.jb-said.is-waiting { color: color-mix(in srgb, var(--st-a) 80%, var(--ink)); font-weight: 700; }
+.jb-said.is-none { color: var(--muted); font-weight: 600; }
+/* The drawer: the gap first, then the problems — each row one door to its
+   fishbone — then the board by bone. */
+.jb-gap { display: flex; flex-direction: column; gap: 4px; }
+.jb-gap-l { margin: 0; font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+.jb-probs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.jb-prob {
+  position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: 44px; padding: 8px 26px 8px 10px;
+  font: inherit; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; cursor: pointer;
+}
+.jb-prob:hover { border-color: var(--accent); }
+.jb-prob:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jb-prob.is-slipped { border: 1.5px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
+.jb-prob-t { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13px; line-height: 1.3; }
+.jb-prob-ph { font-size: 11.5px; font-weight: 700; color: var(--ink-2); }
+.jb-prob-s { font-size: 12px; line-height: 1.35; color: var(--muted); }
+.jb-prob-c { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 18px; }
+.jb-6m-d { font-size: 13px; }
 
 /* A client's win — read, not typed into. */
 .win-card.is-ro .win-title { font-size: 15px; font-weight: 700; color: var(--ink); }
