@@ -19,6 +19,10 @@ import { Crumbs } from '../ui/Crumbs';
 import { Peers } from '../ui/Peers';
 import { MeasureChart } from '../charts/MeasureChart';
 import { PaceMeeting } from './PaceMeeting';
+import { ActionSheet, type Editing } from '../ui/ActionSheet';
+import { useImpacts } from '../lib/useImpacts';
+import type { PaceAction } from '../lib/tracker';
+import type { PaceLineRow } from '../db';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { PaceSnags } from './PaceSnags';
@@ -78,6 +82,17 @@ function Kpi({ n, label, sub, tone }: { n: string; label: string; sub?: string; 
   );
 }
 
+/** The board's editor, opened from a by-owner card — with "did it work?" read
+ *  the way the board reads it. Its own component so the impacts are worked out
+ *  only while a sheet is open. Access is the sheet's own (useAccess): a client
+ *  reads it, the team changes it, the owner deletes. */
+function LineActionSheet({ projectId, editing, lines, onClose }: {
+  projectId: string; editing: Editing; lines: PaceLineRow[]; onClose: () => void;
+}) {
+  const { impacts } = useImpacts(projectId);
+  return <ActionSheet editing={editing} lines={lines} impact={impacts.get(editing.step.id)} onClose={onClose} />;
+}
+
 export function ProjectLineScreen({ projectId, lineId }: { projectId: string; lineId: string }) {
   const can = useAccess(projectId);
   const route = useRoute();
@@ -95,6 +110,12 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   /* "I saw…" from anywhere on the line — onto a bone of one of its problems. */
   const problems = useProblems(projectId);
   const [saw, setSaw] = useState(false);
+  /* The by-owner card's door: the board's own editor, for the step behind it. */
+  const [sheet, setSheet] = useState<Editing | null>(null);
+  const openAction = (a: PaceAction) => {
+    const s = a.uid ? ax.steps.find(x => x.id === a.uid) : undefined;
+    if (s) setSheet({ step: s, isNew: false });
+  };
   const lineProblems = useMemo(
     () => problems.problems.filter(p => !p.problem.lineId || p.problem.lineId === lineId),
     [problems.problems, lineId],
@@ -312,7 +333,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               <button type="button" className={byOwner ? 'on' : ''} onClick={() => setByOwner(true)}>By owner</button>
             </span>
           </div>
-          {byOwner ? <PaceMeeting actions={mine} /> : <PaceNextSteps projectId={projectId} lineId={lineId} withWhole={paced} />}
+          {byOwner ? <PaceMeeting actions={mine} onOpen={openAction} /> : <PaceNextSteps projectId={projectId} lineId={lineId} withWhole={paced} />}
+          {sheet && <LineActionSheet projectId={projectId} editing={sheet} lines={ax.lines} onClose={() => setSheet(null)} />}
         </section>
       )}
 

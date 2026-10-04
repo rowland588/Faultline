@@ -31,8 +31,8 @@ control that does nothing; these are the calls to make next.
 11. **Programs on a 3P job ask for a machine**, which creates a stage-gate machine record. Recommend programs belong to a line on 3P.
 12. ~~**The method switch in Details is one tap with no confirm**, and it reshapes every screen and the report (the tree is kept but hidden).~~ **Done 3 Oct:** switching method asks first, says what the job becomes, and that nothing is deleted.
 13. **A 3P meeting note can only be about the whole project.** Recommend letting it point at a line or an action.
-14. **By-owner cards are read-only.** Recommend they open the action sheet, as the board's do.
-15. **The project's Pareto rows are not doors.** Recommend each opens the line's drill for that category.
+14. ~~**By-owner cards are read-only.** Recommend they open the action sheet, as the board's do.~~ **Done 4 Oct:** the whole card is a button (127 px on a phone) that opens the board's own action sheet for that action — editable for the team, read-only for a client, with "did it work?" as the board shows it; an on-time open card is indigo now, not done's green.
+15. ~~**The project's Pareto rows are not doors.** Recommend each opens the line's drill for that category.~~ **Done 4 Oct:** the whole row opens that category's drill on the line that lost the most minutes to it (ranked by machine next), and says which — "on Line 2A", "mostly on Line 2A, also Line 3" — and when two lines lost the same minutes it says "equally" and asks which; the root-cause button stays its own tap.
 16. **The project-level walk sits beside each line's.** Recommend filming from the project page asks which line.
 
 ## The walk and the tools inside a workspace
