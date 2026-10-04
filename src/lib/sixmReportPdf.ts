@@ -32,6 +32,7 @@ import { paretoView } from './paretoView';
 import { analyse, fmtN } from './capacity';
 import { niceDay, todayISO } from './weeks';
 import { san } from './reportKit';
+import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './portfolio';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
 
@@ -127,6 +128,10 @@ export interface SixMReport {
   /** The band: where the lines are, then the problems and the board. */
   sentence: string;
   slip: string;
+  /** The same, in pieces — the late and waiting parts carry their tone on
+   *  screen. Home's 6M row says these words (lib/portfolio problemsSaid,
+   *  bonesSaid), so the control room and the paper are one statement. */
+  slipSaid: Said[];
   gaps: GapLine[];
   /** Said once when no line has a measure. */
   gapNone?: string;
@@ -159,7 +164,6 @@ export interface SixMInput {
 }
 
 const DAY = 86_400_000;
-const PHASE_ORDER: Phase[] = ['slipped', 'finding', 'acting', 'proving', 'holding', 'closed'];
 const PHASE_TONE: Record<Phase, Tone> = { finding: 'going', acting: 'going', proving: 'going', holding: 'done', closed: 'done', slipped: 'failed' };
 const GRADE_WORD = (g?: Grade) => GRADES.find(x => x.key === g)?.label ?? '';
 const STATUS_WORD: Record<CauseStatus, string> = { confirmed: 'confirmed', suspected: 'suspected', ruled_out: 'ruled out' };
@@ -268,8 +272,10 @@ export function sixmReport(o: SixMInput): SixMReport {
     const causes = (p.causes ?? []).slice().sort(causeOrder);
     const ms = v.measure;
     const unit = ms?.unit ?? '';
+    /* A gap problem's figures are four-week averages (lib/fishbone measureOf);
+       the gap section above quotes the latest reading, so this says which. */
     const measure = ms && (ms.before != null || ms.now != null) ? [
-      `${ms.label}:`,
+      p.source?.kind === 'gap' ? `${ms.label}, on the four-week average:` : `${ms.label}:`,
       [ms.before != null ? `before ${say(ms.before, unit)}` : '', ms.now != null ? `now ${say(ms.now, unit)}` : '', ms.target != null ? `target ${say(ms.target, unit)}` : ''].filter(Boolean).join(' · '),
       ms.moved === 'better' ? '— better since the countermeasures were done.' : ms.moved === 'worse' ? '— worse since the countermeasures were done.' : ms.moved === 'same' ? '— no change since the countermeasures were done.' : '',
     ].filter(Boolean).join(' ') : undefined;
@@ -324,7 +330,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       counter,
       counterSays: counter.length ? [`${open} open`, late ? `${late} late` : '', `${counter.length - open} done`].filter(Boolean).join(' · ') : '',
       ...(hold ? { hold } : {}),
-      ...(!hold && (v.phase === 'closed') ? { holdless: 'Closed with no check set to keep the gain.' } : {}),
+      ...(!hold && p.status === 'closed' ? { holdless: 'Closed with no check set to keep the gain.' } : {}),
     };
   });
 
@@ -377,15 +383,12 @@ export function sixmReport(o: SixMInput): SixMReport {
     : gaps.length === 1 ? gaps[0].says
       : measured.length ? `${meeting} of ${plural(gaps.length, 'line')} at target${gaps.filter(g => g.short).length ? ` — ${listWords(gaps.filter(g => g.short).map(g => `${g.line} ${g.short}`))}` : ''}.`
         : `${plural(gaps.length, 'line')}, nothing measured yet.`;
-  const byPhase = PHASE_ORDER.map(ph => ({ ph, n: views.filter(v => v.phase === ph).length })).filter(x => x.n);
-  const slip = [
-    views.length ? `${plural(views.length, 'problem')}: ${byPhase.map(x => `${x.n} ${PHASE_WORD[x.ph].toLowerCase()}`).join(', ')}` : 'No problem opened yet',
-    todos.length ? `${plural(allOpen, 'action')} open${allLate ? `, ${allLate} late` : ''}` : 'nothing on the board yet',
-  ].join(' · ') + '.';
+  const slipSaid: Said[] = [...problemsSaid(views.map(v => v.phase)), { text: ' · ' }, ...bonesSaid(todos, today), { text: '.' }];
+  const slip = saidText(slipSaid);
 
   return {
     name: o.project.name, ...(scopeLine ? { scope: scopeLine.name } : {}), ...(o.project.lead ? { lead: o.project.lead } : {}),
-    printed: niceDay(today, { year: true }), sentence, slip,
+    printed: niceDay(today, { year: true }), sentence, slip, slipSaid,
     /* With no measure, this sentence is the one place each line is named —
        a three-line job must not read as if it had none. */
     gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this job'} yet — the gap is drawn once a line has a measure and a target.` }),

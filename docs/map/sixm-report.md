@@ -116,8 +116,11 @@ In order; a section with nothing to say is not printed (docs/REPORTS.md):
 
 1. **Front** — eyebrow "CLIENT REPORT · 6M — THE GAP, ITS CAUSES, AND WHAT
    IS BEING DONE", the job (and line), "Led by … · Printed …", the dark band:
-   WHERE THE LINE(S) IS/ARE + the sentence + "n problems: … · n actions open,
-   n late."
+   WHERE THE LINE(S) IS/ARE + the sentence + Home's 6M row in the same
+   words (`lib/portfolio` `problemsSaid` · `bonesSaid`): "2 problems — 1
+   finding the cause, 1 acting on it · 1 holding · 7 open: People 2 · Machine
+   2 · …, 2 past their day, 2 waiting on somebody." (the late and waiting
+   parts red and amber in the preview, as on Home)
 2. **The gap** — each line's sentence, the "short of target" words in red,
    owner, and its measure drawn against the target (≥ 2 readings).
 3. **Where the loss is** — the Pareto table (last four weeks, vital few
@@ -176,6 +179,7 @@ every card whole; no "3P", "Plant", "Process" or "GM" on the paper.
 - `src/lib/useProblems.ts` — `loadProblems` (one read of everything the fishbones read) and `viewsOf` (the problems as views, per line).
 - `src/lib/fishbone.ts` — `buildView` (bones, suggestions, roots, countermeasures, measure, phase, the head's sentence), `therefore`.
 - `src/lib/problems.ts` — `Phase`, `PHASE_WORD`.
+- `src/lib/portfolio.ts` — `PHASE_ORDER`, `problemsSaid`, `bonesSaid`: the band's words, shared with Home's 6M row.
 - `src/lib/sixm.ts` — the six bones, grades, `toSixM` (Plant → Machine, Process → Method).
 - `src/lib/measures.ts` — `lineSeries`, `say`; the gap sentence.
 - `src/lib/paretoFromLog.ts`, `src/lib/paretoView.ts` — the Pareto from timed stops.
@@ -187,11 +191,9 @@ every card whole; no "3P", "Plant", "Process" or "GM" on the paper.
 
 ## 9 · Findings
 
-- **Two different "now"s on one page.** A gap problem's "now" is the mean of
-  the last four weeks (`lib/fishbone` `measureOf`), printed "now 47.75 ppm";
-  the gap section above prints the latest reading, "52 ppm (27 Sept)". Both
-  true, neither says which it is. Recommend the measure line say "last four
-  weeks" (engine and screen together).
+- **Two different "now"s on one page** — fixed with the lead's change: the
+  head sentence says "on the four-week average", and the paper's measure
+  line now says "<measure>, on the four-week average: before … · now …".
 - **"0 h a week" beside "2 min a week".** A Pareto problem's measure is
   rounded to tenths of an hour (`measureOf` `round1`), so a small loss reads
   "now 0 h a week" under a head sentence saying "2 min a week". Recommend the

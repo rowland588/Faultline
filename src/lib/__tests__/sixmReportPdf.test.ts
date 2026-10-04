@@ -203,5 +203,28 @@ describe('the 6M client report', () => {
     expect(has(flat, 'Nothing on the fishbone yet.')).toBe(true);
     expect(has(flat, 'Opened, and the causes are next.')).toBe(false);
   });
+
+  it('says the band in Home\'s words — problems by phase, the board by bone, what is late', async () => {
+    const root = cause('c1', 'machine', 'Jaw heater runs cool', { status: 'confirmed', root: true });
+    const r = build([kase('p1', 'Seal failures', [root])], [
+      todo('a', 'Fit a heater', { pillar: 'machine', causeRef: 'p1:c1', due: '2026-10-01' }),
+      todo('b', 'Ask the OEM', { pillar: 'people', state: 'waiting', due: '2026-10-09' }),
+      todo('c', 'Done one', { pillar: 'method', state: 'done', doneOn: '2026-10-02' }),
+    ]);
+    expect(r.slip).toBe('1 problem — acting on it · 2 open: People 1 · Machine 1, 1 past its day, 1 waiting on somebody.');
+    expect(r.slipSaid.filter(x => x.tone).map(x => [x.text, x.tone])).toEqual([['1 past its day', 'late'], ['1 waiting on somebody', 'waiting']]);
+    const { flat } = await paper(r);
+    expect(has(flat, r.slip)).toBe(true);
+  });
+
+  it('says a closed problem has no check set whatever phase the engine reads it in', async () => {
+    const r = build([kase('p1', 'Labels peel', [cause('c', 'method', 'No standard', { status: 'confirmed', root: true })], { status: 'closed', closedAt: NOW - DAY })], []);
+    expect(r.problems[0].holdless).toBe('Closed with no check set to keep the gain.');
+  });
+
+  it('says a gap problem\'s before and now are four-week averages, beside the latest reading in the gap', () => {
+    const r = build([kase('p1', 'Line 2A below its rate', [], { source: { kind: 'gap', measureId: 'm' }, openedAt: NOW - 3 * DAY })], []);
+    expect(r.problems[0].measure).toMatch(/^Packs per minute on Line 2A, on the four-week average: before /);
+  });
 });
 
