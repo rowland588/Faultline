@@ -14,7 +14,7 @@ import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
-import { STORE_WORDS } from '../db';
+import { STORE_WORDS, updateProject } from '../db';
 
 export function ProjectsScreen() {
   const { loading, projects, archived, create, restore, purge, contents } = useProjects();
@@ -27,6 +27,7 @@ export function ProjectsScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');
+  const [handover, setHandover] = useState('');
   /* THE PLAN MODEL, ASKED FOR ONCE, AT THE START.
    *
    * A project runs its plan on the 3P board (People / Plant / Process, off the
@@ -44,7 +45,15 @@ export function ProjectsScreen() {
   const doCreate = async () => {
     if (!name.trim() || !model) return;
     const p = await create(name, lead.trim() || undefined, model);
-    setName(''); setLead(''); setAdding(false); setModel(null);
+    /* THE DATE IT IS MEASURED AGAINST, ASKED AT THE START. A stage-gate job
+       is judged on its handover — every screen and the client report count
+       to it — and it was only asked for later, under Details, so a new job
+       opened with nothing to be measured against. What is agreed is also what
+       is expected, until it moves (and then the move asks why). */
+    if (model === 'commissioning' && handover) {
+      await updateProject({ ...p, plannedAt: handover, expectedAt: handover, updatedAt: Date.now() });
+    }
+    setName(''); setLead(''); setHandover(''); setAdding(false); setModel(null);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &
        people and ask for a line with a sponsor. A 3P or lever-tree project is
@@ -65,7 +74,9 @@ export function ProjectsScreen() {
           <p className="pace-lede">Every project is a change to a line. The live ones are on Home; this is where one starts, and where the archive is.</p>
         </div>
         <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => setAdding(a => !a)}>
+          {/* One blue button on the page: while the form is open, that is its
+              Create — Cancel steps back to a quiet one. */}
+          <button className={'btn ' + (adding ? 'btn-ghost' : 'btn-primary')} onClick={() => setAdding(a => !a)}>
             {adding ? 'Cancel' : 'New project'}
           </button>
           {/* The Excel export of everything used to be a button here; it is a
@@ -117,6 +128,12 @@ export function ProjectsScreen() {
                   placeholder="Who is accountable for it" onChange={e => setLead(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
               </label>
+              {model === 'commissioning' && (
+                <label className="proj-field">
+                  <span className="field-label">Handover agreed <span className="cw-f-opt">if there is one yet</span></span>
+                  <input className="text-input" type="date" value={handover} onChange={e => setHandover(e.target.value)} />
+                </label>
+              )}
             </div>
           )}
           <div className="row-inline" style={{ marginTop: 10 }}>

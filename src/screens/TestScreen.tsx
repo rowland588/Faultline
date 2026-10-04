@@ -182,7 +182,10 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           on a phone. */}
       <div className="tw-acts">
         <TrialCardButton test={test} project={projectId} />
-        {kind === 'test' ? (
+        {/* A RE-TEST FOLLOWS A RUN THAT DID NOT PROVE IT — didn't pass or
+            didn't run. Offered on a test still planned (or one that passed)
+            it was a door to a re-test of something not yet tried. */}
+        {kind === 'test' && (test.outcome === 'failed' || test.outcome === 'notRun') ? (
           <button className="btn" title="Carries the machine, the product and the expectation forward, so the plan writes itself."
             onClick={() => void (async () => {
               const id = await tt.planNextFrom(test);

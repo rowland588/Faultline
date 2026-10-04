@@ -438,9 +438,22 @@ describe('the sentence', () => {
     expect(s.sentence).not.toMatch(/to go/);
   });
 
-  it('says so on the day itself, and says nothing about days when no handover is set', () => {
+  it('says so on the day itself, and says there is no date — counting no days — when no handover is set', () => {
     expect(at({ materials: [mat({ due: '2026-09-29' })], expectedAt: TODAY }).sentence).toMatch(/^Handover is today, with 1 thing/);
-    expect(at({ materials: [mat({ due: '2026-09-29' })] }).sentence).toBe('1 thing outstanding — none of it late.');
+    expect(at({ materials: [mat({ due: '2026-09-29' })] }).sentence).toBe('No handover date yet, with 1 thing outstanding — none of it late.');
+  });
+
+  /* The grid draws a step that hit a problem solid red; the sentence said
+     nothing about it. */
+  it('names a machine that hit a problem, beside what is late and when nothing is', () => {
+    const wrapper = asset({ id: 'w', name: 'Ishida checkweigher' });
+    const stuck = test({ id: 'p1', kind: 'install', title: 'Positioned and levelled', assetId: 'w', outcome: 'failed', ranOn: '2026-09-20' });
+    const s = at({ assets: [wrapper], tests: [stuck], materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-30' });
+    expect(s.sentence).toMatch(/outstanding — none of it late, but Ishida checkweigher hit a problem at Positioned and levelled\.$/);
+    const late = at({ assets: [wrapper], tests: [stuck], materials: [mat({ due: '2026-09-01' })], expectedAt: '2026-09-30' });
+    expect(late.sentence).toMatch(/past the day it was wanted\. Ishida checkweigher hit a problem at Positioned and levelled\.$/);
+    // The stuck step is itself still owed, so there is always a count to lead on.
+    expect(at({ assets: [wrapper], tests: [stuck] }).sentence).toMatch(/^No handover date yet, with \d+ things? outstanding — none of it late, but Ishida checkweigher hit a problem at Positioned and levelled\.$/);
   });
 
   it('says the date has gone rather than counting backwards to it', () => {

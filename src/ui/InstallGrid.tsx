@@ -14,7 +14,7 @@
  * Nothing new is stored: a cell is an install step (see lib/testing), read
  * through lib/install's installGrid.
  */
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
@@ -466,8 +466,17 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
 }
 
 export function Sheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: React.ReactNode }) {
+  /* THE SAME CLOSE AS EVERY OTHER SHEET (ui/Sheet): Escape shuts it, and the
+     tap that opened it cannot also shut it — on a phone the click that
+     follows a touch lands where the finger was, which is now the scrim. */
+  const openedAt = useRef(Date.now());
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
-    <div className="ig-scrim" onClick={onClose}>
+    <div className="ig-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
       <div className="ig-sheet" role="dialog" aria-label={title} onClick={e => e.stopPropagation()}>
         <div className="ig-sheet-h">
           <span><b>{title}</b>{sub && <span className="sub">{sub}</span>}</span>

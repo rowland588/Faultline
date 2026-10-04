@@ -314,9 +314,16 @@ export function standing(input: StandingInput): Standing {
     ? daysBetween(input.plannedAt, input.expectedAt)
     : undefined;
 
+  /* A STEP THAT HIT A PROBLEM IS NEWS. The grid draws it solid red — the
+     loudest thing on the screen — and the sentence said nothing: "11 things
+     outstanding — one is past the day" over a machine stopped at its first
+     stage. It is named, machine and stage, until the step is done. */
+  const problems = tests.filter(t => isStep(t) && t.outcome === 'failed')
+    .map(t => ({ machine: assets.find(a => a.id === t.assetId)?.name ?? 'The line', stage: t.title.trim() || 'a stage' }));
+
   return {
     /* "N of M tests have run" is about tests — an install step is not one. */
-    sentence: sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests) }),
+    sentence: sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests), problems }),
     daysToGo, slipDays, outstanding, late, rows, plan,
   };
 }
@@ -343,8 +350,12 @@ export function unanswered(all: Test[]): number {
 function sentenceFor(x: {
   daysToGo?: number; handover?: string; slipDays?: number; late: number; outstanding: number;
   rows: OutstandingRow[]; tests: Test[]; unanswered: number;
+  problems: { machine: string; stage: string }[];
 }): string {
   const ran = x.tests.filter(hasRun).length;
+  const problem = x.problems.length === 0 ? ''
+    : x.problems.length === 1 ? `${x.problems[0].machine} hit a problem at ${x.problems[0].stage}`
+      : `${x.problems.length} steps hit a problem`;
 
   if (x.outstanding === 0) {
     /* NOT "nothing outstanding" over a test that failed and was never booked
@@ -379,8 +390,11 @@ function sentenceFor(x: {
      handover date typed on the job, so the sentence says so, and says which day
      — the one number a client can check against their own calendar. */
   const on = x.handover ? ` (${niceDay(x.handover, { weekday: 'short' })})` : '';
+  /* NO DATE IS SAID, NOT SKIPPED. A stage-gate job is measured against its
+     handover; without one the sentence led on a count and never said the
+     job had nothing to be measured against. */
   const head = x.daysToGo == null
-    ? `${plural(x.outstanding, 'thing')} outstanding`
+    ? `No handover date yet, with ${plural(x.outstanding, 'thing')} outstanding`
     : x.daysToGo < 0
       ? `${plural(Math.abs(x.daysToGo), 'day')} past the handover date${on}, with ${plural(x.outstanding, 'thing')} outstanding`
       : x.daysToGo === 0
@@ -391,8 +405,10 @@ function sentenceFor(x: {
      thing read "1 one is past the day it was wanted" on the dashboard. At one,
      the count is the word. */
   const tail = x.late > 0
-    ? ` — ${x.late === 1 ? 'one is' : `${x.late} of them are`} past the day it was wanted${blame}.`
-    : ' — none of it late.';
+    /* Its own sentence beside a late count: "…and it is Ilapak UK's, and
+       Ishida checkweigher hit a problem" read as one breathless list. */
+    ? ` — ${x.late === 1 ? 'one is' : `${x.late} of them are`} past the day it was wanted${blame}.${problem ? ` ${problem}.` : ''}`
+    : problem ? ` — none of it late, but ${problem}.` : ' — none of it late.';
 
   return `${head[0].toUpperCase()}${head.slice(1)}${tail}`;
 }
