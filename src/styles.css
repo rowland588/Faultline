@@ -8956,6 +8956,12 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .bd6-filters { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .bd6-frow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .bd6-fk { min-width: 38px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+/* On a phone a chip row scrolls sideways rather than wrapping to three rows
+   and pushing the board off the first screen. */
+@media (max-width: 720px) {
+  .bd6-frow[role="group"] { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -16px; padding-right: 16px; }
+  .bd6-frow[role="group"] .chip, .bd6-frow[role="group"] .bd6-fk { flex: 0 0 auto; }
+}
 .bd6-owner { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .bd6-owner select {
   min-height: 36px; max-width: min(260px, 62vw); padding: 4px 8px; font: inherit; font-size: 13px;
@@ -9022,7 +9028,7 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .ns6-table th:nth-child(7), .ns6-table td:nth-child(7) { width: 10%; }
 .ns6-table th:nth-child(8), .ns6-table td:nth-child(8) { width: 12%; }
 .ns6-table { min-width: 1000px; }
-.ns-sel { display: block; min-height: 34px; margin-bottom: 3px; cursor: pointer; }
+.ns-sel { display: block; min-width: 124px; min-height: 34px; margin-bottom: 3px; cursor: pointer; }
 .ns-sel.is-unset { color: var(--muted); border-color: var(--line-2); border-style: dashed; }
 .ns-ro { display: block; padding: 7px 8px; font-size: 13px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; white-space: pre-wrap; }
 .ns-open {

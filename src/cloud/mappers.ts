@@ -154,7 +154,10 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   cases: {
     clock: l => (l as Case).updatedAt ?? (l as Case).openedAt,
-    mediaKeys: () => [],
+    /* A cause on the fishbone can carry a photo ("I saw…", docs/SIXM.md) —
+       those files go up with the problem, like a test's do. With none, the
+       photo stayed on the phone and the laptop never saw it. */
+    mediaKeys: l => { const c = l as Case; return (c.causes ?? []).flatMap(x => (x.media ?? []).flatMap(m => [...k(m.blobKey, m.mime, c.ownerId), ...k(m.thumbKey, 'image/jpeg', c.ownerId)])); },
     toRow: (l, fallbackOwner) => {
       const c = l as Case;
       return { id: c.id, owner_id: c.ownerId ?? fallbackOwner, workspace_id: c.workspaceId,

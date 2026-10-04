@@ -52,6 +52,64 @@ do $p$ begin
   end if;
 end $p$;
 
+-- A photo on a cause ("I saw…") is a file the problem names: the media
+-- bucket's rule (faultline_can_see_media) learns to look inside cases.causes,
+-- so the phone may upload it and anybody who can see the problem may read it.
+-- Same function as before, with one more place it looks; nothing else moves.
+create or replace function public.faultline_can_see_media(object_name text)
+returns boolean language plpgsql stable set search_path to 'public' as $function$
+declare k text := regexp_replace(object_name, '^.*/', '');
+        one jsonb := jsonb_build_array(jsonb_build_object('blobKey', k));
+        two jsonb := jsonb_build_array(jsonb_build_object('thumbKey', k));
+        hit boolean := false;
+begin
+  if to_regclass('public.observations') is not null then
+    execute 'select exists (select 1 from public.observations where media @> $1 or media @> $2)' into hit using one, two;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.segments') is not null then
+    execute 'select exists (select 1 from public.segments where video_key = $1 or poster_key = $1)' into hit using k;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.snag_assets') is not null then
+    execute 'select exists (select 1 from public.snag_assets where still_key = $1)' into hit using k;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.snags') is not null then
+    execute 'select exists (select 1 from public.snags where detail_photo_key = $1 or fixed_photo_key = $1)' into hit using k;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.pace_todos') is not null then
+    execute 'select exists (select 1 from public.pace_todos where media @> $1 or media @> $2)' into hit using one, two;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.tests') is not null then
+    execute 'select exists (select 1 from public.tests where media @> $1 or media @> $2 or docs @> $1)' into hit using one, two;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.test_items') is not null then
+    execute 'select exists (select 1 from public.test_items where media @> $1 or media @> $2)' into hit using one, two;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.commission_assets') is not null then
+    execute 'select exists (select 1 from public.commission_assets where docs @> $1)' into hit using one;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.commission_items') is not null then
+    execute 'select exists (select 1 from public.commission_items where photos @> $1 or photos @> $2)' into hit using one, two;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.standards') is not null then
+    execute 'select exists (select 1 from public.standards where photo_key = $1)' into hit using k;
+    if hit then return true; end if;
+  end if;
+  if to_regclass('public.cases') is not null then
+    execute 'select exists (select 1 from public.cases where causes @> jsonb_build_array(jsonb_build_object(''media'', $1)) or causes @> jsonb_build_array(jsonb_build_object(''media'', $2)))' into hit using one, two;
+    if hit then return true; end if;
+  end if;
+  return false;
+end $function$;
+
 -- ---------------------------------------------------------------- read back
 select 'column' as what, table_name || '.' || column_name as name from information_schema.columns
   where table_schema = 'public' and (
