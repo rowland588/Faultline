@@ -61,6 +61,52 @@ Strip the branding off and every serious OpEx system makes the same six moves:
 | **Process** | the way the work is done — methods, changeovers, standards, measurement | changeover against its standard, cycle against takt (line balance), whether the standard work is followed, defects |
 | **Materials** | what runs through the line — the product (size, shape, quality), film, packaging, ingredients | material-caused stops, spec failures, supplier defects, shortages, yield |
 
+## Root cause analysis — the fishbone and the five whys together
+
+Decided with Rowland, 4 October: the cause families are the traditional
+**6M**, in plain words — **People · Machine · Method · Material ·
+Measurement · Environment** — and that makes the method a root cause
+analysis system, not a sorting board.
+
+How the established practice runs (Toyota A3, Ford 8D, Lean Six Sigma all use
+the same two tools at the same step):
+
+1. **State the problem — the head of the fish.** Specific and measured:
+   "Bagger minor stops: 3.2 h a week, 41% of the line's lost time", not
+   "the bagger is unreliable". It comes from the gap or a Pareto bar.
+2. **The fishbone generates the possible causes** under each M. Its job is
+   breadth — to stop everyone blaming the machine.
+3. **Pick the likely ones and verify them** — go and see, check the data.
+   A cause is *suspected* until confirmed (the evidence grades above).
+4. **The five whys drill each confirmed cause** to its root. It *branches*:
+   a single chain finds one root and misses the parallel ones.
+5. **The "therefore" test** — read the chain back up from root to effect;
+   if it does not hold, it is not the root.
+6. **The countermeasure acts on the root cause**, with a prediction.
+7. **Check the effect moved**, then **hold**: update the standard and set
+   the check (8D's "prevent recurrence").
+
+The traps the literature names, which the app should guard against:
+
+- **A why that ends at a person is not a root cause.** "Operator error",
+  "didn't follow the procedure", "forgot" are where the questioning should
+  continue: what let it happen — a missing standard, an unclear
+  instruction, no check, untrained, a design that allows it?
+- **Confirmation bias** — finding evidence for the chain you already like.
+  Keeping the evidence grade on every link makes a guess visible.
+- **Stopping at the first plausible answer** (8D's D4 trap).
+- **Using it for everything.** A full fishbone is for the big losses — the
+  top of the Pareto, the constraint. A small obvious fix goes straight to an
+  action ("just do it").
+
+Sources: [Fishbone + 5 Whys in manufacturing](https://rzsoftware.com/fishbone-analysis/),
+[How 5 Whys and Ishikawa complement each other](https://www.checkproof.com/fr/blog/risk-assessment/how-5-whys-and-ishikawa-complement-each-other/),
+[Root cause analysis using a fishbone and the five whys](https://www.modernanalyst.com/Resources/Articles/tabid/115/ID/5914/Root-Cause-Analysis-Using-a-Fishbone-Diagram-and-the-Five-Whys.aspx),
+[5-Whys and "human error" (TapRooT)](https://taproot.com/dissatisfied-with-5-why-root-cause-analysis/),
+[8D problem solving (ASQ)](https://asq.org/quality-resources/eight-disciplines-8d),
+[8D, D4–D7](https://www.fabrico.io/blog/8d-problem-solving/),
+[A3 steps (Montana State)](https://www.montana.edu/dsobek/a3/steps.html).
+
 ## Left out on purpose
 
 Six Sigma statistics (control charts, measurement-system studies),
