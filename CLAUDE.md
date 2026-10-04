@@ -37,12 +37,18 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   tests against what was agreed, fixes, what it waits on) to handover, with
   the OEM. Stored as `commissioning` on the project; never shown under that
   name — commissioning is one gate in the middle, not the method.
-- **3P** — a line's improvement run week by week on the board, actions
-  sorted People · Plant · Process. Kept entirely in the app: the actions are
-  the project's next steps with a People / Plant / Process tag and a due date
-  (`src/lib/actions.ts`). Rowland, 1 October: "There will be no Excel that
-  needs to be uploaded ... this is about now fully using the app." Nothing in
-  3P asks for a workbook.
+- **6M** — a running line made to perform better, as a root cause analysis
+  (replaced "3P" on 4 October; `docs/SIXM.md` is the design). The gap → the
+  problem (the head of the fish, from the Pareto, the constraint or something
+  seen) → causes on the six bones — **People · Machine · Method · Material ·
+  Measurement · Environment** (`src/lib/sixm.ts`) — each drilled with the five
+  whys → countermeasures (the actions on the board, with what they should
+  change) → proof on the same number → holding. The fishbone is its journey,
+  as the Gantt is stage gate's: it fills itself from the Pareto, the walk, the
+  standard and the line balance, and every cause says how it is known
+  (measured · counted · observed · reported). Kept entirely in the app — Rowland,
+  1 October: "There will be no Excel that needs to be uploaded ... this is about
+  now fully using the app." Stored as the `board` model; the problem is a `case`.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
 `docs/OPEX.md` is the knowledge base behind the running-line method — what
@@ -290,8 +296,8 @@ what by when?
    (`--st-r`) is the day that has gone, or a failure. Amber (`--st-a`) is
    waiting on somebody, or due soon. Indigo (`--st-w`) is under way or still
    ahead. Green (`--st-g`) is done. Grey (`--st-n`) is not started. Brand blue
-   is for what you press, never a state. Nothing else wears these hues: the 3P
-   columns are told apart by place and name, not colour. The PDFs use the same
+   is for what you press, never a state. Nothing else wears these hues: the six
+   bones of the fishbone are told apart by place and name, not colour. The PDFs use the same
    five values. Set 4 October: a step with a day booked is still ahead
    (indigo); a step with no day is not started (grey); a gate where nothing
    has started is grey and says "not started"; a stage not on a machine's
