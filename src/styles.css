@@ -7087,12 +7087,10 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .vo-spare { margin: 0; font-size: 13px; color: var(--ink-2); display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
 /* The account, editable before it goes in: under its row, the full width. */
 .vo-edit { display: block; width: 100%; box-sizing: border-box; margin: 0 0 8px; padding: 8px 10px; font: inherit; font-size: 15px; line-height: 1.45; color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); resize: vertical; }
-/* The stage sheet's account — how it went, kept and put right here. */
-.ig-how { display: grid; gap: 6px; margin: 4px 0 2px; }
-.ig-how-l { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.ig-how-t { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink); white-space: pre-wrap; }
-.ig-how textarea { display: block; width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit; font-size: 15px; line-height: 1.45; border: 1px solid var(--line); border-radius: var(--radius-sm); resize: vertical; }
-.ig-how-go { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* The "Hit a problem" sheet: its heading and the mic on one line, and what
+   was said under it — the boxes below are what it filled. */
+.why-say { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.why-said { margin: 2px 0 4px; }
 .vo-go { display: flex; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 720px) {
   .vo-go .btn { flex: 1 1 0; min-height: var(--tap, 44px); }

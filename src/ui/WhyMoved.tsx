@@ -10,7 +10,9 @@
  */
 import { useState } from 'react';
 import type { MediaRef } from '../types';
-import { plannedEnd, type Test } from '../lib/testing';
+import { plannedEnd, type Asset, type Test } from '../lib/testing';
+import { VoiceNote } from './Voice';
+import { contextFor, problemFill, type VoiceResult } from '../lib/voice';
 import { followingOf, movedLater, runsInto } from '../lib/story';
 import { putTestItem } from '../db';
 import { todayISO } from '../lib/weeks';
@@ -25,6 +27,9 @@ import { EvidenceViewer } from './Evidence';
 type TT = ReturnType<typeof useTesting>;
 
 export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string }; shiftFollowing?: boolean }
+
+/** The problem sheet's boxes as a voice note filled them (lib/voice problemFill). */
+export interface ProblemFill { why: string; to: string; fix: boolean; fixOn: string; said?: string }
 
 /** What follows a stage on its machine, for the knock-on question. */
 export interface Following { n: number; into: string[] }
@@ -172,19 +177,33 @@ export async function recordThingMove(projectId: string, key: string, from: stri
  * whether it pushes the finish — and to when — and a fix, are one answer. A
  * later finish is kept as a move with this problem as its reason, so the Gantt
  * shows the overrun and why. */
-export function ProblemForm({ step, onSave, onCancel, tests = [] }: {
+export function ProblemForm({ step, onSave, onCancel, tests = [], assets = [], initial }: {
   step: Test;
   /** The job's steps — for what follows on the machine. */
   tests?: Test[];
+  /** The job's machines — the names the voice reader spells against. */
+  assets?: Asset[];
+  /** The boxes as a voice note on the stage already filled them. */
+  initial?: ProblemFill;
   onSave: (a: WhyAnswer & { to?: string }) => void;
   onCancel: () => void;
 }) {
   const end = plannedEnd(step);
-  const [why, setWhy] = useState('');
+  const [why, setWhy] = useState(initial?.why ?? '');
   const [media, setMedia] = useState<MediaRef[]>([]);
-  const [to, setTo] = useState('');
-  const [fix, setFix] = useState(false);
-  const [fixOn, setFixOn] = useState('');
+  const [to, setTo] = useState(initial?.to ?? '');
+  const [fix, setFix] = useState(!!initial?.fix);
+  const [fixOn, setFixOn] = useState(initial?.fixOn ?? '');
+  const [said, setSaid] = useState<string | undefined>(initial?.said);
+  /* SPOKEN INTO THESE BOXES. Rowland, 4 October: "allow me to speak inside
+     that sheet, in the correct boxes." A note fills what happened, the finish
+     and the fix right here — the sheet is the review; nothing is kept until
+     Save. What is already in "What happened" goes with the recording, so a
+     second note is worked into it, not stacked under it. */
+  const heard = (r: VoiceResult) => {
+    const f = problemFill(r, { why, to, fix, fixOn });
+    setWhy(f.why); setTo(f.to); setFix(f.fix); setFixOn(f.fixOn); setSaid(f.said);
+  };
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const later = movedLater(end, to || undefined);
   const following = later && to ? followingSummary(step, tests, to) : undefined;
@@ -196,7 +215,13 @@ export function ProblemForm({ step, onSave, onCancel, tests = [] }: {
   const shift = picked ?? !!following?.into.length;
   return (
     <div className="why">
-      <p className="why-h">What's the problem?</p>
+      <span className="why-say">
+        <p className="why-h">What's the problem?</p>
+        <VoiceNote form="problem" label="Say it"
+          context={() => ({ ...contextFor(assets, tests, todayISO(), step), on: { title: step.title, machine: assets.find(a => a.id === step.assetId)?.name, ...(why.trim() ? { result: why.trim() } : {}) } })}
+          onHeard={heard} />
+      </span>
+      {said && <p className="vo-said why-said"><span className="vo-said-l">You said</span> “{said}”</p>}
       <span className="why-quick">
         {QUICK.map(q => <button key={q} type="button" className={why === q ? 'on' : ''} onClick={() => setWhy(q)}>{q}</button>)}
       </span>

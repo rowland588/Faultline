@@ -22,7 +22,7 @@
 
 /* ------------------------------ the contract ------------------------------ */
 
-export type VoiceForm = 'fix' | 'found' | 'test' | 'install';
+export type VoiceForm = 'fix' | 'found' | 'test' | 'install' | 'problem';
 
 export interface VoiceContext {
   /** Today, as the phone sees it — "Friday" means the Friday after this. */
@@ -83,8 +83,10 @@ const NOTES = (what: string) => ({
 const OUTCOME = (words: string) => ({ type: 'STRING', enum: ['passed', 'failed', 'notRun'], description: words });
 
 /** Per form: what it is for, and the fields it has. Only fields the app
- *  already stores — nothing here invents a place to put something. */
-export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unknown> }> = {
+ *  already stores — nothing here invents a place to put something. `account`
+ *  names the field that carries the spoken account (default "result"): a
+ *  second note on the same record is worked into it (promptFor). */
+export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unknown>; account?: string }> = {
   fix: {
     what: 'a FIX: something on the line that has to be put right.',
     fields: {
@@ -122,7 +124,23 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
       notes: NOTES('A separate thing FOUND doing it — a part missing, a wrong drawing, a snag — one per note. Not what was done; empty when none.'),
     },
   },
+  /* THE "HIT A PROBLEM" SHEET (ui/WhyMoved ProblemForm), box for box. Rowland,
+     4 October: "allow me to speak inside that sheet, in the correct boxes." */
+  problem: {
+    what: 'a PROBLEM a stage of a machine’s install, set-up or handover has hit: what happened, whether it pushes the stage’s finish, and whether a fix is being booked.',
+    account: 'why',
+    fields: {
+      why: { type: 'STRING', description: 'WHAT HAPPENED — the problem in clean sentences: what went wrong, what was found, what it is waiting on. Any commentary about the problem goes here.' },
+      pushesTo: { type: 'STRING', description: 'ISO date the stage will now FINISH, if a new finish day was said ("it will be Friday now", "pushes it to the 12th"); empty when not said or when it does not move.' },
+      fix: { type: 'BOOLEAN', description: 'true only when they said a fix is being booked or someone is coming to fix it; leave out otherwise.' },
+      fixOn: { type: 'STRING', description: 'ISO date agreed for the fix, if one was said; empty otherwise.' },
+    },
+  },
 };
+
+/** The field that carries the spoken account on this form, if it has one. */
+export const accountOf = (form: VoiceForm): string | undefined =>
+  FORMS[form].account ?? (FORMS[form].fields.result ? 'result' : undefined);
 
 export function schemaFor(form: VoiceForm): Record<string, unknown> {
   const f = FORMS[form];
@@ -150,14 +168,14 @@ export function promptFor(form: VoiceForm, ctx: VoiceContext): string {
     `Today is ${ctx.today}. Turn "today", "tomorrow", "Friday" and the like into ISO dates from today.`,
     /* TALKING IS THE WRITING. Rowland: "the entire principle is talk instead
        of writing". On a record the person chose, what they say is about it. */
-    'An account of the work always belongs in "result": how it went, what happened, what is worrying them, what comes next. When unsure, it belongs in "result". Only something plainly about a DIFFERENT machine or record goes in "leftover", word for word — never drop it.',
-    "Write \"result\" as clean sentences in the speaker's own words: drop the ums, false starts and repeats, fix obvious mis-hearings, keep every fact, name and number they said.",
+    accountOf(form) ? `An account always belongs in "${accountOf(form)}": how it went, what happened, what is worrying them, what comes next. When unsure, it belongs in "${accountOf(form)}". Only something plainly about a DIFFERENT machine or record goes in "leftover", word for word — never drop it.` : 'Anything said that does not belong in this form goes in "leftover", word for word — never drop it.',
+    accountOf(form) ? `Write "${accountOf(form)}" as clean sentences in the speaker's own words: drop the ums, false starts and repeats, fix obvious mis-hearings, keep every fact, name and number they said.` : '',
     /* SPEAKING AGAIN FOR THE SAME RECORD. Rowland: "if I have to speak again
        for the same section, intelligence must make sense of what I am
        saying." The account as it stands goes with the recording; what comes
        back is the account as it should now read. */
-    ctx.on?.result?.trim() && FORMS[form].fields.result
-      ? `This record's account already reads:\n«${ctx.on.result.trim()}»\nIn "result", return the WHOLE account as it should now read: what was already there with what was just said worked in. Where the speaker corrects something, the correction replaces it; something said again is said once; nothing already there is dropped unless they corrected it. Keep it in the order things happened.`
+    ctx.on?.result?.trim() && accountOf(form)
+      ? `This record's account already reads:\n«${ctx.on.result.trim()}»\nIn "${accountOf(form)}", return the WHOLE account as it should now read: what was already there with what was just said worked in. Where the speaker corrects something, the correction replaces it; something said again is said once; nothing already there is dropped unless they corrected it. Keep it in the order things happened.`
       : '',
     'British English. Do not add anything that was not said.',
   ].filter(Boolean).join('\n');
@@ -173,6 +191,7 @@ export function tidy(form: VoiceForm, raw: unknown): VoiceResult {
   const given = r.fields ?? {};
   for (const k of Object.keys(FORMS[form].fields)) {
     const v = given[k];
+    if (k === 'fix') { if (v === true) out.fix = true; continue; }
     if (k === 'notes' && Array.isArray(v)) {
       const notes = v.map(n => ({ what: str((n as { what?: unknown }).what), owner: str((n as { owner?: unknown }).owner) }))
         .filter(n => n.what);
@@ -181,7 +200,7 @@ export function tidy(form: VoiceForm, raw: unknown): VoiceResult {
     }
     const s = str(v);
     if (!s) continue;
-    if ((k === 'ranOn' || k === 'plannedFor') && !/^\d{4}-\d{2}-\d{2}$/.test(s)) continue;
+    if ((k === 'ranOn' || k === 'plannedFor' || k === 'pushesTo' || k === 'fixOn') && !/^\d{4}-\d{2}-\d{2}$/.test(s)) continue;
     if (k === 'outcome' && !['passed', 'failed', 'notRun'].includes(s)) continue;
     out[k] = s;
   }
@@ -192,7 +211,8 @@ export function tidy(form: VoiceForm, raw: unknown): VoiceResult {
 /** tidy(), and whether the account that came back is the whole merged one. */
 export function tidyFor(form: VoiceForm, raw: unknown, ctx: VoiceContext): VoiceResult {
   const r = tidy(form, raw);
-  return ctx.on?.result?.trim() && typeof r.fields.result === 'string' ? { ...r, merged: true } : r;
+  const k = accountOf(form);
+  return ctx.on?.result?.trim() && k && typeof r.fields[k] === 'string' ? { ...r, merged: true } : r;
 }
 
 /* ------------------------------- the model -------------------------------- */
@@ -326,7 +346,7 @@ export async function GET(request: Request): Promise<Response> {
       v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
       w(36, 'data'); v.setUint32(40, 32000, true);
       let bin = ''; for (const b of silence) bin += String.fromCharCode(b);
-      /* &form=fix|test|install|found — each form's own schema, because a
+      /* &form=fix|test|install|found|problem — each form's own schema, because a
          schema one model accepts another can refuse, and the found-form alone
          proved nothing about the other three. */
       const asked = params.get('form') as VoiceForm | null;

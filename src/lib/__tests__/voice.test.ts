@@ -2,7 +2,7 @@
  * before any is made — asserted here, and the server's own tidying with it. */
 import { describe, it, expect } from 'vitest';
 import { flashModels, pickModel, schemaFor, tidy, tidyFor, promptFor } from '../../../api/voice';
-import { changesFor, contextFor, machineNamed, proposalFrom, wav } from '../voice';
+import { changesFor, contextFor, machineNamed, problemFill, proposalFrom, wav } from '../voice';
 import type { Asset, Test } from '../testing';
 
 const TODAY = '2026-09-30';
@@ -129,6 +129,34 @@ describe('nothing said is lost, and saying more makes sense of it', () => {
     const raw = { transcript: 't', fields: { result: 'All of it' } };
     expect(tidyFor('install', raw, { today: TODAY, on: { result: 'Some' } }).merged).toBe(true);
     expect(tidyFor('install', raw, { today: TODAY, on: { title: 'x' } }).merged).toBeUndefined();
+  });
+});
+
+/* "Allow me to speak inside that sheet, in the correct boxes" — the Hit a
+   problem sheet (ui/WhyMoved ProblemForm), box for box. */
+describe('a note said into the Hit a problem sheet', () => {
+  const empty = { why: '', to: '', fix: false, fixOn: '' };
+  it('the reader is given exactly that sheet’s boxes', () => {
+    const r = tidy('problem', { transcript: 't', fields: { why: ' Guard brackets wrong size ', pushesTo: '2026-10-09', fix: true, fixOn: 'next week', colour: 'red' } });
+    expect(r.fields).toEqual({ why: 'Guard brackets wrong size', pushesTo: '2026-10-09', fix: true });
+    expect(Object.keys((schemaFor('problem').properties as { fields: { properties: object } }).fields.properties)).toEqual(['why', 'pushesTo', 'fix', 'fixOn']);
+  });
+  it('fills what happened, the finish and the fix', () => {
+    const f = problemFill({ transcript: 'brackets wrong, Friday now, Brillopak coming Tuesday', fields: { why: 'Guard brackets arrived the wrong size.', pushesTo: '2026-10-09', fix: true, fixOn: '2026-10-06' } }, empty);
+    expect(f).toMatchObject({ why: 'Guard brackets arrived the wrong size.', to: '2026-10-09', fix: true, fixOn: '2026-10-06' });
+  });
+  it('loses nothing: what did not fit joins what happened, and bare words are it', () => {
+    expect(problemFill({ transcript: 'x', fields: { why: 'Brackets wrong.' }, leftover: 'Ring Dave.' }, empty).why).toBe('Brackets wrong. Ring Dave.');
+    expect(problemFill({ transcript: 'Testing to see if this works', fields: {} }, empty).why).toBe('Testing to see if this works');
+  });
+  it('a second note is worked into what is there when merged, and added after it when not', () => {
+    const now = { ...empty, why: 'Brackets wrong.', to: '2026-10-09' };
+    expect(problemFill({ transcript: 'x', fields: { why: 'Brackets wrong — the left pair only.' }, merged: true }, now)).toMatchObject({ why: 'Brackets wrong — the left pair only.', to: '2026-10-09' });
+    expect(problemFill({ transcript: 'x', fields: { why: 'Left pair only.' } }, now).why).toBe('Brackets wrong. Left pair only.');
+  });
+  it('the merge asks for the whole of "What happened" back', () => {
+    expect(promptFor('problem', { today: TODAY, on: { result: 'Brackets wrong.' } })).toContain('In "why", return the WHOLE account');
+    expect(tidyFor('problem', { transcript: 't', fields: { why: 'All' } }, { today: TODAY, on: { result: 'Some' } }).merged).toBe(true);
   });
 });
 

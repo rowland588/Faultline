@@ -136,7 +136,7 @@ export function StagePanel({ stepId, title, href, tests, items, projectId, onClo
             })()} />
         )}
         {doing === 'problem' && (
-          <ProblemForm step={step} tests={tt.tests} onCancel={() => setDoing(null)}
+          <ProblemForm step={step} tests={tt.tests} assets={tt.assets} onCancel={() => setDoing(null)}
             onSave={a => { void recordProblem(tt, step, a, `${title} hit a problem${a.fix ? ', fix booked' : ''}`); setDoing(null); }} />
         )}
         {!doing && (

@@ -195,6 +195,23 @@ export function proposalFrom(t: Test, r: VoiceResult, assets: Asset[], today: st
   return { changes, notes };
 }
 
+/** A note said into the "Hit a problem" sheet → its boxes (ui/WhyMoved
+ *  ProblemForm). What happened takes the account — the whole of it when the
+ *  reader worked the note into what was there (merged), else added after it;
+ *  what did not fit joins it, and words with nothing landed are it. A day or a
+ *  fix only fills its box when it was said; a box already filled keeps its
+ *  value unless the note says a new one. Nothing is kept until Save. */
+export function problemFill(r: VoiceResult, now: { why: string; to: string; fix: boolean; fixOn: string }):
+  { why: string; to: string; fix: boolean; fixOn: string; said: string } {
+  const s = (k: string) => (typeof r.fields[k] === 'string' ? (r.fields[k] as string).trim() : '');
+  const told = [s('why'), (r.leftover ?? '').trim()].filter(Boolean).join(' ')
+    || (Object.keys(r.fields).length === 0 ? (r.transcript ?? '').trim() : '');
+  const was = now.why.trim();
+  const why = !told ? now.why : r.merged && s('why') ? told : was ? `${was} ${told}` : told;
+  const fixOn = s('fixOn') || now.fixOn;
+  return { why, to: s('pushesTo') || now.to, fix: now.fix || r.fields.fix === true || !!s('fixOn'), fixOn, said: (r.transcript ?? '').trim() };
+}
+
 /** The job's names, for the model to spell against. */
 export function contextFor(assets: Asset[], tests: Test[], today: string, on?: Test): VoiceContext {
   const liveAssets = assets.filter(a => !a.deletedAt);
