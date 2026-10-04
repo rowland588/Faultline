@@ -286,7 +286,14 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
 function LateAlarms({ projectId }: { projectId: string }) {
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
+  return <LateAlarmsOf projectId={projectId} mats={mats} progs={progs} />;
+}
 
+/* The alarms drawn from lists already read. On a stage-gate job the overview
+   reads them once and hands them down — see TestingOverview. */
+function LateAlarmsOf({ projectId, mats, progs }: {
+  projectId: string; mats: ReturnType<typeof useMaterials>; progs: ReturnType<typeof usePrograms>;
+}) {
   return (
     <>
       {mats.tally.late > 0 && (
@@ -324,15 +331,15 @@ function LateAlarms({ projectId }: { projectId: string }) {
 
 /** THE DAY, one line under the verdict: today's story if there is one yet,
  *  otherwise the last day that has one — and a tap reads it whole. */
-function DayLink({ projectId }: { projectId: string }) {
-  const tt = useTesting(projectId);
-  const mats = useMaterials(projectId);
-  const progs = usePrograms(projectId);
-  if (tt.loading || mats.loading || progs.loading) return null;
+function DayLink({ projectId, tt, mats, progs }: {
+  projectId: string; tt: ReturnType<typeof useTesting>;
+  mats: ReturnType<typeof useMaterials>; progs: ReturnType<typeof usePrograms>;
+}) {
   const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs };
   const today = todayISO();
   const now = dayOf(input, today, today);
-  const last = activeDays(input).filter(d => d < today).pop();
+  /* Every day the job has a story on is only needed when today has none. */
+  const last = now.empty ? activeDays(input).filter(d => d < today).pop() : undefined;
   const shown = !now.empty || !last ? now : dayOf(input, last, today);
   return (
     <button className="dy-link" onClick={() => nav(`/project/${projectId}/day${shown.date === today ? '' : `?d=${shown.date}`}`)}>
@@ -372,7 +379,13 @@ function TestingOverview({ projectId, name, edit }: { projectId: string; name: s
      past their test date. Same call the client report makes. */
   const all = useStanding(projectId);
   const progs = usePrograms(projectId);
-  if (tt.loading || all.loading) return <p className="sub">Loading…</p>;
+  /* READ ONCE, DRAWN TOGETHER. The day's line and the late alarms each read
+     the whole job again for themselves, so on a big job they arrived a second
+     after the rest of the page and pushed every card under them down — under
+     a thumb already on its way to "Where each machine is". They are handed
+     these lists, and the page is drawn when all of it is in. */
+  const mats = useMaterials(projectId);
+  if (tt.loading || all.loading || mats.loading || progs.loading) return <p className="sub">Loading…</p>;
 
   const today = todayISO();
   const st = all.standing;
@@ -424,8 +437,8 @@ function TestingOverview({ projectId, name, edit }: { projectId: string; name: s
           <Verdict st={st} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />
-          <DayLink projectId={projectId} />
-          <LateAlarms projectId={projectId} />
+          <DayLink projectId={projectId} tt={tt} mats={mats} progs={progs} />
+          <LateAlarmsOf projectId={projectId} mats={mats} progs={progs} />
           {machines.length > 0 && (
             <Fold id="where" title="Where each machine is" says={whereSays}>
               <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />

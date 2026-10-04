@@ -9,6 +9,7 @@
  * has got, what is next and whose it is, what stopped it — so the Install
  * screen and, later, the client report say the same sentence from one call.
  */
+import { owns } from './format';
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
@@ -105,7 +106,7 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
     return `${head} ${t.title} was worked on${t.ranOn ? ` ${day(t.ranOn)}` : ''} — nobody has said if it is done.${fixes}`;
   }
   if (next.tone === 'late') {
-    return `${head} ${t.title} is late${when ? ` — it was due ${day(when)}` : ''}${who ? `, ${who}’s` : ''}.${fixes}`;
+    return `${head} ${t.title} is late${when ? ` — it was due ${day(when)}` : ''}${who ? `, ${owns(who)}` : ''}.${fixes}`;
   }
   /* A block of days says both ends — "5 to 9 Oct" — a single day says one. */
   const span = t.plannedFor && t.plannedTo && t.plannedTo > t.plannedFor ? `${day(t.plannedFor)} to ${day(t.plannedTo)}` : when ? day(when) : '';

@@ -53,3 +53,7 @@ export function readNumber(typed: string): number | undefined {
   const n = Number(plain);
   return Number.isFinite(n) ? n : undefined;
 }
+
+/** "Ilapak’s", "Loma Systems’" — a name that ends in s takes the apostrophe
+ *  alone; "Loma Systems’s" read as a typing slip on a client's screen. */
+export const owns = (name: string): string => (/s$/i.test(name.trim()) ? `${name}’` : `${name}’s`);

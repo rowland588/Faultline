@@ -26,6 +26,7 @@
  * machine. That is what turns a list of failures into a document you can hand
  * to an OEM.
  */
+import { owns } from './format';
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
@@ -419,7 +420,7 @@ function sentenceFor(x: {
     return !!name && (n ? Number(n) : 1) === r.late;
   });
   const blame = x.late > 0 && owners.size === 1 && allTheirs
-    ? `, and ${x.late === 1 ? 'it is' : 'they are all'} ${[...owners][0]}’s`
+    ? `, and ${x.late === 1 ? 'it is' : 'they are all'} ${owns([...owners][0] ?? '')}`
     : '';
 
   /* SAY WHAT THE DAYS ARE COUNTED TO. "8 days to go" over a job whose first

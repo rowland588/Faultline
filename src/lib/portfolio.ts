@@ -21,6 +21,7 @@
  * Pure: the screen loads the records and draws what comes back. Nothing here
  * reads a clock except through `today`.
  */
+import { owns } from './format';
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
 import { assetStateOf, isOverdue, isSettled, isTestFace, live, plannedEnd, titleOnMachine } from './testing';
@@ -444,7 +445,7 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
   if (late === 0) return `${bits.join(' · ')}. Nothing is past its day.`;
   const top = [...owes].sort((a, b) => b.late - a.late)[0];
   const owner = top ? (top.kind === 'site' ? 'the site' : top.who) : '';
-  const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${owner}’s` : '';
+  const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${owns(owner)}` : '';
   return `${bits.join(' · ')}. ${plural(late, 'thing')} past the day${whose}.`;
 }
 
