@@ -6067,6 +6067,26 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .tl-m.is-done .tl-dot, .tl-m.is-failed .tl-dot, .tl-m.is-ran .tl-dot { background: currentColor; }
 /* a day that has gone, or a run that did not pass, says so in the date too */
 .tl-m.is-late .tl-lab-d, .tl-m.is-failed .tl-lab-d { color: currentColor; font-weight: 700; }
+/* A MARK THAT OPENS (Timeline onOpen — the job's drawer on Home): the dot, the
+   bar and the words are one button. Nothing about the drawing moves; it gains
+   a cursor, an underline under the pointer, and a focus ring round the words. */
+button.tl-m.is-go { display: block; margin: 0; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+button.tl-m.is-go:focus { outline: none; }
+button.tl-m.is-go:focus-visible .tl-lab { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
+/* A finger needs 44px; a row is 24. The ring is invisible and reaches mostly
+   DOWN: each row paints over the one before it, so a ring that went up would
+   sit over the words of the mark above and take its taps. Under the words and
+   the dot, so a word you can see always opens its own mark. */
+@media (pointer: coarse) {
+  /* the lanes and rows are empty positioned boxes painted after the row above,
+     so they would catch the ring's taps; they open nothing themselves */
+  .tl-lane, .tl-row { pointer-events: none; }
+  .tl-m { pointer-events: auto; }
+  button.tl-m.is-go .tl-lab::before { content: ''; position: absolute; z-index: -1; top: -4px; bottom: -23px; left: -9px; right: 0; }
+  button.tl-m.is-go.is-left .tl-lab::before { left: 0; right: -9px; }
+  button.tl-m.is-go.is-bar::after { content: ''; position: absolute; left: 0; right: 0; top: -4px; height: 44px; }
+}
 
 /* the two dates and today, named under the axis on their own line */
 .tl-feet { position: relative; height: 20px; margin: 6px 0 0 78px; }
@@ -6146,6 +6166,16 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
   .tl-ag-item.is-done .tl-ag-dot, .tl-ag-item.is-failed .tl-ag-dot, .tl-ag-item.is-ran .tl-ag-dot { background: currentColor; }
   .tl-ag-item.is-late .tl-ag-when, .tl-ag-item.is-failed .tl-ag-when { color: currentColor; font-weight: 700; }
   .tl-ag-key { list-style: none; margin-top: 14px; }
+  /* A row that opens (Timeline onOpen): the whole row is the button, at least
+     44px tall, with a quiet chevron to say it goes somewhere. */
+  .tl-ag-li + .tl-ag-li { border-top: 1px solid color-mix(in srgb, var(--surface-2) 60%, transparent); }
+  button.tl-ag-item.is-go {
+    width: 100%; min-height: 44px; margin: 0; border: 0; background: none; text-align: left; cursor: pointer;
+    grid-template-columns: 46px 10px minmax(0, 1fr) auto; border-radius: 6px;
+  }
+  button.tl-ag-item.is-go:active { background: var(--surface-2); }
+  button.tl-ag-item.is-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tl-ag-go { align-self: center; padding: 0 2px; font-size: 18px; line-height: 1; color: var(--muted); }
 }
 
 /* ===================== THE TRIAL CARD, ON SCREEN =========================

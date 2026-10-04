@@ -40,6 +40,9 @@ import type { PlanMark } from './standing';
 
 /** A mark, placed. `at` and `until` are fractions of the axis, 0 at the left. */
 export interface PlacedMark {
+  /** The record it was drawn from, so tapping the mark opens it. Absent on a
+   *  bunch (bunchPlan), which stands for several and opens its lane's list. */
+  id?: string;
   kind: PlanMark['kind'];
   at: number;
   /** Set only where a thing occupies time rather than happening on a day: a
@@ -106,7 +109,7 @@ export interface Plan {
 /** One month of the agenda — the phone's reading of the same marks. */
 export interface PlanMonth {
   label: string;
-  items: { kind: PlanMark['kind']; when: string; label: string; tone: PlanMark['tone'] }[];
+  items: { id?: string; kind: PlanMark['kind']; when: string; label: string; tone: PlanMark['tone']; count?: number }[];
 }
 
 /* The order the job actually runs in, which is not the order the lists were
@@ -285,6 +288,7 @@ export function layoutPlan(marks: PlanMark[], opts: PlanOpts = {}): Plan {
         const width = opts.widthOf ? Math.max(opts.widthOf(m), 0.01) : minGap;
         const { side, room } = placeLabel(at, end, width);
         const p: PlacedMark = {
+          ...(m.id ? { id: m.id } : {}),
           kind: m.kind, at, until, label: m.label, when: windowWords(m.at, m.until), tone: m.tone, side, room,
           ...(m.count ? { count: m.count } : {}),
         };
@@ -342,7 +346,11 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
     const label = monthWords(Number(m.at.slice(0, 4)), Number(m.at.slice(5, 7)) - 1, firstYear);
     let month = out[out.length - 1];
     if (!month || month.label !== label) { month = { label, items: [] }; out.push(month); }
-    month.items.push({ kind: m.kind, when: windowWords(m.at, m.until), label: m.label, tone: m.tone });
+    month.items.push({
+      ...(m.id ? { id: m.id } : {}),
+      kind: m.kind, when: windowWords(m.at, m.until), label: m.label, tone: m.tone,
+      ...(m.count ? { count: m.count } : {}),
+    });
   }
   return out;
 }
@@ -373,6 +381,29 @@ export function bunchPlan(marks: PlanMark[], least = 3): PlanMark[] {
     else out.push({ kind: g[0].kind, at: g[0].at, tone: g[0].tone, label: `${n} ${MANY[g[0].kind]}`, count: n });
   }
   return out.sort((x, y) => x.at.localeCompare(y.at) || x.kind.localeCompare(y.kind));
+}
+
+/** The screen each lane's records are listed on — where a bunch opens. */
+const LIST_OF: Record<PlanMark['kind'], string> = {
+  install: 'install', setup: 'set-up', handover: 'handover', test: 'testing', fix: 'fixes',
+  material: 'materials', program: 'programs', machine: 'install', action: 'board', note: 'notes',
+};
+
+/** WHERE A MARK OPENS — the record it was drawn from. Rowland: "having nodes
+ *  that don't open is unacceptable." The same doors the board's own list
+ *  (JobsBoard whereTo) and the project page's Gantt (gantt ganttHref) use for
+ *  the same kinds: an action on its own sheet, a test, fix or step on its own
+ *  page, and the lists kept whole on one screen (materials, programs, notes,
+ *  machines on Install) on that screen. A bunch stands for several, so it
+ *  opens its lane's list rather than picking one of them. */
+export function planHref(projectId: string, m: { kind: PlanMark['kind']; id?: string; count?: number }): string {
+  const base = `/project/${projectId}`;
+  const one = m.id && !m.count ? m.id : undefined;
+  if (one && m.kind === 'action') return `${base}/board?a=${encodeURIComponent(one)}`;
+  if (one && (m.kind === 'test' || m.kind === 'fix' || m.kind === 'install' || m.kind === 'setup' || m.kind === 'handover')) {
+    return `${base}/testing/${encodeURIComponent(one)}`;
+  }
+  return `${base}/${LIST_OF[m.kind]}`;
 }
 
 /** What the plan is worth saying about itself, for the sheet's so-what line.
