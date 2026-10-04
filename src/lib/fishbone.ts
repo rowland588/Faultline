@@ -574,11 +574,15 @@ function lastDone(actions: Countermeasure[]): string | undefined {
  *  - a confirmed root and every countermeasure done → proving;
  *  - closed with no hold check → closed;
  *  - closed with a hold check: the number gone back (moved worse, or no
- *    better than before) → slipped, else holding. */
+ *    better than before) → slipped; moved the right way → holding; not
+ *    measured since (no full week yet, or no readings) → proving, "Checking
+ *    it worked". Holding is green, the colour of done, so it is said only
+ *    when the number shows it — closing it is not proof it worked. */
 export function phaseOf(problem: Case, actions: Countermeasure[], measure: ProblemMeasure | null, _today = Date.now()): Phase {
   if (problem.status === 'closed') {
     if (!problem.hold) return 'closed';
-    return measure?.moved === 'worse' || measure?.moved === 'same' ? 'slipped' : 'holding';
+    if (measure?.moved === 'worse' || measure?.moved === 'same') return 'slipped';
+    return measure?.moved === 'better' ? 'holding' : 'proving';
   }
   if (!rootsOf(problem).length) return 'finding';
   const mine = countermeasuresOf(problem, actions);

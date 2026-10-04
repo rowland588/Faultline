@@ -330,10 +330,12 @@ describe('phaseOf — every phase', () => {
   });
   const hold = { what: 'Changeover timed weekly', everyDays: 7, since: iso(10) };
   const m = (moved?: 'better' | 'worse' | 'same') => ({ label: 'x', unit: 'h a week', better: 'lower' as const, ...(moved ? { moved } : {}) });
-  it('holding — closed with a check and the number still better (or not yet known)', () => {
+  it('holding — closed with a check and the number moved the right way', () => {
     expect(phaseOf(problem({ status: 'closed', hold }), [], m('better'), TODAY)).toBe('holding');
-    expect(phaseOf(problem({ status: 'closed', hold }), [], m(), TODAY)).toBe('holding');
-    expect(phaseOf(problem({ status: 'closed', hold }), [], null, TODAY)).toBe('holding');
+  });
+  it('checking it worked — closed with a check, the number not measured since: green is never said without proof', () => {
+    expect(phaseOf(problem({ status: 'closed', hold }), [], m(), TODAY)).toBe('proving');
+    expect(phaseOf(problem({ status: 'closed', hold }), [], null, TODAY)).toBe('proving');
   });
   it('slipped — closed with a check and the number gone back', () => {
     expect(phaseOf(problem({ status: 'closed', hold }), [], m('worse'), TODAY)).toBe('slipped');
