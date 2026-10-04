@@ -130,6 +130,24 @@ describe('loading a project’s problems', () => {
   });
 });
 
+describe('a Case opened before the fishbone', () => {
+  it('has its old whys put on a bone as one cause, and the old list cleared in the same write', async () => {
+    const { db, hook, ws } = await setup();
+    await db.addCase({ id: 'old', workspaceId: ws.id, title: 'Film breaks', path: [], baselineMsWeek: 0, status: 'open', openedAt: 1, updatedAt: 1,
+      whys: ['Film snaps at the splice', 'Splices vary by shift', 'No splice standard'] });
+    const after = await hook.putOldWhysOnBone('old', 'material', 'Rob');
+    expect(after?.whys).toBeUndefined();
+    const stored = await db.getCase('old');
+    expect(stored?.whys).toBeUndefined();
+    expect(stored?.causes).toHaveLength(1);
+    expect(stored?.causes?.[0]).toMatchObject({ m: 'material', text: 'Film snaps at the splice', grade: 'reported', status: 'suspected', root: true, by: 'Rob' });
+    expect(stored?.causes?.[0].whys.map(w => w.text)).toEqual(['Splices vary by shift', 'No splice standard']);
+    // Pressed again (a second device, a double tap): nothing more is added.
+    await hook.putOldWhysOnBone('old', 'people');
+    expect((await db.getCase('old'))?.causes).toHaveLength(1);
+  });
+});
+
 describe('a problem opened by mistake', () => {
   it('is removed softly — gone from every list, its countermeasures kept — and Undo brings it back whole', async () => {
     const { db, hook, proj, line } = await setup();
