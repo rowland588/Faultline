@@ -5,7 +5,7 @@
  * kind of fault that looks plausible in a picture and is obvious in a number.
  */
 import { describe, it, expect } from 'vitest';
-import { bunchPlan, footprint, gateSpans, labelGap, layoutPlan, placeLabel, planAgenda, planSays, whenWords, windowWords } from '../plan';
+import { bunchPlan, footprint, gateSpans, labelGap, layoutPlan, placeLabel, planAgenda, planHref, planSays, whenWords, windowWords } from '../plan';
 import type { PlanMark } from '../standing';
 
 const mark = (o: Partial<PlanMark> & { at: string }): PlanMark => ({
@@ -382,5 +382,67 @@ describe('a block of days, and the gates drawn from them', () => {
     expect(spansOf('done', 'done')).toBe('done');
     expect(spansOf('done', 'late')).toBe('late');
     expect(spansOf('done', 'booked')).toBe('booked');
+  });
+});
+
+/* "Having nodes that don't open is unacceptable." Every mark on the plan in a
+   job's drawer opens the record it was drawn from, so the id has to survive
+   the trip from PlanMark to the dot on the screen and the row on the phone. */
+describe('a mark knows the record it came from', () => {
+  it('layoutPlan keeps the id on the placed mark', () => {
+    const p = layoutPlan([mark({ id: 't1', at: '2026-09-21' }), mark({ id: 'm1', kind: 'machine', at: '2026-09-02', until: '2026-09-20' })]);
+    const all = p.lanes.flatMap(l => l.rows.flat());
+    expect(all.find(m => m.kind === 'test')!.id).toBe('t1');
+    expect(all.find(m => m.kind === 'machine')!.id).toBe('m1');
+  });
+
+  it('planAgenda keeps the id on the row', () => {
+    const a = planAgenda([mark({ id: 'n1', kind: 'note', at: '2026-09-21' })]);
+    expect(a[0]!.items[0]).toMatchObject({ id: 'n1', kind: 'note' });
+  });
+
+  it('a bunch has no id of its own — it opens its list — and says how many', () => {
+    const b = bunchPlan(['p1', 'p2', 'p3'].map(id => mark({ id, kind: 'program', at: '2026-09-29', tone: 'done' })));
+    expect(b).toHaveLength(1);
+    expect(b[0]!.id).toBeUndefined();
+    const placed = layoutPlan(b).lanes[0]!.rows[0]![0]!;
+    expect(placed).toMatchObject({ kind: 'program', count: 3 });
+    expect(placed.id).toBeUndefined();
+    expect(planAgenda(b)[0]!.items[0]).toMatchObject({ kind: 'program', count: 3 });
+    expect(planAgenda(b)[0]!.items[0]!.id).toBeUndefined();
+  });
+
+  it('two alike on a day are not a bunch, and each keeps its own id', () => {
+    const b = bunchPlan(['p1', 'p2'].map(id => mark({ id, kind: 'program', at: '2026-09-29' })));
+    expect(b.map(m => m.id)).toEqual(['p1', 'p2']);
+  });
+});
+
+describe('where a mark opens', () => {
+  const P = 'job1';
+  it('a record with an id opens itself', () => {
+    expect(planHref(P, { kind: 'action', id: 'a 1' })).toBe('/project/job1/board?a=a%201');
+    expect(planHref(P, { kind: 'test', id: 't1' })).toBe('/project/job1/testing/t1');
+    expect(planHref(P, { kind: 'fix', id: 'f1' })).toBe('/project/job1/testing/f1');
+    // a step is a record of its own, opened the way the Gantt and the board's list open it
+    expect(planHref(P, { kind: 'install', id: 's1' })).toBe('/project/job1/testing/s1');
+    expect(planHref(P, { kind: 'handover', id: 'h1' })).toBe('/project/job1/testing/h1');
+  });
+
+  it('a list kept on one screen opens that screen', () => {
+    expect(planHref(P, { kind: 'material', id: 'x' })).toBe('/project/job1/materials');
+    expect(planHref(P, { kind: 'program', id: 'x' })).toBe('/project/job1/programs');
+    expect(planHref(P, { kind: 'note', id: 'x' })).toBe('/project/job1/notes');
+    expect(planHref(P, { kind: 'machine', id: 'x' })).toBe('/project/job1/install');
+  });
+
+  it('a bunch opens its lane’s list', () => {
+    expect(planHref(P, { kind: 'test', count: 4 })).toBe('/project/job1/testing');
+    expect(planHref(P, { kind: 'fix', count: 4 })).toBe('/project/job1/fixes');
+    expect(planHref(P, { kind: 'install', count: 4 })).toBe('/project/job1/install');
+    expect(planHref(P, { kind: 'setup', count: 4 })).toBe('/project/job1/set-up');
+    expect(planHref(P, { kind: 'handover', count: 4 })).toBe('/project/job1/handover');
+    expect(planHref(P, { kind: 'action', count: 4 })).toBe('/project/job1/board');
+    expect(planHref(P, { kind: 'program', count: 16 })).toBe('/project/job1/programs');
   });
 });

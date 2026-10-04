@@ -52,7 +52,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { Timeline } from './Timeline';
 import type { GateTone } from '../lib/install';
-import { gateSpans } from '../lib/plan';
+import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
 import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
@@ -792,7 +792,8 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 ? <p className="sub jb-drawer-empty">{v.method === 'commissioning'
                     ? 'When the machines have dates, the plan draws itself here.'
                     : 'When the board’s actions have due dates, the plan draws itself here.'}</p>
-                : <Timeline marks={v.plan} today={today} expectedAt={v.expectedAt} plannedAt={v.plannedAt} span={span} />}
+                : <Timeline marks={v.plan} today={today} expectedAt={v.expectedAt} plannedAt={v.plannedAt} span={span}
+                    onOpen={m => nav(planHref(v.id, m))} />}
             </div>
           )}
         </div>

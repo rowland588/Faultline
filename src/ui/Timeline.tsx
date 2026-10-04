@@ -86,7 +86,14 @@ interface Track {
 
 /* -------------------------------- a mark -------------------------------- */
 
-function Mark({ m, track }: { m: PlacedMark; track: Track }) {
+/** What a tapped mark hands its caller: the record, or for a bunch, its lane. */
+export type PlanOpen = { kind: PlanMark['kind']; id?: string; count?: number };
+
+/** "Seal integrity · 21 Sep · day has gone" — what a reader hears for a mark. */
+const markSays = (label: string, when: string, tone: PlanMark['tone']) =>
+  [label, when, TONE_WORD[tone]].filter(Boolean).join(' · ');
+
+function Mark({ m, track, onOpen }: { m: PlacedMark; track: Track; onOpen?: (m: PlanOpen) => void }) {
   const left = m.side === 'left';
   /* A machine occupies time — arriving and running are different days — and
      everything else happens on one. */
@@ -106,11 +113,10 @@ function Mark({ m, track }: { m: PlacedMark; track: Track }) {
     }
   }
 
-  return (
-    <span
-      className={'tl-m is-' + m.tone + (left ? ' is-left' : '') + (until ? ' is-bar' : '')}
-      style={until != null ? { left: PCT(m.at), width: PCT(until - m.at) } : { left: PCT(m.at) }}
-    >
+  const cls = 'tl-m is-' + m.tone + (left ? ' is-left' : '') + (until ? ' is-bar' : '');
+  const style = until != null ? { left: PCT(m.at), width: PCT(until - m.at) } : { left: PCT(m.at) };
+  const inside = (
+    <>
       <span className="tl-dot" aria-hidden />
       <span
         className={'tl-lab' + (clipped ? ' is-cut' : '')}
@@ -120,8 +126,22 @@ function Mark({ m, track }: { m: PlacedMark; track: Track }) {
         <span className="tl-lab-t">{m.label}</span>
         <span className="tl-lab-d">{m.when}</span>
       </span>
-    </span>
+    </>
   );
+
+  /* A MARK OPENS WHAT IT WAS DRAWN FROM, when the caller says where. The dot,
+     the bar and the words are one button — the drawing is exactly the one the
+     report preview shows; only the cursor and a tap target are added. */
+  if (onOpen) {
+    return (
+      <button type="button" className={cls + ' is-go'} style={style}
+        aria-label={markSays(m.label, m.when, m.tone)}
+        onClick={() => onOpen({ kind: m.kind, ...(m.id ? { id: m.id } : {}), ...(m.count ? { count: m.count } : {}) })}>
+        {inside}
+      </button>
+    );
+  }
+  return <span className={cls} style={style}>{inside}</span>;
 }
 
 /** "4 of 17 done" — the lane's own count, off its own marks. */
@@ -139,7 +159,7 @@ const TONE_WORD: Record<PlanMark['tone'], string> = {
   done: 'done', failed: 'didn’t pass', ran: 'no verdict yet', late: 'day has gone', booked: 'ahead', none: '',
 };
 
-export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
+export function Timeline({ marks, today, expectedAt, plannedAt, span, onOpen }: {
   marks: PlanMark[];
   today: string;
   expectedAt?: string;
@@ -148,6 +168,10 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
    *  passes every job's dates, so an opened job sits under the same calendar
    *  as the rows around it. */
   span?: string[];
+  /** Where a tapped mark goes. Given, every mark and every agenda row is a
+   *  button that hands back its record (or, for a bunch, its lane and count);
+   *  left out — the report preview — the drawing is words on a page. */
+  onOpen?: (m: PlanOpen) => void;
 }) {
   const wideRef = useRef<HTMLDivElement>(null);
   const probeT = useRef<HTMLSpanElement>(null);
@@ -265,7 +289,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
               <div className="tl-rows">
                 {lane.rows.map((row, i) => (
                   <div key={i} className="tl-row">
-                    {row.map((m, j) => <Mark key={`${m.label}-${j}`} m={m} track={track} />)}
+                    {row.map((m, j) => <Mark key={`${m.label}-${j}`} m={m} track={track} onOpen={onOpen} />)}
                   </div>
                 ))}
               </div>
@@ -311,19 +335,35 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span }: {
           <li key={month.label} className="tl-ag-month">
             <h4 className="tl-ag-h">{month.label}</h4>
             <ol className="tl-ag-list">
-              {month.items.map((it, i) => (
-                <li key={`${it.label}-${i}`} className={'tl-ag-item is-' + it.tone}>
-                  <span className="tl-ag-when">{it.when}</span>
-                  <span className="tl-ag-dot" aria-hidden />
-                  <span className="tl-ag-what">
-                    {it.label}
-                    <span className="tl-ag-kind">{it.kind}</span>
-                    {/* The word, not just the colour — a filled red and a filled
-                        green dot are the same dot to one reader in twelve. */}
-                    <span className="tl-ag-tone">{TONE_WORD[it.tone]}</span>
-                  </span>
-                </li>
-              ))}
+              {month.items.map((it, i) => {
+                const row = (
+                  <>
+                    <span className="tl-ag-when">{it.when}</span>
+                    <span className="tl-ag-dot" aria-hidden />
+                    <span className="tl-ag-what">
+                      {it.label}
+                      <span className="tl-ag-kind">{it.kind}</span>
+                      {/* The word, not just the colour — a filled red and a filled
+                          green dot are the same dot to one reader in twelve. */}
+                      <span className="tl-ag-tone">{TONE_WORD[it.tone]}</span>
+                    </span>
+                  </>
+                );
+                /* On a phone the whole row is the target, not a word in it,
+                   and it opens what the mark across the page opens. */
+                return onOpen ? (
+                  <li key={`${it.label}-${i}`} className="tl-ag-li">
+                    <button type="button" className={'tl-ag-item is-go is-' + it.tone}
+                      aria-label={markSays(it.label, it.when, it.tone)}
+                      onClick={() => onOpen({ kind: it.kind, ...(it.id ? { id: it.id } : {}), ...(it.count ? { count: it.count } : {}) })}>
+                      {row}
+                      <span className="tl-ag-go" aria-hidden>›</span>
+                    </button>
+                  </li>
+                ) : (
+                  <li key={`${it.label}-${i}`} className={'tl-ag-item is-' + it.tone}>{row}</li>
+                );
+              })}
             </ol>
           </li>
         ))}

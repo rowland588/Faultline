@@ -270,7 +270,7 @@ export function pacedItems(j: PacedInput, today: string): JobItem[] {
 /** The actions with a day on them, as marks on the shared calendar. */
 function pacedPlan(j: PacedInput, today: string): PlanMark[] {
   return j.steps.filter(s => !!s.due).map(s => ({
-    kind: 'action' as const, at: s.due as string, label: (s.what || '').trim() || 'An action',
+    id: s.id, kind: 'action' as const, at: s.due as string, label: (s.what || '').trim() || 'An action',
     tone: s.state === 'done' ? 'done' as const : stepIsLate(s, today) ? 'late' as const : 'booked' as const,
   }));
 }
