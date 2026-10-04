@@ -11,3 +11,6 @@ pdf-preview/
 
 # agents work in their own worktrees here; never part of the app
 .claude/worktrees/
+
+# Agents' throwaway browser-check scripts (deleted when done)
+scripts/_tmp_*
