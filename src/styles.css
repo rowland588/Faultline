@@ -8573,6 +8573,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-holdline { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
 .fj-head-acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
 .fj-head-acts:empty { display: none; }
+.fj-head-acts .fj-remove { margin-left: auto; }
 .fj-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .fj-moved { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
 .fj-moved .is-worse { color: var(--st-r); }

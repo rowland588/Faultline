@@ -99,6 +99,12 @@ snags, standards and capacity are unchanged and feed the fishbone.
   the fish, never the data's suggestions, which are offers to whoever works
   it. "It worked — close it" only once something was done (a countermeasure);
   before that the button says "Close it".
+- A problem opened by mistake is **removed**, not closed (closing asks how
+  the gain is kept, which is wrong for a problem that was never real): the
+  owner's quiet "Remove this problem" on its head card, a soft delete
+  (`cases.deleted_at`) with Undo for a few seconds. Its countermeasures are
+  actions and stay on the board, each saying "its problem was removed"; the
+  report leaves the problem out and prints them with no "For" line.
 
 ## The client report (screen and paper together)
 
