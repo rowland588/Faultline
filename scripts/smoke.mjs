@@ -120,6 +120,7 @@ const ROUTES = [
   ['fishbone — a line', `#/project/${seeded.pacedProjectId}/fishbone?line=${seeded.pacedLineId}`],
   ['fishbone — acting', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}`],
   ['fishbone — holding', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.closedProblemId}`],
+  ['fishbone — old whys', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.oldCaseId}`],
   ['fishbone — cause open', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&open=1`],
   ['fishbone — not this method', `#/project/${seeded.treeProjectId}/fishbone`],
   ['capture', `#/w/${seeded.wsId}/capture`],

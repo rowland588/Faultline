@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Case, Observation, MediaRef } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, withQuery } from '../state/useRoute';
-import { deleteBlobs, listCases, updateObservation } from '../db';
+import { deleteBlobs, getProject, listCases, projectForWorkspace, updateObservation } from '../db';
+import { planModel } from '../lib/planModel';
 import { SIXM, type SixM } from '../lib/sixm';
 import { applyDrill } from '../engine/drill';
 import { studyResult } from '../lib/proof';
@@ -81,6 +82,19 @@ export function CaptureScreen() {
      uses that rather than guessing from the category. Skippable, never in the
      way: the next stop started clears it. */
   const [justLogged, setJustLogged] = useState<Observation | null>(null);
+  /* Offered only on a 6M job's walk — the fishbone is the one reader of the
+     tap (lib/fishbone), so on a stage-gate job, a lever tree or a free-standing
+     walk it was a field nobody would ever read. */
+  const [sixM, setSixM] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const pid = await projectForWorkspace(workspace.id);
+      const p = pid ? await getProject(pid) : undefined;
+      if (alive) setSixM(!!p && !p.deletedAt && planModel(p) === 'board');
+    })();
+    return () => { alive = false; };
+  }, [workspace.id]);
   const tagCause = async (m: SixM) => {
     if (!justLogged) return;
     const o: Observation = { ...justLogged, causeM: justLogged.causeM === m ? undefined : m };
@@ -300,7 +314,7 @@ export function CaptureScreen() {
         )}
       </div>
 
-      {justLogged && !timing && (
+      {justLogged && !timing && sixM && (
         <div className="cz" role="group" aria-label="Cause, if you know it">
           <div className="cz-h">
             <span className="cz-t">Cause, if you know it</span>

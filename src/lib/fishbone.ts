@@ -286,6 +286,34 @@ export function acceptSuggestion(s: Suggestion, o: { id: string; at: number; by?
   };
 }
 
+/* ============================ the old five whys ============================ */
+
+/** The chain a Case opened before 6M carries (Case.whys, the last one the
+ *  root), its blank answers dropped. Empty when there is none. */
+export const oldWhysOf = (problem: Pick<Case, 'whys'>): string[] =>
+  (problem.whys ?? []).map(w => (w ?? '').trim()).filter(Boolean);
+
+/** THE OLD WHYS, PUT ON A BONE. A Case opened before the fishbone carries its
+ *  five whys as a plain list and no causes, so on the fishbone they were
+ *  invisible. Put on a bone, the chain becomes ONE cause: its first answer is
+ *  the cause, the rest are the whys under it, and it is marked drilled to its
+ *  root only when there was a chain under it (two or more answers) — the old
+ *  A3 said its last answer was the root. It is `reported` (written down, not
+ *  measured or seen today) and `suspected` until somebody confirms it, with no
+ *  source: it came from the old A3, not from the data. Null when there is
+ *  nothing to put on. The caller clears Case.whys in the same write, so the
+ *  chain is never shown twice. */
+export function causeFromOldWhys(whys: string[], m: SixM, o: { newId: () => string; at: number; by?: string }): Cause | null {
+  const chain = oldWhysOf({ whys });
+  if (!chain.length) return null;
+  return {
+    id: o.newId(), m, text: chain[0], grade: 'reported', status: 'suspected',
+    whys: chain.slice(1).map(text => ({ id: o.newId(), text })),
+    ...(chain.length >= 2 ? { root: true } : {}),
+    at: o.at, ...(o.by ? { by: o.by } : {}),
+  };
+}
+
 /* =============================== suggestions =============================== */
 
 const mk = (kind: CauseSource['kind'], ref: string, m: SixM, text: string, grade: Grade, o: Partial<Suggestion> & { label?: string } = {}): Suggestion => {

@@ -12,7 +12,7 @@ import type { Measure, Period, Reading, Target } from '../measures';
 import type { WalkSnag } from '../walkSnags';
 import { SIXM, blamesAPerson, boneOfStop } from '../sixm';
 import {
-  acceptSuggestion, belongsTo, buildView, causeRefOf, countermeasuresOf, drillOfRef, fishboneData,
+  acceptSuggestion, belongsTo, buildView, causeFromOldWhys, causeRefOf, oldWhysOf, countermeasuresOf, drillOfRef, fishboneData,
   fullWeeks, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, suggestionsFor, therefore,
   type Countermeasure, type FishboneData,
 } from '../fishbone';
@@ -509,5 +509,39 @@ describe('sixm — boneOfStop and blamesAPerson', () => {
     expect(blamesAPerson("They didn't follow the SOP")).toMatch(/What let that happen/);
     expect(blamesAPerson('The guide rail is worn')).toBeNull();
     expect(blamesAPerson('No PM schedule for moved kit')).toBeNull();
+  });
+});
+
+describe('the old five whys, put on a bone', () => {
+  const ids = () => { let i = 0; return () => `id${++i}`; };
+
+  it('reads the chain with blanks dropped', () => {
+    expect(oldWhysOf({ whys: [' Film breaks ', '', 'Splice varies', '  '] })).toEqual(['Film breaks', 'Splice varies']);
+    expect(oldWhysOf({})).toEqual([]);
+  });
+
+  it('makes ONE cause: the first answer is the cause, the rest its whys, the last the root', () => {
+    const c = causeFromOldWhys(['Film breaks at the splice', 'Splices vary by shift', 'No splice standard'], 'material', { newId: ids(), at: 5, by: 'Rob' });
+    expect(c).toEqual({
+      id: 'id1', m: 'material', text: 'Film breaks at the splice', grade: 'reported', status: 'suspected',
+      whys: [{ id: 'id2', text: 'Splices vary by shift' }, { id: 'id3', text: 'No splice standard' }],
+      root: true, at: 5, by: 'Rob',
+    });
+    expect(c?.source).toBeUndefined();
+  });
+
+  it('is a root only with a chain under it, and nothing at all from an empty list', () => {
+    const one = causeFromOldWhys(['Film breaks', ' '], 'machine', { newId: ids(), at: 1 });
+    expect(one?.whys).toEqual([]);
+    expect(one?.root).toBeUndefined();
+    expect(one?.by).toBeUndefined();
+    expect(causeFromOldWhys(['', '  '], 'machine', { newId: ids(), at: 1 })).toBeNull();
+    expect(causeFromOldWhys([], 'machine', { newId: ids(), at: 1 })).toBeNull();
+  });
+
+  it('a suspected root is not yet a confirmed one — the problem is still finding its cause', () => {
+    const c = causeFromOldWhys(['a', 'b'], 'method', { newId: ids(), at: 1 }) as Cause;
+    const p: Case = { id: 'p', workspaceId: 'w', title: 'P', path: [], baselineMsWeek: 0, status: 'open', openedAt: 1, updatedAt: 1, causes: [c] };
+    expect(phaseOf(p, [], null)).toBe('finding');
   });
 });
