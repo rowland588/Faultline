@@ -76,7 +76,9 @@ const TONE_WORD: Record<string, string> = {
 
 /** Where a thing on the board opens. */
 function whereTo(x: JobItem): string {
-  if (x.kind === 'action') return `/project/${x.jobId}/board`;
+  /* An action opens on its own sheet (the board reads ?a=), not on the whole
+     board with the one you tapped somewhere in it. */
+  if (x.kind === 'action') return `/project/${x.jobId}/board${x.id ? `?a=${encodeURIComponent(x.id)}` : ''}`;
   if (x.kind === 'note') return `/project/${x.jobId}/notes`;
   if (x.id) return `/project/${x.jobId}/testing/${encodeURIComponent(x.id)}`;
   if (x.kind === 'material') return `/project/${x.jobId}/materials`;

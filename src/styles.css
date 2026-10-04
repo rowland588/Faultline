@@ -6571,6 +6571,16 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .jb-mk.is-late { border-color: var(--st-r); }
 .jb-mk.is-many.is-late { background: var(--st-r); }
 .jb-mk:hover, .jb-mk.is-on { transform: scale(1.35); z-index: 6; }
+/* A dot lifted to show its words lifted its ring too — 40px across, over the
+   next day's dot — so the neighbour could not be tapped until the first was
+   shut. Lifted, the ring shrinks to the dot; with a mouse (no finger to
+   allow for) the ring is the dot's own size at rest, so a hover never covers
+   the dot beside it either. */
+.jb-mk.is-on::before { inset: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .jb-mk::before { inset: -2px; }
+  .jb-mk.is-on::before, .jb-mk:hover::before { inset: 0; }
+}
 /* The tip: what the dot is, when, and what state — in words, not colour.
    Hover on a desk, a tap on a phone. */
 .jb-mk::after {
@@ -6657,6 +6667,8 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
   .jb-drawer .tl { margin: 0; }
   .jb-aside { padding: 0 4px; }
   .jb-aside .jb-doors { flex-direction: row; }
+  /* A line's chip in the drawer is the one tap to "my line" — a thumb's height. */
+  .jb-aside .proj-chip { min-height: 44px; align-items: center; }
 }
 
 /* Coming back from a job, the board is simply there — the arrival played
