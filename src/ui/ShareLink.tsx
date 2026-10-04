@@ -26,7 +26,7 @@ const noun = (k: 'photo' | 'video'): string => (k === 'video' ? 'clip' : 'photo'
  *  a one-day link ends at a time, not on a day. */
 function until(iso: string, withTime = Date.parse(iso) - Date.now() < 2 * 86_400_000): string {
   const d = new Date(iso);
-  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
   return withTime ? `${day}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : day;
 }
 

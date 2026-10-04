@@ -8453,7 +8453,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 
 /* the picture at the size of the screen, then (a tap) at its own size */
 .sh-full {
-  position: fixed; inset: 0; z-index: 50; background: rgba(9, 18, 36, 0.94);
+  position: fixed; inset: 0; z-index: 50; background: rgba(9, 18, 36, 0.97);
   display: flex; align-items: center; justify-content: center; overflow: auto;
 }
 .sh-full img { max-width: 100vw; max-height: 100vh; object-fit: contain; cursor: zoom-in; }
@@ -8470,9 +8470,10 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .sh-gone-ask { margin-top: 12px; font-size: 15.5px; color: var(--ink-2); line-height: 1.5; }
 .sh-retry { margin-top: 18px; align-self: flex-start; }
 
-.sh-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.sh-loading .logo-mark { border-radius: 12px; box-shadow: 0 6px 20px rgba(20, 24, 31, 0.22); }
-.sh-loading-txt { font-size: 14px; color: var(--muted); }
+/* waiting: the boot splash, carried on; the words fade in only if it is slow */
+.sh-wait { width: 100%; }
+.sh-wait-txt { margin-top: 14px; font-size: 14px; color: var(--muted); opacity: 0; transition: opacity 0.3s ease; }
+.sh-wait-txt.is-on { opacity: 1; }
 
 @media (min-width: 720px) {
   .sh-page { padding-top: 32px; }

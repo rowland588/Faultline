@@ -63,7 +63,7 @@ function usePageHead(title: string): void {
   }, []);
 }
 
-/** Nothing for the first moment, so a quick answer never flashes a loader. */
+/** True once `ms` have passed — so a quick answer never flashes words. */
 function useAfter(ms: number): boolean {
   const [past, setPast] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setPast(true), ms); return () => window.clearTimeout(t); }, [ms]);
@@ -109,16 +109,17 @@ export function ShareScreen({ token }: { token: string }) {
   );
 }
 
+/* The boot splash carries straight on — same mark, same place — so the wait
+   reads as one moment, not a splash, a blank and a loader. Words only for a
+   slow answer. */
 function Loading() {
-  const show = useAfter(400);
+  const slow = useAfter(900);
   return (
-    <main className="sh-page sh-page-solo" aria-busy="true">
-      {show && (
-        <div className="sh-loading">
-          <div className="splash-mark"><LogoMark size={46} id="sh-wait" /></div>
-          <p className="sh-loading-txt">Opening what was shared…</p>
-        </div>
-      )}
+    <main className="splash sh-wait" aria-busy="true">
+      <div>
+        <div className="splash-mark"><LogoMark size={46} id="sh-wait" /></div>
+        <p className={`sh-wait-txt${slow ? ' is-on' : ''}`}>Opening what was shared…</p>
+      </div>
     </main>
   );
 }
