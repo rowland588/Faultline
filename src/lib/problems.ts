@@ -16,8 +16,8 @@ import type { Cause, CauseSource, Grade, SixM } from './sixm';
 export type Phase =
   | 'finding'   // causes being found and checked — no confirmed root yet
   | 'acting'    // a confirmed root, countermeasures open
-  | 'proving'   // countermeasures done, the effect being checked
-  | 'holding'   // closed, and the check says it is still working
+  | 'proving'   // countermeasures done (or closed), the number not measured since
+  | 'holding'   // closed, and the number has moved the right way since
   | 'slipped'   // closed, and the number has gone back
   | 'closed';   // closed with no hold check set
 

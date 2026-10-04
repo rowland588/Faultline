@@ -129,3 +129,49 @@ describe('loading a project’s problems', () => {
     expect((await db.listProjectCases(proj.id, [ws.id])).map(c => c.id)).toEqual(['mine', 'legacy']);
   });
 });
+
+describe('a Case opened before the fishbone', () => {
+  it('has its old whys put on a bone as one cause, and the old list cleared in the same write', async () => {
+    const { db, hook, ws } = await setup();
+    await db.addCase({ id: 'old', workspaceId: ws.id, title: 'Film breaks', path: [], baselineMsWeek: 0, status: 'open', openedAt: 1, updatedAt: 1,
+      whys: ['Film snaps at the splice', 'Splices vary by shift', 'No splice standard'] });
+    const after = await hook.putOldWhysOnBone('old', 'material', 'Rob');
+    expect(after?.whys).toBeUndefined();
+    const stored = await db.getCase('old');
+    expect(stored?.whys).toBeUndefined();
+    expect(stored?.causes).toHaveLength(1);
+    expect(stored?.causes?.[0]).toMatchObject({ m: 'material', text: 'Film snaps at the splice', grade: 'reported', status: 'suspected', root: true, by: 'Rob' });
+    expect(stored?.causes?.[0].whys.map(w => w.text)).toEqual(['Splices vary by shift', 'No splice standard']);
+    // Pressed again (a second device, a double tap): nothing more is added.
+    await hook.putOldWhysOnBone('old', 'people');
+    expect((await db.getCase('old'))?.causes).toHaveLength(1);
+  });
+});
+
+describe('a problem opened by mistake', () => {
+  it('is removed softly — gone from every list, its countermeasures kept — and Undo brings it back whole', async () => {
+    const { db, hook, proj, line } = await setup();
+    const c = await hook.createProblem(proj.id, { title: 'Opened by mistake', lineId: line.id, source: { kind: 'observed' } });
+    await hook.saveCauseOn(c.id, cause());
+    const t = Date.now();
+    await db.putPaceTodo({ id: 'cm', projectId: proj.id, lineId: line.id, what: 'Fix the rail', where: '', why: '', who: '', when: '', state: 'todo',
+      causeRef: `${c.id}:k1`, createdAt: t, updatedAt: t });
+
+    const before = await db.removeCase(c.id);
+    expect(before?.id).toBe(c.id);
+    expect(before?.deletedAt).toBeUndefined();
+    expect(await db.getCase(c.id)).toBeUndefined();
+    expect((await db.getCaseEvenRemoved(c.id))?.deletedAt).toBeGreaterThan(0);
+    expect((await hook.loadProblems(proj.id)).cases.map(x => x.id)).not.toContain(c.id);
+    // The countermeasure is an action: it stays on the board, pointing at the removed problem.
+    expect((await db.listPaceTodos(proj.id)).find(s => s.id === 'cm')?.causeRef).toBe(`${c.id}:k1`);
+    // Removing twice does nothing.
+    expect(await db.removeCase(c.id)).toBeUndefined();
+
+    await db.restoreCase(before as Case);
+    const back = await db.getCase(c.id);
+    expect(back?.deletedAt).toBeUndefined();
+    expect(back?.causes?.map(x => x.text)).toEqual(['Guide rail worn']);
+    expect((await hook.loadProblems(proj.id)).cases.map(x => x.id)).toContain(c.id);
+  });
+});

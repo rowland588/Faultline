@@ -8,7 +8,7 @@
  * `loadProblems` is the same read without React, for the client report. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Case, Observation, Workspace } from '../types';
-import type { Cause } from './sixm';
+import type { Cause, SixM } from './sixm';
 import type { ProblemsApi, ProblemView } from './problems';
 import {
   loadPaceLines, putPaceLine, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
@@ -21,7 +21,7 @@ import { stepAction } from './actions';
 import { uid, now } from './ids';
 import { todayISO } from './weeks';
 import {
-  belongsTo, buildView, fishboneData, scopeMsWeek,
+  belongsTo, buildView, causeFromOldWhys, fishboneData, scopeMsWeek,
   type Countermeasure, type FishboneData, type FishNote,
 } from './fishbone';
 
@@ -153,6 +153,14 @@ export const saveCauseOn = (problemId: string, cause: Cause) => patchCase(proble
 });
 export const removeCauseFrom = (problemId: string, causeId: string) =>
   patchCase(problemId, c => ({ ...c, causes: (c.causes ?? []).filter(x => x.id !== causeId) }));
+/** A Case's old five whys put on a bone: one cause added (lib/fishbone
+ *  causeFromOldWhys) and Case.whys cleared in the SAME write, so the chain is
+ *  never on the screen twice and never half-moved. Read from the live row, so
+ *  a chain another device has already moved is not moved again. */
+export const putOldWhysOnBone = (problemId: string, m: SixM, by?: string) => patchCase(problemId, c => {
+  const cause = causeFromOldWhys(c.whys ?? [], m, { newId: uid, at: now(), by });
+  return cause ? { ...c, causes: [...(c.causes ?? []), cause], whys: undefined } : c;
+});
 /** Closed with the check that keeps the gain; with no check given, any check
  *  it already had stays. */
 export const closeProblem = (problemId: string, hold?: Case['hold']) =>

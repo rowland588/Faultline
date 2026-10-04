@@ -118,6 +118,48 @@ export function withoutWork(b?: TrackerBind): TrackerBind | undefined {
   return bindsNumber(rest) ? rest : undefined;
 }
 
+/* ---------- undo a link (HUNT 31) ---------- */
+
+/** The same binding? Field by field, with a missing list the same as an empty
+ *  one — so "Undo" is only offered when something actually changed. */
+export function sameBind(a?: TrackerBind, b?: TrackerBind): boolean {
+  const norm = (x?: TrackerBind) => JSON.stringify(x ? {
+    line: x.line || undefined, allLines: x.allLines || undefined,
+    categories: x.categories?.length ? [...x.categories].sort() : undefined,
+    keyword: x.keyword?.trim() || undefined, source: x.source && x.source !== 'tracker' ? x.source : undefined,
+    measureId: x.measureId || undefined, lineId: x.lineId || undefined,
+  } : {});
+  return norm(a) === norm(b);
+}
+
+/** What the Undo bar says after a box's binding changed — `null` when nothing
+ *  did. Linking, unlinking, a number bound or let go: each said in the words
+ *  the box's own buttons use. */
+export function bindUndoWords(text: string, before?: TrackerBind, after?: TrackerBind): string | null {
+  if (sameBind(before, after)) return null;
+  const t = text.trim();
+  const box = t ? `“${t.length > 40 ? t.slice(0, 39) + '…' : t}”` : 'the box';
+  const work = bindsWork(before) !== bindsWork(after) || (bindsWork(after) && !sameBind(withoutNumber(before), withoutNumber(after)));
+  const num = bindsNumber(before) !== bindsNumber(after)
+    || (bindsNumber(after) && (before?.measureId !== after?.measureId || before?.lineId !== after?.lineId));
+  if (work && !num) {
+    return !bindsWork(after) ? `Unlinked ${box} from the board`
+      : !bindsWork(before) ? `${box[0].toUpperCase() + box.slice(1)} now fills from the board`
+      : `Changed what the board fills ${box} with`;
+  }
+  if (num && !work) {
+    return !bindsNumber(after) ? `${box[0].toUpperCase() + box.slice(1)} no longer follows a number`
+      : `${box[0].toUpperCase() + box.slice(1)} now follows a number`;
+  }
+  return `Changed what ${box} is linked to`;
+}
+
+/** What Undo writes back: the box as it is NOW — its words may have been
+ *  edited since — with exactly the binding it had before, none included. */
+export function withBindRestored(now: TreeNodeRow, before?: TrackerBind): TreeNodeRow {
+  return { ...now, bind: before ? { ...before } : undefined };
+}
+
 /* ---------- the colour from a number ---------- */
 
 /** What a number binding reads from: the project's measures and periods, and

@@ -286,6 +286,34 @@ export function acceptSuggestion(s: Suggestion, o: { id: string; at: number; by?
   };
 }
 
+/* ============================ the old five whys ============================ */
+
+/** The chain a Case opened before 6M carries (Case.whys, the last one the
+ *  root), its blank answers dropped. Empty when there is none. */
+export const oldWhysOf = (problem: Pick<Case, 'whys'>): string[] =>
+  (problem.whys ?? []).map(w => (w ?? '').trim()).filter(Boolean);
+
+/** THE OLD WHYS, PUT ON A BONE. A Case opened before the fishbone carries its
+ *  five whys as a plain list and no causes, so on the fishbone they were
+ *  invisible. Put on a bone, the chain becomes ONE cause: its first answer is
+ *  the cause, the rest are the whys under it, and it is marked drilled to its
+ *  root only when there was a chain under it (two or more answers) — the old
+ *  A3 said its last answer was the root. It is `reported` (written down, not
+ *  measured or seen today) and `suspected` until somebody confirms it, with no
+ *  source: it came from the old A3, not from the data. Null when there is
+ *  nothing to put on. The caller clears Case.whys in the same write, so the
+ *  chain is never shown twice. */
+export function causeFromOldWhys(whys: string[], m: SixM, o: { newId: () => string; at: number; by?: string }): Cause | null {
+  const chain = oldWhysOf({ whys });
+  if (!chain.length) return null;
+  return {
+    id: o.newId(), m, text: chain[0], grade: 'reported', status: 'suspected',
+    whys: chain.slice(1).map(text => ({ id: o.newId(), text })),
+    ...(chain.length >= 2 ? { root: true } : {}),
+    at: o.at, ...(o.by ? { by: o.by } : {}),
+  };
+}
+
 /* =============================== suggestions =============================== */
 
 const mk = (kind: CauseSource['kind'], ref: string, m: SixM, text: string, grade: Grade, o: Partial<Suggestion> & { label?: string } = {}): Suggestion => {
@@ -546,11 +574,15 @@ function lastDone(actions: Countermeasure[]): string | undefined {
  *  - a confirmed root and every countermeasure done → proving;
  *  - closed with no hold check → closed;
  *  - closed with a hold check: the number gone back (moved worse, or no
- *    better than before) → slipped, else holding. */
+ *    better than before) → slipped; moved the right way → holding; not
+ *    measured since (no full week yet, or no readings) → proving, "Checking
+ *    it worked". Holding is green, the colour of done, so it is said only
+ *    when the number shows it — closing it is not proof it worked. */
 export function phaseOf(problem: Case, actions: Countermeasure[], measure: ProblemMeasure | null, _today = Date.now()): Phase {
   if (problem.status === 'closed') {
     if (!problem.hold) return 'closed';
-    return measure?.moved === 'worse' || measure?.moved === 'same' ? 'slipped' : 'holding';
+    if (measure?.moved === 'worse' || measure?.moved === 'same') return 'slipped';
+    return measure?.moved === 'better' ? 'holding' : 'proving';
   }
   if (!rootsOf(problem).length) return 'finding';
   const mine = countermeasuresOf(problem, actions);
@@ -570,7 +602,6 @@ function movedOf(before: number, after: number, better: 'lower' | 'higher', tol:
 }
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined);
 const round1 = (n: number) => Math.round(n * 10) / 10;
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** The problem's own number, before and now (lib/problems ProblemMeasure).
  *
@@ -606,8 +637,10 @@ export function measureOf(problem: Case, data: FishboneData, today = Date.now())
     return {
       label: `${s.measure.name} on ${line.name}`,
       unit: s.measure.unit ?? '',
-      ...(before != null ? { before: round2(before) } : {}),
-      ...(now != null ? { now: round2(now) } : {}),
+      /* A tenth: an average of readings is not known to the hundredth, and the
+         fish's head, its sentence and the paper must say the same figure. */
+      ...(before != null ? { before: round1(before) } : {}),
+      ...(now != null ? { now: round1(now) } : {}),
       ...(s.target != null ? { target: s.target } : {}),
       better,
       ...(before != null && after != null ? { moved: movedOf(before, after, better, 0.05) } : {}),
@@ -645,7 +678,10 @@ function saysOf(problem: Case, data: FishboneData, measure: ProblemMeasure | nul
   if (!measure) return problem.title;
   if (problem.source?.kind === 'gap') {
     if (measure.now == null) return `${measure.label}: nothing measured yet`;
-    return `${measure.label}: ${say(measure.now, measure.unit)}${measure.target != null ? ` against a target of ${say(measure.target, measure.unit)}` : ''}`;
+    /* "the four-week average": the line's own sentence (lib/measures gapOf)
+       quotes the latest reading, so the two figures side by side must say
+       which is which. */
+    return `${measure.label}: ${say(measure.now, measure.unit)} on the four-week average${measure.target != null ? `, against a target of ${say(measure.target, measure.unit)}` : ''}`;
   }
   const scope = scopeOf(problem, data);
   const { from, to } = fullWeeks(today);

@@ -25,7 +25,7 @@ import type { PaceLineRow } from '../db';
 /** The pick for "the line's gap" — a problem opened for it when there is none. */
 const GAP = '__gap__';
 
-export function SawSheet({ open, projectId, line, problems, api, problemId, bone, onClose, onSaved }: {
+export function SawSheet({ open, projectId, line, problems, api, problemId, bone, short = true, onClose, onSaved }: {
   open: boolean;
   projectId: string;
   /** The line it was seen on — what a new gap problem is opened against. */
@@ -37,6 +37,11 @@ export function SawSheet({ open, projectId, line, problems, api, problemId, bone
   problemId?: string;
   /** A bone picked to start with. */
   bone?: SixM;
+  /** Whether the line is short of its target. When it is not, there is no gap
+   *  to open a problem for, and something seen with no open problem to go on
+   *  opens a problem of its own ("something seen") instead of one called "the
+   *  gap to target" on a line that is at target. */
+  short?: boolean;
   onClose: () => void;
   /** Saved — on this problem. */
   onSaved?: (problemId: string) => void;
@@ -45,13 +50,18 @@ export function SawSheet({ open, projectId, line, problems, api, problemId, bone
   const by = displayName(session?.user.email) || undefined;
   const openOnes = problems.filter(p => p.problem.status === 'open');
   const gapOne = openOnes.find(p => p.problem.source?.kind === 'gap');
+  /* The page's problem is picked only when it can take a cause here — an open
+     one. Opened on a closed problem's page, the box showed the first open
+     problem while the save went to the closed one, which was not on the list. */
+  const firstPick = () => (problemId && openOnes.some(p => p.problem.id === problemId) ? problemId : undefined)
+    ?? gapOne?.problem.id ?? openOnes[0]?.problem.id ?? GAP;
   const [m, setM] = useState<SixM | null>(bone ?? null);
   const [text, setText] = useState('');
   const [media, setMedia] = useState<MediaRef[]>([]);
-  const [target, setTarget] = useState<string>(problemId ?? gapOne?.problem.id ?? openOnes[0]?.problem.id ?? GAP);
+  const [target, setTarget] = useState<string>(firstPick);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setTarget(problemId ?? gapOne?.problem.id ?? openOnes[0]?.problem.id ?? GAP); },
+  useEffect(() => { if (open) setTarget(firstPick()); },
     // only when it opens or the page's problem changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [open, problemId]);
@@ -62,10 +72,9 @@ export function SawSheet({ open, projectId, line, problems, api, problemId, bone
     try {
       let pid = target;
       if (pid === GAP) {
-        const c = await api.create({
-          title: line ? `${line.name} — the gap to target` : 'The gap to target',
-          lineId: line?.id, source: { kind: 'gap' },
-        });
+        const c = await api.create(short
+          ? { title: line ? `${line.name} — the gap to target` : 'The gap to target', lineId: line?.id, source: { kind: 'gap' } }
+          : { title: text.trim().length > 80 ? `${text.trim().slice(0, 79)}…` : text.trim(), lineId: line?.id, source: { kind: 'observed' } });
         pid = c.id;
       }
       const cause: Cause = {
@@ -102,7 +111,9 @@ export function SawSheet({ open, projectId, line, problems, api, problemId, bone
             {openOnes.map(p => (
               <option key={p.problem.id} value={p.problem.id}>{p.problem.title} — {PHASE_WORD[p.phase]}</option>
             ))}
-            {!gapOne && <option value={GAP}>{line ? `${line.name} — the gap to target (opened for it)` : 'The gap to target (opened for it)'}</option>}
+            {!gapOne && <option value={GAP}>{short
+              ? (line ? `${line.name} — the gap to target (opened for it)` : 'The gap to target (opened for it)')
+              : 'A new problem — what you saw (opened for it)'}</option>}
           </select></label>
         <Evidence media={media} kind="found"
           onAdd={async refs => { setMedia(x => [...x, ...refs]); }}

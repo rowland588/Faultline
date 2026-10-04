@@ -19,7 +19,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   boundNumber, statusOfNumber, numberWords, numberFigure, numberChoices,
-  bindsWork, bindsNumber, withoutNumber, withoutWork,
+  bindsWork, bindsNumber, withoutNumber, withoutWork, sameBind, bindUndoWords, withBindRestored,
   withTrackerRows, bindSources, bindCount, unplacedActions, statusOfTodo, treeStanding,
   type NumberSources, type TrackerBind,
 } from '../treeBind';
@@ -212,5 +212,35 @@ describe('the tree, as the control room reads it', () => {
   it('says so when nothing is written under the outcome, and is nothing with no tree', () => {
     expect(treeStanding([box('out', 'n')])!.says).toBe('The outcome is not started · nothing written under it yet');
     expect(treeStanding([])).toBeUndefined();
+  });
+});
+
+describe('a link can be taken back (HUNT 31)', () => {
+  const work: TrackerBind = { line: '2A', categories: ['Machine'] };
+  const num: TrackerBind = { measureId: 'm-ppm', lineId: 'l-2a' };
+  it('the same binding is the same, however it is spelled', () => {
+    expect(sameBind(undefined, undefined)).toBe(true);
+    expect(sameBind({ line: '2A', categories: [] }, { line: '2A' })).toBe(true);
+    expect(sameBind({ line: '2A', categories: ['b', 'a'] }, { line: '2A', categories: ['a', 'b'] })).toBe(true);
+    expect(sameBind({ line: '2A', source: 'tracker' }, { line: '2A' })).toBe(true);
+    expect(sameBind(work, { ...work, keyword: 'splice' })).toBe(false);
+  });
+  it('says what changed, and nothing when nothing did', () => {
+    expect(bindUndoWords('Splice holds', work, work)).toBeNull();
+    expect(bindUndoWords('Splice holds', undefined, work)).toMatch(/now fills from the board/);
+    expect(bindUndoWords('Splice holds', work, undefined)).toBe('Unlinked “Splice holds” from the board');
+    expect(bindUndoWords('Splice holds', work, { line: '7' })).toMatch(/Changed what the board fills/);
+    expect(bindUndoWords('Splice holds', work, { ...work, ...num })).toMatch(/now follows a number/);
+    expect(bindUndoWords('Splice holds', { ...work, ...num }, work)).toMatch(/no longer follows a number/);
+    expect(bindUndoWords('Splice holds', work, num)).toBe('Changed what “Splice holds” is linked to');
+    expect(bindUndoWords('', undefined, work)).toMatch(/^The box/);
+  });
+  it('Undo puts back exactly the binding it had, on the box as it is now', () => {
+    const now = { id: 'n1', projectId: 'p', text: 'Renamed since', rag: 'n', sort: 0, createdAt: 1, updatedAt: 9 } as TreeNodeRow;
+    expect(withBindRestored(now, work)).toEqual({ ...now, bind: work });
+    expect(withBindRestored({ ...now, bind: work }, undefined).bind).toBeUndefined();
+    expect(withBindRestored(now, work).text).toBe('Renamed since');
+    // a copy, not the same object — a later edit to one is not an edit to the other
+    expect(withBindRestored(now, work).bind).not.toBe(work);
   });
 });

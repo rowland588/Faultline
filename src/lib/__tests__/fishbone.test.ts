@@ -12,7 +12,7 @@ import type { Measure, Period, Reading, Target } from '../measures';
 import type { WalkSnag } from '../walkSnags';
 import { SIXM, blamesAPerson, boneOfStop } from '../sixm';
 import {
-  acceptSuggestion, belongsTo, buildView, causeRefOf, countermeasuresOf, drillOfRef, fishboneData,
+  acceptSuggestion, belongsTo, buildView, causeFromOldWhys, causeRefOf, oldWhysOf, countermeasuresOf, drillOfRef, fishboneData,
   fullWeeks, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, suggestionsFor, therefore,
   type Countermeasure, type FishboneData,
 } from '../fishbone';
@@ -330,10 +330,12 @@ describe('phaseOf — every phase', () => {
   });
   const hold = { what: 'Changeover timed weekly', everyDays: 7, since: iso(10) };
   const m = (moved?: 'better' | 'worse' | 'same') => ({ label: 'x', unit: 'h a week', better: 'lower' as const, ...(moved ? { moved } : {}) });
-  it('holding — closed with a check and the number still better (or not yet known)', () => {
+  it('holding — closed with a check and the number moved the right way', () => {
     expect(phaseOf(problem({ status: 'closed', hold }), [], m('better'), TODAY)).toBe('holding');
-    expect(phaseOf(problem({ status: 'closed', hold }), [], m(), TODAY)).toBe('holding');
-    expect(phaseOf(problem({ status: 'closed', hold }), [], null, TODAY)).toBe('holding');
+  });
+  it('checking it worked — closed with a check, the number not measured since: green is never said without proof', () => {
+    expect(phaseOf(problem({ status: 'closed', hold }), [], m(), TODAY)).toBe('proving');
+    expect(phaseOf(problem({ status: 'closed', hold }), [], null, TODAY)).toBe('proving');
   });
   it('slipped — closed with a check and the number gone back', () => {
     expect(phaseOf(problem({ status: 'closed', hold }), [], m('worse'), TODAY)).toBe('slipped');
@@ -383,7 +385,7 @@ describe('measureOf', () => {
     expect(mm?.unit).toBe('ppm');
     expect(mm?.better).toBe('higher');
     expect(mm?.before).toBe(42);          // the reading in the 4 weeks before it opened
-    expect(mm?.now).toBe(47.75);          // mean of the last 4 weeks: 44, 46, 49, 52
+    expect(mm?.now).toBe(47.8);           // mean of the last 4 weeks: 44, 46, 49, 52
     expect(mm?.target).toBe(50);
     expect(mm?.moved).toBeUndefined();
     const acts = [action({ status: 'Done', causeRef: 'C1:k1', doneOn: iso(25) })];
@@ -425,7 +427,7 @@ describe('buildView', () => {
   it('the gap says the line against its target', () => {
     const ppm: Measure = { id: 'ppm', name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 1 };
     const v = buildView(problem({ source: { kind: 'gap' } }), data({ measures: [ppm], readings: [{ id: 'r', projectId: 'P', lineId: 'L1', measureId: 'ppm', at: iso(3), value: 47, createdAt: 1, updatedAt: 1 }] }), TODAY);
-    expect(v.says).toBe('Packs per minute on Line 2A: 47 ppm');
+    expect(v.says).toBe('Packs per minute on Line 2A: 47 ppm on the four-week average');
   });
 });
 
@@ -509,5 +511,39 @@ describe('sixm — boneOfStop and blamesAPerson', () => {
     expect(blamesAPerson("They didn't follow the SOP")).toMatch(/What let that happen/);
     expect(blamesAPerson('The guide rail is worn')).toBeNull();
     expect(blamesAPerson('No PM schedule for moved kit')).toBeNull();
+  });
+});
+
+describe('the old five whys, put on a bone', () => {
+  const ids = () => { let i = 0; return () => `id${++i}`; };
+
+  it('reads the chain with blanks dropped', () => {
+    expect(oldWhysOf({ whys: [' Film breaks ', '', 'Splice varies', '  '] })).toEqual(['Film breaks', 'Splice varies']);
+    expect(oldWhysOf({})).toEqual([]);
+  });
+
+  it('makes ONE cause: the first answer is the cause, the rest its whys, the last the root', () => {
+    const c = causeFromOldWhys(['Film breaks at the splice', 'Splices vary by shift', 'No splice standard'], 'material', { newId: ids(), at: 5, by: 'Rob' });
+    expect(c).toEqual({
+      id: 'id1', m: 'material', text: 'Film breaks at the splice', grade: 'reported', status: 'suspected',
+      whys: [{ id: 'id2', text: 'Splices vary by shift' }, { id: 'id3', text: 'No splice standard' }],
+      root: true, at: 5, by: 'Rob',
+    });
+    expect(c?.source).toBeUndefined();
+  });
+
+  it('is a root only with a chain under it, and nothing at all from an empty list', () => {
+    const one = causeFromOldWhys(['Film breaks', ' '], 'machine', { newId: ids(), at: 1 });
+    expect(one?.whys).toEqual([]);
+    expect(one?.root).toBeUndefined();
+    expect(one?.by).toBeUndefined();
+    expect(causeFromOldWhys(['', '  '], 'machine', { newId: ids(), at: 1 })).toBeNull();
+    expect(causeFromOldWhys([], 'machine', { newId: ids(), at: 1 })).toBeNull();
+  });
+
+  it('a suspected root is not yet a confirmed one — the problem is still finding its cause', () => {
+    const c = causeFromOldWhys(['a', 'b'], 'method', { newId: ids(), at: 1 }) as Cause;
+    const p: Case = { id: 'p', workspaceId: 'w', title: 'P', path: [], baselineMsWeek: 0, status: 'open', openedAt: 1, updatedAt: 1, causes: [c] };
+    expect(phaseOf(p, [], null)).toBe('finding');
   });
 });

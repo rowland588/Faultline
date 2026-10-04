@@ -25,14 +25,14 @@ import { useStanding } from '../lib/useStanding';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY } from '../lib/story';
-import { MODELS, methodOf, planModel, setPlanModel } from '../lib/planModel';
+import { MODELS, methodOf, planModel, setPlanModel, switchBack } from '../lib/planModel';
 import { niceDay } from '../lib/weeks';
 import type { Project } from '../types';
 import type { Can } from '../lib/access';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { usePaceLines } from '../lib/usePaceLines';
-import { createWorkspace, type PaceLineRow } from '../db';
+import { createWorkspace, getProject, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
 import { LineTidyPanel } from './LineTidyPanel';
 import { MeasuresSetup } from './MeasuresSetup';
@@ -375,7 +375,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
     return (
       <div className="wrap pace">
         <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
       </div>
     );
   }
@@ -635,7 +635,18 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
                   + `${m.label}: ${m.organised}. Every screen and the client report change to it.\n\n`
                   + `Nothing is deleted. What belongs to ${now.label} is kept out of sight, and comes back if you switch back.`,
                 )) return;
-                void rename(project, setPlanModel(m.id));
+                /* AND IT CAN BE TAKEN BACK (HUNT 31). Asking first stops the
+                   slip of a finger; Undo catches the "no, not that one" that
+                   comes a second after OK. It puts back the method it ran
+                   before, onto the project as it is by then. Only whoever
+                   could switch sees this: the switch is behind can.agree. */
+                const back = switchBack(project);
+                void rename(project, setPlanModel(m.id)).then(() => {
+                  offerUndo(`${project.name} now runs as ${m.label}`, async () => {
+                    const fresh = await getProject(project.id);
+                    if (fresh) await rename(fresh, back);
+                  });
+                });
               }}>
               <span className="proj-model-t">{m.label}</span>
               <span className="proj-model-s">{m.blurb}</span>

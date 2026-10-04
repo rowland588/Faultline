@@ -31,7 +31,7 @@ import { useImpacts } from '../lib/useImpacts';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
 import { methodOf } from '../lib/planModel';
-import { useActions, useCauseNames, WHOLE_PROJECT, isLate, parseCauseRef, type CauseName } from '../lib/actions';
+import { GONE_WORDS, useActions, useCauseNames, WHOLE_PROJECT, isLate, parseCauseRef, type CauseName } from '../lib/actions';
 import { statusOfAction } from '../lib/treeBind';
 import { PILLARS, actionTitle, boardName, lanes, pillarOf, type PillarKey } from '../lib/pillars';
 import { useAccess } from '../cloud/access';
@@ -58,7 +58,7 @@ function Card({ a, impact, cause, onOpen }: { a: PaceAction; impact?: Impact; ca
       {/* THE CAUSE IT IS FOR, AND WHAT IT SHOULD CHANGE — what makes it a
           countermeasure rather than a to-do (docs/SIXM.md). */}
       {parseCauseRef(a.causeRef) && (
-        <span className="bd-for">{cause ? <>for: <b>{cause.text}</b></> : 'on the fishbone'}</span>
+        <span className="bd-for">{cause?.gone ? GONE_WORDS[cause.gone] : cause ? <>for: <b>{cause.text}</b></> : 'on the fishbone'}</span>
       )}
       {a.expect && <span className="bd-expect">should change: {a.expect}</span>}
       <span className="bd-act-f">
@@ -154,7 +154,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
     return (
       <div className="wrap pace">
         <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
       </div>
     );
   }

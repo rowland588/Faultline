@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 import { PILLARS, pillarOf, type PillarKey } from '../lib/pillars';
-import { WHOLE_PROJECT, isDueSoon, isLate, parseCauseRef, useCauseNames } from '../lib/actions';
+import { GONE_WORDS, WHOLE_PROJECT, isDueSoon, isLate, parseCauseRef, useCauseNames } from '../lib/actions';
 import { putPaceTodo, deletePaceTodo, getBlob, putBlob, restoreRows, type PaceLineRow, type PaceTodoRow } from '../db';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useAccess } from '../cloud/access';
@@ -45,7 +45,8 @@ export async function removeActionWithUndo(row: PaceTodoRow): Promise<void> {
 }
 
 /** The cause an action is for, said in words — the cause's own text when its
- *  problem is on this device, "on the fishbone" when it is not (yet). */
+ *  problem is on this device, "on the fishbone" when it is not (yet), and
+ *  "its problem was removed" (no way to it) when the problem was taken away. */
 export function CauseLine({ causeRef, projectId, lineId, onGo }: {
   causeRef?: string; projectId?: string; lineId?: string; onGo?: () => void;
 }) {
@@ -57,9 +58,10 @@ export function CauseLine({ causeRef, projectId, lineId, onGo }: {
     <p className="ax-cause">
       <span className="ax-k">FOR THE CAUSE</span>
       <span className="ax-cause-t">
-        {n ? <><b>{n.text}</b> <span className="sub">— {n.problem}</span></> : <span className="sub">a cause on the fishbone</span>}
+        {n?.gone ? <span className="sub">{n.gone === 'problem' ? `“${n.problem}” — ${GONE_WORDS.problem}` : GONE_WORDS.cause}</span>
+          : n ? <><b>{n.text}</b> <span className="sub">— {n.problem}</span></> : <span className="sub">a cause on the fishbone</span>}
       </span>
-      {projectId && (
+      {projectId && n?.gone !== 'problem' && (
         <button type="button" className="cw-link" onClick={() => {
           onGo?.();
           nav(`/project/${projectId}/fishbone?problem=${encodeURIComponent(p.caseId)}${lineId ? `&line=${encodeURIComponent(lineId)}` : ''}`);

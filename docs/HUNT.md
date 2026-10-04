@@ -31,8 +31,8 @@ control that does nothing; these are the calls to make next.
 11. **Programs on a 3P job ask for a machine**, which creates a stage-gate machine record. Recommend programs belong to a line on 3P.
 12. ~~**The method switch in Details is one tap with no confirm**, and it reshapes every screen and the report (the tree is kept but hidden).~~ **Done 3 Oct:** switching method asks first, says what the job becomes, and that nothing is deleted.
 13. **A 3P meeting note can only be about the whole project.** Recommend letting it point at a line or an action.
-14. **By-owner cards are read-only.** Recommend they open the action sheet, as the board's do.
-15. **The project's Pareto rows are not doors.** Recommend each opens the line's drill for that category.
+14. ~~**By-owner cards are read-only.** Recommend they open the action sheet, as the board's do.~~ **Done 4 Oct:** the whole card is a button (127 px on a phone) that opens the board's own action sheet for that action — editable for the team, read-only for a client, with "did it work?" as the board shows it; an on-time open card is indigo now, not done's green.
+15. ~~**The project's Pareto rows are not doors.** Recommend each opens the line's drill for that category.~~ **Done 4 Oct:** the whole row opens that category's drill on the line that lost the most minutes to it (ranked by machine next), and says which — "on Line 2A", "mostly on Line 2A, also Line 3" — and when two lines lost the same minutes it says "equally" and asks which; the root-cause button stays its own tap.
 16. **The project-level walk sits beside each line's.** Recommend filming from the project page asks which line.
 
 ## The walk and the tools inside a workspace
@@ -52,7 +52,7 @@ control that does nothing; these are the calls to make next.
 28. ~~**"Start from the lines" writes "holds its ppm rate"** whatever the project measures.~~ **Done 4 Oct:** it uses the project's first measure — "Line 9 hits its waste target", "… meets its waste target" — and plain "target" before the project names one.
 29. ~~**"Workspace +" on a line row** is the old name for the line's study and walk.~~ **Done 4 Oct:** the button says "Time & film", what it opens: the line's stopwatch and filmed walk.
 30. ~~**A linked condition's edge is brand blue**, which the house rules keep for what you press.~~ **Done 4 Oct:** the edge was indigo (`--blue`, "under way"), not brand blue — still a state hue on a mark that is not a state. It is an ink edge now.
-31. **Binding, unbinding and switching method have no Undo.** The tree's delete has Undo now. Recommend Undo for these too.
+31. ~~**Binding, unbinding and switching method have no Undo.** The tree's delete has Undo now. Recommend Undo for these too.~~ **Done 4 Oct:** linking a box to the board, unlinking it, binding its colour to a number or letting the number go, and building linked conditions each offer Undo, which puts back exactly the binding the box had (or removes the conditions just built); switching method in Details still asks first and then offers Undo that switches back — all only for whoever could do it, and a client is no longer offered the link and number controls at all.
 
 Fixed after the hunt reported them: the tree's four sheets now close on Escape and on a tap outside, like every other sheet; "Notify me on this device" says when the browser's question was closed without a yes. Not driven: the update banner, because the harness blocks service workers.
 32. ~~**A lever tree job's outcome chip on Home was cut to "Outcome n…"** in a quarter of the row.~~ **Done 4 Oct** (found 3 Oct, not in the first hunt): it takes two quarters and reads in full.

@@ -66,6 +66,52 @@ export function paretoFromLog(
   };
 }
 
+/** What a bar's minutes are filed under when they were timed on the project's
+ *  own walk rather than on one of its lines. */
+export const PROJECT_WALK = 'The project';
+
+/* A BAR IS A DOOR INTO THE LINE IT WAS TIMED ON (HUNT 15).
+ *
+ * The project's Pareto adds every line's log together; the drill that says
+ * which machine, which sub-category, which shift lives on each line's own
+ * study (screens/AnalyseScreen). So a bar opens the line where most of its
+ * minutes were lost — that is where the cause is, and where "Find the root
+ * cause" already puts the problem (ParetoScreen's lineOfBar). */
+export interface BarDrill { wsId: string; name: string; mins: number }
+
+/** Where a bar's minutes were timed, most first — each with the study to
+ *  drill. `byLine` is keyed by the line's name (paretoFromLog); minutes on the
+ *  project's own walk open that walk. A name with no study is left out: there
+ *  is nothing on this device to drill into. */
+export function barDrills(
+  byLine: Record<string, number> | undefined,
+  lines: { name: string; workspaceId?: string }[],
+  walkId?: string,
+): BarDrill[] {
+  const out: BarDrill[] = [];
+  for (const [name, mins] of Object.entries(byLine ?? {})) {
+    if (!(mins > 0)) continue;
+    const wsId = name === PROJECT_WALK && !lines.some(l => l.name === name)
+      ? walkId : lines.find(l => l.name === name && l.workspaceId)?.workspaceId;
+    if (wsId) out.push({ wsId, name, mins });
+  }
+  return out.sort((a, b) => b.mins - a.mins || a.name.localeCompare(b.name));
+}
+
+/** A REAL TIE: the top two lines lost the same minutes as the screen prints
+ *  them (a tenth under 100, whole above). Then neither is "mostly", and the
+ *  row asks which line rather than choosing one for you. */
+export function isTie(d: BarDrill[]): boolean {
+  if (d.length < 2) return false;
+  const shown = (n: number) => (n >= 100 ? Math.round(n) : Math.round(n * 10) / 10);
+  return shown(d[0].mins) === shown(d[1].mins);
+}
+
+/** The drill's value for a bar. The Pareto files a blank category as
+ *  "Uncategorised"; the drill (engine/types dimOf) as "(uncategorised)". */
+export const drillCategory = (category: string): string =>
+  category === 'Uncategorised' ? '(uncategorised)' : category;
+
 export interface ProjectPareto {
   loading: boolean;
   now?: PaceParetoSheet;
@@ -80,7 +126,7 @@ export function useProjectPareto(projectId: string, today = Date.now()): Project
   const load = useCallback(async () => {
     const [ids, lines] = await Promise.all([projectWorkspaceIds(projectId), loadPaceLines(projectId)]);
     const obs = (await Promise.all(ids.map(id => listObservations(id)))).flat();
-    const lineOf = (o: Observation) => lines.find(l => l.workspaceId === o.workspaceId)?.name ?? 'The project';
+    const lineOf = (o: Observation) => lines.find(l => l.workspaceId === o.workspaceId)?.name ?? PROJECT_WALK;
     const w = PARETO_WINDOW_DAYS * DAY;
     setSt({
       loading: false,

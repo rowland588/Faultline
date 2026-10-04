@@ -88,9 +88,10 @@ const FRAME_X = { drawn: 2 + 2 * 18, lanes: 2 + 2 * 12 };
 const laneId = (v: ProblemView, m: SixM) => `fb-lane-${v.problem.id}-${m}`;
 const gradeLabel = (c: Cause) => GRADES.find(g => g.key === c.grade)?.label ?? '';
 
-/** 3.2 · 48 · 1,250 — a tenth below ten, whole numbers above. */
+/** 3.2 · 47.8 · 1,250 — a tenth below a hundred, whole numbers above: the
+ *  same figure the sentence and the paper print (lib/fishbone rounds to a tenth). */
 export function num(n: number): string {
-  return Math.abs(n) < 10 ? n.toFixed(1).replace(/\.0$/, '') : Math.round(n).toLocaleString('en-GB');
+  return Math.abs(n) < 100 ? n.toFixed(1).replace(/\.0$/, '') : Math.round(n).toLocaleString('en-GB');
 }
 
 /** What a cause is, said in full — the mark's name for a screen reader, and its peek. */
@@ -278,9 +279,19 @@ function shortCount(b: Bone): string {
   return plural(n, 'cause') + (r ? ` · ${plural(r, 'root')}` : '');
 }
 
+const finite = (x?: number): x is number => x != null && Number.isFinite(x);
+
 function CompactFish({ view, width, onBone }: { view: ProblemView; width: number; onBone?: (m: SixM) => void }) {
   const narrow = width < 520;
-  const headW = narrow ? 44 : Math.round(Math.min(230, Math.max(150, width * 0.3)));
+  const m = view.measure;
+  /* NARROW, THE HEAD CARRIES THE PROBLEM'S NUMBER — what it is now, in its
+     unit. It was a circle with a dot in it, which on a phone read as an empty
+     box rather than the head of the fish; the head is "the problem and its
+     number" (docs/SIXM.md), so the number is what goes in it. The title, the
+     phase and what the number was (and is aimed at) stay on the line above,
+     so nothing is said twice. With no number yet, the head is the shape. */
+  const headNum = narrow && m ? (finite(m.now) ? m.now : finite(m.before) ? m.before : undefined) : undefined;
+  const headW = narrow ? (headNum != null ? 78 : 48) : Math.round(Math.min(230, Math.max(150, width * 0.3)));
   const labH = 46, boneH = 44;
   const spineY = labH + boneH + 2;
   const H = spineY + boneH + labH + 2;
@@ -289,13 +300,24 @@ function CompactFish({ view, width, onBone }: { view: ProblemView; width: number
   const colW = (headX - (narrow ? 8 : 14) - padL) / 3;
   const dx = colW * 0.3;
   const title = view.problem.title || 'The problem';
-  const m = view.measure;
+  const was = m && headNum != null && finite(m.before) && finite(m.now) && m.before !== m.now ? m.before : undefined;
   return (
     <div className={'fb-mini' + (narrow ? ' is-narrow' : '')}>
       {narrow && (
         <div className="fb-mini-top">
           <b className="fb-title">{title}</b>
-          <span className="fb-mini-meta">{m && <Measure m={m} />}<Phase view={view} /></span>
+          <span className="fb-mini-meta">
+            <Phase view={view} />
+            {m && headNum == null && <Measure m={m} />}
+            {m && headNum != null && (was != null || finite(m.target)) && (
+              <span className="fb-num">
+                {was != null && <span className="fb-num-was">was {num(was)}</span>}
+                {was != null && finite(m.target) && ' · '}
+                {finite(m.target) && <span className="fb-num-was">target {num(m.target)}</span>}
+                {' '}{m.unit}
+              </span>
+            )}
+          </span>
         </div>
       )}
       <div className="fb-mini-fish" style={{ height: H }} role="img"
@@ -322,10 +344,14 @@ function CompactFish({ view, width, onBone }: { view: ProblemView; width: number
           })}
           <line className="fb-spine" x1={padL} y1={spineY} x2={headX + 6} y2={spineY} />
         </svg>
-        <div className="fb-head is-mini" style={{ left: headX, top: spineY - (narrow ? 26 : 50), width: headW, height: narrow ? 52 : 100 }}>
-          {/* Narrow, the problem and its number are written above the fish —
-              the head is only the shape, so nothing is said twice. */}
-          {narrow ? <i className="fb-eye" aria-hidden /> : <><Phase view={view} /><b className="fb-title">{title}</b>{m && <Measure m={m} />}</>}
+        <div className="fb-head is-mini" style={{ left: headX, top: spineY - (narrow ? 28 : 50), width: headW, height: narrow ? 56 : 100 }}>
+          {!narrow ? <><Phase view={view} /><b className="fb-title">{title}</b>{m && <Measure m={m} />}</>
+            : headNum != null && m ? (
+              <span className="fb-head-num" aria-label={`now ${num(headNum)} ${m.unit}`}>
+                <b className={m.moved === 'worse' ? 'is-worse' : ''}>{num(headNum)}</b>
+                <small>{m.unit}</small>
+              </span>
+            ) : <i className="fb-eye" aria-hidden />}
         </div>
         {view.bones.slice(0, 6).map((b, idx) => {
           const upper = idx < 3, i = idx % 3;

@@ -44,7 +44,9 @@ import { useMeasures } from '../lib/useMeasures';
 import {
   withTrackerRows, isBoundNode, bindCount, trackerLines, bindSources, unplacedActions, whyUnplaced, bindActionText,
   bindsWork, bindsNumber, boundNumber, numberChoices, withoutNumber, withoutWork, boardWords, type TrackerBind, type BoundNumber,
+  bindUndoWords, withBindRestored,
 } from '../lib/treeBind';
+import { useAccess } from '../cloud/access';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
 import { Icon } from '../ui/Icon';
@@ -117,7 +119,9 @@ function Box({
     /** Where the number stands, when this box is bound to one. */
     bound?: BoundNumber;
     pick: (measureId: string, lineId: string) => void;
-    unbind: () => void;
+    /** Absent for whoever may not change the tree (a client): the number is
+     *  still shown, the way back to typing the state is not offered. */
+    unbind?: () => void;
   };
   /** Build this line's conditions off the tracker. Absent once they are linked. */
   onSuggest?: () => void;
@@ -256,10 +260,12 @@ function Box({
           <span className="lt-num-f">{bound.figure}</span>
           {/* The colour follows the number, so the hand-typed state is not
               offered below — one thing, one place. This is the way back. */}
-          <button type="button" className="lt-from lt-unbind" onClick={numbers.unbind}
-            title="Go back to setting the state by hand">
-            from the number — unbind
-          </button>
+          {numbers.unbind && (
+            <button type="button" className="lt-from lt-unbind" onClick={numbers.unbind}
+              title="Go back to setting the state by hand">
+              from the number — unbind
+            </button>
+          )}
         </span>
       )}
 
@@ -418,6 +424,9 @@ function Box({
 
 export function LeverTree({ projectId }: { projectId: string }) {
   const { project } = useProject(projectId);
+  /* Linking is the team's work (lib/access): a client is not offered it, and
+     Undo is only ever offered to whoever was allowed to do the thing undone. */
+  const can = useAccess(projectId);
   const methodCounts = useMethodCounts(projectId);
   const [rows, setRows] = useState<TreeNodeRow[] | null>(null);
   const [pasteInto, setPasteInto] = useState<TreeNodeRow | null>(null);
@@ -574,12 +583,22 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const sibs = siblingsOf(parent.id);
     let sort = sibs.length ? sibs[sibs.length - 1].sort + 1 : 0;
     const t = now();
-    await putTreeNodes(picked.map(c => ({
+    const made = picked.map(c => ({
       id: uid(), projectId, parentId: parent.id,
       text: c.text, rag: 'n' as NodeStatus, bind: c.bind,
       sort: sort++, createdAt: t, updatedAt: t,
-    })));
+    }));
+    await putTreeNodes(made);
     await load();
+    /* Undo takes back the linked boxes just made (HUNT 31) — a delete of each,
+       so every device drops them too. Nothing on the board is touched. */
+    if (!made.length || !can.edit) return;
+    const p = parent.text.trim();
+    const under = p ? `“${p.length > 40 ? p.slice(0, 39) + '…' : p}”` : 'the box';
+    offerUndo(`Linked ${made.length} condition${made.length === 1 ? '' : 's'} under ${under}`, async () => {
+      for (const m of made) await deleteTreeBranch(projectId, m.id);
+      await load();
+    });
   };
 
   /** Another box at the SAME level, directly below this one — what ＋ does.
@@ -605,6 +624,25 @@ export function LeverTree({ projectId }: { projectId: string }) {
     const stored = nodes.find(x => x.id === n.id) ?? n;
     await putTreeNode({ ...stored, ...patch });
     await load();
+  };
+
+  /* LINK, UNLINK, A NUMBER BOUND OR LET GO — WITH UNDO (HUNT 31). The delete
+     beside these could be taken back; one mistaken tap on Unlink could not,
+     and the work it hung on the box vanished from the tree. Undo puts back the
+     binding the box had, onto the box as it is by then (its words may have
+     been edited since); a box deleted in the meantime stays deleted. */
+  const rebind = async (n: TreeNodeRow, bind: TrackerBind | undefined) => {
+    if (!can.edit) return;
+    const stored = nodes.find(x => x.id === n.id) ?? n;
+    const before = stored.bind;
+    const words = bindUndoWords(stored.text, before, bind);
+    await change(n, { bind });
+    if (!words) return;
+    offerUndo(words, async () => {
+      const nowRow = (await listTreeNodes(projectId)).find(x => x.id === n.id);
+      if (nowRow) await putTreeNode(withBindRestored(nowRow, before));
+      await load();
+    });
   };
 
   const remove = async (n: TreeNodeRow) => {
@@ -747,19 +785,21 @@ export function LeverTree({ projectId }: { projectId: string }) {
         /* The chain is offered on a box that HOLDS work, never on the outcome
            (nothing hangs off the tracker at that level) and never on a row the
            tracker itself put there. */
-        onBind={isBoundNode(t.node.id) || t.depth === 0 ? undefined : () => setBinding(t.node)}
+        onBind={!can.edit || isBoundNode(t.node.id) || t.depth === 0 ? undefined : () => setBinding(t.node)}
         boundCount={t.node.bind && bindsWork(t.node.bind) ? bindCount(t.node.bind, sources) : undefined}
         numbers={isBoundNode(t.node.id) || choices.length === 0 ? undefined : {
-          choices,
+          /* A client sees the number a box follows, and is offered neither
+             binding one nor letting it go — no choices, no unbind. */
+          choices: can.edit ? choices : [],
           bound: boundNumber(t.node.bind, numSources),
-          pick: (measureId, lineId) => void change(t.node, { bind: { ...t.node.bind, measureId, lineId } }),
-          unbind: () => void change(t.node, { bind: withoutNumber(t.node.bind) }),
+          pick: (measureId, lineId) => void rebind(t.node, { ...t.node.bind, measureId, lineId }),
+          unbind: can.edit ? () => void rebind(t.node, withoutNumber(t.node.bind)) : undefined,
         }}
         /* Offered on a line whose conditions are not linked yet — NOT only on an
            empty one. Keyed to emptiness it vanished the moment somebody typed a
            condition by hand, which is most trees, and left the chain glyph as
            the only way in: 22 pixels, unlabelled, in a row of eight. */
-        onSuggest={t.depth === 1 && !isBoundNode(t.node.id) && trackerActions.length > 0
+        onSuggest={can.edit && t.depth === 1 && !isBoundNode(t.node.id) && trackerActions.length > 0
           && !t.kids.some(k => bindsWork(k.node.bind))
           ? () => setSuggesting(t.node) : undefined}
         suggestNew={t.kids.length === 0}
@@ -780,7 +820,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
     return (
       <div className="wrap pace">
         <p className="sub">That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
       </div>
     );
   }
@@ -957,10 +997,10 @@ export function LeverTree({ projectId }: { projectId: string }) {
           onClose={() => setBinding(null)}
           /* Unlinking the board's work leaves a number binding where it is,
              and linking the work keeps it — the two halves are independent. */
-          onClear={() => { void change(binding, { bind: withoutWork(binding.bind) }); setBinding(null); }}
+          onClear={() => { void rebind(binding, withoutWork(binding.bind)); setBinding(null); }}
           onSave={b => {
             const keep = bindsNumber(binding.bind) ? { measureId: binding.bind?.measureId, lineId: binding.bind?.lineId } : {};
-            void change(binding, { bind: { ...b, ...keep } }); setBinding(null);
+            void rebind(binding, { ...b, ...keep }); setBinding(null);
           }}
         />
       )}

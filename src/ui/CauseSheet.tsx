@@ -25,6 +25,9 @@ import { GradeMeter, RootTag, StatusGlyph } from './fishbone/marks';
 import { LineField } from './fishbone/LineField';
 import { lossWords, STATUS_WORD } from './fishbone/layout';
 import { therefore } from '../lib/fishbone';
+import { Evidence } from './EvidenceDoors';
+import { EvidenceViewer } from './Evidence';
+import type { MediaRef } from '../types';
 
 export interface CauseSheetProps {
   open: boolean;
@@ -64,7 +67,7 @@ const short = (s: string, n = 64) => (s.length > n ? `${s.slice(0, n - 1).trimEn
  *  there is a chain under it and the cause still stands. */
 export function tidyCause(c: Cause): Cause {
   const whys = filled(c.whys).map(w => ({ ...w, text: w.text.trim() }));
-  return { ...c, text: c.text.trim(), whys, root: !!c.root && whys.length > 0 && c.status !== 'ruled_out' };
+  return { ...c, text: c.text.trim(), whys, root: !!c.root && whys.length > 0 && c.status !== 'ruled_out', media: c.media?.length ? c.media : undefined };
 }
 
 export function CauseSheet(p: CauseSheetProps) {
@@ -75,6 +78,7 @@ export function CauseSheet(p: CauseSheetProps) {
   const [focusWhy, setFocusWhy] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [viewing, setViewing] = useState<MediaRef | null>(null);
   if (cause !== base) { setBase(cause); setC(cause); setErr(''); setFocusWhy(null); }
 
   if (!open || !cause || !c) return null;
@@ -197,9 +201,19 @@ export function CauseSheet(p: CauseSheetProps) {
               ? <>{SOURCE_WORD[c.source.kind]}{c.source.label ? `: ${c.source.label}` : ''}{lossWords(c.source.minutesWeek) ? ` · ${lossWords(c.source.minutesWeek)}` : ''}</>
               : 'Put on the fishbone by hand'}
             {(c.by || (!draft && c.at)) && <span className="cs-by"> · added {[c.by ? `by ${c.by}` : '', !draft && c.at ? new Date(c.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''].filter(Boolean).join(', ')}</span>}
-            {c.source && <> <button type="button" className="cs-link" onClick={() => c.source && onOpenSource(c.source)}>Open it ›</button></>}
+            {/* Only where there is somewhere to go: something seen on the line
+                is its own evidence (its words and photos are here), so an
+                "Open it" on it was a link that did nothing. */}
+            {c.source && c.source.kind !== 'observation' && <> <button type="button" className="cs-link" onClick={() => c.source && onOpenSource(c.source)}>Open it ›</button></>}
           </p>
         </div>
+
+        {/* ITS PHOTOS — what "I saw…" took on the floor, and any added here.
+            Saved on the cause (cases.causes[].media) and synced with the
+            problem; the sheet never showed them, so a photo taken as evidence
+            was on the record and nowhere on the screen. */}
+        <Evidence media={c.media ?? []} kind="found" onView={setViewing}
+          onAdd={edit ? async refs => { setC(x => (x ? { ...x, media: [...(x.media ?? []), ...refs] } : x)); } : undefined} />
 
         {/* THE FIVE WHYS */}
         <div className="cs-f cs-whys">
@@ -320,6 +334,8 @@ export function CauseSheet(p: CauseSheetProps) {
           ) : <button type="button" className="btn" onClick={onClose}>Close</button>}
         </div>
       </div>
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onRemove={edit ? () => { set({ media: (c.media ?? []).filter(m => m.id !== viewing.id) }); setViewing(null); } : undefined} />}
     </Sheet>
   );
 }

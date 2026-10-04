@@ -39,6 +39,7 @@ import { isLate as stepIsLate } from './actions';
 import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
 import type { TreeStanding } from './treeBind';
+import { PHASE_WORD, type Phase } from './problems';
 
 export interface JobInput {
   project: Project;
@@ -65,7 +66,23 @@ export interface PacedInput {
   notes?: TestItem[];
   /** A lever tree job's tree, read the way the tree draws it (treeStanding). */
   tree?: TreeStanding;
+  /** A 6M job's problems, as the engine reads them (lib/useProblems viewsOf —
+   *  the phase is lib/fishbone phaseOf's, never worked out again here). */
+  problems?: SixMProblem[];
+  /** A 6M job's lines against their target, in the sentence the 6M client
+   *  report leads with (lib/measures gapOf). */
+  gaps?: { lineId: string; line: string; says: string; short?: string }[];
 }
+
+/** One 6M problem as the control room needs it: enough to say where it is and
+ *  to open its fishbone. */
+export interface SixMProblem { id: string; title: string; lineId?: string; phase: Phase; says: string }
+
+/** A piece of a sentence, and whether it is the abnormal part that carries a
+ *  colour: `late` red (past its day, or slipped back), `waiting` amber, `none`
+ *  grey (nothing there). Everything else is plain ink. */
+export interface Said { text: string; tone?: 'late' | 'waiting' | 'none' }
+export const saidText = (parts: Said[]): string => parts.map(x => x.text).join('');
 
 /** One thing owed, on one job. */
 export interface JobItem {
@@ -97,6 +114,10 @@ export interface JobView {
   methodLabel: string;
   /** Lines at target, said in words, when there is a target to judge. */
   reach?: string;
+  /** Some judged line is short of its target — the one case the reach chip
+   *  carries a colour (red, as the gap's "short" is on the client report);
+   *  every line at target is normal, and normal recedes. */
+  reachShort?: boolean;
   /** The board's bones that have anything open on them — only those, in the
    *  fishbone's order — each with how many are open and how it stands
    *  (late if anything on it is). Empty when nothing is open. */
@@ -104,6 +125,15 @@ export interface JobView {
   /** A lever tree job: how its outcome and conditions stand — what its row
    *  leads with instead of the board's columns. */
   tree?: TreeStanding;
+  /** A 6M job: its problems by phase and its open countermeasures by bone, in
+   *  words (docs/SIXM.md, "Home / control room"), and what its drawer leads
+   *  with — each line against its target, then the problems, worst first. */
+  sixm?: {
+    phases: Said[];
+    bones: Said[];
+    gaps: { lineId: string; line: string; says: string; short?: string }[];
+    problems: (SixMProblem & { word: string; slipped: boolean })[];
+  };
   name: string;
   color: string;
   lead?: string;
@@ -265,6 +295,55 @@ function pacedPillars(j: PacedInput, today: string): JobView['pillars'] {
     .map(b => ({ key: b.key, label: b.label, open: b.open, tone: b.late > 0 ? 'late' as const : 'going' as const }));
 }
 
+/* ------------------------------ a 6M job, in words ------------------------------ */
+
+/** The order a 6M job's problems are read in: what has slipped back first (it
+ *  is the one thing wrong), then what is being worked, then what is done. The
+ *  6M client report reads them in the same order. */
+export const PHASE_ORDER: Phase[] = ['slipped', 'finding', 'acting', 'proving', 'holding', 'closed'];
+const OPEN_PHASES: Phase[] = ['finding', 'acting', 'proving'];
+
+/** "2 problems — 1 finding the cause, 1 acting on it · 1 holding": the open
+ *  problems by phase, then the closed ones. A slipped one is the only part with
+ *  a colour, and says "slipped back". */
+export function problemsSaid(phases: Phase[]): Said[] {
+  if (!phases.length) return [{ text: 'No problem opened yet', tone: 'none' }];
+  const count = (ph: Phase) => phases.filter(x => x === ph).length;
+  const open = OPEN_PHASES.filter(count);
+  const n = open.reduce((t, ph) => t + count(ph), 0);
+  const out: Said[] = [];
+  if (n === 0) out.push({ text: 'No problem open', tone: 'none' });
+  else if (n === 1) out.push({ text: `1 problem — ${PHASE_WORD[open[0]].toLowerCase()}` });
+  else out.push({ text: `${plural(n, 'problem')} — ${open.map(ph => `${count(ph)} ${PHASE_WORD[ph].toLowerCase()}`).join(', ')}` });
+  for (const ph of ['slipped', 'holding', 'closed'] as Phase[]) {
+    const k = count(ph);
+    if (!k) continue;
+    out.push({ text: ' · ' });
+    out.push({ text: `${k} ${PHASE_WORD[ph].toLowerCase()}`, ...(ph === 'slipped' ? { tone: 'late' as const } : {}) });
+  }
+  return out;
+}
+
+/** "7 open: Machine 3 · People 2 · Material 2, 2 past their day": the board's
+ *  open countermeasures by bone, the biggest bone first (the fishbone's order
+ *  between equals), and only then what is abnormal — past its day in red,
+ *  waiting on somebody in amber. */
+export function bonesSaid(steps: Pick<PaceTodoRow, 'pillar' | 'state' | 'due'>[], today: string): Said[] {
+  if (!steps.length) return [{ text: 'Nothing on the board yet', tone: 'none' }];
+  const open = steps.filter(s => s.state !== 'done');
+  if (!open.length) return [{ text: 'Nothing open on the board', tone: 'none' }];
+  const bones = openByBone(open.map(s => ({ pillar: s.pillar, open: true })))
+    .map((b, i) => ({ ...b, i })).sort((a, b) => b.open - a.open || a.i - b.i);
+  const unboned = open.length - bones.reduce((t, b) => t + b.open, 0);
+  const late = open.filter(s => stepIsLate(s, today)).length;
+  const waiting = open.filter(s => s.state === 'waiting' && !stepIsLate(s, today)).length;
+  const by = [...bones.map(b => `${b.label} ${b.open}`), ...(unboned ? [`${unboned} not on a bone yet`] : [])];
+  const out: Said[] = [{ text: `${open.length} open: ${by.join(' · ')}` }];
+  if (late) out.push({ text: ', ' }, { text: `${late} past ${late === 1 ? 'its' : 'their'} day`, tone: 'late' });
+  if (waiting) out.push({ text: ', ' }, { text: `${waiting} waiting on somebody`, tone: 'waiting' });
+  return out;
+}
+
 const byUrgency = (a: JobItem, b: JobItem) =>
   Number(b.late) - Number(a.late) || (a.on ?? '￿').localeCompare(b.on ?? '￿') || a.what.localeCompare(b.what);
 
@@ -325,13 +404,24 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
         ...base,
         /* A tree job says its tree first: the outcome and its conditions are
            what it is being run against; the board is the work under them. */
-        sentence: (j.tree ? `${j.tree.says}. ` : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
+        /* A tree job with no tree yet says so — its board alone would read
+           "Nothing open", as if the job were in hand. */
+        sentence: (j.tree ? `${j.tree.says}. ` : planModel(p) === 'tree' ? 'No tree yet — it starts from the outcome. ' : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
         tree: j.tree,
         lines: j.lines.map(l => ({ id: l.id, key: l.key, name: l.name, owner: l.owner || undefined })),
         slip: undefined, daysToGo, outstanding: open, late,
         done: e.plan.filter(m => m.tone === 'done').length, total: e.plan.length,
         reach: j.judged > 0 ? `${j.atTarget} of ${j.judged} at target` : undefined,
+        reachShort: j.judged > 0 && j.atTarget < j.judged,
         pillars: pacedPillars(j, today),
+        ...(planModel(p) === 'board' ? { sixm: {
+          phases: problemsSaid((j.problems ?? []).map(x => x.phase)),
+          bones: bonesSaid(j.steps, today),
+          gaps: j.gaps ?? [],
+          problems: (j.problems ?? [])
+            .map(x => ({ ...x, word: PHASE_WORD[x.phase], slipped: x.phase === 'slipped' }))
+            .sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase)),
+        } } : {}),
         gates: [], at: methodOf(p).label,
       };
     }

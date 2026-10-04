@@ -130,11 +130,12 @@ export function weeksFor(rows: Material[], today = todayISO(), least = 6, most =
   return weeksFrom(live(rows).flatMap(m => (!isHere(m) && m.due ? [m.due] : [])), today, least, most);
 }
 
-/** Is this material available in this week — the green cell.
+/** Is this material covered in this week — the filled cell.
  *
- *  Here means green all the way across, which is what "In stock" means on the
- *  sheet. Otherwise it goes green from the week its date falls in, and stays
- *  green: a thing that has arrived does not un-arrive the following week. */
+ *  Here means filled all the way across, which is what "In stock" means on the
+ *  sheet. Otherwise it is filled from the week its date falls in, and stays
+ *  filled: a thing that has arrived does not un-arrive the following week. The
+ *  drawers colour it — indigo while it is still coming, green once isHere(). */
 export function coveredIn(m: Material, w: Week, today = todayISO()): boolean {
   if (isHere(m)) return true;
   if (!m.due) return false;

@@ -45,8 +45,12 @@ import { SIXM, type Cause, type CauseSource, type SixM } from '../lib/sixm';
 import type { Suggestion } from '../lib/problems';
 import type { Can } from '../lib/access';
 import type { Case } from '../types';
-import { snagsForWorkspace, type PaceLineRow } from '../db';
-import { drillOfRef } from '../lib/fishbone';
+import { removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
+import { offerUndo } from '../ui/Undo';
+import { drillOfRef, oldWhysOf } from '../lib/fishbone';
+import { putOldWhysOnBone } from '../lib/useProblems';
+import { useSession } from '../cloud/session';
+import { displayName } from '../cloud/team';
 import { statusOfAction } from '../lib/treeBind';
 import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
@@ -290,9 +294,9 @@ function HoldSheet({ open, view, onClose, onDone }: {
 
 /* ------------------------------ the problem's head ------------------------------ */
 
-function HeadCard({ v, can, onClose, onReopen, onChecked }: {
+function HeadCard({ v, can, onClose, onReopen, onChecked, onRemove }: {
   v: ProblemView; can: Can;
-  onClose: () => void; onReopen: () => void; onChecked: () => void;
+  onClose: () => void; onReopen: () => void; onChecked: () => void; onRemove: () => void;
 }) {
   const m = v.measure;
   const hold = v.problem.hold;
@@ -331,7 +335,56 @@ function HeadCard({ v, can, onClose, onReopen, onChecked }: {
         {/* "It worked" is only true once something was done about it. */}
         {open && can.agree && <button className="btn" onClick={onClose}>{v.actions.length ? 'It worked — close it' : 'Close it'}</button>}
         {!open && can.agree && <button className="btn btn-ghost" onClick={onReopen}>Reopen</button>}
+        {/* A PROBLEM OPENED BY MISTAKE IS REMOVED, NOT CLOSED: closing asks how
+            the gain is kept, which is wrong for a problem that was never real.
+            Owner only (the database lets only the owner set deleted_at), quiet,
+            and undone for a few seconds like every delete (ui/Undo). */}
+        {can.remove && <button className="btn btn-ghost cw-del fj-remove" onClick={onRemove}>Remove this problem</button>}
       </div>
+    </section>
+  );
+}
+
+/* ------------------------------ the old five whys ------------------------------ */
+
+/** A PROBLEM OPENED BEFORE THE FISHBONE carries its five whys as a plain list
+ *  (Case.whys, the last the root) and no causes — so on the fish they were
+ *  invisible. They are read here plainly, and whoever works the fishbone puts
+ *  them on a bone in one move: the chain becomes one cause there (suspected,
+ *  until somebody confirms it) and leaves this card, so it is never said twice. */
+function OldWhys({ whys, can, onPut }: { whys: string[]; can: Can; onPut: (m: SixM) => Promise<void> }) {
+  const [picking, setPicking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const put = async (m: SixM) => {
+    if (busy) return;
+    setBusy(true);
+    try { await onPut(m); setPicking(false); } finally { setBusy(false); }
+  };
+  return (
+    <section className="fj-old" aria-label="Written before the fishbone">
+      <p className="fj-old-k">Written before the fishbone</p>
+      <p className="fj-old-chain">
+        {whys.map((w, i) => (
+          <span key={i}>
+            {i > 0 && <span className="fj-old-arrow" aria-label="why"> → </span>}
+            {i === whys.length - 1 && whys.length >= 2 ? <><b>{w}</b> <span className="fj-old-root">the root</span></> : w}
+          </span>
+        ))}
+      </p>
+      {can.edit && (picking ? (
+        <div className="fj-old-pick">
+          <span className="sub">Which bone does it sit on? It goes on as one cause, suspected until you confirm it.</span>
+          <div className="cw-seg fj-old-bones" role="group" aria-label="Which bone">
+            {SIXM.map(b => (
+              <button key={b.key} type="button" className="chip" title={b.blurb} disabled={busy}
+                onClick={() => void put(b.key)}>{b.label}</button>
+            ))}
+          </div>
+          <button type="button" className="btn btn-ghost" onClick={() => setPicking(false)}>Cancel</button>
+        </div>
+      ) : (
+        <button type="button" className="btn" onClick={() => setPicking(true)}>Put it on a bone</button>
+      ))}
     </section>
   );
 }
@@ -362,6 +415,8 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
   const ppm = usePaceLines(projectId);
   const { project } = useProject(projectId);
   const api = useProblems(projectId);
+  const { session } = useSession();
+  const by = displayName(session?.user.email) || undefined;
   const askedLine = fixedLine ?? route.query.get('line') ?? undefined;
   const askedProblem = route.query.get('problem') ?? undefined;
 
@@ -464,6 +519,24 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
     }
   };
 
+  /* Removed, with Undo: the problem leaves every list and count; its
+     countermeasures stay on the board, saying their problem was removed. */
+  const removeProblem = async (v: ProblemView) => {
+    if (!can.remove) return;
+    const before = await removeCase(v.problem.id);
+    if (!before) return;
+    setEditing(null);
+    setQuery({ problem: undefined });
+    const here = window.location.hash.slice(1).split('?')[0];
+    const t = v.problem.title.trim();
+    const n = v.actions.length;
+    offerUndo(`Removed “${t.length > 40 ? t.slice(0, 39) + '…' : t}”${n ? ` — ${n === 1 ? 'its countermeasure stays' : `its ${n} countermeasures stay`} on the board` : ''}`, async () => {
+      await restoreCase(before);
+      // Back on screen — if the page it was removed from is still the one open.
+      if (window.location.hash.slice(1).split('?')[0] === here) setQuery({ problem: before.id });
+    });
+  };
+
   const timeAStop = async () => { nav(`/w/${await ws.ensure()}/capture`); };
 
   if (ppm.loading || api.loading) return <p className="sub">Loading…</p>;
@@ -493,6 +566,12 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
         )}
       </div>
 
+      {/* A link to a problem that has gone — removed, or not on this device —
+          says so, rather than quietly showing another problem in its place. */}
+      {askedProblem && !asked && (
+        <p className="sub fj-gone" role="status">That problem isn’t on this job any more{view ? ' — this is the line’s main one.' : '.'}</p>
+      )}
+
       {!view ? (
         <div className="fj-empty">
           <p className="fj-empty-t">No problem opened{line ? ` on ${line.name}` : ''} yet</p>
@@ -507,7 +586,13 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
           <HeadCard v={view} can={can}
             onClose={() => setClosing(true)}
             onReopen={() => void api.reopen(view.problem.id)}
-            onChecked={() => void api.checked(view.problem.id)} />
+            onChecked={() => void api.checked(view.problem.id)}
+            onRemove={() => void removeProblem(view)} />
+
+          {oldWhysOf(view.problem).length > 0 && (
+            <OldWhys whys={oldWhysOf(view.problem)} can={can}
+              onPut={async m => { if (can.edit) await putOldWhysOnBone(view.problem.id, m, by); }} />
+          )}
 
           {can.edit && (
             <div className="fj-tools">
@@ -543,7 +628,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
 
       {saw && (
         <SawSheet open projectId={projectId} line={line} problems={mine} api={api as ProblemsApi}
-          problemId={view?.problem.id}
+          problemId={view?.problem.id} short={doors.some(d => d.key === 'gap')}
           onClose={() => setSaw(false)}
           onSaved={id => { setSaw(false); setQuery({ problem: id }); }} />
       )}
@@ -570,7 +655,7 @@ export function FishboneScreen({ projectId }: { projectId: string }) {
     return (
       <div className="wrap pace">
         <p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/projects')}>All projects</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
       </div>
     );
   }

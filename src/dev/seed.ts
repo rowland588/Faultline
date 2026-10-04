@@ -75,6 +75,9 @@ export interface Seeded {
    *  acted on (a Pareto bar), one closed and holding (the gap). */
   problemId: string;
   closedProblemId: string;
+  /** A Case opened before 6M on Line 7 — old five whys, no causes. */
+  oldCaseId: string;
+  line7Id: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -352,8 +355,11 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     stop('Palletiser', 8, 3), stop('Bagger', 6, 6),
     stop('Bagger', 9, 7, 'Waiting', 'Starved upstream'),
   ]) await addObservation(o);
+  /* Line 7 has its own walk (an empty one): the old Case below lives in it,
+     which is how a Case opened before 6M knows its line. */
+  const line7Ws = await createWorkspace('Line 7');
   const otherLine = await addPaceLine({
-    projectId: paced.id, key: '7', name: 'Line 7', owner: 'Lee Carty', sponsor: 'Tanya', sort: 1,
+    projectId: paced.id, key: '7', name: 'Line 7', owner: 'Lee Carty', sponsor: 'Tanya', sort: 1, workspaceId: line7Ws.id,
   });
 
   const target = (lineId: string, measureId: string, periodId: string, value: number): Target =>
@@ -467,6 +473,17 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   };
   await addCase(misfeeds);
   await addCase(gap);
+  /* A CASE OPENED BEFORE 6M, on Line 7 (not 2A, so no other fixture's count
+     moves): no project or line on the row, its five whys as the old plain
+     list (the last the root) and no causes — the fishbone shows the chain and
+     offers "Put it on a bone". Opened long ago, so the job still leads with
+     the Basketer problem. */
+  const oldCase: Case = {
+    id: uid(), workspaceId: line7Ws.id, title: 'Reject bin full by 10am', path: [],
+    whys: ['The checkweigher rejects good packs', 'It weighs light after a film change', 'Nobody re-zeroes it after the film change'],
+    baselineMsWeek: 0, status: 'open', openedAt: t - 70 * day, updatedAt: t,
+  };
+  await addCase(oldCase);
   for (const a of [
     act('Replace the basket guide rail', { lineId: pacedLine.id, pillar: 'machine', who: 'Engineering', due: iso(4), state: 'waiting',
       causeRef: `${misfeeds.id}:rail`, expect: 'Basketer minor stops 3.4 → 1.5 h a week' }),
@@ -591,5 +608,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
+    oldCaseId: oldCase.id, line7Id: otherLine.id,
   };
 }

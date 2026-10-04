@@ -121,4 +121,11 @@ describe('what the cause sheet saves', () => {
     expect(tidyCause({ ...c, whys: [{ id: 'b', text: ' ' }] }).root).toBe(false);
     expect(tidyCause({ ...c, status: 'ruled_out' }).root).toBe(false);
   });
+
+  it('keeps a cause\'s photos, and an emptied list is no list — so adding and taking one off again is not a change', () => {
+    const c = cause('people');
+    const photo = { id: 'p1', kind: 'photo' as const, blobKey: 'k', mime: 'image/jpeg', capturedAt: 1 };
+    expect(tidyCause({ ...c, media: [photo] }).media).toEqual([photo]);
+    expect(JSON.stringify(tidyCause({ ...c, media: [] }))).toBe(JSON.stringify(tidyCause(c)));
+  });
 });
