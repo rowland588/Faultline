@@ -176,4 +176,32 @@ describe('the 6M client report', () => {
     expect(flat.includes('gone-case')).toBe(false);
     expect(flat.includes('c9')).toBe(false);
   });
+
+  it('keeps the line and the day on a long job\'s footer — the name gives way', async () => {
+    const data: FishboneData = fishboneData({ lines: [line], measures, periods, targets, readings, actions: [] });
+    const long = 'Site improvement — Lines 2A, 2B and the infeed: rate to 60 ppm and waste under 2% before the Christmas peak';
+    const r = sixmReport({ project: { name: long }, data, problems: [], todos: [], lineId: 'L1', now: NOW });
+    const { said } = await paper(r);
+    const foot = said.find(x => x.includes('client report'));
+    expect(foot).toMatch(/… — Line 2A {2}· {2}client report {2}· {2}4 Oct 2026$/);
+  });
+
+  it('names every line when nothing is measured, and says "the lines" in the band', async () => {
+    const line2: PaceLineRow = { ...line, id: 'L2', key: '2B', name: 'Line 2B', workspaceId: 'W2', sort: 1 };
+    const data: FishboneData = fishboneData({ lines: [line, line2], measures: [], periods: [], targets: [], readings: [], actions: [] });
+    const r = sixmReport({ project: { name: 'Two lines' }, data, problems: [], todos: [], now: NOW });
+    expect(r.manyLines).toBe(true);
+    expect(r.gapNone).toBe('No measure is set on Line 2A and Line 2B yet — the gap is drawn once a line has a measure and a target.');
+    const { flat, said } = await paper(r);
+    expect(said).toContain('WHERE THE LINES ARE');
+    expect(has(flat, r.gapNone as string)).toBe(true);
+  });
+
+  it('does not say "the causes are next" under a closed problem with nothing on the fish', async () => {
+    const r = build([kase('p1', 'Labels peel', [], { status: 'closed', closedAt: NOW - DAY })], []);
+    const { flat } = await paper(r);
+    expect(has(flat, 'Nothing on the fishbone yet.')).toBe(true);
+    expect(has(flat, 'Opened, and the causes are next.')).toBe(false);
+  });
 });
+

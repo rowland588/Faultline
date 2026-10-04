@@ -568,3 +568,109 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   }
   return { projectId: proj.id, lineId: lineA.id };
 }
+
+/* ---------------------------------------------------------------------------
+ * A RANDOM 6M JOB — for `report-stress.mjs --fuzz`, as seedRandomJob is for
+ * stage gate. Any shape: no line or four, a measure or none, no problem or
+ * eight, a fishbone empty or crowded (up to forty causes, long and awkward
+ * words, roots with long why-chains), old whys written before the fishbone,
+ * a problem removed with its countermeasure left behind, up to seventy
+ * actions on every bone and none with dates, no dates and days in words,
+ * timed stops, a line balance, and the walk's snags.
+ * ------------------------------------------------------------------------- */
+export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineId?: string }> {
+  r = seed * 104729 % 2147483646 + 1;
+  const t = Date.now();
+  const many = (max: number) => (rand() < 0.15 ? 0 : rand() < 0.2 ? max : Math.floor(rand() * max * 0.5));
+  const words = (n: number) => Array.from({ length: n }, () => pick(['seal', 'jaw', 'film', 'guard', 'belt', 'infeed', 'reject', 'weigher', 'coder', 'pallet', 'splice', 'tracking', 'chute', 'basket'])).join(' ');
+  const say = () => { const x = rand(); return x < 0.12 ? pick(AWKWARD) : x < 0.18 ? '' : x < 0.3 ? words(30 + Math.floor(rand() * 50)) : words(3 + Math.floor(rand() * 10)); };
+  const some = () => say() || words(4);
+  const who = () => (rand() < 0.15 ? '' : rand() < 0.3 ? pick(AWKWARD) : pick(['Rob Scott', 'Tanya', 'Engineering', 'Łukasz Wójcik', 'Stores']));
+  const proj = await createProject(rand() < 0.2 ? pick(AWKWARD).trim() || 'Line X' : `Line ${seed} ${words(1 + Math.floor(rand() * 8))}`, '#1b7f5a', rand() < 0.3 ? pick(AWKWARD) : 'Rowland', undefined, 'board');
+  const ppm: Measure = { id: uid(), name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 10 };
+  const waste: Measure = { id: uid(), name: 'Waste', unit: '%', direction: 'down', sort: 20 };
+  const measures = rand() < 0.2 ? [] : rand() < 0.5 ? [ppm] : [ppm, waste];
+  const periods: Period[] = quarters(iso(-60), uid);
+  await updateProject({ ...proj, measures, periods, pareto: true, updatedAt: t });
+
+  const lines = [];
+  const nLines = rand() < 0.1 ? 0 : 1 + Math.floor(rand() * 4);
+  for (let i = 0; i < nLines; i++) {
+    const ws = await createWorkspace(`Line ${i + 1} — 6M`);
+    const st = Array.from({ length: rand() < 0.5 ? 0 : 2 + Math.floor(rand() * 8) }, () => ({
+      id: uid(), name: rand() < 0.2 ? pick(AWKWARD) : pick(MACHINES)[0], kind: 'machine' as const, unit: 'bags', contains: 1,
+      rate: 40 + Math.floor(rand() * 60), ratePer: 'min' as const, runningPct: rand() < 0.5 ? 70 + Math.floor(rand() * 30) : undefined, source: 'plate' as const,
+    }));
+    lines.push(await addPaceLine({
+      projectId: proj.id, key: String(i + 1), name: rand() < 0.2 ? pick(AWKWARD).trim() || `Line ${i + 1}` : `Line ${i + 1}`, owner: who(), sort: i, workspaceId: ws.id,
+      ...(st.length ? { capacity: { targetPerMin: 60, plannedHoursPerWeek: 80, stations: st } } : {}),
+    }));
+  }
+  for (const l of lines) {
+    for (const m of measures) {
+      if (rand() < 0.2) continue;
+      for (const p of periods) if (rand() < 0.8) await putTarget({ id: uid(), projectId: proj.id, lineId: l.id, measureId: m.id, periodId: p.id, value: m === ppm ? 50 + Math.floor(rand() * 20) : 2, updatedAt: t });
+      const n = many(16);
+      await putReadings(Array.from({ length: n }, (_, k) => ({ id: uid(), projectId: proj.id, lineId: l.id, measureId: m.id, at: iso(-7 * (n - k)), value: Math.round((m === ppm ? 40 + rand() * 25 : 1 + rand() * 3) * 10) / 10, createdAt: t, updatedAt: t })));
+    }
+    for (let k = 0; k < many(80); k++) {
+      const at = t - Math.floor(rand() * 27) * DAY - Math.floor(rand() * 20) * 3_600_000, mins = 1 + rand() * 50;
+      await addObservation({
+        id: uid(), workspaceId: l.workspaceId as string, category: rand() < 0.1 ? pick(AWKWARD).trim() || 'Minor stop' : pick(['Minor stop', 'Breakdown', 'Changeover', 'Waiting', 'Quality']),
+        subcategory: words(2), asset: pick(['Bagger', 'Weigher', 'Checkweigher']), shift: rand() < 0.5 ? 'Nights' : 'Days',
+        startedAt: at, endedAt: at + mins * 60_000, durationMs: Math.round(mins * 60_000), timing: 'stopwatch', count: 1, media: [], createdAt: t, updatedAt: t,
+      });
+    }
+    for (let k = 0; k < many(14); k++) {
+      const seg: Segment = { id: uid(), workspaceId: l.workspaceId as string, name: 'walk', durationS: 60, sequence: k, videoKey: `seed-video-${uid()}`, createdAt: t, updatedAt: t };
+      if (k === 0) await addSegment(seg);
+      const fr: SnagAsset = { id: uid(), workspaceId: l.workspaceId as string, segmentId: seg.id, name: rand() < 0.2 ? pick(AWKWARD) : 'Bagger former', timestampS: k, stillKey: `seed-still-${uid()}`, createdAt: t, updatedAt: t };
+      await addSnagAsset(fr);
+      const stt = pick(['open', 'in_progress', 'closed'] as const);
+      await addSnag({ id: uid(), workspaceId: l.workspaceId as string, assetId: fr.id, xPct: 30, yPct: 40, problem: some(), status: stt, owner: who() || undefined,
+        raisedAt: t - Math.floor(rand() * 40) * DAY, closedAt: stt === 'closed' ? t - DAY : undefined, linkedObsIds: [], updatedAt: t });
+    }
+  }
+
+  const BONES: SixM[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment'];
+  const cases: Case[] = [];
+  for (let i = 0; i < (lines.length ? many(8) : 0); i++) {
+    const line = pick(lines);
+    const causes: Cause[] = Array.from({ length: many(40) }, () => {
+      const status = pick(['confirmed', 'suspected', 'suspected', 'ruled_out'] as const);
+      const root = status === 'confirmed' && rand() < 0.4;
+      return {
+        id: uid(), m: pick(BONES), text: some(), grade: pick(['measured', 'counted', 'observed', 'reported'] as const), status, root,
+        whys: root ? Array.from({ length: 1 + Math.floor(rand() * 6) }, () => ({ id: uid(), text: some(), grade: rand() < 0.5 ? pick(['measured', 'counted', 'observed', 'reported'] as const) : undefined })) : [],
+        at: t - Math.floor(rand() * 30) * DAY, by: who() || undefined,
+      };
+    });
+    const closed = rand() < 0.3;
+    cases.push({
+      id: uid(), workspaceId: line.workspaceId as string, title: some(), path: [], baselineMsWeek: rand() < 0.5 ? Math.floor(rand() * 5 * 3_600_000) : 0,
+      status: closed ? 'closed' : 'open', openedAt: t - Math.floor(rand() * 60) * DAY, closedAt: closed ? t - DAY : undefined, updatedAt: t,
+      projectId: proj.id, lineId: line.id, causes: rand() < 0.15 ? [] : causes,
+      source: rand() < 0.3 && measures.length ? { kind: 'gap', measureId: ppm.id } : rand() < 0.5 ? { kind: 'pareto', category: 'Minor stop', asset: 'Bagger' } : { kind: 'observed' },
+      ...(rand() < 0.2 ? { whys: Array.from({ length: 1 + Math.floor(rand() * 5) }, () => (rand() < 0.1 ? '' : some())) } : {}),
+      ...(closed && rand() < 0.7 ? { hold: { what: some(), who: who() || undefined, everyDays: pick([1, 7, 14]), since: iso(-20), lastChecked: rand() < 0.6 ? iso(-Math.floor(rand() * 30)) : undefined } } : {}),
+      ...(rand() < 0.1 ? { deletedAt: t - DAY } : {}),
+    });
+  }
+  for (const c of cases) await addCase(c);
+
+  const PILLARS: (PaceTodoRow['pillar'] | undefined)[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment', 'plant', 'process', undefined];
+  for (let i = 0; i < many(70); i++) {
+    const c = cases.length && rand() < 0.4 ? pick(cases) : undefined;
+    const cause = c?.causes?.length && rand() < 0.7 ? pick(c.causes) : undefined;
+    const state = pick(['todo', 'todo', 'waiting', 'done'] as const);
+    const due = rand() < 0.4 ? undefined : iso(-20 + Math.floor(rand() * 50));
+    await putPaceTodo({
+      id: uid(), projectId: proj.id, lineId: lines.length && rand() < 0.8 ? pick(lines).id : undefined, what: some(), where: '', why: rand() < 0.3 ? say() : '',
+      who: who(), when: due ? '' : rand() < 0.6 ? say() : '', due, state, doneOn: state === 'done' ? iso(-Math.floor(rand() * 20)) : undefined,
+      outcome: state === 'done' && rand() < 0.6 ? say() : undefined, pillar: pick(PILLARS),
+      caseId: c?.id, causeRef: c && cause ? `${c.id}:${cause.id}` : undefined, expect: rand() < 0.5 ? say() : undefined,
+      createdAt: t, updatedAt: t,
+    });
+  }
+  return { projectId: proj.id, lineId: lines[0]?.id as string };
+}

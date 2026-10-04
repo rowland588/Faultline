@@ -14,7 +14,8 @@
  *   lost           a fact the app's own models hold that never reached the paper
  *
  * --fuzz N makes N random jobs instead (seedRandomJob: any size, awkward names
- * and symbols); --seeds 5,17 re-runs chosen ones. docs/REPORTS.md §4.
+ * and symbols — and a random 6M job for each, seedRandomSixMJob); --seeds 5,17
+ * re-runs chosen ones. docs/REPORTS.md §4.
  *
  * Needs a dev server on 5191 (scripts/smoke.mjs's), Chromium, and poppler's
  * pdftotext. Prints a table; exits 1 if any page fails.
@@ -220,14 +221,19 @@ for (const size of SIZES) {
    every root and its "therefore" read-back, every countermeasure with what it
    was expected to do and what happened, every action on the board, every
    snag, every Pareto category and every station of the line balance. */
-const SIXM_SIZES = fuzzAt > 0 || seedsAt > 0 ? [] : ['tiny', 'huge'];
+/* With --fuzz or --seeds, a random 6M job for each number too
+   (seedRandomSixMJob) — any shape, every check the same. */
+const SIXM_SIZES = fuzzAt > 0 || seedsAt > 0 ? SIZES : ['tiny', 'huge'];
 for (const size of SIXM_SIZES) {
   const { ctx, page, errors } = await device();
-  const job = await page.evaluate(async size => (await import('/src/dev/reportSeeds.ts')).seedSixMJob(size), size);
+  const job = await page.evaluate(async size => {
+    const seeds = await import('/src/dev/reportSeeds.ts');
+    return size.startsWith('random-') ? seeds.seedRandomSixMJob(Number(size.slice(7))) : seeds.seedSixMJob(size);
+  }, size);
   /* The project's report, and one line's own deck (?line=) — the same
      drawer scoped to a line: its problems, its board and the actions for
      every line, its walk, its Pareto and its constraint. */
-  for (const lineId of [undefined, job.lineId]) {
+  for (const lineId of [undefined, ...(job.lineId ? [job.lineId] : [])]) {
     const must = await page.evaluate(async ({ pid, lineId }) => {
       const { san } = await import('/src/lib/reportKit.ts');
       await (await import('/src/lib/savePdf.ts')).loadPdfLib();

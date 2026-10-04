@@ -112,8 +112,11 @@ cannot:
 3. **Random jobs** — `report-stress.mjs --fuzz 40` makes forty jobs of random
    size and shape — no machines or sixteen, nothing written or pages of it,
    names from across Europe, a 60-character part number, quotes, `<`, `&`,
-   emoji, pasted line breaks, `±`, `≤`, `€` — and runs every check on each.
-   `--seeds 5,17` re-runs the ones that failed.
+   emoji, pasted line breaks, `±`, `≤`, `€` — and runs every check on each;
+   and for each number a random 6M job too (`seedRandomSixMJob`: no line or
+   four, no measure, no problem or eight, fishbones empty or crowded, old
+   whys, removed problems, days in words), its project report and its first
+   line's deck. `--seeds 5,17` re-runs the ones that failed.
 4. **The fonts** — `src/lib/__tests__/pdfFonts.test.ts` asks `san()` about
    every character there is and fails if it would let through one the PDF
    fonts cannot draw (jsPDF drops the rest of the line when it meets one).

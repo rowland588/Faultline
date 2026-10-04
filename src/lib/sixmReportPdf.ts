@@ -130,6 +130,8 @@ export interface SixMReport {
   gaps: GapLine[];
   /** Said once when no line has a measure. */
   gapNone?: string;
+  /** More than one line in scope — the band says "the lines", whether or not any is measured. */
+  manyLines: boolean;
   pareto?: { period?: string; says: string; rows: { category: string; mins: number; share: number; stops: number; vital: boolean }[] };
   constraints: { line: string; unit: string; says: string; stations: { name: string; running: number; effective: number; limit: boolean }[] }[];
   problems: ProblemRep[];
@@ -384,7 +386,10 @@ export function sixmReport(o: SixMInput): SixMReport {
   return {
     name: o.project.name, ...(scopeLine ? { scope: scopeLine.name } : {}), ...(o.project.lead ? { lead: o.project.lead } : {}),
     printed: niceDay(today, { year: true }), sentence, slip,
-    gaps, ...(data.measures.length ? {} : { gapNone: 'No measure is set on this job yet — the gap is drawn once a line has a measure and a target.' }),
+    /* With no measure, this sentence is the one place each line is named —
+       a three-line job must not read as if it had none. */
+    gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this job'} yet — the gap is drawn once a line has a measure and a target.` }),
+    manyLines: lines.length > 1,
     ...(pareto ? { pareto } : {}), constraints, problems,
     ...(views.length ? {} : { noProblems: 'No problem has been opened yet. When the gap, the Pareto or the line balance names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
     board: board.filter(b => b.rows.length),
@@ -445,17 +450,20 @@ export async function drawSixMReport(doc: jsPDF, report: SixMReport): Promise<vo
     font(doc, 7.5, 'normal', MUTED);
     const num = `${i} of ${pages}`;
     const room = pw - 2 * M - doc.getTextWidth(num) - 16;
-    doc.text(fitLine(doc, `${r.name}${r.scope ? ` — ${r.scope}` : ''}  ·  client report  ·  ${r.printed}`, room), M, ph - 18);
+    doc.text(fitLine(doc, r.name, `${r.scope ? ` — ${r.scope}` : ''}  ·  client report  ·  ${r.printed}`, room), M, ph - 18);
     doc.text(num, pw - M, ph - 18, { align: 'right' });
   }
 }
 
-/** One line that fits — for the running footer only; the full name is on page 1. */
-function fitLine(doc: jsPDF, t: string, w: number): string {
-  if (doc.getTextWidth(t) <= w) return t;
-  const words = t.split(' ');
-  while (words.length > 1 && doc.getTextWidth(words.join(' ') + '…') > w) words.pop();
-  return words.join(' ') + '…';
+/** One line that fits — for the running footer only; the full name is on
+ *  page 1. It is the job's name that gives way, never the line, the words
+ *  "client report" or the day it was printed (a long name used to push the
+ *  date off a line deck's footer: "… · client report · 4…"). */
+function fitLine(doc: jsPDF, name: string, rest: string, w: number): string {
+  if (doc.getTextWidth(name + rest) <= w) return name + rest;
+  const words = name.split(' ');
+  while (words.length > 1 && doc.getTextWidth(words.join(' ') + '…' + rest) > w) words.pop();
+  return words.join(' ') + '…' + rest;
 }
 
 const rule = (f: Frame, y: number) => { f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y); };
@@ -488,7 +496,7 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     const l = said(f), sl = slip(f);
     const bandH = 30 + l.length * 17 + sl.length * 12.5 + 8;
     f.doc.setFillColor(SHELL); f.doc.roundedRect(f.x, y, f.w, bandH, 8, 8, 'F');
-    font(f.doc, 7.5, 'bold', '#8fa3c4'); f.doc.text(r.gaps.length > 1 ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
+    font(f.doc, 7.5, 'bold', '#8fa3c4'); f.doc.text(r.manyLines ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
     font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
     font(f.doc, 9.5, 'normal', '#c9d4e6'); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
   }, f => gap(f.density, 'l')));
@@ -690,7 +698,9 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
       }
     }
   } else if (p.rootless && p.causeCount) out.push(text({ text: p.rootless, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
-  else if (p.rootless) out.push(text({ text: p.written ? p.rootless : `${p.rootless} Opened, and the causes are next.`, size: SIZE.body, colour: MUTED, after: gap(d, 's') }));
+  /* "The causes are next" only while it is finding them — never under a
+     problem that is holding or closed. */
+  else if (p.rootless) out.push(text({ text: !p.written && p.phase === 'finding' ? `${p.rootless} Opened, and the causes are next.` : p.rootless, size: SIZE.body, colour: MUTED, after: gap(d, 's') }));
   /* The whys written before the fishbone, until they are put on a bone. */
   if (p.written) out.push(text({ text: `Written before the fishbone: ${p.written}`, size: SIZE.body - 0.5, colour: INK2, after: gap(d, 's') }));
 
