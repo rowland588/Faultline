@@ -47,6 +47,8 @@ import {
   bindUndoWords, withBindRestored,
 } from '../lib/treeBind';
 import { useAccess } from '../cloud/access';
+import type { Can } from '../lib/access';
+import { AccessNote } from '../ui/AccessNote';
 import { BindSheet } from './BindSheet';
 import { SuggestSheet } from './SuggestSheet';
 import { Icon } from '../ui/Icon';
@@ -106,12 +108,18 @@ function depthOf(n: TreeNodeRow, all: TreeNodeRow[]): number {
 
 /* ---------- one box ---------- */
 
-function Box({
+export function Box({
   t, onChange, onAddBelow, onAddRight, onDelete, onPaste, onDropText, onMove,
   folded, onFold, drag, moving, onPickUp, onPutHere, onBind, boundCount,
-  onSuggest, suggestNew, numbers,
+  onSuggest, suggestNew, numbers, can,
 }: {
   t: Tree;
+  /** What this person may do to the tree (lib/access). Without `edit` the box
+   *  is READ-ONLY — a client sees every box whole, its state, its number and
+   *  its link, and is offered nothing that writes, because the database
+   *  refuses a client's rows and a box that took the typing would be lying.
+   *  Without `remove` (the team) everything but Delete is offered. */
+  can: Pick<Can, 'edit' | 'remove'>;
   /** Bind this box's colour to one of the project's numbers. Absent on a box
    *  that cannot carry one, and when the project has no measures or lines. */
   numbers?: {
@@ -159,6 +167,8 @@ function Box({
    * its colour on the tree would be a lie the next upload silently undoes — the
    * tracker is where it gets changed, and it says so rather than pretending. */
   const fromTracker = isBoundNode(node.id);
+  /** Nothing on this box may be changed by this person — a client. */
+  const viewOnly = !can.edit;
   /** Choosing which number this box follows — a list that comes out on the box
    *  only when asked for, and goes away once picked. */
   const [pickingNumber, setPickingNumber] = useState(false);
@@ -198,7 +208,7 @@ function Box({
   // A box being moved cannot be dropped inside itself, and the one you picked
   // up is not a place to put it.
   const isMoving = moving === node.id;
-  const canTake = !!moving && !isMoving;
+  const canTake = !!moving && !isMoving && !viewOnly;
 
   return (
     <div
@@ -212,11 +222,17 @@ function Box({
          itself, a tap anywhere brings out the tools without raising the
          keyboard, and a row off the board shows its whole wording. */
       tabIndex={-1}
-      draggable={!fromTracker}
+      data-box={node.id}
+      /* The tree held this box still while its tools were out (LeverTree,
+         holdStill); they go away with the focus, and so does the push. */
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) e.currentTarget.style.marginTop = ''; }}
+      draggable={!fromTracker && !viewOnly}
       onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag.start(node.id); }}
       onDragOver={e => {
         // two kinds of drag land here: a box being moved inside the tree, and a
-        // selection dragged in from a spreadsheet. Both are welcome.
+        // selection dragged in from a spreadsheet. Both are welcome — from
+        // somebody who may change the tree.
+        if (viewOnly) return;
         const text = e.dataTransfer.types.includes('text/plain');
         if ((drag.id && drag.id !== node.id) || text) {
           e.preventDefault(); e.stopPropagation(); drag.setOver(node.id);
@@ -224,6 +240,7 @@ function Box({
       }}
       onDragLeave={() => { if (drag.over === node.id) drag.setOver(null); }}
       onDrop={e => {
+        if (viewOnly) return;
         e.preventDefault(); e.stopPropagation();
         const text = e.dataTransfer.getData('text/plain');
         // dropped from outside — every row becomes a box underneath this one
@@ -231,7 +248,11 @@ function Box({
         drag.drop(node.id);
       }}
     >
-      {fromTracker ? (
+      {viewOnly && !fromTracker ? (
+        /* Read, not typed into: the whole wording, unclamped — this is what a
+           client came to read. An empty box says which level it is. */
+        <p className={'lt-text lt-text-view' + (node.text.trim() ? '' : ' is-empty')}>{node.text.trim() || levelName(t.depth)}</p>
+      ) : fromTracker ? (
         /* Not a textarea. The tracker's own wording runs to whole paragraphs —
          * one changeover action in the real workbook is five lines — and a
          * column of five-line boxes is a tower, not a tree. Clamped to three
@@ -315,6 +336,16 @@ function Box({
           </span>
           <span className="lt-from">from the board</span>
         </div>
+      ) : viewOnly ? (
+        /* The state in words, and whether the board fills it — the link said
+           in words, since the chain that would say it is not offered. */
+        <div className="lt-tools is-ro">
+          <span className={'lt-status is-' + node.rag + ' is-ro'} title={bound ? bound.figure : 'Its state'}>
+            <span className="lt-status-dot" aria-hidden />
+            <span className="lt-status-l">{bound ? bound.words : statusLabel(node.rag)}</span>
+          </span>
+          {bindsWork(node.bind) && <span className="lt-from">filled from the board</span>}
+        </div>
       ) : (
       <div className="lt-tools">
         {/* The status says its name. A coloured square on its own tells you a
@@ -394,14 +425,18 @@ function Box({
               onClick={() => setPickingNumber(v => !v)}
             ><Icon name="hash" size="1.15em" /></button>
           )}
-          <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}><Icon name="close" size="1.15em" /></button>
+          {/* Deleting stays with the owner (lib/access): the team does the
+              work and is not offered it. */}
+          {can.remove && (
+            <button type="button" className="lt-mini is-del" title="Delete" aria-label="Delete" onClick={onDelete}><Icon name="close" size="1.15em" /></button>
+          )}
         </div>
       </div>
       )}
 
       {/* The project's measures × its lines, as one list. Native select: one
           tap on a phone, keyboard-reachable, never off the edge of the canvas. */}
-      {pickingNumber && numbers && !bound && (
+      {pickingNumber && numbers && !bound && !viewOnly && (
         <div className="lt-numpick">
           <select
             className="lt-numpick-sel" aria-label="Which number" autoFocus defaultValue=""
@@ -470,6 +505,59 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const canvas = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
 
+  /* THE BOX YOU TAP STAYS UNDER YOUR FINGER. On a phone a box's tools come
+   * out in the box itself (styles.css, "A THUMB ON THE TREE"), so the box you
+   * are working on grows, and the branch it sits in — centred — shifts. The
+   * tools used to be laid OVER the tree to avoid that, and covered the box
+   * underneath: after "Add another below" the new box's "Build the conditions
+   * from the board" sat under the old box's tools, and a tap on it pressed a
+   * tool. Now nothing is covered and the shift is scrolled away: where the
+   * box was before it opened is where it is after. */
+  const pinned = useRef<{ box: Element; top: number } | null>(null);
+  const holdStill = useCallback((box: Element, top: number, push = true) => {
+    const moved = () => box.getBoundingClientRect().top - top;
+    const first = moved();
+    if (Math.abs(first) < 1) return;
+    /* A box centred on a branch taller than itself grows both ways and
+       rises. A top margin takes the rise back: it grows downwards, into the
+       empty height its branch already has beside it, and nothing else on the
+       tree moves. Found in two tries (a straight line through the first), so
+       it holds however the branch is laid out. Box (onBlur) lets go of it. */
+    const el = box as HTMLElement;
+    if (push && first < 0) {
+      const at = (m: number) => { el.style.marginTop = `${m}px`; return moved(); };
+      let m = -first;
+      const d1 = at(m);
+      if (Math.abs(d1) >= 1 && d1 !== first) m -= d1 * m / (d1 - first);
+      if (Math.abs(at(m)) >= Math.abs(first)) el.style.marginTop = '';
+    }
+    /* Whatever is left — a box whose growth moved the branches around it —
+       is scrolled away, where the page can scroll. */
+    const rest = moved();
+    if (Math.abs(rest) < 1) return;
+    let up: HTMLElement | null = el.parentElement;
+    while (up && !(up.scrollHeight > up.clientHeight && /auto|scroll/.test(getComputedStyle(up).overflowY))) up = up.parentElement;
+    (up ?? document.scrollingElement ?? document.documentElement).scrollBy(0, rest);
+  }, []);
+  const notePress = (e: React.PointerEvent) => {
+    const box = (e.target as Element).closest('.lt-box');
+    pinned.current = box && !box.contains(document.activeElement) ? { box, top: box.getBoundingClientRect().top } : null;
+  };
+  const keepPressed = (e: React.FocusEvent) => {
+    const p = pinned.current;
+    pinned.current = null;
+    if (p && p.box.contains(e.target as Node)) holdStill(p.box, p.top);
+  };
+  /** The box just added — it takes the focus, so its tools are the ones out
+   *  and the box whose ＋ was pressed puts its own away. */
+  const [focusId, setFocusId] = useState<string | null>(null);
+  /** Where the box whose ＋ was pressed stood before the new one landed. */
+  const addedFrom = useRef<{ box: Element; top: number } | null>(null);
+  const noteAdding = () => {
+    const box = (document.activeElement as HTMLElement | null)?.closest('.lt-box');
+    addedFrom.current = box ? { box, top: box.getBoundingClientRect().top } : null;
+  };
+
   /** Scale the whole tree to the width available — the "show me all of it" that
    *  a phone needs before anything else. */
   const fit = useCallback(() => {
@@ -515,6 +603,21 @@ export function LeverTree({ projectId }: { projectId: string }) {
   }, [projectId]);
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load, syncedAt]);
 
+  useEffect(() => {
+    if (!focusId) return;
+    const box = scroll.current?.querySelector(`[data-box="${focusId}"]`);
+    if (!box) return;
+    setFocusId(null);
+    /* The box whose ＋ was pressed is where the finger is: it stays put,
+       where the page can scroll. A new box in a centred column moves the
+       column — on a laptop too — and the new box is the one in hand now. */
+    const from = addedFrom.current;
+    addedFrom.current = null;
+    (box.querySelector('textarea') ?? (box as HTMLElement)).focus({ preventScroll: true });
+    if (from?.box.isConnected) holdStill(from.box, from.top, false);
+    box.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [rows, focusId, holdStill]);
+
   const nodes = rows ?? [];
   /* What is STORED and what is DRAWN are two different lists. A condition that
    * is bound to the tracker grows its actions at render time from this week's
@@ -530,14 +633,18 @@ export function LeverTree({ projectId }: { projectId: string }) {
     nodes.filter(n => (n.parentId ?? '') === (parentId ?? '')).sort((a, b) => a.sort - b.sort);
 
   const addNode = async (parentId?: string) => {
+    if (!can.edit) return;
     const sibs = siblingsOf(parentId);
     const t = now();
+    const id = uid();
+    noteAdding();
     await putTreeNode({
-      id: uid(), projectId, parentId, text: '', rag: 'n',
+      id, projectId, parentId, text: '', rag: 'n',
       sort: sibs.length ? sibs[sibs.length - 1].sort + 1 : 0,
       createdAt: t, updatedAt: t,
     });
     await load();
+    setFocusId(id);
   };
 
   /** Start the tree from the project's own lines.
@@ -552,6 +659,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
    *  Every box is ordinary and editable from the moment it lands. This saves
    *  the typing, it does not decide the plan. */
   const startFromLines = async () => {
+    if (!can.edit) return;
     const ls = trackerLines(ppm.lines);
     if (!ls.length) return;
     const first = [...(project?.measures ?? [])].sort((a, b) => a.sort - b.sort)[0];
@@ -580,6 +688,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
 
   /** Build a row of linked conditions under one box, in one write. */
   const buildConditions = async (parent: TreeNodeRow, picked: { text: string; bind: TrackerBind }[]) => {
+    if (!can.edit) return;
     const sibs = siblingsOf(parent.id);
     let sort = sibs.length ? sibs[sibs.length - 1].sort + 1 : 0;
     const t = now();
@@ -605,22 +714,27 @@ export function LeverTree({ projectId }: { projectId: string }) {
    *  Slotted between this row's sort and the next one's rather than appended,
    *  so "add one here" puts it here and not at the bottom of the column. */
   const addBelow = async (n: TreeNodeRow) => {
+    if (!can.edit) return;
     const sibs = siblingsOf(n.parentId);
     const i = sibs.findIndex(s => s.id === n.id);
     const next = sibs[i + 1];
     const t = now();
+    const id = uid();
+    noteAdding();
     await putTreeNode({
-      id: uid(), projectId, parentId: n.parentId, text: '', rag: 'n',
+      id, projectId, parentId: n.parentId, text: '', rag: 'n',
       sort: next ? (n.sort + next.sort) / 2 : n.sort + 1,
       createdAt: t, updatedAt: t,
     });
     await load();
+    setFocusId(id);
   };
 
   /* Written from the STORED row, not the drawn one: a box bound to a number is
      drawn in the number's colour, and editing its words must not save that
      colour over the one the author typed. */
   const change = async (n: TreeNodeRow, patch: Partial<TreeNodeRow>) => {
+    if (!can.edit) return;
     const stored = nodes.find(x => x.id === n.id) ?? n;
     await putTreeNode({ ...stored, ...patch });
     await load();
@@ -646,6 +760,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   };
 
   const remove = async (n: TreeNodeRow) => {
+    if (!can.remove) return;
     const kids = nodes.filter(k => k.parentId === n.id).length;
     const what = n.text.trim() || 'this empty box';
     const msg = kids
@@ -662,6 +777,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   /** Swap with the sibling either side — reordering without dragging, which is
    *  the only way this works on a phone. */
   const move = async (n: TreeNodeRow, dir: -1 | 1) => {
+    if (!can.edit) return;
     const sibs = siblingsOf(n.parentId);
     const i = sibs.findIndex(s => s.id === n.id);
     const j = i + dir;
@@ -677,6 +793,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const drop = async (targetId: string) => {
     const id = dragId;
     setDragId(null); setOverId(null);
+    if (!can.edit) return;
     if (!id || id === targetId) return;
     const moving = nodes.find(n => n.id === id);
     if (!moving) return;
@@ -694,6 +811,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   /** A pasted block becomes one box per line. This is how the tracker's work
    *  gets in: copy the column, paste it, done. */
   const commitPaste = async () => {
+    if (!can.edit) return;
     const parent = pasteInto;
     const lines = parsePastedRows(pasteText);
     setPasteInto(null); setPasteText('');
@@ -710,6 +828,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
 
   /** Hang the picked tracker rows under a box, in the order they were listed. */
   const addPicked = async (parent: TreeNodeRow, picked: { ref: string }[]) => {
+    if (!can.edit) return;
     setPasteInto(null);
     const sibs = siblingsOf(parent.id);
     let sort = sibs.length ? sibs[sibs.length - 1].sort + 1 : 0;
@@ -733,6 +852,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
   const putUnder = async (targetId: string | null) => {
     const id = moving;
     setMoving(null);
+    if (!can.edit) return;
     if (!id || id === targetId) return;
     const box = nodes.find(n => n.id === id);
     if (!box) return;
@@ -772,6 +892,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
       <span className="lt-arm lt-arm-dn" aria-hidden />
       <Box
         t={t}
+        can={can}
         folded={folded.has(t.node.id)}
         onFold={() => toggleFold(t.node.id)}
         moving={moving}
@@ -865,11 +986,15 @@ export function LeverTree({ projectId }: { projectId: string }) {
       {project.leverTree && !project.commissioning && (
         <Peers peers={methodPeers(projectId, 'tree', 'tree', methodCounts)} />
       )}
+      {/* Why the tree reads but does not take typing — for a client — or has
+          no Delete — for the team: the house line (lib/access). */}
+      <AccessNote can={can} owner={project.lead} />
 
       {rows === null ? (
         <p className="sub">Loading…</p>
       ) : tree.length === 0 ? (
         <div className="lt-empty">
+          {can.edit ? <>
           <p className="lt-empty-t">Start with the outcome</p>
           <p className="sub">
             One box at the top — what this project has to deliver. Everything else hangs off it.
@@ -891,6 +1016,12 @@ export function LeverTree({ projectId }: { projectId: string }) {
             onClick={() => void addNode(undefined)}>
             <Icon name="plus" /> Add the desired outcome
           </button>
+          </> : <>
+            {/* Nothing to start for somebody who may not draw it — say what
+                is here, and who draws it. */}
+            <p className="lt-empty-t">Nothing drawn yet</p>
+            <p className="sub">{project.lead?.trim() || 'The owner'} hasn’t started this tree. The outcome, and what has to be true for it, will show here when they do.</p>
+          </>}
         </div>
       ) : (
         <>
@@ -907,7 +1038,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
             {/* Said once, out loud, until it has been used. The whole feature was
                 otherwise invisible on a tree that already had boxes in it, and
                 a thing nobody can find is a thing nobody has. */}
-            {trackerActions.length > 0 && !nodes.some(n => bindsWork(n.bind)) && (
+            {can.edit && trackerActions.length > 0 && !nodes.some(n => bindsWork(n.bind)) && (
               <div className="lt-prompt">
                 <span className="lt-prompt-t">
                   <b>{trackerActions.length} action{trackerActions.length === 1 ? '' : 's'}</b> on the project’s board — none of them on this tree yet.
@@ -949,7 +1080,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            <div className="lt-scroll" ref={scroll} style={{ zoom }}>
+            <div className="lt-scroll" ref={scroll} style={{ zoom }} onPointerDownCapture={notePress} onFocus={keepPressed}>
               {/* the level names, on the same pitch as the columns below */}
               <div className="lt-legend">
                 {LEVELS.slice(0, depth).map(l => <span key={l} className="lt-legend-i">{l}</span>)}
@@ -967,14 +1098,14 @@ export function LeverTree({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          <div className="lt-foot">
+          {can.edit && <div className="lt-foot">
             <button className="btn" onClick={() => void addNode(undefined)}><Icon name="plus" /> Another outcome</button>
             <span className="sub">
               Tap a box for its tools: <Icon name="board" size="1.15em" /> hang the board’s actions under it · <Icon name="hash" size="1.15em" /> bind its colour to a number
               {' '}· <Icon name="grip" size="1.15em" /> move it · <Icon name="arrowUp" size="1.15em" /> <Icon name="arrowDown" size="1.15em" /> reorder · <Icon name="plus" size="1.15em" /> another below · <Icon name="plusNext" size="1.15em" /> the next level along · pinch to zoom,
               or tap the percentage to fit it all on.
             </span>
-          </div>
+          </div>}
         </>
       )}
 
