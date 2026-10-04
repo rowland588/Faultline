@@ -32,7 +32,9 @@ import { niceDay } from './weeks';
 import type { WalkSnag } from './walkSnags';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
-export type CellTone = 'done' | 'problem' | 'asking' | 'late' | 'ahead' | 'none';
+/** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
+ *  day yet (grey) — the same two the grid on screen draws. */
+export type CellTone = 'done' | 'problem' | 'asking' | 'late' | 'booked' | 'ahead' | 'none';
 
 export interface GateSection {
   gate: StepGate | 'commission';
@@ -47,7 +49,7 @@ export interface GateSection {
   /** Set up only: the programs. */
   programs?: { proved: number; total: number; notYet: { what: string; machine?: string; state: string }[] };
   /** Commission only: the tests, in the order they were planned. */
-  tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'ahead' | 'late'; result?: string; passesIf?: string }[];
+  tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string }[];
 }
 
 export interface FixRow {
@@ -129,7 +131,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const done = steps.filter(t => t.outcome === 'passed').length;
     const rows = g.rows.filter(r => r.view.total > 0).map(r => ({
       machine: r.asset?.name ?? 'The line',
-      cells: r.cells.map(c => (c ? c.tone : 'none') as CellTone),
+      cells: r.cells.map(c => (!c ? 'none' : c.tone === 'ahead' && c.step.plannedFor ? 'booked' : c.tone) as CellTone),
     }));
     const lateSteps = g.rows.flatMap(r => r.view.steps
       .filter(s => s.tone === 'late' || s.tone === 'problem')
@@ -140,7 +142,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     return {
       gate, label: GATE_WORD[gate], tone,
       says: steps.length === 0 ? 'Nothing kept at this gate yet'
-        : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}${unplanned ? ` · ${unplanned} not planned yet` : ''}`,
+        : `${done} of ${steps.length} done${lateSteps.length ? ` · ${lateSteps.length} late or a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
     };
@@ -182,7 +184,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       when: niceDay(t.ranOn ?? t.plannedFor) || 'no date',
       outcome: hasRun(t) ? outcomeWord(t) : 'planned',
       tone: t.outcome === 'passed' ? 'done' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
-        : (endOf(t) ?? '\uffff') < today ? 'late' : 'ahead',
+        : (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead',
       result: t.result, passesIf: t.passesIf,
     })),
   };

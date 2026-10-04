@@ -6946,7 +6946,12 @@ button.og-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparen
 .ig-cell.is-problem { background: var(--st-r); color: #fff; }
 .ig-cell.is-late { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); border: 2px solid var(--st-r); color: var(--st-r); font-weight: 800; }
 .ig-cell.is-asking { background: var(--st-a); color: #fff; }
-.ig-cell.is-next.is-ahead { background: var(--blue-soft); border: 2px solid var(--st-w); color: var(--blue); }
+/* THE COLOUR RULES, ON THE GRID. A day booked is still ahead — indigo, quiet.
+   No day yet is not started — grey, whatever its place; the next one says
+   "Next" in words rather than borrowing indigo, which said "booked" of a
+   step with no day at all. The PDF's grid draws the same two. */
+.ig-cell.is-booked { background: var(--blue-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--st-w) 45%, transparent); color: var(--st-w); }
+.ig-cell.is-next.is-ahead:not(.is-booked) { color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-2); }
 
 /* The quick-action sheet: a card mid-screen on a desk, a sheet from the
    bottom on a phone, where the thumb already is. */

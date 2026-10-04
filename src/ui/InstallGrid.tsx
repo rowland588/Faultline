@@ -52,7 +52,9 @@ function cellWord(s: StepView): string {
     case 'problem': return 'Problem';
     case 'asking': return 'Done?';
     case 'late': return 'Late';
-    default: { const on = spanShort(t.plannedFor, plannedEnd(t)); return on || '—'; }
+    /* No day yet: grey, and the one that is next says so in words — the
+       colour rules keep indigo for a day that is booked (still ahead). */
+    default: { const on = spanShort(t.plannedFor, plannedEnd(t)); return on || (s.next ? 'Next' : '—'); }
   }
 }
 
@@ -433,9 +435,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install' }
                     </td>
                   ) : r.cells.map((s, ci) => (
                     <td key={ci}>
-                      <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}` : ' is-empty')}
+                      <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
                         onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
-                        aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added'}`}>
+                        aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}`}>
                         {s ? cellWord(s) : '+'}
                       </button>
                     </td>

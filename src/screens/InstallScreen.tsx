@@ -142,7 +142,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                 <b>{done} of {steps.length} steps done</b>
                 {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
                 {late > 0 && <span className="sub in-late">{late} late</span>}
-                {unplanned > 0 && <span className="sub">{unplanned} not planned yet</span>}
+                {/* A stage not on a machine's list — "not added yet", the one word the
+                    grid, its key and the client report use for it. */}
+                {unplanned > 0 && <span className="sub">{unplanned} not added yet</span>}
               </>}
             <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
           </p>

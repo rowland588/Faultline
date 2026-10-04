@@ -9,7 +9,8 @@ import { todayISO } from '../lib/weeks';
 import { usePrograms } from '../lib/usePrograms';
 
 const TONE_WORD: Record<GateTone, string> = {
-  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'still ahead', none: 'not started',
+  /* Grey is "not started" (the colour rules); indigo alone says still ahead. */
+  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'not started', none: 'nothing kept',
 };
 
 export function Journey({ projectId, assets, tests, items }: {
@@ -55,7 +56,7 @@ export function Journey({ projectId, assets, tests, items }: {
       })}
       <p className="jr-key">
         <span className="is-done">done</span><span className="is-going">under way</span>
-        <span className="is-late">late or a problem</span><span className="is-ahead">still ahead</span>
+        <span className="is-late">late or a problem</span><span className="is-ahead">not started</span>
       </p>
     </section>
   );

@@ -243,7 +243,11 @@ what by when?
    ahead. Green (`--st-g`) is done. Grey (`--st-n`) is not started. Brand blue
    is for what you press, never a state. Nothing else wears these hues: the 3P
    columns are told apart by place and name, not colour. The PDFs use the same
-   five values.
+   five values. Set 4 October: a step with a day booked is still ahead
+   (indigo); a step with no day is not started (grey); a gate where nothing
+   has started is grey and says "not started"; a stage not on a machine's
+   list is "not added yet". Which one is *next* is said in words ("Next"),
+   never by borrowing a state colour.
 2. **Normal recedes, the abnormal stands out.** Done is a quiet green wash,
    never the loudest thing on the screen. Late gets a heavier red border and
    tint, and a failure or problem is solid red. If the eye lands on a green box

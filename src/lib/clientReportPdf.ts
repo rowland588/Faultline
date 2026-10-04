@@ -21,7 +21,7 @@ const GATE_COLOUR: Record<GateTone, { fill?: string; stroke: string; text: strin
   done: { fill: DONE_WASH, stroke: OK, text: OK, word: 'done' },
   going: { fill: '#eeedfa', stroke: BOOKED, text: BOOKED, word: 'under way' },
   late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, word: 'late or a problem' },
-  ahead: { stroke: '#b8c4d6', text: INK2, word: 'still ahead' },
+  ahead: { stroke: '#b8c4d6', text: INK2, word: 'not started' },
   none: { stroke: '#d5dde8', text: MUTED, word: 'nothing kept' },
 };
 const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
@@ -29,6 +29,7 @@ const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
   problem: { fill: DANGER, stroke: DANGER },
   late: { fill: '#fdf2f0', stroke: DANGER },
   asking: { fill: '#fff7e6', stroke: AMBER },
+  booked: { fill: '#eeedfa', stroke: BOOKED },
   ahead: { stroke: '#b8c4d6' },
   none: { stroke: '#e3e9f1' },
 };
@@ -168,7 +169,7 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
       // the key, once per grid, small
       font(7, 'normal', MUTED);
       let kx = M;
-      for (const [t, w] of [['problem', 'a problem'], ['late', 'late'], ['asking', 'waiting on a verdict'], ['ahead', 'still to do'], ['done', 'done'], ['none', 'not on this machine']] as [CellTone, string][]) {
+      for (const [t, w] of [['problem', 'a problem'], ['late', 'late'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']] as [CellTone, string][]) {
         const cc = CELL_COLOUR[t];
         doc.setDrawColor(cc.stroke); doc.setLineWidth(0.8);
         if (t === 'none') doc.setLineDashPattern([1.5, 1.5], 0);
@@ -214,7 +215,8 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
         if (agreed.length) { doc.text(agreed, M, ty); ty += agreed.length * 10.5; }
         if (res.length) { font(8.5, 'normal', INK2); doc.text(res, M, ty); }
         font(8, 'normal', MUTED); doc.text([t.machine, t.when].filter(Boolean).join(' · '), W - M - 140, y + 13, { maxWidth: 80 });
-        const tc = t.tone === 'done' ? 'done' : t.tone === 'failed' || t.tone === 'late' ? 'late' : 'ahead';
+        // A planned day is still ahead — indigo; no day yet stays grey (the colour rules).
+        const tc = t.tone === 'done' ? 'done' : t.tone === 'failed' || t.tone === 'late' ? 'late' : t.tone === 'booked' ? 'going' : 'ahead';
         pill(W - M - 56, y + 5, 56, 12, tc, t.outcome);
         y += h;
       }
