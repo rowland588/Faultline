@@ -222,6 +222,9 @@ button { font-family: inherit; }
 /* The wordmark and the account button on one line — the account button where
    it is on every other screen, top right. */
 .home-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-top-acts { display: inline-flex; align-items: center; gap: 10px; }
+/* The lines in a job row's drawer — the chips the project card carried. */
+.jb-aside .jb-lines { margin: 2px 0 0; padding: 0; --proj: var(--job); }
 .mark { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
 .wordmark { display: inline-flex; align-items: center; gap: 11px; }
 .wordmark .logo-mark { border-radius: 8px; box-shadow: 0 2px 8px rgba(20, 24, 31, 0.18); }

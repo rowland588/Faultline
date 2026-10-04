@@ -29,9 +29,8 @@ import { CloudPanel } from '../cloud/CloudPanel';
 import { AccountMenu } from '../ui/AccountMenu';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
-import { ProjectCard } from '../ui/ProjectCard';
 import { useProjects } from '../lib/useProjects';
-import { allPaceLines, chainForWorkspace, inArchivedProject, onDataChange, type PaceLineRow } from '../db';
+import { chainForWorkspace, inArchivedProject, onDataChange } from '../db';
 import { DEMO_NAME } from '../lib/demo';
 import { JobsBoard } from '../ui/JobsBoard';
 
@@ -134,8 +133,6 @@ export function WorkspaceHome() {
   const { projects } = useProjects();
   // Every job, on every method — the control room is not a stage-gate board.
   const jobs = projects;
-  const [lines, setLines] = useState<PaceLineRow[]>([]);
-  const linesOf = (pid: string) => lines.filter(l => (l.projectId ?? '') === pid);
 
   // Which line (and project) each workspace sits under, so the list below can
   // say so instead of showing a bare name that means nothing on its own.
@@ -147,7 +144,6 @@ export function WorkspaceHome() {
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
   const syncedAt = useSyncedAt();
-  useEffect(() => { void allPaceLines().then(setLines); }, [syncedAt, delTick, dataTick]);
   const dedupedDemos = useRef(false);
   useEffect(() => {
     let alive = true;
@@ -211,7 +207,16 @@ export function WorkspaceHome() {
         {/* The account button, top right as on every other screen — and with
             it Team & invites, the archive, the demo, backup and Sign out,
             none of which is the work (ui/AccountMenu). */}
-        <div className="home-top"><Wordmark /><AccountMenu /></div>
+        <div className="home-top">
+          <Wordmark />
+          {/* NEW PROJECT, where a page's main action sits — it was the
+              Projects section's button, and that section was a second list
+              of the jobs the control room already lists. */}
+          <span className="home-top-acts">
+            {projects.length > 0 && <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>}
+            <AccountMenu />
+          </span>
+        </div>
         {/* The pitch is for somebody with nothing running yet. Once a job is,
             the board under it says more than the paragraph could. */}
         {!jobs.length && (
@@ -227,31 +232,25 @@ export function WorkspaceHome() {
           where the app opens. Everything below it on this screen stays. */}
       {jobs.length > 0 && <JobsBoard projects={jobs} />}
 
-      {/* THE DOOR. Not "first" among several — the only one. What he opens the
-          app to do is go to a project, then to his line, and a line is one tap
-          from here. */}
-      <section className="home-projects">
-        <div className="home-sec-head">
-          <h2 className="home-sec-title">Projects</h2>
-          {/* Home IS the list of projects; the Projects page is where one
-              starts and where the archive is. */}
-          <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>
-            {projects.length === 0 ? 'Start a project' : 'New project'}
-          </button>
-        </div>
-        {projects.length === 0 ? (
+      {/* ONE LIST OF JOBS. The project cards that sat here listed the same
+          jobs the control room lists, a second time. Rowland agreed they go
+          into the rows: each row's drawer now carries what only the card had —
+          the lines with their owners, one tap each, and the Details door — and
+          New project is at the top. Until there is a job, this is the start. */}
+      {projects.length === 0 && (
+        <section className="home-projects">
+          <div className="home-sec-head">
+            <h2 className="home-sec-title">Projects</h2>
+            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>Start a project</button>
+          </div>
           <p className="sub home-sec-sub">
             Start here. Say what you are trying to change — new equipment, a line that has to
             perform better, or a number to hit by a date — and the project is run the way that
             kind of change is run. Every project you start shows up on this screen, with what is
             late and who owes what.
           </p>
-        ) : (
-          <div className="home-proj-list">
-            {projects.map(p => <ProjectCard key={p.id} p={p} lines={linesOf(p.id)} compact />)}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* NOT A DOOR. There is no "＋ New workspace" here any more: a line makes
           its own, and a second way to make one by hand is the thing he tripped

@@ -103,6 +103,9 @@ export interface JobView {
   name: string;
   color: string;
   lead?: string;
+  /** A 3P or lever tree job's lines, each with its owner — the one-tap route
+   *  to the line you want, carried from the project card the row replaced. */
+  lines?: { id: string; key: string; name: string; owner?: string }[];
   sentence: string;
   slip?: string;
   daysToGo?: number;
@@ -324,6 +327,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
            what it is being run against; the board is the work under them. */
         sentence: (j.tree ? `${j.tree.says}. ` : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
         tree: j.tree,
+        lines: j.lines.map(l => ({ id: l.id, key: l.key, name: l.name, owner: l.owner || undefined })),
         slip: undefined, daysToGo, outstanding: open, late,
         done: e.plan.filter(m => m.tone === 'done').length, total: e.plan.length,
         reach: j.judged > 0 ? `${j.atTarget} of ${j.judged} at target` : undefined,

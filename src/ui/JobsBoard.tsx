@@ -594,6 +594,23 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
               <aside className="jb-aside">
                 <p className="jb-sent">{v.sentence}{v.slip ? ` ${v.slip}` : ''}</p>
                 {v.lead && <p className="sub jb-led">Led by {v.lead}</p>}
+                {/* THE LINES, ONE TAP EACH — from the project card this row
+                    replaced on Home. Each says its owner, so "that is my line"
+                    is one tap from the control room. A stage-gate job is judged
+                    on its machines and date, so it never drew lines here. */}
+                {v.lines && (
+                  <span className="proj-lines jb-lines">
+                    {v.lines.length === 0
+                      ? <button className="proj-chip is-add" onClick={() => nav(`/project/${v.id}/setup`)}><Icon name="plus" size="1.15em" /> Add a line</button>
+                      : v.lines.map(l => (
+                          <button key={l.id} className="proj-chip" onClick={() => nav(`/project/${v.id}/line/${l.id}`)}
+                            title={l.owner ? `${l.name} · ${l.owner}` : l.name}>
+                            <span className="proj-chip-k">{l.key}</span>
+                            {l.owner && <span className="proj-chip-o">{l.owner.split(' ')[0]}</span>}
+                          </button>
+                        ))}
+                  </span>
+                )}
                 <span className="jb-doors">
                   <button className="btn btn-primary" onClick={() => nav(`/project/${v.id}`)}>Open the job ›</button>
                   {v.method === 'commissioning' ? <>
@@ -603,6 +620,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip }: {
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/board`)}>Board</button>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}?view=lines`)}>Lines</button>
                   </>}
+                  {/* The job's details — name, lead, dates, lines and people —
+                      the card's "Details" / "Lines & people" door. */}
+                  <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/setup`)}>Details</button>
                 </span>
               </aside>
               {empty
