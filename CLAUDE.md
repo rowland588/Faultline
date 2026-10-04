@@ -100,8 +100,17 @@ npx eslint src --max-warnings 69      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
+node scripts/report-stress.mjs        # every report at tiny, ordinary and huge — same server
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
+
+`scripts/report-stress.mjs` builds a job just started, the ordinary seed and a
+job a long way in (`src/dev/reportSeeds.ts`), downloads every report from its
+real button and reads every page back: nothing off the page, nothing printed
+over anything else, no near-empty page mid-document, and every machine name
+and the end of every long field on the paper. A report is laid out by the
+engine in `src/lib/report/` — blocks that measure themselves, poured into
+pages — never by a hand-kept `y`; `docs/REPORTS.md` is the design.
 
 The lint number is a **ceiling that only ever comes down**. The remaining
 warnings are a backlog (mostly non-null assertions), not a standard. If a change

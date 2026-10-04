@@ -105,14 +105,24 @@ both come out as composed documents.
 
 ## Slices — each ships live on its own, with the stress check green
 
+Progress, 4 October — `report-stress.mjs`: 11 of 11 stage-gate reports clean
+at all three sizes (it began at 9 of 11 with checks that missed the cuts).
+Client report: tiny 3 → 2 pages, ordinary 6 → 4, huge 25 → 15. Slices 1–3
+are live; slice 4 is next.
+
 1. **The engine and the client report.** `src/lib/report/` (blocks, flow,
    tokens); the client report poured through it; the stress check's "lost"
    test taken from the job's data.
 2. **The test and fix cards.** Fields never capped; a card continues onto a
    second page rather than cutting a sentence; long titles wrap.
-3. **The day report and the plan pages.** The day's lists through the
-   engine; the Gantt pages compress a small overflow, and a short plan sits
-   on the page before it rather than taking a landscape page of its own.
+3. **The day report and the plan pages.** The day's headline and details
+   print whole; the plan's rows are measured (labels wrap), a small overflow
+   is absorbed by tightening the rows' air (never the type), a plan too long
+   to read folds — each stage one lane with every machine's mark, marks on
+   the same days merged with a count — and the handover labels sit under the
+   chart. A short plan's landscape page now waits until the portrait pages
+   after it are poured, so it no longer strands a small table on a page of
+   its own.
 4. **The 3P and lever tree report, the evidence card and the line standard**
    — the largest renderer (3,100 lines) last, once the engine has carried the
    others.

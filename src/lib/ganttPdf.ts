@@ -44,17 +44,81 @@ const TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: strin
 const HEAD_TOP = 74;          // where the calendar band starts on a page
 const MONTH_H = 13, DAY_H = 17;
 const ROW_H = 17, GROUP_H = 13;
-const FOOT = 54;              // room left at the bottom for the key (two lines when it is long) and the foot
+const FOOT = 64;              // room left at the bottom for the handover labels, the key (two lines when it is long) and the foot
 
-type Line = { group: string; n: number; cont?: boolean } | { row: GanttRow; fix?: boolean } | { walk: true };
+/* ---------------------------------------------------------------------------
+ * FOLDED FOR PAPER — docs/REPORTS.md: big content scales by structure.
+ *
+ * A row per step per machine is right for a job of two machines and
+ * unreadable for twelve: the huge job's plan ran to fourteen landscape pages.
+ * When the rows would take more than two pages, each group folds — a stage
+ * becomes one lane with every machine's mark on it, tests and fixes fold by
+ * machine — and marks on the same days merge into one with a count, the way
+ * the control room's board merges them (visual rule 5). The label says how
+ * many and how many are late, so nothing is hidden by the fold. The screen's
+ * plan scrolls and keeps every row; this is the paper's version of it.
+ * ------------------------------------------------------------------------- */
+type Bit = { start: number; span: number; tone: PlanMark['tone'] };
+type PaperRow = GanttRow & { bits?: Bit[]; sub?: string };
+type Line = { group: string; n: number; cont?: boolean } | { row: PaperRow; fix?: boolean } | { walk: true };
+
+const SEVERITY: PlanMark['tone'][] = ['failed', 'late', 'ran', 'booked', 'none', 'done'];
+const worst = (ts: PlanMark['tone'][]): PlanMark['tone'] => SEVERITY.find(t => ts.includes(t)) ?? 'none';
+const STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover']);
+const NOUN: Partial<Record<PlanMark['kind'], [string, string]>> = {
+  install: ['machine', 'machines'], setup: ['machine', 'machines'], handover: ['machine', 'machines'],
+  test: ['test', 'tests'], fix: ['fix', 'fixes'], material: ['material', 'materials'], program: ['program', 'programs'],
+  machine: ['machine arriving', 'machines arriving'], note: ['reminder', 'reminders'], action: ['action', 'actions'],
+};
+const stepOf = (r: GanttRow) => (r.on && r.label.startsWith(`${r.on} — `) ? r.label.slice(r.on.length + 3) : r.label);
+
+export function foldForPaper(g: Gantt, capacity: number): Gantt {
+  const lines = g.groups.reduce((n, gr) => n + 1 + gr.rows.reduce((m, r) => m + 1 + (r.fixes?.length ?? 0), 0), 0);
+  if (lines <= capacity * 2) return g;
+  const groups = g.groups.map(gr => {
+    const keyOf = (r: GanttRow) => (STAGE.has(gr.kind) ? stepOf(r) : r.on ?? (gr.kind === 'machine' ? 'Every machine' : r.label));
+    const byKey = new Map<string, GanttRow[]>();
+    for (const r of gr.rows) byKey.set(keyOf(r), [...(byKey.get(keyOf(r)) ?? []), r]);
+    if (byKey.size === gr.rows.length) return gr;          // nothing to fold
+    const noun = NOUN[gr.kind] ?? ['item', 'items'];
+    const rows: PaperRow[] = [...byKey].map(([key, rs]) => {
+      const late = rs.filter(r => r.tone === 'late' || r.tone === 'failed').length;
+      const fixes = rs.flatMap(r => r.fixes ?? []);
+      const row: PaperRow = {
+        ...rs[0], label: key, on: undefined, slip: undefined, marks: undefined, overlap: undefined,
+        start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
+        bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
+        sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${late ? ` · ${late} late or a problem` : ''}`,
+        fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
+      };
+      return row;
+    });
+    return { ...gr, rows };
+  });
+  return { ...g, groups };
+}
+
+/** Marks that share days become one, with how many and the worst state. */
+function cluster(bits: Bit[]): (Bit & { n: number })[] {
+  const out: (Bit & { n: number })[] = [];
+  for (const b of [...bits].sort((a, c) => a.start - c.start)) {
+    const last = out[out.length - 1];
+    if (last && b.start <= last.start + last.span) {
+      const end = Math.max(last.start + last.span, b.start + b.span);
+      last.span = end - last.start; last.tone = worst([last.tone, b.tone]); last.n++;
+    } else out.push({ ...b, n: 1 });
+  }
+  return out;
+}
 
 /** Draw the Gantt from the CURRENT page on (which must be landscape A4), adding
  *  landscape pages as the rows need them. Returns the page numbers it drew on,
  *  so a report can put its own foot on them. */
-export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: string; sub?: string }, moves: MoveLine[] = []): number[] {
+export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title: string; sub?: string }, moves: MoveLine[] = []): number[] {
   const font = (size: number, style: 'normal' | 'bold' = 'normal', colour = INK) => {
     doc.setFont(pdfFamily(), style); doc.setFontSize(size); doc.setTextColor(colour);
   };
+  const g = foldForPaper(gIn, Math.floor((PH - FOOT - (HEAD_TOP + MONTH_H + DAY_H)) / ROW_H));
   const x0 = M + LAB, CW = PW - 2 * M - LAB;
   const px = CW / Math.max(1, g.days);
   const X = (day: number) => x0 + day * px;
@@ -70,20 +134,56 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
   }
   const bodyTop = HEAD_TOP + MONTH_H + DAY_H;
   const room = PH - FOOT - bodyTop;
-  const pages: Line[][] = [];
-  let cur: Line[] = [], used = 0, lastGroup = '';
-  for (const l of lines) {
-    const h = 'group' in l ? GROUP_H : ROW_H;
-    /* A heading never sits alone at the foot of a page. */
-    const need = 'group' in l ? h + ROW_H : h;
-    if (used + need > room && cur.length) {
-      pages.push(cur); cur = []; used = 0;
-      if (!('group' in l)) { cur.push({ group: lastGroup, n: 0, cont: true }); used += GROUP_H; }
+
+  /* A ROW'S LABEL WRAPS AND THE ROW GROWS — it was cut to its first line, the
+     step and the machine both. */
+  const labelOf = (r: PaperRow) => {
+    const mach = r.on && r.label.startsWith(`${r.on} — `) ? r.on : '';
+    font(7.5, 'bold');
+    const step = doc.splitTextToSize(san(mach ? r.label.slice(mach.length + 3) : r.label), LAB - 12) as string[];
+    font(6, 'normal');
+    const under = r.sub ?? mach;
+    const sub = under ? doc.splitTextToSize(san(under), LAB - 12) as string[] : [];
+    return { step, sub };
+  };
+  const fixLabel = (r: PaperRow) => { font(6.5, 'bold'); return doc.splitTextToSize(san(`> Fix: ${r.label}`), LAB - 18) as string[]; };
+  const natural = (l: Line): number => {
+    if ('group' in l) return GROUP_H;
+    if ('walk' in l) return ROW_H;
+    // The usual row is the step and its machine on one line each; a row only grows for lines beyond that.
+    if (l.fix) return ROW_H + Math.max(0, fixLabel(l.row).length - 1) * 7.5;
+    const { step, sub } = labelOf(l.row);
+    return ROW_H + Math.max(0, step.length - 1) * 8.5 + Math.max(0, sub.length - 1) * 6.5;
+  };
+  /* A SMALL OVERFLOW IS ABSORBED: rows close up a little rather than a page
+     being started for three of them. Only the air between rows tightens —
+     never the type. */
+  const paginate = (k: number) => {
+    const H = (l: Line) => natural(l) * k;
+    const out: Line[][] = [];
+    let cur: Line[] = [], used = 0, lastGroup = '';
+    for (const l of lines) {
+      const h = H(l);
+      /* A heading never sits alone at the foot of a page. */
+      const need = 'group' in l ? h + ROW_H * k : h;
+      if (used + need > room && cur.length) {
+        out.push(cur); cur = []; used = 0;
+        if (!('group' in l)) { cur.push({ group: lastGroup, n: 0, cont: true }); used += GROUP_H * k; }
+      }
+      if ('group' in l) lastGroup = l.group;
+      cur.push(l); used += h;
     }
-    if ('group' in l) lastGroup = l.group;
-    cur.push(l); used += h;
+    if (cur.length || !out.length) out.push(cur);
+    return out;
+  };
+  let k = 1;
+  let pages = paginate(1);
+  for (const tighter of [0.92, 0.85]) {
+    if (pages.length < 2) break;
+    const t = paginate(tighter);
+    if (t.length < pages.length) { pages = t; k = tighter; break; }
   }
-  if (cur.length || !pages.length) pages.push(cur);
+  const hOf = (l: Line) => natural(l) * k;
 
   const drawn: number[] = [];
   let lastKey = 0;
@@ -96,7 +196,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
     font(17, 'bold'); doc.text(san(head.title) + (pages.length > 1 ? `  ·  ${pi + 1} of ${pages.length}` : ''), M, M + 26);
     if (head.sub) { font(9, 'normal', MUTED); doc.text(san(head.sub), M, M + 40, { maxWidth: PW - 2 * M }); }
 
-    const bodyH = page.reduce((h, l) => h + ('group' in l ? GROUP_H : ROW_H), 0);
+    const bodyH = page.reduce((h, l) => h + hOf(l), 0);
     const bottom = bodyTop + bodyH;
 
     /* ---- the calendar band ---- */
@@ -131,21 +231,22 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
     /* ---- the rows ---- */
     let y = bodyTop;
     for (const l of page) {
+      const RH = hOf(l);
       if ('group' in l) {
-        doc.setFillColor(SURF2); doc.rect(M, y, LAB, GROUP_H, 'F');
+        doc.setFillColor(SURF2); doc.rect(M, y, LAB, RH, 'F');
         font(6.5, 'bold', INK2);
-        doc.text(`${l.group.toUpperCase()}${l.cont ? '  (continued)' : `  ${l.n}`}`, M + 6, y + 9);
-        y += GROUP_H;
+        doc.text(`${l.group.toUpperCase()}${l.cont ? '  (continued)' : `  ${l.n}`}`, M + 6, y + RH * 0.69);
+        y += RH;
         continue;
       }
       if ('walk' in l) {
         const lane = g.walk;
-        doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + ROW_H, PW - M, y + ROW_H);
+        doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + RH, PW - M, y + RH);
         if (lane) {
-          if (lane.late) { doc.setFillColor(DANGER); doc.rect(M + 1, y + 3, 2, ROW_H - 6, 'F'); }
+          if (lane.late) { doc.setFillColor(DANGER); doc.rect(M + 1, y + 3, 2, RH - 6, 'F'); }
           font(7.5, 'bold', INK); doc.text('Found on the walk', M + 6, y + 7.5);
           font(6, 'bold', lane.open ? DANGER : OK); doc.text(san(lane.words), M + 6, y + 14);
-          const cy = y + ROW_H / 2;
+          const cy = y + RH / 2;
           for (const m of walkMarkers(lane, px, 13)) {
             const cx = X(m.start + m.span / 2);
             if (!m.open) { doc.setFillColor(OK); doc.circle(cx, cy, 2.4, 'F'); continue; }
@@ -154,17 +255,40 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
             font(6, 'bold', m.late ? '#ffffff' : DANGER); doc.text(String(m.open), cx, cy + 2.1, { align: 'center' });
           }
         }
-        y += ROW_H;
+        y += RH;
         continue;
       }
       const r = l.row;
-      doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + ROW_H, PW - M, y + ROW_H);
+      doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + RH, PW - M, y + RH);
+      /* A FOLDED ROW — every mark on one lane, those sharing days merged into
+         one with how many, in the worst state among them. */
+      if (r.bits) {
+        if (l.fix) {
+          font(6.5, 'bold', INK2); doc.text(fixLabel(r), M + 14, y + 7.5 * k, { lineHeightFactor: 7.5 * k / 6.5 });
+        } else {
+          const { step, sub } = labelOf(r);
+          font(7.5, 'bold', INK); doc.text(step, M + 6, y + 7.5 * k, { lineHeightFactor: 8.5 * k / 7.5 });
+          font(6, 'bold', r.tone === 'late' || r.tone === 'failed' ? DANGER : MUTED);
+          doc.text(sub, M + 6, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 });
+        }
+        const bh = Math.min(RH - 8, 9), by = y + (RH - bh) / 2;
+        for (const c of cluster(r.bits)) {
+          const t = TONE[c.tone];
+          const bx = X(c.start) + 0.6, bw = Math.max(c.n > 1 ? 9 : 2.4, c.span * px - 1.2);
+          doc.setDrawColor(t.stroke); doc.setFillColor(t.fill); doc.setLineWidth(0.7);
+          doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
+          if (c.n > 1) { font(5.5, 'bold', t.text); doc.text(String(c.n), bx + bw / 2, by + bh / 2 + 1.9, { align: 'center' }); }
+        }
+        y += RH;
+        continue;
+      }
       /* A FIX UNDER ITS STAGE — its dates, or open-ended, "no date agreed". */
       if (l.fix) {
+        const fl = fixLabel(r);
         font(6.5, 'bold', INK2);
-        doc.text((doc.splitTextToSize(san(`> Fix: ${r.label}`), LAB - 18) as string[])[0] ?? '', M + 14, y + 7.5);
-        font(5.5, 'normal', MUTED); doc.text(san(r.when), M + 14, y + 13.5);
-        const fx = X(r.start) + 0.6, fy = y + 5, fh = ROW_H - 10;
+        doc.text(fl, M + 14, y + 7.5 * k, { lineHeightFactor: 7.5 * k / 6.5 });
+        font(5.5, 'normal', MUTED); doc.text(san(r.when), M + 14, y + (7.5 + fl.length * 7.5 - 1.5) * k);
+        const fx = X(r.start) + 0.6, fy = y + 5, fh = Math.min(RH - 10, 7);
         const open = (r as GanttRow & { open?: boolean }).open;
         if (open) {
           doc.setDrawColor(MUTED); doc.setLineWidth(0.6); doc.setLineDashPattern([2, 1.5], 0);
@@ -177,20 +301,20 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
           doc.roundedRect(fx, fy, fw, fh, 1.5, 1.5, 'FD');
           font(5.5, 'bold', INK2); doc.text(san(r.when), fx + fw + 3, fy + fh / 2 + 1.9);
         }
-        y += ROW_H;
+        y += RH;
         continue;
       }
       /* "Wrapper — Dry run": the step, with its machine under it. Only the
          machine is split off — a title with a dash of its own stays whole. */
-      const mach = r.on && r.label.startsWith(`${r.on} — `) ? r.on : '';
-      const step = mach ? r.label.slice(mach.length + 3) : r.label;
+      const { step, sub } = labelOf(r);
       font(7.5, 'bold', INK);
-      const s1 = (doc.splitTextToSize(san(step), LAB - 12) as string[])[0] ?? '';
-      doc.text(s1, M + 6, y + (mach ? 7.5 : 11));
-      if (mach) { font(6, 'normal', MUTED); doc.text((doc.splitTextToSize(san(mach), LAB - 12) as string[])[0] ?? '', M + 6, y + 14); }
+      const lines1 = step.length + sub.length;
+      // The row's own air scales with it when a page is tightened (k); the type does not.
+      doc.text(step, M + 6, y + (lines1 === 1 ? RH / 2 + 2.6 : 7.5 * k), { lineHeightFactor: 8.5 * k / 7.5 });
+      if (sub.length) { font(6, 'normal', MUTED); doc.text(sub, M + 6, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 }); }
 
       const t = (r.kind === 'note' ? NOTE_TONE : TONE)[r.tone];
-      const bx = X(r.start) + 0.6, bw = Math.max(2.4, r.span * px - 1.2), by = y + 4, bh = ROW_H - 8;
+      const bh = Math.min(RH - 8, 9), bx = X(r.start) + 0.6, bw = Math.max(2.4, r.span * px - 1.2), by = y + (RH - bh) / 2;
       doc.setDrawColor(t.stroke); doc.setFillColor(t.fill); doc.setLineWidth(0.7);
       doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
       font(6, 'bold', t.text);
@@ -215,7 +339,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       /* STARTS BEFORE THE STEP AHEAD HAS FINISHED — the same amber edge and
          words the screen shows, so the client reads the overlap too. */
       if (r.overlap) {
-        doc.setFillColor(AMBER); doc.rect(M + 1, y + 3, 2, ROW_H - 6, 'F');
+        doc.setFillColor(AMBER); doc.rect(M + 1, y + 3, 2, RH - 6, 'F');
         font(6, 'bold', AMBER); doc.text(san(`overlaps ${r.overlap}`), after, by + bh / 2 + 2.1);
       }
       /* SOMETHING HAPPENED HERE — a small red diamond on the day. */
@@ -224,7 +348,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
         doc.setFillColor(DANGER); doc.setDrawColor('#ffffff'); doc.setLineWidth(0.5);
         doc.lines([[2.6, 2.6], [-2.6, 2.6], [-2.6, -2.6], [2.6, -2.6]], cx, cy - 2.6, [1, 1], 'FD', true);
       }
-      y += ROW_H;
+      y += RH;
     }
     doc.setDrawColor('#c6d2e3'); doc.setLineWidth(0.6); doc.line(x0, HEAD_TOP, x0, bottom);
     doc.rect(M, HEAD_TOP, PW - 2 * M, bottom - HEAD_TOP);
@@ -234,21 +358,31 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       const x = X(g.today + 0.5);
       doc.setDrawColor(BRAND); doc.setLineWidth(1.1); doc.line(x, bodyTop, x, bottom);
     }
-    const mark = (at: number, colour: string, words: string, lift: number) => {
+    /* UNDER THE CHART, NOT ON IT. The two dates' labels sat over the last row,
+       where a bar's own date could land on them ("8 Nov" over "Handover 7
+       Nov"). Under the frame nothing else is drawn; two that would touch are
+       staggered. */
+    const labels: { x: number; w: number; words: string; colour: string }[] = [];
+    const mark = (at: number, colour: string, words: string) => {
       const x = X(at + 0.5);
       doc.setDrawColor(colour); doc.setLineWidth(1); doc.setLineDashPattern([3, 2], 0);
-      doc.line(x, bodyTop, x, bottom); doc.setLineDashPattern([], 0);
+      doc.line(x, bodyTop, x, bottom + 3); doc.setLineDashPattern([], 0);
       font(6.5, 'bold', colour);
       const w = doc.getTextWidth(words);
-      const tx = Math.min(x + 3, PW - M - w - 2);
-      doc.setFillColor('#ffffff'); doc.rect(tx - 1.5, bottom - 10 - lift, w + 3, 8.5, 'F');
-      doc.text(words, tx, bottom - 3.6 - lift);
+      labels.push({ x: Math.min(Math.max(M, x - w / 2), PW - M - w), w, words, colour });
     };
-    if (g.agreed) mark(g.agreed.at, MUTED, `Agreed ${g.agreed.when}`, 10);
-    if (g.expected) mark(g.expected.at, OK, `Handover ${g.expected.when}`, 0);
+    if (g.agreed) mark(g.agreed.at, MUTED, `Agreed ${g.agreed.when}`);
+    if (g.expected) mark(g.expected.at, OK, `Handover ${g.expected.when}`);
+    let below = 0;
+    labels.forEach((lb, i) => {
+      const prev = labels[i - 1];
+      const row = prev && lb.x < prev.x + prev.w + 6 && lb.x + lb.w + 6 > prev.x ? 1 : 0;
+      below = Math.max(below, row);
+      font(6.5, 'bold', lb.colour); doc.text(lb.words, lb.x, bottom + 10 + row * 9);
+    });
 
     /* ---- the key ---- */
-    let kx = M; let ky = Math.min(bottom + 14, PH - FOOT + 14);
+    let kx = M; let ky = Math.min(bottom + 24 + below * 9, PH - FOOT + 24);
     lastKey = ky;
     /* A key with every entry on it is wider than the page: carry on below. */
     const fit = (word: string, extra: number) => {
@@ -320,7 +454,7 @@ export function drawGantt(doc: jsPDF, g: Gantt, head: { eyebrow: string; title: 
       font(7, 'normal', MUTED);
       const fix = mv.fix ? doc.splitTextToSize(san(`Fix: ${mv.fix}`), PW - 2 * M - 250) as string[] : [];
       font(8, 'bold', INK);
-      const stage = (doc.splitTextToSize(san(mv.stage), 180) as string[]).slice(0, 2);
+      const stage = doc.splitTextToSize(san(mv.stage), 180) as string[]; // whole — it stopped at two lines
       const h = Math.max(stage.length * 9.5 + 10, why.length * 10 + fix.length * 9) + 8;
       if (y + h > PH - 34) fresh();
       font(8, 'bold', DANGER); doc.text(san(`+${mv.days}d`), M, y);

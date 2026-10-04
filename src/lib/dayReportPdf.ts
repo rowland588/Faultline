@@ -32,9 +32,14 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
   const CW = W - 2 * M;
   let page = 1;
 
+  /* THE BAND GROWS WITH THE DAY'S SENTENCE — it kept two lines of it and
+     dropped the rest (docs/REPORTS.md: nothing is cut). */
+  setFont(d, 9.5, 'normal', INK);
+  const headLines = d.splitTextToSize(san(day.headline), CW) as string[];
+  const bandH = 74 + headLines.length * 12 + 10;
   const band = (first: boolean): number => {
     d.setFillColor(INK);
-    d.rect(0, 0, W, first ? 96 : 40, 'F');
+    d.rect(0, 0, W, first ? bandH : 40, 'F');
     /* The band's small type in the shell's own muted blues (it was a green
        left over from an older palette), and the Faultline mark in the band —
        the corner stamp every other document carries would sit on the dark. */
@@ -55,10 +60,9 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     }
     setFont(d, 20, 'bold', '#ffffff');
     d.text(san(niceDay(day.date, { weekday: 'short', year: true })), M, 50);
-    setFont(d, 9.5, 'normal', '#cfe0d7');
-    const head = d.splitTextToSize(san(day.headline), CW) as string[];
-    head.slice(0, 2).forEach((l, i) => d.text(l, M, 68 + i * 12));
-    return 112;
+    setFont(d, 9.5, 'normal', '#c9d4e6');
+    headLines.forEach((l, i) => d.text(l, M, 68 + i * 12));
+    return bandH + 16;
   };
 
   const foot = () => {
@@ -122,7 +126,8 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       setFont(d, 9.5, 'normal', INK);
       const text = d.splitTextToSize(san(l.text), CW - 16) as string[];
       setFont(d, 8, 'normal', INK2);
-      const detail = l.detail ? (d.splitTextToSize(san(l.detail), CW - 16) as string[]).slice(0, 3) : [];
+      // Every line of it: the detail stopped at three.
+      const detail = l.detail ? d.splitTextToSize(san(l.detail), CW - 16) as string[] : [];
       const h = text.length * 12 + detail.length * 10.5 + 6;
       room(h);
       d.setFillColor(TONE[l.tone]);
