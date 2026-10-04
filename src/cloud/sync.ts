@@ -734,10 +734,14 @@ export async function syncNow(): Promise<void> {
         const key = sentKey(kind, id);
 
         if (localRow) {
-          if (remoteClock === localClock) { await basePut(kind, id, r); return; }   // our own echo: now agreed
           /* BOTH CHANGED IT: merge column by column against the copy both
              last agreed (mergeRows, above). Without that copy, the old rule. */
           const base = needsPush(sent, kind, id, localClock) ? await baseGet(kind, id) : undefined;
+          /* Our own echo: now agreed. The same clock is only an echo when we
+             sent that copy — an unsent edit that happens to share the other
+             device's millisecond is still an edit, and is merged below (it
+             used to be taken for an echo and pushed whole over theirs). */
+          if (remoteClock === localClock && !base) { await basePut(kind, id, r); return; }
           if (base) {
             const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock);
             await basePut(kind, id, r);

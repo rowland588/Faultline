@@ -191,6 +191,19 @@ describe('a sync pass', () => {
     expect(row).toMatchObject({ result: 'PHONE: 72 ppm', with_whom: 'LAPTOP: Brillopak' });
     expect(await db.getDB().then(d => d.get('tests', 't1'))).toMatchObject({ result: 'PHONE: 72 ppm', withWhom: 'LAPTOP: Brillopak' });
   });
+
+  it('two edits in the same millisecond on two devices are both kept, not taken for an echo', async () => {
+    const { db, sync } = await boot();
+    await db.putTest(T('t1'));
+    await sync.syncNow();
+    await db.patchTest('t1', { withWhom: 'LAPTOP: Brillopak' });
+    const mine = await db.getDB().then(d => d.get('tests', 't1'));
+    const theirs = cloud.rows('tests')[0];
+    /* the phone's edit carries exactly this device's clock */
+    cloud.put('tests', { ...theirs, result: 'PHONE: 72 ppm', updated_at: mine!.updatedAt });
+    await sync.syncNow();
+    expect(cloud.rows('tests')[0]).toMatchObject({ result: 'PHONE: 72 ppm', with_whom: 'LAPTOP: Brillopak' });
+  });
 });
 
 describe('mergeRows — who moved which box', () => {

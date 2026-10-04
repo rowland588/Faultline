@@ -37,7 +37,7 @@ import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
 import type { PaceAction } from '../lib/tracker';
-import type { FilePages, PaceReportData } from '../lib/paceReportPdf';
+import type { BoardSheetDrawn, FilePages, PaceReportData } from '../lib/paceReportPdf';
 import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
@@ -53,7 +53,7 @@ import { daysOverdue, fillIn, stateOf, testedIn } from '../lib/programs';
 import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { withTrackerRows, bindSources, statusOfAction, boundNumber, boardWords, type NumberSources } from '../lib/treeBind';
 import { methodOf, planModel } from '../lib/planModel';
-import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight,
+import { board as buildBoard, actionTitle, boardSheets, boardScale, runHeight, PILLARS,
   BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_PX, boardName } from '../lib/pillars';
 import { Icon } from '../ui/Icon';
 import { onDataChange } from '../db';
@@ -726,36 +726,34 @@ function ProgramsPage({ p, title, scale, sheetH, n, of }: {
   );
 }
 
-/* PEOPLE · PROCESS · PLANT gets its own sheet, for the same reason the tree did:
- * the SHAPE is the message. Three columns handed across a table say "these are
- * the three kinds of problem and here is where each stands"; the same actions as
- * a list say something much weaker. */
-function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, sheet, fill, board }: {
-  rows: PaceReportData['board']; unplaced: number; title: string;
+/* THE BOARD gets its own sheet, for the same reason the tree did: the SHAPE is
+ * the message. Six lanes handed across a table — People · Machine · Method ·
+ * Material · Measurement · Environment, lib/pillars' order — say "here is
+ * every kind of cause and where the work on each stands"; the same actions as
+ * a list say something much weaker.
+ *
+ * THE FILE'S BOARD, NOT A SECOND ONE. Once the PDF has been drawn off-screen
+ * (see `file` below) the sheet is handed the file's own layout — which areas
+ * on which sheet, the scale, and every card's lines exactly where the file
+ * breaks them — so an action wraps on the screen where it wraps on paper and
+ * no word is cut on either. Until then the cards wrap by themselves. */
+function BoardPage({ sheet: sh, unplaced, title, scale, sheetH, n, of, sheetNo, board, measured }: {
+  /** The sheet as laid out — see layBoard in lib/paceReportPdf. */
+  sheet: BoardSheetDrawn;
+  /** True when the sheet came from the file: every card's lines are final. */
+  measured: boolean;
+  unplaced: number; title: string;
   /** What the board is called on this job — see boardName in lib/pillars. */
   board: string;
-  scale: number; sheetH: number; n: number; of: number;
-  /** The areas this particular sheet carries — see boardSheets in lib/pillars. */
-  areas: string[]; sheet: number;
-  /** How much the board is scaled to fill this sheet — see boardScale. */
-  fill: number;
+  scale: number; sheetH: number; n: number; of: number; sheetNo: number;
 }) {
-  if (rows.length === 0) return null;   // never a page with a heading and nothing under it
-  const cols = [
-    { key: 'people' as const, label: 'People' },
-    { key: 'plant' as const, label: 'Plant' },
-    { key: 'process' as const, label: 'Process' },
-  ];
-  const LABEL: Record<string, string> = {
-    n: 'Not started', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done',
-  };
-  const areas = plan;
+  if (sh.blocks.length === 0) return null;   // never a page with a heading and nothing under it
 
   /* THE SAME DRAWING AS THE PDF, AT THE SAME SIZE. Every measurement below is
    * the PDF's own number in points, converted once to this sheet's pixels and
    * multiplied by the fill scale — so the preview is not merely similar to the
    * file, it is the file. One unit, one arithmetic, no second opinion. */
-  const u = BOARD_PX * fill;
+  const u = BOARD_PX * sh.scale;
   const px = (pt: number) => `${pt * u}px`;
   const geom = {
     '--ba-head': px(16),
@@ -769,55 +767,64 @@ function BoardPage({ rows, unplaced, title, scale, sheetH, n, of, areas: plan, s
     '--ba-f-card': px(7.8),
     '--ba-f-meta': px(6.5),
   } as React.CSSProperties;
+  const { laneGap, titleLead, metaLead } = sh.geom;
+  /* Six lanes, not three, and the lane gap is the file's — horizontal measures
+     are not scaled, only the type and the heights are. */
+  const lanesStyle: React.CSSProperties = {
+    gridTemplateColumns: `repeat(${PILLARS.length}, minmax(0, 1fr))`,
+    gap: `0 ${laneGap * BOARD_PX}px`,
+  };
 
   return (
     <div className="exec-pagewrap" style={{ height: sheetH * scale }}>
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-1">
           <section className="exec-box">
-            <SectionHead n={String(n)} title={`${board} — People · Plant · Process` + (sheet > 1 ? ' (continued)' : '')}
-              sowhat="One card per line · every action on the project’s board" />
+            <SectionHead n={String(n)} title={`${board} — ${PILLARS.map(p => p.label).join(' · ')}` + (sheetNo > 1 ? ' (continued)' : '')}
+              sowhat="One block per line · every action on the project’s board, on its bone" />
             <div className="exec-areas" style={geom}>
-            {areas.map(area => {
-              const mine = rows.filter(r => r.area === area);
-              return (
-                <div key={area} className="exec-area">
+            {sh.blocks.map(blk => (
+                <div key={blk.area + '#' + blk.part} className="exec-area"
+                  style={measured ? { height: px(blk.h), marginBottom: px(BOARD_AREA_GAP), boxSizing: 'border-box' } : undefined}>
                   <p className="exec-area-h">
-                    <b>{area}</b>
-                    <span>{mine.length} action{mine.length === 1 ? '' : 's'} · {mine.filter(r => r.rag === 'g').length} done</span>
+                    <b>{blk.area}{blk.part > 1 ? ' (continued)' : ''}</b>
+                    <span>{blk.total} action{blk.total === 1 ? '' : 's'} · {blk.done} done</span>
                   </p>
-                  <div className="exec-board">
-                    {cols.map(c => {
-                      const cr = mine.filter(r => r.pillar === c.key);
-                      return (
-                        <section key={c.key} className={'exec-bcol is-' + c.key}>
-                          <header className="exec-bcol-h">
-                            <span className="exec-bcol-t">{c.label}</span>
-                            <span className="exec-bcol-n">{cr.length}</span>
+                  <div className="exec-board" style={lanesStyle}>
+                    {blk.lanes.map(ln => (
+                        <section key={ln.key} className={'exec-bcol is-' + ln.key}>
+                          <header className="exec-bcol-h" style={{ borderBottomColor: 'var(--ink-2)' }}>
+                            <span className="exec-bcol-t">{ln.label}</span>
+                            <span className="exec-bcol-n">{ln.count}</span>
                           </header>
-                          {cr.length === 0
-                            ? <p className="exec-empty">—</p>
-                            : cr.map((r, i) => (
-                              <article key={i} className={'exec-bact is-' + r.rag}>
-                                <span className="exec-bact-t">{r.title}</span>
-                                <span className="exec-bact-f">
-                                  <b className={'exec-bst is-' + r.rag}>{LABEL[r.rag]}</b>
-                                  {[r.owner, r.due && 'due ' + r.due].filter(Boolean).join(' · ')}
+                          {ln.cards.length === 0
+                            ? (blk.part === 1 ? <p className="exec-empty">—</p> : null)
+                            : ln.cards.map((c, i) => (
+                              <article key={i} className={'exec-bact is-' + c.rag}
+                                style={measured
+                                  ? { height: px(c.h), paddingTop: px(2.4), paddingRight: px(6), overflow: 'visible' }
+                                  : { height: 'auto', minHeight: px(BOARD_ACT_H) }}>
+                                <span className="exec-bact-t"
+                                  style={{ whiteSpace: measured ? 'pre' : 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: px(titleLead) }}>
+                                  {c.title.map((t, j) => <span key={j} style={{ display: 'block' }}>{t}</span>)}
+                                </span>
+                                <span className="exec-bact-f"
+                                  style={{ display: 'flex', whiteSpace: measured ? 'pre' : 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: px(metaLead), marginTop: px(1.6) }}>
+                                  <b className={'exec-bst is-' + c.rag}>{c.status}</b>
+                                  <span>{c.meta.map((m, j) => <span key={j} style={{ display: 'block' }}>{m}</span>)}</span>
                                 </span>
                               </article>
                             ))}
                         </section>
-                      );
-                    })}
+                    ))}
                   </div>
                 </div>
-              );
-            })}
+            ))}
             </div>
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · client report · page {n} of {of} — the {board === '3P Board' ? '3P board' : 'board'}{sheet > 1 ? ` (${sheet})` : ''}</span>
+          <span>{title} · client report · page {n} of {of} — the board{sheetNo > 1 ? ` (${sheetNo})` : ''}</span>
           <span>{unplaced > 0
             ? `${unplaced} action${unplaced === 1 ? '' : 's'} not given a column yet`
             : 'Every action is on the board.'}</span>
@@ -1053,7 +1060,9 @@ function PaceExecReportA3() {
      off-screen (no pictures — they move no page break) and each preview page
      takes its number from the page its panel title landed on. Until that
      comes back, the preview's own count stands in. */
-  const [file, setFile] = useState<FilePages | null>(null);
+  /* `boardKey` is the board the file was drawn from: the file's board layout
+     is used only while it is still this report's board (see boardPlan). */
+  const [file, setFile] = useState<(FilePages & { boardKey?: string }) | null>(null);
   const fileData = useRef<PaceReportData | null>(null);
   const fileKey = useRef('');
   useEffect(() => {
@@ -1069,7 +1078,7 @@ function PaceExecReportA3() {
           const { jsPDF } = await loadPdfLib();
           const { readPages } = await import('../lib/paceReportPdf');
           const read = readPages(new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' }), data);
-          if (fileKey.current === key) setFile(read);
+          if (fileKey.current === key) setFile({ ...read, boardKey: JSON.stringify(data.board) });
         } catch { /* the preview's own count stands */ }
       })();
     }, 250);
@@ -1109,7 +1118,7 @@ function PaceExecReportA3() {
       setWins(await listPaceWins(projectId, lineId));
       /* THE TRIALS. A commissioning job's whole story is here — what is planned,
          what it passes on, and what happened on the day — and the report had no
-         page for it, which is why a project with two trials booked printed a 3P
+         page for it, which is why a project with two trials booked printed a
          board and an empty action list instead. */
       setTests(await listTests(projectId));
       setMachines(await listAssets(projectId));
@@ -1258,11 +1267,10 @@ function PaceExecReportA3() {
   const boardData = buildBoard(actions);
   const boardRows: PaceReportData['board'] = boardData.areas.flatMap(ar =>
     ar.columns.flatMap(c => c.rows.map(a => ({
-      /* The lever tree's sheet still draws three columns (lib/paceReportPdf,
-         unchanged); the six bones read across onto them the way OPEX.md's old
-         lens folded them — Material and Environment under Plant, Measurement
-         under Process. A 6M job never reaches this: it has its own report. */
-      area: ar.name, pillar: (c.key === 'people' ? 'people' : c.key === 'machine' || c.key === 'material' || c.key === 'environment' ? 'plant' : 'process') as 'people' | 'plant' | 'process',
+      /* On its own bone — the six lanes the board screen draws, in the same
+         order, on the screen sheet and in the file. (A 6M job never reaches
+         this: it has its own report.) */
+      area: ar.name, pillar: c.key,
       title: actionTitle(a),
       owner: (a.owner || a.who || '').trim(), due: a.due ?? '',
       rag: statusOfAction(a),
@@ -1286,9 +1294,35 @@ function PaceExecReportA3() {
   /* The identical rule the PDF uses — see lib/pillars. Two rules is how a
    * four-page PDF ends up stamped "page 2 of 3", and two units is how the same
    * rule reaches two answers, so the available height lives there too. */
-  const boardPlan = boardSheets(
+  const boardGuess = boardSheets(
     boardData.areas.map(a => ({ name: a.name, counts: a.columns.map(c => c.rows.length) })),
   );
+  /* Until the file has been read, the preview's own sheets: the same plan by
+     count, each card one block of words that wraps by itself. Once it has, the
+     file's — see BoardPage. */
+  const LABEL: Record<string, string> = { n: 'Not started', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done' };
+  const fileBoard = file?.board && file.boardKey === JSON.stringify(boardRows) ? file.board : undefined;
+  const boardPlan: BoardSheetDrawn[] = fileBoard ?? boardGuess.map(areas => ({
+    scale: boardScale(runHeight(areas)),
+    geom: { laneGap: 10, titleLead: 9.2, metaLead: 7.8 },
+    blocks: areas.map(a => {
+      const mine = boardRows.filter(r => r.area === a.name);
+      return {
+        area: a.name, part: 1, total: mine.length, done: mine.filter(r => r.rag === 'g').length,
+        h: 0,
+        lanes: PILLARS.map(p => {
+          const rows = mine.filter(r => r.pillar === p.key);
+          return {
+            key: p.key, label: p.label, count: rows.length,
+            cards: rows.map(r => ({
+              title: [r.title], status: LABEL[r.rag] ?? LABEL.n, rag: r.rag, h: BOARD_ACT_H,
+              meta: [[r.owner, r.due && ('due ' + r.due).replace(/ /g, '\u00a0')].filter(Boolean).join(' · ')].filter(Boolean),
+            })),
+          };
+        }),
+      };
+    }),
+  }));
   /* WHAT WE ARE WAITING ON, in the shape the sheet is drawn from — and worked
      out HERE rather than in the drawer, so the grid on the page and the grid in
      the file shade the same weeks. A line's own deck leaves it out: materials
@@ -1433,10 +1467,10 @@ function PaceExecReportA3() {
 
   /* A JOB WITH NO TRACKER IS NOT A TRACKER JOB.
      The report was Project Pace's, and every project got its shape: a ppm sheet,
-     a 3P board, an action tracker. A commissioning job has none of those, so it
+     a board, an action tracker. A commissioning job has none of those, so it
      printed three pages of empty scaffolding and buried the two things it does
      carry behind them. What prints is now what the project HAS. */
-  /* A 3P or tree job is reported as one from its first day — an empty one
+  /* A 6M or tree job is reported as one from its first day — an empty one
      printed the stage-gate front page ("Tests being proved on this job",
      "plan the first one under Testing") until something was on its board. */
   const hasTracker = (!!project && planModel(project) !== 'commissioning') || actions.length > 0 || nums.measures.length > 0;
@@ -1615,7 +1649,7 @@ function PaceExecReportA3() {
   const materialsPageNo = onFile(/^What we are waiting on/, guess.materials, hasPlanSheet ? planPageNo : undefined);
   const programsPageNo = onFile(/^What the machine can run/, guess.programs);
   const treePageNo = onFile(/^The plan$/, guess.tree);
-  const boardPageNo = onFile(/^(3P )?Board — /, guess.board);
+  const boardPageNo = onFile(/^(6M )?Board — /, guess.board);
   const pageCount = file?.of ?? guess.of;
   /* The panels on the last page carry on from the numbered pages before them.
      They used to be typed 3 to 7, which was right only while there were exactly
@@ -1925,7 +1959,7 @@ function PaceExecReportA3() {
             <p className="exec-eyebrow">
               {line
                 ? `${project?.name ?? 'Project'} · line report`
-                : `${project ? methodOf(project).label : hasTracker ? '3P' : 'Stage gate'} · client report`}
+                : project ? `${methodOf(project).label} · client report` : hasTracker ? 'Client report' : 'Stage gate · client report'}
             </p>
             <h1 className="exec-title">{title}</h1>
             <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the job is · who owes what, by when'}</p>
@@ -2048,15 +2082,13 @@ function PaceExecReportA3() {
           n={programsPageNo} of={pageCount} />
       )}
       {!line && project?.leverTree && <TreePage rows={fullTree} numbers={numSources} title={title} scale={scale} sheetH={SHEET_H} n={treePageNo} of={pageCount} />}
-      {/* No note about a missing board sheet any more: it explained a 3P
-          column in a workbook that is no longer uploaded. The board's own
+      {/* No note about a missing board sheet any more: it explained a
+          pillar column in a workbook that is no longer uploaded. The board's own
           "not on the board yet" list is where an unsorted action is fixed. */}
-      {boardPlan.map((sheetAreas, i) => (
-        <BoardPage key={i} rows={boardRows} unplaced={boardData.unplaced.length} title={title}
+      {boardPlan.map((sh, i) => (
+        <BoardPage key={i} sheet={sh} measured={!!fileBoard} unplaced={boardData.unplaced.length} title={title}
           board={boardName(project ? methodOf(project).label : undefined)}
-          scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount}
-          areas={sheetAreas.map(a => a.name)} sheet={i + 1}
-          fill={boardScale(runHeight(sheetAreas))} />
+          scale={scale} sheetH={SHEET_H} n={boardPageNo + i} of={pageCount} sheetNo={i + 1} />
       ))}
 
       {/* ================= PAGE 3 — TRACKER, ATTENTION & MOVEMENT =================

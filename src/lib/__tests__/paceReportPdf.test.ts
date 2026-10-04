@@ -24,6 +24,8 @@ import {
   programsPlan, strandWord, strandsOf, strandsSay, MAX_LANE_ROWS, type PaceReportData,
 } from '../paceReportPdf';
 import type { Owes, Party } from '../owes';
+import { layBoard } from '../paceReportPdf';
+import { PILLARS, boardSheets, runHeight, boardScale, BOARD_AVAIL } from '../pillars';
 import { capacityReport, type Capacity } from '../capacity';
 
 /* The installation sheet's block — `n` machines, six steps each, one late. */
@@ -117,11 +119,11 @@ const byLine = (name: string): PaceReportData['byLine'][number] => ({
   nextOpen: 2, nextDone: 1, snags: 3, wins: 1, latest: 61, meeting: true, unit: 'ppm',
 });
 
-/** n areas, each with three pillars' worth of actions. More areas means more
+/** n areas, each with six bones' worth of actions. More areas means more
  *  board sheets, which is the multi-sheet footer case. */
 const board = (areas: number, perPillar = 4): Board =>
   Array.from({ length: areas }).flatMap((_, a) =>
-    (['people', 'plant', 'process'] as const).flatMap(pillar =>
+    PILLARS.map(p => p.key).flatMap(pillar =>
       Array.from({ length: perPillar }, (_, i): Board[number] => ({
         area: `Area ${a + 1}`, pillar,
         title: `${pillar} action ${i + 1} on area ${a + 1}`,
@@ -1005,5 +1007,90 @@ describe('the capacity sheet', () => {
   it('does not split a line across sheets — five lines of four stations take three sheets, two a sheet', () => {
     // each station row carries three lines (chain, what arrives, the detail), so two lines of four fill a sheet
     expect(pagesFor({ capacity: cap(5) })).toBe(pagesFor({}) + 3);
+  });
+});
+
+/* THE LEVER TREE'S BOARD — six bones, every word.
+ *
+ * The board moved from three columns (People · Plant · Process) to the six
+ * bones of lib/pillars. The lever tree's A3 printed the old three, with the
+ * six folded back onto them, and cut every action to one line with "…". These
+ * pin the sheet to the screen's own six, in the same order, and every word of
+ * every action on the paper however long it is. */
+describe('the board sheet', () => {
+  const long = 'Replace the worn sealing jaw on the bagger before the peak, and write the torque into the standard so nights set it the same way';
+  const six = (): Board => PILLARS.map((p, i) => ({
+    area: 'Line 7', pillar: p.key, title: i === 1 ? long : `${p.label} countermeasure ${i + 1}`,
+    owner: 'Engineering and the night shift team leader', due: '2026-10-09', rag: 'w',
+  }));
+  const boardText = (r: ReturnType<typeof render>) => {
+    const from = r.said.findIndex(t => /^Board \u2014 /.test(t));
+    const to = r.said.findIndex((t, i) => i > from && /the board/.test(t) && /page \d+ of/.test(t));
+    return r.said.slice(from, to + 1);
+  };
+
+  it('heads the six lanes with the six bones, in the fishbone\u2019s order', () => {
+    const r = render(data({ method: 'Lever tree', board: six() }));
+    const said = boardText(r);
+    expect(said[0]).toBe('Board \u2014 People \u00b7 Machine \u00b7 Method \u00b7 Material \u00b7 Measurement \u00b7 Environment');
+    const heads = PILLARS.map(p => said.indexOf(p.label.toUpperCase()));
+    expect(heads.every(h => h > 0)).toBe(true);
+    expect([...heads].sort((a, b) => a - b)).toEqual(heads);
+    expect(said.join(' ')).not.toMatch(/PLANT|PROCESS|3P/);
+  });
+
+  it('prints every word of a long action and of its owner, never "\u2026"', () => {
+    const r = render(data({ method: 'Lever tree', board: six() }));
+    const said = boardText(r);
+    expect(said.some(t => t.endsWith('\u2026'))).toBe(false);
+    const words = said.join(' ').replace(/\s+/g, ' ');
+    expect(words).toContain(long);
+    expect(words).toContain('Engineering and the night shift team leader');
+  });
+
+  it('calls the job a client report with no "3P" in it', () => {
+    const r = render(data({ method: 'Lever tree', board: six() }));
+    expect(r.said).toContain('LEVER TREE \u00b7 CLIENT REPORT');
+    expect(r.said.join(' ')).not.toMatch(/\b3P\b/);
+  });
+
+  it('an action stays on its own bone — Material is not folded under Machine', () => {
+    const d = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+    const sheets = layBoard(d, data({ board: six() }), d.internal.pageSize.getWidth() - 52);
+    const lanes = sheets[0].blocks[0].lanes;
+    expect(lanes.map(l => l.key)).toEqual(PILLARS.map(p => p.key));
+    expect(lanes.map(l => l.count)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(lanes[3].cards[0].title.join(' ')).toBe('Material countermeasure 4');
+  });
+
+  it('a board of one-line actions falls across sheets exactly as lib/pillars counts it', () => {
+    for (const n of [1, 4, 12]) {
+      const b = board(n, 2).map(x => ({ ...x, title: 'Short', owner: 'Dave' }));
+      const d = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+      const laid = layBoard(d, data({ board: b }), d.internal.pageSize.getWidth() - 52);
+      const byCount = boardSheets([...new Set(b.map(x => x.area))].map(area => ({
+        area, counts: PILLARS.map(p => b.filter(x => x.area === area && x.pillar === p.key).length),
+      })));
+      expect(laid.length).toBe(byCount.length);
+      laid.forEach((sh, i) => expect(sh.scale).toBeCloseTo(boardScale(runHeight(byCount[i])), 2));
+    }
+  });
+
+  it('a line too long for any sheet is continued, never cut — and every sheet fits', () => {
+    const many: Board = Array.from({ length: 70 }, (_, i) => ({
+      area: 'Line 2', pillar: 'machine', title: `Machine action ${i + 1} with enough words in it to wrap onto a second line of the lane`,
+      owner: 'Dave', due: '2026-10-02', rag: i % 3 === 0 ? 'r' : 'w',
+    }));
+    const r = render(data({ method: 'Lever tree', board: many }));
+    const words = r.said.join(' ');
+    for (let i = 1; i <= 70; i++) expect(words).toContain(`Machine action ${i} with`);
+    expect(r.said).toContain('LINE 2 (CONTINUED)');
+    expect(r.stamps.every(s => s.of === r.pages)).toBe(true);
+
+    const d = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+    const laid = layBoard(d, data({ board: many }), d.internal.pageSize.getWidth() - 52);
+    expect(laid.length).toBeGreaterThan(1);
+    for (const sh of laid) expect(sh.scale * runHeight(sh.blocks.map(b => ({ counts: [(b.h - 30) / 29] })))).toBeLessThanOrEqual(BOARD_AVAIL + 0.5);
+    expect(laid.flatMap(sh => sh.blocks.flatMap(b => b.lanes[1].cards)).length).toBe(70);
   });
 });

@@ -20,8 +20,8 @@ import {
   INK, INK2, MUTED, LINE, ACCENT, BRAND, SURF2, OK, WARN, DANGER, BLUE, ACTUAL, TARGET,
   san, setFont, fit, panel, table, wash, type Doc,
 } from './reportKit';
-import { boardSheets, boardScale, runHeight, BOARD_ACT_H, BOARD_ACT_GAP,
-  BOARD_AREA_CHROME, BOARD_AREA_GAP, boardName } from './pillars';
+import { boardSheets, runHeight, BOARD_ACT_H, BOARD_ACT_GAP, BOARD_AREA_GAP, BOARD_AVAIL, BOARD_AREA_CHROME,
+  BOARD_MIN_SCALE, BOARD_MAX_SCALE, areaBlockHeight, boardName, PILLARS, type PillarKey } from './pillars';
 import type { PlanAxis, PlanLane, PlacedMark } from './plan';
 import type { Shot } from './testReport';
 import { ASK, type Owes, type OweTone, type Party } from './owes';
@@ -215,14 +215,14 @@ export interface PaceReportData {
     }[];
   };
   /** Does this project keep a weekly tracker at all? A commissioning job does
-   *  not, and printing it a ppm sheet, a 3P board and an action list is three
+   *  not, and printing it a ppm sheet, a board and an action list is three
    *  pages of scaffolding in front of the two it does carry. */
   tracker: boolean;
   /** Whether the actions, attention & movement sheet has anything to say.
    *  With no actions, no wins and nothing open on the walk it was six empty
    *  frames; it is left out, and the front page says there are no actions. */
   detail?: boolean;
-  /** Which of the three methods the project runs — "Stage gate", "3P",
+  /** Which of the three methods the project runs — "Stage gate", "6M",
    *  "Lever tree" — printed at the head of page 1. See lib/planModel. */
   method?: string;
   lateActions: { line: string; what: string; owner: string; due: string }[];
@@ -246,10 +246,11 @@ export interface PaceReportData {
      differently on purpose — a measured claim should not look like a typed one. */
   wins: { title: string; impact: string; story: string; who: string; where: string;
           verdict?: 'proven' | 'better' | 'flat' | 'worse' }[];
-  /* PEOPLE · PROCESS · PLANT, straight off the workbook. Its own sheet, because
-     three columns of actions is the shape somebody is being handed — squeezed
-     into a corner it stops being a board and becomes a list. */
-  board: { area: string; pillar: 'people' | 'plant' | 'process'; title: string;
+  /* THE BOARD — every action on its bone, by line: People · Machine · Method ·
+     Material · Measurement · Environment (lib/pillars, the screen's own six).
+     Its own sheet, because six lanes of actions is the shape somebody is being
+     handed — squeezed into a corner it stops being a board and becomes a list. */
+  board: { area: string; pillar: PillarKey; title: string;
            owner: string; due: string; rag: string }[];
   /** Rows the workbook did not place. Printed as a count, never hidden. */
   boardUnplaced: number;
@@ -1563,23 +1564,12 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   }
 }
 
-/* ---------- the lever tree ----------
- * Laid out left to right, exactly as it is on screen: the outcome on the left,
- * each level a column to its right, children stacked and their parent centred
- * against them. Two passes — measure every subtree's height, then place — which
- * is the only way a parent can sit level with the middle of its own children.
- *
- * Everything is drawn. A report that quietly dropped the bottom row would be
- * hiding the work, so when the tree is bigger than the sheet the whole thing is
- * scaled down instead. */
-const PILL_KEYS = ['people', 'plant', 'process'] as const;
-
-/** The 3P sheet's footer. Extracted because the board can spill onto a second
- *  sheet, and both have to say the same thing about what is not on it. */
+/** The board sheet's footer. Extracted because the board can spill onto a
+ *  second sheet, and both have to say the same thing about what is not on it. */
 function footBoard(d: Doc, data: PaceReportData, page: number, pages: number, sheet: number): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the ${boardName(data.method) === '3P Board' ? '3P board' : 'board'}${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — the board${sheet > 1 ? ` (${sheet})` : ''}`, (W - 56) * 0.8), 28, H - 28 + 6);
   d.text(data.boardUnplaced > 0
     ? `${data.boardUnplaced} action${data.boardUnplaced === 1 ? '' : 's'} not given a column yet`
     : 'Every action is on the board.', W - 28, H - 28 + 6, { align: 'right' });
@@ -1593,7 +1583,159 @@ const TREE_STATUS: Record<string, { c: string; label: string }> = {
   g: { c: OK,     label: 'Done' },
 };
 
+/* ---------- the board, laid out before it is drawn ----------
+ *
+ * SIX LANES, AND EVERY WORD OF EVERY ACTION. The board used to print three
+ * columns and cut each action to its first line with "…". Six lanes on the
+ * same sheet are half as wide, and a cut that loses the end of "Replace the
+ * worn sealing jaw before the peak" is the report choosing which words the
+ * client reads (docs/REPORTS.md rule 1). So a card is as tall as its words:
+ * the title wraps, the owner and the day wrap, and the card grows a line at a
+ * time.
+ *
+ * The fit is still lib/pillars' arithmetic — a card is BOARD_ACT_H tall when
+ * it is one line, and each further line adds its leading — so a board of
+ * one-line actions lands exactly where it always did. A card's lines depend
+ * on the scale (the type grows with it, the lanes do not), so each sheet's
+ * scale is the largest that still fits, found by measuring rather than
+ * assumed. An area too tall for a sheet even at the floor scale is continued
+ * on the next one, lane by lane, never cut.
+ *
+ * This is also what the screen draws: readPages hands the laid-out sheets back
+ * to the report screen, which prints the same lines on the same cards. */
+export interface BoardCardDrawn {
+  /** The action's title, broken into the lines it prints as. */
+  title: string[];
+  /** The state in words — "OVERDUE", "WAITING", "IN PROGRESS"… */
+  status: string;
+  /** Owner and due day, broken into lines beside the state word. */
+  meta: string[];
+  rag: string;
+  /** Height at scale 1, in points. */
+  h: number;
+}
+export interface BoardLaneDrawn { key: PillarKey; label: string; count: number; cards: BoardCardDrawn[] }
+export interface BoardBlockDrawn {
+  area: string;
+  /** 1 for the area's own block; 2, 3… when it is continued on the next sheet. */
+  part: number;
+  total: number; done: number;
+  lanes: BoardLaneDrawn[];
+  /** Height at scale 1, in points — lib/pillars' areaBlockHeight. */
+  h: number;
+}
+export interface BoardSheetDrawn {
+  scale: number; blocks: BoardBlockDrawn[];
+  /** The geometry the file drew with, carried so the screen (which does not
+   *  load this module until it has to) draws with the same numbers. */
+  geom: { laneGap: number; titleLead: number; metaLead: number };
+}
 
+/** The gap between two lanes, in points, at every scale. */
+export const BOARD_LANE_GAP = 10;
+/** Leading of a further line of title, and of owner-and-due, at scale 1. */
+export const BOARD_TITLE_LEAD = 9.2;
+export const BOARD_META_LEAD = 7.8;
+/** How wide each of the six lanes is on a sheet `cw` wide (the panel's width). */
+export const boardLaneW = (cw: number): number =>
+  (cw - 24 - BOARD_LANE_GAP * (PILLARS.length - 1)) / PILLARS.length;
+
+/** What the state is called on the board. Red on the board is only ever an
+ *  action past its day, amber one waiting on somebody. */
+export const boardStatus = (rag: string): string =>
+  rag === 'r' ? 'Overdue' : rag === 'a' ? 'Waiting' : (TREE_STATUS[rag] ?? TREE_STATUS.n).label;
+
+type BoardRow = PaceReportData['board'][number];
+interface BlockPlan { area: string; part: number; total: number; done: number; lanes: { key: PillarKey; label: string; count: number; rows: BoardRow[] }[] }
+
+function measureCard(d: Doc, b: BoardRow, laneW: number, k: number): BoardCardDrawn {
+  const textW = laneW - 14 * k;
+  setFont(d, 7.8 * k, 'bold', INK);
+  const title = (d.splitTextToSize(b.title, textW) as string[]).filter(l => l !== '');
+  const status = boardStatus(b.rag).toUpperCase();
+  setFont(d, 6.5 * k, 'bold', INK);
+  const stW = d.getTextWidth(status);
+  setFont(d, 6.5 * k, 'normal', INK2);
+  /* "due 3 Oct" is one thing and never breaks across a line — a day on one
+     line and its month on the next reads as two facts. */
+  const said = [b.owner, b.due && ('due ' + b.due).replace(/ /g, '\u00a0')].filter(Boolean).join(' \u00b7 ');
+  const meta = said ? (d.splitTextToSize(said, Math.max(20, textW - stW - 6 * k)) as string[]).filter(l => l !== '') : [];
+  const h = BOARD_ACT_H + Math.max(0, title.length - 1) * BOARD_TITLE_LEAD + Math.max(0, meta.length - 1) * BOARD_META_LEAD;
+  return { title: title.length ? title : [''], status, meta, rag: b.rag, h };
+}
+
+/** A lane's height in lib/pillars' unit: how many one-line cards it is as tall as. */
+const laneCount = (cards: { h: number }[]): number =>
+  cards.reduce((t, c) => t + c.h + BOARD_ACT_GAP, 0) / (BOARD_ACT_H + BOARD_ACT_GAP);
+
+function measureBlock(d: Doc, bp: BlockPlan, laneW: number, k: number): BoardBlockDrawn & { counts: number[] } {
+  const lanes = bp.lanes.map(l => ({ key: l.key, label: l.label, count: l.count, cards: l.rows.map(r => measureCard(d, r, laneW, k)) }));
+  const counts = lanes.map(l => laneCount(l.cards));
+  return { area: bp.area, part: bp.part, total: bp.total, done: bp.done, lanes, counts, h: areaBlockHeight(counts) };
+}
+
+export function layBoard(d: Doc, data: PaceReportData, cw: number, avail: number = BOARD_AVAIL): BoardSheetDrawn[] {
+  if (data.board.length === 0) return [];
+  const laneW = boardLaneW(cw);
+  const plans: BlockPlan[] = [];
+  /* The sheet holds this much at the floor scale, in points at scale 1. */
+  const room = avail / BOARD_MIN_SCALE;
+  for (const area of [...new Set(data.board.map(b => b.area))]) {
+    const mine = data.board.filter(b => b.area === area);
+    const whole: BlockPlan = {
+      area, part: 1, total: mine.length, done: mine.filter(b => b.rag === 'g').length,
+      lanes: PILLARS.map(p => {
+        const rows = mine.filter(b => b.pillar === p.key);
+        return { key: p.key, label: p.label, count: rows.length, rows };
+      }),
+    };
+    const atFloor = measureBlock(d, whole, laneW, BOARD_MIN_SCALE);
+    if (atFloor.h <= room) { plans.push(whole); continue; }
+    /* Too tall for any sheet: each lane is continued, a card at a time, in the
+       same order, onto as many blocks as it takes. */
+    const laneRoom = room - BOARD_AREA_CHROME;
+    const chunks = whole.lanes.map((l, li) => {
+      const out: BoardRow[][] = [[]];
+      let used = 0;
+      l.rows.forEach((r, ri) => {
+        const c = atFloor.lanes[li].cards[ri].h + BOARD_ACT_GAP;
+        if (used + c > laneRoom && out[out.length - 1].length) { out.push([]); used = 0; }
+        out[out.length - 1].push(r); used += c;
+      });
+      return out;
+    });
+    const parts = Math.max(...chunks.map(c => c.length));
+    for (let p = 0; p < parts; p++) {
+      plans.push({ ...whole, part: p + 1, lanes: whole.lanes.map((l, li) => ({ ...l, rows: chunks[li][p] ?? [] })) });
+    }
+  }
+
+  const floor = plans.map(bp => ({ bp, counts: measureBlock(d, bp, laneW, BOARD_MIN_SCALE).counts }));
+  return boardSheets(floor, avail).map(group => {
+    const at = (k: number) => group.map(g => measureBlock(d, g.bp, laneW, k));
+    const fits = (k: number) => k * runHeight(at(k)) <= avail;
+    let k = BOARD_MAX_SCALE;
+    if (!fits(k)) {
+      let lo = BOARD_MIN_SCALE, hi = BOARD_MAX_SCALE;
+      for (let i = 0; i < 16; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+      k = lo;
+    }
+    return {
+      scale: k, blocks: at(k).map(({ counts: _c, ...b }) => b),
+      geom: { laneGap: BOARD_LANE_GAP, titleLead: BOARD_TITLE_LEAD, metaLead: BOARD_META_LEAD },
+    };
+  });
+}
+
+/* ---------- the lever tree ----------
+ * Laid out left to right, exactly as it is on screen: the outcome on the left,
+ * each level a column to its right, children stacked and their parent centred
+ * against them. Two passes — measure every subtree's height, then place — which
+ * is the only way a parent can sit level with the middle of its own children.
+ *
+ * Everything is drawn. A report that quietly dropped the bottom row would be
+ * hiding the work, so when the tree is bigger than the sheet the whole thing is
+ * scaled down instead. */
 interface TreeIn { id: string; parentId?: string; text: string; rag: string; sort: number; number?: string; state?: string }
 interface TreeBox { text: string; rag: string; number?: string; state?: string; depth: number; kids: TreeBox[]; h: number; y: number }
 
@@ -1894,7 +2036,7 @@ function owesSheet(d: Doc, data: PaceReportData, plan: OwesPlan, sheet: number, 
     W - M, H - M + 6, { align: 'right' });
 }
 
-export function drawPaceReport(d: Doc, raw: PaceReportData): void {
+export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: BoardSheetDrawn[] }): void {
   // sanitise once, at the boundary — everything below draws known-safe text
   const data: PaceReportData = {
     ...raw,
@@ -2002,7 +2144,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
 
   /* ================= PAGE 1 — LINE PACE ================= */
   setFont(d, 8, 'bold', BRAND);
-  d.text(`${(data.method ?? (data.tracker ? '3P' : 'Stage gate')).toUpperCase()} · CLIENT REPORT`, M, M + 8);
+  d.text(`${data.method ?? (data.tracker ? '' : 'Stage gate')}${data.method || !data.tracker ? ' · ' : ''}CLIENT REPORT`.toUpperCase(), M, M + 8);
   setFont(d, 24, 'bold', INK);
   d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);
@@ -2172,14 +2314,12 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
   });
   }
 
-  /* The areas, and how they fall across sheets. BOARD_AVAIL comes from
-   * lib/pillars and is in points — the same number the report screen measures
-   * against, so the two can never disagree about the page count. */
-  const boardAreas = [...new Set(data.board.map(b => b.area))].map(area => ({
-    area,
-    counts: PILL_KEYS.map(k => data.board.filter(b => b.area === area && b.pillar === k).length),
-  }));
-  const boardPlan = boardSheets(boardAreas);
+  /* The board, laid out and measured, and how it falls across sheets — see
+   * layBoard. BOARD_AVAIL comes from lib/pillars and is in points; the screen
+   * is handed these very sheets (readPages), so the two can never disagree
+   * about the page count or about where a line of an action breaks. */
+  const boardPlan = layBoard(d, data, CW);
+  if (out) out.board = boardPlan;
   /* The same order the screen renders in, counted the same way: pace, where the
      time is going, the plan, the work, the detail. */
   const hasPareto = !!data.pareto;
@@ -2671,131 +2811,90 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
       W - M, H - M + 6, { align: 'right' });
   }
 
-  /* ============ PEOPLE · PROCESS · PLANT — its own sheet ============
-   * One card per area, each with three columns. A board is the one thing in
-   * this report whose SHAPE is the message: if it arrives as a list somebody
-   * has been handed different information. */
+  /* ============ THE BOARD — its own sheet ============
+   * One block per line, each with the six lanes of lib/pillars in the
+   * fishbone's order. A board is the one thing in this report whose SHAPE is
+   * the message: if it arrives as a list somebody has been handed different
+   * information. Laid out and measured by layBoard above; this only draws. */
   if (data.board.length > 0) {
-    d.addPage('a3', 'landscape');
-    const bpY = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage), `${boardName(data.method)} — People · Plant · Process`,
-      'One card per line \u00b7 every action on the project\u2019s board');
+    const boardTitle = `${boardName(data.method)} \u2014 ${PILLARS.map(p => p.label).join(' \u00b7 ')}`;
+    const boardSub = 'One block per line \u00b7 every action on the project\u2019s board, on its bone';
+    const laneW = boardLaneW(CW);
 
-    const PILL: { key: 'people' | 'plant' | 'process'; label: string; c: string }[] = [
-      /* Told apart by place and name, not colour — the colours are kept for
-         where each action stands (see the board's CSS). */
-      { key: 'people',  label: 'PEOPLE',  c: INK2 },
-      { key: 'plant',   label: 'PLANT',   c: INK2 },
-      { key: 'process', label: 'PROCESS', c: INK2 },
-    ];
-    const colGap = 14;
-    const colW = (CW - 24 - colGap * 2) / 3;
+    /* FIT AND FILL. The whole drawing is scaled to the sheet it is on, DOWN
+       when there is a lot of work and UP when there is not — each sheet its
+       own scale, chosen by layBoard. Every vertical measurement and every
+       type size below is multiplied by it, so the page is the same drawing at
+       a different size. */
+    for (const [si, sh] of boardPlan.entries()) {
+      if (si > 0) footBoard(d, data, boardPage + si - 1, pages, si);
+      d.addPage('a3', 'landscape');
+      let ay = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage),
+        boardTitle + (si > 0 ? ' (continued)' : ''), boardSub) + 14;
+      const k = sh.scale;
 
-    /* FIT AND FILL. The board is four or five cards and it wants to be
-       taken in whole, across a table — so the whole drawing is scaled to the
-       sheet it is on, DOWN when there is a lot of work and UP when there is
-       not. A board that leaves the bottom third of an A3 blank is as wrong as
-       one that runs off the edge; it just fails more quietly.
-
-       Each sheet gets its own scale, because a spilled second sheet carrying
-       one card should fill itself rather than print it small at the top.
-       Every vertical measurement and every type size below is multiplied by
-       it, so the page is the same drawing at a different size. */
-    let ay = bpY + 14;
-    let sheet = 1;
-
-    for (const [si, plan] of boardPlan.entries()) {
-      if (si > 0) {
-        footBoard(d, data, boardPage + sheet - 1, pages, sheet);
-        d.addPage('a3', 'landscape');
-        sheet++;
-        ay = panel(d, M, M, CW, H - 2 * M - 14, String(boardPage),
-          `${boardName(data.method)} — People · Plant · Process (continued)`,
-          'One card per line \u00b7 every action on the project\u2019s board') + 14;
-      }
-      const k = boardScale(runHeight(plan));
-      for (const blk of plan) {
-      const area = blk.area;
-      const mine = data.board.filter(b => b.area === area);
-
-      // the area's own heading, ruled across all three columns
-      setFont(d, 10 * k, 'bold', INK);
-      d.text(area.toUpperCase(), M + 12, ay + 8 * k);
-      setFont(d, 7.5 * k, 'normal', MUTED);
-      d.text(`${mine.length} action${mine.length === 1 ? '' : 's'} · ${mine.filter(b => b.rag === 'g').length} done`,
-        M + 12 + CW - 24, ay + 8 * k, { align: 'right' });
-      d.setDrawColor(LINE); d.setLineWidth(0.8);
-      d.line(M + 12, ay + 12 * k, M + 12 + CW - 24, ay + 12 * k);
-
-      /* The area's block is exactly as tall as the arithmetic in lib/pillars
-         says it is — that is what makes the fit honest rather than hopeful. */
-      const headH = 16 * k;
-      const colHeadH = 14 * k;
-      const cardH = BOARD_ACT_H * k;
-      const cardGap = BOARD_ACT_GAP * k;
-
-      PILL.forEach((p, i) => {
-        const x = M + 12 + i * (colW + colGap);
-        const rows = mine.filter(b => b.pillar === p.key);
-        const hy = ay + headH + 8 * k;
-        setFont(d, 8 * k, 'bold', p.c);
-        d.text(p.label, x, hy);
+      for (const blk of sh.blocks) {
+        // the area's own heading, ruled across all six lanes
+        setFont(d, 10 * k, 'bold', INK);
+        d.text(blk.area.toUpperCase() + (blk.part > 1 ? ' (CONTINUED)' : ''), M + 12, ay + 8 * k);
         setFont(d, 7.5 * k, 'normal', MUTED);
-        d.text(String(rows.length), x + colW, hy, { align: 'right' });
-        d.setDrawColor(p.c); d.setLineWidth(1.2);
-        d.line(x, hy + 3 * k, x + colW, hy + 3 * k);
+        d.text(`${blk.total} action${blk.total === 1 ? '' : 's'} \u00b7 ${blk.done} done`,
+          M + 12 + CW - 24, ay + 8 * k, { align: 'right' });
+        d.setDrawColor(LINE); d.setLineWidth(0.8);
+        d.line(M + 12, ay + 12 * k, M + 12 + CW - 24, ay + 12 * k);
 
-        let y = ay + headH + colHeadH;
-        if (rows.length === 0) {
-          setFont(d, 8 * k, 'normal', MUTED);
-          d.text('\u2014', x, y + 8 * k);
-          return;
-        }
-        for (const b of rows) {
-          /* The tree's own colours, the board's own words: red on the board is
-             only ever an action past its day, and amber one waiting on
-             somebody — Overdue and Waiting are the words asked about in the room. */
-          const st = { ...(TREE_STATUS[b.rag] ?? TREE_STATUS.n) };
-          if (b.rag === 'r') st.label = 'Overdue';
-          if (b.rag === 'a') st.label = 'Waiting';
+        const headH = 16 * k;
+        const colHeadH = 14 * k;
 
-          const [wr, wg, wb] = wash(st.c, 0.06);
-          d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);
-          d.roundedRect(x, y, colW, cardH, 3, 3, 'FD');
-          d.setFillColor(st.c); d.rect(x, y + 1, 2, cardH - 2, 'F');
+        /* Told apart by place and name, not colour — the colours are kept for
+           where each action stands (CLAUDE.md, visual management). */
+        blk.lanes.forEach((ln, i) => {
+          const x = M + 12 + i * (laneW + BOARD_LANE_GAP);
+          const hy = ay + headH + 8 * k;
+          setFont(d, 8 * k, 'bold', INK2);
+          d.text(ln.label.toUpperCase(), x, hy);
+          setFont(d, 7.5 * k, 'normal', MUTED);
+          d.text(String(ln.count), x + laneW, hy, { align: 'right' });
+          d.setDrawColor(INK2); d.setLineWidth(1.2);
+          d.line(x, hy + 3 * k, x + laneW, hy + 3 * k);
 
-          /* ONE line of action text, not two. The workbook's Action cells run
-             to paragraphs — several dated updates in one cell — and a wall
-             board wants the gist with the detail a tap away in the app. That
-             one line is what buys the room to get every area onto one sheet. */
-          setFont(d, 7.8 * k, 'bold', INK);
-          const lines = d.splitTextToSize(b.title, colW - 16) as string[];
-          const head = lines.length > 1
-            ? (lines[0] ?? '').replace(/\s*\S*$/, '\u2026')
-            : (lines[0] ?? '');
-          d.text(head, x + 8 * k, y + 11 * k);
+          let y = ay + headH + colHeadH;
+          if (ln.cards.length === 0) {
+            /* A dash says "nothing on this bone". On a continued block a lane
+               that has finished says nothing — its dash was on the first. */
+            if (blk.part === 1) { setFont(d, 8 * k, 'normal', MUTED); d.text('\u2014', x, y + 8 * k); }
+            return;
+          }
+          for (const c of ln.cards) {
+            const st = TREE_STATUS[c.rag] ?? TREE_STATUS.n;
+            const cardH = c.h * k;
+            const [wr, wg, wb] = wash(st.c, 0.06);
+            d.setFillColor(wr, wg, wb); d.setDrawColor(LINE); d.setLineWidth(0.4);
+            d.roundedRect(x, y, laneW, cardH, 3, 3, 'FD');
+            d.setFillColor(st.c); d.rect(x, y + 1, 2, cardH - 2, 'F');
 
-          const ty = y + 20 * k;
-          setFont(d, 6.5 * k, 'bold', st.c);
-          d.text(st.label.toUpperCase(), x + 8 * k, ty);
-          const stW = d.getTextWidth(st.label.toUpperCase());
-          setFont(d, 6.5 * k, 'normal', INK2);
-          d.text(fit(d, [b.owner, b.due && 'due ' + b.due].filter(Boolean).join(' \u00b7 '), colW - 20 * k - stW),
-            x + 8 * k + stW + 6 * k, ty);
-          y += cardH + cardGap;
-        }
-      });
+            // every word of the action, on as many lines as it takes
+            setFont(d, 7.8 * k, 'bold', INK);
+            c.title.forEach((t, j) => d.text(t, x + 8 * k, y + (11 + j * BOARD_TITLE_LEAD) * k));
 
-      /* Advance by the SAME arithmetic the page count used, not by whatever the
-         drawing happened to reach — that is the difference between a board that
-         fits and one that is merely close. */
-      const tallest = Math.max(...blk.counts, 0);
-      ay += BOARD_AREA_CHROME * k
-        + (tallest ? tallest * (BOARD_ACT_H + BOARD_ACT_GAP) * k : 14 * k)
-        + BOARD_AREA_GAP * k;
+            const ty = y + (20 + (c.title.length - 1) * BOARD_TITLE_LEAD) * k;
+            setFont(d, 6.5 * k, 'bold', st.c);
+            d.text(c.status, x + 8 * k, ty);
+            const stW = d.getTextWidth(c.status);
+            setFont(d, 6.5 * k, 'normal', INK2);
+            c.meta.forEach((m, j) => d.text(m, x + 8 * k + stW + 6 * k, ty + j * BOARD_META_LEAD * k));
+            y += cardH + BOARD_ACT_GAP * k;
+          }
+        });
+
+        /* Advance by the SAME arithmetic the sheet plan used, not by whatever
+           the drawing happened to reach — that is the difference between a
+           board that fits and one that is merely close. */
+        ay += (blk.h + BOARD_AREA_GAP) * k;
       }
     }
 
-    footBoard(d, data, boardPage + sheet - 1, pages, sheet);
+    footBoard(d, data, boardPage + boardPlan.length - 1, pages, boardPlan.length);
   }
 
   /* ================= TRACKER, ATTENTION & MOVEMENT ================= */
@@ -3088,7 +3187,12 @@ export function drawPaceReport(d: Doc, raw: PaceReportData): void {
  * not change a single page break (see the photo row in planStrand) — and
  * records every string with the page it landed on. The preview looks up the
  * first page a panel's title appears on. One arithmetic, read twice. */
-export interface FilePages { of: number; texts: { page: number; text: string }[] }
+export interface FilePages {
+  of: number; texts: { page: number; text: string }[];
+  /** The board exactly as the file lays it out — sheets, scale, and every
+   *  card's lines — so the screen draws the same board rather than a guess. */
+  board?: BoardSheetDrawn[];
+}
 
 export function readPages(d: Doc, data: PaceReportData): FilePages {
   const texts: FilePages['texts'] = [];
@@ -3101,8 +3205,9 @@ export function readPages(d: Doc, data: PaceReportData): FilePages {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
     return (real as any)(t, ...rest);
   };
-  drawPaceReport(d, data);
-  return { of: d.getNumberOfPages(), texts };
+  const out: { board?: BoardSheetDrawn[] } = {};
+  drawPaceReport(d, data, out);
+  return { of: d.getNumberOfPages(), texts, board: out.board };
 }
 
 /** The first page a string matching `re` was drawn on. */
