@@ -68,6 +68,15 @@ export interface SyncStatus {
    *  for a team this size, but the loser used to lose in silence. Kept in
    *  meta until somebody says they have seen them (docs/REVIEW.md, 5). */
   overwritten?: Overwritten[];
+  /** CHANGES ON THIS DEVICE THE CLOUD HAS NOT GOT — rows and deletes. Files
+   *  are pendingUp; this is everything else. Counted on every pass, and when a
+   *  pass could not reach the cloud at all, so "backed up" is never said while
+   *  a morning's typing sits on a phone with no signal. */
+  unsent?: number;
+  /** FILES THE CLOUD REFUSED AS TOO BIG (over the bucket's limit). Kept on this
+   *  device, not sent again every pass, and said — the laptop cannot get
+   *  them however long it waits. */
+  tooBig?: { key: string; bytes: number }[];
 }
 export interface Overwritten { kind: string; id: string; title: string; at: number }
 const OVERWRITTEN_KEY = 'overwritten';
@@ -96,10 +105,52 @@ function set(s: Partial<SyncStatus>) { status = { ...status, ...s }; listeners.f
 // the sandbox cannot reach for real (a refused push). Not in the built app.
 if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __faultlineSyncSet?: typeof set }).__faultlineSyncSet = set;
 
-async function userId(): Promise<string | null> {
+/** Who is signed in on THIS device — read from the session it holds, not
+ *  asked of the server.
+ *
+ *  It asked the server (auth.getUser), and with no signal the answer was
+ *  "nobody": the pass stopped as 'signedout', the account menu went on saying
+ *  "Everything on this device is backed up", and Sign out — which checks for
+ *  an error before it wipes the device — found none and wiped a phone holding
+ *  a clip filmed with no signal (scripts/sync-two-devices.mjs, scenario 3).
+ *  The server still checks every request it is sent; this only decides
+ *  whether there is anybody to sync for. */
+async function sessionUser(): Promise<{ id: string; email: string } | null> {
   if (!supabase) return null;
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
+  const { data } = await supabase.auth.getSession();
+  const u = data.session?.user;
+  return u ? { id: u.id, email: u.email ?? '' } : null;
+}
+
+/** A request that never reached the server — no signal, a dropped connection —
+ *  as opposed to the server answering no. supabase-js reports both as an
+ *  error; only the second is the cloud refusing anything. */
+export const isNoConnection = (e: unknown): boolean => {
+  const x = e as { code?: string; status?: number; message?: string } | null;
+  if (!x) return false;
+  if (x.code && x.code !== '' && !/^\d{3}$/.test(x.code)) return false;
+  return /failed to fetch|networkerror|network request failed|load failed|fetch failed|err_internet|err_connection|the network connection was lost/i.test(x.message ?? '');
+};
+class NoConnection extends Error {}
+
+/** Storage saying the file is bigger than the bucket will ever take. Sent
+ *  again it is refused again, every pass, for ever. */
+export const isTooLarge = (e: unknown): boolean => {
+  const x = e as { status?: number; statusCode?: string; message?: string } | null;
+  return !!x && (x.status === 413 || x.statusCode === '413' || /exceeded the maximum allowed size|payload too large/i.test(x.message ?? ''));
+};
+/** The bucket's limit as it stands (Supabase's global 50 MB; the `media`
+ *  bucket sets none of its own). Used only to WARN at the moment a file is
+ *  added — the upload still goes, and the server's 413 is what decides. */
+export const CLOUD_FILE_LIMIT = 50 * 1024 * 1024;
+
+/** The sizes of any of these files that are over the cloud's limit — for
+ *  saying so the moment one is added, rather than letting the sync find out
+ *  later and in silence. */
+export async function overCloudLimit(keys: string[]): Promise<number[]> {
+  const out: number[] = [];
+  for (const k of keys) { const b = await getBlob(k); if (b && b.size > CLOUD_FILE_LIMIT) out.push(b.size); }
+  return out;
 }
 
 /* ---------- meta helpers ---------- */
@@ -160,19 +211,31 @@ const isMissingColumn = (e: { code?: string; message?: string }) =>
  * Downloads try flat first, then the capturer's legacy per-user folder, then
  * our own — media uploaded before workspaces became shared lives under
  * `${uploaderUid}/${key}` and must keep working without re-uploading. */
-async function uploadMedia(_uid: string, keys: MediaKey[], uploaded: Set<string>, wanted: Set<string>): Promise<void> {
+async function uploadMedia(_uid: string, keys: MediaKey[], uploaded: Set<string>, wanted: Set<string>, tooBig: Map<string, number>): Promise<void> {
   const sb = supabase!;
   for (const { key, mime } of keys) {
     if (!key) continue;
+    if (uploaded.has(key) || tooBig.has(key)) continue;
     wanted.add(key);
-    if (uploaded.has(key)) continue;
     const raw = await getBlob(key);
     if (!raw) { uploaded.add(key); continue; }         // referenced but gone locally — skip
     // Send a real content type. Storage echoes this back on download, so an
     // octet-stream here is what makes the clip unplayable on every OTHER device.
     const blob = await withUsableMime(raw, mime);
+    /* Known too big before a byte is sent: not worth fifty-odd megabytes of a
+       phone's data to be told so again. */
+    if (blob.size > CLOUD_FILE_LIMIT) { tooBig.set(key, blob.size); wanted.delete(key); continue; }
     const { error } = await sb.storage.from(BUCKET).upload(key, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' });
-    if (error) continue;                               // stays in `wanted` − `uploaded` → retried next sync
+    if (error) {
+      /* TOO BIG FOR THE CLOUD is not "still to back up". It was counted as
+         that, and sent again — tens of megabytes of somebody's mobile data —
+         on every pass for ever, while the laptop waited for a film that could
+         never arrive and nothing on either screen said why. Now it is set
+         aside, by name and size, kept on this device, and said. Repair sync
+         tries it again (the limit is a setting that can be raised). */
+      if (isTooLarge(error)) { tooBig.set(key, blob.size); wanted.delete(key); }
+      continue;                                        // otherwise stays in `wanted` − `uploaded` → retried next sync
+    }
     uploaded.add(key);
   }
 }
@@ -294,6 +357,27 @@ export async function stopWaitingForMissing(): Promise<void> {
   });
 }
 
+/* A FILE THAT CAME DOWN IS ALREADY UP. The laptop fetched the phone's film,
+   and the next time it pushed the test that names it — a typo fixed, a box
+   ticked — it sent the whole film back up, because `uploaded` only ever
+   learnt about files this device had sent. Every edit on a second device
+   cost the full size of everything it had downloaded, once each; a 40 MB
+   film over a site's 4G. Remembered here as it lands, and folded into
+   `uploaded` at the start of the next pass. */
+const FROM_CLOUD_KEY = 'fromCloud';
+let fromCloudLock: Promise<unknown> = Promise.resolve();
+function withFromCloud<T>(fn: (keys: Set<string>) => T): Promise<T> {
+  const run = fromCloudLock.then(async () => {
+    const keys = await keySet(FROM_CLOUD_KEY);
+    const out = fn(keys);
+    await keySetPut(FROM_CLOUD_KEY, keys);
+    return out;
+  });
+  fromCloudLock = run.catch(() => undefined);
+  return run;
+}
+const noteFromCloud = (key: string) => withFromCloud(keys => { keys.add(key); });
+
 let draining = false;
 let drainAgain = false;
 /** Fetch everything queued: pictures first, films last. Beside the sync, not
@@ -308,7 +392,7 @@ export async function drainDownloads(uid: string): Promise<void> {
       for (const [key, e] of todo) {
         if (await hasBlob(key)) { await withQueue(q => { q.delete(key); countDown(q); }); continue; }
         const r = await downloadOne(uid, key, e.owner, e.mime);
-        if (r === 'got') absent.delete(key);
+        if (r === 'got') { absent.delete(key); await noteFromCloud(key); }
         else if (r === 'absent') absent.add(key);
         await withQueue(q => { if (r === 'got') q.delete(key); countDown(q); });
       }
@@ -377,6 +461,98 @@ export function pruneSent(sent: Sent, alive: Set<string>): Sent {
   return sent;
 }
 
+/* ---------- THE LAST COPY BOTH SIDES AGREED ON ----------
+ *
+ * Last-write-wins was decided per ROW, and a row is a whole test. So the
+ * phone typed the result and sent it; the laptop, with no signal, filled in
+ * who the test was done with; and when the laptop came back its copy — newer
+ * by the clock — went up whole, with the old result in it. The phone's result
+ * was gone from every device, and nobody was told: the phone's edit had been
+ * accepted, so it was not "replaced"; the laptop's had won, so it was not
+ * either (scripts/sync-two-devices.mjs, scenario 4).
+ *
+ * Two edits to DIFFERENT boxes are not a conflict. To tell them apart this
+ * device keeps, per row, the cloud's copy as it last agreed with it — taken
+ * from the pull, and from every push the cloud accepted. When a row comes down
+ * that this device has also changed, each column is asked who moved it:
+ * only us → ours; only them → theirs; both, to the same → either; both, to
+ * different things → the newer clock, and the loser is named. A list of
+ * photos and clips is merged by id, so a clip filmed offline and a photo
+ * added on the laptop both survive. The merged row is stamped now and pushed,
+ * so every device ends on the same copy.
+ *
+ * Kept in `meta` under `base:<kind>:<id>` — no new store, so no version bump —
+ * and pruned with the rows. A row with no base yet (synced before this) falls
+ * back to the old rule, remoteWins(), and v5 re-pulls once to give every row
+ * one. */
+const BASE_PREFIX = 'base:';
+const baseKey = (kind: SyncKind, id: string) => `${BASE_PREFIX}${kind}:${id}`;
+type CloudRow = Record<string, unknown>;
+const stripRev = (r: CloudRow): CloudRow => { const { rev: _rev, ...rest } = r; return rest; };
+async function baseGet(kind: SyncKind, id: string): Promise<CloudRow | undefined> {
+  return (await metaGet(baseKey(kind, id))) as CloudRow | undefined;
+}
+async function basePut(kind: SyncKind, id: string, row: CloudRow): Promise<void> {
+  await metaPut(baseKey(kind, id), stripRev(row));
+}
+async function basePrune(alive: Set<string>): Promise<void> {
+  const db = await getDB();
+  const keys = await db.getAllKeys('meta', IDBKeyRange.bound(BASE_PREFIX, `${BASE_PREFIX}￿`));
+  const gone = keys.filter(k => !alive.has(String(k).slice(BASE_PREFIX.length)));
+  if (!gone.length) return;
+  const tx = db.transaction('meta', 'readwrite');
+  for (const k of gone) await tx.store.delete(k);
+  await tx.done;
+}
+
+/* Columns that are the transport's, not anybody's edit. owner_id among them:
+   several mappers stamp it with whoever pushes, so it differs from the
+   cloud's without anybody having changed anything. */
+const NOT_AN_EDIT = new Set(['rev', 'updated_at', 'owner_id']);
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const isIdList = (v: unknown): v is { id: string }[] =>
+  Array.isArray(v) && v.every(x => !!x && typeof x === 'object' && typeof (x as { id?: unknown }).id === 'string');
+
+/** Two edits to one list of photos/clips/files: everything either side added,
+ *  nothing either side removed. */
+function mergeList(base: { id: string }[], mine: { id: string }[], theirs: { id: string }[], mineNewer: boolean): { id: string }[] {
+  const b = new Set(base.map(x => x.id));
+  const m = new Map(mine.map(x => [x.id, x]));
+  const t = new Set(theirs.map(x => x.id));
+  const out = theirs
+    .filter(x => m.has(x.id) || !b.has(x.id))                       // not removed by us
+    .map(x => (mineNewer ? m.get(x.id) ?? x : x));
+  for (const x of mine) if (!t.has(x.id) && !b.has(x.id)) out.push(x); // added by us
+  return out;
+}
+
+/** Three-way merge of one row, column by column. `mine` carries this
+ *  device's unsent edit, `theirs` the cloud's newer copy, `base` what both
+ *  last agreed. Returns the merged row, whether anything of ours is in it
+ *  that the cloud has not got, and the columns where both changed and our
+ *  value lost. Exported for the tests; it is the whole decision. */
+export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mineNewer: boolean):
+  { row: CloudRow; ours: boolean; lost: string[] } {
+  const row: CloudRow = { ...theirs };
+  const lost: string[] = [];
+  let ours = false;
+  /* Only what this build writes: a column the cloud has and this mapper does
+     not send (a legacy one) is nobody's edit here, and stays as theirs. */
+  for (const col of Object.keys(mine)) {
+    if (NOT_AN_EDIT.has(col)) continue;
+    const b = base[col], m = mine[col], t = theirs[col];
+    if (same(m, b) || same(m, t)) continue;                          // we did not move it, or moved it to theirs
+    if (same(t, b)) { row[col] = m; ours = true; continue; }          // only we moved it
+    if (isIdList(m) && isIdList(t)) {                                 // both moved a list: keep both sides' additions
+      row[col] = mergeList(isIdList(b) ? b : [], m, t, mineNewer);
+      ours = ours || !same(row[col], t);
+      continue;
+    }
+    if (mineNewer) { row[col] = m; ours = true; } else lost.push(col);
+  }
+  return { row, ours, lost };
+}
+
 /* ---------- one-time re-baseline per engine version ----------
  * Devices that synced under the old engine carry cursors advanced past rows
  * the old clock-skew bug silently skipped — new code alone doesn't heal them.
@@ -386,8 +562,10 @@ export function pruneSent(sent: Sent, alive: Set<string>): Sent {
  * Nobody should ever be told to press a repair button for our migration. */
 /* v4: the push tracks what it sent instead of trusting a clock. Every device
    re-baselines once, which is what finally lifts the rows the old filter had
-   stranded — including projects that had never reached the cloud at all. */
-const ENGINE_VERSION = 4;
+   stranded — including projects that had never reached the cloud at all.
+   v5: rows carry the copy both sides last agreed (see mergeRows) — one full
+   re-pull gives every row one, rows only, never the files. */
+const ENGINE_VERSION = 5;
 let migrationDone: Promise<void> | null = null;
 function ensureMigrated(): Promise<void> {
   migrationDone ??= (async () => {
@@ -397,6 +575,9 @@ function ensureMigrated(): Promise<void> {
     await metaPut(REV_KEY, {});
     await metaPut('engineVersion', ENGINE_VERSION);
   })();
+  /* A failed read must not be remembered as done-for-ever: let the next pass
+     try again. */
+  migrationDone.catch(() => { migrationDone = null; });
   return migrationDone;
 }
 
@@ -408,6 +589,35 @@ async function readOnlyProjects(email: string): Promise<Set<string>> {
   if (error || !data) return new Set();
   return new Set((data as { project_id: string }[]).map(r => r.project_id));
 }
+/* The last answer, for counting what is unsent when a pass cannot ask. */
+let lastClientOf = new Set<string>();
+
+/** WORK ON THIS DEVICE THE CLOUD HAS NOT GOT: rows changed since the cloud
+ *  last accepted them, and deletes not yet sent. "Everything is backed up"
+ *  was said whenever no FILE was waiting, so a phone with a morning's typing
+ *  and no signal said it too — and Sign out believed it. A client's own rows
+ *  are not counted: they stay home by design (see the push). */
+async function countUnsent(sent: Sent): Promise<number> {
+  let n = (await listTombstones()).length;
+  for (const kind of SYNC_KINDS) {
+    const map = MAPS[kind];
+    for (const local of await rawAll(kind)) {
+      if (!needsPush(sent, kind, local.id as string, map.clock(local))) continue;
+      const pid = kind === 'projects' ? local.id : (local as { projectId?: unknown }).projectId;
+      if (lastClientOf.has(String(pid))) continue;
+      n++;
+    }
+  }
+  return n;
+}
+
+/* Files the cloud refused as too big, key → bytes. Persisted: retrying one is
+   a deliberate act (Repair sync), not something every pass does. */
+const TOO_BIG_KEY = 'tooBig';
+async function readTooBig(): Promise<Map<string, number>> {
+  const m = (await metaGet(TOO_BIG_KEY)) as Record<string, number> | undefined;
+  return new Map(Object.entries(m ?? {}));
+}
 
 /* ---------- the sync ---------- */
 let running = false;
@@ -415,24 +625,31 @@ let runQueued = false;
 export async function syncNow(): Promise<void> {
   if (!cloudConfigured || !supabase) return;
   if (running) { runQueued = true; return; } // a write mid-sync re-runs at the end, not never
-  await ensureMigrated();
-  const uid = await userId();
-  if (!uid) { set({ state: 'signedout' }); return; }
-
-  // Nothing may sit between this and the try. set() notifies listeners, and a
-  // listener that throws here would leave `running` true for ever — after which
-  // syncNow() early-returns on every call and the device silently stops syncing
-  // until the page is reloaded, while fullResync()'s wait below never ends.
+  /* TAKEN BEFORE THE FIRST AWAIT. It was set after two of them — the engine
+     check and the user lookup, which went to the server — so a write and the
+     focus kick landing together both got past the check above and ran two
+     passes at once: every file uploaded twice, each pass's record of what was
+     sent overwriting the other's (seen in the harness: one photo sent four
+     times in the same second). Nothing may sit between this and the try: a
+     throw there would leave `running` true for ever, and the device would
+     silently stop syncing until it was reloaded. */
   running = true;
   const startedAt = Date.now();
+  let sentNow: Sent | null = null;
   try {
+    await ensureMigrated();
+    const me = await sessionUser();
+    if (!me) { set({ state: 'signedout' }); return; }
+    const uid = me.id;
     set({ state: 'syncing', error: undefined });
     const cursor = await getSyncCursor();       // the LEGACY PULL cursor only — the push no longer reads it
-    const sent = await readSent();
+    const sent = sentNow = await readSent();
     const overwritten = await readOverwritten();
     const overwrittenBefore = overwritten.length;
     const uploaded = await keySet('uploaded');
+    for (const k of await keySet(FROM_CLOUD_KEY)) uploaded.add(k);   // came down, so already up
     const wantedUploads = await keySet('pendingUploads');   // prior failures — retried AFTER the rows
+    const tooBig = await readTooBig();
 
     /* ROWS BEFORE BLOBS — and the media retry queue LAST.
      *
@@ -465,7 +682,11 @@ export async function syncNow(): Promise<void> {
        tests and test_items, which come last. A kind that fails is noted and
        skipped; the pass carries on; the first failure is what the status
        shows at the end. Tombstones and rows that did not go are still there
-       next pass. */
+       next pass.
+       The one exception is NO CONNECTION AT ALL: then every kind would fail
+       the same way, and twenty-two "refused" lines would be twenty-two lies.
+       The pass stops, says it is waiting for a signal, and counts what is
+       waiting. */
     let firstError: string | undefined;
     const tombs = await listTombstones();
     const tombstoned = new Set(tombs.map(t => `${t.kind}:${t.id}`));
@@ -480,6 +701,7 @@ export async function syncNow(): Promise<void> {
           const { error } = await supabase.from(kind).update({ deleted_at: startedAt, updated_at: startedAt }).in('id', part);
           if (error) {
             ok = false;
+            if (isNoConnection(error)) throw new NoConnection(error.message);
             if (isMissingTable(error) || isMissingColumn(error)) set({ schemaOutdated: true });
             else firstError ??= `tombstone ${kind}: ${error.message}`;
           }
@@ -512,14 +734,34 @@ export async function syncNow(): Promise<void> {
         const key = sentKey(kind, id);
 
         if (localRow) {
-          /* Our own echo, or a row we hold the newer copy of: keep ours and
-             fetch any blob it is missing. The rule is remoteWins(), above. */
-          /* Its files are the end-of-pass sweep's business, not this row's. */
-          if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) return;
-          /* A newer copy is about to replace an edit this device never got
-             to push. The loser is told, once, by name. */
-          if (needsPush(sent, kind, id, localClock)) {
-            overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
+          if (remoteClock === localClock) { await basePut(kind, id, r); return; }   // our own echo: now agreed
+          /* BOTH CHANGED IT: merge column by column against the copy both
+             last agreed (mergeRows, above). Without that copy, the old rule. */
+          const base = needsPush(sent, kind, id, localClock) ? await baseGet(kind, id) : undefined;
+          if (base) {
+            const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock);
+            await basePut(kind, id, r);
+            if (lost.length) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
+            if (ours) {
+              /* Something of ours is in it that the cloud has not got: stamp
+                 it newer than both, and leave it unsent so the push takes it. */
+              row.updated_at = Math.max(Date.now(), localClock + 1, remoteClock + 1);
+              const incoming = map.fromRow(row);
+              const merged = kind === 'workspaces' ? { schemaVersion: 1, ...localRow, ...incoming } : incoming;
+              await rawPut(kind, merged as Record<string, unknown>);
+              return;
+            }
+            /* Nothing of ours survives that the cloud lacks: take theirs, below. */
+          } else {
+            /* Our own echo, or a row we hold the newer copy of: keep ours and
+               fetch any blob it is missing. The rule is remoteWins(), above. */
+            /* Its files are the end-of-pass sweep's business, not this row's. */
+            if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) return;
+            /* A newer copy is about to replace an edit this device never got
+               to push. The loser is told, once, by name. */
+            if (needsPush(sent, kind, id, localClock)) {
+              overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
+            }
           }
         }
 
@@ -527,6 +769,7 @@ export async function syncNow(): Promise<void> {
         // workspaces: preserve device-only fields (running timer, last route, version)
         const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
         await rawPut(kind, merged as Record<string, unknown>);
+        await basePut(kind, id, r);
         /* What we now hold IS the cloud's copy: say so, or the push phase would
            send it straight back up as if it were ours, bumping rev and making
            every other device pull it again — an echo for each edit. */
@@ -543,9 +786,14 @@ export async function syncNow(): Promise<void> {
           const { data, error } = await supabase.from(kind).select('*')
             .gt('rev', since).order('rev', { ascending: true }).limit(PAGE);
           if (error) {
+            if (isNoConnection(error)) throw new NoConnection(error.message);
             if (isMissingTable(error)) { absent = true; set({ schemaOutdated: true }); break; } // its SQL not run yet — skip this kind
             if (isMissingRev(error)) { noRev.add(kind); set({ schemaOutdated: true }); break; }
-            throw new Error(`pull ${kind}: ${error.message}`);
+            /* One kind the cloud will not give us is that kind's problem —
+               it used to throw here and every kind after it went unpulled
+               AND unpushed. What it gave before the failure is kept. */
+            firstError ??= `pull ${kind}: ${error.message}`;
+            break;
           }
           const remotes = (data ?? []) as Record<string, unknown>[];
           for (const r of remotes) await applyRemote(r);
@@ -565,8 +813,10 @@ export async function syncNow(): Promise<void> {
             .order('updated_at', { ascending: true }).order('id', { ascending: true })
             .range(from, from + PAGE - 1);
           if (error) {
+            if (isNoConnection(error)) throw new NoConnection(error.message);
             if (isMissingTable(error)) { set({ schemaOutdated: true }); break; }
-            throw new Error(`pull ${kind}: ${error.message}`);
+            firstError ??= `pull ${kind}: ${error.message}`;
+            break;
           }
           const remotes = (data ?? []) as Record<string, unknown>[];
           for (const r of remotes) await applyRemote(r);
@@ -586,12 +836,13 @@ export async function syncNow(): Promise<void> {
     const liveBlobs = new Set<string>();      // every blob a live row names, for the other prune
     const named = new Map<string, DownEntry>(); // …and who took it, for fetching it
     const refused: NonNullable<SyncStatus['refused']> = [];
+    let unsent = 0;
     /* A CLIENT'S ROWS STAY HOME (lib/access, supabase/ACCESS_LEVELS.sql). A
        client may read a project and change nothing; the cloud refuses their
        writes, and one refused row holds back every row after it of that kind.
        The screens offer a client nothing to change, so this only ever catches
        a stray local write — and keeps it from stalling the pass. */
-    const clientOf = await readOnlyProjects((await supabase.auth.getUser()).data.user?.email ?? '');
+    const clientOf = lastClientOf = await readOnlyProjects(me.email);
     for (const kind of SYNC_KINDS) {
       const map = MAPS[kind];
       const batch: { key: string; clock: number; row: Record<string, unknown>; local: Record<string, unknown> }[] = [];
@@ -612,25 +863,41 @@ export async function syncNow(): Promise<void> {
       }
       if (!batch.length) continue;
 
+      const accepted: typeof batch = [];
+      let refusedRows = 0, refusedMessage = '';
       for (let i = 0; i < batch.length; i += CHUNK) {
         const slice = batch.slice(i, i + CHUNK);
         const { error } = await supabase.from(kind).upsert(slice.map(b => b.row), { onConflict: 'id' });
-        if (error) {
-          // Every row from here on in this kind stays on the device: say so.
-          refused.push({ kind, rows: batch.length - i, message: error.message });
+        if (!error) { accepted.push(...slice); continue; }
+        if (isNoConnection(error)) throw new NoConnection(error.message);
+        if (isMissingTable(error) || isMissingColumn(error)) {
           // rows for this kind wait for their SQL. Nothing is recorded as sent,
           // so they simply go again next pass — no cursor to hold back.
-          if (isMissingTable(error) || isMissingColumn(error)) { set({ schemaOutdated: true }); break; }
-          /* Anything else — a policy refusal, a bad legacy row — is this
-             kind's problem. It used to be the whole pass's: the throw left
-             every kind after it unpushed, for ever, and tests come last. */
-          firstError ??= `push ${kind}: ${error.message}`;
+          refused.push({ kind, rows: batch.length - i, message: error.message });
+          set({ schemaOutdated: true });
           break;
         }
-        // Recorded ONLY on an accepted write, and persisted per kind so a later
-        // kind throwing cannot lose the work the earlier ones just did.
-        for (const b of slice) sent[b.key] = b.clock;
+        /* ONE BAD ROW IS ONE BAD ROW. An upsert is one statement: a single
+           row a policy refuses fails the whole slice — up to two hundred of
+           them, every finding written after it, every pass, until somebody
+           fixed the one. Asked again one at a time, everything the cloud
+           will take goes, and only what it will not stays, counted. */
+        for (const b of slice) {
+          const one = await supabase.from(kind).upsert([b.row], { onConflict: 'id' });
+          if (!one.error) { accepted.push(b); continue; }
+          if (isNoConnection(one.error)) throw new NoConnection(one.error.message);
+          refusedRows++;
+          refusedMessage ||= one.error.message;
+        }
       }
+      if (refusedRows) {
+        refused.push({ kind, rows: refusedRows, message: refusedMessage });
+        firstError ??= `push ${kind}: ${refusedMessage}`;
+      }
+      // Recorded ONLY on an accepted write, and persisted per kind so a later
+      // kind failing cannot lose the work the earlier ones just did.
+      for (const b of accepted) { sent[b.key] = b.clock; await basePut(kind, b.row.id as string, b.row); }
+      unsent += batch.length - accepted.length;
       await metaPut(SENT_KEY, sent);
 
       /* The blobs this kind's rows point at, once the rows themselves are safe.
@@ -638,14 +905,17 @@ export async function syncNow(): Promise<void> {
          cloud did not have yet. The cost of that ordering was the whole pass
          (see above); the cost of this one is a device that pulls the row first
          seeing a placeholder for a few minutes, which `pendingDownloads`
-         already retries on every sync until the file lands. */
-      for (const b of batch) await uploadMedia(uid, map.mediaKeys(b.local), uploaded, wanted);
+         already retries on every sync until the file lands. Only the rows the
+         cloud took: the bucket refuses a file no row names yet. */
+      for (const b of accepted) await uploadMedia(uid, map.mediaKeys(b.local), uploaded, wanted, tooBig);
+      for (const b of batch) if (!accepted.includes(b)) for (const m of map.mediaKeys(b.local)) if (!uploaded.has(m.key) && !tooBig.has(m.key)) wanted.add(m.key);
     }
 
     await metaPut(SENT_KEY, pruneSent(sent, alive));
+    await basePrune(alive);
 
     // ---- and only now, what failed on earlier passes ----
-    if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, new Set());
+    if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, wanted, tooBig);
 
     /* The cursor is now ONLY the legacy pull's (a cloud too old for rev
        cursors). Compare-and-set so a Full re-sync tapped mid-pass is not
@@ -653,10 +923,14 @@ export async function syncNow(): Promise<void> {
     /* Pruned like `sent`: it used to keep every blob key ever pushed, for the
        life of the device, and was read and rewritten whole every thirty
        seconds. Only what a live row still names is worth remembering. */
-    await metaPut('uploaded', { keys: [...uploaded].filter(k => liveBlobs.has(k)) });
+    const keepUploaded = [...uploaded].filter(k => liveBlobs.has(k));
+    await metaPut('uploaded', { keys: keepUploaded });
+    await withFromCloud(keys => { for (const k of [...keys]) if (uploaded.has(k) || !liveBlobs.has(k)) keys.delete(k); });
+    for (const k of [...tooBig.keys()]) if (!liveBlobs.has(k)) tooBig.delete(k);
+    await metaPut(TOO_BIG_KEY, Object.fromEntries(tooBig));
     if ((await getSyncCursor()) === cursor) await setSyncCursor(startedAt);
     // Retry queues persist regardless — an extra retry is harmless, a lost one isn't.
-    const stillUp = new Set([...wanted].filter(k => !uploaded.has(k)));
+    const stillUp = new Set([...wanted].filter(k => !uploaded.has(k) && !tooBig.has(k)));
     await keySetPut('pendingUploads', stillUp);
     /* THE SWEEP. Every file a live record names that this device does not
        hold joins the queue; what no live record names leaves it. Asked of
@@ -673,11 +947,20 @@ export async function syncNow(): Promise<void> {
 
     if (overwritten.length !== overwrittenBefore) await metaPut(OVERWRITTEN_KEY, { rows: overwritten.slice(-20) });
     const over = overwritten.slice(-20);
-    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over });
-    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over });
+    unsent += (await listTombstones()).length;
+    const big = [...tooBig].map(([key, bytes]) => ({ key, bytes }));
+    if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over, unsent, tooBig: big });
+    else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over, unsent, tooBig: big });
     void drainDownloads(uid);
   } catch (e) {
-    set({ state: 'error', error: e instanceof Error ? e.message : 'Sync failed' });
+    /* Say what is waiting, whatever stopped the pass. */
+    let unsent: number | undefined;
+    try { unsent = await countUnsent(sentNow ?? await readSent()); } catch { /* the count is a courtesy */ }
+    set({
+      state: 'error',
+      error: e instanceof NoConnection ? 'No connection to the cloud — it tries again by itself.' : e instanceof Error ? e.message : 'Sync failed',
+      unsent,
+    });
   } finally {
     running = false;
     if (runQueued) { runQueued = false; requestSync(400); }
@@ -729,6 +1012,7 @@ export async function fullResync(): Promise<void> {
   await metaPut('uploaded', { keys: [] });
   await metaPut('pendingUploads', { keys: [] });
   await metaPut('pendingDownloads', { keys: [] });
+  await metaPut(TOO_BIG_KEY, {});      // the limit may have been raised: try them once more
   absent.clear();
   set({ state: 'syncing', error: undefined });
   // Let the in-flight pass finish — but never wait for ever. The flag is cleared

@@ -6,6 +6,7 @@ import type { MediaRef } from '../types';
 import { EvidenceThumb } from './Evidence';
 import { VideoRecorder, videoCaptureSupported } from './VideoRecorder';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
+import { overCloudLimit, CLOUD_FILE_LIMIT } from '../cloud/sync';
 import { Icon } from './Icon';
 
 /** THE EVIDENCE — photos and clips, on a test, on a fix, or on one thing found.
@@ -64,7 +65,12 @@ export function Evidence({ media, kind, onAdd, onView }: {
     try {
       const refs = await get();
       if (refs.length) await onAdd(refs);
-      setNote(null);
+      /* Over the cloud's limit: kept here, and said now — not found out by
+         the laptop that waits for it for ever (cloud/sync, tooBig). */
+      const big = await overCloudLimit(refs.map(r => r.blobKey));
+      setNote(big.length
+        ? `${big.length === 1 ? 'That file is' : `${big.length} files are`} ${big.map(b => `${Math.round(b / 1048576)} MB`).join(', ')} — over the ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB the cloud takes. ${big.length === 1 ? 'It is' : 'They are'} kept on this device but will not reach your other devices. A shorter clip will.`
+        : null);
     } catch {
       setNote('That wouldn’t attach — the device may be out of room.');
     }

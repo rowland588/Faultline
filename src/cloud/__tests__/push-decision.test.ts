@@ -127,7 +127,9 @@ describe('the order of a pass', () => {
   };
 
   const PUSH_ROWS = '.upsert(slice.map(b => b.row)';
-  const PUSH_MEDIA = 'for (const b of batch) await uploadMedia(';
+  /* Only the rows the cloud accepted: the bucket refuses a file no row
+     names yet (faultline_can_see_media), so a refused row's files wait. */
+  const PUSH_MEDIA = 'for (const b of accepted) await uploadMedia(';
   const RETRY_UPLOADS = 'if (wantedUploads.size) await uploadMedia(';
 
   it('sends a kind’s rows before that kind’s media', () => {

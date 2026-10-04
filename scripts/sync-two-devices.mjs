@@ -15,10 +15,31 @@
  * <video> element that has to reach readyState ≥ 2.
  *
  *   node scripts/sync-two-devices.mjs            # starts its own vite on 5192
+ *                                                # (scripts/sync-vite.config.ts:
+ *                                                # no hot reload) and the fake
+ *                                                # cloud on 54392; ~3 minutes
  *   SYNC_BASE=http://127.0.0.1:5192 node scripts/sync-two-devices.mjs
  *                                                # use a dev server you started
  *                                                # with VITE_SUPABASE_URL pointed
  *                                                # at the fake cloud (port 54392)
+ *   SYNC_ONLY=1,3   only those scenarios (2–8 build on 1's job)
+ *   SYNC_SHOTS=dir  a screenshot of both devices for every failed check
+ *   SYNC_DEBUG=1    every upload, per file, per device, at the end
+ *
+ * What it found the first time it ran, every one invisible to the unit tests
+ * and fixed in src/cloud, src/db and the recorder:
+ *   - Sign out with no signal WIPED a phone holding a clip filmed offline: the
+ *     pass asked the server who was signed in, heard "nobody", reported
+ *     "signed out" rather than an error, and Sign out found nothing wrong.
+ *   - Offline, the account menu said "Everything on this device is backed up".
+ *   - Two edits to different boxes of one test, one offline: one was lost on
+ *     every device and nobody was told.
+ *   - The laptop sent every film it had downloaded back up the next time it
+ *     touched the test; two triggers together ran two passes and uploaded
+ *     each file twice.
+ *   - A clip that arrived while its viewer was open said "not on this device
+ *     yet" until somebody left the screen.
+ *   - A file over 50 MB was "still to back up" for ever and nothing said why.
  *
  * The scenarios, each PASS or FAIL in the table at the end (exit 1 on any FAIL):
  *   1 the phone makes a whole stage-gate job; the laptop shows every part of it
@@ -67,6 +88,8 @@ const STORAGE_KEY = 'sb-127-auth-token';
 /* ---------- the result table ---------- */
 const results = [];   // { scn, ok, what, detail }
 let scn = 0;
+const notes = [];
+function note(what) { notes.push({ scn, what }); say(`note [${scn}] ${what}`); }
 function check(ok, what, detail = '') {
   results.push({ scn, ok: !!ok, what, detail: String(detail ?? '') });
   say(`${ok ? 'ok  ' : 'FAIL'} [${scn}] ${what}${detail !== '' ? ` — ${detail}` : ''}`);
@@ -88,7 +111,7 @@ const flushShots = async () => {
 const cloud = await startFakeCloud({ port: CLOUD_PORT, user: USER });
 let vite = null;
 if (OWN_VITE) {
-  vite = spawn('npx', ['vite', '--port', String(VITE_PORT), '--strictPort', '--host', '127.0.0.1'], {
+  vite = spawn('npx', ['vite', '--config', 'scripts/sync-vite.config.ts', '--port', String(VITE_PORT), '--strictPort', '--host', '127.0.0.1'], {
     cwd: new URL('..', import.meta.url).pathname,
     env: { ...process.env, VITE_SUPABASE_URL: cloud.url, VITE_SUPABASE_ANON_KEY: 'x' },
     stdio: ['ignore', 'pipe', 'pipe'], detached: true,
@@ -146,7 +169,7 @@ async function device(name, viewport, mobile) {
 /* ---------- reading a device (never writing to it) ---------- */
 const idb = (page, store) => page.evaluate(async s => (await (await import('/src/db/core.ts')).getDB()).getAll(s), store);
 const idbGet = (page, store, id) => page.evaluate(async ([s, i]) => (await (await import('/src/db/core.ts')).getDB()).get(s, i), [store, id]);
-const blobInfo = (page, key) => page.evaluate(async k => {
+const blobInfo = (page, key) => !key ? Promise.resolve(null) : page.evaluate(async k => {
   const b = await (await (await import('/src/db/core.ts')).getDB()).get('media', k);
   if (!b) return null;
   const head = new Uint8Array(await b.slice(0, 8).arrayBuffer());
@@ -297,7 +320,7 @@ async function typeInto(page, label, value) {
  *  placeholder changes to "Another one?" once the list has something in it). */
 async function addTo(page, section, value) {
   await expand(page);
-  const box = page.locator(`section.tw-block:has(> .tw-block-h:has-text("${section}")) input[type=text]`).last();
+  const box = page.locator(`section.tw-block:has(> .tw-block-h:has-text("${section}")) input:not([type=date]):not([type=file])`).last();
   await box.scrollIntoViewIfNeeded();
   await box.fill(value);
   await box.press('Enter');
@@ -319,9 +342,12 @@ async function takePhoto(page, jpeg) {
   await page.waitForTimeout(800);
 }
 async function attachPdf(page, name, bytes) {
+  const tid = page.url().match(/testing\/([^/?#]+)/)?.[1];
+  const before = tid ? ((await testRow(page, tid))?.docs?.length ?? 0) : 0;
   const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Attach a PDF' }).first().click()]);
   await fc.setFiles({ name, mimeType: 'application/pdf', buffer: bytes });
-  await page.waitForTimeout(800);
+  if (tid) await waitFor(async () => ((await testRow(page, tid))?.docs?.length ?? 0) > before, 8000);
+  else await page.waitForTimeout(800);
 }
 async function pickFromPhone(page, name, mimeType, buffer) {
   await expand(page);
@@ -367,7 +393,7 @@ async function playVideo(page, nth = 0) {
   const r = await waitFor(() => page.evaluate(() => {
     const v = document.querySelector('.ev-viewer video');
     const msg = document.querySelector('.ev-viewer .video-msg')?.textContent ?? null;
-    if (!v) return msg ? { found: true, msg } : null;
+    if (!v) return msg && !/Loading/.test(msg) ? { found: true, msg } : null;
     return v.readyState >= 2 ? { found: true, readyState: v.readyState, duration: v.duration, w: v.videoWidth, h: v.videoHeight } : null;
   }), 10_000);
   const final = r ?? await page.evaluate(async () => {
@@ -537,12 +563,31 @@ await run(3, 'the phone offline: films and edits, comes back; nothing lost, noth
   await typeInto(p, 'Product we ran', 'Finest Red 2kg, reel 3');
   await addFinding(p, 'Seal bar runs hot on reel 3');
   await filmClip(p, 3);
-  await p.waitForTimeout(2500);   // its own sync tries, and fails
-  const off = await status(p);
+  /* Its own sync tries, and fails — supabase-js retries a read three times
+     (1 s, 2 s, 4 s) before it gives up, so a pass offline takes ~7 s. */
+  const off = await waitFor(async () => { const x = await status(p); return x.state !== 'syncing' && x.unsent > 0 ? x : null; }, 25_000) ?? await status(p);
   const t = await testRow(p, tid);
   check(t.media.length === before.media + 1, 'the clip is saved on the phone while offline', `${t.media.length}`);
   check(!cloud.rows('test_items').some(r => r.what === 'Seal bar runs hot on reel 3'), 'nothing reached the cloud while offline');
-  check(off.state === 'error' || off.pendingUp > 0 || off.state === 'idle', 'offline status', JSON.stringify({ state: off.state, error: off.error, pendingUp: off.pendingUp }));
+  check(off.state === 'error' && off.unsent > 0, 'offline, the phone says its work is waiting (not “signed out”, not “backed up”)',
+    JSON.stringify({ state: off.state, error: off.error, unsent: off.unsent, pendingUp: off.pendingUp }));
+  await p.getByRole('button', { name: /^Account/ }).first().click();
+  await p.waitForTimeout(400);
+  const menu = await text(p);
+  check(!/Everything on this device is backed up/.test(menu), 'the account menu does not claim it is backed up', menu.match(/(Everything[^.]*|Backup paused[^.]*|\d+ change[^.]*)/)?.[0]);
+  /* Sign out with no signal and unsent work: it must refuse, not wipe. */
+  const dialogs = [];
+  const onDialog = d => { dialogs.push(`${d.type()}: ${d.message()}`); void d.accept(); };
+  p.on('dialog', onDialog);
+  await p.getByText('Sign out', { exact: true }).first().click();
+  /* Its last pass runs first — ~7 s with no signal — then the answer. */
+  await waitFor(() => dialogs.length >= 2, 30_000, 250);
+  p.off('dialog', onDialog);
+  const still = await idb(p, 'test_items').catch(() => []);
+  check(dialogs.length === 2 && /^alert/.test(dialogs[1]) && still.some(i => i.what === 'Seal bar runs hot on reel 3'),
+    'signing out offline is refused, and the unsent work stays on the phone', dialogs.join(' | ').slice(0, 220));
+  await p.keyboard.press('Escape').catch(() => {});
+  if (!still.length) throw new Error('the phone’s database was wiped by signing out offline — nothing after this can run');
 
   const backAt = Date.now();
   await phone.ctx.setOffline(false);
@@ -603,9 +648,37 @@ await run(4, 'both edit one test while the laptop is offline', async () => {
   const c2 = cloud.rows('tests').find(r => r.id === tid);
   check(c2.result === 'LAPTOP: 74 ppm, later' && (await testRow(p, tid)).result === c2.result, 'same field: the later edit wins everywhere', c2.result);
   const ps = await status(p), ls2 = await status(l);
-  check([...(ps.overwritten ?? []), ...(ls2.overwritten ?? [])].length > 0 || true,
-    'same field: the replaced edit is named (phone or laptop “replaced by a newer copy”)',
-    JSON.stringify({ phone: ps.overwritten?.map(o => o.title), laptop: ls2.overwritten?.map(o => o.title) }));
+  note(`same field: who was told — phone ${JSON.stringify(ps.overwritten?.map(o => o.title) ?? [])}, laptop ${JSON.stringify(ls2.overwritten?.map(o => o.title) ?? [])}`);
+
+  /* The same field, and this time the OFFLINE side is the older edit: the
+     cloud's newer copy wins, and the device whose edit lost says so by name. */
+  await laptop.ctx.setOffline(true);
+  await typeInto(l, 'What happened', 'LAPTOP offline, earlier');
+  await l.waitForTimeout(100);
+  await typeInto(p, 'What happened', 'PHONE: 75 ppm, the later edit');
+  await settle(phone);
+  await laptop.ctx.setOffline(false);
+  await settle(laptop);
+  const c3 = cloud.rows('tests').find(r => r.id === tid);
+  const ls3 = await status(l);
+  check(c3.result === 'PHONE: 75 ppm, the later edit' && (await testRow(l, tid)).result === c3.result, 'same field, offline edit older: the newer cloud copy wins on both', c3.result);
+  check((ls3.overwritten ?? []).some(o => o.id === tid), 'and the laptop names the edit of its that was replaced', JSON.stringify(ls3.overwritten?.map(o => o.title)));
+
+  /* The phone films a clip while the laptop, offline, adds a photo to the
+     SAME test: two edits to one list. Both must survive, everywhere. */
+  await laptop.ctx.setOffline(true);
+  await takePhoto(l, jpeg);
+  await filmClip(p, 2);
+  await settle(phone);
+  const clipId = (await testRow(p, tid)).media.at(-1).id;
+  const photoId = (await testRow(l, tid)).media.at(-1).id;
+  await laptop.ctx.setOffline(false);
+  await settle(laptop);
+  await syncViaUI(phone);
+  const ids = r => (r.media ?? []).map(m => m.id);
+  const cm = ids(cloud.rows('tests').find(r => r.id === tid)), pm = ids(await testRow(p, tid)), lm = ids(await testRow(l, tid));
+  check([cm, pm, lm].every(x => x.includes(clipId) && x.includes(photoId)) && pm.length === lm.length && cm.length === pm.length,
+    'a clip filmed on the phone and a photo added offline on the laptop both survive, on both', `cloud ${cm.length} · phone ${pm.length} · laptop ${lm.length}`);
 });
 
 /* ---- 5 ---------------------------------------------------------------- */
@@ -631,14 +704,33 @@ await run(5, 'a 20-second film, with the first uploads dying mid-way', async () 
   check(cloud.objects.get(`media/${clip.blobKey}`)?.bytes.length === local?.size, 'whole, byte for byte in size', `${cloud.objects.get(`media/${clip.blobKey}`)?.bytes.length} vs ${local?.size}`);
   const s2 = await settle(phone);
   check(!s2.pendingUp, 'the phone then says nothing is waiting', `pendingUp=${s2.pendingUp}`);
+  /* The laptop is ALREADY looking at the test when the record arrives, and
+     the film takes a while to come down: does the open screen pick it up,
+     or does it say "not on this device" until somebody navigates away? */
+  const l = laptop.page;
+  await go(l, `/project/${pid}/testing/${tid}`);
+  await expand(l);
+  cloud.downloadDelayMs = 4000;
   await syncViaUI(laptop);
-  await settle(laptop, { timeout: 60_000 });
-  const lb = await blobInfo(laptop.page, clip.blobKey);
+  const n = await waitFor(async () => { const c = await l.locator('.ev-thumb:has(.ev-play)').count(); return c >= 3 ? c : 0; }, 15_000);
+  await l.locator('.ev-thumb:has(.ev-play)').nth(n - 1).click();
+  await l.waitForTimeout(500);
+  const early = await l.evaluate(() => document.querySelector('.ev-viewer')?.textContent ?? '');
+  await waitFor(async () => (await blobInfo(l, clip.blobKey))?.size === local?.size, 60_000, 300);
+  cloud.downloadDelayMs = 0;
+  const lb = await blobInfo(l, clip.blobKey);
   check(lb?.size === local?.size, 'the laptop has the whole film', `${lb?.size}`);
-  await go(laptop.page, `/project/${pid}/testing/${tid}`);
-  const n = await laptop.page.locator('.ev-thumb:has(.ev-play)').count();
-  const v = await playVideo(laptop.page, n - 1);
-  check(v.readyState >= 2, 'and it plays there', JSON.stringify(v));
+  const late = await waitFor(() => l.evaluate(() => {
+    const v = document.querySelector('.ev-viewer video');
+    return v && v.readyState >= 2 ? { readyState: v.readyState, duration: v.duration } : null;
+  }), 8000);
+  check(!!late, 'a viewer already open when the film lands starts playing by itself, no navigation',
+    late ? JSON.stringify(late) : `still: ${(await l.evaluate(() => document.querySelector('.ev-viewer')?.textContent ?? '')).slice(0, 80)} (at open: ${early.slice(0, 60)})`);
+  await l.locator('.ev-viewer .ev-close').click().catch(() => {});
+  await settle(laptop, { timeout: 60_000 });
+  await go(l, `/project/${pid}/testing/${tid}`);
+  const v = await playVideo(l, n - 1);
+  check(v.readyState >= 2, 'and it plays there after opening the test afresh', JSON.stringify(v));
 });
 
 /* ---- 6 ---------------------------------------------------------------- */
@@ -651,6 +743,7 @@ await run(6, 'one row the cloud refuses holds up nothing else', async () => {
   await addFinding(p, 'Guard switch loose');
   await typeInto(p, 'Product we ran', 'Finest Red 2kg, reel 4');
   await go(p, `/project/${pid}/materials`);
+  if (!(await p.getByPlaceholder('TESC03163A Finest Red 2kg').count())) await p.getByRole('button', { name: /Add what you need/ }).click();
   await p.getByPlaceholder('TESC03163A Finest Red 2kg').fill('Spare splice tape');
   await p.getByRole('button', { name: 'Add it' }).click();
   await p.waitForTimeout(300);
@@ -730,14 +823,47 @@ await run(8, 'a file over the 50 MB limit', async () => {
   const tries = cloud.log.filter(e => e.path.endsWith(`/${key}`) && e.method === 'POST').length;
   await syncViaUI(phone);
   const tries2 = cloud.log.filter(e => e.path.endsWith(`/${key}`) && e.method === 'POST').length;
-  check(cloud.uploadsRefused.tooLarge >= 1, 'the cloud refused it with a 413', `413s=${cloud.uploadsRefused.tooLarge}`);
-  check(tries2 === tries, 'it is not re-sent on every pass after a 413', `${tries} then ${tries2} attempts`);
+  check(tries <= 1 && tries2 === tries, 'it is not sent again on every pass', `${tries} then ${tries2} attempts, 413s=${cloud.uploadsRefused.tooLarge}`);
   const st = await status(p);
   check(!st.pendingUp && (st.tooBig?.length ?? 0) === 1, 'the status names it as too big, not as “still to back up”', JSON.stringify({ pendingUp: st.pendingUp, tooBig: st.tooBig }));
   await go(p, '/');
   const home = await text(p);
   check(/too (big|large)/i.test(home), 'Home says it in words', home.match(/[^.]*too (big|large)[^.]*/i)?.[0] ?? '(nothing)');
   check(cloud.rows('tests').find(r => r.id === tid)?.media?.some(m => m.blobKey === key), 'the record itself still synced');
+
+  /* The server's limit lower than the app believes (a bucket set to 200 kB):
+     the 413 itself must be read as final, not as a blip to retry. */
+  cloud.maxObjectBytes = 200_000;
+  await go(p, `/project/${pid}/testing/${tid}`);
+  await filmClip(p, 3);
+  const small = (await testRow(p, tid)).media.at(-1);
+  await waitFor(() => cloud.uploadsRefused.tooLarge >= 1, 20_000);
+  await settle(phone, { timeout: 20_000 });
+  const a1 = cloud.log.filter(e => e.path.endsWith(`/${small.blobKey}`) && e.method === 'POST').length;
+  await syncViaUI(phone); await syncViaUI(phone);
+  const a2 = cloud.log.filter(e => e.path.endsWith(`/${small.blobKey}`) && e.method === 'POST').length;
+  const st2 = await status(p);
+  check(cloud.uploadsRefused.tooLarge >= 1 && a1 === 1 && a2 === 1, 'a 413 from the server is final: one attempt, not one a pass', `413s=${cloud.uploadsRefused.tooLarge}, attempts ${a1} then ${a2}`);
+  check(st2.tooBig?.some(x => x.key === small.blobKey) && !st2.pendingUp, 'and it is named too big, not “still to back up”', JSON.stringify({ tooBig: st2.tooBig?.length, pendingUp: st2.pendingUp }));
+  /* Before Repair (which re-sends everything on purpose): no file has gone up
+     twice — not from two passes racing, not from the laptop sending back a
+     film it had only downloaded. */
+  const okUps = {};
+  for (const e of cloud.log) if (e.path.startsWith('/storage/v1/object/') && e.method === 'POST' && e.result === 'ok') okUps[e.path] = (okUps[e.path] ?? 0) + 1;
+  const twice = Object.entries(okUps).filter(([, n]) => n > 1);
+  scn = 0;
+  check(twice.length === 0, 'across every scenario, no file was uploaded twice', twice.map(([k, n]) => `${k.split('/').pop()}×${n}`).join(', '));
+  const upBy = who => new Set(cloud.log.filter(e => e.path.startsWith('/storage/v1/object/') && e.method === 'POST' && e.from === who).map(e => e.path));
+  const phoneUps = upBy('phone'), both = [...upBy('laptop')].filter(k => phoneUps.has(k));
+  check(both.length === 0, 'the laptop never sent back up a file the phone took (it only downloaded them)', both.map(k => k.split('/').pop()).join(', '));
+  scn = 8;
+  /* The limit raised, Repair sync: it goes. */
+  cloud.maxObjectBytes = 50 * 1024 * 1024;
+  await p.getByRole('button', { name: /^Account/ }).first().click();
+  await p.getByText('Repair sync', { exact: true }).first().click();
+  const went = await waitFor(() => cloud.objects.has(`media/${small.blobKey}`), 30_000);
+  check(went, 'after the limit is raised, Repair sync sends it');
+  await p.keyboard.press('Escape').catch(() => {});
 });
 
 /* ======================================================================= */
@@ -753,6 +879,7 @@ for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 0]) {
   const bad = rs.filter(r => !r.ok);
   console.log(`${bad.length ? 'FAIL' : 'PASS'}  ${n || '-'}  ${names[n].padEnd(36)} ${rs.length - bad.length}/${rs.length}`);
   for (const r of bad) console.log(`        ✗ ${r.what}${r.detail ? ` — ${r.detail}` : ''}`);
+  for (const x of notes.filter(x => x.scn === n)) console.log(`        · ${x.what}`);
 }
 if (ctx.timings) for (const t of ctx.timings) console.log(`      phone → laptop, ${t.label}: ${t.seen ? (t.ms / 1000).toFixed(1) + ' s' : 'never (45 s)'}`);
 console.log(`      cloud: ${cloud.revNow()} row writes, ${cloud.uploadsOk} uploads ok, refused ${JSON.stringify(cloud.uploadsRefused)}`);

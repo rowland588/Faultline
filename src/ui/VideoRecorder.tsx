@@ -26,6 +26,19 @@ function pickMimeType(): string | undefined {
   ].find(m => MediaRecorder.isTypeSupported(m));
 }
 
+/* A CLIP HAS TO FIT IN THE CLOUD, or it never leaves this phone. The bucket
+ * takes 50 MB a file (Supabase's global limit); a phone's back camera left to
+ * itself records 1080p at whatever bitrate it likes — 30 to 60 MB a minute —
+ * and a clip over the limit was refused on every pass while the laptop waited
+ * for it for ever. So the camera is asked for 720p and the recorder for about
+ * 1.5 Mbps of picture and 64 kbps of sound: some 12 MB a minute, still clear
+ * enough to read a fault off. And a clip stops itself at four minutes (about
+ * 47 MB) — longer than any one thing on a line takes to show, and the next
+ * clip starts with one tap. */
+const VIDEO = { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } };
+const BITS = { videoBitsPerSecond: 1_500_000, audioBitsPerSecond: 64_000 };
+const MAX_CLIP_MS = 4 * 60 * 1000;
+
 const fmtElapsed = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 /** Full-screen live camera; each Record→Stop produces one clip via onCapture,
@@ -39,10 +52,11 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
   const [elapsed, setElapsed] = useState(0);
   const [clips, setClips] = useState(0);
   const [error, setError] = useState('');
+  const [capped, setCapped] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true })
+    navigator.mediaDevices.getUserMedia({ video: VIDEO, audio: true })
       .then(stream => {
         if (!alive) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
@@ -59,7 +73,10 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
   useEffect(() => {
     if (!recording) return;
     const t0 = Date.now();
-    const id = window.setInterval(() => setElapsed(Date.now() - t0), 200);
+    const id = window.setInterval(() => {
+      setElapsed(Date.now() - t0);
+      if (Date.now() - t0 >= MAX_CLIP_MS) { recorderRef.current?.stop(); setRecording(false); setCapped(true); }
+    }, 200);
     return () => window.clearInterval(id);
   }, [recording]);
 
@@ -68,7 +85,10 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
     if (!stream || recording) return;
     chunksRef.current = [];
     const mime = pickMimeType();
-    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    let rec: MediaRecorder;
+    try { rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...BITS }); }
+    catch { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }   // a browser that refuses the bitrates
+    setCapped(false);
     rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     rec.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: rec.mimeType || mime || 'video/webm' });
@@ -95,7 +115,7 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
       )}
 
       {recording && <div className="rec-badge"><span className="rec-dot" aria-hidden />REC {fmtElapsed(elapsed)}</div>}
-      {!recording && clips > 0 && <div className="rec-tally">{clips} clip{clips === 1 ? '' : 's'} saved — keep filming or tap Done</div>}
+      {!recording && clips > 0 && <div className="rec-tally">{clips} clip{clips === 1 ? '' : 's'} saved{capped ? ' — that one stopped at 4 minutes, the longest a clip can be' : ''} — keep filming or tap Done</div>}
 
       <div className="rec-controls">
         {!error && (

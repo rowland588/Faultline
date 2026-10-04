@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
 import { useSession, useSyncStatus, signIn, signUp } from './session';
-import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus } from './sync';
+import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus, CLOUD_FILE_LIMIT } from './sync';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 import { Icon } from '../ui/Icon';
@@ -18,6 +18,11 @@ const KIND_WORD: Record<string, string> = {
   tree_nodes: 'tree boxes', commission_assets: 'machines', tests: 'tests and steps', test_items: 'findings and fixes',
   targets: 'targets', readings: 'readings', materials: 'materials', programs: 'programs', standards: 'line standards',
 };
+const mb = (bytes: number) => `${Math.round(bytes / 1048576)} MB`;
+/* Files the cloud refused as too big, in words: "1 film (52 MB)". */
+const tooBigWords = (t: { bytes: number }[]): string =>
+  `${t.length} file${t.length === 1 ? '' : 's'} too large for the cloud (${t.map(x => mb(x.bytes)).join(', ')}; the limit is ${mb(CLOUD_FILE_LIMIT)})`;
+const changes = (n: number) => `${n} change${n === 1 ? '' : 's'}`;
 const refusedRows = (r: { rows: number }[]): string => {
   const n = r.reduce((a, x) => a + x.rows, 0);
   return `${n} row${n === 1 ? '' : 's'}`;
@@ -63,7 +68,12 @@ export function CloudPanel() {
           <span className={'cloud-ic' + (status.state === 'syncing' ? ' spin' : '')} aria-hidden><Icon name="cloud" size="1em" /></span>
           <span className="cloud-main">
             <b>Backup</b>
-            {status.state === 'error' && !status.refused?.length && <span className="sub">Backup paused — it will retry by itself</span>}
+            {status.state === 'error' && !status.refused?.length && (
+              <span className="sub">Backup paused{status.unsent ? ` — ${changes(status.unsent)} on this device waiting to go up` : ''} — it will retry by itself</span>
+            )}
+            {!!status.tooBig?.length && (
+              <span className="sub" style={{ color: 'var(--st-r)' }}>{tooBigWords(status.tooBig)} — only on this device</span>
+            )}
             {/* A refused row is work that has left nobody's device. It is the
                 one thing here that must never read as "backed up". */}
             {!!status.overwritten?.length && !status.refused?.length && (
@@ -86,7 +96,7 @@ export function CloudPanel() {
                   status.missingDown ? `${status.missingDown} only on the phone that took ${status.missingDown === 1 ? 'it' : 'them'}` : '',
                 ].filter(Boolean).join(' · ')}
               </span>
-            ) : status.state === 'idle' && status.lastSyncedAt && !status.refused?.length ? (
+            ) : status.state === 'idle' && status.lastSyncedAt && !status.refused?.length && !status.unsent && !status.tooBig?.length ? (
               /* Never beside a refusal: "3 rows the cloud refused" and
                  "Everything is backed up ✓" were shown together. */
               <span className="sub">Everything is backed up <Icon name="check" size="1.15em" /></span>
@@ -112,7 +122,7 @@ export function CloudPanel() {
  *  by themselves. Files still to go UP are: that work is on this device only. */
 export function syncTrouble(status: ReturnType<typeof useSyncStatus>): boolean {
   return status.state === 'error' || !!status.refused?.length || !!status.overwritten?.length
-    || !!status.pendingUp || !!status.missingDown || !!status.schemaOutdated;
+    || !!status.pendingUp || !!status.missingDown || !!status.schemaOutdated || !!status.tooBig?.length;
 }
 
 /** Backup, in full: what is backed up, what is not and why, and the two
@@ -181,9 +191,20 @@ export function SyncDetail({ onDone }: { onDone?: () => void }) {
             {status.pendingDown ? <><b>{status.pendingDown}</b> coming down now, photos first — films are the slow part. </> : null}
             {status.missingDown ? <><b>{status.missingDown}</b> — {missingWords(status.missingDown, status.missingFilms)} — never reached the cloud: {status.missingDown === 1 ? 'it is' : 'they are'} only on the phone that took {status.missingDown === 1 ? 'it' : 'them'}, and no repair on this device can fetch {status.missingDown === 1 ? 'it' : 'them'}. If that phone still has {status.missingDown === 1 ? 'it' : 'them'}, opening Faultline on it with a signal sends {status.missingDown === 1 ? 'it' : 'them'} across.</> : null}
           </p>
-        ) : status.lastSyncedAt && !status.refused?.length ? (
+        ) : status.lastSyncedAt && !status.refused?.length && !status.unsent && !status.tooBig?.length && status.state !== 'error' ? (
           <p className="sub" style={{ marginBottom: 10 }}>Everything on this device is backed up <Icon name="check" size="1.15em" /></p>
         ) : null}
+        {/* Work typed here that the cloud has not got: never "backed up". */}
+        {!!status.unsent && status.state === 'error' && (
+          <p className="sub" style={{ marginBottom: 10 }}>
+            <b>{changes(status.unsent)}</b> on this device {status.unsent === 1 ? 'has' : 'have'} not reached the cloud yet. {status.unsent === 1 ? 'It is' : 'They are'} safe here and go up by {status.unsent === 1 ? 'itself' : 'themselves'} once there is a signal.
+          </p>
+        )}
+        {!!status.tooBig?.length && (
+          <p className="sub" style={{ marginBottom: 10, color: 'var(--st-r)' }}>
+            <b>{tooBigWords(status.tooBig)}.</b> {status.tooBig.length === 1 ? 'It stays' : 'They stay'} on this device and will not reach your other devices — the cloud refuses {status.tooBig.length === 1 ? 'it' : 'them'} every time. Film shorter clips, or ask whoever runs the database to raise the limit, then tap Repair sync.
+          </p>
+        )}
         {status.missingDown ? (
           <div style={{ marginBottom: 12 }}>
             <button className="btn" onClick={() => void stopWaitingForMissing()}>Stop waiting for {status.missingDown === 1 ? 'it' : 'these'}</button>

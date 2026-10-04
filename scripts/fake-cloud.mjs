@@ -45,6 +45,7 @@ export function startFakeCloud({ port = 54392, user } = {}) {
     refuseRow: null,                 // (table, row) => boolean
     refusedWrites: 0,
     maxObjectBytes: 50 * 1024 * 1024,
+    downloadDelayMs: 0,              // a slow line: every file download waits this long
     enforceMediaPolicy: true,
     realtime: false,
     rows: (t) => [...(tables.get(t)?.values() ?? [])],
@@ -212,12 +213,6 @@ export function startFakeCloud({ port = 54392, user } = {}) {
             req.on('end', () => req.socket.destroy());
             return;
           }
-          const declared = Number(req.headers['content-length'] ?? 0);
-          if (declared > cloud.maxObjectBytes + 64 * 1024) {
-            cloud.uploadsRefused.tooLarge++; entry.result = '413';
-            req.resume();
-            return send(res, 413, { statusCode: '413', error: 'Payload too large', message: 'The object exceeded the maximum allowed size' });
-          }
           const buf = await readBody(req);
           const mp = parseMultipart(buf, req.headers['content-type']);
           const file = mp ? mp.files[0] : { type: req.headers['content-type'] ?? 'application/octet-stream', bytes: buf };
@@ -240,6 +235,7 @@ export function startFakeCloud({ port = 54392, user } = {}) {
         if (req.method === 'GET' || req.method === 'HEAD') {
           const o = objects.get(id);
           if (!o) return send(res, 400, { statusCode: '404', error: 'not_found', message: 'Object not found' });
+          if (cloud.downloadDelayMs && req.method === 'GET') await new Promise(r => setTimeout(r, cloud.downloadDelayMs));
           if (req.method === 'HEAD') { res.writeHead(200, { ...cors, 'content-type': o.type, 'content-length': o.bytes.length }); return res.end(); }
           return send(res, 200, o.bytes, { 'content-type': o.type, 'content-length': String(o.bytes.length) });
         }

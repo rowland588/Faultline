@@ -65,10 +65,23 @@ function mapSignUpError(error: { message?: string }): Error {
 export async function signOut(): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!supabase) return { ok: true };
   await syncNow();
+  /* A pass already running answers the call above by queueing one, and
+     returns at once: wait for the real answer rather than read a status that
+     is still "syncing". */
+  for (let i = 0; i < 100 && syncStatus().state === 'syncing'; i++) await new Promise(r => setTimeout(r, 200));
   const s = syncStatus();
-  if (s.state === 'error' || (s.pendingUp ?? 0) > 0) {
-    return { ok: false, reason: s.state === 'error'
-      ? `Some of this device's work has not reached the cloud yet (${s.error ?? 'sync failed'}). Get a signal, wait for it to sync, then sign out.`
+  /* It used to ask only "error, or files waiting". With no signal the pass
+     reported "signed out" rather than an error, no file was waiting, and the
+     phone's database — a clip and a finding made offline — was wiped
+     (scripts/sync-two-devices.mjs, scenario 3). Now: anything unsent at all,
+     any pass still running, or any file the cloud refused as too big, and
+     the answer is no. */
+  const unsent = s.unsent ?? 0, big = s.tooBig?.length ?? 0;
+  if (s.state === 'error' || s.state === 'syncing' || s.state === 'signedout' || (s.pendingUp ?? 0) > 0 || unsent > 0 || big > 0) {
+    return { ok: false, reason: big > 0
+      ? `${big} file${big === 1 ? ' is' : 's are'} too large for the cloud and only on this device — signing out would delete ${big === 1 ? 'it' : 'them'}. Save ${big === 1 ? 'it' : 'them'} somewhere else or take ${big === 1 ? 'it' : 'them'} off the record first.`
+      : s.state === 'error' || unsent > 0 || s.state !== 'idle'
+      ? `Some of this device's work has not reached the cloud yet${unsent ? ` (${unsent} change${unsent === 1 ? '' : 's'})` : ''}${s.error ? ` — ${s.error}` : ''}. Get a signal, wait for it to sync, then sign out.`
       : `${s.pendingUp} file${s.pendingUp === 1 ? '' : 's'} on this device ${s.pendingUp === 1 ? 'has' : 'have'} not uploaded yet. Get a signal, wait for the upload, then sign out.` };
   }
   await supabase.auth.signOut();

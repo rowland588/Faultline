@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getBlob } from '../db';
+import { getBlob, onBlobStored } from '../db';
 import { withUsableMime } from './mime';
 
 export type BlobState = 'loading' | 'ready' | 'missing';
@@ -20,6 +20,10 @@ export function useBlobUrl(key?: string | null): string | null {
 export function useBlobSource(key?: string | null): { url: string | null; state: BlobState } {
   const [url, setUrl] = useState<string | null>(null);
   const [state, setState] = useState<BlobState>('loading');
+  /* Bumped when this key's bytes are written — a file that came down from the
+     cloud after the screen opened is shown then, not on the next visit. */
+  const [arrived, setArrived] = useState(0);
+  useEffect(() => (key ? onBlobStored(k => { if (k === key) setArrived(n => n + 1); }) : undefined), [key]);
 
   useEffect(() => {
     let alive = true;
@@ -36,7 +40,7 @@ export function useBlobSource(key?: string | null): { url: string | null; state:
       setUrl(obj); setState('ready');
     })();
     return () => { alive = false; if (obj) URL.revokeObjectURL(obj); };
-  }, [key]);
+  }, [key, arrived]);
 
   return { url, state };
 }

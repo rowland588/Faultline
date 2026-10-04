@@ -96,12 +96,13 @@ Run all of it before merging. It is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
-npx eslint src --max-warnings 69      # a ratchet, not a target — see below
+npx eslint src --max-warnings 68      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
 node scripts/report-stress.mjs        # every report at tiny, ordinary and huge — same server
 node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every fact reconciled
+node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
 
@@ -117,6 +118,17 @@ The lint number is a **ceiling that only ever comes down**. The remaining
 warnings are a backlog (mostly non-null assertions), not a standard. If a change
 removes some, lower the number in `package.json` and `.github/workflows/checks.yml`
 in the same commit. Never raise it to get green.
+
+`scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
+laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the
+live bucket's rules (no upload before a row names the file, nothing over
+50 MB). Eight scenarios: everything the phone does — a recorded clip, a photo,
+a PDF — shows and plays on the laptop; edits go back the other way; offline
+work arrives once and whole; two devices editing different boxes of one test
+both keep their edit (field by field, against the copy both last agreed);
+failed uploads retry; one refused row holds nothing else back; a file too big
+for the cloud is said so at once and kept. It cannot prove real RLS, real
+signal or iOS Safari.
 
 `scripts/smoke.mjs` loads every screen in the app with realistic seeded data and
 fails on any console error. It has caught crashes that no unit test would have.
