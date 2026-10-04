@@ -39,6 +39,7 @@ describe('an action on the 6M board', () => {
     expect(a.uid).toBe('s');
     expect(a.causeRef).toBe('case1:c9');
     expect(a.expect).toBe('rejects 3% → 1%');
+    expect(stepAction(step({ state: 'done', doneOn: '2026-09-20' }), lines, T).doneOn).toBe('2026-09-20');
     expect(stepAction(step({}), lines, T).line).toBe(WHOLE_PROJECT);
   });
 });

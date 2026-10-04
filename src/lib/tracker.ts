@@ -45,6 +45,9 @@ export interface PaceAction {
   /** The day it is due, YYYY-MM-DD — `due` is that day as words. What the
    *  board sorts by and "due soon" is judged from. */
   dueISO?: string;
+  /** The day it was marked done, YYYY-MM-DD — what the proof reads the line's
+   *  numbers either side of (PaceTodoRow.doneOn). */
+  doneOn?: string;
 }
 
 /** One row of a Pareto: where the time went, ranked. */

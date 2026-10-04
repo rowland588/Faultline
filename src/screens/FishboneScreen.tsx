@@ -41,7 +41,7 @@ import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { lineSeries, say } from '../lib/measures';
 import { analyse } from '../lib/capacity';
 import { PHASE_WORD, type Phase, type ProblemView, type ProblemsApi } from '../lib/problems';
-import { SIXM, sixmLabel, type Cause, type CauseSource, type SixM } from '../lib/sixm';
+import { SIXM, type Cause, type CauseSource, type SixM } from '../lib/sixm';
 import type { Suggestion } from '../lib/problems';
 import type { Can } from '../lib/access';
 import type { Case } from '../types';
@@ -275,7 +275,7 @@ function HoldSheet({ open, view, onClose, onDone }: {
           <span>The standard is updated with the new way of working</span>
         </label>
         <div className="ax-foot">
-          <button className="btn btn-ghost" disabled={busy} onClick={() => void done(undefined)}>Close with no check</button>
+          <button className="btn btn-ghost fj-hold-skip" disabled={busy} onClick={() => void done(undefined)}>Close with no check</button>
           <span style={{ flex: 1 }} />
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" disabled={!what.trim() || busy}
@@ -297,7 +297,6 @@ function HeadCard({ v, can, onClose, onReopen, onChecked }: {
   const m = v.measure;
   const hold = v.problem.hold;
   const open = isOpenProblem(v);
-  const n = (x?: number) => (x == null ? '—' : say(x));
   const counts = SIXM.map(b => v.bones.find(x => x.m === b.key)?.causes.length ?? 0);
   const causes = counts.reduce((a, b) => a + b, 0);
   const openActs = v.actions.filter(a => statusOfAction(a) !== 'g').length;
@@ -315,20 +314,10 @@ function HeadCard({ v, can, onClose, onReopen, onChecked }: {
           {' '}· {v.actions.length} countermeasure{v.actions.length === 1 ? '' : 's'}{v.actions.length ? ` (${openActs} open)` : ''}
         </p>
       </div>
-      {m && (
-        <div className="fj-measure" aria-label="The problem's own number">
-          <span className="fj-measure-l">{m.label}</span>
-          <span className="fj-measure-v">
-            <span className="fj-measure-b">{n(m.before)}</span>
-            <span aria-hidden> → </span>
-            <b className={m.moved === 'worse' ? 'is-worse' : m.moved === 'better' ? 'is-better' : ''}>{n(m.now)}</b>
-            <span className="fj-measure-u"> {m.unit}</span>
-          </span>
-          <span className="fj-measure-s">
-            {m.target != null ? `target ${n(m.target)} · ` : ''}{m.better === 'lower' ? 'lower is better' : 'higher is better'}
-            {m.moved && ` · ${m.moved === 'same' ? 'not moved yet' : m.moved === 'better' ? 'moved the right way' : 'moved the wrong way'}`}
-          </span>
-        </div>
+      {/* The problem's own number — before, now, target — is drawn at the
+          head of the fish below, once; this card says where it stands. */}
+      {m?.moved && (
+        <p className="fj-moved">{m.label}: {m.moved === 'same' ? 'not moved yet' : m.moved === 'better' ? 'moved the right way' : <b className="is-worse">moved the wrong way</b>}</p>
       )}
       {!open && hold && (
         <p className="fj-holdline">
@@ -531,12 +520,6 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
             onSuggestion={(s: Suggestion) => setEditing({ cause: draftFrom(s.m, s), draft: true })}
             onAdd={(m: SixM) => setEditing({ cause: draftFrom(m), draft: true })} />
 
-          <p className="sub fj-foot">
-            Every cause says how it is known — measured, counted, observed or reported — and only a
-            confirmed one is drilled to its root. A faint mark is a suggestion from the line’s own data:
-            tap it to look, and add it if it holds. {sixmLabel('measurement')} is how we check and count —
-            a stop never logged belongs there.
-          </p>
         </>
       )}
 

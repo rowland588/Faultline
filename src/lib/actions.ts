@@ -21,6 +21,7 @@ import { getCase, listPaceTodos, loadPaceLines, onDataChange, type PaceLineRow, 
 import type { PaceAction } from './tracker';
 import { sixmLabel, toSixM } from './sixm';
 import { addDays, todayISO } from './weeks';
+import { parseCauseRef as parseRef } from './fishbone';
 
 /** What a step that belongs to no one line is filed under on the board. */
 export const WHOLE_PROJECT = 'All lines';
@@ -68,6 +69,7 @@ export function stepAction(s: PaceTodoRow, lines: PaceLineRow[], today = todayIS
     owner: s.who,
     due: s.due ? short(s.due) : s.when || undefined,
     dueISO: s.due,
+    doneOn: s.doneOn,
     // The words statusOfAction already reads: Done, Waiting (blocked on
     // someone else), To do. Not left blank — a blank status reads as "not
     // started" before the overdue flag is looked at, so a late step showed
@@ -101,12 +103,11 @@ export function useActions(projectId: string): ActionsState {
 
 /* ---------------------- the cause an action is for ---------------------- */
 
-/** "<caseId>:<causeId>" → its two halves, or null for anything else. */
+/** "<caseId>:<causeId>" → its two halves, or null for anything else. The
+ *  rule is the fishbone engine's (lib/fishbone parseCauseRef), said once. */
 export function parseCauseRef(ref: string | null | undefined): { caseId: string; causeId: string } | null {
-  const v = (ref ?? '').trim();
-  const i = v.indexOf(':');
-  if (i <= 0 || i === v.length - 1) return null;
-  return { caseId: v.slice(0, i), causeId: v.slice(i + 1) };
+  const p = parseRef(ref?.trim() || undefined);
+  return p ? { caseId: p.problemId, causeId: p.causeId } : null;
 }
 
 /** What a cause link reads as on a card or in the editor. */

@@ -343,7 +343,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   const lines = [lineA, lineB, lineC];
 
   for (const [i, p] of periods.entries()) {
-    await putTarget(target(lineA.id, ppm.id, p.id, 52 + i * 3));
+    await putTarget(target(lineA.id, ppm.id, p.id, 58 + i * 2));
     await putTarget(target(lineB.id, ppm.id, p.id, 48 + i * 3));
     await putTarget(target(lineC.id, ppm.id, p.id, 55));
     await putTarget(target(lineA.id, waste.id, p.id, 2));
@@ -352,10 +352,10 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   const rows: Reading[] = [];
   for (let w = 0; w < 12; w++) {
     const at = iso(-7 * (12 - w));
-    rows.push(reading(lineA.id, ppm.id, at, 44 + w * 0.9 + (rand() - 0.5) * 4, w === 5 ? 'Film supplier changed this week — Within ±1.5 g · 50 µm' : undefined));
-    rows.push(reading(lineB.id, ppm.id, at, 47 + w * 0.8 + (rand() - 0.5) * 3));
-    rows.push(reading(lineC.id, ppm.id, at, 58 + (rand() - 0.5) * 3));
-    if (w % 2 === 0) rows.push(reading(lineA.id, waste.id, at, 3.4 - w * 0.12));
+    rows.push(reading(lineA.id, ppm.id, at, Math.round((44 + w * 0.9 + (rand() - 0.5) * 4) * 10) / 10, w === 5 ? 'Film supplier changed this week — Within ±1.5 g · 50 µm' : undefined));
+    rows.push(reading(lineB.id, ppm.id, at, Math.round((45 + w * 0.3 + (rand() - 0.5) * 3) * 10) / 10));
+    rows.push(reading(lineC.id, ppm.id, at, Math.round((58 + (rand() - 0.5) * 3) * 10) / 10));
+    if (w % 2 === 0) rows.push(reading(lineA.id, waste.id, at, Math.round((3.4 - w * 0.12) * 100) / 100));
     if (w % 3 === 0) rows.push(reading(lineB.id, waste.id, at, 2.6 - w * 0.05));
   }
   await putReadings(rows);
@@ -485,7 +485,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   ];
   const p3 = problem('Checkweigher rejects good packs', lineB, {
     source: { kind: 'pareto', category: 'Quality', subcategory: 'Checkweigher rejecting good packs', asset: 'Checkweigher' },
-    causes: c3, status: 'closed', closedAt: t - 40 * DAY,
+    causes: c3, status: 'closed', closedAt: t - 40 * DAY, openedAt: t - 70 * DAY,
     hold: { what: 'Calibration check every Monday with the test weights', who: 'Agnieszka Szczęsna', everyDays: 7, since: iso(-40), lastChecked: iso(-30) },
   });
 
@@ -547,7 +547,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       who: i % 11 === 0 ? '' : pick(['Rob Scott', 'Engineering', 'Tanya', 'Łukasz Wójcik', 'Antonín Dvořák', 'Gülşen Öztürk']),
       due, when: due ? '' : pick(['before the Christmas peak', 'when the part lands', '']),
       why: i % 3 === 0 ? pick(['Film breaks at the splice', 'Losing rate at start-up', LONG[2], 'Within ±1.5 g · 2 m² · 50 µm · ½ turn · 90°']) : '',
-      state: done ? 'done' : waiting ? 'waiting' : 'todo', doneOn: done ? iso(-30 + i) : undefined,
+      state: done ? 'done' : waiting ? 'waiting' : 'todo', doneOn: done ? iso(-1 - (i % 25)) : undefined,
       outcome: done && i % 2 === 0 ? 'Worked — two fewer stops a shift' : undefined,
       caseId: i % 13 === 0 ? p4.id : undefined,
     }));

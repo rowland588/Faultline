@@ -8559,7 +8559,7 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-phase.is-r { color: #fff; background: var(--st-r); border-color: var(--st-r); }
 
 .fj-head {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; padding: 14px 16px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; padding: 14px 16px;
   background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--st-w); border-radius: 12px;
 }
 .fj-head.is-g { border-left-color: var(--st-g); }
@@ -8570,19 +8570,12 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-head-t { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
 .fj-head-s { margin: 6px 0 0; font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
 .fj-head-n { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
-.fj-measure { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; min-width: 0; }
-.fj-measure-l { font-size: 11.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.fj-measure-v { font-size: 22px; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
-.fj-measure-v b { font-weight: 800; }
-.fj-measure-v b.is-worse { color: var(--st-r); }
-.fj-measure-b { color: var(--muted); }
-.fj-measure-u { font-size: 13px; color: var(--muted); }
-.fj-measure-s { font-size: 12px; color: var(--muted); }
 .fj-holdline { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
 .fj-head-acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
 .fj-head-acts:empty { display: none; }
 .fj-tools { display: flex; flex-wrap: wrap; gap: 8px; }
-.fj-foot { margin: 0; font-size: 13px; }
+.fj-moved { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.fj-moved .is-worse { color: var(--st-r); }
 .fj-empty {
   display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 18px 16px;
   background: var(--surface); border: 1px dashed var(--line-2); border-radius: 12px;
@@ -8612,6 +8605,9 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-hold > .sub { margin: 0; }
 .fj-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; color: var(--ink); cursor: pointer; }
 .fj-check input { width: 20px; height: 20px; flex: none; }
+.fj-hold .ax-foot { flex-wrap: wrap; row-gap: 8px; }
+.fj-hold .ax-foot .btn { white-space: nowrap; }
+@media (max-width: 520px) { .fj-hold-skip { order: 3; flex-basis: 100%; } }
 
 /* On a 6M job's front page: the main problem, drawn small, the way in. */
 .fj-lead { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
@@ -8653,10 +8649,11 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .saw-bones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .saw-bone { min-height: 44px; justify-content: center; }
 .saw-blurb { margin: -4px 0 0; font-size: 13px; color: var(--ink-2); }
+.saw textarea, .saw select, .fj-hold input { font: inherit; font-size: 15px; }
+@media (pointer: coarse) { .saw textarea, .saw select, .fj-hold input { font-size: 16px; } }
 
 @media (max-width: 640px) {
   .fj-head { grid-template-columns: minmax(0, 1fr); padding: 12px 14px; }
-  .fj-measure { align-items: flex-start; text-align: left; }
   .fj-head-t { font-size: 18px; }
   .fj-prob { flex: 1 1 100%; }
 }
@@ -8810,7 +8807,6 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fb-head.is-mini { gap: 4px; padding: 8px 26px 8px 12px; border-width: 1.5px; box-shadow: none; }
 .fb-head.is-mini .fb-title { font-size: 13.5px; -webkit-line-clamp: 2; }
 .fb-head.is-mini .fb-num b { font-size: 14px; }
-.fb-head.is-mini .fb-num-t { display: inline; margin-left: 6px; }
 .fb-mini.is-narrow .fb-head.is-mini { align-items: center; padding: 0 14px 0 8px; }
 .fb-mini-n { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .fb-mini-lab {

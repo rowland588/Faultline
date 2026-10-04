@@ -108,7 +108,9 @@ export interface ProblemRep {
   holdless?: string;
 }
 
-export interface BoardRow { what: string; why?: string; owner: string; tone: Tone; when: string; cause?: string; line?: string }
+export interface BoardRow { what: string; why?: string; owner: string; tone: Tone; when: string;
+  /** The day in free words, when no date was given — "before the Christmas peak". */
+  words?: string; cause?: string; line?: string }
 
 export interface SixMReport {
   name: string;
@@ -171,13 +173,13 @@ const causeOrder = (a: Cause, b: Cause) =>
   || a.at - b.at;
 
 /** An action's state and day, in words and a tone — the board's rule. */
-function actionState(t: PaceTodoRow, today: string): { tone: Tone; when: string } {
+function actionState(t: PaceTodoRow, today: string): { tone: Tone; when: string; words?: string } {
   if (t.state === 'done') return { tone: 'done', when: t.doneOn ? `Done ${day(t.doneOn)}` : 'Done' };
   const late = !!t.due && t.due < today;
   if (late) return { tone: 'late', when: `Late · was due ${day(t.due)}` };
   if (t.state === 'waiting') return { tone: 'waiting', when: t.due ? `Waiting · due ${day(t.due)}` : 'Waiting on someone' };
   if (t.due) return { tone: 'going', when: `Due ${day(t.due)}` };
-  return { tone: 'ahead', when: t.when?.trim() ? `No day · ${t.when.trim()}` : 'No day yet' };
+  return { tone: 'ahead', when: 'No day yet', ...(t.when?.trim() ? { words: t.when.trim() } : {}) };
 }
 const TONE_RANK: Record<Tone, number> = { failed: 0, late: 1, waiting: 2, going: 3, ahead: 4, done: 5 };
 
@@ -301,7 +303,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       ...(ms?.now != null ? { number: say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
       bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(repOf) })),
       causeCount: causes.length,
-      suggested: nSugg ? `The data suggests ${plural(nSugg, 'more cause')} not yet looked at — on ${listWords(sugg.map(b => sixmLabel(b.m)))}.` : '',
+      suggested: nSugg ? `The data suggests ${plural(nSugg, causes.length ? 'more cause' : 'cause')} not yet looked at — on ${listWords(sugg.map(b => sixmLabel(b.m)))}.` : '',
       roots: v.roots.map(c => ({
         cause: repOf(c),
         whys: c.whys.filter(x => x.text.trim()).map(x => ({ text: x.text, ...(x.grade ? { grade: GRADE_WORD(x.grade) } : {}) })),
@@ -670,13 +672,14 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
     for (const rt of p.roots) {
       out.push({ ...text({ text: `${rt.cause.bone} · ${rt.cause.text}`, size: SIZE.body, style: 'bold', before: 2, after: 1 }), keepWithNext: true });
       out.push({ ...text({ text: `${rt.cause.grade} · ${rt.cause.statusWord}${rt.cause.from ? ` · from ${rt.cause.from}` : ''}${rt.cause.by ? ` · ${rt.cause.by}` : ''}`, size: SIZE.small, colour: MUTED, after: 3 }), keepWithNext: rt.whys.length > 0 });
+      if (rt.whys.length) out.push({ ...text({ text: 'Why? — asked again at each answer, down to the root:', size: SIZE.small, colour: MUTED, indent: 22, after: 2 }), keepWithNext: true });
       rt.whys.forEach((wy, i) => out.push(text({
         text: `${wy.text}${wy.grade ? ` (${wy.grade.toLowerCase()})` : ''}${i === rt.whys.length - 1 ? ' — the root' : ''}`,
-        size: SIZE.body - 0.5, colour: INK2, indent: 40, bullet: `Why ${i + 1}`, after: 2, style: i === rt.whys.length - 1 ? 'bold' : 'normal',
+        size: SIZE.body - 0.5, colour: INK2, indent: 22, bullet: `${i + 1}`, after: 2, style: i === rt.whys.length - 1 ? 'bold' : 'normal',
       })));
       if (rt.therefore.length) {
-        out.push({ ...text({ text: 'Read back from the root:', size: SIZE.small, style: 'bold', colour: MUTED, before: 3, after: 1, indent: 40 }), keepWithNext: true });
-        rt.therefore.forEach((t, i) => out.push(text({ text: t, size: SIZE.small, colour: MUTED, indent: 40, after: i === rt.therefore.length - 1 ? gap(d, 's') : 1 })));
+        out.push({ ...text({ text: 'Read back from the root:', size: SIZE.small, style: 'bold', colour: MUTED, before: 3, after: 1, indent: 22 }), keepWithNext: true });
+        rt.therefore.forEach((t, i) => out.push(text({ text: t, size: SIZE.small, colour: MUTED, indent: 22, after: i === rt.therefore.length - 1 ? gap(d, 's') : 1 })));
       }
     }
   } else if (p.rootless && p.causeCount) out.push(text({ text: p.rootless, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
@@ -695,15 +698,24 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
 
 /* -------------------------------- the fishbone -------------------------------- */
 
-const HEAD_W = 116, TAIL = 16, SLOPE = 0.34, LBL = 15, PAD = 9;
+const HEAD_W = 112, TAIL = 14, SLOPE = 0.3, LBL = 15, PAD = 9, ROOT_W = 21;
 const TXT = 7.5, TLH = 8.8, META = 7, MLH = 8.6;
 
-interface Placed { c: CauseRep; lines: string[]; d: number; h: number }
-interface FishLayout { half: number; regions: { m: SixM; label: string; xL: number; xr: number; placed: Placed[]; total: number }[]; head: { lines: string[]; h: number }; complete: boolean; height: number }
+/** A cause as placed on its bone: `d` its distance from the spine (near
+ *  edge), `x` where its mark sits, and whether ROOT needs a line of its own. */
+interface Placed { c: CauseRep; lines: string[]; d: number; h: number; x: number; rootLine: boolean }
+interface Region { m: SixM; label: string; up: boolean; xr: number; placed: Placed[]; total: number }
+interface FishLayout { up: number; down: number; regions: Region[]; head: { lines: string[]; h: number }; complete: boolean; height: number }
 
 const causeStyle = (c: CauseRep) => (c.status === 'confirmed' ? 'bold' as const : 'normal' as const);
 const metaOf = (c: CauseRep) => `${c.grade} · ${c.statusWord}`;
 
+/* THE FISH, MEASURED. Three bones above the spine (People, Machine, Method)
+ * and three below (Material, Measurement, Environment), each slanting into
+ * the spine towards the head. A cause sits between its own bone and the one
+ * before it, on a rib that runs into its bone — so its column slants with the
+ * bones and keeps the same width however far from the spine it is. Each half
+ * is as tall as its fullest bone needs, and never shorter than half the head. */
 function layoutFish(f: Frame, p: ProblemRep, K: number): FishLayout {
   const doc = f.doc;
   const x0 = f.x + TAIL, x1 = f.x + f.w - HEAD_W - 6;
@@ -711,29 +723,37 @@ function layoutFish(f: Frame, p: ProblemRep, K: number): FishLayout {
   const headLines = wrap(doc, p.title, HEAD_W - 18, 9.5, 'bold');
   const headH = 18 + headLines.length * 11.5 + (p.number ? 12 : 0) + 22;
   let complete = true;
-  const regions = p.bones.map((b, k) => {
+  const regions: Region[] = p.bones.map((b, k) => {
     const i = k % 3;
-    const xL = x0 + i * regW + 3, xr = x0 + (i + 1) * regW - 3;
+    const xr = x0 + (i + 1) * regW - 3;           // where this bone meets the spine
+    const prev = x0 + i * regW - 3;               // where the bone before it does
     const placed: Placed[] = [];
     let dd = PAD;
     for (const c of b.causes) {
       if (placed.length >= K) { complete = false; continue; }
-      /* The room left of the bone narrows away from the spine: measured at the
-         far edge of the cause, so its words never cross the bone. */
-      const widthAt = (dist: number) => xr - SLOPE * dist - (xL + 9) - 5;
-      let lines = wrap(doc, c.text, widthAt(dd + 3 * TLH + MLH), TXT, causeStyle(c));
-      let h = lines.length * TLH + MLH + 6;
-      lines = wrap(doc, c.text, widthAt(dd + h), TXT, causeStyle(c));
-      h = lines.length * TLH + MLH + 6;
-      if (lines.length > 4) { complete = false; continue; }   // too long to draw well — it is in the full list
-      placed.push({ c, lines, d: dd, h });
-      dd += h;
+      /* Room between the bone before (at this cause's near edge) and its own
+         bone (at its far edge): the bones slant together, so it is the
+         region's width less the slant over the cause's own height. */
+      const left = i === 0 ? Math.max(f.x + 1, x0 + 2 - SLOPE * dd) : prev - SLOPE * dd + 6;
+      const room = (h: number) => xr - SLOPE * (dd + h) - 5 - (left + 9);
+      const fit = (h: number) => {
+        const lines = wrap(doc, c.text, room(h), TXT, causeStyle(c));
+        font(doc, META, 'normal');
+        const rootLine = !!c.root && doc.getTextWidth(metaOf(c)) + 4 + ROOT_W > room(h);
+        return { lines, rootLine, h: lines.length * TLH + MLH * (rootLine ? 2 : 1) + 6 };
+      };
+      let g = fit(3 * TLH + MLH + 6);
+      g = fit(g.h);
+      if (g.lines.length > 4) { complete = false; continue; }   // too long to draw well — it is in the full list
+      placed.push({ c, lines: g.lines, d: dd, h: g.h, x: left, rootLine: g.rootLine });
+      dd += g.h;
     }
-    return { m: b.m, label: b.label, xL, xr, placed, total: b.causes.length };
+    return { m: b.m, label: b.label, up: k < 3, xr, placed, total: b.causes.length };
   });
-  const need = Math.max(...regions.map(g => g.placed.reduce((n, x) => n + x.h, 0) + (g.placed.length ? 0 : 12) + PAD + LBL + 6));
-  const half = Math.max(need, headH / 2 + 10, 52);
-  return { half, regions, head: { lines: headLines, h: headH }, complete, height: 2 * half + 20 };
+  const need = (up: boolean) => Math.max(...regions.filter(g => g.up === up).map(g => g.placed.reduce((n, x) => n + x.h, 0) + (g.placed.length ? 0 : 12) + PAD + LBL + 6));
+  const upH = Math.max(need(true), headH / 2 + 10, 44);
+  const downH = Math.max(need(false), headH / 2 + 10, 44);
+  return { up: upH, down: downH, regions, head: { lines: headLines, h: headH }, complete, height: upH + downH + 20 };
 }
 
 function fishbone(p: ProblemRep): { block: Block; layout: (f: Frame) => FishLayout } {
@@ -772,19 +792,19 @@ function when(on: (f: Frame) => boolean, b: Block): Block {
 
 function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
   const doc = f.doc;
-  const spineY = y + l.half;
+  const spineY = y + l.up;
   const x0 = f.x + TAIL, hx = f.x + f.w - HEAD_W;
   /* the spine, and the tail */
   doc.setDrawColor(INK); doc.setLineWidth(2.4); doc.setLineCap('round');
   doc.line(x0, spineY, hx, spineY);
   doc.setLineWidth(1.6);
-  doc.line(x0, spineY, x0 - 13, spineY - 11); doc.line(x0, spineY, x0 - 13, spineY + 11);
+  doc.line(x0, spineY, x0 - 12, spineY - 10); doc.line(x0, spineY, x0 - 12, spineY + 10);
   doc.setLineCap('butt');
 
   /* the six bones: People, Machine, Method above; Material, Measurement, Environment below */
-  l.regions.forEach((g, k) => {
-    const up = k < 3, dir = up ? -1 : 1;
-    const len = l.half - LBL - 2;
+  for (const g of l.regions) {
+    const dir = g.up ? -1 : 1, half = g.up ? l.up : l.down;
+    const len = half - LBL - 2;
     const endX = g.xr - SLOPE * len, endY = spineY + dir * len;
     doc.setDrawColor(INK2); doc.setLineWidth(1.3);
     doc.line(g.xr, spineY, endX, endY);
@@ -795,45 +815,45 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
     font(doc, SIZE.tiny, 'normal', MUTED);
     const cnt = g.total ? `  ${g.total}` : '';
     const cw = doc.getTextWidth(cnt);
-    const lx = Math.max(g.xL, Math.min(endX - (nw + cw) / 2, g.xr - nw - cw));
-    const ly = up ? spineY - l.half + 9 : spineY + l.half - 3;
+    const lx = Math.max(f.x, endX - (nw + cw) / 2);
+    const ly = g.up ? spineY - half + 9 : spineY + half - 3;
     font(doc, SIZE.small, 'bold', INK); doc.text(name, lx, ly);
     font(doc, SIZE.tiny, 'normal', MUTED); if (cnt) doc.text(cnt, lx + nw, ly);
     if (!g.placed.length) {
       font(doc, SIZE.tiny, 'normal', MUTED);
-      const yy = up ? spineY - PAD - 4 : spineY + PAD + 7;
-      doc.text('looked — nothing found', g.xL + 2, yy);
+      doc.text('looked — nothing found', g.xr - SLOPE * (PAD + 6) - 4 - doc.getTextWidth('looked — nothing found'), g.up ? spineY - PAD - 2 : spineY + PAD + 8);
     }
     /* each cause: its words on a rib that runs into the bone */
     for (const pc of g.placed) {
-      const top = up ? spineY - pc.d - pc.h : spineY + pc.d;
+      const top = g.up ? spineY - pc.d - pc.h : spineY + pc.d;
       const ribY = top + pc.h - 2;
       const ribX = g.xr - SLOPE * Math.abs(ribY - spineY);
-      doc.setDrawColor(RIB); doc.setLineWidth(0.6); doc.line(g.xL, ribY, ribX, ribY);
+      doc.setDrawColor(RIB); doc.setLineWidth(0.6); doc.line(pc.x, ribY, ribX, ribY);
       const ty = top + TXT;
       // the mark: solid confirmed, outline suspected, a cross for ruled out
       doc.setLineWidth(0.8);
-      if (pc.c.status === 'confirmed') { doc.setFillColor(INK); doc.circle(g.xL + 3, ty - 2.6, 2.4, 'F'); }
-      else if (pc.c.status === 'suspected') { doc.setDrawColor(INK); doc.circle(g.xL + 3, ty - 2.6, 2.3, 'S'); }
-      else { doc.setDrawColor(MUTED); doc.line(g.xL + 1, ty - 4.6, g.xL + 5, ty - 0.6); doc.line(g.xL + 5, ty - 4.6, g.xL + 1, ty - 0.6); }
+      if (pc.c.status === 'confirmed') { doc.setFillColor(INK); doc.circle(pc.x + 3, ty - 2.6, 2.4, 'F'); }
+      else if (pc.c.status === 'suspected') { doc.setDrawColor(INK); doc.circle(pc.x + 3, ty - 2.6, 2.3, 'S'); }
+      else { doc.setDrawColor(MUTED); doc.line(pc.x + 1, ty - 4.6, pc.x + 5, ty - 0.6); doc.line(pc.x + 5, ty - 4.6, pc.x + 1, ty - 0.6); }
       const out = pc.c.status === 'ruled_out';
       font(doc, TXT, causeStyle(pc.c), out ? MUTED : INK);
       pc.lines.forEach((ln, i) => {
         const by = ty + i * TLH;
-        doc.text(ln, g.xL + 9, by);
-        if (out) { doc.setDrawColor(MUTED); doc.setLineWidth(0.6); doc.line(g.xL + 9, by - 2.4, g.xL + 9 + doc.getTextWidth(ln), by - 2.4); }
+        doc.text(ln, pc.x + 9, by);
+        if (out) { doc.setDrawColor(MUTED); doc.setLineWidth(0.6); doc.line(pc.x + 9, by - 2.4, pc.x + 9 + doc.getTextWidth(ln), by - 2.4); }
       });
       const my = ty + pc.lines.length * TLH;
       font(doc, META, 'normal', MUTED);
       const meta = metaOf(pc.c);
-      doc.text(meta, g.xL + 9, my - 0.5);
+      doc.text(meta, pc.x + 9, my - 0.5);
       if (pc.c.root) {
-        const mx = g.xL + 9 + doc.getTextWidth(meta) + 4;
-        doc.setFillColor(INK); doc.roundedRect(mx, my - 6.6, 21, 8, 1.5, 1.5, 'F');
-        font(doc, 6.5, 'bold', '#ffffff'); doc.text('ROOT', mx + 10.5, my - 0.8, { align: 'center' });
+        const mx = pc.rootLine ? pc.x + 9 : pc.x + 9 + doc.getTextWidth(meta) + 4;
+        const ry = pc.rootLine ? my + MLH : my;
+        doc.setFillColor(INK); doc.roundedRect(mx, ry - 6.6, ROOT_W, 8, 1.5, 1.5, 'F');
+        font(doc, 6.5, 'bold', '#ffffff'); doc.text('ROOT', mx + ROOT_W / 2, ry - 0.8, { align: 'center' });
       }
     }
-  });
+  }
 
   /* the head: the problem, its number, and where it is — in words */
   const hh = l.head.h, hy = spineY - hh / 2;
@@ -847,16 +867,16 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
   pill(doc, hx + 9, yy - 3, pw, p.tone, p.phaseWord);
 
   /* the key, under the drawing */
-  const ky = y + 2 * l.half + 12;
+  const ky = y + l.up + l.down + 12;
   font(doc, SIZE.tiny, 'normal', MUTED);
   let kx = f.x;
   doc.setFillColor(INK); doc.circle(kx + 3, ky - 2.5, 2.3, 'F'); doc.text('confirmed', kx + 8, ky); kx += 8 + doc.getTextWidth('confirmed') + 12;
   doc.setDrawColor(INK); doc.setLineWidth(0.8); doc.circle(kx + 3, ky - 2.5, 2.2, 'S'); doc.text('suspected', kx + 8, ky); kx += 8 + doc.getTextWidth('suspected') + 12;
   doc.setDrawColor(MUTED); doc.line(kx + 1, ky - 4.5, kx + 5, ky - 0.5); doc.line(kx + 5, ky - 4.5, kx + 1, ky - 0.5);
   doc.text('ruled out (struck through)', kx + 8, ky); kx += 8 + doc.getTextWidth('ruled out (struck through)') + 12;
-  doc.setFillColor(INK); doc.roundedRect(kx, ky - 6.6, 21, 8, 1.5, 1.5, 'F');
-  font(doc, 6.5, 'bold', '#ffffff'); doc.text('ROOT', kx + 10.5, ky - 0.8, { align: 'center' });
-  font(doc, SIZE.tiny, 'normal', MUTED); doc.text('drilled to its root with the five whys', kx + 25, ky);
+  doc.setFillColor(INK); doc.roundedRect(kx, ky - 6.6, ROOT_W, 8, 1.5, 1.5, 'F');
+  font(doc, 6.5, 'bold', '#ffffff'); doc.text('ROOT', kx + ROOT_W / 2, ky - 0.8, { align: 'center' });
+  font(doc, SIZE.tiny, 'normal', MUTED); doc.text('drilled to its root with the five whys', kx + ROOT_W + 4, ky);
 }
 
 /** Every cause, bone by bone, as rows — when the drawing could not carry them all. */
@@ -940,7 +960,7 @@ function boardBlock(b: SixMReport['board'][number]): Block {
     const w = f.w - ownerW - stateW - 10;
     return {
       what: wrap(f.doc, r.what, w, SIZE.small + 0.5, r.tone === 'done' ? 'normal' : 'bold'),
-      why: r.why ? wrap(f.doc, `Why: ${r.why}`, w, SIZE.small) : [],
+      why: [...(r.why ? wrap(f.doc, `Why: ${r.why}`, w, SIZE.small) : []), ...(r.words ? wrap(f.doc, `When: ${r.words}`, w, SIZE.small) : [])],
       cause: r.cause ? wrap(f.doc, r.cause, w, SIZE.small) : [],
       owner: wrap(f.doc, [r.owner || 'No owner', r.line].filter(Boolean).join(' · '), ownerW - 8, SIZE.small),
     };

@@ -124,9 +124,10 @@ function Phase({ view }: { view: ProblemView }) {
 /* ----------------------------- the drawn fish ----------------------------- */
 
 function DrawnFish({ view, can, width, onCause, onSuggestion, onAdd }: Omit<FishboneProps, 'compact'> & { width: number }) {
-  const rowH = coarsePointer() ? 44 : 34;
+  const coarse = coarsePointer();
+  const rowH = coarse ? 44 : 34;
   const headH = view.says && view.measure ? 196 : 172;
-  const L = useMemo(() => layoutFish(view.bones, width, { rowH, headH }), [view.bones, width, rowH, headH]);
+  const L = useMemo(() => layoutFish(view.bones, width, { rowH, headH, labelH: coarse ? 64 : 46 }), [view.bones, width, rowH, headH, coarse]);
   const title = view.problem.title || 'The problem';
   return (
     <div className="fb-fish" style={{ height: L.height }} role="group" aria-label={`The fishbone for ${title}`}>

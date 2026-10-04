@@ -103,10 +103,11 @@ export interface FishOpts {
   rowH?: number;
   /** The head's height, from what it has to hold. */
   headH?: number;
+  /** Room for a bone's name, count and Add — more when Add is thumb-sized. */
+  labelH?: number;
 }
 
 const PAD_L = 34;      // room for the tail
-const LABEL_H = 46;    // the bone's name, its count and Add
 const SPINE_GAP = 12;  // the nearest rib stays clear of the spine
 const END_GAP = 6;     // the farthest rib stays clear of the name
 const HEAD_GAP = 26;   // the last bones meet the spine short of the head
@@ -115,10 +116,11 @@ const RIB_GAP = 14;    // a rib stops short of the bone before it
 export function layoutFish(bones: Bone[], width: number, o: FishOpts = {}): FishLayout {
   const rowH = o.rowH ?? 34;
   const headH = o.headH ?? 176;
+  const LABEL_H = o.labelH ?? 46;
   const headW = Math.round(Math.min(300, Math.max(210, width * 0.21)));
   const headX = width - headW - 2;
   const colW = (headX - HEAD_GAP - PAD_L) / 3;
-  const dx = colW * 0.3;
+  const dx = colW * 0.24;
 
   const upperBones = bones.slice(0, 3), lowerBones = bones.slice(3, 6);
   const rows = (bs: Bone[]) => Math.max(3, ...bs.map(b => b.causes.length + b.suggestions.length));
@@ -147,7 +149,10 @@ export function layoutFish(bones: Bone[], width: number, o: FishOpts = {}): Fish
         : spineY + SPINE_GAP + (k + 1) * rowH;
       const attachX = xAt(lineY);
       const x = leftAt(lineY);
-      return { item, x, y: lineY - rowH + 2, w: Math.max(40, attachX - 5 - x), h: rowH - 2, attachX, lineY };
+      /* A slanting bone is nearer the words at the top of an upper rib than
+         where the rib meets it — the words stop short of both. */
+      const right = Math.min(attachX, xAt(lineY - Math.min(20, rowH - 4))) - 6;
+      return { item, x, y: lineY - rowH + 2, w: Math.max(40, right - x), h: rowH - 2, attachX, lineY };
     });
     const lw = colW - 12;
     const outerX = xs - dx;
