@@ -85,7 +85,8 @@ describe('the 6M client report', () => {
     expect(said).toContain('ROOT');
     expect(said).toContain('PEOPLE');
     expect(said).toContain('ENVIRONMENT');
-    expect(said).toContain('looked — nothing found');
+    expect(said).toContain('Nothing found yet');
+    expect(said).not.toContain('looked — nothing found');
     expect(said.some(s => s.startsWith('EVERY CAUSE ON THE FISHBONE'))).toBe(false);
     for (const t of r.problems[0].roots[0].therefore) expect(has(flat, t)).toBe(true);
     expect(has(flat, 'Expected: Tracking stops under 5 a week')).toBe(true);
@@ -130,5 +131,49 @@ describe('the 6M client report', () => {
     const { flat } = await paper(r);
     expect(has(flat, 'When: before the peak')).toBe(true);
     expect(has(flat, 'NOT ON A BONE YET')).toBe(true);
+  });
+
+  it('prints a countermeasure\'s day in words on its problem, as the board does — waiting or not', async () => {
+    const root = cause('c1', 'machine', 'Jaw heater runs cool', { status: 'confirmed', root: true });
+    const r = build([kase('p1', 'Seal failures', [root])], [
+      todo('a', 'Fit a new heater cartridge', { pillar: 'machine', causeRef: 'p1:c1', when: 'after the shutdown' }),
+      todo('b', 'Ask the OEM for the jaw profile', { pillar: 'machine', causeRef: 'p1:c1', state: 'waiting', when: 'when they reply' }),
+      todo('c', 'Dated one', { pillar: 'machine', causeRef: 'p1:c1', due: '2026-10-09', when: 'ignored — it has a date' }),
+    ]);
+    const counter = r.problems[0].counter;
+    expect(counter.find(c => c.what === 'Fit a new heater cartridge')).toMatchObject({ when: 'No day yet', words: 'after the shutdown' });
+    expect(counter.find(c => c.what === 'Ask the OEM for the jaw profile')).toMatchObject({ tone: 'waiting', when: 'Waiting on someone', words: 'when they reply' });
+    expect(counter.find(c => c.what === 'Dated one')?.words).toBeUndefined();
+    expect(r.board.find(b => b.m === 'machine')?.rows.find(x => x.what === 'Ask the OEM for the jaw profile')?.words).toBe('when they reply');
+    const { flat } = await paper(r);
+    expect(has(flat, 'When: after the shutdown')).toBe(true);
+    expect(has(flat, 'When: when they reply')).toBe(true);
+    expect(has(flat, 'ignored — it has a date')).toBe(false);
+  });
+
+  it('prints the whys written before the fishbone under their problem until they are on a bone', async () => {
+    const old = kase('p1', 'Labels peel.', [], { whys: ['The glue is cold', '', 'The heater is off at start-up.'] });
+    const r = build([old], []);
+    expect(r.problems[0].written).toBe('The heater is off at start-up, therefore the glue is cold, therefore labels peel.');
+    const { flat } = await paper(r);
+    expect(has(flat, 'Written before the fishbone: The heater is off at start-up, therefore the glue is cold, therefore labels peel.')).toBe(true);
+    expect(has(flat, 'Opened, and the causes are next.')).toBe(false);
+    // Moved onto a bone — a cause and its why — it is said once, on the fish.
+    const moved = kase('p1', 'Labels peel.', [cause('c1', 'machine', 'The glue is cold', { whys: [{ id: 'w', text: 'The heater is off at start-up' }] })], { whys: ['The glue is cold', 'The heater is off at start-up'] });
+    expect(build([moved], []).problems[0].written).toBeUndefined();
+  });
+
+  it('keeps a countermeasure whose problem was removed on the board by bone, with no cause line and no id', async () => {
+    // The removed problem is not among the views (lib/useProblems reads live Cases only).
+    const live = kase('p1', 'Seal failures', [cause('c1', 'machine', 'Jaw heater runs cool', { status: 'confirmed', root: true })]);
+    const r = build([live], [todo('a', 'Re-teach the robot', { pillar: 'people', caseId: 'gone-case-7f3a', causeRef: 'gone-case-7f3a:c9', expect: 'No mispicks' })]);
+    expect(r.problems[0].counter).toHaveLength(0);
+    const row = r.board.find(b => b.m === 'people')?.rows[0];
+    expect(row).toMatchObject({ what: 'Re-teach the robot' });
+    expect(row?.cause).toBeUndefined();
+    const { flat } = await paper(r);
+    expect(has(flat, 'Re-teach the robot')).toBe(true);
+    expect(flat.includes('gone-case')).toBe(false);
+    expect(flat.includes('c9')).toBe(false);
   });
 });

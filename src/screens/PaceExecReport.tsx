@@ -987,6 +987,15 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
                 {p.counterSays ? ` · countermeasures ${p.counterSays}` : ''}
                 {p.hold ? ` · ${p.hold.word}` : ''}
               </span>
+              {p.written && <span>Written before the fishbone: {p.written}</span>}
+              {/* Each countermeasure as the paper prints it: what, bone and
+                  owner, its state and day — and the day in words when it has
+                  no date. */}
+              {p.counter.map((c, i) => (
+                <span key={i} className="cr-cm">
+                  {c.what} · {[c.bone, c.owner].filter(Boolean).join(' · ')} · {c.when}{c.words ? ` · When: ${c.words}` : ''}
+                </span>
+              ))}
             </li>
           ))}
           {report.board.length > 0 && (

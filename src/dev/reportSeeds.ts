@@ -280,10 +280,12 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
  * type), two measures pulling opposite ways, twelve weeks of readings, a line
  * balance, two hundred timed stops (some tapped with their bone, most not),
  * six problems in every phase — one with thirty causes that cannot all be
- * drawn on the fish, one with none — why-chains to roots, causes accepted from
- * suggestions, countermeasures with their predictions and what happened, a
- * hold that is holding, sixty actions on every bone and none, and the walk's
- * snags. The awkward strings from the random jobs are in there too.
+ * drawn on the fish, one with none, one with the five whys written before
+ * the fishbone and no cause on a bone, one removed by its owner whose
+ * countermeasure stays on the board — why-chains to roots, causes accepted
+ * from suggestions, countermeasures with their predictions, their day in
+ * words and what happened, a hold that is holding, sixty actions on every
+ * bone and none, and the walk's snags. The awkward strings from the random jobs are in there too.
  * ------------------------------------------------------------------------- */
 export interface SixMJob { projectId: string; lineId: string }
 
@@ -518,7 +520,17 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   // 6 — just opened from the constraint: nothing on any bone yet.
   const p6 = problem('Basketer limits Line 2A', lineA, { source: { kind: 'constraint', station: 'Basketer' }, causes: [], openedAt: t - DAY });
 
-  for (const p of [p1, p2, p3, p4, p5, p6]) await addCase(p);
+  // 7 — written before the fishbone: the old five whys and no cause on a bone yet.
+  const p7 = problem('Labels peel off the 1.25kg bag in the chiller', lineB, {
+    source: { kind: 'observed' }, openedAt: t - 50 * DAY,
+    whys: ['The label adhesive is not rated for 2 °C', 'The label spec was copied from the ambient range', '', 'Nobody signs off a label spec against where the pack is stored.'],
+  });
+
+  // 8 — removed by its owner; its countermeasure stays on the board by bone.
+  const gone = problem('Opened by mistake — a duplicate of the film tracking', lineA, { source: { kind: 'observed' }, deletedAt: t - DAY,
+    causes: [cause('machine', 'Duplicate cause', { status: 'confirmed' })] });
+
+  for (const p of [p1, p2, p3, p4, p5, p6, p7, gone]) await addCase(p);
 
   /* --------------------------- countermeasures --------------------------- */
   const ref = (p: Case, c: Cause) => `${p.id}:${c.id}`;
@@ -531,6 +543,8 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
     act('Keep the 1.25kg former kit at the line, shadow-boarded', { lineId: lineA.id, pillar: 'material', who: 'Stores', due: iso(-18), state: 'done', doneOn: iso(-16), causeRef: ref(p2, c2[1]), caseId: p2.id, expect: 'Nothing fetched from stores during a changeover' }),
     act('Move the calibration schedule to the new asset number', { lineId: lineB.id, pillar: 'measurement', who: 'Agnieszka Szczęsna', due: iso(-45), state: 'done', doneOn: iso(-42), causeRef: ref(p3, c3[0]), caseId: p3.id, expect: 'Good packs rejected: 40 a shift → under 5', outcome: 'Rejects fell to 3 a shift for a fortnight' }),
     act('Clean the chute at every break and add it to the standard', { lineId: lineB.id, pillar: 'method', who: 'Zoë Brontë', due: iso(-1), causeRef: ref(p5, many[3]), caseId: p5.id, expect: LONG[1] }),
+    act('Check the spare film reels for edge damage', { lineId: lineA.id, pillar: 'material', who: 'Stores', when: 'after the stock count', causeRef: ref(gone, (gone.causes as Cause[])[0]), caseId: gone.id, expect: 'No damaged reel reaches the line' }),
+    act('Trial a chiller-rated label on one shift', { lineId: lineB.id, pillar: 'material', who: 'Agnieszka Szczęsna', state: 'waiting', when: 'when the samples land', caseId: p7.id, expect: 'No peeled labels over a week in the chiller' }),
     act('Guard fitted ✅ — retest 🔧', { lineId: lineB.id, pillar: 'machine', who: 'Ørjan Høgh', due: iso(4), causeRef: ref(p5, many[9]), caseId: p5.id, expect: 'Gap ≤ 0.5 mm, speed ≥ 120 ppm' }),
   ];
   for (const a of counter) await putPaceTodo(a);
