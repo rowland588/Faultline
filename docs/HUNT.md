@@ -18,12 +18,12 @@ control that does nothing; these are the calls to make next.
 2. ~~**`?view=snags` is a second route to Install's filmed line.**~~ **Done 3 Oct:** it opens Install with "The line, filmed" open; the address is replaced, so Back does not loop.
 3. ~~**Removing a line on Details has no Undo.**~~ **Done 3 Oct:** Undo is offered and brings the line back on every device.
 4. ~~**A grid cell's "Who is doing it" Save leaves the sheet open.**~~ **Done 3 Oct:** all three of the grid's "Who is doing it" boxes close their sheet on Save.
-5. **The empty job says "on this line" and plans a test first**, though Install is the first gate. Recommend "on this job" and "Add the first machine". This changes how the method starts.
+5. ~~**The empty job says "on this line" and plans a test first**, though Install is the first gate.~~ **Done 4 Oct:** the empty job says "Nothing planned on this job yet. It starts at Install, with the machines it is putting in." and its button is "Add the first machine", which opens Install.
 
 ## Stage gate — tests, fixes, the record and the report
 6. ~~**`lib/testReport.ts`'s A3 testing sheet has no caller** since the card and client report replaced it.~~ **Done 3 Oct:** the A3 drawer is removed; the photo helpers it shared stay in `lib/testReport.ts`, which now says why.
-7. **An old "not a problem" observation** prints on the card but shows nothing on the test page. Recommend showing it on the page too.
-8. **The spreadsheet export does not carry the line standard**, though its door says "everything". Recommend adding it, or changing the door's words.
+7. ~~**An old "not a problem" observation** prints on the card but shows nothing on the test page.~~ **Done 4 Oct:** the test page's row says "not a problem" too, read from the same `standingOfItem` the card prints.
+8. ~~**The spreadsheet export does not carry the line standard**, though its door says "everything".~~ **Done 4 Oct:** both: the workbook has a "Line standard" sheet (one row per person on each product — name, task, picture, note), and the door now says what the file carries: "The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks". The 3P board, the lines' numbers and the tree are not in it, so "everything" went.
 
 ## 3P and the line
 9. ~~**What-ifs are frozen copies of the line.** Edit the line as run and a what-if keeps the old stations, reports changes nobody made in it, and Make it so writes those into the action.~~ **Done 3 Oct:** a what-if stores only what it changes against the line as run (`WhatIfDiff`) and follows the line in everything else; old what-ifs convert without inventing changes. Make it so and the report read the same derived stations. Tested and driven.
@@ -48,7 +48,7 @@ control that does nothing; these are the calls to make next.
 
 ## The lever tree, the control room, and getting around
 26. ~~**The tree is invisible from the control room.** Neither a tree job's front page nor its Home row says how the outcome stands or which condition is red.~~ **Done 3 Oct:** a tree job's front page has a "The tree" card (the outcome, then each condition off track, each opening the tree), and its row on Home leads with the outcome and the conditions off track instead of People · Plant · Process.
-27. **Every trail starts at "Projects"**, which is no longer the list of jobs. Recommend starting at Home.
+27. ~~**Every trail starts at "Projects"**, which is no longer the list of jobs.~~ **Done 4 Oct:** every trail starts at "Control room" and goes to Home; the card says "Control room · every job"; the account menu's Home is Control room.
 28. **"Start from the lines" writes "holds its ppm rate"** whatever the project measures. Recommend the first measure's name, or neutral words.
 29. **"Workspace +" on a line row** is the old name for the line's study and walk. Recommend naming it for what it opens.
 30. **A linked condition's edge is brand blue**, which the house rules keep for what you press. Recommend a neutral mark.

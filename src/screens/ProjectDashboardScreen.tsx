@@ -400,9 +400,13 @@ function TestingOverview({ projectId, name }: { projectId: string; name: string 
       <Peers peers={projectPeers(projectId, 'overview', all.counts)} />
       {empty ? (
         <div className="pace-empty">
-          <p className="sub">Nothing planned on this line yet.</p>
+          {/* A JOB, AND ITS FIRST GATE. It said "on this line" of a job, and
+              its one button planned a test — Commission, the third gate —
+              when a stage-gate job starts at Install with the machines
+              (HUNT 5). */}
+          <p className="sub">Nothing planned on this job yet. It starts at Install, with the machines it is putting in.</p>
           <button className="btn btn-primary" style={{ marginTop: 10 }}
-            onClick={() => nav(`/project/${projectId}/testing`)}>Plan the first test</button>
+            onClick={() => nav(`/project/${projectId}/install`)}>Add the first machine</button>
         </div>
       ) : (
         <>

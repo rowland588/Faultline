@@ -25,6 +25,7 @@ import type { Material } from './materials';
 import type { Program } from './programs';
 import { stateOf as programState } from './programs';
 import type { Asset, Test, TestItem } from './testing';
+import { liveStandards, peopleOf, type Standard } from './standard';
 import { gateOf, rootTestOf, testOfFix } from './testing';
 import { GATE_WORD } from './install';
 import { planModel } from './planModel';
@@ -37,6 +38,8 @@ export interface ProjectData {
   items: TestItem[];
   materials: Material[];
   programs: Program[];
+  /** Who stands where on each product — the line standard's maps. */
+  standards?: Standard[];
 }
 
 export interface WalkData {
@@ -60,6 +63,10 @@ export const HEADS = {
   Materials: ['Project', 'What', 'How much', 'From', 'Due', 'Arrived on', 'Here', 'Notes'],
   Programs: ['Project', 'Program', 'Runs', 'Machine', 'Written?', 'Test on', 'Proved on', 'From', 'Test', 'Notes'],
   Training: ['Project', 'Who', 'Trained on', 'Trainer', 'Planned for', 'Done on', 'Signed off by', 'Notes'],
+  /* The line standard — one row per person on each product's map. The map
+     itself is a picture and stays in the app (and on its own PDF and the
+     client report); the rows say who stands where and does what. */
+  'Line standard': ['Project', 'Product', 'Person', 'Name', 'Task', 'Picture', 'Notes'],
 } as const;
 
 const d = (iso?: string): XCell => (iso ? { date: iso } : '');
@@ -101,12 +108,20 @@ function uniqueNames(tests: Test[]): Map<string, string> {
 export function exportSheets(projects: ProjectData[], walks: WalkData[], exportedAt: string): XSheet[] {
   const rows: Record<keyof typeof HEADS, XCell[][]> = {
     Projects: [], Stages: [], Machines: [], Tests: [], Issues: [], Notes: [], Materials: [], Programs: [], Training: [],
+    'Line standard': [],
   };
 
   for (const pd of projects) {
     const p = pd.project;
     const name = p.name;
     rows.Projects.push([name, KIND[planModel(p)], p.lead ?? '', d(p.plannedAt), d(p.expectedAt), p.description ?? '']);
+
+    for (const st of liveStandards(pd.standards ?? []).sort((a, b) => a.sort - b.sort)) {
+      const people = peopleOf(st);
+      const picture = st.photoKey ? '1 photo (in the app)' : 'drawn in the app';
+      if (!people.length) rows['Line standard'].push([name, st.product, '', '', '', picture, st.note ?? '']);
+      people.forEach((m, i) => rows['Line standard'].push([name, st.product, i + 1, m.label ?? '', m.task ?? '', picture, i === 0 ? st.note ?? '' : '']));
+    }
 
     const assets = live(pd.assets);
     const machine = (id?: string) => assets.find(a => a.id === id)?.name ?? '';
@@ -202,7 +217,9 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
   const readMe: XSheet = {
     name: 'Read me', header: false, widths: [28, 70],
     rows: [
-      ['Faultline — everything in the app', ''],
+      /* NO WORD THAT IS NOT TRUE. It said "everything in the app"; the 3P
+         board, the lines' numbers and the lever tree are not in it (HUNT 8). */
+      ['Faultline — the start-up record', ''],
       ['Exported', { date: exportedAt }],
       ['', ''],
       ['Projects', `${n('Projects')}`],
@@ -212,6 +229,7 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
       ['Notes', `${n('Notes')} — what was seen during a test`],
       ['Materials', `${n('Materials')}`],
       ['Programs', `${n('Programs')}`],
+      ['Line standard', `${n('Line standard')} — one row per person on each product's map; the maps stay in the app`],
       ['Stages', 'Empty — the Excel tool fills it for each start-up'],
       ['Training', 'Empty — the Excel tool keeps it from here on'],
       ['', ''],

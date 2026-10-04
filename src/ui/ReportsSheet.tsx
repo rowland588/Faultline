@@ -62,7 +62,7 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
         {withWalk.map(l => (
           <Door key={`r${l.id}`} title={`One-page report — ${l.name}`} says="The week on this line in one page — lost time, where it went, the snags needing a push." onClick={() => go(`/w/${l.workspaceId}/report`)} />
         ))}
-        <Door title="Spreadsheet" says={busy ? 'Building…' : 'Everything on every project, in one Excel file.'} onClick={() => { if (!busy) void spreadsheet(); }} />
+        <Door title="Spreadsheet" says={busy ? 'Building…' : 'The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks — in one Excel file.'} onClick={() => { if (!busy) void spreadsheet(); }} />
         {said && <p className="sub" role="status">{said}</p>}
       </div>
     </Sheet>

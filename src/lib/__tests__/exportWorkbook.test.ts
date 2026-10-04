@@ -37,6 +37,12 @@ const data: ProjectData = {
     inOn: '2026-09-19', sort: 1, createdAt: 1, updatedAt: 1 }],
   programs: [{ id: 'pr1', projectId: 'p', what: 'P-104', assetId: 'a1', state: 'onMachine', testOn: '2026-10-02',
     from: 'Ilapak UK', sort: 1, createdAt: 1, updatedAt: 1 }],
+  standards: [{ id: 'st1', projectId: 'p', product: 'P-104 2kg', sort: 1, createdAt: 1, updatedAt: 1, note: 'Start of shift',
+    marks: [
+      { id: 'k1', kind: 'person', x: 0.2, y: 0.5, label: 'Sam', task: 'Loads film' },
+      { id: 'k2', kind: 'shape', x: 0.5, y: 0.5 },
+      { id: 'k3', kind: 'person', x: 0.8, y: 0.5, label: 'Jo', task: 'Packs off' },
+    ] }],
 };
 
 const walk = {
@@ -62,6 +68,14 @@ describe('everything in the app, as a workbook', () => {
     const { sheets, get } = book();
     expect(sheets.map(s => s.name)).toEqual(['Read me', ...Object.keys(HEADS)]);
     for (const [name, heads] of Object.entries(HEADS)) expect(get(name).rows[0]).toEqual([...heads]);
+  });
+
+  it('carries the line standard: one row per person on each product, in the order they were numbered', () => {
+    const { get } = book();
+    const rows = get('Line standard').rows.slice(1);
+    expect(rows.map(r => [r[1], r[2], r[3], r[4]])).toEqual([['P-104 2kg', 1, 'Sam', 'Loads film'], ['P-104 2kg', 2, 'Jo', 'Packs off']]);
+    expect(rows[0]![5]).toBe('drawn in the app');
+    expect(rows[0]![6]).toBe('Start of shift');
   });
 
   it('writes dates as real dates Excel can compare, not text', () => {

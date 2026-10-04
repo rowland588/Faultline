@@ -5,6 +5,7 @@ import {
   ensureProjects, listAssets, listTests, listTestItems, listMaterials, listPrograms,
   projectWorkspaceIds, listWorkspaces, snagsForWorkspace, listSnagAssets,
 } from '../db';
+import { listStandards } from '../db/standards';
 import { exportSheets, type ProjectData, type WalkData } from './exportWorkbook';
 import { writeXlsx } from './xlsxWrite';
 import { deliverBlob } from './savePdf';
@@ -17,11 +18,11 @@ export async function exportEverything(): Promise<{ how: 'shared' | 'downloaded'
   const claimed = new Set<string>();
 
   for (const project of projects) {
-    const [assets, tests, items, materials, programs] = await Promise.all([
+    const [assets, tests, items, materials, programs, standards] = await Promise.all([
       listAssets(project.id), listTests(project.id), listTestItems(project.id),
-      listMaterials(project.id), listPrograms(project.id),
+      listMaterials(project.id), listPrograms(project.id), listStandards(project.id),
     ]);
-    data.push({ project, assets, tests, items, materials, programs });
+    data.push({ project, assets, tests, items, materials, programs, standards });
     for (const ws of await projectWorkspaceIds(project.id)) {
       if (claimed.has(ws)) continue;
       claimed.add(ws);

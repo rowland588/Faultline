@@ -29,7 +29,7 @@ import { deleteBlobs, getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
 import { deliverBlob } from '../lib/savePdf';
 import {
-  gateOf, hasRun, plannedEnd, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion,
+  gateOf, hasRun, plannedEnd, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
@@ -710,6 +710,10 @@ function ItemRow({ item, tt, onView }: { item: TestItem; tt: TT; onView: (m: Med
             const became = tt.tests.find(t => t.id === item.becameTestId && !t.deletedAt);
             return became ? ` · fix: ${became.title}` : '';
           })()}
+          {/* SAID ON PAPER, SO SAID HERE. An observation decided "not a
+              problem" before fixes moved to their own screen printed those
+              words on the trial card, and this row said nothing (HUNT 7). */}
+          {observation && standingOfItem(item, tt.items) === 'noted' && ' · not a problem'}
           {item.fromItemId && ' · from an observation'}
           {item.pin && <> · <Icon name="pin" size="1.15em" /> on the line</>}
         </span>
