@@ -7021,6 +7021,46 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .ig-cell.is-booked { background: var(--blue-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--st-w) 45%, transparent); color: var(--st-w); }
 .ig-cell.is-next.is-ahead:not(.is-booked) { color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-2); }
 
+/* INSTALL ON A PHONE — one card per machine, its stages down the card
+   (ui/InstallGrid, phoneCards). The same five states as the squares, in the
+   same colours, with the state in words on the right: done a quiet green
+   wash, late a heavier red edge, a problem solid red, waiting on a verdict
+   amber, a booked day indigo, no day grey. "Next" is said in words. */
+.igm { display: grid; gap: 10px; }
+.igm-all { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.igm-chip { font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; min-height: 32px; cursor: pointer; }
+.igm-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 10px 12px; display: grid; gap: 8px; }
+.igm-h { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: none; border: 0; padding: 2px 4px; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.igm-h b { font-size: 16px; }
+.igm-list { display: grid; gap: 5px; }
+.igm-st {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  min-height: 46px; padding: 6px 10px; border-radius: 10px; text-align: left;
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); cursor: pointer;
+}
+.igm-sq { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--st-n); background: var(--surface); }
+.igm-name { min-width: 0; font-weight: 600; line-height: 1.25; }
+.igm-word { font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.igm-next { margin-left: 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
+.igm-st.is-done { background: color-mix(in srgb, var(--st-g) 5%, var(--surface)); border-color: var(--line); }
+.igm-st.is-done .igm-sq { background: color-mix(in srgb, var(--st-g) 30%, var(--surface)); border-color: var(--st-g); }
+.igm-st.is-done .igm-name { font-weight: 500; color: var(--ink-2); }
+.igm-st.is-done .igm-word { color: var(--st-g); }
+.igm-st.is-problem { background: color-mix(in srgb, var(--st-r) 9%, var(--surface)); border: 2px solid var(--st-r); }
+.igm-st.is-problem .igm-sq { background: var(--st-r); border-color: var(--st-r); }
+.igm-st.is-problem .igm-word, .igm-st.is-late .igm-word { color: var(--st-r); font-weight: 800; }
+.igm-st.is-late { border: 2px solid var(--st-r); }
+.igm-st.is-late .igm-sq { border-color: var(--st-r); }
+.igm-st.is-asking { border-color: var(--st-a); }
+.igm-st.is-asking .igm-sq { background: var(--st-a); border-color: var(--st-a); }
+.igm-st.is-asking .igm-word { color: var(--st-a); font-weight: 800; }
+.igm-st.is-booked .igm-sq { border-color: var(--st-w); }
+.igm-st.is-booked .igm-word { color: var(--st-w); }
+.igm-st.is-empty { background: transparent; border-style: dashed; color: var(--muted); }
+.igm-st.is-empty .igm-sq { border-style: dashed; }
+.igm-st:disabled { cursor: default; }
+.igm .ig-says { padding: 0 4px; }
+
 /* The quick-action sheet: a card mid-screen on a desk, a sheet from the
    bottom on a phone, where the thumb already is. */
 .ig-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(13, 31, 60, 0.35); display: grid; place-items: center; padding: 16px; }

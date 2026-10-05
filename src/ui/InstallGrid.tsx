@@ -46,6 +46,34 @@ export function spanShort(from?: string, to?: string): string {
   return from.slice(0, 7) === to.slice(0, 7) ? `${Number(from.slice(8))}–${short(to)}` : `${short(from)}–${short(to)}`;
 }
 
+/** What a stage says on a phone card, where a whole line has room for the
+ *  words a square has to shorten: "done 27 Sept", "late · was 3 Oct". */
+function stageWord(s: StepView): string {
+  const t = s.step;
+  switch (s.tone) {
+    case 'done': return t.ranOn ? `done ${short(t.ranOn)}` : 'done';
+    case 'problem': return s.late ? 'a problem · late' : 'a problem';
+    case 'asking': return 'done? — say so';
+    case 'late': return `late · was ${short(plannedEnd(t))}`;
+    default: return spanShort(t.plannedFor, plannedEnd(t)) || 'no day yet';
+  }
+}
+
+/** A phone, by the same width the folds and the plan use (ui/Fold, ui/Gantt),
+ *  kept up to date when the phone turns. */
+function usePhone(): boolean {
+  const q = '(max-width: 640px)';
+  const [phone, setPhone] = useState(() => { try { return window.matchMedia(q).matches; } catch { return false; } });
+  useEffect(() => {
+    let m: MediaQueryList;
+    try { m = window.matchMedia(q); } catch { return; }
+    const on = () => setPhone(m.matches);
+    m.addEventListener?.('change', on);
+    return () => m.removeEventListener?.('change', on);
+  }, []);
+  return phone;
+}
+
 /** What a cell says, in as few characters as will do. */
 function cellWord(s: StepView): string {
   const t = s.step;
@@ -80,6 +108,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   const [stepName, setStepName] = useState('');
   /* false: the stage sheet; true: Hit a problem, empty; filled: from a voice note. */
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
+  const phone = usePhone();
 
   if (grid.rows.length === 0) return null;
 
@@ -416,16 +445,80 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
     );
   })();
 
+  /* ON A PHONE, ONE CARD PER MACHINE, ITS STAGES DOWN THE CARD. Rowland, 5
+     October, on the phone: "too much on a screen ... difficult to get access
+     to things." The grid was a table you swiped sideways: one and a half
+     stages of each machine on the screen, the rest off the edge, and squares
+     shortened to a date. Down the card every stage is on the screen, each
+     saying its state in words beside its colour. The same rows, the same
+     sheets: a stage opens the sheet a square opens, the machine's name the
+     machine's, a stage's name above the cards does it for every machine. The
+     laptop keeps the grid. */
+  const phoneCards = () => (
+    <div className="igm">
+      {grid.rows.map((r, ri) => (
+        <div key={r.asset?.id ?? 'line'} className="igm-card">
+          <button className="igm-h" onClick={() => setOpen({ t: 'row', row: ri })}>
+            <b>{rowName(r.asset)}</b>
+            {r.asset?.oem && <span className="sub">{r.asset.oem}</span>}
+          </button>
+          {r.view.total === 0 && isIn(r.asset) ? (
+            <span className="ig-in">
+              {r.asset && `${ASSET_STATE_WORD[assetStateOf(r.asset)]}${assetStateOn(r.asset) ? ` since ${short(assetStateOn(r.asset))}` : ''} — no install steps kept`}
+            </span>
+          ) : r.view.total === 0 && !can.edit ? (
+            <span className="ig-in">No stages added yet</span>
+          ) : r.view.total === 0 ? (
+            <button className="ig-give" onClick={() => void giveStages([r])}><Icon name="plus" size="1.15em" /> Add the {usual.length} stages</button>
+          ) : (
+            <>
+              <div className="igm-list">
+                {r.cells.map((cs, ci) => (
+                  <button key={ci}
+                    className={'igm-st' + (cs ? ` is-${cs.tone}${cs.tone === 'ahead' && cs.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
+                    onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
+                    disabled={!cs && !can.edit}>
+                    <span className="igm-sq" aria-hidden />
+                    <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}</span>
+                    <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
+                  </button>
+                ))}
+              </div>
+              <span className="ig-says">
+                {r.view.says}
+                {r.view.ready && r.asset && can.edit && (
+                  <button className="cw-link" onClick={() => { if (r.asset) void markInstalled(r.asset); }}>Mark it installed today</button>
+                )}
+              </span>
+            </>
+          )}
+        </div>
+      ))}
+      {/* Below the machines, not above them: what is done for every machine
+          at once is the less common job, and the cards are what you came for. */}
+      <div className="igm-all">
+        <button className="cw-link" onClick={() => setOpen({ t: 'stages' })}>{can.agree ? 'Edit the stages' : 'The stages'}</button>
+        {can.edit && grid.columns.length > 0 && <>
+          <span className="sub">For every machine:</span>
+          {grid.columns.map((c, i) => <button key={c} className="igm-chip" onClick={() => setOpen({ t: 'col', col: i })}>{c}</button>)}
+        </>}
+      </div>
+    </div>
+  );
+
   return (
     <section className="ig">
       <p className="sub ig-hint">
         {can.edit
-          ? 'Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.'
-          : 'Tap a square to read its step, or a machine to read where it has got to.'}
+          ? phone ? 'Tap a stage to mark it done or plan it. Tap a machine’s name to do it for all its stages.'
+            : 'Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.'
+          : phone ? 'Tap a stage to read it, or a machine’s name to read where it has got to.'
+            : 'Tap a square to read its step, or a machine to read where it has got to.'}
         {bare.length > 1 && can.edit && (
           <> <button className="cw-link" onClick={() => void giveStages(bare)}>Give the {bare.length} new machines the {usual.length} stages</button></>
         )}
       </p>
+      {phone ? phoneCards() : (
       <div className="ig-wrap">
         <table className="ig-grid">
           <thead>
@@ -499,6 +592,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           </tbody>
         </table>
       </div>
+      )}
       {sheet}
     </section>
   );
