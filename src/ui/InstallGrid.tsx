@@ -108,6 +108,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   const [stepName, setStepName] = useState('');
   /* false: the stage sheet; true: Hit a problem, empty; filled: from a voice note. */
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
+  /* The stage sheet's dates and who, opened from "Change dates or who". */
+  const [planning, setPlanning] = useState(false);
   const phone = usePhone();
 
   if (grid.rows.length === 0) return null;
@@ -255,16 +257,13 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       return (
         <Sheet title={`${rowName(row.asset)} — ${t.title}`}
           sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${spanShort(t.plannedFor, plannedEnd(t))}` : 'no day yet'].join(' · ')}
-          onClose={() => { setOpen(null); setProblem(false); }}>
-          {/* WHAT HAPPENED TO IT — each problem with its pictures and the fix
-              it booked, here where the problem was written (ui/StageStory).
-              Rowland: "I marked it as a fix … it's just lost." Hidden while a
-              problem is being written, so the sheet is the one form. */}
-          {!problem && <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} />}
-          {/* A CLIENT READS where it stands (the line above) and opens the step. */}
-          {!can.edit ? (
+          onClose={() => { setOpen(null); setProblem(false); setPlanning(false); }}>
+          {/* A CLIENT READS where it stands (the line above), what happened to
+              it, and opens the step. */}
+          {!can.edit ? <>
+            <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} />
             <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
-          ) : <>
+          </> : <>
           {/* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
               the finish and to when, a fix. The plan hears all of it. */}
           {problem ? (
@@ -293,24 +292,39 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             )}
           </div>
           <SayStep step={t} tt={tt} onDone={() => setOpen(null)} onProblem={f => setProblem(f)} />
-          {/* A START AND A FINISH, SAVED TOGETHER. Rowland: "it doesn't have a
-              save button, and it doesn't close." Two boxes that each wrote the
-              moment they changed gave no sign anything was kept and left the
-              sheet open. Now they are held until Save, which writes both,
-              says so, and closes. Finish empty = one day. */}
-          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
-            following={end => followingSummary(t, tt.tests, end)}
-            onMove={(from, to, a) => {
-              void moveWithWhy([t], from, to, a, `${t.title} moved to ${short(to ?? from)} — reason kept${a.fix ? ', fix booked' : ''}`);
-              setOpen(null);
-            }}
-            onSave={(from, to) => {
-              void change([t], () => ({ plannedFor: from, plannedTo: to }),
-                `${t.title} ${from ? (to && to > from ? `planned ${short(from)} to ${short(to)}` : `planned ${short(from)}`) : 'has no dates'}`);
-              setOpen(null);
-            }} />
-          {/* Save closes the sheet, as Done today and the dates do. */}
-          <Who names={names} value={t.withWhom ?? ''} onSave={v => { void change([t], () => ({ withWhom: v || undefined }), `${t.title} — ${v || 'nobody named'}`); setOpen(null); }} />
+          {/* WHAT HAPPENED TO IT — each problem with its pictures and the fix
+              it booked, here where the problem was written (ui/StageStory).
+              Rowland: "I marked it as a fix … it's just lost." */}
+          <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} />
+          {/* THE PLANNING, BEHIND ONE BUTTON. Rowland, 5 October, on the phone:
+              "too much on a screen." The sheet opened on the floor's three
+              actions and then a start, a finish and who, each with its own
+              Save — three Saves on one sheet. The dates and who are what was
+              planned, said in the line under the title; changing them is one
+              tap away, and one Save keeps both (and asks why when the finish
+              moves later, as before). */}
+          {planning ? (
+            <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
+              who={{ names, value: t.withWhom ?? '' }}
+              following={end => followingSummary(t, tt.tests, end)}
+              onMove={(from, to, a, who) => {
+                void (async () => {
+                  await moveWithWhy([t], from, to, a, `${t.title} moved to ${short(to ?? from)} — reason kept${a.fix ? ', fix booked' : ''}${who !== undefined ? ` · ${who || 'nobody named'}` : ''}`);
+                  if (who !== undefined) await tt.patchTest(t.id, { withWhom: who || undefined });
+                })();
+                setPlanning(false); setOpen(null);
+              }}
+              onSave={(from, to, who) => {
+                const dates = from !== t.plannedFor || to !== t.plannedTo;
+                void change([t], () => ({ plannedFor: from, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}) }),
+                  [dates ? `${t.title} ${from ? (to && to > from ? `planned ${short(from)} to ${short(to)}` : `planned ${short(from)}`) : 'has no dates'}` : t.title,
+                    who !== undefined ? (who || 'nobody named') : ''].filter(Boolean).join(' — '));
+                setPlanning(false); setOpen(null);
+              }}
+              onCancel={() => setPlanning(false)} />
+          ) : (
+            <button className="btn btn-ghost ig-plan-go" onClick={() => setPlanning(true)}>Change dates or who</button>
+          )}
           <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
           </>}
           </>}
@@ -622,23 +636,30 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
 }
 
 /** ONE STEP'S START AND FINISH, held until Save. */
-export function DatesForm({ start, finish, was, onSave, onMove, following }: {
+export function DatesForm({ start, finish, was, onSave, onMove, following, who, onCancel }: {
   start?: string; finish?: string;
   /** What follows on the machine, for a finish this late — the knock-on. */
   following?: (end: string) => Following;
   /** The finish it has now — a push past it asks why. */
   was?: string;
-  onSave: (from: string | undefined, to: string | undefined) => void;
-  onMove: (from: string, to: string | undefined, a: WhyAnswer) => void;
+  /** Who is doing it, in the same form and kept by the same Save (the stage
+   *  sheet). The third argument of each save is the new name when it changed. */
+  who?: { names: string[]; value: string };
+  onSave: (from: string | undefined, to: string | undefined, who?: string) => void;
+  onMove: (from: string, to: string | undefined, a: WhyAnswer, who?: string) => void;
+  /** A way to close it without saving, where it was opened on purpose. */
+  onCancel?: () => void;
 }) {
   const [from, setFrom] = useState(start ?? '');
   const [to, setTo] = useState(finish ?? '');
+  const [name, setName] = useState(who?.value ?? '');
   const [asking, setAsking] = useState(false);
-  const changed = from !== (start ?? '') || to !== (finish ?? '');
+  const whoNow = who && name.trim() !== who.value.trim() ? name.trim() : undefined;
+  const changed = from !== (start ?? '') || to !== (finish ?? '') || whoNow !== undefined;
   const end = from ? (to || from) : undefined;
   if (asking && was && end) {
-    return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a)}
-      onSkip={() => onSave(from || undefined, from ? (to || undefined) : undefined)} />;
+    return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a, whoNow)}
+      onSkip={() => onSave(from || undefined, from ? (to || undefined) : undefined, whoNow)} />;
   }
   /* A FORM, so Enter in a date box saves, as it does in "Who is doing it"
      beside it. On a laptop the dates were the one pair Enter did nothing in. */
@@ -648,16 +669,27 @@ export function DatesForm({ start, finish, was, onSave, onMove, following }: {
       if (!changed) return;
       /* PUSHED LATER? Then it asks why before anything is kept. */
       if (movedLater(was, end)) { setAsking(true); return; }
-      onSave(from || undefined, from ? (to || undefined) : undefined);
+      onSave(from || undefined, from ? (to || undefined) : undefined, whoNow);
     }}>
       <div className="ig-dates">
         <label className="cw-f ig-f"><span>Starts</span>
           <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
         <label className="cw-f ig-f"><span>Finishes <span className="cw-f-opt">blank = one day</span></span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
-        <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>
+        {!who && <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>}
       </div>
+      {who && <>
+        <label className="cw-f ig-f"><span>Who is doing it</span>
+          <input list="ig-names" value={name} onChange={e => setName(e.target.value)} placeholder="Brillopak fitter, site electrician…" /></label>
+        <datalist id="ig-names">{who.names.map(n => <option key={n} value={n} />)}</datalist>
+      </>}
       {movedLater(was, end) && <p className="sub ig-why-note">That is later than it was ({short(was)}) — Save will ask why.</p>}
+      {who && (
+        <span className="ig-plan-acts">
+          <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>
+          {onCancel && <button className="btn btn-ghost" type="button" onClick={onCancel}>Cancel</button>}
+        </span>
+      )}
     </form>
   );
 }

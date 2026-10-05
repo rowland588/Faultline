@@ -7915,6 +7915,11 @@ span.ls-role:hover { border-color: transparent; }
 .ig-dates { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .ig-dates .cw-f { flex: 1 1 140px; min-width: 0; }
 .ig-plan-l { display: block; margin: 6px 0 4px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+/* The stage sheet's dates and who (ui/InstallGrid): one button until wanted,
+   then both in one form with one Save. */
+.ig-plan-go { justify-self: start; }
+.ig-plan:has(.ig-plan-acts) { display: grid; gap: 10px; }
+.ig-plan-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* A stage-gate job on the Home board, drawn as its gates — each a bar from the
    day anything at it starts to the day it finishes. */
