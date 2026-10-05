@@ -16,7 +16,7 @@ import { useState } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
 import type { PaceAction } from '../lib/tracker';
-import { blamesAPerson, GRADES, SIXM, sixmLabel, type Cause, type CauseSource, type CauseStatus, type Grade, type Why } from '../lib/sixm';
+import { blamesAPerson, GRADES, KNOWN_WORD, SIXM, sixmLabel, type Cause, type CauseSource, type CauseStatus, type Grade, type Why } from '../lib/sixm';
 import { statusOfAction } from '../lib/treeBind';
 import { uid } from '../lib/ids';
 import { plural } from '../lib/format';
@@ -60,6 +60,10 @@ const ACTION_STATE: Record<string, string> = {
 };
 
 const gradeOf = (g?: Grade) => GRADES.find(x => x.key === g);
+/** How it is known, in the working method's words — Seen · Data · Counted ·
+ *  Told (lib/sixm KNOWN_WORD) — so the sheet says what the problem card and
+ *  the fish say. The stored keys do not change. */
+const known = (g: Grade) => KNOWN_WORD[g].charAt(0).toUpperCase() + KNOWN_WORD[g].slice(1);
 const filled = (w: Why[]) => w.filter(x => x.text.trim());
 const short = (s: string, n = 64) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
@@ -169,7 +173,7 @@ export function CauseSheet(p: CauseSheetProps) {
                 {GRADES.map(x => (
                   <button key={x.key} type="button" role="radio" aria-checked={c.grade === x.key}
                     className={'cs-grade' + (c.grade === x.key ? ' on' : '')} onClick={() => set({ grade: x.key })}>
-                    <GradeMeter grade={x.key} /><b>{x.label}</b><span>{x.blurb}</span>
+                    <GradeMeter grade={x.key} /><b>{known(x.key)}</b><span>{x.blurb}</span>
                   </button>
                 ))}
               </div>
@@ -189,7 +193,7 @@ export function CauseSheet(p: CauseSheetProps) {
           </>
         ) : (
           <p className="cs-ro-meta">
-            On <b>{sixmLabel(c.m)}</b> · {g && <><GradeMeter grade={g.key} /> <b>{g.label}</b> ({g.blurb})</>} · <b>{STATUS_WORD[c.status]}</b>
+            On <b>{sixmLabel(c.m)}</b> · {g && <><GradeMeter grade={g.key} /> <b>{known(g.key)}</b> ({g.blurb})</>} · <b>{STATUS_WORD[c.status]}</b>
           </p>
         )}
 
@@ -234,7 +238,7 @@ export function CauseSheet(p: CauseSheetProps) {
                           <select className="cs-why-g" aria-label={`How why ${i + 1} is known`} value={w.grade ?? ''}
                             onChange={e => setWhy(w.id, { grade: (e.target.value || undefined) as Grade | undefined })}>
                             <option value="">How known?</option>
-                            {GRADES.map(x => <option key={x.key} value={x.key}>{x.label}</option>)}
+                            {GRADES.map(x => <option key={x.key} value={x.key}>{known(x.key)}</option>)}
                           </select>
                           <button type="button" className="cs-x" onClick={() => dropWhy(w.id)} aria-label={`Take out why ${i + 1}`}>×</button>
                         </span>
@@ -243,7 +247,7 @@ export function CauseSheet(p: CauseSheetProps) {
                     {edit
                       ? <LineField label={`Why ${i + 1}`} value={w.text} placeholder="Because…" autoFocus={focusWhy === w.id}
                           onChange={v => setWhy(w.id, { text: v })} onEnter={() => nextWhy(i)} />
-                      : <p className="cs-why-a">{w.text}{wg && <span className="cs-why-gw"><GradeMeter grade={wg.key} /> {wg.label.toLowerCase()}</span>}</p>}
+                      : <p className="cs-why-a">{w.text}{wg && <span className="cs-why-gw"><GradeMeter grade={wg.key} /> {KNOWN_WORD[wg.key]}</span>}</p>}
                     {ask && <p className="cs-ask" role="note">{ask}</p>}
                   </li>
                 );
@@ -283,14 +287,15 @@ export function CauseSheet(p: CauseSheetProps) {
           )}
         </div>
 
-        {/* WHAT IS BEING DONE ABOUT IT */}
+        {/* WHAT IS BEING DONE ABOUT IT — "Fix", the working method's word for a
+            countermeasure (docs/SIXM.md), as the problem card says it. */}
         {!draft && (
           <div className="cs-f cs-cms">
-            <span className="cs-k">Countermeasures</span>
+            <span className="cs-k">Fix</span>
             {cms.length > 0 ? (
               <>
                 <p className="cs-cms-say">
-                  {plural(cms.length, 'countermeasure')}
+                  {plural(cms.length, 'fix', 'fixes')}
                   {late > 0 && <> · <b className="is-r">{late} past due</b></>}
                   {done > 0 && <> · {done} done</>}
                 </p>
@@ -314,7 +319,7 @@ export function CauseSheet(p: CauseSheetProps) {
               </>
             ) : <p className="cs-quiet">Nothing is being done about it yet.</p>}
             {edit && (
-              <button type="button" className="btn cs-cm-add" onClick={() => onAddCountermeasure(tidyCause(c))}>+ Add a countermeasure</button>
+              <button type="button" className="btn cs-cm-add" onClick={() => onAddCountermeasure(tidyCause(c))}>+ Add a fix</button>
             )}
           </div>
         )}

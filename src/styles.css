@@ -8769,6 +8769,113 @@ button.gt-walklab small.is-done { color: var(--st-g); }
 .fj-lead-fish { cursor: pointer; border-radius: 10px; }
 .fj-lead-fish:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
 
+/* THE WORKING BOARD — the fishbone page on a laptop (docs/SIXM.md, the
+   working method): the problems and the Pareto on the left, the problem's
+   four parts and its fish on the right. A phone stacks the same pieces. */
+.fj-board { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
+.fj-left { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; min-width: 0; max-height: calc(100vh - 24px); overflow-y: auto; }
+.fj-left .fj-prob { flex: 1 1 100%; }
+.fj-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* THE PROBLEM CARD — ui/ProblemCard.tsx. Problem · Why · Fix · Did it work,
+   top to bottom; the phase is the only state colour on its edge. */
+.pc { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--st-w); border-radius: 12px; }
+.pc.is-g { border-left-color: var(--st-g); }
+.pc.is-r { border-left-color: var(--st-r); border-color: color-mix(in srgb, var(--st-r) 45%, var(--line)); }
+.pc-part { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--line); min-width: 0; }
+.pc-part:first-child { border-top: 0; }
+.pc-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.pc-n { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--ink-2); font-size: 12px; font-weight: 800; color: var(--ink-2); }
+.pc-t { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
+.pc-state { margin-left: auto; font-size: 13px; color: var(--muted); }
+.pc-state b { color: var(--st-r); }
+.pc-title { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.pc-num { margin: 0; font-size: 15px; color: var(--ink-2); }
+.pc .fb-num-t { display: inline; margin-left: 8px; }
+.pc-says { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+.pc-src { margin: 0; font-size: 13px; color: var(--muted); }
+.pc-src b { color: var(--ink-2); font-weight: 650; }
+.pc-facts { margin: 0; display: grid; gap: 4px; }
+.pc-facts > div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.pc-facts dt { font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.pc-facts dd { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
+.pc-quiet { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+.pc-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pc-acts .btn { min-height: 44px; }
+.pc-ask { color: var(--accent); }
+
+/* a chain: the first answer, each why stepped in under it */
+.pc-chains { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pc-chain {
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; box-sizing: border-box;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+}
+.pc-chain:hover { border-color: var(--brand); }
+.pc-chain:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pc-chain.is-ruled_out .pc-a-t { color: var(--muted); text-decoration: line-through; }
+.pc-chain-k { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.pc-bone { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-2); padding: 1px 6px; border: 1px solid var(--line-2); border-radius: 4px; }
+.pc-answers { display: flex; flex-direction: column; gap: 4px; }
+.pc-a { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-left: calc(var(--d, 0) * 14px); font-size: 14.5px; line-height: 1.4; }
+.pc-a + .pc-a { border-left: 1.5px solid var(--line-2); padding-left: 8px; }
+.pc-a-t { min-width: 0; overflow-wrap: anywhere; }
+.pc-a.is-root .pc-a-t { font-weight: 700; }
+.pc-known { font-size: 11.5px; color: var(--muted); padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; line-height: 1.6; }
+.pc-root { display: inline-block; padding: 1px 6px; border-radius: 4px; background: var(--ink); color: var(--surface); font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.pc-backs { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); }
+.pc-back { font-size: 13px; font-style: italic; line-height: 1.4; color: var(--ink-2); }
+.pc-look { font-size: 13px; color: var(--ink-2); }
+.pc-next { font-size: 13px; color: var(--accent); font-weight: 600; }
+
+/* asking why: the stops' breakdown as one-tap first answers */
+.pc-asking { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed var(--line-2); border-radius: 10px; }
+.pc-q { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.pc-starts { display: flex; flex-direction: column; gap: 6px; }
+.pc-start {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; box-sizing: border-box; width: 100%;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+}
+.pc-start:hover:not(:disabled) { border-color: var(--brand); }
+.pc-start-t { font-size: 14.5px; font-weight: 650; overflow-wrap: anywhere; }
+.pc-start-s { font-size: 12.5px; color: var(--muted); }
+
+/* the whys as heard, before they go on */
+.pc-rv { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pc-rv-a { display: flex; flex-direction: column; gap: 4px; }
+.pc-rv-row { display: flex; align-items: flex-start; gap: 4px; }
+.pc-rv-row .cs-line { flex: 1 1 auto; }
+.pc-rv-add { justify-self: start; align-self: flex-start; min-height: 44px; color: var(--accent); }
+.pc-rv-bone { display: flex; flex-direction: column; gap: 6px; }
+
+/* a fix: the whole row opens it */
+.pc-fixes { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.pc-fixes > li + li { border-top: 1px solid var(--line); }
+.pc-fixrow { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 0; background: var(--surface); font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
+.pc-fixrow:hover { background: var(--surface-2); }
+.pc-fixrow.is-r { background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-r); }
+.pc-fixrow.is-g .cs-cm-t { font-weight: 500; color: var(--ink-2); }
+
+/* did it work */
+.pc-moved { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; font-size: 14.5px; color: var(--ink-2); }
+.pc-moved > b { color: var(--ink); font-weight: 650; }
+.pc-moved.is-n > b { color: var(--muted); font-weight: 500; }
+.pc-moved.is-w > b { color: var(--st-w); }
+.pc-moved.is-g > b { color: var(--st-g); }
+.pc-moved.is-r > b { color: var(--st-r); }
+.pc-told { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pc-told li { display: flex; flex-direction: column; gap: 1px; }
+.pc-told-t { font-size: 14px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.pc-told-s { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+.pc-foot { display: flex; justify-content: flex-end; padding: 8px 16px 12px; border-top: 1px solid var(--line); }
+.pc-foot .btn { min-height: 44px; }
+@media (max-width: 640px) {
+  .pc-part { padding: 12px 14px; }
+  .pc-title { font-size: 18px; }
+  .pc-state { margin-left: 0; flex-basis: 100%; }
+  .pc-acts .btn, .pc-acts .vo-wrap, .pc-acts .vo-btn { flex: 1 1 auto; }
+}
+
 /* 6M — the fishbone and the cause sheet
  * ui/Fishbone.tsx and ui/CauseSheet.tsx. The fish is laid out in real pixels
  * (ui/fishbone/layout.ts); these rules only dress it. The six bones are told

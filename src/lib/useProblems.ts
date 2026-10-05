@@ -172,8 +172,10 @@ export const checkedProblem = (problemId: string) =>
   patchCase(problemId, c => (c.hold ? { ...c, hold: { ...c.hold, lastChecked: todayISO() } } : c));
 
 /** The 6M problems on a project — or on one of its lines — as views, kept
- *  live: anything written anywhere re-reads them (debounced). */
-export function useProblems(projectId: string, lineId?: string): ProblemsApi {
+ *  live: anything written anywhere re-reads them (debounced). `data` is what
+ *  the views were built from, so a screen can read more off the same stops
+ *  (lib/fishbone factsOf, startingWhys) without loading them a second time. */
+export function useProblems(projectId: string, lineId?: string): ProblemsApi & { data: FishboneData | null } {
   const [loaded, setLoaded] = useState<LoadedProblems | null>(null);
   const [loading, setLoading] = useState(true);
   const timer = useRef<number | undefined>(undefined);
@@ -212,6 +214,7 @@ export function useProblems(projectId: string, lineId?: string): ProblemsApi {
   return {
     problems,
     loading,
+    data: loaded?.data ?? null,
     create: o => createProblem(projectId, { ...o, lineId: o.lineId ?? lineId }),
     saveCause: async (problemId, cause) => { mustExist(await saveCauseOn(problemId, cause), problemId); },
     removeCause: async (problemId, causeId) => { mustExist(await removeCauseFrom(problemId, causeId), problemId); },

@@ -21,7 +21,7 @@
 import { Fragment, useMemo, type CSSProperties } from 'react';
 import type { Can } from '../lib/access';
 import { PHASE_WORD, type Bone, type ProblemMeasure, type ProblemView, type Suggestion } from '../lib/problems';
-import { GRADES, sixmLabel, type Cause, type SixM } from '../lib/sixm';
+import { GRADES, KNOWN_WORD, sixmLabel, type Cause, type SixM } from '../lib/sixm';
 import { plural } from '../lib/format';
 import { boneWords, isRoot, layoutFish, lossWords, orderItems, STATUS_WORD, type Item } from './fishbone/layout';
 import { GradeMeter, RootTag, StatusGlyph } from './fishbone/marks';
@@ -86,7 +86,10 @@ const FRAME_X = { drawn: 2 + 2 * 18, lanes: 2 + 2 * 12 };
 /* ------------------------------- words ------------------------------- */
 
 const laneId = (v: ProblemView, m: SixM) => `fb-lane-${v.problem.id}-${m}`;
-const gradeLabel = (c: Cause) => GRADES.find(g => g.key === c.grade)?.label ?? '';
+/* How a cause is known, in the working method's words — seen · data ·
+   counted · told (lib/sixm KNOWN_WORD), the same on the card, the sheet and
+   the paper. The stored grade keys do not change. */
+const gradeLabel = (c: Cause) => KNOWN_WORD[c.grade] ?? '';
 
 /** 3.2 · 47.8 · 1,250 — a tenth below a hundred, whole numbers above: the
  *  same figure the sentence and the paper print (lib/fishbone rounds to a tenth). */
@@ -96,7 +99,7 @@ export function num(n: number): string {
 
 /** What a cause is, said in full — the mark's name for a screen reader, and its peek. */
 function causeSays(c: Cause, withRoot = true): string {
-  const bits = [gradeLabel(c).toLowerCase(), STATUS_WORD[c.status]];
+  const bits = [gradeLabel(c), STATUS_WORD[c.status]];
   if (withRoot && isRoot(c)) bits.push('the root');
   const whys = c.whys.filter(x => x.text.trim()).length;
   if (whys) bits.push(plural(whys, 'why', 'whys'));
@@ -110,8 +113,9 @@ function suggestionSays(s: Suggestion): string {
     .filter(Boolean).join(' · ');
 }
 
-/** The head's number: before → now in the problem's unit, and the target. */
-function Measure({ m }: { m: ProblemMeasure }) {
+/** The head's number: before → now in the problem's unit, and the target.
+ *  Shared with the problem card (ui/ProblemCard), so the two say one figure. */
+export function Measure({ m }: { m: ProblemMeasure }) {
   const has = (x?: number): x is number => x != null && Number.isFinite(x);
   return (
     <span className="fb-num">
@@ -383,7 +387,7 @@ function Key({ view }: { view: ProblemView }) {
       <span><RootTag />drilled to its root with the five whys</span>
       {anySugg && <span><StatusGlyph suggestion />the data suggests it — tap to look</span>}
       <span className="fb-key-g">How it is known:
-        {GRADES.map(g => <span key={g.key}><GradeMeter grade={g.key} />{g.label.toLowerCase()}</span>)}
+        {GRADES.map(g => <span key={g.key}><GradeMeter grade={g.key} />{KNOWN_WORD[g.key]}</span>)}
       </span>
       <span className="fb-key-say">Tap a cause to open it.</span>
     </p>

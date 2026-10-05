@@ -20,7 +20,7 @@
  * already on the line — its gap to target, the top bar of its Pareto, its
  * constraint, or something a named person saw — and that is kept on it as its
  * source, so the head of the fish always says where it came from. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, methodPeers } from '../ui/Peers';
@@ -29,6 +29,8 @@ import { AccessNote } from '../ui/AccessNote';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { Fishbone } from '../ui/Fishbone';
 import { CauseSheet } from '../ui/CauseSheet';
+import { ProblemCard, phaseTone, sourceWords } from '../ui/ProblemCard';
+import { ParetoPane } from '../ui/ParetoPane';
 import { SawSheet } from '../ui/SawSheet';
 import { useAccess } from '../cloud/access';
 import { useProject } from '../lib/useProjects';
@@ -40,27 +42,28 @@ import { useLineStops } from '../lib/useLineStops';
 import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { lineSeries, say } from '../lib/measures';
 import { analyse } from '../lib/capacity';
-import { PHASE_WORD, type Phase, type ProblemView, type ProblemsApi } from '../lib/problems';
+import { PHASE_WORD, type ProblemView, type ProblemsApi } from '../lib/problems';
 import { SIXM, type Cause, type CauseSource, type SixM } from '../lib/sixm';
 import type { Suggestion } from '../lib/problems';
 import type { Can } from '../lib/access';
 import type { Case } from '../types';
 import { removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
 import { offerUndo } from '../ui/Undo';
-import { drillOfRef, oldWhysOf } from '../lib/fishbone';
+import { drillOfRef, factsOf, oldWhysOf, startingWhys } from '../lib/fishbone';
 import { putOldWhysOnBone } from '../lib/useProblems';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
-import { statusOfAction } from '../lib/treeBind';
+import { useActions } from '../lib/actions';
+import type { PaceAction } from '../lib/tracker';
 import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
 
 /* ------------------------------ small words ------------------------------ */
 
-/** The house colour of a phase (CLAUDE.md, visual management): under way is
- *  indigo, holding or closed is the quiet green, slipped back is red. */
-export const phaseTone = (p: Phase): 'w' | 'g' | 'r' =>
-  p === 'slipped' ? 'r' : p === 'holding' || p === 'closed' ? 'g' : 'w';
+/* The phase's house colour and the source's words live with the problem card
+   (ui/ProblemCard), which says them first; kept exported from here so every
+   screen that imported them from the journey still finds them. */
+export { phaseTone, sourceWords };
 
 export const isOpenProblem = (v: ProblemView): boolean => v.problem.status === 'open';
 
@@ -106,6 +109,19 @@ function setQuery(patch: Record<string, string | undefined>): void {
   const qs = params.toString();
   navReplace(qs ? `${path}?${qs}` : path);
 }
+
+/* A LAPTOP: the page is wide enough for the working board (the Pareto on
+   the left, the problem and its fish on the right — docs/SIXM.md). */
+const WIDE = '(min-width: 1100px)';
+const wideNow = (): boolean => { try { return window.matchMedia(WIDE).matches; } catch { return false; } };
+const onWideChange = (cb: () => void): (() => void) => {
+  try {
+    const mq = window.matchMedia(WIDE);
+    mq.addEventListener('change', cb);
+    return () => mq.removeEventListener('change', cb);
+  } catch { return () => {}; }
+};
+export const useWide = (): boolean => useSyncExternalStore(onWideChange, wideNow, () => false);
 
 const DAY = 86_400_000;
 const hWeek = (mins: number): string => {
@@ -292,58 +308,13 @@ function HoldSheet({ open, view, onClose, onDone }: {
   );
 }
 
-/* ------------------------------ the problem's head ------------------------------ */
-
-function HeadCard({ v, can, onClose, onReopen, onChecked, onRemove }: {
-  v: ProblemView; can: Can;
-  onClose: () => void; onReopen: () => void; onChecked: () => void; onRemove: () => void;
-}) {
-  const m = v.measure;
-  const hold = v.problem.hold;
-  const open = isOpenProblem(v);
-  const counts = SIXM.map(b => v.bones.find(x => x.m === b.key)?.causes.length ?? 0);
-  const causes = counts.reduce((a, b) => a + b, 0);
-  const openActs = v.actions.filter(a => statusOfAction(a) !== 'g').length;
-  return (
-    <section className={'fj-head is-' + phaseTone(v.phase)}>
-      <div className="fj-head-main">
-        <p className="fj-head-k">
-          <span className={'fj-phase is-' + phaseTone(v.phase)}>{PHASE_WORD[v.phase]}</span>
-          {v.problem.source && <span className="fj-src">from {sourceWords(v.problem.source)}</span>}
-        </p>
-        <h2 className="fj-head-t">{v.problem.title}</h2>
-        {v.says && <p className="fj-head-s">{v.says}</p>}
-        <p className="fj-head-n">
-          {causes} cause{causes === 1 ? '' : 's'} on the bones · {v.roots.length} root{v.roots.length === 1 ? '' : 's'} found
-          {' '}· {v.actions.length} countermeasure{v.actions.length === 1 ? '' : 's'}{v.actions.length ? ` (${openActs} open)` : ''}
-        </p>
-      </div>
-      {/* The problem's own number — before, now, target — is drawn at the
-          head of the fish below, once; this card says where it stands. */}
-      {m?.moved && (
-        <p className="fj-moved">{m.label}: {m.moved === 'same' ? 'not moved yet' : m.moved === 'better' ? 'moved the right way' : <b className="is-worse">moved the wrong way</b>}</p>
-      )}
-      {!open && hold && (
-        <p className="fj-holdline">
-          Kept by: <b>{hold.what}</b>{hold.who ? ` · ${hold.who}` : ''} · every {hold.everyDays === 1 ? 'day' : `${hold.everyDays} days`}
-          {' '}· {hold.standardUpdated ? 'standard updated' : 'standard not updated yet'}
-          {hold.lastChecked ? ` · last checked ${hold.lastChecked}` : ' · not checked yet'}
-        </p>
-      )}
-      <div className="fj-head-acts">
-        {!open && hold && can.edit && <button className="btn" onClick={onChecked}>Checked today</button>}
-        {/* "It worked" is only true once something was done about it. */}
-        {open && can.agree && <button className="btn" onClick={onClose}>{v.actions.length ? 'It worked — close it' : 'Close it'}</button>}
-        {!open && can.agree && <button className="btn btn-ghost" onClick={onReopen}>Reopen</button>}
-        {/* A PROBLEM OPENED BY MISTAKE IS REMOVED, NOT CLOSED: closing asks how
-            the gain is kept, which is wrong for a problem that was never real.
-            Owner only (the database lets only the owner set deleted_at), quiet,
-            and undone for a few seconds like every delete (ui/Undo). */}
-        {can.remove && <button className="btn btn-ghost cw-del fj-remove" onClick={onRemove}>Remove this problem</button>}
-      </div>
-    </section>
-  );
-}
+/* THE HEAD CARD BECAME THE PROBLEM CARD (ui/ProblemCard, 5 October — the
+   working method, docs/SIXM.md). Everything it carried is still on screen, in
+   the part that owns it: the phase, the source, the title and the sentence in
+   PROBLEM; "it moved the right way", the hold line, "Checked today", close and
+   reopen in DID IT WORK; "Remove this problem" at the card's foot. Its count
+   line ("4 causes · 1 root · 2 countermeasures") is said once, by the WHY and
+   FIX parts' own headers — the same numbers, beside the things they count. */
 
 /* ------------------------------ the old five whys ------------------------------ */
 
@@ -389,15 +360,6 @@ function OldWhys({ whys, can, onPut }: { whys: string[]; can: Can; onPut: (m: Si
   );
 }
 
-export function sourceWords(s: NonNullable<Case['source']>): string {
-  switch (s.kind) {
-    case 'gap': return 'the line’s gap';
-    case 'pareto': return `the Pareto${s.category ? ` — ${s.category}${s.asset ? `, ${s.asset}` : ''}` : ''}`;
-    case 'constraint': return `the constraint${s.station ? ` — ${s.station}` : ''}`;
-    default: return 'something seen';
-  }
-}
-
 /* --------------------------------- the journey --------------------------------- */
 
 type Editing6 = { cause: Cause; draft: boolean } | null;
@@ -431,6 +393,13 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
   );
   const view = mine.find(p => p.problem.id === askedProblem) ?? mainProblem(mine);
   const doors = useDoors(projectId, line);
+  const board = useActions(projectId);
+  const wide = useWide();
+
+  /* Where the problem is and is not, and the bar's breakdown as first
+     answers — read off the same stops the views were built from, today. */
+  const facts = useMemo(() => (view && api.data ? factsOf(view.problem, api.data) : { is: [], isNot: [] }), [view, api.data]);
+  const starts = useMemo(() => (view && api.data ? startingWhys(view.problem, api.data) : []), [view, api.data]);
 
   /* ?open=1 — sent here by "Open a problem" on the project's front page. */
   const [opening, setOpening] = useState(() => route.query.get('open') === '1' && can.edit);
@@ -471,12 +440,14 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
      cause is kept first; the cause opens again when the action is written,
      with the new countermeasure listed under it. */
   const [backTo, setBackTo] = useState<string | null>(null);
-  const addCountermeasure = async (cause: Cause) => {
+  const addCountermeasure = async (cause: Cause, fromSheet = true) => {
     if (!view) return;
     const stored = view.bones.flatMap(b => b.causes).find(c => c.id === cause.id);
     if (!stored || JSON.stringify(stored) !== JSON.stringify(cause)) await api.saveCause(view.problem.id, cause);
     setEditing(null);
-    setBackTo(cause.id);
+    /* Back to the cause sheet only when it was opened from there; "Add a fix"
+       on the card comes back to the card, where the new fix is listed. */
+    setBackTo(fromSheet ? cause.id : null);
     const t = Date.now();
     setAction({
       isNew: true,
@@ -539,33 +510,36 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
 
   const timeAStop = async () => { nav(`/w/${await ws.ensure()}/capture`); };
 
+  /* A fix tapped on the card: the board's own row, in the one action editor
+     (which reads for a client and edits for the team — ui/ActionSheet). */
+  const openFix = (a: PaceAction) => {
+    const step = board.steps.find(st => st.id === (a.uid ?? a.ref));
+    if (step) setAction({ step, isNew: false });
+  };
+
   if (ppm.loading || api.loading) return <p className="sub">Loading…</p>;
 
-  return (
-    <div className="fj">
-      {!fixedLine && ppm.lines.length > 1 && (
-        <div className="fj-lines" role="group" aria-label="Which line">
-          {ppm.lines.map(l => (
-            <button key={l.id} className={'chip' + (l.id === lineId ? ' on' : '')} aria-pressed={l.id === lineId}
-              onClick={() => pickLine(l.id)}>{l.name}</button>
-          ))}
-        </div>
+  /* THE PROBLEMS ON THIS LINE — each its title and where it is, in words.
+     On a phone it is the page's picker; on a laptop it heads the left
+     column, over the Pareto — the gap's and the constraint's problems are not
+     bars, so the Pareto alone could not pick them. */
+  const picker = (
+    <div className="fj-probs" role="group" aria-label="Which problem">
+      {mine.map(p => (
+        <button key={p.problem.id} className={'fj-prob' + (p.problem.id === view?.problem.id ? ' on' : '')}
+          aria-pressed={p.problem.id === view?.problem.id} onClick={() => pick(p.problem.id)}>
+          <span className="fj-prob-t">{p.problem.title}</span>
+          <span className={'fj-phase is-' + phaseTone(p.phase)}>{PHASE_WORD[p.phase]}</span>
+        </button>
+      ))}
+      {can.edit && (
+        <button className="fj-prob is-new" onClick={() => setOpening(true)}>+ Open a problem</button>
       )}
+    </div>
+  );
 
-      {/* THE PROBLEMS ON THIS LINE — each its title and where it is, in words. */}
-      <div className="fj-probs" role="group" aria-label="Which problem">
-        {mine.map(p => (
-          <button key={p.problem.id} className={'fj-prob' + (p.problem.id === view?.problem.id ? ' on' : '')}
-            aria-pressed={p.problem.id === view?.problem.id} onClick={() => pick(p.problem.id)}>
-            <span className="fj-prob-t">{p.problem.title}</span>
-            <span className={'fj-phase is-' + phaseTone(p.phase)}>{PHASE_WORD[p.phase]}</span>
-          </button>
-        ))}
-        {can.edit && (
-          <button className="fj-prob is-new" onClick={() => setOpening(true)}>+ Open a problem</button>
-        )}
-      </div>
-
+  const work = (
+    <>
       {/* A link to a problem that has gone — removed, or not on this device —
           says so, rather than quietly showing another problem in its place. */}
       {askedProblem && !asked && (
@@ -583,16 +557,21 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
         </div>
       ) : (
         <>
-          <HeadCard v={view} can={can}
+          <ProblemCard view={view} can={can} facts={facts} starts={starts} steps={board.steps} by={by} newId={uid}
+            voiceContext={() => ({ today: todayISO(), on: { title: view.problem.title } })}
+            oldWhys={oldWhysOf(view.problem).length > 0 ? (
+              <OldWhys whys={oldWhysOf(view.problem)} can={can}
+                onPut={async m => { if (can.edit) await putOldWhysOnBone(view.problem.id, m, by); }} />
+            ) : undefined}
+            onOpenCause={c => setEditing({ cause: c, draft: false })}
+            onWriteCause={m => setEditing({ cause: { ...draftFrom(m), ...(by ? { by } : {}) }, draft: true })}
+            onSaveCause={async c => { if (can.edit) await api.saveCause(view.problem.id, c); }}
+            onAddFix={c => void addCountermeasure(c, false)}
+            onOpenFix={openFix}
             onClose={() => setClosing(true)}
             onReopen={() => void api.reopen(view.problem.id)}
             onChecked={() => void api.checked(view.problem.id)}
             onRemove={() => void removeProblem(view)} />
-
-          {oldWhysOf(view.problem).length > 0 && (
-            <OldWhys whys={oldWhysOf(view.problem)} can={can}
-              onPut={async m => { if (can.edit) await putOldWhysOnBone(view.problem.id, m, by); }} />
-          )}
 
           {can.edit && (
             <div className="fj-tools">
@@ -601,11 +580,43 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
             </div>
           )}
 
+          {/* THE FISH DRAWS ITSELF FROM THE CHAINS — under the four parts, on
+              a laptop and a phone alike (docs/SIXM.md, the working method). */}
           <Fishbone view={view} can={can}
             onCause={(c: Cause) => setEditing({ cause: c, draft: false })}
             onSuggestion={(s: Suggestion) => setEditing({ cause: draftFrom(s.m, s), draft: true })}
             onAdd={(m: SixM) => setEditing({ cause: draftFrom(m), draft: true })} />
+        </>
+      )}
+    </>
+  );
 
+  return (
+    <div className={'fj' + (wide ? ' is-board' : '')}>
+      {!fixedLine && ppm.lines.length > 1 && (
+        <div className="fj-lines" role="group" aria-label="Which line">
+          {ppm.lines.map(l => (
+            <button key={l.id} className={'chip' + (l.id === lineId ? ' on' : '')} aria-pressed={l.id === lineId}
+              onClick={() => pickLine(l.id)}>{l.name}</button>
+          ))}
+        </div>
+      )}
+
+      {/* ON A LAPTOP THE PAGE IS THE WORKING BOARD: the problems and the
+          Pareto on the left, the selected problem's four parts on the right,
+          its fish beneath them. On a phone the same page stacks. */}
+      {wide ? (
+        <div className="fj-board">
+          <aside className="fj-left" aria-label="The problems and where the time goes">
+            {picker}
+            <ParetoPane projectId={projectId} lineId={lineId} selected={view?.problem} onOpen={id => setQuery({ problem: id })} />
+          </aside>
+          <div className="fj-right">{work}</div>
+        </div>
+      ) : (
+        <>
+          {picker}
+          {work}
         </>
       )}
 
@@ -616,7 +627,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
         <CauseSheet open view={view} cause={editing.cause} draft={editing.draft} can={can}
           onSave={(c: Cause) => api.saveCause(view.problem.id, c)}
           onRemove={(id: string) => api.removeCause(view.problem.id, id)}
-          onAddCountermeasure={(c: Cause) => void addCountermeasure(c)}
+          onAddCountermeasure={(c: Cause) => void addCountermeasure(c, true)}
           onOpenSource={(s: CauseSource) => void openSource(s)}
           onClose={() => setEditing(null)} />
       )}
