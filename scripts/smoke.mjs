@@ -121,7 +121,13 @@ const ROUTES = [
   ['fishbone — acting', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}`],
   ['fishbone — holding', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.closedProblemId}`],
   ['fishbone — old whys', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.oldCaseId}`],
-  ['fishbone — cause open', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&open=1`],
+  ['fishbone — open a problem', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&open=1`],
+  /* The fishbone page as its own place: a cause's panel, the problem's
+     panel, a link to a cause that has gone, and "Read it through". */
+  ['fishbone — a cause panel', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&cause=rail`],
+  ['fishbone — the problem panel', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&panel=problem`],
+  ['fishbone — a cause gone', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&cause=nope`],
+  ['fishbone — read it through', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.closedProblemId}&view=read`],
   ['fishbone — not this method', `#/project/${seeded.treeProjectId}/fishbone`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],

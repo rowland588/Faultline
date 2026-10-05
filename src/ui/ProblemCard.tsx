@@ -20,7 +20,13 @@
  * fishbone lens; the client report prints each problem as the same four parts
  * beside its fish. Access: a client reads every part and is offered no
  * button; can.edit works it, can.agree closes or reopens, can.remove removes.
- * Pure: the page loads and saves. */
+ * Pure: the page loads and saves.
+ *
+ * IN PARTS, FOR THE FISHBONE PAGE (5 October — ui/FishbonePanels): a cause's
+ * panel reuses one chain's WHY (ChainWhy — the same Chain, Ask the next why,
+ * Say the whys under it) and its FIX (ChainFix — the same FixRows, + Add a
+ * fix); the problem panel is this card with chainsOnFish, its chains left on
+ * the fish. One set of words and controls, wherever they are drawn. */
 import { useState, type ReactNode } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
@@ -176,6 +182,10 @@ export interface ProblemCardProps {
   onReopen: () => void;
   onChecked: () => void;
   onRemove: () => void;
+  /** The chains are drawn on the fish beside this card (the fishbone page's
+   *  problem panel): WHY says how many and offers a new one, rather than
+   *  listing them a second time. */
+  chainsOnFish?: boolean;
 }
 
 export function ProblemCard(p: ProblemCardProps) {
@@ -211,7 +221,7 @@ function PartHead({ n, title, state, tone }: { n: number; title: string; state?:
 
 /* --------------------------------- problem --------------------------------- */
 
-function ProblemPart({ view: v, facts }: ProblemCardProps) {
+export function ProblemPart({ view: v, facts }: ProblemCardProps) {
   const src = v.problem.source;
   const none = !facts.is.length && !facts.isNot.length;
   return (
@@ -239,7 +249,7 @@ function ProblemPart({ view: v, facts }: ProblemCardProps) {
 
 /* ----------------------------------- why ----------------------------------- */
 
-function WhyPart(p: ProblemCardProps) {
+export function WhyPart(p: ProblemCardProps) {
   const { view: v, can, starts, onOpenCause, onWriteCause, onSaveCause, newId, by } = p;
   const chains = v.bones.flatMap(b => b.causes);
   const roots = chains.filter(isRoot).length;
@@ -268,7 +278,10 @@ function WhyPart(p: ProblemCardProps) {
       {chains.length === 0 && !p.oldWhys && (
         <p className="pc-quiet">{can.edit ? 'No why yet — ask why.' : 'No why yet.'}</p>
       )}
-      {chains.length > 0 && (
+      {chains.length > 0 && p.chainsOnFish && (
+        <p className="pc-quiet">Each chain is on the fish — tap one to open its whys and its fixes.</p>
+      )}
+      {chains.length > 0 && !p.chainsOnFish && (
         <ul className="pc-chains">
           {chains.map(c => <li key={c.id}><Chain c={c} problemTitle={title} can={can} onOpen={() => onOpenCause(c)} /></li>)}
         </ul>
@@ -314,7 +327,7 @@ function WhyPart(p: ProblemCardProps) {
 /** One chain: the first answer, each why indented under it, how each is
  *  known, the root marked, its bone, and the read-back under a root. The
  *  whole block opens the cause sheet — where the whys are worked. */
-function Chain({ c, problemTitle, can, onOpen }: { c: Cause; problemTitle: string; can: Can; onOpen: () => void }) {
+export function Chain({ c, problemTitle, can, onOpen }: { c: Cause; problemTitle: string; can: Can; onOpen: () => void }) {
   const answers = answersOf(c);
   const root = isRoot(c);
   const back = root ? therefore(c, problemTitle) : [];
@@ -346,11 +359,14 @@ function Chain({ c, problemTitle, can, onOpen }: { c: Cause; problemTitle: strin
 }
 
 /** SAY THE WHYS, REVIEWED: the chain as heard, each answer editable, its bone,
- *  and the blame prompt — nothing is put on the fish until "Put it on". */
-function WhysReview({ heard, problem, onSave, onDiscard }: {
-  heard: VoiceResult; problem: Case;
+ *  and the blame prompt — nothing is put on the fish until "Put it on".
+ *  "under": the whys go on under that chain's deepest answer (a cause's panel
+ *  on the fishbone page), so there is no bone to pick — it is the chain's. */
+function WhysReview({ heard, problem, under, onSave, onDiscard }: {
+  heard: VoiceResult; problem: Case; under?: Cause;
   onSave: (words: string[], m: SixM) => Promise<void>; onDiscard: () => void;
 }) {
+  const deepest = under ? answersOf(under).slice(-1)[0]?.text : undefined;
   const fill = whysFill(heard);
   const [words, setWords] = useState<string[]>(() =>
     fill.chain.length ? fill.chain : heard.transcript.trim() ? [heard.transcript.trim()] : ['']);
@@ -372,9 +388,9 @@ function WhysReview({ heard, problem, onSave, onDiscard }: {
       <ol className="pc-rv">
         {words.map((w, i) => (
           <li key={i} className="pc-rv-a">
-            <span className="vo-row-l">{i === 0 ? `Why does “${problem.title.trim() || 'it'}” happen?` : 'Why?'}</span>
+            <span className="vo-row-l">{i === 0 && !under ? `Why does “${problem.title.trim() || 'it'}” happen?` : i === 0 && deepest ? `Why “${short(deepest, 60)}”?` : 'Why?'}</span>
             <span className="pc-rv-row">
-              <LineField label={i === 0 ? 'The first answer' : `Why ${i}`} value={w} placeholder="Because…"
+              <LineField label={i === 0 && !under ? 'The first answer' : `Why ${i + (under ? 1 : 0)}`} value={w} placeholder="Because…"
                 onChange={x => setWords(ws => ws.map((y, j) => (j === i ? x : y)))} />
               {words.length > 1 && (
                 <button type="button" className="cs-x" aria-label={`Take out answer ${i + 1}`}
@@ -386,7 +402,7 @@ function WhysReview({ heard, problem, onSave, onDiscard }: {
       </ol>
       <button type="button" className="btn btn-ghost pc-rv-add" disabled={!words[words.length - 1]?.trim()}
         onClick={() => setWords(ws => [...ws, ''])}>+ Another why</button>
-      <div className="pc-rv-bone">
+      {!under && <div className="pc-rv-bone">
         <span className="vo-row-l">On the bone</span>
         <div className="cs-chips" role="radiogroup" aria-label="Which bone">
           {SIXM.map(b => (
@@ -394,12 +410,14 @@ function WhysReview({ heard, problem, onSave, onDiscard }: {
               className={'cs-chip' + (m === b.key ? ' on' : '')} onClick={() => setM(b.key)}>{b.label}</button>
           ))}
         </div>
-      </div>
+      </div>}
       {blame && <p className="cs-ask" role="note">{blame}</p>}
-      <p className="pc-quiet">It goes on as told — said, not yet seen — and suspected. Mark the root in the chain when it is one.</p>
+      <p className="pc-quiet">{under
+        ? 'They go on under the chain as told — said, not yet seen. Mark the root in the chain when it is one.'
+        : 'It goes on as told — said, not yet seen — and suspected. Mark the root in the chain when it is one.'}</p>
       <div className="vo-go">
         <button type="button" className="btn btn-primary" disabled={busy || !said.length} onClick={() => void save()}>
-          {busy ? 'Putting it on…' : 'Put it on the fishbone'}
+          {busy ? 'Putting it on…' : under ? 'Put them on the chain' : 'Put it on the fishbone'}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onDiscard}>Discard</button>
       </div>
@@ -407,9 +425,49 @@ function WhysReview({ heard, problem, onSave, onDiscard }: {
   );
 }
 
+/** Spoken whys put on under a chain's deepest answer: told (said, not yet
+ *  seen), each its own why. The chain's root and status do not change — the
+ *  person marks the root when it is one. */
+export function chainWithWhys(c: Cause, words: string[], newId: () => string): Cause {
+  const said = words.map(w => w.trim()).filter(Boolean);
+  return { ...c, whys: [...c.whys, ...said.map(text => ({ id: newId(), text, grade: 'reported' as const }))] };
+}
+
+/** ONE CHAIN'S WHY — the fishbone page's cause panel. The same chain the
+ *  card's WHY part lists (its answers, how each is known, the root, the read
+ *  back), and the same ways to work it: the next why is asked in the cause
+ *  sheet (the one editor), or said, and the spoken whys go on under the
+ *  chain's deepest answer. A client reads it; the chain opens to read in full. */
+export function ChainWhy({ view: v, c, can, voiceContext, newId, onOpenCause, onSaveCause }: {
+  view: ProblemView; c: Cause; can: Can; voiceContext: () => VoiceContext; newId: () => string;
+  onOpenCause: () => void; onSaveCause: (c: Cause) => Promise<void>;
+}) {
+  const [heard, setHeard] = useState<VoiceResult | null>(null);
+  const root = isRoot(c);
+  const more = !root && c.status !== 'ruled_out';
+  const n = answersOf(c).length;
+  return (
+    <section className="pc-part pc-why">
+      <PartHead n={2} title="Why" state={`${plural(n, 'answer')}${root ? ' · the root found' : ''}`} />
+      <Chain c={c} problemTitle={v.problem.title.trim() || 'it'} can={can} onOpen={onOpenCause} />
+      {can.edit && !heard && (
+        <div className="pc-acts">
+          <button type="button" className="btn pc-ask" onClick={onOpenCause}>{more ? 'Ask the next why' : 'Edit the whys'}</button>
+          {more && <VoiceNote form="whys" label="Say the whys" context={voiceContext} onHeard={setHeard} />}
+        </div>
+      )}
+      {can.edit && heard && (
+        <WhysReview heard={heard} problem={v.problem} under={c}
+          onDiscard={() => setHeard(null)}
+          onSave={async words => { await onSaveCause(chainWithWhys(c, words, newId)); setHeard(null); }} />
+      )}
+    </section>
+  );
+}
+
 /* ----------------------------------- fix ----------------------------------- */
 
-function FixPart({ view: v, can, onAddFix, onOpenFix }: ProblemCardProps) {
+export function FixPart({ view: v, can, onAddFix, onOpenFix }: ProblemCardProps) {
   const chains = v.bones.flatMap(b => b.causes);
   const rooted = chains.filter(isRoot);
   const fixes = v.actions;
@@ -417,7 +475,6 @@ function FixPart({ view: v, can, onAddFix, onOpenFix }: ProblemCardProps) {
   const late = tones.filter(t => t === 'r').length;
   const done = tones.filter(t => t === 'g').length;
   const open = fixes.length - done;
-  const causeOf = (a: PaceAction) => chains.find(c => a.causeRef === `${v.problem.id}:${c.id}`);
   return (
     <section className="pc-part pc-fix">
       <PartHead n={3} title="Fix" tone={late ? 'r' : undefined}
@@ -425,31 +482,7 @@ function FixPart({ view: v, can, onAddFix, onOpenFix }: ProblemCardProps) {
       {fixes.length === 0 && (
         <p className="pc-quiet">{rooted.length ? (can.edit ? 'No fix yet — add one on the root.' : 'No fix yet.') : 'No fix yet — find the root first.'}</p>
       )}
-      {fixes.length > 0 && (
-        <ul className="pc-fixes">
-          {fixes.map((a, i) => {
-            const t = tones[i];
-            const c = causeOf(a);
-            const root = c ? answersOf(c).slice(-1)[0]?.text : undefined;
-            return (
-              <li key={a.uid ?? a.ref}>
-                <button type="button" className={'pc-fixrow is-' + t} onClick={() => onOpenFix(a)}
-                  aria-label={`${a.action || 'An action with no words yet'} — ${FIX_STATE[t]}. Tap to open it.`}>
-                  <i className={'cs-dot is-' + t} aria-hidden />
-                  <span className="cs-cm-main">
-                    <span className="cs-cm-t">{a.action || a.problem || 'An action with no words yet'}</span>
-                    {a.expect && <span className="cs-cm-x">Should change: {a.expect}</span>}
-                    <span className="cs-cm-s">
-                      {[a.owner || a.who || 'Nobody named', a.due ? `due ${a.due}` : 'no date'].join(' · ')} · <span className={'cs-cm-st is-' + t}>{FIX_STATE[t]}</span>
-                    </span>
-                    {root && <span className="cs-cm-s">For: {root}</span>}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {fixes.length > 0 && <FixRows view={v} fixes={fixes} onOpenFix={onOpenFix} />}
       {can.edit && rooted.length > 0 && (
         <div className="pc-acts">
           {rooted.map(c => (
@@ -463,13 +496,79 @@ function FixPart({ view: v, can, onAddFix, onOpenFix }: ProblemCardProps) {
   );
 }
 
+/** The fixes as rows — what, what it should change, who, when, where it
+ *  stands, and the root it is for; the whole row opens the board's own
+ *  action. Shared by the card's FIX part and a cause's panel on the fishbone
+ *  page, so the two say a fix in the same words. */
+export function FixRows({ view: v, fixes, onOpenFix }: { view: ProblemView; fixes: PaceAction[]; onOpenFix: (a: PaceAction) => void }) {
+  const chains = v.bones.flatMap(b => b.causes);
+  const causeOf = (a: PaceAction) => chains.find(c => a.causeRef === `${v.problem.id}:${c.id}`);
+  return (
+    <ul className="pc-fixes">
+      {fixes.map(a => {
+        const t = statusOfAction(a);
+        const c = causeOf(a);
+        const root = c ? answersOf(c).slice(-1)[0]?.text : undefined;
+        return (
+          <li key={a.uid ?? a.ref}>
+            <button type="button" className={'pc-fixrow is-' + t} onClick={() => onOpenFix(a)}
+              aria-label={`${a.action || 'An action with no words yet'} — ${FIX_STATE[t]}. Tap to open it.`}>
+              <i className={'cs-dot is-' + t} aria-hidden />
+              <span className="cs-cm-main">
+                <span className="cs-cm-t">{a.action || a.problem || 'An action with no words yet'}</span>
+                {a.expect && <span className="cs-cm-x">Should change: {a.expect}</span>}
+                <span className="cs-cm-s">
+                  {[a.owner || a.who || 'Nobody named', a.due ? `due ${a.due}` : 'no date'].join(' · ')} · <span className={'cs-cm-st is-' + t}>{FIX_STATE[t]}</span>
+                </span>
+                {root && <span className="cs-cm-s">For: {root}</span>}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** The fixes pointing at one chain (its causeRef). */
+export const fixesOf = (v: ProblemView, c: Cause): PaceAction[] =>
+  v.actions.filter(a => a.causeRef === `${v.problem.id}:${c.id}`);
+
+/** ONE CHAIN'S FIX — the fishbone page's cause panel: the fixes pointing at
+ *  this chain, in the card's words, and "+ Add a fix" on it (the cause sheet
+ *  offers the same on any chain that is not ruled out). */
+export function ChainFix({ view: v, c, can, onAddFix, onOpenFix }: {
+  view: ProblemView; c: Cause; can: Can; onAddFix: () => void; onOpenFix: (a: PaceAction) => void;
+}) {
+  const fixes = fixesOf(v, c);
+  const tones = fixes.map(a => statusOfAction(a));
+  const late = tones.filter(t => t === 'r').length;
+  const open = fixes.length - tones.filter(t => t === 'g').length;
+  const out = c.status === 'ruled_out';
+  return (
+    <section className="pc-part pc-fix">
+      <PartHead n={3} title="Fix" tone={late ? 'r' : undefined}
+        state={fixes.length ? <>{plural(fixes.length, 'fix', 'fixes')} · {open} open{late ? <> · <b>{late} past due</b></> : null}</> : undefined} />
+      {fixes.length === 0 && (
+        <p className="pc-quiet">{out ? 'Ruled out — nothing to fix.'
+          : isRoot(c) ? (can.edit ? 'No fix yet — add one on the root.' : 'No fix yet.')
+          : can.edit ? 'No fix yet — a fix usually waits for the root, so ask the next why first.' : 'No fix yet — the root is not found yet.'}</p>
+      )}
+      {fixes.length > 0 && <FixRows view={v} fixes={fixes} onOpenFix={onOpenFix} />}
+      {can.edit && !out && (
+        <div className="pc-acts"><button type="button" className="btn cs-cm-add" onClick={onAddFix}>+ Add a fix</button></div>
+      )}
+    </section>
+  );
+}
+
 const short = (s: string, n = 40) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
 /* ------------------------------- did it work ------------------------------- */
 
 const EVERY_WORD = (d: number) => (d === 1 ? 'day' : d === 7 ? 'week' : d === 14 ? 'fortnight' : d === 30 ? 'month' : `${d} days`);
 
-function WorkedPart({ view: v, can, steps, onClose, onReopen, onChecked }: ProblemCardProps) {
+export function WorkedPart({ view: v, can, steps, onClose, onReopen, onChecked }: ProblemCardProps) {
   const m = v.measure;
   const w = workedWords(v);
   const open = v.problem.status === 'open';
