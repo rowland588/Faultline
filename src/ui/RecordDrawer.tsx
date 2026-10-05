@@ -408,9 +408,24 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
              was scrolled to. */
           requestAnimationFrame(() => window.scrollTo(0, 0));
         }}>
-          Everything about it › <span className="sub">files · meeting note · PDF card{can.remove ? ' · delete' : ''}</span>
+          Everything about it › <span className="sub">files · meeting note · PDF card{can.remove && kind !== 'fix' ? ' · delete' : ''}</span>
         </button>
       </div>
+
+      {/* A FALSE FIX GOES FROM HERE. Rowland, 5 October: "need ability to
+          delete fixes — false fixes for example." It was only at the foot of
+          the fix's own page, two doors away from the list it sits on. One tap,
+          and the toast's Undo brings it back (useTesting removeTest). The
+          problem it came from stays on its stage. Only the owner deletes
+          (lib/access); the database keeps it for anyone else. */}
+      {kind === 'fix' && can.remove && (
+        <div className="rd-blk">
+          <button type="button" className="btn btn-ghost btn-sm cw-del rd-del" onClick={() => {
+            void tt.removeTest(t.id);
+            onClose();
+          }}>Delete this fix</button>
+        </div>
+      )}
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </DrawerShell>

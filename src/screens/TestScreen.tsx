@@ -518,7 +518,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               out > 0 && `${out} ${out === 1 ? 'record that came out of it stays' : 'records that came out of it stay'}`,
             ].filter(Boolean);
             const warn = bits.length
-              ? `Delete “${test.title}”?\n\n${bits.join('. ')}. Deleting cannot be undone.`
+              ? `Delete “${test.title}”?\n\n${bits.join('. ')}. Undo brings it back for a few seconds.`
               : `Delete “${test.title}”?`;
             if (confirm(warn)) {
               await tt.removeTest(test.id);

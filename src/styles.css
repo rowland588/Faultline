@@ -10263,3 +10263,6 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
   .nv { min-height: 0; }
 }
 /* =========================== end FRAME =================================== */
+
+/* Delete a fix from its drawer (ui/RecordDrawer) — quiet, at the foot. */
+.rd-del { justify-self: start; }
