@@ -238,11 +238,16 @@ const OUTCOME_WORDS: Record<TestKind, Record<Outcome, string>> = {
  * app owes the person, not a plan it should keep filing. It is deliberately
  * not a fifth outcome: nothing is stored, and the moment somebody answers, it
  * reads as passed or didn't like any other. */
-export const needsVerdict = (t: Pick<Test, 'outcome' | 'ranOn' | 'result'>): boolean =>
-  t.outcome === 'planned' && (!!t.ranOn || !!t.result?.trim());
+export const needsVerdict = (t: Pick<Test, 'outcome' | 'ranOn' | 'result'> & Partial<Pick<Test, 'kind'>>): boolean =>
+  /* A STAGE IS JUDGED DONE OR A PROBLEM, nothing in between. Rowland, 5
+     October: "leave it indigo until marked done or a problem." What was said
+     about a stage part-way through is an account of the work, not a question
+     owed — it stays planned (still ahead, or late once its day has gone). A
+     test or a fix that ran is still owed its verdict. */
+  t.kind !== 'install' && t.outcome === 'planned' && (!!t.ranOn || !!t.result?.trim());
 
 export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'> & Partial<Pick<Test, 'ranOn' | 'result'>>): string =>
-  needsVerdict({ outcome: t.outcome, ranOn: t.ranOn, result: t.result })
+  needsVerdict({ kind: t.kind, outcome: t.outcome, ranOn: t.ranOn, result: t.result })
     ? 'No verdict yet'
     : OUTCOME_WORDS[t.kind ?? 'test'][t.outcome];
 

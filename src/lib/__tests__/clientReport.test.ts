@@ -138,15 +138,17 @@ describe('how each stage went — the team’s account of a step reaches the cli
     expect(lev).toMatchObject({ tone: 'done', state: 'done', said: 'Levelled to 1 mm across the frame. Took two hours longer — the floor dips by the drain.' });
     expect(lev.when).toMatch(/18 Sep/);
     expect(air).toMatchObject({ tone: 'problem', state: 'a problem' });
-    // Something said and nobody has called it: the app asks "Is it done?" — so does the paper.
-    expect(elec).toMatchObject({ tone: 'asking', state: 'waiting on a verdict', when: 'no date' });
-    expect(dry).toMatchObject({ tone: 'asking', state: 'waiting on a verdict' });
+    /* Something said and nobody has called it: a stage stays as planned until
+       it is marked done or a problem (Rowland, 5 October) — booked is still
+       ahead, no day is no day yet. */
+    expect(elec).toMatchObject({ tone: 'ahead', state: 'no day yet', when: 'no date' });
+    expect(dry).toMatchObject({ tone: 'booked', state: 'still ahead' });
     expect(dry.when).toMatch(/8 Oct/);
     expect(guard).toMatchObject({ tone: 'late', state: 'late', said: 'Two guard panels short — could not finish; the rest come Friday.' });
   });
-  it('a step worked on and not yet called is waiting on a verdict', () => {
+  it('a stage worked on and not yet called stays as planned — it is not owed a verdict', () => {
     expect(r3.sections[3].accounts).toEqual([
-      expect.objectContaining({ machine: 'Pick and place', stage: 'Operators trained', tone: 'asking', state: 'waiting on a verdict' }),
+      expect.objectContaining({ machine: 'Pick and place', stage: 'Operators trained', tone: 'ahead', state: 'no day yet' }),
     ]);
   });
   it('a gate where nobody said anything has no accounts — it prints exactly as before', () => {
