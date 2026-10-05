@@ -219,7 +219,8 @@ for (const size of SIZES) {
     ['client', `#/project/${job.projectId}/report`, [['PDF']], must.client],
     ['test card', `#/project/${job.projectId}/testing/${job.testId}/card`, [['PDF']], must.card],
     ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}/card`, [['PDF']], must.fix]] : []),
-    ['day', `#/project/${job.projectId}/day`, [['PDF']], must.day],
+    /* The day's button says what it does (screens/DayScreen, 5 October). */
+    ['day', `#/project/${job.projectId}/day`, [['Send today’s update']], must.day],
   ];
   for (const [name, hash, steps, mustSay] of reports) {
     const file = `${OUT}/${size}-${name.replace(/ /g, '-')}.pdf`;
