@@ -13,7 +13,8 @@
  * The download is built here, not handed to the print dialog: each sheet is laid
  * out at exactly A3-landscape proportions, rendered to an image and dropped onto
  * an A3 page. What is on screen is what lands in the PDF. */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePdfPreview } from '../lib/usePdfPreview';
 import { nav, useRoute } from '../state/useRoute';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -863,7 +864,6 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
   const [loaded, setLoaded] = useState<LoadedProblems | null>(null);
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [report, setReport] = useState<SixMReport | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [err, setErr] = useState<{ stale: boolean; msg: string } | null>(null);
@@ -900,19 +900,10 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
     return () => { alive = false; };
   }, [loaded, todos, projectId, lineId, name, lead]);
 
-  /* The preview is the PDF itself, with the mark it leaves with. */
-  useEffect(() => {
-    if (!report || !wide) return;
-    let live = true, url: string | null = null;
-    void sixmPdf(report).then(async doc => {
-      if (!live) return;
-      (await import('../lib/reportKit')).stampBrand(doc);
-      if (!live) return;
-      url = URL.createObjectURL(doc.output('blob') as Blob);
-      setPreview(url);
-    }).catch(() => undefined);
-    return () => { live = false; if (url) URL.revokeObjectURL(url); };
-  }, [report, wide]);
+  /* The preview is the PDF itself, with the mark it leaves with — redrawn
+     only when what is on it changes (lib/usePdfPreview). */
+  const previewKey = useMemo(() => (report && wide ? JSON.stringify(report) : null), [report, wide]);
+  const preview = usePdfPreview(previewKey, () => sixmPdf(report as NonNullable<typeof report>));
 
   const line = lineId ? loaded?.data.lines.find(l => l.id === lineId) : undefined;
   const download = async () => {

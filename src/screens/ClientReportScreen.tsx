@@ -2,6 +2,7 @@
  * it. What is shown IS the PDF (drawn once, previewed in place on a desk), so
  * the screen and the paper cannot disagree. See lib/clientReport.ts. */
 import { useEffect, useMemo, useState } from 'react';
+import { usePdfPreview } from '../lib/usePdfPreview';
 import { useWalkSnags } from '../lib/useWalkSnags';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -50,7 +51,6 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const standards = useStandards(projectId);
   const walk = useWalkSnags(projectId);
   const [withStandards, setWithStandards] = useState(true);
-  const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing
@@ -75,19 +75,10 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], today: todayISO(),
   }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk]);
 
-  /* The preview is the PDF itself, redrawn when what is on it changes. */
-  useEffect(() => {
-    if (!report || !wide) return;
-    let live = true, url: string | null = null;
-    void buildPdf(report, withStandards).then(async doc => {
-      if (!live) return;
-      (await import('../lib/reportKit')).stampBrand(doc);   // previewed as it is sent: with the mark
-      if (!live) return;
-      url = URL.createObjectURL(doc.output('blob') as Blob);
-      setPreview(url);
-    }).catch(() => undefined);
-    return () => { live = false; if (url) URL.revokeObjectURL(url); };
-  }, [report, withStandards, wide]);
+  /* The preview is the PDF itself, redrawn when what is on it changes — and
+     only then (lib/usePdfPreview). */
+  const previewKey = useMemo(() => (report && wide ? `${withStandards}|${JSON.stringify(report)}` : null), [report, withStandards, wide]);
+  const preview = usePdfPreview(previewKey, () => buildPdf(report as ClientReport, withStandards));
 
   const download = async () => {
     if (!report || busy) return;
