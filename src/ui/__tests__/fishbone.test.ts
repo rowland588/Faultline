@@ -8,10 +8,11 @@
  * fixture somebody happened to open.
  */
 import { describe, it, expect } from 'vitest';
-import { boneWords, layoutFish, lossWords, orderItems, overlaps } from '../fishbone/layout';
+import { boneWords, fixesOf, fixTag, layoutFish, lossWords, orderItems, overlaps, type Item } from '../fishbone/layout';
 import { tidyCause } from '../CauseSheet';
 import { SIXM, type Cause, type CauseStatus, type SixM } from '../../lib/sixm';
 import type { Bone, Suggestion } from '../../lib/problems';
+import type { PaceAction } from '../../lib/tracker';
 
 let n = 0;
 const cause = (m: SixM, status: CauseStatus = 'suspected', more: Partial<Cause> = {}): Cause =>
@@ -108,6 +109,125 @@ describe('the drawn fish', () => {
     const L = layoutFish(bones([]), 1000, { rowH: 34, headH: 260 });
     expect(L.head.y).toBeGreaterThanOrEqual(0);
     expect(L.head.y + L.head.h).toBeLessThanOrEqual(L.height);
+  });
+});
+
+describe('the drawn fish filling the room it is given (the fishbone page)', () => {
+  const typical = bones([
+    cause('people', 'confirmed'), cause('people'),
+    cause('machine', 'confirmed'), cause('machine'), cause('machine', 'ruled_out'),
+    cause('method'), cause('material', 'confirmed', { root: true }), cause('material'),
+  ], [sugg('machine', 64), sugg('measurement')]);
+  const huge = bones(Array.from({ length: 40 }, (_, i) => cause(i < 14 ? 'machine' : SIXM[i % 6].key)), [sugg('people')]);
+
+  for (const [name, bs] of [['empty', bones([])], ['typical', typical], ['huge', huge]] as const) {
+    for (const [width, room] of [[1250, 746], [1250, 330], [1820, 930], [900, 2000]] as const) {
+      for (const rowH of [34, 44]) {
+        it(`${name} at ${width}×${room}, rows of ${rowH}: as tall as the room or its marks, nothing on anything, nothing outside`, () => {
+          const natural = layoutFish(bs, width, { rowH, headH: 196 });
+          const L = layoutFish(bs, width, { rowH, headH: 196, minHeight: room });
+          /* Never squashed: shorter than the fish needs, the room is ignored. */
+          expect(L.height).toBe(Math.max(natural.height, room));
+          const placed = L.bones.flatMap(b => b.items);
+          expect(placed.length).toBe(bs.reduce((s, b) => s + b.causes.length + b.suggestions.length, 0));
+          const boxes = [...placed, ...L.bones.map(b => b.label), L.head];
+          for (let i = 0; i < boxes.length; i++) {
+            const b = boxes[i];
+            expect(b.x).toBeGreaterThanOrEqual(0);
+            expect(b.y).toBeGreaterThanOrEqual(0);
+            expect(b.x + b.w).toBeLessThanOrEqual(width + 0.01);
+            expect(b.y + b.h).toBeLessThanOrEqual(L.height + 0.01);
+            for (let j = i + 1; j < boxes.length; j++) expect(overlaps(b, boxes[j]), `${i} × ${j}`).toBe(false);
+          }
+          for (const pb of L.bones) {
+            for (const pi of pb.items) {
+              expect(pi.x + pi.w).toBeLessThan(pi.attachX);
+              expect(pb.upper ? pi.lineY < L.spineY : pi.y > L.spineY).toBe(true);
+            }
+            /* Spread, not scattered: ribs at most two and a half rows apart. */
+            for (let k = 1; k < pb.items.length; k++) {
+              const gap = pb.items[k].lineY - pb.items[k - 1].lineY;
+              expect(gap).toBeGreaterThanOrEqual(rowH - 0.01);
+              expect(gap).toBeLessThanOrEqual(2.5 * rowH + 0.01);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  it('spreads the ribs and gives each mark a second line for its tags when there is room, and not otherwise', () => {
+    const tall = layoutFish(typical, 1250, { rowH: 34, minHeight: 900 });
+    const items = tall.bones.flatMap(b => b.items);
+    expect(items.every(i => i.two)).toBe(true);
+    expect(items.every(i => i.h > 34)).toBe(true);
+    const tight = layoutFish(typical, 1250, { rowH: 34, minHeight: 200 });
+    expect(tight.bones.flatMap(b => b.items).some(i => i.two)).toBe(false);
+  });
+
+  it('gives a cause with a fixes tag a second line where the rib is too narrow for words and tag side by side', () => {
+    const fixed = new Set(typical.flatMap(b => b.causes).filter((_, i) => i % 3 === 0).map(c => c.id));
+    const tall = (it: Item) => it.kind === 'cause' && fixed.has(it.cause.id);
+    for (const width of [900, 1100, 1300]) {
+      const L = layoutFish(typical, width, { rowH: 34, tall });
+      const items = L.bones.flatMap(b => b.items);
+      for (const pi of items) expect(pi.two).toBe(tall(pi.item));
+      const boxes = [...items, ...L.bones.map(b => b.label), L.head];
+      for (let i = 0; i < boxes.length; i++) {
+        expect(boxes[i].y + boxes[i].h).toBeLessThanOrEqual(L.height + 0.01);
+        for (let j = i + 1; j < boxes.length; j++) expect(overlaps(boxes[i], boxes[j]), `${width}: ${i} × ${j}`).toBe(false);
+      }
+      for (const pb of L.bones) for (const pi of pb.items) expect(pi.x + pi.w).toBeLessThan(pi.attachX);
+    }
+    /* Wide enough, everything stays on one line. */
+    expect(layoutFish(typical, 1880, { rowH: 34, tall }).bones.flatMap(b => b.items).some(i => i.two)).toBe(false);
+  });
+
+  it('is the fish it always was when no room is given — the project page and the dashboard do not change', () => {
+    for (const bs of [bones([]), typical, huge]) {
+      const a = layoutFish(bs, 1300, { rowH: 34 });
+      const b = layoutFish(bs, 1300, { rowH: 34, minHeight: 0 });
+      const c = layoutFish(bs, 1300, { rowH: 34, minHeight: a.height - 40 });
+      expect(b).toEqual(a);
+      expect(c).toEqual(a);
+      expect(a.bones.flatMap(x => x.items).some(i => i.two)).toBe(false);
+    }
+  });
+});
+
+describe('a cause’s fixes, as the tag beside it', () => {
+  const act = (status: string, more: Partial<PaceAction> = {}): PaceAction =>
+    ({ ref: `a${++n}`, uid: `a${n}`, priority: 3, line: 'Line 2', category: 'Material', status, flag: '', causeRef: 'p1:c1', ...more });
+
+  it('finds the actions whose causeRef points at the cause, and no others', () => {
+    const mine = act('To do'), other = act('To do', { causeRef: 'p1:c2' }), loose = act('To do', { causeRef: undefined });
+    expect(fixesOf([mine, other, loose], 'p1', 'c1')).toEqual([mine]);
+  });
+
+  it('carries nothing when a cause has no fix', () => {
+    expect(fixTag([])).toBeNull();
+  });
+
+  it('says the count and the worst state, in the board’s words and tone', () => {
+    expect(fixTag([act('To do', { flag: 'Overdue', due: '1 Oct' })])).toEqual({ n: 1, tone: 'r', words: '1 fix · past due' });
+    expect(fixTag([act('Waiting'), act('Waiting')])).toEqual({ n: 2, tone: 'a', words: '2 fixes · waiting' });
+    expect(fixTag([act('In progress')])).toEqual({ n: 1, tone: 'w', words: '1 fix · under way' });
+    expect(fixTag([act('To do')])).toEqual({ n: 1, tone: 'n', words: '1 fix · not started' });
+    expect(fixTag([act('Done'), act('Done')])).toEqual({ n: 2, tone: 'g', words: '2 fixes · done' });
+  });
+
+  it('says the day an open fix is due — who owes what by when', () => {
+    expect(fixTag([act('In progress', { due: '9 Oct', dueISO: '2026-10-09' })])?.words).toBe('1 fix · due 9 Oct');
+    expect(fixTag([act('To do', { due: '12 Oct', dueISO: '2026-10-12' }), act('To do', { due: '9 Oct', dueISO: '2026-10-09' })])?.words)
+      .toBe('2 fixes · due 9 Oct');
+    expect(fixTag([act('Done'), act('To do', { due: '9 Oct', dueISO: '2026-10-09' })])).toEqual({ n: 2, tone: 'n', words: '2 fixes · next due 9 Oct' });
+  });
+
+  it('past due outranks waiting, waiting outranks under way, and done only when every one is done', () => {
+    const tag = fixTag([act('Done'), act('Waiting'), act('To do', { flag: 'Overdue' })]);
+    expect(tag).toEqual({ n: 3, tone: 'r', words: '3 fixes · 1 past due' });
+    expect(fixTag([act('Done'), act('Waiting'), act('In progress')])?.words).toBe('3 fixes · 1 waiting');
+    expect(fixTag([act('Done'), act('In progress')])?.tone).toBe('w');
   });
 });
 

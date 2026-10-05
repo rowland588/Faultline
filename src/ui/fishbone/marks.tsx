@@ -5,9 +5,13 @@
  * None of them wears a state colour. Confirmed, suspected and the root are
  * not "done" or "late" — they are how sure we are — so they are told apart by
  * ink: solid, outline, struck. The grade is a three-step meter: measured
- * fills it, reported leaves it empty. Every mark sits beside its words. */
+ * fills it, reported leaves it empty. Every mark sits beside its words.
+ *
+ * The one mark that does wear a state colour is a cause's fixes tag: a fix is
+ * work with an owner and a day, so it is late, waiting, under way or done —
+ * the board's states, in the board's colours. */
 import type { CauseStatus, Grade } from '../../lib/sixm';
-import { GRADE_LEVEL } from './layout';
+import { GRADE_LEVEL, type FixTag } from './layout';
 
 /** Confirmed: a solid dot. Suspected: a ring. Ruled out: a ring with a stroke through. */
 export function StatusGlyph({ status, root, suggestion }: { status?: CauseStatus; root?: boolean; suggestion?: boolean }) {
@@ -39,4 +43,13 @@ export function GradeMeter({ grade }: { grade: Grade }) {
 
 export function RootTag() {
   return <span className="fb-root">Root</span>;
+}
+
+/** A cause's fixes, as one small tag beside it — "1 fix · past due" — in the
+ *  house state colours (ui/fishbone/layout fixTag): past due solid red, the
+ *  loudest thing on a bone; waiting amber; under way indigo; not started
+ *  grey; done a quiet green that recedes. The words carry it too, so it
+ *  survives a black-and-white print and colour-blind eyes. */
+export function FixTagMark({ tag }: { tag: FixTag }) {
+  return <span className={'fb-fix is-' + tag.tone}>{tag.words}</span>;
 }
