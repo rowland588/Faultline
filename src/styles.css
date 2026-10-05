@@ -9789,3 +9789,196 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
   .ln-lead { margin-bottom: 18px; }
   .ln-study { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
+
+/* =====================================================================
+   SLICE: DRAWER — one door per record, opened in place.
+   Rowland, 5 October: "I found myself looking at a fix… then on a page,
+   then another page and then another page. Too many doors opening just to
+   get to very simple things."
+   The record's drawer (ui/RecordDrawer), the Fixes list (screens/
+   FixesScreen) and the record's one page (screens/TestScreen). Appended
+   whole; nothing above this line is edited by this slice.
+   ===================================================================== */
+
+/* THE DRAWER — a panel from the right over the page on a laptop; below
+   900px the sheet from the bottom that the stage's sheet already was. The
+   page behind stays where it was, dimmed, and a tap on it closes. */
+.rd-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(13, 31, 60, 0.28);
+  display: flex; justify-content: flex-end; align-items: stretch;
+  animation: rd-fade 0.16s ease-out;
+}
+.rd {
+  position: relative; box-sizing: border-box;
+  width: min(460px, 100%); height: 100%;
+  overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); box-shadow: var(--shadow-lift);
+  padding: 20px 22px calc(28px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: stretch;
+  animation: rd-in-right 0.2s ease-out;
+}
+@keyframes rd-fade { from { background: rgba(13, 31, 60, 0); } }
+@keyframes rd-in-right { from { transform: translateX(28px); opacity: 0.4; } }
+@keyframes rd-in-up { from { transform: translateY(36px); opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { .rd-scrim, .rd { animation: none; } }
+@media (max-width: 899px) {
+  .rd-scrim { align-items: flex-end; justify-content: stretch; }
+  .rd {
+    width: 100%; height: auto; max-height: 90vh; max-height: 90dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 18px 16px calc(22px + env(safe-area-inset-bottom));
+    animation-name: rd-in-up;
+  }
+}
+/* The Undo toast clears the sheet, as it does every other sheet. */
+body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+
+.rd:focus { outline: none; }
+/* Nothing in the drawer is squeezed to fit its height: it scrolls instead. */
+.rd > * { flex: none; }
+.rd-x {
+  all: unset; position: absolute; top: 10px; right: 10px; z-index: 1;
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+  color: var(--muted); cursor: pointer;
+}
+.rd-x:hover { background: var(--surface-2); color: var(--ink); }
+.rd-x:focus-visible, .rd-back:focus-visible, .rd-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* "‹ back to <fix>" — the way back along the trail "For <parent> ›" made. */
+.rd-back {
+  all: unset; cursor: pointer; align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: 36px; margin: -6px 52px 6px -6px; padding: 0 8px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2); overflow-wrap: anywhere;
+}
+.rd-back:hover { background: var(--surface-2); }
+
+/* THE STATE, in its colour and in words. Late or failed is a tinted chip —
+   the one thing on the drawer that should be loud. */
+.rd-state {
+  align-self: flex-start; margin-right: 52px;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em; color: var(--rd-c);
+}
+.rd-state::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--rd-c); }
+.rd-state.is-r { --rd-c: var(--st-r); padding: 3px 10px 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); }
+.rd-state.is-a { --rd-c: var(--st-a); }
+.rd-state.is-w { --rd-c: var(--st-w); }
+.rd-state.is-g { --rd-c: var(--st-g); }
+.rd-state.is-n { --rd-c: var(--muted); }
+.rd-state.is-n::before { background: var(--st-n); }
+
+.rd-title {
+  margin: 6px 52px 2px 0; font-family: var(--display); font-size: 21px; line-height: 1.22;
+  font-weight: 700; letter-spacing: -0.015em; color: var(--ink); overflow-wrap: anywhere;
+}
+.rd-sub { margin: 0 0 14px; font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* The floor's actions, first. */
+.rd-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rd-acts .btn { min-height: 44px; }
+.rd .vo-say { margin: 10px 0 0; }
+/* The voice sits in the row with the buttons ("Fixed · Didn't fix it · Say
+   the fix"); what it heard takes the whole width under them. */
+.rd-acts > .vo-say { margin: 0; }
+.rd-acts > .vo-review, .rd-acts > .vo-say:has(.vo-review, .vo-ask) { flex: 1 1 100%; }
+.rd > .tw-seg { margin: 4px 0 0; }
+.rd > .why { margin-top: 2px; }
+@media (max-width: 899px) {
+  .rd-acts { display: grid; grid-template-columns: 1fr; }
+  .rd-acts .btn { width: 100%; min-height: 48px; }
+  .rd-acts .vo-wrap, .rd-acts .vo-btn { width: 100%; justify-content: center; box-sizing: border-box; }
+}
+
+/* Each part below the actions: a hairline, a small label, the part. */
+.rd-blk {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0;
+}
+.rd-blk > small { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.rd-blk > .sub { margin: 0; }
+.rd-blk > .sp-list, .rd-blk > form, .rd-blk > .tw-ev, .rd-blk > .why { width: 100%; box-sizing: border-box; }
+.rd-blk .sp-list li:first-child { border-top: 0; padding-top: 2px; }
+.rd-blk .tw-ev { margin: 0; }
+
+.rd-problem { display: flex; flex-direction: column; gap: 6px; }
+.rd-problem p, .rd-problem-t { margin: 0; font-size: 14.5px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
+
+/* A door inside the drawer: "For <parent> ›", "Change dates or who ›",
+   "Everything about it ›". Blue, because it is pressed. */
+.rd-link {
+  all: unset; cursor: pointer; box-sizing: border-box;
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; min-height: 40px;
+  font-size: 14px; font-weight: 700; color: var(--accent); overflow-wrap: anywhere;
+}
+.rd-link:hover { text-decoration: underline; }
+.rd-go .sub { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+
+/* The dates and who, read; changed behind one link. */
+.rd-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; width: 100%; }
+.rd-kv > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.rd-kv span { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.rd-kv i { font-style: normal; font-weight: 500; }
+.rd-slip { font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--st-r); }
+
+/* THE FIXES, ONE ROW EACH — a stripe in the fix's colour, the fix, where it
+   is and what it is for, and the date on the right in the same colour. The
+   stripe and the words carry the state; only late gets a tint. */
+.fxl {
+  display: flex; flex-direction: column; margin-top: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+}
+.fxl-row {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 0 14px;
+  min-height: 62px; padding: 11px 16px 11px 0;
+  --fxl-c: var(--st-w); --fxl-ink: var(--st-w);
+}
+.fxl-row + .fxl-row { border-top: 1px solid var(--line); }
+.fxl-row:hover { background: color-mix(in srgb, var(--surface-2) 50%, var(--surface)); }
+.fxl-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fxl-bar { align-self: stretch; margin: -11px 0; background: var(--fxl-c); }
+.fxl-m { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fxl-m b { font-size: 15px; line-height: 1.3; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.fxl-m small { font-size: 13px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+.fxl-none { color: var(--st-r); font-weight: 700; }
+.fxl-when { font-style: normal; font-size: 13px; font-weight: 700; color: var(--fxl-ink); white-space: nowrap; text-align: right; }
+.fxl-row.is-late { --fxl-c: var(--st-r); --fxl-ink: var(--st-r); background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
+.fxl-row.is-soon { --fxl-c: var(--st-a); --fxl-ink: var(--st-a); }
+.fxl-row.is-ahead { --fxl-c: var(--st-w); --fxl-ink: var(--st-w); }
+.fxl-row.is-none { --fxl-c: var(--st-n); --fxl-ink: var(--muted); }
+.fxl-row.is-notRun { --fxl-c: var(--st-n); --fxl-ink: var(--muted); }
+.fxl-row.is-done { --fxl-c: var(--st-g); --fxl-ink: var(--st-g); }
+.fxl-row.is-done .fxl-m b { font-weight: 600; color: var(--ink-2); }
+@media (max-width: 560px) {
+  .fxl-row { grid-template-columns: 4px minmax(0, 1fr); padding-right: 14px; }
+  .fxl-when { grid-column: 2; text-align: left; margin-top: 4px; white-space: normal; }
+}
+
+/* THE RECORD'S PAGE — the card, with one Edit on each part that has boxes. */
+.tc-block-h .tc-edit { margin-left: auto; min-height: 32px; padding: 0 4px; font-size: 13px; }
+.tc-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 16px; margin-top: 12px; }
+.tc-fields .tc-f + .tc-f { margin-top: 0; }
+.tc-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.tc-form > .tw-seg, .tc-form > .tw-ask, .tc-form > .tw-ev, .tc-form > .tw-note, .tc-form > .cw-f-wide { flex: 1 1 100%; }
+.tc-form > .tw-note { margin: -6px 0 0; }
+.tc-two { margin-bottom: 12px; }
+.tc-two.is-editing { grid-template-columns: 1fr; }
+.tc-block > .tw-ask { display: block; margin: 0 0 6px; }
+.tc-block > .tw-seg { margin: 0 0 14px; }
+.tc-items { display: flex; flex-direction: column; gap: 6px; }
+.tc-row-go {
+  all: unset; cursor: pointer; display: block; overflow-wrap: anywhere;
+  font-size: 13.5px; line-height: 1.45; font-weight: 600; color: var(--ink);
+}
+.tc-row-go:hover { color: var(--accent); text-decoration: underline; }
+.tc-row-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.tc-next-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 8px; }
+.tc-next-acts .cw-add, .tc-adds .cw-add { width: auto; padding-left: 0; padding-right: 6px; }
+.tc-next-acts .cw-add:hover, .tc-adds .cw-add:hover { background: none; text-decoration: underline; }
+.tc-loop .tc-loop-a { font-size: inherit; font-weight: 700; text-align: left; }
+.tc-foot { margin-top: 18px; }
+.tc-adds { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; }
+.tc-foot .cm-foot { margin-top: 14px; }
+/* ===================== end SLICE: DRAWER ===================== */

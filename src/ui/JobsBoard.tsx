@@ -50,6 +50,7 @@ import {
 } from '../lib/portfolio';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
+import { openRecord } from './RecordDrawer';
 import { Timeline } from './Timeline';
 import type { GateTone } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
@@ -85,6 +86,15 @@ function whereTo(x: JobItem): string {
   if (x.kind === 'program') return `/project/${x.jobId}/programs`;
   return `/project/${x.jobId}/testing`;
 }
+
+/** A step, a test or a fix opens in the record's drawer, over the control
+ *  room (ui/RecordDrawer) — × comes back here; anything else goes where it
+ *  is kept. */
+function openItem(x: JobItem): void {
+  if (x.id && x.kind !== 'action' && x.kind !== 'note') openRecord(x.jobId, x.id);
+  else nav(whereTo(x));
+}
+const RECORD_MARK = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
 const whenOf = (x: JobItem) => (x.on ? (x.late ? `was ${niceDay(x.on)}` : niceDay(x.on)) : 'no date');
 
@@ -237,7 +247,7 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
           <ol className="jb-focus-list">
             {items.map((x, i) => (
               <li key={`${x.jobId}-${x.kind}-${x.id ?? x.what}-${i}`} style={{ '--job': x.color } as CSSProperties}>
-                <button className={'jb-fi' + (x.late ? ' is-late' : '')} onClick={() => nav(whereTo(x))}>
+                <button className={'jb-fi' + (x.late ? ' is-late' : '')} onClick={() => openItem(x)}>
                   <span className="jb-fi-job">{x.job}</span>
                   <b className="jb-fi-what">{x.what}</b>
                   <span className="jb-fi-m">{KIND_WORD[x.kind]}{
@@ -499,7 +509,7 @@ function WeekStrip({ items }: { items: JobItem[] }) {
       <ol className="jb-wk-list" ref={ref}>
         {items.map((x, i) => (
           <li key={`${x.jobId}-${x.kind}-${x.id ?? x.what}-${i}`} style={{ '--job': x.color, '--i': Math.min(i, 8) } as CSSProperties}>
-            <button className={'jb-wk' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => nav(whereTo(x))}>
+            <button className={'jb-wk' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => openItem(x)}>
               <span className="jb-wk-job">{x.job}</span>
               <b className="jb-wk-what">{x.what}</b>
               <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the meeting notes' : `${KIND_WORD[x.kind]} · ${x.who || 'nobody yet'}`}</span>
@@ -793,7 +803,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                     ? 'When the machines have dates, the plan draws itself here.'
                     : 'When the board’s actions have due dates, the plan draws itself here.'}</p>
                 : <Timeline marks={v.plan} today={today} expectedAt={v.expectedAt} plannedAt={v.plannedAt} span={span}
-                    onOpen={m => nav(planHref(v.id, m))} />}
+                    onOpen={m => (m.id && !m.count && RECORD_MARK.has(m.kind) ? openRecord(v.id, m.id) : nav(planHref(v.id, m)))} />}
             </div>
           )}
         </div>

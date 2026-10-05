@@ -12,14 +12,16 @@
  * A FIX SITS UNDER ITS PROBLEM. "Found: guard bracket wrong size" and, three
  * lines further down in date order, "Fix: …" read as two unrelated things. A
  * problem that booked a fix carries it, with its date agreed or not and the
- * door to it; a fix planned on its own still has a line of its own.
+ * door to it; a fix planned on its own still has a line of its own. The door
+ * opens the fix in the drawer (ui/RecordDrawer) — the same one this list is
+ * usually read in — never on another page.
  */
 import { useState } from 'react';
 import type { MediaRef } from '../types';
 import type { Test } from '../lib/testing';
 import { storyOf } from '../lib/story';
 import { niceDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
+import { openRecord } from './RecordDrawer';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { offerUndo } from './Undo';
 import type { useTesting } from '../lib/useTesting';
@@ -44,10 +46,13 @@ export function storyLength(stepId: string, tt: TT): number {
   return st.moves.length + st.found.length + st.fixes.length;
 }
 
-export function StageStory({ stepId, tt, can, projectId, empty }: {
+export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
   stepId: string; tt: Pick<TT, 'tests' | 'items' | 'saveItem' | 'removeItem'>; can: Can; projectId: string;
   /** What to say when nothing has happened; nothing at all when left out. */
   empty?: string;
+  /** Where "Open the fix ›" goes. Inside the drawer it shows the fix in the
+   *  same drawer (ui/RecordDrawer); left out, it opens the drawer over the page. */
+  onOpenFix?: (id: string) => void;
 }) {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -88,7 +93,7 @@ export function StageStory({ stepId, tt, can, projectId, empty }: {
       <span className={'sp-k is-fix' + (f.outcome === 'passed' ? ' is-done' : !f.plannedFor ? ' is-open' : '')}>Fix</span>
       <p className="sp-t"><b>{f.title}</b> · {fixWord(f)}{f.withWhom ? ` · ${f.withWhom}` : ''}</p>
       {pics(f.media ?? [])}
-      <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(f.id)}`)}>Open the fix ›</button>
+      <button type="button" className="cw-link" onClick={() => (onOpenFix ? onOpenFix(f.id) : openRecord(projectId, f.id))}>Open the fix ›</button>
     </span>
   );
   const fixOf = (id?: string) => (id ? st.fixes.find(f => f.id === id) : undefined);

@@ -47,6 +47,8 @@ export interface Seeded {
   tests: number;
   /** An install step, for the screens that open one. */
   stepId: string;
+  /** A fix FOR that step, for the drawer that opens one over the Fixes list. */
+  fixId: string;
   /** A day in the past with a story on it — the air went on. */
   pastDay: string;
   assets: number;
@@ -292,8 +294,9 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     step('Operators and engineers trained', 22, { gate: 'handover', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(8) }),
   ]) await putTest(g);
   await putTestItem(item(airDrop.id, 'found', 'Regulator missing from the kit', { owner: 'Ishida Europe', sort: 1 }));
-  await putTest(fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
-    withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' }));
+  const regulator = fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
+    withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' });
+  await putTest(regulator);
 
   for (const i of [
     item(seal.id, 'found', 'Seal jaw temperature drifting', { owner: 'Ilapak UK', note: 'Drops 8°C over 20 minutes, then the seals fail', sort: 1 }),
@@ -610,6 +613,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     assets: (await listAssets(proj.id)).length,
     testId: seal.id,
     stepId: airDrop.id,
+    fixId: regulator.id,
     pastDay: iso(-7),
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,

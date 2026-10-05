@@ -17,7 +17,6 @@ import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsDoor } from './screens/ProgramsScreen';
 import { TestsScreen } from './screens/TestsScreen';
-import { TrialCardScreen } from './screens/TrialCardScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
@@ -42,6 +41,7 @@ const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').the
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 import { RequireModel } from './ui/RequireModel';
+import { RecordDrawerHost } from './ui/RecordDrawer';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
@@ -50,6 +50,12 @@ import type { Route } from './state/useRoute';
 
 function GoHome() {
   useEffect(() => { navReplace('/'); }, []);
+  return null;
+}
+
+/** An old link onto a page that is now part of another — no 404, no trail. */
+function GoTo({ to }: { to: string }) {
+  useEffect(() => { navReplace(to); }, [to]);
   return null;
 }
 
@@ -83,7 +89,10 @@ export function Router() {
   // Wrapped around every signed-in screen, not mounted on one: the phone that
   // filmed Line 7 should be fixing Line 7's footage whatever page you happen
   // to be on, and wandering off a screen must not abandon it mid-clip.
-  return <><AutoConvert /><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></>;
+  /* THE RECORD'S DRAWER sits beside every screen (ui/RecordDrawer): a step,
+     a test or a fix opens over the page you are on when the route says so
+     (?open=<id>), and closes back to it. */
+  return <><AutoConvert /><Suspense fallback={<BootSplash />}>{app(route)}</Suspense><RecordDrawerHost route={route} /></>;
 }
 
 function app(route: Route) {
@@ -146,9 +155,10 @@ function app(route: Route) {
   /* Narrowed once rather than asserted three times: a test route without a
      project is not a screen, it is a bad link, and it falls through to the
      project list below. */
-  /* The trial read back whole, before it is sent. See TrialCardScreen. */
+  /* THE CARD PAGE IS THE RECORD'S PAGE NOW (screens/TestScreen reads like
+     the card, with the PDF at its foot) — an old /card link lands there. */
   if (route.name === 'trialCard' && route.id && route.lineId) {
-    return gate(route.id, <TrialCardScreen projectId={route.id} testId={route.lineId} />);
+    return <GoTo to={`/project/${route.id}/testing/${encodeURIComponent(route.lineId)}`} />;
   }
   if ((route.name === 'testing' || route.name === 'test') && route.id) {
     return gate(route.id, route.name === 'test' && route.lineId

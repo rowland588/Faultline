@@ -12,6 +12,7 @@
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
 import { useState } from 'react';
+import { openRecord } from '../ui/RecordDrawer';
 import { nav } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
@@ -120,7 +121,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
     };
   };
 
-  const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+  /* A test opens in the drawer, over this list (ui/RecordDrawer). */
+  const open = (id: string) => openRecord(projectId, id);
 
   // Counted as the client report counts them, so the screen and the paper agree.
   const proofs = latestAttempts(tt.tests);

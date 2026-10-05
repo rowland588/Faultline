@@ -5,30 +5,27 @@
  * assets. And I need to do it fast."
  *
  * Machines down the side, the job's stages across the top, one cell where they
- * cross. Tap a cell: Done today is the first button, so a step is two taps.
- * Tap a STAGE at the top to act on it for every machine at once — plan the
- * day, say who, add it where it is missing. Tap a MACHINE to give it the
- * usual stages or plan everything left on it. Every change can be undone from
- * the toast, and every cell still opens the step's own page for the detail.
+ * cross. Tap a cell: the step opens in the drawer (ui/RecordDrawer) over the
+ * grid — Done today is its first button, so a step is two taps. Tap a STAGE
+ * at the top to act on it for every machine at once — plan the day, say who,
+ * add it where it is missing. Tap a MACHINE to give it the usual stages or
+ * plan everything left on it. Every change can be undone from the toast.
  *
  * Nothing new is stored: a cell is an install step (see lib/testing), read
  * through lib/install's installGrid.
  */
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
-import { StageStory } from './StageStory';
-import { ProblemForm, WhyMoved, followingSummary, recordMove, recordProblem, type Following, type ProblemFill, type WhyAnswer } from './WhyMoved';
+import { WhyMoved, changeTests, moveTestsWithWhy, type Following, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from './Undo';
-import { VoiceNote, VoiceReview } from './Voice';
-import { contextFor, proposalFrom, type VoiceResult } from '../lib/voice';
+import { openRecord } from './RecordDrawer';
 import type { useTesting } from '../lib/useTesting';
 import { Icon } from './Icon';
 import { can as canOf, type Can } from '../lib/access';
@@ -106,10 +103,6 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   const grid = installGrid(tt.assets, tt.tests, tt.items, today, usual, gate);
   const [open, setOpen] = useState<Open>(null);
   const [stepName, setStepName] = useState('');
-  /* false: the stage sheet; true: Hit a problem, empty; filled: from a voice note. */
-  const [problem, setProblem] = useState<boolean | ProblemFill>(false);
-  /* The stage sheet's dates and who, opened from "Change dates or who". */
-  const [planning, setPlanning] = useState(false);
   const phone = usePhone();
 
   if (grid.rows.length === 0) return null;
@@ -121,31 +114,17 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   ].filter((x): x is string => !!x))].sort();
 
   const rowName = (a?: Asset) => a?.name ?? 'The line itself';
-  const openStep = (id: string, problem = false) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}${problem ? '?problem=1' : ''}`);
+  /* A step opens in the drawer, over the grid; an empty square opens the
+     small sheet that adds the stage to that machine. */
+  const openCell = (s: StepView | undefined, row: number, col: number) => (s ? openRecord(projectId, s.step.id) : setOpen({ t: 'cell', row, col }));
 
-  /* ---- the writes, each with its own undo ---- */
-  const snapshot = (ts: Test[]) => ts.map(t => ({ id: t.id, outcome: t.outcome, ranOn: t.ranOn, plannedFor: t.plannedFor, plannedTo: t.plannedTo, withWhom: t.withWhom }));
-  const change = async (ts: Test[], patch: (t: Test) => Partial<Test>, said: string) => {
-    if (!ts.length) return;
-    const before = snapshot(ts);
-    for (const t of ts) await tt.patchTest(t.id, patch(t));
-    offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); });
-  };
-  /* A PUSH LATER, KEPT WITH ITS REASON. The dates change, and the reason — its
-     words, film and pictures, and a fix if one was booked — is kept on each
-     step that moved (lib/story). One Undo takes back all of it. */
+  /* ---- the writes, each with its own undo (ui/WhyMoved, shared with the drawer) ---- */
+  const change = (ts: Test[], patch: (t: Test) => Partial<Test>, said: string) => changeTests(tt, ts, patch, said);
   const pushesOf = (ts: Test[], end: string) => {
     const pushed = ts.filter(t => movedLater(plannedEnd(t), end));
     return { n: pushed.length, was: pushed.map(t => plannedEnd(t) as string).sort().pop() };
   };
-  const moveWithWhy = async (ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string) => {
-    const end = to ?? from;
-    const before = snapshot(ts);
-    const pushed = ts.filter(t => movedLater(plannedEnd(t), end)).map(t => ({ step: t, from: plannedEnd(t) as string, to: end }));
-    for (const t of ts) await tt.patchTest(t.id, { plannedFor: from, plannedTo: to });
-    const back = await recordMove(tt, pushed, a);
-    offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); await back(); });
-  };
+  const moveWithWhy = (ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string) => moveTestsWithWhy(tt, ts, from, to, a, said);
   const add = async (pairs: { title: string; assetId?: string }[], said: string) => {
     if (!pairs.length) return;
     const ids: string[] = [];
@@ -228,106 +207,15 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       );
     }
     if (open.t === 'cell') {
+      /* Only an EMPTY square comes here — a step opens in the drawer. */
       const row = grid.rows[open.row];
       const col = grid.columns[open.col];
-      const s = row.cells[open.col];
-      if (!s) {
-        if (!can.edit) return null;
-        return (
-          <Sheet title={`${rowName(row.asset)} — ${col}`} sub="Not on this machine yet" onClose={() => setOpen(null)}>
-            <button className="btn btn-primary ig-big" onClick={() => { void add([{ title: col, assetId: row.asset?.id }], `Added “${col}” to ${rowName(row.asset)}`); setOpen(null); }}>
-              Add “{col}” here
-            </button>
-          </Sheet>
-        );
-      }
-      const t = s.step;
-      /* WHERE IT STANDS, said first, and the buttons follow from it. The sheet
-         used to offer the same three buttons whatever the step was — "Hit a
-         problem" on a step that already had one — and never said which state
-         it was in, so a step pressed by mistake went red with nothing saying
-         how to put it back. Whatever it is, one tap here puts it back. */
-      const stateWord = t.outcome === 'passed' ? `Done${t.ranOn ? ` ${short(t.ranOn)}` : ''}`
-        : t.outcome === 'failed' ? `Hit a problem${t.ranOn ? ` ${short(t.ranOn)}` : ''}${s.late ? ' · late' : ''}`
-          : t.outcome === 'notRun' ? 'Did not happen'
-            : t.outcome === 'planned' && t.ranOn ? 'Worked on — not called yet' : 'Not done yet';
-      const backWord = t.outcome === 'passed' ? 'Not done after all — put it back'
-        : t.outcome === 'failed' ? 'Not a problem after all — put it back'
-          : 'Put it back to planned';
+      if (row.cells[open.col] || !can.edit) return null;
       return (
-        <Sheet title={`${rowName(row.asset)} — ${t.title}`}
-          sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${spanShort(t.plannedFor, plannedEnd(t))}` : 'no day yet'].join(' · ')}
-          onClose={() => { setOpen(null); setProblem(false); setPlanning(false); }}>
-          {/* A CLIENT READS where it stands (the line above), what happened to
-              it, and opens the step. */}
-          {!can.edit ? <>
-            <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} />
-            <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
-          </> : <>
-          {/* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
-              the finish and to when, a fix. The plan hears all of it. */}
-          {problem ? (
-            <ProblemForm step={t} tests={tt.tests} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined} onCancel={() => setProblem(false)}
-              onSave={a => {
-                void recordProblem(tt, t, a, `${t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`);
-                setProblem(false); setOpen(null);
-              }} />
-          ) : <>
-          <div className="ig-acts">
-            {t.outcome !== 'passed' && (
-              <button className="btn btn-primary ig-big" onClick={() => {
-                void change([t], cur => ({ outcome: 'passed', ranOn: cur.ranOn ?? today }), `${t.title} done — ${rowName(row.asset)}`);
-                setOpen(null);
-              }}>Done today</button>
-            )}
-            {/* A stage can hit more than one problem — the button stays. */}
-            <button className="btn ig-big ig-bad" onClick={() => setProblem(true)}>
-              {t.outcome === 'failed' ? 'Another problem — write it up' : 'Hit a problem — write it up'}
-            </button>
-            {(t.outcome !== 'planned' || !!t.ranOn) && (
-              <button className="btn btn-ghost ig-big" onClick={() => {
-                void change([t], () => ({ outcome: 'planned', ranOn: undefined }), `${t.title} back to planned`);
-                setOpen(null);
-              }}>{backWord}</button>
-            )}
-          </div>
-          <SayStep step={t} tt={tt} onDone={() => setOpen(null)} onProblem={f => setProblem(f)} />
-          {/* WHAT HAPPENED TO IT — each problem with its pictures and the fix
-              it booked, here where the problem was written (ui/StageStory).
-              Rowland: "I marked it as a fix … it's just lost." */}
-          <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} />
-          {/* THE PLANNING, BEHIND ONE BUTTON. Rowland, 5 October, on the phone:
-              "too much on a screen." The sheet opened on the floor's three
-              actions and then a start, a finish and who, each with its own
-              Save — three Saves on one sheet. The dates and who are what was
-              planned, said in the line under the title; changing them is one
-              tap away, and one Save keeps both (and asks why when the finish
-              moves later, as before). */}
-          {planning ? (
-            <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
-              who={{ names, value: t.withWhom ?? '' }}
-              following={end => followingSummary(t, tt.tests, end)}
-              onMove={(from, to, a, who) => {
-                void (async () => {
-                  await moveWithWhy([t], from, to, a, `${t.title} moved to ${short(to ?? from)} — reason kept${a.fix ? ', fix booked' : ''}${who !== undefined ? ` · ${who || 'nobody named'}` : ''}`);
-                  if (who !== undefined) await tt.patchTest(t.id, { withWhom: who || undefined });
-                })();
-                setPlanning(false); setOpen(null);
-              }}
-              onSave={(from, to, who) => {
-                const dates = from !== t.plannedFor || to !== t.plannedTo;
-                void change([t], () => ({ plannedFor: from, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}) }),
-                  [dates ? `${t.title} ${from ? (to && to > from ? `planned ${short(from)} to ${short(to)}` : `planned ${short(from)}`) : 'has no dates'}` : t.title,
-                    who !== undefined ? (who || 'nobody named') : ''].filter(Boolean).join(' — '));
-                setPlanning(false); setOpen(null);
-              }}
-              onCancel={() => setPlanning(false)} />
-          ) : (
-            <button className="btn btn-ghost ig-plan-go" onClick={() => setPlanning(true)}>Change dates or who</button>
-          )}
-          <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
-          </>}
-          </>}
+        <Sheet title={`${rowName(row.asset)} — ${col}`} sub="Not on this machine yet" onClose={() => setOpen(null)}>
+          <button className="btn btn-primary ig-big" onClick={() => { void add([{ title: col, assetId: row.asset?.id }], `Added “${col}” to ${rowName(row.asset)}`); setOpen(null); }}>
+            Add “{col}” here
+          </button>
         </Sheet>
       );
     }
@@ -490,7 +378,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                 {r.cells.map((cs, ci) => (
                   <button key={ci}
                     className={'igm-st' + (cs ? ` is-${cs.tone}${cs.tone === 'ahead' && cs.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
-                    onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
+                    onClick={() => openCell(cs, ri, ci)}
                     disabled={!cs && !can.edit}
                     /* Named as the square is named on the laptop — machine,
                        stage and state — for a screen reader, and so the two
@@ -583,7 +471,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                   ) : r.cells.map((s, ci) => (
                     <td key={ci}>
                       <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
-                        onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
+                        onClick={() => openCell(s, ri, ci)}
                         disabled={!s && !can.edit}
                         aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}`}>
                         {s ? cellWord(s) : can.edit ? '+' : ''}
@@ -749,59 +637,5 @@ function Who({ names, value, label = 'Who is doing it', onSave }: {
       <datalist id="ig-names">{names.map(n => <option key={n} value={n} />)}</datalist>
       <button className="btn" type="submit" disabled={v.trim() === value.trim()}>Save</button>
     </form>
-  );
-}
-
-/** Say how a step went, from the square itself — into the boxes this sheet
- *  and its step already have (Rowland, 4 October: "where I'm saying should
- *  make sense to put … not build anything new"). Done, the day, who and what
- *  was done are shown, then put in. Said that it hit a problem, the "Hit a
- *  problem" sheet opens with its boxes filled from the note (onProblem), so
- *  the finish, the reason and the fix are kept the way that sheet keeps them.
- *  Nothing said is lost: what did not fit a box is in "What was done"
- *  (lib/voice proposalFrom), and the words can be put right before they go in. */
-function SayStep({ step, tt, onDone, onProblem }: { step: Test; tt: TT; onDone: () => void; onProblem: (f: ProblemFill) => void }) {
-  const [heard, setHeard] = useState<VoiceResult | null>(null);
-  const today = todayISO();
-  if (!heard) {
-    return <VoiceNote form="install" label="Say how it went" context={() => contextFor(tt.assets, tt.tests, today, step)}
-      onHeard={r => {
-        if (r.fields.outcome === 'failed') {
-          const said = [typeof r.fields.result === 'string' ? r.fields.result : '', r.leftover ?? ''].map(x => x.trim()).filter(Boolean).join(' ') || r.transcript.trim();
-          const to = typeof r.fields.plannedFor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.fields.plannedFor) ? r.fields.plannedFor : '';
-          onProblem({ why: said, to, fix: false, fixOn: '', said: r.transcript });
-          return;
-        }
-        setHeard(r);
-      }} />;
-  }
-  const { changes, notes } = proposalFrom(step, heard, tt.assets, today);
-  return (
-    <VoiceReview heard={heard}
-      rows={[
-        ...changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after, editable: c.key === 'result' })),
-        ...(notes.length ? [{ key: 'found', label: notes.length === 1 ? 'Found doing it' : `Found doing it — ${notes.length} things`, after: notes.map(n => n.what).join('\n') }] : []),
-      ]}
-      onApply={(keys, edits) => void (async () => {
-        const picked = changes.filter(c => keys.includes(c.key));
-        const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
-        if (keys.includes('result') && edits.result != null) patch.result = edits.result.trim() || undefined;
-        const before = Object.fromEntries(Object.keys(patch).map(k => [k, step[k as keyof Test]])) as Partial<Test>;
-        if (Object.keys(patch).length) {
-          await tt.patchTest(step.id, patch);
-          offerUndo(`${step.title}: put in what you said`, () => tt.patchTest(step.id, before));
-        }
-        if (keys.includes('found')) {
-          for (const [i, n] of notes.entries()) {
-            await tt.addItem(step.id, 'found', n.what, { owner: n.owner || undefined, note: i === 0 ? `Said: “${heard.transcript}”` : undefined });
-          }
-        }
-        onDone();
-      })()}
-      /* What did not fit a box is already in "What was done" (proposalFrom);
-         offering it again as a note would say it twice. */
-      onLeftover={changes.some(c => c.key === 'result') ? undefined
-        : text => void tt.addItem(step.id, 'found', text, { note: `Said: “${heard.transcript}”` })}
-      onDiscard={() => setHeard(null)} />
   );
 }

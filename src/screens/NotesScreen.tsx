@@ -11,6 +11,7 @@
 import { AddFold } from '../ui/AddFold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
+import { openRecord } from '../ui/RecordDrawer';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
@@ -330,7 +331,8 @@ export function NotesScreen({ projectId }: { projectId: string }) {
 
       {open.length === 0 && <p className="sub" style={{ marginTop: 14 }}>Nothing to raise yet.</p>}
       {groups.map(g => {
-        const link = g.scope.kind === 'record' ? `/project/${projectId}/testing/${encodeURIComponent(g.scope.testId)}`
+        const scope = g.scope;
+        const link = scope.kind === 'record' ? undefined
           : g.scope.kind === 'gate' ? GATE_PATH[g.scope.gate] ? `/project/${projectId}/${GATE_PATH[g.scope.gate]}` : undefined
             /* A machine lives on Install — the same door the waiting-on
                table gives it. Its heading was the one that went nowhere. */
@@ -339,7 +341,10 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         return (
           <section key={g.key || 'job'} className="nt-group">
             <h3 className="nt-group-h">
-              {link ? <button className="cw-link" onClick={() => nav(link)}>{words(g.scope)} ›</button> : words(g.scope)}
+              {/* A record's heading opens it in the drawer, over the notes (ui/RecordDrawer). */}
+              {scope.kind === 'record'
+                ? <button className="cw-link" onClick={() => openRecord(projectId, scope.testId)}>{words(g.scope)} ›</button>
+                : link ? <button className="cw-link" onClick={() => nav(link)}>{words(g.scope)} ›</button> : words(g.scope)}
             </h3>
             {g.notes.map(n => <Row key={n.id} n={n} tt={tt} job={job} can={can} />)}
           </section>

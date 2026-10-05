@@ -136,6 +136,32 @@ function BookFix({ fix, setFix, on, setOn, what, setWhat }: {
   );
 }
 
+/* ONE CHANGE, ONE UNDO — the floor's writes, shared by the install grid's
+   sheets (done on every machine at once) and the record's drawer (done on this
+   one). What the Undo puts back is what a floor action or a re-plan can
+   touch: the verdict, the day, the dates and who. */
+const snapshot = (ts: Test[]) => ts.map(t => ({ id: t.id, outcome: t.outcome, ranOn: t.ranOn, plannedFor: t.plannedFor, plannedTo: t.plannedTo, withWhom: t.withWhom }));
+
+/** Patch these records, and offer to put every one of them back. */
+export async function changeTests(tt: TT, ts: Test[], patch: (t: Test) => Partial<Test>, said: string): Promise<void> {
+  if (!ts.length) return;
+  const before = snapshot(ts);
+  for (const t of ts) await tt.patchTest(t.id, patch(t));
+  offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); });
+}
+
+/** A PUSH LATER, KEPT WITH ITS REASON. The dates change, and the reason — its
+ *  words, film and pictures, and a fix if one was booked — is kept on each
+ *  record that moved (lib/story). One Undo takes back all of it. */
+export async function moveTestsWithWhy(tt: TT, ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string): Promise<void> {
+  const end = to ?? from;
+  const before = snapshot(ts);
+  const pushed = ts.filter(t => movedLater(plannedEnd(t), end)).map(t => ({ step: t, from: plannedEnd(t) as string, to: end }));
+  for (const t of ts) await tt.patchTest(t.id, { plannedFor: from, plannedTo: to });
+  const back = await recordMove(tt, pushed, a);
+  offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); await back(); });
+}
+
 /** Keep the reason (and the fix, if asked) on each moved step. Returns how to
  *  take it all back — the caller restores the dates in the same Undo. */
 export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?: string }[], a: WhyAnswer): Promise<() => Promise<void>> {

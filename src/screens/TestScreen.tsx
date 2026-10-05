@@ -1,11 +1,22 @@
-/* ONE TEST, START TO FINISH.
+/* ONE RECORD, READ WHOLE — the page a step, a test or a fix opens to, from
+ * the one link in its drawer (ui/RecordDrawer): "Everything about it ›".
  *
- * Four blocks, in the order the day runs:
+ * It reads like the card, because it IS the card: the four parts of the loop
+ * (lib/trialCard), numbered the same way in the same order the A4 prints
+ * them, so the page and the PDF cannot disagree about what is on the record.
  *
  *   1 · WHAT WE PLANNED TO DO   what · which machine · when · what it passes on
  *   2 · WHAT ACTUALLY HAPPENED  what we ran · when it really was · the result
  *   3 · WHAT WE FOUND           the issues, with the photos and the video
- *   4 · WHAT WE DO NEXT         agreed with the OEM, each one can become the next test
+ *   4 · WHAT WE DO NEXT         the fixes, each its own record, and the re-test
+ *
+ * Each part with boxes has one Edit, which opens them in place; part 4 is a
+ * list of records, each opening in the drawer. Files, the meeting note, the
+ * pin on the line, the PDF and Delete live at the foot — the one time in ten
+ * they are wanted. There is no second page: the record's page
+ * and its card page were two doors onto the same reading (Rowland, 5 October:
+ * "too many doors opening just to get to very simple things"), and the old
+ * /card link lands here.
  *
  * THE PLAN IS NOT REWRITTEN AFTER THE DAY. The planned date and the actual date
  * are two fields, as are the planned product and the one that went down the
@@ -27,16 +38,18 @@ import { usePrograms } from '../lib/usePrograms';
 import { useTesting } from '../lib/useTesting';
 import { deleteBlobs, getBlob, putBlob } from '../db';
 import { uid } from '../lib/ids';
-import { deliverBlob } from '../lib/savePdf';
+import { deliverBlob, deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
+import { trialCard, verdictLine, type CardFinding, type CardNext, type TrialCard } from '../lib/trialCard';
+import { pdfFileName } from '../lib/fileName';
 import {
-  gateOf, hasRun, plannedEnd, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion, standingOfItem,
+  gateOf, live, plannedEnd, wordsOf, needsVerdict, outcomeWord, foundWords, itemsOf, testOfFix, verdictQuestion, standingOfItem,
   type DocRef, type ItemKind, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import type { MediaRef } from '../types';
 import { niceDay, todayISO } from '../lib/weeks';
 import { offerUndo } from '../ui/Undo';
-import { VoiceNote, VoiceReview } from '../ui/Voice';
-import { proposalFrom, contextFor, type Change, type VoiceResult } from '../lib/voice';
+import { SayIt } from '../ui/RecordSay';
+import { openRecord } from '../ui/RecordDrawer';
 import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
@@ -50,8 +63,15 @@ import { mayWriteAgreement, type Can } from '../lib/access';
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
 const nice = (iso?: string): string => niceDay(iso) || '';
+/** "9 Oct", or "5 Oct – 9 Oct" for a block of days. */
+const window_ = (from?: string, to?: string): string => (!from ? '' : to && to > from ? `${nice(from)} – ${nice(to)}` : nice(from));
 
 type TT = ReturnType<typeof useTesting>;
+/** The parts of the card, each with its own Edit. */
+type Part = 'plan' | 'day' | 'found';
+
+/** The boxes that sit in "1 · What we planned" — a voice note filling one opens it. */
+const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
 
 export function TestScreen({ projectId, testId }: { projectId: string; testId: string }) {
   const { project, loading } = useProject(projectId);
@@ -73,18 +93,25 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   /* Bumped when a link is made, so the list under the pictures reads again. */
   const [shareRev, setShareRev] = useState(0);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
-  const [planOpen, setPlanOpen] = useState(false);
-  /* 2 · THE DAY folds the same way once the verdict is in. */
-  const [dayOpen, setDayOpen] = useState(false);
+  /* Arriving to write a problem up (?problem=1): straight into part 3's boxes. */
+  const writingProblem = useRoute().query.get('problem') === '1';
+  /* WHICH PART IS OPEN FOR EDITING — one at a time, where it is read. */
+  const [editing, setEditing] = useState<Part | null>(writingProblem ? 'found' : null);
   /* The boxes a voice note just filled — they glow for a moment so you can
      see where what you said went. */
   const [filled, setFilled] = useState<string[]>([]);
-  /* Arriving from "Hit a problem — write it up" on Install: straight into the
-     box the problems are written in, ready to type the first of however many
-     there are. */
-  const writingProblem = useRoute().query.get('problem') === '1';
+  /* "For the meeting", opened to write the first thing to raise. */
+  const [meeting, setMeeting] = useState(false);
   /* A planned window waiting for its reason — see `redate` below. */
   const [moving, setMoving] = useState<Pick<Test, 'plannedFor' | 'plannedTo'> | null>(null);
+  /* The PDF: built from this page's reading, delivered to the device first
+     (lib/savePdf) — you read it before anybody else does. */
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [said, setSaid] = useState<string | null>(null);
+  /* The 350KB of jsPDF is fetched when this page OPENS, not when the button
+     is pressed — the rule savePdf.ts sets out. */
+  useEffect(() => { void loadPdfLib().catch(() => { /* the button reports it */ }); }, []);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const test = tt.tests.find(t => t.id === testId);
@@ -101,13 +128,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           { label: 'Commission' },
         ]} />
         <section className="cmp-empty">
-          <h2>That test isn’t here any more</h2>
+          <h2>That record isn’t here any more</h2>
           <p>
-            It has been deleted, or the link is to a test on a different project. Everything else on
+            The test, fix or step has been deleted, or the link is to one on a different project. Everything else on
             {project ? ` ${project.name}` : ' this project'} is still where it was.
           </p>
           <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>Back to the tests</button>
-          <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav('/')}>Back to the control room</button>
+          <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav(`/project/${projectId}/fixes`)}>The fixes</button>
         </section>
       </div>
     );
@@ -147,8 +174,57 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const setOutcome = (o: Outcome) =>
     void tt.patchTest(test.id, cur => ({ outcome: o, ranOn: cur.ranOn ?? (o === 'planned' ? undefined : todayISO()) }));
 
+  /* THE CARD'S READING — the same call the PDF draws from (lib/trialCard). */
+  const c: TrialCard = trialCard(test, tt.tests, tt.items, tt.assets);
+  const found = itemsOf(tt.items, test.id, 'found');
+  const notes = itemsOf(tt.items, test.id, 'note');
+  /* The pictures the card carries: the record's own, then what was found. The
+     page shows them and the PDF prints them, off this one list. */
+  const media: MediaRef[] = [...(test.media ?? []), ...found.flatMap(i => i.media ?? [])];
+  const program = programs.find(x => x.id === test.programId);
+  /* The record above this one, and the ones that came out of it — the loop
+     the card prints as "Where this sits", here with a door on each name. */
+  const up = kind === 'fix' ? forTest : from && !from.deletedAt ? from : undefined;
+  const ledTo = live(tt.tests).filter(t => t.fromTestId === test.id && (t.kind ?? 'test') !== 'fix');
+  /* What came out of it, in the order the card lists them (lib/trialCard) —
+     the same filter and sort, so row i on the page is row i on the paper and
+     each one opens its record. */
+  const nextRecs = live(tt.tests)
+    .filter(t => ((t.kind ?? 'test') === 'fix' ? testOfFix(t, tt.tests)?.id === test.id : t.fromTestId === test.id))
+    .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
+  const retest = kind === 'test' && (test.outcome === 'failed' || test.outcome === 'notRun');
+
+  const send = async () => {
+    if (busy) return;
+    setBusy(true); setErr(null); setSaid(null);
+    try {
+      const { jsPDF } = await loadPdfLib();
+      const { drawTrialCard } = await import('../lib/trialCardPdf');
+      const { shotsFor, shotKey } = await import('../lib/testReport');
+      const shots = await shotsFor(media.map(shotKey).filter((k): k is string => !!k));
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
+      const when = c.ranOn ?? c.plannedFor;
+      const how = await deliverPdf(pdf, pdfFileName(project.name, `${c.title} ${c.kind === 'fix' ? 'fix' : c.kind === 'install' ? 'step' : 'test'} card`, when ?? todayISO()), { brand: false }); // its band carries the mark
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+    } catch (e) {
+      console.error('Card failed', e);
+      setErr(isStaleBuildError(e)
+        ? 'This tab is still running an older version of the app, so the part that draws the PDF could not load.'
+        : (e instanceof Error ? e.message : `The ${words.one.toLowerCase()} card could not be built.`));
+    } finally { setBusy(false); }
+  };
+
+  /* ONE EDIT PER PART, where the part is read; pressed again, it folds. */
+  const edit = (part: Part) => !ro && (
+    <button type="button" className="cw-link tc-edit" aria-expanded={editing === part}
+      onClick={() => setEditing(e => (e === part ? null : part))}>{editing === part ? 'Done' : 'Edit'}</button>
+  );
+  const one = words.one.toLowerCase();
+  const noun = kind === 'install' ? 'step' : 'test';
+
   return (
-    <div className="wrap pace cm-screen">
+    <div className="wrap pace cm-screen tc-screen">
       <Crumbs trail={[
         { label: 'Control room', to: '/' },
         { label: project.name, to: `/project/${projectId}` },
@@ -169,304 +245,308 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           <p className="cw-handover">
             <b>{outcomeWord(test)}</b>
             {test.ranOn && <span className="sub">{nice(test.ranOn)}</span>}
-            {kind === 'test' && from && (
-              <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(from.id)}`)}>
-                follows “{from.title}”
-              </button>
-            )}
-            {kind === 'fix' && forTest && (
-              <button className="cw-link" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
-                for “{forTest.title}”
-              </button>
-            )}
           </p>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
 
       {/* SAY IT. One voice note fills this record's boxes AND adds what was
-          found — it used to be two mics, one here and one under "what we
-          found", for what is one breath on the floor. Shown first, put in only
-          when you say so. */}
+          found (ui/RecordSay). Shown first, put in only when you say so; the
+          part it went into opens so you can see where. */}
       {can.edit && <SayIt test={test} tt={tt} can={can} onFilled={keys => {
         setFilled(keys);
-        if (keys.some(k => PLAN_KEYS.includes(k))) setPlanOpen(true);
+        if (keys.some(k => PLAN_KEYS.includes(k))) setEditing('plan');
+        else if (keys.includes('found')) setEditing('found');
+        else if (keys.length) setEditing('day');
         window.setTimeout(() => setFilled([]), 4000);
         /* To the first box it went into — on a phone it is often below. */
         window.setTimeout(() => document.querySelector('.is-filled')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
       }} />}
 
-      {/* WHAT YOU DO WITH IT, at the top. The card and the re-test were at the
-          foot, under every block, on a page that is mostly read from the top
-          on a phone. */}
-      <div className="tw-acts">
-        <TrialCardButton test={test} project={projectId} />
-        {/* A RE-TEST FOLLOWS A RUN THAT DID NOT PROVE IT — didn't pass or
-            didn't run. Offered on a test still planned (or one that passed)
-            it was a door to a re-test of something not yet tried. */}
-        {kind === 'test' && (test.outcome === 'failed' || test.outcome === 'notRun') ? can.edit && (
-          <button className="btn" title="Carries the machine, the product and the expectation forward, so the plan writes itself."
-            onClick={() => void (async () => {
-              const id = await tt.planNextFrom(test);
-              nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
-            })()}>
-            Plan the re-test
-          </button>
-        ) : kind === 'install' ? (
-          <button className="btn" onClick={() => nav(`/project/${projectId}/${GATE_PATH[gateOf(test)]}`)}>
-            Back to {GATE_WORD[gateOf(test)]} — {machineOf(test)}
-          </button>
-        ) : forTest && (
-          <button className="btn" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(forTest.id)}`)}>
-            Back to the test — {forTest.title}
-          </button>
-        )}
+      <div className={'tc-two' + (editing === 'plan' || editing === 'day' ? ' is-editing' : '')}>
+        {/* 1 · THE PLAN — read as the card prints it; Edit opens its boxes. */}
+        <Block n="1" title={words.plan} action={edit('plan')}>
+          {editing !== 'plan' ? <>
+            <Field label={words.expectation} text={c.passesIf} empty={words.noPlan} />
+            {c.kind === 'test' && <Field label="Product we planned to run" text={c.plannedProduct} />}
+            <div className="tc-fields">
+              <Field label="Booked for" text={window_(c.plannedFor, c.plannedTo)} empty="No day set" />
+              <Field label="Machine" text={c.machine} />
+              <Field label={words.withWhom} text={c.withWhom} empty="nobody yet" />
+              {programs.length > 0 && <Field label="Program" text={program ? `${program.what}${program.runs ? ` — ${program.runs}` : ''}` : ''} empty="Not about one" />}
+            </div>
+          </> : (
+          <div className="tc-form">
+            <label className={'cw-f cw-f-wide' + hl('title')}><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
+              <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
+            {/* WHICH TEST IT IS FOR. The one link a fix carries, and it can be
+                changed — a fix put against the wrong test is moved, not re-made. */}
+            {kind === 'fix' && (
+              <label className="cw-f cw-f-wide"><span>{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</span>
+                <select value={forTest?.id ?? ''} onChange={e => save({ fromTestId: e.target.value || undefined })}>
+                  <option value="">{stepsToPick.length ? 'Not from a test or an install step' : 'Not from a test'}</option>
+                  {stepsToPick.length > 0
+                    ? <>
+                      <optgroup label="Tests">{testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</optgroup>
+                      {(['install', 'setup', 'handover'] as const).map(g => {
+                        const inGate = stepsToPick.filter(t => gateOf(t) === g);
+                        return inGate.length > 0 && (
+                          <optgroup key={g} label={`${GATE_WORD[g]} steps`}>{inGate.map(t => <option key={t.id} value={t.id}>{machineOf(t)} — {t.title}</option>)}</optgroup>
+                        );
+                      })}
+                    </>
+                    : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                </select></label>
+            )}
+            <label className={'cw-f' + hl('machine')}><span>Machine</span>
+              <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
+                <option value="">The line itself</option>
+                {tt.assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select></label>
+            {/* WHICH PROGRAM, when it is about one. Offered only when the job
+                HAS programs — an empty dropdown is a question with no answers. */}
+            {programs.length > 0 && (
+              <label className="cw-f"><span>Program</span>
+                <select value={test.programId ?? ''} onChange={e => save({ programId: e.target.value || undefined })}>
+                  <option value="">Not about one</option>
+                  {programs.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}
+                </select></label>
+            )}
+            {/* PLANNED FOR A DAY, OR FOR A BLOCK OF THEM. The second date is
+                empty by default and empty means one day. */}
+            <label className={'cw-f' + hl('plannedFor')}><span>Planned from</span>
+              <DateInput value={moving?.plannedFor ?? test.plannedFor ?? ''} onCommit={v => redate({ plannedFor: v || undefined })} /></label>
+            <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
+              <DateInput value={moving ? moving.plannedTo ?? '' : test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
+                onCommit={v => redate({ plannedTo: v || undefined })} /></label>
+            {/* PUSHED LATER: asked why before it is kept — the plan shows the answer. */}
+            {moving && (
+              <div className="cw-f-wide">
+                <WhyMoved from={plannedEnd(test) as string} to={(moving.plannedTo ?? moving.plannedFor) as string}
+                  following={followingSummary(test, tt.tests, (moving.plannedTo ?? moving.plannedFor) as string)}
+                  onCancel={() => setMoving(null)}
+                  onSkip={() => { save(moving); setMoving(null); }}
+                  onSave={a => void (async () => {
+                    const before = { plannedFor: test.plannedFor, plannedTo: test.plannedTo };
+                    const was = plannedEnd(test) as string, end = (moving.plannedTo ?? moving.plannedFor) as string;
+                    await tt.patchTest(test.id, moving);
+                    const back = await recordMove(tt, [{ step: test, from: was, to: end }], a);
+                    setMoving(null);
+                    offerUndo(`Moved to ${niceDay(end)} — reason kept${a.fix ? ', fix booked' : ''}`, async () => { await tt.patchTest(test.id, before); await back(); });
+                  })()} />
+              </div>
+            )}
+            <label className={'cw-f' + hl('withWhom')}><span>{words.withWhom}</span>
+              <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
+            {/* A fix does not run a product down the machine, so the box is not
+                offered — it is not hidden state, there is simply nothing to say. */}
+            {kind === 'test' && (
+              <label className="cw-f"><span>Product we plan to run</span>
+                <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
+            )}
+            <PassesIf key={test.id} test={test} can={can} label={words.expectation} glow={hl('problem')}
+              onSave={v => save({ passesIf: v.trim() || undefined })} />
+          </div>
+          )}
+        </Block>
+
+        {/* 2 · THE DAY — the verdict line the card prints; Edit opens the boxes,
+            the verdict and the camera. */}
+        <Block n="2" title={words.day} action={edit('day')}>
+          {editing !== 'day' ? <>
+            {/* THE VERDICT IS ASKED FOR where it is read, not behind Edit: once
+                the day or a result is on the record and nobody has said how it
+                went, the question leads (lib/testing needsVerdict). */}
+            {can.edit && needsVerdict(test) && <>
+              <span className="tw-ask">{verdictQuestion(kind)}</span>
+              <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />
+            </>}
+            <Field label={words.happened} text={verdictLine(c)} empty="Nothing written down yet" />
+            {c.kind === 'test' && <Field label="Product we ran" text={c.product} />}
+            <Field label="Ran on" text={window_(c.ranOn, c.ranTo)} empty="Not run yet" />
+          </> : (
+          <div className="tc-form">
+            {kind === 'test' && (
+              <label className={'cw-f' + hl('product')}><span>Product we ran</span>
+                <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
+                  onSave={v => save({ product: v.trim() || undefined })} /></label>
+            )}
+            <label className={'cw-f' + hl('ranOn')}><span>On the day</span>
+              <DateInput value={test.ranOn ?? ''} onCommit={v => save({ ranOn: v || undefined })} /></label>
+            <label className="cw-f" title="Leave blank when it took one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
+              <DateInput value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
+                onCommit={v => save({ ranTo: v || undefined })} /></label>
+            <label className={'cw-f cw-f-wide' + hl('result')}><span>{words.happened}</span>
+              <DraftArea rows={5} value={test.result ?? ''}
+                placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
+                  : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
+                    : '61 ppm, 3 leaked in 20'}
+                onSave={v => save({ result: v.trim() || undefined })} /></label>
+            {/* THE VERDICT IS ASKED FOR once there is a day or a result on the
+                record and nobody has said how it went — the answer is what
+                every list and both documents turn on. */}
+            {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
+            <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />
+            <Evidence media={test.media ?? []} onView={setViewing} kind={kind}
+              onAdd={refs => tt.patchTest(test.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
+          </div>
+          )}
+        </Block>
       </div>
 
-      {/* 1 · THE PLAN — folded to one line once it has run. After the day the
-          plan is read, not written; the full block pushed "what happened"
-          below the fold on a phone. One tap opens it, nothing in it is lost. */}
-      {hasRun(test) && !planOpen ? (
-        <button className="tw-block tw-fold" onClick={() => setPlanOpen(true)}>
-          <span className="tw-block-h">1 · {words.plan}</span>
-          <span className="tw-fold-t">
-            {[machineOf(test), test.plannedFor && nice(test.plannedFor), test.withWhom && `with ${test.withWhom}`, test.passesIf]
-              .filter(Boolean).join(' · ')}
+      {/* 3 · WHAT WE FOUND — OBSERVATIONS, written down live. Whether any of
+          them is a fix is a decision somebody makes afterwards. A fix has none
+          of its own (it is the work, not the question); one made before that
+          rule keeps what was written under it, read-only. */}
+      <Block n="3" title={words.found} sub={found.length ? foundWords({ written: found.length }) : undefined}
+        action={(kind !== 'fix' || found.length > 0) && edit('found')}>
+        {editing !== 'found'
+          ? <Found rows={c.findings} one={one} edit={can.edit && kind !== 'fix'} />
+          : <Items kind="found" test={test} tt={tt} can={can} onView={setViewing} glow={filled.includes('found')} focus={writingProblem}
+            placeholder={kind === 'install' ? 'What was the problem?' : 'What did you see?'}
+            empty={kind === 'install'
+              ? 'Write each problem on its own — add one, then the next. As many as there are.'
+              : 'Nothing written down yet. This is the part that matters most.'} />}
+      </Block>
+
+      {/* 4 · WHAT WE DO NEXT — a list of RECORDS: each fix has its own days,
+          its own findings and its own card, and each row opens it in the
+          drawer, over this page. There is nothing to edit in place — a fix is
+          made on the Fixes screen (with this one picked), and a re-test
+          follows a run that did not prove it — so the two doors sit under the
+          list rather than behind an Edit. */}
+      <Block n="4" title="What we do next" sub={c.next.length ? `${c.openNext} of ${c.next.length} still open` : undefined}>
+        <Next rows={c.next} one={one} edit={can.edit && kind !== 'fix'}
+          onOpen={i => nextRecs[i] && openRecord(projectId, nextRecs[i].id)} />
+        {can.edit && kind !== 'fix' && (
+          <span className="tc-next-acts">
+            <button type="button" className="cw-add" onClick={() => nav(`/project/${projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
+              <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a fix for this {noun}
+            </button>
+            {/* It carries the machine, the product and the expectation forward,
+                so the plan writes itself; the new test's page opens to plan it. */}
+            {retest && (
+              <button type="button" className="btn" onClick={() => void (async () => {
+                const id = await tt.planNextFrom(test);
+                nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+              })()}>Plan the re-test</button>
+            )}
           </span>
-          <span className="tw-fold-go">{ro ? 'Show' : 'Edit'}</span>
-        </button>
-      ) : (
-      <section className="tw-block">
-        <span className="tw-block-h">1 · {words.plan}</span>
-        {ro ? <Ro wide label={kind === 'test' ? 'What we plan to do' : words.plan} text={test.title} /> : (
-        <label className={'cw-f cw-f-wide' + hl('title')}><span>{kind === 'test' ? 'What we plan to do' : words.plan}</span>
-          <DraftField value={test.title} onSave={v => v.trim() && save({ title: v.trim() })} /></label>
         )}
-        {/* WHICH TEST IT IS FOR. The one link a fix carries, and it can be
-            changed — a fix put against the wrong test is moved, not re-made. */}
-        {kind === 'fix' && ro && (
-          <Ro wide label={stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}
-            text={forTest ? (forTest.kind === 'install' ? `${machineOf(forTest)} — ${forTest.title}` : forTest.title) : 'Not from a test'} />
-        )}
-        {kind === 'fix' && !ro && (
-          <label className="cw-f cw-f-wide"><span>{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</span>
-            <select value={forTest?.id ?? ''} onChange={e => save({ fromTestId: e.target.value || undefined })}>
-              <option value="">{stepsToPick.length ? 'Not from a test or an install step' : 'Not from a test'}</option>
-              {stepsToPick.length > 0
-                ? <>
-                  <optgroup label="Tests">{testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</optgroup>
-                  {(['install', 'setup', 'handover'] as const).map(g => {
-                    const inGate = stepsToPick.filter(t => gateOf(t) === g);
-                    return inGate.length > 0 && (
-                      <optgroup key={g} label={`${GATE_WORD[g]} steps`}>{inGate.map(t => <option key={t.id} value={t.id}>{machineOf(t)} — {t.title}</option>)}</optgroup>
-                    );
-                  })}
-                </>
-                : testsToPick.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-            </select></label>
-        )}
-        {ro ? <Ro label="Machine" text={machineOf(test)} /> : (
-        <label className={'cw-f' + hl('machine')}><span>Machine</span>
-          <select value={test.assetId ?? ''} onChange={e => save({ assetId: e.target.value || undefined })}>
-            <option value="">The line itself</option>
-            {tt.assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select></label>
-        )}
-        {/* WHICH PROGRAM, when it is about one. Rowland: "you can have a setup
-            of a program, a test of a program, then a fix of a program, or a fix
-            of an asset." Offered only when the job HAS programs — an empty
-            dropdown is a question with no answers. */}
-        {programs.length > 0 && ro && (() => {
-          const p = programs.find(x => x.id === test.programId);
-          return <Ro label="Program" text={p ? `${p.what}${p.runs ? ` — ${p.runs}` : ''}` : 'Not about one'} />;
-        })()}
-        {programs.length > 0 && !ro && (
-          <label className="cw-f"><span>Program</span>
-            <select value={test.programId ?? ''} onChange={e => save({ programId: e.target.value || undefined })}>
-              <option value="">Not about one</option>
-              {programs.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}
-            </select></label>
-        )}
-        {/* PLANNED FOR A DAY, OR FOR A BLOCK OF THEM. Rowland: "sometimes it's
-            a block, it's like a week commencing." The second date is empty by
-            default and empty means one day — so nothing that already exists
-            reads any differently, and the extra box only matters to somebody
-            who needs it. */}
-        {ro ? <>
-          <Ro label="Planned from" text={nice(test.plannedFor)} />
-          {test.plannedTo && <Ro label="Last day" text={nice(test.plannedTo)} />}
-        </> : <>
-        <label className={'cw-f' + hl('plannedFor')}><span>Planned from</span>
-          <DateInput value={moving?.plannedFor ?? test.plannedFor ?? ''} onCommit={v => redate({ plannedFor: v || undefined })} /></label>
-        <label className="cw-f" title="Leave blank when it is one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
-          <DateInput value={moving ? moving.plannedTo ?? '' : test.plannedTo ?? ''} min={test.plannedFor ?? undefined}
-            onCommit={v => redate({ plannedTo: v || undefined })} /></label>
-        </>}
-        {/* PUSHED LATER: asked why before it is kept — the plan shows the answer. */}
-        {moving && (
-          <div className="cw-f-wide">
-            <WhyMoved from={plannedEnd(test) as string} to={(moving.plannedTo ?? moving.plannedFor) as string}
-              following={followingSummary(test, tt.tests, (moving.plannedTo ?? moving.plannedFor) as string)}
-              onCancel={() => setMoving(null)}
-              onSkip={() => { save(moving); setMoving(null); }}
-              onSave={a => void (async () => {
-                const before = { plannedFor: test.plannedFor, plannedTo: test.plannedTo };
-                const was = plannedEnd(test) as string, end = (moving.plannedTo ?? moving.plannedFor) as string;
-                await tt.patchTest(test.id, moving);
-                const back = await recordMove(tt, [{ step: test, from: was, to: end }], a);
-                setMoving(null);
-                offerUndo(`Moved to ${niceDay(end)} — reason kept${a.fix ? ', fix booked' : ''}`, async () => { await tt.patchTest(test.id, before); await back(); });
-              })()} />
+      </Block>
+
+      {/* THE PICTURES — the same ones the A4 prints, in the same order. Only
+          when there are any: an empty box for them is a box that says the
+          test was not looked at. They are taken in part 2. */}
+      {media.length > 0 && (
+        <Block n="5" title={words.pictures} sub={`${media.length} on the ${one}`}>
+          <div className="tw-ev-grid">
+            {media.map(m => <EvidenceThumb key={m.id} media={m} size={84} onClick={() => setViewing(m)} />)}
           </div>
-        )}
-        {ro ? <Ro label={words.withWhom} text={test.withWhom} /> : (
-        <label className={'cw-f' + hl('withWhom')}><span>{words.withWhom}</span>
-          <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
-        )}
-        {/* A fix does not run a product down the machine, so the box is not
-            offered — it is not hidden state, there is simply nothing to say. */}
-        {kind === 'test' && (ro ? <Ro label="Product we plan to run" text={test.planned} /> : (
-          <label className="cw-f"><span>Product we plan to run</span>
-            <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
-        ))}
-        <PassesIf key={test.id} test={test} can={can} label={words.expectation} glow={hl('problem')}
-          onSave={v => save({ passesIf: v.trim() || undefined })} />
-      </section>
+        </Block>
       )}
 
-      {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk.
-          A client sees the pin, without the controls that place or move it. */}
-      {kind === 'fix' && (can.edit || test.pin) && (
-        <section className="tw-block">
-          <OnTheLine projectId={projectId} pin={test.pin} onSave={can.edit ? pin => save({ pin }) : undefined} />
+      {/* WHAT HAS BEEN SENT — the links to this record's pictures. Made from
+          the picture itself (the viewer's "Share a link"); stopped from here. */}
+      {mayShare && <SharedLinks key={shareRev} projectId={projectId} testId={test.id} />}
+
+      {/* WHERE THIS SITS — the loop, read both ways. The same block the A4
+          carries, and the reason a trial card is not an isolated page. It is
+          the ONE door to the record above this one (a fix's test or step, a
+          re-test's test) and to what came out of it: each name opens in the
+          drawer, over this page. The header's "for “…”" link and the "Back to
+          the test" button were two more doors to the same place. */}
+      {(up || ledTo.length > 0) && (
+        <section className="tc-loop">
+          <span className="tc-f-l">Where this sits</span>
+          <p className="tc-loop-t">
+            {up && <>{kind === 'fix' ? 'For' : 'Follows'} <button type="button" className="cw-link tc-loop-a" onClick={() => openRecord(projectId, up.id)}>
+              {up.kind === 'install' ? `${machineOf(up)} — ` : ''}{up.title}</button>. </>}
+            {ledTo.length > 0
+              ? <>Led to {ledTo.map((t, i) => <span key={t.id}><button type="button" className="cw-link tc-loop-a" onClick={() => openRecord(projectId, t.id)}>{t.title}</button>{i < ledTo.length - 1 ? ', ' : ''}</span>)}.</>
+              : <span className="sub">Nothing has been planned out of it yet.</span>}
+          </p>
         </section>
       )}
 
-      {/* 2 · THE DAY — one line once there is a verdict; Edit opens it. */}
-      {hasRun(test) && test.outcome !== 'planned' && !dayOpen ? (
-        <button className="tw-block tw-fold" onClick={() => setDayOpen(true)}>
-          <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
-          <span className="tw-fold-t">
-            {[outcomeWord(test), test.ranOn && nice(test.ranOn), test.result, (test.media?.length ?? 0) > 0 && `${test.media?.length} picture${test.media?.length === 1 ? '' : 's'}`]
-              .filter(Boolean).join(' · ')}
-          </span>
-          <span className="tw-fold-go">{ro ? 'Show' : 'Edit'}</span>
-        </button>
-      ) : ro ? (
-      /* A CLIENT READS THE DAY: the same boxes as text, the pictures without
-         the camera, and the verdict already said in the header. */
-      <section className="tw-block">
-        <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
-        {kind === 'test' && <Ro label="Product we ran" text={test.product} />}
-        <Ro label="On the day" text={nice(test.ranOn)} />
-        {test.ranTo && <Ro label="Last day" text={nice(test.ranTo)} />}
-        <Ro wide label={words.happened} text={test.result} />
-        <Evidence media={test.media ?? []} onView={setViewing} kind={kind} />
-      </section>
-      ) : (
-      <section className="tw-block">
-        <span className="tw-block-h">2 · {kind === 'test' ? 'What actually happened' : words.day}</span>
-        {kind === 'test' && (
-          <label className={'cw-f' + hl('product')}><span>Product we ran</span>
-            <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
-              onSave={v => save({ product: v.trim() || undefined })} /></label>
+      {/* ===================== THE FOOT — the one time in ten ===================== */}
+      <div className="tc-foot">
+        {/* FILES and FOR THE MEETING are blocks once they hold something. Empty,
+            each is one line to start it — not a box on every record with a
+            paragraph explaining itself. */}
+        {(test.docs ?? []).length > 0 && <Docs test={test} tt={tt} can={can} />}
+
+        {/* FOR THE MEETING — what to raise about this one, written beforehand.
+            The same list as every project note (the Notes screen), filed here. */}
+        {(notes.length > 0 || meeting) && (
+          <Block title="For the meeting" sub={notes.length ? (() => { const open = notes.filter(r => r.doneAt == null).length; return open ? `${open} to raise` : 'all raised'; })() : undefined}>
+            <Items kind="note" test={test} tt={tt} can={can} onView={setViewing} focus={meeting && !notes.length}
+              placeholder="Something to raise about this?"
+              empty="Write it here so it isn’t forgotten at the next meeting." />
+          </Block>
         )}
-        <label className={'cw-f' + hl('ranOn')}><span>On the day</span>
-          <DateInput value={test.ranOn ?? ''} onCommit={v => save({ ranOn: v || undefined })} /></label>
-        <label className="cw-f" title="Leave blank when it took one day"><span>Last day <span className="cw-f-opt">if more than one</span></span>
-          <DateInput value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
-            onCommit={v => save({ ranTo: v || undefined })} /></label>
-        <label className={'cw-f cw-f-wide' + hl('result')}><span>{words.happened}</span>
-          <DraftArea rows={5} value={test.result ?? ''}
-            placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
-              : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
-                : '61 ppm, 3 leaked in 20'}
-            onSave={v => save({ result: v.trim() || undefined })} /></label>
-        {/* THE VERDICT IS ASKED FOR, not left as four buttons at the foot of a
-            block. Once there is a day or a result on the record and nobody has
-            said how it went, the question leads, in the face's own words —
-            because "I never get asked" was true, and the answer is what every
-            list and both documents turn on. */}
-        {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
-        <span className={'tw-seg' + (needsVerdict(test) ? ' is-asking' : '') + hl('outcome')}>
-          {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
-            <button key={o} className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')}
-              aria-pressed={test.outcome === o} onClick={() => setOutcome(o)}>
-              {o === 'planned' ? (needsVerdict(test) ? 'No verdict yet' : 'Still planned') : outcomeWord({ kind, outcome: o })}
-            </button>
-          ))}
-        </span>
-        <Evidence media={test.media ?? []} onView={setViewing} kind={kind}
-          onAdd={refs => tt.patchTest(test.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
-      </section>
-      )}
 
-      {/* WHAT HAS BEEN SENT — the links to this test's pictures, once, under
-          them, whether block 2 is open or folded. Made from the picture itself
-          (the viewer's "Share a link"); stopped from here. */}
-      {mayShare && <SharedLinks key={shareRev} projectId={projectId} testId={test.id} />}
+        {can.edit && ((test.docs ?? []).length === 0 || (!notes.length && !meeting)) && (
+          <div className="tc-adds">
+            {(test.docs ?? []).length === 0 && <Docs test={test} tt={tt} can={can} />}
+            {!notes.length && !meeting && (
+              <button type="button" className="cw-add" onClick={() => setMeeting(true)}>
+                <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Something to raise at the meeting
+              </button>
+            )}
+          </div>
+        )}
 
-      {/* 3 · WHAT WE FOUND — the biggest block, because it is the important part.
-          These are OBSERVATIONS: written down live, while it is running. Whether
-          any of them is a fix is a decision somebody makes afterwards. */}
-      {/* A fix has no "what we found" of its own — it is the work, not the
-          question. One made before that rule keeps what was written under it. */}
-      {/* An install step does — installing is where the missing part and the
-          wrong drawing turn up, and they are the day's story. */}
-      {(kind !== 'fix' || itemsOf(tt.items, test.id, 'found').length > 0) && (
-        <Items kind="found" test={test} tt={tt} can={can} onView={setViewing} glow={filled.includes('found')} focus={writingProblem}
-          heading={kind === 'install' ? '3 · What we found doing it' : '3 · What we found on the day'}
-          placeholder={kind === 'install' ? 'What was the problem?' : 'What did you see?'}
-          empty={kind === 'install'
-            ? 'Write each problem on its own — add one, then the next. As many as there are.'
-            : 'Nothing written down yet. This is the part that matters most.'} />
-      )}
+        {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk.
+            A client sees the pin, without the controls that place or move it. */}
+        {kind === 'fix' && (can.edit || test.pin) && (
+          <section className="tc-block">
+            <OnTheLine projectId={projectId} pin={test.pin} onSave={can.edit ? pin => save({ pin }) : undefined} />
+          </section>
+        )}
 
-      {/* FOR THE MEETING — what to raise about this one, written beforehand.
-          The same list as every project note (the Notes screen), filed here. */}
-      <Items kind="note" test={test} tt={tt} can={can} onView={setViewing}
-        heading="For the meeting"
-        placeholder="Something to raise about this?"
-        empty="Anything you want to bring up about this at the next meeting — write it here so it isn't forgotten." />
+        {/* THE PDF — this page on one A4, saved to the device first so it is
+            read before it is sent (lib/savePdf). The same drawing as before,
+            built from the same reading (lib/trialCardPdf). */}
+        <div className="tc-send is-foot">
+          <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
+            {busy ? 'Building…' : `${words.one} card — PDF`}
+          </button>
+          <span className="sub">A4, landscape — this page, on one sheet.</span>
+          {said && <span className="tc-ok">{said}</span>}
+        </div>
+        {err && (
+          <p className="sub tw-err">
+            {err}{' '}
+            {isStaleBuildError(err) && (
+              <button className="cw-link" onClick={() => void reloadOntoNewBuild()}>Reload</button>
+            )}
+          </p>
+        )}
 
-      {/* 4 · THE FIXES FOR THIS TEST. Listed here, made on the Fixes screen —
-          the button goes there with this test already picked. */}
-      {kind !== 'fix' && <NextFixes test={test} tt={tt} can={can} />}
-
-      <Docs test={test} tt={tt} can={can} />
-
-      {/* THE LOOP IS A TEST'S — the re-test button, now at the top. On a fix
-          it once made a TEST planned "from" the fix and turned fixes into tests
-          nobody asked for; a fix goes back to its test, and the re-test is
-          planned from there. */}
-
-      {/* DELETING SAYS WHICH THING IT IS DELETING. It said "Delete this test"
-          on a fix, which is the kind of wrong word that makes somebody stop and
-          wonder what they are about to lose.
-
-          And the warning counts what actually goes: the observations written
-          under it. The fixes that came OUT of it are their own records now and
-          survive — so saying they would go with it would be a lie, and a lie
-          on a confirm box is the worst place for one. */}
-      {/* Only the owner deletes (lib/access) — the database keeps the record
-          for anybody else, so the button is not offered to them. */}
-      {can.remove && <div className="cm-foot">
-        <button className="btn btn-ghost cw-del" onClick={() => void (async () => {
-          const c = await tt.testCost(test.id);
-          const out = tt.tests.filter(x => x.fromTestId === test.id && !x.deletedAt).length;
-          const bits = [
-            c.found > 0 && `${c.found} observation${c.found === 1 ? '' : 's'} go${c.found === 1 ? 'es' : ''} with it`,
-            out > 0 && `${out} ${out === 1 ? 'record that came out of it stays' : 'records that came out of it stay'}`,
-          ].filter(Boolean);
-          const warn = bits.length
-            ? `Delete “${test.title}”?\n\n${bits.join('. ')}. Deleting cannot be undone.`
-            : `Delete “${test.title}”?`;
-          if (confirm(warn)) {
-            await tt.removeTest(test.id);
-            nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : kind === 'install' ? GATE_PATH[gateOf(test)] : 'testing'}`);
-          }
-        })()}>Delete this {words.one.toLowerCase()}</button>
-      </div>}
+        {/* DELETING SAYS WHICH THING IT IS DELETING, and counts what actually
+            goes: the observations written under it. The fixes that came OUT of
+            it are their own records now and survive. Only the owner deletes
+            (lib/access) — the database keeps the record for anybody else, so
+            the button is not offered to them. */}
+        {can.remove && <div className="cm-foot">
+          <button type="button" className="btn btn-ghost btn-sm cw-del" onClick={() => void (async () => {
+            const cost = await tt.testCost(test.id);
+            const out = tt.tests.filter(x => x.fromTestId === test.id && !x.deletedAt).length;
+            const bits = [
+              cost.found > 0 && `${cost.found} observation${cost.found === 1 ? '' : 's'} go${cost.found === 1 ? 'es' : ''} with it`,
+              out > 0 && `${out} ${out === 1 ? 'record that came out of it stays' : 'records that came out of it stay'}`,
+            ].filter(Boolean);
+            const warn = bits.length
+              ? `Delete “${test.title}”?\n\n${bits.join('. ')}. Deleting cannot be undone.`
+              : `Delete “${test.title}”?`;
+            if (confirm(warn)) {
+              await tt.removeTest(test.id);
+              nav(`/project/${projectId}/${kind === 'fix' ? 'fixes' : kind === 'install' ? GATE_PATH[gateOf(test)] : 'testing'}`);
+            }
+          })()}>Delete this {one}</button>
+        </div>}
+      </div>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
         share={mayShare && (test.media ?? []).some(m => m.id === viewing.id)
@@ -493,37 +573,95 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   );
 }
 
-/** THE WAY TO THE TRIAL CARD — a door, not a send button.
- *
- *  This used to build the PDF and hand it straight to deliverPdf, which offers
- *  the share sheet first on any device that has one. On a phone that put a send
- *  dialog in front of a document nobody had seen. Rowland: "it gives you the
- *  direct opportunity just to send it, but I can't view it."
- *
- *  Nothing about the drawing changed and nothing was taken away — the same PDF
- *  is built by the same call. It is built from the card SCREEN now, which you
- *  read first, the way the client report has always worked.
- */
-function TrialCardButton({ test, project }: { test: Test; project: string }) {
-  const words = wordsOf(test);
+/* ============================ the card's parts ============================ */
+
+/** How it went, in the face's own words — the four answers, one pressed. */
+function Verdict({ test, glow, onPick }: { test: Test; glow: string; onPick: (o: Outcome) => void }) {
+  const kind = test.kind ?? 'test';
   return (
-    <button className="btn btn-primary"
-      title="Everything on this screen on one page — you see it before anybody else does."
-      onClick={() => nav(`/project/${project}/testing/${encodeURIComponent(test.id)}/card`)}>
-      {words.one} card
-    </button>
+    <span className={'tw-seg' + (needsVerdict(test) ? ' is-asking' : '') + glow}>
+      {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
+        <button key={o} type="button" className={'tw-seg-b is-' + o + (test.outcome === o ? ' on' : '')}
+          aria-pressed={test.outcome === o} onClick={() => onPick(o)}>
+          {o === 'planned' ? (needsVerdict(test) ? 'No verdict yet' : 'Still planned') : outcomeWord({ kind, outcome: o })}
+        </button>
+      ))}
+    </span>
   );
 }
 
-/** A box as a client reads it: the label, and what is in it as plain text.
- *  An empty one says so, because a blank reads as a fault. */
-function Ro({ label, text, wide }: { label: string; text?: string; wide?: boolean }) {
+/** A numbered part, the same four the A4 carries and in the same order — with
+ *  room on the right for its one Edit. Without a number, a block at the foot. */
+function Block({ n, title, sub, action, children }: {
+  n?: string; title: string; sub?: string; action?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <section className="tc-block">
+      <div className="tc-block-h">
+        {n && <span className="tc-n">{n}</span>}
+        <h2 className="tc-title">{title}</h2>
+        {sub && <span className="sub">{sub}</span>}
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** A labelled piece of prose. An empty one says so rather than printing a
+ *  blank, because a blank reads as a bug and "nothing agreed in advance" is a
+ *  fact about the trial. */
+function Field({ label, text, empty = '—' }: { label: string; text?: string; empty?: string }) {
   const body = (text ?? '').trim();
   return (
-    <div className={'cw-f' + (wide ? ' cw-f-wide' : '')}>
-      <span>{label}</span>
-      <p className={body ? '' : 'sub'} style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{body || '—'}</p>
+    <div className="tc-f">
+      <span className="tc-f-l">{label}</span>
+      <p className={'tc-f-t' + (body ? '' : ' is-none')}>{body || empty}</p>
     </div>
+  );
+}
+
+function Found({ rows, one, edit }: { rows: CardFinding[]; one: string; edit: boolean }) {
+  if (rows.length === 0) return <p className="sub tc-empty">Nothing was written down on this {one}.{edit && ' Edit to add what you saw.'}</p>;
+  return (
+    <ol className="tc-list">
+      {rows.map((f, i) => (
+        <li key={i} className="tc-row">
+          <span className="tc-row-n">{i + 1}</span>
+          <div className="tc-row-b">
+            <p className="tc-row-t">{f.what}</p>
+            <p className="tc-row-m sub">
+              {f.decision && <span className={'tc-tag is-' + f.decision.replace(/\s+/g, '-')}>{f.decision}</span>}
+              {f.owner && <span>{f.owner}</span>}
+              {f.photos > 0 && <span>{f.photos} photo{f.photos === 1 ? '' : 's'}</span>}
+            </p>
+            {f.action && <p className="tc-row-a">→ {f.action}</p>}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Next({ rows, one, edit, onOpen }: { rows: CardNext[]; one: string; edit: boolean; onOpen: (i: number) => void }) {
+  if (rows.length === 0) return <p className="sub tc-empty">Nothing has been agreed out of this {one} yet{edit ? ' — add a fix for it below' : ''}.</p>;
+  return (
+    <ol className="tc-list">
+      {rows.map((n, i) => (
+        <li key={i} className={'tc-row is-door' + (n.done ? ' is-done' : '')}>
+          <span className="tc-row-n">{n.done ? <Icon name="check" size="1em" /> : i + 1}</span>
+          <div className="tc-row-b">
+            <button type="button" className="tc-row-t tc-row-go" onClick={() => onOpen(i)}>{n.what} ›</button>
+            <p className="tc-row-m sub">
+              {n.owner ? <span>{n.owner}</span> : <span className="is-none">nobody yet</span>}
+              {n.due ? <span>by {nice(n.due)}</span> : <span className="is-none">no date</span>}
+              {n.fromFinding && <span>out of an observation</span>}
+              {n.becameTest && <span>became the next test</span>}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -546,7 +684,7 @@ function PassesIf({ test, can, label, glow, onSave }: {
   if (!can.edit || !mayWriteAgreement(can, atOpen)) {
     return (
       <>
-        <Ro wide label={label} text={test.passesIf} />
+        <Field label={label} text={test.passesIf} />
         {/* The team's line says who moves it, in place of the general one. */}
         <p className="sub tw-note">{can.edit ? 'Agreed — only the owner changes it. It is what the result gets measured against.' : measured}</p>
       </>
@@ -565,71 +703,11 @@ function PassesIf({ test, can, label, glow, onSave }: {
   );
 }
 
-/** WHAT COMES OUT OF THIS ONE — the fixes, and the next test if there is one.
- *
- *  This was a list of typed-in lines. It is a list of RECORDS now: a fix has
- *  its own days, its own findings and its own card, which is the whole reason
- *  there is no longer a separate word for a line. Each row opens its own page.
- *
- *  There is no "add" here on purpose. A fix comes out of something you saw —
- *  you write the observation, then you decide it is a fix. Typing one straight
- *  in would be a fix with nothing behind it, which is how a list stops being
- *  evidence and starts being a wish list.
- */
-function NextFixes({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
-  /* The fixes FOR this test — including an old fix hanging off another of its
-     fixes — and the re-tests planned from it. */
-  const out = tt.tests
-    .filter(t => !t.deletedAt && (
-      ((t.kind ?? 'test') === 'fix' && testOfFix(t, tt.tests)?.id === test.id)
-      || ((t.kind ?? 'test') === 'test' && t.fromTestId === test.id)))
-    .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
-  const noun = test.kind === 'install' ? 'step' : 'test';
-  /* The list carries the re-tests planned from it as well; a heading that
-     said "Fixes" over a row marked RE-TEST was a word that was not true. */
-  const retests = out.some(t => (t.kind ?? 'test') === 'test');
-
-  return (
-    <section className="tw-block">
-      <span className="tw-block-h">4 · {retests ? 'Fixes and re-tests' : 'Fixes'} for this {noun}</span>
-      {out.length === 0 && (
-        <p className="sub tw-note">No fixes for this {noun} yet.</p>
-      )}
-      {/* ONE DOOR TO MAKE A FIX, and it is on the Fixes screen. This takes you
-          there with this test already picked. */}
-      {can.edit && (
-        <button className="cw-add" onClick={() => nav(`/project/${test.projectId}/fixes?for=${encodeURIComponent(test.id)}`)}>
-          <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a fix for this {noun}
-        </button>
-      )}
-      {out.length === 0 ? null : (
-        <div className="cw-list">
-          {out.map(t => (
-            <button key={t.id} className={'tw-row is-' + t.outcome}
-              onClick={() => nav(`/project/${test.projectId}/testing/${encodeURIComponent(t.id)}`)}>
-              <span className="tw-row-m">
-                <b>{(t.kind ?? 'test') === 'fix' ? <><span className="tw-face">Fix</span>{t.title}</> : <><span className="tw-face">Re-test</span>{t.title}</>}</b>
-                <span className="sub">
-                  {t.withWhom ? t.withWhom : 'nobody yet'}
-                  {t.plannedFor && ` · ${nice(t.plannedFor)}${t.plannedTo && t.plannedTo > t.plannedFor ? ` – ${nice(t.plannedTo)}` : ''}`}
-                </span>
-                <span className={'tw-res is-' + t.outcome}>
-                  <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/** What we found, or what we do next. One component, because they are the same
- *  shape and the only difference is the word at the top and whether a row can
- *  become the next test. */
-function Items({ kind, test, tt, can, heading, placeholder, empty, onView, glow, focus }: {
-  kind: ItemKind; test: Test; tt: TT; can: Can; heading: string; placeholder: string; empty: string;
+/** What we found, or what to raise at the meeting, open for editing: the rows
+ *  with their boxes, and the one line that adds another. One component,
+ *  because they are the same shape. */
+function Items({ kind, test, tt, can, placeholder, empty, onView, glow, focus }: {
+  kind: ItemKind; test: Test; tt: TT; can: Can; placeholder: string; empty: string;
   onView: (m: MediaRef) => void;
   /** A voice note just added to this list. */
   glow?: boolean;
@@ -645,39 +723,10 @@ function Items({ kind, test, tt, can, heading, placeholder, empty, onView, glow,
   }, [focus]);
   const rows = itemsOf(tt.items, test.id, kind);
 
-  /* THE COUNT IS THE WHOLE POINT OF THIS BLOCK'S HONESTY.
-   *
-   * "5 open of 5" on a list of observations told the room five things were
-   * going wrong, when what had happened was that five things were noticed. An
-   * observation is written down; it is not open. */
-  const count = kind === 'found'
-    ? foundWords({ written: rows.length })
-    : kind === 'note'
-      ? (() => { const open = rows.filter(r => r.doneAt == null).length; return open ? `${open} to raise` : 'all raised'; })()
-    : (() => {
-        const open = rows.filter(r => r.doneAt == null).length;
-        return open > 0 ? `${open} to do of ${rows.length}` : `${rows.length} done`;
-      })();
-
   return (
-    <section className={'tw-block is-' + kind + (glow ? ' is-filled' : '')}>
-      <span className="tw-block-h">
-        {heading}
-        {rows.length > 0 && <span className="tw-block-n">{count}</span>}
-      </span>
-
-      {kind === 'found' && rows.length > 0 && (
-        /* "against this test" on an install step was a word that was not true. */
-        <p className="sub tw-note tw-obs-note">
-          What you saw, as you saw it. Anything that needs doing is a fix, added below — on the
-          Fixes screen, against this {test.kind === 'install' ? 'step' : 'test'}.
-        </p>
-      )}
-
-      {rows.length === 0 && <p className="sub tw-note">{can.edit ? empty : 'Nothing written down.'}</p>}
-
+    <div className={'tc-items is-' + kind + (glow ? ' is-filled' : '')}>
+      {rows.length === 0 && <p className="sub tc-empty">{can.edit ? empty : 'Nothing written down.'}</p>}
       {rows.map(i => <ItemRow key={i.id} item={i} tt={tt} can={can} onView={onView} />)}
-
       {can.edit && <form className="tw-addrow" onSubmit={e => {
         e.preventDefault();
         if (!what.trim()) return;
@@ -687,91 +736,6 @@ function Items({ kind, test, tt, can, heading, placeholder, empty, onView, glow,
         <input ref={box} placeholder={rows.length ? 'Another one?' : placeholder} value={what} onChange={e => setWhat(e.target.value)} />
         <button className="btn btn-sm" type="submit" disabled={!what.trim()}>Add</button>
       </form>}
-    </section>
-  );
-}
-
-/* ================================ VOICE ==================================
- * Rowland: "on every part of the app I can talk the information into it."
- * One door on this page: it fills the record's own boxes and adds what was
- * found, from the same note. What was heard is shown first; nothing is written
- * until "Put it in", and the boxes it changed can be undone. */
-
-/** The boxes that sit in "1 · What we planned" — filling one opens it. */
-const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
-
-/* STRAIGHT INTO THE BOXES. Rowland: "that's where I would expect what I say
-   to be entered ... make sure when I voice it goes into the appropriate
-   boxes — what was done, for example." What adds to the record goes in at
-   once and glows where it landed, with one Undo: the account of the work is
-   ADDED to the box, never over it; an empty box is filled; a verdict nobody
-   has given yet is given. What would REPLACE something already there — a
-   different day, a different name, a changed verdict — is still asked, so
-   nothing anybody wrote is lost to a mishearing. And an account that fitted
-   no box goes into the commentary box rather than being put to one side. */
-function SayIt({ test, tt, can, onFilled }: { test: Test; tt: TT; can: Can; onFilled: (keys: string[]) => void }) {
-  const [asking, setAsking] = useState<{ heard: VoiceResult; changes: Change[] } | null>(null);
-  const today = todayISO();
-  const kind = test.kind ?? 'test';
-
-  const heard = (r: VoiceResult) => void (async () => {
-    /* What did not fit a box joins the account; said something and none of it
-       landed anywhere, it is the account (lib/voice proposalFrom — the stage
-       sheet on the install grid reads a note the same way). */
-    const proposed = proposalFrom(test, r, tt.assets, today);
-    const notes = proposed.notes;
-    let changes = proposed.changes;
-    /* A written "passes if" is the owner's to change — a voice note does not
-       get round that for anybody else (lib/access). */
-    if (!mayWriteAgreement(can, test.passesIf)) changes = changes.filter(c => c.key !== 'problem');
-    /* The account goes straight in when it only adds: there was none, or the
-       new words go under it. When the reader rewrote the account with the new
-       note worked in (r.merged), it is asked — shown to edit — because it
-       changes words already there. */
-    const adds = (c: Change) => (c.key === 'result' ? !r.merged || !test.result?.trim() : !c.before)
-      || (c.key === 'outcome' && test.outcome === 'planned') || (c.key === 'ranOn' && !test.ranOn);
-    const now = changes.filter(adds);
-    const ask = changes.filter(c => !adds(c));
-
-    if (now.length) {
-      const patch = Object.assign({}, ...now.map(c => c.patch)) as Partial<Test>;
-      const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
-      await tt.patchTest(test.id, patch);
-      offerUndo(`Put in what you said — ${now.map(c => c.label.toLowerCase()).join(', ')}`, () => tt.patchTest(test.id, before));
-    }
-    /* Things found along the way are new rows — nothing to overwrite. */
-    for (const [i, n] of notes.entries()) {
-      await tt.addItem(test.id, 'found', n.what, { owner: n.owner || undefined, note: i === 0 ? `Said: “${r.transcript}”` : undefined });
-    }
-    onFilled([...now.map(c => c.key), ...(notes.length ? ['found'] : [])]);
-    if (ask.length) setAsking({ heard: r, changes: ask });
-  })();
-
-  return (
-    <div className="vo-say">
-      {!asking && (
-        <VoiceNote form={kind === 'fix' ? 'fix' : kind === 'install' ? 'install' : 'test'}
-          label={kind === 'fix' ? 'Say the fix' : kind === 'install' ? 'Say how it went' : 'Say how the test went'}
-          context={() => contextFor(tt.assets, tt.tests, today, test)} onHeard={heard} />
-      )}
-      {asking && (
-        <>
-          <p className="vo-ask">This would change what is already there — tick what should change.</p>
-          <VoiceReview heard={asking.heard} applyLabel="Change it"
-            rows={asking.changes.map(c => ({ key: c.key, label: c.label, before: c.before, after: c.after, editable: c.key === 'result' }))}
-            onApply={(keys, edits) => void (async () => {
-              const picked = asking.changes.filter(c => keys.includes(c.key));
-              const patch = Object.assign({}, ...picked.map(c => c.patch)) as Partial<Test>;
-              if (keys.includes('result') && edits.result != null) patch.result = edits.result.trim() || undefined;
-              const before = Object.fromEntries(Object.keys(patch).map(k => [k, test[k as keyof Test]])) as Partial<Test>;
-              await tt.patchTest(test.id, patch);
-              offerUndo(`Changed ${picked.length} thing${picked.length === 1 ? '' : 's'}`, () => tt.patchTest(test.id, before));
-              onFilled(picked.map(c => c.key));
-              setAsking(null);
-            })()}
-            onDiscard={() => setAsking(null)} />
-        </>
-      )}
     </div>
   );
 }
@@ -787,14 +751,13 @@ function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; 
   const done = item.doneAt != null;
 
   /* AN OBSERVATION IS NOT DONE OR NOT DONE. It is written down, and then
-     somebody decides: it needs doing (it becomes a fix below), or it needs
-     nothing. A next step is the ordinary open/done row it always was. */
+     somebody decides: it needs doing (it becomes a fix), or it needs nothing.
+     A next step is the ordinary open/done row it always was. */
   const observation = item.kind === 'found';
 
   /* AN OBSERVATION IS A NOTE — no tick. Ticking one used to make a fix in
      one tap, with no confirm; Rowland: "me putting in what did we find and
-     then sending it tick to fix is the messy part." A next step (the old
-     line-under-a-test shape) keeps its done tick. */
+     then sending it tick to fix is the messy part." */
   /* A client reads the row: no tick (the words say raised or done), and it
      does not open, because everything it opens to is a box to change. */
   const tick = observation || !can.edit ? undefined
@@ -816,20 +779,12 @@ function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; 
           {item.owner ?? (item.kind === 'next' ? 'nobody yet' : '')}
           {item.due && ` · by ${nice(item.due)}`}
           {!observation && done && (item.kind === 'note' ? ' · raised' : ' · done')}
-          {/* ONE PHRASE, NOT TWO. Saying both "a fix" and "became a fix" on the
-              same row is the sort of thing that only shows up when you look at
-              it: the record it became is the more useful of the two, because it
-              names which. The bare word is for the old line-under-a-test shape,
-              which has no record to name. */}
-          {/* A link made before fixes moved to their own screen is history,
-              and true — it stays, read-only. */}
+          {/* The record it became names which — more useful than the bare word. */}
           {item.becameTestId && (() => {
             const became = tt.tests.find(t => t.id === item.becameTestId && !t.deletedAt);
             return became ? ` · fix: ${became.title}` : '';
           })()}
-          {/* SAID ON PAPER, SO SAID HERE. An observation decided "not a
-              problem" before fixes moved to their own screen printed those
-              words on the trial card, and this row said nothing (HUNT 7). */}
+          {/* SAID ON PAPER, SO SAID HERE. */}
           {observation && standingOfItem(item, tt.items) === 'noted' && ' · not a problem'}
           {item.fromItemId && ' · from an observation'}
           {item.pin && <> · <Icon name="pin" size="1.15em" /> on the line</>}
@@ -860,13 +815,6 @@ function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; 
           )}
           <Evidence media={item.media ?? []} onView={onView} kind="found"
             onAdd={refs => tt.patchItem(item.id, cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
-          {/* WHAT YOU DECIDE AN OBSERVATION IS. Rowland: "what we found on the
-              day is observations — I then decide if they go to an action or go
-              to a fix." Three doors, because there are three answers: it needs
-              chasing (an action), it needs doing (a fix), or it needed neither
-              and saying so is the honest end of it. Going straight to a fix
-              does not make an action first: a line you never wanted is a line
-              somebody has to close. */}
           <span className="cw-edit-end">
             {can.remove && (
               <button className="btn btn-ghost btn-sm cw-del"
@@ -914,13 +862,18 @@ function Docs({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
 
   /* Nothing attached and nothing to attach with: no block to read. */
   if (!can.edit && docs.length === 0) return null;
+  const attach = can.edit && <>
+    <button type="button" className="cw-add" onClick={() => pick.current?.click()}>
+      <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Attach a PDF
+    </button>
+    <input ref={pick} type="file" accept="application/pdf,image/*" multiple hidden
+      onChange={e => { void take(e.target.files); e.target.value = ''; }} />
+  </>;
+  /* Nothing attached yet: the one line that attaches the first. */
+  if (docs.length === 0) return <>{err && <p className="sub is-r" role="alert">{err}</p>}{attach}</>;
 
   return (
-    <section className="tw-block">
-      <span className="tw-block-h">
-        Files
-        {docs.length > 0 && <span className="tw-block-n">{docs.length}</span>}
-      </span>
+    <Block title="Files" sub={docs.length ? `${docs.length}` : undefined}>
       {err && <p className="sub is-r" role="alert">{err}</p>}
       {docs.map(d => (
         <div key={d.id} className="cx-doc">
@@ -940,13 +893,7 @@ function Docs({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
             })()}>Remove</button>}
         </div>
       ))}
-      {can.edit && <>
-        <button className="cw-add" onClick={() => pick.current?.click()}>
-          <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Attach a PDF
-        </button>
-        <input ref={pick} type="file" accept="application/pdf,image/*" multiple hidden
-          onChange={e => { void take(e.target.files); e.target.value = ''; }} />
-      </>}
-    </section>
+      {attach}
+    </Block>
   );
 }
