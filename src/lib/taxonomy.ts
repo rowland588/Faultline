@@ -20,14 +20,20 @@ export interface LossTaxonomy {
 }
 
 /* The shared food core — WHAT goes wrong on a food line. Assets differ by
- * process; the loss language barely does. */
+ * process; the loss language barely does. Each sub-category's usual bone of
+ * the 6M is in lib/sixm DEFAULT_BONE; the last few added to a list (a
+ * photo-eye fault, condensation, untrained cover, a false reject, product out
+ * of spec) are there because each points at one bone the others did not —
+ * Machine, Environment, People, Measurement, Material — so a Pareto sorts
+ * itself onto all six. Added only: a sub-category is a plain string on
+ * stops already logged, so one is never renamed or removed here. */
 const FOOD_CATEGORIES = ['Breakdown', 'Minor stop', 'Changeover', 'Waiting', 'Quality', 'Speed loss', 'Hygiene & cleaning'];
 const FOOD_SUBCATEGORIES: Record<string, string[]> = {
-  Breakdown: ['Mechanical', 'Electrical', 'Jam / blockage', 'Utilities (air / steam / chill)'],
-  'Minor stop': ['Misfeed', 'Sensor trip', 'Manual clear', 'Film / packaging snag'],
+  Breakdown: ['Mechanical', 'Electrical', 'Jam / blockage', 'Utilities (air / steam / chill)', 'Sensor / photo-eye fault'],
+  'Minor stop': ['Misfeed', 'Sensor trip', 'Manual clear', 'Film / packaging snag', 'Condensation / ambient temperature'],
   Changeover: ['Product change', 'Size / format change', 'Allergen changeover', 'Hygiene cleandown', 'Label / date change', 'No standard'],
-  Waiting: ['Starved upstream', 'Blocked downstream', 'No packaging / consumables', 'No ingredients', 'No labour', 'Waiting QA release', 'Waiting forklift / logistics'],
-  Quality: ['Giveaway / overfill', 'Seal fault', 'Label / date fault', 'Foreign body / detector reject', 'Underweight reject', 'Rework', 'Scrap / waste'],
+  Waiting: ['Starved upstream', 'Blocked downstream', 'No packaging / consumables', 'No ingredients', 'No labour', 'Waiting QA release', 'Waiting forklift / logistics', 'Untrained cover'],
+  Quality: ['Giveaway / overfill', 'Seal fault', 'Label / date fault', 'Foreign body / detector reject', 'Underweight reject', 'Rework', 'Scrap / waste', 'Checkweigher false reject', 'Product out of spec (size / shape)'],
   'Speed loss': ['Running below rated', 'Uneven crewing', 'Short runs'],
   'Hygiene & cleaning': ['Scheduled clean', 'Unscheduled clean', 'Swab / QA hold'],
 };

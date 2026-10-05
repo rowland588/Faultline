@@ -2,7 +2,7 @@
  * before any is made — asserted here, and the server's own tidying with it. */
 import { describe, it, expect } from 'vitest';
 import { flashModels, pickModel, schemaFor, tidy, tidyFor, promptFor } from '../../../api/voice';
-import { changesFor, contextFor, machineNamed, problemFill, proposalFrom, wav } from '../voice';
+import { changesFor, contextFor, machineNamed, problemFill, proposalFrom, wav, whysFill } from '../voice';
 import type { Asset, Test } from '../testing';
 
 const TODAY = '2026-09-30';
@@ -167,5 +167,43 @@ describe('the recording', () => {
     expect(String.fromCharCode(...w.slice(0, 4))).toBe('RIFF');
     expect([d.getUint16(22, true), d.getUint32(24, true), d.getUint16(34, true)]).toEqual([1, 16000, 16]);
     expect(w.length).toBe(44 + 8);
+  });
+});
+
+/* SAY THE WHYS (docs/SIXM.md, the working method): one note split into the
+   chain of answers, labelled with its bone, checked for blame. */
+describe('a note said as the whys', () => {
+  it('the reader keeps the chain in order, each answer trimmed, and the bone only when it is one of the six', () => {
+    const r = tidy('whys', { transcript: 't', fields: { chain: [' The blade snapped ', '', 'because it was blunt', "'cause of no change interval", 7], bone: 'Method', colour: 'red' } });
+    expect(r.fields).toEqual({ chain: ['The blade snapped', 'It was blunt', 'No change interval'], bone: 'method' });
+    expect(tidy('whys', { transcript: 't', fields: { chain: 'not a list', bone: 'gremlins' } }).fields).toEqual({});
+    expect(Object.keys((schemaFor('whys').properties as { fields: { properties: object } }).fields.properties)).toEqual(['chain', 'bone']);
+  });
+  it('the prompt is about a running line’s root cause, splits the chain, and asks nothing about days or an account', () => {
+    const p = promptFor('whys', { today: TODAY, machines: ['Basketer'], on: { title: 'Basketer minor stops' } });
+    expect(p).toContain('finding the root cause of a problem on a running production line');
+    expect(p).toContain('The problem is "Basketer minor stops".');
+    expect(p).toContain('Split what they said into the chain of answers, in order, each the reason for the one before');
+    expect(p).toContain('Drop "because"');
+    expect(p).toContain('British English. Do not add anything that was not said.');
+    expect(p).not.toMatch(/installation and commissioning|ISO dates|"result"|account/);
+  });
+  it('no form offers the model an empty choice', () => {
+    const empties = (node: unknown): boolean => !!node && typeof node === 'object'
+      && ((Array.isArray((node as { enum?: unknown[] }).enum) && ((node as { enum: unknown[] }).enum).includes('')) || Object.values(node).some(empties));
+    for (const f of ['problem', 'whys'] as const) expect(empties(schemaFor(f))).toBe(false);
+  });
+  it('fills the chain and its bone, with no blame prompt when the root is a thing', () => {
+    expect(whysFill({ transcript: 'x', fields: { chain: ['Blade snapped', 'It was blunt', 'No change interval'], bone: 'method' } }))
+      .toEqual({ chain: ['Blade snapped', 'It was blunt', 'No change interval'], m: 'method', blames: null });
+  });
+  it('asks “what let that happen?” when the last answer is a person — not when one further up is', () => {
+    expect(whysFill({ transcript: 'x', fields: { chain: ['Film ran off', 'The operator forgot to splice'] } }).blames).toMatch(/What let that happen/);
+    expect(whysFill({ transcript: 'x', fields: { chain: ['The operator forgot to splice', 'No splice check on the standard'] } }).blames).toBeNull();
+  });
+  it('loses nothing: words the reader did not split come back as one answer; no bone when none was said', () => {
+    expect(whysFill({ transcript: 'it jams when the film is cold', fields: {} })).toEqual({ chain: ['it jams when the film is cold'], blames: null });
+    expect(whysFill({ transcript: 'x', fields: {}, leftover: 'Ring Dave about it' }).chain).toEqual(['Ring Dave about it']);
+    expect(whysFill({ transcript: '', fields: {} })).toEqual({ chain: [], blames: null });
   });
 });

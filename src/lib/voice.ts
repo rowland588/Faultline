@@ -16,6 +16,7 @@ import type { VoiceContext, VoiceForm, VoiceResult } from '../../api/voice';
 import { supabase } from '../cloud/client';
 import { OUTCOME_WORD, FIX_OUTCOME_WORD, INSTALL_OUTCOME_WORD, type Asset, type Outcome, type Test } from './testing';
 import { niceDay } from './weeks';
+import { blamesAPerson, toSixM, type SixM } from './sixm';
 
 export type { VoiceForm, VoiceResult };
 
@@ -230,8 +231,19 @@ export function contextFor(assets: Asset[], tests: Test[], today: string, on?: T
 /** SAY THE WHYS (docs/SIXM.md, the working method): a note on the "whys" form
  *  → the chain of answers in order, the bone the deepest belongs on if the
  *  reader said, and the blame prompt when the chain ends at a person
- *  (sixm.blamesAPerson). Filled in by the engine slice. */
-export function whysFill(r: VoiceResult): { chain: string[]; m?: import('./sixm').SixM; blames: string | null } {
-  const chain = Array.isArray(r.fields.chain) ? (r.fields.chain as unknown[]).map(x => String(x).trim()).filter(Boolean) : [];
-  return { chain, blames: null };
+ *  (sixm.blamesAPerson) — asked of the LAST answer only, because that is the
+ *  one offered as the root; a person further up the chain is a step on the
+ *  way down. Nothing said is lost: words the reader did not split (no chain
+ *  at all) come back as a one-answer chain — what did not fit, else the
+ *  transcript — for the person to split or keep. Nothing is kept until they
+ *  put it in. */
+export function whysFill(r: VoiceResult): { chain: string[]; m?: SixM; blames: string | null } {
+  let chain = Array.isArray(r.fields.chain) ? (r.fields.chain as unknown[]).map(x => String(x ?? '').trim()).filter(Boolean) : [];
+  if (!chain.length) {
+    const bare = (r.leftover ?? '').trim() || (r.transcript ?? '').trim();
+    chain = bare ? [bare] : [];
+  }
+  const m = toSixM(typeof r.fields.bone === 'string' ? r.fields.bone : undefined);
+  const last = chain[chain.length - 1];
+  return { chain, ...(m ? { m } : {}), blames: last ? blamesAPerson(last) : null };
 }
