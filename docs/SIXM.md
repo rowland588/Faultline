@@ -196,3 +196,35 @@ Built in slices (each shipped on its own): engine and voice (the shipped
 sub-category → bone map, Is / Is not from the stops, the "whys" voice form);
 the Pareto's vital-few actions and a Pareto pane the page reuses; the four-part
 problem card and the laptop layout; the report.
+
+## The fishbone page — its own place (5 October)
+
+Rowland: "the fishbone needs its own page, just like the Gantt, because it
+becomes this immersive place where everything's held. I can click, I go in, I
+come out." Measured before: the drawn fish began two screens down on a laptop
+and three on a phone, under a column of cards. Decided: full screen, the
+Pareto pinned open on a laptop.
+
+- **Full screen.** The page drops the job's header and tabs while you are in
+  it. A slim bar along the top carries "‹ Back to the job", the line chips and
+  the problem chips, and the selected problem's strip: its title, its number
+  before → now, its phase, and Is / Is not in one line.
+- **The fish is the page.** It fills the room under the strip. Each cause
+  shows its status, its root, and its fixes as a small tag in the house
+  colours ("1 fix · past due" red, "waiting" amber, "done" quiet green) — from
+  across the room: which bone holds the root, and whether anything is late.
+- **Tap to go in, close to come out** — as the Gantt opens a stage:
+  a cause → a panel beside the fish (a sheet from the bottom on a phone) with
+  that chain's Why and Fix, and Ask why, Say the whys, Add a fix; the head →
+  the problem panel with Did it work, Is / Is not, close / hold, remove; a
+  bone's name → add a cause on it. Escape or ✕ closes; the fish never moves.
+- **The Pareto is a drawer on the left**, "Where the time goes", pinned open on
+  a laptop (it can be tucked away; the choice is remembered on the device),
+  one tap away on a phone.
+- **"Read it through"** shows the four parts as one page — the same words the
+  client report prints — for walking somebody through it. Nothing that was on
+  the page before is lost; it stops being what you scroll past to reach the
+  fish.
+- **Phone:** the fish first, as the six bones stacked (the drawn fish is too
+  cramped at phone width), with the same tap-in sheets.
+- Records and the report do not change.
