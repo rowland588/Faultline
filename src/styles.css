@@ -9745,3 +9745,47 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
 .pdfr-btn { min-height: 40px; padding: 0 14px; font-size: 14px; text-decoration: none; }
 .pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; }
 @media print { .pdfr { display: none !important; } }
+
+/* ===== THE LINE (redesign slice 5) ===== */
+/* A line is one page (screens/ProjectLineScreen): the problem leads a 6M
+   line, and each lens that was a tab is a section under it, folded (ui/Fold)
+   with its count in the fold's own line. A ?view= link lands on its section,
+   clear of the sticky spine. Only the abnormal part of a count wears a
+   colour: red for past the day or slipped back, ochre for waiting on
+   somebody; the rest stays neutral (CLAUDE.md, visual management). */
+.ln-sec { scroll-margin-top: 72px; }
+.ln-lead { margin: 2px 0 24px; }
+/* The problem's heading wears the folds' own type, so the page reads as one
+   list of sections — it is simply the one that never shuts. */
+.ln-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0 0 12px; }
+.ln-t { margin: 0; font-family: var(--display); font-size: 15.5px; font-weight: 700; color: var(--ink); }
+.ln-s { font-size: 13px; color: var(--muted); }
+.ln-late { color: var(--st-r); font-weight: 700; }
+.ln-wait { color: var(--st-a); font-weight: 700; }
+/* Inside a fold the lens's own header is the fold's: the line balance's
+   title and its paragraph are said by the fold line above them. */
+.ln-sec .fold-b { padding-top: 4px; }
+.ln-sec .fold-b > .cap { margin-bottom: 0; }
+.ln-sec .fold-b > .cap > .pace-sec-head { display: none; }
+.ln-sec .fold-b > .why-door { margin-top: 10px; }
+.ln-sec .ln-none { margin: 4px 0 8px; }
+.ln-tools { display: flex; justify-content: flex-end; margin: 6px 0 12px; }
+/* Time and film the line — one line at the foot, the four doors in it. */
+.ln-study {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+  margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 14px; color: var(--ink-2);
+}
+.ln-study-t { font-weight: 700; color: var(--ink); }
+.ln-study-links { display: inline-flex; flex-wrap: wrap; align-items: baseline; }
+.ln-study-dot { color: var(--muted); padding: 0 7px; }
+.ln-study-go {
+  appearance: none; border: 0; background: none; font: inherit; font-weight: 700; color: var(--brand);
+  cursor: pointer; padding: 10px 2px; margin: -10px 0; border-radius: 6px;
+}
+.ln-study-go:hover { text-decoration: underline; }
+.ln-study-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .ln-lead { margin-bottom: 18px; }
+  .ln-study { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
