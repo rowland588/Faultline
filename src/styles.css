@@ -7602,6 +7602,21 @@ span.ls-role:hover { border-color: transparent; }
 .cr-said-st.is-booked { color: var(--st-w); }
 .cr-said-st.is-ahead { color: var(--muted); font-weight: 500; }
 .cr-said-t { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+/* The 6M client report's preview: each problem in its four parts, as the paper prints them. */
+.cr-toc .cr-prob { gap: 6px; }
+.cr-part { display: grid; gap: 3px; padding-top: 6px; border-top: 1px solid var(--line); min-width: 0; }
+.cr-part-h { margin: 0; font-size: 13px; font-weight: 800; color: var(--ink); }
+.cr-part-h small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.cr-toc .cr-part-lead { font-weight: 600; color: var(--ink); }
+.cr-toc .cr-part span, .cr-chain li { overflow-wrap: anywhere; }
+.cr-chain { display: grid; gap: 2px; padding-left: 10px; border-left: 2px solid var(--line); }
+.cr-toc .cr-chain-h { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.cr-chain ol { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink); line-height: 1.4; }
+.cr-toc .cr-chain ol li { display: list-item; padding-left: 0; counter-increment: none; }
+.cr-toc .cr-chain ol li::before { content: none; }
+.cr-chain li.is-root { font-weight: 700; }
+.cr-chain.is-out, .cr-toc .cr-chain.is-out .cr-chain-h { color: var(--muted); }
+.cr-chain.is-out ol { color: var(--muted); }
 /* The line standard card, previewed before it prints. */
 .ls-print-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
 .ls-print-err { margin: 0 0 10px; padding: 8px 12px; border-radius: var(--radius-sm); background: #fdf2f0; color: var(--st-r); font-weight: 600; }

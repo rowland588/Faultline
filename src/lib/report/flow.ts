@@ -53,6 +53,17 @@ export interface Block {
    *  plan (found by the random-job stress run); moved only when everything
    *  after it fitted, it still did whenever that was not so. */
   float?: boolean;
+  /** The heading drawn again at the top of every page this block starts on
+   *  part-way through its section — "Problem 3 — … (continued)" — so a long
+   *  section that runs over a page says whose it is. It goes with what is left
+   *  of the block after a split, and is drawn once per block; never on the
+   *  page the section began on (that page carries the section's own heading). */
+  runHead?: Block;
+  /** The room the section this block opens asks for below it, to be read on
+   *  one page — a problem's fish and its four parts. When less is left and
+   *  the page is already a quarter used, the block starts the next page (a
+   *  quarter, so the page it leaves is never near-empty). At most a page. */
+  keep?(f: Frame): number;
 }
 
 export interface Poured {
@@ -75,6 +86,10 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
   /** Floating inserts waiting for the next break, and whether one is due. */
   const waiting: Block[] = [];
   let due = false;
+  /** Blocks that have had their run heading drawn above them. */
+  const headed = new Set<Block>();
+  /** What is left of a block after a split carries its run heading on. */
+  const carry = (rest: Block, from: Block): Block => (from.runHead && !rest.runHead ? { ...rest, runHead: from.runHead } : rest);
   const nextPage = () => { wanted = true; y = f.top; headOnly = true; if (waiting.length) due = true; };
   const place = () => { if (wanted) { if (!f.dry) newPage(); pages++; wanted = false; } };
   /* Its own pages follow whatever page the flow is on; the flow resumes on a
@@ -97,6 +112,18 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
     }
     const h = b.height(f);
     if (h <= 0) continue;
+    const page = f.bottom - f.top;
+
+    /* A page that opens part-way through a section says whose it is — when
+       the block can begin under that heading (whole, or split there). */
+    if (wanted && b.runHead && !headed.has(b)) {
+      headed.add(b);
+      const rh = b.runHead.height(f);
+      if (rh > 0 && (rh + h - (b.after?.(f) ?? 0) <= page || b.split)) { queue.splice(i, 0, b.runHead); i--; continue; }
+    }
+    /* A section that a page could hold, kept on one page: started overleaf
+       when it will not fit in what is left of a page already a quarter used. */
+    if (b.keep && !wanted && !headOnly && y - f.top >= page * 0.25 && y + Math.min(b.keep(f), page) > f.bottom) { nextPage(); i--; continue; }
 
     /* A heading travels with the start of what follows it — and "the start"
        is checked, not guessed: the whole run of headings from here (a section
@@ -136,7 +163,7 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
         place();
         if (!f.dry) parts[0].draw(f, y);
         nextPage();
-        queue.splice(i, 1, parts[1]);
+        queue.splice(i, 1, carry(parts[1], b));
         i--;
         continue;
       }
@@ -154,7 +181,7 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
     if (parts) {
       if (!f.dry) parts[0].draw(f, y);
       nextPage();
-      queue.splice(i, 1, parts[1]);
+      queue.splice(i, 1, carry(parts[1], b));
       i--;
       continue;
     }

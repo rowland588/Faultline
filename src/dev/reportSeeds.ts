@@ -305,8 +305,12 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
  * A 6M JOB AT THE TWO EDGES — for proving the running line's client report.
  *
  * TINY is a job just started: one line, its measure and target, two readings,
- * two actions nobody has tied to a cause yet — and no problem opened, which the
- * report has to say honestly in a line rather than print empty sections.
+ * two actions nobody has tied to a cause yet, and one problem just opened
+ * from what was seen — one chain, a single answer someone told, still being
+ * found; no fix yet — so each of its four parts (Problem · Why · Fix · Did it
+ * work) has to say "not yet" honestly in a line rather than print empty
+ * sections. (A job with no problem at all is the random jobs' and the unit
+ * test's.)
  *
  * HUGE is a job a long way in: three lines (one named the way people really
  * type), two measures pulling opposite ways, twelve weeks of readings, a line
@@ -314,10 +318,12 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
  * six problems in every phase — one with thirty causes that cannot all be
  * drawn on the fish, one with none, one with the five whys written before
  * the fishbone and no cause on a bone, one removed by its owner whose
- * countermeasure stays on the board — why-chains to roots, causes accepted
- * from suggestions, countermeasures with their predictions, their day in
- * words and what happened, a hold that is holding, sixty actions on every
- * bone and none, and the walk's snags. The awkward strings from the random jobs are in there too.
+ * countermeasure stays on the board, one opened from a bar outside the vital
+ * few for a reason (Case.source.why) — why-chains to roots (one ending in an
+ * answer someone told), chains still being found and ruled out, causes
+ * accepted from suggestions, countermeasures with their predictions, their
+ * day in words and what happened (a prediction met, and one missed), a hold
+ * that is holding, sixty actions on every bone and none, and the walk's snags. The awkward strings from the random jobs are in there too.
  * ------------------------------------------------------------------------- */
 export interface SixMJob { projectId: string; lineId: string }
 
@@ -351,6 +357,12 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       act('Time the bagger stops for a week', { lineId: line.id, pillar: 'machine', who: 'Rob Scott', due: iso(6), why: 'So the Pareto says where the time goes' }),
       act('Walk the line with the night shift', { lineId: line.id, who: 'Tanya', when: 'next week' }),
     ]) await putPaceTodo(a);
+    /* Just opened: one chain of one answer, told by the night shift. */
+    await addCase({
+      id: uid(), workspaceId: ws.id, title: 'Bagger stops at every film splice', path: [], baselineMsWeek: 0, status: 'open',
+      openedAt: t - DAY, updatedAt: t, projectId: proj.id, lineId: line.id, source: { kind: 'observed' },
+      causes: [{ id: uid(), m: 'material', text: 'The night shift say the new film reels are wound loose', grade: 'reported', status: 'suspected', whys: [], at: t - DAY, by: 'Rob Scott' }],
+    });
     return { projectId: proj.id, lineId: line.id };
   }
 
@@ -517,8 +529,9 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       whys: [why('Calibration is on the old asset number', 'counted'), why('The move did not carry the calibration schedule across', 'counted')],
     }),
   ];
+  /* A bar outside the vital few, opened for a reason that is not minutes. */
   const p3 = problem('Checkweigher rejects good packs', lineB, {
-    source: { kind: 'pareto', category: 'Quality', subcategory: 'Checkweigher rejecting good packs', asset: 'Checkweigher' },
+    source: { kind: 'pareto', category: 'Quality', subcategory: 'Checkweigher rejecting good packs', asset: 'Checkweigher', why: 'quality — good packs thrown away, and a customer complaint about short weights.' },
     causes: c3, status: 'closed', closedAt: t - 40 * DAY, openedAt: t - 70 * DAY,
     hold: { what: 'Calibration check every Monday with the test weights', who: 'Agnieszka Szczęsna', everyDays: 7, since: iso(-40), lastChecked: iso(-30) },
   });
@@ -569,6 +582,9 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   const counter: PaceTodoRow[] = [
     act('Make a splice jig and fit it at the reel stand', { lineId: lineA.id, pillar: 'machine', who: 'Engineering', due: iso(-3), causeRef: ref(p1, c1[0]), caseId: p1.id, expect: 'Film tracking stops down from 18 a week to under 5', why: 'The splice leaves a step in the film edge' }),
     act('Write the splice standard and train every shift on it', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(9), causeRef: ref(p1, c1[0]), caseId: p1.id, expect: 'Every splicer signed off by the end of the month' }),
+    // A prediction missed: done, and what happened says it did not do what was expected.
+    act('Slow the bagger to 55 ppm for a minute after each splice', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(-10), state: 'done', doneOn: iso(-9), causeRef: ref(p1, c1[0]), caseId: p1.id, expect: 'No tracking stop after a splice', outcome: 'Still nine tracking stops a week — slowing down did not stop the film wandering' }),
+    // A prediction met.
     act('Book agency cover for the 22:00 start', { lineId: lineA.id, pillar: 'people', who: 'Tanya', due: iso(-6), state: 'done', doneOn: iso(-5), causeRef: ref(p1, c1[1]), caseId: p1.id, expect: 'Three on the infeed from the first minute', outcome: 'Booked to Christmas — first week ran with three from 22:00' }),
     act('Re-bracket the photo-eye and lock it', { lineId: lineA.id, pillar: 'machine', who: 'Dave (shift fitter)', due: iso(2), state: 'waiting', causeRef: ref(p1, c1[3]), caseId: p1.id, expect: 'No missed print marks over a week' }),
     act('One changeover standard for 2kg to 1.25kg, on the line', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(-20), state: 'done', doneOn: iso(-14), causeRef: ref(p2, c2[0]), caseId: p2.id, expect: 'Changeover 48 → 25 minutes', outcome: 'Down to 22 minutes, three changeovers in a row' }),
@@ -673,7 +689,7 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
       const root = status === 'confirmed' && rand() < 0.4;
       return {
         id: uid(), m: pick(BONES), text: some(), grade: pick(['measured', 'counted', 'observed', 'reported'] as const), status, root,
-        whys: root ? Array.from({ length: 1 + Math.floor(rand() * 6) }, () => ({ id: uid(), text: some(), grade: rand() < 0.5 ? pick(['measured', 'counted', 'observed', 'reported'] as const) : undefined })) : [],
+        whys: root || rand() < 0.3 ? Array.from({ length: 1 + Math.floor(rand() * 6) }, () => ({ id: uid(), text: some(), grade: rand() < 0.5 ? pick(['measured', 'counted', 'observed', 'reported'] as const) : undefined })) : [],
         at: t - Math.floor(rand() * 30) * DAY, by: who() || undefined,
       };
     });
@@ -682,7 +698,7 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
       id: uid(), workspaceId: line.workspaceId as string, title: some(), path: [], baselineMsWeek: rand() < 0.5 ? Math.floor(rand() * 5 * 3_600_000) : 0,
       status: closed ? 'closed' : 'open', openedAt: t - Math.floor(rand() * 60) * DAY, closedAt: closed ? t - DAY : undefined, updatedAt: t,
       projectId: proj.id, lineId: line.id, causes: rand() < 0.15 ? [] : causes,
-      source: rand() < 0.3 && measures.length ? { kind: 'gap', measureId: ppm.id } : rand() < 0.5 ? { kind: 'pareto', category: 'Minor stop', asset: 'Bagger' } : { kind: 'observed' },
+      source: rand() < 0.3 && measures.length ? { kind: 'gap', measureId: ppm.id } : rand() < 0.5 ? { kind: 'pareto', category: 'Minor stop', asset: 'Bagger', ...(rand() < 0.4 ? { why: some() } : {}) } : { kind: 'observed' },
       ...(rand() < 0.2 ? { whys: Array.from({ length: 1 + Math.floor(rand() * 5) }, () => (rand() < 0.1 ? '' : some())) } : {}),
       ...(closed && rand() < 0.7 ? { hold: { what: some(), who: who() || undefined, everyDays: pick([1, 7, 14]), since: iso(-20), lastChecked: rand() < 0.6 ? iso(-Math.floor(rand() * 30)) : undefined } } : {}),
       ...(rand() < 0.1 ? { deletedAt: t - DAY } : {}),

@@ -249,4 +249,42 @@ describe('the report engine, at its edges', () => {
     const p = await run(() => [text({ text: '' }), rows({ rows: [] }), heading('H1 Only')]);
     expect(p.marks.map(m => m.id)).toEqual(['H1']);
   });
+
+  it('a section that runs over a page says whose it is at the top of the next — once, and not on its first page', async () => {
+    const p = await run(p => {
+      const cont = heading('H9 Problem 1 (continued)');
+      const lines = Array.from({ length: 120 }, (_, i) => `L${i} ${'x'.repeat(40)}`).join(' ');
+      return [
+        box(() => 300, () => p.marks.push({ id: 'filler', page: p.page, top: 36, bottom: 336, kind: 'box' })),
+        heading('H1 Problem 1'),
+        { ...text({ text: lines, size: 10 }), runHead: cont },
+        { ...rows({ rows: Array.from({ length: 40 }, (_, i) => row(p, `r${i}`, 30)) }), runHead: cont },
+        heading('H2 The board'),
+        rows({ rows: Array.from({ length: 40 }, (_, i) => row(p, `b${i}`, 30)) }),
+      ];
+    });
+    const heads = p.marks.filter(m => m.id === 'H9');
+    // Each page the section runs onto opens with the continued heading, and only those pages.
+    const pagesOfSection = [...new Set(p.marks.filter(m => /^(L\d+|r\d+)$/.test(m.id)).map(m => m.page))];
+    expect(heads.map(m => m.page)).toEqual(pagesOfSection.slice(1));
+    for (const h of heads) expect(h.top).toBeLessThan(60);   // the first thing on its page
+    // The board that follows never carries it.
+    const boardPages = new Set(p.marks.filter(m => /^b\d+$/.test(m.id)).map(m => m.page));
+    expect(heads.some(h => boardPages.has(h.page) && !pagesOfSection.includes(h.page))).toBe(false);
+  });
+
+  it('a section that fits a page starts on a fresh one rather than breaking — when the page it leaves is a quarter used', async () => {
+    const section = (p: Paper, k: string): Block[] => [
+      { ...heading(`H${k} Problem`), keep: () => 400 },
+      box(() => 360, () => p.marks.push({ id: `fish${k}`, page: p.page, top: 0, bottom: 0, kind: 'box' })),
+    ];
+    // 500 used of 750: the 400 does not fit, and the page is well used — it moves.
+    const moved = await run(p => [box(() => 500, () => p.marks.push({ id: 'a', page: p.page, top: 36, bottom: 536, kind: 'box' })), ...section(p, '1')]);
+    expect(moved.marks.find(m => m.id === 'H1')?.page).toBe(2);
+    expect(moved.marks.find(m => m.id === 'fish1')?.page).toBe(2);
+    // 100 used: moving would leave a near-empty page, so it does not.
+    const stays = await run(p => [box(() => 100, () => p.marks.push({ id: 'a', page: p.page, top: 36, bottom: 136, kind: 'box' })), ...section(p, '2'),
+      text({ text: Array.from({ length: 60 }, (_, i) => `L${i}`).join(' '), size: 10 })]);
+    expect(stays.marks.find(m => m.id === 'H2')?.page).toBe(1);
+  });
 });

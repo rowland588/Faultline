@@ -1,9 +1,15 @@
 /* THE 6M CLIENT REPORT — a running line's root cause story, on A4.
  *
  * docs/SIXM.md, "The client report": the gap → where the loss is → each
- * problem (its fishbone drawn, the why-chains of its roots, the
- * countermeasures with what they were expected to do and what they did, and
- * whether it is holding) → the board by bone → what was seen on the line.
+ * problem, its fishbone drawn and then the four parts the working method is
+ * worked in (docs/SIXM.md, "Problem · Why · Fix · Did it work") — Problem (the
+ * head, its number, where it came from, where it is and is not), Why (every
+ * chain of answers, each with how it is known, its root marked and read
+ * back), Fix (each countermeasure, who, when, what it should change, its
+ * state) and Did it work (the number since, each fix's prediction beside what
+ * happened, and whether it is holding) → the board by bone → what was seen on
+ * the line. A problem that runs over a page carries on under its own
+ * "(continued)" heading.
  *
  * Two halves in one file, the way the screen and the paper are one job (house
  * rule 2): `sixmReport()` turns the records into the sentences and rows — the
@@ -11,8 +17,8 @@
  * through the report engine (lib/report, docs/REPORTS.md). Blocks measure
  * themselves; nothing is cut; a section with nothing to say is not printed;
  * the fishbone is one measured block, and when a problem has more causes than
- * the drawing can carry, the drawing names the leading ones per bone and the
- * whole list follows as rows — every cause prints somewhere.
+ * the drawing can carry, the drawing names the leading ones per bone — every
+ * cause still prints whole, as a chain under Why.
  *
  * Colours are the house's five states and nothing else (CLAUDE.md, visual
  * management): the bones are told apart by place and name; a confirmed cause
@@ -23,9 +29,9 @@ import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
 import type { Phase, ProblemView } from './problems';
 import { PHASE_WORD } from './problems';
-import { GRADES, SIXM, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
+import { KNOWN_WORD, SIXM, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
 import type { FishboneData } from './fishbone';
-import { therefore } from './fishbone';
+import { factsOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
@@ -58,6 +64,7 @@ export interface CauseRep {
   m: SixM;
   bone: string;
   text: string;
+  /** How it is known, in the working method's words: seen · data · counted · told. */
   grade: string;
   status: CauseStatus;
   statusWord: string;
@@ -77,10 +84,26 @@ export interface CounterRep {
   /** The day in free words, when no date was given — as on the board. */
   words?: string;
   expect?: string;
-  /** What happened — the outcome written when it was done. */
+  /** What happened — the outcome written when it was done. Printed under
+   *  Did it work, beside what it was expected to do. */
   happened?: string;
   /** The cause it is for, in words. */
   cause?: string;
+}
+
+/** One line of reasoning under Why: the answers in order (the cause as
+ *  written, then each "why?"), each with how it is known. */
+export interface ChainRep {
+  cause: CauseRep;
+  answers: { text: string; known?: string }[];
+  /** The last answer is the root · still being found · ruled out. */
+  state: 'root' | 'open' | 'out';
+  /** The chain's bone, status and state in words: "Machine · confirmed · root found". */
+  head: string;
+  /** Where it came from and who put it there. */
+  from?: string;
+  /** Read back from the root up to the problem — under a root only. */
+  therefore: string[];
 }
 
 export interface ProblemRep {
@@ -90,26 +113,52 @@ export interface ProblemRep {
   phase: Phase;
   phaseWord: string;
   tone: Tone;
-  says: string;
-  /** Line · where it came from · opened. */
+  /** Line · opened · closed — beside the phase, under the title. */
   meta: string;
-  /** Before, now and target, in one sentence. */
-  measure?: string;
-  /** The head's number — "3 h a week". */
+  /** The head's number — "3 h a week" — on the drawn fish. */
   number?: string;
   bones: { m: SixM; label: string; causes: CauseRep[] }[];
   causeCount: number;
+
+  /* ---- Problem: the head, its number, where it came from, where it is ---- */
+  /** The head's sentence — its number now and its share. */
+  says: string;
+  /** Before → now and target, in one sentence. */
+  measure?: string;
+  /** Where it came from: the Pareto bar, the gap, the constraint, something
+   *  seen — and "opened for …" when a bar outside the vital few was opened. */
+  from?: string;
+  /** Where it is and is not, from the stops (lib/fishbone factsOf). */
+  is: string[];
+  isNot: string[];
+
+  /* ---- Why: every chain ---- */
+  chains: ChainRep[];
+  /** "3 chains — 1 root found · 1 still being found · 1 ruled out". */
+  whySays: string;
   /** What the data suggests and nobody has looked at yet, per bone. */
   suggested: string;
-  roots: { cause: CauseRep; whys: { text: string; grade?: string }[]; therefore: string[] }[];
-  /** Said when there is no root yet. */
+  /** Said when nothing is on the fishbone yet. */
   rootless?: string;
   /** The five whys as written before the fishbone (the old `Case.whys`),
    *  read back from the root, while they are not yet on a bone — so nothing
    *  the team wrote is missing from the paper. */
   written?: string;
+
+  /* ---- Fix ---- */
   counter: CounterRep[];
   counterSays: string;
+
+  /* ---- Did it work ---- */
+  worked: {
+    /** The verdict, by phase — never Holding until the number shows it. */
+    says: string;
+    tone: Tone;
+    /** Before → now on the problem's number, and whether it moved — once a fix is done. */
+    number?: string;
+    /** Each fix done: what it was expected to do beside what happened. */
+    fixes: { what: string; expect?: string; happened: string }[];
+  };
   hold?: { what: string; who?: string; every: string; since: string; last?: string; word: string; tone: Tone };
   /** A closed problem with no check set — said, not hidden. */
   holdless?: string;
@@ -165,7 +214,8 @@ export interface SixMInput {
 
 const DAY = 86_400_000;
 const PHASE_TONE: Record<Phase, Tone> = { finding: 'going', acting: 'going', proving: 'going', holding: 'done', closed: 'done', slipped: 'failed' };
-const GRADE_WORD = (g?: Grade) => GRADES.find(x => x.key === g)?.label ?? '';
+/** How a cause or an answer is known, in the working method's words (seen · data · counted · told). */
+const GRADE_WORD = (g?: Grade) => (g ? KNOWN_WORD[g] : '');
 const STATUS_WORD: Record<CauseStatus, string> = { confirmed: 'confirmed', suspected: 'suspected', ruled_out: 'ruled out' };
 const GRADE_RANK: Record<Grade, number> = { measured: 0, counted: 1, observed: 2, reported: 3 };
 const STATUS_RANK: Record<CauseStatus, number> = { confirmed: 0, suspected: 1, ruled_out: 2 };
@@ -173,6 +223,7 @@ const SOURCE_WORD: Record<NonNullable<Case['source']>['kind'], string> = {
   gap: 'From the gap', pareto: 'From the Pareto', constraint: 'From the constraint', observed: 'Seen on the line',
 };
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const clean = (x: string) => x.trim().replace(/[.;:,\s]+$/, '');
 const day = (iso?: string) => niceDay(iso);
 const listWords = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
@@ -272,15 +323,42 @@ export function sixmReport(o: SixMInput): SixMReport {
     const causes = (p.causes ?? []).slice().sort(causeOrder);
     const ms = v.measure;
     const unit = ms?.unit ?? '';
+
+    /* ------------------------------- Problem ------------------------------- */
     /* A gap problem's figures are four-week averages (lib/fishbone measureOf);
        the gap section above quotes the latest reading, so this says which. */
     const measure = ms && (ms.before != null || ms.now != null) ? [
       p.source?.kind === 'gap' ? `${ms.label}, on the four-week average:` : `${ms.label}:`,
-      [ms.before != null ? `before ${say(ms.before, unit)}` : '', ms.now != null ? `now ${say(ms.now, unit)}` : '', ms.target != null ? `target ${say(ms.target, unit)}` : ''].filter(Boolean).join(' · '),
-      ms.moved === 'better' ? '— better since the countermeasures were done.' : ms.moved === 'worse' ? '— worse since the countermeasures were done.' : ms.moved === 'same' ? '— no change since the countermeasures were done.' : '',
-    ].filter(Boolean).join(' ') : undefined;
+      [ms.before != null && ms.now != null ? `before ${say(ms.before, unit)} → now ${say(ms.now, unit)}` : ms.before != null ? `before ${say(ms.before, unit)}` : `now ${say(ms.now as number, unit)}`,
+        ms.target != null ? `target ${say(ms.target, unit)}` : ''].filter(Boolean).join(' · '),
+    ].join(' ') : undefined;
+    const src = p.source;
+    const why = src?.why ? clean(src.why) : '';
+    const bar = src?.kind === 'pareto' ? [src.category, src.subcategory, src.asset].filter(Boolean).join(' · ') : '';
+    const from = src ? SOURCE_WORD[src.kind] + (bar ? `: ${bar}` : src.kind === 'constraint' && src.station ? `: ${src.station}` : '')
+      + (why ? ` — opened for ${why}` : '') : undefined;
+    const facts = factsOf(p, data, o.now);
+
+    /* --------------------------------- Why --------------------------------- */
     const sugg = v.bones.filter(b => b.suggestions.length);
     const nSugg = sugg.reduce((n, b) => n + b.suggestions.length, 0);
+    const chains: ChainRep[] = causes.map(c => {
+      const rep = repOf(c);
+      const state: ChainRep['state'] = rep.root ? 'root' : c.status === 'ruled_out' ? 'out' : 'open';
+      const answers = [{ text: c.text, ...(rep.grade ? { known: rep.grade } : {}) },
+        ...c.whys.filter(x => x.text.trim()).map(x => ({ text: x.text, ...(x.grade ? { known: GRADE_WORD(x.grade) } : {}) }))];
+      return {
+        cause: rep, answers, state,
+        head: [rep.bone, rep.statusWord, state === 'root' ? 'root found' : state === 'out' ? '' : 'still being found'].filter(Boolean).join(' · '),
+        ...(rep.from || rep.by ? { from: [rep.from ? `from ${rep.from}` : '', rep.by ?? ''].filter(Boolean).join(' · ') } : {}),
+        therefore: state === 'root' ? therefore(c, p.title) : [],
+      };
+    });
+    const nRoot = chains.filter(c => c.state === 'root').length, nOut = chains.filter(c => c.state === 'out').length;
+    const nOpen = chains.length - nRoot - nOut;
+        const written = writtenBefore(p);
+
+    /* --------------------------------- Fix --------------------------------- */
     const counter: CounterRep[] = v.actions.map(a => {
       const t = todoById.get(a.uid ?? a.ref);
       const st = t ? actionState(t, today) : { tone: (/^done$/i.test(a.status) ? 'done' : 'going') as Tone, when: a.status };
@@ -295,6 +373,8 @@ export function sixmReport(o: SixMInput): SixMReport {
       };
     }).sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone]);
     const open = counter.filter(c => c.tone !== 'done').length, late = counter.filter(c => c.tone === 'late').length;
+
+    /* ----------------------------- Did it work ----------------------------- */
     const hold = p.hold ? (() => {
       const h = p.hold;
       const due = h.lastChecked ? new Date(Date.parse(`${h.lastChecked}T12:00:00`) + h.everyDays * DAY) : undefined;
@@ -306,31 +386,54 @@ export function sixmReport(o: SixMInput): SixMReport {
         since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, word, tone,
       };
     })() : undefined;
-    const confirmed = causes.filter(c => c.status === 'confirmed').length, suspected = causes.filter(c => c.status === 'suspected').length;
-    const written = writtenBefore(p);
+    const holdless = !hold && p.status === 'closed' ? 'Closed with no check set to keep the gain.' : undefined;
+    const doneFixes = counter.filter(c => c.tone === 'done');
+    /* The verdict is the phase's (lib/fishbone phaseOf): Holding only when the
+       number has moved the right way since; until it is measured, Checking it
+       worked — closing a problem is not proof that it worked. */
+    const verdict = (): string => {
+      switch (v.phase) {
+        case 'finding': return 'Not yet — the cause is still being found.';
+        case 'acting': return counter.length ? `Not yet — ${open} of ${plural(counter.length, 'fix', 'fixes')} still to do.` : 'Not yet — no fix on the board for it yet.';
+        case 'proving': return p.status === 'closed' ? 'Checking it worked — closed, and the number not measured since the fixes were done.' : 'Checking it worked — every fix is done.';
+        case 'holding': return 'Holding — the number has moved the right way since the fixes were done.';
+        case 'slipped': return ms?.moved === 'same' ? 'Slipped back — the number is no better than before the fixes.' : 'Slipped back — the number has gone back since the fixes were done.';
+        case 'closed': return holdless ?? 'Closed.';
+      }
+    };
+    const movedWord = ms?.moved === 'better' ? 'better since the fixes were done' : ms?.moved === 'worse' ? 'worse since the fixes were done'
+      : ms?.moved === 'same' ? 'no change since the fixes were done' : 'not measured since the last fix was done';
+    /* Holding and Slipped back say which way it moved in the verdict already. */
+    const saidMoved = v.phase === 'holding' || v.phase === 'slipped';
+    const number = doneFixes.length && ms && ms.before != null && ms.now != null
+      ? `${ms.label}: ${say(ms.before, unit)} → ${say(ms.now, unit)}${saidMoved ? '' : ` — ${movedWord}`}.` : undefined;
+
     return {
       id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase],
-      says: v.says && v.says !== p.title ? v.says : '',
-      meta: [lineName(p.lineId), p.source ? SOURCE_WORD[p.source.kind] + (p.source.kind === 'pareto' ? `: ${[p.source.category, p.source.subcategory, p.source.asset].filter(Boolean).join(' · ')}` : p.source.kind === 'constraint' && p.source.station ? `: ${p.source.station}` : '') : '',
-        `opened ${day(todayISO(new Date(p.openedAt)))}`, p.status === 'closed' && p.closedAt ? `closed ${day(todayISO(new Date(p.closedAt)))}` : ''].filter(Boolean).join(' · '),
-      ...(measure ? { measure } : {}),
+      meta: [lineName(p.lineId), `opened ${day(todayISO(new Date(p.openedAt)))}`, p.status === 'closed' && p.closedAt ? `closed ${day(todayISO(new Date(p.closedAt)))}` : ''].filter(Boolean).join(' · '),
       ...(ms?.now != null ? { number: say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
       bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(repOf) })),
       causeCount: causes.length,
+      says: v.says && v.says !== p.title ? v.says : '',
+      ...(measure ? { measure } : {}),
+      ...(from ? { from } : {}),
+      is: facts.is.filter(x => x.trim()), isNot: facts.isNot.filter(x => x.trim()),
+      chains,
+      whySays: chains.length ? [plural(chains.length, 'chain'), nRoot ? `${nRoot} root found` : 'no root found yet', nOpen ? `${nOpen} still being found` : '', nOut ? `${nOut} ruled out` : ''].filter(Boolean).join(' · ') : '',
       suggested: nSugg ? `The data suggests ${plural(nSugg, causes.length ? 'more cause' : 'cause')} not yet looked at — on ${listWords(sugg.map(b => sixmLabel(b.m)))}.` : '',
-      roots: v.roots.map(c => ({
-        cause: repOf(c),
-        whys: c.whys.filter(x => x.text.trim()).map(x => ({ text: x.text, ...(x.grade ? { grade: GRADE_WORD(x.grade) } : {}) })),
-        therefore: therefore(c, p.title),
-      })),
-      ...(v.roots.length ? {} : { rootless: causes.length
-        ? `No root found yet — ${plural(causes.length, 'cause')} on the fishbone: ${confirmed} confirmed, ${suspected} suspected, ${causes.length - confirmed - suspected} ruled out.`
-        : `Nothing on the fishbone yet.` }),
+      /* With chains, Why's count says there is no root yet and each chain says
+         how sure it is; with none, this line says the fish is empty. */
+      ...(causes.length ? {} : { rootless: !written && v.phase === 'finding' ? 'Nothing on the fishbone yet. Opened, and the causes are next.' : 'Nothing on the fishbone yet.' }),
       ...(written ? { written } : {}),
       counter,
       counterSays: counter.length ? [`${open} open`, late ? `${late} late` : '', `${counter.length - open} done`].filter(Boolean).join(' · ') : '',
+      worked: {
+        says: verdict(), tone: v.phase === 'slipped' ? 'failed' : PHASE_TONE[v.phase],
+        ...(number ? { number } : {}),
+        fixes: doneFixes.map(c => ({ what: c.what, ...(c.expect ? { expect: c.expect } : {}), happened: c.happened ?? 'not written up yet' })),
+      },
       ...(hold ? { hold } : {}),
-      ...(!hold && p.status === 'closed' ? { holdless: 'Closed with no check set to keep the gain.' } : {}),
+      ...(holdless ? { holdless } : {}),
     };
   });
 
@@ -660,63 +763,122 @@ function stationsBlock(c: SixMReport['constraints'][number]): Block {
 
 /* --------------------------------- a problem --------------------------------- */
 
+/* EACH PROBLEM, IN THE FOUR PARTS IT IS WORKED IN (docs/SIXM.md, the working
+ * method): its title and phase, the fish drawn, then Problem · Why · Fix · Did
+ * it work. The heading asks for the whole of it on one page when a page can
+ * hold it (`keep`), so the fish and its four parts are read together; when it
+ * is longer, everything after the heading carries "Problem n — … (continued)"
+ * to the top of any page it runs onto — never cut, never "…". */
 function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
-  out.push(heading(`Problem ${p.n} — ${p.title}`, p.says || undefined));
-  // The phase in words and colour, then where it came from — travels with the fish.
+  const own: Block[] = [];
+  const cont = heading(`Problem ${p.n} — ${p.title} (continued)`, undefined, { size: SIZE.h2 + 1 });
+  const add = (b: Block) => own.push({ ...b, runHead: cont });
+
+  // The phase in words and colour, then the line and its days — travels with the fish.
   const metaLines = (f: Frame) => wrap(f.doc, p.meta, f.w - pillW(f.doc, p.phaseWord, 140) - 10, SIZE.small);
-  out.push({
+  add({
     keepWithNext: true,
-    height: f => Math.max(14, metaLines(f).length * lead(SIZE.small, f.density)) + 4,
+    height: f => Math.max(14, metaLines(f).length * lead(SIZE.small, f.density)) + 6,
     draw: (f, y) => {
       const pw = pillW(f.doc, p.phaseWord, 140);
       pill(f.doc, f.x, y, pw, p.tone, p.phaseWord);
       font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(metaLines(f), f.x + pw + 10, y + 9);
     },
   });
-  if (p.measure) out.push({ ...text({ text: p.measure, size: SIZE.body, colour: INK2, before: 2, after: 4 }), keepWithNext: true });
+  const fish = p.causeCount ? fishbone(p) : undefined;
+  if (fish) add({ ...fish.block, keepWithNext: true });
 
-  if (p.causeCount) {
-    const fish = fishbone(p);
-    out.push(fish.block);
-    if (p.suggested) out.push(text({ text: p.suggested, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
-    const partial = (f: Frame) => !fish.layout(f).complete;
-    out.push(when(partial, label(`Every cause on the fishbone — ${p.causeCount}, bone by bone`)));
-    out.push(when(partial, causeRows(p)));
-  } else if (p.suggested) out.push(text({ text: p.suggested, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+  /* ------------------------------- Problem ------------------------------- */
+  add(part('Problem'));
+  if (p.says) add(text({ text: p.says, size: SIZE.body, style: 'bold', after: 3 }));
+  if (p.measure) add(text({ text: p.measure, size: SIZE.body, colour: INK2, after: 3 }));
+  if (p.from) add(text({ text: `Where it came from: ${p.from}`, size: SIZE.small, colour: INK2, after: 3 }));
+  /* Where it is and is not, from the stops — printed only when there is something to say. */
+  if (p.is.length) add(text({ text: `Is: ${p.is.join(' · ')}`, size: SIZE.small, colour: INK2, after: 2 }));
+  if (p.isNot.length) add(text({ text: `Is not: ${p.isNot.join(' · ')}`, size: SIZE.small, colour: INK2, after: 2 }));
+  if (!p.says && !p.measure && !p.from && !p.is.length && !p.isNot.length) add(text({ text: 'Not measured yet.', size: SIZE.small, colour: MUTED, after: 2 }));
 
-  /* The why-chains of the roots, each read back up to the problem. */
-  if (p.roots.length) {
-    out.push(label(p.roots.length === 1 ? 'Why it happens — the root' : `Why it happens — ${p.roots.length} roots`));
-    for (const rt of p.roots) {
-      out.push({ ...text({ text: `${rt.cause.bone} · ${rt.cause.text}`, size: SIZE.body, style: 'bold', before: 2, after: 1 }), keepWithNext: true });
-      out.push({ ...text({ text: `${rt.cause.grade} · ${rt.cause.statusWord}${rt.cause.from ? ` · from ${rt.cause.from}` : ''}${rt.cause.by ? ` · ${rt.cause.by}` : ''}`, size: SIZE.small, colour: MUTED, after: 3 }), keepWithNext: rt.whys.length > 0 });
-      if (rt.whys.length) out.push({ ...text({ text: 'Why? — asked again at each answer, down to the root:', size: SIZE.small, colour: MUTED, indent: 22, after: 2 }), keepWithNext: true });
-      rt.whys.forEach((wy, i) => out.push(text({
-        text: `${wy.text}${wy.grade ? ` (${wy.grade.toLowerCase()})` : ''}${i === rt.whys.length - 1 ? ' — the root' : ''}`,
-        size: SIZE.body - 0.5, colour: INK2, indent: 22, bullet: `${i + 1}`, after: 2, style: i === rt.whys.length - 1 ? 'bold' : 'normal',
-      })));
-      if (rt.therefore.length) {
-        out.push({ ...text({ text: 'Read back from the root:', size: SIZE.small, style: 'bold', colour: MUTED, before: 3, after: 1, indent: 22 }), keepWithNext: true });
-        rt.therefore.forEach((t, i) => out.push(text({ text: t, size: SIZE.small, colour: MUTED, indent: 22, after: i === rt.therefore.length - 1 ? gap(d, 's') : 1 })));
-      }
+  /* --------------------------------- Why --------------------------------- */
+  add(part('Why', p.whySays));
+  if (p.suggested) add(text({ text: p.suggested, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+  for (const ch of p.chains) {
+    /* The chain's bone, how sure, and whether its root is found — then its
+       answers in order, each with how it is known, the root in bold. */
+    add({ ...text({ text: ch.head + (ch.from ? `  ·  ${ch.from}` : ''), size: SIZE.small, style: 'bold', colour: ch.state === 'out' ? MUTED : INK2, before: 3, after: 2 }), keepWithNext: true });
+    ch.answers.forEach((a, i) => {
+      const last = i === ch.answers.length - 1;
+      add({
+        ...text({
+          text: `${a.text}${a.known ? ` (${a.known})` : ''}${last && ch.state === 'root' ? ' — the root' : ''}`,
+          size: SIZE.body - 0.5, colour: ch.state === 'out' ? MUTED : INK, indent: 22, bullet: `${i + 1}`, after: 2,
+          style: last && ch.state === 'root' ? 'bold' : 'normal',
+        }),
+        keepWithNext: !last || ch.therefore.length > 0,
+      });
+    });
+    if (ch.therefore.length) {
+      add({ ...text({ text: 'Read back from the root:', size: SIZE.small, style: 'bold', colour: MUTED, before: 2, after: 1, indent: 22 }), keepWithNext: true });
+      ch.therefore.forEach((t, i) => add(text({ text: t, size: SIZE.small, colour: MUTED, indent: 22, after: i === ch.therefore.length - 1 ? gap(d, 's') : 1 })));
     }
-  } else if (p.rootless && p.causeCount) out.push(text({ text: p.rootless, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+  }
   /* "The causes are next" only while it is finding them — never under a
-     problem that is holding or closed. */
-  else if (p.rootless) out.push(text({ text: !p.written && p.phase === 'finding' ? `${p.rootless} Opened, and the causes are next.` : p.rootless, size: SIZE.body, colour: MUTED, after: gap(d, 's') }));
+     problem that is holding or closed (said in the model). */
+  if (p.rootless) add(text({ text: p.rootless, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
   /* The whys written before the fishbone, until they are put on a bone. */
-  if (p.written) out.push(text({ text: `Written before the fishbone: ${p.written}`, size: SIZE.body - 0.5, colour: INK2, after: gap(d, 's') }));
+  if (p.written) add(text({ text: `Written before the fishbone: ${p.written}`, size: SIZE.body - 0.5, colour: INK2, after: gap(d, 's') }));
 
-  if (p.counter.length) {
-    out.push(label(`Countermeasures — ${p.counterSays}`));
-    out.push(counterRows(p.counter));
-  } else if (p.roots.length) out.push(text({ text: 'No countermeasure on the board for it yet.', size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+  /* --------------------------------- Fix --------------------------------- */
+  add(part('Fix', p.counterSays));
+  if (p.counter.length) add(counterRows(p.counter));
+  else add(text({ text: 'No fix on the board for it yet.', size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
 
-  if (p.hold) {
-    out.push(label('Keeping the gain'));
-    out.push(holdBlock(p.hold));
-  } else if (p.holdless) out.push(text({ text: p.holdless, size: SIZE.small, colour: MUTED, after: gap(d, 'm') }));
+  /* ----------------------------- Did it work ----------------------------- */
+  add(part('Did it work'));
+  add(text({ text: p.worked.says, size: SIZE.body, style: 'bold', colour: p.worked.tone === 'failed' ? DANGER : INK, after: 3 }));
+  if (p.worked.number) add(text({ text: p.worked.number, size: SIZE.body, colour: INK2, after: 3 }));
+  if (p.worked.fixes.length) add(workedRows(p.worked.fixes));
+  if (p.hold) { add(label('Keeping the gain')); add(holdBlock(p.hold)); }
+
+  /* The heading asks for the whole problem on one page when one can hold it;
+     when it is longer, for the fish and its Problem — the first look. */
+  const head: Block = { ...heading(`Problem ${p.n} — ${p.title}`), keep: f => {
+    const all = own.reduce((n, b) => n + b.height(f), 0);
+    const page = f.bottom - f.top;
+    if (all + 60 <= page) return all + 60;
+    const upTo = own.findIndex((b, i) => i > 0 && b.height(f) > 0 && isPart(b, 'Why'));
+    return own.slice(0, upTo < 0 ? own.length : upTo).reduce((n, b) => n + b.height(f), 0) + 60;
+  } };
+  out.push(head, ...own);
 }
+
+/** A part's heading: Problem · Why · Fix · Did it work, with its count beside. */
+const PART = Symbol('part');
+function part(title: 'Problem' | 'Why' | 'Fix' | 'Did it work', says?: string): Block {
+  /* The title in bold; its count beside it in small grey when it fits on the
+     line, else under it — wrapped, never cut. */
+  const lay = (f: Frame) => {
+    font(f.doc, SIZE.h2, 'bold');
+    const tw = f.doc.getTextWidth(title) + 8;
+    const beside = says ? wrap(f.doc, says, f.w - tw, SIZE.small) : [];
+    const under = beside.length > 1 && says ? wrap(f.doc, says, f.w, SIZE.small) : [];
+    return { tw, beside: under.length ? [] : beside, under };
+  };
+  const b: Block & { [PART]?: string } = {
+    keepWithNext: true,
+    height: f => 7 + lead(SIZE.h2, f.density) + lay(f).under.length * lead(SIZE.small, f.density) + 3,
+    draw: (f, y) => {
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y + 3, f.x + f.w, y + 3);
+      const l = lay(f), yy = y + 7 + SIZE.h2 * 0.92;
+      font(f.doc, SIZE.h2, 'bold', INK); f.doc.text(title, f.x, yy);
+      font(f.doc, SIZE.small, 'normal', MUTED);
+      if (l.beside.length) f.doc.text(l.beside[0], f.x + l.tw, yy);
+      l.under.forEach((u, i) => f.doc.text(u, f.x, yy + lead(SIZE.h2, f.density) - 2 + i * lead(SIZE.small, f.density)));
+    },
+  };
+  b[PART] = title;
+  return b;
+}
+const isPart = (b: Block, title: string) => (b as Block & { [PART]?: string })[PART] === title;
 
 /* -------------------------------- the fishbone -------------------------------- */
 
@@ -797,19 +959,6 @@ function fishbone(p: ProblemRep): { block: Block; layout: (f: Frame) => FishLayo
   return {
     block: box(f => layout(f).height + gap(f.density, 'm'), (f, y) => drawFish(f, y, p, layout(f)), f => gap(f.density, 'm')),
     layout,
-  };
-}
-
-/** A block that is only there when `on` says so at the page's width — the
- *  full cause list, printed exactly when the drawing could not carry it all. */
-function when(on: (f: Frame) => boolean, b: Block): Block {
-  return {
-    keepWithNext: b.keepWithNext,
-    height: f => (on(f) ? b.height(f) : 0),
-    after: f => (on(f) ? b.after?.(f) ?? 0 : 0),
-    lead: b.lead,
-    draw: b.draw,
-    split: b.split,
   };
 }
 
@@ -905,63 +1054,62 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
   font(doc, SIZE.tiny, 'normal', MUTED); doc.text('drilled to its root with the five whys', kx + ROOT_W + 4, ky);
 }
 
-/** Every cause, bone by bone, as rows — when the drawing could not carry them all. */
-function causeRows(p: ProblemRep): Block {
-  const boneW = 78, howW = 120;
-  const all = p.bones.flatMap(b => b.causes);
-  const words = (f: Frame, c: CauseRep) => wrap(f.doc, c.text, f.w - boneW - howW - 8, SIZE.small, causeStyle(c));
-  return rows({
-    header: headerRow([['Bone', 0], ['Cause', boneW], ['How known · status', CW - howW]]),
-    rows: all.map(c => ({
-      h: f => Math.max(15, 5 + words(f, c).length * 10.5),
-      draw: (f, y) => {
-        rule(f, y);
-        font(f.doc, SIZE.small, 'bold', INK2); f.doc.text(c.bone, f.x, y + 10);
-        const ls = words(f, c);
-        const out = c.status === 'ruled_out';
-        font(f.doc, SIZE.small, causeStyle(c), out ? MUTED : INK);
-        ls.forEach((ln, i) => {
-          f.doc.text(ln, f.x + boneW, y + 10 + i * 10.5);
-          if (out) { f.doc.setDrawColor(MUTED); f.doc.setLineWidth(0.6); f.doc.line(f.x + boneW, y + 7.2 + i * 10.5, f.x + boneW + f.doc.getTextWidth(ln), y + 7.2 + i * 10.5); }
-        });
-        font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(`${c.grade} · ${c.statusWord}${c.root ? ' · Root' : ''}`, f.x + f.w - howW, y + 10);
-      },
-    })),
-  });
-}
-
-/** Countermeasures: what, its bone and owner, its state and day — and what it
- *  was expected to do against what it did. */
+/** Fix: each countermeasure — what, the cause it is for, what it should
+ *  change, its day in words when it has no date; its bone and owner; its
+ *  state and day in the house colours and words. What a done one did is
+ *  under Did it work, beside what it was expected to do. */
 function counterRows(list: CounterRep[]): Block {
   const sideW = 104, stateW = 96;
   const parts = (f: Frame, c: CounterRep) => {
     const w = f.w - sideW - stateW - 10;
     return {
-      what: wrap(f.doc, c.what, w, SIZE.body - 0.5, 'bold'),
+      what: wrap(f.doc, c.what, w, SIZE.body - 0.5, c.tone === 'done' ? 'normal' : 'bold'),
       cause: c.cause ? wrap(f.doc, `For: ${c.cause}`, w, SIZE.small) : [],
-      exp: c.expect ? wrap(f.doc, `Expected: ${c.expect}`, w, SIZE.small) : [],
+      exp: c.expect && c.tone !== 'done' ? wrap(f.doc, `Should change: ${c.expect}`, w, SIZE.small) : [],
       words: c.words ? wrap(f.doc, `When: ${c.words}`, w, SIZE.small) : [],
-      hap: c.happened ? wrap(f.doc, `What happened: ${c.happened}`, w, SIZE.small, 'bold') : [],
-      side: wrap(f.doc, [c.bone, c.owner].filter(Boolean).join(' · '), sideW - 8, SIZE.small),
+      side: wrap(f.doc, [c.bone, c.owner || 'No owner'].join(' · '), sideW - 8, SIZE.small),
     };
   };
   return rows({
     rows: list.map(c => ({
       h: f => {
         const p = parts(f, c);
-        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.words.length + p.hap.length) * 10.5, p.side.length * 10.5, 14) + 5;
+        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.words.length) * 10.5, p.side.length * 10.5, 14) + 5;
       },
       draw: (f, y) => {
         const p = parts(f, c);
+        const done = c.tone === 'done';
         rule(f, y);
         let ty = y + 12;
-        font(f.doc, SIZE.body - 0.5, 'bold', INK); f.doc.text(p.what, f.x, ty); ty += p.what.length * 11.5;
+        font(f.doc, SIZE.body - 0.5, done ? 'normal' : 'bold', done ? MUTED : INK); f.doc.text(p.what, f.x, ty); ty += p.what.length * 11.5;
         if (p.cause.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.cause, f.x, ty - 1); ty += p.cause.length * 10.5; }
         if (p.exp.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.exp, f.x, ty - 1); ty += p.exp.length * 10.5; }
-        if (p.words.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.words, f.x, ty - 1); ty += p.words.length * 10.5; }
-        if (p.hap.length) { font(f.doc, SIZE.small, 'bold', c.happened === 'not written up yet' ? MUTED : INK2); f.doc.text(p.hap, f.x, ty - 1); }
-        font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.side, f.x + f.w - sideW - stateW, y + 12);
+        if (p.words.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.words, f.x, ty - 1); }
+        font(f.doc, SIZE.small, 'normal', done ? MUTED : INK2); f.doc.text(p.side, f.x + f.w - sideW - stateW, y + 12);
         pill(f.doc, f.x + f.w - stateW, y + 4, stateW, c.tone, c.when);
+      },
+    })),
+  });
+}
+
+/** Did it work: each fix done — what it was expected to do, beside what happened. */
+function workedRows(list: ProblemRep['worked']['fixes']): Block {
+  const half = (f: Frame) => (f.w - 12) / 2;
+  const parts = (f: Frame, x: ProblemRep['worked']['fixes'][number]) => ({
+    what: wrap(f.doc, x.what, f.w, SIZE.small + 0.5, 'bold'),
+    exp: wrap(f.doc, `Expected: ${x.expect ?? 'nothing written'}`, half(f), SIZE.small),
+    hap: wrap(f.doc, `What happened: ${x.happened}`, half(f), SIZE.small, 'bold'),
+  });
+  return rows({
+    rows: list.map(x => ({
+      h: f => { const p = parts(f, x); return 7 + p.what.length * 11 + Math.max(p.exp.length, p.hap.length) * 10.5 + 4; },
+      draw: (f, y) => {
+        const p = parts(f, x);
+        rule(f, y);
+        font(f.doc, SIZE.small + 0.5, 'bold', INK); f.doc.text(p.what, f.x, y + 11);
+        const ty = y + 10 + p.what.length * 11;
+        font(f.doc, SIZE.small, 'normal', x.expect ? INK2 : MUTED); f.doc.text(p.exp, f.x, ty);
+        font(f.doc, SIZE.small, 'bold', x.happened === 'not written up yet' ? MUTED : INK2); f.doc.text(p.hap, f.x + half(f) + 12, ty);
       },
     })),
   });

@@ -68,7 +68,13 @@ one will not fit, by these rules:
 4. **Small overflow is absorbed, not paged.** If the last page would hold
    less than a fifth, the engine re-pours at the compact density (tighter
    leading and gaps, same type sizes) and keeps it if that saves the page.
-5. **Big content scales by structure, not by shrinking type.** Huge lists
+5. **A section says whose it is on every page it runs onto.** A block may
+   carry a run heading (`runHead`): when it starts a page part-way through
+   its section, the heading is drawn above it — "Problem 3 — … (continued)".
+   A section that a page can hold asks for it (`keep`) and starts the next
+   page rather than breaking, when the page it leaves is already a quarter
+   used (so that page is never near-empty).
+6. **Big content scales by structure, not by shrinking type.** Huge lists
    get a count in the heading ("Fixes — 30 open, 12 late"), late-first
    order, and repeat headers; type never drops below the readable floor
    (7 pt for labels, 8.5 pt for text).
