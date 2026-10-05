@@ -9644,3 +9644,18 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
   background: color-mix(in srgb, var(--ink) 8%, var(--surface));
   border-radius: 4px;
 }
+/* On a phone the machine's header reads over its track: give its words the
+   row's own ground and lift them over the today line, so nothing is printed
+   over anything (CLAUDE.md report rules hold on screen too). */
+.gt.is-stacked div.gt-lab.gt-mlab .gt-mgo {
+  position: relative; z-index: 4;
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
+  border-radius: 6px; padding-right: 8px;
+}
+/* On a phone each row's words sit over its own track: give the words the
+   page's ground and lift them over the today line and the gridlines, so
+   nothing is printed over anything. */
+.gt.is-stacked button.gt-lab > b, .gt.is-stacked button.gt-lab > small,
+.gt.is-stacked .gt-gatelab {
+  position: relative; z-index: 4; background: var(--surface); border-radius: 4px; padding: 0 3px;
+}
