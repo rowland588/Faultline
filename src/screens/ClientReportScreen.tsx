@@ -96,7 +96,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     try {
       const { deliverPdf } = await import('../lib/savePdf');
       const how = await deliverPdf(await buildPdf(report, withStandards), fileName(report));
-      setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('client report failed', e);
       setErr(`The report could not be made${e instanceof Error && e.message ? ` — ${e.message}` : ''}. Try again; if it fails again, reload the app.`);
