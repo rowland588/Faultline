@@ -226,3 +226,12 @@ export function contextFor(assets: Asset[], tests: Test[], today: string, on?: T
     ...(on ? { on: { title: on.title, machine: liveAssets.find(a => a.id === on.assetId)?.name, ...(on.result?.trim() ? { result: on.result.trim() } : {}) } } : {}),
   };
 }
+
+/** SAY THE WHYS (docs/SIXM.md, the working method): a note on the "whys" form
+ *  → the chain of answers in order, the bone the deepest belongs on if the
+ *  reader said, and the blame prompt when the chain ends at a person
+ *  (sixm.blamesAPerson). Filled in by the engine slice. */
+export function whysFill(r: VoiceResult): { chain: string[]; m?: import('./sixm').SixM; blames: string | null } {
+  const chain = Array.isArray(r.fields.chain) ? (r.fields.chain as unknown[]).map(x => String(x).trim()).filter(Boolean) : [];
+  return { chain, blames: null };
+}
