@@ -91,12 +91,48 @@ describe('never inventing what did not happen', () => {
     const d = dayOf({ ...input, tests: [rec({ kind: 'install', title: 'Guards fitted', assetId: packer.id, plannedFor: TODAY })] }, TODAY, TODAY);
     expect(d.sections.find(s => s.key === 'today')?.lines.map(l => l.text)).toEqual(['Case packer — Guards fitted.']);
     expect(d.sections.find(s => s.key === 'wrong')).toBeUndefined();
-    expect(d.headline).toBe('1 thing booked, nothing logged yet. Install 0 of 1 steps done.');
+    /* Due today, in the words its list uses; the coder and the labels due
+       yesterday are past their day, and today says so (5 October). */
+    expect(d.headline).toBe('1 due today, nothing logged yet. 2 past their day. Install 0 of 1 steps done.');
   });
 
   it('says so when nothing was logged', () => {
     const d = dayOf(input, '2026-09-10', TODAY);
     expect(d).toMatchObject({ empty: true, headline: 'Nothing was logged for this day.' });
+  });
+});
+
+/* Rowland, 5 October: "it's showing everything is due today, and it's not.
+   A lot of the things start from today to the end of the week." */
+describe('a booking that runs over several days', () => {
+  const week = rec({ kind: 'install', title: 'Guards fitted', assetId: packer.id, withWhom: 'Brillopak', plannedFor: TODAY, plannedTo: '2026-10-02' });
+  const since = rec({ kind: 'install', title: 'Cabled up', assetId: packer.id, plannedFor: '2026-09-28', plannedTo: TODAY });
+  const one = { ...input, tests: [week, since], assets: [packer], materials: [] as Material[] };
+  const texts = (d: ReturnType<typeof dayOf>, k: string) => d.sections.find(s => s.key === k)?.lines.map(l => l.text) ?? [];
+
+  it('is due on its last day, and under way before it — each saying its window', () => {
+    const d = dayOf(one, TODAY, TODAY);
+    expect(texts(d, 'today')).toEqual(['Case packer — Cabled up — since Mon 28 Sept.']);
+    expect(texts(d, 'going')).toEqual(['Case packer — Guards fitted (Brillopak) — starts today, due Fri 2 Oct.']);
+    expect(d.sections.find(s => s.key === 'going')?.title).toBe('Under way — due later');
+    expect(d.headline).toBe('1 due today, 1 under way, nothing logged yet. Install 0 of 2 steps done.');
+  });
+
+  it('on a past day in the middle of its window, was under way — not "did not happen"', () => {
+    const d = dayOf(one, '2026-09-29', TODAY);
+    expect(texts(d, 'wrong')).toEqual([]);
+    expect(texts(d, 'going')).toEqual(['Case packer — Cabled up — since Mon 28 Sept, due Wed 30 Sept.']);
+  });
+
+  it('on its last day gone by, did not happen — with when it was booked from', () => {
+    const d = dayOf(one, TODAY, '2026-10-01');
+    expect(texts(d, 'wrong')).toEqual(['Case packer — Cabled up was due and did not happen — booked from Mon 28 Sept.']);
+  });
+
+  it('today lists what is past its day and still not done', () => {
+    const d = dayOf(one, '2026-10-01', '2026-10-01');
+    expect(texts(d, 'late')).toEqual(['Case packer — Cabled up — was due Wed 30 Sept.']);
+    expect(d.sections.find(s => s.key === 'late')?.title).toBe('Past its day — still not done');
   });
 });
 

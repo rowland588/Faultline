@@ -107,11 +107,26 @@ export function DayScreen({ projectId }: { projectId: string }) {
       ]} />
       <header className="pace-head dy-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
+          <p className="pace-eyebrow is-said">{project.name}</p>
           <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
           <p className="dy-headline">{day.headline}</p>
         </div>
+        {/* SEND IT FROM THE TOP. Rowland, 5 October: "I wanted to be able to
+            very quickly see today and send out an up-to-date movement on
+            today. Even that's not easy to do." The button was a "PDF" at the
+            foot of the page, under every list and the pictures. */}
+        <div className="pace-head-actions">
+          <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
+            {busy ? 'Building…' : date === today ? 'Send today’s update' : 'Send this day'}
+          </button>
+        </div>
       </header>
+      {(said || err) && (
+        <p className={'sub ' + (err ? 'tw-err' : 'tc-ok')} role="status">
+          {err ?? said}{' '}
+          {err?.startsWith('This tab is still running') && <button className="cw-link" onClick={() => void reloadOntoNewBuild()}>Reload</button>}
+        </p>
+      )}
       {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
       <Peers peers={projectPeers(projectId, 'day', stand.counts)} />
       <AccessNote can={can} owner={project.lead} />
@@ -179,19 +194,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      <div className="tc-send dy-send">
-        <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
-          {busy ? 'Building…' : 'PDF'}
-        </button>
-        {said && <span className="tc-ok">{said}</span>}
-      </div>
-      {err && (
-        <p className="sub tw-err">
-          {err}{' '}
-          {err.startsWith('This tab is still running') && <button className="cw-link" onClick={() => void reloadOntoNewBuild()}>Reload</button>}
-        </p>
-      )}
-      <p className="sub tw-note">One page: this day’s story, the install bar and the day’s pictures — to send at the end of a shift.</p>
+      <p className="sub tw-note">“{date === today ? 'Send today’s update' : 'Send this day'}” at the top makes one page of this: the day’s story, the gates’ bars and the day’s pictures.</p>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </div>

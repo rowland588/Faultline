@@ -46,7 +46,7 @@ export interface DayLine {
 }
 
 export interface DaySection {
-  key: 'done' | 'wrong' | 'found' | 'today' | 'next';
+  key: 'done' | 'wrong' | 'found' | 'late' | 'today' | 'going' | 'next';
   title: string;
   lines: DayLine[];
 }
@@ -76,6 +76,8 @@ export interface Day {
 
 const dayOfMs = (ms: number): string => todayISO(new Date(ms));
 const on = (d: string, from?: string, to?: string): boolean => !!from && from <= d && d <= (to && to > from ? to : from);
+/** The last day of a step's booked window — the day it is due. */
+const endOf = (t: Test): string => (t.plannedTo && t.plannedFor && t.plannedTo > t.plannedFor ? t.plannedTo : t.plannedFor ?? t.plannedTo ?? '');
 const short = (iso: string) => niceDay(iso, { weekday: 'short' });
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -111,7 +113,18 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const done: DayLine[] = [];
   const wrong: DayLine[] = [];
   const found: DayLine[] = [];
+  /* BOOKED, SAID AS IT IS. Rowland, 5 October: "it's showing everything is
+     due today, and it's not. A lot of the things start from today to the end
+     of the week." Every step whose window took in the day was listed under
+     "Still booked for today" by its name alone, so a Monday-to-Friday step
+     read as due on Monday. Now what FINISHES that day is due that day; what
+     runs on past it is under way, with the day it is due; and each says its
+     window. */
   const booked: DayLine[] = [];
+  const going: DayLine[] = [];
+  /* Past its day, still not done — today's only: the thing a lead sends
+     about first, and it was on none of the day's lists. */
+  const late: DayLine[] = [];
 
   /* ------------------------------- machines ------------------------------- */
   for (const a of assets) {
@@ -151,10 +164,31 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
       }
       continue;
     }
-    /* Booked for this day, and it did not run on it. */
+    /* Booked over this day, and it did not run on it. Only the LAST day of
+       its window is the day it was due: a past day in the middle of a week's
+       booking was a day it was under way, not one where it "did not happen". */
     if (bookedToday && !isSettled(t) && !t.ranOn) {
-      if (past) wrong.push({ text: `${named(t)} was booked and did not happen${who(t.withWhom)}.`, tone: 'slipped', id: t.id });
-      else booked.push({ text: `${named(t)}${who(t.withWhom)}.`, tone: 'booked', id: t.id });
+      const end = endOf(t);
+      if (end === date) {
+        if (past) wrong.push({ text: t.plannedFor && t.plannedFor < date
+          ? `${named(t)} was due and did not happen${who(t.withWhom)} — booked from ${short(t.plannedFor)}.`
+          : `${named(t)} was booked and did not happen${who(t.withWhom)}.`, tone: 'slipped', id: t.id });
+        else booked.push({ text: `${named(t)}${who(t.withWhom)}${t.plannedFor && t.plannedFor < date ? ` — since ${short(t.plannedFor)}` : ''}.`, tone: 'booked', id: t.id });
+      } else {
+        const from = t.plannedFor === date ? `starts ${isToday ? 'today' : 'that day'}` : `since ${short(t.plannedFor as string)}`;
+        going.push({ text: `${named(t)}${who(t.withWhom)} — ${from}, due ${short(end)}.`, tone: 'booked', id: t.id });
+      }
+    } else if (isToday && !isSettled(t) && !t.ranOn && isOverdue(t, date)) {
+      late.push({ text: `${named(t)}${who(t.withWhom)} — was due ${short(endOf(t))}.`, tone: 'slipped', id: t.id });
+    }
+  }
+  /* A machine or a delivery past the day it was due, today. */
+  if (isToday) {
+    for (const a of assets) {
+      if (!a.onSiteOn && a.dueOn && a.dueOn < date) late.push({ text: `${a.name} not on site${who(a.oem)} — was due ${short(a.dueOn)}.`, tone: 'slipped', go: 'install' });
+    }
+    for (const m of live(input.materials)) {
+      if (!isHere(m) && m.due && m.due < date) late.push({ text: `${m.what} not here${who(m.from)} — was due ${short(m.due)}.`, tone: 'slipped', go: 'materials' });
     }
   }
 
@@ -236,22 +270,24 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const sections: DaySection[] = [
     { key: 'done' as const, title: 'What got done', lines: done },
     { key: 'wrong' as const, title: 'What did not go to plan', lines: wrong },
+    { key: 'late' as const, title: 'Past its day — still not done', lines: late },
     { key: 'found' as const, title: 'What we found', lines: found },
-    { key: 'today' as const, title: isToday ? 'Still booked for today' : 'Booked for the day', lines: booked },
+    { key: 'today' as const, title: isToday ? 'Due today' : 'Due that day', lines: booked },
+    { key: 'going' as const, title: isToday ? 'Under way — due later' : 'Under way that day', lines: going },
     ...(ahead ? [{ key: 'next' as const, title: `Next — ${short(ahead.date)}`, lines: ahead.lines }] : []),
   ].filter(s => s.lines.length > 0);
 
   const happened = done.length + wrong.length + found.length;
   return {
     date, label: short(date),
-    headline: headlineOf(done, wrong, found, booked, media.length, gates, isToday),
+    headline: headlineOf(done, wrong, found, booked, going, late, media.length, gates, isToday),
     sections, media, install, gates,
-    empty: happened === 0 && booked.length === 0,
+    empty: happened === 0 && booked.length === 0 && going.length === 0 && late.length === 0,
   };
 }
 
-function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked: DayLine[], pictures: number,
-  gates: Day['gates'], isToday: boolean): string {
+function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked: DayLine[], going: DayLine[], late: DayLine[],
+  pictures: number, gates: Day['gates'], isToday: boolean): string {
   const bits: string[] = [];
   const got = done.filter(l => l.tone === 'done').length;
   if (got) bits.push(`${plural(got, 'thing')} done`);
@@ -259,14 +295,20 @@ function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked:
   const newFound = found.filter(l => !l.text.startsWith('New fix:')).length;
   if (newFound) bits.push(`${plural(newFound, 'thing')} found`);
   if (pictures) bits.push(plural(pictures, 'picture'));
+  /* What is ahead, in the words its lists use: due that day, under way. */
+  const ahead = [
+    booked.length ? `${booked.length} due ${isToday ? 'today' : 'that day'}` : '',
+    going.length ? `${going.length} under way` : '',
+  ].filter(Boolean).join(', ');
   let s = bits.length
     ? `${bits.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`
-    : booked.length
-      ? `${plural(booked.length, 'thing')} booked${isToday ? ', nothing logged yet' : ''}.`
+    : ahead
+      ? `${ahead}${isToday ? ', nothing logged yet' : ''}.`
       : isToday ? 'Nothing logged yet today.' : 'Nothing was logged for this day.';
   s = s[0].toUpperCase() + s.slice(1);
+  if (late.length) s += ` ${late.length} past ${late.length === 1 ? 'its' : 'their'} day.`;
   /* Not on a blank day — "Nothing was logged. Install 0 of 3" is noise. */
-  if (bits.length || booked.length) for (const g of gates) s += ` ${g.label} ${g.done} of ${g.total} steps done.`;
+  if (bits.length || ahead || late.length) for (const g of gates) s += ` ${g.label} ${g.done} of ${g.total} steps done.`;
   return s;
 }
 
