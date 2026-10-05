@@ -180,7 +180,10 @@ export function verdictLine(c: TrialCard): string {
      IS the line, with the missing verdict said plainly after it. "Not run yet"
      over a result somebody typed on the floor is the report hiding the day. */
   if (c.outcome === 'planned') {
-    if (!needsVerdict(c)) return 'Not run yet';
+    /* A stage's account given part-way (it stays planned until marked done or
+       a problem — Rowland, 5 October) is still printed: words said about the
+       work never drop off the paper. */
+    if (!needsVerdict(c)) return c.result?.trim() ? `${c.result.trim()} — not marked done yet` : 'Not run yet';
     return c.result ? `${c.result} — no verdict yet` : 'Ran — no verdict yet';
   }
   /* What somebody wrote about why it did not happen is the point of the

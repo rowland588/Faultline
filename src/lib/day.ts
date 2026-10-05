@@ -143,6 +143,11 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         wrong.push({ text: `${named(t)} did not happen${who(t.withWhom)}.`, detail, tone: 'slipped', id: t.id });
       } else if (needsVerdict(t)) {
         done.push({ text: `${named(t)} was worked on — nobody has said how it went yet.`, detail, tone: 'asking', id: t.id });
+      } else if (t.kind === 'install') {
+        /* A stage worked on and not yet marked done stays planned (Rowland, 5
+           October) — still on the day's story, with what was said, in the
+           colour of still ahead. */
+        done.push({ text: `${named(t)} was worked on — not marked done yet.`, detail, tone: 'booked', id: t.id });
       }
       continue;
     }
