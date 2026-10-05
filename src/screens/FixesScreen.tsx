@@ -37,11 +37,8 @@
 import { useState } from 'react';
 import { useRoute } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
 import { niceDay, todayISO } from '../lib/weeks';
-import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { gateOf, isOverdue, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
@@ -56,7 +53,6 @@ const nice = (iso?: string): string => niceDay(iso) || '—';
 export function FixesScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
-  const stand = useStanding(projectId);
   /* Who is looking (lib/access) — a client reads the fixes and plans none. */
   const can = useAccess(projectId);
   /* Arriving from a test's "Add a fix for this test" opens the form with that
@@ -120,15 +116,9 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Fixes' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">Fixes</h1>
+          <h1 className="pace-title">Fixes</h1>
           <p className="cw-handover">
             {st.upcoming.length > 0
               ? <>
@@ -142,8 +132,6 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
-      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
-      <Peers peers={projectPeers(projectId, 'fixes', stand.counts)} />
       <AccessNote can={can} owner={project.lead} />
 
       {/* A fix that was done and never signed off asks first. */}

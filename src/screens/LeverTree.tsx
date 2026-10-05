@@ -27,11 +27,8 @@ import {
 } from '../db';
 import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { useDismiss } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
-import { Peers, methodPeers } from '../ui/Peers';
-import { useMethodCounts } from '../lib/useMethodCounts';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
@@ -469,7 +466,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
   /* Linking is the team's work (lib/access): a client is not offered it, and
      Undo is only ever offered to whoever was allowed to do the thing undone. */
   const can = useAccess(projectId);
-  const methodCounts = useMethodCounts(projectId);
   const [rows, setRows] = useState<TreeNodeRow[] | null>(null);
   const [pasteInto, setPasteInto] = useState<TreeNodeRow | null>(null);
   const [pasteText, setPasteText] = useState('');
@@ -981,14 +977,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace lt-screen">
       <Sweep id={'tree:' + projectId} />
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Lever tree' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Lever tree</h1>
           <p className="pace-lede">The outcome, what has to be true for it, and the work underneath.</p>
         </div>
@@ -1006,12 +996,6 @@ export function LeverTree({ projectId }: { projectId: string }) {
           <button className="btn" onClick={() => window.print()}>Print</button>
         </div>
       </header>
-      {/* On a lever tree job the tree is the first of the row's tabs — the
-          row under the header, as on every page (see "THE PAGE FRAME" in
-          styles.css). It sat above the title here alone. */}
-      {project.leverTree && !project.commissioning && (
-        <Peers peers={methodPeers(projectId, 'tree', 'tree', methodCounts)} />
-      )}
       {/* Why the tree reads but does not take typing — for a client — or has
           no Delete — for the team: the house line (lib/access). */}
       <AccessNote can={can} owner={project.lead} />

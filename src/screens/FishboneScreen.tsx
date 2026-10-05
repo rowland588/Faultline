@@ -724,9 +724,10 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
 
   /* ============================ THE ROOM ============================
      Where everything the page carried went (CLAUDE.md, rule 1):
-     - the crumbs and the job's header → "‹ Back to the job" (the job's front
-       page carries its name, its tabs and the way back to the control room);
-     - the method's tabs (Peers) → the job's front page, one tap back;
+     - the crumbs, the job's header, the method's tabs (Peers) and then
+       "‹ Back to the job" → the frame (ui/Frame): the top bar names the job,
+       and the rail holds the job, Fishbone among its method's lines, and the
+       way back to the control room;
      - the line chips, the problem picker and "+ Open a problem" → the bar;
      - the problem card's PROBLEM part → the bar's strip (title, number,
        phase, Is / Is not on one line) and, in full, the problem panel;
@@ -738,7 +739,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
      - "I saw…" and "Time a stop" → the bar;
      - the Pareto → its drawer (pinned on a laptop, a sheet on a phone);
      - the stale-link sentence and the access line → under the bar;
-     - the footer line (the job's name and the method) → the bar's job name. */
+     - the footer line (the job's name and the method) → the frame's top bar. */
   const causes = view ? view.bones.flatMap(b => b.causes) : [];
   const openCause = panel?.kind === 'cause' ? causes.find(c => c.id === panel.id) : undefined;
   const factLine = [
@@ -771,8 +772,8 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     <div className={'fr' + (wide ? ' is-wide' : ' is-phone')}>
       <header className="fr-bar">
         <div className="fr-row">
-          <button type="button" className="fr-back" onClick={() => nav(`/project/${projectId}`)}>‹ Back to the job</button>
-          {wide && project && <span className="fr-job">{project.name} · Fishbone</span>}
+          {/* (No "‹ Back to the job" and no job name here: the frame's top
+              bar names the job and its rail is the way back.) */}
           {wide && <div className="fr-pick">{lineChips}{picker}</div>}
           <div className="fr-tools">
             {!wide && <button type="button" className="btn fr-tool" onClick={() => setParetoSheet(true)}>Where the time goes</button>}

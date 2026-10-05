@@ -22,7 +22,6 @@ import { justDoItStep, lineOfBar as lineOfBarIn, openBarProblem, pickOf, problem
 import { RootReasonSheet } from '../ui/ParetoPane';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { uid } from '../lib/ids';
-import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
 import { useProjectPareto, barDrills, isTie, drillCategory, type BarDrill } from '../lib/paretoFromLog';
@@ -206,16 +205,9 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace pr-screen">
       <Sweep id={'pareto:' + projectId} />
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Pareto' },
-      ]} />
-
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">Pareto</h1>
+          <h1 className="pace-title">Pareto</h1>
           <p className="pace-lede">Where the time is going, ranked — the last four weeks against the four before.</p>
         </div>
         <div className="pace-head-actions">

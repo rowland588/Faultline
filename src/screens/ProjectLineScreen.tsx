@@ -29,7 +29,6 @@
  * reading. One source at the top, fed from underneath. */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { nav, useRoute } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { Fold, openFold } from '../ui/Fold';
 import { Journey } from '../ui/Journey';
 import { PaceMeeting } from './PaceMeeting';
@@ -300,20 +299,18 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   return (
     <div className={'wrap pace is-' + lens}>
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}?view=lines` },
-        { label: line.name },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">
-            {project.name}
-            {line.owner && <> · owned by <b>{line.owner}</b></>}
-            {line.sponsor && <> · sponsor {line.sponsor}</>}
-          </p>
           <h1 className="pace-title">{line.name}</h1>
-          <p className="pace-lede">{paced ? `This line’s numbers, actions, wins and walk — all of it rolls up into the ${project.name} report.` : 'This line’s actions, wins and walk — its rate is agreed and proved in Testing.'}</p>
+          {/* Who is on it, as the one line under the name. (The lede that said
+              what the page holds went: the lenses under it name those things,
+              and the rail says which job the line is on.) */}
+          {(line.owner || line.sponsor) && (
+            <p className="cw-handover">
+              {line.owner && <span className="sub">owned by <b>{line.owner}</b></span>}
+              {line.sponsor && <span className="sub">sponsor {line.sponsor}</span>}
+            </p>
+          )}
         </div>
         <div className="pace-head-actions">
           {/* The line's client report is drawn from the plan — the measures,
@@ -331,11 +328,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           {sixM && can.edit && lens !== 'fishbone' && (
             <button className="btn" onClick={() => setSaw(true)}>I saw…</button>
           )}
-          {!paced && (
-            <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/testing`)}>
-              Testing
-            </button>
-          )}
+          {/* (A stage-gate line's "Testing" button went: Commission is a line
+              in the rail, under the job's gates, on every page.) */}
         </div>
       </header>
 

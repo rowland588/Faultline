@@ -31,11 +31,8 @@ import { PaceSnags } from './PaceSnags';
 import { framesForProject, getPaceWorkspaceId, onDataChange } from '../db';
 import { StandardsCard } from '../ui/StandardsCard';
 import { nav } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
 import { InstallGrid } from '../ui/InstallGrid';
 import { todayISO } from '../lib/weeks';
-import { useStanding } from '../lib/useStanding';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { GATE_WORD, installGrid, installOf, usualStages } from '../lib/install';
@@ -95,7 +92,6 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const { projects, loading } = useProjects();
   const project = projects.find(p => p.id === projectId);
   const tt = useTesting(projectId);
-  const stand = useStanding(projectId);
   const face = FACE[gate];
   const filmed = useFilmed(projectId, tt.tests, tt.items);
   const can = useAccess(projectId);
@@ -129,15 +125,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
 
   return (
     <div className="wrap pace cm-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: GATE_WORD[gate] },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">{GATE_WORD[gate]}</h1>
+          <h1 className="pace-title">{GATE_WORD[gate]}</h1>
           <p className="cw-handover">
             {steps.length === 0
               ? <b>Nothing planned yet</b>
@@ -153,8 +143,6 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           </p>
         </div>
       </header>
-      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
-      <Peers peers={projectPeers(projectId, face.peer, stand.counts)} />
       <AccessNote can={can} owner={project.lead} />
 
       {onGrid

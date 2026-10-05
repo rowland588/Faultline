@@ -21,8 +21,7 @@
  * What the folds held lives where its tab is: the plan at /plan, the board
  * on Board, the charts on Numbers, "Did it work?" on Wins, line balance on
  * Lines. The lenses (?view=) are pages under the project, as a gate is. */
-import { useEffect, useState, type ReactNode } from 'react';
-import { Peers, projectPeers, methodPeers } from '../ui/Peers';
+import { useEffect, type ReactNode } from 'react';
 import { Journey } from '../ui/Journey';
 import { openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
@@ -32,7 +31,6 @@ import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
-import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
@@ -42,7 +40,6 @@ import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measur
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
 import { KIND_WORD, jobItems, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
-import { useMethodCounts } from '../lib/useMethodCounts';
 import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
@@ -52,18 +49,15 @@ import { analyse, shortSays } from '../lib/capacity';
 import { statusOfAction, treeStanding, withTrackerRows, bindSources, type TreeStanding } from '../lib/treeBind';
 import { LABEL as TREE_WORD, useTreeNodes } from './TreeStatic';
 import type { PaceLineRow } from '../db';
-import { listTestItems, onDataChange } from '../db';
 import type { Project } from '../types';
 import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
-import { ReportsSheet } from '../ui/ReportsSheet';
 import { StandardsCard } from '../ui/StandardsCard';
 import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
-import { Icon } from '../ui/Icon';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { Fishbone } from '../ui/Fishbone';
@@ -442,24 +436,8 @@ function DayLink({ projectId, tt, mats, progs }: {
   );
 }
 
-/** "Meeting notes · 3" — the notes still to raise, one tap from the project. */
-function NotesButton({ projectId }: { projectId: string }) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    let live = true;
-    const load = () => void listTestItems(projectId).then(rows => {
-      if (live) setN(rows.filter(i => i.kind === 'note' && !i.deletedAt && i.doneAt == null).length);
-    });
-    load();
-    const off = onDataChange(load);
-    return () => { live = false; off(); };
-  }, [projectId]);
-  return (
-    <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/notes`)}>
-      Meeting notes{n > 0 && <span className="nt-badge">{n}</span>}
-    </button>
-  );
-}
+/* ("Meeting notes · 3", the header button, is the rail's Meeting notes line
+   now, with the same count — ui/Frame useOpenNotes.) */
 
 function TestingOverview({ projectId, project, edit }: { projectId: string; project: Project; edit: boolean }) {
   const tt = useTesting(projectId);
@@ -492,11 +470,8 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
 
   return (
     <section className="pace-sec">
-      {/* The same row every screen under this project carries, with the same
-          counts — one way around, not a second one for the front page. */}
-      {/* On an empty job too: the gates are where a job is started — Install
-          first — and without the row the only way off this page was a test. */}
-      <Peers peers={projectPeers(projectId, 'overview', all.counts)} />
+      {/* (The row of gates that sat here is the rail now — ui/Frame — with
+          the same counts, on an empty job too: Install is where a job starts.) */}
       {empty ? (
         <div className="pace-empty">
           {/* A JOB, AND ITS FIRST GATE. It said "on this line" of a job, and
@@ -579,9 +554,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      or changes what was agreed, so only a client's view differs: no door that
      leads to adding something. */
   const can = useAccess(projectId);
-  const [reports, setReports] = useState(false);
   const ax = useActions(projectId);
-  const methodCounts = useMethodCounts(projectId);
   const { impacts } = useImpacts(projectId);
   const ppm = usePaceLines(projectId);
   const nums = useMeasures(projectId);
@@ -660,6 +633,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      two pages for one thing. The address is replaced, so Back is not caught in
      a loop, and Install opens with that card open. */
   if (model === 'commissioning' && lens === 'snags') return <ToInstallFilmed projectId={projectId} />;
+  /* What is past its day, said in red on the header's one line — the
+     verdict's own late count on a stage-gate job, the board's late actions on
+     the others (the same numbers the rail's lines carry). */
+  const pastDay = model === 'commissioning' ? stand.standing.late : overdue;
   const tree = model === 'tree' && treeRows
     ? treeStanding(withTrackerRows(treeRows, bindSources(ax.actions, ax.steps, ppm.lines,
       { measures: nums.measures, periods: nums.periods, targets: nums.targets, readings: nums.readings })))
@@ -667,88 +644,28 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className={'wrap pace is-' + lens}>
-      <Crumbs trail={lens === 'snags' && model === 'commissioning'
-        ? [{ label: 'Control room', to: '/' }, { label: project.name, to: `/project/${projectId}` }, { label: 'Install', to: `/project/${projectId}/install` }, { label: 'The line, filmed' }]
-        : lens === 'overview'
-          ? [{ label: 'Control room', to: '/' }, { label: project.name }]
-          // A lens is a page of its own now, reached from the row — so the trail
-          // says which, and the project's name is the way back.
-          : [{ label: 'Control room', to: '/' }, { label: project.name, to: `/project/${projectId}` },
-            { label: LENSES.find(l => l.id === lens)?.label ?? '' }]} />
-      {/* A 3P or tree job's lens is a page under the project, like a gate is
-          on a stage-gate job: the project's own header stays on its front
-          page, and the lens wears the small heading the gates do. */}
-      {(lens === 'overview' || model === 'commissioning') && (
+      {/* THE PAGE'S NAME AND ONE LINE OF WHERE IT STANDS. The spine, the
+          eyebrow, the gear and the three header doors (Meeting notes,
+          Reports, Pareto / Lever tree) are the frame now: the top bar names
+          the job, and the rail (ui/Frame) holds the gates or the method's
+          lenses, the work, the lines, Reports, Meeting notes and Details —
+          once, with their counts. A lens of a 6M or tree job is a page under
+          the job, as a gate is, and wears the same header. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">
-            {methodOf(project).label}
-            {project.lead && <> · led by <b>{project.lead}</b></>}
-          </p>
-          <div className="pace-title-row">
-            <h1 className="pace-title">{project.name}</h1>
-            {/* Details — name, dates, the client, the stages — is set once and
-                left, so it is a gear beside the name rather than a tab beside
-                the lists that are worked every day. */}
-            {/* On every method: a 3P job's lines, people and measures are set
-                here, once — they were a header button, "Lines & people". */}
-            <button className="btn btn-ghost pace-gear" aria-label="Details" title="Details"
-              onClick={() => nav(`/project/${projectId}/setup`)}><Icon name="gear" size={20} /></button>
-          </div>
-          {/* No method's page explains itself in a paragraph any more: the
-              verdict card under this says what the job is, in its own numbers. */}
-        </div>
-        <div className="pace-head-actions">
-          {/* TWO DOORS IN THE HEADER, ON EVERY METHOD: what to raise at the next
-              meeting, and the report that goes to the client. Everything worked
-              day to day is the row below. A 3P job's header carried six —
-              Materials, Meeting notes, Programs, Lines & people, Client report,
-              Print A3 — over a second row of eight lenses. Rowland: "make it
-              just like the other one." Materials is in the row; Programs inside
-              it; Lines & people is the gear; Print A3 printed the screen, and
-              the client report is the document. */}
-          <NotesButton projectId={projectId} />
-          {/* Tools some projects opt into — see Project.pareto / leverTree. A
-              tree-model job has its tree in the row already. */}
-          {project.pareto && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/pareto`)}>Pareto</button>
+          <h1 className="pace-title">{lens === 'overview' ? project.name : LENSES.find(l => l.id === lens)?.label}</h1>
+          {lens === 'overview' && (
+            <p className="cw-handover">
+              <span className="sub">
+                {methodOf(project).label}
+                {project.lead && <> · led by <b>{project.lead}</b></>}
+                {pastDay > 0 && <> · <span className="in-late">{pastDay} past the day</span></>}
+              </span>
+            </p>
           )}
-          {project.leverTree && model !== 'tree' && (
-            <button className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/tree`)}>Lever tree</button>
-          )}
-          {/* ONE DOOR TO PAPER — everything printable, with a line each. */}
-          <button className="btn btn-ghost" onClick={() => setReports(true)}>Reports</button>
         </div>
       </header>
-      )}
-      {reports && <ReportsSheet project={project} onClose={() => setReports(false)} />}
       {(lens === 'overview' || model === 'commissioning') && <AccessNote can={can} owner={project.lead} />}
-
-      {/* The row is the running order, left to right: where we are, the board
-          we walk, then everything that comes out of walking it.
-          ON A COMMISSIONING PROJECT IT IS A DIFFERENT ROW. A handover has no 3P
-          board and no quarterly ppm — the rate is agreed once and either proven
-          or not — so offering those lenses was the whole reason commissioning
-          read as the tracker wearing a different hat. */}
-      {/* ONE ROW OF TABS on a commissioning job: Evidence is in the peers row
-          with the other lists, and the project's name in the trail is the way
-          back to this front page. */}
-      {model === 'commissioning' && lens === 'snags' && (
-        <Peers peers={projectPeers(projectId, 'install', stand.counts)} />
-      )}
-      {model !== 'commissioning' && lens !== 'overview' && (
-        <header className="pace-head">
-          <div className="pace-head-main">
-            <p className="pace-eyebrow">{project.name}</p>
-            <h1 className="pace-title">{LENSES.find(l => l.id === lens)?.label}</h1>
-          </div>
-        </header>
-      )}
-      {/* Under the header on the front page and on a lens alike — see "THE
-          PAGE FRAME" in styles.css. */}
-      {model !== 'commissioning' && (
-        <Peers peers={methodPeers(projectId, model === 'tree' ? 'tree' : 'board', lens, methodCounts)} />
-      )}
 
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.

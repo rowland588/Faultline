@@ -23,10 +23,7 @@
  * only the owner deletes. */
 import { useEffect, useMemo, useState } from 'react';
 import { nav, navReplace, useRoute } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
-import { Peers, methodPeers } from '../ui/Peers';
-import { useMethodCounts } from '../lib/useMethodCounts';
 import { useImpacts } from '../lib/useImpacts';
 import { IMPACT_WORD, type Impact } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
@@ -79,7 +76,6 @@ function Card({ a, impact, cause, onOpen }: { a: PaceAction; impact?: Impact; ca
 export function BoardScreen({ projectId }: { projectId: string }) {
   const { loading, project } = useProject(projectId);
   const ax = useActions(projectId);
-  const counts = useMethodCounts(projectId);
   const { impacts } = useImpacts(projectId);
   const can = useAccess(projectId);
   const causes = useCauseNames(useMemo(() => ax.steps.map(s => s.causeRef), [ax.steps]));
@@ -161,14 +157,8 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace bd-screen bd6">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Board' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
           {/* "6M" is a method's name; on a lever tree job this board is where
               the tree's work is written, and the job is not a 6M job. */}
           <h1 className="pace-title">{boardName(methodOf(project).label)}</h1>
@@ -189,10 +179,6 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print</button>
         </div>
       </header>
-      {/* THE ROW UNDER THE HEADER, on every page — see "THE PAGE FRAME" in
-          styles.css. It sat above the title here and below it on the
-          project's front page, so the tabs jumped as you moved between them. */}
-      <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'board', counts)} />
 
       {ax.steps.length > 0 && (
         <div className="bd-filters bd6-filters">

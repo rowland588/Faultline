@@ -16,7 +16,7 @@ import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { useWorkspace } from '../state/WorkspaceProvider';
-import { nav, goBack, decodePath } from '../state/useRoute';
+import { nav, decodePath } from '../state/useRoute';
 import { listSnagAssets, snagsForWorkspace, updateSnag, listCases, listSegments } from '../db';
 import { freshness, agoWord } from '../lib/gemba';
 import { useSyncedAt } from '../cloud/session';
@@ -228,9 +228,10 @@ export function MeetingScreen() {
 
   return (
     <div className="present meet">
-      {/* ✕ returns WHERE YOU CAME FROM — the meeting is a room you step into,
-          not a corridor that dumps you somewhere else on the way out */}
-      <button className="present-exit" onClick={() => goBack(`/w/${workspace.id}/analyse`)} aria-label="Exit meeting"><Icon name="close" size="1.1em" /></button>
+      {/* No ✕ of its own any more: the meeting was a full-bleed room with no
+          other way out. It sits inside the one frame now (ui/Frame), and the
+          rail — Capture · Analyse · Evidence · Meeting under the line — is
+          the way out, as on every screen. */}
       <div className="present-body meet-body">
 
         <div className="meet-top">

@@ -9,10 +9,8 @@
  * (lib/standing), the same controls and the same PDF button. Nothing was lost
  * in the move; a saved ?view=plan link lands here too.
  *
- * The frame is the one every gate wears (Crumbs, the small heading, the row
- * of peers, the access note), so this reads as one more page under the job. */
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
+ * It wears the frame every page wears (ui/Frame): "The plan" is a line in
+ * the rail under Work, so this reads as one more page under the job. */
 import { AccessNote } from '../ui/AccessNote';
 import { Gantt } from '../ui/Gantt';
 import { nav } from '../state/useRoute';
@@ -51,22 +49,14 @@ export function PlanScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'The plan' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">The plan</h1>
+          <h1 className="pace-title">The plan</h1>
           {/* The same sentence the front page's line says of the plan — one
               reading (lib/plan planSays), two places. */}
           <p className="cw-handover"><b>{planSays(st.plan, today)}</b></p>
         </div>
       </header>
-      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
-      <Peers peers={projectPeers(projectId, 'plan', all.counts)} />
       <AccessNote can={can} owner={project.lead} />
 
       {st.plan.length === 0 ? (

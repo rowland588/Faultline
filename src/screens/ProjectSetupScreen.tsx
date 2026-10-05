@@ -19,9 +19,6 @@ import { Fold } from '../ui/Fold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { offerUndo } from '../ui/Undo';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
-import { useStanding } from '../lib/useStanding';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY } from '../lib/story';
@@ -354,7 +351,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
-  const stand = useStanding(projectId);
   /* Measures and targets belong to an improvement initiative, not to a handover.
      A commissioning job's rate is agreed once, per pack, and either proved or
      not — asking it for a quarterly target is asking a question the job has no
@@ -417,14 +413,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace project-setup">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${project.id}` },
-        { label: commissioning ? 'Details' : 'Lines & people' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">{commissioning ? 'Project details' : 'Lines & people'}</h1>
           <p className="pace-lede">
             {commissioning
@@ -432,13 +422,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
               : 'The lines this project runs, who owns each one, and who is invited to see it.'}
           </p>
         </div>
-        <div className="pace-head-actions">
-        </div>
       </header>
-      {/* The gates row belongs to a stage-gate job, and this page is none of
-          them: 'setup' lit the Set up GATE while you stood on the Details.
-          Under the header, as on every page — see "THE PAGE FRAME". */}
-      {commissioning && <Peers peers={projectPeers(project.id, 'details', stand.counts)} />}
       <AccessNote can={can} owner={project.lead} />
 
       {/* FOLDS. Project, lines, measures and people were all open at once —

@@ -23,10 +23,8 @@ import {
 } from '../db';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
-import { Wordmark } from '../ui/Logo';
 import { fmtRelative, plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
-import { AccountMenu } from '../ui/AccountMenu';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
@@ -207,29 +205,34 @@ export function WorkspaceHome() {
 
   return (
     <div className="wrap home">
-      <div className="home-head">
-        {/* The account button, top right as on every other screen — and with
-            it Team & invites, the archive, the demo, backup and Sign out,
-            none of which is the work (ui/AccountMenu). */}
-        <div className="home-top">
-          <Wordmark />
-          {/* NEW PROJECT, where a page's main action sits — it was the
-              Projects section's button, and that section was a second list
-              of the jobs the control room already lists. */}
-          <span className="home-top-acts">
-            {mayStart && projects.length > 0 && <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>}
-            <AccountMenu />
-          </span>
+      {/* THE PAGE'S NAME, AND ITS ONE BUTTON. The wordmark and the account
+          button that sat here are the frame's top bar now (ui/Frame), on
+          every screen alike — so the control room is a page in the frame
+          like any other, and its name says which. */}
+      <header className="pace-head">
+        <div className="pace-head-main">
+          <h1 className="pace-title">Control room</h1>
+          <p className="cw-handover">
+            <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} job${jobs.length === 1 ? '' : 's'} running`}</span>
+          </p>
         </div>
-        {/* The pitch is for somebody with nothing running yet. Once a job is,
-            the board under it says more than the paragraph could. */}
-        {!jobs.length && (
-          /* What the app is now — the control room for change on the lines. The
-             old pitch ("walk the line … a tracked snag list") described the
-             line-study tool it began as, which is now a tool inside a change. */
-          <p className="home-tag">A control room for change on your lines — new equipment brought into use, a line made to perform better, a number hit by a date — and one view of whether all of it is in hand.</p>
+        {/* NEW PROJECT, where a page's main action sits — it was the
+            Projects section's button, and that section was a second list
+            of the jobs the control room already lists. */}
+        {mayStart && projects.length > 0 && (
+          <div className="pace-head-actions">
+            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>
+          </div>
         )}
-      </div>
+      </header>
+      {/* The pitch is for somebody with nothing running yet. Once a job is,
+          the board under it says more than the paragraph could. */}
+      {!jobs.length && (
+        /* What the app is now — the control room for change on the lines. The
+           old pitch ("walk the line … a tracked snag list") described the
+           line-study tool it began as, which is now a tool inside a change. */
+        <p className="home-tag">A control room for change on your lines — new equipment brought into use, a line made to perform better, a number hit by a date — and one view of whether all of it is in hand.</p>
+      )}
 
       {/* EVERY JOB, ONE HOME — the first thing the app opens on. Rowland
           reviewing the board: it lived one tap in, on Projects, which is not

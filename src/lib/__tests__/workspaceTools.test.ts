@@ -1,30 +1,13 @@
-/* The tools inside a workspace: where Back lands from them, and the numbers
- * their boxes accept. Each case here was a defect found by using the screen. */
+/* The tools inside a workspace: the numbers their boxes accept. Each case
+ * here was a defect found by using the screen.
+ *
+ * (The cases for "the step above a workspace screen" — where the spine's Back
+ * landed from a walk or a study — went with the spine. The rail (ui/Frame)
+ * shows the line and its four study screens at once, so there is no one
+ * step above to get right; ui/__tests__/rail.test.ts covers what the rail
+ * draws instead.) */
 import { describe, expect, it } from 'vitest';
-import { chainCrumbs } from '../useTrail';
 import { studyTarget } from '../proof';
-
-const line = { projectId: 'P', projectName: 'Line 7 pace', lineId: 'L', lineName: 'Line 2A' };
-
-describe('the step above a workspace screen', () => {
-  it('sends the walk back to the line it was filmed on — its filmed lens', () => {
-    for (const screen of ['snags', 'snaglist', 'line', 'segment', 'asset', 'history', 'walk']) {
-      expect(chainCrumbs(line, 'ws', screen).slice(-1)[0]).toEqual({ label: 'Line 2A', to: '/project/P/line/L?view=snags' });
-    }
-  });
-
-  it('sends the study back to the line page its "where is the time going?" door is on', () => {
-    for (const screen of ['capture', 'analyse', 'case', 'meeting']) {
-      expect(chainCrumbs(line, 'ws', screen).slice(-1)[0]).toEqual({ label: 'Line 2A', to: '/project/P/line/L' });
-    }
-  });
-
-  it('a project walk with no line goes back to the project’s evidence; a stage-gate walk to Install', () => {
-    expect(chainCrumbs({ projectId: 'P', projectName: 'Job' }, 'ws', 'snags').slice(-1)[0]).toEqual({ label: 'Job', to: '/project/P?view=snags' });
-    expect(chainCrumbs({ projectId: 'P', projectName: 'Job' }, 'ws', 'capture').slice(-1)[0]).toEqual({ label: 'Job', to: '/project/P' });
-    expect(chainCrumbs({ projectId: 'P', projectName: 'Job', stageGate: true }, 'ws', 'walk').slice(-1)[0]).toEqual({ label: 'Install', to: '/project/P/install' });
-  });
-});
 
 describe('the samples a study asks for', () => {
   it('takes twelve when twelve is typed — the box used to turn the 1 into 3, then 32', () => {

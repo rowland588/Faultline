@@ -9,7 +9,6 @@ import {
   restoreObservation, patchWorkspaceRecord, setLastWorkspace,
 } from '../db';
 import { nav } from './useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { useSyncedAt } from '../cloud/session';
 import { BootSplash } from '../ui/Logo';
 
@@ -85,7 +84,6 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
      every sync, so a study still on its way arrives here by itself. */
   if (missing) return (
     <div className="wrap">
-      <Crumbs trail={[{ label: 'Control room', to: '/' }, { label: 'Not here' }]} />
       <p className="sub" style={{ marginTop: 24 }}>That line study isn’t here any more — it was deleted, or it has not synced to this device yet. If it was made on another phone, it appears here by itself once both have had a signal.</p>
       <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
     </div>

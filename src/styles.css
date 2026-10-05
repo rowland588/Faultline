@@ -5821,23 +5821,6 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 }
 .peer.is-on .peer-late { background: var(--st-r); color: #fff; }
 
-@media (max-width: 720px) {
-  /* ON A PHONE, EVERY TAB ON THE SCREEN AT ONCE — three to a row, the name
-     over its count. Rowland, 5 October, on the phone: "difficult to navigate
-     and get access to things." The row scrolled sideways with a fade at the
-     edge, so Hand over, Fixes and Materials sat off the screen and you had
-     to know to swipe for them; Fixes is the list he works off on the floor.
-     Two short rows of three take less height than the old row plus the
-     looking for it. */
-  .peers { display: grid; grid-template-columns: repeat(var(--peer-cols, 3), minmax(0, 1fr)); gap: 6px; }
-  .peer {
-    flex-wrap: wrap; justify-content: center; align-content: center; gap: 3px 4px;
-    min-height: 52px; padding: 5px 6px; border-radius: 12px; text-align: center;
-  }
-  .peer-l { flex-basis: 100%; font-size: 13.5px; line-height: 1.2; overflow-wrap: anywhere; }
-  .peer-late { margin-left: 0; }
-}
-
 /* The project's name sits ABOVE the heading now, small — the heading itself
    says which screen you are on. Four screens used to share one h1. (That is
    .pace-eyebrow now, the one eyebrow every page header wears.) */
@@ -8442,19 +8425,6 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
    where the thumb is, not a screen down. */
 @media (max-width: 719px) {
   .pace-head { padding: 14px 0 12px; margin-bottom: 14px; gap: 10px; }
-  /* SAID ONCE, IN THE SPINE. On a phone the spine reads "‹ Line 2
-     commissioning › Install", and under it the header said "LINE 2
-     COMMISSIONING" and then "Install" in 34px — the same two names again,
-     a third of the screen before the work. Where they repeat the spine
-     (.is-said) they step out on a phone; the tab that is on says which page
-     it is too. The heading stays for a screen reader. The laptop, whose
-     spine prints the whole trail small, keeps both. */
-  .pace-eyebrow.is-said { display: none; }
-  .pace-title.is-said {
-    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
-    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-  }
-  .pace-head .pace-title.is-said + .cw-handover { margin-top: 0; }
   /* The job page's doors — Meeting notes, Reports — a row of small buttons,
      not two full-height ones under the name. */
   .pace-head-actions { flex-wrap: wrap; gap: 6px; }
@@ -10093,3 +10063,177 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
   .fp-where .jr-key { display: none; }
 }
 /* ============================ end FRONT ============================ */
+
+/* ===========================================================================
+ * FRAME — ONE FRAME AROUND EVERY SCREEN (ui/Frame.tsx, ui/rail.ts).
+ *
+ * Rowland, 5 October: "too many doors opening… what's home is home, really
+ * home, or the project home? it's just messy." Every level had been built as
+ * its own home — a spine with a back pill, a row of pill tabs per level and a
+ * set of header buttons per screen. They are one frame now:
+ *
+ *   .nv-top    a slim bar: the mark, which job (a switcher), search, you;
+ *   .nv-rail   on a laptop (900px and up), the structure on the left —
+ *              Control room · the job · its gates or method · work · lines
+ *              (and a study's four screens under its line) · paper;
+ *   .nv-bar    on a phone, five at the foot — Control room · this job · the
+ *              gate or lens you are in · Fixes · More (the rail as a sheet);
+ *   .nv-main   the screen, in its own .wrap as before.
+ *
+ * The line you are on is a soft surface, never brand blue (blue is for what
+ * you press). Each line's square is the state rule: red any late, indigo
+ * under way, green all done, grey not started; the count beside it is the
+ * work and stays neutral, only its late part is red and says "late".
+ * ========================================================================= */
+:root { --nv-top: calc(56px + env(safe-area-inset-top)); --nv-rail: 236px; --nv-bar: 62px; }
+
+.nv { min-height: 100vh; min-height: 100dvh; }
+
+/* ---- the top bar ---- */
+.nv-top {
+  position: sticky; top: 0; z-index: 30;
+  height: var(--nv-top); padding: env(safe-area-inset-top) 16px 0;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.nv-mark {
+  flex: none; display: inline-flex; align-items: center; gap: 9px; padding: 4px; margin-left: -4px;
+  background: none; border: 0; border-radius: 10px; cursor: pointer; color: var(--ink);
+}
+.nv-mark .logo-mark { border-radius: 8px; }
+.nv-name { font-family: var(--display); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.nv-job {
+  position: relative; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 10px; cursor: pointer; color: var(--ink);
+  font-family: var(--display); font-size: 16px; font-weight: 700;
+}
+.nv-job:hover { background: var(--surface-2); }
+.nv-job:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent); }
+.nv-job select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.nv-job-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nv-job .icon { color: var(--muted); }
+.nv-search {
+  margin-left: auto; width: min(300px, 28vw); height: 36px; padding: 0 12px;
+  border: 0; border-radius: 10px; background: var(--surface-2);
+  font: inherit; font-size: 13.5px; color: var(--muted);
+}
+.nv-search::placeholder { color: var(--muted); }
+.nv-search:disabled { cursor: not-allowed; opacity: 1; }
+.nv-top .acct-btn { width: 36px; height: 36px; }
+
+/* ---- the rail (and the phone's sheet: the same lines) ---- */
+.nv-rail { display: none; }
+.nv-grp { display: flex; flex-direction: column; gap: 1px; }
+.nv-grp-l {
+  padding: 14px 10px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.nv-ri {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 6px 10px;
+  background: none; border: 0; border-radius: 9px; cursor: pointer; text-align: left;
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-2);
+}
+@media (hover: hover) { .nv-ri:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); color: var(--ink); } }
+.nv-ri.is-on { background: var(--surface-2); color: var(--ink); font-weight: 700; }
+.nv-ri.is-sub { padding-left: 30px; font-size: 13.5px; }
+.nv-ri-l { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nv-sq {
+  flex: none; width: 10px; height: 10px; border-radius: 3px;
+  border: 2px solid var(--st-n); background: var(--surface);
+}
+.nv-sq.is-r { border-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 22%, var(--surface)); }
+.nv-sq.is-w { border-color: var(--st-w); }
+.nv-sq.is-g { border-color: var(--st-g); background: color-mix(in srgb, var(--st-g) 22%, var(--surface)); }
+/* A place, not a list (rail.ts `bare`): the square's room is kept so the
+   names line up, but nothing is drawn — grey would say "not started". */
+.nv-sq.is-bare { visibility: hidden; }
+.nv-n { flex: none; font-size: 12.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nv-n i { font-style: normal; color: var(--st-r); }
+.nv-sheet { display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; }
+.nv-sheet .nv-grp.is-foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.nv-sheet .nv-ri { min-height: 46px; font-size: 15px; }
+
+/* ---- the phone's bar ---- */
+.nv-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+.nv-bi {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 0; min-height: 54px; padding: 2px; background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--muted);
+}
+.nv-bi-ic {
+  position: relative; display: grid; place-items: center; width: 46px; height: 28px; border-radius: 14px;
+}
+.nv-bi.is-on { color: var(--ink); font-weight: 700; }
+.nv-bi.is-on .nv-bi-ic { background: var(--surface-2); }
+/* Something on that line is past its day: a red dot, and the word in the
+   button's name for a screen reader (Frame). */
+.nv-bi-ic.is-late::after {
+  content: ""; position: absolute; top: 1px; right: 8px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--st-r); box-shadow: 0 0 0 2px var(--surface);
+}
+.nv-bi-l { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- the walk's deep trail (AppShell): a segment and a frame below Evidence ---- */
+.nv-deep { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 4px 0 8px; font-size: 13.5px; }
+.nv-deep-w { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+.nv-deep-c { background: none; border: 0; padding: 6px 6px; border-radius: 8px; font: inherit; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.nv-deep-c:hover { background: var(--surface-2); }
+.nv-deep-c.is-here { color: var(--ink); font-weight: 700; cursor: default; }
+.nv-deep-c.is-here:hover { background: none; }
+.nv-deep-sep { color: var(--muted); }
+
+/* ---- the header every page wears: its name, one line, one button ----
+   The 3px brand rule under it goes — the rail and the top bar already say
+   where you are, and blue is for what you press. */
+.pace-head { border-bottom: 0; }
+
+/* ---- a laptop: the rail is the structure ---- */
+@media (min-width: 900px) {
+  .nv-rail {
+    display: flex; flex-direction: column;
+    position: fixed; top: var(--nv-top); left: 0; bottom: 0; z-index: 20; width: var(--nv-rail);
+    padding: 10px 10px 18px; overflow-y: auto; overscroll-behavior: contain;
+    background: var(--surface); border-right: 1px solid var(--line);
+  }
+  /* Paper, the next meeting and what is set once sit at the foot. */
+  .nv-rail > .nv-grp.is-foot { margin-top: auto; padding-top: 18px; }
+  .nv-main { margin-left: var(--nv-rail); }
+  .nv-bar { display: none; }
+  /* The fishbone room fills the window under the bar, beside the rail. */
+  .nv-main .fr { height: calc(100vh - var(--nv-top)); height: calc(100dvh - var(--nv-top)); }
+  .nv-main .fj-left { top: calc(var(--nv-top) + 12px); max-height: calc(100vh - var(--nv-top) - 24px); }
+  /* The meeting's agenda bar is centred on the page beside the rail. */
+  .nv-main .meet-rail { left: calc(var(--nv-rail) + (100vw - var(--nv-rail)) / 2); max-width: calc(100vw - var(--nv-rail) - 16px); }
+}
+
+/* ---- a phone: the bar at the foot, and what sits on it lifted clear ---- */
+@media (max-width: 899px) {
+  .nv-top { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .nv-name, .nv-search { display: none; }
+  /* The page scrolls clear of the bar at the foot, home indicator and all. */
+  .nv-main { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
+  .nv-job { flex: 1; font-size: 16px; padding: 6px 8px; }
+  .nv-main .fr { height: calc(100vh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom)); height: calc(100dvh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom)); }
+  .nv-main .meet-rail, .pdfr, .autoconv, .upd { bottom: calc(var(--nv-bar) + 10px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(var(--nv-bar) + 70px + env(safe-area-inset-bottom)); }
+  .lt-moving { bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
+}
+
+/* ---- the meeting, the walk and the one-page report sit in the frame ----
+   They were full-window stages with an ✕ or a trail of their own; inside the
+   frame the rail is the way out, as on every screen. */
+.nv-main .present { position: relative; inset: auto; z-index: auto; min-height: calc(100vh - var(--nv-top)); min-height: calc(100dvh - var(--nv-top)); }
+.nv-main .present-body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.nv-main .walk-stage, .nv-main .report-stage { min-height: calc(100vh - var(--nv-top)); min-height: calc(100dvh - var(--nv-top)); }
+
+@media print {
+  .nv-top, .nv-rail, .nv-bar { display: none !important; }
+  .nv-main { margin: 0 !important; }
+  .nv { min-height: 0; }
+}
+/* =========================== end FRAME =================================== */

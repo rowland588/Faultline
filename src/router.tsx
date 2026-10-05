@@ -43,6 +43,7 @@ const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => (
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
+import { Frame } from './ui/Frame';
 import { BootSplash } from './ui/Logo';
 import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
@@ -90,10 +91,19 @@ export function Router() {
   // Wrapped around every signed-in screen, not mounted on one: the phone that
   // filmed Line 7 should be fixing Line 7's footage whatever page you happen
   // to be on, and wandering off a screen must not abandon it mid-clip.
-  /* THE RECORD'S DRAWER sits beside every screen (ui/RecordDrawer): a step,
-     a test or a fix opens over the page you are on when the route says so
-     (?open=<id>), and closes back to it. */
-  return <><AutoConvert /><Suspense fallback={<BootSplash />}>{app(route)}</Suspense><RecordDrawerHost route={route} /></>;
+  /* ONE FRAME around every signed-in screen (ui/Frame): the top bar and the
+     rail stay put while a screen's chunk loads under them, so moving between
+     screens never redraws where you are. The share page and the front door
+     are outside it — they are not the app. THE RECORD'S DRAWER sits beside
+     every screen (ui/RecordDrawer): a step, a test or a fix opens over the
+     page you are on when the route says so (?open=<id>), and closes back to it. */
+  return (
+    <>
+      <AutoConvert />
+      <Frame route={route}><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></Frame>
+      <RecordDrawerHost route={route} />
+    </>
+  );
 }
 
 function app(route: Route) {

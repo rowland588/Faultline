@@ -1,7 +1,10 @@
-/* The line-study frame: the breadcrumb on top, the same row of tabs the
- * project screens have — Capture · Analyse · Evidence · Meeting — and the
- * active screen under it. The meeting, the walkthrough and the printable
- * report take the whole screen.
+/* The line-study screens, inside the one frame (ui/Frame). The rail draws
+ * Capture · Analyse · Evidence · Meeting under the line the study belongs to,
+ * so this no longer carries a spine or a row of tabs of its own — the two
+ * things that made stepping from a project into its line study feel like
+ * entering a different app. What stays here is the walk's deep trail: inside
+ * a filmed line a segment and a frame sit below "Evidence", and the rail
+ * does not go that deep.
  *
  * ONE WAY TO GET AROUND. The line study used to have its own: a bar fixed to
  * the bottom with four tabs and a "More" menu holding seven more screens. The
@@ -11,11 +14,9 @@
  * are wanted. Old links to all of them land where they went. */
 import { useEffect } from 'react';
 import type { Route } from '../state/useRoute';
-import { navReplace, withQuery } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, studyPeers } from '../ui/Peers';
+import { nav, navReplace, withQuery } from '../state/useRoute';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
-import { useWsChain, useDeepCrumbs, wsTrail } from '../lib/useTrail';
+import { useDeepCrumbs } from '../lib/useTrail';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { CaptureScreen } from './CaptureScreen';
 import { AnalyseScreen } from './AnalyseScreen';
@@ -30,6 +31,12 @@ import { ReportScreen } from './ReportScreen';
 import { AssetHistoryScreen } from '../snag/AssetHistoryScreen';
 import { CaseScreen } from './CaseScreen';
 
+/** The page's name, for the study's screens that have no heading of their
+ *  own — the spine used to be the only thing that said which one you were
+ *  on. Analyse and Evidence carry their own; the walk's screens sit under
+ *  its deep trail. */
+const PAGE_NAME: Record<string, string> = { capture: 'Capture', line: 'Machines', case: 'The case' };
+
 /** A saved link to a screen that folded into another lands on the other. */
 function Go({ to }: { to: string }) {
   useEffect(() => { navReplace(to); }, [to]);
@@ -38,9 +45,8 @@ function Go({ to }: { to: string }) {
 
 export function AppShell({ route }: { route: Route }) {
   const screen = route.name;
-  const { workspace } = useWorkspace();
-  const chain = useWsChain(route.wsId);
   const deep = useDeepCrumbs(route);
+  const { workspace } = useWorkspace();
   const ws = route.wsId as string;
   const setup = route.query.get('setup') === '1';
 
@@ -49,23 +55,45 @@ export function AppShell({ route }: { route: Route }) {
   if (screen === 'trend') return <Go to={`/w/${ws}/analyse?trend=1`} />;
   if (screen === 'settings' || screen === 'people') return <Go to={`/w/${ws}/capture?setup=1`} />;
 
-  // The meeting, the snag walkthrough and the printable report are calm,
-  // chrome-free full-bleed surfaces.
+  // The meeting, the snag walkthrough and the printable report fill the
+  // frame's main area; they wear the same top bar and rail as every screen.
   if (screen === 'meeting') return <MeetingScreen />;
-  if (screen === 'walk') return <WalkthroughScreen wsId={ws} route={route} />;
+  if (screen === 'walk') return <WalkthroughScreen wsId={ws} />;
   if (screen === 'report') return <ReportScreen />;
 
-  /* THE SAME FRAME AS EVERY OTHER PAGE (see "THE PAGE FRAME" in styles.css):
-     the spine and the tabs inside one .wrap with the screen under them. The
-     spine ran edge to edge above a 720px column and the tabs were centred in
-     it, so stepping from a project into its line study changed the page's
-     width, its top bar and where the tabs were. The screens below no longer
-     carry a .wrap of their own — this is it. */
+  /* One .wrap for the study's screens — the screens below carry none of
+     their own. */
   return (
     <div className="wrap app">
-      <Crumbs trail={wsTrail(route, chain, workspace.name, deep)} />
-      <Peers peers={studyPeers(ws, screen)} />
-      <main className="app-main">
+      {/* THE WALK'S DEEP TRAIL — the segment you are in and the frame marked
+          in it, each a tap back up. Below "Evidence" in the rail, which is as
+          deep as the rail goes. Only drawn inside a walk. */}
+      {deep.length > 0 && (
+        <nav className="nv-deep" aria-label="Where you are in the walk">
+          <button type="button" className="nv-deep-c" onClick={() => nav(`/w/${ws}/snags?manage`)}>Walks</button>
+          {deep.map((c, i) => (
+            <span key={i} className="nv-deep-w">
+              <span className="nv-deep-sep" aria-hidden>›</span>
+              {c.to
+                ? <button type="button" className="nv-deep-c" onClick={() => nav(c.to as string)}>{c.label}</button>
+                : <span className="nv-deep-c is-here" aria-current="page">{c.label}</span>}
+            </span>
+          ))}
+        </nav>
+      )}
+      {/* THE PAGE'S NAME, and the study it is in as its one line — the rail
+          has the job and the line; on a phone this is where the line study
+          is named. */}
+      {PAGE_NAME[screen] && (
+        <header className="pace-head">
+          <div className="pace-head-main">
+            <h1 className="pace-title">{PAGE_NAME[screen]}</h1>
+            <p className="cw-handover"><span className="sub">{workspace.name}</span></p>
+          </div>
+        </header>
+      )}
+      {/* A div, not a second <main>: the frame's is the page's one main. */}
+      <div className="app-main">
         {screen === 'capture' && <CaptureScreen />}
         {screen === 'analyse' && <AnalyseScreen route={route} />}
         {screen === 'snags' && <SnagsScreen />}
@@ -75,7 +103,7 @@ export function AppShell({ route }: { route: Route }) {
         {screen === 'snaglist' && <SnagListScreen />}
         {screen === 'history' && <AssetHistoryScreen wsId={ws} assetId={route.id as string} />}
         {screen === 'case' && <CaseScreen caseId={route.id as string} />}
-      </main>
+      </div>
       {setup && <StudySetupSheet onClose={() => withQuery('setup', null, true)} />}
     </div>
   );

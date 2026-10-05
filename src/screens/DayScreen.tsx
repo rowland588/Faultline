@@ -12,11 +12,8 @@
 import { useEffect, useState } from 'react';
 import { openRecord } from '../ui/RecordDrawer';
 import { nav, useRoute } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
 import { GATE_PATH } from '../lib/install';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
-import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { useMaterials } from '../lib/useMaterials';
@@ -37,7 +34,6 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
-  const stand = useStanding(projectId);
   /* Nothing on the day is typed here, so a client reads all of it; the line
      at the top only says who runs the job (lib/access). */
   const can = useAccess(projectId);
@@ -102,14 +98,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'The day' },
-      ]} />
       <header className="pace-head dy-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
           <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
           <p className="dy-headline">{day.headline}</p>
         </div>
@@ -131,8 +121,6 @@ export function DayScreen({ projectId }: { projectId: string }) {
           {err?.startsWith('This tab is still running') && <button className="cw-link" onClick={() => void reloadOntoNewBuild()}>Reload</button>}
         </p>
       )}
-      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
-      <Peers peers={projectPeers(projectId, 'day', stand.counts)} />
       <AccessNote can={can} owner={project.lead} />
 
       <nav className="dy-nav" aria-label="Pick a day">

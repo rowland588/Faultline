@@ -11,7 +11,6 @@ import { useStandards } from '../ui/StandardsCard';
 import { clientReport, machinesSay, type ClientReport } from '../lib/clientReport';
 import { todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
-import { Crumbs } from '../ui/Crumbs';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
 
@@ -107,14 +106,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cr">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Client report' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
           <h1 className="pace-title">Client report</h1>
           <p className="pace-lede">The job in the order it is run, drawn from what is kept here — nothing typed for it.</p>
         </div>

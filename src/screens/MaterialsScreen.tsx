@@ -22,11 +22,7 @@ import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
 import { useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers, methodPeers } from '../ui/Peers';
-import { useMethodCounts } from '../lib/useMethodCounts';
 import { ProgramsScreen } from './ProgramsScreen';
-import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
 import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
@@ -218,8 +214,6 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
-  const stand = useStanding(projectId);
-  const counts = useMethodCounts(projectId);
   const can = useAccess(projectId);
   const today = todayISO();
 
@@ -240,20 +234,13 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Materials' },
-      ]} />
-      {/* The header every peer of this screen wears — the project above, the
-          screen's name, then where it has got to in one line. It had its own
-          eyebrow, a lede paragraph and a rule, and read as a different app
-          from the Install tab beside it. The lede says what the screen is for,
-          so it is said where that is news: on the empty list. */}
+      {/* The header every screen wears — the screen's name, then where it
+          has got to in one line. The job's name is in the top bar and the
+          rail (ui/Frame). The lede says what the screen is for, so it is
+          said where that is news: on the empty list. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">Materials</h1>
+          <h1 className="pace-title">Materials</h1>
           <p className="cw-handover">
             {t.total === 0
               ? <b>Nothing on the list yet</b>
@@ -266,12 +253,6 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
-      {/* The row under the header — see "THE PAGE FRAME" in styles.css.
-          The gates are a stage-gate job's. A 3P job's Materials showed
-          Install, Set up, Commission — tabs for a method it is not run on. */}
-      {project.commissioning
-        ? <Peers peers={projectPeers(projectId, 'materials', stand.counts)} />
-        : <Peers peers={methodPeers(projectId, project.leverTree ? 'tree' : 'board', 'materials', counts)} />}
       <AccessNote can={can} owner={project.lead} />
 
       {t.total === 0 ? (
