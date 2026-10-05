@@ -8958,8 +8958,9 @@ button.prp-go:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
  * (ui/fishbone/layout.ts); these rules only dress it. The six bones are told
  * apart by place and name, never colour. How sure a cause is is told by ink —
  * solid, outline, struck — never by a state colour: a confirmed cause is not
- * "done". The phase word is the one state colour on the fish; brand blue is
- * only on what you press (Add, Open it). */
+ * "done". The state colours on the fish are the phase word and each cause's
+ * fixes tag (.fb-fix) — work that is late, waiting or done; brand blue is
+ * only on what you press (Add, Open it, the head). */
 .fb { position: relative; width: 100%; min-width: 0; }
 .fb-frame { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .fb.is-drawn .fb-frame { padding: 16px 18px; }
@@ -9136,6 +9137,66 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 @media (pointer: coarse) {
   .fb-add { min-height: 44px; padding: 0 12px; }
 }
+
+/* A cause's fixes, as a tag beside it (ui/fishbone/marks FixTagMark) — the
+ * board's states in the house colours, the words beside them. Past due is
+ * solid red, the loudest mark on a bone; waiting amber; under way indigo;
+ * not started grey; done a quiet green wash that recedes. */
+.fb-fix {
+  flex: 0 1 auto; min-width: 0; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 1px 7px; border: 1px solid var(--st-n); border-radius: 999px; background: var(--surface);
+  font-size: 11px; font-weight: 700; font-style: normal; line-height: 1.35; letter-spacing: 0; color: var(--muted); text-decoration: none;
+}
+.fb-fix.is-r { color: #fff; background: var(--st-r); border-color: var(--st-r); font-weight: 800; }
+.fb-fix.is-a { color: var(--st-a); border-color: color-mix(in srgb, var(--st-a) 60%, transparent); background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); }
+.fb-fix.is-w { color: var(--st-w); border-color: color-mix(in srgb, var(--st-w) 45%, transparent); background: color-mix(in srgb, var(--st-w) 7%, var(--surface)); }
+.fb-fix.is-g { color: var(--st-g); border-color: transparent; background: color-mix(in srgb, var(--st-g) 9%, var(--surface)); font-weight: 600; }
+.fb-mark .fb-fix { flex: none; max-width: 62%; margin-bottom: 0; }
+/* a mark's tags follow its words on one line; filling a tall room, the ribs
+   spread and each mark takes two — its words, then its tags on the rib */
+.fb-mark-tags { display: contents; }
+.fb-mark.is-two { flex-wrap: wrap; align-content: flex-end; row-gap: 4px; padding-bottom: 4px; }
+.fb-mark.is-two .fb-mark-t { flex: 1 1 calc(100% - 20px); }
+.fb-mark.is-two .fb-mark-tags { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; padding-left: 20px; }
+.fb-mark.is-two .fb-fix { max-width: none; }
+.fb-mark.is-two.is-sugg .fb-mark-t { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.fb-row-fix { display: block; margin-top: 2px; }
+.fb-row-fix .fb-fix { font-size: 12px; padding: 2px 9px; }
+
+/* The root stands out on its bone — a heavier rib, and on a phone an ink
+ * rule down its row; what was ruled out recedes. */
+.fb-rib.is-root { stroke-width: 2.4; }
+.fb-mark.is-ruled_out, .fb-row.is-ruled_out { opacity: 0.72; }
+.fb-row.is-root { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); box-shadow: inset 3px 0 0 var(--ink); }
+
+/* The head opens the problem (Fishbone onHead): brand blue on the press. */
+button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; cursor: pointer; }
+.fb-head.is-tap::after {
+  content: '›'; position: absolute; right: 16px; top: 50%; transform: translateY(-52%);
+  font-size: 26px; font-weight: 500; line-height: 1; color: var(--accent);
+}
+.fb-head.is-mini.is-tap::after { right: 8px; font-size: 20px; }
+.fb-mini.is-narrow .fb-head.is-mini.is-tap::after { display: none; }
+.fb-head.is-tap:hover { border-color: var(--accent); }
+.fb-head.is-tap:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.fb-mini-top.is-tap {
+  appearance: none; position: relative; box-sizing: border-box; width: calc(100% - 4px); min-height: 44px;
+  padding: 4px 30px 4px 6px; border: 1px solid transparent; border-radius: 10px; background: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.fb-mini-top.is-tap::after {
+  content: '›'; position: absolute; right: 8px; top: 50%; transform: translateY(-52%);
+  font-size: 24px; line-height: 1; color: var(--accent);
+}
+.fb-mini-top.is-tap:hover { border-color: var(--line-2); }
+.fb-mini-top.is-tap:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Filling its box (Fishbone fill): the frame takes the height the box has
+ * and scrolls inside it when the fish needs more; it never squashes. */
+.fb.is-fill { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.fb.is-fill > .fb-frame { flex: 1 1 0; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.fb.is-fill > .fb-key { flex: none; }
+.fb.is-fill.is-lanes .fb-frame > .fb-key { margin: 0; padding: 12px 14px 16px; border-top: 1px solid var(--line); }
 
 /* the cause sheet — a readable column on a laptop */
 .sheet:has(.cs-body) { max-width: 640px; margin: 0 auto; }

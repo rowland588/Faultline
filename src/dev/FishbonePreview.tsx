@@ -74,6 +74,12 @@ function typical(): ProblemView {
     actions: [
       action(ref, 'Write the splice standard and train every crew', 'Dave Moss', '10 Oct', 'To do', '', 'film splice stops 40 → 10 min a week'),
       action(ref, 'Name an owner for material changes on Line 2', 'Rowland', '1 Oct', 'To do', 'Overdue'),
+      // one fix in each of the board's other states, so every tag is seen
+      action(`pTyp:${cs[2].id}`, 'Fit a second photo-eye on the print mark', 'OEM', '14 Oct', 'Waiting'),
+      action(`pTyp:${cs[5].id}`, 'Cover the night crew from days', 'Rowland', '28 Sep', 'Done'),
+      action(`pTyp:${cs[5].id}`, 'Agree the cover rota with HR', 'Rowland', '30 Sep', 'Done'),
+      action(`pTyp:${cs[7].id}`, 'Walk the changeover with nights', 'Dave Moss', '9 Oct', 'In progress'),
+      action(`pTyp:${cs[1].id}`, 'Ask the film supplier for the gauge spec', 'Buyer', '', 'To do'),
     ],
     roots: [root], says: '3.2 h a week lost at the start, 41% of the line’s stops',
   };
@@ -118,6 +124,10 @@ function Preview() {
   const [view, setView] = useState<ProblemView>(() => (FIX[q.get('f') ?? 'typical'] ?? typical)());
   const can = canOf((q.get('can') as Access) || 'owner');
   const compact = q.get('compact') === '1';
+  /* ?fill=1 gives the fish the room under the heading, as the fishbone page
+     does; ?fh= sets that room's height instead (to see it scroll inside). */
+  const fill = q.get('fill') === '1';
+  const fh = q.get('fh');
   const [open, setOpen] = useState<{ cause: Cause; draft: boolean } | null>(null);
 
   const save = async (c: Cause) => {
@@ -135,8 +145,9 @@ function Preview() {
   return (
     <div className="wrap" style={{ paddingTop: 24 }}>
       <h1 className="h1" style={{ margin: '0 0 14px' }}>Fishbone preview</h1>
-      <div style={compact ? { maxWidth: Number(q.get('cw') ?? 420) } : undefined}>
-        <Fishbone view={view} can={can} compact={compact}
+      <div style={compact ? { maxWidth: Number(q.get('cw') ?? 420) } : fill ? { height: fh ? Number(fh) : 'calc(100vh - 92px)' } : undefined}>
+        <Fishbone view={view} can={can} compact={compact} fill={fill}
+          onHead={q.get('head') === '0' ? undefined : () => log('head')}
           onCause={c => { log(`cause:${c.id}`); setOpen({ cause: c, draft: false }); }}
           onSuggestion={s => { log(`sugg:${s.key}`); setOpen({ cause: { id: `new-${s.key}`, m: s.m, text: s.text, grade: s.grade, status: 'suspected', source: s.source, whys: [], at: Date.now() }, draft: true }); }}
           onAdd={m => { log(`add:${m}`); setOpen({ cause: { id: `new-${m}-${Date.now()}`, m, text: '', grade: 'observed', status: 'suspected', whys: [], at: Date.now(), by: 'Rowland' }, draft: true }); }} />
