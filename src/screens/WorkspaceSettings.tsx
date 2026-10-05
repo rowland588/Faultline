@@ -207,7 +207,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
           </div>
         </div>
         {!showBurden ? (
-          <button className="linkish" style={{ marginTop: 8, fontSize: 13 }} onClick={() => setShowBurden(true)}>
+          <button className="linkish" style={{ marginTop: 8, fontSize: 'var(--t-detail)' }} onClick={() => setShowBurden(true)}>
             Finance gave you a fully-loaded rate or on-cost %? Refine it (optional) ›
           </button>
         ) : (
@@ -221,7 +221,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
                   if (raw && !(Number.isFinite(v) && v >= 1)) { setToast('On-costs is a multiplier from 1 up — e.g. 1.3'); return; }
                   void save({ labourBurden: raw && v >= 1 ? v : undefined });
                 }} />
-              <p className="sub" style={{ fontSize: 12, flex: 1 }}>
+              <p className="sub" style={{ fontSize: 'var(--t-label)', flex: 1 }}>
                 The wage isn't the full cost of employing someone — employer NI, pension and holiday cover sit on top
                 (typically ×1.25–1.4 in the UK; finance will know yours). This only refines the £; the ratio logic never changes.
               </p>
@@ -233,7 +233,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
             labour stays the default; this ADDS the contribution of the packs
             that never got made while the line stood */}
         {!showOutput ? (
-          <button className="linkish" style={{ marginTop: 6, fontSize: 13, display: 'block' }} onClick={() => setShowOutput(true)}>
+          <button className="linkish" style={{ marginTop: 6, fontSize: 'var(--t-detail)', display: 'block' }} onClick={() => setShowOutput(true)}>
             Know your line speed and margin per pack? Add lost output (optional) ›
           </button>
         ) : (
@@ -261,7 +261,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
                   }} />
               </div>
             </div>
-            <p className="sub" style={{ margin: '6px 0 0', fontSize: 12 }}>
+            <p className="sub" style={{ margin: '6px 0 0', fontSize: 'var(--t-label)' }}>
               Speed × margin = the contribution earned by packs that never got made while the line stood.
               Honest when the time can't be recovered (sold-out line, fixed shift end) — which is most food
               lines, most of the time. Leave blank to count idle labour only.

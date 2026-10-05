@@ -547,8 +547,10 @@ function PassesIf({ test, can, label, glow, onSave }: {
     return (
       <>
         <Ro wide label={label} text={test.passesIf} />
-        {/* The team's line says who moves it, in place of the general one. */}
-        <p className="sub tw-note">{can.edit ? 'Agreed — only the owner changes it. It is what the result gets measured against.' : measured}</p>
+        {/* The team's line says who moves it, in place of the general one, and
+            stays: it is why there is no box to type in. The general one is
+            said once, while the box is empty, then it gets out of the way. */}
+        {(can.edit || !test.passesIf) && <p className="sub tw-note">{can.edit ? 'Agreed — only the owner changes it. It is what the result gets measured against.' : measured}</p>}
       </>
     );
   }
@@ -560,7 +562,7 @@ function PassesIf({ test, can, label, glow, onSave }: {
             : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
               : '65 ppm held for 30 minutes, under 2% waste'}
           onSave={onSave} /></label>
-      <p className="sub tw-note">{measured}</p>
+      {!test.passesIf && <p className="sub tw-note">{measured}</p>}
     </>
   );
 }
@@ -666,8 +668,10 @@ function Items({ kind, test, tt, can, heading, placeholder, empty, onView, glow,
         {rows.length > 0 && <span className="tw-block-n">{count}</span>}
       </span>
 
-      {kind === 'found' && rows.length > 0 && (
-        /* "against this test" on an install step was a word that was not true. */
+      {kind === 'found' && rows.length === 0 && can.edit && (
+        /* "against this test" on an install step was a word that was not true.
+           Said once, in the empty state; once something is written the list
+           speaks for itself. */
         <p className="sub tw-note tw-obs-note">
           What you saw, as you saw it. Anything that needs doing is a fix, added below — on the
           Fixes screen, against this {test.kind === 'install' ? 'step' : 'test'}.
