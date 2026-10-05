@@ -4,7 +4,9 @@
  * the calendar drawn again, and every row on exactly one sheet. */
 import { describe, expect, it } from 'vitest';
 import { jsPDF } from 'jspdf';
-import { gantt } from '../gantt';
+import { gantt, withMachines } from '../gantt';
+import { standing } from '../standing';
+import type { Asset, Test } from '../testing';
 import { drawGantt, drawGanttDoc } from '../ganttPdf';
 import type { PlanMark } from '../standing';
 
@@ -87,5 +89,45 @@ describe('the plan on paper', () => {
     drawGantt(doc, gantt([...steps(3), { kind: 'handover', at: '2027-02-01', label: 'Sign off', tone: 'booked' }], { today: TODAY }), { eyebrow: 'X', title: 'The plan' });
     expect(said).toContain('5 Oct');      // a week, labelled by its Monday
     expect(said).toContain('JAN 27');
+  });
+
+  /* BY MACHINE (Rowland, 5 October: "all muddled together"). */
+  const job = (machines: number, stages: number) => {
+    const assets: Asset[] = Array.from({ length: machines }, (_, i) => ({ id: `a${i}`, projectId: 'p', name: `Machine ${i + 1}`, state: 'onSite', sort: i, updatedAt: 1 }));
+    const tests: Test[] = assets.flatMap((a, i) => Array.from({ length: stages }, (_, j) => ({
+      id: `t${i}-${j}`, projectId: 'p', kind: 'install' as const, title: `Stage ${j + 1}`, assetId: a.id, outcome: 'planned' as const,
+      plannedFor: `2026-10-${String(5 + ((i + j) % 20)).padStart(2, '0')}`, sort: j, createdAt: 1, updatedAt: 1,
+    })));
+    const st = standing({ tests, items: [], assets, materials: [], programs: [], today: TODAY });
+    return withMachines(gantt(st.plan, { today: TODAY }, { tests, items: [] }), { assets, tests, items: [], today: TODAY });
+  };
+
+  it('prints each machine as a band: its name, where it stands, its gates, its steps without its name', () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const said = texts(doc);
+    const g = job(2, 3);
+    drawGanttDoc(doc, g, { name: 'Line 2A', printed: '2 Oct 2026' });
+    for (const b of g.machines!) { expect(said).toContain(b.name); expect(said).toContain(b.says); }
+    expect(said).toContain('INSTALL');
+    expect(said.filter(t => t === 'Stage 1')).toHaveLength(2);
+    expect(said.some(t => /^Machine \d+ — /.test(t))).toBe(false);
+  });
+
+  it('starts a machine on a fresh page rather than splitting it, when the page is already well used', () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const said = texts(doc);
+    const pages = drawGantt(doc, job(3, 8), { eyebrow: 'X', title: 'The plan' });
+    expect(pages.length).toBe(2);
+    expect(said.some(t => t.includes('(continued)'))).toBe(false);
+  });
+
+  it('folds a huge job gate by gate, and keeps every machine and where it stands', () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const said = texts(doc);
+    const g = job(12, 15);
+    const pages = drawGantt(doc, g, { eyebrow: 'X', title: 'The plan' });
+    expect(pages.length).toBeLessThanOrEqual(4);
+    for (const b of g.machines!) { expect(said.some(t => t.startsWith(b.name))).toBe(true); expect(said).toContain(b.says); }
+    expect(said).toContain('15 stages');
   });
 });

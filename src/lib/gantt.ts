@@ -16,9 +16,11 @@
 import type { PlanMark } from './standing';
 import { windowWords } from './plan';
 import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
-import { isOverdue, type Test, type TestItem } from './testing';
+import { isOverdue, live, type Asset, type Test, type TestItem } from './testing';
 import { todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
+import { JOURNEY, journeyNow, journeyOf, redReasons } from './install';
+import type { Program } from './programs';
 
 export type GanttScale = 'day' | 'week';
 
@@ -77,6 +79,8 @@ export interface Gantt {
   handoverMoves?: { on: string; from: string; to: string; days: number; why: string }[];
   /** What the filmed walk found — one lane, never a row per snag (lib/walkSnags). */
   walk?: WalkLane;
+  /** The same rows, one band per machine — set by withMachines (By machine). */
+  machines?: GanttMachine[];
 }
 
 /* The order a stage-gate job runs in: machines land, materials arrive, then the
@@ -254,4 +258,171 @@ export function ganttHref(projectId: string, row: Pick<GanttRow, 'id' | 'kind'>)
   if (row.kind === 'action') return `/project/${projectId}/board`;
   if (row.kind === 'note') return `/project/${projectId}/notes`;
   return row.id ? `/project/${projectId}/testing/${encodeURIComponent(row.id)}` : undefined;
+}
+
+/* ------------------------------ BY MACHINE ------------------------------
+ *
+ * Rowland, 5 October: "we have different machines but all muddled together on
+ * the Gantt — difficult to see machine status." Grouped by gate, one machine's
+ * stages sat in every group, between the other machines'. By machine, each
+ * machine is one band: a header saying where it stands — the same reading the
+ * front page's "Where each machine is" strip makes (lib/install journeyOf,
+ * journeyNow, redReasons), so the two cannot disagree — and a bar from its
+ * first date to its last; under it its own rows, gate by gate. Whatever is on
+ * no one machine — materials, notes, line-level steps, the walk — is the last
+ * band. NOTHING NEW: the same rows `gantt` laid out, in a different order.
+ * By stage (the gates, as it always was) is one tap away. */
+
+export type GanttBy = 'machine' | 'stage';
+
+export interface GanttMachine {
+  /** The machine; absent for the band of what is on no one machine. */
+  id?: string;
+  name: string;
+  /** Where it stands, in words — "at Set up · 1 late", "Handed over". */
+  says: string;
+  /** Its state in the plan's colours: late, waiting (ran), done, ahead, none. */
+  tone: PlanMark['tone'];
+  /** The gate page its header opens — the one it is at (lib/install JOURNEY),
+   *  the page the strip's tile for that gate opens. */
+  path?: string;
+  /** First date to last; absent when nothing on it is dated. */
+  bar?: { start: number; span: number; when: string };
+  /** Its rows, gate by gate in the order the job runs; the label is the gate. */
+  groups: GanttGroup[];
+  /** The filmed walk's lane is drawn in this band. */
+  walk?: boolean;
+  /** On paper only: each gate folded to one lane (lib/ganttPdf foldBands). */
+  folded?: boolean;
+}
+
+/** The band of what is on no one machine, in the house's two words for it:
+ *  "The line" for a step on no machine, "the whole job" for a note on none. */
+export const JOB_BAND = 'The line and the whole job';
+
+/* A machine's own rows, in the order its work runs. Its programs are its Set
+   up, as journeyOf counts them. */
+const MACHINE_GATES: { kind: PlanMark['kind']; label: string; kinds: PlanMark['kind'][] }[] = [
+  { kind: 'machine', label: 'Arriving', kinds: ['machine'] },
+  { kind: 'install', label: 'Install', kinds: ['install'] },
+  { kind: 'setup', label: 'Set up', kinds: ['setup', 'program'] },
+  { kind: 'test', label: 'Commission', kinds: ['test'] },
+  { kind: 'handover', label: 'Hand over', kinds: ['handover'] },
+  { kind: 'fix', label: 'Fixes', kinds: ['fix', 'action', 'note', 'material'] },
+];
+
+const byDate = (a: GanttRow, b: GanttRow) => a.start - b.start || a.span - b.span || a.label.localeCompare(b.label);
+const isBad = (t: PlanMark['tone']) => t === 'late' || t === 'failed';
+const endOfRow = (r: GanttRow) => Math.max(r.start + r.span, r.slip ? r.slip.start + r.slip.span : 0, ...(r.fixes ?? []).map(f => f.start + f.span));
+
+function barOf(rows: GanttRow[], dayList: GanttDay[]): GanttMachine['bar'] {
+  if (!rows.length) return undefined;
+  const start = Math.min(...rows.map(r => r.start));
+  const end = Math.max(...rows.map(endOfRow));
+  const from = dayList[Math.max(0, start)]?.iso ?? rows[0].from;
+  const to = dayList[Math.min(dayList.length - 1, end - 1)]?.iso ?? from;
+  return { start, span: Math.max(1, end - start), when: windowWords(from, to) };
+}
+
+/** "Wrapper — Dry run" is "Dry run" inside the wrapper's own band. */
+export const stepOf = (r: Pick<GanttRow, 'on' | 'label'>): string =>
+  (r.on && r.label.startsWith(`${r.on} — `) ? r.label.slice(r.on.length + 3) : r.label);
+
+/** The Gantt's rows put into one band per machine, then the line and the job. */
+export function withMachines(g: Gantt, job: {
+  assets: Asset[]; tests: Test[]; items: TestItem[]; programs?: readonly Program[]; today: string;
+}): Gantt {
+  const { tests, items, today } = job;
+  const programs = job.programs ?? [];
+  const machines = live(job.assets).sort((a, b) => a.sort - b.sort);
+  const known = new Set(machines.map(a => a.id));
+  const testOn = new Map(tests.map(t => [t.id, t] as const));
+  const progOn = new Map(programs.map(p => [p.id, p.assetId] as const));
+  const machineOf = (r: GanttRow): string | undefined => {
+    let id: string | undefined;
+    if (r.kind === 'machine') id = r.id;
+    else if (r.kind === 'program') id = r.id ? progOn.get(r.id) : undefined;
+    else if (STAGE_KINDS.has(r.kind) || r.kind === 'fix') {
+      const t = r.id ? testOn.get(r.id) : undefined;
+      id = t?.assetId ?? (t?.programId ? progOn.get(t.programId) : undefined);
+    }
+    return id && known.has(id) ? id : undefined;
+  };
+
+  const mine = new Map<string, GanttRow[]>();
+  const rest: GanttGroup[] = [];
+  for (const gr of g.groups) {
+    const left: GanttRow[] = [];
+    for (const r of gr.rows) {
+      const id = machineOf(r);
+      if (id) mine.set(id, [...(mine.get(id) ?? []), r]);
+      else left.push(r);
+    }
+    if (left.length) rest.push({ ...gr, rows: left });
+  }
+
+  const bands: GanttMachine[] = machines.map(a => {
+    const rows = mine.get(a.id) ?? [];
+    const groups: GanttGroup[] = MACHINE_GATES.map(mg => ({
+      kind: mg.kind, label: mg.label,
+      rows: rows.filter(r => mg.kinds.includes(r.kind)).map((r): GanttRow => {
+        /* Inside its own band the machine's name is said once, in the header. */
+        if (r.kind === 'machine') return { ...r, label: a.onSiteOn ? (a.runningOn ? 'On site to running' : 'On site') : 'Due on site' };
+        const bare: GanttRow = { ...r, label: stepOf(r) };
+        delete bare.on;
+        return bare;
+      }).sort(byDate),
+    })).filter(gr => gr.rows.length > 0);
+
+    /* WHERE IT STANDS — the strip's own reading, not a second opinion. */
+    const j = journeyOf(a, tests, items, today, programs);
+    const now = journeyNow(j);
+    const why = redReasons(a, tests, items, today);
+    /* A late fix or program is drawn red in the band; folded, the header is
+       all that shows, so it says so too. */
+    const all = rows.flatMap(r => [r, ...(r.fixes ?? [])]);
+    const lateRows = all.filter(r => r.tone === 'late').length, failedRows = all.filter(r => r.tone === 'failed').length;
+    const lateOnly = why.every(w => /(is late|did not run)$/.test(w) && !/problem/.test(w));
+    const red = why.length
+      ? `${why.length} late${lateOnly ? '' : ' or a problem'}`
+      : [lateRows ? `${lateRows} late` : '', failedRows ? `${failedRows} didn’t pass` : ''].filter(Boolean).join(' · ');
+    const late = j.some(x => x.tone === 'late') || !!red;
+    const tone: PlanMark['tone'] = late ? 'late'
+      : now === 'Handed over' ? 'done'
+        : rows.some(r => r.tone === 'ran') ? 'ran'
+          : j.some(x => x.tone === 'going') || rows.some(r => r.tone === 'booked') ? 'booked' : 'none';
+    const says = [now === 'Handed over' ? now : `at ${now}`, red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
+    const gate = JOURNEY.find(x => x.label === now) ?? JOURNEY[JOURNEY.length - 1];
+    const bar = barOf(rows, g.dayList);
+    return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(bar ? { bar } : {}) };
+  });
+
+  /* THE LINE AND THE WHOLE JOB — what is on no one machine, in the gates'
+     order, with the walk's lane. */
+  const walk = !!g.walk && g.walk.days.length > 0;
+  if (rest.length || walk) {
+    const rows = rest.flatMap(gr => gr.rows);
+    const bad = rows.filter(r => isBad(r.tone)).length + (walk && g.walk ? g.walk.late : 0);
+    const open = walk && g.walk ? g.walk.open : 0;
+    const tone: PlanMark['tone'] = bad ? 'late'
+      : rows.some(r => r.tone === 'ran') ? 'ran'
+        : rows.length > 0 && rows.every(r => r.tone === 'done') && !open ? 'done'
+          : rows.some(r => r.tone === 'booked') || open ? 'booked' : 'none';
+    /* Only the walk: its lane says it, so the header says the same words. */
+    const says = !rows.length && g.walk ? `found on the walk · ${g.walk.words}`
+      : `${rows.length} on the plan · ${bad ? `${bad} late or a problem` : 'nothing late'}`;
+    const bar = barOf(rows, g.dayList);
+    bands.push({ name: JOB_BAND, says, tone, groups: rest, ...(walk ? { walk: true } : {}), ...(bar ? { bar } : {}) });
+  }
+  return { ...g, machines: bands };
+}
+
+/* WHICH WAY THE PLAN IS DRAWN, remembered on this device — the screen's
+   switch, and the paper follows it. By machine unless somebody chose. */
+const BY_KEY = 'faultline.gantt.by';
+export function ganttBy(): GanttBy {
+  try { return localStorage.getItem(BY_KEY) === 'stage' ? 'stage' : 'machine'; } catch { return 'machine'; }
+}
+export function keepGanttBy(by: GanttBy): void {
+  try { localStorage.setItem(BY_KEY, by); } catch { /* the choice lasts the visit */ }
 }

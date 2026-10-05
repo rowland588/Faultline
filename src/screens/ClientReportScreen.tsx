@@ -28,8 +28,11 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
     const s = (await pinShot(f)) ?? (f.photoKey ? (await shotsFor([f.photoKey], 1))[0] : undefined);
     if (s) shots.set(f.id, s);
   }
+  const { ganttBy } = await import('../lib/gantt');
   await drawClientReport(doc, r, {
     shots,
+    /* The plan page grouped the way this device's plan is drawn. */
+    planBy: ganttBy(),
     standards: withStandards && r.standards.length
       ? async d => { const { drawStandards } = await import('../lib/standardPdf'); await drawStandards(d, r.standards, r.name, r.printed); }
       : undefined,

@@ -111,7 +111,9 @@ export interface ClientReport {
   plan: PlanMark[];
   /** What happened to each stage, for the plan page's overruns and its "why"
    *  list — the steps, their fixes and what was found. Never the notes. */
-  planRecords: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[] };
+  planRecords: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[];
+    /** The machines and their programs — for the plan drawn machine by machine. */
+    assets?: Asset[]; programs?: Program[] };
   today: string;
   expectedAt?: string;
   plannedAt?: string;
@@ -279,7 +281,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     /* Meeting notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),
-    planRecords: { tests, items: items.filter(i => i.kind === 'found'), ...(x.walk?.length ? { walk: x.walk } : {}) },
+    planRecords: { tests, items: items.filter(i => i.kind === 'found'), assets, programs, ...(x.walk?.length ? { walk: x.walk } : {}) },
     today,
     ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
     ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),

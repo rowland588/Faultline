@@ -7,7 +7,7 @@ import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, pagesOf, rows, text, wrap } from './report/blocks';
-import { gantt } from './gantt';
+import { gantt, withMachines, type GanttBy } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { moveLines } from './story';
 
@@ -42,6 +42,9 @@ export interface ClientReportExtras {
   shots: Map<string, Shot>;
   /** Draws the line standard pages; called once, on a fresh landscape page. */
   standards?: (doc: jsPDF) => Promise<void>;
+  /** How the plan page is grouped — the way the plan is drawn on this
+   *  device's screen (lib/gantt ganttBy). By machine unless said. */
+  planBy?: GanttBy;
 }
 
 /** Every string in the report through the one door the other PDFs use. The
@@ -322,7 +325,12 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     out.push(pagesOf(f => {
       f.doc.addPage('a4', 'landscape');
       const g = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
-      onPlan(drawGantt(f.doc, g, {
+      /* By machine, as the screen draws it — unless the job has no machine
+         to band by, or this device chose the gates. */
+      const { assets, programs, tests, items } = r.planRecords;
+      const byMachine = extras.planBy !== 'stage' && assets?.length
+        ? withMachines(g, { assets, programs, tests, items, today: r.today }) : g;
+      onPlan(drawGantt(f.doc, byMachine.machines?.some(b => b.id) ? byMachine : g, {
         eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
         sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
       }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items)));

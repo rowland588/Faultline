@@ -8201,6 +8201,70 @@ button.gt-walklab small.is-done { color: var(--st-g); }
   font-style: normal; font-size: 9px; font-weight: 800; line-height: 11px; text-align: center; color: var(--st-r); margin-right: 4px; vertical-align: -2px;
 }
 
+/* THE PLAN BY MACHINE — one band a machine (lib/gantt withMachines). The
+   header is the machine and where it stands, in the plan's colours: red late
+   or a problem, amber waiting on a verdict, indigo under way or ahead, a quiet
+   green when handed over, grey not started. The whole header opens the
+   machine; the chevron folds the band. Each gate is named where it starts. */
+.gt-segs { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.gt-mrow { height: 46px; background: color-mix(in srgb, var(--surface-2) 70%, var(--surface)); border-top: 1px solid var(--line); }
+.gt-mband:first-child .gt-mrow { border-top: 0; }
+div.gt-lab.gt-mlab { padding: 0; cursor: default; gap: 0; background: color-mix(in srgb, var(--surface-2) 70%, var(--surface)); }
+.gt-mrow.is-late div.gt-mlab { box-shadow: inset 4px 0 0 var(--st-r); background: color-mix(in srgb, var(--st-r) 7%, var(--surface)); }
+.gt-mrow.is-late { background: color-mix(in srgb, var(--st-r) 4%, var(--surface)); }
+.gt-mrow.is-ran div.gt-mlab { box-shadow: inset 4px 0 0 var(--st-a); }
+.gt-mrow.is-booked div.gt-mlab { box-shadow: inset 4px 0 0 var(--st-w); }
+.gt-mrow.is-done div.gt-mlab { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--st-g) 45%, transparent); }
+.gt-mrow.is-none div.gt-mlab { box-shadow: inset 4px 0 0 var(--st-n); }
+.gt-mfold {
+  appearance: none; flex: none; width: 36px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+  border: 0; margin: 0; padding: 0 0 0 4px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.gt-mfold:hover { color: var(--brand); }
+.gt-mgo {
+  appearance: none; flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 2px;
+  border: 0; margin: 0; padding: 0 10px 0 0; background: transparent; font: inherit; color: var(--ink); text-align: left; cursor: pointer; line-height: 1.15;
+}
+.gt-mgo b, .gt-mgo small { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gt-mgo b { font-size: 13.5px; font-weight: 800; }
+.gt-mgo small { font-size: 11px; font-weight: 700; color: var(--muted); }
+.gt-mgo:hover b { color: var(--brand); }
+.gt-mgo small.is-late, .gt-mgo small.is-failed { color: var(--st-r); }
+.gt-mgo small.is-ran { color: var(--st-a); }
+.gt-mgo small.is-booked { color: var(--st-w); }
+.gt-mgo small.is-done { color: var(--st-g); font-weight: 600; }
+.gt-mgo small.is-none { color: var(--muted); font-weight: 600; }
+button.gt-mtrack { appearance: none; display: block; align-self: stretch; height: auto; margin: 0; padding: 0; border: 0; background: transparent; font: inherit; cursor: pointer; text-align: left; }
+.gt-msum { top: 14px; height: 18px; line-height: 15px; pointer-events: none; font-size: 10.5px; }
+.gt-msum.is-done { opacity: 0.75; }
+.gt-mtrack:hover .gt-msum { box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-w) 22%, transparent); }
+.gt-gaterow { height: 20px; border-bottom: 0; }
+.gt-gaterow .gt-lab.gt-gatelab {
+  padding-left: 40px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); cursor: default; align-items: flex-end;
+}
+.gt-mband .gt-row:not(.gt-mrow):not(.gt-gaterow) button.gt-lab:not(.gt-walklab) { padding-left: 40px; }
+.gt-mband button.gt-fixlab { padding-left: 52px !important; }
+/* On a phone: the header is the name and its state above the machine's bar,
+   at least 44px to the thumb, and the chevron a 44px square of its own. */
+.gt.is-stacked .gt-mrow { height: auto; }
+.gt.is-stacked div.gt-lab.gt-mlab { display: flex; flex-direction: row; align-items: stretch; width: calc(100vw - 64px); max-width: none; min-height: 44px; padding: 0; background: transparent; }
+.gt.is-stacked .gt-mrow div.gt-mlab { box-shadow: none; }
+.gt.is-stacked .gt-mrow.is-late { box-shadow: inset 4px 0 0 var(--st-r); }
+.gt.is-stacked .gt-mrow.is-ran { box-shadow: inset 4px 0 0 var(--st-a); }
+.gt.is-stacked .gt-mrow.is-booked { box-shadow: inset 4px 0 0 var(--st-w); }
+.gt.is-stacked .gt-mrow.is-done { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--st-g) 45%, transparent); }
+.gt.is-stacked .gt-mrow.is-none { box-shadow: inset 4px 0 0 var(--st-n); }
+.gt.is-stacked .gt-mfold { width: 44px; min-height: 44px; padding: 0; }
+.gt.is-stacked .gt-mgo { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: baseline; align-content: center; column-gap: 8px; min-height: 44px; }
+.gt.is-stacked .gt-mgo b { font-size: 14px; }
+.gt.is-stacked button.gt-mtrack { height: 30px; }
+.gt.is-stacked .gt-msum { top: 4px; }
+.gt.is-stacked .gt-gaterow { height: auto; }
+.gt.is-stacked .gt-gaterow .gt-lab.gt-gatelab { padding: 8px 10px 0 16px; }
+.gt.is-stacked .gt-gaterow .gt-track { height: 0; }
+.gt.is-stacked .gt-mband .gt-row:not(.gt-mrow):not(.gt-gaterow) button.gt-lab:not(.gt-walklab) { padding-left: 16px; }
+.gt.is-stacked .gt-mband button.gt-fixlab { padding-left: 28px !important; }
+
 /* the panel a walk marker opens */
 .wp { display: flex; flex-direction: column; gap: 12px; }
 .wp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
