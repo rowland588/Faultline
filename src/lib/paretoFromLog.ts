@@ -118,13 +118,16 @@ export interface ProjectPareto {
   before?: PaceParetoSheet;
 }
 
-/** The project's Pareto — every line's log, this window and the last. */
-export function useProjectPareto(projectId: string, today = Date.now()): ProjectPareto {
+/** The project's Pareto — every line's log, this window and the last. With
+ *  a line, that line's log only (the Pareto pane on a line's fishbone page). */
+export function useProjectPareto(projectId: string, today = Date.now(), lineId?: string): ProjectPareto {
   const [st, setSt] = useState<ProjectPareto>({ loading: true });
   // Midnight-aligned, so the windows (and the dependency) only change once a day.
   const end = new Date(today).setHours(0, 0, 0, 0) + DAY;
   const load = useCallback(async () => {
-    const [ids, lines] = await Promise.all([projectWorkspaceIds(projectId), loadPaceLines(projectId)]);
+    const [all, lines] = await Promise.all([projectWorkspaceIds(projectId), loadPaceLines(projectId)]);
+    const ws = lineId ? lines.find(l => l.id === lineId)?.workspaceId : undefined;
+    const ids = lineId ? all.filter(id => id === ws) : all;
     const obs = (await Promise.all(ids.map(id => listObservations(id)))).flat();
     const lineOf = (o: Observation) => lines.find(l => l.workspaceId === o.workspaceId)?.name ?? PROJECT_WALK;
     const w = PARETO_WINDOW_DAYS * DAY;
@@ -133,7 +136,7 @@ export function useProjectPareto(projectId: string, today = Date.now()): Project
       now: paretoFromLog(obs, end - w, end, lineOf),
       before: paretoFromLog(obs, end - 2 * w, end - w, lineOf),
     });
-  }, [projectId, end]);
+  }, [projectId, end, lineId]);
   useEffect(() => { void load(); return onDataChange(() => { void load(); }); }, [load]);
   return st;
 }

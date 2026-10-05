@@ -4553,7 +4553,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pr-vital {
   padding: 14px 16px; margin-bottom: 12px; border-radius: 14px;
   background: var(--surface); border: 1px solid var(--line);
-  border-left: 4px solid var(--brand);
+  border-left: 4px solid var(--ink-2);
 }
 .pr-vital-t { margin: 0; font-size: 16px; line-height: 1.45; color: var(--ink); }
 .pr-vital-s { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
@@ -4579,17 +4579,20 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   border-bottom: 1px solid var(--line); vertical-align: top;
 }
 .pr-table td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-.pr-table tbody tr.is-vital th[scope="row"] { box-shadow: inset 3px 0 0 var(--brand); }
-.pr-table tbody tr.is-vital { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+/* The vital few, shaded in neutral ink and said in words on the row: brand
+   blue is what you press (the row's "Find the root cause"), never a mark. */
+.pr-table tbody tr.is-vital th[scope="row"] { box-shadow: inset 3px 0 0 var(--ink-2); }
+.pr-table tbody tr.is-vital { background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .pr-cat { display: block; }
 .pr-prof {
   display: block; margin-top: 1px; font-size: 11px; font-weight: 600; color: var(--muted);
 }
 /* the bar cell — the ranking made visible */
-.pr-bar-cell { position: relative; min-width: 160px; }
+/* The minutes sit to the right of the longest bar, never printed over it. */
+.pr-table td.pr-bar-cell { position: relative; min-width: 160px; padding-right: 64px; }
 .pr-bar {
   display: block; height: 14px; border-radius: 3px;
-  background: color-mix(in srgb, var(--brand) 55%, transparent);
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
 }
 .pr-mins {
   position: absolute; inset: 0 10px 0 auto; display: flex; align-items: center;
@@ -8727,6 +8730,65 @@ button.gt-walklab small.is-done { color: var(--st-g); }
   color: var(--accent); background: none; border: 0; cursor: pointer; text-align: left; white-space: nowrap;
 }
 @media (pointer: coarse) { .pr-rc { min-height: 44px; } }
+/* The Pareto picks the problems (lib/paretoPicks): the thing to press on a
+   bar is brand blue — "Find the root cause" on the vital few, "Just do it" on
+   the rest — and the root cause behind a reason stays a quiet word. */
+.pr-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }
+.pr-rc.is-press {
+  padding: 6px 12px; border-radius: 8px; color: var(--on-brand); background: var(--brand);
+}
+.pr-rc.is-press:active { background: var(--brand-2); }
+.pr-rc.is-quiet { color: var(--muted); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+@media print { .pr-acts { display: none; } }
+
+/* THE PARETO, AS A PANE (ui/ParetoPane) — the left of the fishbone page on a
+   laptop, 320–420 px wide. The bars are neutral ink: the ranking is a shape,
+   not a state. Colour only on a problem's phase; the vital few said in words. */
+.prp { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.prp-h { display: flex; flex-direction: column; gap: 2px; }
+.prp-t { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); }
+.prp-sub { margin: 0; font-size: 12px; color: var(--muted); }
+.prp-vital { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.prp-vital b { color: var(--ink); }
+.prp-empty { margin: 0; }
+.prp-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.prp-bar { border-top: 1px solid var(--line); }
+.prp-go {
+  display: flex; flex-direction: column; gap: 5px; width: 100%; min-height: 44px; padding: 9px 8px;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; border-radius: 8px;
+}
+button.prp-go { cursor: pointer; }
+button.prp-go:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.prp-bar.is-sel .prp-go { background: color-mix(in srgb, var(--ink) 7%, transparent); box-shadow: inset 3px 0 0 var(--ink); }
+.prp-row1 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.prp-cat { font-size: 13.5px; font-weight: 700; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.prp-min { flex: none; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.prp-min b { color: var(--ink); }
+.prp-track { display: block; height: 8px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.prp-fill { display: block; height: 100%; border-radius: 3px; background: color-mix(in srgb, var(--ink) 55%, transparent); }
+.prp-bar:not(.is-vital) .prp-fill { background: color-mix(in srgb, var(--ink) 28%, transparent); }
+.prp-state { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; }
+.prp-state .sub { font-size: 12px; }
+.prp-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.prp-open { margin-left: auto; font-weight: 700; color: var(--accent); }
+.prp-bar.is-sel .prp-open { color: var(--muted); }
+.prp-press {
+  margin-left: auto; padding: 4px 10px; border-radius: 7px; font-weight: 700; color: var(--on-brand); background: var(--brand);
+}
+.prp-cut {
+  display: flex; align-items: center; gap: 8px; margin: 2px 0; padding: 6px 0;
+  border-top: 2px dashed var(--ink-2); font-size: 11.5px; font-weight: 700; color: var(--ink-2);
+}
+.prp-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.prp-just, .prp-quiet { min-height: 36px; padding: 4px 0; font: inherit; font-size: 12.5px; background: none; border: 0; cursor: pointer; }
+.prp-just { padding: 4px 12px; border-radius: 7px; font-weight: 700; color: var(--on-brand); background: var(--brand); }
+.prp-quiet { font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+@media (pointer: coarse) { .prp-just, .prp-quiet { min-height: 44px; } }
+.prp-bar.is-gone .prp-cat { color: var(--muted); text-decoration: line-through; }
+.prp-bar.is-gone .prp-min { color: var(--st-g); font-weight: 700; white-space: normal; text-align: right; }
+.prp-why-lede { margin: 0 0 8px; }
+.prp-why-type { display: flex; flex-direction: column; gap: 10px; padding: 10px 6px 4px; border-top: 1px solid var(--line); }
+.prp-why-type .btn { align-self: flex-end; }
 .pr-table tr.is-asked th, .pr-table tr.is-asked td { background: color-mix(in srgb, var(--brand) 7%, transparent); }
 /* The Pareto: a row is a door into the line's drill (HUNT 15). The whole row
    takes the tap; the category is its button, and says which line it opens. */

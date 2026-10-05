@@ -431,6 +431,10 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     sixmStop({ daysAgo: 9, mins: 9, subcategory: 'Sensor trip', note: 'condensation on the eye at start-up' }),
     sixmStop({ daysAgo: 23, mins: 11, subcategory: 'Sensor trip', note: 'Condensation on the photo-eye again', shift: 'Days' }),
     ...[5, 13, 20, 27].map(d => sixmStop({ daysAgo: d, mins: 14, asset: 'Bagger', subcategory: 'Film / packaging snag', shift: 'Days' })),
+    /* Two small losses outside the vital few, so the Pareto offers "Just do
+       it" on a bar (lib/paretoPicks) as well as "Find the root cause". */
+    sixmStop({ daysAgo: 7, mins: 6, category: 'Changeover', subcategory: 'Size change', asset: 'Bagger', shift: 'Days' }),
+    sixmStop({ daysAgo: 16, mins: 3, category: 'Waiting', subcategory: 'Waiting for materials', asset: 'Basketer', shift: 'Days' }),
   ]) await addObservation(o);
 
   /* Problem 1 — a Pareto bar, being acted on: a confirmed root drilled with
