@@ -30,6 +30,7 @@ import { useAccess } from '../cloud/access';
 import { LineNumbers } from './NumbersPanel';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
+import { lineOf } from '../lib/fishbone';
 import { useMeasures } from '../lib/useMeasures';
 import { lineSeries, say, vsTarget } from '../lib/measures';
 import { useActions, WHOLE_PROJECT } from '../lib/actions';
@@ -116,9 +117,12 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
     const s = a.uid ? ax.steps.find(x => x.id === a.uid) : undefined;
     if (s) setSheet({ step: s, isNew: false });
   };
+  /* A problem with no line on its row (one written before the fishbone)
+     belongs to the line whose study it lives in (lib/fishbone lineOf) — not to
+     every line, which put Line 7's old problem on Line 2A's fishbone. */
   const lineProblems = useMemo(
-    () => problems.problems.filter(p => !p.problem.lineId || p.problem.lineId === lineId),
-    [problems.problems, lineId],
+    () => problems.problems.filter(p => lineOf(p.problem, ppm.lines)?.id === lineId),
+    [problems.problems, lineId, ppm.lines],
   );
 
   const counts = useLinePackCounts(projectId, lineId, line?.workspaceId);

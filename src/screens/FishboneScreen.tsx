@@ -49,7 +49,7 @@ import type { Can } from '../lib/access';
 import type { Case } from '../types';
 import { removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
 import { offerUndo } from '../ui/Undo';
-import { drillOfRef, factsOf, oldWhysOf, startingWhys } from '../lib/fishbone';
+import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
 import { putOldWhysOnBone } from '../lib/useProblems';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -387,9 +387,11 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can }: {
   const lineId = askedLine ?? asked?.problem.lineId ?? ppm.lines[0]?.id;
   const line = ppm.lines.find(l => l.id === lineId);
   const mine = useMemo(
-    () => api.problems.filter(p => !lineId || !p.problem.lineId || p.problem.lineId === lineId)
+    /* A problem with no line on its row belongs to the line whose study it
+       lives in (lineOf), not to every line. */
+    () => api.problems.filter(p => !lineId || lineOf(p.problem, ppm.lines)?.id === lineId)
       .sort((a, b) => Number(isOpenProblem(b)) - Number(isOpenProblem(a)) || b.problem.openedAt - a.problem.openedAt),
-    [api.problems, lineId],
+    [api.problems, lineId, ppm.lines],
   );
   const view = mine.find(p => p.problem.id === askedProblem) ?? mainProblem(mine);
   const doors = useDoors(projectId, line);
