@@ -25,7 +25,9 @@ describe('an action on the 6M board', () => {
   });
   it('reads red when late, not grey', () => {
     expect(statusOfAction(stepAction(step({ due: '2026-09-29' }), lines, T))).toBe('r');
-    expect(statusOfAction(stepAction(step({ due: '2026-10-09' }), lines, T))).toBe('n');
+    // A day booked is still ahead (indigo); no day at all is not started (grey).
+    expect(statusOfAction(stepAction(step({ due: '2026-10-09' }), lines, T))).toBe('w');
+    expect(statusOfAction(stepAction(step({}), lines, T))).toBe('n');
     expect(statusOfAction(stepAction(step({ state: 'waiting' }), lines, T))).toBe('a');
     expect(statusOfAction(stepAction(step({ state: 'done' }), lines, T))).toBe('g');
   });
@@ -75,7 +77,7 @@ describe('due soon', () => {
     expect(roster.find(p => p.name === 'Rob')?.dueSoon).toBe(1);
   });
   it('does not turn the card amber or red by itself — it is still ahead', () => {
-    expect(statusOfAction(stepAction(step({ due: '2026-10-02' }), lines, T))).toBe('n');
+    expect(statusOfAction(stepAction(step({ due: '2026-10-02' }), lines, T))).toBe('w');  // still ahead is indigo (a day booked), never amber or red by itself
   });
 });
 

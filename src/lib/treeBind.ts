@@ -250,7 +250,12 @@ const NOT_STARTED = /^(not started|new|raised|to do|todo|backlog)$/i;
  *  puts in Flag — so a board in a meeting is never showing last month's colour. */
 export function statusOfAction(a: PaceAction): NodeStatus {
   const s = (a.status ?? '').trim();
-  if (!s) return 'n';
+  /* A DAY BOOKED IS STILL AHEAD (Rowland, 4 October — CLAUDE.md visual
+     management): an action nobody has started but with a due date is indigo,
+     not grey; grey is only "not started and no day". Past its day is the red
+     below, from the overdue flag. */
+  const booked = !!a.dueISO;
+  if (!s) return booked ? 'w' : 'n';
   if (DONE.test(s)) return 'g';
   /* PAST ITS DAY IS RED, WAITING IS AMBER — lean visual management: red is
      the abnormal thing, the day that has gone, and it is louder than anything
@@ -260,7 +265,7 @@ export function statusOfAction(a: PaceAction): NodeStatus {
   if (/overdue|late/i.test(a.flag ?? '')) return 'r';
   if (BLOCKED.test(s)) return 'a';
   if (GOING.test(s)) return 'w';
-  if (NOT_STARTED.test(s)) return 'n';
+  if (NOT_STARTED.test(s)) return booked ? 'w' : 'n';
   /* Anything else is LIVE, not "not started". The fallback used to be 'n',
    * which meant an action somebody had written "With supplier" against read on
    * the wall as work nobody had begun — the most misleading thing a board can
