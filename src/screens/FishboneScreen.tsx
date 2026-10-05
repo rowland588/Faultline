@@ -821,7 +821,10 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
               <ProblemCard {...cardProps(view)} />
             </>
           ) : (
-            <Fishbone view={view} can={can}
+            /* The fish fills the room (its frame scrolls inside when it is
+               taller), and its head opens the problem panel — as the strip does. */
+            <Fishbone view={view} can={can} fill
+              onHead={() => goPanel({ kind: 'problem' })}
               onCause={(c: Cause) => goPanel({ kind: 'cause', id: c.id })}
               onSuggestion={(s: Suggestion) => setEditing({ cause: draftFrom(s.m, s), draft: true })}
               onAdd={(m: SixM) => setEditing({ cause: draftFrom(m), draft: true })} />
