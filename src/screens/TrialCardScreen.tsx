@@ -187,7 +187,7 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
       const how = await deliverPdf(pdf, pdfFileName(project.name, `${c.title} ${c.kind === 'fix' ? 'fix' : c.kind === 'install' ? 'step' : 'test'} card`, when ?? todayISO()), { brand: false }); // its band carries the mark
-      setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('Card failed', e);
       setErr(isStaleBuildError(e)

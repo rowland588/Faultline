@@ -89,7 +89,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
       const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date), { brand: false }); // its band carries the mark
-      setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Opened in a new tab.');
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('Day report failed', e);
       setErr(isStaleBuildError(e)
@@ -111,13 +111,15 @@ export function DayScreen({ projectId }: { projectId: string }) {
           <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
           <p className="dy-headline">{day.headline}</p>
         </div>
-        {/* SEND IT FROM THE TOP. Rowland, 5 October: "I wanted to be able to
-            very quickly see today and send out an up-to-date movement on
-            today. Even that's not easy to do." The button was a "PDF" at the
-            foot of the page, under every list and the pictures. */}
+        {/* FROM THE TOP. Rowland, 5 October: "I wanted to be able to very
+            quickly see today and send out an up-to-date movement on today.
+            Even that's not easy to do." The button was a "PDF" at the foot of
+            the page, under every list and the pictures. It saves the page to
+            the device; the bar it leaves (ui/PdfReady) opens it to read and
+            sends it — "view it before I send it". */}
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
-            {busy ? 'Building…' : date === today ? 'Send today’s update' : 'Send this day'}
+            {busy ? 'Building…' : date === today ? 'Today’s update — PDF' : 'This day — PDF'}
           </button>
         </div>
       </header>
@@ -194,7 +196,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      <p className="sub tw-note">“{date === today ? 'Send today’s update' : 'Send this day'}” at the top makes one page of this: the day’s story, the gates’ bars and the day’s pictures.</p>
+      <p className="sub tw-note">“{date === today ? 'Today’s update — PDF' : 'This day — PDF'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </div>

@@ -4,6 +4,7 @@ import { Router } from './router';
 import { BootSplash } from './ui/Logo';
 import { UpdateBanner } from './ui/UpdateBanner';
 import { UndoHost } from './ui/Undo';
+import { PdfReadyHost } from './ui/PdfReady';
 import { ReminderNotifier } from './ui/Reminders';
 import { useRoute } from './state/useRoute';
 
@@ -41,6 +42,7 @@ export default function App() {
       {!outside && <UpdateBanner />}
       <Router />
       {!outside && <UndoHost />}
+      <PdfReadyHost />
       {!outside && <ReminderNotifier />}
     </ErrorBoundary>
   );

@@ -33,7 +33,7 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
     try {
       const { exportEverything } = await import('../lib/exportAll');
       const r = await exportEverything();
-      setSaid(r.how === 'shared' ? `Shared ${r.name}.` : `Saved ${r.name}.`);
+      setSaid(r.how === 'downloaded' ? `Saved ${r.name}.` : `${r.name} is ready — send it from the bar below.`);
     } catch (e) { setSaid(`The spreadsheet could not be built — ${e instanceof Error ? e.message : 'try again'}.`); }
     finally { setBusy(false); }
   };

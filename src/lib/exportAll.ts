@@ -8,10 +8,10 @@ import {
 import { listStandards } from '../db/standards';
 import { exportSheets, type ProjectData, type WalkData } from './exportWorkbook';
 import { writeXlsx } from './xlsxWrite';
-import { deliverBlob } from './savePdf';
+import { deliverBlob, type Delivered } from './savePdf';
 import { todayISO } from './weeks';
 
-export async function exportEverything(): Promise<{ how: 'shared' | 'downloaded' | 'opened'; name: string }> {
+export async function exportEverything(): Promise<{ how: Delivered; name: string }> {
   const projects = await ensureProjects();
   const data: ProjectData[] = [];
   const walks: WalkData[] = [];

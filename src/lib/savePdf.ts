@@ -10,11 +10,14 @@
  *    button that does nothing. Fetching it when the screen OPENS turns that
  *    into a problem you can see and be told about, before you are relying on it.
  *
- * 2. `doc.save()` IS A DOWNLOAD LINK. Safari on iOS largely ignores `<a
- *    download>` for a blob: no file, no error, nothing. On a phone the thing
- *    somebody actually wants is the share sheet — mail it, put it in Files —
- *    so ask for that first when the browser has it, and keep the download for
- *    the desktop where it is right.
+ * 2. SAVED FIRST, SENT SECOND. This used to open the phone's share sheet
+ *    first — Mail, WhatsApp — on the reasoning that sending is what a phone
+ *    wants. Rowland, 5 October: "it gives me the option to send via email,
+ *    but it never downloads to my device. I want an actual download so I can
+ *    view it before I send it." He had said it of the trial card before
+ *    (screens/TrialCardScreen). A document nobody has read is not ready to
+ *    send. So every PDF is now downloaded, and a bar (ui/PdfReady) stays up
+ *    with Open — to read it — and Send, the share sheet, as its own tap.
  *
  * Everything here reports what actually failed. "Sorry, try again" on a report
  * somebody needs for a meeting is not an error message, it is a shrug.
@@ -99,11 +102,15 @@ export async function reloadOntoNewBuild(): Promise<void> {
   window.location.reload();
 }
 
-/** Hand the finished document to the person, by whatever route this device has.
+/** How a document went out: saved to the device, or — where the browser
+ *  refused the download — only held, ready for the bar's Open and Send. */
+export type Delivered = 'downloaded' | 'ready';
+
+/** Hand the finished document to the person: saved to the device, with the
+ *  bar (ui/PdfReady) offering Open and Send.
  *
- *  Returns how it went out, so the caller can say something true afterwards
- *  ("opened in a new tab" is worth saying; a silent nothing is not). */
-export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<'shared' | 'downloaded' | 'opened'> {
+ *  Returns how it went out, so the caller can say something true afterwards. */
+export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<Delivered> {
   /* Every page leaves with the Faultline mark in its top margin — the one door
      all of them go out through, so no document can be missed. A sheet that is
      a picture edge to edge (the line standard) opts out. */
@@ -111,33 +118,12 @@ export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: b
   return deliverBlob(doc.output('blob') as Blob, filename);
 }
 
-/** The same three routes out, for a PDF the app did not draw.
- *
- *  A document the OEM emailed — a FAT report, a film spec — is saved in the blob
- *  store and has to be openable on a factory floor. That is the identical
- *  problem as getting a generated report out, including iOS ignoring `<a
- *  download>` for a blob, so it is the identical code rather than a second
- *  attempt at it. */
-export async function deliverBlob(blob: Blob, filename: string): Promise<'shared' | 'downloaded' | 'opened'> {
+/** The same route out, for a file the app did not draw — a document the OEM
+ *  emailed, saved in the blob store, or the whole export. */
+export async function deliverBlob(blob: Blob, filename: string): Promise<Delivered> {
   const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
-
-  // The share sheet first on anything that has one: on a phone this is Mail,
-  // WhatsApp, Files — which is what "send it to the client" actually means. Desktop
-  // browsers mostly do not offer it, and fall through to the download.
-  try {
-    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-    if (nav.share && nav.canShare?.({ files: [file] })) {
-      await nav.share({ files: [file], title: filename });
-      return 'shared';
-    }
-  } catch (e) {
-    // A cancelled share is not a failure — the user changed their mind, and
-    // downloading behind their back would be worse than doing nothing.
-    if (e instanceof DOMException && e.name === 'AbortError') return 'shared';
-    /* anything else: fall through and try to download it */
-  }
-
   const url = URL.createObjectURL(blob);
+  let how: Delivered = 'ready';
   try {
     const a = document.createElement('a');
     a.href = url;
@@ -146,15 +132,49 @@ export async function deliverBlob(blob: Blob, filename: string): Promise<'shared
     document.body.appendChild(a);
     a.click();
     a.remove();
-    // Safari needs the URL alive past the click; a minute is plenty and the
-    // page will drop it anyway on navigation.
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    return 'downloaded';
-  } catch {
-    // Downloading blocked (iOS standalone PWAs do this). Show it instead:
-    // a PDF on screen can still be shared, printed or saved by hand.
-    window.open(url, '_blank', 'noopener');
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    return 'opened';
+    how = 'downloaded';
+  } catch { /* the bar still holds it: Open shows it, Send shares it */ }
+  holdReady({ url, file, filename, saved: how === 'downloaded' });
+  return how;
+}
+
+/* ---------------- THE DOCUMENT JUST MADE, held for the bar ---------------- */
+
+export interface Ready { url: string; file: File; filename: string; saved: boolean; at: number }
+let ready: Ready | null = null;
+const readySubs = new Set<() => void>();
+
+function holdReady(r: Omit<Ready, 'at'>): void {
+  if (ready) URL.revokeObjectURL(ready.url);
+  ready = { ...r, at: Date.now() };
+  readySubs.forEach(f => f());
+}
+
+/** The document the bar offers, or null. */
+export const readyNow = (): Ready | null => ready;
+export function onReady(f: () => void): () => void { readySubs.add(f); return () => { readySubs.delete(f); }; }
+/** Close the bar and let the file go. */
+export function dropReady(): void {
+  if (ready) { const u = ready.url; setTimeout(() => URL.revokeObjectURL(u), 60_000); }
+  ready = null;
+  readySubs.forEach(f => f());
+}
+
+/** Whether this device can hand a file to its share sheet (a phone, mostly). */
+export function canSend(file: File): boolean {
+  try {
+    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+    return !!nav.share && !!nav.canShare?.({ files: [file] });
+  } catch { return false; }
+}
+
+/** The share sheet, for the document already made — its own tap, after it
+ *  has been read. A cancelled share is not a failure. */
+export async function sendReady(r: Ready): Promise<'sent' | 'cancelled' | 'failed'> {
+  try {
+    await navigator.share({ files: [r.file], title: r.filename });
+    return 'sent';
+  } catch (e) {
+    return e instanceof DOMException && e.name === 'AbortError' ? 'cancelled' : 'failed';
   }
 }

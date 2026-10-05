@@ -9728,3 +9728,20 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
 .gt.is-stacked .gt-gatelab {
   position: relative; z-index: 4; background: var(--surface); border-radius: 4px; padding: 0 3px;
 }
+
+/* THE DOCUMENT JUST MADE (ui/PdfReady) — read it, then send it. At the foot of
+   the screen, under the toast (which sits 74px up), on the surface rather than
+   the brand: it holds two things you press, and only those wear brand blue. */
+.pdfr {
+  position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 79;
+  display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lift);
+  max-width: 640px; margin: 0 auto;
+}
+.pdfr-m { display: grid; min-width: 0; flex: 1; }
+.pdfr-m b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdfr-m .sub { font-size: 12.5px; }
+.pdfr-acts { display: flex; align-items: center; gap: 6px; flex: none; }
+.pdfr-btn { min-height: 40px; padding: 0 14px; font-size: 14px; text-decoration: none; }
+.pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; }
+@media print { .pdfr { display: none !important; } }

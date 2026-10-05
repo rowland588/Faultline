@@ -921,7 +921,7 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
     setBusy(true); setSaid(null); setErr(null);
     try {
       const how = await deliverPdf(await sixmPdf(report), pdfFileName(line ? `${name} ${line.name}` : name, 'client report', todayISO()));
-      setSaid(how === 'shared' ? 'Sent.' : how === 'downloaded' ? 'Downloaded.' : 'Your browser would not save it, so it is open in a new tab — share or print it from there.');
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('6M client report failed', e);
       setErr(isStaleBuildError(e)
@@ -1248,7 +1248,7 @@ function PaceExecReportA3() {
       const how = await deliverPdf(pdf, pdfFileName(name, 'client report', todayISO()));
       // Downloading is invisible on a phone, and "opened in a tab" needs saying
       // or it looks like nothing happened at all.
-      if (how === 'opened') setSaveErr({ stale: false, msg: 'Your browser would not save it, so it is open in a new tab — share or print it from there.' });
+      if (how === 'ready') setSaveErr({ stale: false, msg: 'Your browser would not save it — open it from the bar below, and save or send it from there.' });
     } catch (err) {
       console.error('PDF export failed', err);
       setSaveErr(isStaleBuildError(err)
