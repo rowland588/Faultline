@@ -24,7 +24,7 @@
  * The head opens the problem (onHead), and with `fill` the drawn fish grows
  * into the height its box is given — the fishbone page hands it the room
  * under its bar. Pure: everything comes in through props. */
-import { Fragment, useMemo, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, createContext, useContext, useMemo, type CSSProperties, type ReactNode } from 'react';
 import type { Can } from '../lib/access';
 import { PHASE_WORD, type Bone, type ProblemMeasure, type ProblemView, type Suggestion } from '../lib/problems';
 import { GRADES, KNOWN_WORD, sixmLabel, type Cause, type SixM } from '../lib/sixm';
@@ -51,13 +51,24 @@ export interface FishboneProps {
    *  than squashing. The box must have a height of its own. Off, the fish is
    *  as tall as its marks need, as on the project page. */
   fill?: boolean;
+  /** The cause open beside the fish (the fishbone page's panel): its mark is
+   *  drawn as the one you are in — "I click, I go in" shows where you went. */
+  selected?: string;
+  /** The page already says the problem's title and phase above the fish (the
+   *  fishbone page's bar): the phone's title strip over the lanes is left off
+   *  so it is said once (CLAUDE.md, one thing one place). The small head
+   *  still opens the problem. */
+  untitled?: boolean;
 }
+
+/** The cause open beside the fish — read by each mark and lane row. */
+const SelectedCause = createContext<string | undefined>(undefined);
 
 /** Below this the bones stack as lanes. Measured on the fishbone's own box,
  *  so it is right wherever it is put, not just at the page's width. */
 const DRAWN_MIN = 820;
 
-export function Fishbone({ view: whole, can, onCause, onSuggestion, onAdd, compact, onHead, fill }: FishboneProps) {
+export function Fishbone({ view: whole, can, onCause, onSuggestion, onAdd, compact, onHead, fill, selected, untitled }: FishboneProps) {
   const [ref, w] = useWidth<HTMLDivElement>();
   const [frameRef, room] = useInnerBox<HTMLDivElement>();
   /* A suggestion is an offer to whoever works the fishbone ("add this?").
@@ -73,6 +84,7 @@ export function Fishbone({ view: whole, can, onCause, onSuggestion, onAdd, compa
      out in the room inside its frame and padding (FRAME_X). */
   const inner = Math.max(0, w - (mode === 'drawn' ? FRAME_X.drawn : mode === 'lanes' ? FRAME_X.lanes : 0));
   return (
+    <SelectedCause.Provider value={selected}>
     <div ref={ref} className={'fb is-' + mode + (fills ? ' is-fill' : '')}>
       {w > 0 && mode === 'compact' && <CompactFish view={view} width={inner} onHead={onHead} />}
       {w > 0 && mode === 'drawn' && (
@@ -88,7 +100,7 @@ export function Fishbone({ view: whole, can, onCause, onSuggestion, onAdd, compa
         <>
           <div className="fb-frame">
             <div className="fb-frame-top">
-              <CompactFish view={view} width={inner} onHead={onHead} onBone={m => {
+              <CompactFish view={view} width={inner} onHead={onHead} untitled={untitled} onBone={m => {
                 document.getElementById(laneId(view, m))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }} />
             </div>
@@ -101,6 +113,7 @@ export function Fishbone({ view: whole, can, onCause, onSuggestion, onAdd, compa
         </>
       )}
     </div>
+    </SelectedCause.Provider>
   );
 }
 
@@ -243,6 +256,7 @@ function DrawnFish({ view, can, width, fixes, room, onCause, onSuggestion, onAdd
 function Mark({ item, m, style, fix, two, onCause, onSuggestion }: {
   item: Item; m: SixM; style: CSSProperties; fix?: FixTag; two?: boolean; onCause: (c: Cause) => void; onSuggestion: (s: Suggestion) => void;
 }) {
+  const sel = useContext(SelectedCause);
   const bone = sixmLabel(m);
   if (item.kind === 'suggestion') {
     const s = item.s, says = suggestionSays(s);
@@ -257,7 +271,8 @@ function Mark({ item, m, style, fix, two, onCause, onSuggestion }: {
   }
   const c = item.cause, root = isRoot(c), says = causeSays(c, true, fix);
   return (
-    <button type="button" className={`fb-mark is-${c.status}${root ? ' is-root' : ''}${two ? ' is-two' : ''}`} style={style} onClick={() => onCause(c)}
+    <button type="button" className={`fb-mark is-${c.status}${root ? ' is-root' : ''}${two ? ' is-two' : ''}${sel === c.id ? ' is-selected' : ''}`} style={style} onClick={() => onCause(c)}
+      aria-current={sel === c.id ? 'true' : undefined}
       aria-label={`${bone}: ${c.text} — ${says}. Tap to open it.`}>
       <StatusGlyph status={c.status} root={root} />
       <span className="fb-mark-t">{c.text || 'A cause with no words yet'}</span>
@@ -307,6 +322,7 @@ function Lanes({ view, can, fixes, onCause, onSuggestion, onAdd }: Omit<Fishbone
 function Row({ item, bone, fix, onCause, onSuggestion }: {
   item: Item; bone: string; fix?: FixTag; onCause: (c: Cause) => void; onSuggestion: (s: Suggestion) => void;
 }) {
+  const sel = useContext(SelectedCause);
   if (item.kind === 'suggestion') {
     const s = item.s, says = suggestionSays(s);
     return (
@@ -323,7 +339,8 @@ function Row({ item, bone, fix, onCause, onSuggestion }: {
   const c = item.cause, root = isRoot(c);
   const from = c.source?.label ? [c.source.label, lossWords(c.source.minutesWeek)].filter(Boolean).join(', ') : '';
   return (
-    <button type="button" className={`fb-row is-${c.status}${root ? ' is-root' : ''}`} onClick={() => onCause(c)}
+    <button type="button" className={`fb-row is-${c.status}${root ? ' is-root' : ''}${sel === c.id ? ' is-selected' : ''}`} onClick={() => onCause(c)}
+      aria-current={sel === c.id ? 'true' : undefined}
       aria-label={`${bone}: ${c.text} — ${causeSays(c, true, fix)}. Tap to open it.`}>
       <StatusGlyph status={c.status} root={root} />
       <span className="fb-row-main">
@@ -347,7 +364,7 @@ function shortCount(b: Bone): string {
 
 const finite = (x?: number): x is number => x != null && Number.isFinite(x);
 
-function CompactFish({ view, width, onBone, onHead }: { view: ProblemView; width: number; onBone?: (m: SixM) => void; onHead?: () => void }) {
+function CompactFish({ view, width, onBone, onHead, untitled }: { view: ProblemView; width: number; onBone?: (m: SixM) => void; onHead?: () => void; untitled?: boolean }) {
   const narrow = width < 520;
   const m = view.measure;
   /* NARROW, THE HEAD CARRIES THE PROBLEM'S NUMBER — what it is now, in its
@@ -373,7 +390,7 @@ function CompactFish({ view, width, onBone, onHead }: { view: ProblemView; width
   const Top = onHead ? 'button' : 'div';
   return (
     <div className={'fb-mini' + (narrow ? ' is-narrow' : '')}>
-      {narrow && (
+      {narrow && !untitled && (
         <Top className={'fb-mini-top' + (onHead ? ' is-tap' : '')} {...(onHead ? { type: 'button' as const, onClick: onHead, 'aria-label': headSays(title) } : {})}>
           <b className="fb-title">{title}</b>
           <span className="fb-mini-meta">

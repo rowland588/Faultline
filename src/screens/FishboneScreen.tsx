@@ -823,7 +823,8 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
           ) : (
             /* The fish fills the room (its frame scrolls inside when it is
                taller), and its head opens the problem panel — as the strip does. */
-            <Fishbone view={view} can={can} fill
+            <Fishbone view={view} can={can} fill untitled
+              selected={panel?.kind === 'cause' ? panel.id : undefined}
               onHead={() => goPanel({ kind: 'problem' })}
               onCause={(c: Cause) => goPanel({ kind: 'cause', id: c.id })}
               onSuggestion={(s: Suggestion) => setEditing({ cause: draftFrom(s.m, s), draft: true })}

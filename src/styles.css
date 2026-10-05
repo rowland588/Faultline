@@ -9569,3 +9569,14 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
 .cap-name-ro { flex: 1 1 auto; font-size: 15px; }
 .cap-ro-v { display: block; margin-top: 2px; font-size: 16px; color: var(--ink); }
 @media print { .bd6-lanes { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .bd6-filters { display: none !important; } }
+
+/* The cause open beside the fish (the fishbone page's panel): a strong ink
+   ring, so "I went in here" reads at a glance. Ink, not brand blue — blue is
+   what you press, and this is where you are. */
+.fb-mark.is-selected, .fb-row.is-selected {
+  /* A heavy bar down its left edge and a tint — not a ring, which crossed the
+     fix tag where it runs past the mark's box. */
+  box-shadow: inset 4px 0 0 var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, var(--surface));
+  border-radius: 4px;
+}
