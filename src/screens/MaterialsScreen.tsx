@@ -145,9 +145,11 @@ function Row({ m, today, lineName, state, weeks, can }: {
   );
 }
 
-function AddMaterial({ state, lines }: {
+function AddMaterial({ state, lines, first }: {
   state: ReturnType<typeof useMaterials>;
   lines: { id: string; name: string }[];
+  /** Nothing on the list yet — the one time the form explains itself. */
+  first: boolean;
 }) {
   const [what, setWhat] = useState('');
   const [howMuch, setHowMuch] = useState('');
@@ -200,7 +202,7 @@ function AddMaterial({ state, lines }: {
         </label>
         <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => add()}>Add it</button>
       </div>
-      <p className="chip-hint">Only the first box is needed. A thing with no date agreed is a real state, and the list says so rather than inventing one.</p>
+      {first && <p className="chip-hint">Only the first box is needed. A thing with no date agreed is a real state, and the list says so rather than inventing one.</p>}
     </div>
   );
 }
@@ -288,7 +290,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           in both arms, so adding the FIRST thing swapped arms, unmounted the
           form and folded it shut: the line just picked was gone and the
           second thing needed "+ Add what you need" first. */}
-      {can.edit && <AddFold label="Add what you need" start={t.total === 0}><AddMaterial state={state} lines={lines.lines} /></AddFold>}
+      {can.edit && <AddFold label="Add what you need" start={t.total === 0}><AddMaterial state={state} lines={lines.lines} first={t.total === 0} /></AddFold>}
 
       {/* WHAT THE MACHINE CAN RUN, beside what it is waiting for — the two
           answer one question between them. On a stage-gate job Programs is

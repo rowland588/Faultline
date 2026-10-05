@@ -251,10 +251,14 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      <p className="sub tw-note">
-        A fix has its own days and its own card, and says which test it is for.
-        {nextBy && <> The next one is wanted by {nice(nextBy)}.</>}
-      </p>
+      {/* The explanation is said once, while the list is empty; the date of
+          the next one is a fact and stays as long as there is one. */}
+      {(st.upcoming.length + st.done.length === 0 || nextBy) && (
+        <p className="sub tw-note">
+          {st.upcoming.length + st.done.length === 0 && 'A fix has its own days and its own card, and says which test it is for.'}
+          {nextBy && <> The next one is wanted by {nice(nextBy)}.</>}
+        </p>
+      )}
     </div>
   );
 }

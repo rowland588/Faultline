@@ -140,6 +140,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /* Already in and running before anybody kept install steps — only the
      install gate says so; every gate after it is still to do. */
   const isIn = (a?: Asset) => gate === 'install' && !!a && ['installed', 'running'].includes(assetStateOf(a));
+  const nothingDone = grid.rows.every(r => r.cells.every(c => !c || !isSettled(c.step)));
   const bare = grid.rows.filter(r => r.asset && r.view.total === 0 && !isIn(r.asset));
   const giveStages = (rows: typeof grid.rows) => add(
     rows.flatMap(r => usual.map(title => ({ title, assetId: r.asset?.id }))),
@@ -414,16 +415,19 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
 
   return (
     <section className="ig">
-      <p className="sub ig-hint">
-        {can.edit
+      {/* How the grid is worked is said while nothing on it is done yet; once
+          a square is done the grid has been used and the line is in the way.
+          The offer to give new machines their stages is an action, and stays. */}
+      {(nothingDone || (bare.length > 1 && can.edit)) && <p className="sub ig-hint">
+        {nothingDone && (can.edit
           ? phone ? 'Tap a stage to mark it done or plan it. Tap a machine’s name to do it for all its stages.'
             : 'Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.'
           : phone ? 'Tap a stage to read it, or a machine’s name to read where it has got to.'
-            : 'Tap a square to read its step, or a machine to read where it has got to.'}
+            : 'Tap a square to read its step, or a machine to read where it has got to.')}
         {bare.length > 1 && can.edit && (
           <> <button className="cw-link" onClick={() => void giveStages(bare)}>Give the {bare.length} new machines the {usual.length} stages</button></>
         )}
-      </p>
+      </p>}
       {phone ? phoneCards() : (
       <div className="ig-wrap">
         <table className="ig-grid">

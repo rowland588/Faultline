@@ -720,11 +720,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       {lens === 'lines' && (
         <section className="pace-sec">
           <div className="pace-sec-head">
-            
-            <p className="pace-sec-sub">
+            {/* Said while there are no lines; once there are, the cards show it. */}
+            {ppm.lines.length === 0 && <p className="pace-sec-sub">
               Each line has an owner and a pack of its own — its pace, its actions, its next steps, its wins and its
               filmed walk. Open one to work in it; everything in it rolls up into the client report.
-            </p>
+            </p>}
           </div>
           {ppm.lines.length === 0 ? (
             <div className="pace-empty">

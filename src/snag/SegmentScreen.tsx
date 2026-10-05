@@ -198,7 +198,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
 
       <div className="seg-title-row">
         <button className="asset-title" style={{ width: 'auto' }} onClick={() => seg && setRenamingSeg(true)}>
-          <span className="mark" style={{ fontSize: 22 }}>{seg ? sectionLabel(seg, assets.map(a => a.name)) : '…'}</span>
+          <span className="mark" style={{ fontSize: 'var(--t-page)' }}>{seg ? sectionLabel(seg, assets.map(a => a.name)) : '…'}</span>
         </button>
         {seg && <button className="btn seg-rename-btn" onClick={() => setRenamingSeg(true)}><Icon name="pencil" /> Name this video</button>}
       </div>

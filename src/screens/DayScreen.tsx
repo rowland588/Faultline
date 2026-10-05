@@ -186,7 +186,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
-      <p className="sub tw-note">“{date === today ? 'Today’s update — PDF' : 'This day — PDF'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>
+      {/* Said once, on an empty day; a day with a story does not need its button explained. */}
+      {day.empty && <p className="sub tw-note">“{date === today ? 'Today’s update — PDF' : 'This day — PDF'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>}
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </div>

@@ -666,7 +666,7 @@ function PassesIf({ test, can, label, glow, onSave }: {
       <>
         <Field label={label} text={test.passesIf} />
         {/* The team's line says who moves it, in place of the general one. */}
-        <p className="sub tw-note">{can.edit ? 'Agreed — only the owner changes it. It is what the result gets measured against.' : measured}</p>
+        {(can.edit || !test.passesIf) && <p className="sub tw-note">{can.edit ? 'Agreed — only the owner changes it. It is what the result gets measured against.' : measured}</p>}
       </>
     );
   }
@@ -678,7 +678,7 @@ function PassesIf({ test, can, label, glow, onSave }: {
             : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
               : '65 ppm held for 30 minutes, under 2% waste'}
           onSave={onSave} /></label>
-      <p className="sub tw-note">{measured}</p>
+      {!test.passesIf && <p className="sub tw-note">{measured}</p>}
     </>
   );
 }

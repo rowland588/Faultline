@@ -113,7 +113,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         {hiddenClosed > 0 && <button className="btn" onClick={() => setShowClosed(v => !v)}>{showClosed ? 'Hide closed' : `Show closed (${hiddenClosed})`}</button>}
       </div>
       <button className="asset-title" onClick={() => asset && setRenaming(true)}>
-        <span className="mark" style={{ fontSize: 22 }}>{asset?.name ?? '…'}{asset?.code ? <span className="sub" style={{ fontSize: 15, fontWeight: 400 }}> · {asset.code}</span> : null}</span>
+        <span className="mark" style={{ fontSize: 'var(--t-page)' }}>{asset?.name ?? '…'}{asset?.code ? <span className="sub" style={{ fontSize: 'var(--t-body)', fontWeight: 500 }}> · {asset.code}</span> : null}</span>
       </button>
       <div className="asset-actions">
         {/* A BUTTON, not only a gesture. Tapping the picture still works, but on

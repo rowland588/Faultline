@@ -54,7 +54,7 @@ export function AssetHistoryScreen({ wsId, assetId }: { wsId: string; assetId: s
       <div className="subhead">
         <button className="btn btn-ghost" onClick={() => nav(`/w/${wsId}/asset/${assetId}`)}>‹ Asset</button>
       </div>
-      <div className="mark" style={{ fontSize: 22 }}>{target.name}{target.code ? <span className="sub" style={{ fontSize: 15, fontWeight: 400 }}> · {target.code}</span> : null}</div>
+      <div className="mark" style={{ fontSize: 'var(--t-page)' }}>{target.name}{target.code ? <span className="sub" style={{ fontSize: 'var(--t-body)', fontWeight: 500 }}> · {target.code}</span> : null}</div>
       <p className="sub" style={{ marginTop: 4 }}>
         {history.length > 1
           ? `The same machine across ${history.length} walks.`
