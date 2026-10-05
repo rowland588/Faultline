@@ -134,18 +134,30 @@ export interface HoldCheck {
 
 /* --------------------- where a timed stop's bone comes from --------------------- */
 
+/** Words for the air around the line, not the machine's own heat. */
+const ROOM = /humid|condensation|dust|draught|lighting|ambient|room temp|hot day|cold day|weather|damp/;
+
 /** The bone a timed stop most likely belongs on, from its loss category and
  *  sub-category (lib/taxonomy.ts) — used only when the floor did not say
  *  (Observation.causeM). A suggestion, always shown as one, never stored as a
- *  cause until somebody accepts it. */
+ *  cause until somebody accepts it.
+ *
+ *  In this order: the stop's own note naming the room's conditions
+ *  ("condensation on the eye") — the floor's account of THIS stop, and the
+ *  bone no sub-category names; then the sub-category's usual bone (boneOfSub,
+ *  the shipped map); then the words of the sub-category and note; then the
+ *  loss category. */
 export function boneOfStop(category: string, subcategory?: string, note?: string): SixM {
+  if (ROOM.test((note ?? '').toLowerCase())) return 'environment';
+  const usual = boneOfSub(subcategory);
+  if (usual) return usual;
   const t = `${subcategory ?? ''} ${note ?? ''}`.toLowerCase();
   if (/film|splice|reel|label|carton|tray|bag|pack(ag)?ing|product|ingredient|spec|supplier|material/.test(t)) return 'material';
   if (/checkweigh|metal detect|vision|reject|calibrat|scale|gauge|counter|sensor read|not logged/.test(t)) return 'measurement';
   /* The room's conditions, not the machine's: "seal jaw temperature" is the
      machine's own heat (Machine), "hot day", "humidity" or "condensation" is
      the air around the line (found by the engine agent). */
-  if (/humid|condensation|dust|draught|lighting|ambient|room temp|hot day|cold day|weather|damp/.test(t)) return 'environment';
+  if (ROOM.test(t)) return 'environment';
   if (/operator|crew|staff|labour|training|absence|short|agency|break|shift/.test(t)) return 'people';
   if (/changeover|set.?up|clean|sop|standard|procedure|method|schedule/.test(t)) return 'method';
   switch (category) {
@@ -170,9 +182,54 @@ export const KNOWN_WORD: Record<Grade, string> = {
 /** The bone a stop's sub-category usually belongs on — shipped food
  *  knowledge (lib/taxonomy), so a Pareto is sorted onto the six bones without
  *  anyone sorting it. A suggestion: the chain on the problem says the real
- *  bone, and the floor's own tap (Observation.causeM) beats it. Filled in by
- *  the engine slice; undefined means "no usual bone — guess from the words". */
-export const DEFAULT_BONE: Record<string, SixM> = {};
+ *  bone, and the floor's own tap (Observation.causeM) beats it. Keyed by the
+ *  sub-category exactly as lib/taxonomy ships it (matched ignoring case);
+ *  undefined means "no usual bone — guess from the words". */
+export const DEFAULT_BONE: Record<string, SixM> = {
+  /* Machine — the equipment that DOES the work. A seal is made by the jaws;
+     a utility (air, steam, chill) is plant engineering owns. */
+  'Mechanical': 'machine',
+  'Electrical': 'machine',
+  'Utilities (air / steam / chill)': 'machine',
+  'Sensor trip': 'machine',
+  'Sensor / photo-eye fault': 'machine',
+  'Tooling': 'machine',
+  'Seal fault': 'machine',
+  'Running below rated': 'machine',
+  /* Measurement — what CHECKS or COUNTS the work, or holds it to be checked. */
+  'Checkweigher false reject': 'measurement',
+  'Waiting QA release': 'measurement',
+  'Swab / QA hold': 'measurement',
+  /* Material — the product, and what it is made and packed with. */
+  'Film / packaging snag': 'material',
+  'No packaging / consumables': 'material',
+  'No ingredients': 'material',
+  'Product out of spec (size / shape)': 'material',
+  /* Method — the way it is done: changeovers, standards, cleaning, the plan. */
+  'Setup': 'method',
+  'No standard': 'method',
+  'Product change': 'method',
+  'Size / format change': 'method',
+  'Allergen changeover': 'method',
+  'Hygiene cleandown': 'method',
+  'Label / date change': 'method',
+  'Scheduled clean': 'method',
+  'Unscheduled clean': 'method',
+  'Short runs': 'method',
+  'Waiting forklift / logistics': 'method',
+  /* People — who runs it, and whether they can. */
+  'No labour': 'people',
+  'Untrained cover': 'people',
+  'Uneven crewing': 'people',
+  /* Environment — the conditions around the line. */
+  'Condensation / ambient temperature': 'environment',
+  /* Left out on purpose — no usual bone, so the words decide: Jam /
+     blockage, Misfeed, Manual clear (any of the six), Starved upstream and
+     Blocked downstream (the cause is at the other machine), Reject, Rework,
+     Scrap / waste, Giveaway / overfill, Underweight reject, Label / date
+     fault, Foreign body / detector reject (each a symptom any bone can
+     cause). */
+};
 
 export function boneOfSub(subcategory: string | undefined): SixM | undefined {
   const k = (subcategory ?? '').trim().toLowerCase();

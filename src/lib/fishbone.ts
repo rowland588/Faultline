@@ -337,6 +337,41 @@ const ENV: { key: string; word: string; re: RegExp }[] = [
   { key: 'dust', word: 'Dust', re: /\b(dust\w*)\b/i },
 ];
 
+/** The stops a problem is read from — the line's log from the first of the
+ *  last FULL_WEEKS full weeks up to now (the current week included, so a stop
+ *  timed this morning is seen), and the part of it inside the head of the
+ *  fish. The suggestions and the facts read the same stops, so "11 of 18" is
+ *  the same 18 on the bone and on the problem. */
+function evidenceOf(problem: Case, data: FishboneData, today: number) {
+  const scope = scopeOf(problem, data);
+  const log = lineLog(problem, data);
+  const weeks = fullWeeks(today);
+  const evidence = log.filter(o => o.startedAt >= weeks.from && o.startedAt <= today);
+  return { scope, log, weeks, evidence, scoped: evidence.filter(scope.match) };
+}
+
+/** Fewer stops than this in the head say nothing about where they fall. */
+const MIN_STOPS = 5;
+
+/** How the stops in the head fall over one thing they carry (the shift, the
+ *  machine, the reason): each value with its stops, most first; `total`, every
+ *  stop in the head (a batch counts as its count), those with the value blank
+ *  included; and `ran`, the values the LINE logged anything on in the same
+ *  stops — where it ran, so a value with none in the head is a real "none". */
+function spreadOf(evidence: Observation[], scoped: Observation[], key: (o: Observation) => string | undefined) {
+  const val = (o: Observation) => (key(o) ?? '').trim();
+  const by = new Map<string, number>();
+  let total = 0;
+  for (const o of scoped) {
+    const n = stops(o);
+    total += n;
+    const v = val(o);
+    if (v) by.set(v, (by.get(v) ?? 0) + n);
+  }
+  const ran = [...new Set(evidence.map(val).filter(Boolean))];
+  return { total, ran, by: [...by.entries()].map(([value, n]) => ({ value, n })).sort((a, b) => b.n - a.n || a.value.localeCompare(b.value)) };
+}
+
 /** What the data says might belong on each bone of this problem, worked out
  *  from the records each one points at. Suggestions already accepted (a cause
  *  whose source has the same kind and ref) are left out. */
@@ -344,11 +379,7 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
   const out: Suggestion[] = [];
   const line = lineOf(problem, data.lines);
   const lineWs = logWorkspace(problem, data);
-  const scope = scopeOf(problem, data);
-  const log = lineLog(problem, data);
-  const weeks = fullWeeks(today);
-  const evidence = log.filter(o => o.startedAt >= weeks.from && o.startedAt <= today);
-  const scoped = evidence.filter(scope.match);
+  const { scope, log, weeks, evidence, scoped } = evidenceOf(problem, data, today);
   const since = niceDay(isoOf(weeks.from));
   const todayIso = isoOf(today);
 
@@ -380,22 +411,12 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
   /* 2. CONCENTRATIONS. Most of the stops on one shift is a People question —
      but only on a line that logs more than one shift, or "all on days" says
      nothing. */
-  const shifts = new Set(evidence.map(o => o.shift?.trim()).filter(Boolean));
-  if (shifts.size >= 2) {
-    const by = new Map<string, number>();
-    let total = 0;
-    for (const o of scoped) {
-      const n = stops(o);
-      total += n;
-      const s = o.shift?.trim();
-      if (s) by.set(s, (by.get(s) ?? 0) + n);
-    }
-    const top = [...by.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (top && total >= 5 && top[1] / total >= 0.6) {
-      out.push(mk('pareto', `shift=${top[0]}`, 'people', `Most stops on ${top[0]}`, 'measured', {
-        detail: `${top[1]} of ${total} stops since ${since} were on ${top[0]}`, label: `Stops by shift — ${top[0]}`,
-      }));
-    }
+  const byShift = spreadOf(evidence, scoped, o => o.shift);
+  const top = byShift.ran.length >= 2 ? byShift.by[0] : undefined;
+  if (top && byShift.total >= MIN_STOPS && top.n / byShift.total >= 0.6) {
+    out.push(mk('pareto', `shift=${top.value}`, 'people', `Most stops on ${top.value}`, 'measured', {
+      detail: `${top.n} of ${byShift.total} stops since ${since} were on ${top.value}`, label: `Stops by shift — ${top.value}`,
+    }));
   }
 
   /* 3. THE WALK. Open snags on the machine the head is about — or, for the
@@ -732,21 +753,136 @@ export function therefore(cause: Cause, problemTitle: string): string[] {
 /* ======================== the working method's shapes ======================== */
 
 /** WHERE A PROBLEM IS, AND WHERE IT IS NOT (docs/SIXM.md, the working method,
- *  step 2) — read from the timed stops in its scope over the last full weeks,
- *  never typed: "11 of 18 on nights", "all on the Basketer", "none on days".
- *  Each line is one fact in words; `is` carries where it concentrates, `isNot`
- *  where it is absent though the line ran. Filled in by the engine slice. */
+ *  step 2) — each line one fact in words; `is` carries where it concentrates,
+ *  `isNot` where it is absent though the line ran. */
 export interface ProblemFacts { is: string[]; isNot: string[] }
 
-export function factsOf(_problem: Case, _data: FishboneData, _today = Date.now()): ProblemFacts {
-  return { is: [], isNot: [] };
-}
-
-/** The starting answers to "why does it happen?" — the problem's own
- *  breakdown (sub-categories, else machines) with minutes a week and the bone
- *  each usually belongs on (boneOfSub). Filled in by the engine slice. */
+/** One starting answer to "why does it happen?": what it is, its minutes a
+ *  week, its usual bone, and the drill path that opens it on the Pareto. */
 export interface StartingWhy { text: string; minutesWeek: number; m: SixM; ref?: string }
 
-export function startingWhys(_problem: Case, _data: FishboneData, _today = Date.now()): StartingWhy[] {
-  return [];
+type Dim = DrillPath[number]['dimension'];
+
+/** What the head of the fish already fixes — "all on the Basketer" says
+ *  nothing about a problem that IS the Basketer, and a problem that is one
+ *  reason has no breakdown by reason. */
+function fixedOf(problem: Case, scope: Scope): Set<Dim> {
+  const f = new Set<Dim>();
+  const src = problem.source;
+  if (scope.whole) return f;
+  if (scope.asset) f.add('asset');
+  if (src && src.kind !== 'gap' && src.kind !== 'constraint') {
+    if (src.category) f.add('category');
+    if (src.subcategory) f.add('subcategory');
+  }
+  if (!src) for (const p of problem.path) f.add(p.dimension);
+  return f;
+}
+
+/** "the Bagger", "the Bagger or the Wrapper", "the Bagger, the Wrapper or 3 others". */
+function orList(xs: string[]): string {
+  if (xs.length <= 3) return xs.length > 1 ? `${xs.slice(0, -1).join(', ')} or ${xs[xs.length - 1]}` : xs[0] ?? '';
+  return `${xs.slice(0, 2).join(', ')} or ${xs.length - 2} others`;
+}
+const isWholeLine = (v: string) => /^whole line$/i.test(v.trim());
+
+/** WHERE A PROBLEM IS, AND WHERE IT IS NOT — read from the timed stops in its
+ *  scope, never typed: "11 of 18 on nights", "all 18 on the Basketer",
+ *  "mostly Misfeed — 9 of 18", "none on days".
+ *
+ *  Read from the same stops as the suggestions (evidenceOf: the last
+ *  FULL_WEEKS full weeks and this one), over the shift, the machine, the
+ *  reason and the loss — each one the head does not already fix. Said only
+ *  with at least MIN_STOPS stops in the head and the line logging two or more
+ *  values of the thing (a line that only logs days says nothing by "all on
+ *  days"). `is`: a value carrying half the stops or more, and more than any
+ *  other. `isNot`, for the shift and the machine only (a reason the problem
+ *  never has is not a fact about it): the values the line logged stops on
+ *  with none of these among them. No ids — the names the floor logged. */
+export function factsOf(problem: Case, data: FishboneData, today = Date.now()): ProblemFacts {
+  const out: ProblemFacts = { is: [], isNot: [] };
+  const { scope, evidence, scoped } = evidenceOf(problem, data, today);
+  const fixed = fixedOf(problem, scope);
+  const on = (d: Dim, v: string) => (d === 'shift' ? `on ${lowerFirst(v)}` : isWholeLine(v) ? 'on the whole line' : `on the ${v}`);
+  const dims: { d: Dim; key: (o: Observation) => string | undefined; where: boolean }[] = [
+    { d: 'shift', key: o => o.shift, where: true },
+    { d: 'asset', key: o => o.asset, where: true },
+    { d: 'subcategory', key: o => o.subcategory, where: false },
+    { d: 'category', key: o => o.category, where: false },
+  ];
+  for (const { d, key, where } of dims) {
+    if (fixed.has(d)) continue;
+    const sp = spreadOf(evidence, scoped, key);
+    if (sp.total < MIN_STOPS || sp.ran.length < 2) continue;
+    const [top, next] = sp.by;
+    if (top && top.n * 2 >= sp.total && (!next || top.n > next.n)) {
+      const all = top.n === sp.total;
+      out.is.push(where
+        ? (all ? `all ${sp.total} ${on(d, top.value)}` : `${top.n} of ${sp.total} ${on(d, top.value)}`)
+        : (all ? `all ${top.value} — ${plural(sp.total, 'stop')}` : `mostly ${top.value} — ${top.n} of ${sp.total}`));
+    }
+    if (where && sp.by.length) {
+      /* "None on the whole line" would read as "none at all": the bucket for
+         stops on no one machine is never a place the problem is not. */
+      const none = sp.ran.filter(v => !sp.by.some(b => b.value === v) && !isWholeLine(v)).sort((a, b) => a.localeCompare(b));
+      if (none.length) out.isNot.push(`none on ${orList(none.map(v => (d === 'shift' ? lowerFirst(v) : `the ${v}`)))}`);
+    }
+  }
+  return out;
+}
+
+/** At most this many starting answers — beyond them is the problem's own
+ *  long tail. */
+const MAX_STARTING = 5;
+
+/** The starting answers to "why does it happen?" — the problem's own
+ *  breakdown with minutes a week, biggest first: its sub-categories, else
+ *  (when the head is one reason, or the stops carry none) its machines; none
+ *  when the head fixes both. Minutes are the timed stops' average over the
+ *  last FULL_WEEKS full weeks, as the problem's own number is; an answer with
+ *  no timed minutes is left out.
+ *
+ *  Each says the bone it usually belongs on: the floor's own tap when its
+ *  stops carry one (the bone with the most minutes told), else the bone its
+ *  stops are given on the fish (boneOfStop: a note naming the room, then the
+ *  sub-category's usual bone, boneOfSub, then the words) carrying the most
+ *  minutes — so a starting answer and its stops' suggestion on the fish name
+ *  the same bone. `ref` is the drill path that opens
+ *  it on the Pareto ("category=Minor stop;subcategory=Misfeed;asset=Basketer",
+ *  read back by drillOfRef) — whatever all its stops share. */
+export function startingWhys(problem: Case, data: FishboneData, today = Date.now()): StartingWhy[] {
+  const scope = scopeOf(problem, data);
+  const { from, to } = fullWeeks(today);
+  const rows = lineLog(problem, data).filter(o => scope.match(o) && o.startedAt >= from && o.startedAt < to && o.durationMs > 0);
+  const fixed = fixedOf(problem, scope);
+  const has = (d: 'subcategory' | 'asset') => !fixed.has(d) && rows.some(o => !!o[d]?.trim());
+  const dim = has('subcategory') ? 'subcategory' : has('asset') ? 'asset' : undefined;
+  if (!dim) return [];
+  const groups = new Map<string, Observation[]>();
+  for (const o of rows) {
+    const v = (o[dim] ?? '').trim();
+    if (v) groups.set(v, [...(groups.get(v) ?? []), o]);
+  }
+  /* The bone carrying the most minutes among some stops, each stop's bone
+     given by `of`. */
+  const heaviest = (g: Observation[], of: (o: Observation) => SixM | undefined): SixM | undefined => {
+    const w = new Map<SixM, number>();
+    for (const o of g) { const m = of(o); if (m) w.set(m, (w.get(m) ?? 0) + o.durationMs); }
+    return [...w.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  };
+  const shared = (g: Observation[], k: 'category' | 'subcategory' | 'asset') => {
+    const vs = [...new Set(g.map(o => (o[k] ?? '').trim()))];
+    return vs.length === 1 && vs[0] ? `${k}=${vs[0]}` : '';
+  };
+  return [...groups.entries()].map(([text, g]): StartingWhy => {
+    const ref = [shared(g, 'category'), shared(g, 'subcategory'), shared(g, 'asset')].filter(Boolean).join(';');
+    return {
+      text,
+      minutesWeek: round1(msWeekOf(g, from, to) / 60_000),
+      m: heaviest(g, o => o.causeM) ?? heaviest(g, o => boneOfStop(o.category, o.subcategory, o.note)) ?? 'machine',
+      ...(ref ? { ref } : {}),
+    };
+  }).filter(w => w.minutesWeek > 0)
+    .sort((a, b) => b.minutesWeek - a.minutesWeek || a.text.localeCompare(b.text))
+    .slice(0, MAX_STARTING);
 }

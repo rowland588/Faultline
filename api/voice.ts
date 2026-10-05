@@ -165,17 +165,34 @@ export function schemaFor(form: VoiceForm): Record<string, unknown> {
   };
 }
 
+/* THE WHYS are said on a running line, not an install, and have no day in
+   them: the setting and the record are said their own way for them, and how
+   to split the chain is said in place of the dates. */
+const WHYS_SAY = [
+  'Split what they said into the chain of answers, in order, each the reason for the one before: the first is why the problem happens, the last is the deepest reason they gave.',
+  'One answer per reason, a short sentence each, starting with a capital letter. Drop "because", "so" and "that\'s because"; keep every fact, name and number they said.',
+  'If they gave only one reason, the chain has one answer. Do not add a reason they did not say, and do not reword one into something else.',
+  'For "bone", pick the one of the six the LAST answer belongs to: people (who runs it, and whether they can), machine (the equipment that does the work), method (the way the work is done — changeovers, standards, cleaning, the plan), material (the product, and what it is made and packed with), measurement (how the work is checked and counted), environment (the conditions around the line). Leave it out when unsure.',
+];
+
 export function promptFor(form: VoiceForm, ctx: VoiceContext): string {
   const list = (label: string, xs?: string[]) => (xs && xs.length ? `${label}: ${xs.join('; ')}.` : '');
+  const whys = form === 'whys';
   return [
-    'You are reading a voice note recorded on a factory floor during the installation and commissioning of packaging machinery in the UK.',
+    whys
+      ? 'You are reading a voice note recorded on a factory floor in the UK by a team finding the root cause of a problem on a running production line.'
+      : 'You are reading a voice note recorded on a factory floor during the installation and commissioning of packaging machinery in the UK.',
     `The person is filling in ${FORMS[form].what}`,
     'Return ONLY the fields that were actually said. Leave a field empty rather than guess.',
     'Speech recognition mangles names. When a name sounds like one on these lists, use the list spelling exactly.',
     list('Machines on this job', ctx.machines),
     list('Suppliers and people on this job', ctx.suppliers),
-    ctx.on?.title ? `They are on the record "${ctx.on.title}"${ctx.on.machine ? ` for the ${ctx.on.machine}` : ''}.` : '',
-    `Today is ${ctx.today}. Turn "today", "tomorrow", "Friday" and the like into ISO dates from today.`,
+    ctx.on?.title
+      ? whys
+        ? `The problem is "${ctx.on.title}"${ctx.on.machine ? ` on the ${ctx.on.machine}` : ''}.`
+        : `They are on the record "${ctx.on.title}"${ctx.on.machine ? ` for the ${ctx.on.machine}` : ''}.`
+      : '',
+    whys ? WHYS_SAY.join('\n') : `Today is ${ctx.today}. Turn "today", "tomorrow", "Friday" and the like into ISO dates from today.`,
     /* TALKING IS THE WRITING. Rowland: "the entire principle is talk instead
        of writing". On a record the person chose, what they say is about it. */
     accountOf(form) ? `An account always belongs in "${accountOf(form)}": how it went, what happened, what is worrying them, what comes next. When unsure, it belongs in "${accountOf(form)}". Only something plainly about a DIFFERENT machine or record goes in "leftover", word for word — never drop it.` : 'Anything said that does not belong in this form goes in "leftover", word for word — never drop it.',
@@ -202,6 +219,19 @@ export function tidy(form: VoiceForm, raw: unknown): VoiceResult {
   for (const k of Object.keys(FORMS[form].fields)) {
     const v = given[k];
     if (k === 'fix') { if (v === true) out.fix = true; continue; }
+    /* The whys: each answer trimmed, a leading "because" the reader kept
+       dropped, blanks gone — and the bone only when it is one of the six. */
+    if (k === 'chain') {
+      const chain = (Array.isArray(v) ? v : []).map(x => str(x).replace(/^(and\s+)?(because|'?cause|'?cos)\s+(of\s+)?/i, '').trim())
+        .filter(Boolean).map(x => x[0].toUpperCase() + x.slice(1));
+      if (chain.length) out.chain = chain;
+      continue;
+    }
+    if (k === 'bone') {
+      const b = str(v).toLowerCase();
+      if (['people', 'machine', 'method', 'material', 'measurement', 'environment'].includes(b)) out.bone = b;
+      continue;
+    }
     if (k === 'notes' && Array.isArray(v)) {
       const notes = v.map(n => ({ what: str((n as { what?: unknown }).what), owner: str((n as { owner?: unknown }).owner) }))
         .filter(n => n.what);
@@ -356,7 +386,7 @@ export async function GET(request: Request): Promise<Response> {
       v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
       w(36, 'data'); v.setUint32(40, 32000, true);
       let bin = ''; for (const b of silence) bin += String.fromCharCode(b);
-      /* &form=fix|test|install|found|problem — each form's own schema, because a
+      /* &form=fix|test|install|found|problem|whys — each form's own schema, because a
          schema one model accepts another can refuse, and the found-form alone
          proved nothing about the other three. */
       const asked = params.get('form') as VoiceForm | null;

@@ -13,7 +13,7 @@ import type { WalkSnag } from '../walkSnags';
 import { SIXM, blamesAPerson, boneOfStop } from '../sixm';
 import {
   acceptSuggestion, belongsTo, buildView, causeFromOldWhys, causeRefOf, oldWhysOf, countermeasuresOf, drillOfRef, fishboneData,
-  fullWeeks, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, suggestionsFor, therefore,
+  factsOf, fullWeeks, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
   type Countermeasure, type FishboneData,
 } from '../fishbone';
 
@@ -545,5 +545,136 @@ describe('the old five whys, put on a bone', () => {
     const c = causeFromOldWhys(['a', 'b'], 'method', { newId: ids(), at: 1 }) as Cause;
     const p: Case = { id: 'p', workspaceId: 'w', title: 'P', path: [], baselineMsWeek: 0, status: 'open', openedAt: 1, updatedAt: 1, causes: [c] };
     expect(phaseOf(p, [], null)).toBe('finding');
+  });
+});
+
+/* ======================= the working method: Problem, Why ======================= */
+
+describe('factsOf — where the problem is, and where it is not', () => {
+  /* The Basketer's minor stops: 11 of 18 on nights, 10 of them Misfeed. The
+     Bagger ran lates, with none of these. */
+  const basketer = () => [
+    ...Array.from({ length: 9 }, (_, i) => ob({ daysAgo: 4 + i, shift: 'Nights', subcategory: 'Misfeed' })),
+    ob({ daysAgo: 14, shift: 'Days', subcategory: 'Misfeed' }),
+    ...Array.from({ length: 2 }, (_, i) => ob({ daysAgo: 15 + i, shift: 'Nights', subcategory: 'Sensor trip' })),
+    ...Array.from({ length: 6 }, (_, i) => ob({ daysAgo: 17 + i, shift: 'Days', subcategory: 'Sensor trip' })),
+    ob({ daysAgo: 5, asset: 'Bagger', category: 'Breakdown', shift: 'Lates' }),
+  ];
+  it('a bar on one machine: its shift and reason, and the shift that ran with none', () => {
+    expect(factsOf(problem(), data({ observations: basketer() }), TODAY)).toEqual({
+      is: ['11 of 18 on nights', 'mostly Misfeed — 10 of 18'],
+      isNot: ['none on lates'],
+    });
+  });
+  it('a reason across the line: the machine it is all on, and the machines that ran without it', () => {
+    const obs = [
+      ...Array.from({ length: 6 }, (_, i) => ob({ daysAgo: 4 + i, subcategory: 'Misfeed' })),
+      ob({ daysAgo: 6, asset: 'Bagger', subcategory: 'Film / packaging snag' }),
+      ob({ daysAgo: 7, asset: 'Wrapper', category: 'Breakdown' }),
+      ob({ daysAgo: 8, asset: 'Whole line', category: 'Waiting' }),
+    ];
+    const p = problem({ source: { kind: 'pareto', category: 'Minor stop', subcategory: 'Misfeed' } });
+    /* One shift logged on the line: "all on days" says nothing, so it is not
+       said; "none on the whole line" would read as "none at all". */
+    expect(factsOf(p, data({ observations: obs }), TODAY)).toEqual({
+      is: ['all 6 on the Basketer'],
+      isNot: ['none on the Bagger or the Wrapper'],
+    });
+  });
+  it('says nothing on too few stops, or a split with no clear lead', () => {
+    expect(factsOf(problem(), data({ observations: basketer().slice(0, 4) }), TODAY)).toEqual({ is: [], isNot: [] });
+    const even = [
+      ...Array.from({ length: 3 }, (_, i) => ob({ daysAgo: 4 + i, shift: 'Nights' })),
+      ...Array.from({ length: 3 }, (_, i) => ob({ daysAgo: 8 + i, shift: 'Days' })),
+    ];
+    expect(factsOf(problem(), data({ observations: even }), TODAY).is).toEqual([]);
+  });
+  it('reads only this line’s live stops, from the first of the full weeks', () => {
+    const obs = [
+      ...basketer().slice(0, 9),
+      ob({ daysAgo: 40, shift: 'Days', subcategory: 'Misfeed' }),          // before the weeks
+      ob({ daysAgo: 6, shift: 'Days', workspaceId: 'ws2' }),                // another line
+      ob({ daysAgo: 6, shift: 'Days', deletedAt: 1 }),                      // deleted
+      ob({ daysAgo: 6, asset: 'Bagger', shift: 'Days', category: 'Breakdown' }),
+    ];
+    expect(factsOf(problem(), data({ observations: obs }), TODAY)).toEqual({
+      is: ['all 9 on nights'],
+      isNot: ['none on days'],
+    });
+  });
+  it('a batch counts as its stops; many places with none are named two and counted', () => {
+    const obs = [
+      ob({ daysAgo: 4, subcategory: 'Misfeed', count: 6 }),
+      ...['Bagger', 'Wrapper', 'Labeller', 'Palletiser'].map((a, i) => ob({ daysAgo: 5 + i, asset: a, category: 'Breakdown' })),
+    ];
+    const p = problem({ source: { kind: 'pareto', category: 'Minor stop', subcategory: 'Misfeed' } });
+    expect(factsOf(p, data({ observations: obs }), TODAY)).toEqual({
+      is: ['all 6 on the Basketer'],
+      isNot: ['none on the Bagger, the Labeller or 2 others'],
+    });
+  });
+  it('an empty line says nothing', () => {
+    expect(factsOf(problem(), data(), TODAY)).toEqual({ is: [], isNot: [] });
+  });
+});
+
+describe('startingWhys — the bar’s own breakdown as the first answers', () => {
+  it('its sub-categories, minutes a week over the full weeks, biggest first, each with its bone and its bar', () => {
+    const obs = [
+      ...[4, 11, 18, 25].map(d => ob({ daysAgo: d, mins: 30, subcategory: 'Misfeed' })),
+      ...[5, 12].map(d => ob({ daysAgo: d, mins: 10, subcategory: 'Sensor trip' })),
+      ob({ daysAgo: 1, mins: 500, subcategory: 'Manual clear' }),                       // this week — not a full one
+      ob({ daysAgo: 6, mins: 0, subcategory: 'Manual clear', timing: 'instant' }),      // not timed
+      ob({ daysAgo: 6, mins: 40, asset: 'Bagger', subcategory: 'Film / packaging snag' }),  // not in the bar
+    ];
+    expect(startingWhys(problem(), data({ observations: obs }), TODAY)).toEqual([
+      { text: 'Misfeed', minutesWeek: 30, m: 'machine', ref: 'category=Minor stop;subcategory=Misfeed;asset=Basketer' },
+      { text: 'Sensor trip', minutesWeek: 5, m: 'machine', ref: 'category=Minor stop;subcategory=Sensor trip;asset=Basketer' },
+    ]);
+  });
+  it('the shipped map gives the bone; the floor’s own tap beats it', () => {
+    const obs = [
+      ob({ daysAgo: 4, mins: 20, category: 'Waiting', subcategory: 'No labour' }),
+      ob({ daysAgo: 5, mins: 20, category: 'Waiting', subcategory: 'Waiting QA release' }),
+      ob({ daysAgo: 6, mins: 20, category: 'Waiting', subcategory: 'Waiting QA release', causeM: 'method' }),
+    ];
+    const p = problem({ source: { kind: 'pareto', category: 'Waiting', asset: 'Basketer' } });
+    const w = startingWhys(p, data({ observations: obs }), TODAY);
+    expect(w.map(x => [x.text, x.m])).toEqual([['Waiting QA release', 'method'], ['No labour', 'people']]);
+  });
+  it('names the same bone as its stops on the fish: condensation in the notes puts a sensor trip on Environment', () => {
+    const obs = [
+      ob({ daysAgo: 4, mins: 9, subcategory: 'Sensor trip', note: 'condensation on the eye at start-up' }),
+      ob({ daysAgo: 11, mins: 11, subcategory: 'Sensor trip', note: 'Condensation on the photo-eye again' }),
+      ob({ daysAgo: 12, mins: 4, subcategory: 'Sensor trip' }),
+    ];
+    const d = data({ observations: obs });
+    const [w] = startingWhys(problem(), d, TODAY);
+    expect(w.m).toBe('environment');
+    expect(suggestionsFor(problem(), d, TODAY).find(s => s.text.includes('Sensor trip') && s.m === 'environment')).toBeTruthy();
+  });
+  it('a bar that is one reason breaks down by machine instead', () => {
+    const obs = [
+      ...[4, 11].map(d => ob({ daysAgo: d, mins: 20, subcategory: 'Misfeed' })),
+      ob({ daysAgo: 5, mins: 8, asset: 'Bagger', subcategory: 'Misfeed' }),
+    ];
+    const p = problem({ source: { kind: 'pareto', category: 'Minor stop', subcategory: 'Misfeed' } });
+    expect(startingWhys(p, data({ observations: obs }), TODAY)).toEqual([
+      { text: 'Basketer', minutesWeek: 10, m: 'machine', ref: 'category=Minor stop;subcategory=Misfeed;asset=Basketer' },
+      { text: 'Bagger', minutesWeek: 2, m: 'machine', ref: 'category=Minor stop;subcategory=Misfeed;asset=Bagger' },
+    ]);
+  });
+  it('each ref opens its bar on the Pareto', () => {
+    const obs = [ob({ daysAgo: 4, mins: 20, subcategory: 'Misfeed' })];
+    const [w] = startingWhys(problem(), data({ observations: obs }), TODAY);
+    expect(drillOfRef(w.ref)).toEqual([
+      { dimension: 'category', value: 'Minor stop' }, { dimension: 'subcategory', value: 'Misfeed' }, { dimension: 'asset', value: 'Basketer' },
+    ]);
+  });
+  it('nothing when the bar is one reason on one machine, or nothing is timed', () => {
+    const obs = [ob({ daysAgo: 4, mins: 20, subcategory: 'Misfeed' })];
+    const p = problem({ source: { kind: 'pareto', category: 'Minor stop', subcategory: 'Misfeed', asset: 'Basketer' } });
+    expect(startingWhys(p, data({ observations: obs }), TODAY)).toEqual([]);
+    expect(startingWhys(problem(), data(), TODAY)).toEqual([]);
   });
 });
