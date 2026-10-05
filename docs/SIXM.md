@@ -131,3 +131,58 @@ Built on the report engine (`src/lib/report/`), proved by
 | Board, actions, the 3P → 6M rename everywhere, access checks | agent |
 | The 6M client report on the engine, report seeds, stress coverage | agent |
 | Seeds, smoke (the fishbone in six states), integration, the gate, live | lead |
+
+## The working method — Problem · Why · Fix · Did it work
+
+Rowland, 5 October: "I want it simple … as automated as possible, as
+intelligent as possible, and simplistic as possible." Researched against 8D,
+Toyota problem solving and Lean Six Sigma (Pareto → vital few → fishbone →
+verify → five whys → countermeasure → check). The industry's short form is the
+3C/4C — Concern, Cause, Countermeasure, Check. The app says it in plain words:
+**Problem · Why · Fix · Did it work.** It is the same record as above (a Case
+with causes, whys, countermeasures, its measure); this is how it is worked and
+shown.
+
+1. **The Pareto picks the problems.** The vital few — the bars that make the
+   first 80% of the lost time — each earn their own problem, one fish each.
+   On a vital-few bar the first action is "Find the root cause"; on the rest it
+   is "Just do it" (an action on the board). Any bar can still be opened as a
+   problem for safety, quality or the constraint, and the reason is kept
+   (`Case.source.why`). Fixed and holding, the Pareto is run again and the next
+   bar is the vital few.
+2. **Problem.** The bar, its number, and where it is and is not — read from
+   the timed stops in its scope (which shift, which machine, which
+   sub-category carry it, and which carry none): "11 of 18 on nights · all on
+   the Basketer · none on days". Nothing typed.
+3. **Why.** One chain per line of reasoning: "Why does it happen?" → an
+   answer → "Why?" → … until the answer is something that can be put right so
+   it does not come back — that is the root. Each answer says how it is known:
+   **seen · data · counted · told** (the grades, in plain words). An answer
+   nobody can back is the cue to go and look before the next why — the
+   verification step, folded in. A chain that ends at a person is asked once
+   more (blamesAPerson). The chain is labelled with its bone, suggested from
+   the stops' sub-category (`boneOfSub`, a shipped food map) and changeable.
+   **Say the whys:** one voice note — "blade snapped because it was blunt,
+   because it wasn't changed, because there's no interval" — is split into the
+   chain, labelled, and checked for blame. The bar's breakdown (its
+   sub-categories, with minutes) is offered as the starting answers.
+4. **Fix.** The countermeasure on the root: an action on the board with who,
+   when and what it should change (causeRef, expect) — as before.
+5. **Did it work.** The problem's own number, before → now, worked out from
+   the same stops; each fix's prediction against what happened. Then the
+   check that keeps it (hold) — Holding only when the number shows it.
+
+**The fishbone draws itself** from the chains: each chain is a cause on its
+bone, its root marked. Most problems have one chain; a stubborn one has two or
+three, and the fish shows the branches.
+
+**On a laptop** the fishbone page is the working board: the Pareto on the left
+(the 80% line marked, the vital few first), the selected problem's four parts
+on the right, its fish beneath them. **On a phone** the same page stacks: the
+problem, its four parts, the fish. **On paper** each problem prints as the
+same four parts beside its fish.
+
+Built in slices (each shipped on its own): engine and voice (the shipped
+sub-category → bone map, Is / Is not from the stops, the "whys" voice form);
+the Pareto's vital-few actions and a Pareto pane the page reuses; the four-part
+problem card and the laptop layout; the report.

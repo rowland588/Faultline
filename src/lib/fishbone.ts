@@ -728,3 +728,25 @@ export function therefore(cause: Cause, problemTitle: string): string[] {
   for (let i = chain.length - 1; i > 0; i--) out.push(`${chain[i]}, therefore ${lowerFirst(chain[i - 1])}`);
   return out;
 }
+
+/* ======================== the working method's shapes ======================== */
+
+/** WHERE A PROBLEM IS, AND WHERE IT IS NOT (docs/SIXM.md, the working method,
+ *  step 2) — read from the timed stops in its scope over the last full weeks,
+ *  never typed: "11 of 18 on nights", "all on the Basketer", "none on days".
+ *  Each line is one fact in words; `is` carries where it concentrates, `isNot`
+ *  where it is absent though the line ran. Filled in by the engine slice. */
+export interface ProblemFacts { is: string[]; isNot: string[] }
+
+export function factsOf(_problem: Case, _data: FishboneData, _today = Date.now()): ProblemFacts {
+  return { is: [], isNot: [] };
+}
+
+/** The starting answers to "why does it happen?" — the problem's own
+ *  breakdown (sub-categories, else machines) with minutes a week and the bone
+ *  each usually belongs on (boneOfSub). Filled in by the engine slice. */
+export interface StartingWhy { text: string; minutesWeek: number; m: SixM; ref?: string }
+
+export function startingWhys(_problem: Case, _data: FishboneData, _today = Date.now()): StartingWhy[] {
+  return [];
+}

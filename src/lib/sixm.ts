@@ -114,6 +114,10 @@ export interface ProblemSource {
   /** For the gap: the measure. For the constraint: the station. */
   measureId?: string;
   station?: string;
+  /** Opened from a bar outside the vital few: why it still earns a root
+   *  cause — safety, quality, the constraint (docs/SIXM.md, the working
+   *  method). Absent for the vital few, which need no reason. */
+  why?: string;
 }
 
 /** Keeping the gain — the check that says the fix is still working. */
@@ -151,6 +155,30 @@ export function boneOfStop(category: string, subcategory?: string, note?: string
     case 'Quality': return 'material';
     default: return 'machine';   // Breakdown, Minor stop, Speed loss
   }
+}
+
+/* ------------------- how a cause is known, in plain words ------------------- */
+
+/** The grades as the working method says them (docs/SIXM.md): seen · data ·
+ *  counted · told. The stored keys do not change. */
+export const KNOWN_WORD: Record<Grade, string> = {
+  measured: 'data', counted: 'counted', observed: 'seen', reported: 'told',
+};
+
+/* --------------------- the bone a sub-category points at --------------------- */
+
+/** The bone a stop's sub-category usually belongs on — shipped food
+ *  knowledge (lib/taxonomy), so a Pareto is sorted onto the six bones without
+ *  anyone sorting it. A suggestion: the chain on the problem says the real
+ *  bone, and the floor's own tap (Observation.causeM) beats it. Filled in by
+ *  the engine slice; undefined means "no usual bone — guess from the words". */
+export const DEFAULT_BONE: Record<string, SixM> = {};
+
+export function boneOfSub(subcategory: string | undefined): SixM | undefined {
+  const k = (subcategory ?? '').trim().toLowerCase();
+  if (!k) return undefined;
+  const hit = Object.keys(DEFAULT_BONE).find(s => s.toLowerCase() === k);
+  return hit ? DEFAULT_BONE[hit] : undefined;
 }
 
 /** A why that ends at a person is not a root cause (docs/OPEX.md). Returns

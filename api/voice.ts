@@ -22,7 +22,7 @@
 
 /* ------------------------------ the contract ------------------------------ */
 
-export type VoiceForm = 'fix' | 'found' | 'test' | 'install' | 'problem';
+export type VoiceForm = 'fix' | 'found' | 'test' | 'install' | 'problem' | 'whys';
 
 export interface VoiceContext {
   /** Today, as the phone sees it — "Friday" means the Friday after this. */
@@ -134,6 +134,16 @@ export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unk
       pushesTo: { type: 'STRING', description: 'ISO date the stage will now FINISH, if a new finish day was said ("it will be Friday now", "pushes it to the 12th"); empty when not said or when it does not move.' },
       fix: { type: 'BOOLEAN', description: 'true only when they said a fix is being booked or someone is coming to fix it; leave out otherwise.' },
       fixOn: { type: 'STRING', description: 'ISO date agreed for the fix, if one was said; empty otherwise.' },
+    },
+  },
+  /* SAY THE WHYS (docs/SIXM.md, the working method): one note — "blade
+     snapped because it was blunt, because it wasn't changed, because there's
+     no interval" — split into the chain of answers, in order. */
+  whys: {
+    what: 'the FIVE WHYS on one problem: a chain of answers, each the reason for the one before it.',
+    fields: {
+      chain: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Each answer in order, from the first reason the problem happens to the deepest; one short sentence each.' },
+      bone: { type: 'STRING', enum: ['people', 'machine', 'method', 'material', 'measurement', 'environment'], description: 'Which of the six the deepest answer belongs to; leave out when unsure.' },
     },
   },
 };
