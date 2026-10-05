@@ -17,10 +17,11 @@ import { nav, useRoute } from '../state/useRoute';
 import { useAccess } from '../cloud/access';
 import { useProblems } from '../lib/useProblems';
 import { planModel } from '../lib/planModel';
-import { listObservations } from '../db';
-import { PARETO_WINDOW_DAYS } from '../lib/paretoFromLog';
 import { fishboneUrl, problemTitleOfBar, sameSource } from './FishboneScreen';
-import type { Case } from '../types';
+import { justDoItStep, lineOfBar as lineOfBarIn, openBarProblem, pickOf, problemOfBar, vitalWords } from '../lib/paretoPicks';
+import { RootReasonSheet } from '../ui/ParetoPane';
+import { ActionSheet, type Editing } from '../ui/ActionSheet';
+import { uid } from '../lib/ids';
 import { Crumbs } from '../ui/Crumbs';
 import { Sweep } from '../ui/Sweep';
 import { useProject } from '../lib/useProjects';
@@ -39,18 +40,23 @@ import { paretoView, moveSentence, type ParetoMove } from '../lib/paretoView';
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const mins = (n: number) => (n >= 100 ? Math.round(n).toLocaleString() : String(Math.round(n * 10) / 10));
 
-/* A BAR IS A PROBLEM WAITING TO BE OPENED (docs/SIXM.md). On a 6M job each
- * bar carries "Find the root cause": it opens a problem with that bar as the
- * head of the fish — its category, the line losing the most to it, and the
- * machine it is mostly on — and goes to the fishbone. A bar that already has
- * an open problem goes to that one instead, so the same loss is never two
- * problems. */
-type RootCause = { label: string; go: () => void } | null;
+/* THE PARETO PICKS THE PROBLEMS (docs/SIXM.md, the working method, step 1).
+ * On a 6M job a bar in the VITAL FEW carries "Find the root cause" as the
+ * thing to press: it opens a problem with that bar as the head of the fish —
+ * its category, the line losing the most to it, and the machine it is mostly
+ * on — and goes to the fishbone. A bar OUTSIDE the vital few carries "Just do
+ * it" — the board's action editor with the bar's words and line in it — and
+ * still offers the root cause, quietly, behind "why does this one earn
+ * one?" (lib/paretoPicks). Every bar used to offer the root cause equally,
+ * which made a two-minute loss look like a fishbone's worth; nothing it could
+ * do is gone. A bar that already has an open problem goes to that one
+ * instead, so the same loss is never two problems. */
+type Act = { label: string; go: () => void; tone: 'press' | 'quiet' | 'link' };
 
 /** The row's own door — the line's drill for this category (HUNT 15). */
 type Door = { label: string; go: () => void } | null;
 
-function Row({ m, max, showMove, rc, on, door }: { m: ParetoMove; max: number; showMove: boolean; rc: RootCause; on?: boolean; door?: Door }) {
+function Row({ m, max, showMove, acts, on, door }: { m: ParetoMove; max: number; showMove: boolean; acts: Act[]; on?: boolean; door?: Door }) {
   const w = max > 0 ? (m.mins / max) * 100 : 0;
   return (
     <tr id={'bar-' + encodeURIComponent(m.category)}
@@ -66,8 +72,17 @@ function Row({ m, max, showMove, rc, on, door }: { m: ParetoMove; max: number; s
               <span className="pr-on">{door.label} ›</span>
             </button>
           : <span className="pr-cat">{m.category}</span>}
-        {m.profile && <span className="pr-prof">{m.profile}</span>}
-        {rc && <button className="pr-rc" onClick={rc.go}>{rc.label} ›</button>}
+        {/* The shading said "vital few" in colour alone; the words go with it. */}
+        {(m.profile || m.vital) && <span className="pr-prof">{[m.profile, m.vital ? 'vital few' : ''].filter(Boolean).join(' · ')}</span>}
+        {acts.length > 0 && (
+          <span className="pr-acts">
+            {acts.map(a => (
+              <button key={a.label} type="button" className={'pr-rc is-' + a.tone} onClick={a.go}>
+                {a.label}{a.tone === 'quiet' ? '' : ' ›'}
+              </button>
+            ))}
+          </span>
+        )}
       </th>
       <td className="pr-bar-cell">
         {/* The bar is the ranking. Everything else on the row is detail. */}
@@ -118,44 +133,40 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
   }, [asked, view]);
 
   /** The line a bar is mostly on (byLine is keyed by the line's name). */
-  const lineOfBar = (m: ParetoMove) => {
-    const top = Object.entries(m.byLine ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0];
-    return lines.lines.find(l => l.name === top) ?? (lines.lines.length === 1 ? lines.lines[0] : undefined);
-  };
-  const openFor = (m: ParetoMove) => problems.problems.find(p => p.problem.status === 'open'
-    && p.problem.source?.kind === 'pareto' && p.problem.source.category === m.category
-    && (p.problem.lineId ?? '') === (lineOfBar(m)?.id ?? ''));
-  const findRootCause = async (m: ParetoMove) => {
-    if (busy) return;
+  const lineOfBar = (m: ParetoMove) => lineOfBarIn(m, lines.lines);
+  const openFor = (m: ParetoMove) => problemOfBar(problems.problems, m.category, lineOfBar(m)?.id, true);
+  /* The one way a bar becomes a problem (lib/paretoPicks) — the same one the
+     Pareto pane on the fishbone page uses. `why`: the reason a bar outside
+     the vital few earned it, kept on the problem. */
+  const findRootCause = async (m: ParetoMove, why?: string) => {
+    if (busy || !can.edit) return;
     setBusy(true);
     try {
       const line = lineOfBar(m);
-      /* The machine the bar is mostly on, from the same four weeks it was drawn from. */
-      let asset: string | undefined;
-      if (line?.workspaceId) {
-        const to = new Date().setHours(0, 0, 0, 0) + 86_400_000;
-        const from = to - PARETO_WINDOW_DAYS * 86_400_000;
-        const by = new Map<string, number>();
-        for (const o of await listObservations(line.workspaceId)) {
-          if (o.deletedAt || o.startedAt < from || o.startedAt >= to || (o.category || '').trim() !== m.category) continue;
-          by.set(o.asset, (by.get(o.asset) ?? 0) + o.durationMs);
-        }
-        asset = [...by.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-      }
-      const source: NonNullable<Case['source']> = { kind: 'pareto', category: m.category, asset };
-      const already = problems.problems.find(p => p.problem.status === 'open'
-        && (p.problem.lineId ?? '') === (line?.id ?? '') && sameSource(p.problem.source, source)) ?? openFor(m);
-      const c = already?.problem
-        ?? await problems.create({ title: problemTitleOfBar(m.category, asset, line?.name), lineId: line?.id, source });
+      const c = await openBarProblem({
+        category: m.category, line, problems: problems.problems, create: problems.create,
+        why, title: problemTitleOfBar, same: sameSource,
+      });
       nav(fishboneUrl(projectId, { line: c.lineId ?? line?.id, problem: c.id }));
     } finally { setBusy(false); }
   };
+  const [asking, setAsking] = useState<ParetoMove | null>(null);
+  const [action, setAction] = useState<Editing | null>(null);
+  const justDoIt = (m: ParetoMove) => {
+    if (!can.edit) return;
+    setAction({ isNew: true, step: justDoItStep(m, { projectId, lineId: lineOfBar(m)?.id, id: uid(), now: Date.now() }) });
+  };
   const sixM = !!project && planModel(project) === 'board';
-  const rcOf = (m: ParetoMove): RootCause => {
-    if (!sixM || m.verdict === 'gone' || m.mins <= 0) return null;
+  const actsOf = (m: ParetoMove): Act[] => {
+    const pick = pickOf(m);
+    if (!sixM || !pick) return [];
     const open = openFor(m);
-    if (open) return { label: 'Its fishbone', go: () => nav(fishboneUrl(projectId, { line: open.problem.lineId, problem: open.problem.id })) };
-    return can.edit ? { label: 'Find the root cause', go: () => void findRootCause(m) } : null;
+    if (open) return [{ label: 'Its fishbone', tone: 'link', go: () => nav(fishboneUrl(projectId, { line: open.problem.lineId, problem: open.problem.id })) }];
+    if (!can.edit) return [];
+    return pick === 'root'
+      ? [{ label: 'Find the root cause', tone: 'press', go: () => void findRootCause(m) }]
+      : [{ label: 'Just do it', tone: 'press', go: () => justDoIt(m) },
+         { label: 'Find the root cause', tone: 'quiet', go: () => setAsking(m) }];
   };
 
   /* THE ROW'S DOOR — the line's drill for this category (HUNT 15). It opens
@@ -240,10 +251,9 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
           {/* THE FINDING, NOT THE TABLE. Somebody who reads one line should
               leave knowing where to aim. */}
           <div className="pr-vital">
-            <p className="pr-vital-t">
-              <b>{view.vitalCount}</b> of {view.rows.filter(r => r.verdict !== 'gone').length} categories
-              carry <b>{pct(view.vitalShare)}</b> of the lost time
-            </p>
+            {(() => { const w = vitalWords(view, sixM); return (
+              <p className="pr-vital-t"><b>{w.count}</b>{w.of}<b>{w.share}</b>{w.tail}</p>
+            ); })()}
             {view.headline && <p className="pr-vital-s">{view.headline}</p>}
           </div>
 
@@ -271,7 +281,7 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
               <tbody>
                 {view.rows.map(m => (
                   <Row key={m.category} m={m} max={view.rows[0]?.mins ?? 0} showMove={view.comparable}
-                    rc={rcOf(m)} on={asked === m.category} door={doorOf(m)} />
+                    acts={actsOf(m)} on={asked === m.category} door={doorOf(m)} />
                 ))}
               </tbody>
             </table>
@@ -279,7 +289,8 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
 
           <p className="sub pr-foot-note">
             Shaded rows are the vital few — the categories that make up the first 80% of the lost time.
-            The profile says whether a category is a few long stops or many short ones.
+            {sixM && <> Each gets its own problem; a smaller loss is usually just done, as an action on the board.</>}
+            {' '}The profile says whether a category is a few long stops or many short ones.
           </p>
         </>
       )}
@@ -293,6 +304,12 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
           ))}
         </Sheet>
       )}
+
+      {asking && (
+        <RootReasonSheet category={asking.category} onClose={() => setAsking(null)}
+          onPick={why => { const m = asking; setAsking(null); void findRootCause(m, why); }} />
+      )}
+      {action && <ActionSheet editing={action} lines={lines.lines} onClose={() => setAction(null)} />}
 
       <footer className="pace-foot">
         <p>{project.name} · Pareto · from the stops timed on the line</p>
