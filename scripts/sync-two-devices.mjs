@@ -242,7 +242,7 @@ const seen = (page, str, timeout = 6000) => waitFor(async () => (await text(page
    into an editable field, which innerText does not include. */
 const text = (page) => page.evaluate(() => (document.body.innerText + ' '
   + [...document.querySelectorAll('input, textarea')].map(e => e.value).join(' ')).replace(/\s+/g, ' '));
-const fieldValue = async (page, label) => { await expand(page); return fieldValue0(page, label); };
+const fieldValue = async (page, label) => { await reveal(page, fieldBox(page, label)); return fieldValue0(page, label); };
 const fieldValue0 = (page, label) => page.locator(`label:has-text("${label}") textarea, label:has-text("${label}") input`).first().inputValue();
 
 /* ---------- things to attach ---------- */
@@ -287,15 +287,25 @@ async function addMachine(page, name, oem) {
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.waitForTimeout(500);
 }
+/* A record just planned opens where you are — in the drawer (?open=<id>,
+   ui/RecordDrawer) — or, on an older build, on its own page. Either way the
+   id is in the URL; the checks then work on the record's own page, where
+   every box is. */
+async function recordJustPlanned(page) {
+  await page.waitForURL(/testing\/[^/?#]+|[?&]open=[^&#]+/);
+  const m = page.url().match(/[?&]open=([^&#]+)/) ?? page.url().match(/testing\/([^/?#]+)/);
+  return decodeURIComponent(m[1]);
+}
 async function planTest(page, pid, title, machine) {
   await go(page, `/project/${pid}/testing`);
   await page.getByRole('button', { name: 'Plan a test' }).click();
   await page.getByPlaceholder('What do we plan to do?').fill(title);
   await page.getByRole('button', { name: machine, exact: true }).click();
   await page.getByRole('button', { name: 'Plan it' }).click();
-  await page.waitForURL(/testing\/[^/?#]+/);
+  const id = await recordJustPlanned(page);
+  await go(page, `/project/${pid}/testing/${id}`);
   await page.waitForTimeout(500);
-  return page.url().match(/testing\/([^/?#]+)/)[1];
+  return id;
 }
 /** A test with a verdict folds its plan and its day away behind "Edit" —
  *  open them, the way a person would, before reaching for what is inside. */
@@ -307,9 +317,38 @@ async function expand(page) {
     await page.waitForTimeout(250);
   }
 }
-async function typeInto(page, label, value) {
+/** A RECORD'S PAGE READS LIKE ITS CARD: each part — what was planned, what
+ *  happened, what was found — shows its words, and its boxes open with that
+ *  part's Edit, one part at a time (screens/TestScreen). Open whichever part
+ *  holds the box, the way a person would; "For the meeting" opens from its own
+ *  line. The older page's folds (button.tw-fold) are still handled. */
+async function reveal(page, loc) {
+  const vis = async () => (await loc.count()) > 0 && await loc.first().isVisible().catch(() => false);
+  if (await vis()) return;
   await expand(page);
-  const box = page.locator(`label:has-text("${label}") textarea, label:has-text("${label}") input`).first();
+  if (await vis()) return;
+  const edits = page.locator('button.tc-edit');
+  const n = await edits.count();
+  for (let i = 0; i < n; i++) {
+    const e = edits.nth(i);
+    if ((await e.getAttribute('aria-expanded')) !== 'true') { await e.click(); await page.waitForTimeout(300); }
+    if (await vis()) return;
+  }
+  const raise = page.getByRole('button', { name: /Something to raise at the meeting/ });
+  if (await raise.count()) { await raise.first().click(); await page.waitForTimeout(300); }
+}
+/** A button that may sit inside a part opened by its Edit (a verdict). */
+async function press(page, opts) {
+  const b = page.getByRole('button', opts);
+  await reveal(page, b);
+  await b.first().click();
+}
+const fieldBox = (page, label) => page.locator(`label:has-text("${label}") textarea, label:has-text("${label}") input`).first();
+/** The part that holds the evidence doors — what happened on the day. */
+const openEvidence = (page) => reveal(page, page.getByRole('button', { name: 'Camera', exact: true }));
+async function typeInto(page, label, value) {
+  const box = fieldBox(page, label);
+  await reveal(page, box);
   await box.scrollIntoViewIfNeeded();
   await box.click();
   await box.fill(value);
@@ -319,8 +358,10 @@ async function typeInto(page, label, value) {
 /** A finding or a meeting note: the box under its own heading (its
  *  placeholder changes to "Another one?" once the list has something in it). */
 async function addTo(page, section, value) {
-  await expand(page);
-  const box = page.locator(`section.tw-block:has(> .tw-block-h:has-text("${section}")) input:not([type=date]):not([type=file])`).last();
+  /* .tc-block is the record page's part; .tw-block the older page's box. */
+  const inp = 'input:not([type=date]):not([type=file])';
+  const box = page.locator(`section.tw-block:has(> .tw-block-h:has-text("${section}")) ${inp}, section.tc-block:has(> .tc-block-h:has-text("${section}")) ${inp}`).last();
+  await reveal(page, box);
   await box.scrollIntoViewIfNeeded();
   await box.fill(value);
   await box.press('Enter');
@@ -336,7 +377,7 @@ async function addLine(page, placeholder, value) {
   await page.waitForTimeout(400);
 }
 async function takePhoto(page, jpeg) {
-  await expand(page);
+  await openEvidence(page);
   const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Camera', exact: true }).first().click()]);
   await fc.setFiles({ name: 'IMG_0412.jpg', mimeType: 'image/jpeg', buffer: jpeg });
   await page.waitForTimeout(800);
@@ -350,7 +391,7 @@ async function attachPdf(page, name, bytes) {
   else await page.waitForTimeout(800);
 }
 async function pickFromPhone(page, name, mimeType, buffer) {
-  await expand(page);
+  await openEvidence(page);
   const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'On the phone' }).first().click()]);
   /* Playwright will not hand over more than 50 MB from memory: a real file. */
   const dir = mkdtempSync(join(tmpdir(), 'fl-sync-'));
@@ -361,7 +402,7 @@ async function pickFromPhone(page, name, mimeType, buffer) {
 }
 /** Film through the app's own recorder: Video → shutter → wait → stop → Done. */
 async function filmClip(page, seconds) {
-  await expand(page);
+  await openEvidence(page);
   await page.getByRole('button', { name: 'Video', exact: true }).first().click();
   const live = await waitFor(() => page.evaluate(() => {
     const v = document.querySelector('video.rec-preview');
@@ -372,7 +413,8 @@ async function filmClip(page, seconds) {
   await page.waitForTimeout(seconds * 1000);
   await page.getByRole('button', { name: 'Stop recording' }).click();
   await waitFor(() => page.locator('.rec-tally').count(), 10_000);
-  await page.getByRole('button', { name: /^Done/ }).click();
+  /* The recorder's own Done ("Done · 1 clip") — not a part's Edit/Done. */
+  await page.getByRole('button', { name: /^Done · / }).click();
   await page.waitForTimeout(1200);   // saveVideoBlob + the patch
 }
 async function testRow(page, id) { return idbGet(page, 'tests', id); }
@@ -443,7 +485,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   const tid = ctx.tid = await planTest(p, pid, 'Run at 70 ppm for an hour', 'Case packer');
   await typeInto(p, 'Passes if', '70 ppm held for 60 minutes, under 2% waste');
   await typeInto(p, 'What happened', '68 ppm average, two crash stops at the infeed');
-  await p.getByRole('button', { name: 'Didn’t pass' }).click();
+  await press(p, { name: 'Didn’t pass' });
   await p.waitForTimeout(400);
   await addFinding(p, 'Film splice jams the infeed');
   await addNote(p, 'Ask Brillopak about the splice sensor');
@@ -461,8 +503,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   await p.getByPlaceholder('What are we fixing?').fill('Replace the splice sensor');
   await p.getByRole('button', { name: 'Case packer', exact: true }).click();
   await p.getByRole('button', { name: 'Plan it' }).click();
-  await p.waitForURL(/testing\/[^/?#]+/);
-  ctx.fixId = p.url().match(/testing\/([^/?#]+)/)[1];
+  ctx.fixId = await recordJustPlanned(p);
 
   await go(p, `/project/${pid}/materials`);
   await p.getByPlaceholder('TESC03163A Finest Red 2kg').fill('Finest Red 2kg film');
@@ -500,7 +541,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   check(page.includes('Ask Brillopak about the splice sensor'), 'the laptop shows the meeting note');
   check(page.includes('Replace the splice sensor'), 'the laptop shows the fix under the test');
   check(page.includes('Brillopak FAT report'), 'the laptop shows the PDF by name');
-  await expand(l);
+  await openEvidence(l);
   const evidence = await text(l);
   check(/1 photo · 1 clip/.test(evidence), 'the laptop counts 1 photo · 1 clip', evidence.match(/EVIDENCE.{0,30}/i)?.[0]);
   const th = await thumbs(l);
@@ -525,10 +566,12 @@ await run(2, 'the laptop edits; the phone sees it', async () => {
   const { pid, tid, fixId } = ctx;
   await go(l, `/project/${pid}/testing/${tid}`);
   await typeInto(l, 'What happened', '71 ppm after the splice sensor was moved');
-  await l.getByRole('button', { name: 'Passed', exact: true }).click();
+  await press(l, { name: 'Passed', exact: true });
   await l.waitForTimeout(300);
   /* Delete the finding: open it, then its own delete. */
-  await l.getByRole('button', { name: 'Film splice jams the infeed' }).click();
+  const finding = l.getByRole('button', { name: 'Film splice jams the infeed' });
+  await reveal(l, finding);
+  await finding.click();
   await l.waitForTimeout(300);
   const del = l.getByRole('button', { name: /^(Delete|Remove)/ }).first();
   await del.click();
@@ -537,7 +580,7 @@ await run(2, 'the laptop edits; the phone sees it', async () => {
   if (await confirm.count()) await confirm.first().click().catch(() => {});
   await l.waitForTimeout(400);
   await go(l, `/project/${pid}/testing/${fixId}`);
-  await l.getByRole('button', { name: 'Fixed', exact: true }).click();
+  await press(l, { name: 'Fixed', exact: true });
   await l.waitForTimeout(300);
   const items = (await idb(l, 'test_items')).filter(i => i.what === 'Film splice jams the infeed');
   check(items.length === 0, 'the laptop deleted the finding', `${items.length} left`);
@@ -709,7 +752,7 @@ await run(5, 'a 20-second film, with the first uploads dying mid-way', async () 
      or does it say "not on this device" until somebody navigates away? */
   const l = laptop.page;
   await go(l, `/project/${pid}/testing/${tid}`);
-  await expand(l);
+  await openEvidence(l);
   cloud.downloadDelayMs = 4000;
   await syncViaUI(laptop);
   const n = await waitFor(async () => { const c = await l.locator('.ev-thumb:has(.ev-play)').count(); return c >= 3 ? c : 0; }, 15_000);
