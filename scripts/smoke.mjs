@@ -92,6 +92,9 @@ const ROUTES = [
   ['fixes — a record gone', `#/project/${seeded.projectId}/fixes?open=no-such-record`],
   /* The day, today and a day in the past that has a story on it. */
   ['the day', `#/project/${seeded.projectId}/day`],
+  /* The plan on a page of its own, and the old front-page link to it. */
+  ['the plan', `#/project/${seeded.projectId}/plan`],
+  ['old plan link', `#/project/${seeded.projectId}?view=plan`],
   ['a past day', `#/project/${seeded.projectId}/day?d=${seeded.pastDay}`],
   ['one test', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
   ['trial card (old link)', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],

@@ -14,7 +14,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listTreeNodes, type TreeNodeRow, type NodeStatus } from '../db';
 import { boundNumber, boardWords, type NumberSources } from '../lib/treeBind';
 
-const LABEL: Record<NodeStatus, string> = {
+/** A box's state in words — the tree's own, read by the job's front page too. */
+export const LABEL: Record<NodeStatus, string> = {
   n: 'Not started', w: 'In progress', a: 'At risk', r: 'Overdue', g: 'Done',
 };
 

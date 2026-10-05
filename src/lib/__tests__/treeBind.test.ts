@@ -209,6 +209,10 @@ describe('the tree, as the control room reads it', () => {
     expect(s.total).toBe(1);
     expect(s.says).toBe('The outcome is in progress · all 1 condition done');
   });
+  it('reads the tree’s top — the boxes right under the outcome, in order — for the job’s front page', () => {
+    const s = treeStanding([box('out', 'w'), box('second', 'r', 'out', 2), box('first', 'g', 'out', 1), box('deeper', 'a', 'first'), box('tracker:abc', 'r', 'out', 3)])!;
+    expect(s.top.map(c => `${c.text}:${c.rag}`)).toEqual(['first:g', 'second:r']);
+  });
   it('says so when nothing is written under the outcome, and is nothing with no tree', () => {
     expect(treeStanding([box('out', 'n')])!.says).toBe('The outcome is not started · nothing written under it yet');
     expect(treeStanding([])).toBeUndefined();

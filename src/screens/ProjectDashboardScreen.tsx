@@ -1,25 +1,35 @@
-/* PROJECT PACE — three lenses on one set of data.
+/* THE JOB'S FRONT PAGE — one screen that answers "am I in control?"
  *
- *   Overview — the arc, for the client: are we at pace, what moved, what the walk
- *              found. Compact enough to take in at a glance, and what prints.
- *   Meeting  — the tracker by OWNER, because that is how the meeting is run:
- *              each person reports their own workload. Sections fold, so one
- *              person is on screen at a time.
- *   Data     — the mechanics: upload this week's tracker, record the readings. Its own
- *              tab so it is never buried inside a page you have to scroll.
+ * Rowland, 5 October, of the page this replaces: "too much on a screen… this
+ * is more about opening doors rather than keeping it linear and simple." It
+ * ran to three screens: the band, then folds that drew every tab again — the
+ * machines, a table of six rows each with an arrow to a tab already in the
+ * row above, the whole Gantt; on a 6M job the fishbone, two alarm bars, the
+ * entire board, the line balance, "Did it work?" and every line's chart.
  *
- * The lens lives in the URL (?view=), so a bookmark opens the meeting straight
- * into the meeting. */
-import { useEffect, useState } from 'react';
+ * Now each method's front page is the band and two or three panels, and each
+ * panel is a door:
+ *
+ *   Stage gate — the band · NEEDS YOU (everything past its day, then due
+ *                soon, then the next booked — the late list lib/portfolio
+ *                reads and the report prints) · WHERE EACH MACHINE IS (the
+ *                strip) with the day's line and the plan's line under it.
+ *   6M         — the band · the fishbone, small · NEEDS YOU (countermeasures,
+ *                materials, programs) · LINES AT TARGET.
+ *   Lever tree — the band · the tree's top · NEEDS YOU · LINES AT TARGET.
+ *
+ * What the folds held lives where its tab is: the plan at /plan, the board
+ * on Board, the charts on Numbers, "Did it work?" on Wins, line balance on
+ * Lines. The lenses (?view=) are pages under the project, as a gate is. */
+import { useEffect, useState, type ReactNode } from 'react';
 import { Peers, projectPeers, methodPeers } from '../ui/Peers';
 import { Journey } from '../ui/Journey';
-import { Fold, openFold } from '../ui/Fold';
+import { openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
 import { machineAt, machinesWhere, journeyOf } from '../lib/install';
-import { planSays } from '../lib/plan';
+import { planHref, planSays } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
-import { useWalkSnags } from '../lib/useWalkSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { Crumbs } from '../ui/Crumbs';
@@ -27,34 +37,29 @@ import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
-import { daysLate } from '../lib/materials';
 import { usePrograms } from '../lib/usePrograms';
-import { daysOverdue } from '../lib/programs';
-import { lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
+import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
-import { useActions } from '../lib/actions';
-import { pacedSays } from '../lib/portfolio';
+import { DUE_SOON_DAYS, useActions } from '../lib/actions';
+import { KIND_WORD, jobItems, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useImpacts } from '../lib/useImpacts';
-import { niceDay } from '../lib/weeks';
+import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { analyse, shortSays } from '../lib/capacity';
-import { board as buildBoard, actionTitle } from '../lib/pillars';
-import { statusOfAction, treeStanding, withTrackerRows, bindSources } from '../lib/treeBind';
-import { useTreeNodes } from './TreeStatic';
-import type { PaceAction } from '../lib/tracker';
+import { statusOfAction, treeStanding, withTrackerRows, bindSources, type TreeStanding } from '../lib/treeBind';
+import { LABEL as TREE_WORD, useTreeNodes } from './TreeStatic';
 import type { PaceLineRow } from '../db';
 import { listTestItems, onDataChange } from '../db';
+import type { Project } from '../types';
 import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
 import { ReportsSheet } from '../ui/ReportsSheet';
 import { StandardsCard } from '../ui/StandardsCard';
-import { Outstanding } from '../ui/Outstanding';
-import { Gantt } from '../ui/Gantt';
 import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
 import { activeDays, dayOf } from '../lib/day';
@@ -64,24 +69,8 @@ import { AccessNote } from '../ui/AccessNote';
 import { Fishbone } from '../ui/Fishbone';
 import { useProblems } from '../lib/useProblems';
 import { PHASE_WORD, type Phase } from '../lib/problems';
-import { SIXM } from '../lib/sixm';
 import type { Can } from '../lib/access';
 import { fishboneUrl, isOpenProblem, mainProblem } from './FishboneScreen';
-
-/* THE 3P BOARD, ON THE PAGE ITSELF.
- *
- * A tab is not a presence. The lever tree lived its whole life behind a button
- * in the corner, and the result was a surface that existed in the code and not
- * in anybody's week — you had to already know it was there to go and look at
- * it. The board is the heart of this project now, so it is ON the overview,
- * showing the real thing, in the shape it has everywhere else: one CARD per
- * area — Line 2, Line 7, Line 10, Cellox, All lines — with its actions in three
- * columns inside it.
- *
- * Compact, not partial. Each column shows its first few and says how many more
- * there are, and the whole thing opens full size in one tap. What it never does
- * is imply it is showing everything when it is not. */
-const AREA_PEEK = 3;
 
 /* THE FISHBONE LEADS A 6M JOB'S FRONT PAGE (docs/SIXM.md), as the plan leads
  * a stage-gate job's: under the gap sentence, the main open problem drawn
@@ -99,15 +88,12 @@ function FishboneLead({ projectId, can }: { projectId: string; can: Can }) {
     ? (api.problems.length ? `${api.problems.length} closed · none open` : 'no problem opened yet')
     : [...byPhase].map(([ph, n]) => `${n} ${PHASE_WORD[ph].toLowerCase()}`).join(' · ');
   const go = (problem?: string) => nav(fishboneUrl(projectId, { line: v?.problem.lineId, problem }));
+  /* The same box as every other panel on the front page — its name, its
+     answer in words, the door — so the fish reads as one of the doors, not
+     a section of its own above them. */
   return (
-    <section className="pace-sec fj-lead" aria-label="The fishbone">
-      <header className="fj-lead-h">
-        <h2 className="fj-lead-t">The fishbone</h2>
-        <span className="fj-lead-s">{says}</span>
-        <button className="cw-link fj-lead-go" onClick={() => go(v?.problem.id)}>
-          {v ? 'Open the fishbone ›' : 'Open the journey ›'}
-        </button>
-      </header>
+    <Panel title="The fishbone" says={says} className="fp-fish"
+      door={{ label: v ? 'Open the fishbone' : 'Open the journey', to: fishboneUrl(projectId, { line: v?.problem.lineId, problem: v?.problem.id }) }}>
       {!v ? (
         <div className="fj-empty is-lead">
           <p className="fj-empty-t">No problem opened yet — open one from the gap or the Pareto</p>
@@ -134,99 +120,206 @@ function FishboneLead({ projectId, can }: { projectId: string; can: Can }) {
           {v.says && <p className="fj-lead-says">{v.says}</p>}
         </>
       )}
+    </Panel>
+  );
+}
+
+/* ------------------------------- the panels -------------------------------
+ *
+ * Every panel on a front page is the same box: its name, its answer in a few
+ * words, a handful of rows, and the door to the page that holds the rest. A
+ * row is a door too — it opens the record it is about. Nothing is edited on
+ * the front page; it says where the job is and which door to open. */
+function Panel({ title, says, door, className, children }: {
+  title: string;
+  /** The panel's answer, in words — what it says before a row is read. */
+  says?: ReactNode;
+  /** The page that holds the whole of what the panel shows the top of. */
+  door?: { label: string; to: string };
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={'fp-panel' + (className ? ' ' + className : '')} aria-label={title}>
+      <header className="fp-panel-h">
+        <h2 className="fp-panel-t">{title}</h2>
+        {says != null && <span className="fp-panel-s">{says}</span>}
+        {door && <button className="cw-link fp-panel-go" onClick={() => nav(door.to)}>{door.label} ›</button>}
+      </header>
+      {children}
     </section>
   );
 }
 
-function BoardPanel({ projectId, actions, bare, edit = true }: { projectId: string; actions: PaceAction[]; bare?: boolean; edit?: boolean }) {
-  const b = buildBoard(actions);
-  const open = () => nav(`/project/${projectId}/board`);
+/* The five states (CLAUDE.md, visual management), as a row's stripe: late is
+   red, due soon amber, the next booked indigo. */
+const URGENCY_TONE: Record<Urgency, 'r' | 'a' | 'w'> = { late: 'r', soon: 'a', next: 'w' };
 
+/** When a row on "Needs you" is due, in words beside its colour — so the
+ *  state survives a black-and-white print. */
+function whenSaid(x: JobItem, urgency: Urgency, today: string): string {
+  if (urgency === 'late') return x.on ? `was ${niceDay(x.on)}` : 'late';
+  if (urgency === 'soon') {
+    return x.on === today ? 'due today' : x.on === addDays(today, 1) ? 'due tomorrow' : `due ${niceDay(x.on, { weekday: 'short' })}`;
+  }
+  return niceDay(x.on);
+}
+
+/** NEEDS YOU — the late list, in the order you would deal with it: everything
+ *  past its day (the oldest first), then what falls due within a few days,
+ *  then the next thing booked (lib/portfolio needsYou). The same items the
+ *  control room's week is made of, so the front page and the board above it
+ *  cannot disagree; each row opens its own record (lib/plan planHref). */
+function NeedsYouPanel({ items, today, door, split, max }: {
+  items: JobItem[]; today: string;
+  /** How many rows before the rest becomes a count — fewer under the fishbone
+   *  or the tree, so the page stays one screen. */
+  max?: number;
+  /** Where the rest is: the plan on a stage-gate job, the board on the others. */
+  door: { label: string; to: string };
+  /** Say what the late ones are, by kind. A 6M job's band counts the board's
+   *  actions alone (the control room's sentence), and "5 past the day" under
+   *  "2 late" read as a contradiction until it said "2 actions, 3 materials". */
+  split?: boolean;
+}) {
+  const n = needsYou(items, today, { max });
+  const lateShown = n.rows.filter(r => r.urgency === 'late').length;
+  const lateHidden = n.late - lateShown;
+  const byKind = new Map<JobItem['kind'], number>();
+  for (const x of items) if (x.late) byKind.set(x.kind, (byKind.get(x.kind) ?? 0) + 1);
+  const kinds = split && byKind.size > 1
+    ? ` — ${[...byKind].map(([k, c]) => `${c} ${KIND_WORD[k].toLowerCase()}${c === 1 ? '' : 's'}`).join(', ')}` : '';
+  const says = items.length === 0 ? 'nothing owed'
+    : n.late > 0 ? <><b className="fp-n-r">{n.late} past the day</b>{kinds} · late first</>
+    : n.soon > 0 ? `nothing past its day · ${n.soon} due within ${DUE_SOON_DAYS} days`
+    : 'nothing past its day';
+  const foot = [
+    lateHidden > 0 && <b key="l" className="fp-n-r">{lateHidden} more past the day</b>,
+    n.more - lateHidden > 0 && <span key="m">{n.more - lateHidden} more booked</span>,
+    n.undated > 0 && <span key="u">{n.undated} with no date agreed</span>,
+  ].filter(Boolean);
   return (
-    <section className="pace-sec pb-sec">
-      {!bare && (
-      <div className="pace-sec-head">
-        <h2 className="pace-sec-title">The board</h2>
-        <p className="pace-sec-sub">
-          {b.total > 0
-            ? <>The meeting agenda · {b.areas.length} card{b.areas.length === 1 ? '' : 's'} · {b.total} action{b.total === 1 ? '' : 's'} inside them, {b.done} done — overdue and blocked first in every column</>
-            : <>The meeting agenda — one card per area, its actions on the six bones inside each</>}
-        </p>
-      </div>
+    <Panel title="Needs you" says={says} door={door} className="fp-needs">
+      {n.rows.length === 0 && n.undated === 0 ? (
+        <p className="fp-empty">Nothing is owed on any list.</p>
+      ) : n.rows.length > 0 && (
+        <ol className="fp-rows">
+          {n.rows.map(({ item, urgency }, i) => (
+            <li key={item.id ?? `${item.kind}:${item.what}:${i}`}>
+              <button className={'fp-row is-' + URGENCY_TONE[urgency]} onClick={() => nav(planHref(item.jobId, item))}>
+                <span className="fp-row-m">
+                  <b>{item.what}</b>
+                  <small>{KIND_WORD[item.kind]} · {item.who.trim() || 'nobody yet'}</small>
+                </span>
+                <em className="fp-row-when">{whenSaid(item, urgency, today)}</em>
+              </button>
+            </li>
+          ))}
+        </ol>
       )}
+      {foot.length > 0 && (
+        <p className="fp-foot">{foot.map((x, i) => <span key={i}>{i > 0 && ' · '}{x}</span>)}</p>
+      )}
+    </Panel>
+  );
+}
 
-      {b.total === 0 ? (
-        /* Nothing on the board yet — and the board is where it is written,
-           so the one button goes there. */
-        <div className="pace-empty">
-          <p className="sub">
-            {actions.length === 0
-              ? (edit
-                ? <>No actions yet. Write each one on its bone — {SIXM.map(x => x.label).join(', ')} — with who has it and when it is due.</>
-                : <>No actions on the board yet.</>)
-              : <>{actions.length} action{actions.length === 1 ? ' is' : 's are'} waiting to be given a column.</>}
-          </p>
-          <div className="pb-foot" style={{ marginTop: 10 }}>
-            <button className="btn btn-primary" onClick={open}>Open the board</button>
-          </div>
+/** LINES AT TARGET — one row a line: the latest reading against the target
+ *  in play, and whose line it is. The gap's words are lib/measures gapOf's,
+ *  the same the 6M client report leads with; the row opens the line. */
+function LinesPanel({ projectId, lines, standing, can, project }: {
+  projectId: string; lines: PaceLineRow[]; standing: Map<string, LineSeries | undefined>; can: Can; project: Project;
+}) {
+  const judged = lines.filter(l => standing.get(l.id)?.meeting != null);
+  const at = judged.filter(l => standing.get(l.id)?.meeting === true).length;
+  const short = judged.length - at;
+  const headline = lines.map(l => standing.get(l.id)?.measure).find(Boolean);
+  const says = lines.length === 0 ? 'no lines yet'
+    : !headline ? 'no measure set yet'
+    : judged.length === 0 ? 'nothing measured against a target yet'
+    : <>{at} of {judged.length} at target{short > 0 && <> · <b className="fp-n-r">{short} short</b></>}</>;
+  return (
+    <Panel title={headline ? `Lines at target · ${headline.name}` : 'Lines at target'} says={says}
+      door={lines.length ? { label: 'All lines', to: `/project/${projectId}?view=lines` } : undefined} className="fp-lines">
+      {lines.length === 0 ? (
+        <div className="fp-empty">
+          <p>No lines on this project yet.</p>
+          {can.edit && <button className="btn btn-primary" onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>}
         </div>
       ) : (
         <>
-          {b.areas.map(a => (
-            <div key={a.name} className="pb-area">
-              <p className="pb-area-h">
-                <b>{a.name}</b>
-                <span>{a.total} action{a.total === 1 ? '' : 's'} · {a.done} done</span>
-              </p>
-              {/* THE SIX BONES (lib/sixm.ts) — the board's columns, as many
-                  as lib/pillars says, laid out to fit: six across on a desk,
-                  three by two or two by three on a phone. */}
-              <div className={'pb-cols' + (a.columns.length > 3 ? ' is-six' : '')}>
-                {a.columns.map(c => (
-                  <section key={c.key} className={'pb-col is-' + c.key}>
-                    <header className="pb-col-h">
-                      <span className="pb-col-t">{c.label}</span>
-                      <span className="pb-col-n">{c.rows.length}</span>
-                    </header>
-                    {c.rows.length === 0
-                      ? <p className="pb-none">—</p>
-                      : <>
-                          {c.rows.slice(0, AREA_PEEK).map((x, i) => (
-                            <button key={x.uid || x.ref || i} className={'pb-act is-' + statusOfAction(x)}
-                              onClick={() => nav(`/project/${projectId}/board${x.uid ? `?a=${x.uid}` : ''}`)}>
-                              {/* the text is clamped on a span of its own: a line
-                                  clamp applied to the button itself is unreliable,
-                                  and an action cut through the middle of a word reads
-                                  as a rendering fault rather than as "there is more
-                                  of this on the board". */}
-                              <span className="pb-act-t">{actionTitle(x)}</span>
-                            </button>
-                          ))}
-                          {c.rows.length > AREA_PEEK && (
-                            <button className="pb-more" onClick={open}>
-                              +{c.rows.length - AREA_PEEK} more
-                            </button>
-                          )}
-                        </>}
-                  </section>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="pb-foot">
-            <button className="btn btn-primary" onClick={open}>Open the board</button>
-            {b.unplaced.length > 0 && (
-              <span className="sub pb-gap">
-                {b.unplaced.length} action{b.unplaced.length === 1 ? '' : 's'} not given a column yet
-              </span>
-            )}
-          </div>
+          <ol className="fp-rows">
+            {lines.map(l => {
+              const s = standing.get(l.id);
+              const gap = gapOf(l.name, s);
+              const tone = s?.meeting === true ? 'g' : s?.meeting === false ? 'r' : 'n';
+              return (
+                <li key={l.id}>
+                  <button className={'fp-row is-' + tone} title={gap.says} onClick={() => nav(`/project/${projectId}/line/${l.id}`)}>
+                    <span className="fp-row-m">
+                      <b>{l.name}</b>
+                      <small>
+                        {l.owner ? <>Owner {l.owner}</> : 'No owner yet'}
+                        {s?.target != null && <> · {s.period ? `${s.period.name} target` : 'target'} {say(s.target, s.measure.unit)}</>}
+                      </small>
+                    </span>
+                    <span className="fp-row-num">
+                      <b>{s?.latest != null ? say(s.latest, s.measure.unit) : '—'}</b>
+                      <em className={gap.short ? 'fp-n-r' : undefined}>
+                        {!s ? 'no measure set' : gap.short ?? (s.meeting ? 'at target' : s.target == null ? 'no target set' : 'nothing measured yet')}
+                      </em>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+          {/* What the lines are judged on is agreed, so it is the owner's to
+              set (lib/access) — and nobody else is told to. */}
+          {!headline && (can.agree
+            ? <p className="fp-foot"><button className="cw-link" onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up ›</button></p>
+            : <p className="fp-foot">{project.lead || 'The owner'} hasn’t said what this project measures yet.</p>)}
         </>
       )}
-    </section>
+    </Panel>
   );
 }
 
+/** THE TREE'S TOP, on a lever tree job's front page: the outcome and what was
+ *  written directly under it, each in its state — and the whole of it opens
+ *  the tree, where it is worked. Read from the same rows the tree and the
+ *  report draw (lib/treeBind treeStanding). */
+function TreeTopPanel({ projectId, tree }: { projectId: string; tree?: TreeStanding }) {
+  const open = () => nav(`/project/${projectId}/tree`);
+  return (
+    <Panel title="The tree" says={tree ? tree.says : 'nothing written on it yet'}
+      door={{ label: 'Open the tree', to: `/project/${projectId}/tree` }} className="fp-tree">
+      {!tree ? (
+        <p className="fp-empty">The tree starts with the outcome — the one number this job has to hit — and what has to be true for it.</p>
+      ) : (
+        <>
+          <button className={'fp-out is-' + tree.outcome.rag} onClick={open}>
+            <small>The outcome</small>
+            <b>{tree.outcome.text}</b>
+            <em>{tree.outcome.word}</em>
+          </button>
+          {tree.top.length > 0 && (
+            <ol className="fp-rows fp-top">
+              {tree.top.map(c => (
+                <li key={c.id}>
+                  <button className={'fp-row is-' + c.rag} onClick={open}>
+                    <span className="fp-row-m"><b>{c.text}</b></span>
+                    <em className="fp-row-when">{TREE_WORD[c.rag]}</em>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+        </>
+      )}
+    </Panel>
+  );
+}
 
 /* THERE IS NO UPLOAD. The tracker workbook this read every week is gone:
    Rowland — "there will be no Excel that needs to be uploaded ... this is about
@@ -328,71 +421,6 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'data',     label: 'Numbers',    sub: 'readings against target' },
 ];
 
-/** WHERE THE TESTING STANDS, on the project's own front page.
- *
- *  The same sentence the testing screen leads with and the same sentence the A3
- *  prints — composed once in lib/testing, so this page cannot form a second
- *  opinion about a job it is only summarising. */
-/* WHAT IS HOLDING THE JOB UP, named — and ONLY when something actually is. A
- * banner that is always there is furniture; this one appearing means news, so
- * it earns being read.
- *
- * IT USED TO BE THE FIRST THING ON THE PAGE, and that was right when it was the
- * only thing on the page that knew anything was late. The verdict card now says
- * how much is late, whose it is, and what it does to the date — so the page
- * opens on the position rather than on an alarm, and these follow it carrying
- * the one thing the verdict cannot: WHICH ONE, and HOW MANY DAYS.
- *
- * The two are kept apart rather than merged into one "things are late" line:
- * they are owed by different people and fixed in different ways, and a merged
- * count tells you neither.
- */
-function LateAlarms({ projectId }: { projectId: string }) {
-  const mats = useMaterials(projectId);
-  const progs = usePrograms(projectId);
-  return <LateAlarmsOf projectId={projectId} mats={mats} progs={progs} />;
-}
-
-/* The alarms drawn from lists already read. On a stage-gate job the overview
-   reads them once and hands them down — see TestingOverview. */
-function LateAlarmsOf({ projectId, mats, progs }: {
-  projectId: string; mats: ReturnType<typeof useMaterials>; progs: ReturnType<typeof usePrograms>;
-}) {
-  return (
-    <>
-      {mats.tally.late > 0 && (
-        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/materials`)}>
-          <span className="mt-alarm-t">
-            {mats.tally.late === 1 ? '1 material is late' : `${mats.tally.late} materials are late`}
-          </span>
-          <span className="mt-alarm-s">
-            {mats.materials.filter(m => daysLate(m) != null).slice(0, 3)
-              .map(m => `${m.what} — ${daysLate(m)} day${daysLate(m) === 1 ? '' : 's'}`).join('  ·  ')}
-            {mats.tally.late > 3 && `  ·  and ${mats.tally.late - 3} more`}
-          </span>
-          <span className="mt-alarm-go" aria-hidden>›</span>
-        </button>
-      )}
-
-      {progs.tally.overdue > 0 && (
-        <button className="mt-alarm" onClick={() => nav(`/project/${projectId}/programs`)}>
-          <span className="mt-alarm-t">
-            {progs.tally.overdue === 1
-              ? '1 program is past its test date'
-              : `${progs.tally.overdue} programs are past their test date`}
-          </span>
-          <span className="mt-alarm-s">
-            {progs.programs.filter(p => daysOverdue(p) != null).slice(0, 3)
-              .map(p => `${p.what} — ${daysOverdue(p)} day${daysOverdue(p) === 1 ? '' : 's'}`).join('  ·  ')}
-            {progs.tally.overdue > 3 && `  ·  and ${progs.tally.overdue - 3} more`}
-          </span>
-          <span className="mt-alarm-go" aria-hidden>›</span>
-        </button>
-      )}
-    </>
-  );
-}
-
 /** THE DAY, one line under the verdict: today's story if there is one yet,
  *  otherwise the last day that has one — and a tap reads it whole. */
 function DayLink({ projectId, tt, mats, progs }: {
@@ -433,21 +461,17 @@ function NotesButton({ projectId }: { projectId: string }) {
   );
 }
 
-function TestingOverview({ projectId, name, edit }: { projectId: string; name: string; edit: boolean }) {
+function TestingOverview({ projectId, project, edit }: { projectId: string; project: Project; edit: boolean }) {
   const tt = useTesting(projectId);
-  /* What the filmed walk found — one lane on the plan. */
-  const walk = useWalkSnags(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
      to form its own opinion from the trials alone, which meant it could say
      "nothing outstanding" while four materials were late and two programs were
      past their test date. Same call the client report makes. */
   const all = useStanding(projectId);
   const progs = usePrograms(projectId);
-  /* READ ONCE, DRAWN TOGETHER. The day's line and the late alarms each read
-     the whole job again for themselves, so on a big job they arrived a second
-     after the rest of the page and pushed every card under them down — under
-     a thumb already on its way to "Where each machine is". They are handed
-     these lists, and the page is drawn when all of it is in. */
+  /* READ ONCE, DRAWN TOGETHER. The day's line and "Needs you" each need the
+     whole job; they are handed these lists, and the page is drawn when all of
+     it is in, so nothing arrives a second late and pushes the rest down. */
   const mats = useMaterials(projectId);
   if (tt.loading || all.loading || mats.loading || progs.loading) return <p className="sub">Loading…</p>;
 
@@ -458,14 +482,13 @@ function TestingOverview({ projectId, name, edit }: { projectId: string; name: s
      material three days late, with no verdict, no alarm and no plan. */
   const empty = tt.tests.length === 0 && tt.assets.length === 0 && st.outstanding === 0 && st.plan.length === 0;
 
-  /* WHAT EACH FOLDED CARD SAYS — the answer, so closing a card hides the
-     detail and never the news. */
   const machines = live(tt.assets);
   /* "due on site" for a machine not here yet, never "at Install" (machineAt). */
   const wheres = machines.map(a => machineAt(a, journeyOf(a, tt.tests, tt.items, today, progs.programs)));
   const whereSays = machines.length === 1 ? wheres[0].says : machinesWhere(wheres.map(w => w.short));
-  const waitSays = st.outstanding === 0 ? 'nothing waiting'
-    : `${st.outstanding} open${st.late ? ` · ${st.late} late` : ' · none late'}`;
+  /* Every thing owed on the job, one row each — the control room's week reads
+     the same list (lib/portfolio jobItems), by the rules the band counts by. */
+  const owed = jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets }, today);
 
   return (
     <section className="pace-sec">
@@ -489,44 +512,38 @@ function TestingOverview({ projectId, name, edit }: { projectId: string; name: s
         </div>
       ) : (
         <>
-          {/* THE VERDICT, then where each machine is, then what is waiting on
-              somebody, then the dates. Every card below the verdict folds —
-              Rowland: "very busy, hard to see, nothing collapses" — and folded
-              each still says its answer in a line. */}
+          {/* ONE SCREEN, NOT THREE. Rowland, 5 October: "too much on a
+              screen… this is more about opening doors rather than keeping it
+              linear and simple." The band; then what needs you beside where
+              each machine is; then the day and the plan, each a door.
+              WHAT WENT, AND WHERE IT IS NOW: "What we're waiting on" was six
+              rows each arrowing to a tab already in the row above, with the
+              same counts — the row carries them. The two alarm bars (a
+              material late, a program past its test) are rows on "Needs you"
+              with their day. The plan — the longest thing on the page — is a
+              page of its own (/plan), one line and a door here. */}
           <Verdict st={st} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />
-          <DayLink projectId={projectId} tt={tt} mats={mats} progs={progs} />
-          <LateAlarmsOf projectId={projectId} mats={mats} progs={progs} />
-          {machines.length > 0 && (
-            <Fold id="where" title="Where each machine is" says={whereSays}>
-              <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
-            </Fold>
-          )}
-          {st.rows.length > 0 && (
-            <Fold id="waiting" title="What we’re waiting on" says={waitSays}>
-              <Outstanding rows={st.rows} projectId={projectId} />
-            </Fold>
-          )}
-          {/* THE PLAN LAST, AND SHUT TO START WITH. It used to sit above the
-              table, so the table could be read against the days left; but it
-              is the longest thing on the page, and open it pushed what needs
-              doing off the screen. Folded, it still says how much is done. */}
-          {st.plan.length > 0 && (
-            <Fold id="plan" title="The plan" says={planSays(st.plan, today)}>
-              {/* A GANTT, NOT A TIMELINE. Rowland: "build a proper Gantt chart
-                  view with dates across the top, showing easily on a calendar."
-                  The timeline wrote each date beside its mark; here the days are
-                  the columns and a bar sits on the days it means. Same marks —
-                  the Home drawer and the client report still draw the timeline. */}
-              <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId} name={name} tests={tt.tests} items={tt.items} walk={walk ?? undefined} assets={tt.assets} programs={progs.programs} />
-            </Fold>
-          )}
-
-          {/* WHAT USED TO FOLLOW — a "tests and fixes" bar, a "next up" card and
-              the list of machines — each said again what the table above
-              already says, off a smaller part of the job. The machines live on
-              Install; the next test is the top of Testing. */}
+          <div className="fp-grid">
+            <NeedsYouPanel items={owed} today={today} door={{ label: 'The plan', to: `/project/${projectId}/plan` }} />
+            <div className="fp-col">
+              {machines.length > 0 && (
+                <Panel title="Where each machine is" says={whereSays} className="fp-where">
+                  <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
+                </Panel>
+              )}
+              <DayLink projectId={projectId} tt={tt} mats={mats} progs={progs} />
+              {/* THE PLAN, AS A DOOR. The same sentence the plan's own page
+                  leads with (lib/plan planSays) — how many dates, how many
+                  done, how many gone — and the Gantt one tap away. */}
+              <button className="dy-link fp-plan" onClick={() => nav(`/project/${projectId}/plan`)}>
+                <span className="cmp-h-n">THE PLAN</span>
+                <span className="dy-link-t">{planSays(st.plan, today)}</span>
+                <span className="dy-link-go">Open the plan ›</span>
+              </button>
+            </div>
+          </div>
         </>
       )}
     </section>
@@ -552,6 +569,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      had forgotten the page rather than moved it. */
   useEffect(() => {
     if (raw === 'meeting') navReplace(`/project/${projectId}/board`);
+    /* The plan was a fold on this page; it is a page of its own now, and a
+       link saved to it lands there. */
+    if (raw === 'plan') navReplace(`/project/${projectId}/plan`);
   }, [raw, projectId]);
 
   const { loading: projLoading, project } = useProject(projectId);
@@ -567,6 +587,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const nums = useMeasures(projectId);
   const treeRows = useTreeNodes(projectId);
   const stand = useStanding(projectId);
+  /* A 6M or tree job's materials and programs are owed like its actions are,
+     so a late one is a row on "Needs you" beside the countermeasures. */
+  const mats = useMaterials(projectId);
+  const progs = usePrograms(projectId);
   const { actions } = ax;
   // Every line's own pack, counted. This is the roll-up: each number below was
   // typed by a line owner into their own pack, not entered again here.
@@ -584,7 +608,6 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   ]));
   const headline = nums.measures[0];
   const limited = ppm.lines.map(l => ({ line: l, says: l.capacity ? shortSays(analyse(l.capacity)) : undefined }));
-  const counted = limited.filter(x => x.says);
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
   /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
@@ -607,14 +630,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     tally('worse') && `${tally('worse')} worse`,
     tally('soon') && `${tally('soon')} too soon`,
   ].filter(Boolean).join(' · ') || `${closed.length} closed`;
-  const boardSays = actions.length === 0 ? 'nothing on it yet'
-    : `${openActions} open${overdue ? ` · ${overdue} late` : ''} · ${done} done`;
-  const numbersSays = !headline ? 'no measures set yet'
-    : ppm.lines.length === 0 ? 'no lines yet'
-    : `${atTarget} of ${judged || ppm.lines.length} at target`;
 
-
-  if (ax.loading || ppm.loading || projLoading || nums.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+  if (ax.loading || ppm.loading || projLoading || nums.loading || mats.loading || progs.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
   // A link to a project that has since been deleted is a dead end, not a crash.
   if (!project) {
@@ -740,167 +757,48 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           None of it belongs to a handover, and every one of them was the first
           thing somebody saw on opening the project. */}
       {lens === 'overview' && model === 'commissioning' && (
-        <TestingOverview projectId={projectId} name={project.name} edit={can.edit} />
+        <TestingOverview projectId={projectId} project={project} edit={can.edit} />
       )}
 
-      {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE: the verdict in one
-          sentence, what is late under it, then cards that fold — each saying
-          its answer while shut. It was four number cards, a board panel asking
-          for a workbook upload, and a chart per line, all open at once. */}
-      {lens === 'overview' && model !== 'commissioning' && (
-        <>
-          <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
-          {model === 'board' && <FishboneLead projectId={projectId} can={can} />}
-          <ProjectReminders projectId={projectId} />
-          <LateAlarms projectId={projectId} />
-
-          {/* THE TREE, ON THE FRONT PAGE OF A TREE JOB. The outcome and the
-              conditions under it are what this job is run against, and the
-              page said only lines and the board: a manager could not tell how
-              the outcome stood without opening the tree. Drawn from the same
-              rows the tree and the report draw. */}
-          {tree && (
-            <Fold id="p3-tree" title="The tree" says={tree.says}>
-              <ul className="dw-list">
-                <li className="dw-row">
-                  <button className="dw-go" onClick={() => nav(`/project/${projectId}/tree`)}>
-                    <b>{tree.outcome.text}</b>
-                    <span className="dw-w">The outcome — <span className={'lt-word is-' + tree.outcome.rag}>{tree.outcome.word}</span></span>
-                    <span className="dw-go-c" aria-hidden>›</span>
-                  </button>
-                </li>
-                {tree.off.map(c => (
-                  <li key={c.id} className="dw-row">
-                    <button className="dw-go" onClick={() => nav(`/project/${projectId}/tree`)}>
-                      <b>{c.text}</b>
-                      <span className="dw-w"><span className={'lt-word is-' + c.rag}>{c.rag === 'r' ? 'Overdue' : 'At risk'}</span></span>
-                      <span className="dw-go-c" aria-hidden>›</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </Fold>
-          )}
-
-          <Fold id="p3-board" title="The board" says={boardSays}>
-            <BoardPanel projectId={projectId} actions={actions} bare edit={can.edit} />
-          </Fold>
-
-          {/* WHERE EACH LINE IS BALANCED — what the Pareto cannot say. Always
-              here, because a card that only appears once the work is done
-              cannot be found to start it (Rowland: "I can't see it anywhere").
-              A line not yet counted says so and opens straight to where its
-              stations go. */}
-          {ppm.lines.length > 0 && (
-            <Fold id="p3-capacity" title="Line balance — where each line is limited"
-              says={counted.length === 0 ? 'not counted yet — open a line to start'
-                : counted.length === 1 && ppm.lines.length === 1 ? counted[0].says
-                  : `${counted.length} of ${ppm.lines.length} lines counted`}>
-              <ul className="dw-list">
-                {/* THE WHOLE ROW IS THE WAY IN. The name alone was the button
-                    — 45 by 20 pixels on a phone — and the sentence under it,
-                    ending in a chevron, read as the thing to press and did
-                    nothing (Rowland: "press line balancing, doesn't open"). */}
-                {limited.map(x => (
-                  <li key={x.line.id} className="dw-row">
-                    <button className="dw-go" onClick={() => nav(`/project/${projectId}/line/${x.line.id}?view=capacity`)}>
-                      <b>{x.line.name}</b>
-                      <span className="dw-w">{x.says ?? 'Not counted yet — list the machines and people, each at its own speed'}</span>
-                      <span className="dw-go-c" aria-hidden>›</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </Fold>
-          )}
-
-          {/* DID IT WORK? Each closed action, judged by the line's own numbers
-              either side of the day it closed — the same proof a Win carries.
-              Only the ones with a day they closed and something to judge by. */}
-          {closed.length > 0 && (
-            <Fold id="p3-proof" title="Did it work?" says={provenSays}>
-              <ul className="dw-list">
-                {closed.map(s => {
-                  const im = impacts.get(s.id);
-                  /* THE WHOLE ROW IS THE WAY IN, as the Line balance rows are:
-                     the action's name alone was the button, 20px tall, and the
-                     verdict and the sentence beside it pressed nothing. */
-                  return (
-                    <li key={s.id} className="dw-row">
-                      {/* THE WHOLE ROW OPENS THAT ACTION — the title alone was
-                          the button, 20 px tall on a phone, and it dropped you
-                          on the board to find the action again. */}
-                      <button className="dw-go" onClick={() => nav(`/project/${projectId}/board?a=${s.id}`)}>
-                        <b>{s.what}</b>
-                        <span className="dw-w">
-                          {[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}
-                          {im && im.state !== 'none' && <> <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span></>}
-                        </span>
-                        {im?.words && <span className="dw-w">{im.words}</span>}
-                        <span className="dw-go-c" aria-hidden>›</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Fold>
-          )}
-
-          <Fold id="p3-numbers" title={headline ? headline.name : 'The numbers'} says={numbersSays}>
-
-
-          <section className="pace-sec">
-            <div className="pace-sec-head">
-              <p className="pace-sec-sub">
-                {headline
-                  ? <>Every line’s readings against the target for the period they fall in
-                      {headline.unit && <> · {headline.unit}</>}
-                      {' · '}{headline.direction === 'up' ? 'higher is better' : 'lower is better'}</>
-                  : <>This project hasn’t said what it measures yet</>}
-              </p>
+      {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE, and one screen
+          like it. Rowland, 5 October: "too much on a screen… this is more
+          about opening doors rather than keeping it linear and simple." Every
+          lens was drawn again here as a fold — the board, line balance, "Did
+          it work?", every line's chart — so the page ran to three screens.
+          Now: the band; the fishbone small (6M) or the tree's top (tree);
+          then what needs you beside where each line is against its target.
+          Each of the rest has its one place, a tab in the row: the board on
+          Board, line balance on each line's card under Lines, "Did it work?"
+          on Wins, the charts on Numbers. The two alarm bars (a material late,
+          a program past its test) are rows on "Needs you" with their day. */}
+      {lens === 'overview' && model !== 'commissioning' && (() => {
+        const today = todayISO();
+        /* Everything owed on the job, one row each: the board's open actions
+           (the control room reads the same, lib/portfolio pacedItems), and
+           the materials and programs not in yet (jobItems). */
+        const owed = [
+          ...pacedItems({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged }, today),
+          ...jobItems({ project, tests: [], items: [], materials: mats.materials, programs: progs.programs, assets: [] }, today),
+        ];
+        return (
+          <>
+            <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
+            <ProjectReminders projectId={projectId} />
+            {/* THE METHOD'S OWN PICTURE LEADS, the list that needs you beside
+                it, and the lines under the picture — so the page is one
+                laptop screen, and on a phone it reads picture, owed, lines. */}
+            <div className="fp-grid is-lead">
+              {model === 'board' && <FishboneLead projectId={projectId} can={can} />}
+              {/* THE TREE'S TOP, ON A TREE JOB. The outcome and the conditions
+                  under it are what this job is run against; a manager could
+                  not tell how the outcome stood without opening the tree. */}
+              {model === 'tree' && treeRows && <TreeTopPanel projectId={projectId} tree={tree} />}
+              <NeedsYouPanel items={owed} today={today} split max={5} door={{ label: 'The board', to: `/project/${projectId}/board` }} />
+              <LinesPanel projectId={projectId} lines={ppm.lines} standing={standing} can={can} project={project} />
             </div>
-            {ppm.lines.length === 0 ? (
-              <div className="pace-empty">
-                <p className="sub">No lines on this project yet.</p>
-                {can.edit && (
-                  <button className="btn btn-primary" style={{ marginTop: 10 }}
-                    onClick={() => nav(`/project/${projectId}/setup`)}>Add the first line</button>
-                )}
-              </div>
-            ) : !headline ? (
-              <div className="pace-empty">
-                {/* The measures are agreed, so set by the owner (Details). */}
-                {can.agree ? <>
-                  <p className="sub">
-                    Say what this project measures — a name, a unit and which way is good — and every
-                    line’s chart draws itself from the readings.
-                  </p>
-                  <button className="btn btn-primary" style={{ marginTop: 10 }}
-                    onClick={() => nav(`/project/${projectId}/setup`)}>Set the measures up</button>
-                </> : (
-                  <p className="sub">
-                    {project.lead || 'The owner'} hasn’t said what this project measures yet. When they do, every
-                    line’s chart draws itself from the readings.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="pace-charts">
-                {ppm.lines.map(l => {
-                  const series = standing.get(l.id);
-                  return series ? (
-                    <div key={l.key} className="pace-chart-cell">
-                      <MeasureChart series={series} who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} />
-                      <LinePeople line={l} projectId={projectId} />
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            )}
-          </section>
-          </Fold>
-        </>
-      )}
+          </>
+        );
+      })()}
 
       {lens === 'lines' && (
         <section className="pace-sec">
@@ -961,13 +859,43 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       )}
 
       {lens === 'wins' && (
-        <section className="pace-sec">
-          <div className="pace-sec-head">
-            
-            <p className="pace-sec-sub">What we did and what worked · the wins to show the team</p>
-          </div>
-          <PaceSuccess projectId={projectId} />
-        </section>
+        <>
+          {/* DID IT WORK? Each closed action, judged by the line's own numbers
+              either side of the day it closed — the same proof a Win carries,
+              so it is kept with the wins. It was a fold on the front page.
+              Only the ones with a day they closed. */}
+          {closed.length > 0 && (
+            <Panel title="Did it work?" says={provenSays} className="fp-proof">
+              <ul className="dw-list">
+                {closed.map(s => {
+                  const im = impacts.get(s.id);
+                  return (
+                    <li key={s.id} className="dw-row">
+                      {/* THE WHOLE ROW OPENS THAT ACTION — the title alone was
+                          the button, 20 px tall on a phone, and it dropped you
+                          on the board to find the action again. */}
+                      <button className="dw-go" onClick={() => nav(`/project/${projectId}/board?a=${s.id}`)}>
+                        <b>{s.what}</b>
+                        <span className="dw-w">
+                          {[s.who, s.doneOn && `closed ${niceDay(s.doneOn)}`].filter(Boolean).join(' · ')}
+                          {im && im.state !== 'none' && <> <span className={'bd-proof is-' + im.state}>{IMPACT_WORD[im.state]}</span></>}
+                        </span>
+                        {im?.words && <span className="dw-w">{im.words}</span>}
+                        <span className="dw-go-c" aria-hidden>›</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          )}
+          <section className="pace-sec">
+            <div className="pace-sec-head">
+              <p className="pace-sec-sub">What we did and what worked · the wins to show the team</p>
+            </div>
+            <PaceSuccess projectId={projectId} />
+          </section>
+        </>
       )}
 
       {lens === 'snags' && (
@@ -985,6 +913,33 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
 
       {lens === 'data' && (
         <>
+          {/* EVERY LINE'S CHART, over the numbers it is drawn from. The charts
+              were a fold on the front page, and this lens only took readings
+              in; now the readings and what they draw are one page. With no
+              measure or no line, the panel below says so and how to start. */}
+          {headline && ppm.lines.length > 0 && (
+            <section className="pace-sec">
+              <div className="pace-sec-head">
+                <h2 className="pace-sec-title">{headline.name}</h2>
+                <p className="pace-sec-sub">
+                  Every line’s readings against the target for the period they fall in
+                  {headline.unit && <> · {headline.unit}</>}
+                  {' · '}{headline.direction === 'up' ? 'higher is better' : 'lower is better'}
+                </p>
+              </div>
+              <div className="pace-charts">
+                {ppm.lines.map(l => {
+                  const series = standing.get(l.id);
+                  return series ? (
+                    <div key={l.key} className="pace-chart-cell">
+                      <MeasureChart series={series} who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} />
+                      <LinePeople line={l} projectId={projectId} />
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            </section>
+          )}
           <section className="pace-sec">
             <div className="pace-sec-head">
               

@@ -6,7 +6,7 @@
  * asserted here, because a board that disagrees with the job it opens is
  * worse than no board. */
 import { describe, it, expect } from 'vitest';
-import { bonesSaid, clusterMarks, jobItems, owedBy, pacedSays, portfolio, problemsSaid, saidText, shortName, type JobInput, type PacedInput } from '../portfolio';
+import { bonesSaid, clusterMarks, jobItems, needsYou, owedBy, pacedSays, portfolio, problemsSaid, saidText, shortName, type JobInput, type PacedInput } from '../portfolio';
 import { gapOf, type LineSeries } from '../measures';
 import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
@@ -408,5 +408,59 @@ describe('the same step on more than one machine', () => {
     const labels = standing({ tests: j.tests, items: [], materials: [], programs: [], assets: j.assets, today: TODAY })
       .plan.filter(m => m.kind !== 'machine').map(m => m.label).sort();
     expect(labels).toEqual(['Pick and place — Dry run', 'Wrapper — Dry run']);
+  });
+});
+
+/* NEEDS YOU — the job's front page leads with it (ProjectDashboardScreen).
+   Rowland, 5 October: "too much on a screen… this is more about opening doors
+   rather than keeping it linear and simple." It is the job's own items, in the
+   order you would deal with them, so it can never disagree with the band. */
+describe('what needs you, on a job’s front page', () => {
+  const p = project({ id: 'n', name: 'Line 4' });
+  const on = (title: string, plannedFor?: string, o: Partial<Test> = {}) => test({ title, plannedFor, ...o });
+
+  it('puts everything past its day first, the oldest first, then due soon, then the next booked', () => {
+    const j = job(p, {
+      tests: [
+        on('Booked far off', '2026-10-20'),
+        on('Due tomorrow', '2026-09-30'),
+        on('Late by a day', '2026-09-28'),
+        on('Late by a week', '2026-09-22'),
+        on('Booked next', '2026-10-06'),
+      ],
+    });
+    const n = needsYou(jobItems(j, TODAY), TODAY);
+    expect(n.rows.map(r => `${r.urgency}:${r.item.what}`)).toEqual([
+      'late:Late by a week', 'late:Late by a day', 'soon:Due tomorrow', 'next:Booked next',
+    ]);
+    // The rest is a count — and a door — not a row.
+    expect(n).toMatchObject({ late: 2, soon: 1, more: 1, undated: 0 });
+  });
+
+  it('counts everything late even when there are more than it has rows for', () => {
+    const j = job(p, { tests: Array.from({ length: 9 }, (_, i) => on(`Late ${i}`, `2026-09-${String(10 + i).padStart(2, '0')}`)) });
+    const n = needsYou(jobItems(j, TODAY), TODAY, { max: 6 });
+    expect(n.rows).toHaveLength(6);
+    expect(n.rows.every(r => r.urgency === 'late')).toBe(true);
+    expect(n).toMatchObject({ late: 9, more: 3 });
+  });
+
+  it('still says what is coming on a job that is in hand', () => {
+    const j = job(p, { tests: [on('A', '2026-10-10'), on('B', '2026-10-12'), on('C', '2026-10-14'), on('D', '2026-10-16')] });
+    const n = needsYou(jobItems(j, TODAY), TODAY);
+    expect(n.rows.map(r => r.item.what)).toEqual(['A', 'B', 'C']);
+    expect(n).toMatchObject({ late: 0, soon: 0, more: 1 });
+  });
+
+  it('counts what has no date apart — it can never be late, and it is a thing to chase', () => {
+    const j = job(p, { tests: [on('Undated fix', undefined, { kind: 'fix' }), on('Late', '2026-09-20')] });
+    const n = needsYou(jobItems(j, TODAY), TODAY);
+    expect(n.rows.map(r => r.item.what)).toEqual(['Late']);
+    expect(n.undated).toBe(1);
+  });
+
+  it('files a step under its own gate, so a hand-over item is not called an install step', () => {
+    const j = job(p, { tests: [on('Manuals', '2026-10-01', { kind: 'install', gate: 'handover' }), on('Dry run', '2026-10-01', { kind: 'install' })] });
+    expect(jobItems(j, TODAY).map(x => `${x.what}:${x.kind}`).sort()).toEqual(['Dry run:install', 'Manuals:handover']);
   });
 });
