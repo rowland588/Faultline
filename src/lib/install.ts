@@ -10,7 +10,7 @@
  * screen and, later, the client report say the same sentence from one call.
  */
 import { owns } from './format';
-import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
 
@@ -383,6 +383,30 @@ export function jobJourney(assets: Asset[], tests: Test[], items: TestItem[], to
           : tones.some(t => t === 'done' || t === 'going') ? 'going' : 'ahead';
     return { gate: j.gate, label: j.label, tone };
   });
+}
+
+/** WHERE A MACHINE STANDS, IN WORDS — "due on site", "at Set up", "Handed
+ *  over". Rowland, 5 October: a machine not here yet read "at Install"
+ *  (Domino coder, still due on site, said "at Install · 1 late"). A machine
+ *  that has not arrived (testing.assetStateOf: awaited) is DUE ON SITE,
+ *  whatever its gates say; otherwise it is at the gate journeyNow finds.
+ *  `short` is the column word (the client report's right-hand column):
+ *  "Due on site", "Set up", "Handed over". One rule for every place a machine
+ *  is worded — the front page's strip, the Gantt's machine header, the client
+ *  report's machine list and its count line. */
+export function machineAt(a: Pick<Asset, 'state' | 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn'>,
+  j: { label: string; tone: GateTone }[]): { says: string; short: string; due: boolean } {
+  if (assetStateOf(a) === 'awaited') return { says: 'due on site', short: 'Due on site', due: true };
+  const now = journeyNow(j);
+  return now === 'Handed over' ? { says: 'Handed over', short: now, due: false } : { says: `at ${now}`, short: now, due: false };
+}
+
+/** How many machines stand where, in one line — "1 due on site · 2 at
+ *  Install · 1 handed over" — from the column words machineAt gives. */
+export function machinesWhere(shorts: string[]): string {
+  const n = new Map<string, number>();
+  for (const s of shorts) n.set(s, (n.get(s) ?? 0) + 1);
+  return [...n].map(([s, k]) => (s === 'Due on site' ? `${k} due on site` : s === 'Handed over' ? `${k} handed over` : `${k} at ${s}`)).join(' · ');
 }
 
 /** THE GATE A MACHINE IS AT — the earliest with work open on it (late or

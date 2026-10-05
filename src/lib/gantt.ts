@@ -19,7 +19,7 @@ import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, live, type Asset, type Test, type TestItem } from './testing';
 import { todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { JOURNEY, journeyNow, journeyOf, redReasons } from './install';
+import { JOURNEY, journeyNow, machineAt, journeyOf, redReasons } from './install';
 import type { Program } from './programs';
 
 export type GanttScale = 'day' | 'week';
@@ -391,7 +391,8 @@ export function withMachines(g: Gantt, job: {
       : now === 'Handed over' ? 'done'
         : rows.some(r => r.tone === 'ran') ? 'ran'
           : j.some(x => x.tone === 'going') || rows.some(r => r.tone === 'booked') ? 'booked' : 'none';
-    const says = [now === 'Handed over' ? now : `at ${now}`, red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
+    /* "due on site" for a machine not here yet — never "at Install" (machineAt). */
+    const says = [machineAt(a, j).says, red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
     const gate = JOURNEY.find(x => x.label === now) ?? JOURNEY[JOURNEY.length - 1];
     const bar = barOf(rows, g.dayList);
     return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(bar ? { bar } : {}) };

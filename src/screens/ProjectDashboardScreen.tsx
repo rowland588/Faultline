@@ -15,7 +15,7 @@ import { Peers, projectPeers, methodPeers } from '../ui/Peers';
 import { Journey } from '../ui/Journey';
 import { Fold, openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
-import { journeyNow, journeyOf } from '../lib/install';
+import { machineAt, machinesWhere, journeyOf } from '../lib/install';
 import { planSays } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { PaceSnags } from './PaceSnags';
@@ -461,14 +461,9 @@ function TestingOverview({ projectId, name, edit }: { projectId: string; name: s
   /* WHAT EACH FOLDED CARD SAYS — the answer, so closing a card hides the
      detail and never the news. */
   const machines = live(tt.assets);
-  const atCount = new Map<string, number>();
-  for (const a of machines) {
-    const at = journeyNow(journeyOf(a, tt.tests, tt.items, today, progs.programs));
-    atCount.set(at, (atCount.get(at) ?? 0) + 1);
-  }
-  const whereSays = machines.length === 1
-    ? `at ${[...atCount.keys()][0]}`
-    : [...atCount].map(([at, n]) => `${n} at ${at}`).join(' · ');
+  /* "due on site" for a machine not here yet, never "at Install" (machineAt). */
+  const wheres = machines.map(a => machineAt(a, journeyOf(a, tt.tests, tt.items, today, progs.programs)));
+  const whereSays = machines.length === 1 ? wheres[0].says : machinesWhere(wheres.map(w => w.short));
   const waitSays = st.outstanding === 0 ? 'nothing waiting'
     : `${st.outstanding} open${st.late ? ` · ${st.late} late` : ' · none late'}`;
 

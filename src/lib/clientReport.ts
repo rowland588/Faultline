@@ -22,7 +22,7 @@
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import type { Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, journeyNow, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
+import { GATE_WORD, installGrid, jobJourney, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { stateOf, type Program } from './programs';
@@ -149,7 +149,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
   const job = jobJourney(assets, tests, items, today, programs);
   const machines = assets.map(a => {
     const j = journeyOf(a, tests, items, today, programs);
-    return { name: a.name, at: journeyNow(j), gates: j.map(g => g.tone) };
+    /* "Due on site" for a machine not here yet, never "Install" (machineAt). */
+    return { name: a.name, at: machineAt(a, j).short, gates: j.map(g => g.tone) };
   });
 
   /* ---- gate by gate ---- */
@@ -290,7 +291,5 @@ export function clientReport(x: ClientReportInput): ClientReport {
 
 /** "2 at Commission · 1 at Install" — the machines in one line. */
 export function machinesSay(r: Pick<ClientReport, 'machines'>): string {
-  const at = new Map<string, number>();
-  for (const m of r.machines) at.set(m.at, (at.get(m.at) ?? 0) + 1);
-  return [...at].map(([g, n]) => `${n} at ${g}`).join(' · ') || plural(0, 'machine');
+  return machinesWhere(r.machines.map(m => m.at)) || plural(0, 'machine');
 }
