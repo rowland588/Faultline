@@ -217,8 +217,11 @@ for (const size of SIZES) {
 
   const reports = [
     ['client', `#/project/${job.projectId}/report`, [['PDF']], must.client],
-    ['test card', `#/project/${job.projectId}/testing/${job.testId}/card`, [['PDF']], must.card],
-    ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}/card`, [['PDF']], must.fix]] : []),
+    /* The card is the record's own page now (screens/TestScreen); its button
+       says what it makes — "Test card — PDF", "Fix card — PDF", "Install step
+       card — PDF" — so it is pressed by that name, whichever face it wears. */
+    ['test card', `#/project/${job.projectId}/testing/${job.testId}`, [[/ card — PDF$/]], must.card],
+    ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}`, [[/ card — PDF$/]], must.fix]] : []),
     /* The day's button says what it does (screens/DayScreen, 5 October). */
     ['day', `#/project/${job.projectId}/day`, [['Today’s update — PDF']], must.day],
   ];

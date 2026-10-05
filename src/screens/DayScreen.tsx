@@ -10,6 +10,7 @@
  * same reading, so what you send is what you read.
  */
 import { useEffect, useState } from 'react';
+import { openRecord } from '../ui/RecordDrawer';
 import { nav, useRoute } from '../state/useRoute';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
@@ -73,8 +74,9 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const prev = [...days].reverse().find(d => d < date);
   const next = days.find(d => d > date && d <= today) ?? (date < today ? today : undefined);
   const go = (d: string) => nav(`/project/${projectId}/day${d === today ? '' : `?d=${d}`}`);
+  /* A line about a record opens it in the drawer, over the day (ui/RecordDrawer). */
   const open = (l: DayLine) => {
-    if (l.id) nav(`/project/${projectId}/testing/${encodeURIComponent(l.id)}`);
+    if (l.id) openRecord(projectId, l.id);
     else if (l.go) nav(`/project/${projectId}/${l.go}`);
   };
 

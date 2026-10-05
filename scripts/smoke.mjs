@@ -81,13 +81,20 @@ const ROUTES = [
   ['line standard — a map', `#/project/${seeded.projectId}/standard/${seeded.standardId}`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
-  ['install step card', `#/project/${seeded.projectId}/testing/${seeded.stepId}/card`],
+  /* The record's page is the card now; an old /card link must land on it. */
+  ['install step card (old link)', `#/project/${seeded.projectId}/testing/${seeded.stepId}/card`],
+  /* THE DRAWER (ui/RecordDrawer): a fix over the Fixes list, a step over the
+     grid, a test over Commission, and one over the control room. */
+  ['fixes — a fix open', `#/project/${seeded.projectId}/fixes?open=${seeded.fixId}`],
+  ['install — a step open', `#/project/${seeded.projectId}/install?open=${seeded.stepId}`],
+  ['testing — a test open', `#/project/${seeded.projectId}/testing?open=${seeded.testId}`],
+  ['home — a fix open', `#/?open=${seeded.fixId}&job=${seeded.projectId}`],
+  ['fixes — a record gone', `#/project/${seeded.projectId}/fixes?open=no-such-record`],
   /* The day, today and a day in the past that has a story on it. */
   ['the day', `#/project/${seeded.projectId}/day`],
   ['a past day', `#/project/${seeded.projectId}/day?d=${seeded.pastDay}`],
   ['one test', `#/project/${seeded.projectId}/testing/${seeded.testId}`],
-  /* The trial read back whole — the screen the PDF is sent from. */
-  ['trial card', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],
+  ['trial card (old link)', `#/project/${seeded.projectId}/testing/${seeded.testId}/card`],
   // A test that is not there any more must say so, not render a screen about
   // nothing — the class of fault that took the whole app down once. And every
   // old /commissioning bookmark still lands on the list.

@@ -15,6 +15,7 @@ import type { PlanMark } from '../lib/standing';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Program } from '../lib/programs';
 import { StagePanel } from './StagePanel';
+import { openRecord } from './RecordDrawer';
 import { WalkPanel } from './WalkPanel';
 import { walkMarkers, type WalkSnag } from '../lib/walkSnags';
 import { niceDay } from '../lib/weeks';
@@ -25,7 +26,9 @@ import { Icon } from './Icon';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test']);
+/* A ROW THAT IS A RECORD — a step, a test, a fix — opens in the drawer
+   (ui/RecordDrawer), like every other door onto it. */
+const RECORD = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test', 'fix']);
 const BANDS_KEY = 'faultline.gantt.bands';
 const BAND_TONE: Record<PlanMark['tone'], string> = {
   done: 'done', failed: 'a problem', ran: 'waiting on a verdict', booked: 'under way or ahead', late: 'late or a problem', none: 'not started',
@@ -49,8 +52,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items, ...(walk ? { walk } : {}) } : undefined), [marks, today, expectedAt, plannedAt, tests, items, walk]);
   /* The walk's panel: the snags behind one marker, or all of them. */
   const [walkOpen, setWalkOpen] = useState<{ title: string; ids: string[] } | null>(null);
-  /* The panel a row opens: a stage's story (with its buttons), or the story of
-     one of the other dates — the handover, a machine, a material, a program. */
+  /* The panel a row opens when it is not a record: the story of one of the
+     other dates — the handover, a machine, a material, a program. */
   const [stage, setStageRaw] = useState<{ key: string; title: string; href?: string } | null>(null);
   const setStage = (key: string, title?: string, href?: string) => {
     const row = g.groups.flatMap(x => x.rows).find(r => r.key === key || r.id === key);
@@ -205,8 +208,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     /* Inside a machine's band the row says only the step; its panel and its
        tip still say which machine. */
     const named = machine && r.kind !== 'machine' ? `${machine} — ${r.label}` : r.label;
-    /* A stage with a story opens it; anything else opens its record. */
-    const go = () => (r.key && (STAGE.has(r.kind) || r.slip || r.marks) ? setStage(r.key, named, href) : open(href));
+    /* A record opens in the drawer, over the plan; one of the other dates
+       with a story opens its panel; anything else goes where it is kept. */
+    const go = () => (r.id && RECORD.has(r.kind) ? openRecord(projectId, r.id)
+      : r.key && (r.slip || r.marks) ? setStage(r.key, named, href) : open(href));
     const w = Math.max(r.span * px - 4, 10);
     const inside = w >= r.when.length * 6.4 + 16;
     const tip = r.kind === 'note'
@@ -250,16 +255,16 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
           const fw = Math.max(f.span * px - 4, 10);
           return (
             <div key={f.id} className="gt-row gt-fixrow">
-              <button type="button" className="gt-lab gt-fixlab" onClick={() => open(`/project/${projectId}/testing/${encodeURIComponent(f.id as string)}`)}
+              <button type="button" className="gt-lab gt-fixlab" onClick={() => openRecord(projectId, f.id as string)}
                 title={`Fix: ${f.label} · ${f.when}`}>
                 <b>↳ Fix: {f.label}</b><small>{f.open ? 'no date agreed yet' : f.when}</small>
               </button>
               <div className="gt-track" style={{ width: T }}>
                 {f.open
                   ? <button type="button" className="gt-b gt-open" style={{ left: f.start * px + 2, width: Math.max(4 * px, 60) }}
-                    onClick={() => open(`/project/${projectId}/testing/${encodeURIComponent(f.id as string)}`)}>no date agreed</button>
+                    onClick={() => openRecord(projectId, f.id as string)}>no date agreed</button>
                   : <button type="button" className={'gt-b gt-fixb is-' + f.tone} style={{ left: f.start * px + 2, width: fw }}
-                    onClick={() => open(`/project/${projectId}/testing/${encodeURIComponent(f.id as string)}`)} title={`Fix: ${f.label} · ${f.when}`} />}
+                    onClick={() => openRecord(projectId, f.id as string)} title={`Fix: ${f.label} · ${f.when}`} />}
                 {!f.open && <span className="gt-when" style={{ left: f.start * px + 2 + fw + 6 }}>{f.when}</span>}
               </div>
             </div>
@@ -424,7 +429,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
       </div>
 
       {stage && tests && items && (
-        <StagePanel stepId={stage.key} title={stage.title} href={stage.href} tests={tests} items={items} projectId={projectId} onClose={() => setStageRaw(null)} />
+        <StagePanel thingKey={stage.key} title={stage.title} href={stage.href} projectId={projectId} onClose={() => setStageRaw(null)} />
       )}
 
       {walkOpen && (

@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
+/* A fix pinned on this frame, or a thing found here, opens in the record's
+   drawer over the frame (ui/RecordDrawer) — × comes back to the picture. */
+import { openRecord } from '../ui/RecordDrawer';
 import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
 import { live, type Test, type TestItem } from '../lib/testing';
@@ -130,10 +133,10 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         <PinImage src={still} pins={pins} alt={asset?.name}
           onPlace={place}
           onPinTap={id => {
-            if (id.startsWith('fix:') && job) { nav(`/project/${job.projectId}/testing/${encodeURIComponent(id.slice(4))}`); return; }
+            if (id.startsWith('fix:') && job) { openRecord(job.projectId, id.slice(4)); return; }
             if (id.startsWith('item:') && job) {
               const hit = job.found.find(f => f.item.id === id.slice(5));
-              if (hit) nav(`/project/${job.projectId}/testing/${encodeURIComponent(hit.item.testId)}`);
+              if (hit) openRecord(job.projectId, hit.item.testId);
               return;
             }
             const s = snags.find(x => x.id === id); if (s) { setDraft(null); setFixDraft(null); setEditing(s); }
@@ -152,7 +155,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         <div className="card" style={{ marginTop: 12 }}>
           <div className="field-label" style={{ marginBottom: 8 }}>Found here</div>
           {job.found.map(({ item, on }) => (
-            <button key={item.id} className="snag-line-row" onClick={() => nav(`/project/${job.projectId}/testing/${encodeURIComponent(item.testId)}`)}>
+            <button key={item.id} className="snag-line-row" onClick={() => openRecord(job.projectId, item.testId)}>
               <span className="snag-dot-sm" style={{ background: 'var(--warn)' }} />
               <span className="snag-line-main">
                 <span className="snag-line-problem">{item.what}</span>
@@ -167,7 +170,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         <div className="card" style={{ marginTop: 12 }}>
           <div className="field-label" style={{ marginBottom: 8 }}>Fixes pinned here</div>
           {job.fixes.map(f => (
-            <button key={f.id} className="snag-line-row" onClick={() => nav(`/project/${job.projectId}/testing/${encodeURIComponent(f.id)}`)}>
+            <button key={f.id} className="snag-line-row" onClick={() => openRecord(job.projectId, f.id)}>
               <span className="snag-dot-sm" style={{ background: FIX_COLOUR[fixTone(f).tone] }} />
               <span className="snag-line-main">
                 <span className="snag-line-problem">{f.title}</span>

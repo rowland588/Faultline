@@ -23,9 +23,20 @@
  * made. Now a fix is planned here, and the form asks which test it is for.
  * The test page lists its fixes and has a button that comes here with that
  * test already picked.
+ *
+ * A LIST, ONE ROW PER FIX, and the fix opens HERE. Rowland, 5 October: "I
+ * found myself looking at a fix… then I found myself on a page, then another
+ * page and then another page." The boxes with the date in the corner were
+ * the same facts as these rows — the state, the fix, the machine, what it is
+ * for, who — one per line now, late first, so the page reads like a board.
+ * Tap a row and the fix opens in the drawer over this list (ui/RecordDrawer):
+ * Fixed, Didn't fix it, the problem with its picture, the stage it is for,
+ * the dates — and × brings you back here. The legend went with the boxes:
+ * every row says its state in words beside its colour.
  */
 import { useState } from 'react';
-import { nav, useRoute } from '../state/useRoute';
+import { useRoute } from '../state/useRoute';
+import { openRecord } from '../ui/RecordDrawer';
 import { Crumbs } from '../ui/Crumbs';
 import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
@@ -33,9 +44,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { gateOf, isOverdue, live, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
-import type { MediaRef } from '../types';
-import { EvidenceThumb } from '../ui/Evidence';
+import { gateOf, isOverdue, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
 import { GATE_WORD } from '../lib/install';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
@@ -68,7 +77,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const fixes = tt.tests.filter(t => t.kind === 'fix');
   const st = standing(fixes, tt.items);
 
-  const open = (id: string) => nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+  /* A fix opens in the drawer, over this list. */
+  const open = (id: string) => openRecord(projectId, id);
   const toggle = (id: string) => { setOnTouched(true); setOn(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id])); };
 
   /* The tests a fix can be for, most recent first — the one just run is the
@@ -93,12 +103,6 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
   const machine = (t: Test) => tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line';
   const cameFrom = (t: Test) => testOfFix(t, tt.tests);
-  /* THE PICTURE TAKEN WITH THE PROBLEM. A fix booked from "Hit a problem"
-     keeps the photo on the problem (the thing found on the stage), not on the
-     fix — so the box he was looking for had no picture on it, and he could
-     not tell it was his. The box shows the problem's pictures. */
-  const seenFor = (t: Test): MediaRef[] =>
-    live(tt.items).filter(i => i.kind === 'found' && i.becameTestId === t.id).flatMap(i => i.media ?? []);
   /* WHAT NEEDS SOMEBODY FIRST. Late, then the fixes nobody has agreed a date
      for — newest first, so the one just booked from a problem is at the top
      and not under every dated fix — then the rest, soonest first. A fix with
@@ -141,15 +145,6 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
       <Peers peers={projectPeers(projectId, 'fixes', stand.counts)} />
       <AccessNote can={can} owner={project.lead} />
-
-      {(st.upcoming.length + st.done.length) > 0 && (
-        <p className="fx-key" aria-label="What the colours mean">
-          <span className="is-late">Late</span>
-          <span className="is-soon">Due within {DUE_SOON_DAYS} days</span>
-          <span className="is-ahead">Planned</span>
-          <span className="is-done">Done</span>
-        </p>
-      )}
 
       {/* A fix that was done and never signed off asks first. */}
       {can.edit && <Verdicts tests={fixes} projectId={projectId}
@@ -238,13 +233,12 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
         )}
 
-        {/* ONE BOX PER FIX. Rowland: "everything's quite elongated across the
-            page — I would prefer their own little boxes." Each box says the
-            same things in the same places: where it stands, the machine, the
-            fix, the problem, and who / what it is for. */}
+        {/* ONE ROW PER FIX, late first. Each row says the same things in the
+            same places: the state (its stripe and its date), the fix, the
+            machine, what it is for, who. */}
         {st.upcoming.length > 0 && (
-          <div className="fx-grid">
-            {toDo.map((t, i) => <FixBox key={t.id} t={t} first={i === 0} machine={machine(t)} from={cameFrom(t)} seen={seenFor(t)} onOpen={() => open(t.id)} />)}
+          <div className="fxl" role="list">
+            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
           </div>
         )}
 
@@ -263,8 +257,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <h2 className="cmp-h">Done</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
-          <div className="fx-grid">
-            {st.done.map(t => <FixBox key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} seen={seenFor(t)} onOpen={() => open(t.id)} />)}
+          <div className="fxl" role="list">
+            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
           </div>
         </section>
       )}
@@ -278,46 +272,27 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 }
 
 export { DUE_SOON_DAYS, fixTone, type FixTone } from '../lib/fixTone';
-import { DUE_SOON_DAYS, fixTone } from '../lib/fixTone';
+import { fixTone } from '../lib/fixTone';
 import { Icon } from '../ui/Icon';
 
-/** One fix, as a box: where it stands, the machine, the fix, the problem, and
- *  who is on it and what it is for — the same things in the same places on
- *  every box, so a grid of them reads at a glance. */
-function FixBox({ t, machine, from, seen = [], onOpen }: {
-  t: Test; first?: boolean; machine: string; from?: Test;
-  /** The pictures taken with the problem it came from. */
-  seen?: MediaRef[];
-  onOpen: () => void;
-}) {
-  const settled = t.outcome === 'passed' || t.outcome === 'failed' || t.outcome === 'notRun';
+/** One fix, as a row: a stripe and a date in the fix's colour (lib/fixTone —
+ *  the same rule the drawer, the walk and the client report use), the fix,
+ *  and under it the machine, what it is for and who. */
+function FixRow({ t, machine, from, onOpen }: { t: Test; machine: string; from?: Test; onOpen: () => void }) {
   const { tone, when } = fixTone(t);
-  const pics = (t.media ?? []).length;
-  /* A fix booked with no words of its own is named by its problem; saying the
-     same sentence twice, as the title and again as "Problem", made it read
-     like a copy. */
-  const problem = t.passesIf && t.passesIf.trim() !== t.title.trim() ? t.passesIf : undefined;
+  /* No date agreed is not started — grey, as a step with no day is (CLAUDE.md,
+     visual management); lib/fixTone's words already say "No date yet". */
+  const face = tone === 'ahead' && !plannedEnd(t) ? 'none' : tone;
   return (
-    <button className={'fx-box is-' + tone} onClick={onOpen}>
-      <span className="fx-top">
-        <span className="fx-state">{when}</span>
-        <span className="fx-machine">{machine}</span>
+    <button type="button" role="listitem" className={'fxl-row is-' + face} onClick={onOpen}>
+      <span className="fxl-bar" aria-hidden />
+      <span className="fxl-m">
+        <b>{t.title}</b>
+        <small>
+          {machine} · {from ? `for ${from.title}` : 'not from a test'} · <span className={t.withWhom ? '' : 'fxl-none'}>{t.withWhom || 'nobody yet'}</span>
+        </small>
       </span>
-      <b className="fx-title">{t.title}</b>
-      {settled
-        ? (t.result && <span className="fx-text">{t.result}</span>)
-        : (problem && <span className="fx-text"><span className="fx-k">Problem</span> {problem}</span>)}
-      {seen.length > 0 && (
-        <span className="fx-seen">
-          {seen.slice(0, 3).map(m => <EvidenceThumb key={m.id} media={m} size={44} still />)}
-          {seen.length > 3 && <span className="sub">+{seen.length - 3}</span>}
-        </span>
-      )}
-      <span className="fx-foot">
-        <span className={t.withWhom ? '' : 'fx-none'}>{t.withWhom || 'Nobody yet'}</span>
-        <span className="fx-for">{from ? `For “${from.title}”` : 'Not from a test'}</span>
-        {pics > 0 && <span className="fx-pics">{pics} picture{pics === 1 ? '' : 's'}</span>}
-      </span>
+      <em className="fxl-when">{when}</em>
     </button>
   );
 }

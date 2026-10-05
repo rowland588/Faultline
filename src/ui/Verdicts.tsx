@@ -13,7 +13,7 @@
  * writes; there is no second place a verdict lives.
  */
 import { useState } from 'react';
-import { nav } from '../state/useRoute';
+import { openRecord } from './RecordDrawer';
 import { Toast } from './Toast';
 import { niceDay } from '../lib/weeks';
 import { needsVerdict, outcomeWord, verdictQuestion, type Outcome, type Test } from '../lib/testing';
@@ -52,7 +52,7 @@ export function Verdicts({ tests, projectId, onAnswer, onUndo }: {
         const kind = t.kind ?? 'test';
         return (
           <div key={t.id} className="tw-verdict">
-            <button className="tw-verdict-m" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(t.id)}`)}>
+            <button className="tw-verdict-m" onClick={() => openRecord(projectId, t.id)}>
               <b>{t.title}</b>
               <span className="sub">
                 {t.ranOn ? `Ran ${nice(t.ranOn)}` : 'Written up'}{t.withWhom ? ` · ${t.withWhom}` : ''}

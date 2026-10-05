@@ -1,93 +1,31 @@
-/* WHAT HAPPENED TO THIS STAGE — the one panel the plan opens.
+/* WHY ONE OF THE OTHER DATES MOVED — the panel the plan opens on a date that
+ * is not a stage: the handover, a machine, a material, a program.
  *
  * Rowland: "There's the plan. Plans change. This is the reason why. This is
- * what happened. Look at the film. Look at the picture. It's now booked in as
- * a fix, and we've even agreed a date, or we haven't."
+ * what happened. Look at the film. Look at the picture."
  *
- * Read off lib/story: each move with its reason, the film and the pictures;
- * anything else found on it; and each fix with its agreed date, or none. In the
- * order it happened. One door on from here — the step itself.
+ * Read off lib/story: each move with its reason, the film and the pictures,
+ * in the order it happened; and the way to where the date itself is kept. A
+ * STAGE (a step, a test, a fix) no longer comes here — the plan opens it in
+ * the record's drawer (ui/RecordDrawer), where its story, its dates and the
+ * floor's buttons are, like every other door onto it.
  */
 import { useState } from 'react';
 import type { MediaRef } from '../types';
-import { live, plannedEnd, type Test, type TestItem } from '../lib/testing';
 import { keyOf, storyOf } from '../lib/story';
-import { daysBetween, niceDay } from '../lib/weeks';
+import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { useTesting } from '../lib/useTesting';
-import { DatesForm } from './InstallGrid';
-import { StageStory } from './StageStory';
-import { ProblemForm, followingSummary, recordMove, recordProblem } from './WhyMoved';
 import { offerUndo } from './Undo';
 import { useAccess } from '../cloud/access';
 
-export function StagePanel({ stepId, title, href, tests, items, projectId, onClose }: {
-  stepId: string; title: string; href?: string; tests: Test[]; items: TestItem[]; projectId: string; onClose: () => void;
-}) {
-  /* WHAT YOU DO FROM HERE, without leaving the plan: move its dates (asked why
-     when it is later) or say it hit a problem (asked whether it moves the
-     finish). Rowland: "how does the date move from this?" */
-  const tt = useTesting(projectId);
-  /* A client reads the story; the team rewords a reason but removes none. */
-  const can = useAccess(projectId);
-  const [doing, setDoing] = useState<'dates' | 'problem' | null>(null);
-  const step = live(tt.loading ? tests : tt.tests).find(t => t.id === stepId);
-  /* Not a stage — the handover, a machine, a material, a program: its reasons,
-     editable, and the way to where its date is kept. */
-  if (!step) return <ThingPanel thingKey={stepId} title={title} href={href} projectId={projectId} onClose={onClose} />;
-  const st = storyOf(stepId, tt.loading ? tests : tt.tests, tt.loading ? items : tt.items);
-  const end = plannedEnd(step);
-  const slip = st.original && end ? daysBetween(st.original, end) : 0;
-  return (
-    <Sheet open onClose={onClose} title={title}>
-      <div className="sp">
-        <p className="sp-dates">
-          {step.plannedFor ? <>Planned {niceDay(step.plannedFor)}{end && end > step.plannedFor ? ` – ${niceDay(end)}` : ''}</> : 'No dates yet'}
-          {slip > 0 && <> · <b className="sp-slip">+{slip} day{slip === 1 ? '' : 's'}</b> past the finish first planned ({niceDay(st.original)})</>}
-        </p>
-        <StageStory stepId={stepId} tt={tt.loading ? { ...tt, tests, items } : tt} can={can} projectId={projectId}
-          empty="Nothing has happened to this one yet — it is running to plan." />
-        {doing === 'dates' && (
-          <DatesForm start={step.plannedFor} finish={step.plannedTo} was={plannedEnd(step)}
-            following={end => followingSummary(step, tt.tests, end)}
-            onSave={(from, to) => {
-              const before = { plannedFor: step.plannedFor, plannedTo: step.plannedTo };
-              void tt.patchTest(step.id, { plannedFor: from, plannedTo: to });
-              offerUndo(`${title} — dates changed`, () => tt.patchTest(step.id, before));
-              setDoing(null);
-            }}
-            onMove={(from, to, a) => void (async () => {
-              const before = { plannedFor: step.plannedFor, plannedTo: step.plannedTo };
-              const was = plannedEnd(step) as string;
-              await tt.patchTest(step.id, { plannedFor: from, plannedTo: to });
-              const back = await recordMove(tt, [{ step, from: was, to: to ?? from }], a);
-              offerUndo(`${title} moved to ${niceDay(to ?? from)} — reason kept`, async () => { await tt.patchTest(step.id, before); await back(); });
-              setDoing(null);
-            })()} />
-        )}
-        {doing === 'problem' && (
-          <ProblemForm step={step} tests={tt.tests} assets={tt.assets} onCancel={() => setDoing(null)}
-            onSave={a => { void recordProblem(tt, step, a, `${title} hit a problem${a.fix ? ', fix booked' : ''}`); setDoing(null); }} />
-        )}
-        {!doing && (
-          <span className="sp-acts">
-            {can.edit && <button type="button" className="btn btn-primary" onClick={() => setDoing('dates')}>Change the dates</button>}
-            {can.edit && <button type="button" className="btn ig-bad" onClick={() => setDoing('problem')}>Hit a problem</button>}
-            <button type="button" className="btn btn-ghost" onClick={() => nav(`/project/${projectId}/testing/${encodeURIComponent(stepId)}`)}>Open the step ›</button>
-          </span>
-        )}
-      </div>
-    </Sheet>
-  );
-}
-
-/** The story of one of the other dates: each time it moved later, and why. */
-function ThingPanel({ thingKey, title, href, projectId, onClose }: {
+export function StagePanel({ thingKey, title, href, projectId, onClose }: {
   thingKey: string; title: string; href?: string; projectId: string; onClose: () => void;
 }) {
   const tt = useTesting(projectId);
+  /* A client reads the story; the team rewords a reason but removes none. */
   const can = useAccess(projectId);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
