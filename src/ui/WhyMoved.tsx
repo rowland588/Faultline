@@ -26,7 +26,7 @@ import { EvidenceViewer } from './Evidence';
 
 type TT = ReturnType<typeof useTesting>;
 
-export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string }; shiftFollowing?: boolean }
+export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string; what?: string }; shiftFollowing?: boolean }
 
 /** The problem sheet's boxes as a voice note filled them (lib/voice problemFill). */
 export interface ProblemFill { why: string; to: string; fix: boolean; fixOn: string; said?: string }
@@ -74,6 +74,7 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
   const [media, setMedia] = useState<MediaRef[]>([]);
   const [fix, setFix] = useState(false);
   const [fixOn, setFixOn] = useState('');
+  const [fixWhat, setFixWhat] = useState('');
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const days = daysBetween(from, to);
   return (
@@ -91,18 +92,12 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
           onChange={e => setWhy(e.target.value)} /></label>
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
       {allowFix && (
-        <div className="why-fix">
-          <label className="why-check"><input type="checkbox" checked={fix} onChange={e => setFix(e.target.checked)} /> Book it in as a fix</label>
-          {fix && (
-            <label className="cw-f why-fix-on"><span>Date agreed <span className="cw-f-opt">blank = not agreed yet</span></span>
-              <input type="date" value={fixOn} onChange={e => setFixOn(e.target.value)} /></label>
-          )}
-        </div>
+        <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />
       )}
       {following && <KnockOn following={following} days={days} on={shift} set={setShift} />}
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}), ...(shift && following?.n ? { shiftFollowing: true } : {}) })}>Save the move</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(shift && following?.n ? { shiftFollowing: true } : {}) })}>Save the move</button>
         {onSkip && <button type="button" className="btn btn-ghost" onClick={onSkip}>Just change the date — no reason</button>}
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel — keep the dates</button>
       </span>
@@ -116,6 +111,31 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
   );
 }
 
+/** The fix, as the form answers it: its words and its date, each only when given. */
+const bookedFix = (on: string, what: string): { on?: string; what?: string } =>
+  ({ ...(on ? { on } : {}), ...(what.trim() ? { what: what.trim() } : {}) });
+
+/* BOOK IT IN AS A FIX — the same three boxes on the move and the problem.
+   WHAT THE FIX IS: a fix booked here used to be named by the problem, so the
+   Fixes page showed "Guard bracket wrong size" with "Problem: Guard bracket
+   wrong size" under it — a copy, not a job. Blank still names it by the
+   problem, and it can be named on the fix's own page later. */
+function BookFix({ fix, setFix, on, setOn, what, setWhat }: {
+  fix: boolean; setFix: (v: boolean) => void; on: string; setOn: (v: string) => void; what: string; setWhat: (v: string) => void;
+}) {
+  return (
+    <div className="why-fix">
+      <label className="why-check"><input type="checkbox" checked={fix} onChange={e => setFix(e.target.checked)} /> Book it in as a fix</label>
+      {fix && <>
+        <label className="cw-f why-fix-what"><span>What's the fix? <span className="cw-f-opt">blank = named by the problem</span></span>
+          <input value={what} placeholder="Fit the right-size bracket" onChange={e => setWhat(e.target.value)} /></label>
+        <label className="cw-f why-fix-on"><span>Date agreed <span className="cw-f-opt">blank = not agreed yet</span></span>
+          <input type="date" value={on} onChange={e => setOn(e.target.value)} /></label>
+      </>}
+    </div>
+  );
+}
+
 /** Keep the reason (and the fix, if asked) on each moved step. Returns how to
  *  take it all back — the caller restores the dates in the same Undo. */
 export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?: string }[], a: WhyAnswer): Promise<() => Promise<void>> {
@@ -124,7 +144,7 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
   for (const [k, { step, from, to }] of steps.entries()) {
     let fixId: string | undefined;
     if (a.fix && steps.length === 1) {
-      fixId = await tt.planNextFrom(step, undefined, a.why, 'fix', a.why);
+      fixId = await tt.planNextFrom(step, undefined, a.fix.what?.trim() || a.why, 'fix', a.why);
       if (a.fix.on) await tt.patchTest(fixId, { plannedFor: a.fix.on });
     }
     const id = uid();
@@ -194,6 +214,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], assets = [], i
   const [to, setTo] = useState(initial?.to ?? '');
   const [fix, setFix] = useState(!!initial?.fix);
   const [fixOn, setFixOn] = useState(initial?.fixOn ?? '');
+  const [fixWhat, setFixWhat] = useState('');
   const [said, setSaid] = useState<string | undefined>(initial?.said);
   /* SPOKEN INTO THESE BOXES. Rowland, 4 October: "allow me to speak inside
      that sheet, in the correct boxes." A note fills what happened, the finish
@@ -234,16 +255,10 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], assets = [], i
         <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
       {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(to)}</b> · <b>+{daysBetween(end, to)} day{daysBetween(end, to) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
       {following && end && <KnockOn following={following} days={daysBetween(end, to)} on={shift} set={setShift} />}
-      <div className="why-fix">
-        <label className="why-check"><input type="checkbox" checked={fix} onChange={e => setFix(e.target.checked)} /> Book it in as a fix</label>
-        {fix && (
-          <label className="cw-f why-fix-on"><span>Date agreed <span className="cw-f-opt">blank = not agreed yet</span></span>
-            <input type="date" value={fixOn} onChange={e => setFixOn(e.target.value)} /></label>
-        )}
-      </div>
+      <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: fixOn ? { on: fixOn } : {} } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}) })}>Save the problem</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}) })}>Save the problem</button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}

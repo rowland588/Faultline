@@ -252,9 +252,17 @@ export function clientReport(x: ClientReportInput): ClientReport {
   /* ---- fixes ---- */
   const fixRow = (t: Test): FixRow => {
     const ft = fixTone(t, today);
-    const photo = (t.media ?? []).find(m => m.kind === 'photo')?.blobKey ?? (t.media ?? [])[0]?.thumbKey;
+    /* The fix's own picture, else the one taken with the problem that booked
+       it (Hit a problem keeps the photo on the problem) — the same picture
+       the Fixes page shows on its box. */
+    const seen = items.filter(i => i.kind === 'found' && i.becameTestId === t.id).flatMap(i => i.media ?? []);
+    const media = [...(t.media ?? []), ...seen];
+    const photo = media.find(m => m.kind === 'photo')?.blobKey ?? media[0]?.thumbKey;
+    /* Named by its problem when nobody gave it words of its own: the problem
+       is then the title, not printed a second time under it. */
+    const problem = t.passesIf && t.passesIf.trim() !== t.title.trim() ? t.passesIf : undefined;
     return {
-      id: t.id, title: t.title, problem: t.passesIf, machine: machine(t.assetId), who: t.withWhom,
+      id: t.id, title: t.title, problem, machine: machine(t.assetId), who: t.withWhom,
       when: ft.when, tone: ft.tone, pin: t.pin, photoKey: photo,
     };
   };

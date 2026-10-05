@@ -5,15 +5,22 @@ import { Icon } from './Icon';
 import { useState } from 'react';
 import { ShareSheet } from './ShareLink';
 
-export function EvidenceThumb({ media, onClick, size = 54 }: {
+export function EvidenceThumb({ media, onClick, size = 54, still }: {
   media: MediaRef; onClick?: () => void; size?: number;
+  /** Only a picture — for inside something that is itself the button (a fix's
+   *  box on the Fixes page), where a button in a button is not allowed. */
+  still?: boolean;
 }) {
   const url = useBlobUrl(media.thumbKey ?? (media.kind === 'photo' ? media.blobKey : undefined));
+  const inner = <>
+    {url ? <img src={url} alt="" /> : <span className="ev-ph" aria-hidden><Icon name={media.kind === 'video' ? 'play' : 'camera'} size="1em" /></span>}
+    {media.kind === 'video' && <span className="ev-play" aria-hidden><Icon name="play" size="1em" /></span>}
+  </>;
+  if (still) return <span className="ev-thumb" style={{ width: size, height: size }} aria-hidden>{inner}</span>;
   return (
     <button type="button" className="ev-thumb" style={{ width: size, height: size }} onClick={onClick}
       aria-label={media.kind === 'video' ? 'Play the clip' : 'Open the photo'}>
-      {url ? <img src={url} alt="" /> : <span className="ev-ph" aria-hidden><Icon name={media.kind === 'video' ? 'play' : 'camera'} size="1em" /></span>}
-      {media.kind === 'video' && <span className="ev-play" aria-hidden><Icon name="play" size="1em" /></span>}
+      {inner}
     </button>
   );
 }

@@ -157,4 +157,22 @@ describe('how each stage went — the team’s account of a step reaches the cli
     expect(r3.sections[1].accounts).toBeUndefined();
     expect(r3.sections[2].accounts).toBeUndefined();
   });
+  /* Rowland, 5 October: a problem written on a stage, a picture taken, and
+     "Book it in as a fix" ticked. The picture stays on the problem; the fix's
+     card carries it, and a fix named by its problem does not print it twice. */
+  it('prints a booked fix with the problem\'s picture, and its problem once', () => {
+    const steps = [
+      test({ id: 'st', kind: 'install', title: 'Air connected', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-29' }),
+      test({ id: 'fx', kind: 'fix', title: 'Bracket wrong size', passesIf: 'Bracket wrong size', fromTestId: 'st', assetId: 'ds' }),
+      test({ id: 'fy', kind: 'fix', title: 'Fit the right bracket', passesIf: 'Bracket wrong size', fromTestId: 'st', assetId: 'ds' }),
+    ];
+    const seen: TestItem[] = [{ id: 'i1', projectId: 'p', testId: 'st', kind: 'found', what: 'Bracket wrong size', becameTestId: 'fx',
+      media: [{ id: 'm1', kind: 'photo', blobKey: 'b-photo', createdAt: 1 } as never], sort: 1, createdAt: 1, updatedAt: 1 }];
+    const x = clientReport({ project, projects: [project], assets, tests: steps, items: seen, materials: [], programs: [], standards: [], today: T });
+    const fx = x.fixes.open.find(f => f.id === 'fx'), fy = x.fixes.open.find(f => f.id === 'fy');
+    expect(fx?.photoKey).toBe('b-photo');
+    expect(fx?.problem).toBeUndefined();
+    expect(fy?.problem).toBe('Bracket wrong size');
+    expect(fy?.photoKey).toBeUndefined();
+  });
 });

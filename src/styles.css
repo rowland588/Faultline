@@ -7296,6 +7296,9 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .fx-k { font-weight: 700; color: var(--ink); }
+/* The pictures taken with the problem the fix came from (screens/FixesScreen). */
+.fx-seen { display: flex; align-items: center; gap: 6px; }
+.fx-seen .ev-thumb { display: block; cursor: inherit; }
 .fx-foot {
   margin-top: auto; padding-top: 9px; border-top: 1px solid color-mix(in srgb, var(--fx-c) 22%, var(--line));
   display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-2);
@@ -8097,6 +8100,9 @@ button.gt-fixlab small { font-size: 10px; }
 .sp-t, .sp-why { margin: 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
 .sp-why { color: var(--ink); }
 .sp-ev { display: flex; flex-wrap: wrap; gap: 6px; }
+/* A fix under the problem that booked it (ui/StageStory): indented on a rule,
+   so it reads as that problem's answer, not as the next thing that happened. */
+.sp-fix { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--line); }
 .sp-open { align-self: flex-start; }
 
 /* the question, asked when a finish is pushed later */
@@ -8109,6 +8115,7 @@ button.gt-fixlab small { font-size: 10px; }
 .why-fix { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .why-check { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; min-height: 36px; }
 .why-fix-on { flex: 0 1 200px; margin: 0; }
+.why-fix-what { flex: 1 1 240px; margin: 0; }
 .why-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .why-need { margin: 0; }
 .ig-why-note { margin: 6px 0 0; color: var(--st-r); font-weight: 600; }

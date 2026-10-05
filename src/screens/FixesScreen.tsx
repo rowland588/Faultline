@@ -33,7 +33,9 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { useStanding } from '../lib/useStanding';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { gateOf, isOverdue, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
+import { gateOf, isOverdue, live, plannedEnd, standing, testOfFix, type Test } from '../lib/testing';
+import type { MediaRef } from '../types';
+import { EvidenceThumb } from '../ui/Evidence';
 import { GATE_WORD } from '../lib/install';
 import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
@@ -91,6 +93,22 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
   const machine = (t: Test) => tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line';
   const cameFrom = (t: Test) => testOfFix(t, tt.tests);
+  /* THE PICTURE TAKEN WITH THE PROBLEM. A fix booked from "Hit a problem"
+     keeps the photo on the problem (the thing found on the stage), not on the
+     fix — so the box he was looking for had no picture on it, and he could
+     not tell it was his. The box shows the problem's pictures. */
+  const seenFor = (t: Test): MediaRef[] =>
+    live(tt.items).filter(i => i.kind === 'found' && i.becameTestId === t.id).flatMap(i => i.media ?? []);
+  /* WHAT NEEDS SOMEBODY FIRST. Late, then the fixes nobody has agreed a date
+     for — newest first, so the one just booked from a problem is at the top
+     and not under every dated fix — then the rest, soonest first. A fix with
+     no date was sorted last, and on a real job that is the bottom of a long
+     page: "I go to fixes, it's not in my list." */
+  const toDo = [
+    ...st.upcoming.filter(t => isOverdue(t)),
+    ...st.upcoming.filter(t => !isOverdue(t) && !plannedEnd(t)).sort((a, b) => b.createdAt - a.createdAt),
+    ...st.upcoming.filter(t => !isOverdue(t) && !!plannedEnd(t)),
+  ];
   /* The soonest one that has a day on it — the list is already in that order,
      so this is its head rather than a second sort. */
   const nextBy = st.upcoming.length ? plannedEnd(st.upcoming[0]) : undefined;
@@ -226,7 +244,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             fix, the problem, and who / what it is for. */}
         {st.upcoming.length > 0 && (
           <div className="fx-grid">
-            {st.upcoming.map((t, i) => <FixBox key={t.id} t={t} first={i === 0} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
+            {toDo.map((t, i) => <FixBox key={t.id} t={t} first={i === 0} machine={machine(t)} from={cameFrom(t)} seen={seenFor(t)} onOpen={() => open(t.id)} />)}
           </div>
         )}
 
@@ -246,7 +264,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="fx-grid">
-            {st.done.map(t => <FixBox key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
+            {st.done.map(t => <FixBox key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} seen={seenFor(t)} onOpen={() => open(t.id)} />)}
           </div>
         </section>
       )}
@@ -266,12 +284,19 @@ import { Icon } from '../ui/Icon';
 /** One fix, as a box: where it stands, the machine, the fix, the problem, and
  *  who is on it and what it is for — the same things in the same places on
  *  every box, so a grid of them reads at a glance. */
-function FixBox({ t, machine, from, onOpen }: {
-  t: Test; first?: boolean; machine: string; from?: Test; onOpen: () => void;
+function FixBox({ t, machine, from, seen = [], onOpen }: {
+  t: Test; first?: boolean; machine: string; from?: Test;
+  /** The pictures taken with the problem it came from. */
+  seen?: MediaRef[];
+  onOpen: () => void;
 }) {
   const settled = t.outcome === 'passed' || t.outcome === 'failed' || t.outcome === 'notRun';
   const { tone, when } = fixTone(t);
   const pics = (t.media ?? []).length;
+  /* A fix booked with no words of its own is named by its problem; saying the
+     same sentence twice, as the title and again as "Problem", made it read
+     like a copy. */
+  const problem = t.passesIf && t.passesIf.trim() !== t.title.trim() ? t.passesIf : undefined;
   return (
     <button className={'fx-box is-' + tone} onClick={onOpen}>
       <span className="fx-top">
@@ -281,7 +306,13 @@ function FixBox({ t, machine, from, onOpen }: {
       <b className="fx-title">{t.title}</b>
       {settled
         ? (t.result && <span className="fx-text">{t.result}</span>)
-        : (t.passesIf && <span className="fx-text"><span className="fx-k">Problem</span> {t.passesIf}</span>)}
+        : (problem && <span className="fx-text"><span className="fx-k">Problem</span> {problem}</span>)}
+      {seen.length > 0 && (
+        <span className="fx-seen">
+          {seen.slice(0, 3).map(m => <EvidenceThumb key={m.id} media={m} size={44} still />)}
+          {seen.length > 3 && <span className="sub">+{seen.length - 3}</span>}
+        </span>
+      )}
       <span className="fx-foot">
         <span className={t.withWhom ? '' : 'fx-none'}>{t.withWhom || 'Nobody yet'}</span>
         <span className="fx-for">{from ? `For “${from.title}”` : 'Not from a test'}</span>

@@ -19,6 +19,7 @@ import { nav } from '../state/useRoute';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
+import { StageStory } from './StageStory';
 import { ProblemForm, WhyMoved, followingSummary, recordMove, recordProblem, type Following, type ProblemFill, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
@@ -226,6 +227,11 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
         <Sheet title={`${rowName(row.asset)} — ${t.title}`}
           sub={[stateWord, t.withWhom || 'nobody named', plannedEnd(t) ? `planned ${spanShort(t.plannedFor, plannedEnd(t))}` : 'no day yet'].join(' · ')}
           onClose={() => { setOpen(null); setProblem(false); }}>
+          {/* WHAT HAPPENED TO IT — each problem with its pictures and the fix
+              it booked, here where the problem was written (ui/StageStory).
+              Rowland: "I marked it as a fix … it's just lost." Hidden while a
+              problem is being written, so the sheet is the one form. */}
+          {!problem && <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} />}
           {/* A CLIENT READS where it stands (the line above) and opens the step. */}
           {!can.edit ? (
             <button className="cw-link" onClick={() => openStep(t.id)}>Open the step — pictures, what was found, fixes ›</button>
