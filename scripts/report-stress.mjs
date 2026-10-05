@@ -87,7 +87,13 @@ const textOf = pdf => execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 
     const lines = page.split('\n').filter(l => l.trim() && l.trim() !== '•');
     if (lines.at(-1)?.trim() === 'Faultline') lines.pop();
     if (/\b\d+ of \d+$/.test(lines.at(-1)?.trim() ?? '')) lines.pop();
-    return lines.join(' ');
+    /* A numbered answer under Why is drawn before its number, so one broken
+       over a page leaves its number at the page's end, after its first lines. */
+    if (/^\d{1,2}$/.test(lines.at(-1)?.trim() ?? '')) lines.pop();
+    /* A 6M problem that runs over a page opens the next with "Problem n — …
+       (continued)" — drawn first on that page, so in drawn order it lands in
+       the middle of a why-chain carried over. Taken off, like the foot. */
+    return lines.join(' ').replace(/^\s*Problem \d+ — .*?\(continued\)\s*/, '');
   }).join(' ').replace(/\s+/g, ' ');
 
 function check(pdf, mustSay = []) {
@@ -235,9 +241,14 @@ for (const size of SIZES) {
    the paper is taken from the records and the engine's own views
    (lib/useProblems loadProblems → lib/fishbone buildView), not from the
    report's model: every problem, every cause on every bone, every why of
-   every root and its "therefore" read-back, every countermeasure with what it
-   was expected to do and what happened, every action on the board, every
-   snag, every Pareto category and every station of the line balance. */
+   every chain — its last answer with how it is known, "(told)" and the rest,
+   and " — the root" on a root — and each root's "therefore" read-back, where
+   a problem came from and the reason a bar outside the vital few was opened,
+   every countermeasure with what it was expected to do and what happened,
+   every action on the board, every snag, every Pareto category and every
+   station of the line balance. And each problem must be told in its four
+   parts, in order, before the next problem starts: Problem · Why · Fix · Did
+   it work (docs/SIXM.md, the working method). */
 /* With --fuzz or --seeds, a random 6M job for each number too
    (seedRandomSixMJob) — any shape, every check the same. */
 const SIXM_SIZES = fuzzAt > 0 || seedsAt > 0 ? SIZES : ['tiny', 'huge'];
@@ -256,6 +267,7 @@ for (const size of SIXM_SIZES) {
       await (await import('/src/lib/savePdf.ts')).loadPdfLib();
       const { loadProblems, viewsOf } = await import('/src/lib/useProblems.ts');
       const { therefore } = await import('/src/lib/fishbone.ts');
+      const { KNOWN_WORD } = await import('/src/lib/sixm.ts');
       const { PHASE_WORD } = await import('/src/lib/problems.ts');
       const { listPaceTodos } = await import('/src/db/pace.ts');
       const { getProject } = await import('/src/db/projects.ts');
@@ -279,6 +291,16 @@ for (const size of SIXM_SIZES) {
         from = `problem`; add(v.problem.title, PHASE_WORD[v.phase]);
         from = `cause of ${v.problem.title.slice(0, 30)}`; for (const c of v.problem.causes ?? []) add(c.text);
         from = `why`; for (const c of v.roots) { for (const w of c.whys) add(w.text); for (const t of therefore(c, v.problem.title)) add(t); }
+        /* Every chain, to its last answer, with how that answer is known. */
+        from = 'a chain\'s last answer';
+        for (const c of v.problem.causes ?? []) {
+          const said = c.whys.filter(w => w.text.trim());
+          const last = said.length ? said[said.length - 1] : { text: c.text, grade: c.grade };
+          const isRoot = !!c.root && c.status === 'confirmed';
+          for (const w of said) add(w.text);
+          if (last.text.trim()) add(`${last.text}${last.grade ? ` (${KNOWN_WORD[last.grade]})` : ''}${isRoot ? ' — the root' : ''}`);
+        }
+        from = 'opened for'; if (v.problem.source?.why?.trim()) add(`opened for ${v.problem.source.why.trim().replace(/[.;:,\s]+$/, '')}`);
         /* The old five whys, read back from the root to the problem — each
            why after the first starts lower-case, as every "therefore" does. */
         from = 'written before the fishbone';
@@ -296,11 +318,33 @@ for (const size of SIXM_SIZES) {
       from = 'walk'; for (const sn of loaded.data.snags) if (!lineId || ws.has(sn.wsId)) add(sn.what, sn.state !== 'closed' ? sn.owner : undefined);
       return out;
     }, { pid: job.projectId, lineId });
+    /* Each problem in its four parts, in order, before the next one starts. */
+    const heads = await page.evaluate(async ({ pid, lineId }) => {
+      const { loadProblems, viewsOf } = await import('/src/lib/useProblems.ts');
+      const { san } = await import('/src/lib/reportKit.ts');
+      const { PHASE_ORDER } = await import('/src/lib/portfolio.ts');
+      const views = viewsOf(await loadProblems(pid), pid, lineId, Date.now());
+      return views.slice().sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase) || a.problem.openedAt - b.problem.openedAt)
+        .map((v, i) => san(`Problem ${i + 1} — ${v.problem.title}`));
+    }, { pid: job.projectId, lineId });
     const label = lineId ? '6M line' : '6M client';
     const file = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}.pdf`;
     try {
       await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, file, [['PDF']]);
       const r = check(file, must);
+      const flat = textOf(file).replace(/\s+/g, '');
+      const at = heads.map(h => flat.indexOf(h.replace(/\s+/g, '')));
+      heads.forEach((h, i) => {
+        if (at[i] < 0) { r.faults.push(`a problem's heading is not on the paper: ${h.slice(0, 60)}`); return; }
+        const end = at.slice(i + 1).find(x => x > at[i]) ?? flat.length;
+        let pos = at[i] + h.replace(/\s+/g, '').length;
+        for (const part of ['Problem', 'Why', 'Fix', 'Diditwork']) {
+          const k = flat.indexOf(part, pos);
+          if (k < 0 || k >= end) { r.faults.push(`${h.slice(0, 50)}: its part "${part}" is missing or out of order`); return; }
+          pos = k + part.length;
+        }
+      });
+      r.said += heads.length * 4;
       /* A client-safe document: no record's internal id on the paper. */
       const ids = textOf(file).match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) ?? [];
       if (ids.length) r.faults.push(`an internal id on the paper ×${ids.length}: ${ids[0]}`);

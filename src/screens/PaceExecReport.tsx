@@ -836,7 +836,7 @@ function BoardPage({ sheet: sh, unplaced, title, scale, sheetH, n, of, sheetNo, 
 
 /* WHICH REPORT A PROJECT GETS. A 6M job (the board model) is reported as
  * the root cause story it is run as — the gap, where the loss is, each
- * problem's fishbone, why-chains, countermeasures and hold, the board by bone
+ * problem's fishbone and its four parts (Problem · Why · Fix · Did it work), the board by bone
  * and what was seen on the line (lib/sixmReportPdf, docs/SIXM.md). The lever
  * tree keeps the A3 it has always had (lib/paceReportPdf, unchanged). */
 export function PaceExecReport() {
@@ -952,7 +952,7 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
         <div className="pace-head-main">
           <p className="pace-eyebrow">{line ? `${name} · ${line.name}` : name}</p>
           <h1 className="pace-title">Client report</h1>
-          <p className="pace-lede">The gap, where the loss is, each problem’s fishbone and what is being done about it — drawn from what is kept here, nothing typed for it.</p>
+          <p className="pace-lede">The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
@@ -979,27 +979,7 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
             </li>
           )}
           {report.noProblems && <li><b>Problems</b><span>{report.noProblems}</span></li>}
-          {report.problems.map(p => (
-            <li key={p.id}>
-              <b>Problem {p.n} — {p.title}</b>
-              <span>{p.phaseWord}{p.says ? ` · ${p.says}` : ''}</span>
-              <span className="sub">
-                {p.causeCount ? `${p.causeCount} cause${p.causeCount === 1 ? '' : 's'} on the fishbone (${p.bones.filter(b => b.causes.length).map(b => `${b.label} ${b.causes.length}`).join(', ')})` : 'Nothing on the fishbone yet'}
-                {p.roots.length ? ` · root${p.roots.length === 1 ? '' : 's'}: ${p.roots.map(r => r.cause.text).join('; ')}` : ''}
-                {p.counterSays ? ` · countermeasures ${p.counterSays}` : ''}
-                {p.hold ? ` · ${p.hold.word}` : ''}
-              </span>
-              {p.written && <span>Written before the fishbone: {p.written}</span>}
-              {/* Each countermeasure as the paper prints it: what, bone and
-                  owner, its state and day — and the day in words when it has
-                  no date. */}
-              {p.counter.map((c, i) => (
-                <span key={i} className="cr-cm">
-                  {c.what} · {[c.bone, c.owner].filter(Boolean).join(' · ')} · {c.when}{c.words ? ` · When: ${c.words}` : ''}
-                </span>
-              ))}
-            </li>
-          ))}
+          {report.problems.map(p => <ProblemParts key={p.id} p={p} />)}
           {report.board.length > 0 && (
             <li><b>The board by bone</b><span>{report.boardSays}</span>
               <span className="sub">{report.board.map(b => `${b.label}: ${b.says}`).join(' · ')}</span>
@@ -1014,6 +994,70 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
         )}
       </div>
     </div>
+  );
+}
+
+/* ONE PROBLEM, AS THE PAPER PRINTS IT — the four parts it is worked in
+ * (docs/SIXM.md: Problem · Why · Fix · Did it work), in the paper's own words,
+ * read from the same model (lib/sixmReportPdf sixmReport), so the screen and
+ * the PDF cannot say two different things. The fish is on the paper beside. */
+function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
+  const stateClass = (t: string) => (t === 'late' || t === 'failed' ? 'is-late' : t === 'waiting' ? 'is-asking' : t === 'done' ? 'is-done' : t === 'going' ? 'is-booked' : 'is-ahead');
+  return (
+    <li className="cr-prob">
+      <b>Problem {p.n} — {p.title}</b>
+      <span><span className={'cr-said-st ' + stateClass(p.tone)}>{p.phaseWord}</span> · {p.meta}</span>
+      <div className="cr-part">
+        <p className="cr-part-h">Problem</p>
+        {p.says && <span className="cr-part-lead">{p.says}</span>}
+        {p.measure && <span>{p.measure}</span>}
+        {p.from && <span>Where it came from: {p.from}</span>}
+        {p.is.length > 0 && <span>Is: {p.is.join(' · ')}</span>}
+        {p.isNot.length > 0 && <span>Is not: {p.isNot.join(' · ')}</span>}
+        {!p.says && !p.measure && !p.from && !p.is.length && !p.isNot.length && <span className="sub">Not measured yet.</span>}
+      </div>
+      <div className="cr-part">
+        <p className="cr-part-h">Why{p.whySays && <small> · {p.whySays}</small>}</p>
+        {p.suggested && <span className="sub">{p.suggested}</span>}
+        {p.chains.map(ch => (
+          <div key={ch.cause.id} className={'cr-chain' + (ch.state === 'out' ? ' is-out' : '')}>
+            <span className="cr-chain-h">{ch.head}{ch.from ? ` · ${ch.from}` : ''}</span>
+            <ol>
+              {ch.answers.map((a, i) => {
+                const root = ch.state === 'root' && i === ch.answers.length - 1;
+                return <li key={i} className={root ? 'is-root' : undefined}>{a.text}{a.known ? ` (${a.known})` : ''}{root ? ' — the root' : ''}</li>;
+              })}
+            </ol>
+            {ch.therefore.length > 0 && <span className="sub">Read back from the root: {ch.therefore.join('; ')}</span>}
+          </div>
+        ))}
+        {p.rootless && <span className="sub">{p.rootless}</span>}
+        {p.written && <span>Written before the fishbone: {p.written}</span>}
+      </div>
+      <div className="cr-part">
+        <p className="cr-part-h">Fix{p.counterSays && <small> · {p.counterSays}</small>}</p>
+        {p.counter.length === 0 && <span className="sub">No fix on the board for it yet.</span>}
+        {/* Each fix as the paper prints it: what, bone and owner, its state
+            and day — and the day in words when it has no date. */}
+        {p.counter.map((c, i) => (
+          <span key={i} className="cr-cm">
+            {c.what} · {c.bone} · {c.owner || 'No owner'} · <span className={'cr-said-st ' + stateClass(c.tone)}>{c.when}</span>
+            {c.words ? ` · When: ${c.words}` : ''}{c.cause ? ` · For: ${c.cause}` : ''}{c.expect && c.tone !== 'done' ? ` · Should change: ${c.expect}` : ''}
+          </span>
+        ))}
+      </div>
+      <div className="cr-part">
+        <p className="cr-part-h">Did it work</p>
+        <span className={'cr-part-lead' + (p.worked.tone === 'failed' ? ' cr-said-st is-late' : '')}>{p.worked.says}</span>
+        {p.worked.number && <span>{p.worked.number}</span>}
+        {p.worked.fixes.map((x, i) => (
+          <span key={i} className="cr-cm">{x.what} — Expected: {x.expect ?? 'nothing written'} · <b>What happened: {x.happened}</b></span>
+        ))}
+        {p.hold && (
+          <span className="cr-cm">Keeping the gain — The check: {p.hold.what} · {[p.hold.who, p.hold.every, `since ${p.hold.since}`, p.hold.last ? `last checked ${p.hold.last}` : 'not checked yet'].filter(Boolean).join(' · ')} · <span className={'cr-said-st ' + stateClass(p.hold.tone)}>{p.hold.word}</span></span>
+        )}
+      </div>
+    </li>
   );
 }
 

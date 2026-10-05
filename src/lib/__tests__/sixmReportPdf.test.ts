@@ -75,7 +75,8 @@ describe('the 6M client report', () => {
     const p = kase('p1', 'Bagger minor stops', [root, out]);
     const r = build([p], [todo('a', 'Make a splice jig', { pillar: 'machine', causeRef: 'p1:c1', due: '2026-10-01', expect: 'Tracking stops under 5 a week' })]);
     expect(r.problems[0].phaseWord).toBe('Acting on it');
-    expect(r.problems[0].roots[0].therefore).toEqual([
+    const chain = r.problems[0].chains.find(c => c.state === 'root');
+    expect(chain?.therefore).toEqual([
       'There is no splice standard, therefore the splice leaves a step in the film edge',
       'The splice leaves a step in the film edge, therefore film tracks off the former after every splice',
       'Film tracks off the former after every splice, therefore bagger minor stops',
@@ -88,16 +89,17 @@ describe('the 6M client report', () => {
     expect(said).toContain('Nothing found yet');
     expect(said).not.toContain('looked — nothing found');
     expect(said.some(s => s.startsWith('EVERY CAUSE ON THE FISHBONE'))).toBe(false);
-    for (const t of r.problems[0].roots[0].therefore) expect(has(flat, t)).toBe(true);
-    expect(has(flat, 'Expected: Tracking stops under 5 a week')).toBe(true);
+    for (const t of chain?.therefore ?? []) expect(has(flat, t)).toBe(true);
+    expect(has(flat, 'Should change: Tracking stops under 5 a week')).toBe(true);
   });
 
-  it('prints every cause of a crowded fishbone — the leading ones drawn, the whole list after', async () => {
+  it('prints every cause of a crowded fishbone — the leading ones drawn, every chain whole under Why', async () => {
     const bones: SixM[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment'];
     const many = Array.from({ length: 30 }, (_, i) => cause(`c${i}`, bones[i % 6], `Cause number ${i + 1} on the ${bones[i % 6]} bone, said at some length so it wraps`, { status: i % 3 ? 'suspected' : 'confirmed' }));
     const r = build([kase('p1', 'Weigher breakdowns', many)], []);
     const { flat, said } = await paper(r);
-    expect(said.some(s => s.startsWith('EVERY CAUSE ON THE FISHBONE — 30'))).toBe(true);
+    expect(r.problems[0].whySays).toBe('30 chains · no root found yet · 30 still being found');
+    expect(said).toContain('30 chains · no root found yet · 30 still being found');
     for (const c of many) expect(has(flat, c.text)).toBe(true);
     expect(said.some(s => /and \d+ more/.test(s))).toBe(false);
   });
@@ -226,5 +228,69 @@ describe('the 6M client report', () => {
     const r = build([kase('p1', 'Line 2A below its rate', [], { source: { kind: 'gap', measureId: 'm' }, openedAt: NOW - 3 * DAY })], []);
     expect(r.problems[0].measure).toMatch(/^Packs per minute on Line 2A, on the four-week average: before /);
   });
-});
 
+  /* THE WORKING METHOD ON PAPER (docs/SIXM.md): each problem in the four
+     parts it is worked in, beside its fish. */
+  it('prints each problem as Problem · Why · Fix · Did it work, in that order, after its fish', async () => {
+    const root = cause('c1', 'machine', 'Film tracks off the former after every splice', {
+      grade: 'measured', status: 'confirmed', root: true,
+      whys: [{ id: 'w1', text: 'The splice leaves a step', grade: 'observed' }, { id: 'w2', text: 'Nobody owns the splice method', grade: 'reported' }],
+    });
+    const open = cause('c2', 'people', 'Night shift one short at start-up', { grade: 'counted' });
+    const out = cause('c3', 'environment', 'Hall humidity', { status: 'ruled_out', grade: 'reported' });
+    const p = kase('p1', 'Bagger minor stops', [root, open, out], { source: { kind: 'pareto', category: 'Quality', subcategory: 'Foil in the seal', asset: 'Bagger', why: 'food safety — a foreign body risk.' } });
+    const r = build([p], [
+      todo('a', 'Make a splice jig', { pillar: 'machine', causeRef: 'p1:c1', due: '2026-10-09', expect: 'Tracking stops under 5 a week' }),
+      todo('b', 'Write the splice standard', { pillar: 'method', causeRef: 'p1:c1', state: 'done', doneOn: '2026-09-28', expect: 'Every splicer signed off', outcome: 'All twelve signed off in a week' }),
+      todo('c', 'Book agency cover', { pillar: 'people', causeRef: 'p1:c2', state: 'done', doneOn: '2026-09-27', expect: 'Three on the infeed from 22:00', outcome: 'Only two most nights — the agency could not cover' }),
+    ]);
+    const pr = r.problems[0];
+    expect(pr.from).toBe('From the Pareto: Quality · Foil in the seal · Bagger — opened for food safety — a foreign body risk');
+    // Every chain, each answer with how it is known; the root marked; the rest still being found or ruled out.
+    expect(pr.chains.map(c => c.head)).toEqual(['Machine · confirmed · root found', 'People · suspected · still being found', 'Environment · ruled out']);
+    expect(pr.chains[0].answers).toEqual([
+      { text: 'Film tracks off the former after every splice', known: 'data' },
+      { text: 'The splice leaves a step', known: 'seen' },
+      { text: 'Nobody owns the splice method', known: 'told' },
+    ]);
+    expect(pr.chains[1].therefore).toEqual([]);
+    expect(pr.worked.says).toBe('Not yet — 1 of 3 fixes still to do.');
+    expect(pr.worked.fixes).toEqual([
+      { what: 'Write the splice standard', expect: 'Every splicer signed off', happened: 'All twelve signed off in a week' },
+      { what: 'Book agency cover', expect: 'Three on the infeed from 22:00', happened: 'Only two most nights — the agency could not cover' },
+    ]);
+    const { said, flat } = await paper(r);
+    const at = (s: string) => said.findIndex(x => x === s);
+    const order = ['PROBLEM 1', 'Problem', 'Why', 'Fix', 'Did it work'].map(at);
+    expect(order, said.slice(0, 80).join(' / ')).not.toContain(-1);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(has(flat, 'Where it came from: From the Pareto: Quality · Foil in the seal · Bagger — opened for food safety — a foreign body risk')).toBe(true);
+    expect(has(flat, 'Nobody owns the splice method (told) — the root')).toBe(true);
+    expect(has(flat, 'Night shift one short at start-up (counted)')).toBe(true);
+    expect(has(flat, 'People · suspected · still being found')).toBe(true);
+    expect(has(flat, 'Expected: Three on the infeed from 22:00')).toBe(true);
+    expect(has(flat, 'What happened: Only two most nights — the agency could not cover')).toBe(true);
+    // Is / Is not only when the stops say something (factsOf is empty here).
+    expect(said.some(x => /^Is( not)?:/.test(x))).toBe(false);
+  });
+
+  it('says Checking it worked, never Holding, for a closed problem whose number is not measured since', () => {
+    const r = build([kase('p1', 'Changeover takes 48 minutes', [cause('c', 'method', 'Done three ways', { status: 'confirmed', root: true })], {
+      status: 'closed', closedAt: NOW - 2 * DAY, hold: { what: 'Time one changeover a week', everyDays: 7, since: '2026-10-02' },
+    })], [todo('a', 'One standard', { pillar: 'method', causeRef: 'p1:c', state: 'done', doneOn: '2026-10-02' })]);
+    expect(r.problems[0].phaseWord).toBe('Checking it worked');
+    expect(r.problems[0].worked.says).toBe('Checking it worked — closed, and the number not measured since the fixes were done.');
+    expect(r.problems[0].hold?.word).toBe('Check set');
+  });
+
+  it('carries a long problem on to the next page under its own "(continued)" heading — nothing cut', async () => {
+    const whys = Array.from({ length: 6 }, (_, k) => ({ id: `w${k}`, text: `Answer ${k + 1}: ${'the reason goes on at some length '.repeat(6)}end${k + 1}`, grade: 'observed' as const }));
+    const causes = Array.from({ length: 8 }, (_, i) => cause(`c${i}`, (['people', 'machine', 'method', 'material', 'measurement', 'environment'] as SixM[])[i % 6], `Cause ${i + 1} said plainly`, { status: 'confirmed', root: true, whys }));
+    const r = build([kase('p1', 'Weigher breakdowns', causes)], []);
+    const { doc, said, flat } = await paper(r);
+    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    expect(said.filter(x => x === 'Problem 1 — Weigher breakdowns (continued)').length).toBe(doc.getNumberOfPages() - 1);
+    for (let k = 1; k <= 6; k++) expect(has(flat, `end${k} (seen)`)).toBe(true);
+    expect(said.some(x => x.includes('…') && !x.includes('client report'))).toBe(false);
+  });
+});

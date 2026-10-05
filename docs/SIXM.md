@@ -114,9 +114,19 @@ Built on the report engine (`src/lib/report/`), proved by
 1. **The gap** — where the line is against its target, in one sentence.
 2. **Where the loss is** — the Pareto, and the constraint.
 3. **Each problem**: the fishbone drawn (head, six bones, the causes, roots
-   marked), the why-chains of the confirmed roots with their evidence, the
-   countermeasures with what they were expected to do and what they did, and
-   whether it is holding.
+   marked), then its four parts in the working method's words —
+   **Problem** (the head's number, before → now and target, where it came
+   from and the reason a bar outside the vital few was opened, Is / Is not
+   when the stops say it), **Why** (every chain, its answers in order, each
+   with how it is known — seen · data · counted · told — the root marked and
+   read back, "still being found" or "ruled out" otherwise), **Fix** (each
+   countermeasure, who, when, what it should change, its state) and **Did
+   it work** (the verdict by phase — Holding only when the number shows it —
+   the number since the fixes, each fix's prediction beside what happened,
+   and the check that keeps the gain). A problem is kept on one page when a
+   page can hold it; a longer one carries on under "Problem n — …
+   (continued)". The preview screen says the same four parts in the same
+   words, from the same model (`sixmReport`).
 4. **The board by bone** — every action, its owner and due, late in red.
 5. **What was seen on the line** — walk evidence.
 
