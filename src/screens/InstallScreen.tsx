@@ -136,8 +136,8 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">{GATE_WORD[gate]}</h1>
+          <p className="pace-eyebrow is-said">{project.name}</p>
+          <h1 className="pace-title is-said">{GATE_WORD[gate]}</h1>
           <p className="cw-handover">
             {steps.length === 0
               ? <b>Nothing planned yet</b>

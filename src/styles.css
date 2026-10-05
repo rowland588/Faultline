@@ -5822,20 +5822,20 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .peer.is-on .peer-late { background: var(--st-r); color: #fff; }
 
 @media (max-width: 720px) {
-  /* On a phone it scrolls sideways rather than wrapping to three rows. */
-  .peers {
-    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
-    margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter);
+  /* ON A PHONE, EVERY TAB ON THE SCREEN AT ONCE — three to a row, the name
+     over its count. Rowland, 5 October, on the phone: "difficult to navigate
+     and get access to things." The row scrolled sideways with a fade at the
+     edge, so Hand over, Fixes and Materials sat off the screen and you had
+     to know to swipe for them; Fixes is the list he works off on the floor.
+     Two short rows of three take less height than the old row plus the
+     looking for it. */
+  .peers { display: grid; grid-template-columns: repeat(var(--peer-cols, 3), minmax(0, 1fr)); gap: 6px; }
+  .peer {
+    flex-wrap: wrap; justify-content: center; align-content: center; gap: 3px 4px;
+    min-height: 52px; padding: 5px 6px; border-radius: 12px; text-align: center;
   }
-  .peers::-webkit-scrollbar { display: none; }
-  .peer { flex: 0 0 auto; min-height: 42px; }
-  /* THE ROW SAYS IT GOES ON. Five doors do not fit a phone, and "Details"
-     sat off the right edge with nothing to say it was there — found on the
-     phone pass. The edge fades where the row carries on. */
-  .peers {
-    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
-    mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
-  }
+  .peer-l { flex-basis: 100%; font-size: 13.5px; line-height: 1.2; overflow-wrap: anywhere; }
+  .peer-late { margin-left: 0; }
 }
 
 /* The project's name sits ABOVE the heading now, small — the heading itself
@@ -8397,6 +8397,23 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
    where the thumb is, not a screen down. */
 @media (max-width: 719px) {
   .pace-head { padding: 14px 0 12px; margin-bottom: 14px; gap: 10px; }
+  /* SAID ONCE, IN THE SPINE. On a phone the spine reads "‹ Line 2
+     commissioning › Install", and under it the header said "LINE 2
+     COMMISSIONING" and then "Install" in 34px — the same two names again,
+     a third of the screen before the work. Where they repeat the spine
+     (.is-said) they step out on a phone; the tab that is on says which page
+     it is too. The heading stays for a screen reader. The laptop, whose
+     spine prints the whole trail small, keeps both. */
+  .pace-eyebrow.is-said { display: none; }
+  .pace-title.is-said {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .pace-head .pace-title.is-said + .cw-handover { margin-top: 0; }
+  /* The job page's doors — Meeting notes, Reports — a row of small buttons,
+     not two full-height ones under the name. */
+  .pace-head-actions { flex-wrap: wrap; gap: 6px; }
+  .pace-head-actions .btn { min-height: 38px; padding: 0 14px; font-size: 14px; }
 }
 
 /* ---------- ICONS (src/ui/Icon.tsx) — the one drawn icon family ----------

@@ -123,8 +123,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Fixes</h1>
+          <p className="pace-eyebrow is-said">{project.name}</p>
+          <h1 className="pace-title is-said">Fixes</h1>
           <p className="cw-handover">
             {st.upcoming.length > 0
               ? <>

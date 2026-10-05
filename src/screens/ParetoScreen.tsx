@@ -214,8 +214,8 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
 
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Pareto</h1>
+          <p className="pace-eyebrow is-said">{project.name}</p>
+          <h1 className="pace-title is-said">Pareto</h1>
           <p className="pace-lede">Where the time is going, ranked — the last four weeks against the four before.</p>
         </div>
         <div className="pace-head-actions">

@@ -455,8 +455,8 @@ export function ProgramsScreen({ projectId, embedded = false }: {
       {/* The header its peers wear — see MaterialsScreen. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Programs</h1>
+          <p className="pace-eyebrow is-said">{project.name}</p>
+          <h1 className="pace-title is-said">Programs</h1>
           <p className="cw-handover">
             {t.total === 0
               ? <b>Nothing on the list yet</b>

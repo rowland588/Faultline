@@ -275,8 +275,8 @@ export function NotesScreen({ projectId }: { projectId: string }) {
       ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Meeting notes</h1>
+          <p className="pace-eyebrow is-said">{project.name}</p>
+          <h1 className="pace-title is-said">Meeting notes</h1>
           <p className="pace-lede">{can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}</p>
         </div>
         <div className="pace-head-actions">

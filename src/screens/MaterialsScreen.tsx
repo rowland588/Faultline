@@ -252,8 +252,8 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           so it is said where that is news: on the empty list. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
-          <h1 className="pace-title">Materials</h1>
+          <p className="pace-eyebrow is-said">{project.name}</p>
+          <h1 className="pace-title is-said">Materials</h1>
           <p className="cw-handover">
             {t.total === 0
               ? <b>Nothing on the list yet</b>

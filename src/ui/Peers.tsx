@@ -54,19 +54,21 @@ export function Peers({ peers, label = 'The rest of this project' }: { peers: Pe
   if (shown.length < 2) return null;
 
   return (
-    <nav className="peers" aria-label={label}>
+    /* On a phone the row is a grid (styles.css, THE PEERS ROW): three to a
+       row for six, four for seven or eight, so nothing sits alone below. */
+    <nav className="peers" aria-label={label} style={{ '--peer-cols': shown.length > 6 && shown.length <= 8 ? 4 : 3 } as React.CSSProperties}>
       {shown.map(p => (
         p.on
           ? (
             <span key={p.to} className="peer is-on" aria-current="page">
-              {p.label}
+              <span className="peer-l">{p.label}</span>
               {p.hint && <span className="peer-hint">{p.hint}</span>}
               <Count n={p.n} late={p.late} />
             </span>
           )
           : (
             <button key={p.to} className="peer" onClick={() => nav(p.to)}>
-              {p.label}
+              <span className="peer-l">{p.label}</span>
               {p.hint && <span className="peer-hint">{p.hint}</span>}
               <Count n={p.n} late={p.late} />
             </button>

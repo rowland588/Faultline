@@ -148,11 +148,11 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name}</p>
+          <p className="pace-eyebrow is-said">{project.name}</p>
           {/* COMMISSION — the gate where each machine is proved against what
               was agreed. It was called Testing; the tests are what it is made
               of, and the URL keeps the old name so no link breaks. */}
-          <h1 className="pace-title">Commission</h1>
+          <h1 className="pace-title is-said">Commission</h1>
           {/* Where the gate has got to FIRST, as the other three gates say it —
               then the handover date this gate is driving at. "Rowland leading"
               is on the project itself; the four gate headers read alike. */}
