@@ -8,7 +8,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
   | 'share';
 
 export interface Route {
@@ -98,6 +98,9 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'fixes') return { name: 'fixes', id, query };
     if (segs[2] === 'install') return { name: 'install', id, query };
     if (segs[2] === 'day') return { name: 'day', id, query };
+    /* The plan — the job's dated work as a Gantt — is a page of its own
+       (5 October). It was a fold at the foot of the front page. */
+    if (segs[2] === 'plan') return { name: 'plan', id, query };
     /* The gates after Install. "set-up", not "setup": /setup is the project's
        Details, and has been since before there were gates. */
     if (segs[2] === 'set-up') return { name: 'gateSetup', id, query };

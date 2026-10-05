@@ -9745,3 +9745,114 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
 .pdfr-btn { min-height: 40px; padding: 0 14px; font-size: 14px; text-decoration: none; }
 .pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; }
 @media print { .pdfr { display: none !important; } }
+
+/* ============================== FRONT ==============================
+   THE JOB'S FRONT PAGE, ONE SCREEN (screens/ProjectDashboardScreen).
+   Rowland, 5 October: "too much on a screen… this is more about opening
+   doors rather than keeping it linear and simple." The band, then two or
+   three panels side by side, each a box with its name, its answer in words,
+   a few rows and the door to the page holding the rest. A row is a door to
+   its record. The row's stripe and its date carry the state in the five
+   state colours; the words beside them carry it too, so it survives a
+   black-and-white print. Nothing else on these panels wears a state colour. */
+.fp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 14px; align-items: start; margin: 14px 0; }
+.fp-col { display: grid; min-width: 0; }
+.fp-col > .fp-panel { margin: 0; }
+.fp-col > .dy-link { margin: 10px 0 0; }
+.fp-panel {
+  container-type: inline-size; min-width: 0; margin: 14px 0; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.fp-grid > .fp-panel { margin: 0; }
+/* 6M and lever tree: the method's picture (the small fish, the tree's top)
+   and the lines under it on the left, "Needs you" down the right — one
+   laptop screen. On a phone: picture, what is owed, the lines. */
+.fp-grid.is-lead { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-areas: "lead needs" "lines needs"; }
+.fp-grid.is-lead > .fp-fish, .fp-grid.is-lead > .fp-tree { grid-area: lead; }
+.fp-grid.is-lead > .fp-needs { grid-area: needs; }
+.fp-grid.is-lead > .fp-lines { grid-area: lines; }
+.fp-fish .fj-lead-says { margin-top: 4px; }
+/* "Did it work?" heads the Wins lens, over the wins themselves. */
+.fp-panel.fp-proof { margin-bottom: 26px; }
+.fp-panel-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 6px; }
+.fp-panel-t { margin: 0; font-family: var(--display); font-size: 15.5px; font-weight: 700; color: var(--ink); }
+.fp-panel-s { font-size: 13px; color: var(--muted); }
+.fp-panel-go { margin-left: auto; font-size: 13px; white-space: nowrap; }
+/* The one abnormal number in a sentence — "4 past the day", "1 short". */
+.fp-n-r { color: var(--st-r); font-weight: 700; }
+
+.fp-rows { list-style: none; margin: 0; padding: 0; }
+.fp-rows > li + li { border-top: 1px solid var(--line); }
+.fp-row {
+  all: unset; box-sizing: border-box; cursor: pointer; position: relative;
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px;
+  padding: 7px 6px 7px 18px; border-radius: 8px;
+}
+.fp-row::before {
+  content: ""; position: absolute; left: 4px; top: 9px; bottom: 9px; width: 4px; border-radius: 2px;
+  background: var(--fp-tone, var(--st-n));
+}
+.fp-row:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+.fp-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fp-row-m { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.fp-row-m b { font-size: 14px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-row-m small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-row-when { flex: none; font-style: normal; font-size: 12.5px; font-weight: 700; white-space: nowrap; color: var(--fp-tone, var(--muted)); }
+.fp-row-num { flex: none; display: grid; justify-items: end; gap: 1px; text-align: right; }
+.fp-row-num b { font-size: 15px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fp-row-num em { font-style: normal; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* The five states — late (heavier, tinted), waiting or due soon, booked or
+   ahead, done (quiet: normal recedes), not started. */
+.fp-row.is-r, .fp-out.is-r { --fp-tone: var(--st-r); }
+.fp-row.is-r { background: color-mix(in srgb, var(--st-r) 5%, transparent); }
+.fp-row.is-r::before { width: 5px; }
+.fp-row.is-r:hover { background: color-mix(in srgb, var(--st-r) 9%, transparent); }
+.fp-row.is-a, .fp-out.is-a { --fp-tone: var(--st-a); }
+.fp-row.is-w, .fp-out.is-w { --fp-tone: var(--st-w); }
+.fp-row.is-g, .fp-out.is-g { --fp-tone: color-mix(in srgb, var(--st-g) 55%, var(--surface)); }
+.fp-row.is-n, .fp-out.is-n { --fp-tone: var(--st-n); }
+.fp-row.is-g .fp-row-when, .fp-row.is-n .fp-row-when, .fp-out.is-g em, .fp-out.is-n em { color: var(--muted); font-weight: 600; }
+
+.fp-foot { margin: 6px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.fp-empty { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
+.fp-empty p { margin: 0 0 10px; }
+
+/* Where each machine is — ui/Journey, unchanged, inside the panel: the panel
+   carries its frame and its heading. When the column is narrow the machine's
+   name goes over its four gates rather than squeezing them. */
+.fp-where > .jr { margin: 0; padding: 0; border: 0; box-shadow: none; background: none; border-radius: 0; }
+.fp-where .jr-head { display: none; }
+@container (max-width: 520px) {
+  .fp-where .jr-row { grid-template-columns: 1fr; gap: 6px; padding: 8px 0; }
+  .fp-where .jr-m { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+  .fp-where .jr-why { flex-basis: 100%; }
+}
+
+/* The tree's top: the outcome, then what is written right under it. */
+.fp-out {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px;
+  width: 100%; margin: 2px 0 6px; padding: 10px 12px 10px 14px; border-radius: 10px;
+  background: var(--surface-2); box-shadow: inset 5px 0 0 var(--fp-tone, var(--st-n));
+}
+.fp-out:hover { background: color-mix(in srgb, var(--brand) 6%, var(--surface-2)); }
+.fp-out:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fp-out small { grid-column: 1 / -1; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.fp-out b { font-size: 16px; line-height: 1.3; color: var(--ink); }
+.fp-out em { align-self: center; font-style: normal; font-size: 13px; font-weight: 700; color: var(--fp-tone); white-space: nowrap; }
+.fp-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); column-gap: 18px; }
+.fp-top > li, .fp-top > li + li { border-top: 1px solid var(--line); }
+
+@media (max-width: 900px) {
+  .fp-grid { grid-template-columns: minmax(0, 1fr); }
+  .fp-grid.is-lead { grid-template-columns: minmax(0, 1fr); grid-template-areas: "lead" "needs" "lines"; }
+}
+@media (max-width: 640px) {
+  .fp-grid { margin: 10px 0; gap: 10px; }
+  .fp-panel { margin: 10px 0; padding: 12px 14px; }
+  .fp-panel-go { font-size: 12.5px; }
+  /* A gate is a way in — a full finger's height. */
+  .fp-where .jr-seg { min-height: 44px; font-size: 10.5px; }
+  .fp-where .jr-key { display: none; }
+}
+/* ============================ end FRONT ============================ */

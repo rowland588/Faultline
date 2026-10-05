@@ -47,7 +47,7 @@ closed worked."*
 
 Reads: `useActions` (actions + lines), `useMeasures`, `usePaceLines`,
 `useImpacts`, `useMethodCounts` (peers), `useAllLinePacks`, `useMaterials`/
-`usePrograms` (late alarms), `useTesting` (reminders), `analyse()` on each
+`usePrograms` (Needs you), `useTesting` (reminders), `analyse()` on each
 line's `capacity`. Writes: nothing (doors only).
 Report: the Verdict sentence is the report's front stats; The board → report
 "3P Board"; Line balance → "Where the line is limited"; Did it work? → "Who is
@@ -64,18 +64,21 @@ doing what · Done — what came of it"; numbers → page 1 charts.
 | Peers `Board · Lines · Numbers · Wins · Evidence · Materials` (+ open / late counts) | `/board`, `?view=lines`, `?view=data`, `?view=wins`, `?view=snags`, `/materials` (`ui/Peers methodPeers`); the one you are on is a label |
 | Verdict card "Where the lines are" | the sentence; not tappable (by design) |
 | Reminders card (when a note's reminder is due this week) | tick / `Meeting notes ›` (`ui/Reminders`) |
-| Late alarm `N materials are late …›` / `N programs are past their test date …›` | whole card → `/materials` (programs live there) |
-| Fold `The board` (says "5 open · 1 late · 1 done") | open/shut; remembered per device; shut on a phone first time |
-| — a card in a column (first 3 per column) | opens **that action's sheet** on the board (`/board?a=<id>`) |
-| — `+N more` | `/board` |
-| — `Open the board` | `/board` |
-| Fold `Line balance — where each line is limited` | each row is one 44 px button → `/line/L?view=capacity` |
-| Fold `Did it work?` (says "1 proven") | each row is one 44 px button → that action's sheet (`/board?a=<id>`) |
-| Fold `<headline measure>` (says "2 of 2 at target") | one chart per line (`charts/MeasureChart`), `Its pack ›` (44 px on a phone) → `/line/L`; empty states `Add the first line` / `Set the measures up` → `/setup` |
+| The fishbone, small (`FishboneLead`, 6M; left, over the lines — Needs you down the right on a laptop) — `Open the fishbone ›` | the main open problem on `/fishbone` |
+| The tree's top (`TreeTopPanel`, lever tree) — the outcome and the boxes right under it, each in its state; `Open the tree ›` | `/tree` |
+| **Needs you** (`lib/portfolio needsYou` over `pacedItems` + `jobItems`) — says `5 past the day — 2 actions, 2 materials, 1 program · late first`; up to 5 rows, late (red), due within 3 days (amber), the next booked (indigo); foot `6 more booked · 4 with no date agreed` | an action → its sheet (`/board?a=<id>`); a material → `/materials`; a program → `/programs`. `The board ›` → `/board` |
+| **Lines at target · <headline measure>** — says `2 of 2 at target` (`N short` red); a row per line: name, owner, the target in play, the latest reading, `at target` / `6 ppm short of target` (red; `lib/measures gapOf`) | the row → `/line/L`; `All lines ›` → `?view=lines`; empty states `Add the first line` / `Set the measures up` → `/setup` |
 | footer | the project's lines and lead, words only |
 
 Old link `?view=meeting` → replaced by `/board`. A lens a 3P job has not got
 falls back to the overview.
+
+One screen since 5 October (Rowland: "too much on a screen… this is more about
+opening doors rather than keeping it linear and simple"). The folds that drew
+each lens again went to the lens: the board → `/board` (every card, `+N more`
+and "Not on the board yet" are there); line balance → each line's card on
+`?view=lines`; "Did it work?" → the head of `?view=wins`; every line's chart →
+the head of `?view=data`. The late alarms are rows on Needs you.
 
 ### 1a · Reports sheet (`ui/ReportsSheet.tsx`)
 `Client report` → `#/pace-report?project=P` · `Client report — <line>` (one per
@@ -97,12 +100,12 @@ Line standard card (`ui/StandardsCard`): `Make the first map ›` / `Open ›` �
 photos and write-up (§4 `PaceNextSteps`, whole project). `Back to the board` →
 `/board`.
 
-**`?view=wins` — Wins.** §5 `PaceSuccess`, whole project.
+**`?view=wins` — Wins.** `Did it work?` first (each closed action judged by its line's numbers either side of the day it closed; a row → `/board?a=<id>`), then §5 `PaceSuccess`, whole project.
 
 **`?view=snags` — Evidence.** §6 `PaceSnags` on the project's own walk, plus
 every line's walk ("On the lines' own walks") and frameless snags.
 
-**`?view=data` — Numbers.** §7 `ProjectNumbers`.
+**`?view=data` — Numbers.** Every line's chart on the headline measure first (`charts/MeasureChart`, `Its pack ›` → `/line/L`), then §7 `ProjectNumbers`.
 
 ---
 

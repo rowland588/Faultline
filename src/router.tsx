@@ -21,6 +21,7 @@ import { TrialCardScreen } from './screens/TrialCardScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
+import { PlanScreen } from './screens/PlanScreen';
 import { TestScreen } from './screens/TestScreen';
 /* Eager: the 6M job's front page and every line page lead with the fishbone,
    so it is on the start-up path of that method already. */
@@ -138,6 +139,7 @@ function app(route: Route) {
   if (route.name === 'gateSetup' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="setup" />);
   if (route.name === 'handover' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="handover" />);
   if (route.name === 'day' && route.id) return gate(route.id, <DayScreen projectId={route.id} />);
+  if (route.name === 'plan' && route.id) return gate(route.id, <PlanScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
   if (route.name === 'clientReport' && route.id) return gate(route.id, <ClientReportScreen projectId={route.id} />);

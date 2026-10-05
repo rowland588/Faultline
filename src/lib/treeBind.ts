@@ -569,6 +569,9 @@ export interface TreeStanding {
   done: number;
   /** The conditions off track, overdue before at risk, in the tree's order. */
   off: { id: string; text: string; rag: NodeStatus }[];
+  /** The tree's top: what was written directly under the outcome, in the
+   *  tree's order — what the job's front page draws under the outcome. */
+  top: { id: string; text: string; rag: NodeStatus }[];
   /** "The outcome is at risk · 2 of 5 conditions off track — 1 overdue, 1 at risk" */
   says: string;
 }
@@ -596,6 +599,8 @@ export function treeStanding(rows: TreeNodeRow[]): TreeStanding | undefined {
     outcome: { id: root.id, text: root.text.trim() || 'The outcome', rag: root.rag, word },
     total: n, late, risk, done,
     off: [...under.filter(r => r.rag === 'r'), ...under.filter(r => r.rag === 'a')]
+      .map(r => ({ id: r.id, text: r.text.trim() || 'A condition', rag: r.rag })),
+    top: under.filter(r => r.parentId === root.id).sort((a, b) => a.sort - b.sort)
       .map(r => ({ id: r.id, text: r.text.trim() || 'A condition', rag: r.rag })),
     says: `The outcome is ${word} · ${conditions}`,
   };

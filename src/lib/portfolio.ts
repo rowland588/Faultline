@@ -24,7 +24,7 @@
 import { owns } from './format';
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
-import { assetStateOf, isOverdue, isSettled, isTestFace, live, plannedEnd, titleOnMachine } from './testing';
+import { assetStateOf, gateOf, isOverdue, isSettled, isTestFace, live, plannedEnd, titleOnMachine } from './testing';
 import { jobJourney, journeyNow, type JourneyGate, type GateTone } from './install';
 import type { Material } from './materials';
 import { isHere } from './materials';
@@ -35,7 +35,7 @@ import { layoutPlan, type PlacedMark, type PlanAxis } from './plan';
 import { companies, resolver, type Company } from './names';
 import type { PaceLineRow, PaceTodoRow } from '../db';
 import { methodOf, planModel, type PlanModel } from './planModel';
-import { isLate as stepIsLate } from './actions';
+import { DUE_SOON_DAYS, isLate as stepIsLate } from './actions';
 import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
 import type { TreeStanding } from './treeBind';
@@ -233,7 +233,10 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
     const owed = !isSettled(t) || t.outcome === 'notRun';
     if (!owed) continue;
     out.push({
-      ...base, kind: t.kind ?? 'test', id: t.id, what: titleOnMachine(t, j.tests, j.assets),
+      /* A step is filed under its GATE — Set up and Hand over have words of
+         their own (KIND_WORD), and "Install step" over a hand-over item was
+         wrong on the control room's week and the job's front page alike. */
+      ...base, kind: t.kind === 'install' ? gateOf(t) : t.kind ?? 'test', id: t.id, what: titleOnMachine(t, j.tests, j.assets),
       who: t.withWhom ?? '', on: plannedEnd(t), late: isOverdue(t, today),
     });
   }
@@ -344,8 +347,75 @@ export function bonesSaid(steps: Pick<PaceTodoRow, 'pillar' | 'state' | 'due'>[]
   return out;
 }
 
-const byUrgency = (a: JobItem, b: JobItem) =>
+/** Late first (the oldest day first), then by the day it is due; nothing
+ *  with no date comes before something with one. */
+export const byUrgency = (a: JobItem, b: JobItem) =>
   Number(b.late) - Number(a.late) || (a.on ?? '￿').localeCompare(b.on ?? '￿') || a.what.localeCompare(b.what);
+
+/* ------------------------- the job's own front page -------------------------
+ *
+ * Rowland, 5 October, of the front page that ran to three screens: "too much
+ * on a screen… this is more about opening doors rather than keeping it linear
+ * and simple." What the page leads with is the one list a person has to act
+ * on — NEEDS YOU — and it is this same list: every thing owed (jobItems,
+ * pacedItems), counted by the rules standing() counts the band's "late" and
+ * the report's by, and read once here for the control room's week and the
+ * job's front page alike. Nothing below is a second opinion about a job; where
+ * a row opens is lib/plan planHref, the door every plan mark uses. */
+
+/** The word a thing owed is filed under — the same word on the control room's
+ *  week and on the job's front page. */
+export const KIND_WORD: Record<JobItem['kind'], string> = {
+  install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix',
+  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder',
+};
+
+/** How a row on "Needs you" stands: the day has gone (red) · due within the
+ *  next few days (amber) · the next thing booked after that (indigo). */
+export type Urgency = 'late' | 'soon' | 'next';
+
+export interface NeedsYou {
+  rows: { item: JobItem; urgency: Urgency }[];
+  /** Everything past its day — on the rows or not. */
+  late: number;
+  /** Everything due within the next `soonDays`, on the rows or not. */
+  soon: number;
+  /** Open things with a day that are not on the rows. */
+  more: number;
+  /** Open things with no day at all — "no date agreed" is a thing to chase,
+   *  and nothing without a date can ever be late. */
+  undated: number;
+}
+
+/** WHAT NEEDS YOU, in the order you would deal with it: everything past its
+ *  day (the oldest first), everything due within `soonDays`, then the next
+ *  thing booked — always at least one of those when there is one, so a job
+ *  that is in hand still says what is coming. Capped at `max` rows; the rest
+ *  is a count, and the door to the list that holds it. Pure: the same items
+ *  the control room's week is made of (jobItems, pacedItems). */
+export function needsYou(items: JobItem[], today: string, o: { soonDays?: number; atLeast?: number; max?: number } = {}): NeedsYou {
+  const soonDays = o.soonDays ?? DUE_SOON_DAYS, atLeast = o.atLeast ?? 3, max = o.max ?? 7;
+  const soonEnd = addDays(today, soonDays);
+  const urgencyOf = (x: JobItem): Urgency | undefined =>
+    x.late ? 'late' : !x.on ? undefined : x.on <= soonEnd ? 'soon' : 'next';
+  const dated = [...items].sort(byUrgency).flatMap(item => {
+    const urgency = urgencyOf(item);
+    return urgency ? [{ item, urgency }] : [];
+  });
+  const rows = dated.filter(r => r.urgency !== 'next').slice(0, max);
+  for (const r of dated) {
+    if (r.urgency !== 'next') continue;
+    if (rows.length >= max || (rows.length >= atLeast && rows.some(x => x.urgency === 'next'))) break;
+    rows.push(r);
+  }
+  return {
+    rows,
+    late: dated.filter(r => r.urgency === 'late').length,
+    soon: dated.filter(r => r.urgency === 'soon').length,
+    more: dated.length - rows.length,
+    undated: items.length - dated.length,
+  };
+}
 
 export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInput[] = []): Portfolio {
   /* The job whose date comes first, first — that is the order they get asked

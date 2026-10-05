@@ -163,9 +163,9 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
 
 /* ============================== the project =============================== */
 
-/** Every line's numbers in one place, typed in as they are taken. The charts
- *  live on the project's overview — this is the door for getting the numbers in,
- *  not for reading them. */
+/** Every line's numbers in one place, typed in as they are taken. The Numbers
+ *  lens draws every line's chart above this, so the readings and what they
+ *  draw are one page; this is where the numbers go in. */
 export function ProjectNumbers({ projectId, lines }: { projectId: string; lines: PaceLineRow[] }) {
   const state = useMeasures(projectId);
   const can = useAccess(projectId);

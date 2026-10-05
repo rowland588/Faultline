@@ -50,6 +50,8 @@ describe('the ordinary routes still parse', () => {
     ['#/project/p1/install',        { name: 'install', id: 'p1' }],
     ['#/project/p1/set-up',         { name: 'gateSetup', id: 'p1' }],
     ['#/project/p1/handover',       { name: 'handover', id: 'p1' }],
+    // The plan is a page of its own; it was a fold on the front page.
+    ['#/project/p1/plan',           { name: 'plan', id: 'p1' }],
     ['#/project/p1/tree',           { name: 'leverTree', id: 'p1' }],
     ['#/project/p1/board',          { name: 'board', id: 'p1' }],
     ['#/project/p1/pareto',         { name: 'pareto', id: 'p1' }],

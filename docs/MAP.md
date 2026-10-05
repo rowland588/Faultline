@@ -60,6 +60,7 @@ project id, L = a line id, W = a workspace id.
 | `#/guide`, `#/portfolio` | go Home (inventory out) | tree-and-control-room |
 | `#/project/P` (+ `?view=lines|next|wins|snags|data`) | `ProjectDashboardScreen` — the project page, shaped by its method | stage-gate-gates-and-plan · 3p-and-the-line · tree-and-control-room |
 | `#/project/P/setup` | `ProjectSetupScreen` | same three |
+| `#/project/P/plan` | `PlanScreen` — the job's dated work as a Gantt (was a fold on the front page) | stage-gate-gates-and-plan |
 | `#/project/P/line/L` (+ `?view=next|wins|snags|data|capacity`) | `ProjectLineScreen` — one line's pack | [3p-and-the-line](map/3p-and-the-line.md) |
 | `#/project/P/board` | `BoardScreen` — 3P board; a tree job writes here too | 3p-and-the-line |
 | `#/project/P/tree` | `LeverTree` | tree-and-control-room |

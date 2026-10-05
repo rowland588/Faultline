@@ -65,15 +65,18 @@ Controls, top to bottom:
 | Peers row `Install · Set up · Commission · Hand over · Fixes · Materials` with open counts (red when any is late) | each gate's screen (`ui/Peers projectPeers`). Shown on an empty job too (this pass) |
 | **Verdict** card (`ui/Verdict`) — eyebrow, sentence, slip line, tiles `days to handover · outstanding · late` | not pressable; on a phone the tiles hide (the sentence says them) |
 | **Reminders** card (`ui/Reminders ProjectReminders`), only while a note's reminder is due this week | `Meeting notes ›` → `/notes`; the round tick on each = "Talked about — done" (writes `doneAt`, toast with Undo) |
-| **Day** link `TODAY … Read the day ›` / `LAST LOGGED · <day> …` | `/day` or `/day?d=<last day with a story>` |
-| **Late alarms** (`LateAlarms`): `N materials are late …` / `N programs are past their test date …` | `/materials`; `/programs` (→ redirects to `/set-up`) |
-| Fold **Where each machine is** — says `1 at Set up · 2 at Install` | opens the journey (§1.1) |
-| Fold **What we're waiting on** — says `11 open · 4 late` | opens the table (§1.2) |
-| Fold **The plan** — says `23 dates · 10 done · 7 still ahead · 4 past the day` | opens the Gantt (§1.3) |
-| Empty job: `Nothing planned on this line yet.` + `Plan the first test` | `/testing` |
+| **Needs you** (left column; `lib/portfolio needsYou` over `jobItems`) — says `4 past the day · late first`; up to 7 rows: past its day (red stripe, `was 29 Sept`), due within 3 days (amber, `due tomorrow`), the next booked (indigo, `7 Oct`); each row `what` · `kind · who`; foot `5 more booked · 2 with no date agreed` | each row its record (`lib/plan planHref`): a test, fix or step → `/testing/<id>`; a material → `/materials`; a program → `/programs`; a machine → `/install`. `The plan ›` → `/plan` |
+| **Where each machine is** (right column) — says `1 at Set up · 2 at Install` | the journey (§1.1), unchanged |
+| **Day** link `TODAY … Read the day ›` / `LAST LOGGED · <day> …` (under the machines) | `/day` or `/day?d=<last day with a story>` |
+| **The plan** line `23 dates · 10 done · 7 still ahead · 4 past the day` · `Open the plan ›` | `/plan` — the Gantt on a page of its own (§1.3). `?view=plan` lands there too |
+| Empty job: `Nothing planned on this job yet.` + `Add the first machine` | `/install` |
 
-Phone: every fold starts shut (`ui/Fold`), so the first screen is the verdict
-and one line per card. The fold headers are 63px; peers 44px.
+One screen (5 October — Rowland: "too much on a screen… this is more about
+opening doors rather than keeping it linear and simple"). What the old folds
+and alarms held: the two late alarms are rows on Needs you with their day;
+"What we're waiting on" (§1.2) left the front page — its counts are the peers
+row's, its table still prints on the client report; the plan is `/plan`.
+Phone: one column — the verdict, Needs you, the machines, the day, the plan.
 
 ### 1.1 Where each machine is (`ui/Journey.tsx`)
 
@@ -90,19 +93,17 @@ Changeover … did not run").
 Report: the same reading prints beside each machine on the client report.
 Phone: tiles 44px tall, the reason under the name (this pass).
 
-### 1.2 What we're waiting on (`ui/Outstanding.tsx`)
+### 1.2 What we're waiting on — on the report only since 5 October
 
-Rows from `standing.rows`: Install steps / Set-up steps / Tests still to run /
-Fixes still to do / Hand-over items / Materials / Programs / Machines not here
-yet / Observations — Open, Late (red, `—` when none), Mostly whose.
+The screen's table (`ui/Outstanding.tsx`) went with the front page's fold: it
+was six rows each arrowing to a tab already in the peers row, with the same
+counts. The rows still come from `standing.rows`: Install steps / Set-up steps
+/ Tests still to run / Fixes still to do / Hand-over items / Materials /
+Programs / Machines not here yet / Observations — Open, Late, Mostly whose.
 
-| control | does |
-|---|---|
-| the whole row (ends `Install ›`, `Commission ›`, …) | that list's screen (`WHERE[key]`). Was only the 15px link (this pass) |
+Report: the client report prints this table from `standing.rows`, unchanged.
 
-Report: the client report prints this same table.
-
-### 1.3 The plan (`ui/Gantt.tsx`, `lib/gantt.ts`, `lib/ganttPdf.ts`)
+### 1.3 The plan — `/plan`, `screens/PlanScreen.tsx` (`ui/Gantt.tsx`, `lib/gantt.ts`, `lib/ganttPdf.ts`)
 
 Rows are `standing.plan` grouped: Machines arriving · Materials · Programs ·
 Install · Set up · Commission · Hand over · Fixes · Reminders; plus one lane
