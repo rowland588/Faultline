@@ -220,7 +220,7 @@ describe('a cause’s fixes, as the tag beside it', () => {
     expect(fixTag([act('In progress', { due: '9 Oct', dueISO: '2026-10-09' })])?.words).toBe('1 fix · due 9 Oct');
     expect(fixTag([act('To do', { due: '12 Oct', dueISO: '2026-10-12' }), act('To do', { due: '9 Oct', dueISO: '2026-10-09' })])?.words)
       .toBe('2 fixes · due 9 Oct');
-    expect(fixTag([act('Done'), act('To do', { due: '9 Oct', dueISO: '2026-10-09' })])).toEqual({ n: 2, tone: 'n', words: '2 fixes · next due 9 Oct' });
+    expect(fixTag([act('Done'), act('To do', { due: '9 Oct', dueISO: '2026-10-09' })])).toEqual({ n: 2, tone: 'w', words: '2 fixes · next due 9 Oct' });
   });
 
   it('past due outranks waiting, waiting outranks under way, and done only when every one is done', () => {

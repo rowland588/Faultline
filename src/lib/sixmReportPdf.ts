@@ -41,6 +41,7 @@ import { san } from './reportKit';
 import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './portfolio';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
+import { fixTag, fixesOf } from '../ui/fishbone/layout';
 
 /* ================================== the model ================================== */
 
@@ -72,6 +73,9 @@ export interface CauseRep {
   /** Where it came from, when it was accepted from the data. */
   from?: string;
   by?: string;
+  /** Its fixes, as the fish on screen tags them (ui/fishbone/layout fixTag):
+   *  "1 fix · past due", in the board's tone — screen and paper say the same. */
+  fix?: { words: string; tone: 'r' | 'a' | 'w' | 'n' | 'g' };
 }
 
 export interface CounterRep {
@@ -312,10 +316,14 @@ export function sixmReport(o: SixMInput): SixMReport {
   const views = o.problems.slice().sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase) || a.problem.openedAt - b.problem.openedAt);
   const causeText = new Map<string, { text: string; n: number }>();
   views.forEach((v, i) => { for (const c of v.problem.causes ?? []) causeText.set(`${v.problem.id}:${c.id}`, { text: c.text, n: i + 1 }); });
-  const repOf = (c: Cause): CauseRep => ({
-    id: c.id, m: c.m, bone: sixmLabel(c.m), text: c.text, grade: GRADE_WORD(c.grade), status: c.status, statusWord: STATUS_WORD[c.status],
-    root: !!c.root && c.status === 'confirmed', from: c.source?.label, by: c.by,
-  });
+  const repOf = (c: Cause, v?: ProblemView): CauseRep => {
+    const tag = v ? fixTag(fixesOf(v.actions, v.problem.id, c.id)) : null;
+    return {
+      id: c.id, m: c.m, bone: sixmLabel(c.m), text: c.text, grade: GRADE_WORD(c.grade), status: c.status, statusWord: STATUS_WORD[c.status],
+      root: !!c.root && c.status === 'confirmed', from: c.source?.label, by: c.by,
+      ...(tag ? { fix: { words: tag.words, tone: tag.tone } } : {}),
+    };
+  };
   const todoById = new Map(todos.map(t => [t.id, t]));
 
   const problems: ProblemRep[] = views.map((v, i) => {
@@ -412,7 +420,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase],
       meta: [lineName(p.lineId), `opened ${day(todayISO(new Date(p.openedAt)))}`, p.status === 'closed' && p.closedAt ? `closed ${day(todayISO(new Date(p.closedAt)))}` : ''].filter(Boolean).join(' · '),
       ...(ms?.now != null ? { number: say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
-      bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(repOf) })),
+      bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(c => repOf(c, v)) })),
       causeCount: causes.length,
       says: v.says && v.says !== p.title ? v.says : '',
       ...(measure ? { measure } : {}),
@@ -887,7 +895,7 @@ const TXT = 7.5, TLH = 8.8, META = 7, MLH = 8.6;
 
 /** A cause as placed on its bone: `d` its distance from the spine (near
  *  edge), `x` where its mark sits, and whether ROOT needs a line of its own. */
-interface Placed { c: CauseRep; lines: string[]; d: number; h: number; x: number; rootLine: boolean }
+interface Placed { c: CauseRep; lines: string[]; d: number; h: number; x: number; rootLine: boolean; fixLines: string[] }
 interface Region { m: SixM; label: string; up: boolean; xr: number; placed: Placed[]; total: number }
 interface FishLayout { up: number; down: number; regions: Region[]; head: { lines: string[]; h: number }; complete: boolean; height: number }
 
@@ -925,12 +933,16 @@ function layoutFish(f: Frame, p: ProblemRep, K: number): FishLayout {
         const lines = wrap(doc, c.text, room(h), TXT, causeStyle(c));
         font(doc, META, 'normal');
         const rootLine = !!c.root && doc.getTextWidth(metaOf(c)) + 4 + ROOT_W > room(h);
-        return { lines, rootLine, h: lines.length * TLH + MLH * (rootLine ? 2 : 1) + 6 };
+        /* Its fixes take lines of their own under the meta, wrapped to the
+           room — never squeezed beside the words or cut (as on screen, a
+           narrow rib gives the tag its own line). */
+        const fixLines = c.fix ? wrap(doc, c.fix.words, room(h), META, c.fix.tone === 'r' ? 'bold' : 'normal') : [];
+        return { lines, rootLine, fixLines, h: lines.length * TLH + MLH * ((rootLine ? 2 : 1) + fixLines.length) + 6 };
       };
       let g = fit(3 * TLH + MLH + 6);
       g = fit(g.h);
       if (g.lines.length > 4) { complete = false; continue; }   // too long to draw well — it is in the full list
-      placed.push({ c, lines: g.lines, d: dd, h: g.h, x: left, rootLine: g.rootLine });
+      placed.push({ c, lines: g.lines, d: dd, h: g.h, x: left, rootLine: g.rootLine, fixLines: g.fixLines });
       dd += g.h;
     }
     return { m: b.m, label: b.label, up: k < 3, xr, placed, total: b.causes.length };
@@ -1026,6 +1038,14 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
         const ry = pc.rootLine ? my + MLH : my;
         doc.setFillColor(INK); doc.roundedRect(mx, ry - 6.6, ROOT_W, 8, 1.5, 1.5, 'F');
         font(doc, 6.5, 'bold', '#ffffff'); doc.text('ROOT', mx + ROOT_W / 2, ry - 0.8, { align: 'center' });
+      }
+      /* Its fixes, in the house colour: past due the loud red, waiting amber,
+         under way indigo, done a quiet green, not started grey. */
+      if (pc.c.fix) {
+        const fy = my + MLH * (pc.rootLine ? 2 : 1);
+        const t = pc.c.fix.tone;
+        font(doc, META, t === 'r' ? 'bold' : 'normal', t === 'r' ? DANGER : t === 'a' ? AMBER : t === 'w' ? BOOKED : t === 'g' ? OK : MUTED);
+        pc.fixLines.forEach((ln, i) => doc.text(ln, pc.x + 9, fy - 0.5 + i * MLH));
       }
     }
   }
