@@ -19,7 +19,6 @@ import { WhyMoved, followingSummary, recordMove } from '../ui/WhyMoved';
 import { movedLater } from '../lib/story';
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useProject } from '../lib/useProjects';
@@ -95,11 +94,6 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
        deleted. */
     return (
       <div className="wrap pace cm-screen">
-        <Crumbs trail={[
-          { label: 'Control room', to: '/' },
-          ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
-          { label: 'Commission' },
-        ]} />
         <section className="cmp-empty">
           <h2>That test isn’t here any more</h2>
           <p>
@@ -149,20 +143,6 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
 
   return (
     <div className="wrap pace cm-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        /* A fix walks back to Fixes, a test to Testing — the spine has to lead
-           where you came from, which for a fix has not been Testing since it
-           got its own tab. */
-        kind === 'fix'
-          ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
-          : kind === 'install'
-            ? { label: GATE_WORD[gateOf(test)], to: `/project/${projectId}/${GATE_PATH[gateOf(test)]}` }
-            : { label: 'Commission', to: `/project/${projectId}/testing` },
-        { label: test.title },
-      ]} />
-
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">{test.title}</h1>

@@ -11,7 +11,6 @@
  * before the answer is shown. */
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
 import { STORE_WORDS, updateProject } from '../db';
@@ -74,10 +73,8 @@ export function ProjectsScreen() {
 
   return (
     <div className="wrap pace projects-screen">
-      <Crumbs trail={[{ label: 'Control room', to: '/' }, { label: 'Projects' }]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{MODELS.map(m => m.label).join(' · ')}</p>
           <h1 className="pace-title">Projects</h1>
           <p className="pace-lede">
             {mayStart

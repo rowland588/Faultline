@@ -13,11 +13,8 @@ import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers } from '../ui/Peers';
 import { Verdicts } from '../ui/Verdicts';
 import { niceDay, todayISO } from '../lib/weeks';
-import { useStanding } from '../lib/useStanding';
 import { DraftField } from '../ui/Draft';
 import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -82,7 +79,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
-  const stand = useStanding(projectId);
   /* Who is looking (lib/access). The handover dates are what was agreed, so
      only the owner opens them; a client plans nothing and answers nothing. */
   const can = useAccess(projectId);
@@ -141,18 +137,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Commission' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
           {/* COMMISSION — the gate where each machine is proved against what
               was agreed. It was called Testing; the tests are what it is made
               of, and the URL keeps the old name so no link breaks. */}
-          <h1 className="pace-title is-said">Commission</h1>
+          <h1 className="pace-title">Commission</h1>
           {/* Where the gate has got to FIRST, as the other three gates say it —
               then the handover date this gate is driving at. "Rowland leading"
               is on the project itself; the four gate headers read alike. */}
@@ -171,8 +161,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           </p>
         </div>
       </header>
-      {/* The row under the header — see "THE PAGE FRAME" in styles.css. */}
-      <Peers peers={projectPeers(projectId, 'testing', stand.counts)} />
       <AccessNote can={can} owner={project.lead} />
 
       {dates && can.agree && (

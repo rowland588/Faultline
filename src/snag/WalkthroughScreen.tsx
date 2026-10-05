@@ -1,8 +1,4 @@
-import { Crumbs } from '../ui/Crumbs';
 import { useEffect, useRef, useState } from 'react';
-import { useWorkspace } from '../state/WorkspaceProvider';
-import { useWsChain, wsTrail } from '../lib/useTrail';
-import type { Route } from '../state/useRoute';
 import { listSegments, listSnagAssets, snagsForAsset } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { Sheet } from '../ui/Sheet';
@@ -14,9 +10,7 @@ import { Icon } from '../ui/Icon';
 
 interface Flat { asset: SnagAsset; sequence: number; open: number }
 
-export function WalkthroughScreen({ wsId, route }: { wsId: string; route: Route }) {
-  const { workspace } = useWorkspace();
-  const chain = useWsChain(wsId);
+export function WalkthroughScreen({ wsId }: { wsId: string }) {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [flat, setFlat] = useState<Flat[]>([]);
   const [snagsBy, setSnagsBy] = useState<Map<string, Snag[]>>(new Map());
@@ -56,13 +50,9 @@ export function WalkthroughScreen({ wsId, route }: { wsId: string; route: Route 
   return (
     <div className="walk-stage">
       <div className="wrap walk-stage-head">
-        {/* The walk had neither a trail NOR a heading, so it offered no answer
-            to "where am I" and one guess at "where do I go". It fills the
-            window, which is exactly why it needs the spine more than a screen
-            you can see past. The same trail as every other screen in the
-            workspace (lib/useTrail), so Back lands on the line it hangs off
-            — it used to skip the line and name the workspace instead. */}
-        <Crumbs trail={wsTrail(route, chain, workspace.name)} />
+        {/* The walk once carried the spine because it filled the window with
+            no other way out. It sits inside the one frame now (ui/Frame): the
+            rail says which line it is, and "Evidence" above it is the way up. */}
         <span className="walk-stage-title">{curSeg ? sectionLabel(curSeg, inSeg.map(f => f.asset.name)) : 'The line, filmed'}</span>
       </div>
       <div className="walk-stage-body">

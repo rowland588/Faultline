@@ -19,10 +19,6 @@ import { DateWhy } from '../ui/DateWhy';
 import { keyOf } from '../lib/story';
 import { useEffect, useRef, useState } from 'react';
 import { nav, navReplace } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
-import { Peers, projectPeers, methodPeers } from '../ui/Peers';
-import { useMethodCounts } from '../lib/useMethodCounts';
-import { useStanding } from '../lib/useStanding';
 import { DraftText } from '../ui/Draft';
 import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
@@ -447,16 +443,10 @@ export function ProgramsScreen({ projectId, embedded = false }: {
             : 'what the line has to be able to run, and whether we trust it yet'}</span>
         </div>
       ) : <>
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Programs' },
-      ]} />
-      {/* The header its peers wear — see MaterialsScreen. */}
+      {/* The header every screen wears — see MaterialsScreen. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">Programs</h1>
+          <h1 className="pace-title">Programs</h1>
           <p className="cw-handover">
             {t.total === 0
               ? <b>Nothing on the list yet</b>
@@ -470,9 +460,6 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           </p>
         </div>
       </header>
-      {/* The row under the header, and the gates are a stage-gate job's —
-          see MaterialsScreen. */}
-      <ProgramsPeers projectId={projectId} commissioning={!!project.commissioning} leverTree={!!project.leverTree} />
       {/* Embedded, the page around it already says this once. */}
       <AccessNote can={can} owner={project.lead} />
       </>}
@@ -529,20 +516,6 @@ export function ProgramsScreen({ projectId, embedded = false }: {
   );
 }
 
-/* THE PEERS ROW, AND THE COUNTS ON IT, ONLY WHERE THE ROW IS DRAWN. The
-   numbers come from lib/standing.ts, the same call the dashboard and the
-   client report make — a row that said something different from the page under
-   it would be the whole problem back again. They were worked out at the top of
-   the screen, so Set up (which draws this embedded, with no row) read and
-   judged the whole job a second time on every change for nothing: on a job a
-   long way in that was the slowest page in the app. */
-function ProgramsPeers({ projectId, commissioning, leverTree }: { projectId: string; commissioning: boolean; leverTree: boolean }) {
-  const stand = useStanding(projectId);
-  const counts = useMethodCounts(projectId);
-  return commissioning
-    ? <Peers peers={projectPeers(projectId, 'programs', stand.counts)} />
-    : <Peers peers={methodPeers(projectId, leverTree ? 'tree' : 'board', 'materials', counts)} />;
-}
 
 /* PROGRAMS ARE SHOWN ONCE ON A JOB. They are set up under Set up on a stage-gate
  * job and live under Materials on a 3P or tree job; this page drew them a

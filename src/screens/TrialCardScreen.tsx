@@ -26,12 +26,10 @@ import { useProject } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { trialCard, verdictLine, type CardFinding, type CardNext, type TrialCard } from '../lib/trialCard';
 import { foundWords, wordsOf } from '../lib/testing';
-import { GATE_PATH, GATE_WORD } from '../lib/install';
 import { deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import { todayISO } from '../lib/standing';
 import { pdfFileName } from '../lib/fileName';
 import { nav } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { Icon } from '../ui/Icon';
@@ -147,12 +145,6 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
        and a button to "testing", a word no screen is called any more. */
     return (
       <div className="wrap pace cm-screen">
-        <Crumbs trail={[
-          { label: 'Control room', to: '/' },
-          { label: project.name, to: `/project/${projectId}` },
-          { label: 'Commission', to: `/project/${projectId}/testing` },
-          { label: 'Card' },
-        ]} />
         <section className="cmp-empty">
           <h2>That record isn’t here any more</h2>
           <p>
@@ -198,27 +190,12 @@ export function TrialCardScreen({ projectId, testId }: { projectId: string; test
 
   return (
     <div className="wrap pace cm-screen tc-screen">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        c.kind === 'fix'
-          ? { label: 'Fixes', to: `/project/${projectId}/fixes` }
-          : c.kind === 'install'
-            ? { label: GATE_WORD[c.gate ?? 'install'], to: `/project/${projectId}/${GATE_PATH[c.gate ?? 'install']}` }
-            : { label: 'Commission', to: `/project/${projectId}/testing` },
-        { label: c.title, to: `/project/${projectId}/testing/${encodeURIComponent(testId)}` },
-        { label: `${words.one} card` },
-      ]} />
-
-      {/* EYEBROW IS THE CONTEXT, H1 IS THE SCREEN — the convention Testing,
-          Materials and Programs already keep, and not a style point: the card
-          first carried the trial's own title as its h1, which made it the
-          second screen in the app with that exact heading. scripts/navmap.mjs
-          called it, and it was right — two screens with one name is how you
-          lose track of which one you are on. */}
+      {/* H1 IS THE SCREEN, not the trial's title: the card first carried the
+          trial's own title as its h1, which made it the second screen in the
+          app with that exact heading — two screens with one name is how you
+          lose track of which one you are on. The trial is the line under it. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{project.name} · {words.one.toLowerCase()}</p>
           <h1 className="pace-title">{words.one} card</h1>
           <p className="tc-which">{c.title}</p>
           <p className="cw-handover">

@@ -18,7 +18,6 @@ import { live, WHOLE_JOB, type Asset, type Test, type TestItem } from '../lib/te
 import {
   NOTE_GATES, decodeScope, encodeScope, gateOfRecord, parentScope, recordsUnder, scopeLabel, scopeRank, type NoteScope,
 } from '../lib/noteScope';
-import { Crumbs } from '../ui/Crumbs';
 import { offerUndo } from '../ui/Undo';
 import { remindersOf, remindWords } from '../lib/reminders';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -268,15 +267,9 @@ export function NotesScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace nt">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${projectId}` },
-        { label: 'Meeting notes' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow is-said">{project.name}</p>
-          <h1 className="pace-title is-said">Meeting notes</h1>
+          <h1 className="pace-title">Meeting notes</h1>
           <p className="pace-lede">{can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}</p>
         </div>
         <div className="pace-head-actions">

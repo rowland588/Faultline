@@ -65,7 +65,10 @@ describe('the icon set', () => {
       expect(svg, n).toContain('aria-hidden="true"');
       expect(svg, n).toContain('stroke="currentColor"');
     }
-    const labelled = renderToStaticMarkup(createElement(Icon, { name: 'gear', label: 'Details' }));
+    /* (Was the gear, the job's Details header button — that button is a rail
+       line now (ui/rail footGroup) and the gear left the set with it. Any
+       icon proves the label rule.) */
+    const labelled = renderToStaticMarkup(createElement(Icon, { name: 'close', label: 'Details' }));
     expect(labelled).toContain('aria-label="Details"');
     expect(labelled).not.toContain('aria-hidden');
   });

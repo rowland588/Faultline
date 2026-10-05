@@ -15,7 +15,6 @@
  * an A3 page. What is on screen is what lands in the PDF. */
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
-import { Crumbs } from '../ui/Crumbs';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useProjectPareto } from '../lib/paretoFromLog';
@@ -942,16 +941,9 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
 
   return (
     <div className="wrap pace cr">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: name, to: `/project/${projectId}` },
-        ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
-        { label: 'Client report' },
-      ]} />
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">{line ? `${name} · ${line.name}` : name}</p>
-          <h1 className="pace-title">Client report</h1>
+          <h1 className="pace-title">Client report{line ? ` — ${line.name}` : ''}</h1>
           <p className="pace-lede">The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.</p>
         </div>
         <div className="pace-head-actions">
@@ -1970,18 +1962,8 @@ function PaceExecReportA3() {
     <div className="wrap exec-report" ref={root}>
       {/* the second before it goes up on the wall */}
       <Sweep id={'report:' + projectId + (lineId ?? '')} />
-      {/* THE SPINE, NOT A LONE BACK BUTTON. This screen and the walk were the
-          only two in the app with no trail at all — and they are the two you
-          most need to get out of, because both fill the window. A back button
-          that knows one destination cannot tell you where you are.
-          Its own row at the top of the frame, as on every page; it was
-          squeezed into a box beside the PDF button. */}
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        ...(project ? [{ label: project.name, to: `/project/${projectId}` }] : []),
-        ...(line ? [{ label: line.name, to: `/project/${projectId}/line/${line.id}` }] : []),
-        { label: 'Client report' },
-      ]} />
+      {/* The way out is the rail (ui/Frame), as on every page; this screen
+          once carried the spine because it filled the window. */}
       <div className="exec-bar no-print">
         <div className="exec-bar-r">
           <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>

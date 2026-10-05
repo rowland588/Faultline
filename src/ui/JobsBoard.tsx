@@ -54,6 +54,7 @@ import { Timeline } from './Timeline';
 import type { GateTone } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
+import { publishJobStands } from './railJobs';
 import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
@@ -303,6 +304,8 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   const pf = useMemo(() => (inputs ? portfolio(inputs.gate, today, inputs.paced) : null), [inputs, today]);
   const [still] = useState(seenThisSession);
   useEffect(() => { if (pf) markSeen(); }, [pf]);
+  /* The rail's squares beside each job say what this board says (ui/railJobs). */
+  useEffect(() => { if (pf) publishJobStands(pf.jobs); }, [pf]);
   /* Which rows are open, remembered on this device — a convenience, never
      something that has to survive. */
   const [open, setOpen] = useState<Set<string>>(readOpen);

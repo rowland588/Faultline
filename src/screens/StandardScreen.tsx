@@ -20,7 +20,6 @@ import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
 import { copyFor, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, SHAPES, thingsOf, TONES, type MarkKind, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
-import { Crumbs } from '../ui/Crumbs';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
@@ -167,19 +166,9 @@ function Products({ project, list, gone, can }: { project: Project; list: Standa
 
   return (
     <div className="wrap pace">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${project.id}` },
-        // Where it is held: Hand over on a stage-gate job, Lines on the others.
-        commissioning
-          ? { label: 'Hand over', to: `/project/${project.id}/handover` }
-          : { label: 'Lines', to: `/project/${project.id}?view=lines` },
-        { label: 'Line standard' },
-      ]} />
       {gone && <p className="ls-gone">That map isn’t here any more — it was deleted, or the link is to a map on another project. The maps that are here:</p>}
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pace-eyebrow">A tool · {commissioning ? 'part of handing over' : 'People'}</p>
           <h1 className="pace-title">Line standard</h1>
           <p className="pace-lede">
             Who stands where, and what they do, on each product. A picture of the line with the people and
@@ -316,7 +305,6 @@ function MapEditor({ project, s, all, can }: { project: Project; s: Standard; al
   const boardRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const commissioning = planModel(project) === 'commissioning';
 
   // Another device's edit, or an undo, arrives as a new record: take it,
   // unless something is being dragged right now — or TYPED. Leaving the role
@@ -479,20 +467,11 @@ function MapEditor({ project, s, all, can }: { project: Project; s: Standard; al
 
   return (
     <div className="wrap pace ls">
-      <Crumbs trail={[
-        { label: 'Control room', to: '/' },
-        { label: project.name, to: `/project/${project.id}` },
-        // Where it is held: Hand over on a stage-gate job, Lines on the others.
-        commissioning
-          ? { label: 'Hand over', to: `/project/${project.id}/handover` }
-          : { label: 'Lines', to: `/project/${project.id}?view=lines` },
-        { label: 'Line standard', to: `/project/${project.id}/standard` },
-        { label: s.product },
-      ]} />
-
       <header className="ls-head">
         <div className="ls-head-main">
-          <p className="pace-eyebrow">Line standard · {plural(people.length, 'person', 'people')}</p>
+          {/* The way back to the list of maps, now the spine is gone: the
+              rail's Hand over (or Lines) is a level above this. */}
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(`/project/${project.id}/standard`)}>Line standard</button> · {plural(people.length, 'person', 'people')}</p>
           {ro ? <h1 className="ls-product is-read">{s.product}</h1> : <>
           <input className="ls-product" value={product} aria-label="Product" list="ls-products"
             onChange={e => setProduct(e.target.value)}
