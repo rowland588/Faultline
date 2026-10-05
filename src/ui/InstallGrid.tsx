@@ -491,7 +491,11 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                   <button key={ci}
                     className={'igm-st' + (cs ? ` is-${cs.tone}${cs.tone === 'ahead' && cs.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
                     onClick={() => setOpen({ t: 'cell', row: ri, col: ci })}
-                    disabled={!cs && !can.edit}>
+                    disabled={!cs && !can.edit}
+                    /* Named as the square is named on the laptop — machine,
+                       stage and state — for a screen reader, and so the two
+                       layouts are the same control by name. */
+                    aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}`}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}</span>
                     <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
