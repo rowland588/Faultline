@@ -279,6 +279,23 @@ So, four rules, and they apply to every change from here:
    test: name the existing record it hangs off, and the document it reaches.
 4. **The whole shape is designed before any of it is built**, then built in
    slices that each ship live on their own.
+5. **Connect the dots — anything new shows up wherever its parent shows.**
+   Rowland, 6 October: "When you're implementing anything new, you need to
+   understand and connect the dots on where the visibility should be showing
+   ... I'm putting it in, so it should really appear like a branch — it comes
+   off the main action, and in the map as a little branch, so you can see
+   there's something else there ... Every time you make something, you're not
+   connecting how the functions should look and connect with each other within
+   the app. You've got to do that going forward." (Said when a part of the
+   plan written on "Programs loaded" showed in the stage and nowhere on the
+   plan.) So before building, list every place the record it hangs off is
+   seen — the stage drawer, the Install grid and its phone cards, the plan
+   (screen and PDF), the job's front page and Needs you, Today's update, the
+   Fixes page, the client report — and say how the new thing appears in each:
+   as a **branch off its parent** (a nested row under the stage on the plan, a
+   count on the square, a line under the stage on paper), never a list of its
+   own. Something entered in one place and seen nowhere else is unfinished.
+   The commit says where it shows.
 
 A FIFTH CONCEPT IS ALMOST ALWAYS THE WRONG ANSWER. `src/lib/testing.ts` says it
 about tests and it holds everywhere: if something needs a new noun to explain
