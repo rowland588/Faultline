@@ -23,6 +23,7 @@ import { copyFor, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peop
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
+import { deleteMap } from '../ui/StandardsCard';
 import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
 import { useAccess } from '../cloud/access';
@@ -188,7 +189,12 @@ function Products({ project, list, gone, can }: { project: Project; list: Standa
         </div>
       ) : (
         <div className="ls-grid">
-          {list.map(s => <ProductCard key={s.id} s={s} onOpen={() => nav(`/project/${project.id}/standard/${s.id}`)} />)}
+          {list.map(s => (
+            <div key={s.id} className="ls-card-wrap">
+              <ProductCard s={s} onOpen={() => nav(`/project/${project.id}/standard/${s.id}`)} />
+              {can.remove && <button type="button" className="cw-link sp-rm ls-card-del" onClick={() => void deleteMap(s)} aria-label={`Delete the map for ${s.product}`}>Delete</button>}
+            </div>
+          ))}
         </div>
       )}
 

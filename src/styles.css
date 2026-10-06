@@ -10448,3 +10448,8 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .bw-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
 .bw-text { margin: 0; font-size: var(--t-body); color: var(--ink); white-space: pre-wrap; }
 .bw-acts { display: inline-flex; gap: 8px; }
+
+/* DELETE A MAP where the maps are listed (ui/StandardsCard, screens/StandardScreen). */
+.ls-strip-item { display: inline-grid; gap: 2px; justify-items: start; }
+.ls-strip-del, .ls-card-del { font-size: var(--t-detail); padding: 2px 0; }
+.ls-card-wrap { display: grid; gap: 4px; align-content: start; }

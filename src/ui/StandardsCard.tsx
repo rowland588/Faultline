@@ -1,10 +1,18 @@
 /* The line standard's maps, small — what Hand over shows. The screen itself
  * (screens/StandardScreen) loads on first use. */
 import { useCallback, useEffect, useState } from 'react';
-import { listStandards, onDataChange } from '../db';
+import { deleteStandard, listStandards, onDataChange } from '../db';
+import { offerUndo } from './Undo';
 import { nav } from '../state/useRoute';
 import { headcount, type Standard } from '../lib/standard';
 import { can as canOf, type Can } from '../lib/access';
+
+/** DELETE A MAP — from wherever the maps are listed, with Undo. Rowland, 6
+ *  October, in Hand over: "can't delete a line standard — not acceptable."
+ *  The only delete was at the foot of a map's own page. */
+export async function deleteMap(s: Standard): Promise<void> {
+  offerUndo(`Map for ${s.product} deleted`, await deleteStandard(s.id));
+}
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -37,9 +45,12 @@ export function StandardsCard({ projectId, can = canOf('owner') }: { projectId: 
       {list.length > 0 && (
         <div className="ls-strip-list">
           {list.map(s => (
-            <button key={s.id} className="ls-strip-b" onClick={() => nav(`/project/${projectId}/standard/${s.id}`)}>
-              <b>{s.product}</b><span>{plural(headcount(s), 'person', 'people')}</span>
-            </button>
+            <span key={s.id} className="ls-strip-item">
+              <button className="ls-strip-b" onClick={() => nav(`/project/${projectId}/standard/${s.id}`)}>
+                <b>{s.product}</b><span>{plural(headcount(s), 'person', 'people')}</span>
+              </button>
+              {can.remove && <button type="button" className="cw-link sp-rm ls-strip-del" onClick={() => void deleteMap(s)} aria-label={`Delete the map for ${s.product}`}>Delete</button>}
+            </span>
           ))}
         </div>
       )}
