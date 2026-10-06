@@ -71,6 +71,9 @@ describe('the square beside a line says its state, and the count stays the work'
     expect(squareOf({ n: 0, late: 0, done: 4 })).toBe('g');
     expect(squareOf({ n: 0, late: 0, done: 0 })).toBe('n');
     expect(squareOf(undefined)).toBe('n');
+    // A stage that hit a problem and lost no time is amber — late still wins (lib/install lateOrProblem).
+    expect(squareOf({ n: 3, late: 0, problem: 1 })).toBe('a');
+    expect(squareOf({ n: 3, late: 1, problem: 1 })).toBe('r');
   });
 
   it('a late job is red; otherwise the job is under way', () => {
@@ -158,9 +161,9 @@ describe('work, lines and the foot', () => {
     expect(labels(linesGroup(P, lines, 'job'))).toEqual(['Line 7', 'Line 8']);
   });
 
-  it('the three header doors are the foot: Reports · Meeting notes (with its count) · Details', () => {
+  it('the three header doors are the foot: Reports · Notes (with its count) · Details', () => {
     const f = footGroup(P, 'notes', 3);
-    expect(labels(f)).toEqual(['Reports', 'Meeting notes', 'Details']);
+    expect(labels(f)).toEqual(['Reports', 'Notes', 'Details']);
     expect(f.foot).toBe(true);
     expect(f.lines[0].to).toBeUndefined();          // opens the sheet of everything printable
     expect(f.lines[1]).toMatchObject({ to: `/project/${P}/notes`, n: 3, on: true });

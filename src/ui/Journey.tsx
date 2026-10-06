@@ -3,15 +3,15 @@
  * gates." Read off lib/install's journeyOf, the same reading the client
  * report prints beside each machine. Tap a gate to go to it. */
 import { nav } from '../state/useRoute';
-import { JOURNEY, machineAt, journeyOf, redReasons, type GateTone } from '../lib/install';
+import { GATE_TONE_WORD, JOURNEY, isWrongGate, machineAt, journeyOf, reasonsOf } from '../lib/install';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
 import { usePrograms } from '../lib/usePrograms';
 
-const TONE_WORD: Record<GateTone, string> = {
-  /* Grey is "not started" (the colour rules); indigo alone says still ahead. */
-  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'not started', none: 'nothing kept',
-};
+/* Grey is "not started" (the colour rules); indigo alone says still ahead.
+   Late and a problem are said apart — Rowland, 6 October: never "late or a
+   problem", the app knows which (lib/install lateOrProblem). */
+const TONE_WORD = GATE_TONE_WORD;
 
 export function Journey({ projectId, assets, tests, items }: {
   projectId: string; assets: Asset[]; tests: Test[]; items: TestItem[];
@@ -32,13 +32,17 @@ export function Journey({ projectId, assets, tests, items }: {
         return (
           <div key={a.id} className="jr-row">
             <span className="jr-m"><b>{a.name}</b><span className="sub">{machineAt(a, j).says}</span>
-              {/* WHY IT IS RED, where the red is. A tile that only says "late or
-                  a problem" sends you hunting for the thing; this names it, and
-                  tapping the tile goes to where it is changed or put back. */}
-              {j.some(g => g.tone === 'late') && (() => {
-                const why = redReasons(a, tests, items, today);
+              {/* WHY IT IS RED OR AMBER, where the colour is — each reason in
+                  its own: "Sensors checked — late, 2 h lost" red, "Dry run — a
+                  problem, no time lost" amber. Tapping the tile goes to where
+                  it is changed or put back. */}
+              {j.some(g => isWrongGate(g.tone)) && (() => {
+                const why = reasonsOf(a, tests, items, today);
                 return why.length > 0 && (
-                  <span className="jr-why">{why.slice(0, 2).join(' · ')}{why.length > 2 ? ` · and ${why.length - 2} more` : ''}</span>
+                  <span className="jr-why">
+                    {why.slice(0, 2).map((r, k) => <span key={k} className={'jr-why-r is-' + r.tone}>{k > 0 && ' · '}{r.text}</span>)}
+                    {why.length > 2 ? ` · and ${why.length - 2} more` : ''}
+                  </span>
                 );
               })()}
             </span>
@@ -56,7 +60,7 @@ export function Journey({ projectId, assets, tests, items }: {
       })}
       <p className="jr-key">
         <span className="is-done">done</span><span className="is-going">under way</span>
-        <span className="is-late">late or a problem</span><span className="is-ahead">not started</span>
+        <span className="is-late">late</span><span className="is-failed">didn’t pass</span><span className="is-problem">a problem — no time lost</span><span className="is-ahead">not started</span>
       </p>
     </section>
   );

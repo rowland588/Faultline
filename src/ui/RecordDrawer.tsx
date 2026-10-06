@@ -458,7 +458,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
              was scrolled to. */
           requestAnimationFrame(() => window.scrollTo(0, 0));
         }}>
-          Everything about it › <span className="sub">files · meeting note · PDF card{can.remove && kind !== 'fix' ? ' · delete' : ''}</span>
+          Everything about it › <span className="sub">files · notes · PDF card{can.remove && kind !== 'fix' ? ' · delete' : ''}</span>
         </button>
       </div>
 

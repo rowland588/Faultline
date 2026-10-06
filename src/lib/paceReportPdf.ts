@@ -212,7 +212,7 @@ export interface PaceReportData {
       late: number;
       /** The four gates — Install, Set up, Commission, Hand over — and the one
        *  it is at. Off lib/install's journeyOf, as the Overview draws it. */
-      journey?: { label: string; tone: 'done' | 'going' | 'late' | 'ahead' | 'none' }[];
+      journey?: { label: string; tone: 'done' | 'going' | 'late' | 'problem' | 'failed' | 'ahead' | 'none' }[];
       at?: string;
     }[];
   };
@@ -1009,15 +1009,17 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
     d.text(fit(d, [r.oem, r.state].filter(Boolean).join(' \u00b7 '), nameW - 12), x0, y + 21);
     /* THE FOUR GATES — Install, Set up, Commission, Hand over — as the
        Overview draws them: filled green done, blue ring under way, red ring
-       late or a problem, grey ring still ahead, pale nothing kept yet. */
+       late or didn't pass, amber ring a problem that lost no time (lib/install
+       lateOrProblem), grey ring still ahead, pale nothing kept yet. */
     if (r.journey) {
       const pw = (nameW - 12 - 3 * 3) / 4;
       r.journey.forEach((g, k) => {
         const px = x0 + k * (pw + 3), py = y + 26;
-        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : g.tone === 'late' ? DANGER : g.tone === 'ahead' ? '#c6d2e3' : '#e1e8f2';
+        const red = g.tone === 'late' || g.tone === 'failed';
+        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : red ? DANGER : g.tone === 'problem' ? WARN : g.tone === 'ahead' ? '#c6d2e3' : '#e1e8f2';
         if (g.tone === 'done') { d.setFillColor(OK); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
         else if (g.tone === 'none') { d.setFillColor('#f2f5fa'); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
-        else { d.setDrawColor(col); d.setLineWidth(1); d.setFillColor(g.tone === 'late' ? '#fdf2f0' : g.tone === 'going' ? '#e8f0fd' : '#ffffff'); d.roundedRect(px + 0.5, py + 0.5, pw - 1, 9, 3, 3, 'FD'); }
+        else { d.setDrawColor(col); d.setLineWidth(1); d.setFillColor(red ? '#fdf2f0' : g.tone === 'problem' ? '#f7eedb' : g.tone === 'going' ? '#e8f0fd' : '#ffffff'); d.roundedRect(px + 0.5, py + 0.5, pw - 1, 9, 3, 3, 'FD'); }
         setFont(d, 5.6, 'bold', g.tone === 'done' ? '#ffffff' : g.tone === 'none' ? MUTED : col === '#c6d2e3' ? INK2 : col);
         d.text(fit(d, g.label, pw - 3), px + pw / 2, py + 6.8, { align: 'center' });
       });

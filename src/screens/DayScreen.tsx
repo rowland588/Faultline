@@ -26,6 +26,9 @@ import type { MediaRef } from '../types';
 import { DateInput } from '../ui/DateInput';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
+import { OnTargetLine } from '../ui/OnTarget';
+import { stageGateOnTarget } from '../lib/onTarget';
+import { planModel } from '../lib/planModel';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -65,6 +68,10 @@ export function DayScreen({ projectId }: { projectId: string }) {
 
   const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs };
   const day = dayOf(input, date, today);
+  /* ARE WE ON TARGET? — today's answer (lib/onTarget), at the top of the
+     update and of its page. On another day it is still today's, and says so. */
+  const onTarget = planModel(project) === 'commissioning' ? stageGateOnTarget({ project, ...input, today }) : undefined;
+  const asOf = date === today ? undefined : `today, ${niceDay(today, { weekday: 'short' })}`;
   /* Back and forward step over the blank days, so the story reads on. */
   const days = activeDays(input);
   const prev = [...days].reverse().find(d => d < date);
@@ -85,7 +92,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       const { shotsFor, shotKey } = await import('../lib/testReport');
       const shots = await shotsFor(day.media.map(shotKey).filter((k): k is string => !!k), 4);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
+      drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots, onTarget, asOf });
       const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date), { brand: false }); // its band carries the mark
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
@@ -101,6 +108,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       <header className="pace-head dy-head">
         <div className="pace-head-main">
           <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
+          {onTarget && <OnTargetLine v={onTarget} asOf={asOf} />}
           <p className="dy-headline">{day.headline}</p>
         </div>
         {/* FROM THE TOP. Rowland, 5 October: "I wanted to be able to very
@@ -137,15 +145,18 @@ export function DayScreen({ projectId }: { projectId: string }) {
       {/* A bar per gate with steps — Install, Set up, Hand over. */}
       {day.gates.map(g => (
         <button key={g.gate} className="dy-install" onClick={() => nav(`/project/${projectId}/${GATE_PATH[g.gate]}`)}
-          aria-label={`${g.label}: ${g.done} of ${g.total} steps done${g.problem ? `, ${g.problem} a problem` : ''}${g.late ? `, ${g.late} late` : ''}`}>
+          aria-label={`${g.label}: ${g.done} of ${g.total} steps done${g.late ? `, ${g.late} late` : ''}${g.problem ? `, ${g.problem} a problem with no time lost` : ''}`}>
           <span className="dy-install-h"><b>{g.label}</b><span className="sub">{g.done} of {g.total} steps done{date === today ? '' : ' by the end of the day'}</span>
-            {/* Two facts, said apart: a problem is not always late, and late is not always a problem. */}
-            {g.problem > 0 && <span className="sub in-late">{g.problem} a problem</span>}
-            {g.late > 0 && <span className="sub in-late">{g.late} late</span>}</span>
-          {/* Done a quiet green, what is wrong red after it — the colour rules. */}
+            {/* WHICH, by the one rule (lib/install lateOrProblem): late in
+                red — its day gone, or hours lost — and a problem that lost no
+                time in amber. Never "late or a problem". */}
+            {g.late > 0 && <span className="sub in-late">{g.late} late</span>}
+            {g.problem > 0 && <span className="sub in-problem">{g.problem} a problem</span>}</span>
+          {/* Done a quiet green, then late red, then a problem amber — the colour rules. */}
           <span className="dy-bar">
             <span className="is-done" style={{ width: `${(100 * g.done) / g.total}%` }} />
-            {g.wrong > 0 && <span className="is-late" style={{ width: `${(100 * g.wrong) / g.total}%` }} />}
+            {g.late > 0 && <span className="is-late" style={{ width: `${(100 * g.late) / g.total}%` }} />}
+            {g.problem > 0 && <span className="is-problem" style={{ width: `${(100 * g.problem) / g.total}%` }} />}
           </span>
         </button>
       ))}
@@ -159,7 +170,13 @@ export function DayScreen({ projectId }: { projectId: string }) {
                 <button className={'dy-line is-' + l.tone} onClick={() => open(l)} disabled={!l.id && !l.go}>
                   <span className="dy-dot" aria-hidden />
                   <span className="dy-line-m">
-                    <span>{l.text}</span>
+                    {/* The words that say which — "late, 2 h lost" red, "a
+                        problem, no time lost" amber — in their colour. */}
+                    <span>{(() => {
+                      const at = l.mark ? l.text.indexOf(l.mark) : -1;
+                      return at < 0 || !l.mark ? l.text
+                        : <>{l.text.slice(0, at)}<b className={'dy-which is-' + l.which}>{l.mark}</b>{l.text.slice(at + l.mark.length)}</>;
+                    })()}</span>
                     {l.detail && <span className="sub">{l.detail}</span>}
                   </span>
                 </button>

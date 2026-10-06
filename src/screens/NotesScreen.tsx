@@ -1,4 +1,6 @@
-/* MEETING NOTES — what to raise at the next meeting, written beforehand.
+/* NOTES — what to raise at the next meeting, written beforehand. Called
+ * "Meeting notes" until Rowland, 6 October: "'Meeting notes' is now named
+ * 'Notes'."
  *
  * Rowland: "a notes taker … so I can write in preparation for a meeting so I
  * don't forget what I want to talk about. Allow my notes to be associated to
@@ -272,7 +274,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
     <div className="wrap pace nt">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Meeting notes</h1>
+          <h1 className="pace-title">Notes</h1>
           <p className="pace-lede">{can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}</p>
         </div>
         <div className="pace-head-actions">

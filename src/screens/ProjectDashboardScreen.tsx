@@ -39,7 +39,8 @@ import { usePrograms } from '../lib/usePrograms';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, jobItems, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, jobItems, lateWhen, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { linesOnTarget, stageGateOnTarget } from '../lib/onTarget';
 import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
@@ -201,7 +202,8 @@ const URGENCY_TONE: Record<Urgency, 'r' | 'a' | 'w'> = { late: 'r', soon: 'a', n
 /** When a row on "Needs you" is due, in words beside its colour — so the
  *  state survives a black-and-white print. */
 function whenSaid(x: JobItem, urgency: Urgency, today: string): string {
-  if (urgency === 'late') return x.on ? `was ${niceDay(x.on)}` : 'late';
+  /* A stage late by the hours its problems lost says so, not "was" a day still to come. */
+  if (urgency === 'late') return lateWhen(x, today);
   if (urgency === 'soon') {
     return x.on === today ? 'due today' : x.on === addDays(today, 1) ? 'due tomorrow' : `due ${niceDay(x.on, { weekday: 'short' })}`;
   }
@@ -546,7 +548,8 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
               material late, a program past its test) are rows on "Needs you"
               with their day. The plan — the longest thing on the page — is a
               page of its own (/plan), one line and a door here. */}
-          <Verdict st={st} />
+          {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
+          <Verdict st={st} onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />
           <div className="fp-grid">
@@ -717,7 +720,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <span className="sub">
                 {methodOf(project).label}
                 {project.lead && <> · led by <b>{project.lead}</b></>}
-                {pastDay > 0 && <> · <span className="in-late">{pastDay} past the day</span></>}
+                {/* "late", not "past the day": a stage is late when its problems
+                    lost hours, before its day goes (lib/install lateOrProblem). */}
+                {pastDay > 0 && <> · <span className="in-late">{pastDay} late</span></>}
               </span>
             </p>
           )}
@@ -757,7 +762,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         ];
         return (
           <>
-            <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'} />
+            <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'}
+              onTarget={linesOnTarget(ppm.lines.map(l => ({ name: l.name, series: standing.get(l.id) })))} />
             <ProjectReminders projectId={projectId} />
             {/* THE METHOD'S OWN PICTURE LEADS, the list that needs you beside
                 it, and the lines under the picture — so the page is one

@@ -6,7 +6,7 @@
  * room → this job → its gates or lenses → its work → its lines → paper. The
  * rail replaces the spine (ui/Crumbs, gone), all five rows of pill tabs
  * (ui/Peers' projectPeers, methodPeers and studyPeers, gone) and the header
- * buttons every screen carried (Meeting notes, Reports, Pareto, the gear).
+ * buttons every screen carried (Notes, Reports, Pareto, the gear).
  * You always see where you are and everything one step either side; "back"
  * is a glance left. On a phone the rail folds into a bar at the foot — Control
  * room, this job, the gate you are in, Fixes, More — and More opens the whole
@@ -147,7 +147,7 @@ function TopBar({ project, projects }: { project?: Project; projects: Project[] 
 /* ------------------------------------------------------------------------- */
 
 /** What the notes asked to be raised and have not been yet — the count the
- *  Meeting notes header button carried, now on its rail line. */
+ *  Notes header button carried, now on its rail line. */
 function useOpenNotes(projectId: string): number {
   const [n, setN] = useState(0);
   useEffect(() => {
@@ -178,7 +178,8 @@ interface NavProps {
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late)] },
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
+      (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
     gatesGroup(p.project.id, p.here, stand.counts),
     workGroup(p.project.id, p.model, p.here, stand.counts),
     linesGroup(p.project.id, p.lines, p.here, p.wsId),
@@ -238,7 +239,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
         const s = stands.get(p.id);
         return {
           key: `job:${p.id}`, label: p.name, to: `/project/${p.id}`, on: false,
-          state: s && s.late > 0 ? 'r' : 'w', n: s?.outstanding || undefined, late: s?.late || undefined,
+          state: s && s.late > 0 ? 'r' : s?.problem ? 'a' : 'w', n: s?.outstanding || undefined, late: s?.late || undefined, problem: s?.problem || undefined,
         } as RailLine;
       }),
     }] : []),
@@ -282,8 +283,9 @@ function NavChrome({ groups, project, model, bar }: {
       <nav className="nv-bar" aria-label="Where you are">
         {five.map(l => (
           <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '')} onClick={() => go(l)}
-            aria-current={l.on ? 'page' : undefined} aria-label={l.late ? `${l.label}, ${l.late} late` : undefined}>
-            <span className={'nv-bi-ic' + (l.late ? ' is-late' : '')}><Icon name={l.icon ?? 'board'} size={22} /></span>
+            aria-current={l.on ? 'page' : undefined}
+            aria-label={l.late || l.problem ? [l.label, l.late ? `${l.late} late` : '', l.problem ? `${l.problem} a problem` : ''].filter(Boolean).join(', ') : undefined}>
+            <span className={'nv-bi-ic' + (l.late ? ' is-late' : l.problem ? ' is-problem' : '')}><Icon name={l.icon ?? 'board'} size={22} /></span>
             <span className="nv-bi-l">{l.label}</span>
           </button>
         ))}
@@ -308,12 +310,12 @@ function RailList({ groups, go }: { groups: RailGroup[]; go: (l: RailLine) => vo
         <div key={g.label ?? i} className={'nv-grp' + (g.foot ? ' is-foot' : '')}>
           {g.label && <p className="nv-grp-l">{g.label}</p>}
           {g.lines.map(l => (
-            <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '')}
+            <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '') + (l.problem ? ' is-wrap' : '')}
               onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
               <span className={'nv-sq is-' + l.state + (l.bare ? ' is-bare' : '')} aria-hidden />
               <span className="nv-ri-l">{l.label}</span>
               {!!l.n && (
-                <span className="nv-n">{l.n}{!!l.late && <> · <i>{l.late} late</i></>}</span>
+                <span className="nv-n">{l.n}{!!l.late && <> · <i>{l.late} late</i></>}{!!l.problem && <> · <i className="is-a">{l.problem} a problem</i></>}</span>
               )}
             </button>
           ))}

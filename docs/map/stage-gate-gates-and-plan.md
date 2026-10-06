@@ -82,9 +82,11 @@ Phone: one column — the verdict, Needs you, the machines, the day, the plan.
 
 Reads `lib/install journeyOf` per machine: four tiles Install · Set up ·
 Commission · Hand over, each `done` (green wash), `under way` (indigo),
-`late or a problem` (red border), `still ahead` / `not started` (grey). Under a
-machine with red, `redReasons` names why ("Change parts fitted is late ·
-Changeover … did not run").
+`late` (red border — a stage late by `lateOrProblem`: its day gone, or hours
+lost), `a problem` (amber — a stage that hit a problem and lost no time),
+`didn't pass` (solid red — a test), `still ahead` / `not started` (grey).
+Under a machine with red or amber, `reasonsOf` names why, each in its colour
+("Sensors checked — late, 2 h lost · Dry run — a problem, no time lost").
 
 | control | does |
 |---|---|

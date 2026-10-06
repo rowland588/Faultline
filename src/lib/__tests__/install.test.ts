@@ -368,7 +368,8 @@ describe('the gate a whole job is at — what the all-jobs board shows', () => {
   const programs = [{ id: 'pa', projectId: 'p', what: 'pa', assetId: pnp.id, state: 'proved' as const, provedOn: '2026-09-29', sort: 1, createdAt: 1, updatedAt: 1 }];
   it('puts every machine together: late if any is, and a machine with nothing kept holds nothing back', () => {
     const j = jobJourney([bu, pnp, ds], tests, [], T, programs);
-    expect(j.map(g => g.tone)).toEqual(['none', 'done', 'late', 'none']);
+    // The 75 ppm test did not pass — said so, not "late" (Rowland, 6 October).
+    expect(j.map(g => g.tone)).toEqual(['none', 'done', 'failed', 'none']);
     expect(journeyNow(j)).toBe('Commission');
   });
   it('planned install steps and nothing else: the job is at Install, still ahead — not "12 open"', () => {
@@ -392,9 +393,9 @@ describe('a red gate that can be cleared', () => {
   const test = (o: Partial<Test> & { id: string; title: string }): Test =>
     ({ projectId: 'p', kind: 'test', assetId: m.id, outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1, ...o });
 
-  it('a failed test is red until it is run again', () => {
+  it('a failed test is red — "didn’t pass" — until it is run again', () => {
     const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
-    expect(journeyOf(m, [failed], [], T)[2].tone).toBe('late');
+    expect(journeyOf(m, [failed], [], T)[2].tone).toBe('failed');
   });
 
   it('goes green once the re-test passes — the first attempt no longer holds it red', () => {
@@ -411,7 +412,8 @@ describe('a red gate that can be cleared', () => {
 
   it('a step put back to planned stops being a problem', () => {
     const s = step({ id: 'y1', title: 'Positioned and levelled', assetId: m.id, plannedFor: '2026-10-09', outcome: 'failed', ranOn: '2026-10-01' });
-    expect(journeyOf(m, [s], [], T)[0].tone).toBe('late');
+    // Its day still to come, no hours lost: a problem, amber (lib/install lateOrProblem).
+    expect(journeyOf(m, [s], [], T)[0].tone).toBe('problem');
     const back = { ...s, outcome: 'planned' as const, ranOn: undefined };
     expect(journeyOf(m, [back], [], T)[0].tone).toBe('ahead');
   });
@@ -419,6 +421,6 @@ describe('a red gate that can be cleared', () => {
   it('says why it is red, in the floor’s words', () => {
     const s = step({ id: 'y1', title: 'Positioned and levelled', assetId: m.id, outcome: 'failed', ranOn: '2026-10-01' });
     const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
-    expect(redReasons(m, [s, failed], [], T)).toEqual(['Positioned and levelled hit a problem', 'Seal did not pass']);
+    expect(redReasons(m, [s, failed], [], T)).toEqual(['Positioned and levelled — a problem, no time lost', 'Seal did not pass']);
   });
 });

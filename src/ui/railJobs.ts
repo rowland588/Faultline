@@ -12,16 +12,18 @@
  */
 import { useSyncExternalStore } from 'react';
 
-export interface JobStand { outstanding: number; late: number }
+/** `problem`: stages that hit a problem and lost no time — amber, said
+ *  apart from what is late (lib/install lateOrProblem). */
+export interface JobStand { outstanding: number; late: number; problem?: number }
 
 let byJob: ReadonlyMap<string, JobStand> = new Map();
 const subs = new Set<() => void>();
 
 /** Called by the board each time it has worked the jobs out. */
-export function publishJobStands(jobs: { id: string; outstanding: number; late: number }[]): void {
-  const next = new Map(jobs.map(j => [j.id, { outstanding: j.outstanding, late: j.late }]));
+export function publishJobStands(jobs: { id: string; outstanding: number; late: number; problems?: number }[]): void {
+  const next = new Map(jobs.map(j => [j.id, { outstanding: j.outstanding, late: j.late, problem: j.problems ?? 0 }]));
   const same = next.size === byJob.size
-    && [...next].every(([id, s]) => byJob.get(id)?.outstanding === s.outstanding && byJob.get(id)?.late === s.late);
+    && [...next].every(([id, s]) => byJob.get(id)?.outstanding === s.outstanding && byJob.get(id)?.late === s.late && byJob.get(id)?.problem === s.problem);
   if (same) return;
   byJob = next;
   subs.forEach(f => f());

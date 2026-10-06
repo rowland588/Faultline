@@ -13,7 +13,7 @@ import { owns } from './format';
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
-import { DAY_HOURS, hoursTally } from './hoursLost';
+import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 
 /** done · a problem stopped it · ran and nobody has said · the day has gone · still ahead */
 export type StepTone = 'done' | 'problem' | 'asking' | 'late' | 'ahead';
@@ -80,6 +80,17 @@ export function lateOrProblem(t: Test, items: TestItem[], today: string): 'done'
   const gone = isOverdue(t, today) || (t.outcome === 'failed' && !!end && end < today);
   if (lost > 0 || gone) return 'late';
   return t.outcome === 'failed' ? 'problem' : undefined;
+}
+
+/** WHICH, IN WORDS — "late, 2 h lost", "late", "a problem, no time lost": what
+ *  Today's update, the client report and the gate strips say of an install
+ *  step, off lateOrProblem and nothing else (the plan says the same with a
+ *  dash). Undefined when the step is neither. */
+export function lateOrProblemSays(t: Test, items: TestItem[], today: string): { which: 'late' | 'problem'; lost: number; words: string } | undefined {
+  const which = lateOrProblem(t, items, today);
+  if (which !== 'late' && which !== 'problem') return undefined;
+  const lost = hoursTally(t.id, items, DAY_HOURS).hours;
+  return { which, lost, words: which === 'problem' ? 'a problem, no time lost' : lost > 0 ? `late, ${hoursWord(lost)} lost` : 'late' };
 }
 
 const day = (iso?: string) => (iso ? niceDay(iso, { weekday: 'short' }) : '');
@@ -319,7 +330,21 @@ export function untouched(t: Test, tests: Test[], items: TestItem[]): boolean {
  * Where each machine is on that journey, read off what is already kept: the
  * three gates' steps, and the tests on it for Commission. Nothing is stored;
  * the Overview and the client report draw the same reading. */
-export type GateTone = 'done' | 'going' | 'late' | 'ahead' | 'none';
+/** done · under way · late (red: a stage late by lateOrProblem — its day gone,
+ *  or hours lost — or a test past its day) · a problem (amber: a stage hit a
+ *  problem and lost no time, and nothing at the gate is late) · didn't pass
+ *  (red: a test that failed and has not passed since) · not started · nothing
+ *  kept. Rowland, 6 October: never "late or a problem" — the app knows which. */
+export type GateTone = 'done' | 'going' | 'late' | 'problem' | 'failed' | 'ahead' | 'none';
+
+/** A gate's state in words — the strip, the control room and the client
+ *  report say it the same, beside its colour. */
+export const GATE_TONE_WORD: Record<GateTone, string> = {
+  done: 'done', going: 'under way', late: 'late', problem: 'a problem', failed: 'didn\u2019t pass', ahead: 'not started', none: 'nothing kept',
+};
+
+/** Red or amber — a gate with something wrong at it. */
+export const isWrongGate = (t: GateTone): boolean => t === 'late' || t === 'failed' || t === 'problem';
 export type JourneyGate = StepGate | 'commission';
 export const JOURNEY: { gate: JourneyGate; label: string; path: string }[] = [
   { gate: 'install', label: 'Install', path: 'install' },
@@ -337,17 +362,26 @@ function currentProofs(asset: Asset, tests: Test[]): Test[] {
  *  so a red tile on the front page says what to go and look at instead of
  *  leaving it to be found. Same rules journeyOf colours by. */
 export function redReasons(asset: Asset, tests: Test[], items: TestItem[], today: string): string[] {
-  const out: string[] = [];
+  return reasonsOf(asset, tests, items, today).map(r => r.text);
+}
+
+/** The same reasons, each with its own colour — a stage late (red, with the
+ *  hours it lost), a stage that hit a problem and lost no time (amber), a
+ *  test that did not pass (red) — so a line of them says which in words AND
+ *  in colour (lib/install lateOrProblem). */
+export function reasonsOf(asset: Asset, tests: Test[], items: TestItem[], today: string): { text: string; tone: 'late' | 'problem' | 'failed' }[] {
+  const out: { text: string; tone: 'late' | 'problem' | 'failed' }[] = [];
   for (const g of ['install', 'setup'] as const) {
     for (const v of installOf(asset, tests, items, today, g).steps) {
-      const facts = stepFacts(v);
-      if (facts) out.push(`${v.step.title} ${facts}`);
+      const which = lateOrProblemSays(v.step, items, today);
+      if (which) out.push({ text: `${v.step.title} — ${which.words}`, tone: which.which });
+      else if (v.tone === 'late') out.push({ text: `${v.step.title} — late`, tone: 'late' });
     }
   }
   for (const t of currentProofs(asset, tests)) {
-    if (t.outcome === 'failed') out.push(`${t.title} did not pass`);
-    else if (t.outcome === 'notRun') out.push(`${t.title} did not run`);
-    else if (isOverdue(t, today)) out.push(`${t.title} is late`);
+    if (t.outcome === 'failed') out.push({ text: `${t.title} did not pass`, tone: 'failed' });
+    else if (t.outcome === 'notRun') out.push({ text: `${t.title} did not run`, tone: 'late' });
+    else if (isOverdue(t, today)) out.push({ text: `${t.title} is late`, tone: 'late' });
   }
   return out;
 }
@@ -359,7 +393,12 @@ export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today:
     const v = installOf(asset, tests, items, today, g);
     if (v.total === 0) return g === 'install' && inAlready ? 'done' : 'none';
     if (v.done === v.total) return 'done';
-    if (v.steps.some(s => s.tone === 'problem' || s.tone === 'late')) return 'late';
+    /* WHICH ONE (lateOrProblem): a stage late by its day or by the hours its
+       problems lost makes the gate late; one that hit a problem and lost no
+       time makes it a problem — amber — while nothing there is late. */
+    const which = v.steps.map(s => lateOrProblem(s.step, items, today));
+    if (which.includes('late') || v.steps.some(s => s.tone === 'late')) return 'late';
+    if (which.includes('problem')) return 'problem';
     if (v.done > 0 || v.steps.some(s => s.tone === 'asking')) return 'going';
     return 'ahead';
   };
@@ -374,14 +413,16 @@ export function journeyOf(asset: Asset, tests: Test[], items: TestItem[], today:
   const setup = ((): GateTone => {
     const st = fromSteps('setup');
     if (st === 'none') return fromPrograms;
-    if (fromPrograms === 'none' || st === 'late') return st;
+    if (fromPrograms === 'none' || st === 'late' || st === 'problem') return st;
     if (st === 'done' && fromPrograms === 'done') return 'done';
     return st === 'ahead' && fromPrograms === 'ahead' ? 'ahead' : 'going';
   })();
   const proofs = currentProofs(asset, tests);
   const commission: GateTone = proofs.length === 0 ? 'none'
     : proofs.every(t => t.outcome === 'passed') ? 'done'
-      : proofs.some(t => t.outcome === 'failed' || t.outcome === 'notRun' || isOverdue(t, today)) ? 'late'
+      /* A test that did not pass is said so — not "late". */
+      : proofs.some(t => t.outcome === 'failed') ? 'failed'
+      : proofs.some(t => t.outcome === 'notRun' || isOverdue(t, today)) ? 'late'
         : proofs.some(t => isSettled(t) || needsVerdict(t)) ? 'going' : 'ahead';
   return JOURNEY.map(j => ({ gate: j.gate, label: j.label,
     tone: j.gate === 'commission' ? commission : j.gate === 'setup' ? setup : fromSteps(j.gate) }));
@@ -399,7 +440,9 @@ export function jobJourney(assets: Asset[], tests: Test[], items: TestItem[], to
   return JOURNEY.map((j, i) => {
     const tones = each.map(e => e[i].tone).filter(t => t !== 'none');
     const tone: GateTone = tones.length === 0 ? 'none'
+      : tones.includes('failed') ? 'failed'
       : tones.includes('late') ? 'late'
+      : tones.includes('problem') ? 'problem'
         : tones.every(t => t === 'done') ? 'done'
           : tones.some(t => t === 'done' || t === 'going') ? 'going' : 'ahead';
     return { gate: j.gate, label: j.label, tone };
@@ -437,7 +480,7 @@ export function machinesWhere(shorts: string[]): string {
  *  and that read "at Install". A gate with nothing kept does not hold a
  *  machine back from the work it is actually in. */
 export function journeyNow(j: { label: string; tone: GateTone }[]): string {
-  const open = j.find(g => g.tone === 'late' || g.tone === 'going');
+  const open = j.find(g => isWrongGate(g.tone) || g.tone === 'going');
   if (open) return open.label;
   let lastDone = -1;
   j.forEach((g, i) => { if (g.tone === 'done') lastDone = i; });

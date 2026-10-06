@@ -14,6 +14,8 @@
  * only colour is the two numbers that mean something.
  */
 import { slipWords, type Standing } from '../lib/standing';
+import type { OnTarget } from '../lib/onTarget';
+import { OnTargetLine } from './OnTarget';
 
 /** One number and its word. Charcoal, with colour only where colour is a fact. */
 function Tile({ n, label, tone }: { n: string; label: string; tone?: 'warn' | 'bad' }) {
@@ -25,17 +27,25 @@ function Tile({ n, label, tone }: { n: string; label: string; tone?: 'warn' | 'b
   );
 }
 
-export function Verdict({ st, eyebrow = 'Where the job is' }: { st: Standing; eyebrow?: string }) {
+export function Verdict({ st, eyebrow = 'Where the job is', onTarget }: {
+  st: Standing; eyebrow?: string;
+  /** ARE WE ON TARGET? (lib/onTarget) — the band's first line. */
+  onTarget?: OnTarget;
+}) {
   /* A job with nothing on any list has nothing to be in control OF, and a
      verdict card over an empty project is theatre. The caller shows its own
      empty state instead. */
   if (!st.sentence) return null;
 
   const late = st.daysToGo != null && st.daysToGo < 0;
-  const slip = slipWords(st.slipDays);
+  /* The answer says the handover against the date agreed, both days named;
+     the slip line said the same a second time, so it gives way to it. */
+  const slip = onTarget ? undefined : slipWords(st.slipDays);
 
   return (
     <section className="vd">
+      {/* ARE WE ON TARGET? — first, across the band (Rowland, 6 October). */}
+      {onTarget && <OnTargetLine v={onTarget} dark />}
       <div className="vd-said">
         <span className="vd-eyebrow">{eyebrow}</span>
         <h2 className="vd-sentence">{st.sentence}</h2>

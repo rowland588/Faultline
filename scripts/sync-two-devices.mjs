@@ -363,7 +363,7 @@ async function typeInto(page, label, value) {
   await box.press('Tab');           // the field writes on blur
   await page.waitForTimeout(250);
 }
-/** A finding or a meeting note: the box under its own heading (its
+/** A finding or a note: the box under its own heading (its
  *  placeholder changes to "Another one?" once the list has something in it). */
 async function addTo(page, section, value) {
   /* .tc-block is the record page's part; .tw-block the older page's box. */
@@ -546,7 +546,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   check(await fieldValue(l, 'What happened') === '68 ppm average, two crash stops at the infeed', 'the laptop shows the result');
   check(/Didn’t pass/.test(page) && (await testRow(l, tid))?.outcome === 'failed', 'the laptop shows the verdict', (await testRow(l, tid))?.outcome);
   check(page.includes('Film splice jams the infeed'), 'the laptop shows the finding');
-  check(page.includes('Ask Brillopak about the splice sensor'), 'the laptop shows the meeting note');
+  check(page.includes('Ask Brillopak about the splice sensor'), 'the laptop shows the note');
   check(page.includes('Replace the splice sensor'), 'the laptop shows the fix under the test');
   check(page.includes('Brillopak FAT report'), 'the laptop shows the PDF by name');
   await openEvidence(l);
@@ -565,7 +565,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   check(await seen(l, 'P-104 perforation'), 'the laptop shows the program',
     `phone ${(await idb(p, 'programs')).length} · cloud ${cloud.rows('programs').length} · laptop ${(await idb(l, 'programs')).length}`);
   await go(l, `/project/${pid}/notes`);
-  check(await seen(l, 'Ask Brillopak about the splice sensor'), 'the laptop’s meeting notes show the note');
+  check(await seen(l, 'Ask Brillopak about the splice sensor'), 'the laptop’s Notes show the note');
 });
 
 /* ---- 2 ---------------------------------------------------------------- */

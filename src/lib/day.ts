@@ -14,12 +14,13 @@
  * client and the screen it was sent from cannot tell two stories.
  */
 import { isHere, type Material } from './materials';
-import { stateOf, type Program } from './programs';
+import { daysOverdue, stateOf, type Program } from './programs';
+import { standing } from './standing';
 import {
   gateOf, isOverdue, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
 } from './testing';
 import type { MediaRef } from '../types';
-import { GATE_WORD } from './install';
+import { GATE_WORD, lateOrProblem, lateOrProblemSays } from './install';
 import { niceDay, todayISO } from './weeks';
 
 export interface DayInput {
@@ -31,8 +32,9 @@ export interface DayInput {
 }
 
 /** done · it went wrong · the day came and it did not happen · waiting on a word
- *  · written down · booked */
-export type DayTone = 'done' | 'bad' | 'slipped' | 'asking' | 'found' | 'booked';
+ *  · written down · booked · a stage that hit a problem and lost no time
+ *  (amber — lib/install lateOrProblem) */
+export type DayTone = 'done' | 'bad' | 'slipped' | 'asking' | 'found' | 'booked' | 'problem';
 
 export interface DayLine {
   text: string;
@@ -43,10 +45,15 @@ export interface DayLine {
   id?: string;
   /** Where it opens otherwise. */
   go?: 'materials' | 'programs' | 'install';
+  /** A stage, late or a problem — which (lib/install lateOrProblem) — and
+   *  the words in `text` that say it, drawn in its colour: red for late,
+   *  amber for a problem that lost no time. */
+  which?: 'late' | 'problem';
+  mark?: string;
 }
 
 export interface DaySection {
-  key: 'done' | 'wrong' | 'found' | 'late' | 'today' | 'going' | 'next';
+  key: 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
   title: string;
   lines: DayLine[];
 }
@@ -65,10 +72,10 @@ export interface Day {
   /** Every gate with steps on the job — Install, Set up, Hand over — as it
    *  stood that evening. `install` is the first of these, kept for callers
    *  that only ever read Install. */
-  /** By the end of that day: `problem`, steps that had hit a problem; `late`,
-   *  steps past their finish and not done; `wrong`, steps that are either —
-   *  two facts, a step can be both (Rowland, 4 October), so the bar's red is
-   *  `wrong` and the words say each. */
+  /** By the end of that day, each stage by the one rule (lib/install
+   *  lateOrProblem — Rowland, 6 October): `late`, its day gone or hours lost;
+   *  `problem`, it hit a problem and lost no time; `wrong`, the two together.
+   *  The bar draws late red and a problem amber, and the words say each. */
   gates: { gate: StepGate; label: string; done: number; problem: number; late: number; wrong: number; total: number }[];
   /** Nothing happened and nothing was booked. */
   empty: boolean;
@@ -125,6 +132,16 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   /* Past its day, still not done — today's only: the thing a lead sends
      about first, and it was on none of the day's lists. */
   const late: DayLine[] = [];
+  /* A STAGE THAT HIT A PROBLEM AND LOST NO TIME — today's only, amber, apart
+     from what is late. Rowland, 6 October: "We know if it's a problem and if
+     it's late, because I put hours in the problem to tell the app it caused
+     lateness." */
+  const problems: DayLine[] = [];
+  /* LATE, OR A PROBLEM — WHICH (lib/install lateOrProblem), as it stood that
+     evening: the hours written by then, the days gone by then. */
+  const evening = new Date(`${date}T23:59:59`).getTime();
+  const itemsBy = items.filter(i => i.createdAt <= evening);
+  const which = (t: Test) => (t.kind === 'install' ? lateOrProblemSays(t, itemsBy, date) : undefined);
 
   /* ------------------------------- machines ------------------------------- */
   for (const a of assets) {
@@ -151,7 +168,11 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
       if (t.outcome === 'passed') {
         done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${who(t.withWhom)}.`, detail, tone: 'done', id: t.id });
       } else if (t.outcome === 'failed') {
-        wrong.push({ text: `${named(t)} — ${word.toLowerCase()}${who(t.withWhom)}.`, detail, tone: 'bad', id: t.id });
+        /* A stage says which: "— late, 2 h lost" in red, "— a problem, no
+           time lost" in amber; a test keeps its "didn't pass". */
+        const w = which(t);
+        if (w) wrong.push({ text: `${named(t)} — ${w.words}${who(t.withWhom)}.`, detail, tone: w.which === 'late' ? 'bad' : 'problem', id: t.id, which: w.which, mark: w.words });
+        else wrong.push({ text: `${named(t)} — ${word.toLowerCase()}${who(t.withWhom)}.`, detail, tone: 'bad', id: t.id });
       } else if (t.outcome === 'notRun') {
         wrong.push({ text: `${named(t)} did not happen${who(t.withWhom)}.`, detail, tone: 'slipped', id: t.id });
       } else if (needsVerdict(t)) {
@@ -160,8 +181,23 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         /* A stage worked on and not yet marked done stays planned (Rowland, 5
            October) — still on the day's story, with what was said, in the
            colour of still ahead. */
-        done.push({ text: `${named(t)} was worked on — not marked done yet.`, detail, tone: 'booked', id: t.id });
+        const w = which(t);
+        done.push({ text: `${named(t)} was worked on — not marked done yet${w ? ` — ${w.words}` : ''}.`, detail,
+          tone: !w ? 'booked' : w.which === 'late' ? 'slipped' : 'problem', id: t.id, ...(w ? { which: w.which, mark: w.words } : {}) });
       }
+      continue;
+    }
+    /* TODAY, A STAGE LATE OR A PROBLEM IS SAID ONCE, AS WHICH — in its own
+       list, with its hours and its day. A stage that hit a problem on another
+       day was on none of today's lists. */
+    const w = isToday ? which(t) : undefined;
+    if (w) {
+      const end = endOf(t);
+      const due = end ? `, ${end < date ? 'was due' : 'due'} ${short(end)}` : '';
+      (w.which === 'late' ? late : problems).push({
+        text: `${named(t)} — ${w.words}${due}${who(t.withWhom)}.`, detail: t.outcome === 'failed' ? detail : undefined,
+        tone: w.which === 'late' ? 'slipped' : 'problem', id: t.id, which: w.which, mark: w.words,
+      });
       continue;
     }
     /* Booked over this day, and it did not run on it. Only the LAST day of
@@ -178,8 +214,11 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         const from = t.plannedFor === date ? `starts ${isToday ? 'today' : 'that day'}` : `since ${short(t.plannedFor as string)}`;
         going.push({ text: `${named(t)}${who(t.withWhom)} — ${from}, due ${short(end)}.`, tone: 'booked', id: t.id });
       }
-    } else if (isToday && !isSettled(t) && !t.ranOn && isOverdue(t, date)) {
-      late.push({ text: `${named(t)}${who(t.withWhom)} — was due ${short(endOf(t))}.`, tone: 'slipped', id: t.id });
+    } else if (isToday && isOverdue(t, date)) {
+      /* Everything lib/standing counts late, so the day's count and the
+         verdict above it are one number: a test that did not happen is still
+         owed until it is rebooked. */
+      late.push({ text: `${named(t)}${who(t.withWhom)} — ${t.outcome === 'notRun' ? 'did not happen, ' : ''}was due ${short(endOf(t))}.`, tone: 'slipped', id: t.id });
     }
   }
   /* A machine or a delivery past the day it was due, today. */
@@ -189,6 +228,9 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     }
     for (const m of live(input.materials)) {
       if (!isHere(m) && m.due && m.due < date) late.push({ text: `${m.what} not here${who(m.from)} — was due ${short(m.due)}.`, tone: 'slipped', go: 'materials' });
+    }
+    for (const p of live(input.programs)) {
+      if (stateOf(p) !== 'proved' && daysOverdue(p, date) != null) late.push({ text: `${p.what} not proved${who(p.from)} — was due ${short(p.testOn as string)}.`, tone: 'slipped', go: 'programs' });
     }
   }
 
@@ -258,11 +300,10 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
        abnormal stands out). Late by the end of THAT day — a past day reads as
        it stood. */
     .map(x => {
-      const hit = (t: Test) => t.outcome === 'failed' && (t.ranOn ?? '') <= date;
-      const past = (t: Test) => t.outcome !== 'passed' && isOverdue(t, date);
-      return { gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts),
-        problem: x.ts.filter(hit).length, late: x.ts.filter(past).length,
-        wrong: x.ts.filter(t => hit(t) || past(t)).length, total: x.ts.length };
+      const lp = (t: Test) => lateOrProblem(t, itemsBy, date);
+      const late = x.ts.filter(t => lp(t) === 'late').length;
+      const problem = x.ts.filter(t => lp(t) === 'problem' && (t.ranOn ?? '') <= date).length;
+      return { gate: x.g, label: GATE_WORD[x.g], done: doneBy(x.ts), problem, late, wrong: late + problem, total: x.ts.length };
     });
   const first = gates.find(g => g.gate === 'install');
   const install = first ? { done: first.done, total: first.total } : undefined;
@@ -270,7 +311,10 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const sections: DaySection[] = [
     { key: 'done' as const, title: 'What got done', lines: done },
     { key: 'wrong' as const, title: 'What did not go to plan', lines: wrong },
-    { key: 'late' as const, title: 'Past its day — still not done', lines: late },
+    /* "Late", not "past its day": a stage whose problems lost hours is late
+       before its day goes (lib/install lateOrProblem). */
+    { key: 'late' as const, title: 'Late — still not done', lines: late },
+    { key: 'problem' as const, title: 'A problem — no time lost', lines: problems },
     { key: 'found' as const, title: 'What we found', lines: found },
     { key: 'today' as const, title: isToday ? 'Due today' : 'Due that day', lines: booked },
     { key: 'going' as const, title: isToday ? 'Under way — due later' : 'Under way that day', lines: going },
@@ -280,14 +324,21 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const happened = done.length + wrong.length + found.length;
   return {
     date, label: short(date),
-    headline: headlineOf(done, wrong, found, booked, going, late, media.length, gates, isToday),
+    headline: headlineOf(done, wrong, found, booked, going, late, problems, media.length, gates, isToday,
+      /* Today's counts are the job's own — lib/standing's late, and every
+         stage that hit a problem and lost no time — the numbers the verdict
+         at the top of the page says (lib/onTarget). */
+      isToday ? {
+        late: standing({ tests, items, assets, materials: input.materials, programs: input.programs, today: date }).late,
+        problem: tests.filter(t => t.kind === 'install' && lateOrProblem(t, items, date) === 'problem').length,
+      } : undefined),
     sections, media, install, gates,
-    empty: happened === 0 && booked.length === 0 && going.length === 0 && late.length === 0,
+    empty: happened === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
   };
 }
 
 function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked: DayLine[], going: DayLine[], late: DayLine[],
-  pictures: number, gates: Day['gates'], isToday: boolean): string {
+  problems: DayLine[], pictures: number, gates: Day['gates'], isToday: boolean, counts?: { late: number; problem: number }): string {
   const bits: string[] = [];
   const got = done.filter(l => l.tone === 'done').length;
   if (got) bits.push(`${plural(got, 'thing')} done`);
@@ -306,9 +357,15 @@ function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked:
       ? `${ahead}${isToday ? ', nothing logged yet' : ''}.`
       : isToday ? 'Nothing logged yet today.' : 'Nothing was logged for this day.';
   s = s[0].toUpperCase() + s.slice(1);
-  if (late.length) s += ` ${late.length} past ${late.length === 1 ? 'its' : 'their'} day.`;
+  /* LATE AND A PROBLEM, COUNTED APART — "2 late · 1 a problem" (Rowland,
+     6 October). Today's only, as its lists are: every stage that is either,
+     wherever its line is, and everything else past its day. */
+  if (counts) {
+    const split = [counts.late ? `${counts.late} late` : '', counts.problem ? `${counts.problem} a problem` : ''].filter(Boolean).join(' · ');
+    if (split) s += ` ${split}.`;
+  }
   /* Not on a blank day — "Nothing was logged. Install 0 of 3" is noise. */
-  if (bits.length || ahead || late.length) for (const g of gates) s += ` ${g.label} ${g.done} of ${g.total} steps done.`;
+  if (bits.length || ahead || late.length || problems.length) for (const g of gates) s += ` ${g.label} ${g.done} of ${g.total} steps done.`;
   return s;
 }
 

@@ -45,14 +45,15 @@ import { loadProblems, viewsOf } from '../lib/useProblems';
 import { fishboneUrl } from '../screens/FishboneScreen';
 import { offerUndo } from './Undo';
 import {
-  clusterMarks, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
+  clusterMarks, lateWhen, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
   type Said, type SixMProblem,
 } from '../lib/portfolio';
+import { linesOnTarget } from '../lib/onTarget';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { openRecord } from './RecordDrawer';
 import { Timeline } from './Timeline';
-import type { GateTone } from '../lib/install';
+import { GATE_TONE_WORD } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
 import { publishJobStands } from './railJobs';
@@ -69,9 +70,8 @@ const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
   action: 'Action', note: 'Reminder',
 };
-const GATE_WORD: Record<GateTone, string> = {
-  done: 'done', going: 'under way', late: 'late or a problem', ahead: 'not started', none: 'nothing kept',
-};
+/* Late and a problem said apart — never "late or a problem" (lib/install). */
+const GATE_WORD = GATE_TONE_WORD;
 const TONE_WORD: Record<string, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'the day has gone', booked: 'still ahead',
 };
@@ -97,7 +97,7 @@ function openItem(x: JobItem): void {
 }
 const RECORD_MARK = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
-const whenOf = (x: JobItem) => (x.on ? (x.late ? `was ${niceDay(x.on)}` : niceDay(x.on)) : 'no date');
+const whenOf = (x: JobItem) => (x.late ? lateWhen(x, todayISO()) : x.on ? niceDay(x.on) : 'no date');
 
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -190,6 +190,8 @@ function useJobs(projects: Project[]): Jobs | null {
           project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
+          /* Are its lines on target? — the answer its front page leads with. */
+          onTarget: linesOnTarget(lines.map((l, i) => ({ name: l.name, series: series[i] }))),
         };
       }));
       if (live) setInputs({ gate, paced });
@@ -215,7 +217,7 @@ type Focus = { t: 'who'; who: string } | { t: 'late' };
 function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
   if (f.t === 'late') {
     const items = pf.items.filter(x => x.late);
-    return { title: `${items.length} past the day, across every job`, items };
+    return { title: `${items.length} late, across every job`, items };
   }
   const items = pf.items.filter(x => owedBy(x, f.who));
   const jobs = new Set(items.map(x => x.jobId)).size;
@@ -371,7 +373,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
               the two numbers either side. */}
           <button className={'jb-stat' + (pf.totals.late ? ' is-late' : '') + (on({ t: 'late' }) ? ' is-on' : '')}
             onClick={() => pick({ t: 'late' })} aria-pressed={on({ t: 'late' })}>
-            <b><Count n={pf.totals.late} still={still} /></b>past the day
+            <b><Count n={pf.totals.late} still={still} /></b>late
           </button>
           <button className="jb-stat" onClick={() => weekRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.week} still={still} /></b>this week
@@ -419,7 +421,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       {focus && <FocusList pf={pf} f={focus} onClose={() => setFocus(null)} />}
 
       {/* --------------------------- reminders --------------------------- */}
-      {/* Dates set on meeting notes, every job — Rowland: "the app will remind
+      {/* Dates set on notes, every job — Rowland: "the app will remind
           me." Their own strip, in their own colour, above what is owed. */}
       {pf.reminders.length > 0 && (
         <div className="jb-week jb-rem">
@@ -515,8 +517,8 @@ function WeekStrip({ items }: { items: JobItem[] }) {
             <button className={'jb-wk' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => openItem(x)}>
               <span className="jb-wk-job">{x.job}</span>
               <b className="jb-wk-what">{x.what}</b>
-              <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the meeting notes' : `${KIND_WORD[x.kind]} · ${x.who || 'nobody yet'}`}</span>
-              <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? `WAS ${niceDay(x.on)}` : niceDay(x.on, { weekday: 'short' })) : x.kind === 'fix' ? 'NO DATE AGREED' : 'no date'}</span>
+              <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the notes' : `${KIND_WORD[x.kind]} · ${x.who || 'nobody yet'}`}</span>
+              <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? lateWhen(x, todayISO()).toUpperCase() : niceDay(x.on, { weekday: 'short' })) : x.late ? lateWhen(x, todayISO()).toUpperCase() : x.kind === 'fix' ? 'NO DATE AGREED' : 'no date'}</span>
             </button>
           </li>
         ))}
@@ -560,6 +562,15 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
             is the door that says so. */}
         <button className="jb-lab" onClick={onToggle} aria-expanded={open}>
           <span className="jb-name"><i className="jb-dot" aria-hidden />{v.name}</span>
+          {/* ARE WE ON TARGET? — the job's answer in a word, the reason in
+              words (lib/onTarget): the line its front page and its reports
+              lead with, so the row and the job cannot disagree. */}
+          {v.onTarget && (
+            <span className={'jb-ot is-' + v.onTarget.tone}>
+              <b className="jb-ot-w">{v.onTarget.word}</b>
+              <span className="jb-ot-r">{v.onTarget.reason}</span>
+            </span>
+          )}
           <span className="jb-chips">
             {/* "Handover" is a stage-gate job's day. A running line is not
                 handed over — its date is the one it should be at target by. */}
@@ -584,12 +595,16 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
               : <>
                 <span className="jb-chip is-at is-none">{v.methodLabel}</span>
                 {/* Indigo said "under way" of "2 of 2 at target". At target is
-                    normal and stays plain; a line short of it is the red. */}
-                {v.reach && <span className={'jb-chip is-at' + (v.reachShort ? ' is-late' : '')}>{v.reach}</span>}
+                    normal and stays plain; a line short of it is the red. The
+                    on-target line above says the same count and names the
+                    short line, so the chip only stands in when it is absent. */}
+                {v.reach && !v.onTarget && <span className={'jb-chip is-at' + (v.reachShort ? ' is-late' : '')}>{v.reach}</span>}
               </>}
             {/* A 6M row says what is late in the line under it, with which
-                bones — the same number twice on one row is one too many. */}
-            {v.late > 0 && !v.sixm && <span className="jb-chip is-late">{v.late} late</span>}
+                bones — the same number twice on one row is one too many. So
+                does a stage-gate row: its on-target reason says how many are
+                late, with the hours they lost. */}
+            {v.late > 0 && !v.sixm && v.method !== 'commissioning' && <span className="jb-chip is-late">{v.late} late</span>}
           </span>
           {v.method === 'commissioning' ? (
             <span className="jb-gates" aria-label={v.gates.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
