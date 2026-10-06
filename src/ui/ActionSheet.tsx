@@ -22,7 +22,7 @@ import { useAccess } from '../cloud/access';
 import { offerUndo } from './Undo';
 import { pickExistingMedia } from '../lib/media';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
-import { niceDay } from '../lib/weeks';
+import { niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
 import { Icon } from './Icon';
 
@@ -201,8 +201,17 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
                 placeholder={s.expect?.trim() ? `It was to change: ${s.expect.trim()} — did it?` : 'Worked / didn’t / needs another go'}
                 onChange={e => set({ outcome: e.target.value })} /></label>
           )}
+          {/* THE DAY IT WAS DONE IS NOT LOCKED (Rowland, 6 October: "I make
+              mistakes"). It was stamped on the save and only printed back;
+              now it is a box, and "Did it work?" splits the line's numbers
+              on whatever day it says. */}
+          {s.state === 'done' && !ro && (
+            <label className="cw-f ax-done-on"><span>DONE ON</span>
+              <input type="date" value={s.doneOn ?? todayISO()}
+                onChange={e => set({ doneOn: e.target.value || undefined })} /></label>
+          )}
         </fieldset>
-        {s.doneOn && s.state === 'done' && <p className="sub ax-done-on">Done {niceDay(s.doneOn)}.</p>}
+        {s.doneOn && s.state === 'done' && ro && <p className="sub ax-done-on">Done {niceDay(s.doneOn)}.</p>}
         {impact && impact.state !== 'none' && editing.step.state === 'done' && (
           <p className={'ax-proof is-' + impact.state}>
             <b>Did it work? {IMPACT_WORD[impact.state]}.</b> {impact.words}

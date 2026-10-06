@@ -35,6 +35,10 @@ export interface MeasuresState {
   /* ---- the numbers ---- */
   setTarget: (lineId: string, measureId: string, periodId: string, value?: number) => Promise<void>;
   addReading: (lineId: string, measureId: string, at: string, value: number, note?: string) => Promise<void>;
+  /** A reading put right — its day or its number (Rowland, 6 October: "I make
+   *  mistakes"). Deleting it and typing it again was the only way, and only
+   *  the owner may delete. */
+  saveReading: (r: Reading) => Promise<void>;
   removeReading: (id: string) => Promise<void>;
   /** A pasted batch, written in one go. */
   importReadings: (rows: { lineId: string; measureId: string; at: string; value: number }[]) => Promise<void>;
@@ -134,6 +138,7 @@ export function useMeasures(projectId: string): MeasuresState {
     await putReading({ id: uid(), projectId, lineId, measureId, at, value, note, createdAt: t, updatedAt: t });
   }, [projectId]);
 
+  const saveReading = useCallback(async (r: Reading) => { await putReading({ ...r, updatedAt: now() }); }, []);
   const removeReading = useCallback(async (id: string) => { await deleteReading(id); }, []);
 
   const importReadings = useCallback(async (rows: { lineId: string; measureId: string; at: string; value: number }[]) => {
@@ -154,7 +159,7 @@ export function useMeasures(projectId: string): MeasuresState {
     loading, project, measures, periods, targets, readings,
     addMeasure, saveMeasure, removeMeasure,
     addPeriod, savePeriod, removePeriod, offerQuarters,
-    setTarget, addReading, removeReading, importReadings,
+    setTarget, addReading, saveReading, removeReading, importReadings,
     standingFor: standing, targetsAcross: across,
   };
 }

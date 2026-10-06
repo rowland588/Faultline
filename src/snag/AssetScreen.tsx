@@ -253,6 +253,9 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
   const [due, setDue] = useState(dueToInput(snag?.dueAt));
   const [update, setUpdate] = useState(snag?.latestUpdate ?? '');
   const [closeNote, setCloseNote] = useState(snag?.closeNote ?? '');
+  /* The day it was closed is not locked (Rowland, 6 October: "I make
+     mistakes"). It was stamped once and only printed back. */
+  const [closedOn, setClosedOn] = useState(dueToInput(snag?.closedAt ?? (snag?.status === 'closed' ? now() : undefined)));
   const [links, setLinks] = useState<string[]>(snag?.linkedObsIds ?? []);
   const [photoKey, setPhotoKey] = useState<string | undefined>(snag?.detailPhotoKey);
   const [fixedKey, setFixedKey] = useState<string | undefined>(snag?.fixedPhotoKey);
@@ -277,7 +280,10 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
           dueAt: dueFromInput(due), latestUpdate: u || undefined,
           latestUpdateAt: u ? (u === snag.latestUpdate ? snag.latestUpdateAt : now()) : undefined,
-          closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, fixedPhotoKey: fixedKey, linkedObsIds: links.length ? links : undefined, closedAt: status === 'closed' ? (snag.closedAt ?? now()) : undefined });
+          closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, fixedPhotoKey: fixedKey, linkedObsIds: links.length ? links : undefined, closedAt: status !== 'closed' ? undefined
+            // Untouched keeps the moment it was closed; a changed day is that day.
+            : closedOn === dueToInput(snag.closedAt ?? now()) ? (snag.closedAt ?? now())
+            : (dueFromInput(closedOn) ?? snag.closedAt ?? now()) });
       } else if (draft) {
         await addSnag({ id: uid(), workspaceId: wsId, assetId: asset.id, xPct: draft.xPct, yPct: draft.yPct, problem: problem.trim(), proposedSolution: solution.trim() || undefined, owner: owner.trim() || undefined, dueAt: dueFromInput(due), status: 'open', raisedAt: now(), updatedAt: now() });
       }
@@ -363,9 +369,12 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         <>
           <div className="field-label" style={{ marginTop: 12 }}>Status</div>
           <div className="chip-row">
-            {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <Chip key={s} label={SNAG_STATUS_META[s].label} on={status === s} onClick={() => setStatus(s)} />)}
+            {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(s => <Chip key={s} label={SNAG_STATUS_META[s].label} on={status === s} onClick={() => { setStatus(s); if (s === 'closed' && !closedOn) setClosedOn(dueToInput(now())); }} />)}
           </div>
           {status === 'closed' && (<>
+            <div className="field-label" style={{ marginTop: 10 }}>Closed on</div>
+            <input className="text-input due-input" type="date" value={closedOn} aria-label="Day it was closed"
+              onChange={e => setClosedOn(e.target.value)} />
             <div className="field-label" style={{ marginTop: 10 }}>Close note</div>
             <textarea className="text-area" rows={2} value={closeNote} placeholder="What was done" onChange={e => setCloseNote(e.target.value)} />
             {/* the camera world's proof: the AFTER photo, next to the before-still */}

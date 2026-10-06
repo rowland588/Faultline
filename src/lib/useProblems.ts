@@ -165,6 +165,12 @@ export const putOldWhysOnBone = (problemId: string, m: SixM, by?: string) => pat
  *  it already had stays. */
 export const closeProblem = (problemId: string, hold?: Case['hold']) =>
   patchCase(problemId, c => ({ ...c, status: 'closed', closedAt: now(), hold: hold ?? c.hold }));
+/** The day it was closed, put right (Rowland, 6 October: "I make mistakes").
+ *  Midday that day, so no time zone moves it a day either way. */
+export const closedProblemOn = (problemId: string, iso: string) => patchCase(problemId, c => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m && c.status === 'closed' ? { ...c, closedAt: new Date(+m[1], +m[2] - 1, +m[3], 12).getTime() } : c;
+});
 export const reopenProblem = (problemId: string) =>
   patchCase(problemId, c => ({ ...c, status: 'open', closedAt: undefined }));
 /** The hold check was looked at today. */

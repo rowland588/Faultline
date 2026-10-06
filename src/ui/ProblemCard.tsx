@@ -49,6 +49,8 @@ import { StatusGlyph } from './fishbone/marks';
 import { Measure } from './Fishbone';
 import { VoiceNote } from './Voice';
 import { LineField } from './fishbone/LineField';
+import { DateInput } from './DateInput';
+import { niceDay, todayISO } from '../lib/weeks';
 
 /* ================================ pure words ================================ */
 
@@ -180,6 +182,8 @@ export interface ProblemCardProps {
   onOpenFix: (a: PaceAction) => void;
   onClose: () => void;
   onReopen: () => void;
+  /** The day it was closed, changed — whoever may close it may correct it. */
+  onClosedOn?: (iso: string) => void;
   onChecked: () => void;
   onRemove: () => void;
   /** The chains are drawn on the fish beside this card (the fishbone page's
@@ -568,7 +572,7 @@ const short = (s: string, n = 40) => (s.length > n ? `${s.slice(0, n - 1).trimEn
 
 const EVERY_WORD = (d: number) => (d === 1 ? 'day' : d === 7 ? 'week' : d === 14 ? 'fortnight' : d === 30 ? 'month' : `${d} days`);
 
-export function WorkedPart({ view: v, can, steps, onClose, onReopen, onChecked }: ProblemCardProps) {
+export function WorkedPart({ view: v, can, steps, onClose, onReopen, onClosedOn, onChecked }: ProblemCardProps) {
   const m = v.measure;
   const w = workedWords(v);
   const open = v.problem.status === 'open';
@@ -603,6 +607,13 @@ export function WorkedPart({ view: v, can, steps, onClose, onReopen, onChecked }
         </p>
       )}
       {!open && !hold && <p className="pc-quiet">Closed with no check to keep it.</p>}
+      {/* THE DAY IT CLOSED — printed on the 6M report, so it is shown, and
+          not locked (Rowland, 6 October: "I make mistakes"). */}
+      {!open && v.problem.closedAt != null && (can.agree && onClosedOn ? (
+        <label className="cw-f pc-closed-on"><span>CLOSED ON</span>
+          <DateInput value={todayISO(new Date(v.problem.closedAt))} aria-label="Day it was closed"
+            onCommit={d => { if (d) onClosedOn(d); }} /></label>
+      ) : <p className="pc-quiet">Closed {niceDay(todayISO(new Date(v.problem.closedAt)))}.</p>)}
       <div className="pc-acts">
         {!open && hold && can.edit && <button type="button" className="btn" onClick={onChecked}>Checked today</button>}
         {/* "It worked" is only true once something was done about it. */}

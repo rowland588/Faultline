@@ -19,6 +19,7 @@
  */
 import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
+import { DateInput } from '../ui/DateInput';
 import { keyOf } from '../lib/story';
 import { useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -115,6 +116,13 @@ function Row({ m, today, lineName, state, weeks, can }: {
           <DateWhy className="mt-due" ariaLabel={`Date ${m.what} is due`} value={m.due}
             projectId={m.projectId} storyKey={keyOf('material', m.id)} what={m.what}
             onChange={v => state.save({ ...m, due: v })} />
+        )}
+        {/* NOTHING IS LOCKED BY BEING IN (Rowland, 6 October: "I make
+            mistakes"). The day it came in stays a box, so a wrong day is
+            changed here, not by putting it back and marking it in again. */}
+        {isHere(m) && can.edit && (
+          <DateInput className="mt-due" aria-label={`Day ${m.what} came in`} value={m.inOn}
+            onCommit={v => void state.save({ ...m, here: true, inOn: v || undefined })} />
         )}
       </div>
 

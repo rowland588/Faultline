@@ -17,9 +17,11 @@ import { nav } from '../state/useRoute';
 import { readNumber } from '../lib/format';
 import { MeasureChart } from '../charts/MeasureChart';
 import { useMeasures } from '../lib/useMeasures';
-import { lineSeries, seriesFor, say, todayISO, type Measure } from '../lib/measures';
+import { lineSeries, seriesFor, say, todayISO, type Measure, type Reading } from '../lib/measures';
 import type { PaceLineRow } from '../db';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
+import { DraftNumber } from '../ui/Draft';
 import { useAccess } from '../cloud/access';
 
 const shortDay = (iso: string) =>
@@ -78,9 +80,11 @@ function AddReading({ measure, onAdd }: {
  *  and taken out. The grid this replaced had no way to delete a row at all.
  *  Taking one out is deleting, which is the owner's (lib/access): anyone else
  *  gets no `onRemove`, and no ✕. */
-function Recent({ rows, onRemove, unit, limit = 8 }: {
-  rows: { id: string; at: string; value: number; note?: string }[];
+function Recent({ rows, onRemove, onSave, unit, limit = 8 }: {
+  rows: Reading[];
   onRemove?: (id: string) => Promise<void>;
+  /** Somebody who records readings may also put one right (lib/access). */
+  onSave?: (r: Reading) => Promise<void>;
   unit?: string;
   limit?: number;
 }) {
@@ -94,8 +98,16 @@ function Recent({ rows, onRemove, unit, limit = 8 }: {
       <ul className="nm-list">
         {shown.map(r => (
           <li key={r.id} className="nm-row">
-            <span className="nm-when">{shortDay(r.at)}</span>
-            <span className="nm-val">{say(r.value, unit)}</span>
+            {onSave ? <>
+              <DateInput className="pset-cell nm-when" aria-label={`Day of the reading of ${r.value}`} value={r.at}
+                onCommit={v => { if (v) void onSave({ ...r, at: v }); }} />
+              <DraftNumber className="pset-cell is-num nm-val" label={`The reading on ${r.at}`} value={Math.round(r.value * 1e6) / 1e6}
+                onSave={v => { if (v != null) void onSave({ ...r, value: v }); }} />
+              {unit && <span className="nm-what">{unit}</span>}
+            </> : <>
+              <span className="nm-when">{shortDay(r.at)}</span>
+              <span className="nm-val">{say(r.value, unit)}</span>
+            </>}
             {r.note && <span className="nm-note">{r.note}</span>}
             {onRemove && <button className="pset-x" aria-label={`Remove the reading of ${r.value} on ${r.at}`}
               onClick={() => { if (window.confirm(`Delete the reading of ${say(r.value, unit)} on ${shortDay(r.at)}?`)) void onRemove(r.id); }}><Icon name="close" size="0.85em" /></button>}
@@ -151,7 +163,8 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
               <AddReading measure={m}
                 onAdd={(at, v, note) => state.addReading(line.id, m.id, at, v, note)} />
             </AddFold>}
-            <Recent rows={rows} unit={m.unit} onRemove={can.remove ? state.removeReading : undefined} />
+            <Recent rows={rows} unit={m.unit} onRemove={can.remove ? state.removeReading : undefined}
+              onSave={can.edit ? state.saveReading : undefined} />
           </div>
         );
       })}
@@ -193,6 +206,12 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
       })
       .slice(0, 14);
   }, [state.readings, state.measures, lines]);
+
+  /* The stored row, not the labelled copy above, is what is written back. */
+  const fix = (id: string, p: Partial<Reading>) => {
+    const was = state.readings.find(x => x.id === id);
+    if (was) void state.saveReading({ ...was, ...p });
+  };
 
   if (state.loading) return null;
   if (!state.measures.length) return <NoMeasures projectId={projectId} agree={can.agree} />;
@@ -239,10 +258,21 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
           <ul className="nm-list">
             {newest.map(r => (
               <li key={r.id} className="nm-row">
-                <span className="nm-when">{shortDay(r.at)}</span>
-                <span className="nm-line">{r.lineName}</span>
-                <span className="nm-what">{r.measure.name}</span>
-                <span className="nm-val">{say(r.value, r.measure.unit)}</span>
+                {/* A wrong one is put right where it is found (6 October). */}
+                {can.edit ? <>
+                  <DateInput className="pset-cell nm-when" aria-label={`Day of ${r.lineName}’s ${r.measure.name} reading`} value={r.at}
+                    onCommit={v => { if (v) fix(r.id, { at: v }); }} />
+                  <span className="nm-line">{r.lineName}</span>
+                  <span className="nm-what">{r.measure.name}</span>
+                  <DraftNumber className="pset-cell is-num nm-val" label={`${r.lineName}’s ${r.measure.name} on ${r.at}`} value={Math.round(r.value * 1e6) / 1e6}
+                    onSave={v => { if (v != null) fix(r.id, { value: v }); }} />
+                  {r.measure.unit && <span className="nm-what">{r.measure.unit}</span>}
+                </> : <>
+                  <span className="nm-when">{shortDay(r.at)}</span>
+                  <span className="nm-line">{r.lineName}</span>
+                  <span className="nm-what">{r.measure.name}</span>
+                  <span className="nm-val">{say(r.value, r.measure.unit)}</span>
+                </>}
                 {r.note && <span className="nm-note">{r.note}</span>}
                 {can.remove && <button className="pset-x" aria-label={`Remove ${r.lineName} ${r.measure.name} on ${r.at}`}
                   onClick={() => { if (window.confirm(`Delete ${r.lineName}’s ${r.measure.name} of ${say(r.value, r.measure.unit)} on ${shortDay(r.at)}?`)) void state.removeReading(r.id); }}><Icon name="close" size="0.85em" /></button>}
