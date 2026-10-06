@@ -49,6 +49,7 @@ import {
   type Said, type SixMProblem,
 } from '../lib/portfolio';
 import { linesOnTarget } from '../lib/onTarget';
+import { criticalCount } from '../lib/critical';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { openRecord } from './RecordDrawer';
@@ -96,7 +97,7 @@ function openItem(x: JobItem): void {
 }
 const RECORD_MARK = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
-const whenOf = (x: JobItem) => (x.late ? lateWhen(x, todayISO()) : x.on ? niceDay(x.on) : 'no date');
+const whenOf = (x: JobItem) => (x.critical ? x.critical.state : x.late ? lateWhen(x, todayISO()) : x.on ? niceDay(x.on) : 'no date');
 
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -211,9 +212,11 @@ function readOpen(): Set<string> {
 
 /* ---------------------------- the focus list ---------------------------- */
 
-type Focus = { t: 'who'; who: string } | { t: 'late' };
+type Focus = { t: 'who'; who: string } | { t: 'late' } | { t: 'critical' };
 
 function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
+  /* Every open critical problem, every job (lib/portfolio criticalItems). */
+  if (f.t === 'critical') return { title: `${criticalCount(pf.critical.length)}, across every job`, items: pf.critical };
   if (f.t === 'late') {
     const items = pf.items.filter(x => x.late);
     return { title: `${items.length} late, across every job`, items };
@@ -249,10 +252,10 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
           <ol className="jb-focus-list">
             {items.map((x, i) => (
               <li key={`${x.jobId}-${x.kind}-${x.id ?? x.what}-${i}`} style={{ '--job': x.color } as CSSProperties}>
-                <button className={'jb-fi' + (x.late ? ' is-late' : '')} onClick={() => openItem(x)}>
+                <button className={'jb-fi' + (x.late || x.critical ? ' is-late' : '')} onClick={() => openItem(x)}>
                   <span className="jb-fi-job">{x.job}</span>
                   <b className="jb-fi-what">{x.what}</b>
-                  <span className="jb-fi-m">{kindWord(x)}{
+                  <span className="jb-fi-m">{x.critical ? x.critical.where : kindWord(x)}{
                     x.partyKind === 'site' && x.who.trim() ? ` · ${x.who.trim()}`
                       : f.t !== 'who' ? ` · ${x.party ?? 'nobody yet'}` : ''}</span>
                   <span className="jb-fi-when">{whenOf(x)}</span>
@@ -374,6 +377,14 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
             onClick={() => pick({ t: 'late' })} aria-pressed={on({ t: 'late' })}>
             <b><Count n={pf.totals.late} still={still} /></b>late
           </button>
+          {/* OPEN CRITICAL PROBLEMS, every job — only when there is one (a
+              zero is not said); solid red, a problem's colour. */}
+          {pf.totals.critical > 0 && (
+            <button className={'jb-stat is-crit' + (on({ t: 'critical' }) ? ' is-on' : '')}
+              onClick={() => pick({ t: 'critical' })} aria-pressed={on({ t: 'critical' })}>
+              <b><Count n={pf.totals.critical} still={still} /></b>critical
+            </button>
+          )}
           <button className="jb-stat" onClick={() => weekRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.week} still={still} /></b>this week
           </button>
@@ -604,6 +615,8 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 does a stage-gate row: its on-target reason says how many are
                 late, with the hours they lost. */}
             {v.late > 0 && !v.sixm && v.method !== 'commissioning' && <span className="jb-chip is-late">{v.late} late</span>}
+            {/* "1 critical", solid red — its open critical problems (lib/critical). */}
+            {v.critical.length > 0 && <span className="jb-chip is-crit">{criticalCount(v.critical.length)}</span>}
           </span>
           {v.method === 'commissioning' ? (
             <span className="jb-gates" aria-label={v.gates.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
@@ -646,6 +659,13 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                     {x.label} {x.open}
                   </span>
                 ))}
+            </span>
+          )}
+          {/* The critical problem leads what the row says is next: the oldest,
+              its words and where it is. */}
+          {v.critical[0] && (
+            <span className="jb-next jb-crit">
+              Critical: {v.critical[0].what} — {v.critical[0].critical?.where}{v.critical.length > 1 ? ` · and ${v.critical.length - 1} more` : ''}
             </span>
           )}
           {v.next && (

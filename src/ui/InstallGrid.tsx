@@ -26,6 +26,7 @@ import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, 
 import { niceDay, todayISO } from '../lib/weeks';
 import { partsOf, partsSaid } from '../lib/noted';
 import { PartsMark } from './StageParts';
+import { criticalCount, criticalOn } from '../lib/critical';
 import { offerUndo } from './Undo';
 import { openRecord } from './RecordDrawer';
 import type { useTesting } from '../lib/useTesting';
@@ -123,6 +124,10 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
      "· 1 late" in red when one is (lib/noted partsSaid). Rowland, 6 October:
      "It should appear like a branch ... you can see there's something else there." */
   const partsAt = (s?: StepView) => (s ? partsSaid(partsOf(s.step.id, tt.items), today) : undefined);
+  /* AN OPEN CRITICAL PROBLEM on the stage (lib/critical) — "1 critical",
+     solid red, on its square and its phone row, as its parts are. */
+  const critAt = (s?: StepView) => (s ? criticalOn(s.step.id, tt.items, tt.tests).length : 0);
+  const critMark = (n: number) => (n > 0 ? <b className="ig-crit">{criticalCount(n)}</b> : null);
 
   /* ---- the writes, each with its own undo (ui/WhyMoved, shared with the drawer) ---- */
   const change = (ts: Test[], patch: (t: Test) => Partial<Test>, said: string) => changeTests(tt, ts, patch, said);
@@ -384,6 +389,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
               <div className="igm-list">
                 {r.cells.map((cs, ci) => {
                   const ps = partsAt(cs);
+                  const crit = critAt(cs);
                   return (
                     <button key={ci}
                       className={'igm-st' + (cs ? ` is-${cs.tone}${cs.tone === 'ahead' && cs.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
@@ -392,9 +398,10 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                       /* Named as the square is named on the laptop — machine,
                          stage and state — for a screen reader, and so the two
                          layouts are the same control by name. */
-                      aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}${ps ? `, ${ps.text}` : ''}`}>
+                      aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
                       <span className="igm-sq" aria-hidden />
                       <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}
+                        {critMark(crit)}
                         <PartsMark said={ps} className="igm-parts" /></span>
                       <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
                     </button>
@@ -484,14 +491,16 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                     </td>
                   ) : r.cells.map((s, ci) => {
                     const ps = partsAt(s);
+                    const crit = critAt(s);
                     return (
                       <td key={ci}>
                         <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
                           onClick={() => openCell(s, ri, ci)}
                           disabled={!s && !can.edit}
-                          aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}`}>
+                          aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
                           {s ? <span>{cellWord(s)}</span> : can.edit ? '+' : ''}
                           {/* ITS PARTS, A BRANCH UNDER ITS DAY (ui/StageParts). */}
+                          {critMark(crit)}
                           <PartsMark said={ps} />
                         </button>
                       </td>

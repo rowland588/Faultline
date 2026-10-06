@@ -44,6 +44,7 @@ import { remindersOf } from './reminders';
 import { owedParts, partLate, partOnStage } from './noted';
 import type { TreeStanding } from './treeBind';
 import { PHASE_WORD, type Phase } from './problems';
+import { criticalProblems, criticalState } from './critical';
 
 export interface JobInput {
   project: Project;
@@ -115,6 +116,11 @@ export interface JobItem {
   /** A stage's hours lost to its problems, when they made it late
    *  (lib/install lateOrProblem). */
   lost?: number;
+  /** AN OPEN CRITICAL PROBLEM (lib/critical), not a thing owed: where it is,
+   *  what it means for the business, and how it stands in words. Its row
+   *  opens its stage (`id`) — the problem is a branch of it. Never in the
+   *  week, the parties or the late count; it leads Needs you (needsYou). */
+  critical?: { where: string; impact?: string; state: string };
 }
 
 export interface JobView {
@@ -184,6 +190,9 @@ export interface JobView {
   /** Stages that hit a problem and lost no time — amber on the rail, said
    *  apart from `late` (lib/install lateOrProblem). */
   problems?: number;
+  /** Its open critical problems, oldest first (criticalItems) — "1 critical"
+   *  in solid red on its row. Empty on a 6M or lever tree job. */
+  critical: JobItem[];
 }
 
 export interface Owed {
@@ -213,9 +222,12 @@ export interface Portfolio {
    *  thing to chase, and nothing with no date reaches "this week". */
   undated: JobItem[];
   owes: Owed[];
+  /** Every open critical problem, every job, the job's order then oldest
+   *  first — what the control room's "1 critical" opens into. */
+  critical: JobItem[];
   /** Suppliers typed more than one way — the records disagree with each other. */
   variants: Company[];
-  totals: { jobs: number; outstanding: number; late: number; week: number };
+  totals: { jobs: number; outstanding: number; late: number; week: number; critical: number };
   says: string;
 }
 
@@ -306,6 +318,25 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
     });
   }
   return out;
+}
+
+/** THE OPEN CRITICAL PROBLEMS on a job, one row each (lib/critical
+ *  criticalProblems — the one reading the count and the rows are made of):
+ *  filed under its stage's gate and opening its stage, as a part is. Rowland,
+ *  6 October: "the ability to say in a report: look at this, this is a major
+ *  problem." Kept apart from jobItems — it is not a thing a party owes. */
+export function criticalItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 'assets'>): JobItem[] {
+  const p = j.project;
+  return criticalProblems(j.tests, j.items, j.assets).open.map(c => {
+    const impact = c.item.impact?.trim();
+    return {
+      jobId: p.id, job: shortName(p.name), color: p.color,
+      kind: !c.on ? 'test' as const : c.on.kind === 'install' ? gateOf(c.on) : c.on.kind ?? 'test',
+      ...(c.on ? { id: c.on.id } : {}),
+      what: c.item.what.trim() || 'A critical problem', who: c.item.owner?.trim() ?? '', late: false,
+      critical: { where: c.where, ...(impact ? { impact } : {}), state: criticalState(c) },
+    };
+  });
 }
 
 /** What a 6M or lever tree job owes: every open action on its board. */
@@ -424,10 +455,12 @@ export const kindWord = (x: Pick<JobItem, 'kind' | 'part'>): string => (x.part ?
 
 /** How a row on "Needs you" stands: the day has gone (red) · due within the
  *  next few days (amber) · the next thing booked after that (indigo). */
-export type Urgency = 'late' | 'soon' | 'next';
+export type Urgency = 'critical' | 'late' | 'soon' | 'next';
 
 export interface NeedsYou {
   rows: { item: JobItem; urgency: Urgency }[];
+  /** Open critical problems (criticalItems) — every one a row, leading. */
+  critical: number;
   /** Everything past its day — on the rows or not. */
   late: number;
   /** Everything due within the next `soonDays`, on the rows or not. */
@@ -445,8 +478,13 @@ export interface NeedsYou {
  *  that is in hand still says what is coming. Capped at `max` rows; the rest
  *  is a count, and the door to the list that holds it. Pure: the same items
  *  the control room's week is made of (jobItems, pacedItems). */
-export function needsYou(items: JobItem[], today: string, o: { soonDays?: number; atLeast?: number; max?: number } = {}): NeedsYou {
+export function needsYou(all: JobItem[], today: string, o: { soonDays?: number; atLeast?: number; max?: number } = {}): NeedsYou {
   const soonDays = o.soonDays ?? DUE_SOON_DAYS, atLeast = o.atLeast ?? 3, max = o.max ?? 7;
+  /* A CRITICAL PROBLEM LEADS, every one of them, outside the cap: it is the
+     thing the whole job has to look at (lib/critical). The rest is counted as
+     it always was. */
+  const crit = all.filter(x => x.critical);
+  const items = all.filter(x => !x.critical);
   const soonEnd = addDays(today, soonDays);
   const urgencyOf = (x: JobItem): Urgency | undefined =>
     x.late ? 'late' : !x.on ? undefined : x.on <= soonEnd ? 'soon' : 'next';
@@ -461,7 +499,8 @@ export function needsYou(items: JobItem[], today: string, o: { soonDays?: number
     rows.push(r);
   }
   return {
-    rows,
+    rows: [...crit.map(item => ({ item, urgency: 'critical' as const })), ...rows],
+    critical: crit.length,
     late: dated.filter(r => r.urgency === 'late').length,
     soon: dated.filter(r => r.urgency === 'soon').length,
     more: dated.length - rows.length,
@@ -473,16 +512,16 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
   /* The job whose date comes first, first — that is the order they get asked
      about in. A job with no date yet goes last rather than first. Stage gate,
      6M and lever tree jobs stand in one order. */
-  type Entry = { project: Project; plan: PlanMark[]; items: JobItem[]; gate?: { j: JobInput; st: ReturnType<typeof standing> }; paced?: PacedInput };
+  type Entry = { project: Project; plan: PlanMark[]; items: JobItem[]; critical: JobItem[]; gate?: { j: JobInput; st: ReturnType<typeof standing> }; paced?: PacedInput };
   const entries: Entry[] = [
     ...unsorted.map((j): Entry => {
       const st = standing({
         tests: j.tests, items: j.items, materials: j.materials, programs: j.programs, assets: j.assets,
         expectedAt: j.project.expectedAt, plannedAt: j.project.plannedAt, today,
       });
-      return { project: j.project, plan: st.plan, items: jobItems(j, today), gate: { j, st } };
+      return { project: j.project, plan: st.plan, items: jobItems(j, today), critical: criticalItems(j), gate: { j, st } };
     }),
-    ...pacedIn.map((j): Entry => ({ project: j.project, plan: pacedPlan(j, today), items: pacedItems(j, today), paced: j })),
+    ...pacedIn.map((j): Entry => ({ project: j.project, plan: pacedPlan(j, today), items: pacedItems(j, today), critical: [], paced: j })),
   ];
   const when = (e: Entry) => e.project.expectedAt ?? e.project.plannedAt ?? '\uffff';
   entries.sort((a, b) => when(a).localeCompare(when(b)) || a.project.name.localeCompare(b.project.name));
@@ -516,6 +555,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       marks, axis: plan.axis, plan: e.plan,
       expectedAt: p.expectedAt, plannedAt: p.plannedAt,
       next: [...items].sort(byUrgency)[0],
+      critical: e.critical,
     };
     if (e.paced) {
       const j = e.paced;
@@ -641,8 +681,9 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
 
   return {
     axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency), reminders,
+    critical: entries.flatMap(e => e.critical),
     undated: all.flat().filter(x => x.kind === 'fix' && !x.on).sort((a, b) => a.job.localeCompare(b.job) || a.what.localeCompare(b.what)),
-    totals: { jobs: jobs.length, outstanding, late, week: week.length },
+    totals: { jobs: jobs.length, outstanding, late, week: week.length, critical: entries.reduce((n, e) => n + e.critical.length, 0) },
     says: saysOf(jobs, owes, late),
   };
 }

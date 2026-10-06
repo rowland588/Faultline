@@ -39,8 +39,10 @@ import { usePrograms } from '../lib/usePrograms';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, jobItems, kindWord, lateWhen, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, criticalItems, jobItems, kindWord, lateWhen, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
+import { CriticalTag } from '../ui/CriticalFields';
+import { criticalCount } from '../lib/critical';
 import { linesOnTarget, stageGateOnTarget } from '../lib/onTarget';
 import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
@@ -198,7 +200,7 @@ function Panel({ title, says, door, className, children }: {
 
 /* The five states (CLAUDE.md, visual management), as a row's stripe: late is
    red, due soon amber, the next booked indigo. */
-const URGENCY_TONE: Record<Urgency, 'r' | 'a' | 'w'> = { late: 'r', soon: 'a', next: 'w' };
+const URGENCY_TONE: Record<Urgency, 'crit' | 'r' | 'a' | 'w'> = { critical: 'crit', late: 'r', soon: 'a', next: 'w' };
 /** What opens in the record's drawer (ui/RecordDrawer) rather than on a page. */
 const IN_DRAWER = new Set<JobItem['kind']>(['test', 'fix', 'install', 'setup', 'handover']);
 
@@ -206,6 +208,7 @@ const IN_DRAWER = new Set<JobItem['kind']>(['test', 'fix', 'install', 'setup', '
  *  state survives a black-and-white print. */
 function whenSaid(x: JobItem, urgency: Urgency, today: string): string {
   /* A stage late by the hours its problems lost says so, not "was" a day still to come. */
+  if (urgency === 'critical') return x.critical?.state ?? 'open';
   if (urgency === 'late') return lateWhen(x, today);
   if (urgency === 'soon') {
     return x.on === today ? 'due today' : x.on === addDays(today, 1) ? 'due tomorrow' : `due ${niceDay(x.on, { weekday: 'short' })}`;
@@ -232,17 +235,20 @@ function NeedsYouPanel({ items, today, door, split, max }: {
 }) {
   const n = needsYou(items, today, { max });
   const lateShown = n.rows.filter(r => r.urgency === 'late').length;
+  /* "1 critical" leads the panel's answer, solid red — a zero is not said. */
+  const crit = n.critical > 0 ? <><b className="fp-n-crit">{criticalCount(n.critical)}</b> · </> : null;
   const lateHidden = n.late - lateShown;
   const byKind = new Map<JobItem['kind'], number>();
   for (const x of items) if (x.late) byKind.set(x.kind, (byKind.get(x.kind) ?? 0) + 1);
   const kinds = split && byKind.size > 1
     ? ` — ${[...byKind].map(([k, c]) => `${c} ${KIND_WORD[k].toLowerCase()}${c === 1 ? '' : 's'}`).join(', ')}` : '';
-  const says = items.length === 0 ? 'nothing owed'
+  const owedSays = items.length === n.critical ? 'nothing owed'
     /* "late", as the band and the reports say it: a stage is late when its
        day has gone or its problems lost hours (lib/install lateOrProblem). */
     : n.late > 0 ? <><b className="fp-n-r">{n.late} late</b>{kinds} · late first</>
     : n.soon > 0 ? `nothing late · ${n.soon} due within ${DUE_SOON_DAYS} days`
     : 'nothing late';
+  const says = <>{crit}{owedSays}</>;
   const foot = [
     lateHidden > 0 && <b key="l" className="fp-n-r">{lateHidden} more late</b>,
     n.more - lateHidden > 0 && <span key="m">{n.more - lateHidden} more booked</span>,
@@ -254,7 +260,24 @@ function NeedsYouPanel({ items, today, door, split, max }: {
         <p className="fp-empty">Nothing is owed on any list.</p>
       ) : n.rows.length > 0 && (
         <ol className="fp-rows">
-          {n.rows.map(({ item, urgency }, i) => (
+          {n.rows.map(({ item, urgency }, i) => item.critical ? (
+            /* A CRITICAL PROBLEM (lib/critical) — what it is, where, what it
+               means for the business and how it stands; the row opens its
+               stage, where the ways round it are written. */
+            <li key={`crit:${item.id ?? ''}:${i}`}>
+              <button className="fp-row is-crit"
+                onClick={() => (item.id ? openRecord(item.jobId, item.id) : nav(`/project/${item.jobId}/fixes`))}>
+                <span className="fp-row-m">
+                  <span className="fp-crit-h"><CriticalTag /><b>{item.what}</b></span>
+                  <small>{item.critical.where}{item.who.trim() ? ` · ${item.who.trim()}` : ''}</small>
+                  {item.critical.impact && <span className="fp-crit-impact">{item.critical.impact}</span>}
+                  {/* How it stands, under what it means — the ways round it
+                      are a sentence, not a date for the right-hand column. */}
+                  <em className="fp-crit-state">{item.critical.state}</em>
+                </span>
+              </button>
+            </li>
+          ) : (
             <li key={item.part ?? item.id ?? `${item.kind}:${item.what}:${i}`}>
               {/* ONE DOOR PER RECORD (5 October): a step, a test or a fix — and
                   a part, which is its stage's — opens in the drawer over this
@@ -526,7 +549,11 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
   const whereSays = machines.length === 1 ? wheres[0].says : machinesWhere(wheres.map(w => w.short));
   /* Every thing owed on the job, one row each — the control room's week reads
      the same list (lib/portfolio jobItems), by the rules the band counts by. */
-  const owed = jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets }, today);
+  const owed = [
+    /* An open critical problem leads Needs you (lib/portfolio criticalItems). */
+    ...criticalItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
+    ...jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets }, today),
+  ];
 
   return (
     <section className="pace-sec">
