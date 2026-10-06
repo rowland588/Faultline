@@ -27,6 +27,7 @@ import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { stateOf, type Program } from './programs';
+import { provingTestOf, testCell } from './commission';
 import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
 import type { Standard } from './standard';
@@ -275,7 +276,10 @@ export function clientReport(x: ClientReportInput): ClientReport {
       proved, total: programs.length,
       notYet: programs.filter(p => stateOf(p) !== 'proved').map(p => ({
         what: p.what, machine: machine(p.assetId),
-        state: stateOf(p) === 'onMachine' ? 'on the machine, not proved' : 'not written yet',
+        /* Its test in Commission, when it has one — proved there, so the
+           paper says how the proving stands (lib/commission). */
+        state: [stateOf(p) === 'onMachine' ? 'on the machine, not proved' : 'not written yet',
+          ((t?: Test) => (t ? `test in Commission ${testCell(t, today).word}` : 'no test in Commission yet'))(provingTestOf(p, tests))].join(' · '),
       })),
     };
     setup.says = setup.says === 'Nothing kept at this gate yet'

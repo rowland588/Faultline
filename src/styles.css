@@ -10751,3 +10751,28 @@ button.gt-fixlab small { font-size: 11.5px; }
 .gt.is-stacked .gt-partrow button.gt-partlab { flex-direction: column; align-items: flex-start; gap: 1px; }
 .gt-part { top: 50%; margin-top: -8px; }
 .gt.is-stacked .gt-part { top: 7px; margin-top: 0; }
+
+/* COMMISSION, MACHINE BY MACHINE (ui/CommissionGrid) — the Install grid's
+   squares and colours, the usual tests across the top, programs last. */
+.cg-grid .ig-cell { padding: 4px 6px; text-align: center; line-height: 1.2; }
+.cg-grid .ig-rowh { min-height: 0; }
+.cg-grid th[scope="row"] .ig-give { margin: 2px 8px 4px; }
+.cg-none { cursor: default; font-size: var(--t-label); font-weight: 500; }
+.cg-prog { display: flex; flex-direction: column; gap: 1px; }
+.cg-prog .pt-late { color: var(--st-r); font-size: var(--t-label); }
+.cg-progh { color: var(--ink); }
+.cg-key { margin-top: 6px; }
+.cg-plist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.cg-prow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.cg-prow:last-child { border-bottom: 0; }
+.cg-pwhat { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.cg-pstate { font-size: var(--t-label); font-weight: 700; color: var(--muted); }
+.cg-pstate.is-r { color: var(--st-r); }
+.cg-pstate.is-a { color: var(--st-a); }
+.cg-pstate.is-w { color: var(--st-w); }
+.cg-pstate.is-g { color: var(--st-g); }
+/* THE PROGRAM A TEST PROVES, and the programs on a Set up stage — a branch
+   line in the drawer (ui/RecordDrawer). */
+.rd-prog { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.rd-prog select { max-width: 100%; }
+.cg-extra { color: var(--muted); }

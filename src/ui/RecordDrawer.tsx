@@ -40,6 +40,7 @@ import { Icon } from './Icon';
 import { useDismiss } from './Sheet';
 import { ProblemEdit, StageStory, storyLength } from './StageStory';
 import { PartsMark, StageParts } from './StageParts';
+import { ProgramLink } from './ProgramLink';
 import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
@@ -379,6 +380,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           opens here too. */}
       {/* PART OF THE PLAN — the stage's own lines, before what went wrong
           (ui/StageParts). */}
+      {/* PROGRAMS — the one a test proves, or Set up's programs stage with the
+          machine's programs and their Commission tests (ui/ProgramLink). */}
+      <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can}
+        onPatch={patch => void tt.patchTest(t.id, patch)} />
       {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} />}
 
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (

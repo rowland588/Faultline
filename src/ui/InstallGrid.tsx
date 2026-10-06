@@ -60,7 +60,7 @@ function stageWord(s: StepView): string {
 
 /** A phone, by the same width the folds and the plan use (ui/Fold, ui/Gantt),
  *  kept up to date when the phone turns. */
-function usePhone(): boolean {
+export function usePhone(): boolean {
   const q = '(max-width: 640px)';
   const [phone, setPhone] = useState(() => { try { return window.matchMedia(q).matches; } catch { return false; } });
   useEffect(() => {

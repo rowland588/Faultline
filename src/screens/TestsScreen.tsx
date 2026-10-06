@@ -17,7 +17,9 @@ import { nav } from '../state/useRoute';
 import { Verdicts } from '../ui/Verdicts';
 import { niceDay, todayISO } from '../lib/weeks';
 import { DraftField } from '../ui/Draft';
-import { useProject } from '../lib/useProjects';
+import { useProject, useProjects } from '../lib/useProjects';
+import { usePrograms } from '../lib/usePrograms';
+import { CommissionGrid, ProgramsToProve } from '../ui/CommissionGrid';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
@@ -77,6 +79,10 @@ function Mark({ t }: { t: Test }) {
 export function TestsScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
+  /* Every job, for the usual tests handed on from the last job that edited
+     them (lib/install usualStages) — and this job's programs, proved here. */
+  const { projects } = useProjects();
+  const { programs } = usePrograms(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
@@ -192,6 +198,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           No machines named yet — <button className="cw-link" onClick={() => nav(`/project/${projectId}/install`)}>add them on Install</button>, and each test can then say which one it is on.
         </p>
       ) : <p className="sub tw-note">No machines named yet.</p>)}
+
+      {/* MACHINE BY MACHINE — the usual tests on a grid with each machine's
+          programs beside them, then the programs still to prove. The same
+          board the other three gates have (ui/CommissionGrid). */}
+      {tt.assets.length > 0 && <CommissionGrid project={project} projects={projects} tt={tt} programs={programs} can={can} />}
+      <ProgramsToProve project={project} tt={tt} programs={programs} can={can} />
 
       {/* NEXT UP. On any given week there is one thing you are about to do, and
           pretending otherwise is how a plan stops being read. */}

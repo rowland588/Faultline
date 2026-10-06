@@ -42,6 +42,10 @@ export interface TestingState {
   /** Several install steps on one machine at once, in the order given — the
    *  one-tap "the usual stages". Each is an ordinary step from then on. */
   planSteps: (titles: readonly string[], assetId?: string, gate?: StepGate) => Promise<string[]>;
+  /** SEVERAL TESTS AT ONCE, in the order given — Commission's "Add the usual
+   *  tests" on a machine, and a program's proving test (lib/commission). Each
+   *  is an ordinary planned test from then on. The ids, for one undo. */
+  planTests: (list: { title: string; assetId?: string; extra?: Partial<Pick<Test, 'programId' | 'planned' | 'plannedFor' | 'withWhom'>> }[]) => Promise<string[]>;
   saveTest: (t: Test) => Promise<void>;
   /** Change some fields of the row AS IT IS NOW. Use this from a button, a
    *  picker or anything that fires after an await — never `saveTest({...test})`
@@ -196,6 +200,25 @@ export function useTesting(projectId: string): TestingState {
     return made;
   }, [projectId, nextSort, assets]);
 
+  const planTests = useCallback(async (list: Parameters<TestingState['planTests']>[0]) => {
+    const t = now();
+    let sort = nextSort();
+    const made: string[] = [];
+    for (const x of list) {
+      const title = x.title.trim();
+      if (!title) continue;
+      const id = uid();
+      await putTest({
+        id, projectId, kind: 'test', title, assetId: x.assetId,
+        withWhom: assets.find(a => a.id === x.assetId)?.oem || undefined,
+        ...x.extra,
+        outcome: 'planned', sort: sort++, createdAt: t, updatedAt: t,
+      });
+      made.push(id);
+    }
+    return made;
+  }, [projectId, nextSort, assets]);
+
   const saveTest = useCallback(async (t: Test) => { await putTest({ ...t, updatedAt: now() }); }, []);
   const patchTestCb = useCallback(async (id: string, patch: Partial<Test> | ((cur: Test) => Partial<Test>)) => { await patchTest(id, patch); }, []);
   const removeTest = useCallback(async (id: string) => {
@@ -281,7 +304,7 @@ export function useTesting(projectId: string): TestingState {
 
   return {
     loading, assets, tests, items, standing: answer,
-    addAsset, saveAsset, removeAsset, planSteps,
+    addAsset, saveAsset, removeAsset, planSteps, planTests,
     planTest, saveTest, patchTest: patchTestCb, removeTest, testCost, planNextFrom,
     addItem, unmakeFix, fixUntouched, saveItem, patchItem, removeItem,
   };

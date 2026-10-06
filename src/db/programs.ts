@@ -1,7 +1,7 @@
 /* What the machine can run. One store, keyed by project — see lib/programs.ts
  * for why a program is three states and a date rather than a status field. */
 import type { ID } from '../types';
-import type { Program } from '../lib/programs';
+import { programAfterTest, type Program, type ProvingTest } from '../lib/programs';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
@@ -37,19 +37,16 @@ export async function deleteProgram(id: ID): Promise<Restore> {
   return async () => { if (row) await restoreRows('programs', [row]); };
 }
 
-/** Every program a test proved, brought back into line with it.
- *
- *  Called when a test's outcome changes, so the two records can never disagree:
- *  a pass writes its day onto the programs it proved, and a fail — or a test
- *  put back to planned — takes the date off again and drops them to on the
- *  machine. The program keeps pointing at the test either way; that is how the
- *  screen can still offer "why" on something that went backwards. */
-export async function applyTestOutcome(
-  projectId: string, testId: ID, passed: boolean, ranOn?: string,
-): Promise<void> {
-  const mine = (await listPrograms(projectId)).filter(p => p.testId === testId);
-  if (!mine.length) return;
-  await putPrograms(mine.map(p => (passed
-    ? { ...p, state: 'proved' as const, provedOn: ranOn ?? p.provedOn ?? p.testOn, testOn: undefined }
-    : { ...p, state: 'onMachine' as const, provedOn: undefined })));
+/** THE PROGRAM A TEST PROVES, brought into line with it (lib/programs
+ *  programAfterTest). Called on every local write of a test, so the two
+ *  records cannot disagree: a pass writes its day onto the program, a fail —
+ *  or a test put back to planned — takes the date off again, and the
+ *  program's test date follows the test's. A test about no program costs one
+ *  field read. (It replaces applyTestOutcome, which said the same and was
+ *  never called: the link was drawn and not joined.) */
+export async function followTest(t: ProvingTest | undefined): Promise<void> {
+  if (!t?.programId) return;
+  const p = await (await getDB()).get('programs', t.programId) as Program | undefined;
+  const next = p && programAfterTest(p, t);
+  if (next) await putProgram(next);
 }

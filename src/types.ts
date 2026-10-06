@@ -285,9 +285,10 @@ export interface Project {
   installStages?: string[];
   /** THE OTHER GATES' STAGES — Set up and Hand over, each the job's own list,
    *  edited as freely as the install stages. Absent (or a gate absent) means
-   *  the app's defaults (lib/gates). Commission has no list: its stages are
-   *  the tests. */
-  gateStages?: { setup?: string[]; handover?: string[] };
+   *  the app's defaults (lib/gates). `commission` is the job's usual TESTS —
+   *  what "Add the usual tests" plans on a machine (testing COMMISSION_TESTS);
+   *  each is an ordinary test once it is on one. */
+  gateStages?: { setup?: string[]; handover?: string[]; commission?: string[] };
 
   /** WHAT THIS BUSINESS MEASURES, and what it calls its periods.
    *

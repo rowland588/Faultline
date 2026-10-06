@@ -10,7 +10,7 @@
  * screen and, later, the client report say the same sentence from one call.
  */
 import { owns } from './format';
-import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { COMMISSION_TESTS, HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
@@ -170,15 +170,20 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
  * job whose list was edited most recently — Line 2A is installed the way Line
  * 2B was, and making somebody type the same six names twice is the app not
  * doing its job. Only then the app's six. */
-type StageHolder = { id: string; installStages?: string[]; gateStages?: { setup?: string[]; handover?: string[] }; updatedAt: number; deletedAt?: number };
+type StageHolder = { id: string; installStages?: string[]; gateStages?: { setup?: string[]; handover?: string[]; commission?: string[] }; updatedAt: number; deletedAt?: number };
+
+/** A gate with a usual list: the three of stages, and Commission, whose list
+ *  is its usual TESTS (testing COMMISSION_TESTS) — kept, edited and handed on
+ *  to the next job exactly as the stages are. */
+export type ListGate = StepGate | 'commission';
 
 /** A gate's list as the job keeps it — absent means the app's. */
-export const stagesKept = (p: StageHolder | undefined, gate: StepGate): string[] | undefined =>
+export const stagesKept = (p: StageHolder | undefined, gate: ListGate): string[] | undefined =>
   gate === 'install' ? p?.installStages : p?.gateStages?.[gate];
 
 /** The app's own list for a gate. */
-export const appStages = (gate: StepGate): readonly string[] =>
-  gate === 'setup' ? SETUP_STAGES : gate === 'handover' ? HANDOVER_STAGES : INSTALL_STAGES;
+export const appStages = (gate: ListGate): readonly string[] =>
+  gate === 'setup' ? SETUP_STAGES : gate === 'handover' ? HANDOVER_STAGES : gate === 'commission' ? COMMISSION_TESTS : INSTALL_STAGES;
 
 /** What a gate is called on screen and on paper. */
 export const GATE_WORD: Record<StepGate, string> = { install: 'Install', setup: 'Set up', handover: 'Hand over' };
@@ -186,7 +191,7 @@ export const GATE_WORD: Record<StepGate, string> = { install: 'Install', setup: 
 export const GATE_PATH: Record<StepGate, string> = { install: 'install', setup: 'set-up', handover: 'handover' };
 
 export function usualStages<P extends StageHolder>(
-  project: P | undefined, all: readonly P[] = [], gate: StepGate = 'install',
+  project: P | undefined, all: readonly P[] = [], gate: ListGate = 'install',
 ): { stages: string[]; from: 'job' | 'other' | 'app'; otherId?: string } {
   const own = stagesKept(project, gate);
   if (own?.length) return { stages: own, from: 'job' };
@@ -199,7 +204,7 @@ export function usualStages<P extends StageHolder>(
 }
 
 /** The patch that keeps a gate's list on the project. */
-export function keepStages<P extends StageHolder>(project: P, gate: StepGate, list: string[] | undefined): Partial<P> {
+export function keepStages<P extends StageHolder>(project: P, gate: ListGate, list: string[] | undefined): Partial<P> {
   if (gate === 'install') return { installStages: list } as Partial<P>;
   return { gateStages: { ...(project.gateStages ?? {}), [gate]: list } } as Partial<P>;
 }
@@ -207,7 +212,7 @@ export function keepStages<P extends StageHolder>(project: P, gate: StepGate, li
 /** A list as typed → a list worth saving: trimmed, no blanks, no repeats.
  *  Undefined when it is the app's own six again, so "absent" keeps meaning
  *  "the app's". */
-export function cleanStages(typed: readonly string[], gate: StepGate = 'install'): string[] | undefined {
+export function cleanStages(typed: readonly string[], gate: ListGate = 'install'): string[] | undefined {
   const app = appStages(gate);
   const seen = new Set<string>();
   const out: string[] = [];
@@ -303,9 +308,12 @@ export function stageRenames(before: readonly string[], after: readonly string[]
   return out;
 }
 
-/** The install steps called `name` — on any machine, or the line itself. */
-export const stepsNamed = (tests: Test[], name: string, gate: StepGate = 'install'): Test[] =>
-  live(tests).filter(t => t.kind === 'install' && gateOf(t) === gate && stageKey(t.title) === stageKey(name));
+/** The install steps called `name` — on any machine, or the line itself.
+ *  For Commission, the tests of that name (every attempt). */
+export const stepsNamed = (tests: Test[], name: string, gate: ListGate = 'install'): Test[] =>
+  live(tests).filter(t => (gate === 'commission'
+    ? (t.kind ?? 'test') === 'test'
+    : t.kind === 'install' && gateOf(t) === gate) && stageKey(t.title) === stageKey(name));
 
 /** Moving steps into another stage: each moves unless its machine already has
  *  that stage — then it stays, rather than making two of the same square. */

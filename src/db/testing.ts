@@ -5,6 +5,7 @@ import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
 import { getBlob, putBlob } from './blobs';
+import { followTest } from './programs';
 
 /* ---------- UNDO ----------
  * Every delete below hands back how to take it back: the rows as they were
@@ -69,6 +70,7 @@ export async function listTests(projectId: string): Promise<Test[]> {
 export async function putTest(t: Test): Promise<void> {
   await (await getDB()).put('tests', { ...t, updatedAt: now() });
   signalWrite();
+  await followTest(t);
 }
 
 /* A PATCH READS THE ROW IT CHANGES. Every write on the test screen used to be
@@ -87,6 +89,7 @@ export async function patchTest(id: ID, patch: Partial<Test> | ((cur: Test) => P
   const p = typeof patch === 'function' ? patch(cur) : patch;
   await db.put('tests', { ...cur, ...p, updatedAt: now() });
   signalWrite();
+  await followTest({ ...cur, ...p });
 }
 
 /** A test and everything under it. Both tombstoned, or the delete never leaves

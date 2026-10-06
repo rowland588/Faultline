@@ -24,7 +24,10 @@ import { DraftText } from '../ui/Draft';
 import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
-import { useAssets } from '../lib/useTesting';
+import { useAssets, useTesting } from '../lib/useTesting';
+import { provingTestOf, testCell } from '../lib/commission';
+import { provingTitle } from '../lib/programs';
+import { openRecord } from '../ui/RecordDrawer';
 import type { Asset } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
 import {
@@ -162,9 +165,11 @@ function PutAllOn({ state, assets, addAsset }: {
   );
 }
 
-function Row({ p, today, lineName, assets, state, weeks, can }: {
+function Row({ p, today, lineName, assets, state, weeks, can, tt }: {
   p: Program; today: string; lineName?: string; assets: Asset[]; weeks: Week[];
   state: ReturnType<typeof usePrograms>;
+  /** The job's tests — the one that proves this program in Commission. */
+  tt: ReturnType<typeof useTesting>;
   /** A client reads the row; only the owner removes one (lib/access). */
   can: Can;
 }) {
@@ -174,6 +179,14 @@ function Row({ p, today, lineName, assets, state, weeks, can }: {
   const got = stateOf(p);
 
   const machine = assets.find(a => a.id === p.assetId)?.name;
+  const test = provingTestOf(p, tt.tests);
+  /* Its proving test, planned on the program's machine, on its test day if
+     it has one, opened so the rest can be said. */
+  const planTest = async () => {
+    const [id] = await tt.planTests([{ title: provingTitle(p), assetId: p.assetId,
+      extra: { programId: p.id, ...(p.runs ? { planned: p.runs } : {}), ...(p.testOn ? { plannedFor: p.testOn } : {}), ...(p.from ? { withWhom: p.from } : {}) } }]);
+    if (id) openRecord(p.projectId, id);
+  };
   /* The machine leads the facts line: with several machines each running
      several programs, WHICH ONE is the first thing that tells two rows of the
      same name apart. */
@@ -203,8 +216,21 @@ function Row({ p, today, lineName, assets, state, weeks, can }: {
             </select>
           </label>
         )}
-        {isProved(p) && !p.testId && (
+        {isProved(p) && !test && (
           <div className="mt-facts pg-byhand">signed off by hand — no test behind it</div>
+        )}
+        {/* ITS TEST IN COMMISSION (Rowland, 6 October: "programs are directly
+            linked to commissioning"). Passing it proves this program on the
+            day it ran (lib/programs programAfterTest); a fail puts it back. */}
+        {test ? (
+          <div className="mt-facts pg-test">
+            Its test in Commission: <span className={'cg-pstate is-' + testCell(test, today).tone}>{testCell(test, today).word}</span>
+            {' '}<button className="cw-link" onClick={() => openRecord(p.projectId, test.id)}>Open it</button>
+          </div>
+        ) : !isProved(p) && can.edit && (
+          <div className="mt-facts pg-test">
+            No test in Commission yet — <button className="cw-link" onClick={() => void planTest()}>plan its test</button>
+          </div>
         )}
       </div>
 
@@ -239,7 +265,12 @@ function Row({ p, today, lineName, assets, state, weeks, can }: {
         {!isProved(p) && can.edit && (
           <DateWhy className="mt-due" ariaLabel={`Date ${p.what} is being tested`} value={p.testOn}
             projectId={p.projectId} storyKey={keyOf('program', p.id)} what={`${p.what} test`}
-            onChange={v => state.save({ ...p, testOn: v })} />
+            onChange={async v => {
+              await state.save({ ...p, testOn: v });
+              /* The program's test day IS its test's day: moved here, the
+                 test in Commission moves with it. */
+              if (test && test.outcome === 'planned' && v) await tt.patchTest(test.id, { plannedFor: v });
+            }} />
         )}
         {/* Proved is not locked (Rowland, 6 October: "I make mistakes"): the
             day it was proved stays a box. Cleared, it is not proved after all. */}
@@ -418,6 +449,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
   const { loading, project } = useProject(projectId);
   const lines = usePaceLines(projectId);
   const state = usePrograms(projectId);
+  const tt = useTesting(projectId);
   /* The machines, so a program can say which one it is for. */
   const { assets, addAsset } = useAssets(projectId);
   const can = useAccess(projectId);
@@ -493,7 +525,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
             <div className="mt-list">
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.programs.map(p => (
-                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} can={can} />
+                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} can={can} tt={tt} />
               ))}
             </div>
             <p className="pg-key">

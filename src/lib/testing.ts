@@ -190,6 +190,21 @@ export const HANDOVER_STAGES = [
   'Client signed off',
 ] as const;
 
+/** COMMISSION — the tests each machine is proved by, against what was
+ *  agreed. Rowland, 6 October: "in commissioning we don't yet have a default
+ *  set that you made for the other gates." The app's guess, editable per job
+ *  like the other three; each is an ordinary test once it is on a machine.
+ *  The programs are proved here too, one test each (lib/programs), and are not
+ *  on this list: they are the machine's own. */
+export const COMMISSION_TESTS = [
+  'Safety functions proven (E-stops, guards, interlocks)',
+  'Runs with product at the agreed speed',
+  'Packs to spec (seal, weight, code, label)',
+  'Rejects and checks proven (metal, weight, vision)',
+  'Changeover in the agreed time',
+  'Performance run at the agreed rate',
+] as const;
+
 export const INSTALL_STAGES = [
   'Positioned and levelled',
   'Mechanically complete',
@@ -770,6 +785,9 @@ export function nextFrom(t: Test, mkId: () => string, at: number, title?: string
        re-run of the test that found it. Only a plain re-test is named one. */
     title: title?.trim() || (fix ? t.title : `${t.title} — re-test`),
     assetId: t.assetId,
+    /* The program it proves goes with it: a re-test of "Prove program P-121"
+       is still proving P-121, and its pass is what proves it (lib/programs). */
+    ...(t.programId ? { programId: t.programId } : {}),
     /* A FIX INHERITS THE PROBLEM, A TEST INHERITS THE EXPECTATION. Both live in
        `passesIf` because they are the same field wearing two names — what this
        record is measured against — but carrying a test's pass criterion onto a

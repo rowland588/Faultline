@@ -251,3 +251,55 @@ export const ontoMachine = (rows: Program[], ids: string[], assetId: string): Pr
   const want = new Set(ids);
   return rows.filter(p => want.has(p.id)).map(p => ({ ...p, assetId }));
 };
+
+/* ======================= PROVED IN COMMISSION ==============================
+ *
+ * Rowland, 6 October: "programs are directly linked to commissioning, so make
+ * the link." A program is loaded at Set up and PROVED at Commission, and the
+ * proving is a test — the record Commission is made of. Two fields already
+ * held the link from both ends and nothing joined them: a test says which
+ * program it is about (Test.programId), a program says which test proved it
+ * (Program.testId). This is the one rule that keeps them agreeing, called on
+ * every local write of a test (db/testing → db/programs followTest):
+ *
+ *   the test passes      → the program is proved, on the day the test ran
+ *   it fails, or is put  → a program THIS test proved drops back to on the
+ *   back to planned        machine; one signed off by hand is left alone
+ *   its day moves        → the program's test date moves with it
+ *
+ * No new record, no new state: the program's own three states and its dates. */
+
+/** Just enough of a test to read it — no import of lib/testing here. */
+export interface ProvingTest {
+  id: ID;
+  programId?: ID;
+  outcome: 'planned' | 'passed' | 'failed' | 'notRun';
+  ranOn?: string;
+  plannedFor?: string;
+  deletedAt?: number;
+}
+
+/** The program as the test leaves it, or undefined when nothing changes. */
+export function programAfterTest(p: Program, t: ProvingTest, today = todayISO()): Program | undefined {
+  if (t.programId !== p.id || t.deletedAt || p.deletedAt) return undefined;
+  let next: Program = p;
+  if (t.outcome === 'passed') {
+    const on = t.ranOn ?? p.provedOn ?? today;
+    next = { ...p, state: 'proved', provedOn: on, testOn: undefined, testId: t.id };
+  } else if (p.testId === t.id && p.provedOn) {
+    /* It was this test that proved it, and the test no longer says it passed. */
+    next = { ...p, state: 'onMachine', provedOn: undefined };
+  }
+  /* Its test date is the test's day, while it is still to prove. */
+  if (!next.provedOn && t.outcome === 'planned' && t.plannedFor && next.testOn !== t.plannedFor) {
+    next = { ...next, testOn: t.plannedFor, testId: t.id };
+  } else if (!next.provedOn && t.outcome !== 'passed' && next.testId !== t.id) {
+    next = { ...next, testId: t.id };
+  }
+  const same = next.state === p.state && next.provedOn === p.provedOn && next.testOn === p.testOn && next.testId === p.testId;
+  return same ? undefined : next;
+}
+
+/** What a program's proving test is called — the program first, so it reads
+ *  as the program on every list the test appears on. */
+export const provingTitle = (p: Pick<Program, 'what'>): string => `Prove program ${p.what}`;

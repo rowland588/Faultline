@@ -305,6 +305,22 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' });
   await putTest(regulator);
 
+  /* THE WRAPPER'S PROGRAMS, PROVED IN COMMISSION (lib/commission) — one with
+     its test booked, one proved by a test that passed, one with no test yet,
+     so the Commission grid's programs square, "Programs to prove", the
+     drawer's program line and Set up's programs stage all draw a real one. */
+  const wrapProg = (what: string, p: Partial<Program>): Program =>
+    ({ id: uid(), projectId: proj.id, assetId: wrapper.id, what, state: 'onMachine', from: 'Ilapak UK', sort: 0, createdAt: t, updatedAt: t, ...p });
+  const express = wrapProg('PR-12 Express 1.25 kg', { runs: 'Tesco Express 1.25 kg', testOn: iso(3), sort: 1 });
+  const red = wrapProg('PR-04 Finest Red 2 kg', { runs: 'Finest Red 2 kg', sort: 2 });
+  await putPrograms([express, red, wrapProg('PR-07 Baking Potatoes 2 kg', { state: 'needed', sort: 3 })]);
+  const proveExpress: Test = { id: uid(), projectId: proj.id, kind: 'test', title: 'Prove program PR-12 Express 1.25 kg', assetId: wrapper.id,
+    programId: express.id, planned: 'Tesco Express 1.25 kg', plannedFor: iso(3), withWhom: 'Ilapak UK', outcome: 'planned', sort: 6, createdAt: t, updatedAt: t };
+  const proveRed: Test = { id: uid(), projectId: proj.id, kind: 'test', title: 'Prove program PR-04 Finest Red 2 kg', assetId: wrapper.id,
+    programId: red.id, planned: 'Finest Red 2 kg', plannedFor: iso(-1), ranOn: iso(-1), withWhom: 'Ilapak UK', outcome: 'passed', result: '500 packs, no rejects', sort: 7, createdAt: t, updatedAt: t };
+  await putTest(proveExpress);
+  await putTest(proveRed);
+
   for (const i of [
     item(seal.id, 'found', 'Seal jaw temperature drifting', { owner: 'Ilapak UK', note: 'Drops 8°C over 20 minutes, then the seals fail', sort: 1 }),
     item(seal.id, 'found', 'Film tracking off to the left after a splice', { owner: 'Ilapak UK', sort: 2 }),

@@ -18,8 +18,8 @@
 import { useState } from 'react';
 import { updateProject } from '../db';
 import { offerUndo } from './Undo';
-import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type usualStages } from '../lib/install';
-import type { StepGate, Test } from '../lib/testing';
+import { appStages, cleanStages, keepStages, stageRenames, stepsNamed, type ListGate, type usualStages } from '../lib/install';
+import type { Test } from '../lib/testing';
 import type { Project } from '../types';
 import { Icon } from './Icon';
 import { can as canOf, type Can } from '../lib/access';
@@ -28,8 +28,9 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   /** What this person may do (lib/access). The list is what was AGREED, so
    *  only the owner edits it; the team may still move steps into a stage. */
   can?: Can;
-  /** Which gate's list — each is the job's own, edited as freely. */
-  gate?: StepGate;
+  /** Which gate's list — each is the job's own, edited as freely. Commission's
+   *  is its usual TESTS, and says so in every word below. */
+  gate?: ListGate;
   project: Project; usual: ReturnType<typeof usualStages>; otherName?: string;
   /** The job's records, to count the steps a rename would touch. */
   tests?: Test[];
@@ -47,6 +48,9 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   isFresh?: (t: Test) => boolean;
 }) {
   const [draft, setDraft] = useState<string[] | null>(null);
+  const w = gate === 'commission'
+    ? { one: 'test', many: 'tests', steps: 'tests', Steps: 'Tests' }
+    : { one: 'stage', many: 'stages', steps: 'steps', Steps: 'Steps' };
   /* Renames that have steps on machines still wearing the old name. */
   const [asking, setAsking] = useState<{ from: string; to: string; n: number }[] | null>(null);
 
@@ -89,7 +93,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   if (dropping) {
     return (
       <section className="in-usual is-asking">
-        <div className="in-usual-h"><b>{dropping.length === 1 ? 'One stage' : `${dropping.length} stages`} still on the machines</b></div>
+        <div className="in-usual-h"><b>{dropping.length === 1 ? `One ${w.one}` : `${dropping.length} ${w.many}`} still on the machines</b></div>
         <ul className="in-usual-list">
           {dropping.map(d => {
             const worked = d.n - d.fresh;
@@ -106,7 +110,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   if (asking) {
     return (
       <section className="in-usual is-asking">
-        <div className="in-usual-h"><b>Rename the steps already on machines?</b></div>
+        <div className="in-usual-h"><b>Rename the {w.steps} already on machines?</b></div>
         <ul className="in-usual-list">
           {asking.map(r => <li key={r.from}>“{r.from}” → “{r.to}” · on {r.n} machine{r.n === 1 ? '' : 's'}</li>)}
         </ul>
@@ -132,7 +136,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
     return (
       <section className="in-usual">
         <div className="in-usual-h">
-          <b>The usual stages</b>
+          <b>The usual {w.many}</b>
           <span className="sub">
             {usual.from === 'job' ? 'this job’s own'
               : usual.from === 'other' ? `taken from ${otherName ?? 'another job'}`
@@ -145,7 +149,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         </ol>
         {extras.length > 0 && (
           <div className="in-extra">
-            <b className="in-extra-h">Also on the grid — not one of these stages</b>
+            <b className="in-extra-h">Also on the grid — not one of these {w.many}</b>
             <p className="sub tw-note">
               {can.agree ? 'Steps given this name before the stages changed. Move them into a stage, remove the ones never started, or keep it as a stage of its own.'
                 : can.edit ? 'Steps given this name before the stages changed. Move them into a stage, or leave it for the owner to keep or remove.'
@@ -173,34 +177,34 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   const cleaned = cleanStages(draft, gate) ?? [...appStages(gate)];
   return (
     <section className="in-usual is-editing">
-      <div className="in-usual-h"><b>The usual stages</b><span className="sub">in the order they happen</span></div>
+      <div className="in-usual-h"><b>The usual {w.many}</b><span className="sub">in the order they happen</span></div>
       <ol className="in-usual-edit">
         {draft.map((s, i) => (
           <li key={i}>
             <span className="in-usual-n">{i + 1}</span>
-            <input value={s} onChange={e => set(i, e.target.value)} aria-label={`Stage ${i + 1}`}
-              placeholder="Name the stage" autoFocus={i === draft.length - 1 && s === ''} />
+            <input value={s} onChange={e => set(i, e.target.value)} aria-label={`${w.one === 'test' ? 'Test' : 'Stage'} ${i + 1}`}
+              placeholder={`Name the ${w.one}`} autoFocus={i === draft.length - 1 && s === ''} />
             <button className="btn btn-ghost in-usual-b" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up"><Icon name="arrowUp" size="1.1em" /></button>
             <button className="btn btn-ghost in-usual-b" onClick={() => move(i, 1)} disabled={i === draft.length - 1} aria-label="Move down"><Icon name="arrowDown" size="1.1em" /></button>
             <button className="btn btn-ghost in-usual-b" onClick={() => setDraft(d => (d ? d.filter((_, k) => k !== i) : d))}
-              aria-label={`Remove ${s || 'this stage'}`}><Icon name="close" size="1.1em" /></button>
+              aria-label={`Remove ${s || `this ${w.one}`}`}><Icon name="close" size="1.1em" /></button>
           </li>
         ))}
       </ol>
       <button className="cw-add" onClick={() => setDraft(d => (d ? [...d, ''] : d))}>
-        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a stage
+        <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a {w.one}
       </button>
       <div className="in-usual-go">
         {/* The one thing to press here, so it wears the press colour, as Save does
             on every other sheet. */}
         <button className="btn btn-primary" onClick={() => void save()} disabled={cleaned.length === 0}>
-          Save {cleaned.length} stage{cleaned.length === 1 ? '' : 's'}
+          Save {cleaned.length} {cleaned.length === 1 ? w.one : w.many}
         </button>
         <button className="btn btn-ghost" onClick={() => setDraft(null)}>Cancel</button>
         <button className="cw-link" onClick={() => setDraft([...appStages(gate)])}>Back to the app’s {appStages(gate).length}</button>
       </div>
       <p className="sub tw-note">
-        This is what the next machine gets. Steps already on a machine keep their names — tap one to rename it.
+        This is what the next machine gets. {w.Steps} already on a machine keep their names — tap one to rename it.
       </p>
     </section>
   );
