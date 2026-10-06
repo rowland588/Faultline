@@ -25,6 +25,7 @@ import { openRecord } from './RecordDrawer';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { Evidence } from './EvidenceDoors';
 import { offerUndo } from './Undo';
+import { deleteTestItem } from '../db';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import { useProjects } from '../lib/useProjects';
@@ -47,6 +48,27 @@ export const fixWord = (f: Test): string => f.outcome === 'passed' ? `done${f.ra
 export function storyLength(stepId: string, tt: TT): number {
   const st = storyOf(stepId, tt.tests, tt.items);
   return st.moves.length + st.found.length + st.fixes.length;
+}
+
+/** DELETE A PROBLEM — and with the last one on a stage, the "Hit a problem"
+ *  it put there. Rowland, 6 October: "delete problem is there but doesn't
+ *  delete ... I'm trapped in a loop." The problem went; the stage went on
+ *  saying "Hit a problem", red on the plan and the dashboard, so it looked as
+ *  if nothing had happened. A stage marked by a problem and left with none is
+ *  put back to planned; a test's verdict is its own and is left alone. One
+ *  Undo puts back both. Used by the stage story and the Fixes page. */
+export async function removeProblem(tt: Pick<TT, 'tests' | 'items' | 'patchTest'>, id: string): Promise<void> {
+  const item = tt.items.find(i => i.id === id);
+  if (!item) return;
+  const step = tt.tests.find(t => t.id === item.testId && !t.deletedAt);
+  const others = tt.items.filter(i => !i.deletedAt && i.id !== id && i.testId === item.testId && i.kind === 'found');
+  const putBack = !!step && step.kind === 'install' && step.outcome === 'failed' && others.length === 0;
+  const restore = await deleteTestItem(id);
+  if (putBack && step) await tt.patchTest(step.id, { outcome: 'planned', ranOn: undefined });
+  offerUndo(`Deleted “${item.what}”${putBack && step ? ` — ${step.title} back to planned` : ''}`, async () => {
+    await restore();
+    if (putBack && step) await tt.patchTest(step.id, { outcome: step.outcome, ranOn: step.ranOn });
+  });
 }
 
 export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
@@ -98,7 +120,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
         }}>{sorted ? 'Open again' : 'Sorted'}</button>;
       })()}
       <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
-      {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(id)} title={`Remove “${text}”`}>Remove</button>}
+      {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void removeProblem(tt, id)} title={`Delete “${text}”`}>Delete</button>}
     </span>
   );
   const pics = (media: MediaRef[]) => media.length > 0 &&

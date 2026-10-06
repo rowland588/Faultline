@@ -50,6 +50,7 @@ import { useAccess } from '../cloud/access';
 import { notedProblems, type Noted } from '../lib/noted';
 import { hoursWord } from '../lib/hoursLost';
 import { offerUndo } from '../ui/Undo';
+import { removeProblem } from '../ui/StageStory';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -268,6 +269,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           <div className="fxl" role="list">
             {[...noted.open, ...noted.sorted].map(n => (
               <NotedRow key={n.item.id} n={n} canEdit={can.edit}
+                onDelete={can.remove ? () => void removeProblem(tt, n.item.id) : undefined}
                 onOpen={() => n.on && open(n.on.id)}
                 onSorted={sorted => {
                   const before = n.item;
@@ -323,8 +325,10 @@ function FixRow({ t, machine, from, onOpen }: { t: Test; machine: string; from?:
 /** A problem with no fix: amber while open (it is waiting on something — the
  *  colour rules), a quiet green once sorted; where it was found, the day, the
  *  hours it cost; and the two things to do with it. */
-function NotedRow({ n, canEdit, onOpen, onSorted, onFix }: {
+function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete }: {
   n: Noted; canEdit: boolean; onOpen: () => void; onSorted: (sorted: boolean) => void; onFix?: () => void;
+  /** The owner's (can.remove): a problem written by mistake goes. */
+  onDelete?: () => void;
 }) {
   const sorted = n.item.doneAt != null;
   const moved = n.item.movedFrom && n.item.movedTo;
@@ -343,6 +347,7 @@ function NotedRow({ n, canEdit, onOpen, onSorted, onFix }: {
           <span className="fxl-acts">
             <button type="button" className="cw-link" onClick={() => onSorted(!sorted)}>{sorted ? 'Open again' : 'Sorted'}</button>
             {!sorted && onFix && <button type="button" className="cw-link" onClick={onFix}>Make it a fix</button>}
+            {onDelete && <button type="button" className="cw-link sp-rm" onClick={onDelete}>Delete</button>}
           </span>
         )}
       </span>
