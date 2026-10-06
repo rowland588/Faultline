@@ -13,6 +13,7 @@ import { owns } from './format';
 import { HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
+import { DAY_HOURS, hoursTally } from './hoursLost';
 
 /** done · a problem stopped it · ran and nobody has said · the day has gone · still ahead */
 export type StepTone = 'done' | 'problem' | 'asking' | 'late' | 'ahead';
@@ -59,6 +60,26 @@ export function toneOf(t: Test, today: string): StepTone {
   if (needsVerdict(t)) return 'asking';
   if (t.outcome === 'notRun' || isOverdue(t, today)) return 'late';
   return 'ahead';
+}
+
+/** LATE, OR A PROBLEM — WHICH ONE. Rowland, 6 October: "if hours are lost =
+ *  late. If no hours added then just a problem." One rule for an install step
+ *  (every gate), read by the plan on screen and on paper and by its words:
+ *  - `late` (red): its day has gone and it is not done, or its problems lost
+ *    hours (lib/hoursLost) and it is not done;
+ *  - `problem` (amber, waiting on something): it hit a problem, lost no
+ *    hours, and its day is still to come;
+ *  - `done` (green) even if it had problems — its story tells them.
+ *  Undefined when none of these is true, or for anything but an install step:
+ *  a test that did not pass keeps its own "didn't pass". */
+export function lateOrProblem(t: Test, items: TestItem[], today: string): 'done' | 'late' | 'problem' | undefined {
+  if (t.kind !== 'install') return undefined;
+  if (t.outcome === 'passed') return 'done';
+  const lost = hoursTally(t.id, items, DAY_HOURS).hours;
+  const end = plannedEnd(t) ?? t.ranTo ?? t.ranOn;
+  const gone = isOverdue(t, today) || (t.outcome === 'failed' && !!end && end < today);
+  if (lost > 0 || gone) return 'late';
+  return t.outcome === 'failed' ? 'problem' : undefined;
 }
 
 const day = (iso?: string) => (iso ? niceDay(iso, { weekday: 'short' }) : '');
