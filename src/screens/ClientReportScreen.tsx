@@ -144,6 +144,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           ))}
           {report.plan.length > 0 && <li><b>The plan</b><span>A Gantt chart, landscape — {report.plan.length} dated, on a calendar</span></li>}
           <li><b>Fixes</b><span>{report.fixes.open.length} open · {report.fixes.done.length} done</span></li>
+          {(report.noted.open.length + report.noted.sorted.length) > 0 && <li><b>Problems with no fix</b><span>{report.noted.open.length} open{report.noted.sorted.length ? ` · ${report.noted.sorted.length} sorted` : ''}</span></li>}
           {report.waiting.length > 0 && <li><b>What we’re waiting on</b><span>{report.waiting.map(w => `${w.what} ${w.open}`).join(' · ')}</span></li>}
           {report.standards.length > 0 && withStandards && <li><b>Line standard</b><span>{report.standards.map(s => s.product).join(' · ')}</span></li>}
         </ol>

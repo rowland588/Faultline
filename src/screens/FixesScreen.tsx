@@ -47,6 +47,9 @@ import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
+import { notedProblems, type Noted } from '../lib/noted';
+import { hoursWord } from '../lib/hoursLost';
+import { offerUndo } from '../ui/Undo';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -113,6 +116,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
      so this is its head rather than a second sort. */
   const nextBy = st.upcoming.length ? plannedEnd(st.upcoming[0]) : undefined;
   const late = st.upcoming.filter(t => isOverdue(t)).length;
+  const noted = notedProblems(tt.tests, tt.items, tt.assets);
 
   return (
     <div className="wrap pace cm-screen">
@@ -251,6 +255,33 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         </section>
       )}
 
+      {/* PROBLEMS WITH NO FIX — the journey's other half (lib/noted). Rowland,
+          6 October: "I don't want that problem just to disappear, because I
+          want to show the story and the journey." Open until sorted, whether
+          or not its stage is done; tap one for its stage. */}
+      {(noted.open.length > 0 || noted.sorted.length > 0) && (
+        <section className="cmp-sec">
+          <div className="cw-sec-h">
+            <h2 className="cmp-h">Problems with no fix</h2>
+            <span className="cmp-h-n">{noted.open.length} open{noted.sorted.length ? ` · ${noted.sorted.length} sorted` : ''}</span>
+          </div>
+          <div className="fxl" role="list">
+            {[...noted.open, ...noted.sorted].map(n => (
+              <NotedRow key={n.item.id} n={n} canEdit={can.edit}
+                onOpen={() => n.on && open(n.on.id)}
+                onSorted={sorted => {
+                  const before = n.item;
+                  void tt.saveItem({ ...before, ...(sorted ? { doneAt: Date.now() } : { doneAt: undefined }) });
+                  offerUndo(sorted ? `Sorted — ${before.what}` : `Open again — ${before.what}`, () => tt.saveItem(before));
+                }}
+                onFix={n.on ? () => void (async () => {
+                  open(await tt.planNextFrom(n.on as Test, n.item.id, n.item.what, 'fix', n.item.what));
+                })() : undefined} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* The explanation is said once, while the list is empty; the date of
           the next one is a fact and stays as long as there is one. */}
       {(st.upcoming.length + st.done.length === 0 || nextBy) && (
@@ -286,5 +317,35 @@ function FixRow({ t, machine, from, onOpen }: { t: Test; machine: string; from?:
       </span>
       <em className="fxl-when">{when}</em>
     </button>
+  );
+}
+
+/** A problem with no fix: amber while open (it is waiting on something — the
+ *  colour rules), a quiet green once sorted; where it was found, the day, the
+ *  hours it cost; and the two things to do with it. */
+function NotedRow({ n, canEdit, onOpen, onSorted, onFix }: {
+  n: Noted; canEdit: boolean; onOpen: () => void; onSorted: (sorted: boolean) => void; onFix?: () => void;
+}) {
+  const sorted = n.item.doneAt != null;
+  const moved = n.item.movedFrom && n.item.movedTo;
+  return (
+    <div role="listitem" className={'fxl-row fxl-noted is-' + (sorted ? 'done' : 'soon')}>
+      <span className="fxl-bar" aria-hidden />
+      <button type="button" className="fxl-m fxl-open" onClick={onOpen} disabled={!n.on}>
+        <b>{n.item.what}</b>
+        <small>
+          {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}{(n.item.media?.length ?? 0) > 0 ? ` · ${n.item.media?.length} picture${n.item.media?.length === 1 ? '' : 's'}` : ''}
+        </small>
+      </button>
+      <span className="fxl-side">
+        <em className="fxl-when">{sorted ? `Sorted ${niceDay(todayISO(new Date(n.item.doneAt as number)))}` : 'Open'}</em>
+        {canEdit && (
+          <span className="fxl-acts">
+            <button type="button" className="cw-link" onClick={() => onSorted(!sorted)}>{sorted ? 'Open again' : 'Sorted'}</button>
+            {!sorted && onFix && <button type="button" className="cw-link" onClick={onFix}>Make it a fix</button>}
+          </span>
+        )}
+      </span>
+    </div>
   );
 }

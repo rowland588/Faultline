@@ -357,6 +357,17 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     }
   }
 
+  /* PROBLEMS WITH NO FIX — seen on the way, kept in the story (lib/noted).
+     The heading counts what is open; sorted ones follow under their own word. */
+  if (r.noted.open.length || r.noted.sorted.length) {
+    out.push(heading('Problems with no fix', `${r.noted.open.length} open${r.noted.sorted.length ? ` · ${r.noted.sorted.length} sorted` : ''}`));
+    r.noted.open.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
+    if (r.noted.sorted.length) {
+      out.push(text({ text: 'Sorted', size: S.small, style: 'bold', colour: OK, before: 4, after: 3 }));
+      r.noted.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
+    }
+  }
+
   /* ================================ 4 · WHO OWES WHAT ================================ */
   if (r.waiting.length) {
     const whoW = 130;

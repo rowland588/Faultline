@@ -75,8 +75,28 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
     const it = itemOf(id);
     return it ? <ProblemEdit item={it} tt={tt} can={can} onDone={() => setEditing(null)} /> : null;
   };
+  /* OPEN OR SORTED — a problem with no fix stays open until somebody says it
+     is sorted, whether or not the stage is done (lib/noted), and is listed
+     on the Fixes page until then. Rowland: "I don't want that problem just
+     to disappear." */
+  const noFix = (id: string) => { const it = itemOf(id); return !!it && !(it.becameTestId && fixOf(it.becameTestId)); };
+  const stateOf = (id: string) => {
+    const it = itemOf(id);
+    if (!it || !noFix(id)) return null;
+    return it.doneAt != null
+      ? <span className="sp-state is-sorted"> · sorted {niceDay(isoOfMs(it.doneAt))}</span>
+      : <span className="sp-state is-open"> · open</span>;
+  };
   const entryActs = (id: string, text: string) => can.edit && (
     <span className="sp-row-acts">
+      {noFix(id) && (() => {
+        const it = itemOf(id) as TestItem;
+        const sorted = it.doneAt != null;
+        return <button type="button" className="cw-link" onClick={() => {
+          void tt.saveItem({ ...it, doneAt: sorted ? undefined : Date.now() });
+          offerUndo(sorted ? 'Open again' : 'Sorted', () => tt.saveItem(it));
+        }}>{sorted ? 'Open again' : 'Sorted'}</button>;
+      })()}
       <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
       {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void tt.removeItem(id)} title={`Remove “${text}”`}>Remove</button>}
     </span>
@@ -102,7 +122,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
       <>
         <span className="sp-k is-move">Moved</span>
         <p className="sp-t"><b>{niceDay(m.from)} → {niceDay(m.to)}</b> · +{m.days} day{m.days === 1 ? '' : 's'}</p>
-        {editing === m.id ? editor(m.id) : <p className="sp-why">{m.why}</p>}
+        {editing === m.id ? editor(m.id) : <p className="sp-why">{m.why}{stateOf(m.id)}</p>}
         {tally.pushes.has(m.id) && <p className="sp-hours">{partsWord(tally.pushes.get(m.id) ?? [])} — {m.days === 1 ? 'a full day' : `${m.days} full days`}</p>}
         {pics(m.media)}
         {editing !== m.id && entryActs(m.id, m.why)}
@@ -112,7 +132,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
     ...st.found.map(f => ({ on: f.on, key: f.id, at: itemOf(f.id)?.createdAt, node: (
       <>
         <span className="sp-k is-found">Found</span>
-        {editing === f.id ? editor(f.id) : <p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}</p>}
+        {editing === f.id ? editor(f.id) : <p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}{stateOf(f.id)}</p>}
         {pics(f.media)}
         {editing !== f.id && entryActs(f.id, f.what)}
         {fixOf(f.fixId) && fixNode(fixOf(f.fixId) as Test, true)}

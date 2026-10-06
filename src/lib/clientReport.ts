@@ -31,6 +31,7 @@ import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
+import { notedProblems } from './noted';
 import type { WalkSnag } from './walkSnags';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
@@ -109,6 +110,9 @@ export interface ClientReport {
   machines: { name: string; at: string; gates: GateTone[] }[];
   sections: GateSection[];
   fixes: { open: FixRow[]; done: FixRow[] };
+  /** PROBLEMS WITH NO FIX (lib/noted) — in words, open ones first: what, where,
+   *  the day, hours lost. Kept on paper so the journey is told whole. */
+  noted: { open: string[]; sorted: string[] };
   waiting: OutstandingRow[];
   standards: Standard[];
   /** The job's dated marks — the same ones the project page's Gantt draws —
@@ -309,6 +313,11 @@ export function clientReport(x: ClientReportInput): ClientReport {
     machines,
     sections: [install, setup, commission, handover],
     fixes: { open: fixes.filter(f => f.tone !== 'done'), done: fixes.filter(f => f.tone === 'done') },
+    noted: (() => {
+      const n = notedProblems(tests, items, assets);
+      const line = (r: typeof n.open[number]) => `${r.item.what} — ${r.where}, ${niceDay(r.day)}${r.item.hoursLost ? ` · ${hoursWord(r.item.hoursLost)} lost` : ''}`;
+      return { open: n.open.map(line), sorted: n.sorted.map(line) };
+    })(),
     waiting: st.rows,
     standards: live(x.standards),
     /* Meeting notes are never on the client's copy — they are private

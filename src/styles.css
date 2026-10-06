@@ -10326,3 +10326,19 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 /* THE DAY IT WAS DONE, changed in place (ui/RecordDrawer). */
 .rd-day { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rd-day input { min-height: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+
+/* PROBLEMS WITH NO FIX (screens/FixesScreen, lib/noted) — the fix row's shape;
+   the words open the stage, the two links sit with the state. */
+.fxl-noted { cursor: default; }
+.fxl-open { all: unset; box-sizing: border-box; cursor: pointer; padding: 2px 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fxl-open:disabled { cursor: default; }
+.fxl-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fxl-side { display: grid; justify-items: end; gap: 4px; }
+.fxl-acts { display: inline-flex; gap: 12px; }
+@media (max-width: 560px) {
+  .fxl-side { grid-column: 2; justify-items: start; margin-top: 4px; }
+  .fxl-side .fxl-when { grid-column: auto; text-align: left; margin-top: 0; }
+}
+.sp-state { font-weight: 700; font-size: var(--t-detail); }
+.sp-state.is-open { color: var(--st-a); }
+.sp-state.is-sorted { color: var(--st-g); font-weight: 600; }
