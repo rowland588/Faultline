@@ -10314,3 +10314,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 .sp-edit-h { max-width: 160px; margin: 6px 0 0; }
 /* In the editor's column, nothing grows: a field or the evidence block is as tall as what it holds. */
 .sp-edit > * { flex: none; }
+
+/* IS THE OVERLAP OK? (ui/InstallGrid DatesForm) — asked once when a step's
+   dates start inside the one ahead; a yes stops the plan flagging it. */
+.ig-over { display: grid; gap: 6px; font-size: var(--t-detail); color: var(--ink-2); margin-top: 6px; }

@@ -144,7 +144,7 @@ function BookFix({ fix, setFix, on, setOn, what, setWhat }: {
    sheets (done on every machine at once) and the record's drawer (done on this
    one). What the Undo puts back is what a floor action or a re-plan can
    touch: the verdict, the day, the dates and who. */
-const snapshot = (ts: Test[]) => ts.map(t => ({ id: t.id, outcome: t.outcome, ranOn: t.ranOn, plannedFor: t.plannedFor, plannedTo: t.plannedTo, withWhom: t.withWhom }));
+const snapshot = (ts: Test[]) => ts.map(t => ({ id: t.id, outcome: t.outcome, ranOn: t.ranOn, plannedFor: t.plannedFor, plannedTo: t.plannedTo, withWhom: t.withWhom, overlapOk: t.overlapOk }));
 
 /** Patch these records, and offer to put every one of them back. */
 export async function changeTests(tt: TT, ts: Test[], patch: (t: Test) => Partial<Test>, said: string): Promise<void> {

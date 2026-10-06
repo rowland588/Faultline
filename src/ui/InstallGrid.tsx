@@ -532,8 +532,13 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
 }
 
 /** ONE STEP'S START AND FINISH, held until Save. */
-export function DatesForm({ start, finish, was, onSave, onMove, following, who, onCancel }: {
+export function DatesForm({ start, finish, was, onSave, onMove, following, who, onCancel, overlap }: {
   start?: string; finish?: string;
+  /** "It overlaps — is that OK?" Rowland, 6 October: "perhaps a question on
+   *  a date range: it overlaps, okay, yes or no." `with` names the step
+   *  these dates would start inside; `ok` is the answer kept; `set` keeps a
+   *  new one, called before the dates are saved. */
+  overlap?: { with: (from: string, to: string) => string | undefined; ok?: boolean; set: (ok: boolean) => void };
   /** What follows on the machine, for a finish this late — the knock-on. */
   following?: (end: string) => Following;
   /** The finish it has now — a push past it asks why. */
@@ -551,11 +556,15 @@ export function DatesForm({ start, finish, was, onSave, onMove, following, who, 
   const [name, setName] = useState(who?.value ?? '');
   const [asking, setAsking] = useState(false);
   const whoNow = who && name.trim() !== who.value.trim() ? name.trim() : undefined;
-  const changed = from !== (start ?? '') || to !== (finish ?? '') || whoNow !== undefined;
   const end = from ? (to || from) : undefined;
+  const over = from && end && overlap ? overlap.with(from, end) : undefined;
+  const [ok, setOk] = useState<boolean | undefined>(overlap?.ok);
+  const okNow = over && ok !== undefined && ok !== overlap?.ok ? ok : undefined;
+  const changed = from !== (start ?? '') || to !== (finish ?? '') || whoNow !== undefined || okNow !== undefined;
+  const keepOk = () => { if (okNow !== undefined) overlap?.set(okNow); };
   if (asking && was && end) {
-    return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => onMove(from, to || undefined, a, whoNow)}
-      onSkip={() => onSave(from || undefined, from ? (to || undefined) : undefined, whoNow)} />;
+    return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => { keepOk(); onMove(from, to || undefined, a, whoNow); }}
+      onSkip={() => { keepOk(); onSave(from || undefined, from ? (to || undefined) : undefined, whoNow); }} />;
   }
   /* A FORM, so Enter in a date box saves, as it does in "Who is doing it"
      beside it. On a laptop the dates were the one pair Enter did nothing in. */
@@ -565,6 +574,7 @@ export function DatesForm({ start, finish, was, onSave, onMove, following, who, 
       if (!changed) return;
       /* PUSHED LATER? Then it asks why before anything is kept. */
       if (movedLater(was, end)) { setAsking(true); return; }
+      keepOk();
       onSave(from || undefined, from ? (to || undefined) : undefined, whoNow);
     }}>
       <div className="ig-dates">
@@ -579,6 +589,15 @@ export function DatesForm({ start, finish, was, onSave, onMove, following, who, 
           <input list="ig-names" value={name} onChange={e => setName(e.target.value)} placeholder="Brillopak fitter, site electrician…" /></label>
         <datalist id="ig-names">{who.names.map(n => <option key={n} value={n} />)}</datalist>
       </>}
+      {over && (
+        <div className="ig-over">
+          <span>These dates start before <b>{over}</b> has finished. Is the overlap OK?</span>
+          <span className="cw-seg" role="group" aria-label="Is the overlap OK?">
+            <button type="button" className={'chip' + (ok === true ? ' on' : '')} aria-pressed={ok === true} onClick={() => setOk(true)}>Yes — it’s the plan</button>
+            <button type="button" className={'chip' + (ok === false ? ' on' : '')} aria-pressed={ok === false} onClick={() => setOk(false)}>No — flag it</button>
+          </span>
+        </div>
+      )}
       {movedLater(was, end) && <p className="sub ig-why-note">That is later than it was ({short(was)}) — Save will ask why.</p>}
       {who && (
         <span className="ig-plan-acts">

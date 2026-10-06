@@ -44,7 +44,7 @@ import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { DatesForm, spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, followingSummary, moveTestsWithWhy, recordProblem, type ProblemFill } from './WhyMoved';
 import { SayIt, SayStep } from './RecordSay';
-import { movedLater, storyOf } from '../lib/story';
+import { movedLater, overlapOf, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
 
@@ -203,6 +203,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const today = todayISO();
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
   const [planning, setPlanning] = useState(false);
+  /* "Is the overlap OK?" answered on the dates form, saved with the dates. */
+  const overlapAnswer = useRef<boolean | undefined>(undefined);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editingProblem, setEditingProblem] = useState<string | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
@@ -383,16 +385,25 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
             who={{ names, value: t.withWhom ?? '' }}
             following={end => followingSummary(t, tt.tests, end)}
+            overlap={kind === 'fix' ? undefined : {
+              with: (fromD, toD) => overlapOf({ ...t, plannedFor: fromD, plannedTo: toD > fromD ? toD : undefined }, tt.tests, true)?.title,
+              ok: t.overlapOk,
+              /* Kept by the same write as the dates: two writes at once raced,
+                 and the second put the first one's answer back. */
+              set: ok => { overlapAnswer.current = ok; },
+            }}
             onMove={(fromD, to, a, who) => {
               void (async () => {
                 await moveTestsWithWhy(tt, [t], fromD, to, a, `${t.title} moved to ${short(to ?? fromD)} — reason kept${a.fix ? ', fix booked' : ''}${who !== undefined ? ` · ${who || 'nobody named'}` : ''}`);
                 if (who !== undefined) await tt.patchTest(t.id, { withWhom: who || undefined });
+                if (overlapAnswer.current !== undefined) await tt.patchTest(t.id, { overlapOk: overlapAnswer.current });
               })();
               setPlanning(false);
             }}
             onSave={(fromD, to, who) => {
               const changed = fromD !== t.plannedFor || to !== t.plannedTo;
-              void changeTests(tt, [t], () => ({ plannedFor: fromD, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}) }),
+              const okAns = overlapAnswer.current;
+              void changeTests(tt, [t], () => ({ plannedFor: fromD, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}), ...(okAns !== undefined ? { overlapOk: okAns } : {}) }),
                 [changed ? `${t.title} ${fromD ? (to && to > fromD ? `planned ${short(fromD)} to ${short(to)}` : `planned ${short(fromD)}`) : 'has no dates'}` : t.title,
                   who !== undefined ? (who || 'nobody named') : ''].filter(Boolean).join(' — '));
               setPlanning(false);

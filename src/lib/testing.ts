@@ -355,6 +355,11 @@ export interface Test {
   /** What it passes on — the expectation, agreed in advance. On a fix, the
    *  problem being fixed. */
   passesIf?: string;
+  /** AN OVERLAP SAID TO BE FINE. Starting before the step ahead on its machine
+   *  has finished is often the plan — two things done at once, a range with
+   *  no set day. Asked once on the dates form; true stops the plan flagging
+   *  it (lib/story overlapOf). Rowland, 6 October. */
+  overlapOk?: boolean;
   /** Who it is being done with. Usually the OEM; on a fix, whose job it is. */
   withWhom?: string;
   /** The product we plan to run. */

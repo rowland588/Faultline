@@ -123,9 +123,11 @@ export const runsInto = (following: Test[], newEnd: string): Test[] =>
   following.filter(t => (t.plannedFor as string) <= newEnd);
 
 /** A step that starts before the one ahead of it on its machine has finished:
- *  the overlap, and which step it overlaps. */
-export function overlapOf(step: Test, tests: Test[]): Test | undefined {
-  if (!step.plannedFor || step.outcome === 'passed') return undefined;
+ *  the overlap, and which step it overlaps. An overlap said to be fine
+ *  (overlapOk) is the plan, not a warning — `asked` ignores that answer, for
+ *  the dates form that asks the question. */
+export function overlapOf(step: Test, tests: Test[], asked = false): Test | undefined {
+  if (!step.plannedFor || step.outcome === 'passed' || (step.overlapOk && !asked)) return undefined;
   const end = (t: Test) => (t.plannedTo && t.plannedTo > (t.plannedFor ?? '') ? t.plannedTo : t.plannedFor) as string;
   return live(tests)
     .filter(t => t.id !== step.id && t.kind !== 'fix' && t.assetId === step.assetId && !!t.plannedFor
