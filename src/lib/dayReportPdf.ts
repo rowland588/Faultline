@@ -13,18 +13,26 @@
 import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, SHELL_MUTED, drawMark, fit, nameFont, san, setFont, type Doc } from './reportKit';
 import type { Day, DayTone } from './day';
 import type { Shot } from './testReport';
+import type { OnTarget, OnTargetTone } from './onTarget';
 import { niceDay } from './weeks';
 
 const M = 36;
 const TONE: Record<DayTone, string> = {
-  done: OK, bad: DANGER, slipped: DANGER, asking: WARN, found: INK2, booked: BLUE,
+  done: OK, bad: DANGER, slipped: DANGER, asking: WARN, found: INK2, booked: BLUE, problem: WARN,
 };
+/* The verdict's word on the dark band — the app's dark-card reds and ambers
+   (styles.css --shell-bad, --shell-warn), a quiet green, a grey. */
+const ON_DARK: Record<OnTargetTone, string> = { behind: '#e2796b', risk: '#e0a94a', on: '#8fd3b0', none: '#9fb0cc' };
 
 export interface DayReportMeta {
   project: string;
   lead?: string;
   builtAt: number;
   shots?: Shot[];
+  /** ARE WE ON TARGET? (lib/onTarget) — at the top of the page's band. */
+  onTarget?: OnTarget;
+  /** "today, Tue 6 Oct" when the page is about another day. */
+  asOf?: string;
 }
 
 export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
@@ -36,7 +44,21 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
      dropped the rest (docs/REPORTS.md: nothing is cut). */
   setFont(d, 9.5, 'normal', INK);
   const headLines = d.splitTextToSize(san(day.headline), CW) as string[];
-  const bandH = 74 + headLines.length * 12 + 10;
+  /* ARE WE ON TARGET? — the word in its colour, then the reason, wrapped to
+     the band: the first line after the word, the rest the band's width. */
+  const ot = meta.onTarget;
+  const otLines: { word?: string; text: string }[] = [];
+  if (ot) {
+    setFont(d, 10.5, 'bold', INK);
+    const ww = d.getTextWidth(`${san(ot.word)} `);
+    setFont(d, 9.5, 'normal', INK);
+    const reason = san(`— ${ot.reason}`);
+    const first = (d.splitTextToSize(reason, CW - ww) as string[])[0] ?? '';
+    const rest = reason.slice(first.length).trim();
+    otLines.push({ word: san(ot.word), text: first }, ...(rest ? (d.splitTextToSize(rest, CW) as string[]).map(text => ({ text })) : []));
+  }
+  const otH = ot ? 12 + otLines.length * 12 + 6 : 0;
+  const bandH = 74 + otH + headLines.length * 12 + 10;
   const band = (first: boolean): number => {
     d.setFillColor(INK);
     d.rect(0, 0, W, first ? bandH : 40, 'F');
@@ -60,8 +82,25 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     }
     setFont(d, 20, 'bold', '#ffffff');
     d.text(san(niceDay(day.date, { weekday: 'short', year: true })), M, 50);
+    let hy = 68;
+    if (ot) {
+      setFont(d, 6.5, 'bold', SHELL_MUTED);
+      d.text(`ARE WE ON TARGET?${meta.asOf ? ` \u00b7 ${san(meta.asOf).toUpperCase()}` : ''}`, M, 67);
+      otLines.forEach((l, i) => {
+        const ly = 79 + i * 12;
+        let lx = M;
+        if (l.word) {
+          setFont(d, 10.5, 'bold', ON_DARK[ot.tone]);
+          d.text(l.word, M, ly);
+          lx = M + d.getTextWidth(`${l.word} `);
+        }
+        setFont(d, 9.5, 'normal', '#ffffff');
+        d.text(l.text, lx, ly);
+      });
+      hy = 67 + otH + 6;
+    }
     setFont(d, 9.5, 'normal', '#c9d4e6');
-    headLines.forEach((l, i) => d.text(l, M, 68 + i * 12));
+    headLines.forEach((l, i) => d.text(l, M, hy + i * 12));
     return bandH + 16;
   };
 
@@ -76,29 +115,31 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
      length. Install, Set up and Hand over, whichever have steps: the same
      bars the day's screen draws. */
   for (const g of day.gates) {
-    const { done, total, late, problem, wrong } = g;
+    const { done, total, late, problem } = g;
     setFont(d, 6.5, 'bold', MUTED);
     d.text(`${g.label.toUpperCase()}, END OF THE DAY`, M, y);
     /* The same bar as the screen: done a quiet green, late red after it, and
        late said in words so it survives a black-and-white print. */
     const words = `${done} of ${total} steps done`;
-    /* A problem and late are two facts — each said, a step in both counts in both. */
-    const bad = [problem ? `${problem} a problem` : '', late ? `${late} late` : ''].filter(Boolean).join(' \u00b7 ');
-    if (bad) {
-      setFont(d, 8, 'bold', DANGER);
-      const lw = d.getTextWidth(` \u00b7 ${bad}`);
-      d.text(` \u00b7 ${bad}`, W - M, y, { align: 'right' });
-      setFont(d, 8, 'bold', INK);
-      d.text(words, W - M - lw, y, { align: 'right' });
-    } else {
-      setFont(d, 8, 'bold', INK);
-      d.text(words, W - M, y, { align: 'right' });
+    /* WHICH, by the one rule (lib/install lateOrProblem): late in red, a
+       problem that lost no time in amber — said apart, never "late or a
+       problem". Drawn from the right, each piece in its colour. */
+    const parts: { t: string; c: string }[] = [{ t: words, c: INK }];
+    if (late) parts.push({ t: ` \u00b7 ${late} late`, c: DANGER });
+    if (problem) parts.push({ t: ` \u00b7 ${problem} a problem`, c: WARN });
+    let rx = W - M;
+    for (const p of [...parts].reverse()) {
+      setFont(d, 8, 'bold', p.c);
+      d.text(p.t, rx, y, { align: 'right' });
+      rx -= d.getTextWidth(p.t);
     }
     d.setFillColor('#e9eff7');
     d.roundedRect(M, y + 6, CW, 6, 3, 3, 'F');
     const doneW = done ? Math.max(6, CW * done / total) : 0;
     if (done) { d.setFillColor('#a9cdbb'); d.roundedRect(M, y + 6, doneW, 6, 3, 3, 'F'); }
-    if (wrong) { d.setFillColor(DANGER); d.rect(M + doneW, y + 6, Math.max(3, CW * wrong / total), 6, 'F'); }
+    let bx = M + doneW;
+    if (late) { const lw = Math.max(3, CW * late / total); d.setFillColor(DANGER); d.rect(bx, y + 6, lw, 6, 'F'); bx += lw; }
+    if (problem) { d.setFillColor(WARN); d.rect(bx, y + 6, Math.max(3, CW * problem / total), 6, 'F'); }
     y += 28;
   }
 
@@ -141,8 +182,29 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       } else {
         d.circle(M + 3.5, y - 3, 3, 'F');
       }
-      setFont(d, 9.5, l.tone === 'bad' || l.tone === 'slipped' ? 'bold' : 'normal', INK);
-      text.forEach((t, i) => d.text(t, M + 16, y + i * 12));
+      const style = l.tone === 'bad' || l.tone === 'slipped' || l.tone === 'problem' ? 'bold' : 'normal';
+      setFont(d, 9.5, style, INK);
+      /* The words that say which — "late, 2 h lost", "a problem, no time
+         lost" — in the line's colour, wherever the wrap puts them. */
+      const full = san(l.text), mark = l.mark ? san(l.mark) : '';
+      const at = mark ? full.indexOf(mark) : -1;
+      let pos = 0;
+      text.forEach((t, i) => {
+        const s0 = Math.max(pos, full.indexOf(t, pos));
+        pos = s0 + t.length;
+        const a = at - s0, b = at + mark.length - s0;
+        if (at < 0 || b <= 0 || a >= t.length) { setFont(d, 9.5, style, INK); d.text(t, M + 16, y + i * 12); return; }
+        let cx = M + 16;
+        const seg = (s: string, c: string, st: 'bold' | 'normal') => {
+          if (!s) return;
+          setFont(d, 9.5, st, c);
+          d.text(s, cx, y + i * 12);
+          cx += d.getTextWidth(s);
+        };
+        seg(t.slice(0, Math.max(0, a)), INK, style);
+        seg(t.slice(Math.max(0, a), Math.min(t.length, b)), TONE[l.tone], 'bold');
+        seg(t.slice(Math.min(t.length, b)), INK, style);
+      });
       y += text.length * 12;
       if (detail.length) {
         setFont(d, 8, 'normal', INK2);

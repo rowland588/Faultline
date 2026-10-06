@@ -14,6 +14,15 @@ import { todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
+import { OnTargetLine } from '../ui/OnTarget';
+
+/** A gate's counts with the abnormal ones in their colour — "2 late" red,
+ *  "1 a problem" amber — the rest plain (the colour rules). */
+function Says({ says }: { says: string }) {
+  return <span>{says.split(' · ').map((p, i) => (
+    <span key={i}>{i > 0 && ' · '}<span className={/^\d+ late$/.test(p) ? 'in-late' : /^\d+ a problem$/.test(p) ? 'in-problem' : undefined}>{p}</span></span>
+  ))}</span>;
+}
 
 async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF> {
   const { loadPdfLib } = await import('../lib/savePdf');
@@ -102,6 +111,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           <h1 className="pace-title">Client report</h1>
           <p className="pace-lede">The job in the order it is run, drawn from what is kept here — nothing typed for it.</p>
+          {/* The answer the first page leads with (lib/onTarget). */}
+          <OnTargetLine v={report.onTarget} />
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
@@ -124,7 +135,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           <li><b>Where the job is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
           {report.sections.map(s => (
             <li key={s.gate}>
-              <b>{s.label}</b><span>{s.says}</span>
+              <b>{s.label}</b><Says says={s.says} />
               {/* How each stage went — the same rows, in the same words, as
                   the paper prints under the gate's grid. */}
               {s.accounts && s.accounts.length > 0 && (

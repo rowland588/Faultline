@@ -472,7 +472,8 @@ describe('the sentence', () => {
      nothing about it. */
   it('names a machine that hit a problem, beside what is late and when nothing is', () => {
     const wrapper = asset({ id: 'w', name: 'Ishida checkweigher' });
-    const stuck = test({ id: 'p1', kind: 'install', title: 'Positioned and levelled', assetId: 'w', outcome: 'failed', ranOn: '2026-09-20' });
+    /* Its day still to come and no hours lost: a problem, not late (lib/install lateOrProblem). */
+    const stuck = test({ id: 'p1', kind: 'install', title: 'Positioned and levelled', assetId: 'w', outcome: 'failed', ranOn: '2026-09-20', plannedFor: '2026-09-25' });
     const s = at({ assets: [wrapper], tests: [stuck], materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-30' });
     expect(s.sentence).toMatch(/outstanding — none of it late, but Ishida checkweigher hit a problem at Positioned and levelled\.$/);
     const late = at({ assets: [wrapper], tests: [stuck], materials: [mat({ due: '2026-09-01' })], expectedAt: '2026-09-30' });

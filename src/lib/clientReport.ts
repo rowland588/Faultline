@@ -18,11 +18,12 @@
  *   4  WHO OWES WHAT         the same table the Overview shows
  *   5  LINE STANDARD         one page per product, when there are any
  *
- * Meeting notes are never on it: they are private preparation.
+ * Notes are never on it: they are private preparation.
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import type { MediaPin, Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
+import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
+import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { stateOf, type Program } from './programs';
@@ -47,8 +48,14 @@ export interface GateSection {
   tone: GateTone;
   /** The checklist, machines down, stages across. Absent for Commission. */
   grid?: { columns: string[]; rows: { machine: string; cells: CellTone[] }[] };
-  /** What is late or a problem at this gate, in words, for the line under it. */
+  /** What is LATE at this gate, in words, for the line under it — a stage
+   *  late by lib/install lateOrProblem (its day gone, or hours lost), with
+   *  the hours when there are any. On Commission, the tests that did not
+   *  pass or did not run. */
   late: string[];
+  /** The stages that hit a problem and lost no time — amber, said apart from
+   *  what is late (Rowland, 6 October: never "late or a problem"). */
+  problems: string[];
   /** Install, Set up, Hand over: how each stage went, in the team's own words
    *  (the step's "What was done" — typed or said into "Say how it went"), for
    *  every step that has one, in the grid's order: machine, then stage. A step
@@ -72,8 +79,8 @@ export interface StepAccount {
   when: string;
   /** The grid's own tone for the step, so the word and its colour match the square. */
   tone: Exclude<CellTone, 'none'>;
-  /** The state in words, the same words as the grid's key — and "· late"
-   *  after "a problem" when its finish has gone too (two facts, both said). */
+  /** The state in words, the same words as the grid's key: "late, 2 h
+   *  lost", "a problem, no time lost" (lib/install lateOrProblem). */
   state: string;
   /** The stage's parts of the plan (ui/StageParts), in words. */
   parts?: string[];
@@ -83,7 +90,7 @@ export interface StepAccount {
 
 /** The grid key's words — the account's state says the same as its square. */
 export const CELL_WORD: Record<CellTone, string> = {
-  done: 'done', problem: 'a problem', asking: 'waiting on a verdict', late: 'late',
+  done: 'done', problem: 'a problem, no time lost', asking: 'waiting on a verdict', late: 'late',
   booked: 'still ahead', ahead: 'no day yet', none: 'not added yet',
 };
 
@@ -111,6 +118,9 @@ export interface ClientReport {
   /** "Handover expected 26 Oct · agreed 18 Oct" */
   dates?: string;
   slip?: string;
+  /** ARE WE ON TARGET? (lib/onTarget) — at the top of the first page and of
+   *  the report's screen. */
+  onTarget: OnTarget;
   gates: { gate: JourneyGate; label: string; tone: GateTone; says: string }[];
   machines: { name: string; at: string; gates: GateTone[] }[];
   sections: GateSection[];
@@ -178,7 +188,14 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const g = installGrid(assets, tests, items, today, usual, gate);
     const steps = tests.filter(t => t.kind === 'install' && (t.gate ?? 'install') === gate);
     const done = steps.filter(t => t.outcome === 'passed').length;
-    const cellOf = (c: StepView) => (c.tone === 'ahead' && c.step.plannedFor ? 'booked' : c.tone) as Exclude<CellTone, 'none'>;
+    /* LATE, OR A PROBLEM — WHICH (lib/install lateOrProblem): a stage late
+       by its day or by the hours its problems lost is a late square; one that
+       hit a problem and lost no time is a problem square, amber. */
+    const cellOf = (c: StepView): Exclude<CellTone, 'none'> => {
+      const which = lateOrProblemSays(c.step, items, today)?.which;
+      if (which) return which;
+      return (c.tone === 'ahead' && c.step.plannedFor ? 'booked' : c.tone) as Exclude<CellTone, 'none'>;
+    };
     const rows = g.rows.filter(r => r.view.total > 0).map(r => ({
       machine: r.asset?.name ?? 'The line',
       cells: r.cells.map(c => (!c ? 'none' : cellOf(c)) as CellTone),
@@ -197,18 +214,23 @@ export function clientReport(x: ClientReportInput): ClientReport {
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
-          tone, state: tone === 'problem' && s.late ? `${CELL_WORD.problem} · late` : CELL_WORD[tone], said: (s.step.result ?? '').trim(),
+          tone, state: lateOrProblemSays(s.step, items, today)?.words ?? CELL_WORD[tone], said: (s.step.result ?? '').trim(),
           ...(parts.length ? { parts } : {}),
         };
       });
     });
-    /* A PROBLEM AND LATE ARE TWO FACTS. Each step says every one that is true
-       — "(a problem)", "(late)", "(a problem · late)" — and the gate counts
-       them apart, a step in both counts in both (Rowland, 4 October). */
-    const all = g.rows.flatMap(r => r.view.steps.map(s => ({ r, s })));
+    /* LATE, OR A PROBLEM — WHICH. Rowland, 6 October: "We know if it's a
+       problem and if it's late, because I put hours in the problem to tell
+       the app it caused lateness." Each stage is one or the other by the one
+       rule (lib/install lateOrProblem): late — its day gone, or hours lost,
+       said with the hours — or a problem that lost no time. Two lists, two
+       counts, never "late or a problem". */
+    const all = g.rows.flatMap(r => r.view.steps.map(s => ({ r, s, w: lateOrProblemSays(s.step, items, today) })));
+    const named = (r: (typeof all)[number]['r'], s: StepView) => `${r.asset?.name ?? 'The line'} — ${s.step.title}`;
     const lateSteps = all
-      .filter(({ s }) => s.tone === 'problem' || s.late)
-      .map(({ r, s }) => `${r.asset?.name ?? 'The line'} — ${s.step.title} (${[s.tone === 'problem' ? 'a problem' : '', s.late ? 'late' : ''].filter(Boolean).join(' · ')})`);
+      .filter(({ s, w }) => w?.which === 'late' || (!w && cellOf(s) === 'late'))
+      .map(({ r, s, w }) => `${named(r, s)}${w?.lost ? ` — ${hoursWord(w.lost)} lost` : ''}`);
+    const problemSteps = all.filter(({ w }) => w?.which === 'problem').map(({ r, s }) => named(r, s));
     /* Rowland, 6 October: "2 hours here, 1 hour there, 5 hours here ... that
        was one day fully missed, or half a day." */
     const day = dayLength(project);
@@ -225,8 +247,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
         : h.hours >= day ? ' — the finish has not been moved for it' : '';
       return [`${r.asset?.name ?? 'The line'} — ${s.step.title}: ${hoursWord(h.hours)} lost${state} (${each.join('; ')})`];
     });
-    const problems = all.filter(({ s }) => s.tone === 'problem').length;
-    const lateN = all.filter(({ s }) => s.late).length;
+    const problems = problemSteps.length;
+    const lateN = lateSteps.length;
     const tone = job.find(j => j.gate === gate)?.tone ?? 'none';
     // Said as the gate's own screen says it — stages with nothing planned count.
     const unplanned = rows.reduce((n, r) => n + r.cells.filter(c => c === 'none').length, 0);
@@ -236,9 +258,10 @@ export function clientReport(x: ClientReportInput): ClientReport {
          says so — a green box reading "nothing kept" told the client two
          things at once (seen on a random-job report, 4 Oct). */
       says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : 'Nothing kept at this gate yet')
-        : `${done} of ${steps.length} done${problems ? ` · ${problems} a problem` : ''}${lateN ? ` · ${lateN} late` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
+        : `${done} of ${steps.length} done${lateN ? ` · ${lateN} late` : ''}${problems ? ` · ${problems} a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
+      problems: problemSteps,
       ...(hourLines.length ? { hours: { total: `${hoursWord(lostAll)} lost to problems — ${daysWord(lostAll, day)} at ${hoursWord(day)} a day`, lines: hourLines } } : {}),
       ...(accounts.length ? { accounts } : {}),
     };
@@ -275,6 +298,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       // Every outcome said: "2 of 5 passed · 1 didn't pass" left a test that never ran unaccounted for.
       : `${passed} of ${now.length} passed${failed ? ` · ${failed} didn’t pass` : ''}${notRun ? ` · ${notRun} didn’t run` : ''}`,
     late: now.filter(t => t.outcome === 'failed' || t.outcome === 'notRun').map(t => `${t.title}${machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}`),
+    problems: [],
     tests: proofs.map(t => ({
       title: t.title, machine: machine(t.assetId),
       when: niceDay(t.ranOn ?? t.plannedFor) || 'no date',
@@ -316,6 +340,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     name: project.name, lead: project.lead,
     printed: niceDay(today, { year: true }),
     sentence: st.sentence,
+    onTarget: stageGateOnTarget({ project, tests, items, assets, materials: x.materials, programs, today }, st),
     dates: when ? `Handover ${moved ? 'expected' : ''} ${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(project.plannedAt, { year: true })}` : ''}`.replace('  ', ' ') : undefined,
     slip: slipWords(st.slipDays),
     gates: job.map(g => {
@@ -332,7 +357,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     })(),
     waiting: st.rows,
     standards: live(x.standards),
-    /* Meeting notes are never on the client's copy — they are private
+    /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),
     planRecords: { tests, items: items.filter(i => i.kind === 'found' || i.kind === 'next'), assets, programs, ...(x.walk?.length ? { walk: x.walk } : {}), ...(project.dayHours ? { dayHours: project.dayHours } : {}),

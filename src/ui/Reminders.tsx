@@ -126,7 +126,7 @@ export function ProjectReminders({ projectId }: { projectId: string }) {
     <section className="rem-card" aria-label="Reminders">
       <div className="rem-h">
         <b><i className="nt-rem-dot" aria-hidden /> {now ? `${now} reminder${now === 1 ? '' : 's'} today or gone` : `${rs.length} reminder${rs.length === 1 ? '' : 's'} this week`}</b>
-        <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/notes`)}>Meeting notes ›</button>
+        <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/notes`)}>Notes ›</button>
       </div>
       <ul className="rem-list">
         {rs.map(r => {

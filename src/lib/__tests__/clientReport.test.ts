@@ -41,26 +41,31 @@ describe('the stage-gate client report', () => {
     // Six usual stages plus "Guarding fitted": seven squares, two planned.
     expect(install.says).toBe('1 of 2 done · 1 late · 5 not added yet');
     expect(install.grid?.rows.map(x => x.machine)).toEqual(['De-staker']);
-    expect(install.late[0]).toBe('De-staker — Guarding fitted (late)');
+    expect(install.late[0]).toBe('De-staker — Guarding fitted');
+    expect(install.problems).toEqual([]);
   });
-  /* Rowland, 4 October: "a problem doesn't mean it will cause a lateness … 2
-     different things can be both." Each step says every fact that is true,
-     and the gate counts them apart — a step in both counts in both. */
-  it('says a problem and late as two facts, each when true', () => {
+  /* Rowland, 6 October: "We know if it's a problem and if it's late,
+     because I put hours in the problem to tell the app it caused lateness."
+     Each stage is late OR a problem by the one rule (lib/install
+     lateOrProblem) — two lists, two counts, never "late or a problem". */
+  it('says which — late (with the hours lost) or a problem that lost no time', () => {
     const steps = [
       test({ id: 'p1', kind: 'install', title: 'Cabled up', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-29', plannedFor: '2026-10-03' }),
       test({ id: 'p2', kind: 'install', title: 'Air connected', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-25', plannedFor: '2026-09-25' }),
       test({ id: 'p3', kind: 'install', title: 'Guarding fitted', assetId: 'ds', plannedFor: '2026-09-25' }),
+      test({ id: 'p4', kind: 'install', title: 'Dry run', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-30', plannedFor: '2026-10-05' }),
     ];
-    const x = clientReport({ project, projects: [project], assets, tests: steps, items: [], materials: [], programs: [], standards: [], today: T });
+    const lost: TestItem[] = [{ id: 'h1', projectId: 'p', testId: 'p4', kind: 'found', what: 'Guard bracket wrong', hoursLost: 2, sort: 1, createdAt: 1, updatedAt: 1 }];
+    const x = clientReport({ project, projects: [project], assets, tests: steps, items: lost, materials: [], programs: [], standards: [], today: T });
     const install = x.sections[0];
-    expect(install.late).toEqual([
-      'De-staker — Cabled up (a problem)',
-      'De-staker — Air connected (a problem · late)',
-      'De-staker — Guarding fitted (late)',
-    ].sort((a, b) => install.late.indexOf(a) - install.late.indexOf(b)));
-    expect(install.late).toHaveLength(3);
-    expect(install.says).toMatch(/^0 of 3 done · 2 a problem · 2 late/);
+    expect([...install.late].sort()).toEqual(['De-staker — Air connected', 'De-staker — Dry run — 2 h lost', 'De-staker — Guarding fitted']);
+    expect(install.problems).toEqual(['De-staker — Cabled up']);
+    expect(install.says).toMatch(/^0 of 4 done · 3 late · 1 a problem/);
+    expect(JSON.stringify(x)).not.toContain('late or a problem');
+    // The squares say the same: late red, the problem amber.
+    const cells = install.grid?.rows[0].cells ?? [];
+    const col = (name: string) => cells[install.grid?.columns.indexOf(name) ?? -1];
+    expect([col('Cabled up'), col('Air connected'), col('Dry run')]).toEqual(['problem', 'late', 'late']);
   });
   it('Set up carries the programs; Commission the tests with their outcome', () => {
     expect(r.sections[1].programs).toMatchObject({ proved: 1, total: 2 });
@@ -137,7 +142,8 @@ describe('how each stage went — the team’s account of a step reaches the cli
     const [lev, air, elec, dry, guard] = install.accounts ?? [];
     expect(lev).toMatchObject({ tone: 'done', state: 'done', said: 'Levelled to 1 mm across the frame. Took two hours longer — the floor dips by the drain.' });
     expect(lev.when).toMatch(/18 Sep/);
-    expect(air).toMatchObject({ tone: 'problem', state: 'a problem' });
+    // Hit a problem on 19 Sept with no day planned: that day has gone, so it is late.
+    expect(air).toMatchObject({ tone: 'late', state: 'late' });
     /* Something said and nobody has called it: a stage stays as planned until
        it is marked done or a problem (Rowland, 5 October) — booked is still
        ahead, no day is no day yet. */

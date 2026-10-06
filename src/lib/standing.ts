@@ -107,7 +107,7 @@ export function slipWords(slipDays?: number): string | undefined {
 }
 
 import { niceDay, todayISO } from './weeks';
-import { journeyOf } from './install';
+import { journeyOf, lateOrProblem } from './install';
 export { todayISO };
 
 const daysBetween = (a: string, b: string): number =>
@@ -182,12 +182,17 @@ export function standing(input: StandingInput): Standing {
   /* ONE ROW PER GATE — Install, Set up, Hand over: three different pieces of
      work, usually owed by different people, and "2 hand-over items late" is
      different news from install steps late. */
+  /* A STAGE IS LATE BY THE ONE RULE (lib/install lateOrProblem): its day has
+     gone, or its problems lost hours — Rowland, 6 October: "I put hours in the
+     problem to tell the app it caused lateness." One that hit a problem and
+     lost no time is a problem, not late, and is not counted here. */
+  const stepLate = (t: Test) => lateOrProblem(t, input.items, today) === 'late';
   const stepsOpen = tests.filter(t => isStep(t) && gateOf(t) === 'install' && owed(t));
-  const stepsLate = stepsOpen.filter(t => isOverdue(t, today));
+  const stepsLate = stepsOpen.filter(stepLate);
   const setupOpen = tests.filter(t => isStep(t) && gateOf(t) === 'setup' && owed(t));
-  const setupLate = setupOpen.filter(t => isOverdue(t, today));
+  const setupLate = setupOpen.filter(stepLate);
   const handOpen = tests.filter(t => isStep(t) && gateOf(t) === 'handover' && owed(t));
-  const handLate = handOpen.filter(t => isOverdue(t, today));
+  const handLate = handOpen.filter(stepLate);
   /* PARTS OF THE PLAN with a day (ui/StageParts) — a line inside a stage that
      somebody owes by a day is owed like anything else, by the one rule
      Needs you's rows are made by (lib/noted owedParts), so the band's "late"

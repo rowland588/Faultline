@@ -106,7 +106,7 @@ const STUDY: { path: string; label: string }[] = [
 
 /** The abnormal part of a count, red — "1 past due". Everything else in the
  *  line stays neutral (CLAUDE.md, visual management rule 3). */
-const Late = ({ n, word }: { n: number; word: string }) => (n > 0 ? <> · <span className="ln-late">{n} {word}</span></> : null);
+const Late = ({ n, word, amber }: { n: number; word: string; amber?: boolean }) => (n > 0 ? <> · <span className={amber ? 'ln-problem' : 'ln-late'}>{n} {word}</span></> : null);
 
 /** The board's editor, opened from a by-owner card — with "did it work?" read
  *  the way the board reads it. Its own component so the impacts are worked out
@@ -130,10 +130,15 @@ function LineMachines({ projectId }: { projectId: string }) {
   const today = todayISO();
   const machines = live(tt.assets);
   const journeys = machines.map(a => journeyOf(a, tt.tests, tt.items, today, programs));
-  const late = journeys.filter(j => j.some(g => g.tone === 'late')).length;
+  /* Machines counted by WHICH — late, a test that didn't pass, or a problem
+     that lost no time (lib/install lateOrProblem) — never "late or a problem". */
+  const has = (j: (typeof journeys)[number], t: string) => j.some(g => g.tone === t);
+  const late = journeys.filter(j => has(j, 'late')).length;
+  const failed = journeys.filter(j => !has(j, 'late') && has(j, 'failed')).length;
+  const problem = journeys.filter(j => !has(j, 'late') && !has(j, 'failed') && has(j, 'problem')).length;
   const says = tt.loading ? undefined
     : machines.length === 0 ? 'no machines on the job yet'
-      : <>{machinesWhere(machines.map((a, i) => machineAt(a, journeys[i]).short))}<Late n={late} word="late or a problem" /></>;
+      : <>{machinesWhere(machines.map((a, i) => machineAt(a, journeys[i]).short))}<Late n={late} word="late" /><Late n={failed} word="didn’t pass" /><Late n={problem} word="a problem" amber /></>;
   return (
     <div id="line-machines" className="ln-sec">
       <Fold id="line.machines" title="Where each machine is" says={says} need>

@@ -16,7 +16,7 @@
  *   Work      Fixes · Materials · The plan · The day
  *   Lines     each line; under it, inside its study: Capture · Analyse ·
  *             Evidence · Meeting
- *             Reports · Meeting notes · Details
+ *             Reports · Notes · Details
  *
  * It is pure: a route and the counts in, groups of lines out. The counts come
  * from lib/useStanding and lib/useMethodCounts — the same numbers the client
@@ -29,16 +29,20 @@ import type { PlanModel } from '../lib/planModel';
 
 /** How many are open, how many of those are late, and how many are already
  *  done — the three numbers a rail line's square and count are drawn from. */
-export interface Count { n: number; late: number; done?: number }
+export interface Count { n: number; late: number; done?: number;
+  /** Stages that hit a problem and lost no time (lib/install lateOrProblem) —
+   *  amber, said apart from late. */
+  problem?: number }
 export type Counts = Record<string, Count | undefined>;
 
-/** The square beside a rail line: red if any of it is late, indigo if it is
- *  under way, green when all of it is done, grey when nothing has started
- *  (CLAUDE.md, visual management rule 1). */
-export type SquareState = 'r' | 'w' | 'g' | 'n';
+/** The square beside a rail line: red if any of it is late, amber if a stage
+ *  hit a problem and lost no time, indigo if it is under way, green when all
+ *  of it is done, grey when nothing has started (CLAUDE.md, visual
+ *  management rule 1). */
+export type SquareState = 'r' | 'a' | 'w' | 'g' | 'n';
 
 export const squareOf = (c?: Count): SquareState =>
-  !c ? 'n' : c.late > 0 ? 'r' : c.n > 0 ? 'w' : (c.done ?? 0) > 0 ? 'g' : 'n';
+  !c ? 'n' : c.late > 0 ? 'r' : (c.problem ?? 0) > 0 ? 'a' : c.n > 0 ? 'w' : (c.done ?? 0) > 0 ? 'g' : 'n';
 
 export interface RailLine {
   /** The key the route resolves to (`hereOf`), so the line knows it is on. */
@@ -52,6 +56,9 @@ export interface RailLine {
    *  red, and says "late" in words (Peers.Count's rule, kept). */
   n?: number;
   late?: number;
+  /** Of `n`, the stages that hit a problem and lost no time — amber, and
+   *  said "a problem" in words (lib/install lateOrProblem). */
+  problem?: number;
   /** Drawn indented — a study's screens under their line. */
   sub?: boolean;
   /** A place rather than a list — the control room, a lens, a line, paper.
@@ -129,8 +136,9 @@ const sum = (counts: Counts, keys: string[], f: (c: Count) => number): number =>
  *  steps and the programs not yet proved together, as the Set up tab did. */
 function counted(key: string, label: string, to: string, here: string, counts: Counts, keys: string[] = [key],
   icon?: RailLine['icon']): RailLine {
-  const c: Count = { n: sum(counts, keys, x => x.n), late: sum(counts, keys, x => x.late), done: sum(counts, keys, x => x.done ?? 0) };
-  return { key, label, to, on: here === key, state: squareOf(c), n: c.n || undefined, late: c.late || undefined, icon };
+  const c: Count = { n: sum(counts, keys, x => x.n), late: sum(counts, keys, x => x.late), done: sum(counts, keys, x => x.done ?? 0),
+    problem: sum(counts, keys, x => x.problem ?? 0) };
+  return { key, label, to, on: here === key, state: squareOf(c), n: c.n || undefined, late: c.late || undefined, problem: c.problem || undefined, icon };
 }
 
 const plain = (key: string, label: string, to: string, here: string, icon?: RailLine['icon']): RailLine =>
@@ -146,8 +154,8 @@ export const snagsPlace = (here: string): RailLine =>
   ({ key: 'quicksnags', label: 'Snags', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
 
 /** The job itself — on its front page, where the method's answer is. */
-export const jobLine = (projectId: string, name: string, here: string, late = 0): RailLine =>
-  ({ key: 'job', label: name, to: `/project/${projectId}`, on: here === 'job', state: late > 0 ? 'r' : 'w', icon: 'route' });
+export const jobLine = (projectId: string, name: string, here: string, late = 0, problem = 0): RailLine =>
+  ({ key: 'job', label: name, to: `/project/${projectId}`, on: here === 'job', state: late > 0 ? 'r' : problem > 0 ? 'a' : 'w', icon: 'route' });
 
 /** THE GATES, in the order the job goes through them. Rowland: "install —
  *  next gate set up, programs; next commissioning; after that handover." The
@@ -234,7 +242,7 @@ export function linesGroup(projectId: string, lines: RailLineOf[], here: string,
 }
 
 /** THE FOOT — paper, the next meeting, and what is set once. Three header
- *  buttons (Reports, Meeting notes, the gear) become three lines. Reports has
+ *  buttons (Reports, Notes, the gear) become three lines. Reports has
  *  no `to`: it opens the sheet of everything printable where you stand. */
 export function footGroup(projectId: string, here: string, openNotes = 0): RailGroup {
   const p = `/project/${projectId}`;
@@ -242,7 +250,7 @@ export function footGroup(projectId: string, here: string, openNotes = 0): RailG
     foot: true,
     lines: [
       { key: 'reports', label: 'Reports', on: here === 'reports', state: 'n', bare: true },
-      { key: 'notes', label: 'Meeting notes', to: `${p}/notes`, on: here === 'notes', state: 'n', bare: true, n: openNotes || undefined },
+      { key: 'notes', label: 'Notes', to: `${p}/notes`, on: here === 'notes', state: 'n', bare: true, n: openNotes || undefined },
       plain('details', 'Details', `${p}/setup`, here),
     ],
   };

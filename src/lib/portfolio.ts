@@ -25,7 +25,10 @@ import { owns } from './format';
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
 import { assetStateOf, gateOf, isOverdue, isSettled, isTestFace, live, plannedEnd, titleOnMachine } from './testing';
-import { jobJourney, journeyNow, type JourneyGate, type GateTone } from './install';
+import { jobJourney, journeyNow, lateOrProblem, type JourneyGate, type GateTone } from './install';
+import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
+import { niceDay } from './weeks';
+import { stageGateOnTarget, type OnTarget } from './onTarget';
 import type { Material } from './materials';
 import { isHere } from './materials';
 import type { Program } from './programs';
@@ -73,6 +76,8 @@ export interface PacedInput {
   /** A 6M job's lines against their target, in the sentence the 6M client
    *  report leads with (lib/measures gapOf). */
   gaps?: { lineId: string; line: string; says: string; short?: string }[];
+  /** Are its lines on target? (lib/onTarget linesOnTarget) */
+  onTarget?: OnTarget;
 }
 
 /** One 6M problem as the control room needs it: enough to say where it is and
@@ -107,6 +112,9 @@ export interface JobItem {
   /** ISO. The day it is due by. */
   on?: string;
   late: boolean;
+  /** A stage's hours lost to its problems, when they made it late
+   *  (lib/install lateOrProblem). */
+  lost?: number;
 }
 
 export interface JobView {
@@ -170,6 +178,12 @@ export interface JobView {
    *  open" added planned gate steps to things owed and said neither. */
   gates: { gate: JourneyGate; label: string; tone: GateTone }[];
   at: string;
+  /** ARE WE ON TARGET? (lib/onTarget) — the word and its reason, the same
+   *  answer the job's own front page and its reports lead with. */
+  onTarget?: OnTarget;
+  /** Stages that hit a problem and lost no time — amber on the rail, said
+   *  apart from `late` (lib/install lateOrProblem). */
+  problems?: number;
 }
 
 export interface Owed {
@@ -227,6 +241,23 @@ export const SITE = 'The site';
 export const owedBy = (x: JobItem, who: string): boolean => x.party === who;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** A stage, late or not by the one rule, with the hours its problems lost
+ *  when they are what made it late — so "was Thu 8 Oct" is never said of a
+ *  day still to come. */
+function stageLate(t: Test, items: TestItem[], today: string): { late: boolean; lost?: number } {
+  if (lateOrProblem(t, items, today) !== 'late') return { late: false };
+  const lost = hoursTally(t.id, items, DAY_HOURS).hours;
+  return lost > 0 ? { late: true, lost } : { late: true };
+}
+
+/** When a late thing was due, in words: "was Thu 1 Oct" for a day gone; a
+ *  stage late by the hours its problems lost while its day is still to come
+ *  says that instead — "2 h lost". */
+export function lateWhen(x: Pick<JobItem, 'on' | 'lost'>, today: string): string {
+  if (x.on && x.on < today) return `was ${niceDay(x.on)}`;
+  return x.lost ? `${hoursWord(x.lost)} lost` : 'late';
+}
+
 /** What each job owes, one row per thing — the same rules standing() counts
  *  by, so the board and each job's own verdict cannot disagree. */
 export function jobItems(j: JobInput, today: string): JobItem[] {
@@ -241,7 +272,10 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
          their own (KIND_WORD), and "Install step" over a hand-over item was
          wrong on the control room's week and the job's front page alike. */
       ...base, kind: t.kind === 'install' ? gateOf(t) : t.kind ?? 'test', id: t.id, what: titleOnMachine(t, j.tests, j.assets),
-      who: t.withWhom ?? '', on: plannedEnd(t), late: isOverdue(t, today),
+      who: t.withWhom ?? '', on: plannedEnd(t),
+      /* A stage is late by the one rule — its day gone, or hours lost
+         (lib/install lateOrProblem) — the late standing() counts. */
+      ...(t.kind === 'install' ? stageLate(t, j.items, today) : { late: isOverdue(t, today) }),
     });
   }
   /* A part of a stage with a day on it, not done (lib/noted owedParts — the
@@ -511,6 +545,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
             .sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase)),
         } } : {}),
         gates: [], at: methodOf(p).label,
+        ...(j.onTarget ? { onTarget: j.onTarget } : {}),
       };
     }
     const { j, st } = e.gate as NonNullable<Entry['gate']>;
@@ -522,6 +557,8 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       outstanding: st.outstanding, late: st.late,
       done: st.plan.filter(m => m.tone === 'done').length, total: st.plan.length,
       pillars: [], gates, at: journeyNow(gates),
+      onTarget: stageGateOnTarget({ ...j, today }, st),
+      problems: live(j.tests).filter(t => t.kind === 'install' && lateOrProblem(t, j.items, today) === 'problem').length,
     };
   });
 
@@ -627,7 +664,9 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
   const top = [...owes].sort((a, b) => b.late - a.late)[0];
   const owner = top ? (top.kind === 'site' ? 'the site' : top.who) : '';
   const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${owns(owner)}` : '';
-  return `${bits.join(' · ')}. ${plural(late, 'thing')} past the day${whose}.`;
+  /* "late", not "past the day": a stage is late when its problems lost hours,
+     before its day goes (lib/install lateOrProblem). */
+  return `${bits.join(' · ')}. ${plural(late, 'thing')} late${whose}.`;
 }
 
 /* ---------- MARKS THAT FALL ON TOP OF EACH OTHER ----------

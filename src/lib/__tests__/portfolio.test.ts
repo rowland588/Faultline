@@ -107,7 +107,7 @@ describe('who owes what, across the jobs', () => {
   });
 
   it('says it in one sentence, naming who carries most of the late', () => {
-    expect(pf.says).toBe('2 jobs running · Line 2B hands over first, in 27 days. 2 things past the day — all of them ilapak uk’s.'
+    expect(pf.says).toBe('2 jobs running · Line 2B hands over first, in 27 days. 2 things late — all of them ilapak uk’s.'
       .replace('ilapak uk', pf.owes[0].who));
     expect(pf.totals).toMatchObject({ jobs: 2, late: 2 });
   });

@@ -93,7 +93,7 @@ describe('never inventing what did not happen', () => {
     expect(d.sections.find(s => s.key === 'wrong')).toBeUndefined();
     /* Due today, in the words its list uses; the coder and the labels due
        yesterday are past their day, and today says so (5 October). */
-    expect(d.headline).toBe('1 due today, nothing logged yet. 2 past their day. Install 0 of 1 steps done.');
+    expect(d.headline).toBe('1 due today, nothing logged yet. 2 late. Install 0 of 1 steps done.');
   });
 
   it('says so when nothing was logged', () => {
@@ -131,8 +131,8 @@ describe('a booking that runs over several days', () => {
 
   it('today lists what is past its day and still not done', () => {
     const d = dayOf(one, '2026-10-01', '2026-10-01');
-    expect(texts(d, 'late')).toEqual(['Case packer — Cabled up — was due Wed 30 Sept.']);
-    expect(d.sections.find(s => s.key === 'late')?.title).toBe('Past its day — still not done');
+    expect(texts(d, 'late')).toEqual(['Case packer — Cabled up — late, was due Wed 30 Sept.']);
+    expect(d.sections.find(s => s.key === 'late')?.title).toBe('Late — still not done');
   });
 });
 
@@ -187,7 +187,8 @@ describe('parts of a stage, on the day', () => {
   });
 
   it('counts it in the sentence, and the day it was done is a day something happened', () => {
-    expect(dayOf(one, TODAY, TODAY).headline).toBe('1 thing done. 1 past its day. Set up 1 of 1 steps done.');
+    // "late", not "past its day": the headline says late and a problem apart now (lib/install lateOrProblem).
+    expect(dayOf(one, TODAY, TODAY).headline).toBe('1 thing done. 1 late. Set up 1 of 1 steps done.');
     expect(activeDays(one)).toEqual(['2026-09-22', '2026-09-28', TODAY]);
   });
 
@@ -196,5 +197,39 @@ describe('parts of a stage, on the day', () => {
     const d = dayOf(early, TODAY, TODAY);
     expect(texts(d, 'today')).toEqual([]);
     expect(texts(dayOf(early, '2026-09-29', TODAY), 'done')).toEqual(['Programs loaded — Done early (Case packer).']);
+  });
+});
+
+/* Rowland, 6 October: "The report shows 'late or a problem' — not good
+   enough. We know if it's a problem and if it's late, because I put hours in
+   the problem to tell the app it caused lateness." */
+describe('late or a problem — today says which', () => {
+  const sensors = rec({ kind: 'install', title: 'Sensors and controls checked', assetId: packer.id, plannedFor: '2026-10-02', ranOn: '2026-09-29', outcome: 'failed' });
+  const dryRun = rec({ kind: 'install', title: 'Dry run', assetId: packer.id, plannedFor: '2026-10-05', ranOn: '2026-09-29', outcome: 'failed' });
+  const hours: TestItem = { ...item(sensors.id, 'Guard bracket the wrong size', '2026-09-29'), hoursLost: 2 };
+  const one = { ...input, tests: [sensors, dryRun], items: [hours, item(dryRun.id, 'Waiting on air', '2026-09-29')], assets: [packer], materials: [] as Material[] };
+  const d = dayOf(one, TODAY, TODAY);
+  const sec = (k: string) => d.sections.find(s => s.key === k);
+
+  it('puts a stage whose problems lost hours under late, with the hours, and one that lost none apart', () => {
+    expect(sec('late')?.lines.map(l => l.text)).toEqual(['Case packer — Sensors and controls checked — late, 2 h lost, due Fri 2 Oct.']);
+    expect(sec('problem')?.title).toBe('A problem — no time lost');
+    expect(sec('problem')?.lines.map(l => l.text)).toEqual(['Case packer — Dry run — a problem, no time lost, due Mon 5 Oct.']);
+  });
+  it('marks the words that say which, for their colour — red late, amber a problem', () => {
+    expect(sec('late')?.lines[0]).toMatchObject({ which: 'late', mark: 'late, 2 h lost', tone: 'slipped' });
+    expect(sec('problem')?.lines[0]).toMatchObject({ which: 'problem', mark: 'a problem, no time lost', tone: 'problem' });
+  });
+  it('counts them apart in the headline and on the gate’s bar', () => {
+    expect(d.headline).toMatch(/ 1 late · 1 a problem\. Install 0 of 2 steps done\.$/);
+    expect(d.gates[0]).toMatchObject({ late: 1, problem: 1, wrong: 2, total: 2 });
+    expect(JSON.stringify(d)).not.toContain('late or a problem');
+  });
+  it('the day it happened says which too, in what did not go to plan', () => {
+    const that = dayOf(one, '2026-09-29', TODAY);
+    expect(that.sections.find(s => s.key === 'wrong')?.lines.map(l => l.text)).toEqual([
+      'Case packer — Sensors and controls checked — late, 2 h lost.',
+      'Case packer — Dry run — a problem, no time lost.',
+    ]);
   });
 });

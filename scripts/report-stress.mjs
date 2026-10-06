@@ -182,15 +182,19 @@ for (const size of SIZES) {
     const out = { client: [], card: [], fix: [], day: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
-    from = 'top'; add('client', r.name, r.sentence, r.slip);
+    /* ARE WE ON TARGET? leads the first page, the word and its reason
+       (lib/onTarget); it says the handover against the date agreed, which the
+       slip line under the sentence used to say a second time. */
+    from = 'top'; add('client', r.name, r.sentence, r.onTarget.word, r.onTarget.reason);
     from = 'gates'; for (const g of r.gates) add('client', g.label, g.says);
     from = 'machines'; for (const mc of r.machines) add('client', mc.name, mc.at);
     for (const s2 of r.sections) {
-      const said = s2.grid?.rows.length || s2.late.length || s2.accounts?.length || s2.programs?.total || s2.tests?.length;
+      const said = s2.grid?.rows.length || s2.late.length || s2.problems.length || s2.accounts?.length || s2.programs?.total || s2.tests?.length;
       if (!said) continue;
       from = `section ${s2.gate}`; add('client', s2.label, s2.says);
       for (const row of s2.grid?.rows ?? []) add('client', row.machine);
-      if (s2.gate !== 'commission') add('client', ...s2.late);
+      /* Late, and a problem that lost no time — two lists (lib/install lateOrProblem). */
+      if (s2.gate !== 'commission') add('client', ...s2.late, ...s2.problems);
       for (const pr of s2.programs?.notYet ?? []) add('client', pr.what);
       /* How each stage went: every account whole — to its last word — with
          the step it is about, its day and its state. */
@@ -216,6 +220,9 @@ for (const size of SIZES) {
     };
     cardOf(tid, 'card'); if (fid) cardOf(fid, 'fix');
     const d = dayOf({ tests, items, assets, materials, programs }, today, today);
+    const { stageGateOnTarget } = await import('/src/lib/onTarget.ts');
+    const ot = stageGateOnTarget({ project, tests, items, assets, materials, programs, today });
+    from = 'day, are we on target?'; add('day', ot.word, ot.reason);
     from = 'day'; add('day', d.headline);
     from = 'the day\'s first picture, its marks'; if (d.media[0]?.kind === 'photo') add('day', ...(d.media[0].pins ?? []).map(p => p.note));
     for (const sec of d.sections) for (const l of sec.lines) add('day', l.text, l.detail);

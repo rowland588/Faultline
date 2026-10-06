@@ -2,7 +2,8 @@
  * See lib/clientReport.ts for what is on it and why. This only draws. */
 import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow, StepAccount } from './clientReport';
-import type { GateTone } from './install';
+import { GATE_TONE_WORD, type GateTone } from './install';
+import type { OnTargetTone } from './onTarget';
 import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
@@ -19,16 +20,29 @@ const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
 const BRAND = '#1f63e0', SHELL = '#0d1f3c', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
 const DONE_WASH = '#e3efe9';
 
+/* Late and a problem said apart — Rowland, 6 October: never "late or a
+   problem" (lib/install lateOrProblem). A test that did not pass is solid red. */
 const GATE_COLOUR: Record<GateTone, { fill?: string; stroke: string; text: string; word: string }> = {
-  done: { fill: DONE_WASH, stroke: OK, text: OK, word: 'done' },
-  going: { fill: '#eeedfa', stroke: BOOKED, text: BOOKED, word: 'under way' },
-  late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, word: 'late or a problem' },
-  ahead: { stroke: '#b8c4d6', text: INK2, word: 'not started' },
-  none: { stroke: '#d5dde8', text: MUTED, word: 'nothing kept' },
+  done: { fill: DONE_WASH, stroke: OK, text: OK, word: GATE_TONE_WORD.done },
+  going: { fill: '#eeedfa', stroke: BOOKED, text: BOOKED, word: GATE_TONE_WORD.going },
+  late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, word: GATE_TONE_WORD.late },
+  problem: { fill: '#f7eedb', stroke: AMBER, text: AMBER, word: GATE_TONE_WORD.problem },
+  failed: { fill: DANGER, stroke: DANGER, text: '#ffffff', word: GATE_TONE_WORD.failed },
+  ahead: { stroke: '#b8c4d6', text: INK2, word: GATE_TONE_WORD.ahead },
+  none: { stroke: '#d5dde8', text: MUTED, word: GATE_TONE_WORD.none },
+};
+/* ARE WE ON TARGET? — the box at the top of the first page, in the state's
+   own colour: red behind, amber at risk, a quiet green on target, grey. */
+const ON_TARGET: Record<OnTargetTone, { fill: string; stroke: string; text: string }> = {
+  behind: { fill: '#fdf2f0', stroke: DANGER, text: DANGER },
+  risk: { fill: '#f7eedb', stroke: AMBER, text: AMBER },
+  on: { fill: '#eef6f1', stroke: '#9cc4af', text: OK },
+  none: { fill: '#f4f6fa', stroke: '#c6d2e3', text: MUTED },
 };
 const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
   done: { fill: DONE_WASH, stroke: OK },
-  problem: { fill: DANGER, stroke: DANGER },
+  /* A problem that lost no time — amber, waiting on something, not late. */
+  problem: { fill: AMBER, stroke: AMBER },
   late: { fill: '#fdf2f0', stroke: DANGER },
   asking: { fill: '#fff7e6', stroke: AMBER },
   booked: { fill: '#eeedfa', stroke: BOOKED },
@@ -112,7 +126,9 @@ const cellPath = (doc: jsPDF, c: CellTone, x: number, y: number, w = 14, h = 10)
   doc.setLineDashPattern([], 0);
 };
 
-const KEY: [CellTone, string][] = [['problem', 'a problem'], ['late', 'late'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']];
+/* The key says the rule: late is the day gone OR hours lost; a problem lost
+   none — the same words the plan's key prints. */
+const KEY: [CellTone, string][] = [['late', 'late — the day has gone, or hours lost'], ['problem', 'a problem — no time lost'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']];
 
 /** The colour key, wrapping onto a second line when the page is narrow. */
 function keyBlock(only: Set<CellTone>): Block {
@@ -147,9 +163,34 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   out.push(text({ text: r.name, size: S.title, style: 'bold', after: 4 }));
   out.push(text({ text: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`, r.dates ?? ''].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
 
+  /* ARE WE ON TARGET? — the answer first, in a word in its colour, and why
+     in words beside it (lib/onTarget): Rowland, 6 October, "the header must
+     clearly show the answer to the question: ARE WE ON TARGET?" */
+  const ot = r.onTarget;
+  const otLines = (f: Frame) => {
+    font(f.doc, 12.5, 'bold');
+    const ww = f.doc.getTextWidth(`${ot.word} `);
+    const reason = `— ${ot.reason}`;
+    const first = wrap(f.doc, reason, f.w - 28 - ww, 9.5)[0] ?? '';
+    const rest = reason.slice(first.length).trim();
+    return { ww, first, rest: rest ? wrap(f.doc, rest, f.w - 28, 9.5) : [] };
+  };
+  const otH = (f: Frame) => 34 + otLines(f).rest.length * 12 + 6;
+  out.push(box(f => otH(f) + gap(f.density, 'm'), (f, y) => {
+    const l = otLines(f), c = ON_TARGET[ot.tone], h = otH(f);
+    f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(ot.tone === 'behind' ? 1.6 : 0.8);
+    f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'FD');
+    font(f.doc, 7.5, 'bold', MUTED); f.doc.text('ARE WE ON TARGET?', f.x + 14, y + 14);
+    font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 30);
+    font(f.doc, 9.5, 'normal', INK2); f.doc.text(l.first, f.x + 14 + l.ww, y + 30);
+    if (l.rest.length) f.doc.text(l.rest, f.x + 14, y + 42);
+  }, f => gap(f.density, 'm')));
+
   // the sentence, on the dark band — as tall as its words
   const said = (f: Frame) => wrap(f.doc, r.sentence, f.w - 32, 14, 'bold');
-  const slip = (f: Frame) => (r.slip ? wrap(f.doc, r.slip, f.w - 32, 9) : []);
+  /* The answer above says the handover against the date agreed, both days
+     named; the slip line ("The date has moved 8 days…") said it again here. */
+  const slip = (f: Frame) => (r.slip && !r.onTarget ? wrap(f.doc, r.slip, f.w - 32, 9) : []);
   out.push(box(f => 30 + said(f).length * 17 + slip(f).length * 12 + 6 + gap(f.density, 'l'), (f, y) => {
     const l = said(f), sl = slip(f);
     const bandH = 30 + l.length * 17 + sl.length * 12 + 6;
@@ -167,7 +208,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     const ls = gateLines(f);
     const h = 24 + Math.max(...ls.map(l => l.length), 1) * 10;
     r.gates.forEach((g, i) => {
-      const x = f.x + i * (gw(f) + 8), c = GATE_COLOUR[g.tone];
+      /* A tile is a wash — a test that did not pass is the late red's. */
+      const x = f.x + i * (gw(f) + 8), c = GATE_COLOUR[g.tone === 'failed' ? 'late' : g.tone];
       f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(1);
       if (c.fill && g.tone !== 'done') { f.doc.setFillColor(c.fill); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
       else if (g.tone === 'done') { f.doc.setFillColor('#e9f5ef'); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
@@ -209,7 +251,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      printed a heading per gate, each saying "nothing kept" — three of a
      page's sections telling the client nothing. They are named together. */
   const said2 = (s: ClientReport['sections'][number]) =>
-    !!(s.grid?.rows.length || s.late.length || s.accounts?.length || s.programs?.total || s.tests?.length);
+    !!(s.grid?.rows.length || s.late.length || s.problems.length || s.accounts?.length || s.programs?.total || s.tests?.length);
   const quiet = r.sections.filter(s => !said2(s));
   for (const s of r.sections.filter(said2)) {
     out.push(heading(s.label, s.says));
@@ -255,9 +297,16 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       out.push(keyBlock(used));
     }
 
+    /* LATE, THEN A PROBLEM — two lists, each in its colour and its words
+       (lib/install lateOrProblem): late with the hours lost when there are
+       any; a problem that lost no time apart, in amber. */
     if (s.late.length && s.gate !== 'commission') {
-      out.push(text({ text: 'Late or a problem', size: S.small, style: 'bold', colour: DANGER, after: 3 }));
+      out.push(text({ text: 'Late', size: S.small, style: 'bold', colour: DANGER, after: 3 }));
       s.late.forEach((l, i) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === s.late.length - 1 ? gap(d, 's') : 1 })));
+    }
+    if (s.problems.length) {
+      out.push(text({ text: 'A problem — no time lost', size: S.small, style: 'bold', colour: AMBER, after: 3 }));
+      s.problems.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
     }
 
     /* HOURS LOST — under what is late, in the same neutral ink: hours are the
@@ -416,10 +465,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
 }
 
 /* The state word beside a step's account, in the one colour that state wears
-   everywhere: done a quiet green, a problem or late red, waiting amber, still
-   ahead indigo, no day yet grey. */
+   everywhere: done a quiet green, late red, a problem that lost no time and
+   waiting amber, still ahead indigo, no day yet grey. */
 const ACCOUNT_INK: Record<StepAccount['tone'], string> = {
-  done: OK, problem: DANGER, late: DANGER, asking: AMBER, booked: BOOKED, ahead: MUTED,
+  done: OK, problem: AMBER, late: DANGER, asking: AMBER, booked: BOOKED, ahead: MUTED,
 };
 
 /** "Machine — stage" on the left; its day and its state (the grid's square and
