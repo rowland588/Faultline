@@ -300,6 +300,18 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      branches under the stage, on screen and on paper. */
   await putTestItem(item(programsLoaded.id, 'next', 'First program to verify Tesco Express 1.25 packs through the de-nester and the pick and place',
     { owner: 'Ilapak UK', due: iso(2), sort: 1 }));
+  /* A CRITICAL PROBLEM (lib/critical) — Rowland's own example, on the
+     stage it was found on, with what it means for the business and two ways
+     round it, one agreed. It leads the front page, the plan's stage, the day
+     and the client report under "Are we on target?". */
+  await putTestItem(item(programsLoaded.id, 'found', 'Programs cannot be copied over from the old line — each one has to be rewritten', {
+    owner: 'Ilapak UK', hoursLost: 6, critical: true, sort: 3,
+    impact: 'The line cannot go back to production on the agreed day: rewriting the programs takes about two weeks, and the Tesco Express launch is booked for 2 November.',
+    ways: [
+      { id: 'w1', what: 'Put a production belt in to bypass the robot, and pack by hand until the programs are done', agreed: true },
+      { id: 'w2', what: 'Ilapak send a second engineer to rewrite the programs in parallel' },
+    ],
+  }));
   await putTestItem(item(programsLoaded.id, 'next', 'Back up the six programs to the site server', { owner: 'Dave', due: iso(-3), doneAt: t - 3 * day, sort: 2 }));
   const regulator = fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
     withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' });
