@@ -30,6 +30,7 @@ import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, t
 import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay } from './weeks';
+import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import type { WalkSnag } from './walkSnags';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
@@ -52,6 +53,10 @@ export interface GateSection {
    *  every step that has one, in the grid's order: machine, then stage. A step
    *  with nothing said is not listed — the grid already gives its state. */
   accounts?: StepAccount[];
+  /** HOURS LOST at this gate (lib/hoursLost): the total in hours and days,
+   *  and a line per stage that lost any — what pushed its finish, what is
+   *  still short of a day, and the problems that cost them. */
+  hours?: { total: string; lines: string[] };
   /** Set up only: the programs. */
   programs?: { proved: number; total: number; notYet: { what: string; machine?: string; state: string }[] };
   /** Commission only: the tests, in the order they were planned. */
@@ -190,6 +195,18 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const lateSteps = all
       .filter(({ s }) => s.tone === 'problem' || s.late)
       .map(({ r, s }) => `${r.asset?.name ?? 'The line'} — ${s.step.title} (${[s.tone === 'problem' ? 'a problem' : '', s.late ? 'late' : ''].filter(Boolean).join(' · ')})`);
+    /* Rowland, 6 October: "2 hours here, 1 hour there, 5 hours here ... that
+       was one day fully missed, or half a day." */
+    const day = dayLength(project);
+    let lostAll = 0;
+    const hourLines = all.flatMap(({ r, s }) => {
+      const h = hoursTally(s.step.id, items, day);
+      if (!h.hours) return [];
+      lostAll += h.hours;
+      const each = items.filter(i => i.testId === s.step.id && i.kind === 'found' && (i.hoursLost ?? 0) > 0)
+        .sort((a, b) => a.createdAt - b.createdAt).map(i => `${i.what} ${hoursWord(i.hoursLost as number)}`);
+      return [`${r.asset?.name ?? 'The line'} — ${s.step.title}: ${hoursWord(h.hours)} lost${h.pushedDays ? `, pushed the finish ${h.pushedDays} day${h.pushedDays === 1 ? '' : 's'}` : ''}${h.banked ? `${h.pushedDays ? ';' : ','} ${hoursWord(h.banked)} not yet a full day` : ''} (${each.join('; ')})`];
+    });
     const problems = all.filter(({ s }) => s.tone === 'problem').length;
     const lateN = all.filter(({ s }) => s.late).length;
     const tone = job.find(j => j.gate === gate)?.tone ?? 'none';
@@ -204,6 +221,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
         : `${done} of ${steps.length} done${problems ? ` · ${problems} a problem` : ''}${lateN ? ` · ${lateN} late` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
+      ...(hourLines.length ? { hours: { total: `${hoursWord(lostAll)} lost to problems — ${daysWord(lostAll, day)} at ${hoursWord(day)} a day`, lines: hourLines } } : {}),
       ...(accounts.length ? { accounts } : {}),
     };
   };

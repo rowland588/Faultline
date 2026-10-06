@@ -59,7 +59,7 @@ export function slipOf(s: StageStory, finishNow?: string): number {
 
 /** Every push later on these stages, oldest first, in words for paper — the
  *  "Why the plan moved" list under the printed Gantt. */
-type MoveWords = { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string; lost?: string };
+type MoveWords = { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string };
 export function moveLines(stages: { id?: string; label: string; key?: string }[], tests: Test[], items: TestItem[], day: number = DAY_HOURS): MoveWords[] {
   const out: { at: string; line: MoveWords }[] = [];
   /* The handover first among equals: it is the date the client asks about. */
@@ -68,7 +68,8 @@ export function moveLines(stages: { id?: string; label: string; key?: string }[]
     if (!key) continue;
     const st = storyOf(key, tests, items);
     /* Hours lost (lib/hoursLost): a push made from hours says which hours made
-       the day; hours not yet a day are on the paper too, without a push. */
+       the day. Hours not yet a day have moved nothing, so they are not here —
+       the client report gives them under each gate. */
     const hrs = hoursTally(key, items, day);
     for (const m of st.moves) {
       const f = m.fixId ? st.fixes.find(x => x.id === m.fixId) : undefined;
@@ -76,13 +77,6 @@ export function moveLines(stages: { id?: string; label: string; key?: string }[]
       const parts = hrs.pushes.get(m.id);
       const why = parts ? `${partsWord(parts)} — ${m.days} full day${m.days === 1 ? '' : 's'} at ${hoursWord(day)} a day` : m.why;
       out.push({ at: m.on, line: { on: niceDay(m.on, { weekday: 'short' }), stage: s.label, from: niceDay(m.from), to: niceDay(m.to), days: m.days, why, ...(fix ? { fix } : {}) } });
-    }
-    if (hrs.banked > 0) {
-      const last = hrs.pending.length ? dayOf(hrs.pending[hrs.pending.length - 1].on) : todayISO();
-      out.push({ at: last, line: {
-        on: niceDay(last, { weekday: 'short' }), stage: s.label, from: '', to: '', days: 0, lost: hoursWord(hrs.banked),
-        why: `${hrs.pending.length ? partsWord(hrs.pending) : `${hoursWord(hrs.banked)} lost`} — not yet a full day at ${hoursWord(day)} a day; the finish has not moved for it`,
-      } });
     }
   }
   return out.sort((a, b) => a.at.localeCompare(b.at)).map(x => x.line);

@@ -260,6 +260,13 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       s.late.forEach((l, i) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === s.late.length - 1 ? gap(d, 's') : 1 })));
     }
 
+    /* HOURS LOST — under what is late, in the same neutral ink: hours are the
+       work, and only a finish that moved is late (on the plan). */
+    if (s.hours) {
+      out.push(text({ text: s.hours.total, size: S.small, style: 'bold', colour: INK2, after: 3 }));
+      s.hours.lines.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
+    }
+
     /* HOW EACH STAGE WENT — the team's account of every step that has one,
        under its "machine — stage", its day and its state in the grid's own
        colour and words. The account is a paragraph, so a long one wraps and
