@@ -10318,3 +10318,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 /* IS THE OVERLAP OK? (ui/InstallGrid DatesForm) — asked once when a step's
    dates start inside the one ahead; a yes stops the plan flagging it. */
 .ig-over { display: grid; gap: 6px; font-size: var(--t-detail); color: var(--ink-2); margin-top: 6px; }
+
+/* THE DAY IT WAS DONE, changed in place (ui/RecordDrawer). */
+.rd-day { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rd-day input { min-height: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }

@@ -203,13 +203,14 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const today = todayISO();
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
   const [planning, setPlanning] = useState(false);
+  const [dayEdit, setDayEdit] = useState<string | null>(null);
   /* "Is the overlap OK?" answered on the dates form, saved with the dates. */
   const overlapAnswer = useRef<boolean | undefined>(undefined);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editingProblem, setEditingProblem] = useState<string | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setPlanning(false); setEditingProblem(null); }, [id]);
+  useEffect(() => { setProblem(false); setPlanning(false); setEditingProblem(null); setDayEdit(null); }, [id]);
 
   const t = live(tt.tests).find(x => x.id === id);
   const from = trail.length ? live(tt.tests).find(x => x.id === trail[trail.length - 1]) : undefined;
@@ -380,9 +381,30 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <div><span>{kind === 'fix' ? 'Date agreed' : 'Planned'}</span>{dates ?? <i className="sub">{kind === 'fix' ? 'not agreed yet' : 'no day yet'}</i>}
             {slip > 0 && <em className="rd-slip">+{slip} day{slip === 1 ? '' : 's'} past the first finish, {short(first)}</em>}</div>
           <div><span>Who</span>{t.withWhom || <i className="sub">nobody named</i>}</div>
+          {/* THE DAY IT WAS DONE, CHANGEABLE. Rowland, 6 October: "can't change
+              a date if I say it completed, but I make mistakes." "Done today"
+              stamps today; this is how a wrong day is put right. */}
+          {t.ranOn && (
+            <div><span>{t.outcome === 'passed' ? (kind === 'fix' ? 'Fixed on' : 'Done on') : t.outcome === 'failed' ? 'Problem on' : 'Worked on'}</span>
+              {dayEdit !== null ? (
+                <span className="rd-day">
+                  <input type="date" value={dayEdit} aria-label="The day it was done" onChange={e => setDayEdit(e.target.value)} />
+                  <button type="button" className="btn btn-sm btn-primary" disabled={!dayEdit} onClick={() => {
+                    if (dayEdit && dayEdit !== t.ranOn) void changeTests(tt, [t], () => ({ ranOn: dayEdit }), `${t.title} — day changed to ${short(dayEdit)}`);
+                    setDayEdit(null);
+                  }}>Save</button>
+                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDayEdit(null)}>Cancel</button>
+                </span>
+              ) : (
+                <>{short(t.ranOn)}{can.edit && <> <button type="button" className="cw-link" onClick={() => setDayEdit(t.ranOn ?? today)}>change</button></>}</>
+              )}
+            </div>
+          )}
         </div>
         {can.edit && (planning ? (
-          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo} was={plannedEnd(t)}
+          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo}
+            /* A finished one's dates are corrected, not overrun: no "why did it move?". */
+            was={t.outcome === 'passed' ? undefined : plannedEnd(t)}
             who={{ names, value: t.withWhom ?? '' }}
             following={end => followingSummary(t, tt.tests, end)}
             overlap={kind === 'fix' ? undefined : {
