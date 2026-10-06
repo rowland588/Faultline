@@ -48,7 +48,7 @@ import type { Case } from '../types';
 import { removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
 import { offerUndo } from '../ui/Undo';
 import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
-import { putOldWhysOnBone } from '../lib/useProblems';
+import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { useActions } from '../lib/actions';
@@ -638,6 +638,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     onOpenFix: openFix,
     onClose: () => setClosing(true),
     onReopen: () => void api.reopen(v.problem.id),
+    onClosedOn: iso => { if (can.agree) void closedProblemOn(v.problem.id, iso); },
     onChecked: () => void api.checked(v.problem.id),
     onRemove: () => void removeProblem(v),
   });

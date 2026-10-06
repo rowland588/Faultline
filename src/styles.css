@@ -2070,6 +2070,9 @@ button.st-pill { cursor: pointer; }
 .nm-val { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 .nm-note { color: var(--muted); font-size: var(--t-label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nm-row .pset-x { margin-left: auto; }
+.nm-row input.nm-when { flex: 0 0 150px; width: 150px; min-width: 0; color: var(--ink-2); }
+.nm-row input.nm-val { flex: 0 0 76px; width: 76px; text-align: left; }
+@media (max-width: 560px) { .nm-row { flex-wrap: wrap; row-gap: 4px; } }
 
 .chip-note.is-good { color: var(--ok); }
 
@@ -9634,6 +9637,7 @@ button.fb-head { appearance: none; margin: 0; font: inherit; text-align: left; c
 .ax-late { color: var(--st-r); }
 .ax-soon { color: color-mix(in srgb, var(--st-a) 72%, var(--ink)); }
 .ax-ro, .ax-done-on { margin: 0; }
+label.ax-done-on, .pc-closed-on { flex: 0 0 auto; max-width: 260px; }
 .ax-guess { margin: 4px 0 0; font-size: var(--t-label); }
 
 /* The list: a bone (and, on a project's list, a line) on every row. */

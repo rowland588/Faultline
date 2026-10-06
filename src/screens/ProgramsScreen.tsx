@@ -16,6 +16,7 @@
  */
 import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
+import { DateInput } from '../ui/DateInput';
 import { keyOf } from '../lib/story';
 import { useEffect, useRef, useState } from 'react';
 import { nav, navReplace } from '../state/useRoute';
@@ -239,6 +240,12 @@ function Row({ p, today, lineName, assets, state, weeks, can }: {
           <DateWhy className="mt-due" ariaLabel={`Date ${p.what} is being tested`} value={p.testOn}
             projectId={p.projectId} storyKey={keyOf('program', p.id)} what={`${p.what} test`}
             onChange={v => state.save({ ...p, testOn: v })} />
+        )}
+        {/* Proved is not locked (Rowland, 6 October: "I make mistakes"): the
+            day it was proved stays a box. Cleared, it is not proved after all. */}
+        {isProved(p) && can.edit && (
+          <DateInput className="mt-due" aria-label={`Day ${p.what} was proved`} value={p.provedOn}
+            onCommit={v => void (v ? state.save({ ...p, state: 'proved', provedOn: v }) : state.markUnproved(p.id))} />
         )}
       </div>
 
