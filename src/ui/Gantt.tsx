@@ -8,7 +8,7 @@
  * edge, and the chart opens scrolled to today. Tapping a row opens its record.
  */
 import { Fragment, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { gantt, ganttBy, ganttHref, keepGanttBy, withMachines, type GanttBy, type GanttMachine, type GanttRow, type GanttScale } from '../lib/gantt';
+import { gantt, ganttBy, ganttHref, keepGanttBy, withMachines, type GanttBy, type GanttMachine, type GanttRow, type GanttScale, type GanttTone } from '../lib/gantt';
 import { windowWords, whenWords as niceDayShort } from '../lib/plan';
 import { HANDOVER_KEY } from '../lib/story';
 import type { PlanMark } from '../lib/standing';
@@ -30,12 +30,13 @@ const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
    (ui/RecordDrawer), like every other door onto it. */
 const RECORD = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test', 'fix']);
 const BANDS_KEY = 'faultline.gantt.bands';
-const BAND_TONE: Record<PlanMark['tone'], string> = {
-  done: 'done', failed: 'a problem', ran: 'waiting on a verdict', booked: 'under way or ahead', late: 'late or a problem', none: 'not started',
+const BAND_TONE: Record<GanttTone, string> = {
+  done: 'done', failed: 'didn’t pass', ran: 'waiting on a verdict', booked: 'under way or ahead', late: 'late',
+  problem: 'a problem — no time lost', none: 'not started',
 };
-const TONE_WORD: Record<PlanMark['tone'], string> = {
+const TONE_WORD: Record<GanttTone, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran — nobody has said how it went',
-  booked: 'still ahead', late: 'the day has gone', none: 'no date agreed',
+  booked: 'still ahead', late: 'the day has gone', problem: 'a problem — no time lost', none: 'no date agreed',
 };
 
 export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs, dayHours }: {
@@ -218,7 +219,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const inside = w >= r.when.length * 6.4 + 16;
     const tip = r.kind === 'note'
       ? `Reminder: ${r.label} · ${r.when}${r.tone === 'done' ? ' · talked about' : r.tone === 'late' ? ' · the day has gone' : ''}`
-      : `${named} · ${r.when} · ${TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}`;
+      : `${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}`;
     const afterBar = r.start * px + 2 + w + 6 + (r.slip ? 0 : 0);
     return (
       <Fragment key={`${r.id ?? r.label}-${i}`}>
@@ -229,8 +230,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                 Only the machine is split off: "Weight accuracy — 400g" read
                 as a step called "400g" on a machine called "Weight accuracy". */}
             {r.on && r.label.startsWith(`${r.on} — `)
-              ? <><b>{r.label.slice(r.on.length + 3)}</b><small>{r.on}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</small></>
-              : <b>{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>}
+              ? <><b>{r.label.slice(r.on.length + 3)}</b><small>{r.on}{r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</small></>
+              : <><b>{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says ? <small className={'gt-lab-says is-' + r.tone}>{r.says}</small> : null}</>}
           </button>
           <div className="gt-track" style={{ width: T }}>
             <button type="button" className={'gt-b is-' + r.tone + (r.kind === 'note' ? ' is-note' : '')} title={tip} aria-label={tip}
@@ -418,12 +419,13 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                         const s0 = Math.min(...gr.rows.map(r => r.start));
                         const e0 = Math.max(...gr.rows.map(r => Math.max(r.start + r.span, r.slip ? r.slip.start + r.slip.span : 0, ...(r.fixes ?? []).map(f => f.start + f.span))));
                         const late = gr.rows.filter(r => r.tone === 'late' || r.tone === 'failed' || r.slip).length;
+                        const problem = gr.rows.filter(r => r.tone === 'problem' && !r.slip).length;
                         const done = gr.rows.every(r => r.tone === 'done');
                         const from = gr.rows.map(r => r.from).sort()[0], to = gr.rows.map(r => r.to).sort().pop() as string;
-                        const words = `${windowWords(from, to)}${late ? ` · ${late} late or moved` : ''}`;
+                        const words = `${windowWords(from, to)}${late ? ` · ${late} late or moved` : ''}${problem ? ` · ${problem} a problem` : ''}`;
                         const w = Math.max((e0 - s0) * px - 4, 10);
                         return (
-                          <button type="button" className={'gt-b gt-sum is-' + (late ? 'late' : done ? 'done' : 'booked') + (gr.kind === 'note' ? ' is-note' : '')}
+                          <button type="button" className={'gt-b gt-sum is-' + (late ? 'late' : problem ? 'problem' : done ? 'done' : 'booked') + (gr.kind === 'note' ? ' is-note' : '')}
                             style={{ left: s0 * px + 2, width: w }} onClick={() => toggle(gr.kind)} title={`${gr.label} · ${words} — tap to open`}>
                             {w >= words.length * 6.2 + 14 ? words : ''}
                           </button>
@@ -454,7 +456,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         <span><i className="gt-k is-done" />done</span>
         <span><i className="gt-k is-failed" />ran, didn’t pass</span>
         <span><i className="gt-k is-ran" />ran, not yet called</span>
-        <span><i className="gt-k is-late" />the day has gone</span>
+        <span><i className="gt-k is-late" />late — the day has gone, or hours lost</span>
+        <span><i className="gt-k is-problem" />a problem — no time lost</span>
         <span><i className="gt-k is-booked" />still ahead</span>
         {g.groups.some(x => x.kind === 'note') && <span><i className="gt-k is-note" />a reminder from the notes</span>}
         {g.groups.some(x => x.rows.some(r => r.slip)) && <span><i className="gt-k gt-k-slip" />past the finish first planned</span>}

@@ -12,7 +12,7 @@
  * is: by machine (a header band each — lib/gantt withMachines) or by gate.
  */
 import type { jsPDF } from 'jspdf';
-import type { Gantt, GanttGroup, GanttMachine, GanttRow } from './gantt';
+import { badWords, WORST, type Gantt, type GanttGroup, type GanttMachine, type GanttRow, type GanttTone } from './gantt';
 import type { PlanMark } from './standing';
 import { pdfFamily, san } from './reportKit';
 import { walkMarkers } from './walkSnags';
@@ -23,21 +23,24 @@ const BRAND = '#1f63e0', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', 
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 /* A reminder from the meeting notes — its own colour, on paper as on screen. */
 const REMIND = '#b8237a';
-const NOTE_TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: string }> = {
+const NOTE_TONE: Record<GanttTone, { fill: string; stroke: string; text: string }> = {
   done: { fill: REMIND, stroke: REMIND, text: '#ffffff' },
   failed: { fill: '#fbe7f1', stroke: DANGER, text: REMIND },
   ran: { fill: '#fbe7f1', stroke: REMIND, text: REMIND },
+  problem: { fill: '#fbe7f1', stroke: AMBER, text: REMIND },
   late: { fill: '#fbe7f1', stroke: DANGER, text: REMIND },
   booked: { fill: '#fbe7f1', stroke: REMIND, text: REMIND },
   none: { fill: '#fbe7f1', stroke: REMIND, text: REMIND },
 };
 
-const TONE: Record<PlanMark['tone'], { fill: string; stroke: string; text: string }> = {
+const TONE: Record<GanttTone, { fill: string; stroke: string; text: string }> = {
   /* Done is quiet on paper as on screen — what is wrong is what stands out. */
   done: { fill: '#e3efe9', stroke: OK, text: OK },
   failed: { fill: DANGER, stroke: DANGER, text: '#ffffff' },
   ran: { fill: AMBER, stroke: AMBER, text: '#ffffff' },
   late: { fill: '#f8ecea', stroke: DANGER, text: DANGER },
+  /* A problem that lost no time — amber, waiting on something, not late. */
+  problem: { fill: '#f7eedb', stroke: AMBER, text: AMBER },
   booked: { fill: '#e6e4f6', stroke: BOOKED, text: BOOKED },
   none: { fill: SURF2, stroke: '#c6d2e3', text: MUTED },
 };
@@ -59,16 +62,16 @@ const FOOT = 64;              // room left at the bottom for the handover labels
  * many and how many are late, so nothing is hidden by the fold. The screen's
  * plan scrolls and keeps every row; this is the paper's version of it.
  * ------------------------------------------------------------------------- */
-type Bit = { start: number; span: number; tone: PlanMark['tone'] };
+type Bit = { start: number; span: number; tone: GanttTone };
 type PaperRow = GanttRow & { bits?: Bit[]; sub?: string };
 type Line = { group: string; n: number; cont?: boolean } | { row: PaperRow; fix?: boolean } | { walk: true }
   /* By machine: a machine's header, and the name of each gate where it starts. */
   | { band: GanttMachine; cont?: boolean } | { gate: string };
 /* The colour a state's WORDS are printed in — the same five as the screen. */
-const SAY: Record<PlanMark['tone'], string> = { done: OK, failed: DANGER, ran: AMBER, booked: BOOKED, late: DANGER, none: MUTED };
+const SAY: Record<GanttTone, string> = { done: OK, failed: DANGER, ran: AMBER, problem: AMBER, booked: BOOKED, late: DANGER, none: MUTED };
 
-const SEVERITY: PlanMark['tone'][] = ['failed', 'late', 'ran', 'booked', 'none', 'done'];
-const worst = (ts: PlanMark['tone'][]): PlanMark['tone'] => SEVERITY.find(t => ts.includes(t)) ?? 'none';
+/* The screen's order of what is most abnormal (lib/gantt WORST). */
+const worst = (ts: GanttTone[]): GanttTone => WORST.find(t => ts.includes(t)) ?? 'none';
 const STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover']);
 const NOUN: Partial<Record<PlanMark['kind'], [string, string]>> = {
   install: ['machine', 'machines'], setup: ['machine', 'machines'], handover: ['machine', 'machines'],
@@ -87,13 +90,13 @@ export function foldForPaper(g: Gantt, capacity: number): Gantt {
     if (byKey.size === gr.rows.length) return gr;          // nothing to fold
     const noun = NOUN[gr.kind] ?? ['item', 'items'];
     const rows: PaperRow[] = [...byKey].map(([key, rs]) => {
-      const late = rs.filter(r => r.tone === 'late' || r.tone === 'failed').length;
+      const bad = badWords(rs);
       const fixes = rs.flatMap(r => r.fixes ?? []);
       const row: PaperRow = {
         ...rs[0], label: key, on: undefined, slip: undefined, marks: undefined, overlap: undefined,
         start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
         bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
-        sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${late ? ` · ${late} late or a problem` : ''}`,
+        sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}`,
         fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
       };
       return row;
@@ -122,13 +125,13 @@ export function foldBands(g: Gantt, capacity: number): Gantt {
     if (gr.rows.length < 2 && !gr.rows.some(r => r.fixes?.length)) return { ...gr, rows: gr.rows.map(r => ({ ...r, label: `${gr.label}: ${r.label}` })) };
     const rs = gr.rows;
     const noun = GATE_NOUN[gr.kind] ?? ['item', 'items'];
-    const late = rs.filter(r => r.tone === 'late' || r.tone === 'failed').length;
+    const bad = badWords(rs);
     const fixes = rs.flatMap(r => r.fixes ?? []);
     const row: PaperRow = {
       ...rs[0], label: gr.label, on: undefined, slip: undefined, marks: undefined, overlap: undefined,
       start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
       bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
-      sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${late ? ` · ${late} late or a problem` : ''}`,
+      sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}`,
       fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
     };
     return { ...gr, rows: [row] };
@@ -186,7 +189,8 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     font(7.5, 'bold');
     const step = doc.splitTextToSize(san(mach ? r.label.slice(mach.length + 3) : r.label), LAB - 12) as string[];
     font(6, 'normal');
-    const under = r.sub ?? mach;
+    /* Why it wears its colour, when the rule decided it — "late — 2 h lost". */
+    const under = r.sub ?? [mach, r.says].filter(Boolean).join(' · ');
     const sub = under ? doc.splitTextToSize(san(under), LAB - 12) as string[] : [];
     return { step, sub };
   };
@@ -317,7 +321,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
            colour of the strip, and a bar from its first date to its last. */
         const b = l.band;
         const bad = b.tone === 'late' || b.tone === 'failed';
-        doc.setFillColor(bad ? '#fbf1ef' : SURF2); doc.rect(M, y, PW - 2 * M, RH, 'F');
+        doc.setFillColor(bad ? '#fbf1ef' : b.tone === 'problem' ? '#fbf6ec' : SURF2); doc.rect(M, y, PW - 2 * M, RH, 'F');
         doc.setFillColor(b.tone === 'done' ? '#9fc5b3' : SAY[b.tone]); doc.rect(M, y, 2.5, RH, 'F');
         doc.setDrawColor('#c6d2e3'); doc.setLineWidth(0.6); doc.line(M, y, PW - M, y); doc.line(M, y + RH, PW - M, y + RH);
         const { name, says } = bandLabel(b, l.cont);
@@ -372,7 +376,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         } else {
           const { step, sub } = labelOf(r);
           font(7.5, 'bold', INK); doc.text(step, M + 6, y + 7.5 * k, { lineHeightFactor: 8.5 * k / 7.5 });
-          font(6, 'bold', r.tone === 'late' || r.tone === 'failed' ? DANGER : MUTED);
+          font(6, 'bold', r.tone === 'late' || r.tone === 'failed' ? DANGER : r.tone === 'problem' ? AMBER : MUTED);
           doc.text(sub, M + 6, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 });
         }
         const bh = Math.min(RH - 8, 9), by = y + (RH - bh) / 2;
@@ -415,7 +419,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       const lines1 = step.length + sub.length;
       // The row's own air scales with it when a page is tightened (k); the type does not.
       doc.text(step, M + 6, y + (lines1 === 1 ? RH / 2 + 2.6 : 7.5 * k), { lineHeightFactor: 8.5 * k / 7.5 });
-      if (sub.length) { font(6, 'normal', MUTED); doc.text(sub, M + 6, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 }); }
+      if (sub.length) { font(6, r.says ? 'bold' : 'normal', r.says ? SAY[r.tone] : MUTED); doc.text(sub, M + 6, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 }); }
 
       const t = (r.kind === 'note' ? NOTE_TONE : TONE)[r.tone];
       const bh = Math.min(RH - 8, 9), bx = X(r.start) + 0.6, bw = Math.max(2.4, r.span * px - 1.2), by = y + (RH - bh) / 2;
@@ -493,7 +497,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       font(7, 'normal', INK2);
       if (kx + extra + doc.getTextWidth(san(word)) > PW - M) { kx = M; ky += 11; lastKey = ky; }
     };
-    for (const [tone, word] of [['done', 'done'], ['failed', 'ran, didn’t pass'], ['ran', 'ran, not yet called'], ['late', 'the day has gone'], ['booked', 'still ahead']] as [PlanMark['tone'], string][]) {
+    for (const [tone, word] of [['done', 'done'], ['failed', 'ran, didn’t pass'], ['ran', 'ran, not yet called'], ['late', 'late — the day has gone, or hours lost'], ['problem', 'a problem — no time lost'], ['booked', 'still ahead']] as [GanttTone, string][]) {
       fit(word, 24);
       const c = TONE[tone];
       doc.setDrawColor(c.stroke); doc.setFillColor(c.fill); doc.setLineWidth(0.7);

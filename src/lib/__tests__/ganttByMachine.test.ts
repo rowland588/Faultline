@@ -117,7 +117,7 @@ describe('the plan by machine', () => {
     expect(job.id).toBeUndefined();
     expect(job.groups.map(gr => gr.label)).toEqual(['Materials', 'Install']);
     expect(job.groups.flatMap(gr => gr.rows.map(r => r.label))).toEqual(['Film reels', 'Line air ring main']);
-    expect(job.says).toBe('2 on the plan · 1 late or a problem');
+    expect(job.says).toBe('2 on the plan · 1 late');
     expect(job.tone).toBe('late');
   });
 

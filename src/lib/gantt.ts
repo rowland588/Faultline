@@ -19,10 +19,23 @@ import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, live, type Asset, type Test, type TestItem } from './testing';
 import { todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { JOURNEY, journeyNow, machineAt, journeyOf, redReasons } from './install';
+import { JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons } from './install';
+import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import type { Program } from './programs';
 
 export type GanttScale = 'day' | 'week';
+
+/** The plan's tones: the marks' own, and `problem` — an install step that hit
+ *  a problem and lost no time, in amber (lib/install lateOrProblem). */
+export type GanttTone = PlanMark['tone'] | 'problem';
+
+/** "1 late · 2 a problem · 1 didn’t pass" — every abnormal row counted by what
+ *  it is, never "3 late or a problem". Empty when nothing is. */
+export function badWords(rows: Pick<GanttRow, 'tone'>[], extraLate = 0): string {
+  const n = (t: GanttTone) => rows.filter(r => r.tone === t).length;
+  const late = n('late') + extraLate, problem = n('problem'), failed = n('failed');
+  return [late ? `${late} late` : '', problem ? `${problem} a problem` : '', failed ? `${failed} didn’t pass` : ''].filter(Boolean).join(' · ');
+}
 
 export interface GanttRow {
   id?: string;
@@ -32,7 +45,10 @@ export interface GanttRow {
   on?: string;
   from: string;
   to: string;
-  tone: PlanMark['tone'];
+  tone: GanttTone;
+  /** Why it wears that tone, when the rule decided it: "late — 2 h lost",
+   *  "a problem — no time lost". */
+  says?: string;
   /** Days from the first column to the first day of the bar. */
   start: number;
   /** How many days the bar covers — 1 for a single day. */
@@ -200,6 +216,13 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
           const step = records.tests.find(t => t.id === m.id);
           const over = step ? overlapOf(step, records.tests) : undefined;
           if (over) row.overlap = over.title;
+          /* LATE OR A PROBLEM — which one (lib/install lateOrProblem). */
+          const lp = step ? lateOrProblem(step, records.items, today) : undefined;
+          if (step && (lp === 'late' || lp === 'problem')) {
+            const lost = hoursTally(step.id, records.items, DAY_HOURS).hours;
+            row.tone = lp;
+            row.says = lp === 'problem' ? 'a problem — no time lost' : lost > 0 ? `late — ${hoursWord(lost)} lost` : 'late';
+          }
         }
         const st = m.id ? stories.get(m.id) : undefined;
         if (st) {
@@ -282,7 +305,7 @@ export interface GanttMachine {
   /** Where it stands, in words — "at Set up · 1 late", "Handed over". */
   says: string;
   /** Its state in the plan's colours: late, waiting (ran), done, ahead, none. */
-  tone: PlanMark['tone'];
+  tone: GanttTone;
   /** The gate page its header opens — the one it is at (lib/install JOURNEY),
    *  the page the strip's tile for that gate opens. */
   path?: string;
@@ -290,7 +313,7 @@ export interface GanttMachine {
    *  machine's plan and wears no state of its own: its `segs` are its own
    *  rows' days merged, each in that row's tone, so red sits only on the days
    *  of what is actually late. */
-  bar?: { start: number; span: number; when: string; segs: { start: number; span: number; tone: PlanMark['tone'] }[] };
+  bar?: { start: number; span: number; when: string; segs: { start: number; span: number; tone: GanttTone }[] };
   /** Its rows, gate by gate in the order the job runs; the label is the gate. */
   groups: GanttGroup[];
   /** The filmed walk's lane is drawn in this band. */
@@ -315,7 +338,7 @@ const MACHINE_GATES: { kind: PlanMark['kind']; label: string; kinds: PlanMark['k
 ];
 
 const byDate = (a: GanttRow, b: GanttRow) => a.start - b.start || a.span - b.span || a.label.localeCompare(b.label);
-const isBad = (t: PlanMark['tone']) => t === 'late' || t === 'failed';
+const isBad = (t: GanttTone) => t === 'late' || t === 'failed';
 const endOfRow = (r: GanttRow) => Math.max(r.start + r.span, r.slip ? r.slip.start + r.slip.span : 0, ...(r.fixes ?? []).map(f => f.start + f.span));
 
 function barOf(rows: GanttRow[], dayList: GanttDay[]): GanttMachine['bar'] {
@@ -327,8 +350,8 @@ function barOf(rows: GanttRow[], dayList: GanttDay[]): GanttMachine['bar'] {
   /* ONE LANE, MERGED MARKERS — each day takes the most abnormal tone of the
      rows on it (a stage, its fixes, its overrun past the finish first
      planned), and runs of one tone become one piece. */
-  const day: (PlanMark['tone'] | undefined)[] = Array(Math.max(0, end - start)).fill(undefined);
-  const put = (s0: number, n: number, t: PlanMark['tone']) => {
+  const day: (GanttTone | undefined)[] = Array(Math.max(0, end - start)).fill(undefined);
+  const put = (s0: number, n: number, t: GanttTone) => {
     for (let d = Math.max(start, s0); d < Math.min(end, s0 + n); d++) {
       const was = day[d - start];
       if (!was || WORST.indexOf(t) < WORST.indexOf(was)) day[d - start] = t;
@@ -349,9 +372,10 @@ function barOf(rows: GanttRow[], dayList: GanttDay[]): GanttMachine['bar'] {
   return { start, span: Math.max(1, end - start), when: windowWords(from, to), segs };
 }
 
-/** Most abnormal first: a failure, then late, then waiting on somebody, then
- *  booked, then not started, and done last — normal recedes. */
-const WORST: PlanMark['tone'][] = ['failed', 'late', 'ran', 'booked', 'none', 'done'];
+/** Most abnormal first: a failure, then late, then a problem that lost no
+ *  time, then waiting on somebody, then booked, then not started, and done
+ *  last — normal recedes. */
+export const WORST: GanttTone[] = ['failed', 'late', 'problem', 'ran', 'booked', 'none', 'done'];
 
 /** "Wrapper — Dry run" is "Dry run" inside the wrapper's own band. */
 export const stepOf = (r: Pick<GanttRow, 'on' | 'label'>): string =>
@@ -410,13 +434,14 @@ export function withMachines(g: Gantt, job: {
     /* A late fix or program is drawn red in the band; folded, the header is
        all that shows, so it says so too. */
     const all = rows.flatMap(r => [r, ...(r.fixes ?? [])]);
-    const lateRows = all.filter(r => r.tone === 'late').length, failedRows = all.filter(r => r.tone === 'failed').length;
-    const lateOnly = why.every(w => /(is late|did not run)$/.test(w) && !/problem/.test(w));
-    const red = why.length
-      ? `${why.length} late${lateOnly ? '' : ' or a problem'}`
-      : [lateRows ? `${lateRows} late` : '', failedRows ? `${failedRows} didn’t pass` : ''].filter(Boolean).join(' · ');
-    const late = j.some(x => x.tone === 'late') || !!red;
-    const tone: PlanMark['tone'] = late ? 'late'
+    /* Counted off the rows, each by what it is — "1 late · 2 a problem" —
+       so the header says what the bars show (lib/install lateOrProblem). A
+       reason with no row (a step with no date) is still said, in its words. */
+    const red = badWords(all) || (why.length ? `${why[0]}${why.length > 1 ? ` · and ${why.length - 1} more` : ''}` : '');
+    const redRows = all.some(r => isBad(r.tone)), problemRows = all.some(r => r.tone === 'problem');
+    const late = redRows || (!problemRows && (j.some(x => x.tone === 'late') || why.length > 0));
+    const tone: GanttTone = late ? 'late'
+      : problemRows ? 'problem'
       : now === 'Handed over' ? 'done'
         : rows.some(r => r.tone === 'ran') ? 'ran'
           : j.some(x => x.tone === 'going') || rows.some(r => r.tone === 'booked') ? 'booked' : 'none';
@@ -434,13 +459,14 @@ export function withMachines(g: Gantt, job: {
     const rows = rest.flatMap(gr => gr.rows);
     const bad = rows.filter(r => isBad(r.tone)).length + (walk && g.walk ? g.walk.late : 0);
     const open = walk && g.walk ? g.walk.open : 0;
-    const tone: PlanMark['tone'] = bad ? 'late'
+    const tone: GanttTone = bad ? 'late'
+      : rows.some(r => r.tone === 'problem') ? 'problem'
       : rows.some(r => r.tone === 'ran') ? 'ran'
         : rows.length > 0 && rows.every(r => r.tone === 'done') && !open ? 'done'
           : rows.some(r => r.tone === 'booked') || open ? 'booked' : 'none';
     /* Only the walk: its lane says it, so the header says the same words. */
     const says = !rows.length && g.walk ? `found on the walk · ${g.walk.words}`
-      : `${rows.length} on the plan · ${bad ? `${bad} late or a problem` : 'nothing late'}`;
+      : `${rows.length} on the plan · ${badWords(rows, walk && g.walk ? g.walk.late : 0) || 'nothing late'}`;
     const bar = barOf(rows, g.dayList);
     bands.push({ name: JOB_BAND, says, tone, groups: rest, ...(walk ? { walk: true } : {}), ...(bar ? { bar } : {}) });
   }
