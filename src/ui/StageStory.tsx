@@ -18,11 +18,12 @@
  */
 import { useState } from 'react';
 import type { MediaRef } from '../types';
-import type { Test } from '../lib/testing';
+import type { Test, TestItem } from '../lib/testing';
 import { storyOf } from '../lib/story';
 import { niceDay } from '../lib/weeks';
 import { openRecord } from './RecordDrawer';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
+import { Evidence } from './EvidenceDoors';
 import { offerUndo } from './Undo';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
@@ -49,7 +50,7 @@ export function storyLength(stepId: string, tt: TT): number {
 }
 
 export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
-  stepId: string; tt: Pick<TT, 'tests' | 'items' | 'saveItem' | 'removeItem'>; can: Can; projectId: string;
+  stepId: string; tt: Pick<TT, 'tests' | 'items' | 'saveItem' | 'removeItem' | 'patchTest'>; can: Can; projectId: string;
   /** What to say when nothing has happened; nothing at all when left out. */
   empty?: string;
   /** Where "Open the fix ›" goes. Inside the drawer it shows the fix in the
@@ -70,31 +71,10 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
      leaves the dates where they are and stops drawing it as an overrun — and
      Undo puts it back. */
   const itemOf = (id: string) => tt.items.find(i => i.id === id);
-  const editor = (id: string, text: string) => (
-    <span className="sp-edit">
-      <textarea className="text-area" rows={2} defaultValue={text} autoFocus id={`sp-e-${id}`} aria-label="What happened" />
-      {itemOf(id)?.hoursLost && (
-        <label className="cw-f sp-edit-h"><span>Hours lost</span>
-          <input inputMode="decimal" defaultValue={String(itemOf(id)?.hoursLost)} id={`sp-eh-${id}`} /></label>
-      )}
-      <span className="sp-edit-acts">
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => {
-          const v = (document.getElementById(`sp-e-${id}`) as HTMLTextAreaElement | null)?.value.trim();
-          const hText = (document.getElementById(`sp-eh-${id}`) as HTMLInputElement | null)?.value;
-          const h = hText === undefined ? undefined : Number(hText.replace(',', '.'));
-          const it = itemOf(id);
-          const what = v || it?.what;
-          const hoursLost = h !== undefined && h > 0 ? h : it?.hoursLost;
-          if (it && what && (what !== it.what || hoursLost !== it.hoursLost)) {
-            void tt.saveItem({ ...it, what, ...(hoursLost ? { hoursLost } : {}) });
-            offerUndo('Changed', () => tt.saveItem(it));
-          }
-          setEditing(null);
-        }}>Save</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancel</button>
-      </span>
-    </span>
-  );
+  const editor = (id: string) => {
+    const it = itemOf(id);
+    return it ? <ProblemEdit item={it} tt={tt} can={can} onDone={() => setEditing(null)} /> : null;
+  };
   const entryActs = (id: string, text: string) => can.edit && (
     <span className="sp-row-acts">
       <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
@@ -122,7 +102,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
       <>
         <span className="sp-k is-move">Moved</span>
         <p className="sp-t"><b>{niceDay(m.from)} → {niceDay(m.to)}</b> · +{m.days} day{m.days === 1 ? '' : 's'}</p>
-        {editing === m.id ? editor(m.id, m.why) : <p className="sp-why">{m.why}</p>}
+        {editing === m.id ? editor(m.id) : <p className="sp-why">{m.why}</p>}
         {tally.pushes.has(m.id) && <p className="sp-hours">{partsWord(tally.pushes.get(m.id) ?? [])} — {m.days === 1 ? 'a full day' : `${m.days} full days`}</p>}
         {pics(m.media)}
         {editing !== m.id && entryActs(m.id, m.why)}
@@ -132,7 +112,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
     ...st.found.map(f => ({ on: f.on, key: f.id, at: itemOf(f.id)?.createdAt, node: (
       <>
         <span className="sp-k is-found">Found</span>
-        {editing === f.id ? editor(f.id, f.what) : <p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}</p>}
+        {editing === f.id ? editor(f.id) : <p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}</p>}
         {pics(f.media)}
         {editing !== f.id && entryActs(f.id, f.what)}
         {fixOf(f.fixId) && fixNode(fixOf(f.fixId) as Test, true)}
@@ -157,5 +137,72 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
       </ol>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </>
+  );
+}
+
+/** A SAVED PROBLEM, OPENED AGAIN — its words, its hours and its pictures.
+ *  Rowland, 6 October: "I could edit the problem once saved." The stage's
+ *  story and the fix it booked (ui/RecordDrawer) both open this one editor,
+ *  so a picture added from the fix is the one the stage shows and the
+ *  client report prints (lib/clientReport fixRow reads the item). The days
+ *  it moved are not here: they are the stage's, changed with "Change dates
+ *  or who". Save is one write, and Undo puts the whole item back. */
+export function ProblemEdit({ item, tt, can, onDone }: {
+  item: TestItem; tt: Pick<TT, 'tests' | 'saveItem' | 'patchTest'>; can: Can; onDone: () => void;
+}) {
+  const [what, setWhat] = useState(item.what);
+  const [hours, setHours] = useState(item.hoursLost ? String(item.hoursLost) : '');
+  const [media, setMedia] = useState<MediaRef[]>(item.media ?? []);
+  const [viewing, setViewing] = useState<MediaRef | null>(null);
+  /* Hours on a push are the hours that made the day; a push written as days
+     has none to add. A problem can always say what it cost. */
+  const showHours = !!item.hoursLost || !item.movedFrom;
+  const save = () => {
+    const h = Number(hours.replace(',', '.'));
+    const next: TestItem = { ...item, what: what.trim() || item.what, media };
+    if (showHours) {
+      if (h > 0) next.hoursLost = h;
+      else if (!hours.trim()) delete next.hoursLost;
+    }
+    const same = next.what === item.what && next.hoursLost === item.hoursLost
+      && media.map(m => m.id).join() === (item.media ?? []).map(m => m.id).join();
+    if (!same) {
+      /* THE FIX IT BOOKED keeps a copy of these words: its name when nobody
+         gave it one, and "The problem" its card and the client report print
+         (lib/testing nextFrom). A copy still matching the old words moves with
+         them, so the paper says what the screen says. "The problem" on a fix
+         is what was agreed, so only the owner moves that one (lib/access). */
+      const fix = item.becameTestId ? tt.tests.find(t => t.id === item.becameTestId) : undefined;
+      const was = item.what.trim();
+      const fixPatch: Partial<Test> = {};
+      if (fix && next.what !== item.what) {
+        if (fix.title.trim() === was) fixPatch.title = next.what;
+        if (can.agree && (fix.passesIf ?? '').trim() === was) fixPatch.passesIf = next.what;
+      }
+      const fixed = fix && Object.keys(fixPatch).length > 0;
+      void tt.saveItem(next);
+      if (fix && fixed) void tt.patchTest(fix.id, fixPatch);
+      offerUndo('Problem changed', async () => {
+        await tt.saveItem(item);
+        if (fix && fixed) await tt.patchTest(fix.id, { title: fix.title, passesIf: fix.passesIf });
+      });
+    }
+    onDone();
+  };
+  return (
+    <span className="sp-edit">
+      <textarea className="text-area" rows={2} value={what} onChange={e => setWhat(e.target.value)} autoFocus aria-label="What happened" />
+      {showHours && (
+        <label className="cw-f sp-edit-h"><span>Hours lost</span>
+          <input inputMode="decimal" value={hours} onChange={e => setHours(e.target.value)} placeholder="none" /></label>
+      )}
+      <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
+      <span className="sp-edit-acts">
+        <button type="button" className="btn btn-primary btn-sm" onClick={save}>Save</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onDone}>Cancel</button>
+      </span>
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
+    </span>
   );
 }

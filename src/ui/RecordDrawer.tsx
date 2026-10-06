@@ -38,7 +38,7 @@ import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
 import { Icon } from './Icon';
 import { useDismiss } from './Sheet';
-import { StageStory, storyLength } from './StageStory';
+import { ProblemEdit, StageStory, storyLength } from './StageStory';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { DatesForm, spanShort } from './InstallGrid';
@@ -204,9 +204,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
   const [planning, setPlanning] = useState(false);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  const [editingProblem, setEditingProblem] = useState<string | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setPlanning(false); }, [id]);
+  useEffect(() => { setProblem(false); setPlanning(false); setEditingProblem(null); }, [id]);
 
   const t = live(tt.tests).find(x => x.id === id);
   const from = trail.length ? live(tt.tests).find(x => x.id === trail[trail.length - 1]) : undefined;
@@ -332,10 +333,15 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           {(problems.length > 0 || problemText) && <small>The problem</small>}
           {problems.map(p => (
             <div key={p.id} className="rd-problem">
-              <p>{p.what}</p>
-              {(p.media ?? []).length > 0 && (
-                <span className="sp-ev">{(p.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={64} onClick={() => setViewing(m)} />)}</span>
-              )}
+              {editingProblem === p.id
+                ? <ProblemEdit item={p} tt={tt} can={can} onDone={() => setEditingProblem(null)} />
+                : <>
+                  <p>{p.what}</p>
+                  {(p.media ?? []).length > 0 && (
+                    <span className="sp-ev">{(p.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={64} onClick={() => setViewing(m)} />)}</span>
+                  )}
+                  {can.edit && <span className="sp-row-acts"><button type="button" className="cw-link" onClick={() => setEditingProblem(p.id)}>Edit the problem</button></span>}
+                </>}
             </div>
           ))}
           {!problems.length && problemText && <p className="rd-problem-t">{problemText}</p>}
