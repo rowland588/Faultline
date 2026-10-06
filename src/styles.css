@@ -10266,3 +10266,25 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 
 /* Delete a fix from its drawer (ui/RecordDrawer) — quiet, at the foot. */
 .rd-del { justify-self: start; }
+
+/* GETTING IT RUNNING (screens/ProjectDashboardScreen, lib/startHere) — a new
+   6M or tree job's steps in order. Done recedes (a quiet green tick), the next
+   one says "Next" in words and carries the one blue button; the rest wait in
+   grey with a quiet button of their own. */
+.gr { display: block; }
+.gr-steps { margin: 0; padding: 0; list-style: none; display: grid; }
+.gr-step { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.gr-step:first-child { border-top: 0; }
+.gr-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: var(--t-label, 12px); font-weight: 700;
+  color: var(--muted); border: 1.5px solid var(--st-n); background: var(--surface); }
+.gr-step.is-done .gr-n { color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 45%, var(--line)); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
+.gr-step.is-next .gr-n { color: var(--ink); border-color: var(--ink); }
+.gr-m { display: grid; gap: 2px; min-width: 0; }
+.gr-m b { font-weight: 700; }
+.gr-step.is-done .gr-m b { font-weight: 500; color: var(--ink-2); }
+.gr-next { margin-left: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
+.gr-go { white-space: nowrap; }
+@media (max-width: 640px) {
+  .gr-step { grid-template-columns: 30px minmax(0, 1fr); }
+  .gr-go { grid-column: 2; justify-self: start; }
+}

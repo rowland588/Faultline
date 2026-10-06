@@ -62,6 +62,8 @@ import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { Fishbone } from '../ui/Fishbone';
 import { useProblems } from '../lib/useProblems';
+import { nextStep, readyToRun, startSteps, type StartStep, type StepKey } from '../lib/startHere';
+import { Icon } from '../ui/Icon';
 import { PHASE_WORD, type Phase } from '../lib/problems';
 import type { Can } from '../lib/access';
 import { fishboneUrl, isOpenProblem, mainProblem } from './FishboneScreen';
@@ -71,6 +73,53 @@ import { fishboneUrl, isOpenProblem, mainProblem } from './FishboneScreen';
  * small — its head, its six bones, its causes — with the way into the whole
  * journey. Nothing is edited here; a tap anywhere on it opens that problem on
  * its own screen, where the causes are worked. */
+/* GETTING IT RUNNING — a new 6M or lever tree job's front page leads with the
+ * steps, in order, each ticked by the record it reads (lib/startHere), each
+ * with the one button that opens where it is done. Rowland, 6 October: "there
+ * is no clear start here, do this, then ready to run." It stands in for the
+ * front page's panels until the job is ready to run — they would all say
+ * "nothing yet", and the fishbone's "Open a problem" would be offered before
+ * there was a line or a number — and then it is gone and the panels are the
+ * page. */
+function StartHere({ projectId, steps }: { projectId: string; steps: StartStep[] }) {
+  const next = nextStep(steps);
+  const done = steps.filter(x => x.done).length;
+  const go: Record<StepKey, { label: string; to: string }> = {
+    line: { label: 'Add the line', to: `/project/${projectId}/setup?part=pset-lines` },
+    measure: { label: 'Add the measure', to: `/project/${projectId}/setup?part=pset-measures` },
+    target: { label: 'Set the target', to: `/project/${projectId}/setup?part=pset-measures` },
+    now: { label: 'Add the first reading', to: `/project/${projectId}?view=data` },
+    problem: { label: 'Open the problem', to: `${fishboneUrl(projectId)}?open=1` },
+    outcome: { label: 'Open the tree', to: `/project/${projectId}/tree` },
+  };
+  return (
+    <section className="fp-panel gr" aria-label="Getting it running">
+      <header className="fp-panel-h">
+        <h2 className="fp-panel-t">Getting it running</h2>
+        <span className="fp-panel-s">{done} of {steps.length} done · then it is ready to run</span>
+      </header>
+      <ol className="gr-steps">
+        {steps.map((st, i) => {
+          const isNext = st === next;
+          return (
+            <li key={st.key} className={'gr-step' + (st.done ? ' is-done' : isNext ? ' is-next' : '')}>
+              <span className="gr-n" aria-hidden>{st.done ? <Icon name="check" size="0.95em" /> : i + 1}</span>
+              <span className="gr-m">
+                <b>{st.title}{isNext && <span className="gr-next">Next</span>}</b>
+                <span className="sub">{st.done ? 'Done.' : st.says}</span>
+              </span>
+              {!st.done && (
+                <button type="button" className={'btn ' + (isNext ? 'btn-primary' : 'btn-ghost') + ' gr-go'}
+                  onClick={() => nav(go[st.key].to)}>{go[st.key].label}</button>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 function FishboneLead({ projectId, can }: { projectId: string; can: Can }) {
   const api = useProblems(projectId);
   if (api.loading) return null;
@@ -560,6 +609,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const nums = useMeasures(projectId);
   const treeRows = useTreeNodes(projectId);
   const stand = useStanding(projectId);
+  /* Getting a new 6M or tree job running (lib/startHere): read here so the
+     front page can lead with the steps until every one is done. */
+  const probs = useProblems(projectId);
   /* A 6M or tree job's materials and programs are owed like its actions are,
      so a late one is a row on "Needs you" beside the countermeasures. */
   const mats = useMaterials(projectId);
@@ -637,6 +689,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      verdict's own late count on a stage-gate job, the board's late actions on
      the others (the same numbers the rail's lines carry). */
   const pastDay = model === 'commissioning' ? stand.standing.late : overdue;
+  const start = model === 'board' || model === 'tree'
+    ? startSteps({ model, lines: ppm.lines.length, measures: nums.measures.length, targets: nums.targets.length,
+      readings: nums.readings.length, problems: probs.problems.length, treeNodes: (treeRows ?? []).length })
+    : [];
+  /* A client reads the job as it stands; the list is for whoever sets it up. */
+  const starting = can.edit && !probs.loading && !nums.loading && !ppm.loading && !readyToRun(start);
   const tree = model === 'tree' && treeRows
     ? treeStanding(withTrackerRows(treeRows, bindSources(ax.actions, ax.steps, ppm.lines,
       { measures: nums.measures, periods: nums.periods, targets: nums.targets, readings: nums.readings })))
@@ -704,6 +762,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             {/* THE METHOD'S OWN PICTURE LEADS, the list that needs you beside
                 it, and the lines under the picture — so the page is one
                 laptop screen, and on a phone it reads picture, owed, lines. */}
+            {starting ? <StartHere projectId={projectId} steps={start} /> : (
             <div className="fp-grid is-lead">
               {model === 'board' && <FishboneLead projectId={projectId} can={can} />}
               {/* THE TREE'S TOP, ON A TREE JOB. The outcome and the conditions
@@ -713,6 +772,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <NeedsYouPanel items={owed} today={today} split max={5} door={{ label: 'The board', to: `/project/${projectId}/board` }} />
               <LinesPanel projectId={projectId} lines={ppm.lines} standing={standing} can={can} project={project} />
             </div>
+            )}
           </>
         );
       })()}

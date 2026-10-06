@@ -65,8 +65,11 @@ export function ProjectsScreen() {
        and its first test, on the Testing screen; it used to land on Lines &
        people and ask for a line with a sponsor. A 3P or lever-tree project is
        its lines, so that one still starts there. Stage gate starts on Install
-       now, where the machines are named. */
-    nav(model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}/setup`);
+       now, where the machines are named. A 6M or lever tree job lands on its
+       own front page, which leads with "Getting it running" — the steps in
+       order, the line first (lib/startHere). Rowland, 6 October: it dropped
+       him on the whole setup form with "no clear start here, do this". */
+    nav(model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
   };
 
   if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;

@@ -15,9 +15,9 @@
  * method — and what its lines are measured against were agreed, so they are
  * the owner's; the team reads them here and works the lines; a client reads
  * all of it. Only the owner invites, removes or puts the project away. */
-import { Fold } from '../ui/Fold';
-import { useState } from 'react';
-import { nav } from '../state/useRoute';
+import { Fold, openFold } from '../ui/Fold';
+import { useEffect, useState } from 'react';
+import { nav, useRoute } from '../state/useRoute';
 import { offerUndo } from '../ui/Undo';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { DateWhy } from '../ui/DateWhy';
@@ -345,6 +345,11 @@ function ProjectPeople({ lead, people, can }: { lead?: string; people: ReturnTyp
 }
 
 export function ProjectSetupScreen({ projectId }: { projectId: string }) {
+  /* ARRIVING FOR ONE PART (?part=pset-lines, from a step of "Getting it
+     running"): that card is opened before the cards are drawn, and the page
+     goes to it once it is there — not the top of a long form. */
+  const part = useRoute().query.get('part');
+  if (part) openFold(part);
   const { loading, project } = useProject(projectId);
   const { archive } = useProjects();
   const lines = usePaceLines(projectId);
@@ -366,6 +371,17 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
     ? [{ email: people.myEmail }, ...people.members]
     : people.members;
 
+  /* Go to the asked-for card once it is drawn — the measures card loads its
+     own data, so look again for a moment rather than once. */
+  useEffect(() => {
+    if (!part || loading || lines.loading) return;
+    let tries = 0;
+    const id = window.setInterval(() => {
+      const el = document.querySelector(`[data-fold="${part}"]`);
+      if (el || ++tries > 20) { window.clearInterval(id); el?.scrollIntoView({ block: 'start' }); }
+    }, 100);
+    return () => window.clearInterval(id);
+  }, [part, loading, lines.loading]);
   if (loading || lines.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) {
     return (
