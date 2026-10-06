@@ -75,7 +75,7 @@ export function CaptureScreen() {
   const [toast, setToast] = useState<{ msg: string; undo?: () => void } | null>(null);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [recording, setRecording] = useState(false);
-  const [converting, setConverting] = useState<{ label: string; fraction: number } | null>(null);
+  const [converting, setConverting] = useState<{ label: string; fraction: number; fit?: boolean } | null>(null);
   /* THE CAUSE, IF YOU KNOW IT (docs/SIXM.md). The stop just logged, offered
      the six bones in one row: one tap says which family it is — People,
      Machine, Method, Material, Measurement, Environment — and the fishbone
@@ -193,8 +193,8 @@ export function CaptureScreen() {
   /** Footage that already exists — phone gallery, Files, or a laptop's disk. */
   const upload = async () => {
     try {
-      const refs = await pickExistingMedia((i, total, f) =>
-        setConverting({ label: total > 1 ? `Video ${i + 1} of ${total}` : 'Video', fraction: f }));
+      const refs = await pickExistingMedia((i, total, f, step) =>
+        setConverting({ label: total > 1 ? `Video ${i + 1} of ${total}` : 'Video', fraction: f, fit: step === 'fit' }));
       if (refs.length) setPending(m => [...m, ...refs]);
     } catch {
       setToast({ msg: "Couldn't attach those files — device storage may be full." });
@@ -340,7 +340,9 @@ export function CaptureScreen() {
         </div>
         {converting && (
           <div style={{ marginTop: 10 }}>
-            <p className="sub">Converting {converting.label.toLowerCase()} so it plays on every device — runs at playback speed.</p>
+            <p className="sub">{converting.fit
+              ? <>Making {converting.label.toLowerCase()} small enough for the cloud, so your other devices get it — runs at playback speed. Keep this screen open.</>
+              : <>Converting {converting.label.toLowerCase()} so it plays on every device — runs at playback speed.</>}</p>
             <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(converting.fraction * 100)}%` }} /></div>
           </div>
         )}

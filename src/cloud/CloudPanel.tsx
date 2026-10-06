@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { cloudConfigured } from './client';
 import { useSession, useSyncStatus, signIn, signUp } from './session';
-import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus, CLOUD_FILE_LIMIT } from './sync';
+import { syncNow, fullResync, stopWaitingForMissing, clearOverwritten, syncStatus, sendAgain, CLOUD_FILE_LIMIT } from './sync';
+import { getBlob, putBlob } from '../db';
+import { fitVideo } from '../lib/transcode';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { fmtRelative } from '../lib/format';
 import { Icon } from '../ui/Icon';
@@ -125,6 +127,54 @@ export function syncTrouble(status: ReturnType<typeof useSyncStatus>): boolean {
     || !!status.pendingUp || !!status.missingDown || !!status.schemaOutdated || !!status.tooBig?.length;
 }
 
+/** MAKE THEM FIT — films the cloud refused as too big, made small enough on
+ *  this device and sent (lib/transcode fitVideo). Same clip, same record, a
+ *  softer picture: the file is replaced under its own name, so every test,
+ *  fix and walk that shows it shows the smaller one, and the laptop gets it.
+ *  One at a time, at playback speed, so it says how far it has got. */
+function MakeThemFit({ files }: { files: { key: string; bytes: number }[] }) {
+  const [at, setAt] = useState<{ i: number; n: number; f: number } | null>(null);
+  const [said, setSaid] = useState<string | null>(null);
+  const n = files.length;
+  const go = async () => {
+    setSaid(null);
+    const fitted: string[] = [];
+    const left: string[] = [];
+    for (let i = 0; i < n; i++) {
+      setAt({ i, n, f: 0 });
+      const blob = await getBlob(files[i].key);
+      if (!blob || !blob.type.startsWith('video/')) { left.push('not a film'); continue; }
+      const r = await fitVideo(blob, CLOUD_FILE_LIMIT, f => setAt({ i, n, f }));
+      if (r.converted) { await putBlob(files[i].key, r.blob); fitted.push(files[i].key); }
+      else left.push(r.reason === 'too-long' ? 'too long to fit — cut it in two on the phone' : 'this phone could not re-make it');
+    }
+    setAt(null);
+    if (fitted.length) await sendAgain(fitted);
+    setSaid([
+      fitted.length ? `${fitted.length} made small enough and sent.` : '',
+      left.length ? `${left.length} not: ${[...new Set(left)].join('; ')}.` : '',
+    ].filter(Boolean).join(' '));
+  };
+  if (!n && !at) return said ? <p className="sub" role="status" style={{ marginBottom: 12 }}>{said}</p> : null;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      {at ? (
+        <>
+          <p className="sub" role="status">Making {n > 1 ? `film ${at.i + 1} of ${at.n}` : 'it'} small enough — {Math.round(at.f * 100)}%. Keep this screen open; it runs at playback speed.</p>
+          <div className="prog"><div className="prog-bar" style={{ width: `${Math.round(at.f * 100)}%` }} /></div>
+        </>
+      ) : (
+        <>
+          <button className="btn" onClick={() => void go()}>Make {n === 1 ? 'it' : 'them'} fit</button>
+          <p className="sub" style={{ marginTop: 6 }}>
+            {said ?? `Re-makes ${n === 1 ? 'the film' : 'each film'} on this phone under ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB — the same clip with a softer picture — and sends ${n === 1 ? 'it' : 'them'}. Takes as long as ${n === 1 ? 'it runs' : 'they run'}.`}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** Backup, in full: what is backed up, what is not and why, and the two
  *  recovery tools. Drawn in the account menu, and in the sheet Home's backup
  *  row opens when there is trouble — one body, so the two cannot disagree. */
@@ -202,9 +252,12 @@ export function SyncDetail({ onDone }: { onDone?: () => void }) {
         )}
         {!!status.tooBig?.length && (
           <p className="sub" style={{ marginBottom: 10, color: 'var(--st-r)' }}>
-            <b>{tooBigWords(status.tooBig)}.</b> {status.tooBig.length === 1 ? 'It stays' : 'They stay'} on this device and will not reach your other devices — the cloud refuses {status.tooBig.length === 1 ? 'it' : 'them'} every time. Film shorter clips, or ask whoever runs the database to raise the limit, then tap Repair sync.
+            <b>{tooBigWords(status.tooBig)}.</b> {status.tooBig.length === 1 ? 'It stays' : 'They stay'} on this device and will not reach your other devices — the cloud refuses {status.tooBig.length === 1 ? 'it' : 'them'} every time.
           </p>
         )}
+        {/* Mounted while there is nothing too big as well, so "sent" is still
+            said once the last one has gone. */}
+        <MakeThemFit files={status.tooBig ?? []} />
         {status.missingDown ? (
           <div style={{ marginBottom: 12 }}>
             <button className="btn" onClick={() => void stopWaitingForMissing()}>Stop waiting for {status.missingDown === 1 ? 'it' : 'these'}</button>

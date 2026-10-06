@@ -69,7 +69,7 @@ export function Evidence({ media, kind, onAdd, onView }: {
          the laptop that waits for it for ever (cloud/sync, tooBig). */
       const big = await overCloudLimit(refs.map(r => r.blobKey));
       setNote(big.length
-        ? `${big.length === 1 ? 'That file is' : `${big.length} files are`} ${big.map(b => `${Math.round(b / 1048576)} MB`).join(', ')} — over the ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB the cloud takes. ${big.length === 1 ? 'It is' : 'They are'} kept on this device but will not reach your other devices. A shorter clip will.`
+        ? `${big.length === 1 ? 'That file is' : `${big.length} files are`} ${big.map(b => `${Math.round(b / 1048576)} MB`).join(', ')} — over the ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB the cloud takes. ${big.length === 1 ? 'It is' : 'They are'} kept on this device but will not reach your other devices. Cut it shorter on the phone and add it again.`
         : null);
     } catch {
       setNote('That wouldn’t attach — the device may be out of room.');
@@ -109,7 +109,9 @@ export function Evidence({ media, kind, onAdd, onView }: {
           <button className="tw-door" onClick={() => setFilming(true)}><Icon name="video" />Video</button>
         )}
         <button className="tw-door"
-          onClick={() => void take('Adding…', () => pickExistingMedia())}>
+          onClick={() => void take('Adding…', () => pickExistingMedia((i, n, f, step) => {
+            if (step === 'fit') setNote(`Making ${n > 1 ? `film ${i + 1} of ${n}` : 'the film'} small enough for the cloud — ${Math.round(f * 100)}%. Keep this screen open.`);
+          }))}>
           <Icon name="photo" />On the phone
         </button>
       </div>}

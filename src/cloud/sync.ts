@@ -25,6 +25,7 @@
 import { supabase, cloudConfigured } from './client';
 import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
+import { CLOUD_FILE_LIMIT } from '../lib/transcode';
 import type { SyncKind } from '../db';
 import {
   rawAll, rawGet, rawPut, hasBlob, getBlob, putBlob, applyRemoteDelete,
@@ -140,9 +141,10 @@ export const isTooLarge = (e: unknown): boolean => {
   return !!x && (x.status === 413 || x.statusCode === '413' || /exceeded the maximum allowed size|payload too large/i.test(x.message ?? ''));
 };
 /** The bucket's limit as it stands (Supabase's global 50 MB; the `media`
- *  bucket sets none of its own). Used only to WARN at the moment a file is
+ *  bucket sets none of its own) — kept beside the code that makes a film fit
+ *  it (lib/transcode fitVideo). Used only to WARN at the moment a file is
  *  added — the upload still goes, and the server's 413 is what decides. */
-export const CLOUD_FILE_LIMIT = 50 * 1024 * 1024;
+export { CLOUD_FILE_LIMIT };
 
 /** The sizes of any of these files that are over the cloud's limit — for
  *  saying so the moment one is added, rather than letting the sync find out
@@ -617,6 +619,22 @@ async function countUnsent(sent: Sent): Promise<number> {
 /* Files the cloud refused as too big, key → bytes. Persisted: retrying one is
    a deliberate act (Repair sync), not something every pass does. */
 const TOO_BIG_KEY = 'tooBig';
+
+/** Send these files again — made small enough for the cloud on this device
+ *  (cloud/CloudPanel, "Make them fit"). Waits out a pass already running,
+ *  which would otherwise write its own list of refused files back over this. */
+export async function sendAgain(keys: string[]): Promise<void> {
+  const waitUntil = Date.now() + 10_000;
+  // eslint-disable-next-line no-unmodified-loop-condition
+  while (running && Date.now() < waitUntil) await new Promise(r => setTimeout(r, 300));
+  const big = await readTooBig();
+  for (const k of keys) big.delete(k);
+  await metaPut(TOO_BIG_KEY, Object.fromEntries(big));
+  const pending = await keySet('pendingUploads');
+  for (const k of keys) pending.add(k);
+  await keySetPut('pendingUploads', pending);
+  await syncNow();
+}
 async function readTooBig(): Promise<Map<string, number>> {
   const m = (await metaGet(TOO_BIG_KEY)) as Record<string, number> | undefined;
   return new Map(Object.entries(m ?? {}));

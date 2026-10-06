@@ -6,7 +6,7 @@ import type { MediaRef } from '../types';
 import { putBlob } from '../db';
 import { uid, now } from './ids';
 import { sniffMime, withUsableMime } from './mime';
-import { prepareVideoForImport } from './transcode';
+import { prepareVideoForImport, fitVideo, CLOUD_FILE_LIMIT } from './transcode';
 
 /** Open the device's file picker.
  *
@@ -84,10 +84,12 @@ export async function captureMedia(
 
 /** Attach photos/videos the user ALREADY has — phone gallery, Files, or a
  *  laptop's disk. Several at once, since that's how footage usually arrives.
- *  Phone video is converted on the way in so it plays on other devices too;
- *  `onProgress` reports (fileIndex, 0..1) while that runs. */
+ *  Phone video is converted on the way in so it plays on other devices too,
+ *  and a film over the cloud's limit is made small enough to reach them
+ *  (lib/transcode fitVideo); `onProgress` reports (fileIndex, 0..1, which)
+ *  while either runs. */
 export async function pickExistingMedia(
-  onProgress?: (index: number, total: number, fraction: number) => void,
+  onProgress?: (index: number, total: number, fraction: number, step: 'convert' | 'fit') => void,
 ): Promise<MediaRef[]> {
   const files = await pickFiles('image/*,video/*', { multiple: true });
   const refs: MediaRef[] = [];
@@ -95,8 +97,11 @@ export async function pickExistingMedia(
     const f = files[i];
     const mime = f.type || (await sniffMime(f)) || '';
     if (mime.startsWith('video/')) {
-      const { blob } = await prepareVideoForImport(f, fr => onProgress?.(i, files.length, fr));
-      refs.push(await saveEvidence('video', blob));
+      const { blob } = await prepareVideoForImport(f, fr => onProgress?.(i, files.length, fr, 'convert'));
+      const fit = blob.size > CLOUD_FILE_LIMIT
+        ? (await fitVideo(blob, CLOUD_FILE_LIMIT, fr => onProgress?.(i, files.length, fr, 'fit'))).blob
+        : blob;
+      refs.push(await saveEvidence('video', fit));
     } else {
       refs.push(await saveEvidence('photo', f));
     }

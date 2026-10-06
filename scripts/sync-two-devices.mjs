@@ -49,7 +49,9 @@
  *   5 a 20-second film, and uploads that die mid-way, still arrive
  *   6 one row the cloud refuses holds up nothing else, and the phone says so
  *   7 how long a change on the phone takes to show on the laptop, by itself
- *   8 a file over the 50 MB limit: said at once, kept, never retried silently
+ *   8 a file over the 50 MB limit: a playable film made to fit and sent; one
+ *     that cannot be re-made said at once, kept, never retried silently; one
+ *     refused before is made to fit from Backup
  *
  * WHAT IT CANNOT PROVE. The fake cloud is not Postgres: no real RLS beyond the
  * media rule, no column list (check-live-schema.mjs does that), no latency or
@@ -128,8 +130,14 @@ if (OWN_VITE) {
 }
 
 let browser;
+/* Files handed to a page's file picker, removed when the run ends — not
+   straight after the hand-over: the browser reads a picked file from disk
+   when the app asks for it, and a film being made to fit the cloud is read
+   as it plays, long after the pick. */
+const pickedDirs = [];
 async function shutdown(code) {
   try { await browser?.close(); } catch { /* gone */ }
+  for (const d of pickedDirs) { try { rmSync(d, { recursive: true, force: true }); } catch { /* gone */ } }
   try { await cloud.close(); } catch { /* gone */ }
   if (vite) { try { process.kill(-vite.pid, 'SIGTERM'); } catch { /* gone */ } }
   process.exit(code);
@@ -398,7 +406,7 @@ async function pickFromPhone(page, name, mimeType, buffer) {
   const path = join(dir, name);
   writeFileSync(path, buffer);
   await fc.setFiles(path);
-  rmSync(dir, { recursive: true, force: true });
+  pickedDirs.push(dir);
 }
 /** Film through the app's own recorder: Video → shutter → wait → stop → Done. */
 async function filmClip(page, seconds) {
@@ -847,13 +855,31 @@ await run(8, 'a file over the 50 MB limit', async () => {
   const p = phone.page;
   const { pid, tid } = ctx;
   await go(p, `/project/${pid}/testing/${tid}`);
-  /* A real clip, padded past the limit — what a camera app's 1080p minute is. */
+  /* A real clip, padded past the limit — what a camera app's 1080p minute is.
+     Rowland, 6 October: "4 files too large for the cloud (55 MB, 91 MB,
+     100 MB, 345 MB)". A film the phone can play is now re-made under the
+     limit on the way in (lib/transcode fitVideo), and reaches the cloud. */
   const real = await p.evaluate(async key => {
     const b = await (await (await import('/src/db/core.ts')).getDB()).get('media', key);
     return Array.from(new Uint8Array(await b.arrayBuffer()));
   }, ctx.media.find(m => m.kind === 'video').blobKey);
-  const big = Buffer.alloc(52 * 1024 * 1024);
-  Buffer.from(real).copy(big);
+  const padded = Buffer.alloc(52 * 1024 * 1024);
+  Buffer.from(real).copy(padded);
+  const before0 = (await testRow(p, tid)).media.length;
+  await pickFromPhone(p, 'VID_20261004_0900.webm', 'video/webm', padded);
+  const t0 = await waitFor(async () => { const r = await testRow(p, tid); return r.media.length > before0 ? r : null; }, 60_000);
+  check(!!t0, 'a film over the limit that this phone can play is kept');
+  const fitKey = t0?.media.at(-1).blobKey;
+  const fitSize = await p.evaluate(async key => (await (await (await import('/src/db/core.ts')).getDB()).get('media', key))?.size ?? 0, fitKey);
+  check(fitSize > 1024 && fitSize < 50 * 1024 * 1024, 'and made small enough for the cloud on the way in', `${Math.round(fitSize / 1024)} kB`);
+  await settle(phone, { timeout: 20_000 });
+  await syncViaUI(phone);
+  const up = [...cloud.objects].find(([id]) => id.endsWith(`/${fitKey}`));
+  check(!!up && up[1].bytes.length === fitSize, 'and it reaches the cloud, whole', up ? `${up[1].bytes.length} bytes, ${up[1].type}` : '(not in the cloud)');
+
+  /* What cannot be re-made — bytes no player reads — is kept as it is, said
+     at once, and never sent again silently. */
+  const big = Buffer.alloc(52 * 1024 * 1024, 7);
   const beforeCount = (await testRow(p, tid)).media.length;
   await pickFromPhone(p, 'VID_20261004_0915.webm', 'video/webm', big);
   const said = await waitFor(async () => (await text(p)).match(/(over|larger|too (big|large))[^.]{0,120}/i)?.[0], 15_000);
@@ -873,6 +899,24 @@ await run(8, 'a file over the 50 MB limit', async () => {
   const home = await text(p);
   check(/too (big|large)/i.test(home), 'Home says it in words', home.match(/[^.]*too (big|large)[^.]*/i)?.[0] ?? '(nothing)');
   check(cloud.rows('tests').find(r => r.id === tid)?.media?.some(m => m.blobKey === key), 'the record itself still synced');
+
+  /* A film over the limit saved before this phone could make one fit — the
+     four Rowland's Backup named — is made to fit from Backup and sent. Put
+     under the refused file's own name: same record, a playable film. */
+  await p.evaluate(async ([from, to]) => {
+    const db = await (await import('/src/db/core.ts')).getDB();
+    const clip = await db.get('media', from);
+    await (await import('/src/db/blobs.ts')).putBlob(to, new Blob([clip, new Uint8Array(52 * 1024 * 1024)], { type: clip.type }));
+  }, [ctx.media.find(m => m.kind === 'video').blobKey, key]);
+  await p.getByRole('button', { name: /^Account/ }).first().click();
+  await p.getByRole('button', { name: /^Make (it|them) fit$/ }).first().click();
+  const fitSaid = await waitFor(async () => (await text(p)).match(/\d+ made small enough and sent[^.]*\./)?.[0], 60_000);
+  check(!!fitSaid, 'Backup’s “Make them fit” re-makes a refused film and says so', fitSaid ?? (await text(p)).match(/Making[^.]*|not:[^.]*/)?.[0] ?? '(nothing said)');
+  const fitUp = await waitFor(() => { const o = cloud.objects.get(`media/${key}`); return o && o.bytes.length < 50 * 1024 * 1024 ? o : null; }, 30_000);
+  check(!!fitUp, 'and the film reaches the cloud under the limit', fitUp ? `${fitUp.bytes.length} bytes` : '(not in the cloud)');
+  const stFit = await status(p);
+  check(!stFit.tooBig?.some(x => x.key === key), 'and Backup no longer names it too big', JSON.stringify(stFit.tooBig ?? []));
+  await p.keyboard.press('Escape');
 
   /* The server's limit lower than the app believes: the 413 itself must be
      read as final, not as a blip to retry. 1 kB, so ANY clip is over it — it
