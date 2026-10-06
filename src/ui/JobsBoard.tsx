@@ -45,7 +45,7 @@ import { loadProblems, viewsOf } from '../lib/useProblems';
 import { fishboneUrl } from '../screens/FishboneScreen';
 import { offerUndo } from './Undo';
 import {
-  clusterMarks, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
+  clusterMarks, kindWord, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
   type Said, type SixMProblem,
 } from '../lib/portfolio';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -65,10 +65,9 @@ const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
 const SEEN_KEY = 'faultline.jobs.seen';
 
-const KIND_WORD: Record<JobItem['kind'], string> = {
-  install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix', material: 'Material', program: 'Program', machine: 'Machine',
-  action: 'Action', note: 'Reminder',
-};
+/* (The word each row is filed under is lib/portfolio's kindWord — the same
+   words the job's front page uses, and "Part of the plan" for a stage's part.
+   A copy of them lived here.) */
 const GATE_WORD: Record<GateTone, string> = {
   done: 'done', going: 'under way', late: 'late or a problem', ahead: 'not started', none: 'nothing kept',
 };
@@ -225,7 +224,7 @@ function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
 
 /** The list as text, for pasting into an email or reading down the phone. */
 const asText = (title: string, items: JobItem[]): string =>
-  [title, '', ...items.map(x => `• ${x.job} — ${x.what} (${KIND_WORD[x.kind].toLowerCase()}${x.who ? `, ${x.who}` : ''}) — ${whenOf(x)}`)].join('\n');
+  [title, '', ...items.map(x => `• ${x.job} — ${x.what} (${kindWord(x).toLowerCase()}${x.who ? `, ${x.who}` : ''}) — ${whenOf(x)}`)].join('\n');
 
 function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () => void }) {
   const { title, items } = focusOf(pf, f);
@@ -251,7 +250,7 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
                 <button className={'jb-fi' + (x.late ? ' is-late' : '')} onClick={() => openItem(x)}>
                   <span className="jb-fi-job">{x.job}</span>
                   <b className="jb-fi-what">{x.what}</b>
-                  <span className="jb-fi-m">{KIND_WORD[x.kind]}{
+                  <span className="jb-fi-m">{kindWord(x)}{
                     x.partyKind === 'site' && x.who.trim() ? ` · ${x.who.trim()}`
                       : f.t !== 'who' ? ` · ${x.party ?? 'nobody yet'}` : ''}</span>
                   <span className="jb-fi-when">{whenOf(x)}</span>
@@ -515,7 +514,7 @@ function WeekStrip({ items }: { items: JobItem[] }) {
             <button className={'jb-wk' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => openItem(x)}>
               <span className="jb-wk-job">{x.job}</span>
               <b className="jb-wk-what">{x.what}</b>
-              <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the meeting notes' : `${KIND_WORD[x.kind]} · ${x.who || 'nobody yet'}`}</span>
+              <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the meeting notes' : `${kindWord(x)} · ${x.who || 'nobody yet'}`}</span>
               <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? `WAS ${niceDay(x.on)}` : niceDay(x.on, { weekday: 'short' })) : x.kind === 'fix' ? 'NO DATE AGREED' : 'no date'}</span>
             </button>
           </li>

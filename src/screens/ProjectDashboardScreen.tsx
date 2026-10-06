@@ -39,7 +39,8 @@ import { usePrograms } from '../lib/usePrograms';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, jobItems, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, jobItems, kindWord, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { openRecord } from '../ui/RecordDrawer';
 import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
@@ -197,6 +198,8 @@ function Panel({ title, says, door, className, children }: {
 /* The five states (CLAUDE.md, visual management), as a row's stripe: late is
    red, due soon amber, the next booked indigo. */
 const URGENCY_TONE: Record<Urgency, 'r' | 'a' | 'w'> = { late: 'r', soon: 'a', next: 'w' };
+/** What opens in the record's drawer (ui/RecordDrawer) rather than on a page. */
+const IN_DRAWER = new Set<JobItem['kind']>(['test', 'fix', 'install', 'setup', 'handover']);
 
 /** When a row on "Needs you" is due, in words beside its colour — so the
  *  state survives a black-and-white print. */
@@ -248,11 +251,15 @@ function NeedsYouPanel({ items, today, door, split, max }: {
       ) : n.rows.length > 0 && (
         <ol className="fp-rows">
           {n.rows.map(({ item, urgency }, i) => (
-            <li key={item.id ?? `${item.kind}:${item.what}:${i}`}>
-              <button className={'fp-row is-' + URGENCY_TONE[urgency]} onClick={() => nav(planHref(item.jobId, item))}>
+            <li key={item.part ?? item.id ?? `${item.kind}:${item.what}:${i}`}>
+              {/* ONE DOOR PER RECORD (5 October): a step, a test or a fix — and
+                  a part, which is its stage's — opens in the drawer over this
+                  page, as it does from the control room and the plan. */}
+              <button className={'fp-row is-' + URGENCY_TONE[urgency]}
+                onClick={() => (item.id && IN_DRAWER.has(item.kind) ? openRecord(item.jobId, item.id) : nav(planHref(item.jobId, item)))}>
                 <span className="fp-row-m">
                   <b>{item.what}</b>
-                  <small>{KIND_WORD[item.kind]} · {item.who.trim() || 'nobody yet'}</small>
+                  <small>{kindWord(item)} · {item.who.trim() || 'nobody yet'}</small>
                 </span>
                 <em className="fp-row-when">{whenSaid(item, urgency, today)}</em>
               </button>

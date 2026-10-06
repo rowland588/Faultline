@@ -187,7 +187,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       const rest = r.view.steps.filter(s => !inGrid.includes(s));
       return [...inGrid, ...rest].filter(s => s.step.result?.trim() || partsOf(s.step.id, items).length).map(s => {
         const tone = cellOf(s);
-        const parts = partsOf(s.step.id, items).map(partWords);
+        const parts = partsOf(s.step.id, items).map(p => partWords(p, today));
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',

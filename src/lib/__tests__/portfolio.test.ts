@@ -11,7 +11,7 @@ import { gapOf, type LineSeries } from '../measures';
 import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
 import type { Project } from '../../types';
-import type { Asset, Test } from '../testing';
+import type { Asset, Test, TestItem } from '../testing';
 import type { Material } from '../materials';
 
 const TODAY = '2026-09-29';
@@ -462,5 +462,47 @@ describe('what needs you, on a job’s front page', () => {
   it('files a step under its own gate, so a hand-over item is not called an install step', () => {
     const j = job(p, { tests: [on('Manuals', '2026-10-01', { kind: 'install', gate: 'handover' }), on('Dry run', '2026-10-01', { kind: 'install' })] });
     expect(jobItems(j, TODAY).map(x => `${x.what}:${x.kind}`).sort()).toEqual(['Dry run:install', 'Manuals:handover']);
+  });
+});
+
+/* A PART OF THE PLAN WITH A DAY (ui/StageParts) is owed like anything else —
+   one rule (lib/noted owedParts), so Needs you's rows and the band's counts
+   (standing) are the same numbers. */
+describe('a stage’s parts, owed by a day', () => {
+  const p = project({ id: 'q', name: 'Line 5' });
+  const wrapper = asset({ name: 'Ilapak flow wrapper', oem: 'Ilapak UK', state: 'running' });
+  const stage = test({ kind: 'install', gate: 'setup', title: 'Programs loaded', assetId: wrapper.id, withWhom: 'Ilapak UK',
+    plannedFor: '2026-09-25', ranOn: '2026-09-25', outcome: 'passed' });
+  const part = (what: string, o: Partial<TestItem> = {}): TestItem =>
+    ({ id: `i${++n}`, projectId: 'p', testId: stage.id, kind: 'next', what, sort: n, createdAt: 1, updatedAt: 1, ...o });
+  const j = job(p, {
+    assets: [wrapper], tests: [stage],
+    items: [
+      part('first program to verify Tesco Express 1.25 packs', { owner: 'Ilapak UK', due: '2026-09-28' }),
+      part('Panels to run Express 1.25 kg', { owner: 'Ilapak UK', due: TODAY }),
+      part('Done already', { due: '2026-09-26', doneAt: 5 }),
+      part('No day on it'),
+    ],
+  });
+
+  it('is a row on Needs you, said with its stage first and its machine, opening the stage', () => {
+    const rows = needsYou(jobItems(j, TODAY), TODAY).rows;
+    expect(rows.map(r => `${r.urgency}:${r.item.what}`)).toEqual([
+      'late:Programs loaded — first program to verify Tesco Express 1.25 packs (Ilapak flow wrapper)',
+      'soon:Programs loaded — Panels to run Express 1.25 kg (Ilapak flow wrapper)',
+    ]);
+    expect(rows[0].item).toMatchObject({ id: stage.id, kind: 'setup', who: 'Ilapak UK' });
+    expect(rows[0].item.part).toBeTruthy();
+  });
+
+  it('counts the same on the band as on the rows — and a part with no day, or done, is neither', () => {
+    const st = standing({ tests: j.tests, items: j.items, materials: [], programs: [], assets: j.assets, today: TODAY });
+    const items = jobItems(j, TODAY);
+    expect(st.outstanding).toBe(items.length);
+    expect(st.late).toBe(items.filter(x => x.late).length);
+    expect(st.rows.find(r => r.key === 'parts')).toMatchObject({ what: 'Parts of the plan to do', open: 2, late: 1, whose: 'Ilapak UK × 2' });
+    const pf = portfolio([j], TODAY);
+    expect(pf.jobs[0]).toMatchObject({ outstanding: 2, late: 1 });
+    expect(pf.week.map(x => x.what)).toHaveLength(2);
   });
 });

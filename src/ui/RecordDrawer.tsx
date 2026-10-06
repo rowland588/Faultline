@@ -39,7 +39,8 @@ import type { MediaRef } from '../types';
 import { Icon } from './Icon';
 import { useDismiss } from './Sheet';
 import { ProblemEdit, StageStory, storyLength } from './StageStory';
-import { StageParts } from './StageParts';
+import { PartsMark, StageParts } from './StageParts';
+import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { DatesForm, spanShort } from './InstallGrid';
@@ -230,6 +231,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const kind = t.kind ?? 'test';
   const machine = tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line itself';
   const { word, tone } = stateOf(t, today);
+  const parts = kind !== 'fix' ? partsSaid(partsOf(t.id, tt.items), today) : undefined;
   /* The parent: a fix is FOR a test or a step; a test may follow another. */
   const parent = kind === 'fix' ? testOfFix(t, tt.tests) : t.fromTestId ? live(tt.tests).find(x => x.id === t.fromTestId) : undefined;
   const parentMachine = parent ? tt.assets.find(a => a.id === parent.assetId)?.name : undefined;
@@ -265,7 +267,15 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <Icon name="chevronLeft" size="1.1em" /> back to {from.title}
         </button>
       )}
-      <span className={'rd-state is-' + tone}>{word}</span>
+      {/* ITS PARTS, beside its state — "2 parts · 1 done", and "· 1 late" in
+          red when one is (lib/noted partsSaid): the branch, seen before the
+          list. Said here once; the list's heading no longer counts them. */}
+      {parts ? (
+        <span className="rd-state-row">
+          <span className={'rd-state is-' + tone}>{word}</span>
+          <PartsMark said={parts} />
+        </span>
+      ) : <span className={'rd-state is-' + tone}>{word}</span>}
       <h2 className="rd-title">{t.title}</h2>
       <p className="rd-sub">{machine} · {t.withWhom || 'nobody named'}</p>
 
@@ -367,7 +377,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           opens here too. */}
       {/* PART OF THE PLAN — the stage's own lines, before what went wrong
           (ui/StageParts). */}
-      {kind !== 'fix' && <StageParts step={t} tt={tt} can={can} />}
+      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} />}
 
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (
         <div className="rd-blk">

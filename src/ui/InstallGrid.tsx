@@ -24,6 +24,8 @@ import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
+import { partsOf, partsSaid } from '../lib/noted';
+import { PartsMark } from './StageParts';
 import { offerUndo } from './Undo';
 import { openRecord } from './RecordDrawer';
 import type { useTesting } from '../lib/useTesting';
@@ -117,6 +119,10 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /* A step opens in the drawer, over the grid; an empty square opens the
      small sheet that adds the stage to that machine. */
   const openCell = (s: StepView | undefined, row: number, col: number) => (s ? openRecord(projectId, s.step.id) : setOpen({ t: 'cell', row, col }));
+  /* A stage's parts of the plan, in a few words — "2 parts · 1 done", and
+     "· 1 late" in red when one is (lib/noted partsSaid). Rowland, 6 October:
+     "It should appear like a branch ... you can see there's something else there." */
+  const partsAt = (s?: StepView) => (s ? partsSaid(partsOf(s.step.id, tt.items), today) : undefined);
 
   /* ---- the writes, each with its own undo (ui/WhyMoved, shared with the drawer) ---- */
   const change = (ts: Test[], patch: (t: Test) => Partial<Test>, said: string) => changeTests(tt, ts, patch, said);
@@ -376,20 +382,24 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           ) : (
             <>
               <div className="igm-list">
-                {r.cells.map((cs, ci) => (
-                  <button key={ci}
-                    className={'igm-st' + (cs ? ` is-${cs.tone}${cs.tone === 'ahead' && cs.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
-                    onClick={() => openCell(cs, ri, ci)}
-                    disabled={!cs && !can.edit}
-                    /* Named as the square is named on the laptop — machine,
-                       stage and state — for a screen reader, and so the two
-                       layouts are the same control by name. */
-                    aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}`}>
-                    <span className="igm-sq" aria-hidden />
-                    <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}</span>
-                    <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
-                  </button>
-                ))}
+                {r.cells.map((cs, ci) => {
+                  const ps = partsAt(cs);
+                  return (
+                    <button key={ci}
+                      className={'igm-st' + (cs ? ` is-${cs.tone}${cs.tone === 'ahead' && cs.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
+                      onClick={() => openCell(cs, ri, ci)}
+                      disabled={!cs && !can.edit}
+                      /* Named as the square is named on the laptop — machine,
+                         stage and state — for a screen reader, and so the two
+                         layouts are the same control by name. */
+                      aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}${ps ? `, ${ps.text}` : ''}`}>
+                      <span className="igm-sq" aria-hidden />
+                      <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}
+                        <PartsMark said={ps} className="igm-parts" /></span>
+                      <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
+                    </button>
+                  );
+                })}
               </div>
               <span className="ig-says">
                 {r.view.says}
@@ -472,16 +482,21 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                     <td colSpan={grid.columns.length}>
                       <button className="ig-give" onClick={() => void giveStages([r])}><Icon name="plus" size="1.15em" /> Add the {usual.length} stages</button>
                     </td>
-                  ) : r.cells.map((s, ci) => (
-                    <td key={ci}>
-                      <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
-                        onClick={() => openCell(s, ri, ci)}
-                        disabled={!s && !can.edit}
-                        aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}`}>
-                        {s ? cellWord(s) : can.edit ? '+' : ''}
-                      </button>
-                    </td>
-                  ))}
+                  ) : r.cells.map((s, ci) => {
+                    const ps = partsAt(s);
+                    return (
+                      <td key={ci}>
+                        <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
+                          onClick={() => openCell(s, ri, ci)}
+                          disabled={!s && !can.edit}
+                          aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}`}>
+                          {s ? <span>{cellWord(s)}</span> : can.edit ? '+' : ''}
+                          {/* ITS PARTS, A BRANCH UNDER ITS DAY (ui/StageParts). */}
+                          <PartsMark said={ps} />
+                        </button>
+                      </td>
+                    );
+                  })}
                 </tr>
                 {/* WHERE IT HAS GOT TO, under its own squares — the sentence the
                     cards used to carry, and the one question it can ask. */}
