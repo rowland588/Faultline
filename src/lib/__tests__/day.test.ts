@@ -141,3 +141,60 @@ describe('stepping through the days', () => {
     expect(activeDays(input)).toEqual(['2026-09-22', '2026-09-29']);
   });
 });
+
+/* Rowland, 6 October, of the part he wrote on "Programs loaded": "It should
+   appear like a branch: it comes off the main action, and you can see there's
+   something else there." A stage's parts (ui/StageParts) are on the day's
+   story under their stage's name, with the machine after, opening the stage. */
+describe('parts of a stage, on the day', () => {
+  const programs = rec({ kind: 'install', gate: 'setup', title: 'Programs loaded', assetId: packer.id, withWhom: 'Ilapak UK',
+    plannedFor: '2026-09-28', ranOn: '2026-09-28', outcome: 'passed' });
+  const part = (what: string, o: Partial<TestItem> = {}): TestItem =>
+    ({ id: `i${++n}`, projectId: 'p', testId: programs.id, kind: 'next', what, sort: n, createdAt: at('2026-09-27'), updatedAt: 1, ...o });
+  const first = part('first program to verify Tesco Express 1.25 packs', { owner: 'Ilapak UK', due: TODAY, doneAt: at(TODAY) });
+  const panels = part('Panels to run Express 1.25 kg', { owner: 'Ilapak UK', due: TODAY });
+  const guards = part('Guard settings copied', { due: '2026-09-29' });
+  const sheet = part('Recipe sheet signed', { due: '2026-10-02' });
+  const loose = part('Nothing dated on this one');
+  const one: DayInput = { tests: [programs], items: [first, panels, guards, sheet, loose], assets: [packer], materials: [], programs: [] };
+  const lines = (d: ReturnType<typeof dayOf>, k: string) => d.sections.find(s => s.key === k)?.lines ?? [];
+  const texts = (d: ReturnType<typeof dayOf>, k: string) => lines(d, k).map(l => l.text);
+
+  it('says a part ticked done that day under what got done — its stage first, its machine after, opening the stage', () => {
+    const d = dayOf(one, TODAY, TODAY);
+    expect(texts(d, 'done')).toEqual(['Programs loaded — first program to verify Tesco Express 1.25 packs (Case packer).']);
+    expect(lines(d, 'done')[0]).toMatchObject({ detail: 'Part of the plan · Ilapak UK', tone: 'done', id: programs.id });
+  });
+
+  it('says a part due today and not done under due today', () => {
+    expect(texts(dayOf(one, TODAY, TODAY), 'today')).toEqual(['Programs loaded — Panels to run Express 1.25 kg (Case packer).']);
+  });
+
+  it('says a part past its day under past its day — today only; on the day itself it was due and not done', () => {
+    const d = dayOf(one, TODAY, TODAY);
+    expect(texts(d, 'late')).toEqual(['Programs loaded — Guard settings copied (Case packer) — was due Tue 29 Sept.']);
+    expect(lines(d, 'late')[0].detail).toBe('Part of the plan');
+    const then = dayOf(one, '2026-09-29', TODAY);
+    expect(texts(then, 'wrong')).toEqual(['Programs loaded — Guard settings copied (Case packer) — was due and not done.']);
+    expect(texts(then, 'late')).toEqual([]);
+  });
+
+  it('ends today on the next part booked, and never mentions a part with no day', () => {
+    const d = dayOf(one, TODAY, TODAY);
+    expect(d.sections.find(s => s.key === 'next')?.title).toBe('Next — Fri 2 Oct');
+    expect(texts(d, 'next')).toEqual(['Programs loaded — Recipe sheet signed (Case packer).']);
+    expect(JSON.stringify(d.sections)).not.toContain('Nothing dated');
+  });
+
+  it('counts it in the sentence, and the day it was done is a day something happened', () => {
+    expect(dayOf(one, TODAY, TODAY).headline).toBe('1 thing done. 1 past its day. Set up 1 of 1 steps done.');
+    expect(activeDays(one)).toEqual(['2026-09-22', '2026-09-28', TODAY]);
+  });
+
+  it('a part done before its day is not due on it', () => {
+    const early = { ...one, items: [part('Done early', { due: TODAY, doneAt: at('2026-09-29') })] };
+    const d = dayOf(early, TODAY, TODAY);
+    expect(texts(d, 'today')).toEqual([]);
+    expect(texts(dayOf(early, '2026-09-29', TODAY), 'done')).toEqual(['Programs loaded — Done early (Case packer).']);
+  });
+});

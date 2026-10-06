@@ -21,6 +21,7 @@ import {
 import type { MediaRef } from '../types';
 import { GATE_WORD } from './install';
 import { niceDay, todayISO } from './weeks';
+import { partLate, partOnStage, partsOnStages } from './noted';
 
 export interface DayInput {
   tests: Test[];
@@ -80,6 +81,8 @@ const on = (d: string, from?: string, to?: string): boolean => !!from && from <=
 const endOf = (t: Test): string => (t.plannedTo && t.plannedFor && t.plannedTo > t.plannedFor ? t.plannedTo : t.plannedFor ?? t.plannedTo ?? '');
 const short = (iso: string) => niceDay(iso, { weekday: 'short' });
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+/** The line under a part of a stage: what it is, and whose. */
+const partDetail = (p: TestItem) => `Part of the plan${p.owner?.trim() ? ` · ${p.owner.trim()}` : ''}`;
 
 /** Every date on which something HAPPENED — for stepping back and forward a
  *  day at a time without landing on blank ones. */
@@ -91,6 +94,8 @@ export function activeDays(input: DayInput): string[] {
     if (t.kind === 'fix') add(dayOfMs(t.createdAt));
   }
   for (const i of live(input.items)) if (i.kind === 'found') add(dayOfMs(i.createdAt));
+  /* A part of a stage ticked done (ui/StageParts) is something that happened. */
+  for (const { part } of partsOnStages(input.tests, input.items)) if (part.doneAt != null) add(dayOfMs(part.doneAt));
   for (const a of live(input.assets)) { add(a.onSiteOn); add(a.installedOn); add(a.runningOn); }
   for (const m of live(input.materials)) add(m.inOn);
   for (const p of live(input.programs)) add(p.provedOn);
@@ -180,6 +185,22 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
       }
     } else if (isToday && !isSettled(t) && !t.ranOn && isOverdue(t, date)) {
       late.push({ text: `${named(t)}${who(t.withWhom)} — was due ${short(endOf(t))}.`, tone: 'slipped', id: t.id });
+    }
+  }
+  /* PARTS OF THE PLAN — a stage's own lines (ui/StageParts), each said with
+     its stage first and its machine after, a branch of the stage that opens
+     it: ticked done that day; due that day; past its day, today. Rowland, 6
+     October: "It should appear like a branch: it comes off the main action." */
+  for (const { part: p, stage } of partsOnStages(tests, items)) {
+    const text = partOnStage(p, stage, where(stage));
+    const detail = partDetail(p);
+    const doneOn = p.doneAt != null ? dayOfMs(p.doneAt) : undefined;
+    if (doneOn === date) done.push({ text: `${text}.`, detail, tone: 'done', id: stage.id });
+    else if (p.due === date && !(doneOn && doneOn < date)) {
+      if (past) wrong.push({ text: `${text} — was due and not done.`, detail, tone: 'slipped', id: stage.id });
+      else booked.push({ text: `${text}.`, detail, tone: 'booked', id: stage.id });
+    } else if (isToday && partLate(p, date)) {
+      late.push({ text: `${text} — was due ${short(p.due as string)}.`, detail, tone: 'slipped', id: stage.id });
     }
   }
   /* A machine or a delivery past the day it was due, today. */
@@ -319,6 +340,9 @@ function nextBooked(input: DayInput, date: string, today: string): { date: strin
   for (const t of tests) if (within(t.plannedFor)) dates.push(t.plannedFor as string);
   for (const a of live(input.assets)) if (!a.onSiteOn && within(a.dueOn)) dates.push(a.dueOn as string);
   for (const m of live(input.materials)) if (!isHere(m) && within(m.due)) dates.push(m.due as string);
+  /* A part of a stage with a day, not done — under its stage's name. */
+  const parts = partsOnStages(input.tests, input.items).filter(x => x.part.doneAt == null && !!x.part.due);
+  for (const { part } of parts) if (within(part.due)) dates.push(part.due as string);
   const next = dates.sort()[0];
   if (!next) return undefined;
   const machine = (id?: string) => live(input.assets).find(a => a.id === id)?.name;
@@ -329,6 +353,10 @@ function nextBooked(input: DayInput, date: string, today: string): { date: strin
     ...tests.filter(t => t.plannedFor === next).sort((a, b) => a.sort - b.sort).map(t => ({
       text: `${t.kind === 'install' ? `${machine(t.assetId) ?? 'The line'} — ` : t.kind === 'fix' ? 'Fix: ' : ''}${t.title}${who(t.withWhom)}.`,
       tone: 'booked' as const, id: t.id,
+    })),
+    ...parts.filter(x => x.part.due === next).map(({ part, stage }) => ({
+      text: `${partOnStage(part, stage, machine(stage.assetId))}.`,
+      detail: partDetail(part), tone: 'booked' as const, id: stage.id,
     })),
     ...live(input.materials).filter(m => !isHere(m) && m.due === next)
       .map(m => ({ text: `${m.what} due${who(m.from)}.`, tone: 'booked' as const, go: 'materials' as const })),

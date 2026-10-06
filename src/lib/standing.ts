@@ -27,6 +27,7 @@
  * to an OEM.
  */
 import { owns } from './format';
+import { owedParts, partLate } from './noted';
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import {
@@ -34,7 +35,7 @@ import {
   type Asset, type Test, type TestItem,
 } from './testing';
 
-export type Strand = 'install' | 'setup' | 'handover' | 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
+export type Strand = 'install' | 'setup' | 'handover' | 'parts' | 'tests' | 'fixes' | 'materials' | 'programs' | 'observations' | 'machines';
 
 /** One line of "what are we waiting on". */
 export interface OutstandingRow {
@@ -187,6 +188,12 @@ export function standing(input: StandingInput): Standing {
   const setupLate = setupOpen.filter(t => isOverdue(t, today));
   const handOpen = tests.filter(t => isStep(t) && gateOf(t) === 'handover' && owed(t));
   const handLate = handOpen.filter(t => isOverdue(t, today));
+  /* PARTS OF THE PLAN with a day (ui/StageParts) — a line inside a stage that
+     somebody owes by a day is owed like anything else, by the one rule
+     Needs you's rows are made by (lib/noted owedParts), so the band's "late"
+     and the rows under it are the same count. */
+  const partsOpen = owedParts(tests, input.items);
+  const partsLate = partsOpen.filter(x => partLate(x.part, today));
 
   const matsOpen = materials.filter(m => !isHere(m));
   const matsLate = matsOpen.filter(m => !!m.due && m.due < today);
@@ -220,6 +227,9 @@ export function standing(input: StandingInput): Standing {
       whose: mostlyWhose(stepsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(stepsLate.map(t => t.withWhom)) },
     { key: 'setup', what: 'Set-up steps to do', open: setupOpen.length, late: setupLate.length,
       whose: mostlyWhose(setupOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(setupLate.map(t => t.withWhom)) },
+    /* Under the steps they are parts of. */
+    { key: 'parts', what: 'Parts of the plan to do', open: partsOpen.length, late: partsLate.length,
+      whose: mostlyWhose(partsOpen.map(x => x.part.owner)), lateWhose: mostlyWhose(partsLate.map(x => x.part.owner)) },
     { key: 'tests', what: 'Tests still to run', open: testsOpen.length, late: testsLate.length,
       whose: mostlyWhose(testsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(testsLate.map(t => t.withWhom)) },
     { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length,

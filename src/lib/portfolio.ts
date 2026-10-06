@@ -38,6 +38,7 @@ import { methodOf, planModel, type PlanModel } from './planModel';
 import { DUE_SOON_DAYS, isLate as stepIsLate } from './actions';
 import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
+import { owedParts, partLate, partOnStage } from './noted';
 import type { TreeStanding } from './treeBind';
 import { PHASE_WORD, type Phase } from './problems';
 
@@ -92,6 +93,9 @@ export interface JobItem {
   kind: PlanMark['kind'];
   /** The record it opens: a test or fix id; absent for a list row. */
   id?: string;
+  /** A PART OF THE PLAN on the stage `id` (ui/StageParts): the part's own
+   *  item id. The row opens its stage — the part is a branch of it. */
+  part?: string;
   what: string;
   /** Who owes it, as typed. Empty is nobody. */
   who: string;
@@ -240,6 +244,16 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
       who: t.withWhom ?? '', on: plannedEnd(t), late: isOverdue(t, today),
     });
   }
+  /* A part of a stage with a day on it, not done (lib/noted owedParts — the
+     rule standing() counts it by): filed under its stage's gate, said with
+     its stage first, and opening the stage. */
+  for (const { part, stage } of owedParts(j.tests, j.items)) {
+    const machine = live(j.assets).find(a => a.id === stage.assetId)?.name;
+    out.push({
+      ...base, kind: gateOf(stage), id: stage.id, part: part.id, what: partOnStage(part, stage, machine),
+      who: part.owner ?? '', on: part.due, late: partLate(part, today),
+    });
+  }
   for (const m of live(j.materials)) {
     if (isHere(m)) continue;
     out.push({ ...base, kind: 'material', what: m.what, who: m.from ?? '', on: m.due, late: !!m.due && m.due < today });
@@ -369,6 +383,10 @@ export const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix',
   material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder',
 };
+
+/** The word a row is filed under — a part of a stage says so, in the name
+ *  the stage's drawer gives it. */
+export const kindWord = (x: Pick<JobItem, 'kind' | 'part'>): string => (x.part ? 'Part of the plan' : KIND_WORD[x.kind]);
 
 /** How a row on "Needs you" stands: the day has gone (red) · due within the
  *  next few days (amber) · the next thing booked after that (indigo). */
