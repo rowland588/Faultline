@@ -8,11 +8,11 @@
  * edge, and the chart opens scrolled to today. Tapping a row opens its record.
  */
 import { Fragment, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { gantt, ganttBy, ganttHref, keepGanttBy, withMachines, type GanttBy, type GanttMachine, type GanttRow, type GanttScale, type GanttTone } from '../lib/gantt';
+import { byStage, gantt, ganttBy, ganttHref, keepGanttBy, withMachines, withNext, type GanttBy, type GanttMachine, type GanttPart, type GanttRow, type GanttScale, type GanttTone } from '../lib/gantt';
 import { windowWords, whenWords as niceDayShort } from '../lib/plan';
 import { HANDOVER_KEY } from '../lib/story';
 import type { PlanMark } from '../lib/standing';
-import type { Asset, Test, TestItem } from '../lib/testing';
+import type { Asset, StepGate, Test, TestItem } from '../lib/testing';
 import type { Program } from '../lib/programs';
 import { StagePanel } from './StagePanel';
 import { openRecord } from './RecordDrawer';
@@ -39,7 +39,7 @@ const TONE_WORD: Record<GanttTone, string> = {
   booked: 'still ahead', late: 'the day has gone', problem: 'a problem — no time lost', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs, dayHours }: {
+export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs, dayHours, stages }: {
   marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string; projectId: string;
   /** The job's records — for what happened to each stage (lib/story). */
   tests?: Test[]; items?: TestItem[];
@@ -51,6 +51,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   name: string;
   /** The job's working day, for hours lost on paper (lib/hoursLost). */
   dayHours?: number;
+  /** Each gate's list — by stage, the stages run in the Install grid's order. */
+  stages?: Partial<Record<StepGate, readonly string[]>>;
 }) {
   const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items, ...(walk ? { walk } : {}) } : undefined), [marks, today, expectedAt, plannedAt, tests, items, walk]);
   /* The walk's panel: the snags behind one marker, or all of them. */
@@ -84,10 +86,18 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
      nothing to band by, and keeps the gates. */
   const [by, setByRaw] = useState<GanttBy>(ganttBy);
   const setBy = (b: GanttBy) => { setByRaw(b); keepGanttBy(b); };
-  const gm = useMemo(() => (assets && tests && items ? withMachines(g, { assets, tests, items, programs, today }) : g),
+  /* WHERE AM I — each machine's next stage says "Next", in both views (lib/gantt withNext). */
+  const gn = useMemo(() => (assets && tests && items ? withNext(g, { assets, tests, items, programs, today }) : g),
     [g, assets, tests, items, programs, today]);
+  const gm = useMemo(() => (assets && tests && items ? withMachines(gn, { assets, tests, items, programs, today }) : gn),
+    [gn, assets, tests, items, programs, today]);
   const canBand = !!gm.machines?.some(b => b.id);
   const bands = by === 'machine' && canBand ? gm.machines ?? null : null;
+  /* By stage: each stage a heading with a row per machine under it — machine
+     by stage at the same time (lib/gantt byStage). */
+  const gs = useMemo(() => (canBand && assets && tests ? byStage(gn, { assets, tests, programs, ...(stages ? { stages } : {}) }) : gn), [gn, canBand, assets, tests, programs, stages]);
+  /* A reminder's words, opened out to the full sentence by a tap. */
+  const [remFull, setRemFull] = useState<string | null>(null);
   /* A band folded or open, remembered on this device; a machine never touched
      is open on a desk and folded on a phone — its header still says where it
      stands, so the folded list IS the glance. */
@@ -121,13 +131,17 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   const W = g.days * px;
   const T = fit ? W : W + 96;   // the track runs on past the last day, for a label hanging off the end
 
-  /* Open on today — a few days of what has gone, then what is ahead. */
+  /* Open on today, in the left third of the calendar — what has just gone
+     to its left, what is ahead to its right. Rowland: "I can't see where I am." */
   const toToday = () => {
     const el = ref.current;
     /* Fitted, the whole job is already on the screen — nothing to scroll to,
        and scrolling cut the first days off ("4 Sep" for "14 Sep"). */
     if (el && fit) { el.scrollLeft = 0; return; }
-    if (el && g.today != null) el.scrollLeft = Math.max(0, (g.today - (scale === 'day' ? 3 : 10)) * px);
+    if (el && g.today != null) {
+      const lab = parseFloat(getComputedStyle(el).getPropertyValue('--gt-lab')) || 0;
+      el.scrollLeft = Math.max(0, (g.today + 0.5) * px - (el.clientWidth - lab) * 0.3);
+    }
   };
   useLayoutEffect(toToday, [scale, g.today]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -156,7 +170,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
       const when = expectedAt ?? plannedAt;
       const { moveLines } = await import('../lib/story');
       /* The paper is drawn the way the screen is: by machine, or by stage. */
-      drawGanttDoc(doc, bands ? gm : g, {
+      drawGanttDoc(doc, bands ? gm : gs, {
         moves: tests && items ? moveLines(g.groups.flatMap(x => x.rows), tests, items, dayHours && dayHours > 0 ? dayHours : undefined) : [],
         name, printed: niceDay(today, { year: true }),
         asOf: asOf?.words,
@@ -171,7 +185,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
 
   /* THE WALK'S LANE — one row, wherever the problems sit in the order: after
      the gates, before the fixes they lead to. */
-  const walkAt = (() => { const i = g.groups.findIndex(x => x.kind === 'fix' || x.kind === 'action'); return i < 0 ? g.groups.length : i; })();
+  const walkAt = (() => { const i = gs.groups.findIndex(x => x.kind === 'fix' || x.kind === 'action'); return i < 0 ? gs.groups.length : i; })();
   const walkLane = g.walk && g.walk.days.length > 0 && (() => {
     const lane = g.walk;
     const ms = walkMarkers(lane, px);
@@ -205,36 +219,84 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     );
   })();
 
+  /* A REMINDER FROM THE NOTES — a mark you can see from across the room on
+     its day, and its own words beside it, cut to the room there is; a tap on
+     the words opens out the whole sentence, a tap on the mark opens the notes. */
+  const reminderOf = (r: GanttRow, tip: string, go: () => void) => {
+    const x = (r.start + 0.5) * px;
+    const roomR = T - x - 24, roomL = x - 24;
+    const right = roomR >= 170 || roomR >= roomL;
+    const isFull = !!r.id && remFull === r.id;
+    const style: CSSProperties = right ? { left: x + 16, maxWidth: Math.max(40, Math.min(460, roomR)) } : { right: T - x + 16, maxWidth: Math.max(40, Math.min(460, roomL)) };
+    return (<>
+      <button type="button" className={'gt-rem is-' + r.tone} style={{ left: x }} title={tip} aria-label={tip} onClick={go} />
+      <button type="button" className={'gt-remw is-' + r.tone + (isFull ? ' is-full' : '')} style={style} title={r.label}
+        aria-expanded={isFull} onClick={() => setRemFull(isFull ? null : r.id ?? null)}>{r.label}</button>
+    </>);
+  };
+
+  /* A PART OF THE PLAN, a branch under its stage (lib/noted partsOf): its
+     words and its state in words; on its day, a mark in its state's colour —
+     none when it has no day. A tap opens the stage, where its parts are kept. */
+  const partRow = (r: GanttRow, p: GanttPart, named: string) => {
+    const openIt = () => { if (r.id) openRecord(projectId, r.id); };
+    const say = `${p.label}${p.owner ? ` (${p.owner})` : ''} · ${p.says} — part of ${named}`;
+    const x = p.at != null ? (p.at + 0.5) * px : 0;
+    return (
+      <div key={p.id} className="gt-row gt-fixrow gt-partrow">
+        <button type="button" className="gt-lab gt-fixlab gt-partlab" onClick={openIt} title={say}>
+          <b>↳ {p.label}</b><small>{p.owner ? `${p.owner} · ` : ''}<span className={'gt-part-says is-' + p.state}>{p.says}</span></small>
+        </button>
+        <div className="gt-track" style={{ width: T }}>
+          {p.at != null && <>
+            <button type="button" className={'gt-part is-' + p.state} style={{ left: x }} onClick={openIt} title={say} aria-label={say} />
+            <span className="gt-when" style={{ left: x + 13 }}>{p.says}</span>
+          </>}
+        </div>
+      </div>
+    );
+  };
+
   /* ONE ROW AND ITS FIXES — the same drawing in either layout. */
-  const rowOf = (r: GanttRow, i: number, machine?: string) => {
+  const rowOf = (r: GanttRow, i: number, machine?: string, full?: string) => {
     const href = ganttHref(projectId, r);
     /* Inside a machine's band the row says only the step; its panel and its
-       tip still say which machine. */
-    const named = machine && r.kind !== 'machine' ? `${machine} — ${r.label}` : r.label;
+       tip still say which machine. By stage the row says only the machine,
+       and `full` says both. */
+    const named = full ?? (machine && r.kind !== 'machine' ? `${machine} — ${r.label}` : r.label);
     /* A record opens in the drawer, over the plan; one of the other dates
        with a story opens its panel; anything else goes where it is kept. */
     const go = () => (r.id && RECORD.has(r.kind) ? openRecord(projectId, r.id)
       : r.key && (r.slip || r.marks) ? setStage(r.key, named, href) : open(href));
     const w = Math.max(r.span * px - 4, 10);
-    const inside = w >= r.when.length * 6.4 + 16;
-    const tip = r.kind === 'note'
-      ? `Reminder: ${r.label} · ${r.when}${r.tone === 'done' ? ' · talked about' : r.tone === 'late' ? ' · the day has gone' : ''}`
-      : `${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}`;
+    const inside = w >= r.when.length * 7.2 + 18;
+    const note = r.kind === 'note';
+    const noteSays = r.tone === 'done' ? 'talked about' : r.tone === 'late' ? 'the day has gone' : 'to come';
+    const tip = note
+      ? `Reminder: ${r.label} · ${r.when} · ${noteSays}`
+      : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}`;
     const afterBar = r.start * px + 2 + w + 6 + (r.slip ? 0 : 0);
+    /* "Next" in words, before the name, so a long name never cuts it off. */
+    const nextTag = r.next ? <em className="gt-next">Next</em> : null;
+    const partsTag = r.partsSay ? <span className="gt-lab-parts">{r.partsSay}</span> : null;
     return (
       <Fragment key={`${r.id ?? r.label}-${i}`}>
         <div className={'gt-row' + (r.slip || r.marks ? ' has-story' : '') + (r.overlap ? ' has-overlap' : '')}>
-          <button type="button" className={'gt-lab' + (r.kind === 'note' ? ' is-note' : '')} title={tip} disabled={!href && !r.id} onClick={go}>
+          <button type="button" className={'gt-lab' + (note ? ' is-note' : '')} title={tip} disabled={!href && !r.id} onClick={go}>
             {/* "Wrapper — Dry run" reads as the step, with its machine under
                 it: cut short on a phone, every row began "Checkweigher —…".
                 Only the machine is split off: "Weight accuracy — 400g" read
-                as a step called "400g" on a machine called "Weight accuracy". */}
-            {r.on && r.label.startsWith(`${r.on} — `)
-              ? <><b>{r.label.slice(r.on.length + 3)}</b><small>{r.on}{r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</small></>
-              : <><b>{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says ? <small className={'gt-lab-says is-' + r.tone}>{r.says}</small> : null}</>}
+                as a step called "400g" on a machine called "Weight accuracy".
+                A reminder's own words are on the calendar, beside its mark. */}
+            {note
+              ? <><b>Reminder · {r.when}</b><small><span className={'gt-lab-says is-' + r.tone}>{noteSays}</span></small></>
+              : r.on && r.label.startsWith(`${r.on} — `)
+                ? <><b>{nextTag}{r.label.slice(r.on.length + 3)}</b><small>{r.on}{r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}{partsTag ? <> · {partsTag}</> : null}</small></>
+                : <><b>{nextTag}{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says || partsTag ? <small>{r.says ? <span className={'gt-lab-says is-' + r.tone}>{r.says}</span> : null}{r.says && partsTag ? ' · ' : null}{partsTag}</small> : null}</>}
           </button>
           <div className="gt-track" style={{ width: T }}>
-            <button type="button" className={'gt-b is-' + r.tone + (r.kind === 'note' ? ' is-note' : '')} title={tip} aria-label={tip}
+            {note ? reminderOf(r, tip, go) : (<>
+            <button type="button" className={'gt-b is-' + r.tone} title={tip} aria-label={tip}
               style={{ left: r.start * px + 2, width: w, padding: inside ? undefined : 0 } as CSSProperties} onClick={go}>
               {inside && r.when}
             </button>
@@ -251,8 +313,12 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
               <button key={m.iso} type="button" className="gt-mk" onClick={go} aria-label={`Something happened on ${m.iso} — tap for the story`}
                 style={{ left: (m.at + 0.5) * px }} />
             ))}
+            </>)}
           </div>
         </div>
+        {/* ITS PARTS, branches off it (Rowland: "it comes off the main action,
+            and you can see there's something else there") — then its fixes. */}
+        {r.parts?.map(p => partRow(r, p, named))}
         {/* ITS FIXES, directly under it — dated, or open-ended "no date agreed". */}
         {r.fixes?.map(f => {
           const fw = Math.max(f.span * px - 4, 10);
@@ -313,7 +379,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
               </span>
             )}
             {b.bar && (() => {
-              const x0 = b.bar.start * px + 2, tw = b.bar.when.length * 6.2;
+              const x0 = b.bar.start * px + 2, tw = b.bar.when.length * 6.9;
               const left = x0 + bw + 6 + tw <= T ? x0 + bw + 6 : x0 - 6 - tw >= 0 ? x0 - 6 - tw : Math.max(0, T - tw);
               return <span className="gt-when" style={{ left }}>{b.bar.when}</span>;
             })()}
@@ -374,6 +440,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
               <div className="gt-months">
                 {g.months.map(m => <span key={m.label + m.start} style={{ left: m.start * px, width: m.span * px }}>{m.span * px >= 30 ? m.label : ''}</span>)}
               </div>
+              {/* WHERE AM I: a pill at the head of today's column. */}
+              {g.today != null && <span className="gt-todaypill" style={{ left: (g.today + 0.5) * px }}>Today</span>}
               {scale === 'day' ? (
                 <div className="gt-days">
                   {g.dayList.map(d => (
@@ -401,11 +469,13 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                   card ("Handover 3…") and made the fitted chart scroll. */}
               {g.agreed && <span className={'gt-hand is-agreed' + (fit && g.agreed.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.agreed.at + 0.5) * px }}><b>Agreed {g.agreed.when}</b></span>}
               {g.expected && <span className={'gt-hand' + (fit && g.expected.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.expected.at + 0.5) * px }}><b>Handover {g.expected.when}</b></span>}
+              {/* Today's whole column, shaded the full height, and its line. */}
+              {g.today != null && <span className="gt-todaycol" style={{ left: g.today * px, width: Math.max(px, 3) }} />}
               {g.today != null && <span className="gt-today" style={{ left: (g.today + 0.5) * px }} />}
             </div>
 
             {bands ? bands.map(bandOf) : (<>
-              {g.groups.map((gr, gi) => (
+              {gs.groups.map((gr, gi) => (
                 <Fragment key={gr.kind}>
                 {gi === walkAt && walkLane}
                 <div className={'gt-group' + (isOpen(gr.kind) ? ' is-open' : ' is-shut')}>
@@ -427,17 +497,33 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                         return (
                           <button type="button" className={'gt-b gt-sum is-' + (late ? 'late' : problem ? 'problem' : done ? 'done' : 'booked') + (gr.kind === 'note' ? ' is-note' : '')}
                             style={{ left: s0 * px + 2, width: w }} onClick={() => toggle(gr.kind)} title={`${gr.label} · ${words} — tap to open`}>
-                            {w >= words.length * 6.2 + 14 ? words : ''}
+                            {w >= words.length * 6.9 + 16 ? words : ''}
                           </button>
                         );
                       })()}
                     </div>
                   </div>
-                  {isOpen(gr.kind) && gr.rows.map((r, i) => rowOf(r, i))}
+                  {isOpen(gr.kind) && (gr.subs
+                    /* A STAGE AND ITS MACHINES — or, under Commission, a
+                       machine and its tests: a light heading, its rows under it. */
+                    ? gr.subs.map((sb, si) => (
+                      <Fragment key={`${si}-${sb.label}`}>
+                        <div className="gt-row gt-subrow">
+                          <span className="gt-lab gt-sublab" title={`${sb.label} · ${sb.n}${sb.bad ? ` · ${sb.bad}` : ''}`}>
+                            {/* Only what is abnormal carries colour, each in its own: late and
+                                didn't pass red, a problem amber. */}
+                            <b>{sb.label}</b><small> · {sb.n}{sb.bad ? sb.bad.split(' · ').map(w => <em key={w} className={'is-' + (/a problem/.test(w) ? 'problem' : 'late')}> · {w}</em>) : null}</small>
+                          </span>
+                          <div className="gt-track" style={{ width: T }} />
+                        </div>
+                        {sb.rows.map((r, i) => rowOf(r, i, undefined, gr.kind === 'test' ? `${sb.label} — ${r.label}` : `${r.label} — ${sb.label}`))}
+                      </Fragment>
+                    ))
+                    : gr.rows.map((r, i) => rowOf(r, i)))}
                 </div>
                 </Fragment>
               ))}
-              {walkAt === g.groups.length && walkLane}
+              {walkAt === gs.groups.length && walkLane}
             </>)}
           </div>
         </div>
@@ -459,7 +545,9 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         <span><i className="gt-k is-late" />late — the day has gone, or hours lost</span>
         <span><i className="gt-k is-problem" />a problem — no time lost</span>
         <span><i className="gt-k is-booked" />still ahead</span>
-        {g.groups.some(x => x.kind === 'note') && <span><i className="gt-k is-note" />a reminder from the notes</span>}
+        {g.groups.some(x => x.kind === 'note') && <span><i className="gt-k-rem" />a reminder from the notes — tap its words for all of them</span>}
+        {g.groups.some(x => x.rows.some(r => r.parts?.some(p => p.at != null))) && <span><i className="gt-k-part" />a part of the plan, on the day it is due</span>}
+        {gn.groups.some(x => x.rows.some(r => r.next)) && <span><em className="gt-next">Next</em>each machine’s next stage not yet done</span>}
         {g.groups.some(x => x.rows.some(r => r.slip)) && <span><i className="gt-k gt-k-slip" />past the finish first planned</span>}
         {g.groups.some(x => x.rows.some(r => r.marks)) && <span><i className="gt-k-mk" />something happened — tap for why</span>}
         {g.groups.some(x => x.rows.some(r => r.overlap)) && <span><i className="gt-k gt-k-over" />starts before the step ahead has finished</span>}

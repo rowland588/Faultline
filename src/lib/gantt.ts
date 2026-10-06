@@ -16,10 +16,11 @@
 import type { PlanMark } from './standing';
 import { windowWords } from './plan';
 import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
-import { isOverdue, live, type Asset, type Test, type TestItem } from './testing';
-import { todayISO as isoDay } from './weeks';
+import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons } from './install';
+import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey } from './install';
+import { partsOf } from './noted';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import type { Program } from './programs';
 
@@ -69,9 +70,55 @@ export interface GanttRow {
   key?: string;
   /** It starts before the step ahead of it on its machine has finished. */
   overlap?: string;
+  /** Its machine's next stage not yet done — said "Next" in words, never by
+   *  a state's colour (withNext). */
+  next?: boolean;
+  /** PARTS OF THE PLAN, as branches off the stage (lib/noted partsOf): drawn
+   *  under it like its fixes, each with its state in words and, when it has
+   *  a day, a mark on that day. */
+  parts?: GanttPart[];
+  /** "2 parts · 1 done" — said on the stage's own row. */
+  partsSay?: string;
 }
 
-export interface GanttGroup { kind: PlanMark['kind']; label: string; rows: GanttRow[] }
+/** A part's state: done, past its day, due within two days, booked on a day
+ *  further off, or written with no day. */
+export type PartState = 'done' | 'late' | 'soon' | 'booked' | 'todo';
+export interface GanttPart {
+  id: string;
+  label: string;
+  owner?: string;
+  due?: string;
+  /** Days from the first column to its day, when it has one. */
+  at?: number;
+  state: PartState;
+  /** "done 6 Oct", "late — due 4 Oct", "due 8 Oct", "to do". */
+  says: string;
+}
+
+/** A part as the plan draws it — the same reading the stage's own list makes. */
+export function partOf(i: TestItem, today: string): Omit<GanttPart, 'at'> {
+  const soon = isoDay(new Date(Date.parse(`${today}T12:00:00Z`) + 2 * 86_400_000));
+  const state: PartState = i.doneAt != null ? 'done' : !i.due ? 'todo' : i.due < today ? 'late' : i.due <= soon ? 'soon' : 'booked';
+  const says = state === 'done' ? `done ${niceDay(isoDay(new Date(i.doneAt as number)))}`
+    : state === 'late' ? `late — due ${niceDay(i.due)}` : state === 'todo' ? 'to do' : `due ${niceDay(i.due)}`;
+  return { id: i.id, label: i.what.trim() || 'A part', ...(i.owner ? { owner: i.owner } : {}), ...(i.due ? { due: i.due } : {}), state, says };
+}
+
+/** "2 parts · 1 done · 1 late" — counted by what each is. */
+export function partsWords(parts: Pick<GanttPart, 'state'>[]): string {
+  const n = (st: PartState) => parts.filter(p => p.state === st).length;
+  return [`${parts.length} part${parts.length === 1 ? '' : 's'}`, n('done') ? `${n('done')} done` : '', n('late') ? `${n('late')} late` : ''].filter(Boolean).join(' · ');
+}
+
+export interface GanttGroup {
+  kind: PlanMark['kind']; label: string; rows: GanttRow[];
+  /** By stage: the same rows under a light heading each — a stage with one
+   *  row per machine, or (Commission) a machine with its tests (byStage). */
+  subs?: GanttSub[];
+}
+/** "Positioned and levelled · 2 machines · 1 late" — its rows are the group's. */
+export interface GanttSub { label: string; n: string; bad: string; rows: GanttRow[] }
 export interface GanttDay { iso: string; day: number; dow: number; weekend: boolean; at: number }
 export interface GanttBand { label: string; start: number; span: number }
 
@@ -131,6 +178,9 @@ export const WEEKS_AFTER = 120;
 const MIN_DAYS = 28;
 
 const STAGE_KINDS = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test']);
+/* A stage of a list — its parts are its own lines. A test's 'next' items are
+   next steps out of what it found, not parts of a stage. */
+const LIST_STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover']);
 
 export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: string; plannedAt?: string },
   records?: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[] }): Gantt {
@@ -159,7 +209,15 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
      drawn only if it falls on the job's calendar anyway. */
   const walk = records?.walk ?? [];
   const walkDays = walk.filter(s => s.state !== 'closed').map(s => s.found);
-  const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...fixDays, ...walkDays, ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
+  /* A stage's parts — and the days they are due widen the calendar. */
+  const partsOn = new Map<string, TestItem[]>();
+  if (records) for (const m of marks) {
+    if (!m.id || !LIST_STAGE.has(m.kind)) continue;
+    const ps = partsOf(m.id, records.items);
+    if (ps.length) partsOn.set(m.id, ps);
+  }
+  const partDays = [...partsOn.values()].flat().map(i => i.due).filter((d): d is string => !!d);
+  const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...fixDays, ...walkDays, ...partDays, ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
   let from = addDays(ends[0], -3);
   from = addDays(from, -dowOf(from));
   let to = addDays(ends[ends.length - 1], 4);
@@ -232,6 +290,11 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
           }
           if (st.days.length) row.marks = st.days.map(iso => ({ at: between(from, iso), iso }));
           if (st.fixes.length) row.fixes = st.fixes.map(f => fixRow(f));
+        }
+        const ps = m.id ? partsOn.get(m.id) : undefined;
+        if (ps) {
+          row.parts = ps.map(i => { const p = partOf(i, today); return p.due ? { ...p, at: between(from, p.due) } : p; });
+          row.partsSay = partsWords(row.parts);
         }
         return row;
       })
@@ -322,9 +385,19 @@ export interface GanttMachine {
   folded?: boolean;
 }
 
-/** The band of what is on no one machine, in the house's two words for it:
- *  "The line" for a step on no machine, "the whole job" for a note on none. */
-export const JOB_BAND = 'The line and the whole job';
+/** The band of what is on no one machine. Rowland, 6 October: "what is 'the
+ *  line and the whole job'?" — so it says what it is, and its header says
+ *  what is in it (jobContents). */
+export const JOB_BAND = 'Whole job — not on one machine';
+
+/* What the whole job's band holds, in the floor's words, in the plan's order. */
+const JOB_WORD: Partial<Record<PlanMark['kind'], string>> = {
+  note: 'reminders', material: 'materials', install: 'install on the line', setup: 'set up on the line', test: 'tests on the line',
+  program: 'programs', handover: 'handover', fix: 'fixes', action: 'actions',
+};
+/** "handover · materials · programs · the filmed walk" — built from what is there. */
+export const jobContents = (groups: Pick<GanttGroup, 'kind'>[], walk: boolean): string =>
+  [...groups.map(gr => JOB_WORD[gr.kind] ?? gr.kind), ...(walk ? ['the filmed walk'] : [])].join(' · ');
 
 /* A machine's own rows, in the order its work runs. Its programs are its Set
    up, as journeyOf counts them. */
@@ -381,15 +454,13 @@ export const WORST: GanttTone[] = ['failed', 'late', 'problem', 'ran', 'booked',
 export const stepOf = (r: Pick<GanttRow, 'on' | 'label'>): string =>
   (r.on && r.label.startsWith(`${r.on} — `) ? r.label.slice(r.on.length + 3) : r.label);
 
-/** The Gantt's rows put into one band per machine, then the line and the job. */
-export function withMachines(g: Gantt, job: {
-  assets: Asset[]; tests: Test[]; items: TestItem[]; programs?: readonly Program[]; today: string;
-}): Gantt {
-  const { tests, items, today } = job;
+/** Which machine a row is on — by its record, never by its label (a step
+ *  only one machine has carries no machine in its name). */
+function machineFinder(job: { assets: Asset[]; tests: Test[]; programs?: readonly Program[] }) {
   const programs = job.programs ?? [];
   const machines = live(job.assets).sort((a, b) => a.sort - b.sort);
   const known = new Set(machines.map(a => a.id));
-  const testOn = new Map(tests.map(t => [t.id, t] as const));
+  const testOn = new Map(job.tests.map(t => [t.id, t] as const));
   const progOn = new Map(programs.map(p => [p.id, p.assetId] as const));
   const machineOf = (r: GanttRow): string | undefined => {
     let id: string | undefined;
@@ -401,6 +472,117 @@ export function withMachines(g: Gantt, job: {
     }
     return id && known.has(id) ? id : undefined;
   };
+  return { machines, machineOf, testOn };
+}
+
+/* --------------------------------- NEXT ---------------------------------
+ *
+ * Rowland, 6 October: "I can't see where I am." Each machine's next stage not
+ * yet done says "Next" on its row, in both views and on paper. Read the way
+ * the "Where each machine is" strip reads it: the gate the machine is at
+ * (journeyNow), and in it the first step not done in the job's order — the
+ * Install grid's own "next" (installOf) — or, at Commission, its first test
+ * still to run; failing that, the gates after it. Handed over: nothing next. */
+export function nextSteps(job: { assets: Asset[]; tests: Test[]; items: TestItem[]; programs?: readonly Program[]; today: string }): Set<string> {
+  const { tests, items, today } = job;
+  const out = new Set<string>();
+  const proofs = latestAttempts(tests);
+  for (const a of live(job.assets)) {
+    const at = JOURNEY.findIndex(x => x.label === journeyNow(journeyOf(a, tests, items, today, job.programs ?? [])));
+    if (at < 0) continue;
+    for (const gate of JOURNEY.slice(at)) {
+      const id = gate.gate === 'commission'
+        ? proofs.filter(t => t.assetId === a.id && !isSettled(t))
+          .sort((x, y) => (x.plannedFor ?? '9999').localeCompare(y.plannedFor ?? '9999') || x.sort - y.sort)[0]?.id
+        : installOf(a, tests, items, today, gate.gate).steps.find(st => st.next)?.step.id;
+      if (id) { out.add(id); break; }
+    }
+  }
+  return out;
+}
+
+/** The same rows, each machine's next stage marked — before they are banded
+ *  or put under their stages, so both views say the same. */
+export function withNext(g: Gantt, job: Parameters<typeof nextSteps>[0]): Gantt {
+  const ids = nextSteps(job);
+  if (!ids.size) return g;
+  return { ...g, groups: g.groups.map(gr => ({ ...gr, rows: gr.rows.map(r => (r.id && ids.has(r.id) ? { ...r, next: true } : r)) })) };
+}
+
+/* ------------------------------- BY STAGE -------------------------------
+ *
+ * Rowland, 6 October: "when I do by stage I lose my ability to see clearly by
+ * each machine. We need to be completely organised, where I can see machine
+ * by stage at exactly the same time." By stage was one row per step, named
+ * only by the step — with two machines, two rows called "Dry run" and no way
+ * to tell whose was whose, and not side by side. Now inside each gate every
+ * stage is a light heading — "Dry run · 2 machines · 1 late" — and under it
+ * one row per machine, named by the machine: the Install grid's machine ×
+ * stage, on the calendar. Stages run in the order the grid runs them (the
+ * job's list — lib/install usualStages — then any other name in the order it
+ * was first planned), machines in the machines' order. Commission's tests are no stage of a list, so they sit
+ * under their machine instead. NOTHING NEW: the same rows, regrouped and
+ * renamed; a job with nothing on a machine keeps the gates as they were. */
+const BY_STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover']);
+
+export function byStage(g: Gantt, job: {
+  assets: Asset[]; tests: Test[]; programs?: readonly Program[];
+  /** Each gate's list, as the Install grid orders its columns; the app's when absent. */
+  stages?: Partial<Record<StepGate, readonly string[]>>;
+}): Gantt {
+  const { machines, machineOf, testOn } = machineFinder(job);
+  if (!g.groups.some(gr => (BY_STAGE.has(gr.kind) || gr.kind === 'test') && gr.rows.some(r => machineOf(r)))) return g;
+  const order = new Map(machines.map((a, i) => [a.id, i] as const));
+  const nameOf = new Map(machines.map(a => [a.id, a.name] as const));
+  const LINE = 'The line';
+  const machineRank = (r: GanttRow) => { const id = machineOf(r); return id ? order.get(id) ?? 0 : machines.length; };
+  const titleOf = (r: GanttRow) => (r.id ? testOn.get(r.id)?.title : undefined) ?? stepOf(r);
+  const sub = (label: string, rows: GanttRow[], noun: [string, string]): GanttSub =>
+    ({ label, n: `${rows.length} ${rows.length === 1 ? noun[0] : noun[1]}`, bad: badWords(rows), rows });
+  const groups = g.groups.map((gr): GanttGroup => {
+    if (BY_STAGE.has(gr.kind)) {
+      const list = (job.stages?.[gr.kind as StepGate] ?? appStages(gr.kind as StepGate)).map(stageKey);
+      const place = (k: string) => { const i = list.indexOf(k); return i < 0 ? list.length : i; };
+      const buckets = new Map<string, { label: string; sort: number; start: number; rows: GanttRow[] }>();
+      for (const r of gr.rows) {
+        const title = titleOf(r), k = stageKey(title);
+        const sort = (r.id ? testOn.get(r.id)?.sort : undefined) ?? Infinity;
+        const b = buckets.get(k);
+        if (b) { b.rows.push(r); b.sort = Math.min(b.sort, sort); b.start = Math.min(b.start, r.start); }
+        else buckets.set(k, { label: title, sort, start: r.start, rows: [r] });
+      }
+      const subs = [...buckets].sort(([ka, a], [kb, b]) => place(ka) - place(kb) || a.sort - b.sort || a.start - b.start).map(([, b]) => b)
+        .map(b => sub(b.label, b.rows.sort((x, y) => machineRank(x) - machineRank(y) || byDate(x, y)).map(r => {
+          const id = machineOf(r);
+          const row: GanttRow = { ...r, label: id ? nameOf.get(id) ?? LINE : LINE };
+          delete row.on;
+          return row;
+        }), ['machine', 'machines']));
+      return { ...gr, rows: subs.flatMap(s => s.rows), subs };
+    }
+    if (gr.kind === 'test') {
+      const buckets = new Map<string, GanttRow[]>();
+      for (const r of [...gr.rows].sort((x, y) => machineRank(x) - machineRank(y) || byDate(x, y))) {
+        const id = machineOf(r) ?? '';
+        const row: GanttRow = { ...r, label: titleOf(r) };
+        delete row.on;
+        buckets.set(id, [...(buckets.get(id) ?? []), row]);
+      }
+      const subs = [...buckets].map(([id, rows]) => sub(id ? nameOf.get(id) ?? LINE : LINE, rows, ['test', 'tests']));
+      return { ...gr, rows: subs.flatMap(s => s.rows), subs };
+    }
+    return gr;
+  });
+  return { ...g, groups };
+}
+
+/** The Gantt's rows put into one band per machine, then the line and the job. */
+export function withMachines(g: Gantt, job: {
+  assets: Asset[]; tests: Test[]; items: TestItem[]; programs?: readonly Program[]; today: string;
+}): Gantt {
+  const { tests, items, today } = job;
+  const programs = job.programs ?? [];
+  const { machines, machineOf } = machineFinder(job);
 
   const mine = new Map<string, GanttRow[]>();
   const rest: GanttGroup[] = [];
@@ -464,9 +646,8 @@ export function withMachines(g: Gantt, job: {
       : rows.some(r => r.tone === 'ran') ? 'ran'
         : rows.length > 0 && rows.every(r => r.tone === 'done') && !open ? 'done'
           : rows.some(r => r.tone === 'booked') || open ? 'booked' : 'none';
-    /* Only the walk: its lane says it, so the header says the same words. */
-    const says = !rows.length && g.walk ? `found on the walk · ${g.walk.words}`
-      : `${rows.length} on the plan · ${badWords(rows, walk && g.walk ? g.walk.late : 0) || 'nothing late'}`;
+    /* What is in it, then what is wrong with it — only the walk: its lane's words. */
+    const says = [jobContents(rest, walk), !rows.length && g.walk ? g.walk.words : badWords(rows, walk && g.walk ? g.walk.late : 0)].filter(Boolean).join(' · ');
     const bar = barOf(rows, g.dayList);
     bands.push({ name: JOB_BAND, says, tone, groups: rest, ...(walk ? { walk: true } : {}), ...(bar ? { bar } : {}) });
   }

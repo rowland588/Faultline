@@ -240,7 +240,7 @@ export interface InstallGrid { columns: string[]; rows: GridRow[] }
 const OLD_NAMES: Record<string, string> = {
   'i/o checked': 'sensors and controls checked (i/o)',
 };
-const stageKey = (s: string) => {
+export const stageKey = (s: string) => {
   const k = s.trim().toLowerCase().replace(/\s+/g, ' ');
   return OLD_NAMES[k] ?? k;
 };

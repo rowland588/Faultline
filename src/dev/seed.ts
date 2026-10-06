@@ -284,9 +284,10 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   /* THE GATES AFTER INSTALL on the wrapper, which is in and running: set up
      part-way (programs loaded, recipes set, change parts late), and the
      hand-over check sheet started (manuals handed over). */
+  const programsLoaded = step('Programs loaded', 11, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-4), ranOn: iso(-4), outcome: 'passed',
+    result: 'All six programs loaded from the Ilapak laptop. Two recipes still had the old 1.25 kg weights — corrected on site with their engineer.' });
   for (const g of [
-    step('Programs loaded', 11, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-4), ranOn: iso(-4), outcome: 'passed',
-      result: 'All six programs loaded from the Ilapak laptop. Two recipes still had the old 1.25 kg weights — corrected on site with their engineer.' }),
+    programsLoaded,
     step('Recipes and settings set', 12, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-3), ranOn: iso(-3), outcome: 'passed' }),
     step('Change parts fitted', 13, { gate: 'setup', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-1) }),
     step('Manuals and drawings handed over', 21, { gate: 'handover', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(-2), ranOn: iso(-2), outcome: 'passed',
@@ -294,6 +295,12 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     step('Operators and engineers trained', 22, { gate: 'handover', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(8) }),
   ]) await putTest(g);
   await putTestItem(item(airDrop.id, 'found', 'Regulator missing from the kit', { owner: 'Ishida Europe', sort: 1 }));
+  /* PARTS OF THE PLAN on a stage (ui/StageParts) — Rowland's own, written on
+     Programs loaded, with a day; and one already done. The plan draws them as
+     branches under the stage, on screen and on paper. */
+  await putTestItem(item(programsLoaded.id, 'next', 'First program to verify Tesco Express 1.25 packs through the de-nester and the pick and place',
+    { owner: 'Ilapak UK', due: iso(2), sort: 1 }));
+  await putTestItem(item(programsLoaded.id, 'next', 'Back up the six programs to the site server', { owner: 'Dave', due: iso(-3), doneAt: t - 3 * day, sort: 2 }));
   const regulator = fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
     withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' });
   await putTest(regulator);
