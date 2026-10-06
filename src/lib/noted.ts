@@ -12,7 +12,7 @@
  * sorted (doneAt — the item's own "closed"), whatever the stage's state. No
  * new list: read off what is already kept. */
 import { live, type Asset, type Test, type TestItem } from './testing';
-import { todayISO } from './weeks';
+import { niceDay, todayISO } from './weeks';
 
 export interface Noted {
   item: TestItem;
@@ -43,3 +43,15 @@ export function notedProblems(tests: Test[], items: TestItem[], assets: Asset[])
     sorted: rows.filter(r => r.item.doneAt != null).sort((a, b) => (b.item.doneAt ?? 0) - (a.item.doneAt ?? 0)),
   };
 }
+
+/* PART OF THE PLAN (ui/StageParts) — a stage's own lines, which are not
+   problems: the item kind 'next', ticked done by doneAt. */
+
+/** A stage's parts, in the order they were written. */
+export const partsOf = (stepId: string, items: TestItem[]): TestItem[] =>
+  live(items).filter(i => i.testId === stepId && i.kind === 'next').sort((a, b) => a.sort - b.sort || a.createdAt - b.createdAt);
+
+/** "Panels to run Express 1.25 kg — done 6 Oct" / "— to do". For paper. */
+export const partWords = (i: TestItem): string =>
+  `${i.what}${i.owner ? ` (${i.owner})` : ''} — ${i.doneAt != null ? `done ${niceDay(todayISO(new Date(i.doneAt)))}` : 'to do'}`;
+

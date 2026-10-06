@@ -10424,3 +10424,17 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 }
 .qsl-bar > span { flex: 1; }
 @media (max-width: 899px) { .qsl-bar { bottom: calc(var(--nv-bar) + 10px + env(safe-area-inset-bottom)); } }
+
+/* PART OF THE PLAN (ui/StageParts) — a stage's own lines, ticked when done.
+   Done recedes; to do is plain ink (it is the work, not a state). */
+.spp-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.spp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.spp-row:first-child { border-top: 0; }
+.spp-tick { display: inline-flex; align-items: center; gap: 8px; flex: 1 1 200px; min-height: 32px; font-size: var(--t-body); color: var(--ink); }
+.spp-tick input { width: 18px; height: 18px; }
+.spp-row.is-done .spp-tick span { color: var(--ink-2); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--st-g) 60%, transparent); }
+.spp-state { font-size: var(--t-detail); color: var(--muted); }
+.spp-row.is-done .spp-state { color: var(--st-g); }
+.spp-add, .spp-edit { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.spp-add input, .spp-edit input { flex: 1 1 200px; min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.spp-why { margin: 6px 0 0; }

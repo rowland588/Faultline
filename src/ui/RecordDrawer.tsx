@@ -39,6 +39,7 @@ import type { MediaRef } from '../types';
 import { Icon } from './Icon';
 import { useDismiss } from './Sheet';
 import { ProblemEdit, StageStory, storyLength } from './StageStory';
+import { StageParts } from './StageParts';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { DatesForm, spanShort } from './InstallGrid';
@@ -364,6 +365,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {/* WHAT HAPPENED TO IT — each problem with its pictures and the fix it
           booked, in the order it happened (ui/StageStory). A fix under it
           opens here too. */}
+      {/* PART OF THE PLAN — the stage's own lines, before what went wrong
+          (ui/StageParts). */}
+      {kind !== 'fix' && <StageParts step={t} tt={tt} can={can} />}
+
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (
         <div className="rd-blk">
           <small>What happened</small>

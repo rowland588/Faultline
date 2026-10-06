@@ -31,7 +31,7 @@ import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
-import { notedProblems } from './noted';
+import { notedProblems, partsOf, partWords } from './noted';
 import type { WalkSnag } from './walkSnags';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
@@ -75,6 +75,8 @@ export interface StepAccount {
   /** The state in words, the same words as the grid's key — and "· late"
    *  after "a problem" when its finish has gone too (two facts, both said). */
   state: string;
+  /** The stage's parts of the plan (ui/StageParts), in words. */
+  parts?: string[];
   /** What the team said, whole. */
   said: string;
 }
@@ -183,12 +185,14 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const accounts: StepAccount[] = g.rows.flatMap(r => {
       const inGrid = r.cells.filter((c): c is StepView => !!c);
       const rest = r.view.steps.filter(s => !inGrid.includes(s));
-      return [...inGrid, ...rest].filter(s => s.step.result?.trim()).map(s => {
+      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || partsOf(s.step.id, items).length).map(s => {
         const tone = cellOf(s);
+        const parts = partsOf(s.step.id, items).map(partWords);
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
           tone, state: tone === 'problem' && s.late ? `${CELL_WORD.problem} · late` : CELL_WORD[tone], said: (s.step.result ?? '').trim(),
+          ...(parts.length ? { parts } : {}),
         };
       });
     });

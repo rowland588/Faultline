@@ -276,7 +276,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       out.push(label(`How each stage went — ${s.label}`, INK2));
       s.accounts.forEach((a, i, all) => {
         out.push(accountHead(a));
-        out.push(text({ text: a.said, size: 9, colour: INK2, indent: 12, after: i === all.length - 1 ? gap(d, 'm') : gap(d, 's') + 2 }));
+        const last = i === all.length - 1 ? gap(d, 'm') : gap(d, 's') + 2;
+        if (a.said) out.push(text({ text: a.said, size: 9, colour: INK2, indent: 12, after: a.parts?.length ? 2 : last }));
+        /* Part of the plan (ui/StageParts): the stage's own lines, not problems. */
+        a.parts?.forEach((pw, k, ps) => out.push(text({ text: pw, size: 9, colour: INK2, indent: 22, bullet: '•', after: k === ps.length - 1 ? last : 1 })));
       });
     }
 
