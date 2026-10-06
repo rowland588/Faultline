@@ -12,7 +12,7 @@
  * is: by machine (a header band each — lib/gantt withMachines) or by gate.
  */
 import type { jsPDF } from 'jspdf';
-import { badWords, WORST, type Gantt, type GanttGroup, type GanttMachine, type GanttRow, type GanttTone } from './gantt';
+import { badWords, partsWords, WORST, type Gantt, type GanttGroup, type GanttMachine, type GanttPart, type GanttRow, type GanttSub, type GanttTone, type PartState } from './gantt';
 import type { PlanMark } from './standing';
 import { pdfFamily, san } from './reportKit';
 import { walkMarkers } from './walkSnags';
@@ -47,7 +47,9 @@ const TONE: Record<GanttTone, { fill: string; stroke: string; text: string }> = 
 
 const HEAD_TOP = 74;          // where the calendar band starts on a page
 const MONTH_H = 13, DAY_H = 17;
-const ROW_H = 17, GROUP_H = 13, BAND_H = 22, GATE_H = 10;
+const ROW_H = 17, GROUP_H = 13, BAND_H = 22, GATE_H = 10, SUB_H = 12;
+/* By stage, a machine's row sits in under its stage's heading, as on screen. */
+const NEST = 8;
 const FOOT = 64;              // room left at the bottom for the handover labels, the key (two lines when it is long) and the foot
 
 /* ---------------------------------------------------------------------------
@@ -64,11 +66,24 @@ const FOOT = 64;              // room left at the bottom for the handover labels
  * ------------------------------------------------------------------------- */
 type Bit = { start: number; span: number; tone: GanttTone };
 type PaperRow = GanttRow & { bits?: Bit[]; sub?: string };
-type Line = { group: string; n: number; cont?: boolean } | { row: PaperRow; fix?: boolean } | { walk: true }
+type Line = { group: string; n: number; cont?: boolean } | { row: PaperRow; fix?: boolean; nest?: boolean } | { walk: true }
+  /* A part of the plan, a branch under its stage (lib/noted partsOf). */
+  | { part: GanttPart; nest?: boolean }
   /* By machine: a machine's header, and the name of each gate where it starts. */
-  | { band: GanttMachine; cont?: boolean } | { gate: string };
+  | { band: GanttMachine; cont?: boolean } | { gate: string }
+  /* By stage: a stage's heading over its machines (or a machine's over its tests). */
+  | { sub: GanttSub; cont?: boolean };
 /* The colour a state's WORDS are printed in — the same five as the screen. */
 const SAY: Record<GanttTone, string> = { done: OK, failed: DANGER, ran: AMBER, problem: AMBER, booked: BOOKED, late: DANGER, none: MUTED };
+/* A part's mark on its day, and the colour its state's words wear: only what
+   is abnormal (late, due within two days) carries colour in the words. */
+const PART: Record<PartState, { fill: string; stroke: string; words: string }> = {
+  done: { fill: '#e3f0e9', stroke: OK, words: MUTED }, late: { fill: '#f8ecea', stroke: DANGER, words: DANGER },
+  soon: { fill: '#f7eedb', stroke: AMBER, words: AMBER }, booked: { fill: '#e6e4f6', stroke: BOOKED, words: MUTED },
+  todo: { fill: SURF2, stroke: MUTED, words: MUTED },
+};
+/* A reminder's state, in the words the screen uses. */
+const noteSays = (t: GanttTone) => (t === 'done' ? 'talked about' : t === 'late' ? 'the day has gone' : 'to come');
 
 /* The screen's order of what is most abnormal (lib/gantt WORST). */
 const worst = (ts: GanttTone[]): GanttTone => WORST.find(t => ts.includes(t)) ?? 'none';
@@ -81,10 +96,13 @@ const NOUN: Partial<Record<PlanMark['kind'], [string, string]>> = {
 const stepOf = (r: GanttRow) => (r.on && r.label.startsWith(`${r.on} — `) ? r.label.slice(r.on.length + 3) : r.label);
 
 export function foldForPaper(g: Gantt, capacity: number): Gantt {
-  const lines = g.groups.reduce((n, gr) => n + 1 + gr.rows.reduce((m, r) => m + 1 + (r.fixes?.length ?? 0), 0), 0);
+  const lines = g.groups.reduce((n, gr) => n + 1 + (gr.subs?.length ?? 0) + gr.rows.reduce((m, r) => m + 1 + (r.fixes?.length ?? 0) + (r.parts?.length ?? 0), 0), 0);
   if (lines <= capacity * 2) return g;
-  const groups = g.groups.map(gr => {
-    const keyOf = (r: GanttRow) => (STAGE.has(gr.kind) ? stepOf(r) : r.on ?? (gr.kind === 'machine' ? 'Every machine' : r.label));
+  const groups = g.groups.map((gr): GanttGroup => {
+    /* By stage, a heading folds to one lane: the stage with every machine's
+       mark on it, or the machine with every test's. */
+    const subOf = new Map(gr.subs?.flatMap(sb => sb.rows.map(r => [r, sb.label] as const)) ?? []);
+    const keyOf = (r: GanttRow) => subOf.get(r) ?? (STAGE.has(gr.kind) ? stepOf(r) : r.on ?? (gr.kind === 'machine' ? 'Every machine' : r.label));
     const byKey = new Map<string, GanttRow[]>();
     for (const r of gr.rows) byKey.set(keyOf(r), [...(byKey.get(keyOf(r)) ?? []), r]);
     if (byKey.size === gr.rows.length) return gr;          // nothing to fold
@@ -92,16 +110,18 @@ export function foldForPaper(g: Gantt, capacity: number): Gantt {
     const rows: PaperRow[] = [...byKey].map(([key, rs]) => {
       const bad = badWords(rs);
       const fixes = rs.flatMap(r => r.fixes ?? []);
+      /* Folded, a stage's parts are counted on its lane — still seen, never lost. */
+      const parts = rs.flatMap(r => r.parts ?? []);
       const row: PaperRow = {
-        ...rs[0], label: key, on: undefined, slip: undefined, marks: undefined, overlap: undefined,
+        ...rs[0], label: key, on: undefined, slip: undefined, marks: undefined, overlap: undefined, next: undefined, parts: undefined, partsSay: undefined,
         start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
         bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
-        sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}`,
+        sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}${parts.length ? ` · ${partsWords(parts)}` : ''}`,
         fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
       };
       return row;
     });
-    return { ...gr, rows };
+    return { kind: gr.kind, label: gr.label, rows };
   });
   return { ...g, groups };
 }
@@ -119,19 +139,20 @@ const GATE_NOUN: Partial<Record<PlanMark['kind'], [string, string]>> = {
 export function foldBands(g: Gantt, capacity: number): Gantt {
   if (!g.machines) return g;
   const lines = g.machines.reduce((n, b) => n + 1 + (b.walk ? 1 : 0)
-    + b.groups.reduce((m, gr) => m + 1 + gr.rows.reduce((k, r) => k + 1 + (r.fixes?.length ?? 0), 0), 0), 0);
+    + b.groups.reduce((m, gr) => m + 1 + gr.rows.reduce((k, r) => k + 1 + (r.fixes?.length ?? 0) + (r.parts?.length ?? 0), 0), 0), 0);
   if (lines <= capacity * 2) return g;
   const fold = (gr: GanttGroup): GanttGroup => {
-    if (gr.rows.length < 2 && !gr.rows.some(r => r.fixes?.length)) return { ...gr, rows: gr.rows.map(r => ({ ...r, label: `${gr.label}: ${r.label}` })) };
+    if (gr.rows.length < 2 && !gr.rows.some(r => r.fixes?.length || r.parts?.length)) return { ...gr, rows: gr.rows.map(r => ({ ...r, label: `${gr.label}: ${r.label}` })) };
     const rs = gr.rows;
     const noun = GATE_NOUN[gr.kind] ?? ['item', 'items'];
     const bad = badWords(rs);
     const fixes = rs.flatMap(r => r.fixes ?? []);
+    const parts = rs.flatMap(r => r.parts ?? []);
     const row: PaperRow = {
-      ...rs[0], label: gr.label, on: undefined, slip: undefined, marks: undefined, overlap: undefined,
+      ...rs[0], label: gr.label, on: undefined, slip: undefined, marks: undefined, overlap: undefined, next: undefined, parts: undefined, partsSay: undefined,
       start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
       bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
-      sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}`,
+      sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}${parts.length ? ` · ${partsWords(parts)}` : ''}`,
       fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
     };
     return { ...gr, rows: [row] };
@@ -166,13 +187,15 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
   const X = (day: number) => x0 + day * px;
 
   /* Rows, with each gate's heading, cut into pages. */
-  const rowLines = (row: PaperRow): Line[] => [{ row } as Line, ...(row.fixes ?? []).map(f => ({ row: f, fix: true }) as Line)];
+  const rowLines = (row: PaperRow, nest = false): Line[] => [{ row, nest } as Line,
+    ...(row.parts ?? []).map(pt => ({ part: pt, nest }) as Line), ...(row.fixes ?? []).map(f => ({ row: f, fix: true, nest }) as Line)];
   /* BY MACHINE: each machine's header, then its gates — each named where it
      starts, unless folded to one lane that is named for the gate itself. */
   const lines: Line[] = g.machines ? g.machines.flatMap(b => [{ band: b } as Line,
-    ...b.groups.flatMap(gr => [...(b.folded ? [] : [{ gate: gr.label } as Line]), ...gr.rows.flatMap(rowLines)]),
+    ...b.groups.flatMap(gr => [...(b.folded ? [] : [{ gate: gr.label } as Line]), ...gr.rows.flatMap(r => rowLines(r))]),
     ...(b.walk ? [{ walk: true } as Line] : [])]) : g.groups.flatMap(gr => [{ group: gr.label, n: gr.rows.length } as Line,
-    ...gr.rows.flatMap(row => [{ row } as Line, ...(row.fixes ?? []).map(f => ({ row: f, fix: true }) as Line)])]);
+    /* BY STAGE: each stage's heading, then a row per machine on it. */
+    ...(gr.subs ? gr.subs.flatMap(sb => [{ sub: sb } as Line, ...sb.rows.flatMap(r => rowLines(r, true))]) : gr.rows.flatMap(r => rowLines(r)))]);
   /* WHAT THE WALK FOUND — one lane, after the gates and before the fixes, the
      same place the screen draws it. */
   if (!g.machines && g.walk && g.walk.days.length) {
@@ -184,17 +207,33 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
 
   /* A ROW'S LABEL WRAPS AND THE ROW GROWS — it was cut to its first line, the
      step and the machine both. */
-  const labelOf = (r: PaperRow) => {
+  const labelOf = (r: PaperRow, nest = false) => {
     const mach = r.on && r.label.startsWith(`${r.on} — `) ? r.on : '';
+    const w = LAB - 12 - (nest ? NEST : 0);
     font(7.5, 'bold');
-    const step = doc.splitTextToSize(san(mach ? r.label.slice(mach.length + 3) : r.label), LAB - 12) as string[];
+    /* A reminder's own words are on the calendar beside its mark; the label
+       says what it is and when. "Next" takes room after the first line. */
+    const name = r.kind === 'note' && !r.bits ? `Reminder · ${r.when}` : mach ? r.label.slice(mach.length + 3) : r.label;
+    const step = doc.splitTextToSize(san(name), w - (r.next ? NEXT_W : 0)) as string[];
     font(6, 'normal');
-    /* Why it wears its colour, when the rule decided it — "late — 2 h lost". */
-    const under = r.sub ?? [mach, r.says].filter(Boolean).join(' · ');
-    const sub = under ? doc.splitTextToSize(san(under), LAB - 12) as string[] : [];
+    /* Why it wears its colour, when the rule decided it — "late — 2 h lost" —
+       and how many parts it has. */
+    const under = r.sub ?? (r.kind === 'note' ? noteSays(r.tone) : [mach, r.says, r.partsSay].filter(Boolean).join(' · '));
+    const sub = under ? doc.splitTextToSize(san(under), w) as string[] : [];
     return { step, sub };
   };
-  const fixLabel = (r: PaperRow) => { font(6.5, 'bold'); return doc.splitTextToSize(san(`> Fix: ${r.label}`), LAB - 18) as string[]; };
+  /* A REMINDER'S WORDS beside its mark: on the side with room, wrapped to
+     three lines at most. */
+  const remOf = (r: PaperRow) => {
+    const cx = X(r.start + 0.5), roomR = PW - M - 4 - (cx + 8), roomL = cx - 8 - (x0 + 4);
+    const right = roomR >= 150 || roomR >= roomL;
+    font(7, 'bold');
+    let lines = doc.splitTextToSize(san(r.label), Math.max(40, Math.min(330, right ? roomR : roomL))) as string[];
+    if (lines.length > 3) lines = [...lines.slice(0, 2), `${lines[2].replace(/\s+\S*$/, '')}…`];
+    return { cx, right, lines };
+  };
+  const partLabel = (pt: GanttPart, nest = false) => { font(6.5, 'bold'); return doc.splitTextToSize(san(`> ${pt.label}${pt.owner ? ` (${pt.owner})` : ''}`), LAB - 18 - (nest ? NEST : 0)) as string[]; };
+  const fixLabel = (r: PaperRow, nest = false) => { font(6.5, 'bold'); return doc.splitTextToSize(san(`> Fix: ${r.label}`), LAB - 18 - (nest ? NEST : 0)) as string[]; };
   const bandLabel = (b: GanttMachine, cont?: boolean) => {
     font(8, 'bold');
     const name = doc.splitTextToSize(san(cont ? `${b.name}  (continued)` : b.name), LAB - 16) as string[];
@@ -202,14 +241,31 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     const says = doc.splitTextToSize(san(b.says), LAB - 16) as string[];
     return { name, says };
   };
+  const GAP = 3, NEXT_W = 26;
+  const subLabel = (sb: GanttSub, cont?: boolean) => {
+    const room = LAB - 14;
+    font(7, 'bold');
+    const head = doc.splitTextToSize(san(sb.label + (cont ? '  (continued)' : '')), room) as string[];
+    const last = doc.getTextWidth(head[head.length - 1]);
+    font(6, 'bold');
+    /* Each "·" stands in a gap of its own; san() closes a run of spaces to one.
+       What is abnormal is said part by part, each in its own colour. */
+    const n0 = san(`· ${sb.n}`);
+    const bad = sb.bad ? sb.bad.split(' · ').map(w => ({ w: san(`· ${w}`), colour: /a problem/.test(w) ? AMBER : DANGER })) : [];
+    const inline = last + GAP + doc.getTextWidth(n0) + bad.reduce((x, b) => x + GAP + doc.getTextWidth(b.w), 0) <= room;
+    return { head, n: inline ? n0 : san(sb.n), bad, inline };
+  };
   const natural = (l: Line): number => {
     if ('group' in l) return GROUP_H;
     if ('gate' in l) return GATE_H;
+    if ('sub' in l) { const sl = subLabel(l.sub, l.cont); return SUB_H + (sl.head.length - 1 + (sl.inline ? 0 : 1)) * 8; }
     if ('band' in l) { const { name, says } = bandLabel(l.band, l.cont); return Math.max(BAND_H, 8 + name.length * 8.5 + says.length * 7.5); }
     if ('walk' in l) return ROW_H;
     // The usual row is the step and its machine on one line each; a row only grows for lines beyond that.
-    if (l.fix) return ROW_H + Math.max(0, fixLabel(l.row).length - 1) * 7.5;
-    const { step, sub } = labelOf(l.row);
+    if ('part' in l) return ROW_H + Math.max(0, partLabel(l.part, l.nest).length - 1) * 7.5;
+    if (l.fix) return ROW_H + Math.max(0, fixLabel(l.row, l.nest).length - 1) * 7.5;
+    if (l.row.kind === 'note' && !l.row.bits) return ROW_H + Math.max(0, remOf(l.row).lines.length - 1) * 8;
+    const { step, sub } = labelOf(l.row, l.nest);
     return ROW_H + Math.max(0, step.length - 1) * 8.5 + Math.max(0, sub.length - 1) * 6.5;
   };
   /* A SMALL OVERFLOW IS ABSORBED: rows close up a little rather than a page
@@ -219,12 +275,29 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     const H = (l: Line) => natural(l) * k;
     const out: Line[][] = [];
     let cur: Line[] = [], used = 0, lastGroup = '';
-    let lastBand: GanttMachine | undefined;
+    let lastBand: GanttMachine | undefined, lastSub: GanttSub | undefined;
     lines.forEach((l, i) => {
       const h = H(l);
       /* A heading never sits alone at the foot of a page. */
       const nextH = i + 1 < lines.length ? H(lines[i + 1]) : 0;
-      const need = 'group' in l || 'gate' in l ? h + ROW_H * k : 'band' in l ? h + nextH : h;
+      /* A stage and its parts stay on one page — a branch is never left on
+         the next sheet without the stage it comes off — and a heading goes
+         over with the first of them, never alone at the foot of a page. */
+      const blockAt = (j: number): number => {
+        if (j >= lines.length) return 0;
+        const lj = lines[j];
+        let b = H(lj);
+        if ('row' in lj && !lj.fix) for (let q = j + 1; q < lines.length && 'part' in lines[q]; q++) b += H(lines[q]);
+        return b;
+      };
+      const isHead = (x: Line) => 'group' in x || 'gate' in x || 'sub' in x;
+      let need = 'band' in l ? h + nextH : h;
+      if (isHead(l)) {
+        let q = i;
+        need = 0;
+        while (q < lines.length && isHead(lines[q])) need += H(lines[q++]);
+        need += Math.max(blockAt(q), ROW_H * k);
+      } else if ('row' in l && !l.fix) need = blockAt(i);
       /* A MACHINE STARTS A PAGE when it would not finish on this one but
          would on a fresh one — so long as this page is already well filled:
          a half-empty page is worse than a machine carried over. */
@@ -238,9 +311,14 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         out.push(cur); cur = []; used = 0;
         if (g.machines) {
           if (!('band' in l) && lastBand) { const c: Line = { band: lastBand, cont: true }; cur.push(c); used += H(c); }
-        } else if (!('group' in l)) { cur.push({ group: lastGroup, n: 0, cont: true }); used += GROUP_H * k; }
+        } else if (!('group' in l)) {
+          cur.push({ group: lastGroup, n: 0, cont: true }); used += GROUP_H * k;
+          /* A stage carried over says whose rows these still are. */
+          if (!('sub' in l) && lastSub) { cur.push({ sub: lastSub, cont: true }); used += SUB_H * k; }
+        }
       }
-      if ('group' in l) lastGroup = l.group;
+      if ('group' in l) { lastGroup = l.group; lastSub = undefined; }
+      if ('sub' in l) lastSub = l.sub;
       if ('band' in l) lastBand = l.band;
       cur.push(l); used += h;
     });
@@ -261,6 +339,8 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
   pages.forEach((page, pi) => {
     if (pi > 0) doc.addPage('a4', 'landscape');
     drawn.push(doc.getNumberOfPages());
+    /* What is printed over the day lines, once they are drawn: a reminder's words. */
+    const over: (() => void)[] = [];
 
     /* ---- the heading ---- */
     font(8, 'bold', BRAND); doc.text(san(head.eyebrow), M, M + 6);
@@ -307,6 +387,20 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         doc.setFillColor(SURF2); doc.rect(M, y, LAB, RH, 'F');
         font(6.5, 'bold', INK2);
         doc.text(`${l.group.toUpperCase()}${l.cont ? '  (continued)' : `  ${l.n}`}`, M + 6, y + RH * 0.69);
+        y += RH;
+        continue;
+      }
+      if ('sub' in l) {
+        /* "Dry run · 2 machines · 1 late" — the heading in ink, the count
+           muted, and only what is abnormal in its colour; wrapped inside the
+           label column, never over the calendar. */
+        const { head, n, bad, inline } = subLabel(l.sub, l.cont);
+        font(7, 'bold', INK2);
+        head.forEach((h, i) => doc.text(h, M + 6, y + 8.5 * k + i * 8));
+        let sx = M + 6, ty = y + 8.5 * k + (head.length - 1) * 8;
+        if (inline) { font(7, 'bold'); sx += doc.getTextWidth(head[head.length - 1]) + GAP; } else ty += 8;
+        font(6, 'normal', MUTED); doc.text(n, sx, ty); sx += doc.getTextWidth(n) + GAP;
+        for (const b of bad) { font(6, 'bold', b.colour); doc.text(b.w, sx, ty); sx += doc.getTextWidth(b.w) + GAP; }
         y += RH;
         continue;
       }
@@ -366,6 +460,27 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         y += RH;
         continue;
       }
+      if ('part' in l) {
+        /* A PART OF THE PLAN, a branch under its stage: its words, its state
+           in words, and on its day a mark in its state's colour. */
+        const pt = l.part, pc = PART[pt.state], px0 = M + 14 + (l.nest ? NEST : 0);
+        doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + RH, PW - M, y + RH);
+        const pl = partLabel(pt, l.nest);
+        font(6.5, 'bold', INK2); doc.text(pl, px0, y + 7.5 * k, { lineHeightFactor: 7.5 * k / 6.5 });
+        font(5.5, pt.state === 'late' || pt.state === 'soon' ? 'bold' : 'normal', pc.words);
+        doc.text(san(pt.says), px0, y + (7.5 + pl.length * 7.5 - 1.5) * k);
+        if (pt.at != null) {
+          const cx = X(pt.at + 0.5), cy = y + RH / 2;
+          doc.setDrawColor(pc.stroke); doc.setFillColor(pc.fill); doc.setLineWidth(pt.state === 'late' ? 1.1 : 0.8);
+          doc.circle(cx, cy, 3, 'FD');
+          font(5.5, 'bold', INK2);
+          const tw = doc.getTextWidth(san(pt.says));
+          if (cx + 6 + tw <= PW - M - 2) doc.text(san(pt.says), cx + 6, cy + 1.9);
+          else if (cx - 6 - tw >= x0 + 2) doc.text(san(pt.says), cx - 6 - tw, cy + 1.9);
+        }
+        y += RH;
+        continue;
+      }
       const r = l.row;
       doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + RH, PW - M, y + RH);
       /* A FOLDED ROW — every mark on one lane, those sharing days merged into
@@ -391,11 +506,12 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         continue;
       }
       /* A FIX UNDER ITS STAGE — its dates, or open-ended, "no date agreed". */
+      const nx = l.nest ? NEST : 0;
       if (l.fix) {
-        const fl = fixLabel(r);
+        const fl = fixLabel(r, l.nest);
         font(6.5, 'bold', INK2);
-        doc.text(fl, M + 14, y + 7.5 * k, { lineHeightFactor: 7.5 * k / 6.5 });
-        font(5.5, 'normal', MUTED); doc.text(san(r.when), M + 14, y + (7.5 + fl.length * 7.5 - 1.5) * k);
+        doc.text(fl, M + 14 + nx, y + 7.5 * k, { lineHeightFactor: 7.5 * k / 6.5 });
+        font(5.5, 'normal', MUTED); doc.text(san(r.when), M + 14 + nx, y + (7.5 + fl.length * 7.5 - 1.5) * k);
         const fx = X(r.start) + 0.6, fy = y + 5, fh = Math.min(RH - 10, 7);
         const open = (r as GanttRow & { open?: boolean }).open;
         if (open) {
@@ -414,12 +530,46 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       }
       /* "Wrapper — Dry run": the step, with its machine under it. Only the
          machine is split off — a title with a dash of its own stays whole. */
-      const { step, sub } = labelOf(r);
-      font(7.5, 'bold', INK);
+      const { step, sub } = labelOf(r, l.nest);
+      const note = r.kind === 'note';
+      font(7.5, 'bold', note ? REMIND : INK);
       const lines1 = step.length + sub.length;
       // The row's own air scales with it when a page is tightened (k); the type does not.
-      doc.text(step, M + 6, y + (lines1 === 1 ? RH / 2 + 2.6 : 7.5 * k), { lineHeightFactor: 8.5 * k / 7.5 });
-      if (sub.length) { font(6, r.says ? 'bold' : 'normal', r.says ? SAY[r.tone] : MUTED); doc.text(sub, M + 6, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 }); }
+      const by0 = y + (lines1 === 1 ? RH / 2 + 2.6 : 7.5 * k);
+      doc.text(step, M + 6 + nx, by0, { lineHeightFactor: 8.5 * k / 7.5 });
+      const saidBold = !!r.says || (note && r.tone === 'late');
+      if (sub.length) { font(6, saidBold ? 'bold' : 'normal', saidBold ? SAY[r.tone] : MUTED); doc.text(sub, M + 6 + nx, y + (7.5 + step.length * 8.5 - 1.5) * k, { lineHeightFactor: 6.5 * k / 6 }); }
+      /* "NEXT" — the machine's next stage, in words, outlined in ink: never a state's colour. */
+      if (r.next) {
+        font(7.5, 'bold');
+        const tx = M + 6 + nx + doc.getTextWidth(step[0]) + 4;
+        font(5, 'bold', INK);
+        const tw = doc.getTextWidth('NEXT') + 5;
+        doc.setDrawColor(INK); doc.setLineWidth(0.6); doc.roundedRect(tx, by0 - 5.6, tw, 7, 1.5, 1.5, 'S');
+        doc.text('NEXT', tx + 2.5, by0 - 0.4, { charSpace: 0.2 });
+      }
+      /* A REMINDER — a mark you can see on its day, its own words beside it. */
+      if (note) {
+        const { cx, right, lines: words } = remOf(r);
+        const cy = y + Math.min(RH / 2, 8.5);
+        doc.setDrawColor(r.tone === 'late' ? DANGER : REMIND); doc.setFillColor('#fbe7f1'); doc.setLineWidth(1.1);
+        doc.circle(cx, cy, 4.3, 'FD');
+        doc.setFillColor(r.tone === 'done' ? '#e7a9c9' : REMIND); doc.circle(cx, cy, 1.9, 'F');
+        /* Its words go on over the today and handover lines, on white, so no
+           line runs through them. */
+        over.push(() => {
+          font(7, 'bold', r.tone === 'done' ? '#a06086' : REMIND);
+          const tx = right ? cx + 8 : cx - 8;
+          doc.setFillColor('#ffffff');
+          words.forEach((ln, li) => {
+            const w = doc.getTextWidth(ln);
+            doc.rect((right ? tx : tx - w) - 1.5, cy + 2.4 + li * 8 - 5.8, w + 3, 7.6, 'F');
+          });
+          doc.text(words, tx, cy + 2.4, { align: right ? 'left' : 'right', lineHeightFactor: 8 / 7 });
+        });
+        y += RH;
+        continue;
+      }
 
       const t = (r.kind === 'note' ? NOTE_TONE : TONE)[r.tone];
       const bh = Math.min(RH - 8, 9), bx = X(r.start) + 0.6, bw = Math.max(2.4, r.span * px - 1.2), by = y + (RH - bh) / 2;
@@ -481,6 +631,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     };
     if (g.agreed) mark(g.agreed.at, MUTED, `Agreed ${g.agreed.when}`);
     if (g.expected) mark(g.expected.at, OK, `Handover ${g.expected.when}`);
+    over.forEach(f => f());
     let below = 0;
     labels.forEach((lb, i) => {
       const prev = labels[i - 1];
@@ -534,11 +685,26 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       kx += 18 + doc.getTextWidth('something happened');
     }
     if (g.groups.some(x => x.kind === 'note')) {
-      fit('a reminder from the notes', 24);
-      doc.setDrawColor(REMIND); doc.setFillColor('#fbe7f1'); doc.setLineWidth(0.7);
-      doc.roundedRect(kx, ky - 5.5, 12, 7, 1.5, 1.5, 'FD');
-      font(7, 'normal', INK2); doc.text('a reminder from the notes', kx + 15, ky);
-      kx += 24 + doc.getTextWidth('a reminder from the notes');
+      fit('a reminder from the notes', 22);
+      doc.setDrawColor(REMIND); doc.setFillColor('#fbe7f1'); doc.setLineWidth(1);
+      doc.circle(kx + 4, ky - 2, 3.6, 'FD'); doc.setFillColor(REMIND); doc.circle(kx + 4, ky - 2, 1.5, 'F');
+      font(7, 'normal', INK2); doc.text('a reminder from the notes', kx + 11, ky);
+      kx += 22 + doc.getTextWidth('a reminder from the notes');
+    }
+    if (g.groups.some(x => x.rows.some(r => r.parts?.some(pt => pt.at != null)))) {
+      fit('a part of the plan, on the day it is due', 20);
+      doc.setDrawColor(BOOKED); doc.setFillColor('#e6e4f6'); doc.setLineWidth(0.8); doc.circle(kx + 3.5, ky - 2, 3, 'FD');
+      font(7, 'normal', INK2); doc.text('a part of the plan, on the day it is due', kx + 10, ky);
+      kx += 20 + doc.getTextWidth('a part of the plan, on the day it is due');
+    }
+    if (g.groups.some(x => x.rows.some(r => r.next))) {
+      fit('NEXT each machine\u2019s next stage not yet done', 22);
+      font(5, 'bold', INK);
+      const tw = doc.getTextWidth('NEXT') + 5;
+      doc.setDrawColor(INK); doc.setLineWidth(0.6); doc.roundedRect(kx, ky - 5.6, tw, 7, 1.5, 1.5, 'S');
+      doc.text('NEXT', kx + 2.5, ky - 0.4, { charSpace: 0.2 });
+      font(7, 'normal', INK2); doc.text(san('each machine\u2019s next stage not yet done'), kx + tw + 4, ky);
+      kx += tw + 14 + doc.getTextWidth(san('each machine\u2019s next stage not yet done'));
     }
     fit('today handover', 60);
     doc.setDrawColor(BRAND); doc.setLineWidth(1.1); doc.line(kx, ky - 6, kx, ky + 1);

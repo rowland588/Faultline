@@ -8347,6 +8347,30 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
 .gt.is-stacked .gt-mband .gt-row:not(.gt-mrow):not(.gt-gaterow) button.gt-lab:not(.gt-walklab) { padding-left: 16px; }
 .gt.is-stacked .gt-mband button.gt-fixlab { padding-left: 28px !important; }
 
+/* BY STAGE — a stage's light heading, its machines' rows under it, indented
+   (lib/gantt byStage). On a phone the heading sits over no track of its own. */
+.gt-subrow { height: 24px; border-bottom: 0; }
+/* A long stage and its counts run on over the heading's own empty track
+   rather than being cut — "· 1 late" is the part that must never be lost. */
+.gt-subrow .gt-lab.gt-sublab {
+  display: block; cursor: default; padding: 9px 12px 0 26px; line-height: 14px; font-size: 11px; color: var(--ink-2);
+  overflow: visible; text-overflow: clip;
+}
+.gt-sublab > b, .gt-sublab > small { background: var(--surface); }
+.gt-sublab b { font-weight: 700; }
+.gt-sublab small { font-size: 10.5px; color: var(--muted); }
+.gt-sublab em { font-style: normal; font-weight: 700; }
+.gt-sublab em.is-late { color: var(--st-r); }
+.gt-sublab em.is-problem { color: var(--st-a); }
+.gt-group:not(.gt-mband) .gt-subrow ~ .gt-row:not(.gt-subrow):not(.gt-fixrow) button.gt-lab:not(.gt-walklab) { padding-left: 38px; }
+.gt-group:not(.gt-mband) .gt-subrow ~ .gt-fixrow button.gt-fixlab { padding-left: 50px; }
+.gt.is-stacked .gt-subrow { height: auto; }
+.gt.is-stacked .gt-subrow .gt-lab.gt-sublab { padding: 8px 10px 0 12px; white-space: normal; }
+.gt.is-stacked .gt-subrow .gt-track { height: 0; }
+.gt.is-stacked .gt-sublab > b, .gt.is-stacked .gt-sublab > small { position: relative; z-index: 4; background: var(--surface); }
+.gt.is-stacked .gt-group:not(.gt-mband) .gt-subrow ~ .gt-row:not(.gt-subrow):not(.gt-fixrow) button.gt-lab:not(.gt-walklab) { padding-left: 22px; }
+.gt.is-stacked .gt-group:not(.gt-mband) .gt-subrow ~ .gt-fixrow button.gt-fixlab { padding-left: 32px; }
+
 /* the panel a walk marker opens */
 .wp { display: flex; flex-direction: column; gap: 12px; }
 .wp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -10453,3 +10477,130 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .ls-strip-item { display: inline-grid; gap: 2px; justify-items: start; }
 .ls-strip-del, .ls-card-del { font-size: var(--t-detail); padding: 2px 0; }
 .ls-card-wrap { display: grid; gap: 4px; align-content: start; }
+
+/* ==========================================================================
+   THE PLAN, READ AT ARM'S LENGTH — Rowland, 6 October: "The plan is still
+   difficult to read. The stages are written small; I can't see where I am."
+   Names 15px (a machine's 17px), the dates on and beside the bars 12px bold,
+   bars taller — still one lane a row. Today's column is shaded the full
+   height with a pill at its head; each machine's next stage says "Next" in
+   words; a reminder is a mark you can see with its words beside it; a part of
+   the plan is a branch under its stage. See ui/Gantt.tsx.
+   ========================================================================== */
+.gt { --gt-lab: 300px; }
+@media (max-width: 640px) { .gt { --gt-lab: 138px; } }
+.gt-row { height: 44px; }
+button.gt-lab b { font-size: 15px; }
+button.gt-lab small { font-size: 12px; }
+.gt-b { top: 10px; height: 24px; font-size: 12px; line-height: 21px; }
+.gt-slip { top: 10px; height: 24px; line-height: 21px; font-size: 11.5px; }
+.gt-walk { top: 11px; min-width: 22px; height: 22px; margin-left: -11px; font-size: 12px; line-height: 18px; }
+.gt-walk.is-done { top: 17px; }
+.gt-when { font-size: 12px; font-weight: 800; }
+.gt-grow { height: 34px; }
+.gt-glab { font-size: 12px; }
+.gt-n { font-size: 11.5px; }
+.gt-sum { font-size: 12px; }
+.gt-fixrow { height: 38px; }
+.gt-fixrow .gt-b { top: 10px; height: 18px; }
+button.gt-fixlab b { font-size: 13.5px; }
+button.gt-fixlab small { font-size: 11.5px; }
+.gt-mrow { height: 56px; }
+.gt-mgo b { font-size: 17px; }
+.gt-mgo small { font-size: 12.5px; }
+.gt-msum { top: 17px; height: 22px; }
+.gt-gaterow { height: 26px; }
+.gt-gaterow .gt-lab.gt-gatelab { font-size: 11px; }
+.gt-months span { font-size: 12px; }
+.gt-days span { font-size: 12.5px; }
+.gt-days span i { font-size: 10px; }
+.gt-key { font-size: 13px; }
+.gt-subrow { height: 32px; }
+.gt-subrow .gt-lab.gt-sublab { padding-top: 11px; line-height: 18px; font-size: 12.5px; }
+.gt-sublab b { font-size: 15px; font-weight: 800; color: var(--ink); }
+.gt-sublab small { font-size: 12.5px; }
+
+/* On a phone: the name above its bar at 14px and more. */
+.gt.is-stacked .gt-track { height: 36px; }
+.gt.is-stacked .gt-b, .gt.is-stacked .gt-slip { top: 6px; }
+.gt.is-stacked button.gt-lab b { font-size: 14.5px; }
+.gt.is-stacked button.gt-lab small { font-size: 12px; }
+.gt.is-stacked button.gt-fixlab b { font-size: 14px; }
+.gt.is-stacked .gt-mgo b { font-size: 16px; }
+.gt.is-stacked .gt-grow .gt-track { height: 36px; }
+.gt.is-stacked .gt-fixrow .gt-track { height: 30px; }
+.gt.is-stacked .gt-fixrow .gt-b { top: 6px; }
+.gt.is-stacked .gt-walk { top: 7px; }
+.gt.is-stacked .gt-walk.is-done { top: 13px; }
+.gt.is-stacked button.gt-mtrack { height: 36px; }
+.gt.is-stacked .gt-msum { top: 7px; }
+.gt.is-stacked .gt-sublab b { font-size: 14.5px; }
+.gt.is-stacked button.gt-lab:not(.gt-walklab)::after { height: calc(100% + 36px); }
+.gt.is-stacked button.gt-fixlab::after { height: calc(100% + 30px) !important; }
+
+/* WHERE AM I — today's whole column, a pill at its head, and its line. */
+.gt-todaycol { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--brand) 9%, transparent); }
+.gt-todaypill {
+  position: absolute; top: 3px; z-index: 3; transform: translateX(-50%); pointer-events: none;
+  padding: 1px 9px; border-radius: 999px; background: var(--brand); color: #fff; box-shadow: 0 0 0 2px var(--surface-2);
+  font-size: 11.5px; font-weight: 800; line-height: 16px; letter-spacing: 0.02em; white-space: nowrap;
+}
+/* "Next" is said in words — ink, outlined, never a state's colour. */
+.gt-next {
+  display: inline-block; margin-right: 7px; padding: 0 6px; border: 1.5px solid var(--ink); border-radius: 5px; vertical-align: 1px;
+  font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; line-height: 15px; color: var(--ink);
+}
+.gt-key .gt-next { margin-right: 0; }
+.gt-lab-parts { font-weight: 700; color: var(--ink-2); }
+
+/* A PART OF THE PLAN — a branch under its stage, its state in words, and on
+   its day a mark in its state's colour (done green, late red, due within two
+   days amber, booked indigo). */
+.gt-partrow button.gt-partlab b { color: var(--ink-2); }
+.gt-part-says { font-weight: 700; }
+.gt-part-says.is-late { color: var(--st-r); }
+.gt-part-says.is-soon { color: var(--st-a); }
+.gt-part {
+  appearance: none; position: absolute; top: 11px; width: 16px; height: 16px; margin-left: -8px; padding: 0; z-index: 2; box-sizing: border-box; cursor: pointer;
+  border-radius: 50%; border: 2px solid var(--st-w); background: color-mix(in srgb, var(--st-w) 18%, var(--surface));
+}
+.gt-part.is-done { border-color: color-mix(in srgb, var(--st-g) 60%, transparent); background: color-mix(in srgb, var(--st-g) 22%, var(--surface)); }
+.gt-part.is-late { border: 3px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 16%, var(--surface)); }
+.gt-part.is-soon { border-color: var(--st-a); background: color-mix(in srgb, var(--st-a) 22%, var(--surface)); }
+.gt-part:hover, .gt-part:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent); outline: none; }
+.gt.is-stacked .gt-part { top: 7px; }
+.gt-k-part { display: inline-block; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--st-w); background: color-mix(in srgb, var(--st-w) 18%, var(--surface)); }
+
+/* A REMINDER FROM THE NOTES — a mark big enough to see from across the room,
+   its own words beside it, opened out by a tap. */
+.gt-rem {
+  appearance: none; position: absolute; top: 9px; width: 26px; height: 26px; margin-left: -13px; padding: 0; z-index: 3; box-sizing: border-box; cursor: pointer;
+  border-radius: 50%; border: 3px solid var(--remind); background: var(--remind-soft); box-shadow: 0 0 0 2px var(--surface);
+}
+.gt-rem::after { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--remind); }
+.gt-rem.is-done { border-color: color-mix(in srgb, var(--remind) 45%, transparent); }
+.gt-rem.is-done::after { background: color-mix(in srgb, var(--remind) 40%, var(--surface)); }
+.gt-rem.is-late { border-color: var(--danger); }
+.gt-rem:hover, .gt-rem:focus-visible { box-shadow: 0 0 0 4px color-mix(in srgb, var(--remind) 25%, transparent); outline: none; }
+.gt-remw {
+  appearance: none; position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; box-sizing: border-box; margin: 0; padding: 2px 6px;
+  border: 0; border-radius: 6px; background: color-mix(in srgb, var(--surface) 88%, transparent); cursor: pointer; text-align: left;
+  font: inherit; font-size: 13.5px; font-weight: 700; line-height: 1.3; color: var(--remind); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gt-remw.is-done { font-weight: 600; color: color-mix(in srgb, var(--remind) 65%, var(--muted)); }
+.gt-remw.is-full { top: 4px; transform: none; z-index: 6; white-space: normal; background: var(--surface); box-shadow: 0 6px 18px rgba(15, 26, 46, 0.18), 0 0 0 1px var(--line); }
+.gt.is-stacked .gt-rem { top: 5px; }
+.gt-k-rem { display: inline-block; width: 13px; height: 13px; box-sizing: border-box; border-radius: 50%; border: 2.5px solid var(--remind); background: var(--remind-soft); }
+/* A part's words and a machine's name take a second line rather than be cut
+   ("Whole job — not on one mach…", "First program to verify Tesco Expr…"). */
+.gt-partrow { height: auto; min-height: 38px; }
+.gt-partrow button.gt-partlab { padding-top: 5px; padding-bottom: 5px; }
+.gt-partrow button.gt-partlab b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; }
+.gt-mrow { height: auto; min-height: 56px; }
+.gt-mgo { padding-top: 6px; padding-bottom: 6px; }
+.gt-mgo b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.15; }
+.gt-msum { top: 50%; margin-top: -11px; }
+.gt.is-stacked .gt-msum { top: 7px; margin-top: 0; }
+.gt.is-stacked .gt-partrow button.gt-partlab { flex-direction: column; align-items: flex-start; gap: 1px; }
+.gt-part { top: 50%; margin-top: -8px; }
+.gt.is-stacked .gt-part { top: 7px; margin-top: 0; }

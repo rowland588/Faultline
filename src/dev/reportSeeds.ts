@@ -118,6 +118,9 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       result: 'Floor marked out and the fixings drilled; the labeller itself arrives Thursday.' });
     const only = tests[0];
     for (const x of tests) await putTest(x);
+    /* A part of the plan on the stage, with a day — a branch under it on the plan. */
+    await putTestItem({ id: uid(), projectId: proj.id, testId: only.id, kind: 'next', what: 'Mark out the guarding line with the safety officer',
+      owner: 'Site electrician', due: iso(2), sort: 1, createdAt: t, updatedAt: t });
     return { projectId: proj.id, testId: only.id };
   }
 
@@ -202,6 +205,14 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     });
   }
   items.push(...[0, 1, 2].map(i => ({ id: uid(), projectId: proj.id, testId: longest.id, kind: 'found' as const, what: LONG[i], owner: 'Ilapak UK', sort: 100 + i, createdAt: t, updatedAt: t })));
+  /* PARTS OF THE PLAN on the first machine's Programs loaded — one with a
+     day, one done, one with no day — so the plan's branches reach the paper. */
+  const loaded = tests.find(x => x.kind === 'install' && x.gate === 'setup' && x.title === 'Programs loaded' && x.assetId === machines[0].id);
+  if (loaded) items.push(
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'First program to verify Tesco Express 1.25 packs through the de-nester and the pick and place', owner: 'Ilapak UK', due: iso(2), sort: 1, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'Back up every program to the site server', owner: 'Dave', due: iso(-6), doneAt: t - 5 * 86_400_000, sort: 2, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'Agree the recipe naming with the planners', sort: 3, createdAt: t, updatedAt: t },
+  );
   for (const i of items) await putTestItem(i);
 
   /* Materials and programs: enough to run past a page. */

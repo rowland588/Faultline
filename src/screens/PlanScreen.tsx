@@ -11,10 +11,12 @@
  *
  * It wears the frame every page wears (ui/Frame): "The plan" is a line in
  * the rail under Work, so this reads as one more page under the job. */
+import { useMemo } from 'react';
 import { AccessNote } from '../ui/AccessNote';
 import { Gantt } from '../ui/Gantt';
 import { nav } from '../state/useRoute';
-import { useProject } from '../lib/useProjects';
+import { useProjects } from '../lib/useProjects';
+import { usualStages } from '../lib/install';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { usePrograms } from '../lib/usePrograms';
@@ -24,7 +26,13 @@ import { planSays } from '../lib/plan';
 import { todayISO } from '../lib/standing';
 
 export function PlanScreen({ projectId }: { projectId: string }) {
-  const { loading, project } = useProject(projectId);
+  /* All the jobs, for each gate's list as the Install grid finds it (lib/install usualStages). */
+  const { projects, loading } = useProjects();
+  const project = projects.find(p => p.id === projectId);
+  /* By stage, the stages run in the order the Install grid runs them. */
+  const stages = useMemo(() => (project
+    ? { install: usualStages(project, projects, 'install').stages, setup: usualStages(project, projects, 'setup').stages, handover: usualStages(project, projects, 'handover').stages }
+    : undefined), [project, projects]);
   const tt = useTesting(projectId);
   const all = useStanding(projectId);
   const progs = usePrograms(projectId);
@@ -70,7 +78,7 @@ export function PlanScreen({ projectId }: { projectId: string }) {
            the control room's drawer and the client report draw the timeline. */
         <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId}
           name={project.name} tests={tt.tests} items={tt.items} walk={walk ?? undefined} assets={tt.assets} programs={progs.programs}
-          dayHours={project.dayHours} />
+          dayHours={project.dayHours} stages={stages} />
       )}
     </div>
   );

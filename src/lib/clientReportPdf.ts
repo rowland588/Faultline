@@ -7,7 +7,7 @@ import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, pagesOf, rows, text, wrap } from './report/blocks';
-import { gantt, withMachines, type GanttBy } from './gantt';
+import { byStage, gantt, withMachines, withNext, type GanttBy } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { moveLines } from './story';
 
@@ -334,13 +334,17 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   if (r.plan.length) {
     out.push(pagesOf(f => {
       f.doc.addPage('a4', 'landscape');
-      const g = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
+      const g0 = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
       /* By machine, as the screen draws it — unless the job has no machine
-         to band by, or this device chose the gates. */
-      const { assets, programs, tests, items } = r.planRecords;
+         to band by, or this device chose the gates. Each machine's next
+         stage says "Next" in either (lib/gantt withNext). */
+      const { assets, programs, tests, items, stages: lists } = r.planRecords;
+      const g = assets?.length ? withNext(g0, { assets, programs, tests, items, today: r.today }) : g0;
       const byMachine = extras.planBy !== 'stage' && assets?.length
         ? withMachines(g, { assets, programs, tests, items, today: r.today }) : g;
-      onPlan(drawGantt(f.doc, byMachine.machines?.some(b => b.id) ? byMachine : g, {
+      /* By stage, each stage's machines under it, named — as the screen. */
+      const stages = extras.planBy === 'stage' && assets?.length ? byStage(g, { assets, programs, tests, ...(lists ? { stages: lists } : {}) }) : g;
+      onPlan(drawGantt(f.doc, byMachine.machines?.some(b => b.id) ? byMachine : stages, {
         eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
         sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
       }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items, r.planRecords.dayHours)));

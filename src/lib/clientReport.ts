@@ -121,12 +121,15 @@ export interface ClientReport {
    *  for "The plan" page, with the day it was printed and both handover dates. */
   plan: PlanMark[];
   /** What happened to each stage, for the plan page's overruns and its "why"
-   *  list — the steps, their fixes and what was found. Never the notes. */
+   *  list — the steps, their fixes, what was found and each stage's parts
+   *  (drawn as branches under it). Never the notes. */
   planRecords: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[];
     /** The machines and their programs — for the plan drawn machine by machine. */
     assets?: Asset[]; programs?: Program[];
     /** The job's working day, for hours lost (lib/hoursLost). */
-    dayHours?: number };
+    dayHours?: number;
+    /** Each gate's list, for the plan by stage in the Install grid's order. */
+    stages?: Partial<Record<StepGate, readonly string[]>> };
   today: string;
   expectedAt?: string;
   plannedAt?: string;
@@ -327,7 +330,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
     /* Meeting notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),
-    planRecords: { tests, items: items.filter(i => i.kind === 'found'), assets, programs, ...(x.walk?.length ? { walk: x.walk } : {}), ...(project.dayHours ? { dayHours: project.dayHours } : {}) },
+    planRecords: { tests, items: items.filter(i => i.kind === 'found' || i.kind === 'next'), assets, programs, ...(x.walk?.length ? { walk: x.walk } : {}), ...(project.dayHours ? { dayHours: project.dayHours } : {}),
+      stages: Object.fromEntries((['install', 'setup', 'handover'] as const).map(gt => [gt, usualStages(project, x.projects, gt).stages])) },
     today,
     ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
     ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),

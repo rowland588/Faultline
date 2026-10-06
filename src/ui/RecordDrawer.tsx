@@ -59,7 +59,9 @@ const JOB = 'job';
  *  the filmed walk ('asset') opens the fixes pinned on it, with &job=. */
 const RECORD_ROUTES = new Set<RouteName>([
   'home', 'projectDashboard', 'projectSetup', 'fixes', 'install', 'gateSetup', 'handover', 'day',
-  'testing', 'test', 'trialCard', 'notes', 'materials', 'programs', 'clientReport', 'asset',
+  /* The plan, since it became a page of its own: "Tap a row to open it" set
+     ?open= and nothing opened. */
+  'plan', 'testing', 'test', 'trialCard', 'notes', 'materials', 'programs', 'clientReport', 'asset',
 ]);
 
 const split = (): [string, URLSearchParams] => {
