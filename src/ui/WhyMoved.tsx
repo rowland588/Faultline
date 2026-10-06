@@ -24,14 +24,18 @@ import { addDays, daysBetween, niceDay } from '../lib/weeks';
 import { Evidence } from './EvidenceDoors';
 import { BetterWords } from './BetterWords';
 import { hoursTally, fullDays, hoursWord, daysWord, DAY_HOURS } from '../lib/hoursLost';
-import type { TestItem } from '../lib/testing';
+import type { TestItem, WayRound } from '../lib/testing';
+import { CriticalFields, criticalDraftOf, criticalPatch } from './CriticalFields';
 import { EvidenceViewer, withPins } from './Evidence';
 
 type TT = ReturnType<typeof useTesting>;
 
 export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string; what?: string }; shiftFollowing?: boolean;
   /** What the problem cost in hours, when hours are what is known (lib/hoursLost). */
-  hoursLost?: number }
+  hoursLost?: number;
+  /** Critical, what it means for the business, and the ways round it
+   *  (lib/critical, ui/CriticalFields) — the problem form asks. */
+  critical?: boolean; impact?: string; ways?: WayRound[] }
 
 /** The problem sheet's boxes as a voice note filled them (lib/voice problemFill). */
 export interface ProblemFill { why: string; to: string; fix: boolean; fixOn: string; said?: string }
@@ -187,6 +191,9 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
       ...(from && to ? { movedFrom: from, movedTo: to } : {}),
       ...(fixId ? { becameTestId: fixId } : {}),
       ...(a.hoursLost && steps.length === 1 ? { hoursLost: a.hoursLost } : {}),
+      ...(a.critical ? { critical: true } : {}),
+      ...(a.impact ? { impact: a.impact } : {}),
+      ...(a.ways?.length ? { ways: a.ways } : {}),
       sort: at + k, createdAt: at + k, updatedAt: at + k,
     });
     made.push({ item: id, ...(fixId ? { fix: fixId } : {}) });
@@ -266,6 +273,9 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
     if (f.to) setCost('date');
   };
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  /* CRITICAL (lib/critical) — said when it is written, or later on the
+     stage's story; the boxes open only when it is ticked. */
+  const [crit, setCrit] = useState(criticalDraftOf());
   /* DAYS OR HOURS. Rowland, 6 October: "it only gives me ability to put days,
      but in some occasions I find out that actually it's hours." A problem
      that cost hours says so; the stage's hours add up (lib/hoursLost), and
@@ -304,6 +314,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
           onChange={e => setWhy(e.target.value)} /></label>
       <BetterWords text={why} field="problem" onUse={setWhy} names={[step.title, ...assets.map(a => a.name)]} />
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
+      <CriticalFields value={crit} onChange={setCrit} names={[step.title, ...assets.map(a => a.name)]} />
       <div className="why-cost">
         <span className="why-cost-h">What did it cost? <span className="cw-f-opt">finish {end ? `now ${niceDay(end)}` : 'not dated yet'}</span></span>
         <span className="cw-seg" role="group" aria-label="What did it cost?">
@@ -345,7 +356,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
       <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(target ? { to: target } : {}), ...(cost === 'hours' && hours > 0 ? { hoursLost: hours } : {}), ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}) })}>Save the problem</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(target ? { to: target } : {}), ...(cost === 'hours' && hours > 0 ? { hoursLost: hours } : {}), ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}), ...criticalPatch(crit) })}>Save the problem</button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}

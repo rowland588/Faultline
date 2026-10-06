@@ -70,9 +70,11 @@ export function criticalProblems(tests: Test[], items: TestItem[], assets: Asset
 }
 
 /** The open critical problems on one stage — the count its square, its
- *  drawer and its line on the plan carry. */
-export const criticalOn = (stepId: string, items: TestItem[]): TestItem[] =>
-  live(items).filter(i => i.testId === stepId && i.kind === 'found' && i.critical && i.doneAt == null);
+ *  drawer and its line on the plan carry. Given the tests, one whose fix is
+ *  done is sorted, as criticalProblems says it. */
+export const criticalOn = (stepId: string, items: TestItem[], tests?: Test[]): TestItem[] =>
+  live(items).filter(i => i.testId === stepId && i.kind === 'found' && i.critical
+    && !sortedOf(i, i.becameTestId ? tests?.find(t => t.id === i.becameTestId && !t.deletedAt) : undefined));
 
 /** How it stands, in words: "open · way agreed: belt to bypass the robot",
  *  "open · 2 ways round it, none agreed", "open · no way round it yet",

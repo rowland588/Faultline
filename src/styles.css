@@ -10776,3 +10776,28 @@ button.gt-fixlab small { font-size: 11.5px; }
 .rd-prog { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .rd-prog select { max-width: 100%; }
 .cg-extra { color: var(--muted); }
+
+/* A CRITICAL PROBLEM (lib/critical, ui/CriticalFields). A problem is solid
+   red (CLAUDE.md visual rule 2): the tag is the loudest mark on the stage;
+   its story sits under it with a red rule. Sorted recedes to grey. */
+.crit-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--st-r); color: #fff;
+  font-size: var(--t-label); font-weight: 700; letter-spacing: 0.02em; line-height: 1.6; white-space: nowrap; }
+.crit-tag.is-sorted { background: var(--surface-2); color: var(--muted); }
+.crit-on-stage { margin: 4px 0 2px; padding: 6px 0 6px 10px; border-left: 3px solid var(--st-r); display: grid; gap: 4px; }
+.crit-on-stage.is-sorted { border-left-color: var(--line-2); }
+.crit-story { display: grid; gap: 4px; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
+.crit-impact { margin: 0; }
+.crit-ways-r ul { margin: 2px 0 0; padding-left: 18px; }
+.crit-ways-r li.is-agreed { font-weight: 600; }
+.crit-agreed { color: var(--st-g); font-weight: 700; }
+.crit-none { margin: 0; }
+.crit-f { display: grid; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.crit-f.is-on { border: 2px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 4%, var(--surface)); }
+.crit-tick { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.crit-tick input { margin-top: 3px; accent-color: var(--st-r); }
+.crit-ways { display: grid; gap: 6px; }
+.crit-ways-h { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); }
+.crit-way { display: flex; gap: 6px; align-items: center; }
+.crit-way .text-input { flex: 1 1 auto; min-width: 0; }
+.crit-way input[type="checkbox"] { accent-color: var(--st-g); }
+.crit-way.is-agreed .text-input { border-color: color-mix(in srgb, var(--st-g) 50%, var(--line)); }

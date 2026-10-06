@@ -41,6 +41,7 @@ import { useDismiss } from './Sheet';
 import { ProblemEdit, StageStory, storyLength } from './StageStory';
 import { PartsMark, StageParts } from './StageParts';
 import { ProgramLink } from './ProgramLink';
+import { criticalCount, criticalOn } from '../lib/critical';
 import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
@@ -235,6 +236,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const machine = tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line itself';
   const { word, tone } = stateOf(t, today);
   const parts = kind !== 'fix' ? partsSaid(partsOf(t.id, tt.items), today) : undefined;
+  const crits = kind !== 'fix' ? criticalOn(t.id, tt.items, tt.tests).length : 0;
   /* The parent: a fix is FOR a test or a step; a test may follow another. */
   const parent = kind === 'fix' ? testOfFix(t, tt.tests) : t.fromTestId ? live(tt.tests).find(x => x.id === t.fromTestId) : undefined;
   const parentMachine = parent ? tt.assets.find(a => a.id === parent.assetId)?.name : undefined;
@@ -273,10 +275,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {/* ITS PARTS, beside its state — "2 parts · 1 done", and "· 1 late" in
           red when one is (lib/noted partsSaid): the branch, seen before the
           list. Said here once; the list's heading no longer counts them. */}
-      {parts ? (
+      {parts || crits ? (
         <span className="rd-state-row">
           <span className={'rd-state is-' + tone}>{word}</span>
           <PartsMark said={parts} />
+          {/* A CRITICAL PROBLEM ON IT, said beside its state (lib/critical). */}
+          {crits > 0 && <span className="crit-tag">{criticalCount(crits)}</span>}
         </span>
       ) : <span className={'rd-state is-' + tone}>{word}</span>}
       <h2 className="rd-title">{t.title}</h2>

@@ -31,6 +31,7 @@ import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import { useProjects } from '../lib/useProjects';
 import { dayLength, daysWord, hoursTally, hoursWord, partsWord } from '../lib/hoursLost';
+import { CriticalFields, CriticalStory, CriticalTag, criticalDraftOf, criticalPatch } from './CriticalFields';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -82,6 +83,8 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
 }) {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  /* "Make it critical" opens the same editor with the box ticked. */
+  const [critFirst, setCritFirst] = useState(false);
   const st = storyOf(stepId, tt.tests, tt.items);
   /* HOURS LOST, added up (lib/hoursLost): each problem says what it cost, a
      push made from hours says which hours made the day, and the stage says
@@ -96,7 +99,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
   const itemOf = (id: string) => tt.items.find(i => i.id === id);
   const editor = (id: string) => {
     const it = itemOf(id);
-    return it ? <ProblemEdit item={it} tt={tt} can={can} onDone={() => setEditing(null)} /> : null;
+    return it ? <ProblemEdit item={it} tt={tt} can={can} startCritical={critFirst} onDone={() => { setEditing(null); setCritFirst(false); }} /> : null;
   };
   /* OPEN OR SORTED — a problem with no fix stays open until somebody says it
      is sorted, whether or not the stage is done (lib/noted), and is listed
@@ -120,10 +123,21 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
           offerUndo(sorted ? 'Open again' : 'Sorted', () => tt.saveItem(it));
         }}>{sorted ? 'Open again' : 'Sorted'}</button>;
       })()}
-      <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
+      <button type="button" className="cw-link" onClick={() => { setCritFirst(false); setEditing(id); }}>Edit</button>
+      {/* CRITICAL (lib/critical): one tap to say so, the story written in the
+          same editor. */}
+      {!itemOf(id)?.critical && <button type="button" className="cw-link" onClick={() => { setCritFirst(true); setEditing(id); }}>Make it critical</button>}
       {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void removeProblem(tt, id)} title={`Delete “${text}”`}>Delete</button>}
     </span>
   );
+  /* A CRITICAL PROBLEM reads as one: the solid red tag, and under its words
+     what it means for the business and the ways round it (lib/critical). */
+  const critOf = (id: string) => {
+    const it = itemOf(id);
+    if (!it?.critical) return null;
+    const sorted = it.doneAt != null || (!!it.becameTestId && fixOf(it.becameTestId)?.outcome === 'passed');
+    return <div className={'crit-on-stage' + (sorted ? ' is-sorted' : '')}><CriticalTag sorted={sorted} /><CriticalStory impact={it.impact} ways={it.ways} /></div>;
+  };
   const pics = (media: MediaRef[]) => media.length > 0 &&
     <span className="sp-ev">{media.map(x => <EvidenceThumb key={x.id} media={x} size={64} onClick={() => setViewing(x)} />)}</span>;
   const fixNode = (f: Test, under: boolean) => (
@@ -145,7 +159,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
       <>
         <span className="sp-k is-move">Moved</span>
         <p className="sp-t"><b>{niceDay(m.from)} → {niceDay(m.to)}</b> · +{m.days} day{m.days === 1 ? '' : 's'}</p>
-        {editing === m.id ? editor(m.id) : <p className="sp-why">{m.why}{stateOf(m.id)}</p>}
+        {editing === m.id ? editor(m.id) : <><p className="sp-why">{m.why}{stateOf(m.id)}</p>{critOf(m.id)}</>}
         {tally.pushes.has(m.id) && <p className="sp-hours">{partsWord(tally.pushes.get(m.id) ?? [])} — {m.days === 1 ? 'a full day' : `${m.days} full days`}</p>}
         {pics(m.media)}
         {editing !== m.id && entryActs(m.id, m.why)}
@@ -155,7 +169,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
     ...st.found.map(f => ({ on: f.on, key: f.id, at: itemOf(f.id)?.createdAt, node: (
       <>
         <span className="sp-k is-found">Found</span>
-        {editing === f.id ? editor(f.id) : <p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}{stateOf(f.id)}</p>}
+        {editing === f.id ? editor(f.id) : <><p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}{stateOf(f.id)}</p>{critOf(f.id)}</>}
         {pics(f.media)}
         {editing !== f.id && entryActs(f.id, f.what)}
         {fixOf(f.fixId) && fixNode(fixOf(f.fixId) as Test, true)}
@@ -193,10 +207,13 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
  *  client report prints (lib/clientReport fixRow reads the item). The days
  *  it moved are not here: they are the stage's, changed with "Change dates
  *  or who". Save is one write, and Undo puts the whole item back. */
-export function ProblemEdit({ item, tt, can, onDone }: {
+export function ProblemEdit({ item, tt, can, onDone, startCritical = false }: {
   item: TestItem; tt: Pick<TT, 'tests' | 'saveItem' | 'patchTest'>; can: Can; onDone: () => void;
+  /** Opened from "Make it critical": the box starts ticked. */
+  startCritical?: boolean;
 }) {
   const [what, setWhat] = useState(item.what);
+  const [crit, setCrit] = useState(() => ({ ...criticalDraftOf(item), ...(startCritical ? { critical: true } : {}) }));
   const [hours, setHours] = useState(item.hoursLost ? String(item.hoursLost) : '');
   const [media, setMedia] = useState<MediaRef[]>(item.media ?? []);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
@@ -205,7 +222,10 @@ export function ProblemEdit({ item, tt, can, onDone }: {
   const showHours = !!item.hoursLost || !item.movedFrom;
   const save = () => {
     const h = Number(hours.replace(',', '.'));
-    const next: TestItem = { ...item, what: what.trim() || item.what, media };
+    /* Critical, its story and its ways: replaced whole by what the boxes say. */
+    const { critical: _c, impact: _i, ways: _w, ...rest } = item;
+    void _c; void _i; void _w;
+    const next: TestItem = { ...rest, what: what.trim() || item.what, media, ...criticalPatch(crit) };
     if (showHours) {
       if (h > 0) next.hoursLost = h;
       else if (!hours.trim()) delete next.hoursLost;
@@ -213,7 +233,9 @@ export function ProblemEdit({ item, tt, can, onDone }: {
     /* The pictures compared whole: a mark added, moved or reworded on one
        (ui/Evidence) is a change, as a picture added is. */
     const same = next.what === item.what && next.hoursLost === item.hoursLost
-      && JSON.stringify(media) === JSON.stringify(item.media ?? []);
+      && JSON.stringify(media) === JSON.stringify(item.media ?? [])
+      && !!next.critical === !!item.critical && (next.impact ?? '') === (item.impact ?? '')
+      && JSON.stringify(next.ways ?? []) === JSON.stringify(item.ways ?? []);
     if (!same) {
       /* THE FIX IT BOOKED keeps a copy of these words: its name when nobody
          gave it one, and "The problem" its card and the client report print
@@ -246,6 +268,7 @@ export function ProblemEdit({ item, tt, can, onDone }: {
           <input inputMode="decimal" value={hours} onChange={e => setHours(e.target.value)} placeholder="none" /></label>
       )}
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
+      <CriticalFields value={crit} onChange={setCrit} />
       <span className="sp-edit-acts">
         <button type="button" className="btn btn-primary btn-sm" onClick={save}>Save</button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onDone}>Cancel</button>
