@@ -26,7 +26,7 @@ import { LineField } from './fishbone/LineField';
 import { lossWords, STATUS_WORD } from './fishbone/layout';
 import { therefore } from '../lib/fishbone';
 import { Evidence } from './EvidenceDoors';
-import { EvidenceViewer } from './Evidence';
+import { EvidenceViewer, withPins } from './Evidence';
 import type { MediaRef } from '../types';
 
 export interface CauseSheetProps {
@@ -340,6 +340,7 @@ export function CauseSheet(p: CauseSheetProps) {
         </div>
       </div>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={edit ? pins => setC(x => (x ? { ...x, media: withPins(x.media, viewing.id, pins) } : x)) : undefined}
         onRemove={edit ? () => { set({ media: (c.media ?? []).filter(m => m.id !== viewing.id) }); setViewing(null); } : undefined} />}
     </Sheet>
   );

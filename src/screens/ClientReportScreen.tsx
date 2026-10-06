@@ -18,14 +18,15 @@ import type { jsPDF } from 'jspdf';
 async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF> {
   const { loadPdfLib } = await import('../lib/savePdf');
   const { drawClientReport } = await import('../lib/clientReportPdf');
-  const { pinShot, shotsFor } = await import('../lib/testReport');
+  const { pinShot, photoShot } = await import('../lib/testReport');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   /* One picture a fix: where it is on the line if it was pinned, otherwise its
-     first photo. Fetched before drawing — the drawer never touches the store. */
+     first photo, with what is marked on it. Fetched before drawing — the
+     drawer never touches the store. */
   const shots = new Map<string, Shot>();
   for (const f of r.fixes.open) {
-    const s = (await pinShot(f)) ?? (f.photoKey ? (await shotsFor([f.photoKey], 1))[0] : undefined);
+    const s = (await pinShot(f)) ?? (f.photoKey ? await photoShot(f.photoKey, f.photoPins) : undefined);
     if (s) shots.set(f.id, s);
   }
   const { ganttBy } = await import('../lib/gantt');

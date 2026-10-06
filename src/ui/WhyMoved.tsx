@@ -25,7 +25,7 @@ import { Evidence } from './EvidenceDoors';
 import { BetterWords } from './BetterWords';
 import { hoursTally, fullDays, hoursWord, daysWord, DAY_HOURS } from '../lib/hoursLost';
 import type { TestItem } from '../lib/testing';
-import { EvidenceViewer } from './Evidence';
+import { EvidenceViewer, withPins } from './Evidence';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -112,6 +112,7 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
           : 'Say what happened and the plan shows the overrun with the reason. Re-planning, or a date typed wrong? Just change the date — no overrun is drawn.'}
       </p>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={pins => setMedia(m => withPins(m, viewing.id, pins))}
         onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
     </div>
   );
@@ -348,6 +349,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={pins => setMedia(m => withPins(m, viewing.id, pins))}
         onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
     </div>
   );

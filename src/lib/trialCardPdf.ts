@@ -572,7 +572,19 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
        the guard on the shelf, and a sheet of its own for them does not. */
     const left = bottom - py - 25 - 24;
     const SHOT_H = left >= 92 ? 92 : left >= 56 ? left : 92;
-    const want = 25 + 12 + SHOT_H + 12;
+    /* The row first, then its height: under each picture, what is marked on
+       it (ui/Evidence), by the numbers drawn on it — never cut. */
+    const row: { s: Shot; x: number; w: number; marks: string[][] }[] = [];
+    let sx = M + 14;
+    for (const s of shots) {
+      const sw = Math.min(150, (s.w / s.h) * SHOT_H);
+      if (sx + sw > M + CW - 14) break;
+      setFont(d, 7, 'normal', INK2);
+      row.push({ s, x: sx, w: sw, marks: (s.marks ?? []).map(m => d.splitTextToSize(san(m), Math.max(40, sw - 10)) as string[]) });
+      sx += sw + 8;
+    }
+    const marksH = Math.max(0, ...row.map(r => r.marks.reduce((n, l) => n + l.length, 0) * 8.5));
+    const want = 25 + 12 + SHOT_H + (marksH ? 6 + marksH : 0) + 12;
     if (py + want > bottom) {
       d.addPage();
       page++;
@@ -580,12 +592,14 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
     }
     const pTop = box(d, M, py, CW, want, '5', wordsOf(c).pictures,
       `${c.photos} on the ${wordsOf(c).one.toLowerCase()}${shots.length < c.photos ? ` · the first ${shots.length}` : ''}`);
-    let sx = M + 14;
-    for (const s of shots) {
-      const sw = Math.min(150, (s.w / s.h) * SHOT_H);
-      if (sx + sw > M + CW - 14) break;
-      try { d.addImage(s.data, 'JPEG', sx, pTop + 12, sw, SHOT_H); } catch { /* a bad frame must not cost the words */ }
-      sx += sw + 8;
+    for (const r of row) {
+      try { d.addImage(r.s.data, 'JPEG', r.x, pTop + 12, r.w, SHOT_H); } catch { /* a bad frame must not cost the words */ }
+      let my = pTop + 12 + SHOT_H + 12;
+      r.marks.forEach((lines, i) => {
+        setFont(d, 7, 'bold', DANGER); d.text(String(i + 1), r.x, my);
+        setFont(d, 7, 'normal', INK2); d.text(lines, r.x + 9, my);
+        my += lines.length * 8.5;
+      });
     }
   }
 

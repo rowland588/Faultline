@@ -112,7 +112,18 @@ export interface MediaRef {
   thumbKey?: string; // key into `media` store (poster)
   mime: string;
   capturedAt: Millis;
+  /** THE MARKS ON A PHOTO — Rowland, 6 October: "press the picture and then
+   *  say what's wrong within the picture at certain locations." Numbered in
+   *  this order. Kept ON the picture, so they go wherever it goes (a snag sent
+   *  to a job as a problem, a fix's card, the client report) and sync inside
+   *  the `media` jsonb every record already has — no column of their own. */
+  pins?: MediaPin[];
 }
+
+/** One spot pointed at on a photo, and what is wrong there. x/y are
+ *  PERCENTAGES 0–100 across and down, as the walk's pins are, so a mark stays
+ *  right at any size, on the screen and on paper. */
+export interface MediaPin { id: ID; x: number; y: number; note: string }
 
 /* ============ ENGINE VIEW STATE — resumable, mirrors the URL hash ============ */
 export interface DrillStep {

@@ -12,9 +12,11 @@
  * "Problems with no fix" (lib/noted) and prints on the client report. The
  * snag keeps `sent` so the Snags page can say where it went. */
 import type { Snag } from './types';
+import type { MediaPin } from '../types';
 import type { TestItem } from '../lib/testing';
-import { putTestItem, updateSnag, type Restore } from '../db';
+import { listAllSnags, putTestItem, updateSnag, type Restore } from '../db';
 import { uid } from '../lib/ids';
+import { withPins } from '../ui/Evidence';
 
 /** A snag taken from the Snag button — not pinned on a frame of the walk, and
  *  not an action raised from the Pareto board (those carry where the board
@@ -60,4 +62,14 @@ export async function sendSnags(snags: Snag[], projectId: string, testId: string
     for (const i of made) await putTestItem({ ...i, deletedAt: Date.now() });
     for (const s of snags) await updateSnag(s);
   };
+}
+
+/** A KEPT SNAG'S PICTURE, MARKED (ui/Evidence) — the marks written onto that
+ *  picture of the snag as it is now, at once, from the Snags page or the
+ *  snag's own sheet: closing the sheet without Save must not lose them. A
+ *  picture not kept yet goes with the snag's Save, marks and all. Once sent,
+ *  the problem holds its own copy of the picture's marks (sendSnags). */
+export async function pinSnag(snagId: string, mediaId: string, pins: MediaPin[]): Promise<void> {
+  const s = (await listAllSnags()).find(x => x.id === snagId);
+  if (s?.media?.some(m => m.id === mediaId)) await updateSnag({ ...s, media: withPins(s.media, mediaId, pins) });
 }

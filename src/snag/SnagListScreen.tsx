@@ -11,6 +11,7 @@ import {
   type Snag, type SnagStatus, type SnagAsset,
 } from './types';
 import { TimeStrip, dueWord } from './TimeStrip';
+import { isQuickSnag } from './quick';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
 
@@ -72,7 +73,9 @@ export function SnagListScreen() {
     const aById = new Map(as.map(a => [a.id, a]));
     // board actions (no pin) sort first — they're the board's priorities
     const rs: Row[] = snags.map(sn => {
-      if (!sn.assetId) return { snag: sn, assetName: actionTarget(sn) || 'From the board', assetId: '', sequence: -1, timestampS: 0 };
+      /* A quick snag (snag/quick) was never on the board: named by its
+         machine, else by how it was taken — the snag card prints this too. */
+      if (!sn.assetId) return { snag: sn, assetName: actionTarget(sn) || (isQuickSnag(sn) ? 'Taken on the move' : 'From the board'), assetId: '', sequence: -1, timestampS: 0 };
       const a = aById.get(sn.assetId);
       // An asset whose clip was deleted has no sequence to sort by; it keeps
       // its place at the front rather than disappearing off the list.
@@ -212,7 +215,9 @@ export function SnagListScreen() {
       <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
       <td data-label="Asset">{r.assetId
         ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
-        : <span className="st-target" title="Raised from the Pareto board"><Icon name="flag" size="1.15em" /> {r.assetName}</span>}</td>
+        : isQuickSnag(r.snag)
+          ? <span className="st-target" title="Taken with the Snag button"><Icon name="camera" size="1.15em" /> {r.assetName}</span>
+          : <span className="st-target" title="Raised from the Pareto board"><Icon name="flag" size="1.15em" /> {r.assetName}</span>}</td>
       <td className="st-problem" data-label="Problem">
         {r.snag.problem}{r.snag.proposedSolution ? <span className="st-sol"> → {r.snag.proposedSolution}</span> : ''}
         {/* the answer to "what's happening with this?" — editable right in the review */}

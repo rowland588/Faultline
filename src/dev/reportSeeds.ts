@@ -15,9 +15,9 @@
 import {
   createProject, updateProject, putAsset, putTest, putTestItem, putMaterials, putPrograms,
   addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace,
-  putPaceTodo, putReadings, putStandard, putTarget,
+  putPaceTodo, putReadings, putStandard, putTarget, putBlob,
 } from '../db';
-import type { Case, Observation } from '../types';
+import type { Case, MediaRef, Observation } from '../types';
 import type { PaceTodoRow } from '../db';
 import type { Measure, Period, Reading, Target } from '../lib/measures';
 import { quarters } from '../lib/measures';
@@ -90,6 +90,26 @@ const LONG_ACCOUNT = [
 ].join(' ');
 
 const WHO = ['Ilapak UK', 'Ishida Europe', 'Domino UK', 'Mettler-Toledo', 'Brillopak', 'the site', 'Dave (shift fitter)', 'Herma UK'];
+
+/** A PHOTO WITH MARKS ON IT (MediaRef.pins, ui/Evidence) — a real picture in
+ *  the store, so every document that prints it draws the numbered marks on
+ *  it and lists their words beside it: the fix card, the client report's fix
+ *  card and the day's pictures. One mark is long, to prove it wraps whole. */
+async function markedPhoto(notes: string[]): Promise<MediaRef> {
+  const cv = document.createElement('canvas');
+  cv.width = 480; cv.height = 360;
+  const g = cv.getContext('2d') as CanvasRenderingContext2D;
+  g.fillStyle = '#c9d3df'; g.fillRect(0, 0, 480, 360);
+  g.fillStyle = '#6b7c93'; g.fillRect(60, 130, 360, 150);
+  g.fillStyle = '#3d4a5c'; g.fillRect(90, 90, 90, 40); g.fillRect(300, 90, 90, 40);
+  const blob = await new Promise<Blob>((res, rej) => cv.toBlob(b => (b ? res(b) : rej(new Error('no blob'))), 'image/jpeg', 0.85));
+  const key = `seed-photo-${uid()}`;
+  await putBlob(key, blob);
+  return {
+    id: uid(), kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: Date.now(),
+    pins: notes.map((note, i) => ({ id: uid(), x: 22 + i * 26, y: 34 + (i % 2) * 30, note })),
+  };
+}
 
 export interface ReportJob { projectId: string; testId: string; fixId?: string }
 
@@ -178,7 +198,13 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     result: RESULTS.slice(0, 3).join(' Then: ') + ' ' + LONG[2], outcome: 'failed',
   });
 
-  /* Fixes: thirty, long problems, due across the month. */
+  /* Fixes: thirty, long problems, due across the month. The first (the fix
+     card's) and one still open (the client report's) each carry a photo with
+     marks on it. */
+  const marked = [
+    await markedPhoto(['Seal jaw face scored across the middle', 'Heater lead chafed where it passes the guard']),
+    await markedPhoto(['Belt worn through to the cords here', 'Tension arm bracket cracked', LONG[1]]),
+  ];
   let fixId: string | undefined;
   for (let i = 0; i < 30; i++) {
     const a = machines[i % machines.length];
@@ -187,6 +213,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       kind: 'fix', title: pick(['Re-cut the seal jaw', 'Send the regulator', 'Re-track the film and re-splice', 'Fit the upgraded jaw heater', 'Replace the worn timing belt on the infeed', 'Re-teach the robot pick positions for the 1.25kg case']),
       assetId: a.id, withWhom: pick(WHO), plannedFor: iso(due), fromTestId: tests.find(x => !x.kind && x.assetId === a.id)?.id,
       passesIf: i % 3 ? pick(RESULTS) : LONG[i % LONG.length], outcome: due < -2 ? 'passed' : 'planned', ranOn: due < -2 ? iso(due) : undefined,
+      ...(i === 0 ? { media: [marked[0]] } : i === 12 ? { media: [marked[1]] } : {}),
     });
     fixId ??= f.id;
   }

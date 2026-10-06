@@ -448,6 +448,43 @@ body:has(.sheet-scrim, .ig-scrim) .toast { top: calc(12px + env(safe-area-inset-
 }
 .ev-remove:hover { background: var(--danger); border-color: var(--danger); }
 .ev-stage img, .ev-stage video { max-width: 96vw; max-height: 90vh; width: auto; height: auto; object-fit: contain; border-radius: var(--radius-sm); display: block; }
+/* THE MARKS ON A PICTURE (ui/Evidence Marks) — the walk's pins (snag/PinImage)
+   in the viewer, with what is wrong at each under it, by number. The picture
+   gives up some height so the words are on the same screen as the pins. */
+.ev-marks {
+  position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 1px 3px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.66); color: #fff; font-size: 10px; font-weight: 700; line-height: 1.35;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+}
+.ev-stage.ev-marked {
+  width: min(94vw, 960px); max-height: 100vh; max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 66px 0 calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px;
+}
+.ev-viewer:has(.ev-marked) { background: rgba(0, 0, 0, 0.96); }   /* words over the page behind it must read */
+.ev-marked .pin-wrap { max-height: 64vh; max-width: 100%; align-self: center; background: transparent; box-shadow: none; flex: none; }
+.ev-marked .pin-img { max-width: 100%; max-height: 64vh; border-radius: 0; }
+.evm-say { margin: 0; color: rgba(255, 255, 255, 0.82); font-size: var(--t-detail); text-align: center; }
+.evm-box, .evm-list {
+  background: var(--surface); color: var(--ink); border-radius: var(--radius); padding: 12px 14px;
+}
+.evm-box { display: flex; flex-direction: column; gap: 8px; }
+.evm-box textarea { font-size: 16px; }
+.evm-l { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.evm-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.evm-del { color: var(--danger); }
+.evm-hint { font-size: var(--t-detail); color: var(--muted); }
+.evm-n {
+  flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--danger); color: #fff; font-family: var(--mono); font-size: 12px; font-weight: 700;
+}
+.evm-n.is-new { background: var(--brand); }   /* being placed — as the walk draws a new pin */
+.evm-list { list-style: none; margin: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; }
+.evm-list button {
+  all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: flex-start; gap: 10px;
+  padding: 7px 6px; border-radius: var(--radius-sm); cursor: pointer; overflow-wrap: anywhere; line-height: 1.4;
+}
+.evm-list button:hover, .evm-list button.on { background: var(--surface-2); }
+.evm-list button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* ---------- in-app video recorder ---------- */
 .rec-stage { position: fixed; inset: 0; z-index: 60; background: #000; display: flex; flex-direction: column; }
@@ -10366,6 +10403,8 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 .fxl-open { all: unset; box-sizing: border-box; cursor: pointer; padding: 2px 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .fxl-open:disabled { cursor: default; }
 .fxl-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fxl-mcol { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fxl-pics { padding-bottom: 2px; }
 .fxl-side { display: grid; justify-items: end; gap: 4px; }
 .fxl-acts { display: inline-flex; gap: 12px; }
 @media (max-width: 560px) {

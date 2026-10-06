@@ -200,6 +200,9 @@ for (const size of SIZES) {
     }
     from = 'fixes'; for (const fx of [...r.fixes.open, ...r.fixes.done]) add('client', fx.title, fx.when);
     for (const fx of r.fixes.open) add('client', fx.problem, fx.machine, fx.who);
+    /* What is marked on a fix's photo (ui/Evidence), when that photo is the
+       picture printed — not pinned on a walk frame. */
+    from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
     from = 'waiting'; for (const w of r.waiting) add('client', w.what, w.open, w.whose);
     const cardOf = (id, k) => {
       const t = tests.find(x => x.id === id); if (!t) return;
@@ -207,10 +210,14 @@ for (const size of SIZES) {
       from = 'card'; add(k, c.title, c.passesIf, c.result, c.plannedProduct, c.product);
       from = 'finding'; for (const fd of c.findings) add(k, fd.what, fd.owner, fd.action);
       from = 'next'; for (const n of c.next) add(k, n.what, n.owner);
+      /* The first picture always prints: what is marked on it, by number. */
+      const first = [...(t.media ?? []), ...items.filter(i => i.testId === t.id && i.kind === 'found' && !i.deletedAt).flatMap(i => i.media ?? [])][0];
+      from = 'its picture\'s marks'; if (first?.kind === 'photo') add(k, ...(first.pins ?? []).map(p => p.note));
     };
     cardOf(tid, 'card'); if (fid) cardOf(fid, 'fix');
     const d = dayOf({ tests, items, assets, materials, programs }, today, today);
     from = 'day'; add('day', d.headline);
+    from = 'the day\'s first picture, its marks'; if (d.media[0]?.kind === 'photo') add('day', ...(d.media[0].pins ?? []).map(p => p.note));
     for (const sec of d.sections) for (const l of sec.lines) add('day', l.text, l.detail);
     return out;
   }, { pid: job.projectId, tid: job.testId, fid: fixId });

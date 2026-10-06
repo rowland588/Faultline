@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { Evidence } from '../ui/EvidenceDoors';
 import { BetterWords } from '../ui/BetterWords';
-import { EvidenceViewer } from '../ui/Evidence';
+import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
 import { addSnag, updateSnag, listWorkspaces, createWorkspace } from '../db';
@@ -25,7 +25,7 @@ import { useProjects } from '../lib/useProjects';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
-import { recall, remember } from './quick';
+import { pinSnag, recall, remember } from './quick';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 type Opener = (s?: Snag) => void;
@@ -195,7 +195,10 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
           <button type="button" className="btn btn-primary" disabled={!ready} onClick={() => void save(false)}>Save</button>
         </div>
       </div>
+      {/* Tap the picture where it is wrong, and say what (ui/Evidence): the
+          marks are kept on the photo — at once on a snag already kept. */}
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={pins => { setMedia(m => withPins(m, viewing.id, pins)); if (snag) void pinSnag(snag.id, viewing.id, pins); }}
         onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
     </Sheet>
   );

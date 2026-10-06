@@ -22,7 +22,7 @@ import type { Test, TestItem } from '../lib/testing';
 import { storyOf } from '../lib/story';
 import { niceDay } from '../lib/weeks';
 import { openRecord } from './RecordDrawer';
-import { EvidenceThumb, EvidenceViewer } from './Evidence';
+import { EvidenceThumb, EvidenceViewer, pinsOnJob, withPins } from './Evidence';
 import { Evidence } from './EvidenceDoors';
 import { offerUndo } from './Undo';
 import { BetterWords } from './BetterWords';
@@ -73,7 +73,7 @@ export async function removeProblem(tt: Pick<TT, 'tests' | 'items' | 'patchTest'
 }
 
 export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
-  stepId: string; tt: Pick<TT, 'tests' | 'items' | 'saveItem' | 'removeItem' | 'patchTest'>; can: Can; projectId: string;
+  stepId: string; tt: Pick<TT, 'tests' | 'items' | 'saveItem' | 'removeItem' | 'patchTest' | 'patchItem'>; can: Can; projectId: string;
   /** What to say when nothing has happened; nothing at all when left out. */
   empty?: string;
   /** Where "Open the fix ›" goes. Inside the drawer it shows the fix in the
@@ -178,7 +178,10 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
       <ol className="sp-list">
         {lines.map(l => <li key={l.key}><span className="sp-on">{niceDay(l.on, { weekday: 'short' })}</span><div className="sp-body">{l.node}</div></li>)}
       </ol>
-      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
+      {/* A picture here is pointed at here (ui/Evidence): the marks go back on
+          the problem, move or fix it belongs to. */}
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined} />}
     </>
   );
 }
@@ -207,8 +210,10 @@ export function ProblemEdit({ item, tt, can, onDone }: {
       if (h > 0) next.hoursLost = h;
       else if (!hours.trim()) delete next.hoursLost;
     }
+    /* The pictures compared whole: a mark added, moved or reworded on one
+       (ui/Evidence) is a change, as a picture added is. */
     const same = next.what === item.what && next.hoursLost === item.hoursLost
-      && media.map(m => m.id).join() === (item.media ?? []).map(m => m.id).join();
+      && JSON.stringify(media) === JSON.stringify(item.media ?? []);
     if (!same) {
       /* THE FIX IT BOOKED keeps a copy of these words: its name when nobody
          gave it one, and "The problem" its card and the client report print
@@ -246,6 +251,7 @@ export function ProblemEdit({ item, tt, can, onDone }: {
         <button type="button" className="btn btn-ghost btn-sm" onClick={onDone}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={pins => setMedia(m => withPins(m, viewing.id, pins))}
         onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}
     </span>
   );

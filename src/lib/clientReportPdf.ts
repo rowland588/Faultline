@@ -446,21 +446,33 @@ function accountHead(a: StepAccount): Block {
 }
 
 /** One fix: a coloured edge for its state, what it is, the problem, when and
- *  whose — and its picture beside it. Measured whole; never split. */
+ *  whose — and its picture beside it, with what is marked on the picture
+ *  (ui/Evidence) listed by the numbers drawn on it. Measured whole; never split. */
 function fixCard(fx: FixRow, shot: Shot | undefined): Block {
   const textW = (f: Frame) => (shot ? f.w - 130 : f.w - 12);
   const parts = (f: Frame) => ({
     title: wrap(f.doc, fx.title, textW(f), 10, 'bold'),
     prob: fx.problem ? wrap(f.doc, fx.problem, textW(f), 8.5) : [],
+    marks: (shot?.marks ?? []).map(m => wrap(f.doc, m, textW(f) - 14, 8)),
     meta: (() => { font(f.doc, 8, 'bold'); const ww = f.doc.getTextWidth(fx.when); return { ww, lines: wrap(f.doc, [fx.machine, fx.who].filter(Boolean).join(' · '), Math.max(40, textW(f) - ww - 20), 8) }; })(),
   });
-  const inner = (f: Frame) => { const p = parts(f); return Math.max(shot ? 76 : 0, 14 + p.title.length * 12 + p.prob.length * 10.5 + Math.max(1, p.meta.lines.length) * 10 + 4); };
+  const marksH = (p: ReturnType<typeof parts>) => (p.marks.length ? 3 + p.marks.reduce((n, l) => n + l.length, 0) * 10 : 0);
+  const inner = (f: Frame) => { const p = parts(f); return Math.max(shot ? 76 : 0, 14 + p.title.length * 12 + p.prob.length * 10.5 + marksH(p) + Math.max(1, p.meta.lines.length) * 10 + 4); };
   return box(f => inner(f) + 8, (f, y) => {
     const p = parts(f), h = inner(f), tone = FIX_COLOUR[fx.tone] ?? BRAND;
     f.doc.setFillColor(tone); f.doc.rect(f.x, y, 3, h, 'F');
     font(f.doc, 10, 'bold'); f.doc.text(p.title, f.x + 10, y + 13);
     let fy = y + 13 + p.title.length * 12;
     if (p.prob.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.prob, f.x + 10, fy); fy += p.prob.length * 10.5; }
+    if (p.marks.length) {
+      fy += 2;
+      p.marks.forEach((lines, i) => {
+        font(f.doc, 8, 'bold', DANGER); f.doc.text(String(i + 1), f.x + 10, fy);
+        font(f.doc, 8, 'normal', INK2); f.doc.text(lines, f.x + 24, fy);
+        fy += lines.length * 10;
+      });
+      fy += 1;
+    }
     font(f.doc, 8, 'bold', tone); f.doc.text(fx.when, f.x + 10, fy + 2);
     font(f.doc, 8, 'normal', MUTED); f.doc.text(p.meta.lines, f.x + 20 + p.meta.ww, fy + 2);
     if (shot) {

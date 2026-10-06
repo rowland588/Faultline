@@ -51,6 +51,8 @@ import { notedProblems, type Noted } from '../lib/noted';
 import { hoursWord } from '../lib/hoursLost';
 import { offerUndo } from '../ui/Undo';
 import { removeProblem } from '../ui/StageStory';
+import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
+import type { MediaRef } from '../types';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -68,6 +70,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const [forId, setForId] = useState(forParam);
   const [onTouched, setOnTouched] = useState(false);
   const [heard, setHeard] = useState<VoiceResult | null>(null);
+  /* A problem's picture, opened large with its marks (ui/Evidence). */
+  const [viewing, setViewing] = useState<MediaRef | null>(null);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -268,7 +272,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
           <div className="fxl" role="list">
             {[...noted.open, ...noted.sorted].map(n => (
-              <NotedRow key={n.item.id} n={n} canEdit={can.edit}
+              <NotedRow key={n.item.id} n={n} canEdit={can.edit} onView={setViewing}
                 onDelete={can.remove ? () => void removeProblem(tt, n.item.id) : undefined}
                 onOpen={() => n.on && open(n.on.id)}
                 onSorted={sorted => {
@@ -283,6 +287,9 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
         </section>
       )}
+
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined} />}
 
       {/* The explanation is said once, while the list is empty; the date of
           the next one is a fact and stays as long as there is one. */}
@@ -325,8 +332,10 @@ function FixRow({ t, machine, from, onOpen }: { t: Test; machine: string; from?:
 /** A problem with no fix: amber while open (it is waiting on something — the
  *  colour rules), a quiet green once sorted; where it was found, the day, the
  *  hours it cost; and the two things to do with it. */
-function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete }: {
+function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete, onView }: {
   n: Noted; canEdit: boolean; onOpen: () => void; onSorted: (sorted: boolean) => void; onFix?: () => void;
+  /** A picture of it, opened large — with what is marked on it. */
+  onView: (m: MediaRef) => void;
   /** The owner's (can.remove): a problem written by mistake goes. */
   onDelete?: () => void;
 }) {
@@ -335,12 +344,20 @@ function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete }: {
   return (
     <div role="listitem" className={'fxl-row fxl-noted is-' + (sorted ? 'done' : 'soon')}>
       <span className="fxl-bar" aria-hidden />
-      <button type="button" className="fxl-m fxl-open" onClick={onOpen} disabled={!n.on}>
-        <b>{n.item.what}</b>
-        <small>
-          {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}{(n.item.media?.length ?? 0) > 0 ? ` · ${n.item.media?.length} picture${n.item.media?.length === 1 ? '' : 's'}` : ''}
-        </small>
-      </button>
+      {/* THE PICTURES THEMSELVES, where "· 2 pictures" only counted them: a
+          snag sent here as a problem shows what was photographed and the
+          marks on it ("2 marks") — tap one for the marks and their words. */}
+      <span className="fxl-mcol">
+        <button type="button" className="fxl-m fxl-open" onClick={onOpen} disabled={!n.on}>
+          <b>{n.item.what}</b>
+          <small>
+            {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}
+          </small>
+        </button>
+        {(n.item.media ?? []).length > 0 && (
+          <span className="sp-ev fxl-pics">{(n.item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={56} onClick={() => onView(m)} />)}</span>
+        )}
+      </span>
       <span className="fxl-side">
         <em className="fxl-when">{sorted ? `Sorted ${niceDay(todayISO(new Date(n.item.doneAt as number)))}` : 'Open'}</em>
         {canEdit && (

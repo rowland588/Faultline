@@ -82,8 +82,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
     try {
       const { jsPDF } = await loadPdfLib();
       const { drawDayReport } = await import('../lib/dayReportPdf');
-      const { shotsFor, shotKey } = await import('../lib/testReport');
-      const shots = await shotsFor(day.media.map(shotKey).filter((k): k is string => !!k), 4);
+      const { shotsOf } = await import('../lib/testReport');
+      const shots = await shotsOf(day.media, 4);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
       const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date), { brand: false }); // its band carries the mark
