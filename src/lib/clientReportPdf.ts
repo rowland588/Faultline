@@ -333,7 +333,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       onPlan(drawGantt(f.doc, byMachine.machines?.some(b => b.id) ? byMachine : g, {
         eyebrow: 'CLIENT REPORT · THE PLAN', title: 'The plan',
         sub: [r.dates, `${r.plan.length} dated · printed ${r.printed}`].filter(Boolean).join('   ·   '),
-      }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items)));
+      }, moveLines(g.groups.flatMap(x => x.rows), r.planRecords.tests, r.planRecords.items, r.planRecords.dayHours)));
     }, { float: true }));
   }
 

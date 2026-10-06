@@ -10288,3 +10288,18 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
   .gr-step { grid-template-columns: 30px minmax(0, 1fr); }
   .gr-go { grid-column: 2; justify-self: start; }
 }
+
+/* HOURS LOST (ui/WhyMoved ProblemForm, ui/StageStory, lib/hoursLost) — what a
+   problem cost: nothing yet, hours, or a new finish. Hours are the work and
+   stay neutral; only a finish that moves is drawn as late (on the plan). */
+.why-cost { display: grid; gap: 8px; }
+.why-cost-h { font-weight: 700; font-size: var(--t-detail); }
+.why-hours { flex: 0 1 140px; margin: 0; max-width: 160px; }
+.why-tally { line-height: 1.5; }
+.why-day { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.why-day input { width: 64px; min-height: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.sp-tally { margin: 0 0 10px; font-size: var(--t-detail); color: var(--ink-2); }
+.sp-tally b { color: var(--ink); }
+.sp-hours { margin: 4px 0 0; font-size: var(--t-detail); color: var(--ink-2); }
+.sp-lost { color: var(--ink-2); font-weight: 700; }
+.sp-edit-h { max-width: 160px; margin: 6px 0 0; }

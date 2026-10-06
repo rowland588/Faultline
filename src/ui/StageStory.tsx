@@ -26,6 +26,8 @@ import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { offerUndo } from './Undo';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
+import { useProjects } from '../lib/useProjects';
+import { dayLength, daysWord, hoursTally, hoursWord, partsWord } from '../lib/hoursLost';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -57,6 +59,11 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const st = storyOf(stepId, tt.tests, tt.items);
+  /* HOURS LOST, added up (lib/hoursLost): each problem says what it cost, a
+     push made from hours says which hours made the day, and the stage says
+     what is banked towards the next one. */
+  const day = dayLength(useProjects().projects.find(p => p.id === projectId));
+  const tally = hoursTally(stepId, tt.items, day);
 
   /* NOTHING HERE IS LOCKED. Rowland: "everything must be editable, nothing
      locked in." Every reason can be reworded or taken off — taking a move off
@@ -66,13 +73,21 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
   const editor = (id: string, text: string) => (
     <span className="sp-edit">
       <textarea className="text-area" rows={2} defaultValue={text} autoFocus id={`sp-e-${id}`} aria-label="What happened" />
+      {itemOf(id)?.hoursLost && (
+        <label className="cw-f sp-edit-h"><span>Hours lost</span>
+          <input inputMode="decimal" defaultValue={String(itemOf(id)?.hoursLost)} id={`sp-eh-${id}`} /></label>
+      )}
       <span className="sp-edit-acts">
         <button type="button" className="btn btn-primary btn-sm" onClick={() => {
           const v = (document.getElementById(`sp-e-${id}`) as HTMLTextAreaElement | null)?.value.trim();
+          const hText = (document.getElementById(`sp-eh-${id}`) as HTMLInputElement | null)?.value;
+          const h = hText === undefined ? undefined : Number(hText.replace(',', '.'));
           const it = itemOf(id);
-          if (it && v && v !== it.what) {
-            void tt.saveItem({ ...it, what: v });
-            offerUndo('Reason changed', () => tt.saveItem(it));
+          const what = v || it?.what;
+          const hoursLost = h !== undefined && h > 0 ? h : it?.hoursLost;
+          if (it && what && (what !== it.what || hoursLost !== it.hoursLost)) {
+            void tt.saveItem({ ...it, what, ...(hoursLost ? { hoursLost } : {}) });
+            offerUndo('Changed', () => tt.saveItem(it));
           }
           setEditing(null);
         }}>Save</button>
@@ -99,33 +114,44 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
   const fixOf = (id?: string) => (id ? st.fixes.find(f => f.id === id) : undefined);
   const carried = new Set([...st.moves, ...st.found].map(x => x.fixId).filter((x): x is string => !!x && !!fixOf(x)));
 
-  type Line = { on: string; key: string; node: React.ReactNode };
+  /* In the order written within a day: the push a problem tipped comes after
+     the problems that added up to it. */
+  type Line = { on: string; key: string; node: React.ReactNode; at?: number };
   const lines: Line[] = [
-    ...st.moves.map(m => ({ on: m.on, key: m.id, node: (
+    ...st.moves.map(m => ({ on: m.on, key: m.id, at: itemOf(m.id)?.createdAt, node: (
       <>
         <span className="sp-k is-move">Moved</span>
         <p className="sp-t"><b>{niceDay(m.from)} → {niceDay(m.to)}</b> · +{m.days} day{m.days === 1 ? '' : 's'}</p>
         {editing === m.id ? editor(m.id, m.why) : <p className="sp-why">{m.why}</p>}
+        {tally.pushes.has(m.id) && <p className="sp-hours">{partsWord(tally.pushes.get(m.id) ?? [])} — {m.days === 1 ? 'a full day' : `${m.days} full days`}</p>}
         {pics(m.media)}
         {editing !== m.id && entryActs(m.id, m.why)}
         {fixOf(m.fixId) && fixNode(fixOf(m.fixId) as Test, true)}
       </>
     ) })),
-    ...st.found.map(f => ({ on: f.on, key: f.id, node: (
+    ...st.found.map(f => ({ on: f.on, key: f.id, at: itemOf(f.id)?.createdAt, node: (
       <>
         <span className="sp-k is-found">Found</span>
-        {editing === f.id ? editor(f.id, f.what) : <p className="sp-why">{f.what}</p>}
+        {editing === f.id ? editor(f.id, f.what) : <p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}</p>}
         {pics(f.media)}
         {editing !== f.id && entryActs(f.id, f.what)}
         {fixOf(f.fixId) && fixNode(fixOf(f.fixId) as Test, true)}
       </>
     ) })),
-    ...st.fixes.filter(f => !carried.has(f.id)).map(f => ({ on: isoOfMs(f.createdAt), key: f.id, node: fixNode(f, false) })),
-  ].sort((a, b) => a.on.localeCompare(b.on));
+    ...st.fixes.filter(f => !carried.has(f.id)).map(f => ({ on: isoOfMs(f.createdAt), key: f.id, at: f.createdAt, node: fixNode(f, false) })),
+  ].sort((a, b) => a.on.localeCompare(b.on) || (a.at ?? 0) - (b.at ?? 0));
 
   if (!lines.length) return empty ? <p className="sub">{empty}</p> : null;
   return (
     <>
+      {tally.hours > 0 && (
+        <p className="sp-tally">
+          <b>{hoursWord(tally.hours)} lost</b> here to problems
+          {tally.pushedDays ? ` · pushed the finish ${tally.pushedDays} day${tally.pushedDays === 1 ? '' : 's'}` : ''}
+          {tally.banked > 0 ? ` · ${hoursWord(tally.banked)} towards the next day (${daysWord(tally.banked, day)})` : ''}
+          <span className="sub"> · a day here is {hoursWord(day)}</span>
+        </p>
+      )}
       <ol className="sp-list">
         {lines.map(l => <li key={l.key}><span className="sp-on">{niceDay(l.on, { weekday: 'short' })}</span><div className="sp-body">{l.node}</div></li>)}
       </ol>

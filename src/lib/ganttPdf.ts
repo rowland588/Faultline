@@ -543,7 +543,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     let y = lastKey + 22;
     const fresh = () => { doc.addPage('a4', 'landscape'); drawn.push(doc.getNumberOfPages()); y = M + 10; };
     if (y + 60 > PH - 34) fresh();
-    font(11, 'bold'); doc.text('Why the plan moved', M, y); y += 6;
+    font(11, 'bold'); doc.text(moves.some(m => m.lost) ? 'Why the plan moved — and hours lost' : 'Why the plan moved', M, y); y += 6;
     doc.setDrawColor(LINE); doc.setLineWidth(0.6); doc.line(M, y, PW - M, y); y += 12;
     for (const mv of moves) {
       font(8, 'normal', INK2);
@@ -554,9 +554,11 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       const stage = doc.splitTextToSize(san(mv.stage), 180) as string[]; // whole — it stopped at two lines
       const h = Math.max(stage.length * 9.5 + 10, why.length * 10 + fix.length * 9) + 8;
       if (y + h > PH - 34) fresh();
-      font(8, 'bold', DANGER); doc.text(san(`+${mv.days}d`), M, y);
+      /* Hours not yet a day have moved nothing: neutral, not red. */
+      if (mv.lost) { font(8, 'bold', INK2); doc.text(san(mv.lost), M, y); }
+      else { font(8, 'bold', DANGER); doc.text(san(`+${mv.days}d`), M, y); }
       font(8, 'bold', INK); doc.text(stage, M + 30, y);
-      font(7, 'normal', MUTED); doc.text(san(`${mv.on}  ·  ${mv.from} > ${mv.to}`), M + 30, y + stage.length * 9.5);
+      font(7, 'normal', MUTED); doc.text(san(mv.lost ? `${mv.on}  ·  not yet a day` : `${mv.on}  ·  ${mv.from} > ${mv.to}`), M + 30, y + stage.length * 9.5);
       font(8, 'normal', INK2); doc.text(why, M + 250, y);
       if (fix.length) { font(7, 'normal', MUTED); doc.text(fix, M + 250, y + why.length * 10); }
       y += h;
@@ -567,7 +569,9 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
 }
 
 /** One push later, for the list under the chart. */
-export interface MoveLine { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string }
+/** `lost`: hours lost to problems that are not yet a full day — no push, so
+ *  no dates (lib/hoursLost). */
+export interface MoveLine { on: string; stage: string; from: string; to: string; days: number; why: string; fix?: string; lost?: string }
 
 /** The plan on its own — landscape A4, a foot on every page. */
 export function drawGanttDoc(doc: jsPDF, g: Gantt, opts: { name: string; printed: string; dates?: string; moves?: MoveLine[]; asOf?: string }): void {

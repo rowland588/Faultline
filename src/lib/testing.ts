@@ -424,6 +424,10 @@ export interface TestItem {
    *  words are the reason; its media, the film and the pictures. */
   movedFrom?: string;
   movedTo?: string;
+  /** HOURS LOST. On a problem, what it cost in hours, when that is what was
+   *  known. A stage's hours add up; a full working day of them pushes the
+   *  finish, kept as a move on the problem that tipped it (lib/hoursLost). */
+  hoursLost?: number;
   /** Closed, or done. Absent means open. */
   doneAt?: number;
   media?: MediaRef[];

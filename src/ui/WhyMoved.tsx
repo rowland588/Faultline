@@ -22,11 +22,15 @@ import { deleteTest, deleteTestItem } from '../db';
 import { uid } from '../lib/ids';
 import { addDays, daysBetween, niceDay } from '../lib/weeks';
 import { Evidence } from './EvidenceDoors';
+import { hoursTally, fullDays, hoursWord, daysWord, DAY_HOURS } from '../lib/hoursLost';
+import type { TestItem } from '../lib/testing';
 import { EvidenceViewer } from './Evidence';
 
 type TT = ReturnType<typeof useTesting>;
 
-export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string; what?: string }; shiftFollowing?: boolean }
+export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string; what?: string }; shiftFollowing?: boolean;
+  /** What the problem cost in hours, when hours are what is known (lib/hoursLost). */
+  hoursLost?: number }
 
 /** The problem sheet's boxes as a voice note filled them (lib/voice problemFill). */
 export interface ProblemFill { why: string; to: string; fix: boolean; fixOn: string; said?: string }
@@ -179,6 +183,7 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
       ...(a.media.length ? { media: a.media } : {}),
       ...(from && to ? { movedFrom: from, movedTo: to } : {}),
       ...(fixId ? { becameTestId: fixId } : {}),
+      ...(a.hoursLost && steps.length === 1 ? { hoursLost: a.hoursLost } : {}),
       sort: at + k, createdAt: at + k, updatedAt: at + k,
     });
     made.push({ item: id, ...(fixId ? { fix: fixId } : {}) });
@@ -223,10 +228,15 @@ export async function recordThingMove(projectId: string, key: string, from: stri
  * whether it pushes the finish — and to when — and a fix, are one answer. A
  * later finish is kept as a move with this problem as its reason, so the Gantt
  * shows the overrun and why. */
-export function ProblemForm({ step, onSave, onCancel, tests = [], assets = [], initial }: {
+export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay }: {
   step: Test;
   /** The job's steps — for what follows on the machine. */
   tests?: Test[];
+  /** What was found on them — for the hours this stage has already lost. */
+  items?: TestItem[];
+  /** The job's working day in hours, and how to change it. */
+  day?: number;
+  onDay?: (hours: number) => void;
   /** The job's machines — the names the voice reader spells against. */
   assets?: Asset[];
   /** The boxes as a voice note on the stage already filled them. */
@@ -250,10 +260,24 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], assets = [], i
   const heard = (r: VoiceResult) => {
     const f = problemFill(r, { why, to, fix, fixOn });
     setWhy(f.why); setTo(f.to); setFix(f.fix); setFixOn(f.fixOn); setSaid(f.said);
+    if (f.to) setCost('date');
   };
   const [viewing, setViewing] = useState<MediaRef | null>(null);
-  const later = movedLater(end, to || undefined);
-  const following = later && to ? followingSummary(step, tests, to) : undefined;
+  /* DAYS OR HOURS. Rowland, 6 October: "it only gives me ability to put days,
+     but in some occasions I find out that actually it's hours." A problem
+     that cost hours says so; the stage's hours add up (lib/hoursLost), and
+     the one that makes a full working day offers to push the finish by it. */
+  const [cost, setCost] = useState<'none' | 'hours' | 'date'>(initial?.to ? 'date' : 'none');
+  const [hoursText, setHoursText] = useState('');
+  const [dayText, setDayText] = useState<string | null>(null);
+  const hours = Math.max(0, Number(hoursText.replace(',', '.')) || 0);
+  const tally = hoursTally(step.id, items, day);
+  const daysMade = cost === 'hours' && hours > 0 ? fullDays(tally.banked, hours, day) : 0;
+  const [pushPicked, setPush] = useState<boolean | null>(null);
+  const push = daysMade > 0 && !!end && (pushPicked ?? true);
+  const target = cost === 'date' ? to : push && end ? addDays(end, daysMade) : '';
+  const later = movedLater(end, target || undefined);
+  const following = later && target ? followingSummary(step, tests, target) : undefined;
   /* Ticked by itself only when the new finish runs into what follows — the
      same rule as WhyMoved. It started ticked whatever the date, and Save then
      ignored the tick unless the finish ran into the next step: the box said
@@ -276,15 +300,48 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], assets = [], i
         <textarea className="text-area" rows={2} value={why} autoFocus placeholder="Guard brackets arrived the wrong size"
           onChange={e => setWhy(e.target.value)} /></label>
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
-      <label className="cw-f why-fix-on" style={{ flex: '0 1 260px' }}>
-        <span>Does it push the finish? <span className="cw-f-opt">{end ? `now ${niceDay(end)}` : 'no date yet'} · blank = no</span></span>
-        <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
-      {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(to)}</b> · <b>+{daysBetween(end, to)} day{daysBetween(end, to) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
-      {following && end && <KnockOn following={following} days={daysBetween(end, to)} on={shift} set={setShift} />}
+      <div className="why-cost">
+        <span className="why-cost-h">What did it cost? <span className="cw-f-opt">finish {end ? `now ${niceDay(end)}` : 'not dated yet'}</span></span>
+        <span className="cw-seg" role="group" aria-label="What did it cost?">
+          {([['none', 'Nothing yet'], ['hours', 'Hours lost'], ['date', 'A new finish']] as const).map(([k, w]) => (
+            <button key={k} type="button" className={'chip' + (cost === k ? ' on' : '')} aria-pressed={cost === k} onClick={() => setCost(k)}>{w}</button>
+          ))}
+        </span>
+        {cost === 'hours' && (
+          <>
+            <label className="cw-f why-hours"><span>Hours lost</span>
+              <input inputMode="decimal" value={hoursText} placeholder="2" autoFocus onChange={e => setHoursText(e.target.value)} /></label>
+            <p className="why-s why-tally">
+              {tally.banked > 0
+                ? <>This stage has lost <b>{hoursWord(tally.banked)}</b> towards the next day{tally.pushedDays ? ` (and pushed ${tally.pushedDays} day${tally.pushedDays === 1 ? '' : 's'} already)` : ''}. </>
+                : tally.pushedDays ? <>Hours lost here have pushed the finish {tally.pushedDays} day{tally.pushedDays === 1 ? '' : 's'} so far. </> : null}
+              {hours > 0 && <>With this, <b>{hoursWord(tally.banked + hours)}</b> — {daysWord(tally.banked + hours, day)}. </>}
+              {dayText === null
+                ? <>A day here is {hoursWord(day)}{onDay && <> · <button type="button" className="cw-link" onClick={() => setDayText(String(day))}>change</button></>}</>
+                : <span className="why-day">A day here is <input inputMode="decimal" value={dayText} aria-label="Hours in a working day" onChange={e => setDayText(e.target.value)} /> h
+                  <button type="button" className="btn btn-sm" onClick={() => {
+                    const v = Number(dayText.replace(',', '.'));
+                    if (v > 0 && v <= 24) onDay?.(v);
+                    setDayText(null);
+                  }}>Set</button></span>}
+            </p>
+            {daysMade > 0 && (end
+              ? <label className="why-check"><input type="checkbox" checked={push} onChange={e => setPush(e.target.checked)} />
+                <span>That makes {daysMade} full day{daysMade === 1 ? '' : 's'} lost — push the finish {niceDay(end)} → <b>{niceDay(addDays(end, daysMade))}</b></span></label>
+              : <p className="why-s">That makes {daysMade} full day{daysMade === 1 ? '' : 's'} lost — give the stage a finish date to push it.</p>)}
+          </>
+        )}
+        {cost === 'date' && (
+          <label className="cw-f why-fix-on" style={{ flex: '0 1 260px' }}><span>New finish</span>
+            <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
+        )}
+      </div>
+      {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(target)}</b> · <b>+{daysBetween(end, target)} day{daysBetween(end, target) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
+      {following && end && <KnockOn following={following} days={daysBetween(end, target)} on={shift} set={setShift} />}
       <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(to ? { to } : {}), ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}) })}>Save the problem</button>
+          onClick={() => onSave({ why: why.trim(), media, ...(target ? { to: target } : {}), ...(cost === 'hours' && hours > 0 ? { hoursLost: hours } : {}), ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}) })}>Save the problem</button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}

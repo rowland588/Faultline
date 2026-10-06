@@ -197,6 +197,8 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       id: uid(), projectId: proj.id, testId: on.id, kind: 'found',
       what: i % 4 ? pick(['Guard bracket the wrong size', 'Film tracking off to the left after a splice', 'E-stop label peeling', 'Regulator missing from the kit', 'No guard on the infeed shelf']) : LONG[i % LONG.length],
       owner: pick(WHO), sort: i, createdAt: t - (60 - i) * 3_600_000, updatedAt: t,
+      /* Hours lost on some (lib/hoursLost) — so the plan's paper carries them. */
+      ...(i % 3 === 0 ? { hoursLost: [0.5, 2, 1.5, 5, 3][i % 5] } : {}),
     });
   }
   items.push(...[0, 1, 2].map(i => ({ id: uid(), projectId: proj.id, testId: longest.id, kind: 'found' as const, what: LONG[i], owner: 'Ilapak UK', sort: 100 + i, createdAt: t, updatedAt: t })));
@@ -288,7 +290,8 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
   for (const x of tests) await putTest(x);
   const items: TestItem[] = [];
   for (let i = 0; i < many(80); i++) {
-    items.push({ id: uid(), projectId: proj.id, testId: pick(tests).id, kind: 'found', what: say() || 'Something seen', owner: rand() < 0.6 ? pick([...WHO, ...AWKWARD]) : undefined, sort: i, createdAt: t - i * 3_600_000, updatedAt: t });
+    items.push({ id: uid(), projectId: proj.id, testId: pick(tests).id, kind: 'found', what: say() || 'Something seen', owner: rand() < 0.6 ? pick([...WHO, ...AWKWARD]) : undefined, sort: i, createdAt: t - i * 3_600_000, updatedAt: t,
+      ...(i % 4 === 1 ? { hoursLost: [0.5, 1, 2, 3.5, 12.25][i % 5] } : {}) });
   }
   for (const i of items) await putTestItem(i);
   await putMaterials(Array.from({ length: many(30) }, (_, i): Material => ({

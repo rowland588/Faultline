@@ -45,6 +45,8 @@ import { DatesForm, spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, followingSummary, moveTestsWithWhy, recordProblem, type ProblemFill } from './WhyMoved';
 import { SayIt, SayStep } from './RecordSay';
 import { movedLater, storyOf } from '../lib/story';
+import { useProjects } from '../lib/useProjects';
+import { dayLength } from '../lib/hoursLost';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -195,6 +197,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
 }) {
   const tt = useTesting(projectId);
   const can = useAccess(projectId);
+  /* The job, for how many hours make its working day (lib/hoursLost). */
+  const jobs = useProjects();
+  const job = jobs.projects.find(p => p.id === projectId);
   const today = todayISO();
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
   const [planning, setPlanning] = useState(false);
@@ -264,7 +269,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {can.edit && (problem ? (
         /* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
            the finish and to when, a fix. The plan hears all of it. */
-        <ProblemForm step={t} tests={tt.tests} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined} onCancel={() => setProblem(false)}
+        <ProblemForm step={t} tests={tt.tests} items={tt.items} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined} onCancel={() => setProblem(false)}
+          day={dayLength(job)} onDay={h => { if (job) void jobs.rename(job, { dayHours: h }); }}
           onSave={a => {
             andClose(recordProblem(tt, t, a, `${t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`));
             setProblem(false);

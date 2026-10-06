@@ -38,7 +38,7 @@ const TONE_WORD: Record<PlanMark['tone'], string> = {
   booked: 'still ahead', late: 'the day has gone', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs }: {
+export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs, dayHours }: {
   marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string; projectId: string;
   /** The job's records — for what happened to each stage (lib/story). */
   tests?: Test[]; items?: TestItem[];
@@ -48,6 +48,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   walk?: WalkSnag[];
   /** The job's name, for the printed copy. */
   name: string;
+  /** The job's working day, for hours lost on paper (lib/hoursLost). */
+  dayHours?: number;
 }) {
   const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items, ...(walk ? { walk } : {}) } : undefined), [marks, today, expectedAt, plannedAt, tests, items, walk]);
   /* The walk's panel: the snags behind one marker, or all of them. */
@@ -154,7 +156,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
       const { moveLines } = await import('../lib/story');
       /* The paper is drawn the way the screen is: by machine, or by stage. */
       drawGanttDoc(doc, bands ? gm : g, {
-        moves: tests && items ? moveLines(g.groups.flatMap(x => x.rows), tests, items) : [],
+        moves: tests && items ? moveLines(g.groups.flatMap(x => x.rows), tests, items, dayHours && dayHours > 0 ? dayHours : undefined) : [],
         name, printed: niceDay(today, { year: true }),
         asOf: asOf?.words,
         dates: when ? `Handover ${moved ? 'expected ' : ''}${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(plannedAt, { year: true })}` : ''}` : undefined,
