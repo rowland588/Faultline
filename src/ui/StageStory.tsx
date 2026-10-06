@@ -25,6 +25,7 @@ import { openRecord } from './RecordDrawer';
 import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { Evidence } from './EvidenceDoors';
 import { offerUndo } from './Undo';
+import { BetterWords } from './BetterWords';
 import { deleteTestItem } from '../db';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
@@ -234,6 +235,7 @@ export function ProblemEdit({ item, tt, can, onDone }: {
   return (
     <span className="sp-edit">
       <textarea className="text-area" rows={2} value={what} onChange={e => setWhat(e.target.value)} autoFocus aria-label="What happened" />
+      <BetterWords text={what} field="problem" onUse={setWhat} />
       {showHours && (
         <label className="cw-f sp-edit-h"><span>Hours lost</span>
           <input inputMode="decimal" value={hours} onChange={e => setHours(e.target.value)} placeholder="none" /></label>

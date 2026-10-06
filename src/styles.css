@@ -10438,3 +10438,13 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .spp-add, .spp-edit { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .spp-add input, .spp-edit input { flex: 1 1 200px; min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
 .spp-why { margin: 6px 0 0; }
+
+/* BETTER WORDING (ui/BetterWords) — a quiet link under a box; the suggestion
+   beside what was typed, used or not with one tap. */
+.bw-row { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.bw-ask { font-size: var(--t-detail); }
+.bw-err { font-size: var(--t-detail); }
+.bw-offer { display: grid; gap: 6px; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.bw-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.bw-text { margin: 0; font-size: var(--t-body); color: var(--ink); white-space: pre-wrap; }
+.bw-acts { display: inline-flex; gap: 8px; }

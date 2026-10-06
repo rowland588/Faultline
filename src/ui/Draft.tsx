@@ -11,6 +11,8 @@
  * cell without writing it. */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { readNumber } from '../lib/format';
+import { BetterWords } from './BetterWords';
+import type { WordingField } from '../lib/wording';
 
 /* ---------------------------------------------------------------------------
  * WHAT IS TYPED IS WRITTEN WITHIN A SECOND, AND WRITTEN BEFORE THE PHONE SLEEPS.
@@ -237,10 +239,12 @@ export function DraftField({
  *
  *  Enter is a newline here, not a save — this is prose. Blur saves it. */
 export function DraftArea({
-  value, onSave, placeholder, rows = 3, maxPx = 420, id, ariaLabel, className, areaRef,
+  value, onSave, placeholder, rows = 3, maxPx = 420, id, ariaLabel, className, areaRef, better,
 }: {
   value: string;
   onSave: (v: string) => void;
+  /** Offer "Better wording" under the box (ui/BetterWords), for this kind of text. */
+  better?: WordingField;
   placeholder?: string;
   className?: string;
   /** For a caller that needs to put the cursor in this box itself. */
@@ -266,7 +270,7 @@ export function DraftArea({
 
   useLayoutEffect(grow, [grow, draft, value]);
 
-  return (
+  const area = (
     <textarea
       ref={box} id={id} className={className} aria-label={ariaLabel} rows={rows}
       value={draft ?? value} placeholder={placeholder}
@@ -274,5 +278,12 @@ export function DraftArea({
       onBlur={blur}
       onKeyDown={e => { if (e.key === 'Escape') { abandon(); (e.target as HTMLTextAreaElement).blur(); } }}
     />
+  );
+  if (!better) return area;
+  return (
+    <>
+      {area}
+      <BetterWords text={draft ?? value} field={better} onUse={v => { setDraft(null); onSave(v); }} />
+    </>
   );
 }

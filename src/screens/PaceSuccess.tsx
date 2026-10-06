@@ -104,7 +104,7 @@ function Card({ win, onPatch, onDelete, onProve, edit, remove }: {
         </button>
       )}
 
-      <DraftArea className="win-in win-story" rows={2} ariaLabel="What we did" value={win.story}
+      <DraftArea className="win-in win-story" rows={2} better="note" ariaLabel="What we did" value={win.story}
         placeholder="What we did — the story you'd tell the team" onSave={v => onPatch({ story: v })} />
 
       <div className="win-foot">

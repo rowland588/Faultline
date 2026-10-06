@@ -22,6 +22,7 @@ import { deleteTest, deleteTestItem } from '../db';
 import { uid } from '../lib/ids';
 import { addDays, daysBetween, niceDay } from '../lib/weeks';
 import { Evidence } from './EvidenceDoors';
+import { BetterWords } from './BetterWords';
 import { hoursTally, fullDays, hoursWord, daysWord, DAY_HOURS } from '../lib/hoursLost';
 import type { TestItem } from '../lib/testing';
 import { EvidenceViewer } from './Evidence';
@@ -94,6 +95,7 @@ export function WhyMoved({ from, to, many, allowFix = true, onSave, onCancel, on
       <label className="cw-f cw-f-wide"><span>What happened</span>
         <textarea className="text-area" rows={2} value={why} placeholder="Guard brackets arrived the wrong size — remade on site"
           onChange={e => setWhy(e.target.value)} /></label>
+      <BetterWords text={why} field="problem" onUse={setWhy} />
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
       {allowFix && (
         <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />
@@ -299,6 +301,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
       <label className="cw-f cw-f-wide"><span>What happened</span>
         <textarea className="text-area" rows={2} value={why} autoFocus placeholder="Guard brackets arrived the wrong size"
           onChange={e => setWhy(e.target.value)} /></label>
+      <BetterWords text={why} field="problem" onUse={setWhy} names={[step.title, ...assets.map(a => a.name)]} />
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
       <div className="why-cost">
         <span className="why-cost-h">What did it cost? <span className="cw-f-opt">finish {end ? `now ${niceDay(end)}` : 'not dated yet'}</span></span>

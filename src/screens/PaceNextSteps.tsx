@@ -112,7 +112,7 @@ function Row({ row, lines, showLine, onPatch, onDelete, onOpen, onEdit, focusOut
     {summary}
     <tr className={'ns-row is-' + row.state}>
       <td data-h="What">{edit
-        ? <DraftArea className="ns-in ns-grow" rows={2} value={row.what} ariaLabel="What"
+        ? <DraftArea className="ns-in ns-grow" rows={2} better="other" value={row.what} ariaLabel="What"
             placeholder="e.g. test the Tesco Express trays" onSave={v => onPatch({ what: v })} />
         : text(row.what)}</td>
       {/* THE BONE, AND THE LINE — the two things that put it in its lane on

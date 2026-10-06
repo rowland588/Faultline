@@ -10,6 +10,7 @@
  * client report and every other document leave them out. */
 import { AddFold } from '../ui/AddFold';
 import { useState } from 'react';
+import { BetterWords } from '../ui/BetterWords';
 import { nav } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
 import { useProjects } from '../lib/useProjects';
@@ -177,6 +178,7 @@ function Row({ n, tt, job, can }: { n: TestItem; tt: TT; job: Job; can: Can }) {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
               if (e.key === 'Escape') setEditing(false);
             }} />
+          <BetterWords text={text} field="note" onUse={setText} />
           {pickable(job) && <label className="nt-about"><span>About</span>
             <AboutPicker value={about} onChange={setAbout} job={job} /></label>}
           <span className="nt-edit-acts">
@@ -284,6 +286,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         <textarea className="text-area" rows={2} value={what} autoFocus placeholder="What do you want to raise?"
           onChange={e => setWhat(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void add(); } }} />
+        <BetterWords text={what} field="note" onUse={setWhat} />
         <div className="nt-add-row">
           {pickable(job) && <label className="nt-about"><span>About</span>
             <AboutPicker value={about} onChange={setAbout} job={job} />

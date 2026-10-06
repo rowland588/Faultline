@@ -357,7 +357,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               <DateInput value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
                 onCommit={v => save({ ranTo: v || undefined })} /></label>
             <label className={'cw-f cw-f-wide' + hl('result')}><span>{words.happened}</span>
-              <DraftArea rows={5} value={test.result ?? ''}
+              <DraftArea rows={5} better="account" value={test.result ?? ''}
                 placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
                   : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
                     : '61 ppm, 3 leaked in 20'}
@@ -673,7 +673,7 @@ function PassesIf({ test, can, label, glow, onSave }: {
   return (
     <>
       <label className={'cw-f cw-f-wide' + glow}><span>{label}</span>
-        <DraftArea value={test.passesIf ?? ''}
+        <DraftArea better="passes" value={test.passesIf ?? ''}
           placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
             : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
               : '65 ppm held for 30 minutes, under 2% waste'}
@@ -786,7 +786,7 @@ function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; 
             </div>
           )}
           <label className="cw-f cw-f-wide"><span>What</span>
-            <DraftArea rows={2} value={item.what} onSave={v => v.trim() && void tt.saveItem({ ...item, what: v.trim() })} /></label>
+            <DraftArea rows={2} better="problem" value={item.what} onSave={v => v.trim() && void tt.saveItem({ ...item, what: v.trim() })} /></label>
           <label className="cw-f"><span>Whose</span>
             <DraftField value={item.owner ?? ''} placeholder="Ilapak UK" onSave={v => void tt.saveItem({ ...item, owner: v.trim() || undefined })} /></label>
           {item.kind === 'next' && (
