@@ -205,7 +205,11 @@ export function clientReport(x: ClientReportInput): ClientReport {
       lostAll += h.hours;
       const each = items.filter(i => i.testId === s.step.id && i.kind === 'found' && (i.hoursLost ?? 0) > 0)
         .sort((a, b) => a.createdAt - b.createdAt).map(i => `${i.what} ${hoursWord(i.hoursLost as number)}`);
-      return [`${r.asset?.name ?? 'The line'} — ${s.step.title}: ${hoursWord(h.hours)} lost${h.pushedDays ? `, pushed the finish ${h.pushedDays} day${h.pushedDays === 1 ? '' : 's'}` : ''}${h.banked ? `${h.pushedDays ? ';' : ','} ${hoursWord(h.banked)} not yet a full day` : ''} (${each.join('; ')})`];
+      /* Said once: "30 min lost" needs no "30 min not yet a day" after it. */
+      const state = h.pushedDays
+        ? `, pushed the finish ${h.pushedDays} day${h.pushedDays === 1 ? '' : 's'}${h.banked ? `; ${hoursWord(h.banked)} towards the next` : ''}`
+        : h.hours >= day ? ' — the finish has not been moved for it' : '';
+      return [`${r.asset?.name ?? 'The line'} — ${s.step.title}: ${hoursWord(h.hours)} lost${state} (${each.join('; ')})`];
     });
     const problems = all.filter(({ s }) => s.tone === 'problem').length;
     const lateN = all.filter(({ s }) => s.late).length;
