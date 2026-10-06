@@ -15,7 +15,9 @@
  *                a material, a program or a machine past its day — the same
  *                late lib/standing counts.
  *                At risk (amber) — nothing late, but a stage hit a problem and
- *                lost no time, or something owed falls due within 2 days.
+ *                lost no time, something owed falls due within 2 days, or a
+ *                CRITICAL problem is open (lib/critical) — never "on target"
+ *                while one is, and its count is in the reason either way.
  *                On target (a quiet green) — otherwise.
  *   6M · TREE    On target when every line judged is at its target; Behind
  *                target when any is short; Not measured yet with no readings
@@ -24,6 +26,7 @@
  * Pure: the screen gathers the records, this answers. Nothing is stored. */
 import { assetStateOf, isOverdue, isSettled, live, plannedEnd, type Asset, type Test, type TestItem } from './testing';
 import { lateOrProblem } from './install';
+import { criticalProblems } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import { isHere, type Material } from './materials';
 import { stateOf, type Program } from './programs';
@@ -106,14 +109,16 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
   const lateWords = s.late ? `${s.late} late${lost ? `, ${hoursWord(lost)} lost` : ''}` : 'nothing late';
   const problemWords = problems ? `${problems} a problem, no time lost` : '';
   const slipped = !!expectedAt && !!plannedAt && expectedAt > plannedAt;
+  const critical = criticalProblems(tests, items, assets).open.length;
+  const criticalWords = critical ? `${critical} critical problem${critical === 1 ? '' : 's'} open` : '';
 
   if (slipped || s.late > 0) {
-    return { tone: 'behind', word: 'Behind target', reason: [when, lateWords, problemWords].filter(Boolean).join(' · ') };
+    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, lateWords, problemWords].filter(Boolean).join(' · ') };
   }
-  if (problems || dueSoon) {
+  if (critical || problems || dueSoon) {
     return {
       tone: 'risk', word: 'At risk',
-      reason: [when, lateWords, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
+      reason: [when, criticalWords, lateWords, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
     };
   }
   /* Nothing late and no date to be on target FOR — said, not guessed. */

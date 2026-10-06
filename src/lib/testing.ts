@@ -421,6 +421,10 @@ export interface Test {
    a step or the entire project." Private preparation: no document prints it. */
 export type ItemKind = 'found' | 'next' | 'note';
 
+/** One way round a critical problem (TestItem.ways). `agreed` marks the one
+ *  the job is going with; several can be written and none agreed yet. */
+export interface WayRound { id: ID; what: string; agreed?: boolean }
+
 /** The testId a note about the whole project carries. */
 export const WHOLE_JOB = '';
 
@@ -448,6 +452,16 @@ export interface TestItem {
    *  known. A stage's hours add up; a full working day of them pushes the
    *  finish, kept as a move on the problem that tipped it (lib/hoursLost). */
   hoursLost?: number;
+  /** CRITICAL — a problem that puts the agreed date or the business at risk
+   *  (lib/critical). Rowland, 6 October: "the ability to say that this is
+   *  critical, and to write more narrative behind it — potential solutions,
+   *  what it means for the business." It leads every screen and the report. */
+  critical?: boolean;
+  /** What it means for the business, in words — "the line cannot go back to
+   *  production on the agreed day". */
+  impact?: string;
+  /** The ways round it, and the one agreed — "a belt to bypass the robot". */
+  ways?: WayRound[];
   /** Closed, or done. Absent means open. */
   doneAt?: number;
   media?: MediaRef[];

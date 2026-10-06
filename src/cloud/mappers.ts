@@ -491,6 +491,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         media: i.media ?? null, pin: i.pin ?? null, became_test_id: i.becameTestId ?? null,
         became_item_id: i.becameItemId ?? null, from_item_id: i.fromItemId ?? null,
         hours_lost: i.hoursLost ?? null,
+        critical: i.critical ?? null, impact: i.impact ?? null, ways: i.ways?.length ? i.ways : null,
         sort: i.sort, created_at: i.createdAt,
         updated_at: i.updatedAt, deleted_at: i.deletedAt ?? null,
       };
@@ -513,6 +514,9 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       becameItemId: (r.became_item_id as string) ?? undefined,
       fromItemId: (r.from_item_id as string) ?? undefined,
       hoursLost: Number(r.hours_lost) > 0 ? Number(r.hours_lost) : undefined,
+      ...(r.critical ? { critical: true } : {}),
+      ...(r.impact ? { impact: r.impact as string } : {}),
+      ...(Array.isArray(r.ways) && r.ways.length ? { ways: r.ways as TestItem['ways'] } : {}),
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies TestItem),
