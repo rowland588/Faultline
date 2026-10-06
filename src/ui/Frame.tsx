@@ -36,8 +36,9 @@ import { AccountMenu } from './AccountMenu';
 import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
 import { useJobStands } from './railJobs';
+import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
 import {
-  controlRoom, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
+  controlRoom, snagsPlace, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
   type RailGroup, type RailLine,
 } from './rail';
 
@@ -49,7 +50,7 @@ import {
 function projectOf(route: Route, chainProject?: string): string | undefined {
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
-  if (route.name === 'home' || route.name === 'projects' || route.name === 'share') return undefined;
+  if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags') return undefined;
   return route.id;
 }
 
@@ -69,9 +70,10 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
         : projectId && (loading || (route.wsId && chain === null))
-          ? <NavChrome groups={[{ lines: [controlRoom(here)] }]} bar={[controlRoom(here)]} />
+          ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null} />}
       <main className="nv-main">{children}</main>
+      <QuickSnagHost wsId={route.wsId} projectId={projectId} />
     </div>
   );
 }
@@ -133,6 +135,7 @@ function TopBar({ project, projects }: { project?: Project; projects: Project[] 
           search yet — a box that looked live and did nothing would lie. */}
       <input className="nv-search" type="search" disabled
         placeholder="Search — comes in a later update" aria-label="Search, not built yet" />
+      <QuickSnagButton />
       <AccountMenu />
     </header>
   );
@@ -175,7 +178,7 @@ interface NavProps {
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late)] },
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late)] },
     gatesGroup(p.project.id, p.here, stand.counts),
     workGroup(p.project.id, p.model, p.here, stand.counts),
     linesGroup(p.project.id, p.lines, p.here, p.wsId),
@@ -187,7 +190,7 @@ function GateNav(p: NavProps) {
 function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const counts = useMethodCounts(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), jobLine(p.project.id, p.project.name, p.here, counts.board?.late ?? 0)] },
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, counts.board?.late ?? 0)] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
     workGroup(p.project.id, p.model, p.here, counts),
@@ -222,7 +225,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     return () => { live = false; };
   }, [wsId]);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(here), ...(loose && wsId ? [
+    { lines: [controlRoom(here), snagsPlace(here), ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
     ] : [])] },
@@ -244,7 +247,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
   const bar: RailLine[] = [
     ...all.filter(l => l.key === 'home'),
     ...all.filter(l => l.key.startsWith('job:')).slice(0, 3).map(l => ({ ...l, icon: 'route' as const })),
-    { key: 'more', label: 'More', on: false, state: 'n', icon: 'grip' },
+    { key: 'more', label: 'More', on: here === 'quicksnags', state: 'n', icon: 'grip' },
   ];
   return <NavChrome groups={groups} bar={bar} />;
 }

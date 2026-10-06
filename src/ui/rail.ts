@@ -92,6 +92,7 @@ const KEY_OF: Record<string, string> = {
 export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
+    case 'quickSnags': return 'quicksnags';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -138,6 +139,11 @@ const plain = (key: string, label: string, to: string, here: string, icon?: Rail
 /** The first line of every rail. */
 export const controlRoom = (here: string): RailLine =>
   ({ key: 'home', label: 'Control room', to: '/', on: here === 'home', state: 'n', bare: true, icon: 'home' });
+
+/** EVERY SNAG, every line — beside the control room on every rail, because a
+ *  snag is taken from anywhere (snag/QuickSnag) and sent on from there. */
+export const snagsPlace = (here: string): RailLine =>
+  ({ key: 'quicksnags', label: 'Snags', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
 
 /** The job itself — on its front page, where the method's answer is. */
 export const jobLine = (projectId: string, name: string, here: string, late = 0): RailLine =>

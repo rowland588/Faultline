@@ -81,7 +81,9 @@ export async function buildSnagCards(
   const snags: SnagCardData[] = [];
   for (const { snag, asset, assetName } of rows) {
     const still = await photoFrom(asset?.stillKey, { xPct: snag.xPct, yPct: snag.yPct });
-    const detail = await photoFrom(snag.detailPhotoKey);
+    /* A quick snag keeps its pictures in `media` (snag/quick): its first photo
+       is the close-up when it has no close-up of its own. */
+    const detail = await photoFrom(snag.detailPhotoKey ?? snag.media?.find(m => m.kind === 'photo')?.blobKey);
     snags.push({
       problem: snag.problem || 'Evidence',
       proposedSolution: snag.proposedSolution || undefined,

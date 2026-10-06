@@ -9,7 +9,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
-  | 'share';
+  | 'share' | 'quickSnags';
 
 export interface Route {
   name: RouteName;
@@ -64,6 +64,7 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 's') return { name: 'share', id: segs[1] ?? '', query };
   if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
+  if (segs[0] === 'snags') return { name: 'quickSnags', query }; // every quick snag, every line (snag/quick)
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the client report
   if (segs[0] === 'project' && segs[1]) {
     // /project/:id            the project itself
