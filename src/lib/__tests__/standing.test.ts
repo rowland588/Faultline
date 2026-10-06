@@ -377,7 +377,7 @@ describe('the sentence', () => {
       expectedAt: '2026-10-06',
     });
     expect(s.sentence).toBe(
-      `14 days to handover ${D('2026-10-06')}, with 2 things outstanding — 2 of them are past the day it was wanted, and they are all Brillopak’s.`,
+      `14 days to handover ${D('2026-10-06')}, with 2 things outstanding — 2 of them are late, and they are all Brillopak’s.`,
     );
   });
 
@@ -387,7 +387,7 @@ describe('the sentence', () => {
   it('counts one late thing in words, not "1 one"', () => {
     const s = at({ materials: [mat({ due: '2026-09-01', from: 'Brillopak' })], expectedAt: '2026-10-06' });
     expect(s.sentence).toBe(
-      `14 days to handover ${D('2026-10-06')}, with 1 thing outstanding — one is past the day it was wanted, and it is Brillopak’s.`,
+      `14 days to handover ${D('2026-10-06')}, with 1 thing outstanding — one is late, and it is Brillopak’s.`,
     );
   });
 
@@ -412,7 +412,7 @@ describe('the sentence', () => {
     });
     expect(row(s, 'tests')).toMatchObject({ whose: 'Ishida Europe × 3', lateWhose: 'Ilapak UK' });
     expect(s.sentence).toBe(
-      `14 days to handover ${D('2026-10-06')}, with 4 things outstanding — one is past the day it was wanted, and it is Ilapak UK’s.`,
+      `14 days to handover ${D('2026-10-06')}, with 4 things outstanding — one is late, and it is Ilapak UK’s.`,
     );
   });
 
@@ -424,7 +424,8 @@ describe('the sentence', () => {
         test({ plannedFor: '2026-09-16', outcome: 'notRun', withWhom: 'Ishida Europe' }),
       ],
     });
-    expect(s.sentence).toContain('3 of them are past the day it was wanted.');
+    // "late": the sentence uses the reports' word now (lib/install lateOrProblem).
+    expect(s.sentence).toContain('3 of them are late.');
     expect(s.sentence).not.toContain('Ilapak');
   });
 
@@ -434,7 +435,8 @@ describe('the sentence', () => {
       programs: [prog({ testOn: '2026-09-01', from: 'Ilapak UK' })],
     });
     expect(s.sentence).not.toContain('Brillopak');
-    expect(s.sentence).toContain('past the day');
+    // "late": the sentence uses the reports' word now (lib/install lateOrProblem).
+    expect(s.sentence).toContain('of them are late');
   });
 
   /* "8 days to go" with no word for what — Rowland read it as a fault, on a job
@@ -477,7 +479,8 @@ describe('the sentence', () => {
     const s = at({ assets: [wrapper], tests: [stuck], materials: [mat({ due: '2026-09-29' })], expectedAt: '2026-09-30' });
     expect(s.sentence).toMatch(/outstanding — none of it late, but Ishida checkweigher hit a problem at Positioned and levelled\.$/);
     const late = at({ assets: [wrapper], tests: [stuck], materials: [mat({ due: '2026-09-01' })], expectedAt: '2026-09-30' });
-    expect(late.sentence).toMatch(/past the day it was wanted\. Ishida checkweigher hit a problem at Positioned and levelled\.$/);
+    // "late": the sentence uses the reports' word now (lib/install lateOrProblem).
+    expect(late.sentence).toMatch(/is late\. Ishida checkweigher hit a problem at Positioned and levelled\.$/);
     // The stuck step is itself still owed, so there is always a count to lead on.
     expect(at({ assets: [wrapper], tests: [stuck] }).sentence).toMatch(/^No handover date yet, with \d+ things? outstanding — none of it late, but Ishida checkweigher hit a problem at Positioned and levelled\.$/);
   });

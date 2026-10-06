@@ -460,7 +460,10 @@ function sentenceFor(x: {
   const tail = x.late > 0
     /* Its own sentence beside a late count: "…and it is Ilapak UK's, and
        Ishida checkweigher hit a problem" read as one breathless list. */
-    ? ` — ${x.late === 1 ? 'one is' : `${x.late} of them are`} past the day it was wanted${blame}.${problem ? ` ${problem}.` : ''}`
+    /* "late", not "past the day it was wanted": a stage whose problems lost
+       hours is late before its day (lib/install lateOrProblem) — the words
+       the reports and the plan use. */
+    ? ` — ${x.late === 1 ? 'one is' : `${x.late} of them are`} late${blame}.${problem ? ` ${problem}.` : ''}`
     : problem ? ` — none of it late, but ${problem}.` : ' — none of it late.';
 
   return `${head[0].toUpperCase()}${head.slice(1)}${tail}`;

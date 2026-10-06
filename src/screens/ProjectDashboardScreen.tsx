@@ -238,11 +238,13 @@ function NeedsYouPanel({ items, today, door, split, max }: {
   const kinds = split && byKind.size > 1
     ? ` — ${[...byKind].map(([k, c]) => `${c} ${KIND_WORD[k].toLowerCase()}${c === 1 ? '' : 's'}`).join(', ')}` : '';
   const says = items.length === 0 ? 'nothing owed'
-    : n.late > 0 ? <><b className="fp-n-r">{n.late} past the day</b>{kinds} · late first</>
-    : n.soon > 0 ? `nothing past its day · ${n.soon} due within ${DUE_SOON_DAYS} days`
-    : 'nothing past its day';
+    /* "late", as the band and the reports say it: a stage is late when its
+       day has gone or its problems lost hours (lib/install lateOrProblem). */
+    : n.late > 0 ? <><b className="fp-n-r">{n.late} late</b>{kinds} · late first</>
+    : n.soon > 0 ? `nothing late · ${n.soon} due within ${DUE_SOON_DAYS} days`
+    : 'nothing late';
   const foot = [
-    lateHidden > 0 && <b key="l" className="fp-n-r">{lateHidden} more past the day</b>,
+    lateHidden > 0 && <b key="l" className="fp-n-r">{lateHidden} more late</b>,
     n.more - lateHidden > 0 && <span key="m">{n.more - lateHidden} more booked</span>,
     n.undated > 0 && <span key="u">{n.undated} with no date agreed</span>,
   ].filter(Boolean);
