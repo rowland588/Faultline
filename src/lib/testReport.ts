@@ -12,11 +12,17 @@
  */
 import { getBlob, getSnagAsset } from '../db';
 import type { Test } from './testing';
+import type { MediaPin, MediaRef } from '../types';
 
 const MAX_EDGE = 1200;
 const QUALITY = 0.8;
 
-export interface Shot { data: string; w: number; h: number }
+export interface Shot {
+  data: string; w: number; h: number;
+  /** What is wrong at each mark drawn on it (MediaRef.pins), in number order:
+   *  the drawer prints them beside or under the picture by the same numbers. */
+  marks?: string[];
+}
 
 /* ------------------------------- the pictures ------------------------------ */
 
@@ -35,7 +41,38 @@ export async function shotsFor(keys: string[], max = 6): Promise<Shot[]> {
 export const shotKey = (m: { kind: 'photo' | 'video'; blobKey: string; thumbKey?: string }): string | undefined =>
   (m.kind === 'photo' ? m.blobKey : m.thumbKey);
 
-async function shotFrom(key: string, dot?: { x: number; y: number }): Promise<Shot> {
+/** The pictures of a record, in order, at most `max` — each photo with the
+ *  marks pointed at on it (ui/Evidence) drawn in, numbered, and their words
+ *  handed to the drawer. A clip's poster has none: marks are on a still. */
+export async function shotsOf(media: MediaRef[], max = 6): Promise<Shot[]> {
+  const shots: Shot[] = [];
+  for (const m of media) {
+    if (shots.length >= max) break;
+    const key = shotKey(m);
+    if (!key) continue;
+    try { shots.push(await shotFrom(key, undefined, m.kind === 'photo' ? m.pins : undefined)); } catch { /* send the words */ }
+  }
+  return shots;
+}
+
+/** THE MARKS, DRAWN INTO THE PICTURE as the screen draws them (snag/PinImage):
+ *  a red disc ringed in white with its number, at the same percentages — so
+ *  no drawer has a second layer to keep in step. Sized off the picture, so
+ *  a number still reads at the size a card prints it. Shared with the snag
+ *  card (lib/buildSnagCards). */
+export function drawMarks(ctx: CanvasRenderingContext2D, w: number, h: number, pins: MediaPin[]): void {
+  const r = Math.max(10, Math.round(Math.min(w, h) * 0.055));
+  pins.forEach((p, i) => {
+    const cx = (p.x / 100) * w, cy = (p.y / 100) * h;
+    ctx.beginPath(); ctx.arc(cx, cy, r + Math.max(2, Math.round(r * 0.2)), 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#9b3227'; ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold ${Math.round(r * 1.2)}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(i + 1), cx, cy + r * 0.06);
+  });
+}
+
+async function shotFrom(key: string, dot?: { x: number; y: number }, pins?: MediaPin[]): Promise<Shot> {
   const blob = await getBlob(key);
   if (!blob) throw new Error('not on this device');
   const url = URL.createObjectURL(blob);
@@ -63,8 +100,16 @@ async function shotFrom(key: string, dot?: { x: number; y: number }): Promise<Sh
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(192,57,43,0.35)'; ctx.fill();
       ctx.lineWidth = Math.max(3, r * 0.3); ctx.strokeStyle = '#c0392b'; ctx.stroke();
     }
-    return { data: cv.toDataURL('image/jpeg', QUALITY), w: cv.width, h: cv.height };
+    const marked = (pins ?? []).filter(p => p.note.trim());
+    if (marked.length) drawMarks(ctx, cv.width, cv.height, marked);
+    return { data: cv.toDataURL('image/jpeg', QUALITY), w: cv.width, h: cv.height, ...(marked.length ? { marks: marked.map(p => p.note.trim()) } : {}) };
   } finally { URL.revokeObjectURL(url); }
+}
+
+/** One photo, with its marks drawn in and their words — undefined when it is
+ *  not on this device or will not decode. */
+export async function photoShot(key: string, pins?: MediaPin[]): Promise<Shot | undefined> {
+  try { return await shotFrom(key, undefined, pins); } catch { return undefined; }
 }
 
 /** Where a fix is on the line, as a picture: its walk frame with the dot.

@@ -175,4 +175,24 @@ describe('how each stage went — the team’s account of a step reaches the cli
     expect(fy?.problem).toBe('Bracket wrong size');
     expect(fy?.photoKey).toBeUndefined();
   });
+  /* Rowland, 6 October: "press the picture and then say what's wrong within
+     the picture at certain locations." The marks are on the picture, so the
+     fix card that prints it is handed them — and a fix with none has none. */
+  it('carries what is marked on the picture it prints, and nothing when unmarked', () => {
+    const pins = [{ id: 'p1', x: 20, y: 30, note: 'Bolt missing' }, { id: 'p2', x: 70, y: 60, note: 'Guard cracked' }];
+    const steps = [
+      test({ id: 'st', kind: 'install', title: 'Air connected', assetId: 'ds', outcome: 'failed', ranOn: '2026-09-29' }),
+      test({ id: 'fx', kind: 'fix', title: 'Fit the guard', fromTestId: 'st', assetId: 'ds',
+        media: [{ id: 'v1', kind: 'video', blobKey: 'b-clip', thumbKey: 'b-poster', mime: 'video/mp4', capturedAt: 1 },
+          { id: 'm1', kind: 'photo', blobKey: 'b-photo', mime: 'image/jpeg', capturedAt: 2, pins }] }),
+      test({ id: 'fy', kind: 'fix', title: 'Re-cut the jaw', fromTestId: 'st', assetId: 'ds',
+        media: [{ id: 'm2', kind: 'photo', blobKey: 'b-plain', mime: 'image/jpeg', capturedAt: 3 }] }),
+    ];
+    const x = clientReport({ project, projects: [project], assets, tests: steps, items: [], materials: [], programs: [], standards: [], today: T });
+    const fx = x.fixes.open.find(f => f.id === 'fx'), fy = x.fixes.open.find(f => f.id === 'fy');
+    expect(fx?.photoKey).toBe('b-photo');
+    expect(fx?.photoPins?.map(p => p.note)).toEqual(['Bolt missing', 'Guard cracked']);
+    expect(fy?.photoKey).toBe('b-plain');
+    expect(fy?.photoPins).toBeUndefined();
+  });
 });

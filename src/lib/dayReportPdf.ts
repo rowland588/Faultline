@@ -154,21 +154,34 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     y += 10;
   }
 
-  /* THE DAY'S PICTURES, as many as fit one row. */
+  /* THE DAY'S PICTURES, as many as fit one row — and under each, what is
+     marked on it (ui/Evidence), by the numbers drawn on it. */
   const shots = meta.shots ?? [];
   if (shots.length) {
     const SH = 96;
-    room(SH + 24);
-    setFont(d, 7, 'bold', MUTED);
-    d.text(`PICTURES FROM THE DAY${day.media.length > shots.length ? ` · ${shots.length} of ${day.media.length}` : ''}`, M, y);
+    const row: { s: Shot; x: number; w: number; marks: string[][] }[] = [];
     let x = M;
     for (const s of shots) {
       const sw = Math.min(160, (s.w / s.h) * SH);
       if (x + sw > W - M) break;
-      try { d.addImage(s.data, 'JPEG', x, y + 8, sw, SH); } catch { /* a bad frame must not cost the words */ }
+      setFont(d, 7, 'normal', INK2);
+      row.push({ s, x, w: sw, marks: (s.marks ?? []).map(m => d.splitTextToSize(san(m), Math.max(40, sw - 10)) as string[]) });
       x += sw + 8;
     }
-    y += SH + 20;
+    const marksH = Math.max(0, ...row.map(r => r.marks.reduce((n, l) => n + l.length, 0) * 8.5));
+    room(SH + 24 + (marksH ? marksH + 6 : 0));
+    setFont(d, 7, 'bold', MUTED);
+    d.text(`PICTURES FROM THE DAY${day.media.length > shots.length ? ` · ${shots.length} of ${day.media.length}` : ''}`, M, y);
+    for (const r of row) {
+      try { d.addImage(r.s.data, 'JPEG', r.x, y + 8, r.w, SH); } catch { /* a bad frame must not cost the words */ }
+      let my = y + 8 + SH + 11;
+      r.marks.forEach((lines, i) => {
+        setFont(d, 7, 'bold', DANGER); d.text(String(i + 1), r.x, my);
+        setFont(d, 7, 'normal', INK2); d.text(lines, r.x + 9, my);
+        my += lines.length * 8.5;
+      });
+    }
+    y += SH + 20 + (marksH ? marksH + 6 : 0);
   }
 
   foot();

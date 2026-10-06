@@ -31,7 +31,7 @@ import { movedLater } from '../lib/story';
 import { useEffect, useRef, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { DraftArea, DraftField } from '../ui/Draft';
-import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
+import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import { useProject } from '../lib/useProjects';
 import { usePrograms } from '../lib/usePrograms';
 import { useTesting } from '../lib/useTesting';
@@ -194,8 +194,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
     try {
       const { jsPDF } = await loadPdfLib();
       const { drawTrialCard } = await import('../lib/trialCardPdf');
-      const { shotsFor, shotKey } = await import('../lib/testReport');
-      const shots = await shotsFor(media.map(shotKey).filter((k): k is string => !!k));
+      const { shotsOf } = await import('../lib/testReport');
+      const shots = await shotsOf(media);
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       drawTrialCard(pdf, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
       const when = c.ranOn ?? c.plannedFor;
@@ -529,6 +529,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
       </div>
 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined}
         share={mayShare && (test.media ?? []).some(m => m.id === viewing.id)
           ? { projectId, testId: test.id, onMade: () => setShareRev(r => r + 1) } : undefined}
         onRemove={!can.remove ? undefined : () => void (async () => {

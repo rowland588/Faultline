@@ -15,13 +15,13 @@ import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { live, type Asset, type Test } from '../lib/testing';
 import { useAccessByJob } from '../ui/JobsBoard';
-import { EvidenceThumb } from '../ui/Evidence';
+import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
-import type { Project, Workspace } from '../types';
+import type { MediaRef, Project, Workspace } from '../types';
 import { SNAG_STATUS_META, ageDays, type Snag, type SnagStatus } from './types';
-import { isQuickSnag, sendSnags } from './quick';
+import { isQuickSnag, pinSnag, sendSnags } from './quick';
 import { openQuickSnag } from './QuickSnag';
 
 type Filter = 'all' | SnagStatus;
@@ -40,6 +40,7 @@ export function QuickSnagsScreen() {
   const [lineF, setLineF] = useState('all');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
+  const [viewing, setViewing] = useState<{ snagId: string; media: MediaRef } | null>(null);
 
   const load = useCallback(async () => {
     const [all, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
@@ -83,7 +84,7 @@ export function QuickSnagsScreen() {
     <div className="wrap qsl">
       <header className="pace-head">
         <h1>Snags</h1>
-        <p className="sub">Every snag taken on the move, by line. Tap one to change it; tick several to send them to a job as problems.</p>
+        <p className="sub">Every snag taken on the move, by line. Tap one to change it, or its picture to point at what is wrong; tick several to send them to a job as problems.</p>
       </header>
       <div className="chip-row qsl-f" role="group" aria-label="Which">
         {(['all', 'open', 'in_progress', 'closed'] as Filter[]).map(f => (
@@ -129,8 +130,12 @@ export function QuickSnagsScreen() {
                       <input type="checkbox" checked={picked.has(s.id)} onChange={e => toggle([s.id], e.target.checked)}
                         aria-label={`Tick: ${s.problem || 'snag'}`} />
                     </label>
+                    {/* THE PICTURE OPENS LARGE, to be pointed at (ui/Evidence):
+                        tap where it is wrong and say what — kept at once.
+                        The words beside it open the snag itself. */}
+                    {thumb && <EvidenceThumb media={thumb} size={52} onClick={() => setViewing({ snagId: s.id, media: thumb })} />}
                     <button type="button" className="qsl-open" onClick={() => openQuickSnag(s)}>
-                      {thumb ? <EvidenceThumb media={thumb} size={52} still /> : <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
+                      {!thumb && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
                         <span className="qsl-what">{s.problem || <i className="sub">A picture, no words yet</i>}</span>
                         <span className="qsl-meta">
@@ -160,6 +165,8 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn btn-primary" onClick={() => setSending(true)}>Send to a project</button>
         </div>
       )}
+      {viewing && <EvidenceViewer media={viewing.media} onClose={() => setViewing(null)}
+        onPins={pins => void pinSnag(viewing.snagId, viewing.media.id, pins)} />}
       {sending && <SendSheet snags={chosen} projects={projects}
         onClose={() => setSending(false)} onSent={() => { setSending(false); setPicked(new Set()); }} />}
     </div>

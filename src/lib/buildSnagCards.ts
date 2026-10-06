@@ -17,6 +17,8 @@ import { todayISO } from './weeks';
 import type { Snag, SnagAsset } from '../snag/types';
 import { SNAG_STATUS_META } from '../snag/types';
 import type { SnagCardData, SnagCardPhoto, SnagCardSet } from './snagCardPdf';
+import type { MediaPin } from '../types';
+import { drawMarks } from './testReport';
 
 const DAY = 86_400_000;
 const MAX_EDGE = 1400;
@@ -39,7 +41,7 @@ function dueInDays(dueAt?: number): number | undefined {
 /** One stored blob, re-encoded small enough to email and measured so the card
  *  can keep its aspect ratio. Undefined when the blob is not on this device —
  *  a card without its photo is still worth sending. */
-async function photoFrom(key: string | undefined, pin?: { xPct?: number; yPct?: number }): Promise<SnagCardPhoto | undefined> {
+async function photoFrom(key: string | undefined, pin?: { xPct?: number; yPct?: number }, marks?: MediaPin[]): Promise<SnagCardPhoto | undefined> {
   if (!key) return undefined;
   const blob = await getBlob(key);
   if (!blob) return undefined;
@@ -55,11 +57,17 @@ async function photoFrom(key: string | undefined, pin?: { xPct?: number; yPct?: 
     const cv = document.createElement('canvas');
     cv.width = Math.max(1, Math.round(img.width * scale));
     cv.height = Math.max(1, Math.round(img.height * scale));
-    cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
+    const ctx = cv.getContext('2d')!;
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    /* What is marked on it (ui/Evidence), drawn in as every document draws
+       it (lib/testReport) and listed beside it by number. */
+    const marked = (marks ?? []).filter(m => m.note.trim());
+    if (marked.length) drawMarks(ctx, cv.width, cv.height, marked);
     return {
       dataUrl: cv.toDataURL('image/jpeg', QUALITY),
       w: cv.width, h: cv.height,
       xPct: pin?.xPct, yPct: pin?.yPct,
+      ...(marked.length ? { marks: marked.map(m => m.note.trim()) } : {}),
     };
   } catch {
     return undefined;          // unreadable image: send the words
@@ -82,8 +90,9 @@ export async function buildSnagCards(
   for (const { snag, asset, assetName } of rows) {
     const still = await photoFrom(asset?.stillKey, { xPct: snag.xPct, yPct: snag.yPct });
     /* A quick snag keeps its pictures in `media` (snag/quick): its first photo
-       is the close-up when it has no close-up of its own. */
-    const detail = await photoFrom(snag.detailPhotoKey ?? snag.media?.find(m => m.kind === 'photo')?.blobKey);
+       is the close-up when it has no close-up of its own — with its marks. */
+    const first = snag.detailPhotoKey ? undefined : snag.media?.find(m => m.kind === 'photo');
+    const detail = await photoFrom(snag.detailPhotoKey ?? first?.blobKey, undefined, first?.pins);
     snags.push({
       problem: snag.problem || 'Evidence',
       proposedSolution: snag.proposedSolution || undefined,

@@ -21,7 +21,7 @@
  * Meeting notes are never on it: they are private preparation.
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
-import type { Project } from '../types';
+import type { MediaPin, Project } from '../types';
 import { GATE_WORD, installGrid, jobJourney, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
@@ -98,6 +98,9 @@ export interface FixRow {
   /** For the drawer to fetch a picture: pinned on a frame, or its first photo. */
   pin?: Test['pin'];
   photoKey?: string;
+  /** What is marked on that photo (MediaRef.pins, ui/Evidence) — drawn on it
+   *  and listed beside it by number when it is the picture printed. */
+  photoPins?: MediaPin[];
 }
 
 export interface ClientReport {
@@ -289,13 +292,15 @@ export function clientReport(x: ClientReportInput): ClientReport {
        the Fixes page shows on its box. */
     const seen = items.filter(i => i.kind === 'found' && i.becameTestId === t.id).flatMap(i => i.media ?? []);
     const media = [...(t.media ?? []), ...seen];
-    const photo = media.find(m => m.kind === 'photo')?.blobKey ?? media[0]?.thumbKey;
+    const pic = media.find(m => m.kind === 'photo');
+    const photo = pic?.blobKey ?? media[0]?.thumbKey;
     /* Named by its problem when nobody gave it words of its own: the problem
        is then the title, not printed a second time under it. */
     const problem = t.passesIf && t.passesIf.trim() !== t.title.trim() ? t.passesIf : undefined;
     return {
       id: t.id, title: t.title, problem, machine: machine(t.assetId), who: t.withWhom,
       when: ft.when, tone: ft.tone, pin: t.pin, photoKey: photo,
+      ...(pic?.pins?.length ? { photoPins: pic.pins } : {}),
     };
   };
   const rank: Record<FixTone, number> = { late: 0, notRun: 1, soon: 2, ahead: 3, done: 4 };

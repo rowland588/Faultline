@@ -41,7 +41,7 @@ import { useDismiss } from './Sheet';
 import { ProblemEdit, StageStory, storyLength } from './StageStory';
 import { StageParts } from './StageParts';
 import { Evidence } from './EvidenceDoors';
-import { EvidenceThumb, EvidenceViewer } from './Evidence';
+import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
 import { DatesForm, spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, followingSummary, moveTestsWithWhy, recordProblem, type ProblemFill } from './WhyMoved';
 import { SayIt, SayStep } from './RecordSay';
@@ -477,7 +477,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         </div>
       )}
 
-      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
+      {/* Its own pictures and its problem's, pointed at where they are wrong
+          (ui/Evidence) — written back on whichever record holds the picture. */}
+      {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
+        onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined} />}
     </DrawerShell>
   );
 }
