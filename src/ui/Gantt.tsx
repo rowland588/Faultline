@@ -23,6 +23,7 @@ import { nav } from '../state/useRoute';
 import { useSyncStatus } from '../cloud/session';
 import { asOfWords } from '../lib/asOf';
 import { Icon } from './Icon';
+import { criticalCount } from '../lib/critical';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -274,11 +275,14 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const noteSays = r.tone === 'done' ? 'talked about' : r.tone === 'late' ? 'the day has gone' : 'to come';
     const tip = note
       ? `Reminder: ${r.label} · ${r.when} · ${noteSays}`
-      : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}`;
+      : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}${r.critical ? ` · ${criticalCount(r.critical)}` : ''}`;
     const afterBar = r.start * px + 2 + w + 6 + (r.slip ? 0 : 0);
     /* "Next" in words, before the name, so a long name never cuts it off. */
     const nextTag = r.next ? <em className="gt-next">Next</em> : null;
     const partsTag = r.partsSay ? <span className="gt-lab-parts">{r.partsSay}</span> : null;
+    /* AN OPEN CRITICAL PROBLEM on the stage (lib/critical) — "1 critical",
+       solid red, beside its name: a branch of the stage, never a row. */
+    const critTag = r.critical ? <em className="gt-crit">{criticalCount(r.critical)}</em> : null;
     return (
       <Fragment key={`${r.id ?? r.label}-${i}`}>
         <div className={'gt-row' + (r.slip || r.marks ? ' has-story' : '') + (r.overlap ? ' has-overlap' : '')}>
@@ -291,8 +295,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
             {note
               ? <><b>Reminder · {r.when}</b><small><span className={'gt-lab-says is-' + r.tone}>{noteSays}</span></small></>
               : r.on && r.label.startsWith(`${r.on} — `)
-                ? <><b>{nextTag}{r.label.slice(r.on.length + 3)}</b><small>{r.on}{r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}{partsTag ? <> · {partsTag}</> : null}</small></>
-                : <><b>{nextTag}{r.label}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says || partsTag ? <small>{r.says ? <span className={'gt-lab-says is-' + r.tone}>{r.says}</span> : null}{r.says && partsTag ? ' · ' : null}{partsTag}</small> : null}</>}
+                ? <><b>{nextTag}{r.label.slice(r.on.length + 3)}{critTag}</b><small>{r.on}{r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}{partsTag ? <> · {partsTag}</> : null}</small></>
+                : <><b>{nextTag}{r.label}{critTag}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says || partsTag ? <small>{r.says ? <span className={'gt-lab-says is-' + r.tone}>{r.says}</span> : null}{r.says && partsTag ? ' · ' : null}{partsTag}</small> : null}</>}
           </button>
           <div className="gt-track" style={{ width: T }}>
             {note ? reminderOf(r, tip, go) : (<>

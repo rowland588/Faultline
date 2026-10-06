@@ -23,6 +23,7 @@ import type { MediaRef } from '../types';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays } from './install';
 import { niceDay, todayISO } from './weeks';
 import { partLate, partOnStage, partsOnStages } from './noted';
+import { criticalProblems, criticalState, type Critical } from './critical';
 
 export interface DayInput {
   tests: Test[];
@@ -49,12 +50,12 @@ export interface DayLine {
   /** A stage, late or a problem — which (lib/install lateOrProblem) — and
    *  the words in `text` that say it, drawn in its colour: red for late,
    *  amber for a problem that lost no time. */
-  which?: 'late' | 'problem';
+  which?: 'late' | 'problem' | 'critical';
   mark?: string;
 }
 
 export interface DaySection {
-  key: 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
+  key: 'critical' | 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
   title: string;
   lines: DayLine[];
 }
@@ -255,10 +256,40 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     }
   }
 
+  /* --------------------------- critical problems --------------------------- */
+  /* OPEN THAT EVENING, they lead the day — one line each, as it stood: written
+     by then, and not sorted (nor its fix passed) by then. Rowland, 6 October:
+     "look at this, this is a major problem, potential solutions." */
+  const crits = criticalProblems(input.tests, input.items, input.assets);
+  const sortedBy = (c: Critical) => {
+    const at = c.item.doneAt ?? (c.fix?.outcome === 'passed' && c.fix.ranOn ? Date.parse(`${c.fix.ranOn}T12:00:00`) : undefined);
+    return at != null && at <= evening;
+  };
+  const openThen = [...crits.open, ...crits.sorted].filter(c => c.item.createdAt <= evening && !(c.sorted && sortedBy(c)));
+  const critical: DayLine[] = [...openThen]
+    .sort((a, b) => a.item.createdAt - b.item.createdAt)
+    .map(c => ({
+      text: `Critical: ${critLine(c)} · ${c.sorted ? 'open' : criticalState(c)}.`,
+      ...(c.item.impact?.trim() ? { detail: c.item.impact.trim() } : {}),
+      tone: 'bad' as const, ...(c.on ? { id: c.on.id } : {}), which: 'critical' as const, mark: 'Critical',
+    }));
+
   /* ---------------------------- what was found ---------------------------- */
   for (const i of items) {
     if (i.kind !== 'found' || dayOfMs(i.createdAt) !== date) continue;
     const onRec = tests.find(t => t.id === i.testId);
+    /* A CRITICAL PROBLEM written that day did not go to plan, and says so —
+       unless it is still open that evening, when the line leading the day
+       already says it, with how it stands (one thing, one place). */
+    const c = i.critical ? [...crits.open, ...crits.sorted].find(x => x.item.id === i.id) : undefined;
+    if (c && openThen.includes(c)) continue;
+    if (c) {
+      wrong.push({
+        text: `Critical: ${critLine(c)}.`, ...(i.impact?.trim() ? { detail: i.impact.trim() } : {}),
+        tone: 'bad', ...(onRec ? { id: onRec.id } : {}), which: 'critical', mark: 'Critical',
+      });
+      continue;
+    }
     found.push({
       text: i.what,
       detail: onRec ? `Found on ${named(onRec)}` : undefined,
@@ -330,6 +361,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const install = first ? { done: first.done, total: first.total } : undefined;
 
   const sections: DaySection[] = [
+    { key: 'critical' as const, title: 'Critical — open', lines: critical },
     { key: 'done' as const, title: 'What got done', lines: done },
     { key: 'wrong' as const, title: 'What did not go to plan', lines: wrong },
     /* "Late", not "past its day": a stage whose problems lost hours is late
@@ -345,7 +377,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const happened = done.length + wrong.length + found.length;
   return {
     date, label: short(date),
-    headline: headlineOf(done, wrong, found, booked, going, late, problems, media.length, gates, isToday,
+    headline: (critical.length ? `${critical.length} critical open. ` : '') + headlineOf(done, wrong, found, booked, going, late, problems, media.length, gates, isToday,
       /* Today's counts are the job's own — lib/standing's late, and every
          stage that hit a problem and lost no time — the numbers the verdict
          at the top of the page says (lib/onTarget). */
@@ -354,9 +386,13 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         problem: tests.filter(t => t.kind === 'install' && lateOrProblem(t, items, date) === 'problem').length,
       } : undefined),
     sections, media, install, gates,
-    empty: happened === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
+    empty: happened === 0 && critical.length === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
   };
 }
+
+/** "<what> (<machine>) — <stage>", or "<what> — the job" off any stage. */
+const critLine = (c: Critical): string =>
+  c.on ? `${c.item.what}${c.machine ? ` (${c.machine})` : ''} — ${c.on.title}` : `${c.item.what} — the job`;
 
 function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked: DayLine[], going: DayLine[], late: DayLine[],
   problems: DayLine[], pictures: number, gates: Day['gates'], isToday: boolean, counts?: { late: number; problem: number }): string {

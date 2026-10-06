@@ -53,6 +53,7 @@ import { offerUndo } from '../ui/Undo';
 import { removeProblem } from '../ui/StageStory';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import type { MediaRef } from '../types';
+import { CriticalTag } from '../ui/CriticalFields';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -122,6 +123,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const nextBy = st.upcoming.length ? plannedEnd(st.upcoming[0]) : undefined;
   const late = st.upcoming.filter(t => isOverdue(t)).length;
   const noted = notedProblems(tt.tests, tt.items, tt.assets);
+  /* A CRITICAL PROBLEM LEADS the problems with no fix (lib/critical), the
+     oldest first as the rest are; a fix booked from one carries its tag. */
+  const openNoted = [...noted.open.filter(n => n.item.critical), ...noted.open.filter(n => !n.item.critical)];
+  const fromCritical = new Set(tt.items.filter(i => !i.deletedAt && i.kind === 'found' && i.critical && i.becameTestId).map(i => i.becameTestId as string));
 
   return (
     <div className="wrap pace cm-screen">
@@ -235,7 +240,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             machine, what it is for, who. */}
         {st.upcoming.length > 0 && (
           <div className="fxl" role="list">
-            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
+            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} critical={fromCritical.has(t.id)} onOpen={() => open(t.id)} />)}
           </div>
         )}
 
@@ -255,7 +260,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="fxl" role="list">
-            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} onOpen={() => open(t.id)} />)}
+            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} critical={fromCritical.has(t.id)} onOpen={() => open(t.id)} />)}
           </div>
         </section>
       )}
@@ -271,7 +276,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <span className="cmp-h-n">{noted.open.length} open{noted.sorted.length ? ` · ${noted.sorted.length} sorted` : ''}</span>
           </div>
           <div className="fxl" role="list">
-            {[...noted.open, ...noted.sorted].map(n => (
+            {[...openNoted, ...noted.sorted].map(n => (
               <NotedRow key={n.item.id} n={n} canEdit={can.edit} onView={setViewing}
                 onDelete={can.remove ? () => void removeProblem(tt, n.item.id) : undefined}
                 onOpen={() => n.on && open(n.on.id)}
@@ -310,7 +315,11 @@ import { Icon } from '../ui/Icon';
 /** One fix, as a row: a stripe and a date in the fix's colour (lib/fixTone —
  *  the same rule the drawer, the walk and the client report use), the fix,
  *  and under it the machine, what it is for and who. */
-function FixRow({ t, machine, from, onOpen }: { t: Test; machine: string; from?: Test; onOpen: () => void }) {
+function FixRow({ t, machine, from, critical, onOpen }: {
+  t: Test; machine: string; from?: Test; onOpen: () => void;
+  /** Booked from a critical problem (lib/critical) — it carries the tag. */
+  critical?: boolean;
+}) {
   const { tone, when } = fixTone(t);
   /* No date agreed is not started — grey, as a step with no day is (CLAUDE.md,
      visual management); lib/fixTone's words already say "No date yet". */
@@ -319,7 +328,7 @@ function FixRow({ t, machine, from, onOpen }: { t: Test; machine: string; from?:
     <button type="button" role="listitem" className={'fxl-row is-' + face} onClick={onOpen}>
       <span className="fxl-bar" aria-hidden />
       <span className="fxl-m">
-        <b>{t.title}</b>
+        <b>{critical && <CriticalTag sorted={t.outcome === 'passed'} />}{t.title}</b>
         <small>
           {machine} · {from ? `for ${from.title}` : 'not from a test'} · <span className={t.withWhom ? '' : 'fxl-none'}>{t.withWhom || 'nobody yet'}</span>
         </small>
@@ -341,15 +350,17 @@ function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete, onView }: {
 }) {
   const sorted = n.item.doneAt != null;
   const moved = n.item.movedFrom && n.item.movedTo;
+  /* An open critical problem is a problem in solid red, not one waiting. */
+  const crit = !!n.item.critical;
   return (
-    <div role="listitem" className={'fxl-row fxl-noted is-' + (sorted ? 'done' : 'soon')}>
+    <div role="listitem" className={'fxl-row fxl-noted is-' + (sorted ? 'done' : crit ? 'late' : 'soon') + (crit && !sorted ? ' is-crit' : '')}>
       <span className="fxl-bar" aria-hidden />
       {/* THE PICTURES THEMSELVES, where "· 2 pictures" only counted them: a
           snag sent here as a problem shows what was photographed and the
           marks on it ("2 marks") — tap one for the marks and their words. */}
       <span className="fxl-mcol">
         <button type="button" className="fxl-m fxl-open" onClick={onOpen} disabled={!n.on}>
-          <b>{n.item.what}</b>
+          <b>{crit && <CriticalTag sorted={sorted} />}{n.item.what}</b>
           <small>
             {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}
           </small>

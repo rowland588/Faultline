@@ -21,6 +21,7 @@ import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
 import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey } from './install';
 import { partsOf } from './noted';
+import { criticalCount, criticalOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import type { Program } from './programs';
 
@@ -79,6 +80,9 @@ export interface GanttRow {
   parts?: GanttPart[];
   /** "2 parts · 1 done" — said on the stage's own row. */
   partsSay?: string;
+  /** Its open critical problems (lib/critical criticalOn) — "1 critical",
+   *  solid red, beside its name on screen and on paper. Never a row of its own. */
+  critical?: number;
 }
 
 /** A part's state: done, past its day, due within two days, booked on a day
@@ -276,6 +280,8 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
           if (over) row.overlap = over.title;
           /* LATE OR A PROBLEM — which one (lib/install lateOrProblem). */
           const lp = step ? lateOrProblem(step, records.items, today) : undefined;
+          const crit = step ? criticalOn(step.id, records.items, records.tests).length : 0;
+          if (crit) row.critical = crit;
           if (step && (lp === 'late' || lp === 'problem')) {
             const lost = hoursTally(step.id, records.items, DAY_HOURS).hours;
             row.tone = lp;
@@ -628,7 +634,10 @@ export function withMachines(g: Gantt, job: {
         : rows.some(r => r.tone === 'ran') ? 'ran'
           : j.some(x => x.tone === 'going') || rows.some(r => r.tone === 'booked') ? 'booked' : 'none';
     /* "due on site" for a machine not here yet — never "at Install" (machineAt). */
-    const says = [machineAt(a, j).says, red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
+    /* Its open critical problems, counted off its stages — the header is all
+       that shows of a folded band on paper. */
+    const crit = rows.reduce((n, r) => n + (r.critical ?? 0), 0);
+    const says = [machineAt(a, j).says, crit ? criticalCount(crit) : '', red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
     const gate = JOURNEY.find(x => x.label === now) ?? JOURNEY[JOURNEY.length - 1];
     const bar = barOf(rows, g.dayList);
     return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(bar ? { bar } : {}) };
