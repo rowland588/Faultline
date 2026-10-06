@@ -10303,3 +10303,5 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 .sp-hours { margin: 4px 0 0; font-size: var(--t-detail); color: var(--ink-2); }
 .sp-lost { color: var(--ink-2); font-weight: 700; }
 .sp-edit-h { max-width: 160px; margin: 6px 0 0; }
+/* In the editor's column, nothing grows: a field or the evidence block is as tall as what it holds. */
+.sp-edit > * { flex: none; }
