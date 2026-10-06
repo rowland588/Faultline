@@ -94,6 +94,24 @@ describe('the plan by machine', () => {
     expect(b.bar!.when).toBe('27 Sep – 7 Oct');
   });
 
+  it('paints red on the summary bar only on the days of what is late, never the whole span', () => {
+    /* Rowland, 6 October: "it's red, signifying what? … I have not indicated
+       any date changes." One late stage is not a late machine. */
+    const b = band('Ishida checkweigher');
+    expect(b.tone).toBe('late');
+    const rows = b.groups.flatMap(gr => gr.rows);
+    const late = rows.filter(r => r.tone === 'late');
+    const redDays = b.bar!.segs.filter(sg => sg.tone === 'late').reduce((n, sg) => n + sg.span, 0);
+    expect(redDays).toBeGreaterThan(0);
+    expect(redDays).toBeLessThan(b.bar!.span);
+    for (const r of late) expect(b.bar!.segs.some(sg => sg.tone === 'late' && sg.start <= r.start && sg.start + sg.span >= r.start + r.span)).toBe(true);
+    expect(new Set(b.bar!.segs.map(sg => sg.tone)).size).toBeGreaterThan(1);
+    for (const sg of b.bar!.segs) {
+      expect(sg.start).toBeGreaterThanOrEqual(b.bar!.start);
+      expect(sg.start + sg.span).toBeLessThanOrEqual(b.bar!.start + b.bar!.span);
+    }
+  });
+
   it('puts what is on no machine in the last band — line steps and materials', () => {
     const job = band(JOB_BAND);
     expect(job.id).toBeUndefined();

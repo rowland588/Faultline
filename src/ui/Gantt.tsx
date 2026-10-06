@@ -286,6 +286,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const go = () => (b.path ? nav(`/project/${projectId}/${b.path}`) : toggleBand(k));
     const tip = `${b.name} · ${b.says}${b.bar ? ` · ${b.bar.when}` : ''} — ${b.path ? 'tap to open it' : isOpenB ? 'tap to fold it' : 'tap to open it'}`;
     const bw = b.bar ? Math.max(b.bar.span * px - 4, 10) : 0;
+    const bs = b.bar?.start ?? 0;
     return (
       <div key={k} className={'gt-group gt-mband' + (isOpenB ? ' is-open' : ' is-shut')}>
         <div className={'gt-row gt-mrow is-' + b.tone}>
@@ -299,12 +300,22 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
             </button>
           </div>
           <button type="button" className="gt-track gt-mtrack" style={{ width: T }} onClick={go} tabIndex={-1} aria-hidden title={tip}>
+            {/* The span is the machine's plan, first date to last, in no
+                state's colour; on it, its own stages' days each in their own
+                tone — red only where a stage is late, not the whole span. */}
             {b.bar && (
-              <span className={'gt-b gt-msum is-' + b.tone} style={{ left: b.bar.start * px + 2, width: bw }}>
-                {bw >= b.bar.when.length * 6.2 + 14 ? b.bar.when : ''}
+              <span className="gt-msum" style={{ left: b.bar.start * px + 2, width: bw }}>
+                {b.bar.segs.map(sg => (
+                  <i key={sg.start} className={'gt-mseg is-' + sg.tone}
+                    style={{ left: (sg.start - bs) * px, width: Math.max(sg.span * px - 1, 3) }} />
+                ))}
               </span>
             )}
-            {b.bar && bw < b.bar.when.length * 6.2 + 14 && <span className="gt-when" style={{ left: b.bar.start * px + 2 + bw + 6 }}>{b.bar.when}</span>}
+            {b.bar && (() => {
+              const x0 = b.bar.start * px + 2, tw = b.bar.when.length * 6.2;
+              const left = x0 + bw + 6 + tw <= T ? x0 + bw + 6 : x0 - 6 - tw >= 0 ? x0 - 6 - tw : Math.max(0, T - tw);
+              return <span className="gt-when" style={{ left }}>{b.bar.when}</span>;
+            })()}
           </button>
         </div>
         {isOpenB && b.groups.map(gr => (
