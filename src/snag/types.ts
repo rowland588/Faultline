@@ -8,7 +8,7 @@
  *
  * Separate from the Observation/Pareto model — the only (optional) tie is a
  * snag's `linkedObsIds`, pointing at observations in the SAME workspace. */
-import type { ID, Millis } from '../types';
+import type { ID, MediaRef, Millis } from '../types';
 
 export type SnagStatus = 'open' | 'in_progress' | 'closed';
 
@@ -74,6 +74,14 @@ export interface Snag {
   detailPhotoKey?: string;   // key into the `media` store (close-up of the fault)
   fixedPhotoKey?: string;    // the AFTER photo — the camera world's proof it's fixed
   linkedObsIds?: ID[];       // optional Pareto link → Observation ids (same workspace)
+  /* A QUICK SNAG (Rowland, 6 October: "spot an issue … on the move") — one
+     taken from the Snag button on any screen. Every photo and clip of it; the
+     project it is for, when it was said on the spot; and where it went when it
+     was sent to a project as a problem (a TestItem of kind 'found'). An array
+     here, even empty, is what marks a quick snag apart from a board action. */
+  media?: MediaRef[];
+  projectId?: ID;
+  sent?: { projectId: ID; itemId: ID; at: Millis }[];
   updatedAt: Millis;
   deletedAt?: Millis;        // soft delete (tombstone), mirrors Observation
 }

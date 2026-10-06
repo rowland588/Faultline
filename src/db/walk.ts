@@ -129,6 +129,11 @@ export async function snagsForWorkspace(workspaceId: ID): Promise<Snag[]> {
   const all = await (await getDB()).getAllFromIndex('snags', 'by_workspace', workspaceId);
   return all.filter(s => s.deletedAt == null);
 }
+/** Every live snag on this device, across every line — the Snags page reads
+ *  the quick ones out of these (snag/quick). */
+export async function listAllSnags(): Promise<Snag[]> {
+  return (await (await getDB()).getAll('snags')).filter(s => s.deletedAt == null);
+}
 export async function addSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', s);
   signalWrite();

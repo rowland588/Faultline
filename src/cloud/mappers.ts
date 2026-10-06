@@ -122,7 +122,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
 
   snags: {
     clock: l => (l as Snag).updatedAt ?? (l as Snag).raisedAt,
-    mediaKeys: l => { const s = l as Snag; return [...k(s.detailPhotoKey, 'image/jpeg', s.ownerId), ...k(s.fixedPhotoKey, 'image/jpeg', s.ownerId)]; },
+    mediaKeys: l => { const s = l as Snag; return [...k(s.detailPhotoKey, 'image/jpeg', s.ownerId), ...k(s.fixedPhotoKey, 'image/jpeg', s.ownerId),
+      ...(s.media ?? []).flatMap(m => [...k(m.blobKey, m.mime, s.ownerId), ...k(m.thumbKey, 'image/jpeg', s.ownerId)])]; },
     toRow: (l, fallbackOwner) => {
       const s = l as Snag;
       return { id: s.id, owner_id: s.ownerId ?? fallbackOwner, workspace_id: s.workspaceId,
@@ -134,6 +135,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
         detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: s.linkedObsIds ?? [],
+        media: s.media ?? null, project_id: s.projectId ?? null, sent: s.sent ?? null,
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
     fromRow: (r) => ({
@@ -148,7 +150,11 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
       fixedPhotoKey: (r.fixed_photo_key as string) ?? undefined,
-      linkedObsIds: (r.linked_obs_ids as string[]) ?? undefined, updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+      linkedObsIds: (r.linked_obs_ids as string[]) ?? undefined,
+      ...(Array.isArray(r.media) ? { media: r.media as Snag['media'] } : {}),
+      ...(r.project_id ? { projectId: r.project_id as string } : {}),
+      ...(Array.isArray(r.sent) ? { sent: r.sent as Snag['sent'] } : {}),
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
 
