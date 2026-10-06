@@ -324,14 +324,21 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         font(8, 'bold', INK); doc.text(name, M + 8, y + 9, { lineHeightFactor: 8.5 / 8 });
         font(6.5, 'bold', SAY[b.tone]); doc.text(says, M + 8, y + 9 + name.length * 8.5 - 1, { lineHeightFactor: 7.5 / 6.5 });
         if (b.bar) {
-          const t = TONE[b.tone];
+          /* The span is the machine's plan, in no state's colour; on it its
+             own stages' days, each in its own tone — the screen's lane. */
           const bh = 8, bx = X(b.bar.start) + 0.6, bw = Math.max(2.4, b.bar.span * px - 1.2), by = y + (RH - bh) / 2;
-          doc.setDrawColor(t.stroke); doc.setFillColor(t.fill); doc.setLineWidth(0.8);
+          doc.setDrawColor('#c6d2e3'); doc.setFillColor('#ffffff'); doc.setLineWidth(0.5);
           doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
-          font(6, 'bold', t.text);
+          for (const sg of b.bar.segs) {
+            const t = TONE[sg.tone];
+            const sx = X(sg.start) + 1.2, sw = Math.max(1.6, sg.span * px - 2.4);
+            doc.setDrawColor(t.stroke); doc.setFillColor(t.fill); doc.setLineWidth(sg.tone === 'late' ? 0.9 : 0.6);
+            doc.roundedRect(sx, by + 1.2, sw, bh - 2.4, 1, 1, 'FD');
+          }
+          font(6, 'bold', INK2);
           const ww = doc.getTextWidth(san(b.bar.when));
-          if (ww + 6 <= bw) doc.text(san(b.bar.when), bx + 3, by + bh / 2 + 2.1);
-          else { font(6, 'bold', INK2); doc.text(san(b.bar.when), Math.min(bx + bw + 3, PW - M - ww - 2), by + bh / 2 + 2.1); }
+          const tx = bx + bw + 3 + ww <= PW - M - 2 ? bx + bw + 3 : bx - 3 - ww >= X(0) ? bx - 3 - ww : PW - M - ww - 2;
+          doc.text(san(b.bar.when), tx, by + bh / 2 + 2.1);
         }
         y += RH;
         continue;

@@ -286,8 +286,11 @@ export interface GanttMachine {
   /** The gate page its header opens — the one it is at (lib/install JOURNEY),
    *  the page the strip's tile for that gate opens. */
   path?: string;
-  /** First date to last; absent when nothing on it is dated. */
-  bar?: { start: number; span: number; when: string };
+  /** First date to last; absent when nothing on it is dated. The span is the
+   *  machine's plan and wears no state of its own: its `segs` are its own
+   *  rows' days merged, each in that row's tone, so red sits only on the days
+   *  of what is actually late. */
+  bar?: { start: number; span: number; when: string; segs: { start: number; span: number; tone: PlanMark['tone'] }[] };
   /** Its rows, gate by gate in the order the job runs; the label is the gate. */
   groups: GanttGroup[];
   /** The filmed walk's lane is drawn in this band. */
@@ -321,8 +324,34 @@ function barOf(rows: GanttRow[], dayList: GanttDay[]): GanttMachine['bar'] {
   const end = Math.max(...rows.map(endOfRow));
   const from = dayList[Math.max(0, start)]?.iso ?? rows[0].from;
   const to = dayList[Math.min(dayList.length - 1, end - 1)]?.iso ?? from;
-  return { start, span: Math.max(1, end - start), when: windowWords(from, to) };
+  /* ONE LANE, MERGED MARKERS — each day takes the most abnormal tone of the
+     rows on it (a stage, its fixes, its overrun past the finish first
+     planned), and runs of one tone become one piece. */
+  const day: (PlanMark['tone'] | undefined)[] = Array(Math.max(0, end - start)).fill(undefined);
+  const put = (s0: number, n: number, t: PlanMark['tone']) => {
+    for (let d = Math.max(start, s0); d < Math.min(end, s0 + n); d++) {
+      const was = day[d - start];
+      if (!was || WORST.indexOf(t) < WORST.indexOf(was)) day[d - start] = t;
+    }
+  };
+  for (const r of rows) {
+    put(r.start, r.span, r.tone);
+    if (r.slip) put(r.slip.start, r.slip.span, 'late');
+    for (const f of r.fixes ?? []) put(f.start, f.span, f.tone);
+  }
+  const segs: NonNullable<GanttMachine['bar']>['segs'] = [];
+  day.forEach((t, i) => {
+    if (!t) return;
+    const last = segs[segs.length - 1];
+    if (last && last.tone === t && last.start + last.span === start + i) last.span++;
+    else segs.push({ start: start + i, span: 1, tone: t });
+  });
+  return { start, span: Math.max(1, end - start), when: windowWords(from, to), segs };
 }
+
+/** Most abnormal first: a failure, then late, then waiting on somebody, then
+ *  booked, then not started, and done last — normal recedes. */
+const WORST: PlanMark['tone'][] = ['failed', 'late', 'ran', 'booked', 'none', 'done'];
 
 /** "Wrapper — Dry run" is "Dry run" inside the wrapper's own band. */
 export const stepOf = (r: Pick<GanttRow, 'on' | 'label'>): string =>

@@ -8296,9 +8296,18 @@ div.gt-lab.gt-mlab { padding: 0; cursor: default; gap: 0; background: color-mix(
 .gt-mgo small.is-done { color: var(--st-g); font-weight: 600; }
 .gt-mgo small.is-none { color: var(--muted); font-weight: 600; }
 button.gt-mtrack { appearance: none; display: block; align-self: stretch; height: auto; margin: 0; padding: 0; border: 0; background: transparent; font: inherit; cursor: pointer; text-align: left; }
-.gt-msum { top: 14px; height: 18px; line-height: 15px; pointer-events: none; font-size: 10.5px; }
-.gt-msum.is-done { opacity: 0.75; }
-.gt-mtrack:hover .gt-msum { box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-w) 22%, transparent); }
+/* A machine's summary lane: its plan as a quiet track that wears no state,
+   and on it its own stages' days, each in its own tone (lib/gantt barOf). */
+.gt-msum { position: absolute; top: 14px; height: 18px; box-sizing: border-box; z-index: 2; pointer-events: none;
+  border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.gt-mseg { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; box-sizing: border-box;
+  border: 1.5px solid var(--st-w); background: color-mix(in srgb, var(--st-w) 16%, var(--surface)); }
+.gt-mseg.is-done { background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 55%, transparent); opacity: 0.8; }
+.gt-mseg.is-failed { background: var(--st-r); border-color: var(--st-r); }
+.gt-mseg.is-ran { background: var(--st-a); border-color: var(--st-a); }
+.gt-mseg.is-late { background: color-mix(in srgb, var(--st-r) 18%, var(--surface)); border: 2px solid var(--st-r); }
+.gt-mseg.is-none { background: var(--surface); border-color: var(--line-2); }
+.gt-mtrack:hover .gt-msum { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
 .gt-gaterow { height: 20px; border-bottom: 0; }
 .gt-gaterow .gt-lab.gt-gatelab {
   padding-left: 40px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); cursor: default; align-items: flex-end;
