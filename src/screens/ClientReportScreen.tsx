@@ -15,6 +15,7 @@ import { pdfFileName } from '../lib/fileName';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
 import { OnTargetLine } from '../ui/OnTarget';
+import { CriticalStory, CriticalTag } from '../ui/CriticalFields';
 
 /** A gate's counts with the abnormal ones in their colour — "2 late" red,
  *  "1 a problem" amber — the rest plain (the colour rules). */
@@ -132,6 +133,25 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           beside the page on a desk. */}
       <div className={'cr-body' + (wide ? ' is-wide' : '')}>
         <ol className="cr-toc">
+          {/* CRITICAL ISSUES — first, as on the paper, each told whole
+              (lib/critical): what it means for the business, the ways round
+              it with the agreed one, its fix and how it stands. */}
+          {(report.critical.open.length + report.critical.sorted.length) > 0 && (
+            <li className="cr-crit">
+              <b>Critical issues</b>
+              <span>{report.critical.open.length} open{report.critical.sorted.length ? ` · ${report.critical.sorted.length} sorted` : ''}</span>
+              {report.critical.open.map((c, i) => (
+                <div key={i} className="crit-on-stage">
+                  <span><CriticalTag /> <b>{c.what}</b></span>
+                  <span className="sub">{c.meta}</span>
+                  <CriticalStory impact={c.impact} ways={c.ways.map((w, k) => ({ id: String(k), what: w.what, agreed: w.agreed }))} />
+                  {c.fix && <span className="sub">{c.fix}</span>}
+                  <span className="sub"><b>Now:</b> {c.state}</span>
+                </div>
+              ))}
+              {report.critical.sorted.map((l, i) => <span key={i} className="sub">{l}</span>)}
+            </li>
+          )}
           <li><b>Where the job is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
           {report.sections.map(s => (
             <li key={s.gate}>

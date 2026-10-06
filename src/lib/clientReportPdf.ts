@@ -186,6 +186,28 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     if (l.rest.length) f.doc.text(l.rest, f.x + 14, y + 42);
   }, f => gap(f.density, 'm')));
 
+  /* CRITICAL ISSUES — straight under the answer, before anything else
+     (lib/critical). Rowland, 6 October: "say in a report — look at this, this
+     is a major problem, potential solutions." Each open one told whole, in
+     the problem's red: what, where and when, what it means for the business,
+     the ways round it with the agreed one said so, its fix, how it stands.
+     The sorted ones a line each, in plain ink — normal recedes. */
+  if (r.critical.open.length || r.critical.sorted.length) {
+    out.push(label(`Critical issues · ${r.critical.open.length} open${r.critical.sorted.length ? ` · ${r.critical.sorted.length} sorted` : ''}`, r.critical.open.length ? DANGER : MUTED));
+    r.critical.open.forEach(c => {
+      out.push({ ...text({ text: `CRITICAL — ${c.what}`, size: 10.5, style: 'bold', colour: DANGER, after: 2 }), keepWithNext: true });
+      out.push({ ...text({ text: c.meta, size: 8.5, colour: MUTED, after: 3 }), keepWithNext: true });
+      out.push(text({ text: c.impact ? `What it means for the business: ${c.impact}` : 'What it means for the business: not written yet.', size: 9.5, colour: INK2, indent: 10, after: 3 }));
+      if (c.ways.length) {
+        out.push({ ...text({ text: 'Ways round it', size: 9, style: 'bold', colour: INK2, indent: 10, after: 1 }), keepWithNext: true });
+        c.ways.forEach(w => out.push(text({ text: w.agreed ? `${w.what} — agreed` : w.what, size: 9, style: w.agreed ? 'bold' : 'normal', colour: w.agreed ? OK : INK2, indent: 22, bullet: '•', after: 1 })));
+      } else out.push(text({ text: 'Ways round it: none written yet.', size: 9, colour: INK2, indent: 10, after: 1 }));
+      if (c.fix) out.push(text({ text: c.fix, size: 9, colour: INK2, indent: 10, after: 1 }));
+      out.push(text({ text: `Now: ${c.state}`, size: 9, style: 'bold', colour: INK2, indent: 10, after: gap(d, 'm') }));
+    });
+    r.critical.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 'm') : 1 })));
+  }
+
   // the sentence, on the dark band — as tall as its words
   const said = (f: Frame) => wrap(f.doc, r.sentence, f.w - 32, 14, 'bold');
   /* The answer above says the handover against the date agreed, both days

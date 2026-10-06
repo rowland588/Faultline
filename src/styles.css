@@ -10801,3 +10801,5 @@ button.gt-fixlab small { font-size: 11.5px; }
 .crit-way .text-input { flex: 1 1 auto; min-width: 0; }
 .crit-way input[type="checkbox"] { accent-color: var(--st-g); }
 .crit-way.is-agreed .text-input { border-color: color-mix(in srgb, var(--st-g) 50%, var(--line)); }
+.cr-crit { display: grid; gap: 6px; }
+.crit-way .text-input { padding: 6px 10px; min-height: 36px; }

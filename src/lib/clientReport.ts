@@ -34,6 +34,7 @@ import type { Standard } from './standard';
 import { niceDay } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import { notedProblems, partsOf, partWords } from './noted';
+import { criticalProblems, criticalState } from './critical';
 import type { WalkSnag } from './walkSnags';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
@@ -126,8 +127,15 @@ export interface ClientReport {
   machines: { name: string; at: string; gates: GateTone[] }[];
   sections: GateSection[];
   fixes: { open: FixRow[]; done: FixRow[] };
+  /** CRITICAL ISSUES (lib/critical) — straight under "Are we on target?":
+   *  each open one told whole (what, where, what it means for the business,
+   *  the ways round it and the one agreed, its fix), the sorted ones a line
+   *  each. Rowland: "say in a report — look at this, this is a major problem,
+   *  potential solutions." */
+  critical: { open: CriticalRow[]; sorted: string[] };
   /** PROBLEMS WITH NO FIX (lib/noted) — in words, open ones first: what, where,
-   *  the day, hours lost. Kept on paper so the journey is told whole. */
+   *  the day, hours lost. Kept on paper so the journey is told whole. A
+   *  critical one is told under Critical issues, not again here. */
   noted: { open: string[]; sorted: string[] };
   waiting: OutstandingRow[];
   standards: Standard[];
@@ -147,6 +155,18 @@ export interface ClientReport {
   today: string;
   expectedAt?: string;
   plannedAt?: string;
+}
+
+export interface CriticalRow {
+  what: string;
+  /** "Pick and place — Programs loaded · raised Mon 5 Oct · Ilapak UK · 6 h lost" */
+  meta: string;
+  impact?: string;
+  ways: { what: string; agreed: boolean }[];
+  /** "Fix: Rewrite the programs — booked Fri 9 Oct, Ilapak UK" */
+  fix?: string;
+  /** "open · going with: a belt to bypass the robot" (lib/critical criticalState). */
+  state: string;
 }
 
 export interface ClientReportInput {
@@ -354,10 +374,28 @@ export function clientReport(x: ClientReportInput): ClientReport {
     machines,
     sections: [install, setup, commission, handover],
     fixes: { open: fixes.filter(f => f.tone !== 'done'), done: fixes.filter(f => f.tone === 'done') },
+    critical: (() => {
+      const c = criticalProblems(tests, items, assets);
+      const fixWords = (f: Test) => `Fix: ${f.title} — ${f.outcome === 'passed' ? `done${f.ranOn ? ` ${niceDay(f.ranOn)}` : ''}`
+        : f.plannedFor ? `booked ${niceDay(f.plannedFor)}` : 'no day yet'}${f.withWhom ? `, ${f.withWhom}` : ''}`;
+      return {
+        open: c.open.map(r => ({
+          what: r.item.what,
+          meta: [r.where, `raised ${niceDay(r.day)}`, r.item.owner, r.item.hoursLost ? `${hoursWord(r.item.hoursLost)} lost` : ''].filter(Boolean).join(' · '),
+          ...(r.item.impact ? { impact: r.item.impact } : {}),
+          ways: (r.item.ways ?? []).map(w => ({ what: w.what, agreed: !!w.agreed })),
+          ...(r.fix ? { fix: fixWords(r.fix) } : {}),
+          /* The agreed way is marked in the list just above — said once. */
+          state: r.agreed ? 'open · a way round it is agreed' : criticalState(r),
+        })),
+        sorted: c.sorted.map(r => `${r.item.what} — ${r.where} · ${criticalState(r)}${r.agreed ? ` · went with: ${r.agreed.what}` : ''}`),
+      };
+    })(),
     noted: (() => {
       const n = notedProblems(tests, items, assets);
       const line = (r: typeof n.open[number]) => `${r.item.what} — ${r.where}, ${niceDay(r.day)}${r.item.hoursLost ? ` · ${hoursWord(r.item.hoursLost)} lost` : ''}`;
-      return { open: n.open.map(line), sorted: n.sorted.map(line) };
+      const plain = (r: typeof n.open[number]) => !r.item.critical;
+      return { open: n.open.filter(plain).map(line), sorted: n.sorted.filter(plain).map(line) };
     })(),
     waiting: st.rows,
     standards: live(x.standards),
