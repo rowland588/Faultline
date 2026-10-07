@@ -10,7 +10,7 @@
  * screen and, later, the client report say the same sentence from one call.
  */
 import { owns } from './format';
-import { COMMISSION_TESTS, HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { COMMISSION_TESTS, HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, daysBetween, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
 import { stateOf, type Program } from './programs';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
@@ -66,7 +66,11 @@ export function toneOf(t: Test, today: string): StepTone {
  *  late. If no hours added then just a problem." One rule for an install step
  *  (every gate), read by the plan on screen and on paper and by its words:
  *  - `late` (red): its day has gone and it is not done, or its problems lost
- *    hours (lib/hoursLost) and it is not done;
+ *    hours (lib/hoursLost) and it is not done, or a problem MOVED ITS FINISH
+ *    LATER — Rowland, 7 October: "we have I/O late but it doesn't show it, I
+ *    think because it had a problem against it." A problem that pushed the
+ *    finish took the day off the plan, so the day was never "gone"; it had
+ *    slipped all the same;
  *  - `problem` (amber, waiting on something): it hit a problem, lost no
  *    hours, and its day is still to come;
  *  - `done` (green) even if it had problems — its story tells them.
@@ -78,8 +82,15 @@ export function lateOrProblem(t: Test, items: TestItem[], today: string): 'done'
   const lost = hoursTally(t.id, items, DAY_HOURS).hours;
   const end = plannedEnd(t) ?? t.ranTo ?? t.ranOn;
   const gone = isOverdue(t, today) || (t.outcome === 'failed' && !!end && end < today);
-  if (lost > 0 || gone) return 'late';
+  if (lost > 0 || gone || movedLater(t.id, items) > 0) return 'late';
   return t.outcome === 'failed' ? 'problem' : undefined;
+}
+
+/** The days a stage's finish was moved later by its problems — each move a
+ *  problem kept (movedFrom → movedTo), added up. */
+export function movedLater(stepId: string, items: TestItem[]): number {
+  return items.filter(i => !i.deletedAt && i.testId === stepId && i.kind === 'found' && i.movedFrom && i.movedTo)
+    .reduce((n, i) => n + Math.max(0, daysBetween(i.movedFrom, i.movedTo) ?? 0), 0);
 }
 
 /** WHICH, IN WORDS — "late, 2 h lost", "late", "a problem, no time lost": what
@@ -90,7 +101,10 @@ export function lateOrProblemSays(t: Test, items: TestItem[], today: string): { 
   const which = lateOrProblem(t, items, today);
   if (which !== 'late' && which !== 'problem') return undefined;
   const lost = hoursTally(t.id, items, DAY_HOURS).hours;
-  return { which, lost, words: which === 'problem' ? 'a problem, no time lost' : lost > 0 ? `late, ${hoursWord(lost)} lost` : 'late' };
+  const moved = movedLater(t.id, items);
+  return { which, lost, words: which === 'problem' ? 'a problem, no time lost'
+    : lost > 0 ? `late, ${hoursWord(lost)} lost`
+      : moved > 0 ? `late, finish moved ${moved} day${moved === 1 ? '' : 's'}` : 'late' };
 }
 
 const day = (iso?: string) => (iso ? niceDay(iso, { weekday: 'short' }) : '');
@@ -106,7 +120,10 @@ export function installOf(asset: Asset | undefined, all: Test[], items: TestItem
   const steps: StepView[] = mine.map(t => ({
     step: t,
     tone: toneOf(t, today),
-    late: isOverdue(t, today),
+    /* Late by the one rule (lateOrProblem) — its day gone, hours lost, or
+       its finish moved later by a problem — so the square says what the
+       counts say. */
+    late: isOverdue(t, today) || lateOrProblem(t, liveItems, today) === 'late',
     next: t.id === nextId,
     found: liveItems.filter(i => i.testId === t.id && i.kind === 'found').length,
   }));

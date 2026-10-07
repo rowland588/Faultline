@@ -65,7 +65,11 @@ describe('a machine part-way through its installation', () => {
 describe('the other ends of an installation', () => {
   it('leads with a problem, because it is why the next step waits', () => {
     const stuck = step({ title: 'Air and power connected', assetId: packer.id, ranOn: '2026-09-29', outcome: 'failed', result: 'No air drop at this end of the line' });
-    expect(installOf(packer, [stuck], [], TODAY).says).toBe('0 of 1 done. Air and power connected hit a problem — No air drop at this end of the line.');
+    /* And late, as the counts already said (lib/install lateOrProblem): it hit
+       its problem on 29 Sept and is still not done. Rowland, 7 October: "we
+       have I/O late but it doesn't show it" — the square and its sentence
+       now say what the band says. */
+    expect(installOf(packer, [stuck], [], TODAY).says).toBe('0 of 1 done. Air and power connected hit a problem and is late — No air drop at this end of the line.');
   });
 
   it('names the next step, its day and who, when nothing is late', () => {
@@ -422,5 +426,17 @@ describe('a red gate that can be cleared', () => {
     const s = step({ id: 'y1', title: 'Positioned and levelled', assetId: m.id, outcome: 'failed', ranOn: '2026-10-01' });
     const failed = test({ id: 'x1', title: 'Seal', outcome: 'failed', ranOn: '2026-09-29' });
     expect(redReasons(m, [s, failed], [], T)).toEqual(['Positioned and levelled — a problem, no time lost', 'Seal did not pass']);
+  });
+});
+
+describe('a problem that moved the finish later is late (Rowland, 7 October)', () => {
+  it('says so, with the days it moved, though its new day is still to come', async () => {
+    const { lateOrProblem, lateOrProblemSays } = await import('../install');
+    const io = step({ title: 'Sensors and controls checked (I/O)', assetId: packer.id, plannedFor: '2026-10-10', ranOn: '2026-10-05', outcome: 'failed' });
+    const pushed = { id: 'p1', projectId: 'p', testId: io.id, kind: 'found' as const, what: 'Two sensors wired wrong', movedFrom: '2026-10-06', movedTo: '2026-10-10', sort: 1, createdAt: 1, updatedAt: 1 };
+    expect(lateOrProblem(io, [pushed], TODAY)).toBe('late');
+    expect(lateOrProblemSays(io, [pushed], TODAY)?.words).toBe('late, finish moved 4 days');
+    expect(lateOrProblem(io, [{ ...pushed, movedFrom: undefined, movedTo: undefined }], TODAY)).toBe('problem');
+    expect(installOf(packer, [io], [pushed], TODAY).late).toBe(1);
   });
 });
