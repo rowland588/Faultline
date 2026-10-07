@@ -443,7 +443,10 @@ function downloadShared(uid: string, key: string, owner?: string, mime?: string)
  *  the queue to reach it. 'got' when it is here now. */
 export async function fetchBlobNow(key: string): Promise<'got' | 'absent' | 'failed'> {
   if (await hasBlob(key)) return 'got';
-  const uid = lastUid ?? (await supabase?.auth.getUser())?.data.user?.id;
+  /* Only once a pass has reached the cloud this session: before that there is
+     nobody signed in, or no signal, and asking would only fail — the drain
+     after the first pass fetches it, and the screen shows it as it lands. */
+  const uid = lastUid;
   if (!uid) return 'failed';
   const r = await getFile(uid, key, await withQueue(q => q.get(key)));
   if (r === 'absent') retryAbsentSoon(uid, false);

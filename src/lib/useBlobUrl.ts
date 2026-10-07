@@ -53,7 +53,9 @@ export function useBlobSource(key?: string | null): { url: string | null; state:
     let t: ReturnType<typeof setTimeout> | undefined;
     const ask = () => {
       void import('../cloud/sync').then(m => m.fetchBlobNow(key)).then(r => {
-        if (!alive || r === 'got') return;
+        /* Asked again only while the cloud says "not there yet". A failure —
+           no signal, nobody signed in — is left to the next pass. */
+        if (!alive || r !== 'absent') return;
         tries++;
         t = setTimeout(ask, Math.min(2000 * tries, 10000));
       }).catch(() => undefined);
