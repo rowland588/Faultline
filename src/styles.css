@@ -10966,3 +10966,8 @@ button.gt-fixlab small { font-size: 11.5px; }
 .fp-door b { color: var(--accent); font-size: var(--t-body); }
 .fp-door:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fp-crit-impact { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Phone: the stages a machine has done, folded into one line (ui/InstallGrid). */
+.igm-done { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--st-g) 7%, var(--surface)); color: var(--st-g); font-weight: 700; font-size: var(--t-body); }
+.igm-done .igm-sq { background: var(--st-g); border-color: var(--st-g); }
+.igm-done .cw-link { margin-left: auto; font-size: var(--t-label); }
+.igm-done .ig-late-by { display: inline; font-size: inherit; }

@@ -48,13 +48,15 @@ export function spanShort(from?: string, to?: string): string {
 
 /** What a stage says on a phone card, where a whole line has room for the
  *  words a square has to shorten: "done 27 Sept", "late · was 3 Oct". */
-function stageWord(s: StepView): string {
+export function stageWord(s: StepView): string {
   const t = s.step;
   switch (s.tone) {
     case 'done': return `${t.ranOn ? `done ${short(t.ranOn)}` : 'done'}${s.lateBy ? ` · ${lateByWords(s.lateBy)}` : ''}`;
     case 'problem': return s.late ? 'a problem · late' : 'a problem';
     case 'asking': return 'done? — say so';
-    case 'late': return `late · was ${short(plannedEnd(t))}`;
+    /* Late because a problem pushed its finish: the day is still to come, so
+       it says where it moved to, not "was". */
+    case 'late': return `late · ${(plannedEnd(t) ?? '') >= todayISO() ? 'moved to' : 'was'} ${short(plannedEnd(t))}`;
     default: return spanShort(t.plannedFor, plannedEnd(t)) || 'no day yet';
   }
 }
@@ -106,6 +108,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   const today = todayISO();
   const grid = installGrid(tt.assets, tt.tests, tt.items, today, usual, gate);
   const [open, setOpen] = useState<Open>(null);
+  /* Phone: which machines show their done stages, and the every-machine list. */
+  const [showDone, setShowDone] = useState<Set<string>>(new Set());
+  const [allOpen, setAllOpen] = useState(false);
   const [stepName, setStepName] = useState('');
   const phone = usePhone();
 
@@ -389,8 +394,25 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             <button className="ig-give" onClick={() => void giveStages([r])}><Icon name="plus" size="1.15em" /> Add the {usual.length} stages</button>
           ) : (
             <>
+              {/* NORMAL RECEDES (docs/SIMPLE.md): the stages that are done fold
+                  into one line — "4 done · 2 late" — and the card shows what
+                  is still to do or wrong. One tap shows them. */}
+              {(() => {
+                const doneHere = r.cells.filter(cs => cs?.tone === 'done');
+                const lateDone = doneHere.filter(cs => cs?.lateBy).length;
+                const key = r.asset?.id ?? 'line';
+                return doneHere.length > 1 && (
+                  <button className="igm-done" aria-expanded={showDone.has(key)}
+                    onClick={() => setShowDone(p => { const n = new Set(p); if (n.has(key)) n.delete(key); else n.add(key); return n; })}>
+                    <span className="igm-sq" aria-hidden />
+                    <span>{doneHere.length} done{lateDone ? <> · <b className="ig-late-by">{lateDone} late</b></> : ''}</span>
+                    <span className="cw-link">{showDone.has(key) ? 'hide' : 'show'}</span>
+                  </button>
+                );
+              })()}
               <div className="igm-list">
                 {r.cells.map((cs, ci) => {
+                  if (cs?.tone === 'done' && r.cells.filter(c => c?.tone === 'done').length > 1 && !showDone.has(r.asset?.id ?? 'line')) return null;
                   const ps = partsAt(cs);
                   const crit = critAt(cs);
                   return (
@@ -425,10 +447,12 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           at once is the less common job, and the cards are what you came for. */}
       <div className="igm-all">
         <button className="cw-link" onClick={() => setOpen({ t: 'stages' })}>{can.agree ? 'Edit the stages' : 'The stages'}</button>
-        {can.edit && grid.columns.length > 0 && <>
+        {/* One stage for every machine at once — the less common job, one tap
+            away rather than the whole list printed again under the cards. */}
+        {can.edit && grid.columns.length > 0 && (allOpen ? <>
           <span className="sub">For every machine:</span>
           {grid.columns.map((c, i) => <button key={c} className="igm-chip" onClick={() => setOpen({ t: 'col', col: i })}>{c}</button>)}
-        </>}
+        </> : <button className="cw-link" onClick={() => setAllOpen(true)}>Do a stage for every machine ›</button>)}
       </div>
     </div>
   );

@@ -31,7 +31,8 @@ import { PaceSnags } from './PaceSnags';
 import { framesForProject, getPaceWorkspaceId, onDataChange } from '../db';
 import { StandardsCard } from '../ui/StandardsCard';
 import { nav } from '../state/useRoute';
-import { InstallGrid } from '../ui/InstallGrid';
+import { InstallGrid, stageWord } from '../ui/InstallGrid';
+import { openRecord } from '../ui/RecordDrawer';
 import { todayISO } from '../lib/weeks';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
@@ -144,6 +145,34 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+
+      {/* NEEDS YOU — first, as on Commission (docs/SIMPLE.md): only the
+          stages that are late or hit a problem, machine and stage, in words;
+          each opens its record. Everything on plan is a square below. */}
+      {onGrid && (() => {
+        const needs = grid.rows.flatMap(r => r.cells.filter((c): c is NonNullable<typeof c> => !!c && (c.tone === 'problem' || c.tone === 'late' || (c.late && c.tone !== 'done')))
+          .map(c => ({ c, machine: r.asset?.name ?? 'The line' })))
+          .sort((a, b) => Number(b.c.tone === 'problem') - Number(a.c.tone === 'problem'));
+        return (
+          <section className="cmp-sec cg-needs" aria-label="Needs you">
+            <div className="cw-sec-h"><h2 className="cmp-h">Needs you</h2>{needs.length > 0 && <span className="cmp-h-n">{needs.length}</span>}</div>
+            {needs.length === 0
+              ? <p className="sub tw-note">Nothing — no stage is late or stuck on a problem.</p>
+              : (
+                <ul className="nd-list">
+                  {needs.map(({ c, machine }) => (
+                    <li key={c.step.id} className={'nd-row is-' + (c.tone === 'problem' ? 'failed' : 'late')}>
+                      <button type="button" className="nd-main" onClick={() => openRecord(projectId, c.step.id)}>
+                        <span className={'nd-tag is-' + (c.tone === 'problem' ? 'failed' : 'late')}>{stageWord(c)}</span>
+                        <b>{machine} — {c.step.title}</b>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </section>
+        );
+      })()}
 
       {onGrid
         ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can}
