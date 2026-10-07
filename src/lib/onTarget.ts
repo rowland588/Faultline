@@ -71,10 +71,20 @@ function handoverWords(expectedAt?: string, plannedAt?: string): string {
   return expectedAt ? `handover ${day(expectedAt)}` : 'no handover date set yet';
 }
 
+/** A thing's name for the one-line answer: one line, and short — the whole
+ *  of it is under its own heading below. A name pasted from a spreadsheet
+ *  cell carried a line break, and the box on paper lost what followed it. */
+export const nameIn = (s: string, max = 60): string => {
+  const one = s.replace(/\s+/g, ' ').trim();
+  if (one.length <= max) return one;
+  const cut = one.slice(0, max + 1).replace(/\s+\S*$/, '');
+  return `${cut.length > max / 2 ? cut : one.slice(0, max)}…`;
+};
+
 /** "Pick and place — Programs loaded (100 h lost)", "Fix: Send the regulator
  *  (was due Mon 5 Oct)". */
 const lateOne = (l: LateThing): string =>
-  `${l.what} (${l.hours ? `${hoursWord(l.hours)} lost` : l.was ? `was due ${day(l.was)}` : 'late'})`;
+  `${nameIn(l.what)} (${l.hours ? `${hoursWord(l.hours)} lost` : l.was ? `was due ${day(l.was)}` : 'late'})`;
 
 /** WHAT IS LATE, BY NAME — every one when there are three or fewer, the
  *  first two and how many more otherwise. "1 late: …", "4 late: …, … and 2
@@ -132,19 +142,19 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
      time lost: Wrapper — Change parts fitted". */
   const late = lateWords(s.lateThings ?? [], s.late);
   const problemWords = problems
-    ? `${problems} problem${problems === 1 ? '' : 's'}, no time lost: ${problemSteps.slice(0, 2).map(t => `${machine(t)} — ${t.title}`).join('; ')}${problems > 2 ? ` and ${problems - 2} more` : ''}`
+    ? `${problems} problem${problems === 1 ? '' : 's'}, no time lost: ${problemSteps.slice(0, 2).map(t => nameIn(`${machine(t)} — ${t.title}`)).join('; ')}${problems > 2 ? ` and ${problems - 2} more` : ''}`
     : '';
   const slipped = !!expectedAt && !!plannedAt && expectedAt > plannedAt;
   const crit = criticalProblems(tests, items, assets).open;
   const critical = crit.length;
   const criticalWords = critical
-    ? `${critical} critical: ${crit.slice(0, 2).map(c => c.item.what).join('; ')}${critical > 2 ? ` and ${critical - 2} more` : ''}`
+    ? `${critical} critical: ${crit.slice(0, 2).map(c => nameIn(c.item.what)).join('; ')}${critical > 2 ? ` and ${critical - 2} more` : ''}`
     : '';
   /* HIGH RISKS (lib/critical) — not happened yet: they hold the job at At
      risk, never Behind, and say what each could cost as an estimate. */
   const risk = riskProblems(tests, items, assets).open;
   const riskWords = risk.length
-    ? `${risk.length} high risk: ${risk.slice(0, 2).map(c => `${c.item.what}${c.item.couldLose ? `, ${couldWords(c.item)}` : ''}`).join('; ')}${risk.length > 2 ? ` and ${risk.length - 2} more` : ''}`
+    ? `${risk.length} high risk: ${risk.slice(0, 2).map(c => `${nameIn(c.item.what)}${c.item.couldLose ? `, ${couldWords(c.item)}` : ''}`).join('; ')}${risk.length > 2 ? ` and ${risk.length - 2} more` : ''}`
     : '';
 
   if (slipped || s.late > 0) {

@@ -273,7 +273,7 @@ export function standing(input: StandingInput): Standing {
     return { what: `${machineOf(t) ?? 'The line'} — ${t.title}`, id: t.id, ...(hours ? { hours } : {}), ...(end && end < today ? { was: end } : {}) };
   };
   const dated = (t: Test, prefix = ''): LateThing => ({ what: `${prefix}${t.title}`, id: t.id, ...((t.plannedTo ?? t.plannedFor) ? { was: t.plannedTo ?? t.plannedFor } : {}) });
-  const lateThings: LateThing[] = [
+  const lateThings: LateThing[] = ([
     ...stepsLate.map(stage), ...setupLate.map(stage),
     ...partsLate.map(x => ({ what: `${x.stage.title} — ${x.part.what}`, ...(x.part.due ? { was: x.part.due } : {}) })),
     ...testsLate.map(t => dated(t)), ...fixesLate.map(t => dated(t, 'Fix: ')),
@@ -281,7 +281,11 @@ export function standing(input: StandingInput): Standing {
     ...progsLate.map(p => ({ what: `Program ${p.what}`, ...(p.testOn ? { was: p.testOn } : {}) })),
     ...handLate.map(stage),
     ...machLate.map(a => ({ what: `${a.name} on site`, ...(a.dueOn ? { was: a.dueOn } : {}) })),
-  ];
+  /* ONE ORDER, whoever asks — the lists arrive in different orders on
+     different screens (programs by urgency on one, as stored on another),
+     and the verdict names the first two. The hours lost first, most first;
+     then the day that went longest ago; then by name. */
+  ] as LateThing[]).sort((a, b) => (b.hours ?? 0) - (a.hours ?? 0) || (a.was ?? '9').localeCompare(b.was ?? '9') || a.what.localeCompare(b.what));
 
   /* ------------------------------- the plan ------------------------------- */
 

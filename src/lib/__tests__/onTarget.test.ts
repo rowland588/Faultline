@@ -97,3 +97,14 @@ describe('a 6M or lever tree job — are its lines at target?', () => {
     expect(linesOnTarget([])).toMatchObject({ tone: 'none', reason: 'no lines on the job yet' });
   });
 });
+
+describe('a name in the one-line answer', () => {
+  it('is one line, and cut at a word when long — the whole of it is below', async () => {
+    const { nameIn } = await import('../onTarget');
+    expect(nameIn('Spares agreed\nTwo lines pasted from a cell')).toBe('Spares agreed Two lines pasted from a cell');
+    const long = nameIn('pallet film guard reject weigher coder splice tracking seal belt belt pallet coder guard');
+    expect(long.length).toBeLessThanOrEqual(61);
+    expect(long.endsWith('…')).toBe(true);
+    expect(long).toBe('pallet film guard reject weigher coder splice tracking seal…');
+  });
+});
