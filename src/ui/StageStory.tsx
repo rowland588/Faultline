@@ -63,7 +63,13 @@ export async function removeProblem(tt: Pick<TT, 'tests' | 'items' | 'patchTest'
   const item = tt.items.find(i => i.id === id);
   if (!item) return;
   const step = tt.tests.find(t => t.id === item.testId && !t.deletedAt);
-  const others = tt.items.filter(i => !i.deletedAt && i.id !== id && i.testId === item.testId && i.kind === 'found');
+  /* WHAT STILL HOLDS THE STAGE AT "HIT A PROBLEM": another problem that is
+     open. Rowland, 7 October: "I removed the problem — it shouldn't say
+     problem." A reason the dates were changed (a move with no problem of its
+     own) and a problem already said sorted kept the stage red after the last
+     open problem was deleted. */
+  const others = tt.items.filter(i => !i.deletedAt && i.id !== id && i.testId === item.testId && i.kind === 'found'
+    && i.doneAt == null && !(i.movedFrom && i.movedTo && !i.hoursLost && !i.critical && !i.risk && !i.becameTestId));
   const putBack = !!step && step.kind === 'install' && step.outcome === 'failed' && others.length === 0;
   const restore = await deleteTestItem(id);
   if (putBack && step) await tt.patchTest(step.id, { outcome: 'planned', ranOn: undefined });
