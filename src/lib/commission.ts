@@ -17,6 +17,7 @@ import { isOverdue, latestAttempts, live, needsVerdict, type Asset, type Test } 
 import { stageKey } from './install';
 import { isProved, live as liveProgs, stateOf, type Program } from './programs';
 import { niceDay } from './weeks';
+import { isRunTest, productName, readRuns, runsOpen, shortWords, unplannedShorts } from './run';
 
 /** The house colours (CLAUDE.md): green done, red late or failed, amber owed
  *  a verdict, indigo booked, grey no day yet. */
@@ -38,6 +39,9 @@ export function testCell(t: Test, today: string): Pick<TestCell, 'tone' | 'word'
   if (t.outcome === 'notRun') return { tone: 'r', word: 'didn’t run' };
   if (needsVerdict(t)) return { tone: 'a', word: 'ran — passed?' };
   if (isOverdue(t, today)) return { tone: 'r', word: `late · was ${niceDay(t.plannedFor)}` };
+  /* A performance run part-way through its products is under way — indigo,
+     the square's own words say how far (lib/run runsBoard). */
+  if (runsOpen(t) && readRuns(t).ran > 0) return { tone: 'w', word: 'under way' };
   if (t.plannedFor) return { tone: 'w', word: `booked ${niceDay(t.plannedFor)}` };
   return { tone: 'n', word: 'no day yet' };
 }
@@ -165,8 +169,11 @@ export function programsToProve(programs: Program[], tests: Test[], today: strin
  * then what we're going to do about it next." Everything on plan is a square
  * on the board and is not listed again.
  *
- *   failed   didn't pass or didn't run, and no re-test planned
- *   late     its day has gone and it has not happened
+ *   failed   didn't pass or didn't run, and no re-test planned — or, on a
+ *            performance run, a PRODUCT that didn't pass with no re-run of it
+ *            further down its list (lib/run unplannedShorts)
+ *   late     its day has gone and it has not happened (a run with products
+ *            still to run is late the same way)
  *   verdict  it ran and nobody has said how it went
  *   program  a program with no test to prove it
  *
@@ -180,15 +187,26 @@ export interface Need {
   word: string;
   /** Why, when the record says: what happened, or the program's machine. */
   why?: string;
+  /** A performance run's products that did not pass and are not run again —
+   *  the row offers to run them again (lib/run). */
+  shortProducts?: string[];
 }
 
 export function commissionNeeds(tests: Test[], programs: Program[], today: string): Need[] {
   const latest = latestAttempts(tests).sort((a, b) => a.sort - b.sort);
   const failed: Need[] = [], late: Need[] = [], verdict: Need[] = [];
   for (const t of latest) {
-    const why = t.result?.trim() || undefined;
+    /* A RUN'S PRODUCTS THAT DIDN'T PASS, said with the test: which, and by
+       how much — the cause, from the numbers. */
+    const shorts = isRunTest(t) ? unplannedShorts(readRuns(t)) : [];
+    const why = [t.result?.trim(), shortWords(shorts)].filter(Boolean).join(' — ') || undefined;
     if (t.outcome === 'failed' || t.outcome === 'notRun') {
       failed.push({ kind: 'failed', test: t, word: `${t.outcome === 'failed' ? 'didn’t pass' : 'didn’t run'} — no re-test planned`, ...(why ? { why } : {}) });
+    } else if (shorts.length && t.outcome === 'planned') {
+      /* Part-way through its products, one has not passed and nothing runs
+         it again: named now, not when the last product is in. */
+      failed.push({ kind: 'failed', test: t, word: `${shorts.length === 1 ? '1 product' : `${shorts.length} products`} didn’t pass — no re-run planned`,
+        why: shortWords(shorts), shortProducts: shorts.map(p => productName(p.run)) });
     } else if (needsVerdict(t)) {
       verdict.push({ kind: 'verdict', test: t, word: `ran${t.ranOn ? ` ${niceDay(t.ranOn)}` : ''} — passed?`, ...(why ? { why } : {}) });
     } else if (t.outcome === 'planned' && isOverdue(t, today)) {

@@ -23,6 +23,7 @@ import {
 import type { MediaRef } from '../types';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
+import { isRunTest, readRuns, runsOpen, runsSay } from './run';
 import { partLate, partOnStage, partsOnStages } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 
@@ -171,7 +172,9 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   for (const t of [...tests].sort((x, y) => order(x) - order(y) || x.sort - y.sort)) {
     const ranToday = on(date, t.ranOn, t.ranTo);
     const bookedToday = on(date, t.plannedFor, t.plannedTo);
-    const detail = t.result?.trim() || undefined;
+    /* A performance run's products, in one line, when nothing was written:
+       "2 of 3 products run — 1 passed, 1 didn't pass." (lib/run) */
+    const detail = t.result?.trim() || (isRunTest(t) ? runsSay(readRuns(t)) : '') || undefined;
     if (ranToday) {
       const word = outcomeWord(t);
       if (t.outcome === 'passed') {
@@ -193,6 +196,10 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         wrong.push({ text: `${named(t)} did not happen${who(t.withWhom)}.`, detail, tone: 'slipped', id: t.id });
       } else if (needsVerdict(t)) {
         done.push({ text: `${named(t)} was worked on — nobody has said how it went yet.`, detail, tone: 'asking', id: t.id });
+      } else if (runsOpen(t)) {
+        /* Part-way through its products: under way, its verdict to come
+           from the numbers when the last product is in. */
+        done.push({ text: `${named(t)} under way${who(t.withWhom)}.`, detail, tone: 'booked', id: t.id });
       } else if (t.kind === 'install') {
         /* A stage worked on and not yet marked done stays planned (Rowland, 5
            October) — still on the day's story, with what was said, in the

@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { agreedWords, isRunTest, numbersSay, readRun, runTiles, type RunReading, type RunTile } from './run';
+import { isRunTest, productFigures, productName, readRuns, runsSay, type ProductFigures, type ProductState } from './run';
 import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
@@ -69,10 +69,26 @@ export interface TrialCard {
   product?: string;
   result?: string;
 
-  /** A RUN AT A RATE (lib/run): the five figures the screen's board shows,
-   *  what was agreed, and what the numbers say — the card prints them as a
-   *  strip under the plan and the day. Absent on any other test. */
-  run?: { tiles: RunTile[]; agreed: string; say: string; meets?: boolean; ran: boolean };
+  /** A RUN AT A RATE (lib/run): a row per product — what it was judged on,
+   *  what it netted, ran at, its rejects, how long, and its verdict — and the
+   *  totals line over them. The card prints them as a strip under the plan
+   *  and the day, the screen as its table. Absent on any other test. */
+  run?: {
+    products: CardRunProduct[];
+    /** "2 of 3 products run — 1 passed, 1 didn't pass." */
+    say: string;
+    /** What the plan says it is judged on: one product's agreed numbers in
+     *  words, or that each product has its own. */
+    agreed: string;
+    /** Every product measured: did they all meet what was agreed. */
+    meets?: boolean;
+    ran: boolean;
+    /** A product still to run. */
+    open: boolean;
+  };
+  /** The product runs as kept — so the card's "no verdict yet" is asked the
+   *  same way as the test's (lib/testing needsVerdict). */
+  runs?: Test['runs'];
 
   findings: CardFinding[];
   /** written · actioned · to decide. */
@@ -87,6 +103,21 @@ export interface TrialCard {
 
   photos: number;
   docs: number;
+}
+
+/** One product on the card, as every table prints it (lib/run productFigures). */
+export interface CardRunProduct extends ProductFigures {
+  id: string;
+  product: string;
+  state: ProductState;
+  /** "Passed" · "Didn't pass" · "To run" … */
+  word: string;
+  /** What fell short and by how much. */
+  gap: string;
+  /** Run again further down — history, not what counts. */
+  rerun: boolean;
+  /** The day its numbers went in. */
+  ranOn?: string;
 }
 
 /* The three answers, in the words the buttons use — there is no "actioned"
@@ -116,6 +147,10 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
     .sort((a, b) => (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '') || a.sort - b.sort);
 
   const tally = foundTally(findings, items);
+  /* A RUN'S PRODUCTS (lib/run): printed when there is a product on the list. */
+  const rr = isRunTest(test) ? readRuns(test) : undefined;
+  const products = rr?.products ?? [];
+  const names = (ps: typeof products) => [...new Set(ps.map(p => productName(p.run)))].join(' · ');
 
   return {
     id: test.id,
@@ -129,18 +164,25 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
 
     plannedFor: test.plannedFor,
     plannedTo: test.plannedTo,
-    plannedProduct: test.planned,
+    /* A run with products names them — the product boxes of the plan and
+       the day say what the list says, never a second answer. */
+    plannedProduct: products.length ? names(products) : test.planned,
     passesIf: test.passesIf,
 
     ranOn: test.ranOn,
     ranTo: test.ranTo,
-    product: test.product ?? test.planned,
+    product: products.length ? names(products.filter(p => p.r.ran)) || undefined : test.product ?? test.planned,
     result: test.result,
 
-    /* Printed when there is something to print: numbers, or what was agreed. */
-    ...(isRunTest(test) && (readRun(test).ran || agreedWords(readRun(test).agreed)) ? { run: ((r: RunReading) => ({
-      tiles: runTiles(r), agreed: agreedWords(r.agreed), say: numbersSay(r), ran: r.ran, ...(r.meets != null ? { meets: r.meets } : {}),
-    }))(readRun(test)) } : {}),
+    ...(rr && products.length ? { run: {
+      products: products.map(p => ({ id: p.run.id, product: productName(p.run), state: p.state, word: p.word, gap: p.gap, rerun: p.rerun,
+        ...(p.run.ranOn ? { ranOn: p.run.ranOn } : {}), ...productFigures(p) })),
+      say: runsSay(rr),
+      agreed: products.length === 1 ? productFigures(products[0]).agreed : `each of the ${rr.total} products on its own agreed numbers`,
+      ran: rr.ran > 0, open: rr.open,
+      ...(rr.verdict !== 'planned' ? { meets: rr.verdict === 'passed' } : {}),
+    } } : {}),
+    ...(test.runs ? { runs: test.runs } : {}),
 
     findings: findings.map(f => {
       /* What it became, when it became something — a fix with its own page,
@@ -191,6 +233,9 @@ export function verdictLine(c: TrialCard): string {
      IS the line, with the missing verdict said plainly after it. "Not run yet"
      over a result somebody typed on the floor is the report hiding the day. */
   if (c.outcome === 'planned') {
+    /* A RUN PART-WAY THROUGH ITS PRODUCTS is under way, not "not run yet":
+       its totals line says how far (lib/run runsSay). */
+    if (c.run?.open && c.run.ran) return c.result?.trim() ? `${c.result.trim()} — ${c.run.say}` : c.run.say;
     /* A stage's account given part-way (it stays planned until marked done or
        a problem — Rowland, 5 October) is still printed: words said about the
        work never drop off the paper. */

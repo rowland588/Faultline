@@ -382,20 +382,21 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       })));
     }
 
-    /* THE PERFORMANCE RUNS — what it netted against what was agreed, first
-       in Commission: the numbers the line is accepted on (lib/run). Rowland,
-       7 October: "people ask how fast did we run, what did we net." Only a
+    /* THE PERFORMANCE RUNS — a row per product: what it netted against what
+       was agreed, first in Commission — the numbers the line is accepted on
+       (lib/run). Rowland, 7 October: "people ask how fast did we run, what
+       did we net" — and "commissioning runs are multiple products." Only a
        figure that missed what was agreed is red; one that met it is green. */
     if (s.runs && s.runs.length) {
       out.push(text({ text: 'Performance runs', size: S.h2, style: 'bold', before: 4, after: 4 }));
-      const nameW = 168, verdictW = 62;
+      const nameW = 168, verdictW = 84;
       const cols = ['Net rate', 'Ran at', 'Rejects', 'Ran for'];
       const colW = (f: Frame) => (f.w - nameW - verdictW) / cols.length;
       const runParts = (f: Frame, r: NonNullable<typeof s.runs>[number]) => ({
-        name: wrap(f.doc, r.title, nameW - 8, 9, 'bold'),
-        sub: wrap(f.doc, [r.machine, r.product, r.when].filter(Boolean).join(' · '), nameW - 8, 8),
-        agreed: wrap(f.doc, `Agreed: ${r.agreed}`, f.w - nameW - 6, 8),
-        say: r.say ? wrap(f.doc, r.say, f.w - nameW - 6, 8, 'bold') : [],
+        name: wrap(f.doc, r.product, nameW - 8, 9, 'bold'),
+        sub: wrap(f.doc, [r.machine, r.title, r.when].filter(Boolean).join(' · '), nameW - 8, 8),
+        agreed: wrap(f.doc, `Agreed: ${r.agreed}`, f.w - nameW - verdictW - 6, 8),
+        say: r.say ? wrap(f.doc, `Short: ${r.say}`, f.w - nameW - verdictW - 6, 8, 'bold') : [],
       });
       out.push(rows({
         /* The column heads go with the rows onto a second page. */
@@ -417,12 +418,16 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
               font(f.doc, 8, 'normal', MUTED); f.doc.text(p.sub, f.x, y + 13 + p.name.length * 11);
               const figs: [string, 'met' | 'short' | ''][] = [[r.net, r.netTone], [r.speed, ''], [r.rejects, r.rejectsTone], [r.length, '']];
               figs.forEach(([v, tone], i) => {
-                font(f.doc, i === 0 ? 11 : 9.5, 'bold', tone === 'short' ? DANGER : tone === 'met' ? OK : INK2);
+                /* A figure keeps to its column — "45 min, stood 11" steps
+                   down a size rather than running into the verdict. */
+                let size = i === 0 ? 11 : 9.5;
+                font(f.doc, size, 'bold', tone === 'short' ? DANGER : tone === 'met' ? OK : INK2);
+                while (size > 7 && f.doc.getTextWidth(san(v)) > colW(f) - 8) { size -= 0.5; f.doc.setFontSize(size); }
                 f.doc.text(san(v), f.x + nameW + i * colW(f), y + 15);
               });
               let ty = y + 15 + 13;
               font(f.doc, 8, 'normal', MUTED); f.doc.text(p.agreed, f.x + nameW, ty); ty += p.agreed.length * 10;
-              if (p.say.length) { font(f.doc, 8, 'bold', r.meets ? OK : DANGER); f.doc.text(p.say, f.x + nameW, ty); }
+              if (p.say.length) { font(f.doc, 8, 'bold', DANGER); f.doc.text(p.say, f.x + nameW, ty); }
               const tc = r.tone === 'done' ? 'done' : r.tone === 'failed' || r.tone === 'late' ? 'late' : r.tone === 'booked' ? 'going' : 'ahead';
               pillPath(f.doc, f.x + f.w - verdictW + 4, y + 5, verdictW - 4, 12, tc, r.outcome);
             },
@@ -726,10 +731,12 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
        long, and the verdict. */
     if (s.runs.length) {
       out.push(label('Performance runs'));
+      /* A line per product: the product and its machine, then its figures
+         against what was agreed, and what fell short when something did. */
       const runParts = (f: Frame, r: (typeof s.runs)[number]) => ({
-        head: wrap(f.doc, `${r.title}${r.machine ? ` — ${r.machine}` : ''}${r.product ? ` · ${r.product}` : ''}`, f.w - 70, 9, 'bold'),
-        figs: wrap(f.doc, `Net ${r.net} · ran at ${r.speed} · rejects ${r.rejects} · ran for ${r.length}${r.say ? ` — ${r.say}` : ` — agreed: ${r.agreed}`}`, f.w - 70, 8.5),
-        say: [] as string[],
+        head: wrap(f.doc, `${r.product}${r.machine ? ` — ${r.machine}` : ''}`, f.w - 92, 9, 'bold'),
+        figs: wrap(f.doc, `Net ${r.net} · ran at ${r.speed} · rejects ${r.rejects} · ran for ${r.length} — agreed: ${r.agreed}`, f.w - 92, 8.5),
+        say: r.say ? wrap(f.doc, `Short: ${r.say}`, f.w - 92, 8.5, 'bold') : [],
       });
       out.push(rows({
         rows: s.runs.map(r => ({
@@ -740,9 +747,9 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
             font(f.doc, 9, 'bold', INK2); f.doc.text(p.head, f.x, y + 13);
             let ty = y + 13 + p.head.length * 11;
             font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.figs, f.x, ty); ty += p.figs.length * 10.5;
-            if (p.say.length) { font(f.doc, 8.5, 'bold', r.meets ? OK : DANGER); f.doc.text(p.say, f.x, ty); }
+            if (p.say.length) { font(f.doc, 8.5, 'bold', DANGER); f.doc.text(p.say, f.x, ty); }
             const tc = r.tone === 'done' ? 'done' : r.tone === 'failed' || r.tone === 'late' ? 'late' : r.tone === 'booked' ? 'going' : 'ahead';
-            pillPath(f.doc, f.x + f.w - 62, y + 5, 62, 12, tc, r.outcome);
+            pillPath(f.doc, f.x + f.w - 84, y + 5, 84, 12, tc, r.outcome);
           },
         })),
       }));

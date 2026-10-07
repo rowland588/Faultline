@@ -21,7 +21,7 @@
  * Notes are never on it: they are private preparation.
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
-import { agreedWords, isRunTest, num, numbersSay, pct, readRun, runLine, runTiles } from './run';
+import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
 import type { MediaPin, Project } from '../types';
 import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
@@ -74,29 +74,37 @@ export interface GateSection {
   tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string;
     /** A run at a rate, in one line (lib/run runLine). */
     run?: string }[];
-  /** Commission only: THE PERFORMANCE RUNS — the latest attempt of each run at
-   *  a rate, with its numbers, first in the section. Rowland, 7 October: "this
-   *  is my time of acceptance ... people ask how fast did we run, what did we
-   *  net." */
+  /** Commission only: THE PERFORMANCE RUNS — a row per PRODUCT of the latest
+   *  attempt of each run at a rate, with its numbers, first in the section.
+   *  Rowland, 7 October: "this is my time of acceptance ... people ask how
+   *  fast did we run, what did we net" — and "commissioning runs are
+   *  multiple products." */
   runs?: RunRow[];
 }
 
-/** One performance run as the client reads it (lib/run). */
+/** One product of a performance run, as the client reads it (lib/run). */
 export interface RunRow {
+  /** The test it is a product of. */
   title: string;
   machine?: string;
-  product?: string;
+  /** The product down the machine — "Product not named" when nobody said. */
+  product: string;
   when: string;
   /** The figures, as the board shows them — "58.4 ppm", "—" when not measured. */
   net: string; agreed: string; speed: string; rejects: string; length: string;
   /** Net rate met · short · nothing agreed to judge it on. */
   netTone: 'met' | 'short' | '';
   rejectsTone: 'met' | 'short' | '';
+  /** The product's verdict, from its numbers: "Passed" · "Didn't pass" ·
+   *  "To run" · "Numbers going in" · "Ran — no rate agreed"; "… — run again"
+   *  on a row run again further down. */
   outcome: string;
   tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late';
-  /** What the numbers say, in words — empty when they cannot say. */
+  /** What fell short and by how much — empty when nothing did. */
   say: string;
   meets?: boolean;
+  /** Run again further down the list — history; the later row counts. */
+  rerun?: boolean;
 }
 
 /** One step's account, as the client reads it under its gate. */
@@ -371,24 +379,29 @@ export function clientReport(x: ClientReportInput): ClientReport {
       result: t.result, passesIf: t.passesIf,
       /* A run's numbers are in the Performance runs table above; an earlier
          attempt, not in that table, carries them on its own line. */
-      ...(runLine(t) && !(isRunTest(t) && now.includes(t)) ? { run: runLine(t, { product: false }) } : {}),
+      ...(runsLine(t) && !(isRunTest(t) && now.includes(t)) ? { run: runsLine(t) } : {}),
     })),
     ...(() => {
-      /* A run with numbers, or with what it is judged on agreed — not every
-         test with "rate" in its name as a row of dashes. */
-      const runs = now.filter(t => isRunTest(t) && (readRun(t).ran || !!agreedWords(readRun(t).agreed))).map((t): RunRow => {
-        const r = readRun(t), tiles = runTiles(r);
-        const tone = t.outcome === 'passed' ? 'done' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
-          : (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead';
-        const fig = (i: number) => (tiles[i].value === '\u2014' ? '\u2014' : `${tiles[i].value}${tiles[i].unit ? ` ${tiles[i].unit}` : ''}`);
-        return {
-          title: t.title, machine: machine(t.assetId), product: t.product ?? t.planned,
-          when: niceDay(t.ranOn ?? t.plannedFor) || 'no date',
-          net: fig(0), speed: fig(1), rejects: r.day.rejects != null ? `${num(r.day.rejects)}${r.rejectPct != null ? ` (${pct(r.rejectPct)})` : ''}` : '\u2014', length: fig(4),
-          agreed: agreedWords(r.agreed) || 'nothing agreed yet',
-          netTone: tiles[0].tone, rejectsTone: tiles[3].tone,
-          outcome: hasRun(t) ? outcomeWord(t) : 'planned', tone, say: numbersSay(r), ...(r.meets != null ? { meets: r.meets } : {}),
-        };
+      /* A row per product planned or run — not every test with "rate" in its
+         name as a row of dashes. Each product judged on its own numbers; a
+         product still to run takes its test's day (booked, or late once the
+         day has gone). */
+      const runs = now.filter(t => isRunTest(t)).flatMap(t => {
+        const testTone: RunRow['tone'] = (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead';
+        return readRuns(t).products.map((p): RunRow => {
+          const f = productFigures(p);
+          const tone: RunRow['tone'] = p.rerun ? 'ahead' : p.state === 'met' ? 'done' : p.state === 'short' ? 'failed'
+            : p.state === 'unjudged' ? (t.outcome === 'passed' ? 'done' : t.outcome === 'failed' ? 'failed' : 'booked') : testTone;
+          return {
+            title: t.title, machine: machine(t.assetId), product: productName(p.run),
+            when: niceDay(p.run.ranOn ?? t.ranOn ?? t.plannedFor) || 'no date',
+            net: f.net, speed: f.speed, rejects: f.rejects, length: f.length,
+            agreed: f.agreed || 'nothing agreed yet',
+            netTone: f.netTone, rejectsTone: f.rejectsTone,
+            outcome: p.rerun ? `${p.word}, re-run` : p.state === 'toRun' && testTone === 'late' ? 'Not run — late' : p.word,
+            tone, say: p.gap, ...(p.r.meets != null ? { meets: p.r.meets } : {}), ...(p.rerun ? { rerun: true } : {}),
+          };
+        });
       });
       return runs.length ? { runs } : {};
     })(),

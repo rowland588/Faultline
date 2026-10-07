@@ -63,12 +63,14 @@ export interface StatusReport {
  *  On a very busy job the drawing steps down these until the page is one
  *  (lib/clientReportPdf drawStatusReport); "and N more" says the rest. */
 export type StatusLimits = { why: number; next: number; runs: number; waiting: number };
-export const STATUS_LIMITS: StatusLimits = { why: 6, next: 6, runs: 4, waiting: 3 };
+/* The runs are a line per PRODUCT (a performance run is many products), so
+   the page holds more of them than it held runs. */
+export const STATUS_LIMITS: StatusLimits = { why: 6, next: 6, runs: 6, waiting: 3 };
 export const STATUS_STEPS: StatusLimits[] = [
   STATUS_LIMITS,
-  { why: 5, next: 5, runs: 3, waiting: 2 },
-  { why: 4, next: 4, runs: 2, waiting: 1 },
-  { why: 3, next: 3, runs: 1, waiting: 1 },
+  { why: 5, next: 5, runs: 4, waiting: 2 },
+  { why: 4, next: 4, runs: 3, waiting: 1 },
+  { why: 3, next: 3, runs: 2, waiting: 1 },
 ];
 
 export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): StatusReport {
@@ -95,7 +97,11 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
   }));
   const waiting = r.waiting.filter(w => w.open > 0).map(w =>
     `${w.what} — ${w.open} open${w.late ? `, ${w.late} late` : ''}${w.lateWhose ?? w.whose ? ` · ${w.lateWhose ?? w.whose}` : ''}`);
-  const runs = r.sections.find(s => s.gate === 'commission')?.runs ?? [];
+  /* A product per line; one run again further down is history, and only the
+     later row is sent. What fell short leads, then what is still to run. */
+  const rank = (x: RunRow) => (x.tone === 'failed' ? 0 : x.tone === 'late' ? 1 : x.tone === 'done' ? 3 : 2);
+  const runs = (r.sections.find(s => s.gate === 'commission')?.runs ?? []).filter(x => !x.rerun)
+    .map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => x);
   return {
     name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, ...(r.dates ? { dates: r.dates } : {}),
     /* The verdict and the handover only: the counts and names the full

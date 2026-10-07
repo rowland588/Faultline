@@ -588,15 +588,24 @@ const sameEdits = (mine: CloudRow, theirs: CloudRow): boolean =>
 const isIdList = (v: unknown): v is { id: string }[] =>
   Array.isArray(v) && v.every(x => !!x && typeof x === 'object' && typeof (x as { id?: unknown }).id === 'string');
 
-/** Two edits to one list of photos/clips/files: everything either side added,
- *  nothing either side removed. */
+/** Two edits to one list of photos/clips/files — or a performance run's
+ *  products (lib/run): everything either side added, nothing either side
+ *  removed, and each entry asked who moved it, as a column is — so numbers
+ *  put in for one product on the phone and another product's on the laptop
+ *  both stay. Only an entry both changed goes to the newer. */
 function mergeList(base: { id: string }[], mine: { id: string }[], theirs: { id: string }[], mineNewer: boolean): { id: string }[] {
   const b = new Set(base.map(x => x.id));
+  const bm = new Map(base.map(x => [x.id, x]));
   const m = new Map(mine.map(x => [x.id, x]));
   const t = new Set(theirs.map(x => x.id));
   const out = theirs
     .filter(x => m.has(x.id) || !b.has(x.id))                       // not removed by us
-    .map(x => (mineNewer ? m.get(x.id) ?? x : x));
+    .map(x => {
+      const my = m.get(x.id);
+      if (!my || same(my, bm.get(x.id)) || same(my, x)) return x;    // we did not touch it
+      if (same(x, bm.get(x.id))) return my;                          // only we did
+      return mineNewer ? my : x;                                     // both: the newer
+    });
   for (const x of mine) if (!t.has(x.id) && !b.has(x.id)) out.push(x); // added by us
   return out;
 }

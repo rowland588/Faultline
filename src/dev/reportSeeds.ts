@@ -190,18 +190,34 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       firstTest ??= x;
     }
   });
-  /* PERFORMANCE RUNS (lib/run) — one per machine, met, short and not run
-     yet, with long products: the Performance runs table at its fullest. */
+  /* PERFORMANCE RUNS (lib/run) — one per machine, each MANY PRODUCTS: all
+     met; one run kept the old single way, short; and a run part-way through
+     — met, short, that one run again and met, one still to run — with long
+     products: the Performance runs table, the card and the status page at
+     their fullest. */
+  const LONG_PRODUCTS = ['Finest Red 2kg', 'Jacks Piper 1.25kg', 'Express White 500g', 'Finest Red 2kg — 60 micron perforated film, reel batch 4471, export labels for the Irish market'];
   machines.forEach((a, mi) => {
     const k = mi % 3;
+    const agreed = { rate: 60 + mi, minutes: 60, rejectsMax: 1 };
+    const met = { minutes: 60, packs: 3900 + mi * 60, rejects: 12, speed: 66 + mi, stops: 2 };
+    const short = { minutes: 45, packs: 2300, rejects: 61, speed: 60, stops: 11 };
     T({
       title: k === 1 ? 'Runs with product at the agreed speed' : 'Performance run at the agreed rate',
       assetId: a.id, withWhom: a.oem, plannedFor: iso(-6 + mi),
-      product: `${pick(['Finest Red 2kg', 'Jacks Piper 1.25kg', 'Express White 500g'])} — 60 micron perforated film, reel batch ${4400 + mi}`,
-      runAgreed: { rate: 60 + mi, minutes: 60, rejectsMax: 1 },
-      ...(k === 2 ? { outcome: 'planned' as const } : {
-        ranOn: iso(-6 + mi), outcome: k === 0 ? 'passed' as const : 'failed' as const,
-        run: k === 0 ? { minutes: 60, packs: 3900 + mi * 60, rejects: 12, speed: 66 + mi, stops: 2 } : { minutes: 45, packs: 2300, rejects: 61, speed: 60, stops: 11 },
+      ...(k === 1 ? {
+        product: `${pick(['Finest Red 2kg', 'Jacks Piper 1.25kg', 'Express White 500g'])} — 60 micron perforated film, reel batch ${4400 + mi}`,
+        runAgreed: agreed, ranOn: iso(-6 + mi), outcome: 'failed' as const, run: short,
+      } : k === 0 ? {
+        ranOn: iso(-6 + mi), outcome: 'passed' as const,
+        runs: LONG_PRODUCTS.slice(0, 3).map((product, j) => ({ id: uid(), product, agreed, day: { ...met, packs: met.packs + j * 20 }, ranOn: iso(-6 + mi) })),
+      } : {
+        ranOn: iso(-6 + mi), plannedTo: iso(4 + mi), outcome: 'planned' as const,
+        runs: [
+          { id: uid(), product: LONG_PRODUCTS[3], agreed, day: met, ranOn: iso(-6 + mi) },
+          { id: uid(), product: LONG_PRODUCTS[1], agreed, day: short, ranOn: iso(-6 + mi) },
+          { id: uid(), product: LONG_PRODUCTS[1], agreed, day: met, ranOn: iso(-5 + mi) },
+          { id: uid(), product: `${LONG_PRODUCTS[2]} — the new sleeve, trial reel from the second film supplier`, agreed: { ...agreed, rate: 45 } },
+        ],
       }),
     });
   });
