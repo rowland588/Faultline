@@ -10876,3 +10876,10 @@ button.gt-fixlab small { font-size: 11.5px; }
 .ig-late-by { display: block; color: var(--st-r); font-weight: 800; font-size: 10.5px; line-height: 1.2; }
 .igm-word .ig-late-by { display: inline; font-size: inherit; }
 .gt-late-by { color: var(--st-r); font-weight: 800; }
+
+/* THE HEADINGS INSIDE A CRITICAL OR HIGH-RISK ITEM — "Could cost", "What it
+   means for the business", "Ways round it" — in the item's own colour, so
+   each part of its story stands out (screen and paper alike). */
+.crit-label { display: block; font-size: var(--t-label); font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--st-r); margin-bottom: 1px; }
+.crit-on-stage.is-risk .crit-label, .fp-row.is-risk .crit-label { color: var(--st-a); }
+.crit-impact .crit-label + b { font-weight: 800; }

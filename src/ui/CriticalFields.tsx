@@ -102,11 +102,14 @@ export function CriticalStory({ impact, ways, couldLose, risk }: { impact?: stri
   if (!impact && !ways?.length && !couldLose) return <p className="crit-none sub">Not written yet: {risk ? 'the consequence' : 'what it means for the business'}, and the ways round it.</p>;
   return (
     <div className="crit-story">
-      {!!couldLose && <p className="crit-impact"><b>Could cost {couldLose % 1 ? couldLose : Math.round(couldLose)} h</b> — an estimate, not counted as lost.</p>}
-      {impact && <p className="crit-impact"><b>{risk ? 'The consequence if it happens.' : 'What it means for the business.'}</b> {impact}</p>}
+      {/* Each heading in the item's colour — red under a critical, amber under
+          a high risk — the words under it in ink (Rowland, 7 October: "they
+          need to stand out as well"). */}
+      {!!couldLose && <p className="crit-impact"><b className="crit-label">Could cost</b> <b>{couldLose % 1 ? couldLose : Math.round(couldLose)} h</b> — an estimate, not counted as lost.</p>}
+      {impact && <p className="crit-impact"><b className="crit-label">{risk ? 'The consequence if it happens' : 'What it means for the business'}</b> {impact}</p>}
       {!!ways?.length && (
         <div className="crit-ways-r">
-          <b>Ways round it.</b>
+          <b className="crit-label">Ways round it</b>
           <ul>
             {ways.map(w => <li key={w.id} className={w.agreed ? 'is-agreed' : ''}>{w.what}{w.agreed && <span className="crit-agreed"> · agreed</span>}</li>)}
           </ul>

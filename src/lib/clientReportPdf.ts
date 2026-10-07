@@ -197,17 +197,31 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   const tell = (set: typeof r.critical, title: string, tag: string, colour: string, story: string) => {
     if (!set.open.length && !set.sorted.length) return;
     out.push(label(`${title} · ${set.open.length} open${set.sorted.length ? ` · ${set.sorted.length} sorted` : ''}`, set.open.length ? colour : MUTED));
+    /* THE HEADINGS STAND OUT. Rowland, 7 October: "could cost, ways round it —
+       just plain looking; they need to stand out as well ... a different
+       colour, even if it's a title." Each heading in the item's own colour —
+       red under a critical issue, amber under a high risk — and the words
+       under it in ink, so the eye finds each part of the story. */
+    const head = (t: string) => ({ ...text({ text: t.toUpperCase(), size: 7.5, style: 'bold' as const, colour, indent: 10, after: 1 }), keepWithNext: true });
     set.open.forEach(c => {
       out.push({ ...text({ text: `${tag} — ${c.what}`, size: 10.5, style: 'bold', colour, after: 2 }), keepWithNext: true });
-      out.push({ ...text({ text: c.meta, size: 8.5, colour: MUTED, after: 3 }), keepWithNext: true });
-      if (c.could) out.push(text({ text: `Could cost: ${c.could.replace(/^could cost /, '')}`, size: 9.5, style: 'bold', colour: INK2, indent: 10, after: 3 }));
-      out.push(text({ text: c.impact ? `${story}: ${c.impact}` : `${story}: not written yet.`, size: 9.5, colour: INK2, indent: 10, after: 3 }));
+      out.push({ ...text({ text: c.meta, size: 8.5, colour: MUTED, after: 4 }), keepWithNext: true });
+      if (c.could) {
+        out.push(head('Could cost'));
+        out.push(text({ text: c.could.replace(/^could cost /, ''), size: 9.5, style: 'bold', colour: INK2, indent: 10, after: 4 }));
+      }
+      out.push(head(story));
+      out.push(text({ text: c.impact || 'Not written yet.', size: 9.5, colour: INK2, indent: 10, after: 4 }));
+      out.push(head('Ways round it'));
       if (c.ways.length) {
-        out.push({ ...text({ text: 'Ways round it', size: 9, style: 'bold', colour: INK2, indent: 10, after: 1 }), keepWithNext: true });
-        c.ways.forEach(w => out.push(text({ text: w.agreed ? `${w.what} — agreed` : w.what, size: 9, style: w.agreed ? 'bold' : 'normal', colour: w.agreed ? OK : INK2, indent: 22, bullet: '•', after: 1 })));
-      } else out.push(text({ text: 'Ways round it: none written yet.', size: 9, colour: INK2, indent: 10, after: 1 }));
-      if (c.fix) out.push(text({ text: c.fix, size: 9, colour: INK2, indent: 10, after: 1 }));
-      out.push(text({ text: `Now: ${c.state}`, size: 9, style: 'bold', colour: INK2, indent: 10, after: gap(d, 'm') }));
+        c.ways.forEach((w, k, all) => out.push(text({ text: w.agreed ? `${w.what} — agreed` : w.what, size: 9, style: w.agreed ? 'bold' : 'normal', colour: w.agreed ? OK : INK2, indent: 22, bullet: '•', after: k === all.length - 1 ? 4 : 1 })));
+      } else out.push(text({ text: 'None written yet.', size: 9, colour: INK2, indent: 10, after: 4 }));
+      if (c.fix) {
+        out.push(head('The fix'));
+        out.push(text({ text: c.fix.replace(/^Fix: /, ''), size: 9, colour: INK2, indent: 10, after: 4 }));
+      }
+      out.push(head('Now'));
+      out.push(text({ text: c.state, size: 9, style: 'bold', colour: INK2, indent: 10, after: gap(d, 'm') }));
     });
     set.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 'm') : 1 })));
   };
