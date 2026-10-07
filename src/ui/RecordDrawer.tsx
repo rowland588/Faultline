@@ -541,7 +541,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
              was scrolled to. */
           requestAnimationFrame(() => window.scrollTo(0, 0));
         }}>
-          Everything about it › <span className="sub">files · notes · PDF card{can.remove && kind !== 'fix' ? ' · delete' : ''}</span>
+          Everything about it › <span className="sub">files · notes · PDF card</span>
         </button>
       </div>
 
@@ -551,12 +551,21 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           and the toast's Undo brings it back (useTesting removeTest). The
           problem it came from stays on its stage. Only the owner deletes
           (lib/access); the database keeps it for anyone else. */}
-      {kind === 'fix' && can.remove && (
+      {/* …and a test or a stage, from the same place. Rowland, 7 October: "I
+          can't delete its other tests" — a test planned by hand sits on its
+          machine's row on Commission, and delete was two doors away on its
+          full page. What is written under it goes with it, said first; the
+          toast's Undo brings it all back. Only the owner deletes. */}
+      {can.remove && (
         <div className="rd-blk">
-          <button type="button" className="btn btn-ghost btn-sm cw-del rd-del" onClick={() => {
+          <button type="button" className="btn btn-ghost btn-sm cw-del rd-del" onClick={() => void (async () => {
+            if (kind !== 'fix') {
+              const cost = await tt.testCost(t.id);
+              if (cost.found > 0 && !confirm(`Delete “${t.title}”?\n\n${cost.found} thing${cost.found === 1 ? '' : 's'} written under it go${cost.found === 1 ? 'es' : ''} with it. Undo brings it back for a few seconds.`)) return;
+            }
             void tt.removeTest(t.id);
             onClose();
-          }}>Delete this fix</button>
+          })()}>Delete this {kind === 'fix' ? 'fix' : kind === 'install' ? 'stage' : 'test'}</button>
         </div>
       )}
 
