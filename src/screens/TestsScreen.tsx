@@ -9,6 +9,7 @@
  * grouped by stage, an asset × pack grid with material supersession. The job
  * never had any of those. It has a cycle, and this is the list of times round it.
  */
+import { runLine } from '../lib/run';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
 import { useState } from 'react';
@@ -294,7 +295,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
                       {ranWindow(t)} · {assetName(t.assetId) ?? 'The line'}{t.product ? ` · ${t.product}` : ''}
                     </span>
                     <span className={'tw-res is-' + t.outcome}>
-                      <b>{outcomeWord(t)}</b>{t.result ? ` — ${t.result}` : ''}
+                      <b>{outcomeWord(t)}</b>{[runLine(t, { product: false }), t.result].filter(Boolean).map(x => ` — ${x}`).join('')}
                     </span>
                     {(c.found > 0 || c.fixes > 0 || c.photos > 0) && (
                       <span className="sub">

@@ -192,6 +192,51 @@ function box(d: Doc, x: number, y: number, w: number, h: number, n: string, titl
 
 /** THE LOOP, on one strip: what this followed, and what came out of it. The
  *  thing that was missing — "not any sort of loop, to show the structure". */
+/* THE RUN — a performance run's numbers, the five the screen's board shows
+   (lib/run runTiles), on a strip under the plan and the day. Rowland, 7
+   October: "people ask how fast did we run, what did we net." Only a number
+   that missed what was agreed is red; one that met it gets the quiet green;
+   the rest are ink. What the numbers say is printed under them, in words. */
+/** "Nothing agreed in advance" — unless the run's numbers were: then the
+ *  expectation box says it holds nothing more than them (the strip below). */
+const noPlanOf = (c: TrialCard): string => (c.run?.agreed ? 'Nothing more than the run\u2019s numbers, below' : wordsOf(c).noPlan);
+const RUN_STRIP_H = { empty: 30, full: 80 };
+function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number {
+  if (!c.run) return y;
+  const { tiles, agreed, say, meets, ran } = c.run;
+  if (!ran) {
+    const h = RUN_STRIP_H.empty;
+    d.setFillColor(...wash(BRAND, 0.05)); d.roundedRect(x, y, w, h, 5, 5, 'F');
+    setFont(d, 6.5, 'bold', ACCENT); d.text('THE RUN', x + 12, y + 18);
+    setFont(d, 8.5, 'normal', INK2);
+    d.text(san(`Not run yet. ${agreed ? `Agreed: ${agreed}.` : 'No rate agreed yet.'}`), x + 62, y + 18);
+    return y + h + 10;
+  }
+  /* What the numbers say wraps and grows the strip — nothing on this card is cut. */
+  setFont(d, 8, 'bold', INK2);
+  const sayLines = say ? d.splitTextToSize(san(say), w - 24) as string[] : [];
+  const h = RUN_STRIP_H.full - (say ? 0 : 12) + Math.max(0, sayLines.length - 1) * 10;
+  d.setFillColor(...wash(BRAND, 0.05)); d.roundedRect(x, y, w, h, 5, 5, 'F');
+  setFont(d, 6.5, 'bold', ACCENT); d.text('THE RUN', x + 12, y + 12);
+  if (agreed) { setFont(d, 7.5, 'normal', MUTED); d.text(san(`Agreed: ${agreed}`), x + w - 12, y + 12, { align: 'right' }); }
+  const gap = 6, cw = (w - 24 - gap * (tiles.length - 1)) / tiles.length;
+  tiles.forEach((t, i) => {
+    const cx = x + 12 + i * (cw + gap), cy = y + 18;
+    const col = t.tone === 'short' ? DANGER : t.tone === 'met' ? OK : INK2;
+    d.setFillColor(...(t.tone === 'short' ? wash(DANGER, 0.1) : t.tone === 'met' ? wash(OK, 0.08) : [255, 255, 255] as [number, number, number]));
+    d.roundedRect(cx, cy, cw, 42, 3, 3, 'F');
+    if (t.tone === 'short') { d.setDrawColor(DANGER); d.setLineWidth(1.2); d.roundedRect(cx, cy, cw, 42, 3, 3, 'S'); }
+    setFont(d, 6.5, 'bold', MUTED); d.text(t.label.toUpperCase(), cx + 7, cy + 10);
+    setFont(d, i === 0 ? 15 : 13, 'bold', col);
+    const v = `${t.value}${t.unit && t.value !== '\u2014' ? ` ${t.unit}` : ''}`;
+    d.text(san(v), cx + 7, cy + 26);
+    setFont(d, 7, 'normal', t.tone === 'short' ? DANGER : MUTED);
+    d.text(fit(d, san(t.sub), cw - 12), cx + 7, cy + 37);
+  });
+  if (sayLines.length) { setFont(d, 8, 'bold', meets ? OK : DANGER); d.text(sayLines, x + 12, y + 72, { lineHeightFactor: 10 / 8 }); }
+  return y + h + 10;
+}
+
 function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number {
   if (!c.follows && c.ledTo.length === 0) return y;
   const bits: string[] = [];
@@ -394,7 +439,7 @@ function stackedBoxes(d: Doc, c: TrialCard, x: number, y: number, w: number, bot
     return yy + h + 12;
   };
   let yy = one(y, '1', words.plan, [
-    [words.expectation, c.passesIf ?? '', { empty: words.noPlan }],
+    [words.expectation, c.passesIf ?? '', { empty: noPlanOf(c) }],
     ...(c.kind === 'test' ? [['Product we planned to run', c.plannedProduct ?? '', { size: 8.5 }] as [string, string, { size: number }]] : []),
   ], [`Planned for ${span(c.plannedFor, c.plannedTo) || '—'}`, MUTED]);
   yy = one(yy, '2', c.kind === 'test' ? 'What actually happened' : words.day, [
@@ -438,7 +483,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const sideBySide = (() => {
     const hw = half - 28;
     const need = (fw2: number) => 25 + 12 + Math.max(
-      fieldHeight(d, fw2, c.passesIf ?? '', { empty: wordsOf(c).noPlan }) + (c.kind === 'test' ? 8 + fieldHeight(d, fw2, c.plannedProduct ?? '', { size: 8.5 }) : 0),
+      fieldHeight(d, fw2, c.passesIf ?? '', { empty: noPlanOf(c) }) + (c.kind === 'test' ? 8 + fieldHeight(d, fw2, c.plannedProduct ?? '', { size: 8.5 }) : 0),
       fieldHeight(d, fw2, c.result ?? '', { empty: 'Nothing written down yet' }) + (c.kind === 'test' ? 8 + fieldHeight(d, fw2, c.product ?? '', { size: 8.5 }) : 0)) + 26;
     return planTop + need(hw) <= bottom - 80;
   })();
@@ -447,7 +492,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   }
   const fw = half - 28;
   const planNeeds = 12 + fieldHeight(d, fw, c.passesIf ?? '',
-    { empty: wordsOf(c).noPlan })
+    { empty: noPlanOf(c) })
     + (c.kind === 'test' ? 8 + fieldHeight(d, fw, c.plannedProduct ?? '', { size: 8.5 }) : 0);
   const dayNeeds = 12 + fieldHeight(d, fw, c.result ?? '', { empty: 'Nothing written down yet' })
     + (c.kind === 'test' ? 8 + fieldHeight(d, fw, c.product ?? '', { size: 8.5 }) : 0);
@@ -459,7 +504,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   if (sideBySide) {
   let by = box(d, M, y, half, boxH, '1', w.plan) + 12;
   by = field(d, M + 14, by, fw, w.expectation, c.passesIf ?? '',
-    { empty: wordsOf(c).noPlan }) + 8;
+    { empty: noPlanOf(c) }) + 8;
   if (c.kind === 'test') {
     field(d, M + 14, by, fw, 'Product we planned to run', c.plannedProduct ?? '', { size: 8.5 });
   }
@@ -478,6 +523,8 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
 
   y = planTop + boxH + 12;
   }
+  if (c.run && y + RUN_STRIP_H.full + 30 > bottom) { d.addPage(); y = head(d, c, meta, 2) + 14; }
+  y = runStrip(d, c, M, y, CW);
   y = loopStrip(d, c, M, y, CW);
 
   /* ==================== WHAT WE FOUND, AND WHAT WE DO NEXT ==================

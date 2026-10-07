@@ -14,6 +14,7 @@
  *
  * Every square is an ordinary test (lib/commission reads them; nothing is
  * stored), so it opens in the same drawer and prints on the same report. */
+import { runShort } from '../lib/run';
 import { useState } from 'react';
 import { deleteTest } from '../db';
 import { commissionGrid, programsToProve, programsWords, type CommissionRow, type TestCell } from '../lib/commission';
@@ -123,7 +124,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                       : void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`))}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{columns[i]}</span>
-                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}</span>
+                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && runShort(c.test) ? ` · ${runShort(c.test)}` : ''}</span>
                   </button>
                 ))}
                 {r.programs && (
@@ -166,7 +167,12 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                   <td key={columns[i]}>
                     {c ? (
                       <button className={'ig-cell ' + cellClass(c)} title={`${columns[i]} — ${c.word}`}
-                        onClick={() => openRecord(project.id, c.test.id)}>{c.word}</button>
+                        onClick={() => openRecord(project.id, c.test.id)}>
+                        {c.word}
+                        {/* A run at a rate says what it netted against what
+                            was agreed, on its square (lib/run). */}
+                        {runShort(c.test) && <span className="cg-run">{runShort(c.test)}</span>}
+                      </button>
                     ) : can.edit ? (
                       <button className="ig-cell is-empty" aria-label={`Add “${columns[i]}” to ${rowName(r.asset)}`}
                         onClick={() => void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`)}>+</button>

@@ -227,6 +227,26 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     result: '±0.9 g over 200', outcome: 'passed',
     sort: 3, createdAt: t, updatedAt: t,
   };
+  /* THE PERFORMANCE RUNS (lib/run) — the line accepted on its numbers: one
+     that met every agreed number, one that netted short. */
+  const perf: Test = {
+    id: uid(), projectId: proj.id, title: 'Performance run at the agreed rate', assetId: wrapper.id,
+    plannedFor: iso(-1), ranOn: iso(-1), withWhom: 'Ilapak UK',
+    planned: 'Finest Red 2kg', product: 'Finest Red 2kg',
+    runAgreed: { rate: 60, minutes: 60, rejectsMax: 1 },
+    run: { minutes: 60, packs: 3720, rejects: 14, speed: 64, stops: 3 },
+    result: 'Held 64 on the controller; one film splice stop at 35 min.', outcome: 'passed',
+    sort: 5, createdAt: t, updatedAt: t,
+  };
+  const speedRun: Test = {
+    id: uid(), projectId: proj.id, title: 'Runs with product at the agreed speed', assetId: weigher.id,
+    plannedFor: iso(-3), ranOn: iso(-3), withWhom: 'Ishida Europe',
+    planned: 'Jacks White 2kg', product: 'Jacks White 2kg',
+    runAgreed: { rate: 60, minutes: 30, rejectsMax: 1 },
+    run: { minutes: 30, packs: 1710, rejects: 31, speed: 60, stops: 2 },
+    outcome: 'failed',
+    sort: 6, createdAt: t, updatedAt: t,
+  };
   const changeover: Test = {
     id: uid(), projectId: proj.id, title: 'Changeover 2kg → 1.25kg', assetId: wrapper.id,
     plannedFor: iso(-6), ranOn: iso(-6), withWhom: 'Ilapak UK',
@@ -243,7 +263,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     fromTestId: seal.id, outcome: 'planned',
     sort: 5, createdAt: t, updatedAt: t,
   };
-  for (const test of [estop, seal, weight, changeover, retest]) await putTest(test);
+  for (const test of [estop, seal, weight, perf, speedRun, changeover, retest]) await putTest(test);
 
   const item = (testId: string, kind: TestItem['kind'], what: string, extra: Partial<TestItem> = {}): TestItem =>
     ({ id: uid(), projectId: proj.id, testId, kind, what, sort: 1, createdAt: t, updatedAt: t, ...extra });
@@ -297,6 +317,8 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     step('Operators and engineers trained', 22, { gate: 'handover', assetId: wrapper.id, withWhom: 'Ilapak UK', plannedFor: iso(8) }),
   ]) await putTest(g);
   await putTestItem(item(airDrop.id, 'found', 'Regulator missing from the kit', { owner: 'Ishida Europe', sort: 1 }));
+  /* The short run's issue — what is written under it is the run's "issues". */
+  await putTestItem(item(speedRun.id, 'found', 'Light packs rejected at the start of every reel — 31 in the half hour', { owner: 'Ishida Europe', sort: 1 }));
   /* PARTS OF THE PLAN on a stage (ui/StageParts) — Rowland's own, written on
      Programs loaded, with a day; and one already done. The plan draws them as
      branches under the stage, on screen and on paper. */

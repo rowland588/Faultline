@@ -18,6 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
+import { agreedWords, isRunTest, numbersSay, readRun, runTiles, type RunReading, type RunTile } from './run';
 import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
@@ -67,6 +68,11 @@ export interface TrialCard {
   ranTo?: string;
   product?: string;
   result?: string;
+
+  /** A RUN AT A RATE (lib/run): the five figures the screen's board shows,
+   *  what was agreed, and what the numbers say — the card prints them as a
+   *  strip under the plan and the day. Absent on any other test. */
+  run?: { tiles: RunTile[]; agreed: string; say: string; meets?: boolean; ran: boolean };
 
   findings: CardFinding[];
   /** written · actioned · to decide. */
@@ -130,6 +136,10 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
     ranTo: test.ranTo,
     product: test.product ?? test.planned,
     result: test.result,
+
+    ...(isRunTest(test) ? { run: ((r: RunReading) => ({
+      tiles: runTiles(r), agreed: agreedWords(r.agreed), say: numbersSay(r), ran: r.ran, ...(r.meets != null ? { meets: r.meets } : {}),
+    }))(readRun(test)) } : {}),
 
     findings: findings.map(f => {
       /* What it became, when it became something — a fix with its own page,

@@ -53,6 +53,8 @@ import { SayIt, SayStep } from './RecordSay';
 import { movedLater, overlapOf, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
+import { isRunTest } from '../lib/run';
+import { RunBlock } from './RunPanel';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -316,6 +318,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         );
       })}
       <p className="rd-sub">{machine} · {t.withWhom || 'nobody named'}</p>
+
+      {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
+          it ran, what it netted, the rejects, against what was agreed. */}
+      {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)} />}
 
       {/* THE FLOOR'S ACTIONS, first — the same buttons the square's sheet and
           the record's page had, in the face's own words. A client reads. */}

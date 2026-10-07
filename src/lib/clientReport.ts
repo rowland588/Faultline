@@ -21,6 +21,7 @@
  * Notes are never on it: they are private preparation.
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
+import { agreedWords, isRunTest, num, numbersSay, pct, readRun, runLine, runTiles } from './run';
 import type { MediaPin, Project } from '../types';
 import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
@@ -70,7 +71,32 @@ export interface GateSection {
   /** Set up only: the programs. */
   programs?: { proved: number; total: number; notYet: { what: string; machine?: string; state: string }[] };
   /** Commission only: the tests, in the order they were planned. */
-  tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string }[];
+  tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string;
+    /** A run at a rate, in one line (lib/run runLine). */
+    run?: string }[];
+  /** Commission only: THE PERFORMANCE RUNS — the latest attempt of each run at
+   *  a rate, with its numbers, first in the section. Rowland, 7 October: "this
+   *  is my time of acceptance ... people ask how fast did we run, what did we
+   *  net." */
+  runs?: RunRow[];
+}
+
+/** One performance run as the client reads it (lib/run). */
+export interface RunRow {
+  title: string;
+  machine?: string;
+  product?: string;
+  when: string;
+  /** The figures, as the board shows them — "58.4 ppm", "—" when not measured. */
+  net: string; agreed: string; speed: string; rejects: string; length: string;
+  /** Net rate met · short · nothing agreed to judge it on. */
+  netTone: 'met' | 'short' | '';
+  rejectsTone: 'met' | 'short' | '';
+  outcome: string;
+  tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late';
+  /** What the numbers say, in words — empty when they cannot say. */
+  say: string;
+  meets?: boolean;
 }
 
 /** One step's account, as the client reads it under its gate. */
@@ -343,7 +369,27 @@ export function clientReport(x: ClientReportInput): ClientReport {
       tone: t.outcome === 'passed' ? 'done' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
         : (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead',
       result: t.result, passesIf: t.passesIf,
+      /* A run's numbers are in the Performance runs table above; an earlier
+         attempt, not in that table, carries them on its own line. */
+      ...(runLine(t) && !(isRunTest(t) && now.includes(t)) ? { run: runLine(t, { product: false }) } : {}),
     })),
+    ...(() => {
+      const runs = now.filter(t => isRunTest(t)).map((t): RunRow => {
+        const r = readRun(t), tiles = runTiles(r);
+        const tone = t.outcome === 'passed' ? 'done' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
+          : (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead';
+        const fig = (i: number) => (tiles[i].value === '\u2014' ? '\u2014' : `${tiles[i].value}${tiles[i].unit ? ` ${tiles[i].unit}` : ''}`);
+        return {
+          title: t.title, machine: machine(t.assetId), product: t.product ?? t.planned,
+          when: niceDay(t.ranOn ?? t.plannedFor) || 'no date',
+          net: fig(0), speed: fig(1), rejects: r.day.rejects != null ? `${num(r.day.rejects)}${r.rejectPct != null ? ` (${pct(r.rejectPct)})` : ''}` : '\u2014', length: fig(4),
+          agreed: agreedWords(r.agreed) || 'nothing agreed yet',
+          netTone: tiles[0].tone, rejectsTone: tiles[3].tone,
+          outcome: hasRun(t) ? outcomeWord(t) : 'planned', tone, say: numbersSay(r), ...(r.meets != null ? { meets: r.meets } : {}),
+        };
+      });
+      return runs.length ? { runs } : {};
+    })(),
   };
 
   const handover = stepGate('handover');

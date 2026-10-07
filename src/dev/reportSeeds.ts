@@ -190,6 +190,21 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       firstTest ??= x;
     }
   });
+  /* PERFORMANCE RUNS (lib/run) — one per machine, met, short and not run
+     yet, with long products: the Performance runs table at its fullest. */
+  machines.forEach((a, mi) => {
+    const k = mi % 3;
+    T({
+      title: k === 1 ? 'Runs with product at the agreed speed' : 'Performance run at the agreed rate',
+      assetId: a.id, withWhom: a.oem, plannedFor: iso(-6 + mi),
+      product: `${pick(['Finest Red 2kg', 'Jacks Piper 1.25kg', 'Express White 500g'])} — 60 micron perforated film, reel batch ${4400 + mi}`,
+      runAgreed: { rate: 60 + mi, minutes: 60, rejectsMax: 1 },
+      ...(k === 2 ? { outcome: 'planned' as const } : {
+        ranOn: iso(-6 + mi), outcome: k === 0 ? 'passed' as const : 'failed' as const,
+        run: k === 0 ? { minutes: 60, packs: 3900 + mi * 60, rejects: 12, speed: 66 + mi, stops: 2 } : { minutes: 45, packs: 2300, rejects: 61, speed: 60, stops: 11 },
+      }),
+    });
+  });
   // One test with everything long — the card that has to take it.
   const longest = T({
     title: 'Full line rate trial at 65 ppm on the 2kg Finest Red bag with the new perforation plan and the upgraded jaw heater fitted',

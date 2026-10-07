@@ -32,6 +32,7 @@
  * everything went to plan.
  */
 import type { ID, MediaRef } from '../types';
+import type { RunAgreed, RunDay } from './run';
 
 /** A file somebody was sent — an OEM report, a spec, a drawing. The bytes ride
  *  the same blob store as a snag photo, so it opens on the floor with no signal. */
@@ -392,6 +393,14 @@ export interface Test {
    *  end result. */
   result?: string;
   outcome: Outcome;
+
+  /* ---- a run at a rate, in numbers (lib/run) ---- */
+  /** WHAT THE RUN IS JUDGED ON — the rate, how long, the most rejects —
+   *  agreed before the day. Kept by the owner like a written passesIf. */
+  runAgreed?: RunAgreed;
+  /** WHAT THE DAY DID — minutes run, packs made, rejects, the speed it ran
+   *  at, minutes stood. The net rate and reject % are worked out, not kept. */
+  run?: RunDay;
 
   /* ---- what is attached ---- */
   media?: MediaRef[];
@@ -821,6 +830,9 @@ export function nextFrom(t: Test, mkId: () => string, at: number, title?: string
        observation that caused it, which is what `problem` carries in. */
     planned: fix ? undefined : (t.product ?? t.planned),
     passesIf: fix ? problem?.trim() || undefined : t.passesIf,
+    /* A re-run of a performance run is judged on the same agreed numbers
+       (lib/run); its own day starts empty. */
+    ...(!fix && t.runAgreed ? { runAgreed: { ...t.runAgreed } } : {}),
     withWhom: t.withWhom,
     fromTestId: t.id,
     outcome: 'planned',

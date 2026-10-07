@@ -58,6 +58,8 @@ import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
 import { SharedLinks } from '../ui/ShareLink';
 import { mayWriteAgreement, type Can } from '../lib/access';
+import { isRunTest } from '../lib/run';
+import { RunAgreedFields, RunBoard, RunDayFields } from '../ui/RunPanel';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -67,7 +69,7 @@ const window_ = (from?: string, to?: string): string => (!from ? '' : to && to >
 
 type TT = ReturnType<typeof useTesting>;
 /** The parts of the card, each with its own Edit. */
-type Part = 'plan' | 'day' | 'found';
+type Part = 'plan' | 'day' | 'found' | 'run';
 
 /** The boxes that sit in "1 · What we planned" — a voice note filling one opens it. */
 const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
@@ -216,6 +218,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   );
   const one = words.one.toLowerCase();
   const noun = kind === 'install' ? 'step' : 'test';
+  /* A RUN AT A RATE (lib/run) — the performance run the line is accepted on:
+     its numbers lead the page, above the plan and the day. */
+  const isRun = isRunTest(test);
 
   return (
     <div className="wrap pace cm-screen tc-screen">
@@ -243,11 +248,34 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         window.setTimeout(() => document.querySelector('.is-filled')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
       }} />}
 
+      {/* THE RUN — the numbers it is accepted on (ui/RunPanel). Rowland, 7
+          October: "people ask how fast did we run, what did we net — speed,
+          packs per minute — issues, status." The board reads them; Edit opens
+          what was agreed and what the machine did, in place. The verdict is
+          asked for here, beside what the numbers say. */}
+      {isRun && (
+        <Block title="The run" sub="the numbers it is accepted on" action={edit('run')}>
+          {editing === 'run' ? (
+            <div className="tc-form">
+              <RunAgreedFields key={test.id} t={test} can={can} atOpen={test.runAgreed} patch={fn => void tt.patchTest(test.id, fn)} />
+              <RunDayFields t={test} patch={fn => void tt.patchTest(test.id, fn)} />
+            </div>
+          ) : <RunBoard t={test} />}
+          {can.edit && (needsVerdict(test) || editing === 'run') && <>
+            {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
+            <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />
+          </>}
+        </Block>
+      )}
+
       <div className={'tc-two' + (editing === 'plan' || editing === 'day' ? ' is-editing' : '')}>
         {/* 1 · THE PLAN — read as the card prints it; Edit opens its boxes. */}
         <Block n="1" title={words.plan} action={edit('plan')}>
           {editing !== 'plan' ? <>
-            <Field label={words.expectation} text={c.passesIf} empty={words.noPlan} />
+            {/* A run's agreed numbers are part of the plan: said here in words,
+                so "nothing agreed in advance" is never printed over them. */}
+            {isRun && <Field label="The run is judged on" text={c.run?.agreed} empty="No rate agreed yet — Edit the run above" />}
+            <Field label={words.expectation} text={c.passesIf} empty={isRun && c.run?.agreed ? 'Nothing more than the run’s numbers' : words.noPlan} />
             {c.kind === 'test' && <Field label="Product we planned to run" text={c.plannedProduct} />}
             <div className="tc-fields">
               <Field label="Booked for" text={window_(c.plannedFor, c.plannedTo)} empty="No day set" />
@@ -337,16 +365,16 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             {/* THE VERDICT IS ASKED FOR where it is read, not behind Edit: once
                 the day or a result is on the record and nobody has said how it
                 went, the question leads (lib/testing needsVerdict). */}
-            {can.edit && needsVerdict(test) && <>
+            {can.edit && needsVerdict(test) && !isRun && <>
               <span className="tw-ask">{verdictQuestion(kind)}</span>
               <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />
             </>}
             <Field label={words.happened} text={verdictLine(c)} empty="Nothing written down yet" />
-            {c.kind === 'test' && <Field label="Product we ran" text={c.product} />}
+            {c.kind === 'test' && !isRun && <Field label="Product we ran" text={c.product} />}
             <Field label="Ran on" text={window_(c.ranOn, c.ranTo)} empty="Not run yet" />
           </> : (
           <div className="tc-form">
-            {kind === 'test' && (
+            {kind === 'test' && !isRun && (
               <label className={'cw-f' + hl('product')}><span>Product we ran</span>
                 <DraftField value={test.product ?? ''} placeholder={test.planned ?? 'what went down the machine'}
                   onSave={v => save({ product: v.trim() || undefined })} /></label>

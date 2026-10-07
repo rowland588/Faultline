@@ -382,12 +382,61 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       })));
     }
 
+    /* THE PERFORMANCE RUNS — what it netted against what was agreed, first
+       in Commission: the numbers the line is accepted on (lib/run). Rowland,
+       7 October: "people ask how fast did we run, what did we net." Only a
+       figure that missed what was agreed is red; one that met it is green. */
+    if (s.runs && s.runs.length) {
+      out.push(text({ text: 'Performance runs', size: S.h2, style: 'bold', before: 4, after: 4 }));
+      const nameW = 168, verdictW = 62;
+      const cols = ['Net rate', 'Ran at', 'Rejects', 'Ran for'];
+      const colW = (f: Frame) => (f.w - nameW - verdictW) / cols.length;
+      const runParts = (f: Frame, r: NonNullable<typeof s.runs>[number]) => ({
+        name: wrap(f.doc, r.title, nameW - 8, 9, 'bold'),
+        sub: wrap(f.doc, [r.machine, r.product, r.when].filter(Boolean).join(' · '), nameW - 8, 8),
+        agreed: wrap(f.doc, `Agreed: ${r.agreed}`, f.w - nameW - 6, 8),
+        say: r.say ? wrap(f.doc, r.say, f.w - nameW - 6, 8, 'bold') : [],
+      });
+      out.push(rows({
+        /* The column heads go with the rows onto a second page. */
+        header: { h: () => 16, draw: (f, y) => {
+          font(f.doc, 7, 'bold', MUTED);
+          cols.forEach((c, i) => f.doc.text(c.toUpperCase(), f.x + nameW + i * colW(f), y + 11));
+          f.doc.text('VERDICT', f.x + f.w - verdictW + 6, y + 11);
+        } },
+        rows: [
+          ...s.runs.map(r => ({
+            h: (f: Frame) => {
+              const p = runParts(f, r);
+              return 8 + Math.max(p.name.length * 11 + p.sub.length * 10, 28 + p.agreed.length * 10 + p.say.length * 10) + 6;
+            },
+            draw: (f: Frame, y: number) => {
+              const p = runParts(f, r);
+              f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+              font(f.doc, 9, 'bold'); f.doc.text(p.name, f.x, y + 13);
+              font(f.doc, 8, 'normal', MUTED); f.doc.text(p.sub, f.x, y + 13 + p.name.length * 11);
+              const figs: [string, 'met' | 'short' | ''][] = [[r.net, r.netTone], [r.speed, ''], [r.rejects, r.rejectsTone], [r.length, '']];
+              figs.forEach(([v, tone], i) => {
+                font(f.doc, i === 0 ? 11 : 9.5, 'bold', tone === 'short' ? DANGER : tone === 'met' ? OK : INK2);
+                f.doc.text(san(v), f.x + nameW + i * colW(f), y + 15);
+              });
+              let ty = y + 15 + 13;
+              font(f.doc, 8, 'normal', MUTED); f.doc.text(p.agreed, f.x + nameW, ty); ty += p.agreed.length * 10;
+              if (p.say.length) { font(f.doc, 8, 'bold', r.meets ? OK : DANGER); f.doc.text(p.say, f.x + nameW, ty); }
+              const tc = r.tone === 'done' ? 'done' : r.tone === 'failed' || r.tone === 'late' ? 'late' : r.tone === 'booked' ? 'going' : 'ahead';
+              pillPath(f.doc, f.x + f.w - verdictW + 4, y + 5, verdictW - 4, 12, tc, r.outcome);
+            },
+          })),
+        ],
+      }));
+    }
+
     if (s.tests && s.tests.length) {
       const sideW = 150;
       const parts = (f: Frame, t: NonNullable<typeof s.tests>[number]) => ({
         title: wrap(f.doc, t.title, f.w - sideW, 9.5, 'bold'),
         agreed: t.passesIf ? wrap(f.doc, `Passes if: ${t.passesIf}`, f.w - sideW, 8.5) : [],
-        res: t.result ? wrap(f.doc, `Result: ${t.result}`, f.w - sideW, 8.5) : [],
+        res: t.run || t.result ? wrap(f.doc, `Result: ${[t.run, t.result].filter(Boolean).join('. ')}`, f.w - sideW, 8.5) : [],
         side: wrap(f.doc, [t.machine, t.when].filter(Boolean).join(' · '), 84, 8),
       });
       out.push(rows({
