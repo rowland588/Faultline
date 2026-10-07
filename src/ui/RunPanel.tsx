@@ -6,8 +6,8 @@
  * One board, read the same on the test's page and in its drawer: the net
  * rate against what was agreed (the number everybody asks for, so the biggest),
  * the speed it ran at, the packs made, the rejects, how long it ran — and what
- * those numbers say about the verdict, in words. The boxes that fill it come
- * out where it is worked on (Edit), never on every board at once.
+ * those numbers say about the verdict, in words. The boxes that fill it are
+ * open until the first numbers are in, then fold behind one button.
  *
  * Colour follows the house rules: only a number that missed what was agreed
  * carries red; met is a quiet green wash; nothing agreed is plain ink. */
@@ -20,25 +20,24 @@ import { todayISO } from '../lib/weeks';
 
 type Patch = (fn: (cur: Test) => Partial<Test>) => void;
 
-/** The board. `compact` for the drawer: the same tiles, smaller. */
+/** The board. `compact` for the drawer: the same tiles, smaller. Always
+ *  the five figures — a dash where nothing is in yet — so the shape of the
+ *  run is on the screen before the day: Rowland, 7 October, could not find
+ *  it behind a line that only said "not run yet". */
 export function RunBoard({ t, compact }: { t: Test; compact?: boolean }) {
   const r = readRun(t);
   const product = t.product ?? t.planned;
   const agreed = agreedWords(r.agreed);
-  if (!r.ran) {
-    return (
-      <div className={'run-board is-empty' + (compact ? ' is-compact' : '')}>
-        <p className="run-none">
-          <b>{t.ranOn || t.outcome !== 'planned' ? 'No run numbers kept yet.' : 'Not run yet.'}</b> {agreed ? <>Agreed: {agreed}.</> : 'No rate agreed yet.'}
-          {product && <> Product: {product}.</>}
-        </p>
-      </div>
-    );
-  }
   const say = numbersSay(r);
   return (
     <div className={'run-board' + (compact ? ' is-compact' : '')}>
-      {product && <p className="run-product"><span>Product running</span> <b>{product}</b></p>}
+      {product && <p className="run-product"><span>Product</span> <b>{product}</b></p>}
+      {!r.ran && (
+        <p className="run-none">
+          <b>{t.ranOn || t.outcome !== 'planned' ? 'No run numbers in yet.' : 'Not run yet.'}</b>{' '}
+          {agreed ? <>Agreed: {agreed}.</> : 'No rate agreed yet.'}
+        </p>
+      )}
       <div className="run-tiles">
         {runTiles(r).map((x, i) => (
           <div key={x.label} className={'run-tile' + (i === 0 ? ' is-lead' : '') + (x.tone ? ` is-${x.tone}` : '')}>
@@ -76,11 +75,11 @@ export function RunAgreedFields({ t, can, patch, atOpen }: { t: Test; can: Can; 
     <div className="run-form cw-f-wide">
       <span className="run-form-h">The run is judged on <span className="cw-f-opt">agreed before the day</span></span>
       <label className="cw-f run-f"><span>Net rate <span className="cw-f-opt">ppm</span></span>
-        <DraftNumber className="text-input" value={a.rate} placeholder="60" label="Agreed net rate, packs a minute" onSave={set('rate')} /></label>
+        <DraftNumber className="text-input" value={a.rate} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={set('rate')} /></label>
       <label className="cw-f run-f"><span>For <span className="cw-f-opt">minutes</span></span>
-        <DraftNumber className="text-input" value={a.minutes} placeholder="60" label="Agreed run length, minutes" onSave={set('minutes')} /></label>
+        <DraftNumber className="text-input" value={a.minutes} placeholder="e.g. 60" label="Agreed run length, minutes" onSave={set('minutes')} /></label>
       <label className="cw-f run-f"><span>Rejects at most <span className="cw-f-opt">%</span></span>
-        <DraftNumber className="text-input" value={a.rejectsMax} placeholder="1" label="Most rejects allowed, per cent" onSave={set('rejectsMax')} /></label>
+        <DraftNumber className="text-input" value={a.rejectsMax} placeholder="e.g. 1" label="Most rejects allowed, per cent" onSave={set('rejectsMax')} /></label>
     </div>
   );
 }
@@ -101,33 +100,36 @@ export function RunDayFields({ t, patch }: { t: Test; patch: Patch }) {
         <DraftField value={t.product ?? ''} placeholder={t.planned ?? 'what went down the machine'}
           onSave={v => patch(() => ({ product: v.trim() || undefined }))} /></label>
       <label className="cw-f run-f"><span>Ran for <span className="cw-f-opt">minutes</span></span>
-        <DraftNumber className="text-input" value={d.minutes} placeholder="60" label="Ran for, minutes" onSave={set('minutes')} /></label>
+        <DraftNumber className="text-input" value={d.minutes} placeholder="e.g. 60" label="Ran for, minutes" onSave={set('minutes')} /></label>
       <label className="cw-f run-f"><span>Packs made <span className="cw-f-opt">counter</span></span>
-        <DraftNumber className="text-input" value={d.packs} placeholder="3600" label="Packs made" onSave={set('packs')} /></label>
+        <DraftNumber className="text-input" value={d.packs} placeholder="e.g. 3600" label="Packs made" onSave={set('packs')} /></label>
       <label className="cw-f run-f"><span>Rejects</span>
-        <DraftNumber className="text-input" value={d.rejects} placeholder="0" label="Rejects" onSave={set('rejects')} /></label>
+        <DraftNumber className="text-input" value={d.rejects} placeholder="e.g. 0" label="Rejects" onSave={set('rejects')} /></label>
       <label className="cw-f run-f"><span>Ran at <span className="cw-f-opt">ppm, machine speed</span></span>
-        <DraftNumber className="text-input" value={d.speed} placeholder="62" label="Ran at, packs a minute" onSave={set('speed')} /></label>
+        <DraftNumber className="text-input" value={d.speed} placeholder="e.g. 62" label="Ran at, packs a minute" onSave={set('speed')} /></label>
       <label className="cw-f run-f"><span>Stood <span className="cw-f-opt">minutes, if it stopped</span></span>
-        <DraftNumber className="text-input" value={d.stops} placeholder="0" label="Stood, minutes" onSave={set('stops')} /></label>
+        <DraftNumber className="text-input" value={d.stops} placeholder="e.g. 0" label="Stood, minutes" onSave={set('stops')} /></label>
     </div>
   );
 }
 
-/** THE RUN IN THE DRAWER — the board, and one button that opens the boxes
- *  where the run is being worked on, on the floor. */
+/** THE RUN IN THE DRAWER — the board, and under it the boxes, OPEN until
+ *  the first numbers are in: on the floor the job is to put them in, not to
+ *  find where they go. The board above them works the net rate out as they
+ *  are typed. Once there are numbers, the boxes fold behind one button. */
 export function RunBlock({ t, can, patch }: { t: Test; can: Can; patch: Patch }) {
-  const [open, setOpen] = useState(false);
+  /* Decided when the drawer opens, and kept: the first number typed must not
+     fold the boxes away under the fingers. */
+  const [open, setOpen] = useState(() => can.edit && !readRun(t).ran);
   const [atOpen, setAtOpen] = useState<RunAgreed | undefined>(t.runAgreed);
   return (
     <div className="rd-blk run-blk">
       <small>The run</small>
-      {open
-        ? <div className="tc-form"><RunAgreedFields t={t} can={can} atOpen={atOpen} patch={patch} /><RunDayFields t={t} patch={patch} /></div>
-        : <RunBoard t={t} compact />}
+      <RunBoard t={t} compact />
+      {open && <div className="tc-form run-boxes"><RunAgreedFields t={t} can={can} atOpen={atOpen} patch={patch} /><RunDayFields t={t} patch={patch} /></div>}
       {can.edit && (
-        <button type="button" className={open ? 'btn btn-sm' : 'rd-link'} onClick={() => { setAtOpen(t.runAgreed); setOpen(o => !o); }}>
-          {open ? 'Done' : readRun(t).ran ? 'Change the run numbers ›' : 'Put the run numbers in ›'}
+        <button type="button" className={open ? 'btn btn-sm' : 'btn btn-primary btn-sm'} onClick={() => { setAtOpen(t.runAgreed); setOpen(o => !o); }}>
+          {open ? 'Done' : readRun(t).ran ? 'Change the run numbers' : 'Put the run numbers in'}
         </button>
       )}
     </div>

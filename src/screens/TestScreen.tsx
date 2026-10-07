@@ -58,7 +58,7 @@ import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
 import { SharedLinks } from '../ui/ShareLink';
 import { mayWriteAgreement, type Can } from '../lib/access';
-import { isRunTest } from '../lib/run';
+import { isRunTest, readRun } from '../lib/run';
 import { RunAgreedFields, RunBoard, RunDayFields } from '../ui/RunPanel';
 
 const kb = (b?: number): string =>
@@ -105,6 +105,23 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const [meeting, setMeeting] = useState(false);
   /* A planned window waiting for its reason — see `redate` below. */
   const [moving, setMoving] = useState<Pick<Test, 'plannedFor' | 'plannedTo'> | null>(null);
+  /* A RUN WITH NO NUMBERS YET OPENS WITH ITS BOXES OUT (ui/RunPanel) — once,
+     when the page first has the test; the first number typed does not fold
+     them away. What was agreed at that moment is what a team member's
+     first numbers are judged against (lib/access). */
+  const runOpened = useRef<string | null>(null);
+  const runAtOpen = useRef<Test['runAgreed']>(undefined);
+  useEffect(() => {
+    const t = tt.tests.find(x => x.id === testId);
+    if (!t || !can.edit || runOpened.current === testId) return;
+    runOpened.current = testId;
+    if (isRunTest(t) && !readRun(t).ran) setEditing(e => e ?? 'run');
+  }, [tt.tests, testId, can.edit]);
+  /* Each time the run's boxes open, what was agreed then is the agreement. */
+  useEffect(() => {
+    if (editing === 'run') runAtOpen.current = tt.tests.find(x => x.id === testId)?.runAgreed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the boxes open, not on every save
+  }, [editing, testId]);
   /* The PDF: built from this page's reading, delivered to the device first
      (lib/savePdf) — you read it before anybody else does. */
   const [busy, setBusy] = useState(false);
@@ -255,12 +272,15 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
           asked for here, beside what the numbers say. */}
       {isRun && (
         <Block title="The run" sub="the numbers it is accepted on" action={edit('run')}>
-          {editing === 'run' ? (
-            <div className="tc-form">
-              <RunAgreedFields key={test.id} t={test} can={can} atOpen={test.runAgreed} patch={fn => void tt.patchTest(test.id, fn)} />
+          {/* The board always — it works the net rate out as the numbers are
+              typed into the boxes under it. */}
+          <RunBoard t={test} />
+          {editing === 'run' && (
+            <div className="tc-form run-boxes">
+              <RunAgreedFields key={test.id} t={test} can={can} atOpen={runAtOpen.current} patch={fn => void tt.patchTest(test.id, fn)} />
               <RunDayFields t={test} patch={fn => void tt.patchTest(test.id, fn)} />
             </div>
-          ) : <RunBoard t={test} />}
+          )}
           {can.edit && (needsVerdict(test) || editing === 'run') && <>
             {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
             <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />
