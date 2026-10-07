@@ -24,6 +24,7 @@ import { useSyncStatus } from '../cloud/session';
 import { asOfWords } from '../lib/asOf';
 import { Icon } from './Icon';
 import { criticalCount } from '../lib/critical';
+import { lateByWords } from '../lib/install';
 
 const PX: Record<GanttScale, number> = { day: 34, week: 11 };
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -295,8 +296,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
             {note
               ? <><b>Reminder · {r.when}</b><small><span className={'gt-lab-says is-' + r.tone}>{noteSays}</span></small></>
               : r.on && r.label.startsWith(`${r.on} — `)
-                ? <><b>{nextTag}{r.label.slice(r.on.length + 3)}{critTag}</b><small>{r.on}{r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}{partsTag ? <> · {partsTag}</> : null}</small></>
-                : <><b>{nextTag}{r.label}{critTag}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says || partsTag ? <small>{r.says ? <span className={'gt-lab-says is-' + r.tone}>{r.says}</span> : null}{r.says && partsTag ? ' · ' : null}{partsTag}</small> : null}</>}
+                ? <><b>{nextTag}{r.label.slice(r.on.length + 3)}{critTag}</b><small>{r.on}{r.lateBy ? <em className="gt-lab-says is-done"> · done · <b className="gt-late-by">{lateByWords(r.lateBy)}</b></em> : r.says ? <em className={'gt-lab-says is-' + r.tone}> · {r.says}</em> : null}{r.slip ? <em className="gt-lab-slip"> · +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}{partsTag ? <> · {partsTag}</> : null}</small></>
+                : <><b>{nextTag}{r.label}{critTag}{r.slip ? <em className="gt-lab-slip"> +{r.slip.days}d</em> : null}{r.overlap ? <em className="gt-lab-over"> · overlaps {r.overlap}</em> : null}</b>{r.says || partsTag ? <small>{r.lateBy ? <span className="gt-lab-says is-done">done · <b className="gt-late-by">{lateByWords(r.lateBy)}</b></span> : r.says ? <span className={'gt-lab-says is-' + r.tone}>{r.says}</span> : null}{r.says && partsTag ? ' · ' : null}{partsTag}</small> : null}</>}
           </button>
           <div className="gt-track" style={{ width: T }}>
             {note ? reminderOf(r, tip, go) : (<>

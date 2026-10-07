@@ -21,7 +21,7 @@ import {
   gateOf, isOverdue, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
 } from './testing';
 import type { MediaRef } from '../types';
-import { GATE_WORD, lateOrProblem, lateOrProblemSays } from './install';
+import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
 import { partLate, partOnStage, partsOnStages } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
@@ -175,7 +175,12 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     if (ranToday) {
       const word = outcomeWord(t);
       if (t.outcome === 'passed') {
-        done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${who(t.withWhom)}.`, detail, tone: 'done', id: t.id });
+        /* Done after its first planned finish says so, in red words — "done,
+           1 day late" (lib/install doneLateBy). */
+        const by = t.kind === 'install' ? doneLateBy(t, items) : 0;
+        const late = by ? lateByWords(by) : '';
+        done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${late ? `, ${late}` : ''}${who(t.withWhom)}.`, detail, tone: 'done', id: t.id,
+          ...(late ? { which: 'late' as const, mark: late } : {}) });
       } else if (t.outcome === 'failed') {
         /* A stage says which: "— late, 2 h lost" in red, "— a problem, no
            time lost" in amber; a test keeps its "didn't pass". */

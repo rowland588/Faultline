@@ -29,10 +29,10 @@ import { nav, navReplace, withQuery, type Route, type RouteName } from '../state
 import { useTesting } from '../lib/useTesting';
 import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
-import { toneOf, type StepTone } from '../lib/install';
+import { doneLateBy, lateByWords, lateOrProblem, toneOf, type StepTone } from '../lib/install';
 import {
   isOverdue, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion,
-  type Outcome, type Test,
+  type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
@@ -163,8 +163,9 @@ const short = (iso?: string) => (iso ? niceDay(iso) : '');
 
 /** WHERE A STAGE STANDS, in words — the line the stage's sheet led with, so
  *  a step pressed by mistake says what it is before offering to put it back. */
-export function stepStateWord(t: Test, late: boolean): string {
-  return t.outcome === 'passed' ? `Done${t.ranOn ? ` ${short(t.ranOn)}` : ''}`
+export function stepStateWord(t: Test, late: boolean, lateBy = 0): string {
+  /* Done after its first planned finish says so (lib/install doneLateBy). */
+  return t.outcome === 'passed' ? `Done${t.ranOn ? ` ${short(t.ranOn)}` : ''}${lateBy ? ` · ${lateByWords(lateBy)}` : ''}`
     : t.outcome === 'failed' ? `Hit a problem${t.ranOn ? ` ${short(t.ranOn)}` : ''}${late ? ' · late' : ''}`
       : t.outcome === 'notRun' ? 'Did not happen'
         : t.outcome === 'planned' && t.ranOn ? 'Worked on — not called yet'
@@ -177,7 +178,7 @@ const backWord = (t: Test): string => t.outcome === 'passed' ? 'Not done after a
 /** The state line, one rule per face: lib/fixTone for a fix, the stage
  *  sheet's words for a step, the verdict for a test. The colour is the
  *  app's five (CLAUDE.md, visual management) and the words carry it too. */
-function stateOf(t: Test, today: string): { word: string; tone: Tone } {
+function stateOf(t: Test, today: string, items: TestItem[] = []): { word: string; tone: Tone } {
   const kind = t.kind ?? 'test';
   if (kind === 'fix') {
     const f = fixTone(t, today);
@@ -186,9 +187,11 @@ function stateOf(t: Test, today: string): { word: string; tone: Tone } {
   }
   if (kind === 'install') {
     const st = toneOf(t, today);
-    const late = st !== 'done' && isOverdue(t, today);
+    /* Late by the one rule (lib/install lateOrProblem) — its day gone, hours
+       lost, or its finish moved later by a problem. */
+    const late = st !== 'done' && (isOverdue(t, today) || lateOrProblem(t, items, today) === 'late');
     const tone = st === 'ahead' && !t.plannedFor ? 'n' : STEP_TONE[st];
-    return { word: stepStateWord(t, late), tone };
+    return { word: stepStateWord(t, late, doneLateBy(t, items)), tone };
   }
   if (t.outcome === 'passed') return { word: `${outcomeWord(t)}${t.ranOn ? ` · ${short(t.ranOn)}` : ''}`, tone: 'g' };
   if (t.outcome === 'failed' || t.outcome === 'notRun') return { word: `${outcomeWord(t)}${t.ranOn ? ` · ${short(t.ranOn)}` : ''}`, tone: 'r' };
@@ -236,7 +239,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
 
   const kind = t.kind ?? 'test';
   const machine = tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line itself';
-  const { word, tone } = stateOf(t, today);
+  const { word, tone } = stateOf(t, today, live(tt.items));
   const parts = kind !== 'fix' ? partsSaid(partsOf(t.id, tt.items), today) : undefined;
   const crits = kind !== 'fix' ? criticalOn(t.id, tt.items, tt.tests).length : 0;
   const risks = kind !== 'fix' ? riskOn(t.id, tt.items, tt.tests).length : 0;

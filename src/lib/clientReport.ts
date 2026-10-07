@@ -22,7 +22,7 @@
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import type { MediaPin, Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView } from './install';
+import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
@@ -242,7 +242,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
-          tone, state: lateOrProblemSays(s.step, items, today)?.words ?? CELL_WORD[tone], said: (s.step.result ?? '').trim(),
+          /* Done after its first planned finish says so (lib/install doneLateBy). */
+          tone, state: lateOrProblemSays(s.step, items, today)?.words ?? (s.lateBy ? `done, ${lateByWords(s.lateBy)}` : CELL_WORD[tone]), said: (s.step.result ?? '').trim(),
           ...(parts.length ? { parts } : {}),
         };
       });
@@ -277,6 +278,9 @@ export function clientReport(x: ClientReportInput): ClientReport {
     });
     const problems = problemSteps.length;
     const lateN = lateSteps.length;
+    /* DONE, BUT LATE — Rowland, 7 October: "planned 5 to the 6th, done the
+       7th, so it was late." Counted in the gate's line, as it happened. */
+    const doneLateN = all.filter(({ s }) => s.lateBy > 0).length;
     const tone = job.find(j => j.gate === gate)?.tone ?? 'none';
     // Said as the gate's own screen says it — stages with nothing planned count.
     const unplanned = rows.reduce((n, r) => n + r.cells.filter(c => c === 'none').length, 0);
@@ -286,7 +290,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
          says so — a green box reading "nothing kept" told the client two
          things at once (seen on a random-job report, 4 Oct). */
       says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : 'Nothing kept at this gate yet')
-        : `${done} of ${steps.length} done${lateN ? ` · ${lateN} late` : ''}${problems ? ` · ${problems} a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
+        : `${done} of ${steps.length} done${doneLateN ? ` (${doneLateN} done late)` : ''}${lateN ? ` · ${lateN} late` : ''}${problems ? ` · ${problems} a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
       problems: problemSteps,

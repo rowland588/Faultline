@@ -30,6 +30,9 @@ export interface StepView {
   next: boolean;
   /** Things written down under "what we found doing it". */
   found: number;
+  /** Done, and how many days after its first planned finish (doneLateBy) —
+   *  0 when on time or not done. */
+  lateBy: number;
 }
 
 export interface MachineInstall {
@@ -86,6 +89,24 @@ export function lateOrProblem(t: Test, items: TestItem[], today: string): 'done'
   return t.outcome === 'failed' ? 'problem' : undefined;
 }
 
+/** DONE, AND LATE — how many days after its FIRST planned finish a stage was
+ *  done. Rowland, 7 October: "planned 5 to the 6th, done the 7th, so it was
+ *  late." A stage went green when it was done and its lateness was never said
+ *  again. Measured from the finish first planned — the earliest finish a
+ *  problem or a change of dates moved it from — so a moved date does not hide
+ *  the slip. 0 when on time, early, or not done. */
+export function doneLateBy(t: Test, items: TestItem[]): number {
+  if (t.outcome !== 'passed') return 0;
+  const did = t.ranTo ?? t.ranOn;
+  const firsts = items.filter(i => !i.deletedAt && i.testId === t.id && i.kind === 'found' && i.movedFrom).map(i => i.movedFrom as string);
+  const planned = [...firsts, plannedEnd(t)].filter((d): d is string => !!d).sort()[0];
+  if (!did || !planned || did <= planned) return 0;
+  return Math.max(0, daysBetween(planned, did) ?? 0);
+}
+
+/** "1 day late" / "3 days late". */
+export const lateByWords = (n: number): string => `${n} day${n === 1 ? '' : 's'} late`;
+
 /** The days a stage's finish was moved later by its problems — each move a
  *  problem kept (movedFrom → movedTo), added up. */
 export function movedLater(stepId: string, items: TestItem[]): number {
@@ -126,6 +147,7 @@ export function installOf(asset: Asset | undefined, all: Test[], items: TestItem
     late: isOverdue(t, today) || lateOrProblem(t, liveItems, today) === 'late',
     next: t.id === nextId,
     found: liveItems.filter(i => i.testId === t.id && i.kind === 'found').length,
+    lateBy: doneLateBy(t, liveItems),
   }));
   const ids = new Set(mine.map(t => t.id));
   const fixesOpen = tests.filter(f => f.kind === 'fix' && !isSettled(f) && ids.has(testOfFix(f, tests)?.id ?? '')).length;

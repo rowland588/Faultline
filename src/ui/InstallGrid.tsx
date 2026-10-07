@@ -16,7 +16,7 @@
  */
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { deleteTest } from '../db';
-import { foldInto, installGrid, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
+import { foldInto, installGrid, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type Following, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
@@ -51,7 +51,7 @@ export function spanShort(from?: string, to?: string): string {
 function stageWord(s: StepView): string {
   const t = s.step;
   switch (s.tone) {
-    case 'done': return t.ranOn ? `done ${short(t.ranOn)}` : 'done';
+    case 'done': return `${t.ranOn ? `done ${short(t.ranOn)}` : 'done'}${s.lateBy ? ` · ${lateByWords(s.lateBy)}` : ''}`;
     case 'problem': return s.late ? 'a problem · late' : 'a problem';
     case 'asking': return 'done? — say so';
     case 'late': return `late · was ${short(plannedEnd(t))}`;
@@ -78,7 +78,8 @@ export function usePhone(): boolean {
 function cellWord(s: StepView): string {
   const t = s.step;
   switch (s.tone) {
-    case 'done': return t.ranOn ? short(t.ranOn) : 'Done';
+    /* Done after its day says so: "7 Oct · 1 day late". */
+    case 'done': return `${t.ranOn ? short(t.ranOn) : 'Done'}${s.lateBy ? ` · ${lateByWords(s.lateBy)}` : ''}`;
     /* Both facts, when both are true — a problem past its finish is late too. */
     case 'problem': return s.late ? 'Problem · late' : 'Problem';
     case 'asking': return 'Done?';
@@ -405,7 +406,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                       <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}
                         {crit ? critMark(crit) : riskMark(cs)}
                         <PartsMark said={ps} className="igm-parts" /></span>
-                      <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
+                      <span className="igm-word">{cs && cs.tone === 'done' && cs.lateBy ? <>{cs.step.ranOn ? `done ${short(cs.step.ranOn)}` : 'done'} · <b className="ig-late-by">{lateByWords(cs.lateBy)}</b></> : cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
                     </button>
                   );
                 })}
@@ -500,7 +501,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                           onClick={() => openCell(s, ri, ci)}
                           disabled={!s && !can.edit}
                           aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
-                          {s ? <span>{cellWord(s)}</span> : can.edit ? '+' : ''}
+                          {s ? <span>{s.tone === 'done' && s.lateBy ? <>{s.step.ranOn ? short(s.step.ranOn) : 'Done'} <b className="ig-late-by">{lateByWords(s.lateBy)}</b></> : cellWord(s)}</span> : can.edit ? '+' : ''}
                           {/* ITS PARTS, A BRANCH UNDER ITS DAY (ui/StageParts). */}
                           {crit ? critMark(crit) : riskMark(s)}
                           <PartsMark said={ps} />

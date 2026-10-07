@@ -440,3 +440,26 @@ describe('a problem that moved the finish later is late (Rowland, 7 October)', (
     expect(installOf(packer, [io], [pushed], TODAY).late).toBe(1);
   });
 });
+
+describe('done, and late (Rowland, 7 October)', () => {
+  it('a stage done after its first planned finish says how many days late', async () => {
+    const { doneLateBy, lateByWords } = await import('../install');
+    // "Planned 5 to the 6th, done the 7th, so it was late."
+    const sensors = step({ title: 'Sensors and controls checked', assetId: packer.id, plannedFor: '2026-10-05', plannedTo: '2026-10-06', ranOn: '2026-10-07', outcome: 'passed' });
+    expect(doneLateBy(sensors, [])).toBe(1);
+    expect(lateByWords(1)).toBe('1 day late');
+    expect(installOf(packer, [sensors], [], TODAY).steps[0].lateBy).toBe(1);
+  });
+  it('measured from the finish first planned — a moved date does not hide it', async () => {
+    const { doneLateBy } = await import('../install');
+    const moved = step({ title: 'Dry run', assetId: packer.id, plannedFor: '2026-10-05', plannedTo: '2026-10-09', ranOn: '2026-10-09', outcome: 'passed' });
+    const why = { id: 'm1', projectId: 'p', testId: moved.id, kind: 'found' as const, what: 'Waiting on air', movedFrom: '2026-10-06', movedTo: '2026-10-09', sort: 1, createdAt: 1, updatedAt: 1 };
+    expect(doneLateBy(moved, [why])).toBe(3);
+    expect(doneLateBy(moved, [])).toBe(0);   // on its (only) planned finish
+  });
+  it('on time, early or not done is not late', async () => {
+    const { doneLateBy } = await import('../install');
+    expect(doneLateBy(step({ title: 'A', plannedFor: '2026-10-05', ranOn: '2026-10-04', outcome: 'passed' }), [])).toBe(0);
+    expect(doneLateBy(step({ title: 'B', plannedFor: '2026-10-05', outcome: 'planned' }), [])).toBe(0);
+  });
+});

@@ -10871,3 +10871,8 @@ button.gt-fixlab small { font-size: 11.5px; }
 .ls-belongs { margin: 14px 0 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .ls-job { display: inline-flex; align-items: center; gap: 6px; }
 .ls-job select { max-width: 100%; min-height: 36px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); padding: 4px 8px; font: inherit; }
+/* Done, but after its day (lib/install doneLateBy): the cell stays a quiet
+   green — it is done — and the lateness is said in red words beside it. */
+.ig-late-by { display: block; color: var(--st-r); font-weight: 800; font-size: 10.5px; line-height: 1.2; }
+.igm-word .ig-late-by { display: inline; font-size: inherit; }
+.gt-late-by { color: var(--st-r); font-weight: 800; }

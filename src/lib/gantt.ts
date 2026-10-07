@@ -19,7 +19,7 @@ import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey } from './install';
+import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, lateByWords } from './install';
 import { partsOf } from './noted';
 import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
@@ -86,6 +86,9 @@ export interface GanttRow {
   /** Its open high risks (lib/critical riskOn) — "1 high risk", amber,
    *  where critical would be when there is no critical one. */
   risk?: number;
+  /** Done, and how many days after its first planned finish (lib/install
+   *  doneLateBy) — said "done · 1 day late", the lateness in red. */
+  lateBy?: number;
 }
 
 /** A part's state: done, past its day, due within two days, booked on a day
@@ -287,6 +290,8 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
           if (crit) row.critical = crit;
           const risky = step ? riskOn(step.id, records.items, records.tests).length : 0;
           if (risky) row.risk = risky;
+          const by = step ? doneLateBy(step, records.items) : 0;
+          if (step && lp === 'done' && by > 0) { row.lateBy = by; row.says = `done · ${lateByWords(by)}`; }
           if (step && (lp === 'late' || lp === 'problem')) {
             const lost = hoursTally(step.id, records.items, DAY_HOURS).hours;
             row.tone = lp;
