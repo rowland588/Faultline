@@ -75,12 +75,17 @@ describe('the Commission grid', () => {
     const owed = programsToProve(progs, tests, TODAY);
     expect(owed.map(o => [o.program.id, o.tone])).toEqual([['p1', 'r'], ['p3', 'n']]);
   });
-  it('a test outside the usual list is a column of its own, as a stage is on Install', () => {
+  /* Rowland, 7 October: a test planned once on one machine became a column
+     across every machine, with a "+" on each, and could not be removed —
+     it was never on the usual list. It is that machine's, so it sits in that
+     machine's row (docs/SIMPLE.md). */
+  it('a test outside the usual list sits in its own machine’s row, never as a column', () => {
     const own = test({ id: 'e', title: 'Emergency stops', assetId: 'c', outcome: 'passed', ranOn: '2026-10-01' });
     const board = commissionGrid([wrapper, coder], [own], [], usual, TODAY);
-    expect(board.columns).toEqual(['Speed', 'Seal', 'Emergency stops']);
+    expect(board.columns).toEqual(['Speed', 'Seal']);
     expect(board.usualCount).toBe(2);
-    expect(board.rows[1].cells[2]?.tone).toBe('g');
+    expect(board.rows[1].others.map(o => [o.test.id, o.tone])).toEqual([['e', 'g']]);
+    expect(board.rows[0].others).toEqual([]);
     expect(board.rows[1].missing).toBe(2);
   });
   it('names a program’s test after the program', () => {

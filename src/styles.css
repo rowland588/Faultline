@@ -10926,3 +10926,24 @@ button.gt-fixlab small { font-size: 11.5px; }
 }
 .run-boxes { margin-top: 10px; }
 .run-blk > .btn { margin-top: 6px; }
+
+/* NEEDS YOU on Commission (ui/CommissionGrid NeedsYou) — only what is owed.
+   The tag carries the state in words and its colour: red what went wrong or
+   whose day has gone, amber what is owed an answer, grey what has no test. */
+.nd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.nd-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.nd-row.is-failed, .nd-row.is-late { border: 2px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 5%, var(--surface)); }
+.nd-row.is-verdict { border-color: color-mix(in srgb, var(--st-a) 45%, var(--line)); }
+.nd-main { all: unset; cursor: pointer; flex: 1 1 260px; display: grid; gap: 2px; min-width: 0; }
+.nd-main b { font-size: var(--t-body); overflow-wrap: anywhere; }
+.nd-tag { justify-self: start; font-size: var(--t-label); font-weight: 800; letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; color: #fff; background: var(--st-n); }
+.nd-tag.is-failed, .nd-tag.is-late { background: var(--st-r); }
+.nd-tag.is-verdict { background: var(--st-a); }
+.nd-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+/* A machine's own other tests, in its own row: small squares, side by side. */
+.cg-others { vertical-align: top; }
+.cg-others .cg-other { min-height: 40px; margin: 2px 0; text-align: left; place-items: start; padding: 4px 8px; line-height: 1.2; }
+.cg-other-t { display: block; font-weight: 700; overflow-wrap: anywhere; }
+.cg-grid td.cg-others { width: 170px; max-width: 170px; }
+.cg-others .cg-other { width: 100%; max-width: 170px; }
+.igm-pick { margin: 2px 0 6px 2px; font-size: var(--t-label); }

@@ -351,6 +351,13 @@ anything the person has to look past to do the job.
 4. **Simplify by merging, not by deleting.** Rule 1 of "How a change gets made
    here" still holds. A simplification keeps every capability and removes
    only the duplicate route to it.
+5. **Simple with detail — three questions, in this order.** Rowland, 7
+   October: "we've drifted to complexity equals detail. We want simple with
+   detail." Every screen, drawer and report answers: where are we; why are we
+   not where we should be (only the abnormal, with cause and cost); what are
+   we doing about it (who, by when). Everything else is one tap away, or an
+   appendix. `docs/SIMPLE.md` is the design, and the order the app is being
+   brought to it.
 
 ## The word is CLIENT, not GM
 

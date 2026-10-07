@@ -17,10 +17,10 @@
 import { runShort } from '../lib/run';
 import { useState } from 'react';
 import { deleteTest } from '../db';
-import { commissionGrid, programsToProve, programsWords, type CommissionRow, type TestCell } from '../lib/commission';
+import { commissionGrid, commissionNeeds, programsWords, type CommissionRow, type TestCell } from '../lib/commission';
 import { stepsNamed, untouched, usualStages } from '../lib/install';
 import { provingTitle, type Program } from '../lib/programs';
-import type { Asset } from '../lib/testing';
+import { outcomeWord, type Asset, type Outcome, type Test } from '../lib/testing';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import type { Project } from '../types';
@@ -50,6 +50,9 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
   project: Project; projects: Project[]; tt: TT; programs: Program[]; can: Can;
 }) {
   const [editing, setEditing] = useState(false);
+  /* Which phone card shows its not-yet-added usual tests, one at a time. */
+  const [picking, setPicking] = useState<string | null>(null);
+  const rowKey = (r: CommissionRow) => r.asset?.id ?? 'line';
   /* A phone gets a card per machine, its tests down the card with the state
      in words — as Install does; the laptop keeps the grid. */
   const phone = usePhone();
@@ -57,6 +60,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
   const usual = usualStages(project, projects, 'commission');
   const { columns, usualCount, rows } = commissionGrid(tt.assets, tt.tests, programs, usual.stages, today);
   const anyPrograms = rows.some(r => r.programs);
+  const anyOthers = rows.some(r => r.others.length > 0);
   const otherName = usual.otherId ? projects.find(p => p.id === usual.otherId)?.name : undefined;
   const rowName = (a?: Asset) => a?.name ?? 'The line itself';
 
@@ -116,8 +120,16 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
               {can.edit && r.missing > 0 && (
                 <button className="ig-give" onClick={() => void giveAll([r])}><Icon name="plus" size="1.15em" /> Add {r.missing === usualCount ? `the ${r.missing}` : `the ${r.missing} missing`}</button>
               )}
+              {/* The tests it has. The usual ones it has not got yet are one
+                  line — "Add the 5 missing", or choose which — not five
+                  empty rows on every card. */}
+              {can.edit && r.missing > 0 && (
+                <button className="cw-link igm-pick" onClick={() => setPicking(p => (p === rowKey(r) ? null : rowKey(r)))}>
+                  {picking === rowKey(r) ? 'Hide the ones not added' : 'or choose which'}
+                </button>
+              )}
               <div className="igm-list">
-                {r.cells.map((c, i) => (c || i < usualCount) && (
+                {r.cells.map((c, i) => (c || (picking === rowKey(r) && i < usualCount && can.edit)) && (
                   <button key={columns[i]} className={'igm-st ' + (c ? cellClass(c) : 'is-empty')} disabled={!c && !can.edit}
                     aria-label={`${rowName(r.asset)} — ${columns[i]}: ${c ? c.word : 'not added yet'}`}
                     onClick={() => (c ? openRecord(project.id, c.test.id)
@@ -127,9 +139,18 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                     <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && runShort(c.test) ? ` · ${runShort(c.test)}` : ''}</span>
                   </button>
                 ))}
+                {/* This machine's other tests — its own, in its own card. */}
+                {r.others.map(o => (
+                  <button key={o.test.id} className={'igm-st ' + cellClass(o)} aria-label={`${rowName(r.asset)} — ${o.test.title}: ${o.word}`}
+                    onClick={() => openRecord(project.id, o.test.id)}>
+                    <span className="igm-sq" aria-hidden />
+                    <span className="igm-name">{o.test.title}</span>
+                    <span className="igm-word">{o.word}{runShort(o.test) ? ` · ${runShort(o.test)}` : ''}</span>
+                  </button>
+                ))}
                 {r.programs && (
                   <button className={'igm-st' + (r.programs.proved === r.programs.total ? ' is-done' : r.programs.wrong ? ' is-late' : '')}
-                    onClick={() => document.getElementById('cm-programs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                    onClick={() => nav(`/project/${project.id}/programs`)}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">Programs</span>
                     <span className="igm-word">{r.programs.proved} of {r.programs.total} proved{r.programs.wrong ? ` · ${r.programs.wrong} gone wrong` : ''}</span>
@@ -145,8 +166,9 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
           <thead>
             <tr>
               <th scope="col" className="ig-corner">Machine</th>
-              {columns.map((s, i) => <th key={s} scope="col"><span className={'ig-colh' + (i >= usualCount ? ' cg-extra' : '')} style={{ cursor: 'default' }} title={i >= usualCount ? `${s} — not one of the usual tests` : s}>{shortName(s)}</span></th>)}
+              {columns.map(s => <th key={s} scope="col"><span className="ig-colh" style={{ cursor: 'default' }} title={s}>{shortName(s)}</span></th>)}
               {anyPrograms && <th scope="col"><span className="ig-colh cg-progh" style={{ cursor: 'default' }}>Programs</span></th>}
+              {anyOthers && <th scope="col"><span className="ig-colh cg-extra" style={{ cursor: 'default' }} title="Tests on this machine that are not on the usual list">Its other tests</span></th>}
             </tr>
           </thead>
           <tbody>
@@ -184,11 +206,24 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                     {r.programs ? (
                       <button className={'ig-cell cg-prog' + (r.programs.proved === r.programs.total ? ' is-done' : r.programs.wrong ? ' is-late' : '')}
                         title={programsWords(r.programs)}
-                        onClick={() => document.getElementById('cm-programs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                        onClick={() => nav(`/project/${project.id}/programs`)}>
                         <span>{r.programs.proved} of {r.programs.total} proved</span>
                         {r.programs.wrong > 0 && <b className="pt-late">{r.programs.wrong} gone wrong</b>}
                       </button>
                     ) : <span className="ig-cell is-empty cg-none">none</span>}
+                  </td>
+                )}
+                {/* THIS MACHINE'S OTHER TESTS — its own, in its own row: one
+                    small square each, never a column across every machine. */}
+                {anyOthers && (
+                  <td className="cg-others">
+                    {r.others.map(o => (
+                      <button key={o.test.id} className={'ig-cell cg-other ' + cellClass(o)} title={`${o.test.title} — ${o.word}`}
+                        onClick={() => openRecord(project.id, o.test.id)}>
+                        <span className="cg-other-t">{o.test.title}</span>
+                        <span className="cg-run">{o.word}{runShort(o.test) ? ` · ${runShort(o.test)}` : ''}</span>
+                      </button>
+                    ))}
                   </td>
                 )}
               </tr>
@@ -198,57 +233,74 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
       </div>
       )}
       <p className="sub tw-note cg-key">
-        Tap a square to open its test · <b>+</b> adds it to that machine · every test here is on the plan and the client report
+        Tap a square to open its test · <b>+</b> adds that test to the machine
       </p>
     </section>
   );
 }
 
-/* THE PROGRAMS, PROVED HERE. Each program on the job not yet proved, with
- * the test that proves it: open it, or plan one. Passing that test proves the
- * program on the day it ran (lib/programs programAfterTest) — the Programs
- * page, Set up's "Programs loaded" and the report all read the same row. */
-export function ProgramsToProve({ project, tt, programs, can }: { project: Project; tt: TT; programs: Program[]; can: Can }) {
+/* NEEDS YOU — what is owed on Commission, and only that (lib/commission
+ * commissionNeeds, docs/SIMPLE.md). Rowland, 7 October: "they want to know the
+ * current status ... the failures of why we're not where we should be, and
+ * then what we're going to do about it next." Each row says what is wrong,
+ * why when the record says, and carries the next move on it: answer the
+ * verdict, plan the re-test, plan the program's test, or open it to re-date.
+ *
+ * It replaces three lists that repeated the board — Next up (every booked
+ * test: the indigo squares), Tests so far (every one that ran: the green and
+ * red squares, each opening its whole record) and Programs to prove (the
+ * programs column, and the Programs page). What was owed in them is here. */
+export function NeedsYou({ project, tt, programs, can }: { project: Project; tt: TT; programs: Program[]; can: Can }) {
   const today = todayISO();
-  const list = programsToProve(programs, tt.tests, today);
-  const proved = programs.filter(p => !p.deletedAt).length - list.length;
-  if (!programs.some(p => !p.deletedAt)) return null;
+  const needs = commissionNeeds(tt.tests, programs, today);
   const machine = (id?: string) => tt.assets.find(a => a.id === id)?.name ?? 'The line';
-  const planFor = async (ps: Program[]) => {
-    const ids = await tt.planTests(ps.map(p => ({
-      title: provingTitle(p), assetId: p.assetId,
-      extra: { programId: p.id, ...(p.runs ? { planned: p.runs } : {}), ...(p.testOn ? { plannedFor: p.testOn } : {}), ...(p.from ? { withWhom: p.from } : {}) },
-    })));
-    if (ids.length === 1) openRecord(project.id, ids[0]);
-    else if (ids.length) offerUndo(`Planned ${ids.length} program tests`, async () => { for (const id of ids) await deleteTest(id, project.id); });
+  const answer = (t: Test, outcome: Outcome) => {
+    const before = { outcome: t.outcome, ranOn: t.ranOn };
+    void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? today }));
+    offerUndo(`${t.title} — ${outcomeWord({ kind: 'test', outcome })}`, async () => { await tt.patchTest(t.id, before); });
   };
-  const untested = list.filter(x => !x.test).map(x => x.program);
+  const planProgram = async (p: Program) => {
+    const [id] = await tt.planTests([{ title: provingTitle(p), assetId: p.assetId,
+      extra: { programId: p.id, ...(p.runs ? { planned: p.runs } : {}), ...(p.testOn ? { plannedFor: p.testOn } : {}), ...(p.from ? { withWhom: p.from } : {}) } }]);
+    if (id) openRecord(project.id, id);
+  };
   return (
-    <section className="cmp-sec cg-progs" id="cm-programs">
+    <section className="cmp-sec cg-needs" aria-label="Needs you">
       <div className="cw-sec-h">
-        <h2 className="cmp-h">Programs to prove</h2>
-        <span className="cmp-h-n">{list.length ? `${list.length} to prove · ${proved} proved` : `all ${proved} proved`}</span>
-        <button className="cw-link" onClick={() => nav(`/project/${project.id}/programs`)}>Programs</button>
+        <h2 className="cmp-h">Needs you</h2>
+        {needs.length > 0 && <span className="cmp-h-n">{needs.length}</span>}
       </div>
-      <p className="sub tw-note">Loaded at Set up, proved here. Passing a program’s test marks it proved on the day it ran; a fail puts it back to on the machine.</p>
-      {list.length > 0 && (
-        <ul className="cg-plist">
-          {list.map(({ program: p, test, tone, word }) => (
-            <li key={p.id} className="cg-prow">
-              <span className="cg-pwhat"><b>{p.what}</b><span className="sub"> {machine(p.assetId)}{p.runs ? ` · runs ${p.runs}` : ''}{p.from ? ` · from ${p.from}` : ''}</span></span>
-              <span className={'cg-pstate is-' + tone}>{word}</span>
-              {test
-                ? <button className="cw-link" onClick={() => openRecord(project.id, test.id)}>Open its test</button>
-                : can.edit && <button className="cw-link" onClick={() => void planFor([p])}>Plan its test</button>}
-            </li>
-          ))}
-        </ul>
-      )}
-      {can.edit && untested.length > 1 && (
-        <button className="cw-add" onClick={() => void planFor(untested)}>
-          <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test for each of the {untested.length} with none
-        </button>
-      )}
+      {needs.length === 0
+        ? <p className="sub tw-note">Nothing — every test is passed, booked or still to plan, with nothing late.</p>
+        : (
+          <ul className="nd-list">
+            {needs.map(n => (
+              <li key={n.test?.id ?? n.program?.id} className={'nd-row is-' + n.kind}>
+                <button type="button" className="nd-main" onClick={() => (n.test ? openRecord(project.id, n.test.id) : nav(`/project/${project.id}/programs`))}>
+                  <span className={'nd-tag is-' + n.kind}>{n.word}</span>
+                  <b>{n.test?.title ?? n.program?.what}</b>
+                  <span className="sub">{machine(n.test?.assetId ?? n.program?.assetId)}{n.why ? ` — ${n.why}` : ''}</span>
+                </button>
+                {can.edit && n.kind === 'verdict' && n.test && (
+                  <span className="nd-acts">
+                    <button type="button" className="btn btn-sm" onClick={() => answer(n.test as Test, 'passed')}>Passed</button>
+                    <button type="button" className="btn btn-sm ig-bad" onClick={() => answer(n.test as Test, 'failed')}>Didn’t pass</button>
+                  </span>
+                )}
+                {can.edit && n.kind === 'failed' && n.test && (
+                  <span className="nd-acts">
+                    <button type="button" className="btn btn-sm" onClick={() => void (async () => openRecord(project.id, await tt.planNextFrom(n.test as Test)))()}>Plan the re-test</button>
+                  </span>
+                )}
+                {can.edit && n.kind === 'program' && n.program && (
+                  <span className="nd-acts">
+                    <button type="button" className="btn btn-sm" onClick={() => void planProgram(n.program as Program)}>Plan its test</button>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
     </section>
   );
 }

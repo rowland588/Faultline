@@ -13,7 +13,7 @@
  * Nothing is stored here: a square is the latest attempt of the test of that
  * name on that machine, read off the tests; the programs square is read off
  * the programs and the tests that prove them. */
-import { isOverdue, live, needsVerdict, type Asset, type Test } from './testing';
+import { isOverdue, latestAttempts, live, needsVerdict, type Asset, type Test } from './testing';
 import { stageKey } from './install';
 import { isProved, live as liveProgs, stateOf, type Program } from './programs';
 import { niceDay } from './weeks';
@@ -67,19 +67,23 @@ export interface ProgramsCell {
 
 export interface CommissionRow {
   asset?: Asset;
-  /** One per column — the usual tests in the list's order, then the job's
-   *  other test names; absent where it is not on this machine. */
+  /** One per column — the usual tests, in the list's order; absent where it
+   *  is not on this machine. */
   cells: (TestCell | undefined)[];
+  /** THIS MACHINE'S OTHER TESTS — planned by hand, or named before the list
+   *  existed. They are this machine's, so they sit in its row, never as a
+   *  column across every machine (docs/SIMPLE.md). */
+  others: TestCell[];
   /** How many of the USUAL tests are not on this machine yet. */
   missing: number;
   programs?: ProgramsCell;
 }
 
 export interface CommissionBoard {
-  /** The usual tests first, then every other test name on the job — a test
-   *  planned by hand, or named before the list existed, is a column of its
-   *  own, as a stage outside the list is on the Install grid. A program's
-   *  test is not: it is counted under the machine's programs. */
+  /** The usual tests — the job's list, kept in one place (Edit the usual
+   *  tests). Only those: Rowland, 7 October, could not remove a column made
+   *  from a test planned once on one machine, because it was never on the
+   *  list. A program's test is counted under the machine's programs. */
   columns: string[];
   usualCount: number;
   rows: CommissionRow[];
@@ -123,9 +127,10 @@ export function commissionGrid(assets: Asset[], tests: Test[], programs: Program
   const add = (s: string) => { const k = stageKey(s); if (k && !seen.has(k)) { seen.add(k); columns.push(s.trim()); } };
   usual.forEach(add);
   const usualCount = columns.length;
-  roots.filter(t => !t.programId).sort((a, b) => a.sort - b.sort).forEach(t => add(t.title));
   const rowOf = (asset?: Asset): CommissionRow => {
     const mine = roots.filter(t => (t.assetId ?? '') === (asset?.id ?? ''));
+    const others = mine.filter(t => !t.programId && !seen.has(stageKey(t.title))).sort((a, b) => a.sort - b.sort)
+      .map(root => { const test = latestOf(root, ts); return { test, ...testCell(test, today) }; });
     const cells = columns.map(name => {
       const root = mine.find(t => !t.programId && stageKey(t.title) === stageKey(name));
       if (!root) return undefined;
@@ -133,12 +138,12 @@ export function commissionGrid(assets: Asset[], tests: Test[], programs: Program
       return { test, ...testCell(test, today) };
     });
     const pc = programsCell(progs.filter(p => (p.assetId ?? '') === (asset?.id ?? '')), ts, today);
-    return { ...(asset ? { asset } : {}), cells, missing: cells.slice(0, usualCount).filter(c => !c).length, ...(pc ? { programs: pc } : {}) };
+    return { ...(asset ? { asset } : {}), cells, others, missing: cells.filter(c => !c).length, ...(pc ? { programs: pc } : {}) };
   };
   const rows = live(assets).map(a => rowOf(a));
   const line = rowOf(undefined);
   /* The line itself, when it has tests or programs of its own. */
-  if (line.cells.some(Boolean) || line.programs) rows.push(line);
+  if (line.cells.some(Boolean) || line.others.length || line.programs) rows.push(line);
   return { columns, usualCount, rows };
 }
 
@@ -152,4 +157,45 @@ export function programsToProve(programs: Program[], tests: Test[], today: strin
       : { tone: 'n' as const, word: stateOf(program) === 'needed' ? 'not written · no test yet' : 'on the machine · no test yet' };
     return { program, ...(test ? { test } : {}), ...said };
   }).sort((a, b) => rank[a.tone] - rank[b.tone] || a.program.sort - b.program.sort);
+}
+
+/* NEEDS YOU — only what is owed on Commission (docs/SIMPLE.md: normal is
+ * counted, abnormal is named). Rowland, 7 October: "they want to know the
+ * current status ... the failures of why we're not where we should be, and
+ * then what we're going to do about it next." Everything on plan is a square
+ * on the board and is not listed again.
+ *
+ *   failed   didn't pass or didn't run, and no re-test planned
+ *   late     its day has gone and it has not happened
+ *   verdict  it ran and nobody has said how it went
+ *   program  a program with no test to prove it
+ *
+ * In that order: what went wrong first, then what is owed. */
+export type NeedKind = 'failed' | 'late' | 'verdict' | 'program';
+export interface Need {
+  kind: NeedKind;
+  test?: Test;
+  program?: Program;
+  /** "didn't pass — no re-test planned" · "was due 4 Oct" · "ran 6 Oct — passed?" */
+  word: string;
+  /** Why, when the record says: what happened, or the program's machine. */
+  why?: string;
+}
+
+export function commissionNeeds(tests: Test[], programs: Program[], today: string): Need[] {
+  const latest = latestAttempts(tests).sort((a, b) => a.sort - b.sort);
+  const failed: Need[] = [], late: Need[] = [], verdict: Need[] = [];
+  for (const t of latest) {
+    const why = t.result?.trim() || undefined;
+    if (t.outcome === 'failed' || t.outcome === 'notRun') {
+      failed.push({ kind: 'failed', test: t, word: `${t.outcome === 'failed' ? 'didn’t pass' : 'didn’t run'} — no re-test planned`, ...(why ? { why } : {}) });
+    } else if (needsVerdict(t)) {
+      verdict.push({ kind: 'verdict', test: t, word: `ran${t.ranOn ? ` ${niceDay(t.ranOn)}` : ''} — passed?`, ...(why ? { why } : {}) });
+    } else if (t.outcome === 'planned' && isOverdue(t, today)) {
+      late.push({ kind: 'late', test: t, word: `was due ${niceDay(t.plannedTo ?? t.plannedFor)}` });
+    }
+  }
+  const program: Need[] = liveProgs(programs).filter(p => !isProved(p) && !provingTestOf(p, tests))
+    .map(p => ({ kind: 'program', program: p, word: 'no test to prove it yet' }));
+  return [...failed, ...late, ...verdict, ...program];
 }

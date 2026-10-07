@@ -1,31 +1,29 @@
 /* THE LINE, AND ITS TESTS.
  *
- * One screen, three parts: where we are, what is next, and what has happened.
- * Everything on it is read off the tests — there is no status anywhere in this
- * app to disagree with them.
+ * One board and what needs you (docs/SIMPLE.md): every test machine by
+ * machine, then only what is owed. Everything on it is read off the tests —
+ * there is no status anywhere in this app to disagree with them.
  *
  * Five rebuilds of this put a different structure in front of the work each
  * time: a readiness checklist, six gates, a programme of phases, one list
  * grouped by stage, an asset × pack grid with material supersession. The job
  * never had any of those. It has a cycle, and this is the list of times round it.
  */
-import { runLine } from '../lib/run';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
 import { useState } from 'react';
 import { openRecord } from '../ui/RecordDrawer';
 import { nav } from '../state/useRoute';
-import { Verdicts } from '../ui/Verdicts';
 import { niceDay, todayISO } from '../lib/weeks';
 import { DraftField } from '../ui/Draft';
 import { useProject, useProjects } from '../lib/useProjects';
 import { usePrograms } from '../lib/usePrograms';
-import { CommissionGrid, ProgramsToProve } from '../ui/CommissionGrid';
+import { CommissionGrid, NeedsYou } from '../ui/CommissionGrid';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, assetStateOn, outcomeWord, isOverdue, itemsOf, latestAttempts, standing, testOfFix, weeksTo,
-  type Asset, type Test, type TestKind,
+  ASSET_STATE_WORD, WORDS, assetStateOn, latestAttempts, weeksTo,
+  type Asset, type TestKind,
 } from '../lib/testing';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
@@ -33,49 +31,6 @@ import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
-const loud = (iso?: string): string => (iso ? niceDay(iso, { weekday: 'short' }).toUpperCase() : 'NO DATE');
-
-/** A day, or a block of them. "MON 5 – FRI 9 JAN" reads as the week it is, and
- *  a single date is still a single date — the second one is absent on almost
- *  every record and absent means one day.
- *
- *  NOT CALLED `window`. It was, for about ten minutes, and a module-scope const
- *  of that name shadows the global one — every reference to `window` before
- *  this line then hits the temporal dead zone and the whole app fails to boot
- *  with "Cannot access 'window' before initialization". */
-const plannedWindow = (t: Test): string => {
-  const from = t.plannedFor, to = t.plannedTo;
-  if (!from) return 'NO DATE';
-  if (!to || to <= from) return loud(from);
-  return `${loud(from)} – ${loud(to)}`;
-};
-
-/** The same, for the days it actually took. */
-const ranWindow = (t: Test): string => {
-  const from = t.ranOn ?? t.plannedFor, to = t.ranOn ? t.ranTo : t.plannedTo;
-  if (!from) return '—';
-  if (!to || to <= from) return nice(from);
-  return `${nice(from)} – ${nice(to)}`;
-};
-
-/** The mark at the head of a test: how it went, at a glance, down the left edge. */
-function Mark({ t }: { t: Test }) {
-  if (t.outcome === 'passed') {
-    return (
-      <span className="tw-mark is-g" aria-hidden>
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.2 L5 8.5 L9.5 3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      </span>
-    );
-  }
-  if (t.outcome === 'failed') {
-    return (
-      <span className="tw-mark is-r" aria-hidden>
-        <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3 L9 9 M9 3 L3 9" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg>
-      </span>
-    );
-  }
-  return <span className={'tw-mark is-ring' + (t.outcome === 'notRun' ? ' is-late' : '')} aria-hidden />;
-}
 
 export function TestsScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
@@ -104,26 +59,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
 
-  /* TESTS ONLY. A fix has its own screen — see FixesScreen — because a fix is
-     not part of testing and plenty of them never came out of a test. The same
-     `standing` call, over the tests alone — install steps have Install. */
-  const st = standing(tt.tests.filter(t => (t.kind ?? 'test') === 'test'), tt.items);
   const weeks = weeksTo(project.expectedAt);
-  const assetName = (id?: string) => tt.assets.find(a => a.id === id)?.name;
-
-  /* What was written down, and the fixes FOR this test — the same list its own
-     page shows under "Fixes for this test". An observation is a note, not a
-     backlog, so it is counted plainly and never in red. */
-  const counts = (t: Test) => {
-    const fixes = tt.tests.filter(x => (x.kind ?? 'test') === 'fix' && !x.deletedAt && testOfFix(x, tt.tests)?.id === t.id);
-    return {
-      found: itemsOf(tt.items, t.id, 'found').length,
-      fixes: fixes.length,
-      fixesOpen: fixes.filter(x => x.outcome !== 'passed').length,
-      photos: (t.media ?? []).length + itemsOf(tt.items, t.id, 'found').reduce((n, i) => n + (i.media ?? []).length, 0),
-    };
-  };
-
   /* A test opens in the drawer, over this list (ui/RecordDrawer). */
   const open = (id: string) => openRecord(projectId, id);
 
@@ -200,121 +136,56 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </p>
       ) : <p className="sub tw-note">No machines named yet.</p>)}
 
-      {/* MACHINE BY MACHINE — the usual tests on a grid with each machine's
-          programs beside them, then the programs still to prove. The same
-          board the other three gates have (ui/CommissionGrid). */}
-      {tt.assets.length > 0 && <CommissionGrid project={project} projects={projects} tt={tt} programs={programs} can={can} />}
-      <ProgramsToProve project={project} tt={tt} programs={programs} can={can} />
+      {/* WHAT NEEDS YOU, AND ONE BOARD (docs/SIMPLE.md). The board is every
+          test, machine by machine — each square opens its record. Under it,
+          only what is owed. "Next up", "Tests so far" and "Programs to prove"
+          each listed the board's squares again: a booked test is its indigo
+          square, one that ran is its green or red square (its whole record a
+          tap away, and in the full report), and a program is its column and
+          the Programs page. What was owed in them is in Needs you. */}
+      {/* What needs you FIRST — the abnormal in the first screenful, above
+          the board (on a phone the board is three long cards). */}
+      <NeedsYou project={project} tt={tt} programs={programs} can={can} />
+      {(tt.assets.length > 0 || proofs.length > 0) && <CommissionGrid project={project} projects={projects} tt={tt} programs={programs} can={can} />}
 
-      {/* NEXT UP. On any given week there is one thing you are about to do, and
-          pretending otherwise is how a plan stops being read. */}
-      {can.edit && <Verdicts tests={st.done} projectId={projectId}
-        onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
-        onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />}
-
-      <section className="cmp-sec">
-        <div className="cw-sec-h">
-          <h2 className="cmp-h">Next up</h2>
-          {st.upcoming.length > 1 && <span className="cmp-h-n">{st.upcoming.length} planned</span>}
-        </div>
-        {st.upcoming.map((t, i) => (
-          <button key={t.id} className={'tw-next' + (i === 0 ? ' is-now' : '') + (isOverdue(t) ? ' is-late' : '')} onClick={() => open(t.id)}>
-            <span className="tw-next-h">
-              {t.kind === 'fix' && <span className="tw-face">Fix</span>}
-              <b>{t.title}</b>
-              <span className={'tw-when' + (isOverdue(t) ? ' is-late' : '')}>
-                {isOverdue(t) ? 'WAS ' + plannedWindow(t) : plannedWindow(t)}
-              </span>
-            </span>
-            <span className="sub">
-              {assetName(t.assetId) ?? 'The line'}
-              {t.withWhom && ` · with ${t.withWhom}`}
-              {t.planned && ` · ${t.planned}`}
-            </span>
-            {t.passesIf && <span className="tw-passes"><b>Passes if:</b> {t.passesIf}</span>}
-          </button>
-        ))}
-
-        {adding ? (
-          <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
-            <input autoFocus
-              placeholder={adding === 'fix' ? 'What are we fixing?' : 'What do we plan to do?'}
-              value={title} onChange={e => setTitle(e.target.value)} />
-            {tt.assets.length > 0 && (
-              <>
-                <span className="tw-plan-l">Which machines? Pick as many as it applies to.</span>
-                <span className="tw-chips">
-                  {tt.assets.map(a => (
-                    <button key={a.id} type="button" className={'tw-chip' + (on.includes(a.id) ? ' on' : '')}
-                      aria-pressed={on.includes(a.id)} onClick={() => toggle(a.id)}>
-                      {a.name}
-                    </button>
-                  ))}
-                  <button type="button" className={'tw-chip' + (on.length === 0 ? ' on' : '')}
-                    aria-pressed={on.length === 0} onClick={() => setOn([])}>
-                    The line itself
-                  </button>
-                </span>
-              </>
-            )}
-            <span className="tw-plan-go">
-              <button className="btn" type="submit" disabled={!title.trim()}>
-                {on.length > 1 ? `Plan ${on.length} ${WORDS[adding].many.toLowerCase()}` : 'Plan it'}
-              </button>
-              <button className="btn btn-ghost" type="button" onClick={() => { setAdding(null); setOn([]); }}>Cancel</button>
-            </span>
-          </form>
-        ) : can.edit ? (
-          /* ONE DOOR. Planning a fix moved to the Fixes screen with the fixes
-             themselves — two "add" buttons on a page that only lists one of
-             the two was a door leading off the page it was on. */
-          <button className="cw-add" onClick={() => setAdding('test')}>
-            <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test
-          </button>
-        ) : st.upcoming.length === 0 && <p className="sub tw-note">Nothing planned.</p>}
-      </section>
-
-      {/* WHAT HAPPENED. Newest first, because a list of past tests reads
-          backwards from today. */}
-      {st.done.length > 0 && (
+      {/* PLAN A TEST that is not one of the usual ones — the usual ones are
+          the board's "+" squares. One door. */}
+      {can.edit && (
         <section className="cmp-sec">
-          <div className="cw-sec-h">
-            <h2 className="cmp-h">Tests so far</h2>
-            <span className="cmp-h-n">{st.done.length}</span>
-          </div>
-          <div className="cw-list">
-            {st.done.map(t => {
-              const c = counts(t);
-              return (
-                <button key={t.id} className={'tw-row is-' + t.outcome} onClick={() => open(t.id)}>
-                  <Mark t={t} />
-                  <span className="tw-row-m">
-                    <b>{t.title}</b>
-                    <span className="sub">
-                      {t.kind === 'fix' && <span className="tw-face">Fix</span>}
-                      {ranWindow(t)} · {assetName(t.assetId) ?? 'The line'}{t.product ? ` · ${t.product}` : ''}
-                    </span>
-                    <span className={'tw-res is-' + t.outcome}>
-                      <b>{outcomeWord(t)}</b>{[runLine(t, { product: false }), t.result].filter(Boolean).map(x => ` — ${x}`).join('')}
-                    </span>
-                    {(c.found > 0 || c.fixes > 0 || c.photos > 0) && (
-                      <span className="sub">
-                        {[
-                          c.found > 0 && `${c.found} written down`,
-                          c.fixes > 0 && `${c.fixes} fix${c.fixes === 1 ? '' : 'es'}${c.fixesOpen ? `, ${c.fixesOpen} still to do` : ''}`,
-                          c.photos > 0 && `${c.photos} picture${c.photos === 1 ? '' : 's'}`,
-                        ].filter(Boolean).join(' · ')}
-                      </span>
-                    )}
+          {adding ? (
+            <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
+              <input autoFocus placeholder="What do we plan to do?" value={title} onChange={e => setTitle(e.target.value)} />
+              {tt.assets.length > 0 && (
+                <>
+                  <span className="tw-plan-l">Which machines? Pick as many as it applies to.</span>
+                  <span className="tw-chips">
+                    {tt.assets.map(a => (
+                      <button key={a.id} type="button" className={'tw-chip' + (on.includes(a.id) ? ' on' : '')}
+                        aria-pressed={on.includes(a.id)} onClick={() => toggle(a.id)}>
+                        {a.name}
+                      </button>
+                    ))}
+                    <button type="button" className={'tw-chip' + (on.length === 0 ? ' on' : '')}
+                      aria-pressed={on.length === 0} onClick={() => setOn([])}>
+                      The line itself
+                    </button>
                   </span>
+                </>
+              )}
+              <span className="tw-plan-go">
+                <button className="btn" type="submit" disabled={!title.trim()}>
+                  {on.length > 1 ? `Plan ${on.length} ${WORDS.test.many.toLowerCase()}` : 'Plan it'}
                 </button>
-              );
-            })}
-          </div>
+                <button className="btn btn-ghost" type="button" onClick={() => { setAdding(null); setOn([]); }}>Cancel</button>
+              </span>
+            </form>
+          ) : (
+            <button className="cw-add" onClick={() => setAdding('test')}>
+              <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test that is not one of the usual ones
+            </button>
+          )}
         </section>
       )}
-
-
     </div>
   );
 }
