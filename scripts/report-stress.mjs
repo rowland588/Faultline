@@ -96,8 +96,20 @@ const textOf = pdf => execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 
     return lines.join(' ').replace(/^\s*Problem \d+ — .*?\(continued\)\s*/, '');
   }).join(' ').replace(/\s+/g, ' ');
 
+/* The pages that carry a picture of their own — a line standard's card is
+   a full-page image with no text on it, and read as "near-empty" mid-way
+   through a client report with two of them (LINE_TOOLS.sql put a second
+   one on the seeded job). A page that is a picture is not empty. */
+const picturePages = pdf => {
+  try {
+    const out = execFileSync('pdfimages', ['-list', pdf], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    return new Set(out.split('\n').slice(2).map(l => Number(l.trim().split(/\s+/)[0])).filter(n => n > 0));
+  } catch { return new Set(); }
+};
+
 function check(pdf, mustSay = []) {
   const pages = pagesOf(pdf);
+  const pictures = picturePages(pdf);
   const faults = [];
   pages.forEach((p, i) => {
     const n = i + 1;
@@ -117,7 +129,7 @@ function check(pdf, mustSay = []) {
     if (over) faults.push(`p${n} overprinted ×${over}: ${example}`);
     // Near-empty: the content's height as a share of the page, ignoring the
     // header strip and the footer line every page carries.
-    if (n < pages.length) {
+    if (n < pages.length && !pictures.has(n)) {
       const body = ws.filter(w => w.y0 > 60 && w.y1 < p.h - 30);
       const used = body.length ? (Math.max(...body.map(w => w.y1)) - 60) / (p.h - 90) : 0;
       if (used < 0.2) faults.push(`p${n} near-empty (${Math.round(used * 100)}% used)`);
