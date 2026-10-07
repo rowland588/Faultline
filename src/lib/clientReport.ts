@@ -374,7 +374,9 @@ export function clientReport(x: ClientReportInput): ClientReport {
       ...(runLine(t) && !(isRunTest(t) && now.includes(t)) ? { run: runLine(t, { product: false }) } : {}),
     })),
     ...(() => {
-      const runs = now.filter(t => isRunTest(t)).map((t): RunRow => {
+      /* A run with numbers, or with what it is judged on agreed — not every
+         test with "rate" in its name as a row of dashes. */
+      const runs = now.filter(t => isRunTest(t) && (readRun(t).ran || !!agreedWords(readRun(t).agreed))).map((t): RunRow => {
         const r = readRun(t), tiles = runTiles(r);
         const tone = t.outcome === 'passed' ? 'done' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
           : (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead';

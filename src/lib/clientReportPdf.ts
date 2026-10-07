@@ -7,7 +7,7 @@ import type { OnTargetTone } from './onTarget';
 import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { SIZE, box, font, gap, heading, label, pagesOf, rows, text, wrap } from './report/blocks';
+import { SIZE, box, font, gap, heading, label, pagesOf, rows, space, text, wrap } from './report/blocks';
 import { byStage, gantt, withMachines, withNext, type GanttBy } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { moveLines } from './story';
@@ -622,4 +622,149 @@ function fixCard(fx: FixRow, shot: Shot | undefined): Block {
     }
     f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.4); f.doc.line(f.x, y + h + 4, f.x + f.w, y + h + 4);
   }, () => 3);
+}
+
+/* ============================ THE STATUS REPORT ============================
+ *
+ * One page, the one that gets sent (lib/statusReport, docs/SIMPLE.md). Rowland,
+ * 7 October: "people want to know the current status of something, the
+ * failures of why we're not where we should be, and then what we're going to
+ * do about it next." Those three, in that order, in the full report's own
+ * colours and words — read off the same reading, so the two cannot disagree.
+ * A list longer than the page says how many more the full report has. */
+export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promise<void> {
+  const { statusReport, STATUS_STEPS } = await import('./statusReport');
+  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  let s = sanAll(statusReport(report));
+  const blocks = (d: Density): Block[] => {
+    const out: Block[] = [];
+    const S = SIZE;
+    out.push(text({ text: 'STATUS REPORT · STAGE GATE', size: S.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+    out.push(text({ text: s.name, size: S.title, style: 'bold', after: 4 }));
+    out.push(text({ text: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`, s.dates ?? ''].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+
+    /* 1 · WHERE WE ARE — the verdict, then a tile per gate. */
+    const ot = s.verdict;
+    const otLines = (f: Frame) => wrap(f.doc, ot.reason, f.w - 28, 9.5);
+    out.push(box(f => 36 + otLines(f).length * 12 + gap(f.density, 'm'), (f, y) => {
+      const c = ON_TARGET[ot.tone], l = otLines(f), h = 30 + l.length * 12;
+      f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(ot.tone === 'behind' ? 1.6 : 0.8);
+      f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'FD');
+      font(f.doc, 7.5, 'bold', MUTED); f.doc.text('WHERE WE ARE', f.x + 14, y + 13);
+      font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 27);
+      font(f.doc, 9.5, 'normal', INK2); f.doc.text(l, f.x + 14, y + 39);
+    }, f => gap(f.density, 'm')));
+    const gw = (f: Frame) => (f.w - 3 * 8) / 4;
+    const gateLines = (f: Frame) => s.gates.map(g => wrap(f.doc, g.says || GATE_COLOUR[g.tone].word, gw(f) - 14, 8));
+    out.push(box(f => 24 + Math.max(...gateLines(f).map(l => l.length), 1) * 10 + gap(f.density, 'l'), (f, y) => {
+      const ls = gateLines(f), h = 24 + Math.max(...ls.map(l => l.length), 1) * 10;
+      s.gates.forEach((g, i) => {
+        const x = f.x + i * (gw(f) + 8), c = GATE_COLOUR[g.tone === 'failed' ? 'late' : g.tone];
+        f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(1);
+        if (g.tone === 'done') { f.doc.setFillColor('#e9f5ef'); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
+        else if (c.fill) { f.doc.setFillColor(c.fill); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
+        else f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'S');
+        font(f.doc, 11, 'bold', g.tone === 'done' ? OK : c.text === MUTED ? INK2 : c.text); f.doc.text(g.label, x + 7, y + 15);
+        font(f.doc, 8, 'normal', INK2); f.doc.text(ls[i], x + 7, y + 27);
+      });
+    }, f => gap(f.density, 'l')));
+
+    /* 2 · WHY WE ARE NOT WHERE WE SHOULD BE — only the abnormal, a tag in
+       its colour, what, and its cause or cost under it. */
+    out.push(label('Why we are not where we should be', s.why.length ? DANGER : MUTED));
+    if (!s.why.length) out.push(text({ text: 'Nothing — everything is on plan.', colour: INK2, after: gap(d, 'l') }));
+    const tagColour: Record<string, string> = { critical: DANGER, risk: AMBER, late: DANGER, failed: DANGER, problem: AMBER };
+    const tagW = 62;
+    const whyParts = (f: Frame, w: (typeof s.why)[number]) => ({
+      what: wrap(f.doc, w.what, f.w - tagW - 8, 9.5, 'bold'),
+      detail: w.detail ? wrap(f.doc, w.detail, f.w - tagW - 8, 8.5) : [],
+    });
+    out.push(rows({
+      rows: s.why.map(w => ({
+        h: (f: Frame) => { const p = whyParts(f, w); return 6 + p.what.length * 12 + p.detail.length * 10.5 + 6; },
+        draw: (f: Frame, y: number) => {
+          const p = whyParts(f, w), c = tagColour[w.kind];
+          f.doc.setFillColor(c); f.doc.roundedRect(f.x, y + 4, tagW - 6, 12, 3, 3, 'F');
+          font(f.doc, 6.5, 'bold', '#ffffff'); f.doc.text(w.tag, f.x + (tagW - 6) / 2, y + 12.3, { align: 'center' });
+          font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.what, f.x + tagW, y + 13);
+          if (p.detail.length) { font(f.doc, 8.5, 'normal', MUTED); f.doc.text(p.detail, f.x + tagW, y + 13 + p.what.length * 12); }
+        },
+      })),
+      after: s.whyMore ? 's' : 'l',
+    }));
+    if (s.whyMore) out.push(text({ text: `and ${s.whyMore} more — in the full report.`, size: 8.5, colour: MUTED, after: gap(d, 'l') }));
+
+    /* 3 · WHAT WE ARE DOING ABOUT IT — the open fixes, late first, whose and
+       by when; then what we wait on, from whom. */
+    out.push(label('What we are doing about it'));
+    if (!s.next.length) out.push(text({ text: 'No fixes open.', colour: INK2, after: gap(d, 's') }));
+    const whenW = 120;
+    const nextParts = (f: Frame, n: (typeof s.next)[number]) => ({
+      what: wrap(f.doc, n.what, f.w - whenW - 8, 9.5, 'bold'),
+      who: [] as string[],
+      when: wrap(f.doc, n.when, whenW, 8.5, n.late ? 'bold' : 'normal'),
+    });
+    out.push(rows({
+      rows: s.next.map(n => ({
+        h: (f: Frame) => { const p = nextParts(f, n); return 6 + Math.max(p.what.length * 12 + p.who.length * 10.5, p.when.length * 10.5) + 6; },
+        draw: (f: Frame, y: number) => {
+          const p = nextParts(f, n);
+          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+          font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.what, f.x, y + 13);
+          if (p.who.length) { font(f.doc, 8.5, 'normal', MUTED); f.doc.text(p.who, f.x, y + 13 + p.what.length * 12); }
+          font(f.doc, 8.5, n.late ? 'bold' : 'normal', n.late ? DANGER : INK2); f.doc.text(p.when, f.x + f.w - whenW, y + 13);
+        },
+      })),
+      after: 's',
+    }));
+    if (s.nextMore) out.push(text({ text: `and ${s.nextMore} more open — in the full report.`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
+    s.waiting.forEach((w, i, all) => out.push(text({ text: `Waiting on: ${w}`, size: 8.5, colour: INK2, after: i === all.length - 1 ? gap(d, 'l') : 1 })));
+    if (!s.waiting.length) out.push(space('m'));
+
+    /* THE PERFORMANCE RUNS — on a job in Commission, the numbers it is
+       accepted on: what it netted against what was agreed, the rejects, how
+       long, and the verdict. */
+    if (s.runs.length) {
+      out.push(label('Performance runs'));
+      const runParts = (f: Frame, r: (typeof s.runs)[number]) => ({
+        head: wrap(f.doc, `${r.title}${r.machine ? ` — ${r.machine}` : ''}${r.product ? ` · ${r.product}` : ''}`, f.w - 70, 9, 'bold'),
+        figs: wrap(f.doc, `Net ${r.net} · ran at ${r.speed} · rejects ${r.rejects} · ran for ${r.length}${r.say ? ` — ${r.say}` : ` — agreed: ${r.agreed}`}`, f.w - 70, 8.5),
+        say: [] as string[],
+      });
+      out.push(rows({
+        rows: s.runs.map(r => ({
+          h: (f: Frame) => { const p = runParts(f, r); return 6 + p.head.length * 11 + p.figs.length * 10.5 + p.say.length * 10.5 + 6; },
+          draw: (f: Frame, y: number) => {
+            const p = runParts(f, r);
+            f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+            font(f.doc, 9, 'bold', INK2); f.doc.text(p.head, f.x, y + 13);
+            let ty = y + 13 + p.head.length * 11;
+            font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.figs, f.x, ty); ty += p.figs.length * 10.5;
+            if (p.say.length) { font(f.doc, 8.5, 'bold', r.meets ? OK : DANGER); f.doc.text(p.say, f.x, ty); }
+            const tc = r.tone === 'done' ? 'done' : r.tone === 'failed' || r.tone === 'late' ? 'late' : r.tone === 'booked' ? 'going' : 'ahead';
+            pillPath(f.doc, f.x + f.w - 62, y + 5, 62, 12, tc, r.outcome);
+          },
+        })),
+      }));
+      if (s.runsMore) out.push(text({ text: `and ${s.runsMore} more — in the full report.`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
+    }
+    return out;
+  };
+  /* ONE PAGE, ALWAYS: the lists step down until it fits, and each says how
+     many more the full report has — never a second page. */
+  let density: Density = 'comfortable';
+  for (const limits of STATUS_STEPS) {
+    s = sanAll(statusReport(report, limits));
+    density = await chooseDensity(base, d => blocks(d));
+    if ((await pour({ ...base, density, dry: true }, blocks(density), () => undefined)).pages === 1) break;
+  }
+  await pour({ ...base, density, dry: false }, blocks(density), () => doc.addPage('a4', 'portrait'));
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    font(doc, 7.5, 'normal', MUTED);
+    const num = `${i} of ${pages}`;
+    doc.text(fitLine(doc, `${s.name}  ·  status report  ·  ${s.printed}  ·  every detail is in the full report`, CW - doc.getTextWidth(num) - 16), M, H - 18);
+    doc.text(num, W - M, H - 18, { align: 'right' });
+  }
 }

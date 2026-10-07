@@ -191,7 +191,7 @@ for (const size of SIZES) {
     const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
     const today = todayISO();
     const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], today });
-    const out = { client: [], card: [], fix: [], day: [] };
+    const out = { client: [], card: [], fix: [], day: [], status: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
     /* ARE WE ON TARGET? leads the first page, the word and its reason
@@ -220,6 +220,19 @@ for (const size of SIZES) {
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
     from = 'waiting'; for (const w of r.waiting) add('client', w.what, w.open, w.whose);
+    /* THE STATUS REPORT (lib/statusReport) — every line its reading says the
+       one page carries, and the "and N more" when there are more. */
+    /* At the smallest lists the page steps down to on a very busy job, so
+       what is checked is always on the paper. */
+    const { statusReport, STATUS_STEPS } = await import('/src/lib/statusReport.ts');
+    const st = statusReport(r, STATUS_STEPS.at(-1));
+    from = 'status: where we are'; add('status', st.name, st.verdict.word, st.verdict.reason); for (const g of st.gates) add('status', g.label, g.says);
+    from = 'status: why'; for (const w of st.why) add('status', w.tag, w.what, w.detail);
+    from = 'status: what next'; for (const n of st.next) add('status', n.what, n.who, n.when);
+    from = 'status: waiting'; for (const w of st.waiting) add('status', w);
+    from = 'status: runs'; for (const rr of st.runs) add('status', rr.title, rr.net, rr.outcome);
+    /* "and N more" only when even the longest lists cannot hold them all. */
+    from = 'status: more'; if (statusReport(r).whyMore) add('status', 'more — in the full report');
     const cardOf = (id, k) => {
       const t = tests.find(x => x.id === id); if (!t) return;
       const c = trialCard(t, tests, items, assets);
@@ -242,7 +255,10 @@ for (const size of SIZES) {
   }, { pid: job.projectId, tid: job.testId, fid: fixId });
 
   const reports = [
-    ['client', `#/project/${job.projectId}/report`, [['PDF']], must.client],
+    /* The report screen offers the one-page status report first; the full
+       report is the other choice (docs/SIMPLE.md). */
+    ['status', `#/project/${job.projectId}/report`, [['Status — 1 page'], ['PDF']], must.status],
+    ['client', `#/project/${job.projectId}/report`, [['Full report'], ['PDF']], must.client],
     /* The card is the record's own page now (screens/TestScreen); its button
        says what it makes — "Test card — PDF", "Fix card — PDF", "Install step
        card — PDF" — so it is pressed by that name, whichever face it wears. */
@@ -256,6 +272,8 @@ for (const size of SIZES) {
     try {
       await download(page, hash, file, steps);
       const r = check(file, mustSay ?? []);
+      /* The status report is ONE page — that is the whole point of it. */
+      if (name === 'status' && r.pages > 1) r.faults.push(`${r.pages} pages — the status report must be one`);
       rows.push({ size, report: name, pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });

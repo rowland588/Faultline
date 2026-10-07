@@ -9,6 +9,7 @@ import { useTesting } from '../lib/useTesting';
 import { useMaterials } from '../lib/useMaterials';
 import { usePrograms } from '../lib/usePrograms';
 import { useStandards } from '../ui/StandardsCard';
+import { statusReport } from '../lib/statusReport';
 import { clientReport, machinesSay, type ClientReport } from '../lib/clientReport';
 import { todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
@@ -23,6 +24,21 @@ function Says({ says }: { says: string }) {
   return <span>{says.split(' · ').map((p, i) => (
     <span key={i}>{i > 0 && ' · '}<span className={/^\d+ late$/.test(p) ? 'in-late' : /^\d+ a problem$/.test(p) ? 'in-problem' : undefined}>{p}</span></span>
   ))}</span>;
+}
+
+/* WHICH REPORT. The status report is one page and is the one that gets sent
+   (lib/statusReport, docs/SIMPLE.md) — Rowland, 7 October: "I can't send that
+   report out. It's too massive." The full report is the whole record, for
+   whoever wants it. Both read the same reading, so they cannot disagree. */
+type Which = 'status' | 'full';
+
+async function buildStatus(r: ClientReport): Promise<jsPDF> {
+  const { loadPdfLib } = await import('../lib/savePdf');
+  const { drawStatusReport } = await import('../lib/clientReportPdf');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  await drawStatusReport(doc, r);
+  return doc;
 }
 
 async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF> {
@@ -51,7 +67,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
   return doc;
 }
 
-const fileName = (r: ClientReport) => pdfFileName(r.name, 'client report', todayISO());
+const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : 'client report', todayISO());
 
 export function ClientReportScreen({ projectId }: { projectId: string }) {
   const { projects, loading } = useProjects();
@@ -62,6 +78,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const standards = useStandards(projectId);
   const walk = useWalkSnags(projectId);
   const [withStandards, setWithStandards] = useState(true);
+  const [which, setWhich] = useState<Which>('status');
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing
@@ -88,15 +105,17 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
 
   /* The preview is the PDF itself, redrawn when what is on it changes — and
      only then (lib/usePdfPreview). */
-  const previewKey = useMemo(() => (report && wide ? `${withStandards}|${JSON.stringify(report)}` : null), [report, withStandards, wide]);
-  const preview = usePdfPreview(previewKey, () => buildPdf(report as ClientReport, withStandards));
+  const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(report)}` : null), [report, withStandards, wide, which]);
+  const build = () => (which === 'status' ? buildStatus(report as ClientReport) : buildPdf(report as ClientReport, withStandards));
+  const preview = usePdfPreview(previewKey, build);
+  const status = useMemo(() => (report ? statusReport(report) : null), [report]);
 
   const download = async () => {
     if (!report || busy) return;
     setBusy(true); setSaid(null); setErr(null);
     try {
       const { deliverPdf } = await import('../lib/savePdf');
-      const how = await deliverPdf(await buildPdf(report, withStandards), fileName(report));
+      const how = await deliverPdf(await build(), fileName(report, which));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('client report failed', e);
@@ -111,9 +130,13 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">Client report</h1>
-          <p className="pace-lede">The job in the order it is run, drawn from what is kept here — nothing typed for it.</p>
+          <p className="pace-lede">{which === 'status'
+            ? 'One page: where we are, why we are not where we should be, and what we are doing about it. The one to send.'
+            : 'The whole record, in the order the job is run — for whoever wants every detail.'}</p>
           {/* The answer the first page leads with (lib/onTarget). */}
-          <OnTargetLine v={report.onTarget} />
+          {/* On the status view, the verdict and the handover only — what
+              is wrong is listed under it, once. */}
+          <OnTargetLine v={which === 'status' && status ? status.verdict : report.onTarget} />
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
@@ -122,6 +145,33 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       {said && <p className="tc-ok" role="status">{said}</p>}
       {err && <p className="sub tw-err" role="alert">{err}</p>}
 
+      {/* WHICH ONE — the short one first. */}
+      <span className="cw-seg cr-which" role="group" aria-label="Which report">
+        <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
+        <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
+      </span>
+
+      {which === 'status' && status && (
+        <div className={'cr-body' + (wide ? ' is-wide' : '')}>
+          <ol className="cr-toc">
+            <li><b>Where we are</b><span>{report.gates.map(g => `${g.label}: ${g.says}`).join(' · ')}</span></li>
+            <li><b>Why we are not where we should be</b>
+              {status.why.length ? status.why.map((w, i) => <span key={i}><b className={w.kind === 'risk' || w.kind === 'problem' ? 'in-problem' : 'in-late'}>{w.tag}</b> {w.what}</span>) : <span>Nothing — everything is on plan.</span>}
+              {status.whyMore > 0 && <span className="sub">and {status.whyMore} more — in the full report</span>}</li>
+            <li><b>What we are doing about it</b>
+              {status.next.length ? status.next.map((n, i) => <span key={i}>{n.what} — <span className={n.late ? 'in-late' : undefined}>{n.when}</span></span>) : <span>No fixes open.</span>}
+              {status.nextMore > 0 && <span className="sub">and {status.nextMore} more open — in the full report</span>}</li>
+            {status.runs.length > 0 && <li><b>Performance runs</b>{status.runs.map((r, i) => <span key={i}>{r.title}{r.machine ? ` — ${r.machine}` : ''}: net {r.net} · {r.outcome}</span>)}</li>}
+          </ol>
+          {wide && (
+            <div className="cr-page">
+              {preview ? <iframe title="The status report" src={preview} /> : <p className="sub">Drawing the report…</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {which === 'full' && <>
       {report.standards.length > 0 && (
         <label className="cr-opt">
           <input type="checkbox" checked={withStandards} onChange={e => setWithStandards(e.target.checked)} />
@@ -188,6 +238,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

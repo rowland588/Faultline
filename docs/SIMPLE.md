@@ -75,8 +75,13 @@ Two, from one button, the short one first:
   critical, the risks, the late — each with cause and cost), what we are doing
   about it (actions, who, by when) and, on a commissioning job, the
   performance runs. One A4.
-- **Full report** — today's report, whole, for whoever wants the record. The
-  status page leads it, so the two can never disagree.
+- **Full report** — today's report, whole, for whoever wants the record.
+  Both are read off the same reading (lib/clientReport → lib/statusReport),
+  so the two cannot disagree.
+
+The status page is ONE page, always: on a very busy job its lists step down
+(six lines, then five, four, three) until it fits, and each says how many more
+the full report has. `scripts/report-stress.mjs` fails it at two pages.
 
 ## Commission, specifically
 
