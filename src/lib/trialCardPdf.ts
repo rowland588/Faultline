@@ -209,7 +209,7 @@ function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number
     d.setFillColor(...wash(BRAND, 0.05)); d.roundedRect(x, y, w, h, 5, 5, 'F');
     setFont(d, 6.5, 'bold', ACCENT); d.text('THE RUN', x + 12, y + 18);
     setFont(d, 8.5, 'normal', INK2);
-    d.text(san(`Not run yet. ${agreed ? `Agreed: ${agreed}.` : 'No rate agreed yet.'}`), x + 62, y + 18);
+    d.text(san(`${c.ranOn || c.outcome !== 'planned' ? 'No run numbers kept.' : 'Not run yet.'} Agreed: ${agreed}.`), x + 62, y + 18);
     return y + h + 10;
   }
   /* What the numbers say wraps and grows the strip — nothing on this card is cut. */
@@ -523,7 +523,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
 
   y = planTop + boxH + 12;
   }
-  if (c.run && y + RUN_STRIP_H.full + 30 > bottom) { d.addPage(); y = head(d, c, meta, 2) + 14; }
+  if (c.run && y + (c.run.ran ? RUN_STRIP_H.full : RUN_STRIP_H.empty) + 20 > bottom) { d.addPage(); y = head(d, c, meta, 2) + 14; }
   y = runStrip(d, c, M, y, CW);
   y = loopStrip(d, c, M, y, CW);
 

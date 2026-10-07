@@ -137,7 +137,8 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
     product: test.product ?? test.planned,
     result: test.result,
 
-    ...(isRunTest(test) ? { run: ((r: RunReading) => ({
+    /* Printed when there is something to print: numbers, or what was agreed. */
+    ...(isRunTest(test) && (readRun(test).ran || agreedWords(readRun(test).agreed)) ? { run: ((r: RunReading) => ({
       tiles: runTiles(r), agreed: agreedWords(r.agreed), say: numbersSay(r), ran: r.ran, ...(r.meets != null ? { meets: r.meets } : {}),
     }))(readRun(test)) } : {}),
 

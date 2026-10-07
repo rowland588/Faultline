@@ -29,7 +29,7 @@ export function RunBoard({ t, compact }: { t: Test; compact?: boolean }) {
     return (
       <div className={'run-board is-empty' + (compact ? ' is-compact' : '')}>
         <p className="run-none">
-          <b>Not run yet.</b> {agreed ? <>Agreed: {agreed}.</> : 'No rate agreed yet.'}
+          <b>{t.ranOn || t.outcome !== 'planned' ? 'No run numbers kept yet.' : 'Not run yet.'}</b> {agreed ? <>Agreed: {agreed}.</> : 'No rate agreed yet.'}
           {product && <> Product: {product}.</>}
         </p>
       </div>
