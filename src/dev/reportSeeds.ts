@@ -239,6 +239,8 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       ways: [{ id: 'w1', what: LONG[2], agreed: true }, { id: 'w2', what: 'Ilapak send a second engineer to rewrite the programs in parallel' }], sort: 200, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, testId: tests[0].id, kind: 'found', what: 'Programs cannot be copied over from the old line', critical: true, sort: 201, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, testId: tests[1].id, kind: 'found', what: 'Power supply to the line undersized', critical: true, impact: 'Line could not run at speed.', doneAt: t, sort: 202, createdAt: t, updatedAt: t },
+    { id: uid(), projectId: proj.id, testId: longest.id, kind: 'found', what: LONG[1], risk: true, couldLose: 100, impact: LONG[2],
+      ways: [{ id: 'r1', what: 'Ask the client now whether the old validation carries over' }], sort: 203, createdAt: t, updatedAt: t },
   );
   /* PARTS OF THE PLAN on the first machine's Programs loaded — one with a
      day, one done, one with no day — so the plan's branches reach the paper. */
@@ -339,6 +341,7 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
     items.push({ id: uid(), projectId: proj.id, testId: pick(tests).id, kind: 'found', what: say() || 'Something seen', owner: rand() < 0.6 ? pick([...WHO, ...AWKWARD]) : undefined, sort: i, createdAt: t - i * 3_600_000, updatedAt: t,
       ...(i % 4 === 1 ? { hoursLost: [0.5, 1, 2, 3.5, 12.25][i % 5] } : {}),
       /* Now and then critical (lib/critical), with or without its story. */
+      ...(i % 11 === 5 ? { risk: true, ...(rand() < 0.6 ? { couldLose: [4, 16, 100, 2.5][i % 4] } : {}), ...(rand() < 0.5 ? { impact: say() || 'Launch could slip' } : {}) } : {}),
       ...(i % 9 === 2 ? { critical: true, ...(rand() < 0.7 ? { impact: say() || 'Launch at risk' } : {}),
         ...(rand() < 0.6 ? { ways: [{ id: 'a', what: say() || 'A way round it', agreed: rand() < 0.5 }, { id: 'b', what: say() || 'Another way' }] } : {}) } : {}) });
   }

@@ -125,7 +125,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const noted = notedProblems(tt.tests, tt.items, tt.assets);
   /* A CRITICAL PROBLEM LEADS the problems with no fix (lib/critical), the
      oldest first as the rest are; a fix booked from one carries its tag. */
-  const openNoted = [...noted.open.filter(n => n.item.critical), ...noted.open.filter(n => !n.item.critical)];
+  /* Then the high risks, then the rest. */
+  const openNoted = [...noted.open.filter(n => n.item.critical), ...noted.open.filter(n => !n.item.critical && n.item.risk), ...noted.open.filter(n => !n.item.critical && !n.item.risk)];
   const fromCritical = new Set(tt.items.filter(i => !i.deletedAt && i.kind === 'found' && i.critical && i.becameTestId).map(i => i.becameTestId as string));
 
   return (
@@ -360,7 +361,7 @@ function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete, onView }: {
           marks on it ("2 marks") — tap one for the marks and their words. */}
       <span className="fxl-mcol">
         <button type="button" className="fxl-m fxl-open" onClick={onOpen} disabled={!n.on}>
-          <b>{crit && <CriticalTag sorted={sorted} />}{n.item.what}</b>
+          <b>{crit && <CriticalTag sorted={sorted} />}{!crit && n.item.risk && <CriticalTag sorted={sorted} risk />}{n.item.what}</b>
           <small>
             {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}
           </small>

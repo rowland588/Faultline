@@ -39,7 +39,7 @@ import { usePrograms } from '../lib/usePrograms';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, criticalItems, jobItems, kindWord, lateWhen, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
 import { criticalCount } from '../lib/critical';
@@ -236,13 +236,13 @@ function NeedsYouPanel({ items, today, door, split, max }: {
   const n = needsYou(items, today, { max });
   const lateShown = n.rows.filter(r => r.urgency === 'late').length;
   /* "1 critical" leads the panel's answer, solid red — a zero is not said. */
-  const crit = n.critical > 0 ? <><b className="fp-n-crit">{criticalCount(n.critical)}</b> · </> : null;
+  const crit = <>{n.critical > 0 && <><b className="fp-n-crit">{criticalCount(n.critical)}</b> · </>}{n.risk > 0 && <><b className="fp-n-crit is-risk">{n.risk} high risk</b> · </>}</>;
   const lateHidden = n.late - lateShown;
   const byKind = new Map<JobItem['kind'], number>();
   for (const x of items) if (x.late) byKind.set(x.kind, (byKind.get(x.kind) ?? 0) + 1);
   const kinds = split && byKind.size > 1
     ? ` — ${[...byKind].map(([k, c]) => `${c} ${KIND_WORD[k].toLowerCase()}${c === 1 ? '' : 's'}`).join(', ')}` : '';
-  const owedSays = items.length === n.critical ? 'nothing owed'
+  const owedSays = items.length === n.critical + n.risk ? 'nothing owed'
     /* "late", as the band and the reports say it: a stage is late when its
        day has gone or its problems lost hours (lib/install lateOrProblem). */
     : n.late > 0 ? <><b className="fp-n-r">{n.late} late</b>{kinds} · late first</>
@@ -265,10 +265,10 @@ function NeedsYouPanel({ items, today, door, split, max }: {
                means for the business and how it stands; the row opens its
                stage, where the ways round it are written. */
             <li key={`crit:${item.id ?? ''}:${i}`}>
-              <button className="fp-row is-crit"
+              <button className={'fp-row is-crit' + (item.critical.risk ? ' is-risk' : '')}
                 onClick={() => (item.id ? openRecord(item.jobId, item.id) : nav(`/project/${item.jobId}/fixes`))}>
                 <span className="fp-row-m">
-                  <span className="fp-crit-h"><CriticalTag /><b>{item.what}</b></span>
+                  <span className="fp-crit-h"><CriticalTag risk={item.critical.risk} /><b>{item.what}</b></span>
                   <small>{item.critical.where}{item.who.trim() ? ` · ${item.who.trim()}` : ''}</small>
                   {item.critical.impact && <span className="fp-crit-impact">{item.critical.impact}</span>}
                   {/* How it stands, under what it means — the ways round it
@@ -552,6 +552,8 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
   const owed = [
     /* An open critical problem leads Needs you (lib/portfolio criticalItems). */
     ...criticalItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
+    /* Then each high risk, amber — not happened yet (lib/critical). */
+    ...riskItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
     ...jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets }, today),
   ];
 

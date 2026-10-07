@@ -2,7 +2,7 @@
    more narrative behind it — potential solutions, what it means for the
    business ... say in a report: look at this, this is a major problem." */
 import { describe, expect, it } from 'vitest';
-import { criticalOn, criticalProblems, criticalState } from '../critical';
+import { couldWords, criticalOn, criticalProblems, criticalState, riskOn, riskProblems } from '../critical';
 import { stageGateOnTarget } from '../onTarget';
 import type { Asset, Test, TestItem } from '../testing';
 
@@ -44,5 +44,23 @@ describe('"Are we on target?" with a critical problem open', () => {
   });
   it('a sorted one does not hold it', () => {
     expect(stageGateOnTarget(x([found({ critical: true, doneAt: 20 })])).tone).toBe('on');
+  });
+});
+
+describe('a high risk — not happened yet (Rowland, 7 October)', () => {
+  const x = (items: TestItem[]) => ({ project: { plannedAt: '2026-11-02', expectedAt: '2026-11-02' }, tests: [step()], items, assets: [wrapper], materials: [], programs: [], today: TODAY });
+  const risky = found({ risk: true, couldLose: 100, what: 'Recipes may need re-validating' });
+  it('is its own level, apart from critical; critical wins when both are set', () => {
+    expect(riskProblems([step()], [risky], []).open).toHaveLength(1);
+    expect(criticalProblems([step()], [risky], []).open).toHaveLength(0);
+    expect(riskProblems([step()], [found({ risk: true, critical: true })], []).open).toHaveLength(0);
+    expect(riskOn('s1', [risky], [step()])).toHaveLength(1);
+  });
+  it('what it could cost is an estimate, said so, and never counted as lost', () => {
+    expect(couldWords(risky)).toBe('could cost 100 h (an estimate)');
+    const v = stageGateOnTarget(x([risky]));
+    expect(v.tone).toBe('risk');   // at risk, never behind: nothing has been lost
+    expect(v.reason).toContain('1 high risk: Recipes may need re-validating, could cost 100 h (an estimate)');
+    expect(v.reason).toContain('nothing late');
   });
 });

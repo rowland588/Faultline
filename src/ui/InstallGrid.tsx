@@ -26,7 +26,7 @@ import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, 
 import { niceDay, todayISO } from '../lib/weeks';
 import { partsOf, partsSaid } from '../lib/noted';
 import { PartsMark } from './StageParts';
-import { criticalCount, criticalOn } from '../lib/critical';
+import { criticalCount, criticalOn, riskOn } from '../lib/critical';
 import { offerUndo } from './Undo';
 import { openRecord } from './RecordDrawer';
 import type { useTesting } from '../lib/useTesting';
@@ -128,6 +128,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
      solid red, on its square and its phone row, as its parts are. */
   const critAt = (s?: StepView) => (s ? criticalOn(s.step.id, tt.items, tt.tests).length : 0);
   const critMark = (n: number) => (n > 0 ? <b className="ig-crit">{criticalCount(n)}</b> : null);
+  /* A HIGH RISK on it, amber, when nothing on it is critical. */
+  const riskMark = (s?: StepView) => { const n = s ? riskOn(s.step.id, tt.items, tt.tests).length : 0; return n > 0 ? <b className="ig-crit is-risk">{n} high risk</b> : null; };
 
   /* ---- the writes, each with its own undo (ui/WhyMoved, shared with the drawer) ---- */
   const change = (ts: Test[], patch: (t: Test) => Partial<Test>, said: string) => changeTests(tt, ts, patch, said);
@@ -401,7 +403,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                       aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
                       <span className="igm-sq" aria-hidden />
                       <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}
-                        {critMark(crit)}
+                        {crit ? critMark(crit) : riskMark(cs)}
                         <PartsMark said={ps} className="igm-parts" /></span>
                       <span className="igm-word">{cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
                     </button>
@@ -500,7 +502,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                           aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
                           {s ? <span>{cellWord(s)}</span> : can.edit ? '+' : ''}
                           {/* ITS PARTS, A BRANCH UNDER ITS DAY (ui/StageParts). */}
-                          {critMark(crit)}
+                          {crit ? critMark(crit) : riskMark(s)}
                           <PartsMark said={ps} />
                         </button>
                       </td>

@@ -136,22 +136,24 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           {/* CRITICAL ISSUES — first, as on the paper, each told whole
               (lib/critical): what it means for the business, the ways round
               it with the agreed one, its fix and how it stands. */}
-          {(report.critical.open.length + report.critical.sorted.length) > 0 && (
-            <li className="cr-crit">
-              <b>Critical issues</b>
-              <span>{report.critical.open.length} open{report.critical.sorted.length ? ` · ${report.critical.sorted.length} sorted` : ''}</span>
-              {report.critical.open.map((c, i) => (
-                <div key={i} className="crit-on-stage">
-                  <span><CriticalTag /> <b>{c.what}</b></span>
+          {([['Critical issues', report.critical, false], ['High risks', report.risks, true]] as const).map(([title, set, risk]) =>
+            (set.open.length + set.sorted.length) > 0 && (
+            <li key={title} className="cr-crit">
+              <b>{title}</b>
+              <span>{set.open.length} open{set.sorted.length ? ` · ${set.sorted.length} sorted` : ''}</span>
+              {set.open.map((c, i) => (
+                <div key={i} className={'crit-on-stage' + (risk ? ' is-risk' : '')}>
+                  <span><CriticalTag risk={risk} /> <b>{c.what}</b></span>
                   <span className="sub">{c.meta}</span>
-                  <CriticalStory impact={c.impact} ways={c.ways.map((w, k) => ({ id: String(k), what: w.what, agreed: w.agreed }))} />
+                  <CriticalStory impact={c.impact} risk={risk} couldLose={c.couldLose}
+                    ways={c.ways.map((w, k) => ({ id: String(k), what: w.what, agreed: w.agreed }))} />
                   {c.fix && <span className="sub">{c.fix}</span>}
                   <span className="sub"><b>Now:</b> {c.state}</span>
                 </div>
               ))}
-              {report.critical.sorted.map((l, i) => <span key={i} className="sub">{l}</span>)}
+              {set.sorted.map((l, i) => <span key={i} className="sub">{l}</span>)}
             </li>
-          )}
+          ))}
           <li><b>Where the job is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
           {report.sections.map(s => (
             <li key={s.gate}>

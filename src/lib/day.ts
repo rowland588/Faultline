@@ -24,7 +24,7 @@ import type { MediaRef } from '../types';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays } from './install';
 import { niceDay, todayISO } from './weeks';
 import { partLate, partOnStage, partsOnStages } from './noted';
-import { criticalProblems, criticalState, type Critical } from './critical';
+import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 
 export interface DayInput {
   tests: Test[];
@@ -56,7 +56,7 @@ export interface DayLine {
 }
 
 export interface DaySection {
-  key: 'critical' | 'plan' | 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
+  key: 'critical' | 'risk' | 'plan' | 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
   title: string;
   lines: DayLine[];
 }
@@ -277,6 +277,16 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
       tone: 'bad' as const, ...(c.on ? { id: c.on.id } : {}), which: 'critical' as const, mark: 'Critical',
     }));
 
+  /* HIGH RISKS open that evening, after the critical ones, in amber — not
+     happened yet; what each could cost said as an estimate (lib/critical). */
+  const risks = riskProblems(input.tests, input.items, input.assets);
+  const riskThen = [...risks.open, ...risks.sorted].filter(c => c.item.createdAt <= evening && !(c.sorted && sortedBy(c)));
+  const risky: DayLine[] = riskThen.sort((a, b) => a.item.createdAt - b.item.createdAt).map(c => ({
+    text: `High risk: ${critLine(c)}${c.item.couldLose ? ` · ${couldWords(c.item)}` : ''} · ${c.sorted ? 'open' : criticalState(c)}.`,
+    ...(c.item.impact?.trim() ? { detail: c.item.impact.trim() } : {}),
+    tone: 'problem' as const, ...(c.on ? { id: c.on.id } : {}), which: 'problem' as const, mark: 'High risk',
+  }));
+
   /* ---------------------------- what was found ---------------------------- */
   for (const i of items) {
     if (i.kind !== 'found' || dayOfMs(i.createdAt) !== date) continue;
@@ -384,6 +394,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
 
   const sections: DaySection[] = [
     { key: 'critical' as const, title: 'Critical — open', lines: critical },
+    { key: 'risk' as const, title: 'High risk — open', lines: risky },
     { key: 'plan' as const, title: `${isToday ? 'The plan for today' : 'The plan for the day'} — ${planSays}`, lines: plan },
     { key: 'done' as const, title: 'What got done', lines: done },
     { key: 'wrong' as const, title: 'What did not go to plan', lines: wrong },
@@ -409,7 +420,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         problem: tests.filter(t => t.kind === 'install' && lateOrProblem(t, items, date) === 'problem').length,
       } : undefined),
     sections, media, install, gates,
-    empty: happened === 0 && critical.length === 0 && plan.length === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
+    empty: happened === 0 && critical.length === 0 && risky.length === 0 && plan.length === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
   };
 }
 

@@ -300,6 +300,14 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      branches under the stage, on screen and on paper. */
   await putTestItem(item(programsLoaded.id, 'next', 'First program to verify Tesco Express 1.25 packs through the de-nester and the pick and place',
     { owner: 'Ilapak UK', due: iso(2), sort: 1 }));
+  /* A HIGH RISK (lib/critical riskProblems) — Rowland's 100 hours, which
+     are an assumption, not reality: what it could cost, and the consequence. */
+  await putTestItem(item(programsLoaded.id, 'found', 'Recipes may need re-validating by Tesco quality before release', {
+    owner: 'Rowland', risk: true, couldLose: 100, sort: 4,
+    impact: 'If Tesco ask for re-validation, the release slips a further two weeks and the launch moves.',
+    ways: [{ id: 'r1', what: 'Ask Tesco quality now whether the old validation carries over' }],
+  }));
+
   /* THE PLAN FOR TODAY (lib/huddle) — agreed at this morning's huddle: one
      done, one about a stage, one on the whole job; and yesterday's, with one
      line not done, so "carry it over" is offered. */

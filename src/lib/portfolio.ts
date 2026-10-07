@@ -44,7 +44,7 @@ import { remindersOf } from './reminders';
 import { owedParts, partLate, partOnStage } from './noted';
 import type { TreeStanding } from './treeBind';
 import { PHASE_WORD, type Phase } from './problems';
-import { criticalProblems, criticalState } from './critical';
+import { couldWords, criticalProblems, criticalState, riskProblems } from './critical';
 
 export interface JobInput {
   project: Project;
@@ -120,7 +120,10 @@ export interface JobItem {
    *  what it means for the business, and how it stands in words. Its row
    *  opens its stage (`id`) — the problem is a branch of it. Never in the
    *  week, the parties or the late count; it leads Needs you (needsYou). */
-  critical?: { where: string; impact?: string; state: string };
+  critical?: { where: string; impact?: string; state: string;
+    /** A HIGH RISK (lib/critical riskProblems), not critical: amber, after
+     *  the critical ones, never counted as "critical". */
+    risk?: boolean };
 }
 
 export interface JobView {
@@ -339,6 +342,23 @@ export function criticalItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 
   });
 }
 
+/** THE OPEN HIGH RISKS on a job, one row each — after the critical ones on
+ *  Needs you, in amber, what each could cost said with how it stands. */
+export function riskItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 'assets'>): JobItem[] {
+  const p = j.project;
+  return riskProblems(j.tests, j.items, j.assets).open.map(c => {
+    const impact = c.item.impact?.trim();
+    const could = couldWords(c.item);
+    return {
+      jobId: p.id, job: shortName(p.name), color: p.color,
+      kind: !c.on ? 'test' as const : c.on.kind === 'install' ? gateOf(c.on) : c.on.kind ?? 'test',
+      ...(c.on ? { id: c.on.id } : {}),
+      what: c.item.what.trim() || 'A high risk', who: c.item.owner?.trim() ?? '', late: false,
+      critical: { where: c.where, ...(impact ? { impact } : {}), state: [could, criticalState(c)].filter(Boolean).join(' · '), risk: true },
+    };
+  });
+}
+
 /** What a 6M or lever tree job owes: every open action on its board. */
 export function pacedItems(j: PacedInput, today: string): JobItem[] {
   const p = j.project;
@@ -461,6 +481,8 @@ export interface NeedsYou {
   rows: { item: JobItem; urgency: Urgency }[];
   /** Open critical problems (criticalItems) — every one a row, leading. */
   critical: number;
+  /** Open high risks (riskItems) — a row each, after the critical ones. */
+  risk: number;
   /** Everything past its day — on the rows or not. */
   late: number;
   /** Everything due within the next `soonDays`, on the rows or not. */
@@ -500,7 +522,8 @@ export function needsYou(all: JobItem[], today: string, o: { soonDays?: number; 
   }
   return {
     rows: [...crit.map(item => ({ item, urgency: 'critical' as const })), ...rows],
-    critical: crit.length,
+    critical: crit.filter(x => !x.critical?.risk).length,
+    risk: crit.filter(x => x.critical?.risk).length,
     late: dated.filter(r => r.urgency === 'late').length,
     soon: dated.filter(r => r.urgency === 'soon').length,
     more: dated.length - rows.length,

@@ -116,7 +116,7 @@ export function foldForPaper(g: Gantt, capacity: number): Gantt {
         ...rs[0], label: key, on: undefined, slip: undefined, marks: undefined, overlap: undefined, next: undefined, parts: undefined, partsSay: undefined,
         start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
         bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
-        critical: rs.reduce((n, r) => n + (r.critical ?? 0), 0) || undefined,
+        critical: rs.reduce((n, r) => n + (r.critical ?? 0), 0) || undefined, risk: rs.reduce((n, r) => n + (r.risk ?? 0), 0) || undefined,
         sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}${parts.length ? ` · ${partsWords(parts)}` : ''}`,
         fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
       };
@@ -153,7 +153,7 @@ export function foldBands(g: Gantt, capacity: number): Gantt {
       ...rs[0], label: gr.label, on: undefined, slip: undefined, marks: undefined, overlap: undefined, next: undefined, parts: undefined, partsSay: undefined,
       start: Math.min(...rs.map(r => r.start)), span: 1, tone: worst(rs.map(r => r.tone)),
       bits: rs.map(r => ({ start: r.start, span: r.span, tone: r.tone })),
-      critical: rs.reduce((n, r) => n + (r.critical ?? 0), 0) || undefined,
+      critical: rs.reduce((n, r) => n + (r.critical ?? 0), 0) || undefined, risk: rs.reduce((n, r) => n + (r.risk ?? 0), 0) || undefined,
       sub: `${rs.length} ${rs.length === 1 ? noun[0] : noun[1]}${bad ? ` · ${bad}` : ''}${parts.length ? ` · ${partsWords(parts)}` : ''}`,
       fixes: fixes.length ? [{ ...fixes[0], label: `${fixes.length} fix${fixes.length === 1 ? '' : 'es'} on it`, bits: fixes.map(f => ({ start: f.start, span: f.span, tone: f.tone })) } as PaperRow] : undefined,
     };
@@ -212,7 +212,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
   const labelOf = (r: PaperRow, nest = false) => {
     const mach = r.on && r.label.startsWith(`${r.on} — `) ? r.on : '';
     const w = LAB - 12 - (nest ? NEST : 0);
-    const cw = r.critical ? critW(r.critical) : 0;
+    const cw = r.critical ? critW(r.critical) : r.risk ? riskW(r.risk) : 0;
     font(7.5, 'bold');
     /* A reminder's own words are on the calendar beside its mark; the label
        says what it is and when. "Next" takes room after the first line. */
@@ -248,6 +248,8 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
   /* "1 CRITICAL" — solid red, white words, beside the stage's name. */
   const critWords = (n: number) => `${n} CRITICAL`;
   function critW(n: number) { font(5, 'bold'); return doc.getTextWidth(critWords(n)) + 9; }
+  const riskWords = (n: number) => `${n} HIGH RISK`;
+  function riskW(n: number) { font(5, 'bold'); return doc.getTextWidth(riskWords(n)) + 9; }
   const subLabel = (sb: GanttSub, cont?: boolean) => {
     const room = LAB - 14;
     font(7, 'bold');
@@ -556,14 +558,15 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       }
       /* AN OPEN CRITICAL PROBLEM on the stage (lib/critical): its count in
          words, solid red — a problem's colour — after its name (and NEXT). */
-      if (r.critical) {
+      /* A HIGH RISK the same way, amber, when nothing on it is critical. */
+      if (r.critical || r.risk) {
         font(7.5, 'bold');
         let tx = M + 6 + nx + doc.getTextWidth(step[0]) + 4;
         if (r.next) { font(5, 'bold'); tx += doc.getTextWidth('NEXT') + 5 + 3; }
         font(5, 'bold', '#ffffff');
-        const words = critWords(r.critical);
+        const words = r.critical ? critWords(r.critical) : riskWords(r.risk ?? 0);
         const tw = doc.getTextWidth(words) + 5;
-        doc.setFillColor(DANGER); doc.roundedRect(tx, by0 - 5.6, tw, 7, 1.5, 1.5, 'F');
+        doc.setFillColor(r.critical ? DANGER : AMBER); doc.roundedRect(tx, by0 - 5.6, tw, 7, 1.5, 1.5, 'F');
         doc.text(words, tx + 2.5, by0 - 0.4, { charSpace: 0.2 });
       }
       /* A REMINDER — a mark you can see on its day, its own words beside it. */

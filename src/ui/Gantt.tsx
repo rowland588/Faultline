@@ -275,14 +275,14 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const noteSays = r.tone === 'done' ? 'talked about' : r.tone === 'late' ? 'the day has gone' : 'to come';
     const tip = note
       ? `Reminder: ${r.label} · ${r.when} · ${noteSays}`
-      : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}${r.critical ? ` · ${criticalCount(r.critical)}` : ''}`;
+      : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}${r.critical ? ` · ${criticalCount(r.critical)}` : ''}${r.risk ? ` · ${r.risk} high risk` : ''}`;
     const afterBar = r.start * px + 2 + w + 6 + (r.slip ? 0 : 0);
     /* "Next" in words, before the name, so a long name never cuts it off. */
     const nextTag = r.next ? <em className="gt-next">Next</em> : null;
     const partsTag = r.partsSay ? <span className="gt-lab-parts">{r.partsSay}</span> : null;
     /* AN OPEN CRITICAL PROBLEM on the stage (lib/critical) — "1 critical",
        solid red, beside its name: a branch of the stage, never a row. */
-    const critTag = r.critical ? <em className="gt-crit">{criticalCount(r.critical)}</em> : null;
+    const critTag = r.critical || r.risk ? <>{r.critical ? <em className="gt-crit">{criticalCount(r.critical)}</em> : null}{r.risk ? <em className="gt-crit is-risk">{r.risk} high risk</em> : null}</> : null;
     return (
       <Fragment key={`${r.id ?? r.label}-${i}`}>
         <div className={'gt-row' + (r.slip || r.marks ? ' has-story' : '') + (r.overlap ? ' has-overlap' : '')}>

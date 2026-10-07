@@ -21,7 +21,7 @@ import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
 import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey } from './install';
 import { partsOf } from './noted';
-import { criticalCount, criticalOn } from './critical';
+import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import type { Program } from './programs';
 
@@ -83,6 +83,9 @@ export interface GanttRow {
   /** Its open critical problems (lib/critical criticalOn) — "1 critical",
    *  solid red, beside its name on screen and on paper. Never a row of its own. */
   critical?: number;
+  /** Its open high risks (lib/critical riskOn) — "1 high risk", amber,
+   *  where critical would be when there is no critical one. */
+  risk?: number;
 }
 
 /** A part's state: done, past its day, due within two days, booked on a day
@@ -282,6 +285,8 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
           const lp = step ? lateOrProblem(step, records.items, today) : undefined;
           const crit = step ? criticalOn(step.id, records.items, records.tests).length : 0;
           if (crit) row.critical = crit;
+          const risky = step ? riskOn(step.id, records.items, records.tests).length : 0;
+          if (risky) row.risk = risky;
           if (step && (lp === 'late' || lp === 'problem')) {
             const lost = hoursTally(step.id, records.items, DAY_HOURS).hours;
             row.tone = lp;

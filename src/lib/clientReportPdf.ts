@@ -192,12 +192,16 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      the problem's red: what, where and when, what it means for the business,
      the ways round it with the agreed one said so, its fix, how it stands.
      The sorted ones a line each, in plain ink — normal recedes. */
-  if (r.critical.open.length || r.critical.sorted.length) {
-    out.push(label(`Critical issues · ${r.critical.open.length} open${r.critical.sorted.length ? ` · ${r.critical.sorted.length} sorted` : ''}`, r.critical.open.length ? DANGER : MUTED));
-    r.critical.open.forEach(c => {
-      out.push({ ...text({ text: `CRITICAL — ${c.what}`, size: 10.5, style: 'bold', colour: DANGER, after: 2 }), keepWithNext: true });
+  /* HIGH RISKS follow, the same way in amber (lib/critical): not happened
+     yet, the consequence if it does, and what it could cost — an estimate. */
+  const tell = (set: typeof r.critical, title: string, tag: string, colour: string, story: string) => {
+    if (!set.open.length && !set.sorted.length) return;
+    out.push(label(`${title} · ${set.open.length} open${set.sorted.length ? ` · ${set.sorted.length} sorted` : ''}`, set.open.length ? colour : MUTED));
+    set.open.forEach(c => {
+      out.push({ ...text({ text: `${tag} — ${c.what}`, size: 10.5, style: 'bold', colour, after: 2 }), keepWithNext: true });
       out.push({ ...text({ text: c.meta, size: 8.5, colour: MUTED, after: 3 }), keepWithNext: true });
-      out.push(text({ text: c.impact ? `What it means for the business: ${c.impact}` : 'What it means for the business: not written yet.', size: 9.5, colour: INK2, indent: 10, after: 3 }));
+      if (c.could) out.push(text({ text: `Could cost: ${c.could.replace(/^could cost /, '')}`, size: 9.5, style: 'bold', colour: INK2, indent: 10, after: 3 }));
+      out.push(text({ text: c.impact ? `${story}: ${c.impact}` : `${story}: not written yet.`, size: 9.5, colour: INK2, indent: 10, after: 3 }));
       if (c.ways.length) {
         out.push({ ...text({ text: 'Ways round it', size: 9, style: 'bold', colour: INK2, indent: 10, after: 1 }), keepWithNext: true });
         c.ways.forEach(w => out.push(text({ text: w.agreed ? `${w.what} — agreed` : w.what, size: 9, style: w.agreed ? 'bold' : 'normal', colour: w.agreed ? OK : INK2, indent: 22, bullet: '•', after: 1 })));
@@ -205,8 +209,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       if (c.fix) out.push(text({ text: c.fix, size: 9, colour: INK2, indent: 10, after: 1 }));
       out.push(text({ text: `Now: ${c.state}`, size: 9, style: 'bold', colour: INK2, indent: 10, after: gap(d, 'm') }));
     });
-    r.critical.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 'm') : 1 })));
-  }
+    set.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 'm') : 1 })));
+  };
+  tell(r.critical, 'Critical issues', 'CRITICAL', DANGER, 'What it means for the business');
+  tell(r.risks, 'High risks', 'HIGH RISK', AMBER, 'The consequence if it happens');
 
   // the sentence, on the dark band — as tall as its words
   const said = (f: Frame) => wrap(f.doc, r.sentence, f.w - 32, 14, 'bold');

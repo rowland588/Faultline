@@ -15,18 +15,29 @@ import { uid } from '../lib/ids';
 import { BetterWords } from './BetterWords';
 import { Icon } from './Icon';
 
-export interface CriticalDraft { critical: boolean; impact: string; ways: WayRound[] }
+/* THE LEVEL — not flagged, HIGH RISK (amber: it has not happened yet) or
+   CRITICAL (red). Rowland, 7 October: "I have critical, and I need like a
+   high risk ... I need to flag a metric, and a risk of consequence." Both
+   flagged levels carry the same story: the consequence, what it could cost
+   (an estimate, never counted as lost) and the ways round it. */
+export type Flag = 'none' | 'risk' | 'critical';
+export interface CriticalDraft { critical: boolean; risk: boolean; impact: string; ways: WayRound[]; could: string }
 
-export const criticalDraftOf = (i?: { critical?: boolean; impact?: string; ways?: WayRound[] }): CriticalDraft =>
-  ({ critical: !!i?.critical, impact: i?.impact ?? '', ways: (i?.ways ?? []).map(w => ({ ...w })) });
+export const flagOf = (d: Pick<CriticalDraft, 'critical' | 'risk'>): Flag => (d.critical ? 'critical' : d.risk ? 'risk' : 'none');
+
+export const criticalDraftOf = (i?: { critical?: boolean; risk?: boolean; impact?: string; ways?: WayRound[]; couldLose?: number }): CriticalDraft =>
+  ({ critical: !!i?.critical, risk: !!i?.risk && !i?.critical, impact: i?.impact ?? '', ways: (i?.ways ?? []).map(w => ({ ...w })), could: i?.couldLose ? String(i.couldLose) : '' });
 
 /** The draft as the problem keeps it: only what was written, blanks dropped.
  *  Unticking critical keeps the words (ticked again, they are still there)
  *  but nothing reads them while it is not critical. */
-export function criticalPatch(d: CriticalDraft): { critical?: boolean; impact?: string; ways?: WayRound[] } {
+export function criticalPatch(d: CriticalDraft): { critical?: boolean; risk?: boolean; impact?: string; ways?: WayRound[]; couldLose?: number } {
   const ways = d.ways.map(w => ({ ...w, what: w.what.trim() })).filter(w => w.what);
+  const could = Number(d.could.replace(',', '.'));
   return {
     ...(d.critical ? { critical: true } : {}),
+    ...(d.risk && !d.critical ? { risk: true } : {}),
+    ...(could > 0 ? { couldLose: Math.min(could, 100000) } : {}),
     ...(d.impact.trim() ? { impact: d.impact.trim() } : {}),
     ...(ways.length ? { ways } : {}),
   };
@@ -42,14 +53,22 @@ export function CriticalFields({ value, onChange, names }: {
   /* One way is the one agreed: agreeing another moves the mark to it. */
   const agree = (id: string) => set({ ways: value.ways.map(w => (w.id === id ? { ...w, agreed: !w.agreed } : { ...w, agreed: false })) });
   return (
-    <div className={'crit-f' + (value.critical ? ' is-on' : '')}>
-      <label className="crit-tick">
-        <input type="checkbox" checked={value.critical} onChange={e => set({ critical: e.target.checked })} />
-        <span><b>Critical</b> — it puts the agreed date or the business at risk</span>
-      </label>
-      {value.critical && (
+    <div className={'crit-f' + (value.critical ? ' is-on' : value.risk ? ' is-risk' : '')}>
+      <span className="crit-level">
+        <span className="crit-level-h">Flag it</span>
+        <span className="cw-seg" role="group" aria-label="How serious is it?">
+          {([['none', 'Not flagged'], ['risk', 'High risk'], ['critical', 'Critical']] as const).map(([k, w]) => (
+            <button key={k} type="button" className={'chip crit-chip is-' + k + (flagOf(value) === k ? ' on' : '')} aria-pressed={flagOf(value) === k}
+              onClick={() => set({ critical: k === 'critical', risk: k === 'risk' })}>{w}</button>
+          ))}
+        </span>
+        <span className="sub crit-level-s">{value.critical ? 'It puts the agreed date or the business at risk now.' : value.risk ? 'It has not happened yet — it could. Watch it.' : ''}</span>
+      </span>
+      {(value.critical || value.risk) && (
         <>
-          <label className="cw-f cw-f-wide"><span>What it means for the business</span>
+          <label className="cw-f crit-could"><span>Could cost <span className="cw-f-opt">hours — an estimate, not counted as lost</span></span>
+            <input inputMode="decimal" className="text-input" value={value.could} placeholder="100" onChange={e => set({ could: e.target.value })} /></label>
+          <label className="cw-f cw-f-wide"><span>{value.critical ? 'What it means for the business' : 'The consequence if it happens'}</span>
             <textarea className="text-area" rows={3} value={value.impact}
               placeholder="The line cannot go back to production on the agreed day — the launch on 2 November is at risk."
               onChange={e => set({ impact: e.target.value })} /></label>
@@ -77,11 +96,14 @@ export function CriticalFields({ value, onChange, names }: {
 /** HOW A CRITICAL PROBLEM READS under its words — on the stage's story and
  *  the job's front page: what it means for the business, then the ways round
  *  it with the agreed one said so. */
-export function CriticalStory({ impact, ways }: { impact?: string; ways?: WayRound[] }) {
-  if (!impact && !ways?.length) return <p className="crit-none sub">Not written yet: what it means for the business, and the ways round it.</p>;
+export function CriticalStory({ impact, ways, couldLose, risk }: { impact?: string; ways?: WayRound[]; couldLose?: number;
+  /** A high risk: its story is "the consequence if it happens". */
+  risk?: boolean }) {
+  if (!impact && !ways?.length && !couldLose) return <p className="crit-none sub">Not written yet: {risk ? 'the consequence' : 'what it means for the business'}, and the ways round it.</p>;
   return (
     <div className="crit-story">
-      {impact && <p className="crit-impact"><b>What it means for the business.</b> {impact}</p>}
+      {!!couldLose && <p className="crit-impact"><b>Could cost {couldLose % 1 ? couldLose : Math.round(couldLose)} h</b> — an estimate, not counted as lost.</p>}
+      {impact && <p className="crit-impact"><b>{risk ? 'The consequence if it happens.' : 'What it means for the business.'}</b> {impact}</p>}
       {!!ways?.length && (
         <div className="crit-ways-r">
           <b>Ways round it.</b>
@@ -96,6 +118,6 @@ export function CriticalStory({ impact, ways }: { impact?: string; ways?: WayRou
 
 /** The solid red tag — "Critical", or "Critical · sorted" in the quiet grey
  *  once it is (normal recedes). */
-export function CriticalTag({ sorted }: { sorted?: boolean }) {
-  return <span className={'crit-tag' + (sorted ? ' is-sorted' : '')}>Critical{sorted ? ' · sorted' : ''}</span>;
+export function CriticalTag({ sorted, risk }: { sorted?: boolean; risk?: boolean }) {
+  return <span className={'crit-tag' + (risk ? ' is-risk' : '') + (sorted ? ' is-sorted' : '')}>{risk ? 'High risk' : 'Critical'}{sorted ? ' · sorted' : ''}</span>;
 }

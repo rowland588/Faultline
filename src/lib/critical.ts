@@ -51,8 +51,33 @@ const sortedOf = (i: TestItem, fix?: Test) => i.doneAt != null || fix?.outcome =
 /** Every critical problem on a job — open first (the oldest leads: it has
  *  been critical longest), then the sorted ones, newest first. */
 export function criticalProblems(tests: Test[], items: TestItem[], assets: Asset[]): { open: Critical[]; sorted: Critical[] } {
+  return flagged(tests, items, assets, i => !!i.critical);
+}
+
+/* HIGH RISK — the second level. Rowland, 7 October: "I have critical, and I
+ * need like a high risk ... 100 hours lost, but it's a possible assumption —
+ * it's not reality. I need to flag a metric, and a risk of consequence."
+ * It has not happened yet: amber, not red; it holds "Are we on target?" at
+ * At risk, never Behind; what it could cost (couldLose) is an estimate and
+ * never added to hours lost. A problem flagged both is critical. */
+
+/** Every high-risk problem on a job (not critical), open first. */
+export function riskProblems(tests: Test[], items: TestItem[], assets: Asset[]): { open: Critical[]; sorted: Critical[] } {
+  return flagged(tests, items, assets, i => !!i.risk && !i.critical);
+}
+
+/** The open high risks on one stage — the count beside it. */
+export const riskOn = (stepId: string, items: TestItem[], tests?: Test[]): TestItem[] =>
+  live(items).filter(i => i.testId === stepId && i.kind === 'found' && i.risk && !i.critical
+    && !sortedOf(i, i.becameTestId ? tests?.find(t => t.id === i.becameTestId && !t.deletedAt) : undefined));
+
+/** "could cost 100 h (an estimate)" — or nothing when none was given. */
+export const couldWords = (i: Pick<TestItem, 'couldLose'>): string =>
+  i.couldLose ? `could cost ${i.couldLose % 1 ? i.couldLose : Math.round(i.couldLose)} h (an estimate)` : '';
+
+function flagged(tests: Test[], items: TestItem[], assets: Asset[], is: (i: TestItem) => boolean): { open: Critical[]; sorted: Critical[] } {
   const ts = live(tests);
-  const rows: Critical[] = live(items).filter(i => i.kind === 'found' && i.critical).map(item => {
+  const rows: Critical[] = live(items).filter(i => i.kind === 'found' && is(i)).map(item => {
     const on = ts.find(t => t.id === item.testId);
     const machine = on?.assetId ? assets.find(a => a.id === on.assetId && !a.deletedAt)?.name : undefined;
     const fix = item.becameTestId ? ts.find(t => t.id === item.becameTestId && t.kind === 'fix') : undefined;

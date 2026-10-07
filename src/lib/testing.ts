@@ -466,6 +466,14 @@ export interface TestItem {
   impact?: string;
   /** The ways round it, and the one agreed — "a belt to bypass the robot". */
   ways?: WayRound[];
+  /** HIGH RISK — it has not happened yet; watch it (lib/critical). Rowland,
+   *  7 October: "I have critical, and I need like a high risk." Amber where
+   *  critical is red. Critical wins when both are set. */
+  risk?: boolean;
+  /** THE HOURS IT COULD COST — an estimate, never counted as lost ("I have
+   *  100 hours lost, but it's a possible assumption — it's not reality").
+   *  `hoursLost` stays what it did cost. */
+  couldLose?: number;
   /** Closed, or done. Absent means open. */
   doneAt?: number;
   media?: MediaRef[];

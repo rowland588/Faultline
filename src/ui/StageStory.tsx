@@ -83,8 +83,6 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
 }) {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  /* "Make it critical" opens the same editor with the box ticked. */
-  const [critFirst, setCritFirst] = useState(false);
   const st = storyOf(stepId, tt.tests, tt.items);
   /* HOURS LOST, added up (lib/hoursLost): each problem says what it cost, a
      push made from hours says which hours made the day, and the stage says
@@ -99,7 +97,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
   const itemOf = (id: string) => tt.items.find(i => i.id === id);
   const editor = (id: string) => {
     const it = itemOf(id);
-    return it ? <ProblemEdit item={it} tt={tt} can={can} startCritical={critFirst} onDone={() => { setEditing(null); setCritFirst(false); }} /> : null;
+    return it ? <ProblemEdit item={it} tt={tt} can={can} onDone={() => setEditing(null)} /> : null;
   };
   /* OPEN OR SORTED — a problem with no fix stays open until somebody says it
      is sorted, whether or not the stage is done (lib/noted), and is listed
@@ -123,10 +121,11 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
           offerUndo(sorted ? 'Open again' : 'Sorted', () => tt.saveItem(it));
         }}>{sorted ? 'Open again' : 'Sorted'}</button>;
       })()}
-      <button type="button" className="cw-link" onClick={() => { setCritFirst(false); setEditing(id); }}>Edit</button>
+      <button type="button" className="cw-link" onClick={() => setEditing(id)}>Edit</button>
       {/* CRITICAL (lib/critical): one tap to say so, the story written in the
           same editor. */}
-      {!itemOf(id)?.critical && <button type="button" className="cw-link" onClick={() => { setCritFirst(true); setEditing(id); }}>Make it critical</button>}
+      {/* FLAG IT — high risk or critical, chosen in the same editor. */}
+      {!itemOf(id)?.critical && !itemOf(id)?.risk && <button type="button" className="cw-link" onClick={() => setEditing(id)}>Flag it</button>}
       {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void removeProblem(tt, id)} title={`Delete “${text}”`}>Delete</button>}
     </span>
   );
@@ -134,9 +133,10 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
      what it means for the business and the ways round it (lib/critical). */
   const critOf = (id: string) => {
     const it = itemOf(id);
-    if (!it?.critical) return null;
+    if (!it?.critical && !it?.risk) return null;
+    const risk = !it.critical;
     const sorted = it.doneAt != null || (!!it.becameTestId && fixOf(it.becameTestId)?.outcome === 'passed');
-    return <div className={'crit-on-stage' + (sorted ? ' is-sorted' : '')}><CriticalTag sorted={sorted} /><CriticalStory impact={it.impact} ways={it.ways} /></div>;
+    return <div className={'crit-on-stage' + (risk ? ' is-risk' : '') + (sorted ? ' is-sorted' : '')}><CriticalTag sorted={sorted} risk={risk} /><CriticalStory impact={it.impact} ways={it.ways} couldLose={it.couldLose} risk={risk} /></div>;
   };
   const pics = (media: MediaRef[]) => media.length > 0 &&
     <span className="sp-ev">{media.map(x => <EvidenceThumb key={x.id} media={x} size={64} onClick={() => setViewing(x)} />)}</span>;
@@ -207,13 +207,12 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
  *  client report prints (lib/clientReport fixRow reads the item). The days
  *  it moved are not here: they are the stage's, changed with "Change dates
  *  or who". Save is one write, and Undo puts the whole item back. */
-export function ProblemEdit({ item, tt, can, onDone, startCritical = false }: {
+export function ProblemEdit({ item, tt, can, onDone }: {
   item: TestItem; tt: Pick<TT, 'tests' | 'saveItem' | 'patchTest'>; can: Can; onDone: () => void;
-  /** Opened from "Make it critical": the box starts ticked. */
-  startCritical?: boolean;
 }) {
   const [what, setWhat] = useState(item.what);
-  const [crit, setCrit] = useState(() => ({ ...criticalDraftOf(item), ...(startCritical ? { critical: true } : {}) }));
+  /* Critical, high risk or neither — picked in the editor ("Flag it"). */
+  const [crit, setCrit] = useState(() => criticalDraftOf(item));
   const [hours, setHours] = useState(item.hoursLost ? String(item.hoursLost) : '');
   const [media, setMedia] = useState<MediaRef[]>(item.media ?? []);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
@@ -223,8 +222,8 @@ export function ProblemEdit({ item, tt, can, onDone, startCritical = false }: {
   const save = () => {
     const h = Number(hours.replace(',', '.'));
     /* Critical, its story and its ways: replaced whole by what the boxes say. */
-    const { critical: _c, impact: _i, ways: _w, ...rest } = item;
-    void _c; void _i; void _w;
+    const { critical: _c, impact: _i, ways: _w, risk: _r, couldLose: _l, ...rest } = item;
+    void _c; void _i; void _w; void _r; void _l;
     const next: TestItem = { ...rest, what: what.trim() || item.what, media, ...criticalPatch(crit) };
     if (showHours) {
       if (h > 0) next.hoursLost = h;
@@ -234,7 +233,8 @@ export function ProblemEdit({ item, tt, can, onDone, startCritical = false }: {
        (ui/Evidence) is a change, as a picture added is. */
     const same = next.what === item.what && next.hoursLost === item.hoursLost
       && JSON.stringify(media) === JSON.stringify(item.media ?? [])
-      && !!next.critical === !!item.critical && (next.impact ?? '') === (item.impact ?? '')
+      && !!next.critical === !!item.critical && !!next.risk === !!item.risk && next.couldLose === item.couldLose
+      && (next.impact ?? '') === (item.impact ?? '')
       && JSON.stringify(next.ways ?? []) === JSON.stringify(item.ways ?? []);
     if (!same) {
       /* THE FIX IT BOOKED keeps a copy of these words: its name when nobody
@@ -266,6 +266,15 @@ export function ProblemEdit({ item, tt, can, onDone, startCritical = false }: {
       {showHours && (
         <label className="cw-f sp-edit-h"><span>Hours lost</span>
           <input inputMode="decimal" value={hours} onChange={e => setHours(e.target.value)} placeholder="none" /></label>
+      )}
+      {/* NOT REALITY YET. Rowland, 7 October: "I have 100 hours lost, but
+          it's a possible assumption." One tap moves them to "could cost" —
+          an estimate, never counted as lost — and flags it a high risk. */}
+      {showHours && Number(hours.replace(',', '.')) > 0 && (
+        <button type="button" className="cw-link sp-edit-est" onClick={() => {
+          setCrit(c => ({ ...c, could: hours, risk: c.critical ? false : true }));
+          setHours('');
+        }}>These hours are an estimate — move them to “could cost”</button>
       )}
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
       <CriticalFields value={crit} onChange={setCrit} />

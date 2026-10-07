@@ -10848,3 +10848,20 @@ button.gt-fixlab small { font-size: 11.5px; }
 .dp-about { flex: 2 1 180px; min-width: 0; max-width: 100%; }
 .dp-branch .dp-tick { padding: 4px 0; }
 .nt-today { margin: 4px 0 12px; }
+
+/* A HIGH RISK (lib/critical riskProblems) — the critical marks in amber: it
+   has not happened yet. Waiting on something is amber (CLAUDE.md rule 1). */
+.crit-tag.is-risk, .gt-crit.is-risk, .ig-crit.is-risk, .fp-n-crit.is-risk { background: var(--st-a); color: #fff; }
+.crit-tag.is-risk.is-sorted { background: var(--surface-2); color: var(--muted); }
+.crit-on-stage.is-risk { border-left-color: var(--st-a); }
+.crit-f.is-risk { border: 2px solid var(--st-a); background: color-mix(in srgb, var(--st-a) 5%, var(--surface)); }
+.fp-row.is-crit.is-risk { --fp-tone: var(--st-a); background: color-mix(in srgb, var(--st-a) 7%, transparent); box-shadow: inset 0 0 0 1.5px var(--st-a); }
+.fp-row.is-crit.is-risk .fp-crit-state { color: var(--st-a); }
+.dy-sec.is-risk .dy-line { box-shadow: inset 3px 0 0 var(--st-a); }
+.crit-level { display: grid; gap: 4px; }
+.crit-level-h { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); }
+.crit-chip.is-risk.on { background: var(--st-a); border-color: var(--st-a); color: #fff; }
+.crit-chip.is-critical.on { background: var(--st-r); border-color: var(--st-r); color: #fff; }
+.crit-level-s { min-height: 0; }
+.crit-could input { max-width: 140px; }
+.sp-edit-est { justify-self: start; }

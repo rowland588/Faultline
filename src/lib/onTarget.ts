@@ -26,7 +26,7 @@
  * Pure: the screen gathers the records, this answers. Nothing is stored. */
 import { assetStateOf, isOverdue, isSettled, live, plannedEnd, type Asset, type Test, type TestItem } from './testing';
 import { lateOrProblem } from './install';
-import { criticalProblems } from './critical';
+import { couldWords, criticalProblems, riskProblems } from './critical';
 import { hoursWord } from './hoursLost';
 import { isHere, type Material } from './materials';
 import { stateOf, type Program } from './programs';
@@ -140,14 +140,20 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
   const criticalWords = critical
     ? `${critical} critical: ${crit.slice(0, 2).map(c => c.item.what).join('; ')}${critical > 2 ? ` and ${critical - 2} more` : ''}`
     : '';
+  /* HIGH RISKS (lib/critical) — not happened yet: they hold the job at At
+     risk, never Behind, and say what each could cost as an estimate. */
+  const risk = riskProblems(tests, items, assets).open;
+  const riskWords = risk.length
+    ? `${risk.length} high risk: ${risk.slice(0, 2).map(c => `${c.item.what}${c.item.couldLose ? `, ${couldWords(c.item)}` : ''}`).join('; ')}${risk.length > 2 ? ` and ${risk.length - 2} more` : ''}`
+    : '';
 
   if (slipped || s.late > 0) {
-    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords].filter(Boolean).join(' · ') };
+    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords, riskWords].filter(Boolean).join(' · ') };
   }
-  if (critical || problems || dueSoon) {
+  if (critical || risk.length || problems || dueSoon) {
     return {
       tone: 'risk', word: 'At risk',
-      reason: [when, criticalWords, late, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
+      reason: [when, criticalWords, riskWords, late, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
     };
   }
   /* Nothing late and no date to be on target FOR — said, not guessed. */
