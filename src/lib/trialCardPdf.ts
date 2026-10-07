@@ -571,16 +571,22 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
      count it returns moves the cursor. The `more === 0` guard is not defensive
      dressing: without it, an observation too tall for even an empty page would
      loop for ever. */
+  /* A continuation box takes the room what is LEFT wants, not the whole
+     sheet: one observation carried over is a short box, and What we do next
+     follows it on the same sheet rather than taking a third one for itself
+     (found by the report stress run — a sheet 13% used). */
+  let contEnd = -1;
   while (from < c.findings.length) {
     d.addPage();
     page++;
     const top = head(d, c, meta, page) + 14;
-    const h = bottom - top;
+    const h = Math.min(bottom - top, blockHeight(fH.slice(from), false));
     const fT = box(d, M, top, CW, h, '3', wordsOf(c).found,
       `continued · from ${from + 1} of ${c.findings.length}`);
     const more = findingsTable(d, c, M + 14, fT, CW - 28, top + h - 10, from);
     if (more === 0) break;
     from += more;
+    contEnd = from >= c.findings.length ? top + h : -1;
   }
 
   /* WHAT WE DO NEXT. Under the observations when there is room for all of it,
@@ -590,6 +596,9 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   let nRoom: number;
   if (bothFit && page === startPage) {
     ny = y + foundH + 12;
+    nRoom = wantNext;
+  } else if (contEnd > 0 && contEnd + 12 + wantNext <= bottom) {
+    ny = contEnd + 12;
     nRoom = wantNext;
   } else {
     d.addPage();
