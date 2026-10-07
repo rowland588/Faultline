@@ -97,7 +97,7 @@ export function EvidenceViewer({ media, onClose, onRemove, share, onPins }: {
           ? (url ? (marked
             ? <Marks src={url} pins={pins} onPins={onPins ? next => { setPins(next); onPins(next); } : undefined} />
             : <img src={url} alt="Evidence" />)
-            : <div className="video-msg">{state === 'loading' ? <span className="sub">Loading…</span> : <><span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span><b>Not on this device yet</b><span className="sub">It'll download on the next sync.</span></>}</div>)
+            : <div className="video-msg">{state === 'loading' ? <span className="sub">Loading…</span> : <><span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span><b>Not on this device yet</b><span className="sub">Fetching it now — it shows the moment it lands.</span></>}</div>)
           : <VideoPlayer blobKey={media.blobKey} autoPlay />}
         {/* Inside the stage on purpose: the sheet is portalled to <body>, but
             React still bubbles its taps up through here, and the stage stops

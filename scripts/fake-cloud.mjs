@@ -46,6 +46,7 @@ export function startFakeCloud({ port = 54392, user } = {}) {
     refusedWrites: 0,
     maxObjectBytes: 50 * 1024 * 1024,
     downloadDelayMs: 0,              // a slow line: every file download waits this long
+    uploadDelayMs: 0,                // a slow phone: every file upload lands this long after it starts
     enforceMediaPolicy: true,
     realtime: false,
     rows: (t) => [...(tables.get(t)?.values() ?? [])],
@@ -214,6 +215,7 @@ export function startFakeCloud({ port = 54392, user } = {}) {
             return;
           }
           const buf = await readBody(req);
+          if (cloud.uploadDelayMs) await new Promise(r => setTimeout(r, cloud.uploadDelayMs));
           const mp = parseMultipart(buf, req.headers['content-type']);
           const file = mp ? mp.files[0] : { type: req.headers['content-type'] ?? 'application/octet-stream', bytes: buf };
           if (!file) return send(res, 400, { statusCode: '400', error: 'invalid', message: 'no file in form' });

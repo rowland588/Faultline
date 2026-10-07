@@ -42,5 +42,25 @@ export function useBlobSource(key?: string | null): { url: string | null; state:
     return () => { alive = false; if (obj) URL.revokeObjectURL(obj); };
   }, [key, arrived]);
 
+  /* NOT ON THIS DEVICE YET — ASK FOR IT NOW. Rowland, 7 October: "as close
+     to immediate sync as possible." A picture or film on the screen that is
+     missing fetches itself at once, and again every few seconds while it is
+     on the screen — the phone that took it may still be sending it. When it
+     lands, onBlobStored above shows it. */
+  useEffect(() => {
+    if (!key || state !== 'missing') return;
+    let alive = true, tries = 0;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const ask = () => {
+      void import('../cloud/sync').then(m => m.fetchBlobNow(key)).then(r => {
+        if (!alive || r === 'got') return;
+        tries++;
+        t = setTimeout(ask, Math.min(2000 * tries, 10000));
+      }).catch(() => undefined);
+    };
+    ask();
+    return () => { alive = false; if (t) clearTimeout(t); };
+  }, [key, state]);
+
   return { url, state };
 }

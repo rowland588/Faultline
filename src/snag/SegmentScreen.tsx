@@ -249,7 +249,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           <div className="video-msg seg-video">
             <span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span>
             <b>{videoState === 'loading' ? 'Loading…' : 'Not on this device yet'}</b>
-            {videoState === 'missing' && <span className="sub">This video will download on the next sync — keep this device online for a moment.</span>}
+            {videoState === 'missing' && <span className="sub">Fetching this video now — it plays the moment it lands. Keep this device online.</span>}
           </div>
         )}
         <div className="seg-controls">

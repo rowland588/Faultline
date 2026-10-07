@@ -382,24 +382,91 @@ const noteFromCloud = (key: string) => withFromCloud(keys => { keys.add(key); })
 
 let draining = false;
 let drainAgain = false;
+/* NOT THERE YET IS NOT GONE. Rowland, 7 October: "took snags on the phone,
+   video and pictures; on the laptop it says 'will download on next sync' —
+   we want as close to immediate as possible." The phone sends the record
+   first and its files after it ("rows before blobs"), so the laptop, woken by
+   the record, asked for the files seconds before they were up, was told "not
+   there", and did not ask again until its next pass — and a file landing
+   changes no record, so nothing woke it.
+
+   A file that has just been found not there yet is asked for again at once
+   and often — 2, 2, 3, 3, 5, 5, 8, 10 seconds, then every 15 — for ten
+   minutes, the time a film takes to leave a phone on poor signal. After that
+   it is one of the files that never left the phone that took it (counted
+   apart, below), and the ordinary passes ask for it, not this. */
+const RETRY_SECONDS = [2, 2, 3, 3, 5, 5, 8, 10, 15];
+const FRESH_MS = 10 * 60_000;
+/** When each file was first found not there, this session. */
+const absentSince = new Map<string, number>();
+let retryAt = 0, retryTimer: ReturnType<typeof setTimeout> | undefined, lastUid: string | undefined;
+const freshAbsent = () => [...absent].filter(k => Date.now() - (absentSince.get(k) ?? 0) < FRESH_MS);
+function retryAbsentSoon(uid: string, gotAny: boolean) {
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = undefined;
+  if (gotAny) retryAt = 0;
+  if (!freshAbsent().length || typeof window === 'undefined') { retryAt = 0; return; }
+  const wait = RETRY_SECONDS[Math.min(retryAt, RETRY_SECONDS.length - 1)];
+  retryAt++;
+  retryTimer = setTimeout(() => { retryTimer = undefined; void retryFresh(uid); }, wait * 1000);
+}
+/** Ask again for only the files just found not there — never the whole queue. */
+async function retryFresh(uid: string): Promise<void> {
+  let gotAny = false;
+  for (const key of freshAbsent()) {
+    const e = await withQueue(q => q.get(key));
+    if (!e) { absent.delete(key); continue; }           // its record went
+    if ((await getFile(uid, key, e)) === 'got') gotAny = true;
+  }
+  retryAbsentSoon(uid, gotAny);
+}
+/** One file, with the queue and the counts kept true either way. */
+async function getFile(uid: string, key: string, e?: DownEntry): Promise<'got' | 'absent' | 'failed'> {
+  const r = await downloadShared(uid, key, e?.owner, e?.mime ?? mimes.get(key));
+  if (r === 'got') { absent.delete(key); absentSince.delete(key); await noteFromCloud(key); }
+  else if (r === 'absent') { absent.add(key); if (!absentSince.has(key)) absentSince.set(key, Date.now()); }
+  await withQueue(q => { if (r === 'got') q.delete(key); countDown(q); });
+  return r;
+}
+
+/* One fetch per file at a time — the screen asking for it and the queue
+   reaching it share the one download, so a film never comes down twice. */
+const fetching = new Map<string, Promise<'got' | 'absent' | 'failed'>>();
+function downloadShared(uid: string, key: string, owner?: string, mime?: string): Promise<'got' | 'absent' | 'failed'> {
+  let p = fetching.get(key);
+  if (!p) { p = downloadOne(uid, key, owner, mime).finally(() => fetching.delete(key)); fetching.set(key, p); }
+  return p;
+}
+
+/** FETCH THIS FILE NOW — a picture or a film on the screen that is not on
+ *  this device yet asks for itself (lib/useBlobUrl), rather than waiting for
+ *  the queue to reach it. 'got' when it is here now. */
+export async function fetchBlobNow(key: string): Promise<'got' | 'absent' | 'failed'> {
+  if (await hasBlob(key)) return 'got';
+  const uid = lastUid ?? (await supabase?.auth.getUser())?.data.user?.id;
+  if (!uid) return 'failed';
+  const r = await getFile(uid, key, await withQueue(q => q.get(key)));
+  if (r === 'absent') retryAbsentSoon(uid, false);
+  return r;
+}
+
 /** Fetch everything queued: pictures first, films last. Beside the sync, not
  *  inside it, so a film coming down never holds a record up. */
 export async function drainDownloads(uid: string): Promise<void> {
+  lastUid = uid;
   if (draining) { drainAgain = true; return; }
   draining = true;
+  let gotAny = false;
   try {
     do {
       drainAgain = false;
       const todo = await withQueue(q => [...q].sort(([a], [b]) => Number(isFilm(a)) - Number(isFilm(b))));
       for (const [key, e] of todo) {
         if (await hasBlob(key)) { await withQueue(q => { q.delete(key); countDown(q); }); continue; }
-        const r = await downloadOne(uid, key, e.owner, e.mime);
-        if (r === 'got') { absent.delete(key); await noteFromCloud(key); }
-        else if (r === 'absent') absent.add(key);
-        await withQueue(q => { if (r === 'got') q.delete(key); countDown(q); });
+        if ((await getFile(uid, key, e)) === 'got') gotAny = true;
       }
     } while (drainAgain);
-  } finally { draining = false; }
+  } finally { draining = false; retryAbsentSoon(uid, gotAny); }
 }
 
 /* ---------- WHAT HAS ACTUALLY BEEN SENT ----------
@@ -1042,7 +1109,7 @@ export async function fullResync(): Promise<void> {
   await metaPut('pendingUploads', { keys: [] });
   await metaPut('pendingDownloads', { keys: [] });
   await metaPut(TOO_BIG_KEY, {});      // the limit may have been raised: try them once more
-  absent.clear();
+  absent.clear(); absentSince.clear();
   set({ state: 'syncing', error: undefined });
   // Let the in-flight pass finish — but never wait for ever. The flag is cleared
   // in that pass's finally, so this normally ends in well under a second; the

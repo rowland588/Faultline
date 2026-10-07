@@ -103,7 +103,7 @@ export function OnTheLine({ projectId, pin, onSave, quiet }: {
         </>
       ) : pin ? (
         <p className="sub otl-none">
-          Pinned on a frame that is not on this device yet — it arrives with the next sync.
+          Pinned on a frame that is not on this device yet — it shows the moment it lands.
           {onSave && <>{' '}<button className="cw-link" onClick={() => onSave(undefined)}>Take it off</button></>}
         </p>
       ) : frames.length > 0 ? (

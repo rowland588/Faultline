@@ -134,12 +134,13 @@ in the same commit. Never raise it to get green.
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the
 live bucket's rules (no upload before a row names the file, nothing over
-50 MB). Eight scenarios: everything the phone does — a recorded clip, a photo,
+50 MB). Nine scenarios: everything the phone does — a recorded clip, a photo,
 a PDF — shows and plays on the laptop; edits go back the other way; offline
 work arrives once and whole; two devices editing different boxes of one test
 both keep their edit (field by field, against the copy both last agreed);
 failed uploads retry; one refused row holds nothing else back; a file too big
-for the cloud is said so at once and kept. It cannot prove real RLS, real
+for the cloud is said so at once and kept; a file that lands after its record
+is on the other device within seconds, by itself. It cannot prove real RLS, real
 signal or iOS Safari.
 
 `scripts/smoke.mjs` loads every screen in the app with realistic seeded data and

@@ -52,7 +52,7 @@ export function VideoPlayer({ blobKey, className, poster, onLoadedMetadata, ...r
       <div className={'video-msg ' + (className ?? '')}>
         <span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span>
         <b>Not on this device yet</b>
-        <span className="sub">It'll download on the next sync — keep this device online for a moment.</span>
+        <span className="sub">Fetching it now — it plays the moment it lands. Keep this device online.</span>
       </div>
     );
   }

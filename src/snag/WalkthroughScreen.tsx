@@ -61,7 +61,7 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
             {videoUrl
               ? <video ref={videoRef} className="walk-video" src={videoUrl} playsInline controls autoPlay
                   onEnded={onEnded} onLoadedMetadata={onLoaded} onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
-              : <div className="video-msg walk-video"><span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span><b>This clip isn't on this device yet</b><span className="sub">It'll download on the next sync.</span></div>}
+              : <div className="video-msg walk-video"><span className="video-msg-ic" aria-hidden><Icon name="cloud" size="1em" /></span><b>This clip isn't on this device yet</b><span className="sub">Fetching it now — it plays the moment it lands.</span></div>}
             {nearest && (
               <button className="walk-overlay" onClick={() => setSelected(nearest.asset)}>
                 <span className="walk-overlay-name">{nearest.asset.name}</span>

@@ -22,7 +22,7 @@
  *                                                # use a dev server you started
  *                                                # with VITE_SUPABASE_URL pointed
  *                                                # at the fake cloud (port 54392)
- *   SYNC_ONLY=1,3   only those scenarios (2–8 build on 1's job)
+ *   SYNC_ONLY=1,3   only those scenarios (2–9 build on 1's job)
  *   SYNC_SHOTS=dir  a screenshot of both devices for every failed check
  *   SYNC_DEBUG=1    every upload, per file, per device, at the end
  *
@@ -52,6 +52,9 @@
  *   8 a file over the 50 MB limit: a playable film made to fit and sent; one
  *     that cannot be re-made said at once, kept, never retried silently; one
  *     refused before is made to fit from Backup
+ *   9 a photo whose file reaches the cloud well after its record: the laptop,
+ *     told "not there" when the record came, shows it within seconds of the
+ *     file landing — not on its next pass, and with nobody touching it
  *
  * WHAT IT CANNOT PROVE. The fake cloud is not Postgres: no real RLS beyond the
  * media rule, no column list (check-live-schema.mjs does that), no latency or
@@ -956,14 +959,46 @@ await run(8, 'a file over the 50 MB limit', async () => {
   await p.keyboard.press('Escape').catch(() => {});
 });
 
+/* ---- 9 ---------------------------------------------------------------- */
+await run(9, 'a photo whose file lands well after its record', async () => {
+  /* Rowland, 7 October: "took snags on the phone, video and pictures; on the
+     laptop it says will download on next sync — we want as close to
+     immediate as possible." The record is on the laptop in a second; the file
+     behind it is still leaving the phone. */
+  const p = phone.page, l = laptop.page;
+  const { pid, tid } = ctx;
+  cloud.realtime = true;
+  await l.reload(); await p.reload();
+  await l.waitForTimeout(3000); await p.waitForTimeout(3000);
+  await go(l, `/project/${pid}/testing/${tid}`);
+  await go(p, `/project/${pid}/testing/${tid}`);
+  await settle(laptop); await settle(phone);
+  const before = new Set(((await testRow(p, tid))?.media ?? []).map(m => m.blobKey));
+  cloud.uploadDelayMs = 9000;
+  await takePhoto(p, jpeg);
+  const shot = ((await testRow(p, tid))?.media ?? []).find(m => !before.has(m.blobKey));
+  check(!!shot, 'the phone holds the new photo');
+  if (!shot) return;
+  const rowOnLaptop = await waitFor(async () => ((await testRow(l, tid))?.media ?? []).some(m => m.blobKey === shot.blobKey), 20_000, 100);
+  const early = !(await blobInfo(l, shot.blobKey)) && !cloud.objects.has(`media/${shot.blobKey}`);
+  check(rowOnLaptop && early, 'the record reaches the laptop before its file has left the phone', `row ${rowOnLaptop ? 'there' : 'missing'}, file ${early ? 'not yet up' : 'already up'}`);
+  const landed = await waitFor(() => cloud.objects.has(`media/${shot.blobKey}`), 40_000, 100);
+  const at = Date.now();
+  const got = await waitFor(async () => !!(await blobInfo(l, shot.blobKey)), 30_000, 100);
+  const ms = Date.now() - at;
+  check(landed && got && ms < 8000, 'the laptop has the photo within seconds of it landing, untouched', got ? `${(ms / 1000).toFixed(1)} s after it landed` : 'never (30 s)');
+  ctx.lateFile = got ? ms : null;
+  cloud.uploadDelayMs = 0; cloud.realtime = false;
+});
+
 /* ======================================================================= */
 scn = 0;
 check(appErrors.length === 0, 'no error thrown by the app on either device', appErrors.slice(0, 5).join(' | '));
 
 const names = { 1: 'phone builds a job → laptop shows all', 2: 'laptop edits → phone', 3: 'offline phone, back online', 4: 'conflict while offline',
-  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 0: 'app health' };
+  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 0: 'app health' };
 console.log('\n================ SYNC — TWO DEVICES ================');
-for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 0]) {
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]) {
   const rs = results.filter(r => r.scn === n);
   if (!rs.length) continue;
   const bad = rs.filter(r => !r.ok);
