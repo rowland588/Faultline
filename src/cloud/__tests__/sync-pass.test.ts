@@ -221,6 +221,19 @@ describe('mergeRows — who moved which box', () => {
     const r = mergeRows({ media: [p, v1] }, { media: [p, v1, v2] }, { media: [p, ph] }, false);
     expect((r.row.media as { id: string }[]).map(m => m.id)).toEqual(['p', 'ph', 'v2']);   // v1 removed there, v2 added here
   });
+  it('numbers put in for one product on the phone and another on the laptop both stay', async () => {
+    const { mergeRows } = await import('../sync');
+    const base = { runs: [{ id: 'a', product: 'Red' }, { id: 'b', product: 'White' }] };
+    const mine = { runs: [{ id: 'a', product: 'Red', day: { packs: 3720 } }, { id: 'b', product: 'White' }] };
+    const theirs = { runs: [{ id: 'a', product: 'Red' }, { id: 'b', product: 'White', day: { packs: 3550 } }, { id: 'c', product: 'Piper' }] };
+    for (const mineNewer of [true, false]) {
+      expect(mergeRows(base, mine, theirs, mineNewer).row.runs).toEqual([
+        { id: 'a', product: 'Red', day: { packs: 3720 } }, { id: 'b', product: 'White', day: { packs: 3550 } }, { id: 'c', product: 'Piper' }]);
+    }
+    /* Both changed the same product: the newer, as any box both changed. */
+    const both = mergeRows(base, mine, { runs: [{ id: 'a', product: 'Red', day: { packs: 1 } }, base.runs[1]] }, false);
+    expect((both.row.runs as { day?: unknown }[])[0].day).toEqual({ packs: 1 });
+  });
   it('has nothing of ours when we changed nothing the cloud lacks', async () => {
     const { mergeRows } = await import('../sync');
     expect(mergeRows({ a: 1 }, { a: 2 }, { a: 2 }, true).ours).toBe(false);

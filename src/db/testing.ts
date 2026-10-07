@@ -82,12 +82,20 @@ export async function putTest(t: Test): Promise<void> {
  * open. Reading the row inside the write is what makes a patch a patch. A
  * function patch sees the current row, for appends. A row that is gone stays
  * gone: patching it back is how a deleted record came back. */
+/* AND IT READS IT IN THE SAME TRANSACTION IT WRITES IN. A get and a put in two
+ * transactions let two patches fired a moment apart both read the row before
+ * either wrote it — the second put the first's change back. A performance
+ * run's numbers made that common: every box writes the product list whole,
+ * and on a busy screen "packs made" then "rejects", typed and tabbed through,
+ * lost the packs (lib/run). One readwrite transaction queues them. */
 export async function patchTest(id: ID, patch: Partial<Test> | ((cur: Test) => Partial<Test>)): Promise<void> {
   const db = await getDB();
-  const cur = await db.get('tests', id);
-  if (!cur || cur.deletedAt) return;
+  const tx = db.transaction('tests', 'readwrite');
+  const cur = await tx.store.get(id);
+  if (!cur || cur.deletedAt) { await tx.done; return; }
   const p = typeof patch === 'function' ? patch(cur) : patch;
-  await db.put('tests', { ...cur, ...p, updatedAt: now() });
+  await tx.store.put({ ...cur, ...p, updatedAt: now() });
+  await tx.done;
   signalWrite();
   await followTest({ ...cur, ...p });
 }

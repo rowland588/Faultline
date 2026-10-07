@@ -227,15 +227,21 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     result: '±0.9 g over 200', outcome: 'passed',
     sort: 3, createdAt: t, updatedAt: t,
   };
-  /* THE PERFORMANCE RUNS (lib/run) — the line accepted on its numbers: one
-     that met every agreed number, one that netted short. */
+  /* THE PERFORMANCE RUNS (lib/run) — the line accepted on its numbers. One
+     run, three PRODUCTS planned ahead: one met every agreed number, one
+     netted short, one still to run (Rowland, 7 October: "commissioning runs
+     are multiple products"). And one kept the older single way, short. */
   const perf: Test = {
     id: uid(), projectId: proj.id, title: 'Performance run at the agreed rate', assetId: wrapper.id,
-    plannedFor: iso(-1), ranOn: iso(-1), withWhom: 'Ilapak UK',
-    planned: 'Finest Red 2kg', product: 'Finest Red 2kg',
-    runAgreed: { rate: 60, minutes: 60, rejectsMax: 1 },
-    run: { minutes: 60, packs: 3720, rejects: 14, speed: 64, stops: 3 },
-    result: 'Held 64 on the controller; one film splice stop at 35 min.', outcome: 'passed',
+    plannedFor: iso(-1), plannedTo: iso(1), ranOn: iso(-1), withWhom: 'Ilapak UK',
+    runs: [
+      { id: uid(), product: 'Finest Red 2kg', agreed: { rate: 60, minutes: 60, rejectsMax: 1 },
+        day: { minutes: 60, packs: 3720, rejects: 14, speed: 64, stops: 3 }, ranOn: iso(-1) },
+      { id: uid(), product: 'Jacks Piper 1.25kg', agreed: { rate: 60, minutes: 60, rejectsMax: 1 },
+        day: { minutes: 60, packs: 3550, rejects: 42, speed: 62, stops: 6 }, ranOn: iso(-1) },
+      { id: uid(), product: 'Express White 500g', agreed: { rate: 70, minutes: 30, rejectsMax: 1 } },
+    ],
+    result: 'Held 64 on the controller; one film splice stop at 35 min.', outcome: 'planned',
     sort: 5, createdAt: t, updatedAt: t,
   };
   const speedRun: Test = {

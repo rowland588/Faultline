@@ -192,49 +192,105 @@ function box(d: Doc, x: number, y: number, w: number, h: number, n: string, titl
 
 /** THE LOOP, on one strip: what this followed, and what came out of it. The
  *  thing that was missing — "not any sort of loop, to show the structure". */
-/* THE RUN — a performance run's numbers, the five the screen's board shows
-   (lib/run runTiles), on a strip under the plan and the day. Rowland, 7
-   October: "people ask how fast did we run, what did we net." Only a number
-   that missed what was agreed is red; one that met it gets the quiet green;
-   the rest are ink. What the numbers say is printed under them, in words. */
+/* THE RUN — a performance run's products, one row each: what it was judged
+   on, what it netted, the speed it ran at, the rejects, how long, and its
+   verdict — the same rows the screen's table shows (lib/run productFigures).
+   Rowland, 7 October: "people ask how fast did we run, what did we net" —
+   and "commissioning runs are multiple products." Only a number that missed
+   what was agreed is red; one that met it is green; the rest are ink. The
+   totals line says where the run is, in words. Nothing is cut: a long
+   product name wraps, and a list longer than the sheet carries on overleaf
+   under its heading. */
 /** "Nothing agreed in advance" — unless the run's numbers were: then the
  *  expectation box says it holds nothing more than them (the strip below). */
-const noPlanOf = (c: TrialCard): string => (c.run?.agreed ? 'Nothing more than the run\u2019s numbers, below' : wordsOf(c).noPlan);
-const RUN_STRIP_H = { empty: 30, full: 80 };
-function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number {
-  if (!c.run) return y;
-  const { tiles, agreed, say, meets, ran } = c.run;
-  if (!ran) {
-    const h = RUN_STRIP_H.empty;
-    d.setFillColor(...wash(BRAND, 0.05)); d.roundedRect(x, y, w, h, 5, 5, 'F');
-    setFont(d, 6.5, 'bold', ACCENT); d.text('THE RUN', x + 12, y + 18);
-    setFont(d, 8.5, 'normal', INK2);
-    d.text(san(`${c.ranOn || c.outcome !== 'planned' ? 'No run numbers kept.' : 'Not run yet.'} Agreed: ${agreed}.`), x + 62, y + 18);
-    return y + h + 10;
-  }
-  /* What the numbers say wraps and grows the strip — nothing on this card is cut. */
+const noPlanOf = (c: TrialCard): string => (c.run?.agreed ? 'Nothing more than the run’s numbers, below' : wordsOf(c).noPlan);
+
+type RunCol = { head: string; w: number };
+const RUN_COLS = (w: number): RunCol[] => {
+  const fixed = [70, 58, 74, 74];                     // net · ran at · rejects · ran for
+  const rest = w - 24 - fixed.reduce((a, b) => a + b, 0);
+  return [
+    { head: 'PRODUCT', w: rest * 0.3 }, { head: 'AGREED', w: rest * 0.36 },
+    { head: 'NET RATE', w: fixed[0] }, { head: 'RAN AT', w: fixed[1] }, { head: 'REJECTS', w: fixed[2] }, { head: 'RAN FOR', w: fixed[3] },
+    { head: 'VERDICT', w: rest * 0.34 },
+  ];
+};
+const stateInk = (s: string): string => (s === 'met' ? OK : s === 'short' ? DANGER : s === 'unjudged' ? WARN : BLUE);
+
+/** One product row's lines, measured. */
+function runRowLines(d: Doc, p: NonNullable<TrialCard['run']>['products'][number], cols: RunCol[]) {
+  setFont(d, 8.5, 'bold', INK2);
+  const product = d.splitTextToSize(san(p.product), cols[0].w - 8) as string[];
+  setFont(d, 7.5, 'normal', MUTED);
+  const agreed = d.splitTextToSize(san(p.agreed || 'nothing agreed yet'), cols[1].w - 8) as string[];
+  const rej = d.splitTextToSize(san(p.rejects), cols[4].w - 6) as string[];
+  const len = d.splitTextToSize(san(p.length), cols[5].w - 6) as string[];
   setFont(d, 8, 'bold', INK2);
-  const sayLines = say ? d.splitTextToSize(san(say), w - 24) as string[] : [];
-  const h = RUN_STRIP_H.full - (say ? 0 : 12) + Math.max(0, sayLines.length - 1) * 10;
-  d.setFillColor(...wash(BRAND, 0.05)); d.roundedRect(x, y, w, h, 5, 5, 'F');
-  setFont(d, 6.5, 'bold', ACCENT); d.text('THE RUN', x + 12, y + 12);
-  if (agreed) { setFont(d, 7.5, 'normal', MUTED); d.text(san(`Agreed: ${agreed}`), x + w - 12, y + 12, { align: 'right' }); }
-  const gap = 6, cw = (w - 24 - gap * (tiles.length - 1)) / tiles.length;
-  tiles.forEach((t, i) => {
-    const cx = x + 12 + i * (cw + gap), cy = y + 18;
-    const col = t.tone === 'short' ? DANGER : t.tone === 'met' ? OK : INK2;
-    d.setFillColor(...(t.tone === 'short' ? wash(DANGER, 0.1) : t.tone === 'met' ? wash(OK, 0.08) : [255, 255, 255] as [number, number, number]));
-    d.roundedRect(cx, cy, cw, 42, 3, 3, 'F');
-    if (t.tone === 'short') { d.setDrawColor(DANGER); d.setLineWidth(1.2); d.roundedRect(cx, cy, cw, 42, 3, 3, 'S'); }
-    setFont(d, 6.5, 'bold', MUTED); d.text(t.label.toUpperCase(), cx + 7, cy + 10);
-    setFont(d, i === 0 ? 15 : 13, 'bold', col);
-    const v = `${t.value}${t.unit && t.value !== '\u2014' ? ` ${t.unit}` : ''}`;
-    d.text(san(v), cx + 7, cy + 26);
-    setFont(d, 7, 'normal', t.tone === 'short' ? DANGER : MUTED);
-    d.text(fit(d, san(t.sub), cw - 12), cx + 7, cy + 37);
-  });
-  if (sayLines.length) { setFont(d, 8, 'bold', meets ? OK : DANGER); d.text(sayLines, x + 12, y + 72, { lineHeightFactor: 10 / 8 }); }
-  return y + h + 10;
+  const verdict = d.splitTextToSize(san(p.rerun ? `${p.word} — run again below` : p.word), cols[6].w - 6) as string[];
+  setFont(d, 7.5, 'normal', DANGER);
+  const gap = p.state === 'short' && p.gap ? d.splitTextToSize(san(p.gap), cols[6].w - 6) as string[] : [];
+  const h = 6 + Math.max(product.length * 10, agreed.length * 9, rej.length * 10, len.length * 10, verdict.length * 10 + gap.length * 9, 10) + 4;
+  return { product, agreed, rej, len, verdict, gap, h };
+}
+
+function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom: number, newPage: () => number): number {
+  if (!c.run) return y;
+  const { products, say, meets } = c.run;
+  const cols = RUN_COLS(w);
+  setFont(d, 8, 'bold', INK2);
+  const sayLines = say ? d.splitTextToSize(san(say), w - 74) as string[] : [];
+  const headH = 8 + Math.max(1, sayLines.length) * 10 + 4 + 12;
+  const rowsAll = products.map(p => runRowLines(d, p, cols));
+
+  let i = 0, first = true, fresh = false;
+  while (i < products.length) {
+    /* As many rows as the sheet holds; at least one, on a fresh sheet. */
+    const top = y;
+    let h = headH, n = 0;
+    while (i + n < products.length && top + h + rowsAll[i + n].h + 6 <= bottom) { h += rowsAll[i + n].h; n++; }
+    if (n === 0) {
+      if (!fresh) { y = newPage(); fresh = true; continue; }
+      h += rowsAll[i].h; n = 1;
+    }
+    h += 6;
+    d.setFillColor(...wash(BRAND, 0.05)); d.roundedRect(x, top, w, h, 5, 5, 'F');
+    setFont(d, 6.5, 'bold', ACCENT); d.text(first ? 'THE RUN' : 'THE RUN — CONTINUED', x + 12, top + 12);
+    if (first && sayLines.length) {
+      setFont(d, 8, 'bold', meets === true ? OK : meets === false ? DANGER : INK2);
+      d.text(sayLines, x + 62, top + 12, { lineHeightFactor: 10 / 8 });
+    }
+    let cy = top + 8 + Math.max(1, first ? sayLines.length : 1) * 10 + 4;
+    /* The column heads, on every sheet the table reaches. */
+    setFont(d, 6, 'bold', MUTED);
+    let cx = x + 12;
+    for (const col of cols) { d.text(col.head, cx, cy + 6); cx += col.w; }
+    cy += 12;
+    for (let k = 0; k < n; k++) {
+      const p = products[i + k], L = rowsAll[i + k];
+      d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(x + 12, cy, x + w - 12, cy);
+      const by = cy + 10;
+      const ink = p.rerun ? MUTED : INK2;
+      let px = x + 12;
+      setFont(d, 8.5, 'bold', ink); d.text(L.product, px, by, { lineHeightFactor: 10 / 8.5 }); px += cols[0].w;
+      setFont(d, 7.5, 'normal', MUTED); d.text(L.agreed, px, by, { lineHeightFactor: 9 / 7.5 }); px += cols[1].w;
+      const fig = (v: string, tone: string, bold: boolean) => {
+        setFont(d, bold ? 9.5 : 8.5, bold ? 'bold' : 'normal', p.rerun ? MUTED : tone === 'short' ? DANGER : tone === 'met' ? OK : INK2);
+        return v;
+      };
+      d.text(san(fig(p.net, p.netTone, true)), px, by); px += cols[2].w;
+      d.text(san(fig(p.speed, '', false)), px, by); px += cols[3].w;
+      fig('', p.rejectsTone, false); d.text(L.rej, px, by, { lineHeightFactor: 10 / 8.5 }); px += cols[4].w;
+      fig('', p.lengthTone, false); d.text(L.len, px, by, { lineHeightFactor: 10 / 8.5 }); px += cols[5].w;
+      setFont(d, 8, 'bold', p.rerun ? MUTED : stateInk(p.state)); d.text(L.verdict, px, by, { lineHeightFactor: 10 / 8 });
+      if (L.gap.length) { setFont(d, 7.5, 'normal', DANGER); d.text(L.gap, px, by + L.verdict.length * 10, { lineHeightFactor: 9 / 7.5 }); }
+      cy += L.h;
+    }
+    i += n;
+    y = top + h + 10;
+    first = false; fresh = false;
+    if (i < products.length) { y = newPage(); fresh = true; }
+  }
+  return y;
 }
 
 function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number {
@@ -523,8 +579,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
 
   y = planTop + boxH + 12;
   }
-  if (c.run && y + (c.run.ran ? RUN_STRIP_H.full : RUN_STRIP_H.empty) + 20 > bottom) { d.addPage(); y = head(d, c, meta, 2) + 14; }
-  y = runStrip(d, c, M, y, CW);
+  y = runStrip(d, c, M, y, CW, bottom, () => { d.addPage(); return head(d, c, meta, d.getNumberOfPages()) + 14; });
   y = loopStrip(d, c, M, y, CW);
 
   /* ==================== WHAT WE FOUND, AND WHAT WE DO NEXT ==================

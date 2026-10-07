@@ -53,7 +53,7 @@ import { SayIt, SayStep } from './RecordSay';
 import { movedLater, overlapOf, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
-import { isRunTest } from '../lib/run';
+import { isRunTest, runsUnderWay } from '../lib/run';
 import { RunBlock } from './RunPanel';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
@@ -203,6 +203,8 @@ function stateOf(t: Test, today: string, items: TestItem[] = []): { word: string
   if (t.outcome === 'failed' || t.outcome === 'notRun') return { word: `${outcomeWord(t)}${t.ranOn ? ` · ${short(t.ranOn)}` : ''}`, tone: 'r' };
   if (needsVerdict(t)) return { word: `${outcomeWord(t)}${t.ranOn ? ` · ran ${short(t.ranOn)}` : ''}`, tone: 'a' };
   if (isOverdue(t, today)) return { word: `Late · was ${spanShort(t.plannedFor, plannedEnd(t))}`, tone: 'r' };
+  /* A performance run part-way through its products (lib/run). */
+  if (runsUnderWay(t)) return { word: `Under way${t.plannedFor ? ` · due ${short(plannedEnd(t) as string)}` : ''}`, tone: 'w' };
   return t.plannedFor ? { word: `Planned ${spanShort(t.plannedFor, plannedEnd(t))}`, tone: 'w' } : { word: 'No day yet', tone: 'n' };
 }
 

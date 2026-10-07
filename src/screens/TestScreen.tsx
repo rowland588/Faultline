@@ -58,8 +58,8 @@ import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
 import { SharedLinks } from '../ui/ShareLink';
 import { mayWriteAgreement, type Can } from '../lib/access';
-import { isRunTest, readRun } from '../lib/run';
-import { RunAgreedFields, RunBoard, RunDayFields } from '../ui/RunPanel';
+import { isRunTest, productRuns } from '../lib/run';
+import { RunProducts } from '../ui/RunPanel';
 
 const kb = (b?: number): string =>
   b == null ? '' : b > 900_000 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -69,7 +69,7 @@ const window_ = (from?: string, to?: string): string => (!from ? '' : to && to >
 
 type TT = ReturnType<typeof useTesting>;
 /** The parts of the card, each with its own Edit. */
-type Part = 'plan' | 'day' | 'found' | 'run';
+type Part = 'plan' | 'day' | 'found' | 'verdict';
 
 /** The boxes that sit in "1 · What we planned" — a voice note filling one opens it. */
 const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
@@ -105,23 +105,6 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   const [meeting, setMeeting] = useState(false);
   /* A planned window waiting for its reason — see `redate` below. */
   const [moving, setMoving] = useState<Pick<Test, 'plannedFor' | 'plannedTo'> | null>(null);
-  /* A RUN WITH NO NUMBERS YET OPENS WITH ITS BOXES OUT (ui/RunPanel) — once,
-     when the page first has the test; the first number typed does not fold
-     them away. What was agreed at that moment is what a team member's
-     first numbers are judged against (lib/access). */
-  const runOpened = useRef<string | null>(null);
-  const runAtOpen = useRef<Test['runAgreed']>(undefined);
-  useEffect(() => {
-    const t = tt.tests.find(x => x.id === testId);
-    if (!t || !can.edit || runOpened.current === testId) return;
-    runOpened.current = testId;
-    if (isRunTest(t) && !readRun(t).ran) setEditing(e => e ?? 'run');
-  }, [tt.tests, testId, can.edit]);
-  /* Each time the run's boxes open, what was agreed then is the agreement. */
-  useEffect(() => {
-    if (editing === 'run') runAtOpen.current = tt.tests.find(x => x.id === testId)?.runAgreed;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the boxes open, not on every save
-  }, [editing, testId]);
   /* The PDF: built from this page's reading, delivered to the device first
      (lib/savePdf) — you read it before anybody else does. */
   const [busy, setBusy] = useState(false);
@@ -265,23 +248,20 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
         window.setTimeout(() => document.querySelector('.is-filled')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
       }} />}
 
-      {/* THE RUN — the numbers it is accepted on (ui/RunPanel). Rowland, 7
-          October: "people ask how fast did we run, what did we net — speed,
-          packs per minute — issues, status." The board reads them; Edit opens
-          what was agreed and what the machine did, in place. The verdict is
-          asked for here, beside what the numbers say. */}
+      {/* THE RUN — its products and the numbers each is accepted on
+          (ui/RunPanel). Rowland, 7 October: "commissioning runs are multiple
+          products ... on the line all I do is put in the numbers, and it
+          calculates for me whether it passed or failed." Planned a product
+          at a time, measured in place; the numbers set the verdict, which
+          can still be changed by hand here — it should never have to be. */}
       {isRun && (
-        <Block title="The run" sub="the numbers it is accepted on" action={edit('run')}>
-          {/* The board always — it works the net rate out as the numbers are
-              typed into the boxes under it. */}
-          <RunBoard t={test} />
-          {editing === 'run' && (
-            <div className="tc-form run-boxes">
-              <RunAgreedFields key={test.id} t={test} can={can} atOpen={runAtOpen.current} patch={fn => void tt.patchTest(test.id, fn)} />
-              <RunDayFields t={test} patch={fn => void tt.patchTest(test.id, fn)} />
-            </div>
-          )}
-          {can.edit && (needsVerdict(test) || editing === 'run') && <>
+        <Block title="The run" sub={productRuns(test).length > 1 ? `${productRuns(test).length} products` : 'the numbers it is accepted on'}
+          action={can.edit && !needsVerdict(test) && (
+            <button type="button" className="cw-link tc-edit" aria-expanded={editing === 'verdict'}
+              onClick={() => setEditing(e => (e === 'verdict' ? null : 'verdict'))}>{editing === 'verdict' ? 'Done' : 'Change the verdict'}</button>
+          )}>
+          <RunProducts key={test.id} t={test} can={can} patch={fn => void tt.patchTest(test.id, fn)} />
+          {can.edit && (needsVerdict(test) || editing === 'verdict') && <>
             {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
             <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />
           </>}
@@ -368,7 +348,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               <DraftField value={test.withWhom ?? ''} placeholder="Ilapak UK" onSave={v => save({ withWhom: v.trim() || undefined })} /></label>
             {/* A fix does not run a product down the machine, so the box is not
                 offered — it is not hidden state, there is simply nothing to say. */}
-            {kind === 'test' && (
+            {kind === 'test' && !(isRun && productRuns(test).length > 0) && (
               <label className="cw-f"><span>Product we plan to run</span>
                 <DraftField value={test.planned ?? ''} placeholder="Jacks Piper 2kg" onSave={v => save({ planned: v.trim() || undefined })} /></label>
             )}

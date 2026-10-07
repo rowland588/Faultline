@@ -440,6 +440,11 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         ran_on: t.ranOn ?? null, ran_to: t.ranTo ?? null,
         product: t.product ?? null, result: t.result ?? null,
         run_agreed: t.runAgreed ?? null, run: t.run ?? null,
+        /* The product runs (lib/run): an array, merged by id on sync, so a
+           product planned on the laptop and numbers put in on the phone both
+           land. An emptied list is sent as [] — null would bring an older
+           test's one run back as its first product. */
+        runs: t.runs ?? null,
         outcome: t.outcome,
         media: t.media ?? null, docs: t.docs ?? null,
         from_test_id: t.fromTestId ?? null,
@@ -468,6 +473,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       result: (r.result as string) ?? undefined,
       runAgreed: (r.run_agreed as Test['runAgreed']) ?? undefined,
       run: (r.run as Test['run']) ?? undefined,
+      runs: productRunsOf(r.runs),
       outcome: ((r.outcome as Test['outcome']) ?? 'planned'),
       media: (r.media as Test['media']) ?? undefined,
       docs: (r.docs as Test['docs']) ?? undefined,
@@ -703,6 +709,14 @@ function pinOf(v: unknown): Test['pin'] {
   const p = v as { frameId?: unknown; x?: unknown; y?: unknown } | null;
   return p && typeof p.frameId === 'string' && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))
     ? { frameId: p.frameId, x: Number(p.x), y: Number(p.y) } : undefined;
+}
+
+/** The product runs off the wire (lib/run ProductRun): only an entry with
+ *  an id is one — the sync merges the list by it. */
+function productRunsOf(v: unknown): Test['runs'] {
+  if (!Array.isArray(v)) return undefined;
+  return v.filter((x): x is NonNullable<Test['runs']>[number] => !!x && typeof x === 'object' && typeof (x as { id?: unknown }).id === 'string')
+    .map(x => ({ ...x, product: typeof x.product === 'string' ? x.product : '' }));
 }
 
 export const SYNC_KINDS: SyncKind[] = [

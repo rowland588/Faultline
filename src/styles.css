@@ -10887,45 +10887,60 @@ button.gt-fixlab small { font-size: 11.5px; }
 .rd-held b { font-weight: 800; }
 .gt-held { color: var(--st-r); font-weight: 600; }
 
-/* THE RUN (ui/RunPanel, lib/run) — a performance run's numbers. The net rate
-   leads: it is the number everybody asks for. Only a figure that missed what
-   was agreed carries red; one that met it is a quiet green wash; the rest ink. */
-.run-board { display: grid; gap: 10px; }
-.run-product { margin: 0; font-size: var(--t-body); color: var(--ink-2); }
-.run-product span { font-size: var(--t-label); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
-.run-tiles { display: grid; grid-template-columns: 1.35fr repeat(4, 1fr); gap: 8px; }
-.run-tile { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); min-width: 0; }
-.run-l { font-size: var(--t-label); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.run-v { font-size: 1.5rem; font-weight: 800; color: var(--ink); line-height: 1.1; font-variant-numeric: tabular-nums; }
-.run-v small { font-size: .55em; font-weight: 700; color: var(--muted); }
-.run-tile.is-lead .run-v { font-size: 2rem; }
-.run-s { font-size: var(--t-label); color: var(--muted); overflow-wrap: anywhere; }
-.run-tile.is-met { background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 30%, var(--line)); }
-.run-tile.is-met .run-v { color: var(--st-g); }
-.run-tile.is-short { background: color-mix(in srgb, var(--st-r) 7%, var(--surface)); border: 2px solid var(--st-r); }
-.run-tile.is-short .run-v, .run-tile.is-short .run-s { color: var(--st-r); }
-.run-say { margin: 0; font-weight: 700; font-size: var(--t-body); }
-.run-say.is-met { color: var(--st-g); }
-.run-say.is-short { color: var(--st-r); }
-.run-none { margin: 0; color: var(--ink-2); }
-.run-board.is-compact .run-tiles { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.run-board.is-compact .run-tile { padding: 7px 9px; }
-.run-board.is-compact .run-v { font-size: 1.2rem; }
-.run-board.is-compact .run-tile.is-lead { grid-column: span 3; }
-.run-board.is-compact .run-tile.is-lead .run-v { font-size: 1.6rem; }
-.run-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
-.run-form:first-child { border-top: 0; padding-top: 0; }
-.run-form-h { grid-column: 1 / -1; font-weight: 700; font-size: var(--t-body); }
-.run-f-wide { grid-column: 1 / -1; }
-.run-blk .run-board { margin: 4px 0 8px; }
+/* THE RUN (ui/RunPanel, lib/run) — a performance run's products, a row
+   each: what it is judged on, the numbers off the machine, what they say.
+   The net rate leads each row: it is the number everybody asks for. Only a
+   figure that missed what was agreed carries red; one that met it is a quiet
+   green; still to run is indigo; the rest ink. */
+.pr { display: grid; gap: 10px; min-width: 0; }
+.pr-say { margin: 0; font-weight: 700; font-size: var(--t-body); color: var(--ink); }
+.pr-say.is-met { color: var(--st-g); }
+.pr-say.is-short { color: var(--st-r); }
+.pr-verdict-note { font-weight: 500; color: var(--ink-2); }
+.pr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pr-row { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); min-width: 0; }
+.pr-row.is-short { border: 2px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 5%, var(--surface)); }
+.pr-row.is-met { background: color-mix(in srgb, var(--st-g) 5%, var(--surface)); }
+.pr-row.is-rerun { opacity: .72; border-style: dashed; border-width: 1px; border-color: var(--line); background: var(--surface); }
+.pr-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.pr-name { font-size: var(--t-body); font-weight: 800; color: var(--ink); overflow-wrap: anywhere; min-width: 0; flex: 1 1 auto; }
+.pr-word { font-size: var(--t-label); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--st-w); }
+.pr-word.is-met { color: var(--st-g); }
+.pr-word.is-short { color: var(--st-r); }
+.pr-word.is-unjudged { color: var(--st-a); }
+.pr-word.is-rerun { color: var(--st-n); }
+.pr-agreed { margin: 0; font-size: var(--t-label); color: var(--ink-2); overflow-wrap: anywhere; }
+.pr-figs { display: grid; grid-template-columns: 1.3fr repeat(5, minmax(0, 1fr)); gap: 6px; min-width: 0; }
+.pr-figs.is-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pr-fig { display: grid; gap: 2px; align-content: start; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); min-width: 0; }
+.pr-fig.is-box { padding: 4px 6px; }
+.pr-fig.is-box .text-input { width: 100%; min-width: 0; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.pr-l { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); overflow-wrap: anywhere; }
+.pr-l .cw-f-opt { text-transform: none; letter-spacing: 0; font-weight: 600; }
+.pr-v { font-size: 1.05rem; font-weight: 800; color: var(--ink); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pr-fig.is-net .pr-v { font-size: 1.3rem; }
+.pr-fig.is-met { background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 30%, var(--line)); }
+.pr-fig.is-met .pr-v { color: var(--st-g); }
+.pr-fig.is-short { background: color-mix(in srgb, var(--st-r) 7%, var(--surface)); border: 2px solid var(--st-r); }
+.pr-fig.is-short .pr-v, .pr-fig.is-short .pr-l { color: var(--st-r); }
+.pr-gap { margin: 0; font-weight: 700; color: var(--st-r); font-size: var(--t-body); }
+.pr-missing { margin: 0; color: var(--ink-2); font-size: var(--t-label); }
+.pr-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pr-remove { color: var(--st-r); }
+.pr-plan, .pr-add { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.pr-plan .cw-f, .pr-add .cw-f { flex: 1 1 110px; }
+.pr-f-wide { flex: 1 1 100% !important; }
+.pr-add { padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--radius-sm); }
+.pr-add-h { flex: 1 1 100%; font-weight: 700; font-size: var(--t-body); }
+.pr-add-acts { flex: 1 1 100%; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pr-said { color: var(--st-g); font-weight: 600; }
+.pr-add-open { justify-self: start; }
 .cg-run { display: block; font-weight: 600; font-size: .92em; opacity: .9; }
 .ig-cell:has(.cg-run) { place-items: center; text-align: center; line-height: 1.25; padding: 4px 6px; }
 @media (max-width: 720px) {
-  .run-tiles { grid-template-columns: repeat(2, 1fr); }
-  .run-tile.is-lead { grid-column: span 2; }
+  .pr-figs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.run-boxes { margin-top: 10px; }
-.run-blk > .btn { margin-top: 6px; }
+.run-blk > .pr { margin-top: 4px; }
 
 /* NEEDS YOU on Commission (ui/CommissionGrid NeedsYou) — only what is owed.
    The tag carries the state in words and its colour: red what went wrong or

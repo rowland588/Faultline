@@ -213,6 +213,8 @@ for (const size of SIZES) {
       from = `section ${s2.gate} account`; for (const a of s2.accounts ?? []) add('client', a.machine, a.stage, a.when, a.state, a.said);
       from = `section ${s2.gate} account, its end`; for (const a of s2.accounts ?? []) if (a.said.length > 120) add('client', a.said.slice(-60));
       from = `section ${s2.gate} test`; for (const t of s2.tests ?? []) add('client', t.title, t.passesIf, t.result, t.outcome);
+      /* The performance runs: every product, its figures and its verdict (lib/run). */
+      from = `section ${s2.gate} performance run`; for (const rr of s2.runs ?? []) add('client', rr.product, rr.net, rr.rejects, rr.outcome, rr.say);
     }
     from = 'fixes'; for (const fx of [...r.fixes.open, ...r.fixes.done]) add('client', fx.title, fx.when);
     for (const fx of r.fixes.open) add('client', fx.problem, fx.machine, fx.who);
@@ -230,13 +232,15 @@ for (const size of SIZES) {
     from = 'status: why'; for (const w of st.why) add('status', w.tag, w.what, w.detail);
     from = 'status: what next'; for (const n of st.next) add('status', n.what, n.who, n.when);
     from = 'status: waiting'; for (const w of st.waiting) add('status', w);
-    from = 'status: runs'; for (const rr of st.runs) add('status', rr.title, rr.net, rr.outcome);
+    from = 'status: runs'; for (const rr of st.runs) add('status', rr.product, rr.net, rr.outcome, rr.say);
     /* "and N more" only when even the longest lists cannot hold them all. */
     from = 'status: more'; if (statusReport(r).whyMore) add('status', 'more — in the full report');
     const cardOf = (id, k) => {
       const t = tests.find(x => x.id === id); if (!t) return;
       const c = trialCard(t, tests, items, assets);
       from = 'card'; add(k, c.title, c.passesIf, c.result, c.plannedProduct, c.product);
+      /* A performance run's products, a row each — the whole name, its figures, its verdict. */
+      from = 'card: the run'; add(k, c.run?.say); for (const p of c.run?.products ?? []) add(k, p.product, p.agreed, p.net, p.rejects, p.word, p.gap);
       from = 'finding'; for (const fd of c.findings) add(k, fd.what, fd.owner, fd.action);
       from = 'next'; for (const n of c.next) add(k, n.what, n.owner);
       /* The first picture always prints: what is marked on it, by number. */
@@ -244,6 +248,11 @@ for (const size of SIZES) {
       from = 'its picture\'s marks'; if (first?.kind === 'photo') add(k, ...(first.pins ?? []).map(p => p.note));
     };
     cardOf(tid, 'card'); if (fid) cardOf(fid, 'fix');
+    /* THE RUN WITH THE MOST PRODUCTS gets its own card read back. */
+    const { isRunTest, productRuns } = await import('/src/lib/run.ts');
+    const runTest = tests.filter(t => !t.deletedAt && isRunTest(t)).sort((a, b) => productRuns(b).length - productRuns(a).length)[0];
+    out.runCard = []; out.runTestId = runTest && productRuns(runTest).length ? runTest.id : undefined;
+    if (out.runTestId) cardOf(out.runTestId, 'runCard');
     const d = dayOf({ tests, items, assets, materials, programs }, today, today);
     const { stageGateOnTarget } = await import('/src/lib/onTarget.ts');
     const ot = stageGateOnTarget({ project, tests, items, assets, materials, programs, today });
@@ -264,6 +273,7 @@ for (const size of SIZES) {
        card — PDF" — so it is pressed by that name, whichever face it wears. */
     ['test card', `#/project/${job.projectId}/testing/${job.testId}`, [[/ card — PDF$/]], must.card],
     ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}`, [[/ card — PDF$/]], must.fix]] : []),
+    ...(must.runTestId ? [['run card', `#/project/${job.projectId}/testing/${must.runTestId}`, [[/ card — PDF$/]], must.runCard]] : []),
     /* The day's button says what it does (screens/DayScreen, 5 October). */
     ['day', `#/project/${job.projectId}/day`, [['Today’s update — PDF']], must.day],
   ];

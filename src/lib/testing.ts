@@ -32,7 +32,7 @@
  * everything went to plan.
  */
 import type { ID, MediaRef } from '../types';
-import type { RunAgreed, RunDay } from './run';
+import { readProduct, runsOpen, runsUnderWay, type ProductRun, type RunAgreed, type RunDay } from './run';
 
 /** A file somebody was sent — an OEM report, a spec, a drawing. The bytes ride
  *  the same blob store as a snag photo, so it opens on the floor with no signal. */
@@ -254,17 +254,23 @@ const OUTCOME_WORDS: Record<TestKind, Record<Outcome, string>> = {
  * app owes the person, not a plan it should keep filing. It is deliberately
  * not a fifth outcome: nothing is stored, and the moment somebody answers, it
  * reads as passed or didn't like any other. */
-export const needsVerdict = (t: Pick<Test, 'outcome' | 'ranOn' | 'result'> & Partial<Pick<Test, 'kind'>>): boolean =>
+export const needsVerdict = (t: Pick<Test, 'outcome' | 'ranOn' | 'result'> & Partial<Pick<Test, 'kind' | 'runs'>>): boolean =>
   /* A STAGE IS JUDGED DONE OR A PROBLEM, nothing in between. Rowland, 5
      October: "leave it indigo until marked done or a problem." What was said
      about a stage part-way through is an account of the work, not a question
      owed — it stays planned (still ahead, or late once its day has gone). A
      test or a fix that ran is still owed its verdict. */
-  t.kind !== 'install' && t.outcome === 'planned' && (!!t.ranOn || !!t.result?.trim());
+  t.kind !== 'install' && t.outcome === 'planned' && (!!t.ranOn || !!t.result?.trim())
+  /* A PERFORMANCE RUN WITH PRODUCTS STILL TO RUN is under way, not owed a
+     verdict: its numbers give it when the last product is in (lib/run
+     patchRuns), and until then it is booked — or late once its day has gone. */
+  && !runsOpen(t);
 
-export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'> & Partial<Pick<Test, 'ranOn' | 'result'>>): string =>
-  needsVerdict({ kind: t.kind, outcome: t.outcome, ranOn: t.ranOn, result: t.result })
+export const outcomeWord = (t: Pick<Test, 'kind' | 'outcome'> & Partial<Pick<Test, 'ranOn' | 'result' | 'runs'>>): string =>
+  needsVerdict({ kind: t.kind, outcome: t.outcome, ranOn: t.ranOn, result: t.result, runs: t.runs })
     ? 'No verdict yet'
+    /* A performance run part-way through its products (lib/run). */
+    : t.outcome === 'planned' && (t.kind ?? 'test') === 'test' && runsUnderWay(t) ? 'Under way'
     : OUTCOME_WORDS[t.kind ?? 'test'][t.outcome];
 
 /** The question the screen asks when the verdict is owed — in the face's own words. */
@@ -401,6 +407,12 @@ export interface Test {
   /** WHAT THE DAY DID — minutes run, packs made, rejects, the speed it ran
    *  at, minutes stood. The net rate and reject % are worked out, not kept. */
   run?: RunDay;
+  /** THE PRODUCT RUNS — a performance run is many products, each planned
+   *  ahead with what it is judged on and measured on the day (lib/run
+   *  ProductRun). Absent on a test written before the list: its one run
+   *  above reads as the list's first product (lib/run productRuns), and the
+   *  first change to the list writes it here whole. */
+  runs?: ProductRun[];
 
   /* ---- what is attached ---- */
   media?: MediaRef[];
@@ -831,8 +843,11 @@ export function nextFrom(t: Test, mkId: () => string, at: number, title?: string
     planned: fix ? undefined : (t.product ?? t.planned),
     passesIf: fix ? problem?.trim() || undefined : t.passesIf,
     /* A re-run of a performance run is judged on the same agreed numbers
-       (lib/run); its own day starts empty. */
-    ...(!fix && t.runAgreed ? { runAgreed: { ...t.runAgreed } } : {}),
+       (lib/run); its own day starts empty. With many products, the ones that
+       did not pass (or never ran) are what is run again — every one when the
+       verdict was given against the numbers. */
+    ...(!fix && t.runAgreed && !t.runs ? { runAgreed: { ...t.runAgreed } } : {}),
+    ...(!fix && t.runs?.length ? { runs: rerunOf(t.runs).map(p => ({ id: mkId(), product: p.product, ...(p.agreed ? { agreed: { ...p.agreed } } : {}) })) } : {}),
     withWhom: t.withWhom,
     fromTestId: t.id,
     outcome: 'planned',
@@ -840,6 +855,16 @@ export function nextFrom(t: Test, mkId: () => string, at: number, title?: string
     createdAt: at,
     updatedAt: at,
   };
+}
+
+/** The products a re-test runs again: each product's latest row that did
+ *  not pass — or every product when all of them did (the verdict was given
+ *  against the numbers, so the whole run is what is asked again). */
+function rerunOf(runs: ProductRun[]): ProductRun[] {
+  const key = (p: ProductRun) => p.product.trim().toLowerCase() || p.id;
+  const latest = runs.filter((p, i) => !runs.slice(i + 1).some(q => key(q) === key(p)));
+  const notMet = latest.filter(p => readProduct(p).state !== 'met');
+  return notMet.length ? notMet : latest;
 }
 
 /** Whole days between two ISO dates, positive when `b` is later. */

@@ -14,7 +14,8 @@
  *
  * Every square is an ordinary test (lib/commission reads them; nothing is
  * stored), so it opens in the same drawer and prints on the same report. */
-import { runShort } from '../lib/run';
+import { patchRuns, productRuns, readRuns, runAgain, runsBoard, runsBoardWords, unplannedShorts } from '../lib/run';
+import { uid } from '../lib/ids';
 import { useState } from 'react';
 import { deleteTest } from '../db';
 import { commissionGrid, commissionNeeds, programsWords, type CommissionRow, type TestCell } from '../lib/commission';
@@ -136,7 +137,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                       : void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`))}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{columns[i]}</span>
-                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && runShort(c.test) ? ` · ${runShort(c.test)}` : ''}</span>
+                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && <RunWords t={c.test} />}</span>
                   </button>
                 ))}
                 {/* This machine's other tests — its own, in its own card. */}
@@ -145,7 +146,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                     onClick={() => openRecord(project.id, o.test.id)}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{o.test.title}</span>
-                    <span className="igm-word">{o.word}{runShort(o.test) ? ` · ${runShort(o.test)}` : ''}</span>
+                    <span className="igm-word">{o.word}<RunWords t={o.test} /></span>
                   </button>
                 ))}
                 {r.programs && (
@@ -188,12 +189,13 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                 {r.cells.map((c, i) => (
                   <td key={columns[i]}>
                     {c ? (
-                      <button className={'ig-cell ' + cellClass(c)} title={`${columns[i]} — ${c.word}`}
+                      <button className={'ig-cell ' + cellClass(c)} title={[`${columns[i]} — ${c.word}`, runsBoardWords(c.test)].filter(Boolean).join(' · ')}
                         onClick={() => openRecord(project.id, c.test.id)}>
                         {c.word}
-                        {/* A run at a rate says what it netted against what
-                            was agreed, on its square (lib/run). */}
-                        {runShort(c.test) && <span className="cg-run">{runShort(c.test)}</span>}
+                        {/* A run says where its products are — "2 of 3
+                            products passed · 1 short" — or, with one product,
+                            what it netted against what was agreed (lib/run). */}
+                        {runsBoard(c.test).said && <span className="cg-run"><RunWords t={c.test} bare /></span>}
                       </button>
                     ) : can.edit ? (
                       <button className="ig-cell is-empty" aria-label={`Add “${columns[i]}” to ${rowName(r.asset)}`}
@@ -221,7 +223,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                       <button key={o.test.id} className={'ig-cell cg-other ' + cellClass(o)} title={`${o.test.title} — ${o.word}`}
                         onClick={() => openRecord(project.id, o.test.id)}>
                         <span className="cg-other-t">{o.test.title}</span>
-                        <span className="cg-run">{o.word}{runShort(o.test) ? ` · ${runShort(o.test)}` : ''}</span>
+                        <span className="cg-run">{o.word}<RunWords t={o.test} /></span>
                       </button>
                     ))}
                   </td>
@@ -237,6 +239,14 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
       </p>
     </section>
   );
+}
+
+/** A RUN'S PRODUCTS ON ITS SQUARE — "2 of 3 products passed", and "1 short"
+ *  apart, in red: only the abnormal number carries colour (CLAUDE.md). */
+function RunWords({ t, bare }: { t: Test; bare?: boolean }) {
+  const b = runsBoard(t);
+  if (!b.said) return null;
+  return <>{bare ? '' : ' · '}{b.said}{b.short && <> · <b className="pt-late">{b.short}</b></>}</>;
 }
 
 /* NEEDS YOU — what is owed on Commission, and only that (lib/commission
@@ -258,6 +268,12 @@ export function NeedsYou({ project, tt, programs, can }: { project: Project; tt:
     const before = { outcome: t.outcome, ranOn: t.ranOn };
     void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? today }));
     offerUndo(`${t.title} — ${outcomeWord({ kind: 'test', outcome })}`, async () => { await tt.patchTest(t.id, before); });
+  };
+  const runShortsAgain = (t: Test) => {
+    void tt.patchTest(t.id, cur => patchRuns(cur, runAgain(productRuns(cur), unplannedShorts(readRuns(cur)).map(p => p.run.id), uid), today));
+    offerUndo(`${t.title} — planned to run again`, async () => {
+      await tt.patchTest(t.id, cur => patchRuns(cur, productRuns(cur).filter(p => !!p.day || productRuns(t).some(q => q.id === p.id)), today));
+    });
   };
   const planProgram = async (p: Program) => {
     const [id] = await tt.planTests([{ title: provingTitle(p), assetId: p.assetId,
@@ -287,9 +303,17 @@ export function NeedsYou({ project, tt, programs, can }: { project: Project; tt:
                     <button type="button" className="btn btn-sm ig-bad" onClick={() => answer(n.test as Test, 'failed')}>Didn’t pass</button>
                   </span>
                 )}
-                {can.edit && n.kind === 'failed' && n.test && (
+                {can.edit && n.kind === 'failed' && n.test && !n.shortProducts && (
                   <span className="nd-acts">
                     <button type="button" className="btn btn-sm" onClick={() => void (async () => openRecord(project.id, await tt.planNextFrom(n.test as Test)))()}>Plan the re-test</button>
+                  </span>
+                )}
+                {/* A PRODUCT THAT DIDN'T PASS, part-way through the run: run
+                    it again on the same test, under itself (lib/run runAgain). */}
+                {can.edit && n.kind === 'failed' && n.test && n.shortProducts && (
+                  <span className="nd-acts">
+                    <button type="button" className="btn btn-sm" onClick={() => runShortsAgain(n.test as Test)}>
+                      {n.shortProducts.length === 1 ? 'Run it again' : 'Run them again'}</button>
                   </span>
                 )}
                 {can.edit && n.kind === 'program' && n.program && (
