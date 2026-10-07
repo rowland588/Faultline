@@ -32,7 +32,7 @@ export interface StandingState {
   plannedAt?: string;
 }
 
-const EMPTY: Standing = { sentence: '', outstanding: 0, late: 0, rows: [], plan: [] };
+const EMPTY: Standing = { sentence: '', outstanding: 0, late: 0, rows: [], plan: [], lateThings: [] };
 
 export function useStanding(projectId: string): StandingState {
   const { project, loading: pl } = useProject(projectId);

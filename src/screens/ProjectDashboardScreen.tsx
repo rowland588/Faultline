@@ -682,7 +682,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const verdict: Standing = {
     // The same sentence the Home control room says of this job.
     sentence: pacedSays({ atTarget, judged, open: openActions, late: overdue, any: actions.length > 0 }),
-    outstanding: openActions, late: overdue, rows: [], plan: [],
+    outstanding: openActions, late: overdue, rows: [], plan: [], lateThings: [],
   };
   /* The actions closed on a known day, newest first, and what the numbers say. */
   const closed = ax.steps.filter(s => s.state === 'done' && !!s.doneOn)

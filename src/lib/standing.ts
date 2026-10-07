@@ -90,7 +90,16 @@ export interface Standing {
   handedOver?: boolean;
   rows: OutstandingRow[];
   plan: PlanMark[];
+  /** WHAT IS LATE, BY NAME — the same things `late` counts, in the same
+   *  order as the rows, so "Are we on target?" (lib/onTarget) can say which
+   *  instead of a number nobody can check. Rowland, 7 October: "it says 2
+   *  late, 100 hours lost ... I don't have 2 late, I have 1 late." */
+  lateThings: LateThing[];
 }
+
+/** One late thing: what it is called, and why it is late — the day that has
+ *  gone, or (a stage) the hours its problems lost. */
+export interface LateThing { what: string; was?: string; hours?: number; id?: string }
 
 /** "The date has moved 8 days from what was agreed." Absent when it has not.
  *
@@ -108,6 +117,7 @@ export function slipWords(slipDays?: number): string | undefined {
 
 import { niceDay, todayISO } from './weeks';
 import { journeyOf, lateOrProblem } from './install';
+import { DAY_HOURS, hoursTally } from './hoursLost';
 export { todayISO };
 
 const daysBetween = (a: string, b: string): number =>
@@ -255,6 +265,23 @@ export function standing(input: StandingInput): Standing {
 
   const outstanding = rows.reduce((n, r) => n + r.open, 0);
   const late = rows.reduce((n, r) => n + r.late, 0);
+  /* The same late things, by name, in the rows' order. */
+  const machineOf = (t: Test) => assets.find(a => a.id === t.assetId)?.name;
+  const stage = (t: Test): LateThing => {
+    const hours = hoursTally(t.id, input.items, DAY_HOURS).hours;
+    const end = t.plannedTo ?? t.plannedFor;
+    return { what: `${machineOf(t) ?? 'The line'} — ${t.title}`, id: t.id, ...(hours ? { hours } : {}), ...(end && end < today ? { was: end } : {}) };
+  };
+  const dated = (t: Test, prefix = ''): LateThing => ({ what: `${prefix}${t.title}`, id: t.id, ...((t.plannedTo ?? t.plannedFor) ? { was: t.plannedTo ?? t.plannedFor } : {}) });
+  const lateThings: LateThing[] = [
+    ...stepsLate.map(stage), ...setupLate.map(stage),
+    ...partsLate.map(x => ({ what: `${x.stage.title} — ${x.part.what}`, ...(x.part.due ? { was: x.part.due } : {}) })),
+    ...testsLate.map(t => dated(t)), ...fixesLate.map(t => dated(t, 'Fix: ')),
+    ...matsLate.map(m => ({ what: m.what, ...(m.due ? { was: m.due } : {}) })),
+    ...progsLate.map(p => ({ what: `Program ${p.what}`, ...(p.testOn ? { was: p.testOn } : {}) })),
+    ...handLate.map(stage),
+    ...machLate.map(a => ({ what: `${a.name} on site`, ...(a.dueOn ? { was: a.dueOn } : {}) })),
+  ];
 
   /* ------------------------------- the plan ------------------------------- */
 
@@ -365,7 +392,7 @@ export function standing(input: StandingInput): Standing {
     sentence: handedOver
       ? handedOverWords(handedOn, input.plannedAt, assets.length)
       : sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests), problems }),
-    daysToGo, slipDays, outstanding, late, rows, plan, handedOver: handedOver || undefined,
+    daysToGo, slipDays, outstanding, late, rows, plan, handedOver: handedOver || undefined, lateThings,
   };
 }
 

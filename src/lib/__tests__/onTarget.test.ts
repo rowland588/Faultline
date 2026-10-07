@@ -39,13 +39,22 @@ describe('a stage-gate job — is the handover on target?', () => {
     const lost = step({ title: 'Sensors and controls checked', plannedFor: '2026-10-08', ranOn: '2026-10-06', outcome: 'failed' });
     const gone = step({ title: 'Air connected', plannedFor: '2026-10-02' });
     const v = job({ tests: [lost, gone, ahead], items: [found(lost.id, 2)], plannedAt: '2026-10-25' });
-    expect(v).toEqual({ tone: 'behind', word: 'Behind target', reason: `handover ${D('2026-10-25')} as agreed · 2 late, 2 h lost` });
+    /* Rowland, 7 October: "it says 2 late, 100 hours lost ... this is really
+       poor information" — each late thing is named now, with the hours its
+       problems lost or the day it was due, so the line can be checked. */
+    expect(v).toEqual({ tone: 'behind', word: 'Behind target',
+      reason: `handover ${D('2026-10-25')} as agreed · 2 late: Ishida checkweigher — Sensors and controls checked (2 h lost); Ishida checkweigher — Air connected (was due ${D('2026-10-02')})` });
   });
 
   it('at risk: nothing late, but a problem that lost no time', () => {
     const none = step({ title: 'Dry run', plannedFor: '2026-10-12', ranOn: '2026-10-06', outcome: 'failed' });
     const v = job({ tests: [none], items: [found(none.id)], plannedAt: '2026-10-25' });
-    expect(v).toEqual({ tone: 'risk', word: 'At risk', reason: `handover ${D('2026-10-25')} as agreed · nothing late · 1 a problem, no time lost` });
+    /* "1 a problem" read badly and named nothing; the problem is named. */
+    expect(v).toEqual({ tone: 'risk', word: 'At risk', reason: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost: Ishida checkweigher — Dry run` });
+  });
+
+  it('one handover date is the handover — never "no date agreed yet" (Rowland, 7 October)', () => {
+    expect(job({ tests: [ahead], expectedAt: '2026-10-09' }).reason).toBe(`handover ${D('2026-10-09')} · nothing late`);
   });
 
   it('at risk: something owed falls due within two days', () => {

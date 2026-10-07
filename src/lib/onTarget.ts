@@ -27,10 +27,10 @@
 import { assetStateOf, isOverdue, isSettled, live, plannedEnd, type Asset, type Test, type TestItem } from './testing';
 import { lateOrProblem } from './install';
 import { criticalProblems } from './critical';
-import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
+import { hoursWord } from './hoursLost';
 import { isHere, type Material } from './materials';
 import { stateOf, type Program } from './programs';
-import { standing, type Standing } from './standing';
+import { standing, type LateThing, type Standing } from './standing';
 import { say, type LineSeries } from './measures';
 import { addDays, daysBetween, niceDay } from './weeks';
 
@@ -55,15 +55,36 @@ export const onTargetSays = (o: OnTarget): string => `${o.word} — ${o.reason}`
 const day = (iso: string) => niceDay(iso, { weekday: 'short' });
 const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
 
-/** The handover, against the date agreed, in words. */
+/** The handover, against the date agreed, in words.
+ *
+ *  Rowland, 7 October: "It says handover expected on the 9th of October — no
+ *  date agreed yet. Well, it is agreed, it's agreed on the 9th of October."
+ *  A job with one handover date is judged on that date: it is said as the
+ *  handover, never as "no date agreed". Two dates that differ are the only
+ *  slip, and say both. */
 function handoverWords(expectedAt?: string, plannedAt?: string): string {
   if (expectedAt && plannedAt && expectedAt !== plannedAt) {
     const d = daysBetween(plannedAt, expectedAt);
     return `handover expected ${day(expectedAt)}, ${days(Math.abs(d))} ${d > 0 ? 'after' : 'before'} the agreed ${day(plannedAt)}`;
   }
   if (plannedAt) return `handover ${day(plannedAt)} as agreed`;
-  if (expectedAt) return `handover expected ${day(expectedAt)} — no date agreed yet`;
-  return 'no handover date agreed yet';
+  return expectedAt ? `handover ${day(expectedAt)}` : 'no handover date set yet';
+}
+
+/** "Pick and place — Programs loaded (100 h lost)", "Fix: Send the regulator
+ *  (was due Mon 5 Oct)". */
+const lateOne = (l: LateThing): string =>
+  `${l.what} (${l.hours ? `${hoursWord(l.hours)} lost` : l.was ? `was due ${day(l.was)}` : 'late'})`;
+
+/** WHAT IS LATE, BY NAME — every one when there are three or fewer, the
+ *  first two and how many more otherwise. "1 late: …", "4 late: …, … and 2
+ *  more". The count is the job's own (lib/standing), so it is the number the
+ *  band and the rail say. */
+function lateWords(things: LateThing[], n: number): string {
+  if (!n) return 'nothing late';
+  const named = things.length <= 3 ? things : things.slice(0, 2);
+  const more = n - named.length;
+  return `${n} late: ${named.map(lateOne).join('; ')}${more > 0 ? ` and ${more} more` : ''}`;
 }
 
 export interface StageGateInput {
@@ -92,9 +113,9 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
 
   /* The stages, each by the one rule: late, or a problem — which. */
   const which = new Map(tests.filter(t => t.kind === 'install').map(t => [t.id, lateOrProblem(t, items, today)]));
-  const lateSteps = tests.filter(t => which.get(t.id) === 'late');
-  const problems = tests.filter(t => which.get(t.id) === 'problem').length;
-  const lost = lateSteps.reduce((h, t) => h + hoursTally(t.id, items, DAY_HOURS).hours, 0);
+  const problemSteps = tests.filter(t => which.get(t.id) === 'problem');
+  const problems = problemSteps.length;
+  const machine = (t: Test) => assets.find(a => a.id === t.assetId)?.name ?? 'The line';
 
   /* Due within two days, and not late — everything owed, on every list. */
   const soonEnd = addDays(today, AT_RISK_DAYS);
@@ -106,24 +127,32 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
     + programs.filter(p => stateOf(p) !== 'proved' && soon(p.testOn)).length
     + assets.filter(a => assetStateOf(a) === 'awaited' && !a.onSiteOn && soon(a.dueOn)).length;
 
-  const lateWords = s.late ? `${s.late} late${lost ? `, ${hoursWord(lost)} lost` : ''}` : 'nothing late';
-  const problemWords = problems ? `${problems} a problem, no time lost` : '';
+  /* Each thing said by name, so the line can be checked against the job:
+     "1 late: Pick and place — Programs loaded (12 h lost)", "1 problem, no
+     time lost: Wrapper — Change parts fitted". */
+  const late = lateWords(s.lateThings ?? [], s.late);
+  const problemWords = problems
+    ? `${problems} problem${problems === 1 ? '' : 's'}, no time lost: ${problemSteps.slice(0, 2).map(t => `${machine(t)} — ${t.title}`).join('; ')}${problems > 2 ? ` and ${problems - 2} more` : ''}`
+    : '';
   const slipped = !!expectedAt && !!plannedAt && expectedAt > plannedAt;
-  const critical = criticalProblems(tests, items, assets).open.length;
-  const criticalWords = critical ? `${critical} critical problem${critical === 1 ? '' : 's'} open` : '';
+  const crit = criticalProblems(tests, items, assets).open;
+  const critical = crit.length;
+  const criticalWords = critical
+    ? `${critical} critical: ${crit.slice(0, 2).map(c => c.item.what).join('; ')}${critical > 2 ? ` and ${critical - 2} more` : ''}`
+    : '';
 
   if (slipped || s.late > 0) {
-    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, lateWords, problemWords].filter(Boolean).join(' · ') };
+    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords].filter(Boolean).join(' · ') };
   }
   if (critical || problems || dueSoon) {
     return {
       tone: 'risk', word: 'At risk',
-      reason: [when, criticalWords, lateWords, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
+      reason: [when, criticalWords, late, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
     };
   }
   /* Nothing late and no date to be on target FOR — said, not guessed. */
   if (!expectedAt && !plannedAt) return { tone: 'none', word: 'No target date', reason: `${when} · nothing late` };
-  return { tone: 'on', word: 'On target', reason: `${when} · ${lateWords}` };
+  return { tone: 'on', word: 'On target', reason: `${when} · ${late}` };
 }
 
 /** A 6M or lever tree job: every line judged is at its target, or which are

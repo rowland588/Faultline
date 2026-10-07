@@ -40,7 +40,7 @@ describe('"Are we on target?" with a critical problem open', () => {
     expect(stageGateOnTarget(x([])).tone).toBe('on');
     const v = stageGateOnTarget(x([found({ critical: true })]));
     expect(v.tone).toBe('risk');
-    expect(v.reason).toContain('1 critical problem open');
+    expect(v.reason).toContain('1 critical: Programs cannot be copied over');   // named, as late things are
   });
   it('a sorted one does not hold it', () => {
     expect(stageGateOnTarget(x([found({ critical: true, doneAt: 20 })])).tone).toBe('on');
