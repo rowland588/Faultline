@@ -463,3 +463,48 @@ describe('done, and late (Rowland, 7 October)', () => {
     expect(doneLateBy(step({ title: 'B', plannedFor: '2026-10-05', outcome: 'planned' }), [])).toBe(0);
   });
 });
+
+describe('held up by the stage before (Rowland, 7 October)', () => {
+  const T7 = '2026-10-07';
+  const found = (testId: string, p: Partial<import('../testing').TestItem>) => ({ id: `f-${testId}`, projectId: 'p', testId, kind: 'found' as const, what: 'Took longer', sort: 1, createdAt: 1, updatedAt: 1, ...p });
+  const power = step({ id: 'pw', title: 'Air and power connected', assetId: packer.id, plannedFor: '2026-10-06', ranOn: '2026-10-06', outcome: 'passed', sort: 3 });
+  const sensors = step({ id: 'sn', title: 'Sensors and controls checked (I/O)', assetId: packer.id, plannedFor: '2026-10-05', plannedTo: '2026-10-06', ranOn: '2026-10-07', outcome: 'passed', sort: 5 });
+  const lost = [found('pw', { hoursLost: 6 })];
+  it('sensors, done a day late, was held up by the power that lost 6 hours', async () => {
+    const { heldUpBy } = await import('../install');
+    const h = heldUpBy(sensors, [power, sensors], lost, T7);
+    expect(h?.by.id).toBe('pw');
+    expect(h?.words).toBe('held up by Air and power connected — 6 h lost there');
+  });
+  it('the stage before is the one before it in the job’s own stage list — reorder the list and the reason follows', async () => {
+    const { heldUpBy } = await import('../install');
+    // The list puts sensors FIRST: nothing comes before it, so nothing held it up.
+    expect(heldUpBy(sensors, [power, sensors], lost, T7, ['Sensors and controls checked (I/O)', 'Air and power connected'])).toBeUndefined();
+    expect(heldUpBy(sensors, [power, sensors], lost, T7, ['Air and power connected', 'Sensors and controls checked (I/O)'])?.by.id).toBe('pw');
+  });
+  it('followed back to the stage that lost the time itself', async () => {
+    const { heldUpBy } = await import('../install');
+    const dry = step({ id: 'dr', title: 'Dry run', assetId: packer.id, plannedFor: '2026-10-07', ranOn: '2026-10-08', outcome: 'passed', sort: 6 });
+    // Sensors lost nothing of its own and finished late because of the power; the dry run after it was held up by the power.
+    expect(heldUpBy(dry, [power, sensors, dry], lost, '2026-10-08')?.by.id).toBe('pw');
+  });
+  it('a stage before that lost nothing, or finished before this one was due to start, is no reason', async () => {
+    const { heldUpBy } = await import('../install');
+    expect(heldUpBy(sensors, [power, sensors], [], T7)).toBeUndefined();
+    const early = { ...power, plannedFor: '2026-10-01', ranOn: '2026-10-01' };
+    expect(heldUpBy(sensors, [early, sensors], [found('pw', { hoursLost: 6 })], T7)).toBeUndefined();
+    const onTime = { ...sensors, ranOn: '2026-10-06' };
+    expect(heldUpBy(onTime, [power, onTime], lost, T7)).toBeUndefined();   // not late: nothing to explain
+  });
+});
+
+describe('held up — a stage in between that went to plan does not hide the one that ran over', () => {
+  it('power lost 6 h on the 6th; electrical between was on time; sensors (5–6th) done the 7th → held up by power', async () => {
+    const { heldUpBy } = await import('../install');
+    const f = (testId: string, h: number) => ({ id: `h-${testId}`, projectId: 'p', testId, kind: 'found' as const, what: 'Took longer', hoursLost: h, sort: 1, createdAt: 1, updatedAt: 1 });
+    const power = step({ id: 'pw2', title: 'Air and power connected', assetId: packer.id, plannedFor: '2026-10-06', ranOn: '2026-10-06', outcome: 'passed', sort: 3 });
+    const elec = step({ id: 'el2', title: 'Electrically complete', assetId: packer.id, plannedFor: '2026-10-05', ranOn: '2026-10-05', outcome: 'passed', sort: 4 });
+    const sensors = step({ id: 'sn2', title: 'Sensors and controls checked (I/O)', assetId: packer.id, plannedFor: '2026-10-05', plannedTo: '2026-10-06', ranOn: '2026-10-07', outcome: 'passed', sort: 5 });
+    expect(heldUpBy(sensors, [power, elec, sensors], [f('pw2', 6)], '2026-10-07')?.words).toBe('held up by Air and power connected — 6 h lost there');
+  });
+});

@@ -107,6 +107,70 @@ export function doneLateBy(t: Test, items: TestItem[]): number {
 /** "1 day late" / "3 days late". */
 export const lateByWords = (n: number): string => `${n} day${n === 1 ? '' : 's'} late`;
 
+/* HELD UP BY THE STAGE BEFORE — the reason a stage ran late, when it was not
+ * its own doing. Rowland, 7 October: "sensors were 1 day late, but only
+ * because the power connection ... took longer, 6 hours lost ... the next
+ * processes were affected. You can't see that correlation — it looks as if
+ * sensors are delayed, but it's the power connection that delayed it ... and
+ * be smart enough: if I ever switch those processes round, it needs to be
+ * intelligent."
+ *
+ * "Before" is ON THE SAME MACHINE AND GATE, IN THE JOB'S OWN STAGE LIST (`order`, the usual stages — so reordering the list
+ * changes which stage comes before, and never a name written in here); any
+ * stage not on the list comes after, in the order it was added. It held this
+ * one up when this one is late, and the stage before LOST TIME — hours lost on
+ * it, or it finished after its own planned finish — AND its work ran into this
+ * stage's planned days (it finished on or after this one was due to start). A
+ * stage before that is merely still open is not a reason: every stage behind
+ * it would say so, and say nothing. Followed back to the stage that
+ * lost the time itself — the root, said by name. Nothing is stored. */
+export interface HeldUp {
+  /** The stage that lost the time. */
+  by: Test;
+  /** Its hours lost, or the days it finished late. */
+  why: string;
+  /** "held up by Air and power connected — 6 h lost there" */
+  words: string;
+}
+
+export function heldUpBy(t: Test, tests: Test[], items: TestItem[], today: string, order: readonly string[] = [], seen = new Set<string>()): HeldUp | undefined {
+  if (t.kind !== 'install' || seen.has(t.id)) return undefined;
+  seen.add(t.id);
+  const late = doneLateBy(t, items) > 0 || lateOrProblem(t, items, today) === 'late';
+  if (!late) return undefined;
+  const keys = order.map(stageKey);
+  const rank = (x: Test) => { const i = keys.indexOf(stageKey(x.title)); return i >= 0 ? i : keys.length + x.sort / 1e6; };
+  const mine = live(tests).filter(x => x.kind === 'install' && gateOf(x) === gateOf(t) && (x.assetId ?? '') === (t.assetId ?? ''))
+    .sort((a, b) => rank(a) - rank(b) || a.sort - b.sort);
+  /* THE NEAREST EARLIER STAGE THAT LOST TIME INTO THIS ONE — looking back
+     through every stage before it on the machine, not only the one next to
+     it: a stage in between that went to plan does not hide the one that ran
+     over. Its work ran into this stage's days when it finished — or, still
+     open, is still going — on or after the day this one was due to start. */
+  if (!t.plannedFor) return undefined;
+  const before = mine.slice(0, mine.indexOf(t)).reverse();
+  /* …and it truly came first on the calendar too: it started on or before
+     this stage's planned finish. An open stage booked for later days cannot
+     have held up one booked before it, whatever the list says. */
+  const myEnd = plannedEnd(t) ?? t.plannedFor;
+  const prev = before.find(x => {
+    if (!hoursTally(x.id, items, DAY_HOURS).hours && !doneLateBy(x, items)) return false;
+    const start = x.ranOn ?? x.plannedFor;
+    const end = x.outcome === 'passed' ? (x.ranTo ?? x.ranOn ?? plannedEnd(x)) : today;
+    return !!start && !!end && start <= myEnd && end >= (t.plannedFor as string);
+  });
+  if (!prev) return undefined;
+  const hours = hoursTally(prev.id, items, DAY_HOURS).hours;
+  const by = doneLateBy(prev, items);
+  /* The root: a stage before that lost nothing itself was held up in turn. */
+  if (!hours && !movedLater(prev.id, items)) {
+    const root = heldUpBy(prev, tests, items, today, order, seen);
+    if (root) return root;
+  }
+  const why = hours ? `${hoursWord(hours)} lost there` : `it finished ${lateByWords(by)}`;
+  return { by: prev, why, words: `held up by ${prev.title} — ${why}` };
+}
+
 /** The days a stage's finish was moved later by its problems — each move a
  *  problem kept (movedFrom → movedTo), added up. */
 export function movedLater(stepId: string, items: TestItem[]): number {

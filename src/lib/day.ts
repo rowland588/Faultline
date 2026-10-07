@@ -21,7 +21,7 @@ import {
   gateOf, isOverdue, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
 } from './testing';
 import type { MediaRef } from '../types';
-import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, lateByWords } from './install';
+import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
 import { partLate, partOnStage, partsOnStages } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
@@ -179,7 +179,9 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
            1 day late" (lib/install doneLateBy). */
         const by = t.kind === 'install' ? doneLateBy(t, items) : 0;
         const late = by ? lateByWords(by) : '';
-        done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${late ? `, ${late}` : ''}${who(t.withWhom)}.`, detail, tone: 'done', id: t.id,
+        /* And why, when the stage before lost the time (lib/install heldUpBy). */
+        const held = by ? heldUpBy(t, tests, items, today) : undefined;
+        done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${late ? `, ${late}` : ''}${held ? ` — ${held.words}` : ''}${who(t.withWhom)}.`, detail, tone: 'done', id: t.id,
           ...(late ? { which: 'late' as const, mark: late } : {}) });
       } else if (t.outcome === 'failed') {
         /* A stage says which: "— late, 2 h lost" in red, "— a problem, no
@@ -208,8 +210,9 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     if (w) {
       const end = endOf(t);
       const due = end ? `, ${end < date ? 'was due' : 'due'} ${short(end)}` : '';
+      const held = w.which === 'late' ? heldUpBy(t, tests, items, today) : undefined;
       (w.which === 'late' ? late : problems).push({
-        text: `${named(t)} — ${w.words}${due}${who(t.withWhom)}.`, detail: t.outcome === 'failed' ? detail : undefined,
+        text: `${named(t)} — ${w.words}${due}${held ? ` — ${held.words}` : ''}${who(t.withWhom)}.`, detail: t.outcome === 'failed' ? detail : undefined,
         tone: w.which === 'late' ? 'slipped' : 'problem', id: t.id, which: w.which, mark: w.words,
       });
       continue;

@@ -29,10 +29,10 @@ import { nav, navReplace, withQuery, type Route, type RouteName } from '../state
 import { useTesting } from '../lib/useTesting';
 import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
-import { doneLateBy, lateByWords, lateOrProblem, toneOf, type StepTone } from '../lib/install';
+import { doneLateBy, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
 import {
   isOverdue, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion,
-  type Outcome, type Test, type TestItem,
+  gateOf, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
@@ -241,6 +241,15 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const machine = tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line itself';
   const { word, tone } = stateOf(t, today, live(tt.items));
   const parts = kind !== 'fix' ? partsSaid(partsOf(t.id, tt.items), today) : undefined;
+  /* The stage before it, in the job's own stage order, when that is what made
+     this one late (lib/install heldUpBy). */
+  const order = usualStages(job, jobs.projects, gateOf(t)).stages;
+  const held = kind === 'install' ? heldUpBy(t, tt.tests, live(tt.items), today, order) : undefined;
+  /* …and from the other end: the stages ITS lost time held up. */
+  const heldUp = kind === 'install'
+    ? live(tt.tests).filter(x => x.kind === 'install' && x.id !== t.id && (x.assetId ?? '') === (t.assetId ?? '') && gateOf(x) === gateOf(t)
+      && heldUpBy(x, tt.tests, live(tt.items), today, order)?.by.id === t.id)
+    : [];
   const crits = kind !== 'fix' ? criticalOn(t.id, tt.items, tt.tests).length : 0;
   const risks = kind !== 'fix' ? riskOn(t.id, tt.items, tt.tests).length : 0;
   /* The parent: a fix is FOR a test or a step; a test may follow another. */
@@ -291,6 +300,21 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         </span>
       ) : <span className={'rd-state is-' + tone}>{word}</span>}
       <h2 className="rd-title">{t.title}</h2>
+      {/* WHY IT RAN LATE, when it was not its own doing (lib/install heldUpBy):
+          the stage before it on this machine lost the time. One tap opens it. */}
+      {held && (
+        <button type="button" className="rd-link rd-held" onClick={() => onOpen(held.by.id)}>
+          Held up by <b>{held.by.title}</b> — {held.why} ›
+        </button>
+      )}
+      {heldUp.map(x => {
+        const by = doneLateBy(x, live(tt.items));
+        return (
+          <button key={x.id} type="button" className="rd-link rd-held" onClick={() => onOpen(x.id)}>
+            Its lost time held up <b>{x.title}</b>{by ? ` — ${lateByWords(by)}` : ' — late'} ›
+          </button>
+        );
+      })}
       <p className="rd-sub">{machine} · {t.withWhom || 'nobody named'}</p>
 
       {/* THE FLOOR'S ACTIONS, first — the same buttons the square's sheet and

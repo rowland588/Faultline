@@ -19,7 +19,7 @@ import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, lateByWords } from './install';
+import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
 import { partsOf } from './noted';
 import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
@@ -89,6 +89,9 @@ export interface GanttRow {
   /** Done, and how many days after its first planned finish (lib/install
    *  doneLateBy) — said "done · 1 day late", the lateness in red. */
   lateBy?: number;
+  /** "held up by Air and power connected — 6 h lost there" (lib/install
+   *  heldUpBy) — why it ran late, when it was the stage before. */
+  heldBy?: string;
 }
 
 /** A part's state: done, past its day, due within two days, booked on a day
@@ -297,6 +300,11 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
             row.tone = lp;
             row.says = lp === 'problem' ? 'a problem — no time lost' : lost > 0 ? `late — ${hoursWord(lost)} lost` : 'late';
           }
+          /* WHY, when it was the stage before that lost the time (lib/install
+             heldUpBy) — "held up by Air and power connected — 6 h lost there",
+             after its own words. */
+          const held = step ? heldUpBy(step, records.tests, records.items, today) : undefined;
+          if (held) { row.heldBy = held.words; row.says = `${row.says ?? 'late'} · ${held.words}`; }
         }
         const st = m.id ? stories.get(m.id) : undefined;
         if (st) {

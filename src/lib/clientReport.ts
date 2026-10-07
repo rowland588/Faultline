@@ -22,7 +22,7 @@
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import type { MediaPin, Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords } from './install';
+import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
@@ -243,7 +243,9 @@ export function clientReport(x: ClientReportInput): ClientReport {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
           /* Done after its first planned finish says so (lib/install doneLateBy). */
-          tone, state: lateOrProblemSays(s.step, items, today)?.words ?? (s.lateBy ? `done, ${lateByWords(s.lateBy)}` : CELL_WORD[tone]), said: (s.step.result ?? '').trim(),
+          tone, state: [lateOrProblemSays(s.step, items, today)?.words ?? (s.lateBy ? `done, ${lateByWords(s.lateBy)}` : CELL_WORD[tone]),
+            /* Why, when it was the stage before (lib/install heldUpBy). */
+            heldUpBy(s.step, tests, items, today, usual)?.words].filter(Boolean).join(' — '), said: (s.step.result ?? '').trim(),
           ...(parts.length ? { parts } : {}),
         };
       });
@@ -258,7 +260,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const named = (r: (typeof all)[number]['r'], s: StepView) => `${r.asset?.name ?? 'The line'} — ${s.step.title}`;
     const lateSteps = all
       .filter(({ s, w }) => w?.which === 'late' || (!w && cellOf(s) === 'late'))
-      .map(({ r, s, w }) => `${named(r, s)}${w?.lost ? ` — ${hoursWord(w.lost)} lost` : ''}`);
+      .map(({ r, s, w }) => { const h = heldUpBy(s.step, tests, items, today, usual); return `${named(r, s)}${w?.lost ? ` — ${hoursWord(w.lost)} lost` : ''}${h ? ` — ${h.words}` : ''}`; });
     const problemSteps = all.filter(({ w }) => w?.which === 'problem').map(({ r, s }) => named(r, s));
     /* Rowland, 6 October: "2 hours here, 1 hour there, 5 hours here ... that
        was one day fully missed, or half a day." */
