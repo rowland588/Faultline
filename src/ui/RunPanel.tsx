@@ -45,11 +45,11 @@ import { offerUndo } from './Undo';
 type Patch = (fn: (cur: Test) => Partial<Test>) => void;
 
 const DAY_BOXES: { k: keyof RunDay; label: string; unit?: string; hint: string; ph: string }[] = [
-  { k: 'minutes', label: 'Ran for', unit: 'min', hint: 'Ran for, minutes', ph: '60' },
-  { k: 'packs', label: 'Packs made', hint: 'Packs made, on the counter', ph: '3600' },
-  { k: 'rejects', label: 'Rejects', hint: 'Rejects', ph: '0' },
-  { k: 'speed', label: 'Ran at', unit: 'ppm', hint: 'Ran at, packs a minute', ph: '62' },
-  { k: 'stops', label: 'Stood', unit: 'min', hint: 'Stood, minutes', ph: '0' },
+  { k: 'minutes', label: 'Ran for', unit: 'min', hint: 'Ran for, minutes', ph: 'e.g. 60' },
+  { k: 'packs', label: 'Packs made', hint: 'Packs made, on the counter', ph: 'e.g. 3600' },
+  { k: 'rejects', label: 'Rejects', hint: 'Rejects', ph: 'e.g. 0' },
+  { k: 'speed', label: 'Ran at', unit: 'ppm', hint: 'Ran at, packs a minute', ph: 'e.g. 62' },
+  { k: 'stops', label: 'Stood', unit: 'min', hint: 'Stood, minutes', ph: 'e.g. 0' },
 ];
 
 /** THE RUN — the totals line, a row per product, and the form that adds the
@@ -163,11 +163,11 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
             <p className="sub tw-note pr-f-wide">What it is judged on is agreed — only the owner changes it.</p>
           ) : <>
             <label className="cw-f"><span>Net rate <span className="cw-f-opt">ppm</span></span>
-              <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="60" label="Agreed net rate, packs a minute" onSave={setAgreed('rate')} /></label>
+              <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={setAgreed('rate')} /></label>
             <label className="cw-f"><span>For <span className="cw-f-opt">min</span></span>
-              <DraftNumber className="text-input" value={run.agreed?.minutes} placeholder="60" label="Agreed run length, minutes" onSave={setAgreed('minutes')} /></label>
+              <DraftNumber className="text-input" value={run.agreed?.minutes} placeholder="e.g. 60" label="Agreed run length, minutes" onSave={setAgreed('minutes')} /></label>
             <label className="cw-f"><span>Rejects at most <span className="cw-f-opt">%</span></span>
-              <DraftNumber className="text-input" value={run.agreed?.rejectsMax} placeholder="1" label="Most rejects allowed, per cent" onSave={setAgreed('rejectsMax')} /></label>
+              <DraftNumber className="text-input" value={run.agreed?.rejectsMax} placeholder="e.g. 1" label="Most rejects allowed, per cent" onSave={setAgreed('rejectsMax')} /></label>
           </>}
         </div>
       )}
@@ -241,11 +241,11 @@ function AddProduct({ before, first, onSave, onDone }: {
         <input ref={name} className="text-input" value={product} placeholder="e.g. Finest Red 2kg" aria-label="Product to run"
           onChange={e => { setProduct(e.target.value); setSaid(''); }} onKeyDown={enter} /></label>
       <label className="cw-f"><span>Net rate <span className="cw-f-opt">ppm</span></span>
-        <input className="text-input" inputMode="decimal" value={rate} placeholder="60" aria-label="Agreed net rate, packs a minute" onChange={e => setRate(e.target.value)} onKeyDown={enter} /></label>
+        <input className="text-input" inputMode="decimal" value={rate} placeholder="e.g. 60" aria-label="Agreed net rate, packs a minute" onChange={e => setRate(e.target.value)} onKeyDown={enter} /></label>
       <label className="cw-f"><span>For <span className="cw-f-opt">min</span></span>
-        <input className="text-input" inputMode="decimal" value={minutes} placeholder="60" aria-label="Agreed run length, minutes" onChange={e => setMinutes(e.target.value)} onKeyDown={enter} /></label>
+        <input className="text-input" inputMode="decimal" value={minutes} placeholder="e.g. 60" aria-label="Agreed run length, minutes" onChange={e => setMinutes(e.target.value)} onKeyDown={enter} /></label>
       <label className="cw-f"><span>Rejects at most <span className="cw-f-opt">%</span></span>
-        <input className="text-input" inputMode="decimal" value={rejectsMax} placeholder="1" aria-label="Most rejects allowed, per cent" onChange={e => setRejectsMax(e.target.value)} onKeyDown={enter} /></label>
+        <input className="text-input" inputMode="decimal" value={rejectsMax} placeholder="e.g. 1" aria-label="Most rejects allowed, per cent" onChange={e => setRejectsMax(e.target.value)} onKeyDown={enter} /></label>
       <div className="pr-add-acts">
         <button type="submit" className="btn btn-primary btn-sm" disabled={!product.trim()}>Save</button>
         {onDone && <button type="button" className="btn btn-sm" onClick={onDone}>Done</button>}

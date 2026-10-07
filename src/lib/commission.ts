@@ -200,7 +200,12 @@ export function commissionNeeds(tests: Test[], programs: Program[], today: strin
        how much — the cause, from the numbers. */
     const shorts = isRunTest(t) ? unplannedShorts(readRuns(t)) : [];
     const why = [t.result?.trim(), shortWords(shorts)].filter(Boolean).join(' — ') || undefined;
-    if (t.outcome === 'failed' || t.outcome === 'notRun') {
+    if (t.outcome === 'failed' && shorts.length) {
+      /* A RUN THAT FAILED ON ITS PRODUCTS: the move is to run the short ones
+         again (on this test), not to plan a whole re-test of every product. */
+      failed.push({ kind: 'failed', test: t, word: `didn’t pass — ${shorts.length === 1 ? '1 product' : `${shorts.length} products`} short, no re-run planned`,
+        why: shortWords(shorts), shortProducts: shorts.map(p => productName(p.run)) });
+    } else if (t.outcome === 'failed' || t.outcome === 'notRun') {
       failed.push({ kind: 'failed', test: t, word: `${t.outcome === 'failed' ? 'didn’t pass' : 'didn’t run'} — no re-test planned`, ...(why ? { why } : {}) });
     } else if (shorts.length && t.outcome === 'planned') {
       /* Part-way through its products, one has not passed and nothing runs

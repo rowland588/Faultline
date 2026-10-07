@@ -493,7 +493,10 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   ctx.doneCell = await p.getByRole('button', { name: /Case packer — Positioned and levelled/ }).getAttribute('aria-label');
   ctx.stepId = (await idb(p, 'tests')).find(t => t.title === 'Positioned and levelled')?.id;
 
-  const tid = ctx.tid = await planTest(p, pid, 'Run at 70 ppm for an hour', 'Case packer');
+  /* An ordinary test, not a performance run: what is checked here is every
+     field of a test syncing, and a run's product is entered per product row
+     (lib/run) — its merging is sync-pass.test.ts's. */
+  const tid = ctx.tid = await planTest(p, pid, 'Case packer FAT, an hour with product', 'Case packer');
   await typeInto(p, 'Passes if', '70 ppm held for 60 minutes, under 2% waste');
   await typeInto(p, 'What happened', '68 ppm average, two crash stops at the infeed');
   await press(p, { name: 'Didn’t pass' });
