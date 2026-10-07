@@ -44,6 +44,8 @@ import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
 import { criticalCount } from '../lib/critical';
 import { linesOnTarget, stageGateOnTarget } from '../lib/onTarget';
+import { planCount, planFor } from '../lib/huddle';
+import type { TestItem } from '../lib/testing';
 import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
@@ -61,7 +63,6 @@ import { Verdict } from '../ui/Verdict';
 import { StandardsCard } from '../ui/StandardsCard';
 import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
-import { activeDays, dayOf } from '../lib/day';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { Fishbone } from '../ui/Fishbone';
@@ -498,26 +499,12 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'data',     label: 'Numbers',    sub: 'readings against target' },
 ];
 
-/** THE DAY, one line under the verdict: today's story if there is one yet,
- *  otherwise the last day that has one — and a tap reads it whole. */
-function DayLink({ projectId, tt, mats, progs }: {
-  projectId: string; tt: ReturnType<typeof useTesting>;
-  mats: ReturnType<typeof useMaterials>; progs: ReturnType<typeof usePrograms>;
-}) {
-  const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs };
-  const today = todayISO();
-  const now = dayOf(input, today, today);
-  /* Every day the job has a story on is only needed when today has none. */
-  const last = now.empty ? activeDays(input).filter(d => d < today).pop() : undefined;
-  const shown = !now.empty || !last ? now : dayOf(input, last, today);
-  return (
-    <button className="dy-link" onClick={() => nav(`/project/${projectId}/day${shown.date === today ? '' : `?d=${shown.date}`}`)}>
-      <span className="cmp-h-n">{shown.date === today ? 'TODAY' : `LAST LOGGED · ${shown.label.toUpperCase()}`}</span>
-      <span className="dy-link-t">{shown.headline}</span>
-      <span className="dy-link-go">Read the day ›</span>
-    </button>
-  );
+/** Today's huddle plan, in words — "plan for today: 1 of 3 done". */
+function todaysPlan(items: TestItem[], today: string): string {
+  const plan = planFor(items, today);
+  return plan.length ? `plan for today: ${planCount(plan)}` : 'nothing planned for today yet';
 }
+
 
 /* ("Meeting notes · 3", the header button, is the rail's Meeting notes line
    now, with the same count — ui/Frame useOpenNotes.) */
@@ -587,7 +574,8 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
               with their day. The plan — the longest thing on the page — is a
               page of its own (/plan), one line and a door here. */}
           {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
-          <Verdict st={st} onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)} />
+          <Verdict st={st} brief report={`/project/${projectId}/report`}
+            onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />
           <div className="fp-grid">
@@ -595,18 +583,21 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
             <div className="fp-col">
               {machines.length > 0 && (
                 <Panel title="Where each machine is" says={whereSays} className="fp-where">
-                  <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
+                  <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} bare />
                 </Panel>
               )}
-              <DayLink projectId={projectId} tt={tt} mats={mats} progs={progs} />
-              {/* THE PLAN, AS A DOOR. The same sentence the plan's own page
-                  leads with (lib/plan planSays) — how many dates, how many
-                  done, how many gone — and the Gantt one tap away. */}
-              <button className="dy-link fp-plan" onClick={() => nav(`/project/${projectId}/plan`)}>
-                <span className="cmp-h-n">THE PLAN</span>
-                <span className="dy-link-t">{planSays(st.plan, today)}</span>
-                <span className="dy-link-go">Open the plan ›</span>
-              </button>
+              {/* TWO DOORS, NOT TWO PARAGRAPHS. The day's headline and the
+                  plan's sentence repeated the band and Needs you (critical,
+                  late, gates done); each door says only what is not already
+                  on this page — today's huddle plan, and how many dates. */}
+              <span className="fp-doors">
+                <button className="fp-door" onClick={() => nav(`/project/${projectId}/day`)}>
+                  <b>Today ›</b><span className="sub">{todaysPlan(tt.items, today)}</span>
+                </button>
+                <button className="fp-door" onClick={() => nav(`/project/${projectId}/plan`)}>
+                  <b>The plan ›</b><span className="sub">{planSays(st.plan, today)}</span>
+                </button>
+              </span>
             </div>
           </div>
         </>
@@ -758,9 +749,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <span className="sub">
                 {methodOf(project).label}
                 {project.lead && <> · led by <b>{project.lead}</b></>}
-                {/* "late", not "past the day": a stage is late when its problems
-                    lost hours, before its day goes (lib/install lateOrProblem). */}
-                {pastDay > 0 && <> · <span className="in-late">{pastDay} late</span></>}
+                {/* No "4 late" here: the band's tile says it, once. A 6M or
+                    tree job has no band, so it still says it here. */}
+                {pastDay > 0 && model !== 'commissioning' && <> · <span className="in-late">{pastDay} late</span></>}
               </span>
             </p>
           )}

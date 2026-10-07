@@ -16,6 +16,7 @@
 import { slipWords, type Standing } from '../lib/standing';
 import type { OnTarget } from '../lib/onTarget';
 import { OnTargetLine } from './OnTarget';
+import { nav } from '../state/useRoute';
 
 /** One number and its word. Charcoal, with colour only where colour is a fact. */
 function Tile({ n, label, tone }: { n: string; label: string; tone?: 'warn' | 'bad' }) {
@@ -27,10 +28,16 @@ function Tile({ n, label, tone }: { n: string; label: string; tone?: 'warn' | 'b
   );
 }
 
-export function Verdict({ st, eyebrow = 'Where the job is', onTarget }: {
+export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, report }: {
   st: Standing; eyebrow?: string;
   /** ARE WE ON TARGET? (lib/onTarget) — the band's first line. */
   onTarget?: OnTarget;
+  /** SAID ONCE (docs/SIMPLE.md): the verdict and its handover line only, and
+   *  the tiles — the counts and names the full verdict goes on to list are
+   *  "Needs you" under the band, and the sentence repeated the tiles. */
+  brief?: boolean;
+  /** Where the one-page status report is — the page to show anybody. */
+  report?: string;
 }) {
   /* A job with nothing on any list has nothing to be in control OF, and a
      verdict card over an empty project is theatre. The caller shows its own
@@ -45,14 +52,14 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget }: {
   return (
     <section className="vd">
       {/* ARE WE ON TARGET? — first, across the band (Rowland, 6 October). */}
-      {onTarget && <OnTargetLine v={onTarget} dark />}
-      <div className="vd-said">
+      {onTarget && <OnTargetLine v={brief ? { ...onTarget, reason: onTarget.reason.split(' · ')[0] } : onTarget} dark />}
+      {!brief && <div className="vd-said">
         <span className="vd-eyebrow">{eyebrow}</span>
         <h2 className="vd-sentence">{st.sentence}</h2>
         {/* The words come from lib/standing so the client report's own sheet
             says them identically — see slipWords. */}
         {slip && <p className="vd-slip">{slip}</p>}
-      </div>
+      </div>}
 
       <div className="vd-tiles">
         {st.daysToGo != null && (
@@ -67,6 +74,8 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget }: {
         <Tile n={String(st.outstanding)} label="outstanding" />
         <Tile n={String(st.late)} label="late" tone={st.late ? 'bad' : undefined} />
       </div>
+      {/* SHOW ANYBODY — the one-page status report, one tap from the job. */}
+      {report && <button type="button" className="btn vd-report" onClick={() => nav(report)}>Status report — 1 page ›</button>}
     </section>
   );
 }

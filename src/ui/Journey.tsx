@@ -13,8 +13,12 @@ import { usePrograms } from '../lib/usePrograms';
    problem", the app knows which (lib/install lateOrProblem). */
 const TONE_WORD = GATE_TONE_WORD;
 
-export function Journey({ projectId, assets, tests, items }: {
+export function Journey({ projectId, assets, tests, items, bare }: {
   projectId: string; assets: Asset[]; tests: Test[]; items: TestItem[];
+  /** Inside a panel that already says "Where each machine is", beside a
+   *  "Needs you" that names every late and problem thing: no heading of its
+   *  own and no reasons under each machine — the squares and "at Set up". */
+  bare?: boolean;
 }) {
   /* A machine's programs are its Set up as much as its set-up steps are. */
   const { programs } = usePrograms(projectId);
@@ -23,10 +27,12 @@ export function Journey({ projectId, assets, tests, items }: {
   const today = todayISO();
   return (
     <section className="jr">
-      <div className="jr-head">
-        <h3 className="jr-h">Where each machine is</h3>
-        <span className="jr-gates" aria-hidden>{JOURNEY.map(g => <span key={g.gate}>{g.label}</span>)}</span>
-      </div>
+      {!bare && (
+        <div className="jr-head">
+          <h3 className="jr-h">Where each machine is</h3>
+          <span className="jr-gates" aria-hidden>{JOURNEY.map(g => <span key={g.gate}>{g.label}</span>)}</span>
+        </div>
+      )}
       {machines.map(a => {
         const j = journeyOf(a, tests, items, today, programs);
         return (
@@ -36,7 +42,7 @@ export function Journey({ projectId, assets, tests, items }: {
                   its own: "Sensors checked — late, 2 h lost" red, "Dry run — a
                   problem, no time lost" amber. Tapping the tile goes to where
                   it is changed or put back. */}
-              {j.some(g => isWrongGate(g.tone)) && (() => {
+              {!bare && j.some(g => isWrongGate(g.tone)) && (() => {
                 const why = reasonsOf(a, tests, items, today);
                 return why.length > 0 && (
                   <span className="jr-why">

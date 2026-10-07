@@ -298,6 +298,15 @@ So, four rules, and they apply to every change from here:
    own. Something entered in one place and seen nowhere else is unfinished.
    The commit says where it shows.
 
+MANUFACTURING IS MANY. Rowland, 7 October, after a performance run was built
+to hold one product: "Stop building one-dimensional systems. This is
+manufacturing — when would I ever commission one thing?" A line has many
+machines, a machine many products, a test many runs, a day many tests. Before
+building anything that holds a value, ask whether there is ever more than one
+— and if there is, build the list: plan several ahead (save, next, save),
+fill in each on the day, and let the app add them up and give the verdict.
+A single slot where the floor has a list is a defect, however well drawn.
+
 A FIFTH CONCEPT IS ALMOST ALWAYS THE WRONG ANSWER. `src/lib/testing.ts` says it
 about tests and it holds everywhere: if something needs a new noun to explain
 it, look again — four of this app's five lists already carry dates, owners and
