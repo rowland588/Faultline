@@ -10947,3 +10947,14 @@ button.gt-fixlab small { font-size: 11.5px; }
 .cg-grid td.cg-others { width: 170px; max-width: 170px; }
 .cg-others .cg-other { width: 100%; max-width: 170px; }
 .igm-pick { margin: 2px 0 6px 2px; font-size: var(--t-label); }
+
+/* THE FIVE LINES at the top of every record (ui/RecordDrawer, docs/SIMPLE.md):
+   a label column and the answer beside it — read down in three seconds. */
+.rd-facts { display: grid; gap: 6px; margin: 4px 0 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.rd-facts > div { display: grid; grid-template-columns: 78px 1fr; gap: 10px; align-items: baseline; }
+.rd-facts dt { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rd-facts dd { margin: 0; font-size: 14.5px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.rd-facts dd .sub, .rd-facts dd i { font-weight: 500; }
+.rd-facts .rd-arrow { color: var(--muted); font-weight: 500; }
+.rd-facts .rd-slip { font-style: normal; font-weight: 600; color: var(--st-r); }
+.rd-dayedit { display: grid; gap: 4px; margin-bottom: 8px; }

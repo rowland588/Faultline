@@ -29,7 +29,7 @@ import { nav, navReplace, withQuery, type Route, type RouteName } from '../state
 import { useTesting } from '../lib/useTesting';
 import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
-import { doneLateBy, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
+import { GATE_WORD, doneLateBy, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
 import {
   isOverdue, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion,
   gateOf, type Outcome, type Test, type TestItem,
@@ -171,7 +171,9 @@ export function stepStateWord(t: Test, late: boolean, lateBy = 0): string {
     : t.outcome === 'failed' ? `Hit a problem${t.ranOn ? ` ${short(t.ranOn)}` : ''}${late ? ' · late' : ''}`
       : t.outcome === 'notRun' ? 'Did not happen'
         : t.outcome === 'planned' && t.ranOn ? 'Worked on — not called yet'
-          : late ? `Late · was ${short(plannedEnd(t))}` : 'Not done yet';
+          /* Late because a problem pushed its finish later — the day is still
+             ahead, so it says where it moved to, not "was". */
+          : late ? ((plannedEnd(t) ?? '') >= todayISO() ? `Late · moved to ${short(plannedEnd(t))}` : `Late · was ${short(plannedEnd(t))}`) : 'Not done yet';
 }
 const backWord = (t: Test): string => t.outcome === 'passed' ? 'Not done after all — put it back'
   : t.outcome === 'failed' ? 'Not a problem after all — put it back'
@@ -192,7 +194,9 @@ function stateOf(t: Test, today: string, items: TestItem[] = []): { word: string
     /* Late by the one rule (lib/install lateOrProblem) — its day gone, hours
        lost, or its finish moved later by a problem. */
     const late = st !== 'done' && (isOverdue(t, today) || lateOrProblem(t, items, today) === 'late');
-    const tone = st === 'ahead' && !t.plannedFor ? 'n' : STEP_TONE[st];
+    /* Late is red whatever the square's own tone — a stage a problem pushed
+       later is late (lib/install lateOrProblem), never the indigo of "ahead". */
+    const tone = late && st === 'ahead' ? 'r' : st === 'ahead' && !t.plannedFor ? 'n' : STEP_TONE[st];
     return { word: stepStateWord(t, late, doneLateBy(t, items)), tone };
   }
   if (t.outcome === 'passed') return { word: `${outcomeWord(t)}${t.ranOn ? ` · ${short(t.ranOn)}` : ''}`, tone: 'g' };
@@ -279,7 +283,17 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const dates = plannedEnd(t) ? spanShort(t.plannedFor, plannedEnd(t)) : undefined;
   /* HOW FAR IT HAS SLIPPED past the finish first planned — the line the plan's
      panel led with (lib/story keeps the first finish). */
-  const first = storyOf(t.id, tt.tests, tt.items).original;
+  const story = storyOf(t.id, tt.tests, tt.items);
+  const first = story.original;
+  const moves = story.moves;
+  const lastMove = moves[moves.length - 1];
+  /* What it is: which kind, which gate, which machine — in words. */
+  const whatItIs = [kind === 'install' ? `${GATE_WORD[gateOf(t)]} stage` : kind === 'fix' ? 'Fix' : 'Test · Commission', machine].join(' · ');
+  /* What really happened, against the plan beside it. */
+  const actualWords = !t.ranOn ? 'not done yet'
+    : `${t.outcome === 'passed' ? (kind === 'fix' ? 'fixed' : kind === 'install' ? 'done' : 'passed')
+      : t.outcome === 'failed' ? (kind === 'install' ? 'hit a problem' : kind === 'fix' ? 'didn’t fix it' : 'didn’t pass')
+        : t.outcome === 'notRun' ? 'didn’t happen' : 'worked on'} ${short(t.ranOn)}`;
   const slip = first && plannedEnd(t) ? daysBetween(first, plannedEnd(t) as string) : 0;
 
   return (
@@ -317,7 +331,78 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           </button>
         );
       })}
-      <p className="rd-sub">{machine} · {t.withWhom || 'nobody named'}</p>
+      {/* THE FIVE LINES (docs/SIMPLE.md) — whatever is tapped answers the
+          same questions in the same order, before any button. Rowland, 7
+          October: "if I click on something, what is it? Was it part of the
+          plan? Planned? Was it done? Changed the dates? Who?" The state is the
+          badge above, in words; these are the rest. Changing the dates, who,
+          or the day it was done is right here, under what it changes. */}
+      <dl className="rd-facts">
+        <div><dt>What</dt><dd>{whatItIs}</dd></div>
+        <div><dt>{kind === 'fix' ? 'Agreed' : 'Planned'}</dt><dd>
+          {dates ?? <i className="sub">{kind === 'fix' ? 'no date agreed yet' : 'no day yet'}</i>}
+          {slip > 0 && <em className="rd-slip"> · first planned {short(first)}</em>}
+          <span className="rd-arrow"> → </span>
+          <span className={t.ranOn ? '' : 'sub'}>{actualWords}</span>
+          {t.ranOn && can.edit && dayEdit === null && <> <button type="button" className="cw-link" onClick={() => setDayEdit(t.ranOn ?? today)}>change</button></>}
+        </dd></div>
+        <div><dt>Who</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
+        <div><dt>Changed</dt><dd>{lastMove
+          ? <>moved {short(lastMove.from)} → {short(lastMove.to)}{lastMove.why ? `: ${lastMove.why}` : ''}{moves.length > 1 && <span className="sub"> · {moves.length - 1} earlier move{moves.length > 2 ? 's' : ''} below</span>}</>
+          : <span className="sub">not moved since it was planned</span>}</dd></div>
+      </dl>
+      {/* THE PLANNING, BEHIND ONE BUTTON. Rowland, 5 October: "too much on a
+          screen." The dates and who are read here; changing them is one tap
+          away, and one Save keeps both (and asks why when the finish moves
+          later, as before). */}
+      <div className="rd-blk">
+        {dayEdit !== null && (
+          <div className="rd-dayedit"><span className="sub">The day it was done</span>
+                <span className="rd-day">
+                  <input type="date" value={dayEdit} aria-label="The day it was done" onChange={e => setDayEdit(e.target.value)} />
+                  <button type="button" className="btn btn-sm btn-primary" disabled={!dayEdit} onClick={() => {
+                    if (dayEdit && dayEdit !== t.ranOn) void changeTests(tt, [t], () => ({ ranOn: dayEdit }), `${t.title} — day changed to ${short(dayEdit)}`);
+                    setDayEdit(null);
+                  }}>Save</button>
+                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDayEdit(null)}>Cancel</button>
+                </span>
+          </div>
+        )}
+        {can.edit && (planning ? (
+          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo}
+            /* A finished one's dates are corrected, not overrun: no "why did it move?". */
+            was={t.outcome === 'passed' ? undefined : plannedEnd(t)}
+            who={{ names, value: t.withWhom ?? '' }}
+            following={end => followingSummary(t, tt.tests, end)}
+            overlap={kind === 'fix' ? undefined : {
+              with: (fromD, toD) => overlapOf({ ...t, plannedFor: fromD, plannedTo: toD > fromD ? toD : undefined }, tt.tests, true)?.title,
+              ok: t.overlapOk,
+              /* Kept by the same write as the dates: two writes at once raced,
+                 and the second put the first one's answer back. */
+              set: ok => { overlapAnswer.current = ok; },
+            }}
+            onMove={(fromD, to, a, who) => {
+              void (async () => {
+                await moveTestsWithWhy(tt, [t], fromD, to, a, `${t.title} moved to ${short(to ?? fromD)} — reason kept${a.fix ? ', fix booked' : ''}${who !== undefined ? ` · ${who || 'nobody named'}` : ''}`);
+                if (who !== undefined) await tt.patchTest(t.id, { withWhom: who || undefined });
+                if (overlapAnswer.current !== undefined) await tt.patchTest(t.id, { overlapOk: overlapAnswer.current });
+              })();
+              setPlanning(false);
+            }}
+            onSave={(fromD, to, who) => {
+              const changed = fromD !== t.plannedFor || to !== t.plannedTo;
+              const okAns = overlapAnswer.current;
+              void changeTests(tt, [t], () => ({ plannedFor: fromD, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}), ...(okAns !== undefined ? { overlapOk: okAns } : {}) }),
+                [changed ? `${t.title} ${fromD ? (to && to > fromD ? `planned ${short(fromD)} to ${short(to)}` : `planned ${short(fromD)}`) : 'has no dates'}` : t.title,
+                  who !== undefined ? (who || 'nobody named') : ''].filter(Boolean).join(' — '));
+              setPlanning(false);
+            }}
+            onCancel={() => setPlanning(false)} />
+        ) : (
+          <button type="button" className="rd-link" onClick={() => setPlanning(true)}>Change the dates or who ›</button>
+        ))}
+      </div>
+
 
       {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
           it ran, what it netted, the rejects, against what was agreed. */}
@@ -438,70 +523,6 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             empty="Nothing has happened to this one yet — it is running to plan." />
         </div>
       )}
-
-      {/* THE PLANNING, BEHIND ONE BUTTON. Rowland, 5 October: "too much on a
-          screen." The dates and who are read here; changing them is one tap
-          away, and one Save keeps both (and asks why when the finish moves
-          later, as before). */}
-      <div className="rd-blk">
-        <div className="rd-kv">
-          <div><span>{kind === 'fix' ? 'Date agreed' : 'Planned'}</span>{dates ?? <i className="sub">{kind === 'fix' ? 'not agreed yet' : 'no day yet'}</i>}
-            {slip > 0 && <em className="rd-slip">+{slip} day{slip === 1 ? '' : 's'} past the first finish, {short(first)}</em>}</div>
-          <div><span>Who</span>{t.withWhom || <i className="sub">nobody named</i>}</div>
-          {/* THE DAY IT WAS DONE, CHANGEABLE. Rowland, 6 October: "can't change
-              a date if I say it completed, but I make mistakes." "Done today"
-              stamps today; this is how a wrong day is put right. */}
-          {t.ranOn && (
-            <div><span>{t.outcome === 'passed' ? (kind === 'fix' ? 'Fixed on' : 'Done on') : t.outcome === 'failed' ? 'Problem on' : 'Worked on'}</span>
-              {dayEdit !== null ? (
-                <span className="rd-day">
-                  <input type="date" value={dayEdit} aria-label="The day it was done" onChange={e => setDayEdit(e.target.value)} />
-                  <button type="button" className="btn btn-sm btn-primary" disabled={!dayEdit} onClick={() => {
-                    if (dayEdit && dayEdit !== t.ranOn) void changeTests(tt, [t], () => ({ ranOn: dayEdit }), `${t.title} — day changed to ${short(dayEdit)}`);
-                    setDayEdit(null);
-                  }}>Save</button>
-                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDayEdit(null)}>Cancel</button>
-                </span>
-              ) : (
-                <>{short(t.ranOn)}{can.edit && <> <button type="button" className="cw-link" onClick={() => setDayEdit(t.ranOn ?? today)}>change</button></>}</>
-              )}
-            </div>
-          )}
-        </div>
-        {can.edit && (planning ? (
-          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo}
-            /* A finished one's dates are corrected, not overrun: no "why did it move?". */
-            was={t.outcome === 'passed' ? undefined : plannedEnd(t)}
-            who={{ names, value: t.withWhom ?? '' }}
-            following={end => followingSummary(t, tt.tests, end)}
-            overlap={kind === 'fix' ? undefined : {
-              with: (fromD, toD) => overlapOf({ ...t, plannedFor: fromD, plannedTo: toD > fromD ? toD : undefined }, tt.tests, true)?.title,
-              ok: t.overlapOk,
-              /* Kept by the same write as the dates: two writes at once raced,
-                 and the second put the first one's answer back. */
-              set: ok => { overlapAnswer.current = ok; },
-            }}
-            onMove={(fromD, to, a, who) => {
-              void (async () => {
-                await moveTestsWithWhy(tt, [t], fromD, to, a, `${t.title} moved to ${short(to ?? fromD)} — reason kept${a.fix ? ', fix booked' : ''}${who !== undefined ? ` · ${who || 'nobody named'}` : ''}`);
-                if (who !== undefined) await tt.patchTest(t.id, { withWhom: who || undefined });
-                if (overlapAnswer.current !== undefined) await tt.patchTest(t.id, { overlapOk: overlapAnswer.current });
-              })();
-              setPlanning(false);
-            }}
-            onSave={(fromD, to, who) => {
-              const changed = fromD !== t.plannedFor || to !== t.plannedTo;
-              const okAns = overlapAnswer.current;
-              void changeTests(tt, [t], () => ({ plannedFor: fromD, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}), ...(okAns !== undefined ? { overlapOk: okAns } : {}) }),
-                [changed ? `${t.title} ${fromD ? (to && to > fromD ? `planned ${short(fromD)} to ${short(to)}` : `planned ${short(fromD)}`) : 'has no dates'}` : t.title,
-                  who !== undefined ? (who || 'nobody named') : ''].filter(Boolean).join(' — '));
-              setPlanning(false);
-            }}
-            onCancel={() => setPlanning(false)} />
-        ) : (
-          <button type="button" className="rd-link" onClick={() => setPlanning(true)}>Change dates or who ›</button>
-        ))}
-      </div>
 
       {/* THE EVIDENCE — the record's own pictures and clips, taken here. */}
       {(can.edit || (t.media ?? []).length > 0) && (
