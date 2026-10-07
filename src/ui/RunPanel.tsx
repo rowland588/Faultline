@@ -95,7 +95,9 @@ export function RunDayFields({ t, patch }: { t: Test; patch: Patch }) {
   return (
     <div className="run-form cw-f-wide">
       <span className="run-form-h">The run, off the machine</span>
-      <label className="cw-f run-f run-f-wide"><span>Product running</span>
+      {/* The same box, under the same name, as on every other test and on the
+          card: what went down the machine. */}
+      <label className="cw-f run-f run-f-wide"><span>Product we ran</span>
         <DraftField value={t.product ?? ''} placeholder={t.planned ?? 'what went down the machine'}
           onSave={v => patch(() => ({ product: v.trim() || undefined }))} /></label>
       <label className="cw-f run-f"><span>Ran for <span className="cw-f-opt">minutes</span></span>
