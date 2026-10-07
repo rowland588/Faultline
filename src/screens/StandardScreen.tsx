@@ -11,7 +11,7 @@
  * roles, with the headcount counted off the people. */
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import type { Project } from '../types';
-import { deleteStandard, framesForProject, getProject, putBlob, putStandard } from '../db';
+import { deleteStandard, framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard } from '../db';
 import { nav } from '../state/useRoute';
 import { uid, now } from '../lib/ids';
 import { pdfFileName } from '../lib/fileName';
@@ -24,6 +24,8 @@ import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { deleteMap } from '../ui/StandardsCard';
+import { CapacityPanel } from './CapacityPanel';
+import { useProjects } from '../lib/useProjects';
 import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
 import { useAccess } from '../cloud/access';
@@ -32,15 +34,15 @@ import type { Can } from '../lib/access';
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 const printedToday = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-const pdfName = (list: Standard[], project: Project) =>
-  pdfFileName(project.name, list.length === 1 ? `line standard ${list[0].product}` : 'line standard', todayISO());
+const pdfName = (list: Standard[], name: string) =>
+  pdfFileName(name, list.length === 1 ? `line standard ${list[0].product}` : 'line standard', todayISO());
 
-async function standardsPdf(list: Standard[], project: Project) {
+async function standardsPdf(list: Standard[], name: string) {
   const { loadPdfLib } = await import('../lib/savePdf');
   const { drawStandards } = await import('../lib/standardPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  await drawStandards(doc, list, project.name, printedToday());
+  await drawStandards(doc, list, name, printedToday());
   return doc;
 }
 
@@ -48,7 +50,7 @@ async function standardsPdf(list: Standard[], project: Project) {
    see the print format." Each card is drawn once as a picture; the picture is
    what is shown here and what goes into the PDF, so there is nothing to guess.
    Anything that goes wrong says so, rather than the button doing nothing. */
-function PrintSheet({ list, project, onClose }: { list: Standard[]; project: Project; onClose: () => void }) {
+function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; onClose: () => void }) {
   const [cards, setCards] = useState<string[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -62,7 +64,7 @@ function PrintSheet({ list, project, onClose }: { list: Standard[]; project: Pro
       try {
         const { cardImage } = await import('../lib/standardCard');
         const out: string[] = [];
-        for (const st of list) out.push(await cardImage(st, project.name, printedToday()));
+        for (const st of list) out.push(await cardImage(st, name, printedToday()));
         if (live) setCards(out);
       } catch (e) {
         console.error('line standard card failed', e);
@@ -71,19 +73,19 @@ function PrintSheet({ list, project, onClose }: { list: Standard[]; project: Pro
     })();
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `sig` is the list, by what can change
-  }, [sig, project.name]);
+  }, [sig, name]);
   const go = async (how: 'download' | 'print') => {
     setBusy(true); setErr(null);
     try {
-      const doc = await standardsPdf(list, project);
+      const doc = await standardsPdf(list, name);
       if (how === 'print') {
         const url = URL.createObjectURL(doc.output('blob') as Blob);
         const w = window.open(url, '_blank');
-        if (!w) { const { deliverPdf } = await import('../lib/savePdf'); await deliverPdf(doc, pdfName(list, project), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */ }
+        if (!w) { const { deliverPdf } = await import('../lib/savePdf'); await deliverPdf(doc, pdfName(list, name), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */ }
         setTimeout(() => URL.revokeObjectURL(url), 120_000);
       } else {
         const { deliverPdf } = await import('../lib/savePdf');
-        await deliverPdf(doc, pdfName(list, project), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */
+        await deliverPdf(doc, pdfName(list, name), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */
       }
     } catch (e) {
       console.error('line standard PDF failed', e);
@@ -134,25 +136,42 @@ export function StandardScreen({ projectId, standardId }: { projectId: string; s
       </div>
     );
   }
+  const home: StdHome = { name: project.name, base: `/project/${project.id}/standard`, project };
+  return <StandardsAt home={home} list={list} standardId={standardId} can={can} />;
+}
+
+/** WHERE A SET OF LINE STANDARDS LIVES — a job (as they always have), or a
+ *  LINE (LINE_TOOLS.sql): Rowland, 7 October, "a tool, but can be attached".
+ *  The name it is printed under, the address of its list, and — on a job —
+ *  the job, whose programs offer the products; on a line, the line, whose
+ *  filmed frames offer the picture. */
+export interface StdHome { name: string; base: string; project?: Project; wsId?: string }
+
+/** The list, or one map — the same screens wherever they live. */
+export function StandardsAt({ home, list, standardId, can }: { home: StdHome; list: Standard[]; standardId?: string; can: Can }) {
   const one = standardId ? list.find(s => s.id === standardId) : undefined;
-  if (standardId && one) return <MapEditor project={project} s={one} all={list} can={can} />;
+  if (standardId && one) return <MapEditor home={home} s={one} all={list} can={can} />;
   /* A link to a map that is gone lands on the list AND says so — it fell
      through silently, which read as the wrong page rather than a deleted map. */
-  return <Products project={project} list={list} gone={!!standardId && !one} can={can} />;
+  return <Products home={home} list={list} gone={!!standardId && !one} can={can} />;
 }
 
 /* ------------------------------ the products ----------------------------- */
 
-function Products({ project, list, gone, can }: { project: Project; list: Standard[]; gone?: boolean; can: Can }) {
-  const progs = usePrograms(project.id);
+function Products({ home, list, gone, can }: { home: StdHome; list: Standard[]; gone?: boolean; can: Can }) {
+  const progs = usePrograms(home.project?.id ?? '');
   const [adding, setAdding] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [typed, setTyped] = useState('');
   const mapped = new Set(list.map(s => s.product.trim().toLowerCase()));
   const offered = [...new Map(progs.programs.map(p => [p.what.trim(), p])).values()]
     .filter(p => !mapped.has(p.what.trim().toLowerCase()));
-  const commissioning = planModel(project) === 'commissioning';
+  const commissioning = !!home.project && planModel(home.project) === 'commissioning';
 
+  const detach = async (x: Standard) => {
+    await putStandard({ ...x, projectId: '' });
+    offerUndo(`${x.product} taken off this job — still on its line`, () => putStandard(x));
+  };
   const create = async (product: string, programId?: string) => {
     const name = product.trim();
     if (!name) return;
@@ -160,9 +179,10 @@ function Products({ project, list, gone, can }: { project: Project; list: Standa
     /* A new map starts from the last one's picture: the line does not move
        between products, the people do. */
     const last = list[list.length - 1];
-    const s: Standard = { id: uid(), projectId: project.id, product: name, programId, photoKey: last?.photoKey, marks: [], sort: t, createdAt: t, updatedAt: t };
+    const s: Standard = { id: uid(), projectId: home.project?.id ?? '', ...(home.wsId ? { workspaceId: home.wsId } : {}),
+      product: name, programId, photoKey: last?.photoKey, marks: [], sort: t, createdAt: t, updatedAt: t };
     await putStandard(s);
-    nav(`/project/${project.id}/standard/${s.id}`);
+    nav(`${home.base}/${s.id}`);
   };
 
   return (
@@ -170,10 +190,10 @@ function Products({ project, list, gone, can }: { project: Project; list: Standa
       {gone && <p className="ls-gone">That map isn’t here any more — it was deleted, or the link is to a map on another project. The maps that are here:</p>}
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Line standard</h1>
+          <h1 className="pace-title">{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</h1>
           <p className="pace-lede">
-            Who stands where, and what they do, on each product. A picture of the line with the people and
-            the kit placed on it — one map per product, printed and put up at the line.
+            Who stands where, and what they do, on each product — and where the line is limited. A picture of the line
+            with the people and the kit placed on it, and the line balance under it — one per product.
           </p>
         </div>
         <div className="pace-head-actions">
@@ -191,14 +211,18 @@ function Products({ project, list, gone, can }: { project: Project; list: Standa
         <div className="ls-grid">
           {list.map(s => (
             <div key={s.id} className="ls-card-wrap">
-              <ProductCard s={s} onOpen={() => nav(`/project/${project.id}/standard/${s.id}`)} />
-              {can.remove && <button type="button" className="cw-link sp-rm ls-card-del" onClick={() => void deleteMap(s)} aria-label={`Delete the map for ${s.product}`}>Delete</button>}
+              <ProductCard s={s} onOpen={() => nav(`${home.base}/${s.id}`)} />
+              {/* One that belongs to a line is taken off the job, never deleted
+                  from here: it is still the line's tool (LINE_TOOLS.sql). */}
+              {can.remove && (s.workspaceId && home.project
+                ? <button type="button" className="cw-link ls-card-del" onClick={() => void detach(s)} aria-label={`Take ${s.product} off this job`}>Take off this job</button>
+                : <button type="button" className="cw-link sp-rm ls-card-del" onClick={() => void deleteMap(s)} aria-label={`Delete the map for ${s.product}`}>Delete</button>)}
             </div>
           ))}
         </div>
       )}
 
-      {printing && <PrintSheet list={list} project={project} onClose={() => setPrinting(false)} />}
+      {printing && <PrintSheet list={list} name={home.name} onClose={() => setPrinting(false)} />}
 
       <Sheet open={adding && can.edit} onClose={() => setAdding(false)} title="Which product?">
         {offered.length > 0 && (
@@ -291,11 +315,11 @@ function ShapeSvg({ m, bw, bh, selected, onDown }: {
   );
 }
 
-function MapEditor({ project, s, all, can }: { project: Project; s: Standard; all: Standard[]; can: Can }) {
+function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Standard[]; can: Can }) {
   /* A CLIENT READS THE MAP (lib/access): the picture, the marks and who does
      what, and the PDF — no tools, nothing that moves, nothing to type into. */
   const ro = !can.edit;
-  const progs = usePrograms(project.id);
+  const progs = usePrograms(home.project?.id ?? '');
   const url = useBlobUrl(s.photoKey);
   const [tool, setTool] = useState<Tool>({ t: 'icon', kind: 'person' });
   const [marks, setMarks] = useState<StandardMark[]>(s.marks);
@@ -452,13 +476,13 @@ function MapEditor({ project, s, all, can }: { project: Project; s: Standard; al
     if (!window.confirm(`Delete the map for “${s.product}”?`)) return;
     const undo = await deleteStandard(s.id);
     offerUndo(`Map for ${s.product} deleted`, undo);
-    nav(`/project/${project.id}/standard`);
+    nav(home.base);
   };
   const copyTo = async (name: string, programId?: string) => {
     const c = copyFor({ ...s, marks }, name.trim(), uid, now(), programId);
     await putStandard(c);
     setCopying(false);
-    nav(`/project/${project.id}/standard/${c.id}`);
+    nav(`${home.base}/${c.id}`);
   };
 
   const people = peopleOf({ marks });
@@ -477,7 +501,7 @@ function MapEditor({ project, s, all, can }: { project: Project; s: Standard; al
         <div className="ls-head-main">
           {/* The way back to the list of maps, now the spine is gone: the
               rail's Hand over (or Lines) is a level above this. */}
-          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(`/project/${project.id}/standard`)}>Line standard</button> · {plural(people.length, 'person', 'people')}</p>
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</button> · {plural(people.length, 'person', 'people')}</p>
           {ro ? <h1 className="ls-product is-read">{s.product}</h1> : <>
           <input className="ls-product" value={product} aria-label="Product" list="ls-products"
             onChange={e => setProduct(e.target.value)}
@@ -595,6 +619,19 @@ function MapEditor({ project, s, all, can }: { project: Project; s: Standard; al
       </div>
 
       {/* One mark: a shape's words and colour, or who a person is and what they do. */}
+      {/* WHERE IT BELONGS (LINE_TOOLS.sql) — its line, and the job it is
+          attached to, if any: a tool on a line first, attached when it is
+          wanted. Changing the job is the owner's, as the map is. */}
+      <BelongsTo s={s} home={home} can={can} onJob={projectId => void save({ projectId })} />
+
+      {/* THE LINE BALANCE for this product (lib/capacity) — the stations in
+          order, each at its own speed, and the one that holds the line back.
+          The same panel a 6M line uses, without its board: nothing here is
+          raised as an action unless it is on a job's board. */}
+      <CapacityPanel projectId={s.projectId} board={false} can={can}
+        line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
+        onSave={cap => save({ capacity: cap })} />
+
       <Sheet open={!!editingMark && !ro} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}
         title={editingMark ? (isShape(editingMark) ? SHAPES.find(x => x.shape === editingMark.shape)?.word ?? 'Shape' : markOf(editingMark.kind).word) : ''}>
         {editingMark && isShape(editingMark) && (
@@ -666,11 +703,11 @@ function MapEditor({ project, s, all, can }: { project: Project; s: Standard; al
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) void addPhoto(f); }} />
         <button className="btn btn-primary" onClick={() => fileRef.current?.click()}><Icon name="camera" /> Take or choose a photo</button>
-        <WalkFrames projectId={project.id} onPick={async f => { await save({ photoKey: f.stillKey }); setPicture(false); }} />
+        <WalkFrames home={home} onPick={async f => { await save({ photoKey: f.stillKey }); setPicture(false); }} />
         {url && <button className="btn btn-ghost" style={{ marginTop: 12 }} onClick={() => { void save({ photoKey: undefined }); setPicture(false); }}>Use a plain board and draw it instead</button>}
       </Sheet>
 
-      {printing && <PrintSheet list={[{ ...s, marks, product }]} project={project} onClose={() => setPrinting(false)} />}
+      {printing && <PrintSheet list={[{ ...s, marks, product }]} name={home.name} onClose={() => setPrinting(false)} />}
 
       <Sheet open={copying} onClose={() => setCopying(false)} title="Copy to another product">
         <p className="sub" style={{ marginTop: 0 }}>The same picture and the same places — then move what differs.</p>
@@ -711,9 +748,14 @@ function CopyTyped({ onCopy }: { onCopy: (name: string) => void }) {
 }
 
 /** A frame off the filmed walk, as the picture — the evidence system's own. */
-function WalkFrames({ projectId, onPick }: { projectId: string; onPick: (f: SnagAsset) => void }) {
+function WalkFrames({ home, onPick }: { home: StdHome; onPick: (f: SnagAsset) => void }) {
   const [frames, setFrames] = useState<SnagAsset[] | null>(null);
-  useEffect(() => { void framesForProject(projectId).then(fs => setFrames(fs.map(f => f.frame))); }, [projectId]);
+  /* A job's filmed walks, or the line's own. */
+  const pid = home.project?.id, ws = home.wsId;
+  useEffect(() => {
+    if (pid) void framesForProject(pid).then(fs => setFrames(fs.map(f => f.frame)));
+    else if (ws) void listSnagAssets(ws).then(setFrames);
+  }, [pid, ws]);
   if (!frames || frames.length === 0) return null;
   return (
     <>
@@ -730,5 +772,31 @@ function FrameThumb({ f, onPick }: { f: SnagAsset; onPick: () => void }) {
       {url ? <img src={url} alt="" /> : <span className="otl-frame-ph">…</span>}
       <span className="otl-thumb-n">{f.name}</span>
     </button>
+  );
+}
+
+/** The line a standard belongs to and the job it is attached to — one line
+ *  under the map. From a line: pick a job, or none. From a job: the line it
+ *  came from, when it has one. */
+function BelongsTo({ s, home, can, onJob }: { s: Standard; home: StdHome; can: Can; onJob: (projectId: string) => void }) {
+  const { projects } = useProjects();
+  const [line, setLine] = useState<string | undefined>(undefined);
+  useEffect(() => { if (s.workspaceId) void getWorkspace(s.workspaceId).then(w => setLine(w?.name)); }, [s.workspaceId]);
+  const job = projects.find(p => p.id === s.projectId);
+  const open = projects.filter(p => !p.deletedAt && !p.archivedAt);
+  if (!s.workspaceId && home.project) return null;
+  return (
+    <p className="ls-belongs sub">
+      {s.workspaceId && <>On <b>{line ?? 'its line'}</b> · </>}
+      {can.edit && home.wsId ? (
+        <label className="ls-job">On a job:{' '}
+          <select value={s.projectId} onChange={e => onJob(e.target.value)} aria-label="Attach to a job">
+            <option value="">None — a tool on the line</option>
+            {open.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      ) : job ? <>attached to <b>{job.name}</b></> : 'on no job'}
+      {job && home.wsId && <> · <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/standard/${s.id}`)}>Open it in the job ›</button></>}
+    </p>
   );
 }

@@ -9,7 +9,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
-  | 'share' | 'quickSnags';
+  | 'share' | 'quickSnags' | 'lineStandards';
 
 export interface Route {
   name: RouteName;
@@ -43,6 +43,8 @@ const SCREENS: Record<string, RouteName> = {
   snaglist: 'snaglist',
   walk: 'walk',
   line: 'line',
+  // a line's own tools: its maps and balances, one per product (LINE_TOOLS.sql)
+  standards: 'lineStandards',
   // the ecosystem: proof, memory, and the page you print
   trend: 'trend',
   history: 'history',

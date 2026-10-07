@@ -30,6 +30,7 @@ import { WalkthroughScreen } from '../snag/WalkthroughScreen';
 import { ReportScreen } from './ReportScreen';
 import { AssetHistoryScreen } from '../snag/AssetHistoryScreen';
 import { CaseScreen } from './CaseScreen';
+import { LineStandardsScreen } from './LineStandardsScreen';
 
 /** The page's name, for the study's screens that have no heading of their
  *  own — the spine used to be the only thing that said which one you were
@@ -60,6 +61,9 @@ export function AppShell({ route }: { route: Route }) {
   if (screen === 'meeting') return <MeetingScreen />;
   if (screen === 'walk') return <WalkthroughScreen wsId={ws} />;
   if (screen === 'report') return <ReportScreen />;
+  /* The line's own tools — its maps and balances, a job optional
+     (LINE_TOOLS.sql). Their own page, in the frame like the meeting. */
+  if (screen === 'lineStandards') return <LineStandardsScreen wsId={ws} standardId={route.id} />;
 
   /* One .wrap for the study's screens — the screens below carry none of
      their own. */

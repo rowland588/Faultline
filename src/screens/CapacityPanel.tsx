@@ -35,6 +35,7 @@ import { nav } from '../state/useRoute';
 import { type PillarKey } from '../lib/pillars';
 import { BoneChips } from '../ui/ActionSheet';
 import { useAccess } from '../cloud/access';
+import type { Can } from '../lib/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, whatIfCapacity,
@@ -266,12 +267,25 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
 
 /* ================================ the panel ================================= */
 
-export function CapacityPanel({ projectId, line, onSave }: {
+/** What the panel reads of the line it balances: a 6M job's line, or a line
+ *  standard's product on a line (ui/LineStandards) — its name, the line study
+ *  its stops come from, its balance, and who drives it. */
+export type CapLine = Pick<PaceLineRow, 'id' | 'name' | 'capacity'> & { workspaceId?: string; owner?: string };
+
+export function CapacityPanel({ projectId, line, onSave, board = true, can: given }: {
   projectId: string;
-  line: PaceLineRow;
+  line: CapLine;
   onSave: (cap: Capacity) => Promise<void>;
+  /** A 6M line raises its actions on the job's board. A line standard's
+   *  balance is a tool on a line, often on no job (LINE_TOOLS.sql): it draws
+   *  the balance and its what-ifs, and raises nothing. */
+  board?: boolean;
+  /** Who may edit, when it is not a job's access that decides — a line's
+   *  members edit its tools. */
+  can?: Can;
 }) {
-  const can = useAccess(projectId);
+  const jobCan = useAccess(projectId);
+  const can = given ?? jobCan;
   const stored = line.capacity ?? EMPTY_CAPACITY;
   const [cap, setCap] = useState<Capacity>(stored);
   const [editing, setEditing] = useState<string | null>(null);
@@ -442,11 +456,11 @@ export function CapacityPanel({ projectId, line, onSave }: {
   const [boardRows, setBoardRows] = useState<PaceTodoRow[] | null>(null);
   useEffect(() => {
     let live = true;
-    const load = () => void listPaceTodos(projectId, line.id).then(rows => { if (live) setBoardRows(rows); });
+    const load = () => { if (!board) { setBoardRows([]); return; } void listPaceTodos(projectId, line.id).then(rows => { if (live) setBoardRows(rows); }); };
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
-  }, [projectId, line.id]);
+  }, [projectId, line.id, board]);
   const onBoard = (x?: WhatIf) => !!x?.action && (boardRows == null || boardRows.some(t => t.id === x.action?.id));
   const made = w?.action ? boardRows?.find(x => x.id === w.action?.id) ?? null : null;
   // `raised`: the action just written may land a beat before the re-read does.
@@ -519,8 +533,9 @@ export function CapacityPanel({ projectId, line, onSave }: {
       )}
 
       {/* THE DOOR TO THE WORK. As run: raise an action on the limit. A what-if:
-          make it so — the action carries the prediction as its why. */}
-      {w ? (
+          make it so — the action carries the prediction as its why. Only
+          where there is a board to raise it on (a 6M line). */}
+      {!board ? null : w ? (
         w.action && !gone ? (
           <p className="action-raised" role="status">
             <Icon name="flag" size="1.15em" /> On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${niceDay(made.doneOn)}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${niceDay(made.due)}` : ''}</> : null}.

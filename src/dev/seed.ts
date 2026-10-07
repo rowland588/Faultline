@@ -68,6 +68,8 @@ export interface Seeded {
   programs: number;
   /** A line standard map on the commissioning job. */
   standardId: string;
+  /** A line standard on the line itself, on no job; and one attached to the job. */
+  lineStandardId: string; lineOnJobId: string;
   /** A project on the lever tree model, with a tree, a bound condition, a
    *  Pareto switched on and actions on its board — the smoke test used to
    *  open the tree on the stage-gate job, which bounced to its front page, so
@@ -658,8 +660,25 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     sort: 1, createdAt: t, updatedAt: t,
   });
 
+  /* LINE TOOLS (LINE_TOOLS.sql) — two products on Line 7 itself: one a map
+     with its balance on no job at all, one attached to the commissioning job,
+     so the line's page, the job's line standard and the card's balance line
+     all draw a real one. */
+  const lineBalance = {
+    targetPerMin: 60,
+    stations: [
+      { id: 'lb-bagger', name: 'Bagger', kind: 'machine' as const, unit: 'bags', contains: 1, rate: 70, ratePer: 'min' as const, source: 'plate' as const },
+      { id: 'lb-basketer', name: 'Basketer', kind: 'machine' as const, unit: 'baskets', contains: 12, rate: 5, ratePer: 'min' as const, runningPct: 92, source: 'timed' as const },
+      { id: 'lb-packer', name: 'Packer', kind: 'people' as const, unit: 'baskets', contains: 1, cycleSec: 15, perCycle: 1, source: 'timed' as const },
+    ],
+  };
+  const lineOnly = uid(), lineOnJob = uid();
+  await putStandard({ id: lineOnly, projectId: '', workspaceId: ws.id, product: 'Maris Piper 2kg', photoKey: asset.stillKey,
+    marks: [{ id: uid(), kind: 'person', x: 30, y: 45, label: 'Op 1', task: 'Feed the bagger' }], capacity: lineBalance, sort: 2, createdAt: t, updatedAt: t });
+  await putStandard({ id: lineOnJob, projectId: proj.id, workspaceId: ws.id, product: 'Tesco Express 1.25 kg', marks: [], sort: 3, createdAt: t, updatedAt: t });
+
   return {
-    wsId: ws.id, projectId: proj.id, standardId, lineId: line.id, caseId: kase.id,
+    wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,
     snags: (await snagsForWorkspace(ws.id)).length,

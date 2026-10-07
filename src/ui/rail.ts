@@ -89,6 +89,7 @@ const KEY_OF: Record<string, string> = {
   analyse: 'analyse', trend: 'analyse', case: 'analyse',
   snags: 'snaglist', snaglist: 'snaglist', line: 'snaglist', segment: 'snaglist', asset: 'snaglist', history: 'snaglist', walk: 'snaglist',
   meeting: 'meeting', report: 'meeting', present: 'meeting',
+  lineStandards: 'standards',
 };
 
 /** Which rail line a route stands on. A project's front page is the job
@@ -217,14 +218,17 @@ export function workGroup(projectId: string, model: PlanModel, here: string, cou
 
 export interface RailLineOf { id: string; name: string; workspaceId?: string }
 
-/** The four screens of a line study, drawn under the line they belong to
- *  (or under the job, when the job's own line was filmed). */
+/** The screens of a line study, drawn under the line they belong to (or
+ *  under the job, when the job's own line was filmed) — and the line's own
+ *  tools: its maps and balances, one per product (LINE_TOOLS.sql), a tool on
+ *  the line whether or not a job is attached. */
 export function studyLines(wsId: string, here: string): RailLine[] {
   const s = (key: string, label: string, to: string, icon: RailLine['icon']): RailLine =>
     ({ key, label, to: `/w/${wsId}/${to}`, on: here === key, state: 'n', sub: true, bare: true, icon });
   return [
     s('capture', 'Capture', 'capture', 'time'), s('analyse', 'Analyse', 'analyse', 'chart'),
     s('snaglist', 'Evidence', 'snaglist', 'camera'), s('meeting', 'Meeting', 'meeting', 'people'),
+    s('standards', 'Maps and balance', 'standards', 'grip'),
   ];
 }
 

@@ -10,6 +10,13 @@ export async function listStandards(projectId: string): Promise<Standard[]> {
   return all.filter(s => !s.deletedAt).sort((a, b) => a.sort - b.sort || a.product.localeCompare(b.product));
 }
 
+/** A line's standards — the maps and balances that belong to a line (a line
+ *  study), whether or not they are attached to a job. */
+export async function listStandardsForLine(workspaceId: string): Promise<Standard[]> {
+  const all = await (await getDB()).getAll('standards');
+  return all.filter(s => !s.deletedAt && s.workspaceId === workspaceId).sort((a, b) => a.sort - b.sort || a.product.localeCompare(b.product));
+}
+
 export async function getStandard(id: ID): Promise<Standard | undefined> {
   const s = await (await getDB()).get('standards', id);
   return s && !s.deletedAt ? s : undefined;

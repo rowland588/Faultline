@@ -17,6 +17,7 @@
  * the line. Headcount is counted off the people on the map, never typed.
  */
 import type { ID } from '../types';
+import type { Capacity } from './capacity';
 
 /* THE ICONS — food manufacturing, in four groups. Rowland: "we need more
    icons available. Go full food manufacturing." Every glyph is a 24-unit SVG
@@ -143,7 +144,17 @@ export const isShape = (m: Pick<StandardMark, 'kind'>): boolean => m.kind === 's
 
 export interface Standard {
   id: ID;
+  /** The job it is attached to — '' when it is on no job: a tool on a line
+   *  (LINE_TOOLS.sql). Rowland, 7 October: "not everything belongs to a
+   *  project, some things just need doing — it's a tool, but can be attached." */
   projectId: ID;
+  /** The line (line study) it belongs to, as a snag does. Absent on a map
+   *  made inside a job before line standards could live on a line. */
+  workspaceId?: ID;
+  /** THE LINE BALANCE for this product — the same document a 6M line's
+   *  balance is (lib/capacity): stations, speeds, units, what-ifs. The map
+   *  says who stands where; this says where the line is limited. */
+  capacity?: Capacity;
   /** The product this map is for, in words. Usually a program's name. */
   product: string;
   /** The program it was picked from, when it was. */

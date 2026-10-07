@@ -616,7 +616,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const s = l as Standard;
       return {
-        id: s.id, owner_id: fallbackOwner, project_id: s.projectId,
+        id: s.id, owner_id: fallbackOwner, project_id: s.projectId || null,
+        workspace_id: s.workspaceId ?? null, capacity: s.capacity ?? null,
         product: s.product, program_id: s.programId ?? null,
         photo_key: s.photoKey ?? null, marks: s.marks ?? [], note: s.note ?? null,
         sort: s.sort, created_at: s.createdAt,
@@ -624,7 +625,9 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string,
+      id: r.id as string, projectId: (r.project_id as string) ?? '',
+      ...(r.workspace_id ? { workspaceId: r.workspace_id as string } : {}),
+      ...(r.capacity ? { capacity: r.capacity as Standard['capacity'] } : {}),
       product: (r.product as string) ?? '',
       programId: (r.program_id as string) ?? undefined,
       photoKey: (r.photo_key as string) ?? undefined,

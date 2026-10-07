@@ -21,6 +21,7 @@
  *   │ Agreed by ____________  Date ______          Faultline  │
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
+import { analyse } from './capacity';
 import { headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
@@ -282,6 +283,15 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   ctx.beginPath(); ctx.moveTo(M + 132, fy + 56); ctx.lineTo(M + 520, fy + 56); ctx.stroke();
   ctx.fillText('Date', M + 560, fy + 54);
   ctx.beginPath(); ctx.moveTo(M + 630, fy + 56); ctx.lineTo(M + 830, fy + 56); ctx.stroke();
+  /* THE LINE BALANCE for this product (lib/capacity), when it has one: where
+     the line is limited, in its own sentence — beside the sign-off, so the
+     card at the line says who stands where AND what holds the line back. */
+  if (s.capacity?.stations.length) {
+    const said = analyse(s.capacity).sentence;
+    ctx.fillStyle = BLUE; ctx.font = `800 17px ${FONT}`; ctx.fillText('L I N E   B A L A N C E', M + 880, fy + 30);
+    ctx.fillStyle = INK; ctx.font = `600 20px ${FONT}`;
+    wrap(ctx, said, CARD_W - M - 170 - (M + 880), 2).forEach((l, i) => ctx.fillText(l, M + 880, fy + 56 + i * 24));
+  }
   ctx.textAlign = 'right'; ctx.fillStyle = INK2; ctx.font = `800 24px ${FONT}`;
   ctx.fillText('Faultline', CARD_W - M, fy + 54);
   ctx.textAlign = 'left';

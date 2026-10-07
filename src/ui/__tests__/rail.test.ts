@@ -154,8 +154,10 @@ describe('work, lines and the foot', () => {
   it('every line of the job, and the study’s four screens under the line it belongs to — once', () => {
     const lines = [{ id: 'L7', name: 'Line 7', workspaceId: 'ws' }, { id: 'L8', name: 'Line 8', workspaceId: 'ws' }];
     const g = linesGroup(P, lines, 'capture', 'ws');
-    expect(labels(g)).toEqual(['Line 7', 'Capture', 'Analyse', 'Evidence', 'Meeting', 'Line 8']);
-    expect(g.lines.filter(l => l.sub).map(l => l.to)).toEqual(['/w/ws/capture', '/w/ws/analyse', '/w/ws/snaglist', '/w/ws/meeting']);
+    /* And the line's own tools — its maps and balances (LINE_TOOLS.sql,
+       Rowland 7 October: "a tool, but can be attached"). */
+    expect(labels(g)).toEqual(['Line 7', 'Capture', 'Analyse', 'Evidence', 'Meeting', 'Maps and balance', 'Line 8']);
+    expect(g.lines.filter(l => l.sub).map(l => l.to)).toEqual(['/w/ws/capture', '/w/ws/analyse', '/w/ws/snaglist', '/w/ws/meeting', '/w/ws/standards']);
     expect(g.lines.find(l => l.on)?.label).toBe('Capture');
     // Outside the study, only the lines.
     expect(labels(linesGroup(P, lines, 'job'))).toEqual(['Line 7', 'Line 8']);

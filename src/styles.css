@@ -10865,3 +10865,9 @@ button.gt-fixlab small { font-size: 11.5px; }
 .crit-level-s { min-height: 0; }
 .crit-could input { max-width: 140px; }
 .sp-edit-est { justify-self: start; }
+
+/* WHERE A LINE STANDARD BELONGS (LINE_TOOLS.sql) — its line, and the job it
+   is attached to, if any — one line between the map and its balance. */
+.ls-belongs { margin: 14px 0 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.ls-job { display: inline-flex; align-items: center; gap: 6px; }
+.ls-job select { max-width: 100%; min-height: 36px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); padding: 4px 8px; font: inherit; }
