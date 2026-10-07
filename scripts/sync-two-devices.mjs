@@ -660,6 +660,10 @@ await run(3, 'the phone offline: films and edits, comes back; nothing lost, noth
   check(cloud.rows('test_items').filter(r => r.what === 'Seal bar runs hot on reel 3').length === 1, 'and in the cloud once');
   const lt = await testRow(l, tid);
   check(lt.media.length === t.media.length && new Set(lt.media.map(m => m.id)).size === lt.media.length, 'the laptop has every clip, none twice', `${lt.media.length}`);
+  /* The counts are on the evidence doors — open them, as scenario 1 does
+     (finding "Product we ran" no longer opens the day's part on a run, so
+     they are not already showing). */
+  await openEvidence(l);
   check(/1 photo · 2 clips/.test(await text(l)), 'the laptop counts 1 photo · 2 clips');
   const v = await playVideo(l, 1);
   check(v.readyState >= 2, 'the offline clip plays on the laptop', JSON.stringify(v));
