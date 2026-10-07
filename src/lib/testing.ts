@@ -419,7 +419,11 @@ export interface Test {
    (doneAt) once it has been raised. Rowland: "write in preparation for a
    meeting so I don't forget what I want to talk about … associated to either
    a step or the entire project." Private preparation: no document prints it. */
-export type ItemKind = 'found' | 'next' | 'note';
+/* THE PLAN FOR TODAY is the fourth, and the same shape once more: a line the
+   morning huddle agreed for one day (`due`), ticked done through it, on the
+   whole job or a record (lib/huddle). Unlike a note it is not private: the
+   day's story and Today's update say how the plan went. */
+export type ItemKind = 'found' | 'next' | 'note' | 'today';
 
 /** One way round a critical problem (TestItem.ways). `agreed` marks the one
  *  the job is going with; several can be written and none agreed yet. */

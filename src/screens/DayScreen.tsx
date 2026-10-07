@@ -29,6 +29,8 @@ import { useAccess } from '../cloud/access';
 import { OnTargetLine } from '../ui/OnTarget';
 import { stageGateOnTarget } from '../lib/onTarget';
 import { planModel } from '../lib/planModel';
+import { DayPlan } from '../ui/DayPlan';
+import { isSettled, live, plannedEnd } from '../lib/testing';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -142,6 +144,16 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </button>
       </nav>
 
+      {/* THE PLAN FOR TODAY — agreed at the huddle, ticked through the day
+          (ui/DayPlan). Today it is worked here; on a day that has gone the
+          story below says how it went. Offered first: whatever the plan has
+          started and not finished by today, late included. */}
+      {date === today && planModel(project) === 'commissioning' && (
+        <DayPlan projectId={projectId} today={today} tt={tt} can={can}
+          due={live(tt.tests).filter(t => !isSettled(t) && !!t.plannedFor && t.plannedFor <= today)
+            .sort((a, b) => (plannedEnd(a) ?? '').localeCompare(plannedEnd(b) ?? '') || a.sort - b.sort)} />
+      )}
+
       {/* A bar per gate with steps — Install, Set up, Hand over. */}
       {day.gates.map(g => (
         <button key={g.gate} className="dy-install" onClick={() => nav(`/project/${projectId}/${GATE_PATH[g.gate]}`)}
@@ -161,7 +173,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </button>
       ))}
 
-      {day.sections.map(s => (
+      {day.sections.filter(s => !(s.key === 'plan' && date === today && planModel(project) === 'commissioning')).map(s => (
         <section key={s.key} className={'dy-sec is-' + s.key}>
           <h2 className="cmp-h">{s.title}</h2>
           <ul className="dy-lines">

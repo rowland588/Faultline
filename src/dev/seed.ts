@@ -300,6 +300,17 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      branches under the stage, on screen and on paper. */
   await putTestItem(item(programsLoaded.id, 'next', 'First program to verify Tesco Express 1.25 packs through the de-nester and the pick and place',
     { owner: 'Ilapak UK', due: iso(2), sort: 1 }));
+  /* THE PLAN FOR TODAY (lib/huddle) — agreed at this morning's huddle: one
+     done, one about a stage, one on the whole job; and yesterday's, with one
+     line not done, so "carry it over" is offered. */
+  for (const [k, p] of ([
+    [1, { what: 'Load the Express programs on the wrapper', testId: programsLoaded.id, owner: 'Ilapak UK' }],
+    [2, { what: 'Walk the guarding with the safety officer', owner: 'Rowland', doneAt: t }],
+    [3, { what: 'Chase the regulator from Ishida', owner: 'Dave' }],
+  ] as const)) await putTestItem(item(p.testId ?? '', 'today', p.what, { owner: p.owner, due: iso(0), sort: k, ...('doneAt' in p ? { doneAt: p.doneAt } : {}) }));
+  await putTestItem(item('', 'today', 'Book the electrician for the coder', { owner: 'Rowland', due: iso(-1), sort: 1 }));
+  await putTestItem(item('', 'today', 'Unpack the change parts', { owner: 'Dave', due: iso(-1), doneAt: t - day, sort: 2 }));
+
   /* A CRITICAL PROBLEM (lib/critical) — Rowland's own example, on the
      stage it was found on, with what it means for the business and two ways
      round it, one agreed. It leads the front page, the plan's stage, the day

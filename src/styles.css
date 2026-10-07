@@ -10823,3 +10823,28 @@ button.gt-fixlab small { font-size: 11.5px; }
 .dy-which.is-critical { color: var(--st-r); }
 .dy-sec.is-critical .dy-line { box-shadow: inset 3px 0 0 var(--st-r); }
 .fxl-row .crit-tag { margin-right: 6px; vertical-align: 1px; }
+
+/* THE PLAN FOR TODAY (ui/DayPlan, lib/huddle) — done a quiet green, still to
+   do indigo (ahead), words beside every state. */
+.dp-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; }
+.dp-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.dp-row:last-child { border-bottom: 0; }
+.dp-row.is-done .dp-what { color: var(--ink-2); }
+.dp-tick { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 260px; min-width: 0; cursor: pointer; }
+.dp-tick input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--st-g); flex: none; }
+.dp-what { overflow-wrap: anywhere; font-size: var(--t-body, 15px); }
+.dp-state { font-size: var(--t-label); font-weight: 700; }
+.dp-state.is-g { color: var(--st-g); }
+.dp-state.is-w { color: var(--st-w); }
+.dp-on { font-size: var(--t-label); }
+.dp-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 6px 0; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--st-a) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--st-a) 40%, var(--line)); }
+.dp-left span { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.dp-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 6px; }
+.dp-chip { max-width: 100%; white-space: normal; text-align: left; }
+.dp-add, .dp-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; width: 100%; }
+.dp-what-in, .dp-edit .text-input:first-child { flex: 3 1 240px; min-width: 0; }
+.dp-who { flex: 1 1 120px; min-width: 0; }
+.dp-about { flex: 2 1 180px; min-width: 0; max-width: 100%; }
+.dp-branch .dp-tick { padding: 4px 0; }
+.nt-today { margin: 4px 0 12px; }

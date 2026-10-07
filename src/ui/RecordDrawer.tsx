@@ -41,6 +41,8 @@ import { useDismiss } from './Sheet';
 import { ProblemEdit, StageStory, storyLength } from './StageStory';
 import { PartsMark, StageParts } from './StageParts';
 import { ProgramLink } from './ProgramLink';
+import { planOn, TODAY_KIND } from '../lib/huddle';
+import { uid } from '../lib/ids';
 import { criticalCount, criticalOn } from '../lib/critical';
 import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
@@ -386,6 +388,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           (ui/StageParts). */}
       {/* PROGRAMS — the one a test proves, or Set up's programs stage with the
           machine's programs and their Commission tests (ui/ProgramLink). */}
+      {/* ON TODAY'S PLAN (lib/huddle) — a branch off the record: the lines the
+          morning huddle agreed about it, ticked here as on The day; or one
+          tap to put it on today's plan. */}
+      <OnTodaysPlan t={t} title={kind === 'install' ? `${machine} — ${t.title}` : t.title} tt={tt} can={can} today={today} />
       <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can}
         onPatch={patch => void tt.patchTest(t.id, patch)} />
       {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} />}
@@ -503,5 +509,31 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
         onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined} />}
     </DrawerShell>
+  );
+}
+
+/** The record's lines on today's plan (lib/huddle), or "Put it on today's
+ *  plan" — the huddle's list reached from the record it is about. */
+function OnTodaysPlan({ t, title, tt, can, today }: { t: Test; title: string; tt: ReturnType<typeof useTesting>; can: ReturnType<typeof useAccess>; today: string }) {
+  const lines = planOn(t.id, tt.items, today);
+  if (!lines.length && (!can.edit || t.outcome === 'passed')) return null;
+  return (
+    <div className="rd-blk dp-branch">
+      <small>On today’s plan</small>
+      {lines.map(i => (
+        <label key={i.id} className="dp-tick">
+          <input type="checkbox" checked={i.doneAt != null} disabled={!can.edit}
+            onChange={() => void tt.saveItem({ ...i, doneAt: i.doneAt != null ? undefined : Date.now() })} />
+          <span className="dp-what">{i.what}{i.owner && <span className="sub"> — {i.owner}</span>} · <span className={'dp-state' + (i.doneAt != null ? ' is-g' : ' is-w')}>{i.doneAt != null ? 'done' : 'to do'}</span></span>
+        </label>
+      ))}
+      {!lines.length && can.edit && (
+        <button type="button" className="cw-link" onClick={() => {
+          const at = Date.now();
+          void tt.saveItem({ id: uid(), projectId: t.projectId, testId: t.id, kind: TODAY_KIND, what: title, due: today,
+            ...(t.withWhom ? { owner: t.withWhom } : {}), sort: at, createdAt: at, updatedAt: at });
+        }}>Put it on today’s plan</button>
+      )}
+    </div>
   );
 }

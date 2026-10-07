@@ -17,6 +17,7 @@ import { nav } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
+import { planCount, planFor } from '../lib/huddle';
 import { useTesting } from '../lib/useTesting';
 import { live, WHOLE_JOB, type Asset, type Test, type TestItem } from '../lib/testing';
 import {
@@ -282,6 +283,17 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      {/* THE PLAN FOR TODAY sits beside these on The day (lib/huddle): notes
+          are what to raise; the plan is what the huddle agreed to do today. */}
+      {planModel(project) === 'commissioning' && (() => {
+        const plan = planFor(tt.items, todayISO());
+        return (
+          <p className="sub nt-today">
+            <b>The plan for today</b> — {plan.length ? planCount(plan) : can.edit ? 'not agreed yet' : 'none agreed'} ·{' '}
+            <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>{plan.length || !can.edit ? 'Open it on The day ›' : 'Agree it on The day ›'}</button>
+          </p>
+        );
+      })()}
 
       {can.edit && <AddFold label="Add a note" start={open.length === 0}>
       <form className="nt-add" onSubmit={e => { e.preventDefault(); void add(); }}>

@@ -13,6 +13,7 @@
  * The screen and the one-page PDF both draw this, so the page sent to the
  * client and the screen it was sent from cannot tell two stories.
  */
+import { planCount, planFor } from './huddle';
 import { isHere, type Material } from './materials';
 import { daysOverdue, stateOf, type Program } from './programs';
 import { standing } from './standing';
@@ -55,7 +56,7 @@ export interface DayLine {
 }
 
 export interface DaySection {
-  key: 'critical' | 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
+  key: 'critical' | 'plan' | 'done' | 'wrong' | 'found' | 'late' | 'problem' | 'today' | 'going' | 'next';
   title: string;
   lines: DayLine[];
 }
@@ -102,6 +103,8 @@ export function activeDays(input: DayInput): string[] {
     if (t.kind === 'fix') add(dayOfMs(t.createdAt));
   }
   for (const i of live(input.items)) if (i.kind === 'found') add(dayOfMs(i.createdAt));
+  /* A day the huddle agreed a plan for has a story to tell (lib/huddle). */
+  for (const i of live(input.items)) if (i.kind === 'today') add(i.due);
   /* A part of a stage ticked done (ui/StageParts) is something that happened. */
   for (const { part } of partsOnStages(input.tests, input.items)) if (part.doneAt != null) add(dayOfMs(part.doneAt));
   for (const a of live(input.assets)) { add(a.onSiteOn); add(a.installedOn); add(a.runningOn); }
@@ -360,8 +363,28 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const first = gates.find(g => g.gate === 'install');
   const install = first ? { done: first.done, total: first.total } : undefined;
 
+  /* THE PLAN FOR THE DAY (lib/huddle) — what the morning huddle agreed, and
+     how it went: done said done in green; still to do, today, indigo; not
+     done on a day that has gone, red-edged and said so. In words beside each,
+     so it survives a black-and-white print. */
+  const agreed = planFor(items, date);
+  const byId = new Map(tests.map(t => [t.id, t]));
+  const plan: DayLine[] = agreed.map(i => {
+    const on = byId.get(i.testId);
+    const state = i.doneAt != null ? 'done' : past ? 'not done' : 'to do';
+    return {
+      /* A line added from the stage itself is its name — said once. */
+      text: `${i.what}${on && named(on) !== i.what.trim() ? ` — ${named(on)}` : ''}${who(i.owner)} — ${state}`,
+      ...(i.note?.trim() ? { detail: i.note.trim() } : {}),
+      tone: i.doneAt != null ? 'done' as const : past ? 'slipped' as const : 'booked' as const,
+      ...(on ? { id: on.id } : {}),
+    };
+  });
+  const planSays = planCount(agreed, past);
+
   const sections: DaySection[] = [
     { key: 'critical' as const, title: 'Critical — open', lines: critical },
+    { key: 'plan' as const, title: `${isToday ? 'The plan for today' : 'The plan for the day'} — ${planSays}`, lines: plan },
     { key: 'done' as const, title: 'What got done', lines: done },
     { key: 'wrong' as const, title: 'What did not go to plan', lines: wrong },
     /* "Late", not "past its day": a stage whose problems lost hours is late
@@ -377,7 +400,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const happened = done.length + wrong.length + found.length;
   return {
     date, label: short(date),
-    headline: (critical.length ? `${critical.length} critical open. ` : '') + headlineOf(done, wrong, found, booked, going, late, problems, media.length, gates, isToday,
+    headline: (critical.length ? `${critical.length} critical open. ` : '') + (agreed.length ? `Plan for the day: ${planSays}. ` : '') + headlineOf(done, wrong, found, booked, going, late, problems, media.length, gates, isToday,
       /* Today's counts are the job's own — lib/standing's late, and every
          stage that hit a problem and lost no time — the numbers the verdict
          at the top of the page says (lib/onTarget). */
@@ -386,7 +409,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         problem: tests.filter(t => t.kind === 'install' && lateOrProblem(t, items, date) === 'problem').length,
       } : undefined),
     sections, media, install, gates,
-    empty: happened === 0 && critical.length === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
+    empty: happened === 0 && critical.length === 0 && plan.length === 0 && booked.length === 0 && going.length === 0 && late.length === 0 && problems.length === 0,
   };
 }
 
