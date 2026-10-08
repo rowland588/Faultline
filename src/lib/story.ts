@@ -37,7 +37,9 @@ const dayOf = (ms: number) => todayISO(new Date(ms));
 export const movedLater = (was?: string, now?: string): boolean => !!was && !!now && now > was;
 
 export function storyOf(stepId: string, tests: Test[], items: TestItem[]): StageStory {
-  const mine = live(items).filter(i => i.testId === stepId && i.kind === 'found').sort((a, b) => a.createdAt - b.createdAt);
+  /* A fix flagged on its own carries its problem on itself (ui/RecordEdit):
+     that problem is "The problem" of the fix, not something that happened to it. */
+  const mine = live(items).filter(i => i.testId === stepId && i.kind === 'found' && i.becameTestId !== stepId).sort((a, b) => a.createdAt - b.createdAt);
   const moves: Move[] = mine.filter(i => i.movedFrom && i.movedTo).map(i => ({
     id: i.id, on: dayOf(i.createdAt), from: i.movedFrom as string, to: i.movedTo as string,
     days: daysBetween(i.movedFrom as string, i.movedTo as string), why: i.what, media: i.media ?? [],

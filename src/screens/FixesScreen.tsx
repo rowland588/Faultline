@@ -52,6 +52,7 @@ import { hoursWord } from '../lib/hoursLost';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { CriticalTag } from '../ui/CriticalFields';
+import { fixFlag } from '../lib/critical';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -125,7 +126,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
      oldest first as the rest are; a fix booked from one carries its tag. */
   /* Then the high risks, then the rest. */
   const openNoted = [...noted.open.filter(n => n.item.critical), ...noted.open.filter(n => !n.item.critical && n.item.risk), ...noted.open.filter(n => !n.item.critical && !n.item.risk)];
-  const fromCritical = new Set(tt.items.filter(i => !i.deletedAt && i.kind === 'found' && i.critical && i.becameTestId).map(i => i.becameTestId as string));
+  /* A fix's flag — critical or high risk — is its problem's (lib/critical fixFlag). */
+  const flagOf = (t: Test) => fixFlag(t.id, tt.items).flag;
 
   return (
     <div className="wrap pace cm-screen">
@@ -239,7 +241,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             machine, what it is for, who. */}
         {st.upcoming.length > 0 && (
           <div className="fxl" role="list">
-            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} critical={fromCritical.has(t.id)} onOpen={() => open(t.id)} />)}
+            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} onOpen={() => open(t.id)} />)}
           </div>
         )}
 
@@ -259,7 +261,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="fxl" role="list">
-            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} critical={fromCritical.has(t.id)} onOpen={() => open(t.id)} />)}
+            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} onOpen={() => open(t.id)} />)}
           </div>
         </section>
       )}
@@ -306,10 +308,10 @@ import { Icon } from '../ui/Icon';
 /** One fix, as a row: a stripe and a date in the fix's colour (lib/fixTone —
  *  the same rule the drawer, the walk and the client report use), the fix,
  *  and under it the machine, what it is for and who. */
-function FixRow({ t, machine, from, critical, onOpen }: {
+function FixRow({ t, machine, from, flag, onOpen }: {
   t: Test; machine: string; from?: Test; onOpen: () => void;
-  /** Booked from a critical problem (lib/critical) — it carries the tag. */
-  critical?: boolean;
+  /** Flagged critical or high risk, on its problem (lib/critical fixFlag). */
+  flag?: 'critical' | 'risk';
 }) {
   const { tone, when } = fixTone(t);
   /* No date agreed is not started — grey, as a step with no day is (CLAUDE.md,
@@ -319,7 +321,7 @@ function FixRow({ t, machine, from, critical, onOpen }: {
     <button type="button" role="listitem" className={'fxl-row is-' + face} onClick={onOpen}>
       <span className="fxl-bar" aria-hidden />
       <span className="fxl-m">
-        <b>{critical && <CriticalTag sorted={t.outcome === 'passed'} />}{t.title}</b>
+        <b>{flag && <CriticalTag sorted={t.outcome === 'passed'} risk={flag === 'risk'} />}{t.title}</b>
         <small>
           {machine} · {from ? `for ${from.title}` : 'not from a test'} · <span className={t.withWhom ? '' : 'fxl-none'}>{t.withWhom || 'nobody yet'}</span>
         </small>

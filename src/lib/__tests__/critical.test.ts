@@ -2,7 +2,7 @@
    more narrative behind it — potential solutions, what it means for the
    business ... say in a report: look at this, this is a major problem." */
 import { describe, expect, it } from 'vitest';
-import { couldWords, criticalOn, criticalProblems, criticalState, riskOn, riskProblems } from '../critical';
+import { couldWords, criticalOn, criticalProblems, criticalState, fixFlag, riskOn, riskProblems } from '../critical';
 import { stageGateOnTarget } from '../onTarget';
 import type { Asset, Test, TestItem } from '../testing';
 
@@ -62,5 +62,19 @@ describe('a high risk — not happened yet (Rowland, 7 October)', () => {
     expect(v.tone).toBe('risk');   // at risk, never behind: nothing has been lost
     expect(v.reason).toContain('1 high risk: Recipes may need re-validating, could cost 100 h (an estimate)');
     expect(v.reason).toContain('nothing late');
+  });
+});
+
+/* Rowland, 8 October: "for any fix have a critical or high risk." */
+describe('a fix’s flag', () => {
+  it('is the flag on the problem it is for — critical before high risk', () => {
+    expect(fixFlag('x', [found({ becameTestId: 'x' })])).toMatchObject({ problem: { id: 'f1' } });
+    expect(fixFlag('x', [found({ becameTestId: 'x' })]).flag).toBeUndefined();
+    expect(fixFlag('x', [found({ becameTestId: 'x', risk: true })]).flag).toBe('risk');
+    expect(fixFlag('x', [found({ id: 'r', becameTestId: 'x', risk: true }), found({ id: 'c', becameTestId: 'x', critical: true })])).toMatchObject({ flag: 'critical', problem: { id: 'c' } });
+  });
+  it('is nothing for a fix planned on its own, or once its problem is deleted', () => {
+    expect(fixFlag('x', [])).toEqual({});
+    expect(fixFlag('x', [found({ becameTestId: 'x', critical: true, deletedAt: 5 })])).toEqual({});
   });
 });

@@ -13,8 +13,9 @@
  * snag keeps `sent` so the Snags page can say where it went. */
 import type { Snag } from './types';
 import type { MediaPin } from '../types';
-import type { TestItem } from '../lib/testing';
-import { listAllSnags, putTestItem, updateSnag, type Restore } from '../db';
+import { nextFrom, type Test, type TestItem } from '../lib/testing';
+import { listAllSnags, listTests, putTest, putTestItem, updateSnag, type Restore } from '../db';
+import { dueToInput } from './types';
 import { uid } from '../lib/ids';
 import { withPins } from '../ui/Evidence';
 
@@ -36,20 +37,39 @@ export function remember(which: keyof typeof KEY, v: string): void {
   try { if (v) localStorage.setItem(KEY[which], v); else localStorage.removeItem(KEY[which]); } catch { /* private window */ }
 }
 
+/** How a snag goes to a job: flagged or not, and with its fix booked or not.
+ *  Rowland, 8 October: "snags attached to a project show nowhere on the
+ *  reports … maybe we need project but then turn to a fix — and for any fix
+ *  have a critical or high risk." */
+export interface SendHow { flag?: 'critical' | 'risk'; fix?: boolean }
+
 /** SEND SNAGS TO A JOB AS PROBLEMS — one problem per snag, on the stage they
  *  were found on, carrying the snag's words and the same pictures (the same
- *  blob keys: nothing is copied). Each snag then says where it went. Hands
- *  back how to take the whole send back. */
-export async function sendSnags(snags: Snag[], projectId: string, testId: string): Promise<Restore> {
+ *  blob keys: nothing is copied), and the flag when one was given. With `fix`,
+ *  each problem books its fix, as "Make it a fix" does (lib/testing nextFrom):
+ *  the snag's words as "The problem", whose it is, the day it was wanted by.
+ *  Each snag then says where it went. Hands back how to take it all back. */
+export async function sendSnags(snags: Snag[], projectId: string, testId: string, how: SendHow = {}): Promise<Restore> {
   const at = Date.now();
   const made: TestItem[] = [];
+  const fixes: Test[] = [];
+  const stage = how.fix ? (await listTests(projectId)).find(t => t.id === testId && !t.deletedAt) : undefined;
   for (const [k, s] of snags.entries()) {
     const words = s.problem.trim() || (s.targetAsset ? `Snag on the ${s.targetAsset} — see the picture` : 'Snag — see the picture');
+    const fix = stage && s.status !== 'closed' ? {
+      ...nextFrom(stage, uid, at + k, words, 'fix', words),
+      ...(s.owner ? { withWhom: s.owner } : {}),
+      ...(s.dueAt != null ? { plannedFor: dueToInput(s.dueAt) } : {}),
+      sort: at + k,
+    } : undefined;
+    if (fix) { await putTest(fix); fixes.push(fix); }
     const item: TestItem = {
       id: uid(), projectId, testId, kind: 'found', what: words,
       ...(s.media?.length ? { media: s.media } : {}),
       ...(s.owner ? { owner: s.owner } : {}),
       ...(s.status === 'closed' ? { doneAt: s.closedAt ?? at } : {}),
+      ...(how.flag === 'critical' ? { critical: true } : how.flag === 'risk' ? { risk: true } : {}),
+      ...(fix ? { becameTestId: fix.id } : {}),
       sort: at + k, createdAt: at + k, updatedAt: at + k,
     };
     await putTestItem(item);
@@ -60,6 +80,7 @@ export async function sendSnags(snags: Snag[], projectId: string, testId: string
      deletes the item's pictures, and they are the snag's pictures too. */
   return async () => {
     for (const i of made) await putTestItem({ ...i, deletedAt: Date.now() });
+    for (const f of fixes) await putTest({ ...f, deletedAt: Date.now() });
     for (const s of snags) await updateSnag(s);
   };
 }

@@ -54,7 +54,9 @@ export function QuickSnagsScreen() {
       const [tests, items, assets] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid)]);
       for (const i of items) {
         const t = tests.find(x => x.id === i.testId);
-        m.set(i.id, t ? stageLabel(t, assets) : 'the job');
+        /* …and the fix it booked, by its name, when it booked one. */
+        const fix = i.becameTestId ? tests.find(x => x.id === i.becameTestId && !x.deletedAt) : undefined;
+        m.set(i.id, `${t ? stageLabel(t, assets) : 'the job'}${i.critical ? ' · critical' : i.risk ? ' · high risk' : ''}${fix ? ` · fix: ${fix.title}` : ''}`);
       }
     }));
     setSentTo(m);
@@ -141,7 +143,9 @@ export function QuickSnagsScreen() {
                         <span className="qsl-meta">
                           <b style={{ color: SNAG_STATUS_META[s.status].color }}>{SNAG_STATUS_META[s.status].label}</b>
                           {s.targetAsset && <> · {s.targetAsset}</>}
-                          {projName(s.projectId) && <> · {projName(s.projectId)}</>}
+                          {/* Named for a job and not on it yet: said, so it is not
+                              taken for being on the job's reports. */}
+                          {projName(s.projectId) && <> · {projName(s.projectId)}{!(s.sent ?? []).some(x => x.projectId === s.projectId) && ' — not on it yet'}</>}
                           {s.owner && <> · {s.owner}</>}
                           {' · '}{ago(s.raisedAt)}
                           {(s.media?.length ?? 0) > 1 && <> · {s.media?.length} pictures</>}
@@ -186,6 +190,8 @@ function SendSheet({ snags, projects, onClose, onSent }: {
   const [steps, setSteps] = useState<{ t: Test; label: string; machine?: string }[] | null>(null);
   const [step, setStep] = useState('');
   const [busy, setBusy] = useState(false);
+  const [flag, setFlag] = useState<'none' | 'risk' | 'critical'>('none');
+  const [asFix, setAsFix] = useState(true);
   const machineOf = snags.find(s => s.targetAsset)?.targetAsset?.toLowerCase();
 
   useEffect(() => {
@@ -209,8 +215,8 @@ function SendSheet({ snags, projects, onClose, onSent }: {
     if (!p || !step || busy) return;
     setBusy(true);
     try {
-      const undo = await sendSnags(snags, p.id, step);
-      offerUndo(`${snags.length} sent to ${p.name} as problems`, undo);
+      const undo = await sendSnags(snags, p.id, step, { ...(flag !== 'none' ? { flag } : {}), fix: asFix });
+      offerUndo(`${snags.length} sent to ${p.name} as problems${asFix ? ', with their fixes' : ''}`, undo);
       onSent();
     } finally { setBusy(false); }
   };
@@ -218,7 +224,7 @@ function SendSheet({ snags, projects, onClose, onSent }: {
   return (
     <Sheet open onClose={onClose} title={`Send ${snags.length} snag${snags.length === 1 ? '' : 's'} to a project`}>
       <div className="qs">
-        <p className="sub">Each becomes a <b>problem</b> on the stage it was found on, with its words and pictures. They show on the job’s Fixes page under “Problems with no fix”, and on its client report.</p>
+        <p className="sub">Each becomes a <b>problem</b> on the stage it was found on, with its words and pictures — and, ticked, its <b>fix</b>. They show on the job’s Fixes page, its plan and its reports.</p>
         <label className="cw-f cw-f-wide"><span>WHICH PROJECT</span>
           <select value={pid} onChange={e => setPid(e.target.value)}>
             <option value="" disabled>Pick a project</option>
@@ -231,6 +237,18 @@ function SendSheet({ snags, projects, onClose, onSent }: {
             </select></label>
         )}
         {pid && steps && steps.length === 0 && <p className="sub">This job has no install stages yet — add its machines and stages first.</p>}
+        {pid && steps && steps.length > 0 && <>
+          <div className="qs-mach">
+            <span className="qs-l">FLAG {snags.length === 1 ? 'IT' : 'THEM'}</span>
+            <div className="chip-row" role="group" aria-label="How serious is it?">
+              {([['none', 'Not flagged'], ['risk', 'High risk'], ['critical', 'Critical']] as const).map(([k, w]) => (
+                <button key={k} type="button" className={'chip' + (flag === k ? ' on' : '')} aria-pressed={flag === k} onClick={() => setFlag(k)}>{w}</button>
+              ))}
+            </div>
+          </div>
+          <label className="why-check"><input type="checkbox" checked={asFix} onChange={e => setAsFix(e.target.checked)} />
+            <span>Make {snags.length === 1 ? 'it a fix' : 'each a fix'}</span></label>
+        </>}
         {mine.length === 0 && <p className="sub">There is no job you can add problems to.</p>}
         <div className="ax-foot">
           <span style={{ flex: 1 }} />

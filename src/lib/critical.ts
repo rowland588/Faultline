@@ -117,3 +117,18 @@ export function criticalState(c: Critical): string {
 
 /** "1 critical" / "2 critical" — the count beside a job or a stage. */
 export const criticalCount = (n: number): string => `${n} critical`;
+
+/** A FIX'S FLAG — critical or high risk. Rowland, 8 October: "for any fix
+ *  have a critical or high risk." Said on the problem the fix is for (its
+ *  becameTestId), so a flagged fix leads everywhere a flagged problem does —
+ *  the front page, the control room, the day, the plan, the reports — with no
+ *  second flag to keep. A fix planned on its own has no problem until it is
+ *  flagged; its Edit makes one from "The problem" (ui/RecordEdit). */
+export function fixFlag(fixId: string, items: TestItem[]): { flag?: 'critical' | 'risk'; problem?: TestItem } {
+  const mine = live(items).filter(i => i.kind === 'found' && i.becameTestId === fixId);
+  const problem = mine.find(i => i.critical) ?? mine.find(i => i.risk) ?? mine[0];
+  return {
+    ...(problem ? { problem } : {}),
+    ...(problem?.critical ? { flag: 'critical' as const } : problem?.risk ? { flag: 'risk' as const } : {}),
+  };
+}

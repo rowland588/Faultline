@@ -19,13 +19,16 @@
  * card and the client report already read. */
 import { useState } from 'react';
 import { mayWriteAgreement, type Can } from '../lib/access';
+import { fixFlag } from '../lib/critical';
+import { uid } from '../lib/ids';
 import { GATE_WORD } from '../lib/install';
 import { isRunTest, productRuns } from '../lib/run';
 import { movedLater, overlapOf } from '../lib/story';
-import { gateOf, live, plannedEnd, wordsOf, type Test } from '../lib/testing';
+import { gateOf, live, plannedEnd, wordsOf, type Test, type TestItem } from '../lib/testing';
 import type { useTesting } from '../lib/useTesting';
 import { niceDay } from '../lib/weeks';
 import { BetterWords } from './BetterWords';
+import { CriticalFields, criticalDraftOf, criticalPatch } from './CriticalFields';
 import { SayIt, SayStep } from './RecordSay';
 import { offerUndo } from './Undo';
 import { WhyMoved, followingSummary, recordMove, type ProblemFill } from './WhyMoved';
@@ -82,6 +85,11 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
   const [ok, setOk] = useState<boolean | undefined>(t.overlapOk);
   const [asking, setAsking] = useState(false);
   const mayAgree = mayWriteAgreement(can, t.passesIf);
+  /* A FIX'S FLAG — critical or high risk, kept on the problem it is for
+     (lib/critical fixFlag): "for any fix have a critical or high risk". */
+  const fixProblem = kind === 'fix' ? fixFlag(t.id, tt.items).problem : undefined;
+  const [crit, setCrit] = useState(() => criticalDraftOf(fixProblem));
+  const critChanged = kind === 'fix' && JSON.stringify(criticalPatch(crit)) !== JSON.stringify(criticalPatch(criticalDraftOf(fixProblem)));
   const isRun = isRunTest(t);
   const done = !!t.ranOn || t.outcome !== 'planned';
 
@@ -95,17 +103,36 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
   const patch = editPatch(t, b, mayAgree);
   const okNow = over && ok !== undefined && ok !== t.overlapOk ? ok : undefined;
   const all: Partial<Test> = { ...patch, ...(okNow !== undefined ? { overlapOk: okNow } : {}) };
-  const changed = Object.keys(all).length > 0;
+  const changed = Object.keys(all).length > 0 || critChanged;
 
   /* One write, one Undo — the reason for a move, its fix and its knock-on
      come back with it. */
   const keep = async (a?: Parameters<typeof recordMove>[2]) => {
     const before = Object.fromEntries(Object.keys(all).map(k => [k, t[k as keyof Test]])) as Partial<Test>;
-    await tt.patchTest(t.id, all);
+    if (Object.keys(all).length) await tt.patchTest(t.id, all);
     const back = a && was && end ? await recordMove(tt, [{ step: t, from: was, to: end }], a) : undefined;
-    offerUndo(`${(all.title as string | undefined) ?? t.title} — changed${a ? ', reason kept' : ''}${a?.fix ? ', fix booked' : ''}`, async () => {
-      await tt.patchTest(t.id, before);
+    /* The flag, on the fix's problem — or on one made now from "The problem",
+       found on what the fix is for (the fix itself when it is for nothing). */
+    let flagBack: (() => Promise<void>) | undefined;
+    const flags = criticalPatch(crit);
+    if (critChanged && fixProblem) {
+      const { critical: _c, risk: _r, impact: _i, ways: _w, ...rest } = fixProblem;
+      await tt.saveItem({ ...rest, ...flags, updatedAt: Date.now() });
+      flagBack = () => tt.saveItem(fixProblem);
+    } else if (critChanged && (flags.critical || flags.risk)) {
+      const at = Date.now();
+      const made: TestItem = {
+        id: uid(), projectId: t.projectId, testId: t.fromTestId ?? t.id, kind: 'found',
+        what: (b.passesIf.trim() || b.title.trim() || t.title), becameTestId: t.id, ...flags, sort: at, createdAt: at, updatedAt: at,
+      };
+      await tt.saveItem(made);
+      flagBack = () => tt.saveItem({ ...made, deletedAt: Date.now() });
+    }
+    const flagWord = critChanged ? (flags.critical ? ', flagged critical' : flags.risk ? ', flagged high risk' : ', flag taken off') : '';
+    offerUndo(`${(all.title as string | undefined) ?? t.title} — changed${a ? ', reason kept' : ''}${a?.fix ? ', fix booked' : ''}${flagWord}`, async () => {
+      if (Object.keys(before).length) await tt.patchTest(t.id, before);
       if (back) await back();
+      if (flagBack) await flagBack();
     });
     onClose();
   };
@@ -196,6 +223,14 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
       ) : t.passesIf ? (
         <p className="re-wide re-agreed"><span className="re-l">{words.expectation}</span> {t.passesIf} <span className="sub">· agreed, the owner’s to change</span></p>
       ) : null}
+
+      {/* FLAG IT — any fix, critical or high risk, what it means for the
+          business and the ways round it; kept on its problem. */}
+      {kind === 'fix' && (
+        <div className="re-wide">
+          <CriticalFields value={crit} onChange={setCrit} names={[t.title, ...tt.assets.map(x => x.name)]} noCould />
+        </div>
+      )}
 
       {/* THE DAY — once it has been done, or worked on. */}
       {done && <>
