@@ -169,7 +169,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
-        <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs</button>
+        <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs report</button>
       </span>
 
       {which === 'programs' && (() => {

@@ -524,7 +524,10 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   await p.getByPlaceholder('10 reels').fill('10 reels');
   await p.getByRole('button', { name: 'Add it' }).click();
   await p.waitForTimeout(500);
-  await go(p, `/project/${pid}/set-up`);
+  /* The Programs list lives at the foot of the Programs page (8 October). */
+  await go(p, `/project/${pid}/programs`);
+  const fold = p.getByRole('button', { name: /Test days and proving in Commission/ });
+  if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click();
   await p.getByPlaceholder('P-104 perforation').fill('P-104 perforation');
   await p.getByRole('button', { name: 'Add it' }).click();
   await p.waitForTimeout(500);
@@ -567,7 +570,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   await go(l, `/project/${pid}/materials`);
   check(await seen(l, 'Finest Red 2kg film'), 'the laptop shows the material',
     `phone ${(await idb(p, 'materials')).length} · cloud ${cloud.rows('materials').length} · laptop ${(await idb(l, 'materials')).length}`);
-  await go(l, `/project/${pid}/set-up`);
+  await go(l, `/project/${pid}/programs`);
   check(await seen(l, 'P-104 perforation'), 'the laptop shows the program',
     `phone ${(await idb(p, 'programs')).length} · cloud ${cloud.rows('programs').length} · laptop ${(await idb(l, 'programs')).length}`);
   await go(l, `/project/${pid}/notes`);

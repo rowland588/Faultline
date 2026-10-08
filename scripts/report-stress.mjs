@@ -283,7 +283,7 @@ for (const size of SIZES) {
     ['status', `#/project/${job.projectId}/report`, [['Status — 1 page'], ['PDF']], must.status],
     ['client', `#/project/${job.projectId}/report`, [['Full report'], ['PDF']], must.client],
     /* The programs, a report of their own (8 October). */
-    ['programs', `#/project/${job.projectId}/report`, [['Programs'], ['PDF']], must.programs],
+    ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['PDF']], must.programs],
     /* The card is the record's own page now (screens/TestScreen); its button
        says what it makes — "Test card — PDF", "Fix card — PDF", "Install step
        card — PDF" — so it is pressed by that name, whichever face it wears. */
