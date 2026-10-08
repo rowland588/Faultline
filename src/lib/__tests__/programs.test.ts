@@ -357,3 +357,35 @@ describe('a part\'s status, with what was seen', () => {
     expect(partsWords([f, b, ok])).toBe('3 parts · 1 done · 1 at baseline · 1 failed');
   });
 });
+
+describe('editing what was said about a part', () => {
+  const T = '2026-10-08';
+  const at = Date.parse(`${T}T10:00:00`);
+  const yesterday = at - 86_400_000;
+  const P = (extra: Partial<TestItem> = {}): TestItem => ({ id: 'a', projectId: 'p', testId: 's1', kind: 'next', what: 'PR-12', sort: 1, createdAt: 1, updatedAt: 1, ...extra });
+  it('corrects the words in place when the status is the same', async () => {
+    const { editedResult } = await import('../noted');
+    const p = P({ results: [{ is: 'baseline', on: '2026-10-07', note: 'Runing 32 ppm', at: yesterday }] });
+    const e = editedResult(p, 'baseline', 'Running 32 ppm', at);
+    expect(e.results).toEqual([{ is: 'baseline', on: '2026-10-07', note: 'Running 32 ppm', at: yesterday }]);
+    expect(editedResult(p, 'baseline', 'Runing 32 ppm', at)).toBe(p);   // nothing changed, nothing written
+  });
+  it('corrects a status said today; keeps one said before in the history', async () => {
+    const { editedResult } = await import('../noted');
+    const today = P({ results: [{ is: 'failed', on: T, note: 'x', at }] });
+    const fixed = editedResult(today, 'baseline', 'x', at + 5);
+    expect(fixed.results?.map(r => r.is)).toEqual(['baseline']);
+    const before = P({ results: [{ is: 'baseline', on: '2026-10-07', note: '30 ppm', at: yesterday }] });
+    const moved = editedResult(before, 'passed', '45 ppm', at);
+    expect(moved.results?.map(r => r.is)).toEqual(['baseline', 'passed']);
+    expect(moved.doneAt).toBe(at);
+  });
+  it('takes one status off its history; taking back a pass makes it not done', async () => {
+    const { withoutResult } = await import('../noted');
+    const p = P({ doneAt: at, results: [{ is: 'baseline', on: '2026-10-07', at: yesterday }, { is: 'passed', on: T, at }] });
+    const back = withoutResult(p, at);
+    expect(back.results?.map(r => r.is)).toEqual(['baseline']);
+    expect(back.doneAt).toBeUndefined();
+    expect(withoutResult(p, yesterday)).toMatchObject({ doneAt: at, results: [{ is: 'passed' }] });
+  });
+});

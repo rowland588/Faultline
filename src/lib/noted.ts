@@ -99,6 +99,42 @@ export function saidResult(p: TestItem, is: PartResultIs, note: string, now = Da
   return { ...p, results: [...(p.results ?? []), r], doneAt: is === 'passed' ? p.doneAt ?? now : undefined };
 }
 
+/* EDITING WHAT WAS SAID. Rowland, 8 October: "I don't have ability to edit
+   the status commentary — you only allow the title." One form edits all of
+   it (ui/StageParts), by one rule:
+     · the same status, new words      → the words are corrected in place;
+     · a different status, said today  → today's is corrected (a mis-tap);
+     · a different status, said before → a new one, the old kept in its
+                                         history — that is the program's story. */
+export function editedResult(p: TestItem, is: PartResultIs, note: string, now = Date.now()): TestItem {
+  const last = lastResult(p);
+  const said = note.trim();
+  if (!last) return saidResult(p, is, said, now);
+  const rest = (p.results ?? []).slice(0, -1);
+  if (last.is === is) {
+    if (said === (last.note ?? '')) return p;
+    return { ...p, results: [...rest, { is: last.is, on: last.on, at: last.at, ...(said ? { note: said } : {}) }] };
+  }
+  if (last.on === dayOfMs(now)) {
+    return { ...p, results: [...rest, { is, on: last.on, at: now, ...(said ? { note: said } : {}) }],
+      doneAt: is === 'passed' ? p.doneAt ?? now : undefined };
+  }
+  return saidResult(p, is, said, now);
+}
+
+/** One status taken off its history (the owner's, as deleting always is).
+ *  Taking off the one it stands on hands the part to the one before — a
+ *  pass taken back is no longer done. */
+export function withoutResult(p: TestItem, at: number): TestItem {
+  const results = (p.results ?? []).filter(r => r.at !== at);
+  const before = lastResult(p), after = results[results.length - 1];
+  const wasPass = before?.at === at && before.is === 'passed';
+  return {
+    ...p, results,
+    ...(after?.is === 'passed' ? { doneAt: p.doneAt ?? after.at } : wasPass ? { doneAt: undefined } : {}),
+  };
+}
+
 /** "Panels to run Express 1.25 kg — Ilapak UK · by 9 Oct" / "— done 6 Oct" /
  *  "— late · was 5 Oct" / "— to do" / "— baseline achieved 8 Oct: running 32
  *  ppm, film tracking to tune". For paper: the words the line says on the

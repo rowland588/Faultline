@@ -29,7 +29,7 @@ import { useState } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import { isProgramsStage } from '../lib/programs';
-import { RESULT_WORD, partLate, partMoved, partsOf, resultNow, resultWords, saidResult } from '../lib/noted';
+import { RESULT_WORD, editedResult, lastResult, partLate, partMoved, partsOf, resultNow, resultWords, withoutResult } from '../lib/noted';
 import { addDays, niceDay, todayISO } from '../lib/weeks';
 import { DUE_SOON_DAYS } from '../lib/actions';
 import { isWholeDate } from './DateInput';
@@ -39,7 +39,7 @@ import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 
 type TT = ReturnType<typeof useTesting>;
-type Draft = { id: string; what: string; owner: string; due: string };
+type Draft = { id: string; what: string; owner: string; due: string; is?: PartResultIs; note: string };
 
 /** How a part stands, in words and in one of the house colours. A problem
  *  written on it and not sorted is the louder fact, as it is on a stage; then
@@ -99,11 +99,13 @@ export function StageParts({ step, tt, can, onProblem, only }: {
   const [more, setMore] = useState(false);
   const [by, setBy] = useState('');
   const [who, setWho] = useState('');
-  const [editing, setEditing] = useState<Draft | null>(null);
-  /* SAY ITS STATUS — the part being said, what it is, and what was seen. */
-  const [stating, setStating] = useState<{ id: string; is?: PartResultIs; note: string } | null>(null);
-  /* The parts whose earlier statuses are open. */
-  const [story, setStory] = useState<Set<string>>(new Set());
+  /* ONE PART OPEN AT A TIME, and everything about it in one form — how it
+     stands and what was seen, its name, who and by when. Rowland, 8 October:
+     "I don't have ability to edit the status commentary — you only allow the
+     title — and all of that UI is very confusing." The list shows the state;
+     the tools come out on the line being worked on (CLAUDE.md, simplicity 2). */
+  const [open, setOpen] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   if (!all.length && !can.edit) return null;
 
   /* Everyone named anywhere on the job, for the "who" box. */
@@ -114,6 +116,7 @@ export function StageParts({ step, tt, can, onProblem, only }: {
   ].filter((x): x is string => !!x))].sort();
   /* A half-typed year is never kept (ui/DateInput, HUNT 25). */
   const day = (v: string) => (v && isWholeDate(v) ? v : undefined);
+  const noun = prog ? 'program' : 'part';
 
   const add = () => {
     const what = adding.trim();
@@ -125,21 +128,32 @@ export function StageParts({ step, tt, can, onProblem, only }: {
     void tt.saveItem({ ...p, doneAt: p.doneAt != null ? undefined : Date.now() });
     offerUndo(p.doneAt != null ? `“${p.what}” — not done` : `“${p.what}” — done`, () => tt.saveItem(p));
   };
+  const openIt = (p: TestItem) => {
+    if (open === p.id) { setOpen(null); setDraft(null); return; }
+    const last = lastResult(p);
+    setOpen(p.id);
+    setDraft({ id: p.id, what: p.what, owner: p.owner ?? '', due: p.due ?? '', ...(last ? { is: last.is } : {}), note: last?.note ?? '' });
+  };
+  /* One Save for all of it (lib/noted editedResult decides what a status
+     change keeps). */
   const save = (p: TestItem, d: Draft) => {
-    const what = d.what.trim();
+    let next: TestItem = p;
+    const what = d.what.trim() || p.what;
     const owner = d.owner.trim() || undefined;
     const due = d.due ? day(d.due) ?? p.due : undefined;
-    if (what && (what !== p.what || owner !== p.owner || due !== p.due)) {
-      void tt.saveItem({ ...p, what, owner, due });
-      offerUndo('Changed', () => tt.saveItem(p));
+    if (what !== p.what || owner !== p.owner || due !== p.due) next = { ...next, what, owner, due };
+    if (d.is) next = editedResult(next, d.is, d.note);
+    if (next !== p) {
+      void tt.saveItem(next);
+      offerUndo(`“${what}” — saved`, () => tt.saveItem(p));
     }
-    setEditing(null);
+    setOpen(null); setDraft(null);
   };
-  const remove = async (p: TestItem) => offerUndo(`Took off “${p.what}”`, await deleteTestItem(p.id));
-  const state = (p: TestItem, is: PartResultIs, note: string) => {
-    void tt.saveItem(saidResult(p, is, note));
-    offerUndo(`“${p.what}” — ${RESULT_WORD[is]}`, () => tt.saveItem(p));
-    setStating(null);
+  const remove = async (p: TestItem) => { setOpen(null); offerUndo(`Took off “${p.what}”`, await deleteTestItem(p.id)); };
+  const unsay = (p: TestItem, at: number) => {
+    const next = withoutResult(p, at);
+    void tt.saveItem(next);
+    offerUndo('Status taken off', () => tt.saveItem(p));
   };
   /* ▲ ▼ — the parts in the order the person wants them (lib/noted partMoved). */
   const move = (p: TestItem, by: -1 | 1) => { for (const x of partMoved(step.id, tt.items, p.id, by)) void tt.saveItem(x); };
@@ -154,85 +168,81 @@ export function StageParts({ step, tt, can, onProblem, only }: {
           {parts.map((p, k) => {
             const probs = problemsOf(p);
             const st = stateOf(p, today, probs.filter(x => x.doneAt == null).length);
-            /* The status it stands on, and every one said before, newest first. */
+            /* The status it stands on — said with what was seen under its name. */
             const said = resultNow(p);
-            const earlier = (p.results ?? []).filter(r => r !== said).slice().reverse();
+            const history = (p.results ?? []).slice().reverse();
             const meta = [p.owner?.trim(), p.due && p.doneAt == null ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
+            const isOpen = open === p.id && !!draft;
+            const last = lastResult(p);
             return (
-              <li key={p.id} className={'spp-row' + (p.doneAt != null ? ' is-done' : '')}>
-                {editing?.id === p.id ? (
-                  <form className="spp-edit" onSubmit={e => { e.preventDefault(); save(p, editing); }}>
-                    <input className="spp-what" value={editing.what} autoFocus aria-label="The part" onChange={e => setEditing({ ...editing, what: e.target.value })} />
-                    <label className="spp-f"><span>Who</span>
-                      <input list="spp-names" value={editing.owner} placeholder="Ilapak UK" onChange={e => setEditing({ ...editing, owner: e.target.value })} /></label>
-                    <label className="spp-f"><span>By</span>
-                      <input type="date" value={editing.due} onChange={e => setEditing({ ...editing, due: e.target.value })} /></label>
-                    <span className="spp-acts">
-                      <button type="submit" className="btn btn-sm btn-primary">Save</button>
-                      <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-                    </span>
-                  </form>
-                ) : (
-                  <>
-                    {can.edit && !only && parts.length > 1 && (
-                      <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
-                        <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => move(p, -1)}>▲</button>
-                        <button type="button" className="pg-move-b" disabled={k === parts.length - 1} aria-label={`Move ${p.what} down`} onClick={() => move(p, 1)}>▼</button>
-                      </span>
-                    )}
-                    <label className="spp-tick">
-                      <input type="checkbox" checked={p.doneAt != null} disabled={!can.edit} onChange={() => toggle(p)} />
-                      <span>{p.what}{meta && <span className="spp-meta"> — {meta}</span>}</span>
-                    </label>
-                    {/* The state beside the line — unless it is the status,
-                        which is said once, with its commentary, under it. */}
-                    {(!said || st.word !== resultWords(said)) && <span className={'spp-state is-' + st.tone}>{st.word}</span>}
-                    {/* ITS STATUS AND WHAT WAS SEEN under the line, and the ones
-                        said before it one tap away — newest first. */}
-                    {said && (
-                      <p className="spp-said"><b className={'is-' + RESULT_TONE[said.is]}>{resultWords(said)}</b>{said.note ? ` — ${said.note}` : ''}</p>
-                    )}
-                    {earlier.length > 0 && (
-                      <button type="button" className="cw-link spp-story" aria-expanded={story.has(p.id)}
-                        onClick={() => setStory(o => { const n = new Set(o); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; })}>
-                        {story.has(p.id) ? 'Hide' : `${earlier.length} earlier`}
-                      </button>
-                    )}
-                    {story.has(p.id) && (
-                      <ul className="spp-earlier">
-                        {earlier.map(r => (
-                          <li key={r.at}><b className={'is-' + RESULT_TONE[r.is]}>{resultWords(r)}</b>{r.note ? ` — ${r.note}` : ''}</li>
-                        ))}
-                      </ul>
-                    )}
+              <li key={p.id} className={'spp-row' + (p.doneAt != null ? ' is-done' : '') + (isOpen ? ' is-open' : '')}>
+                {can.edit && !only && parts.length > 1 && (
+                  <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
+                    <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => move(p, -1)}>▲</button>
+                    <button type="button" className="pg-move-b" disabled={k === parts.length - 1} aria-label={`Move ${p.what} down`} onClick={() => move(p, 1)}>▼</button>
+                  </span>
+                )}
+                {/* A stage's ordinary parts are ticked; a program is passed
+                    by saying so, so it has no tick of its own. */}
+                {!prog && (
+                  <input type="checkbox" className="spp-tickbox" checked={p.doneAt != null} disabled={!can.edit} aria-label={`${p.what} — done`} onChange={() => toggle(p)} />
+                )}
+                <button type="button" className="spp-main" aria-expanded={isOpen} onClick={() => openIt(p)}>
+                  {/* Its name and its state on one line — the state wraps
+                      under the name, never away from it. */}
+                  <span className="spp-top">
+                    <span className="spp-name">{p.what}</span>
+                    <span className={'spp-pill is-' + st.tone}>{st.word}</span>
+                  </span>
+                  {meta && <span className="spp-meta">{meta}</span>}
+                  {said?.note && <span className="spp-said">{said.note}</span>}
+                </button>
+                {/* EVERYTHING ABOUT IT, on the line being worked on. */}
+                {isOpen && draft && (
+                  <div className="spp-panel">
                     {can.edit && (
-                      <span className="sp-row-acts">
-                        <button type="button" className="cw-link spp-stat" onClick={() => setStating({ id: p.id, note: '' })}>Status</button>
-                        {onProblem && <button type="button" className="cw-link spp-prob" onClick={() => onProblem(p)}>Hit a problem</button>}
-                        <button type="button" className="cw-link" onClick={() => setEditing({ id: p.id, what: p.what, owner: p.owner ?? '', due: p.due ?? '' })}>Edit</button>
-                        {/* Taking a line off is the owner's (lib/access) — the database keeps it for anyone else. */}
-                        {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove(p)}>Delete</button>}
-                      </span>
-                    )}
-                    {stating?.id === p.id && (
-                      <form className="spp-statf" onSubmit={e => { e.preventDefault(); if (stating.is) state(p, stating.is, stating.note); }}>
+                      <form className="spp-form" onSubmit={e => { e.preventDefault(); save(p, draft); }}>
+                        <span className="spp-f-h">How it stands</span>
                         <span className="spp-pick" role="group" aria-label={`How ${p.what} stands`}>
                           {RESULTS.map(is => (
-                            <button key={is} type="button" className={'spp-opt is-' + RESULT_TONE[is] + (stating.is === is ? ' is-on' : '')}
-                              aria-pressed={stating.is === is} onClick={() => setStating({ ...stating, is })}>{RESULT_WORD[is][0].toUpperCase() + RESULT_WORD[is].slice(1)}</button>
+                            <button key={is} type="button" className={'spp-opt is-' + RESULT_TONE[is] + (draft.is === is ? ' is-on' : '')}
+                              aria-pressed={draft.is === is} onClick={() => setDraft({ ...draft, is })}>{RESULT_WORD[is][0].toUpperCase() + RESULT_WORD[is].slice(1)}</button>
                           ))}
                         </span>
-                        <textarea className="spp-note" rows={2} value={stating.note} aria-label="What you saw"
+                        <textarea className="spp-note" rows={3} value={draft.note} aria-label="What you saw"
                           placeholder="What you saw — e.g. Running 32 ppm at baseline settings, film tracking still to tune"
-                          onChange={e => setStating({ ...stating, note: e.target.value })} />
+                          onChange={e => setDraft({ ...draft, note: e.target.value })} />
+                        {last && draft.is && draft.is !== last.is && last.on !== todayISO() && (
+                          <small className="sub">{RESULT_WORD[last.is][0].toUpperCase() + RESULT_WORD[last.is].slice(1)} on {niceDay(last.on)} stays in its history.</small>
+                        )}
+                        <label className="spp-f spp-f-wide"><span>The {noun}</span>
+                          <input value={draft.what} aria-label={`The ${noun}`} onChange={e => setDraft({ ...draft, what: e.target.value })} /></label>
+                        <label className="spp-f"><span>Who</span>
+                          <input list="spp-names" value={draft.owner} placeholder="Ilapak UK" onChange={e => setDraft({ ...draft, owner: e.target.value })} /></label>
+                        <label className="spp-f"><span>By</span>
+                          <input type="date" value={draft.due} aria-label="By when" onChange={e => setDraft({ ...draft, due: e.target.value })} /></label>
                         <span className="spp-acts">
-                          <button type="submit" className="btn btn-sm btn-primary" disabled={!stating.is}>Save</button>
-                          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setStating(null)}>Cancel</button>
+                          <button type="submit" className="btn btn-sm btn-primary">Save</button>
+                          <button type="button" className="btn btn-sm btn-ghost" onClick={() => { setOpen(null); setDraft(null); }}>Close</button>
                         </span>
                       </form>
                     )}
-                    {/* ITS PROBLEMS, as a branch under it — what, and how it
-                        stands; the whole story is under "What happened". */}
+                    {history.length > 0 && (
+                      <div className="spp-hist">
+                        <span className="spp-f-h">History</span>
+                        <ul>
+                          {history.map(r => (
+                            <li key={r.at}>
+                              <b className={'is-' + RESULT_TONE[r.is]}>{resultWords(r)}</b>{r.note ? ` — ${r.note}` : ''}
+                              {/* Taking a status off is the owner's (lib/access). */}
+                              {can.remove && <button type="button" className="cw-link sp-rm spp-x" aria-label={`Take off: ${resultWords(r)}`} onClick={() => unsay(p, r.at)}>Take off</button>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {/* ITS PROBLEMS — what, and how each stands; the whole story
+                        is under "What happened" on the stage. */}
                     {probs.length > 0 && (
                       <ul className="spp-probs">
                         {probs.map(x => (
@@ -242,7 +252,13 @@ export function StageParts({ step, tt, can, onProblem, only }: {
                         ))}
                       </ul>
                     )}
-                  </>
+                    {can.edit && (
+                      <span className="sp-row-acts spp-panel-acts">
+                        {onProblem && <button type="button" className="btn btn-sm spp-prob" onClick={() => onProblem(p)}>Hit a problem</button>}
+                        {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove(p)}>Delete this {noun}</button>}
+                      </span>
+                    )}
+                  </div>
                 )}
               </li>
             );
@@ -268,7 +284,7 @@ export function StageParts({ step, tt, can, onProblem, only }: {
       )}
       {can.edit && <datalist id="spp-names">{names.map(n => <option key={n} value={n} />)}</datalist>}
       {!all.length && can.edit && <p className="sub spp-why">{prog
-        ? 'Each program this machine has to run — then say how each stands: baseline achieved, passed or failed.'
+        ? 'Each program this machine has to run — then tap one to say how it stands: baseline achieved, passed or failed.'
         : 'Planned work inside this stage. Not a problem — a problem is for what went wrong.'}</p>}
     </div>
   );
