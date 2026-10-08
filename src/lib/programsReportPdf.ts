@@ -12,7 +12,7 @@ import type { jsPDF } from 'jspdf';
 import type { ProgramLine, ProgramsReading, ProgTone } from './programsReport';
 import { san, OK, DANGER, BLUE } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
+import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', AMBER = '#8a5f14';
@@ -42,7 +42,9 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     return 6 + Math.max(p.head.length * 12 + p.who.length * 10, p.word.length * 11) + p.note.length * 11 + (p.earlier.length + p.proving.length) * 10 + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
-    if (o.machineLabels !== false) out.push(label(`${g.name} · ${g.lines.length} program${g.lines.length === 1 ? '' : 's'}`));
+    /* The machine's name as it is written — a capitalised label lost it to
+       anybody searching the paper for "Ilapak flow wrapper". */
+    if (o.machineLabels !== false) out.push({ ...text({ text: `${g.name} · ${g.lines.length} program${g.lines.length === 1 ? '' : 's'}`, size: 10, style: 'bold', colour: INK2, before: 4, after: 4 }), keepWithNext: true });
     out.push(rows({
       rows: g.lines.map(l => ({
         h: (f: Frame) => height(f, l),

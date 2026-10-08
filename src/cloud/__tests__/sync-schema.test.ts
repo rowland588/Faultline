@@ -20,7 +20,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { MAPS, SYNC_KINDS, type SyncKind } from '../mappers';
+import { MAPS, SYNC_KINDS } from '../mappers';
+import type { SyncKind } from '../../db';
 import { TEST_KINDS } from '../../lib/testing';
 
 const ROOT = join(__dirname, '..', '..', '..');

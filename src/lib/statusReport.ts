@@ -66,7 +66,10 @@ export interface StatusReport {
 /** What one page holds — enough to be the answer, few enough to be read.
  *  On a very busy job the drawing steps down these until the page is one
  *  (lib/clientReportPdf drawStatusReport); "and N more" says the rest. */
-export type StatusLimits = { why: number; next: number; runs: number; waiting: number };
+export type StatusLimits = { why: number; next: number; runs: number; waiting: number;
+  /** The programs' one line; dropped only on the last step, when nothing else
+   *  is left to shorten — Set up's tile still says how many have passed. */
+  programs?: boolean };
 /* The runs are a line per PRODUCT (a performance run is many products), so
    the page holds more of them than it held runs. */
 export const STATUS_LIMITS: StatusLimits = { why: 6, next: 6, runs: 6, waiting: 3 };
@@ -75,6 +78,7 @@ export const STATUS_STEPS: StatusLimits[] = [
   { why: 5, next: 5, runs: 4, waiting: 2 },
   { why: 4, next: 4, runs: 3, waiting: 1 },
   { why: 3, next: 3, runs: 2, waiting: 1 },
+  { why: 3, next: 3, runs: 2, waiting: 1, programs: false },
 ];
 
 export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): StatusReport {
@@ -119,6 +123,6 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
     next: next.slice(0, L.next), nextMore: Math.max(0, next.length - L.next),
     waiting: waiting.slice(0, L.waiting),
     runs: runs.slice(0, L.runs), runsMore: Math.max(0, runs.length - L.runs),
-    ...((p => (p ? { programs: p.says } : {}))(r.sections.find(s => s.gate === 'setup')?.programs)),
+    ...((p => (p && L.programs !== false ? { programs: p.says } : {}))(r.sections.find(s => s.gate === 'setup')?.programs)),
   };
 }
