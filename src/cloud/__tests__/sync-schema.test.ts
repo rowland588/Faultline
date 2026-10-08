@@ -20,7 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { MAPS, SYNC_KINDS } from '../mappers';
+import { MAPS, SYNC_KINDS, type SyncKind } from '../mappers';
 import { TEST_KINDS } from '../../lib/testing';
 
 const ROOT = join(__dirname, '..', '..', '..');
@@ -154,6 +154,34 @@ describe('every kind that carries files can upload them', () => {
     if (kind === 'workspaces' || kind === 'projects') continue;
     it(`${kind} is in faultline_can_see_media`, () => {
       expect(fn, `${kind} names media but storage would refuse its files — add it to faultline_can_see_media`).toMatch(new RegExp(`public\\.${kind}\\b`));
+    });
+  }
+});
+
+/* …AND EVERY COLUMN THAT NAMES A FILE IS ONE THE RULE LOOKS IN. Naming the
+ * table was not enough: snags were in the rule by their two old photo columns,
+ * and QUICK_SNAGS.sql gave them a list — snags.media — the rule never read. For
+ * a week every photo and clip taken with the Snag button was refused by the
+ * bucket while the snag's words synced (8 October, SNAG_MEDIA.sql). Read from
+ * the definition in force, not the first one in the folder. */
+const MEDIA_RULE_FILE = 'SNAG_MEDIA.sql';   // the definition in force: a newer one moves this here and in scripts/fake-cloud.mjs
+describe('every column that names a file is one the media rule looks in', () => {
+  const ruleSql = readFileSync(join(SQL_DIR, MEDIA_RULE_FILE), 'utf8');
+  const looks = new Map<string, Set<string>>();
+  for (const m of ruleSql.matchAll(/from public\.(\w+) where ([^']*)'/g)) {
+    looks.set(m[1], new Set([...m[2].matchAll(/(\w+)\s*(?:=|@>)/g)].map(c => c[1])));
+  }
+  const FILE_COL = /^(media|photos|docs|causes|[a-z_]*_key)$/;
+  it('reads the rule', () => { expect(looks.get('snags')?.has('media')).toBe(true); });
+  /* Only the kinds that carry files at all (their mapper's mediaKeys) — a
+     line_key names a line, not a file. */
+  const carries = (k: SyncKind) => !/^\(\)\s*=>\s*\[\]$/.test(MAPS[k].mediaKeys.toString().trim());
+  for (const kind of SYNC_KINDS.filter(carries)) {
+    const cols = [...writtenColumns(kind)].filter(c => FILE_COL.test(c));
+    if (!cols.length || kind === 'workspaces' || kind === 'projects') continue;
+    it(`${kind}: ${cols.join(', ')}`, () => {
+      const missing = cols.filter(c => !looks.get(kind)?.has(c));
+      expect(missing, `${kind} names files in ${missing.join(', ')} and the media rule does not look there — every such file is refused`).toEqual([]);
     });
   }
 });

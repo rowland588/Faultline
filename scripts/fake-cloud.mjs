@@ -30,7 +30,16 @@
  * check constraints, no column list — a column the live database lacks is
  * check-live-schema.mjs's business, not this. */
 import http from 'node:http';
+import { readFileSync } from 'node:fs';
 import crypto from 'node:crypto';
+
+/* THE MEDIA RULE IN FORCE — which table's which columns may name an uploaded
+   file (supabase/SNAG_MEDIA.sql; a newer definition moves this, and the one in
+   src/cloud/__tests__/sync-schema.test.ts). */
+const MEDIA_RULE_FILE = new URL('../supabase/SNAG_MEDIA.sql', import.meta.url);
+const MEDIA_RULE = [...readFileSync(MEDIA_RULE_FILE, 'utf8').matchAll(/from public\.(\w+) where ([^']*)'/g)]
+  .map(m => [m[1], [...m[2].matchAll(/(\w+)\s*(?:=|@>)/g)].map(c => c[1])]);
+
 
 export function startFakeCloud({ port = 54392, user } = {}) {
   const tables = new Map();          // table -> Map(id -> row)
@@ -148,12 +157,21 @@ export function startFakeCloud({ port = 54392, user } = {}) {
     return next;
   }
 
-  /* Does any row anywhere name this media key? (faultline_can_see_media). */
+  /* Does a row name this media key IN A COLUMN THE LIVE RULE LOOKS IN?
+     (faultline_can_see_media). It used to be any column of any row, which
+     passed snags whose photos sat in snags.media while the live rule looked
+     only at their two old photo columns — every Snag-button photo refused live
+     for a week, every scenario green here (8 October). Now the columns are
+     read from the definition in force, the same file the schema test reads. */
   function referenced(key) {
     const k = key.includes('/') ? key.split('/').pop() : key;
-    for (const m of tables.values()) for (const r of m.values()) {
-      if (r.deleted_at != null) continue;
-      if (JSON.stringify(r).includes(`"${k}"`)) return true;
+    for (const [t, cols] of MEDIA_RULE) {
+      const m = tables.get(t);
+      if (!m) continue;
+      for (const r of m.values()) {
+        if (r.deleted_at != null) continue;
+        if (cols.some(c => r[c] != null && (typeof r[c] === 'string' ? r[c] === k : JSON.stringify(r[c]).includes(`"${k}"`)))) return true;
+      }
     }
     return false;
   }
