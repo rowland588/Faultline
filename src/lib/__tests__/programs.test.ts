@@ -316,45 +316,53 @@ describe('a part\'s status, with what was seen', () => {
   const T = '2026-10-08';
   const P = (extra: Partial<TestItem> = {}): TestItem => ({ id: 'a', projectId: 'p', testId: 's1', kind: 'next', what: 'PR-12 Express 1.25 kg', sort: 1, createdAt: 1, updatedAt: 1, ...extra });
   const at = Date.parse(`${T}T10:00:00`);
-  it('keeps every status said, newest last; passed ticks it done, failed or baseline unticks it', async () => {
+  it('keeps every status said, newest last; each one is the part done on the day it was said', async () => {
+    /* Rowland, 8 October: "baseline achieved — well, yeah, equals done. Passed,
+       failed, it'll show the same, but it still got done on the date it got done." */
     const { saidResult, resultNow } = await import('../noted');
-    const b = saidResult(P({ doneAt: 5 }), 'baseline', '  Running 32 ppm at baseline  ', at);
-    expect(b.doneAt).toBeUndefined();
+    const b = saidResult(P(), 'baseline', '  Running 32 ppm at baseline  ', at);
+    expect(b.doneAt).toBe(at);
     expect(b.results).toEqual([{ is: 'baseline', on: T, note: 'Running 32 ppm at baseline', at }]);
     const f = saidResult(b, 'failed', '', at + 1);
     expect(f.results?.map(r => r.is)).toEqual(['baseline', 'failed']);
     expect(f.results?.[1].note).toBeUndefined();
-    expect(resultNow(f)?.is).toBe('failed');
+    expect([resultNow(f)?.is, f.doneAt]).toEqual(['failed', at + 1]);
     const ok = saidResult(f, 'passed', 'Ran 45 ppm for the hour', at + 2);
-    expect(ok.doneAt).toBe(at + 2);
-    expect(resultNow(ok)?.is).toBe('passed');
-    /* Unticked after a pass: the pass is taken back, nothing is claimed. */
-    expect(resultNow({ ...ok, doneAt: undefined })).toBeUndefined();
-    /* Ticked done after a failure: the failure is sorted — it reads done. */
-    expect(resultNow({ ...f, doneAt: at + 3 })).toBeUndefined();
+    expect([resultNow(ok)?.is, ok.doneAt]).toEqual(['passed', at + 2]);
+  });
+  it('reads each in words and its colour — done on its day, failed red though done', async () => {
+    const { saidResult, partStatus } = await import('../noted');
+    expect(partStatus(saidResult(P(), 'baseline', 'x', at), T)).toMatchObject({ word: 'baseline achieved — done 8 Oct', tone: 'g', bucket: 'baseline', done: true });
+    expect(partStatus(saidResult(P(), 'passed', 'x', at), T)).toMatchObject({ word: 'passed — done 8 Oct', tone: 'g', bucket: 'done', done: true });
+    expect(partStatus(saidResult(P(), 'failed', 'x', at), T)).toMatchObject({ word: 'failed — done 8 Oct', tone: 'r', bucket: 'failed', done: true });
+    /* No status: done by saying so, or late, due soon, booked, to do. */
+    expect(partStatus(P({ doneAt: at }), T)).toMatchObject({ word: 'done 8 Oct', tone: 'g', done: true });
+    expect(partStatus(P({ due: '2026-10-06' }), T)).toMatchObject({ word: 'late · was 6 Oct', tone: 'r', bucket: 'late' });
+    expect(partStatus(P({ due: '2026-10-09' }), T)).toMatchObject({ word: 'due soon', tone: 'a' });
+    expect(partStatus(P({ due: '2026-10-20' }), T)).toMatchObject({ word: 'by 20 Oct', tone: 'w' });
+    expect(partStatus(P(), T)).toMatchObject({ word: 'to do', tone: 'n', bucket: 'open' });
+    expect(partStatus(P(), T, 1)).toMatchObject({ word: 'a problem', tone: 'r' });
   });
   it('says it on paper, the commentary after it, and counts it on the square', async () => {
     const { partWords, partsSaid, saidResult } = await import('../noted');
     const b = saidResult(P(), 'baseline', 'Running 32 ppm', at);
-    expect(partWords(b, T)).toBe('PR-12 Express 1.25 kg — baseline achieved 8 Oct: Running 32 ppm');
+    expect(partWords(b, T)).toBe('PR-12 Express 1.25 kg — baseline achieved — done 8 Oct: Running 32 ppm');
     const f = saidResult(P({ id: 'b', owner: 'Ilapak UK' }), 'failed', 'Bag length short by 8 mm', at);
-    expect(partWords(f, T)).toBe('PR-12 Express 1.25 kg — Ilapak UK · failed 8 Oct: Bag length short by 8 mm');
+    expect(partWords(f, T)).toBe('PR-12 Express 1.25 kg — Ilapak UK · failed — done 8 Oct: Bag length short by 8 mm');
     const ok = saidResult(P({ id: 'c' }), 'passed', '', at);
-    expect(partWords(ok, T)).toBe('PR-12 Express 1.25 kg — passed 8 Oct');
-    /* Late and at its baseline: late leads, the baseline after it. */
-    expect(partWords({ ...b, due: '2026-10-06' }, T)).toBe('PR-12 Express 1.25 kg — late · was 6 Oct · baseline achieved 8 Oct: Running 32 ppm');
-    expect(partsSaid([b, f, ok], T)).toEqual({ text: '3 parts · 1 done · 1 at baseline · 1 failed', head: '3 parts · 1 done · 1 at baseline', late: 0, failed: 1 });
+    expect(partWords(ok, T)).toBe('PR-12 Express 1.25 kg — passed — done 8 Oct');
+    expect(partsSaid([b, f, ok, P({ id: 'd' })], T)).toEqual({ text: '4 parts · 3 done · 1 failed', head: '4 parts · 3 done', late: 0, failed: 1 });
   });
-  it('draws on the plan in its state: failed red, baseline under way, passed done', async () => {
+  it('draws on the plan in its state: failed red, baseline and passed done', async () => {
     const { saidResult } = await import('../noted');
     const { partOf, partsWords } = await import('../gantt');
     const f = partOf(saidResult(P(), 'failed', 'x', at), T);
     const b = partOf(saidResult(P({ due: '2026-10-20' }), 'baseline', 'x', at), T);
     const ok = partOf(saidResult(P(), 'passed', 'x', at), T);
-    expect([f.state, f.says]).toEqual(['failed', 'failed 8 Oct']);
-    expect([b.state, b.says]).toEqual(['baseline', 'baseline achieved 8 Oct']);
-    expect([ok.state, ok.says]).toEqual(['done', 'passed 8 Oct']);
-    expect(partsWords([f, b, ok])).toBe('3 parts · 1 done · 1 at baseline · 1 failed');
+    expect([f.state, f.says]).toEqual(['failed', 'failed — done 8 Oct']);
+    expect([b.state, b.says]).toEqual(['done', 'baseline achieved — done 8 Oct']);
+    expect([ok.state, ok.says]).toEqual(['done', 'passed — done 8 Oct']);
+    expect(partsWords([f, b, ok])).toBe('3 parts · 2 done · 1 failed');
   });
 });
 
@@ -380,12 +388,13 @@ describe('editing what was said about a part', () => {
     expect(moved.results?.map(r => r.is)).toEqual(['baseline', 'passed']);
     expect(moved.doneAt).toBe(at);
   });
-  it('takes one status off its history; taking back a pass makes it not done', async () => {
+  it('takes one status off its history: the one before stands, done on its day; none left is not done', async () => {
     const { withoutResult } = await import('../noted');
     const p = P({ doneAt: at, results: [{ is: 'baseline', on: '2026-10-07', at: yesterday }, { is: 'passed', on: T, at }] });
     const back = withoutResult(p, at);
     expect(back.results?.map(r => r.is)).toEqual(['baseline']);
-    expect(back.doneAt).toBeUndefined();
+    expect(back.doneAt).toBe(yesterday);
     expect(withoutResult(p, yesterday)).toMatchObject({ doneAt: at, results: [{ is: 'passed' }] });
+    expect(withoutResult(withoutResult(p, at), yesterday).doneAt).toBeUndefined();
   });
 });

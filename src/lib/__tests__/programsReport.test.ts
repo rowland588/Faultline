@@ -49,13 +49,13 @@ describe('the programs, machine by machine', () => {
   });
   it('says each one in words and its colour, with what was seen and what was said before', () => {
     const l = r?.lines ?? [];
-    expect(l[0]).toMatchObject({ word: 'baseline achieved 8 Oct', tone: 'w', bucket: 'baseline', note: 'Running 32 ppm at baseline',
+    expect(l[0]).toMatchObject({ word: 'baseline achieved — done 8 Oct', tone: 'g', bucket: 'baseline', note: 'Running 32 ppm at baseline',
       runs: 'Tesco Express 1.25 kg', who: 'Ilapak UK', earlier: ['failed 7 Oct — Seal jaws cold'] });
-    expect(l[1]).toMatchObject({ word: 'failed 8 Oct', tone: 'r', bucket: 'failed', note: 'Bag 8 mm short' });
+    expect(l[1]).toMatchObject({ word: 'failed — done 8 Oct', tone: 'r', bucket: 'failed', note: 'Bag 8 mm short' });
     expect(l[2]).toMatchObject({ word: 'proved 6 Oct', tone: 'g', bucket: 'done' });
-    expect(l[3]).toMatchObject({ word: 'passed 8 Oct', tone: 'g', bucket: 'done' });
+    expect(l[3]).toMatchObject({ word: 'passed — done 8 Oct', tone: 'g', bucket: 'done' });
     expect(l[4]).toMatchObject({ word: 'not written · no test yet', tone: 'n', bucket: 'open' });
-    expect(r?.says).toBe('5 programs · 2 passed · 1 at baseline · 1 failed · 1 to do');
+    expect(r?.says).toBe('5 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 1 to do');
   });
   it('is nothing when there are no programs at all', () => {
     expect(programsReading({ tests: [], items: [], assets, programs: [], today: T })).toBeUndefined();
@@ -65,10 +65,10 @@ describe('the programs, machine by machine', () => {
     const x = clientReport({ project, projects: [project], assets, tests, items, materials: [], programs, standards: [], today: T });
     const setup = x.sections.find(s => s.gate === 'setup');
     expect(setup?.programs?.total).toBe(5);
-    expect(setup?.says).toMatch(/2 of 5 programs passed/);
+    expect(setup?.says).toMatch(/4 of 5 programs done/);
     expect(JSON.stringify(setup?.accounts ?? [])).not.toContain('PR-12');
     expect(setup?.failed).toEqual(['Ilapak flow wrapper — Programs loaded — PR-04 Finest Red 2 kg: Bag 8 mm short']);
-    expect(statusReport(x).programs).toBe('5 programs · 2 passed · 1 at baseline · 1 failed · 1 to do');
+    expect(statusReport(x).programs).toBe('5 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 1 to do');
   });
 });
 
@@ -79,7 +79,7 @@ describe('proved, and what the floor said since', () => {
       items: [part('a', 's1', 'PR-04 Finest Red 2 kg', { results: [{ is: 'failed', on: T, note: 'Bag 8 mm short', at }] })],
       programs: [prog('p04', 'PR-04 Finest Red 2 kg', { assetId: 'w', state: 'proved', provedOn: '2026-10-07' })], today: T,
     });
-    expect(r?.lines[0]).toMatchObject({ word: 'failed 8 Oct', bucket: 'failed', proving: 'proved 7 Oct in Commission' });
+    expect(r?.lines[0]).toMatchObject({ word: 'failed — done 8 Oct', bucket: 'failed', proving: 'proved 7 Oct in Commission' });
   });
   it('and with proved when Commission proved it after the floor last spoke', () => {
     const r = programsReading({
@@ -87,6 +87,6 @@ describe('proved, and what the floor said since', () => {
       items: [part('a', 's1', 'PR-04 Finest Red 2 kg', { results: [{ is: 'baseline', on: '2026-10-06', note: '30 ppm', at }] })],
       programs: [prog('p04', 'PR-04 Finest Red 2 kg', { assetId: 'w', state: 'proved', provedOn: '2026-10-07' })], today: T,
     });
-    expect(r?.lines[0]).toMatchObject({ word: 'proved 7 Oct', bucket: 'done', note: '30 ppm', proving: 'on the floor: baseline achieved 6 Oct' });
+    expect(r?.lines[0]).toMatchObject({ word: 'proved 7 Oct', bucket: 'done', note: '30 ppm', proving: 'on the floor: baseline achieved — done 6 Oct' });
   });
 });

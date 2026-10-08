@@ -20,7 +20,7 @@ import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, 
 import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
 import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
-import { partsOf, resultNow, resultWords } from './noted';
+import { partStatus, partsOf } from './noted';
 import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import type { Program } from './programs';
@@ -112,13 +112,15 @@ export interface GanttPart {
 
 /** A part as the plan draws it — the same reading the stage's own list makes. */
 export function partOf(i: TestItem, today: string): Omit<GanttPart, 'at'> {
-  const soon = isoDay(new Date(Date.parse(`${today}T12:00:00Z`) + 2 * 86_400_000));
-  const r = resultNow(i);
-  const state: PartState = i.doneAt != null ? 'done' : r?.is === 'failed' ? 'failed' : i.due && i.due < today ? 'late'
-    : r ? 'baseline' : !i.due ? 'todo' : i.due <= soon ? 'soon' : 'booked';
-  const says = state === 'done' ? (r ? resultWords(r) : `done ${niceDay(isoDay(new Date(i.doneAt as number)))}`)
-    : (state === 'failed' || state === 'baseline') && r ? resultWords(r)
-    : state === 'late' ? `late — due ${niceDay(i.due)}` : state === 'todo' ? 'to do' : `due ${niceDay(i.due)}`;
+  /* The one rule (lib/noted partStatus), drawn: done green, failed red, late
+     red, due within two days amber, a day booked indigo, a status not yet
+     done indigo too, nothing grey. */
+  const st = partStatus(i, today, 0, 2);
+  const state: PartState = st.bucket === 'failed' ? 'failed' : st.done ? 'done' : st.bucket === 'late' ? 'late'
+    : st.said ? 'baseline' : st.tone === 'a' ? 'soon' : st.tone === 'w' ? 'booked' : 'todo';
+  /* A status in the one rule's words; a dated line in the calendar's own —
+     "late — due 4 Oct", "due 8 Oct" — as the plan has always said them. */
+  const says = st.said ? st.word : state === 'late' ? `late — due ${niceDay(i.due)}` : state === 'soon' || state === 'booked' ? `due ${niceDay(i.due)}` : st.word;
   return { id: i.id, label: i.what.trim() || 'A part', ...(i.owner ? { owner: i.owner } : {}), ...(i.due ? { due: i.due } : {}), state, says };
 }
 

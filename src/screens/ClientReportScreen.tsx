@@ -52,7 +52,7 @@ async function buildPrograms(r: ClientReport): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const reading = r.sections.find(s => s.gate === 'setup')?.programs;
   await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed,
-    reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, says: 'No programs yet' } });
+    reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, doneAll: 0, says: 'No programs yet' } });
   return doc;
 }
 

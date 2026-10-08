@@ -20,7 +20,7 @@
 import { live, type Asset, type Test, type TestItem } from './testing';
 import { STATE_WORD, inOrder, isProved, isProgramsStage, stateOf, type Program } from './programs';
 import { provingTestOf, testCell } from './commission';
-import { partLate, partsOf, resultNow, resultWords } from './noted';
+import { partStatus, partsOf, resultNow, resultWords } from './noted';
 import { niceDay, todayISO } from './weeks';
 
 /** The house colours: green done, red failed or late, indigo under way,
@@ -58,7 +58,10 @@ export interface ProgramsReading {
   /** The machines in the job's order, each with its programs. */
   machines: { name: string; lines: ProgramLine[] }[];
   total: number; done: number; baseline: number; failed: number; late: number; open: number;
-  /** "12 programs · 5 passed · 3 at baseline · 2 failed · 2 to do". */
+  /** Every program done — passed, at baseline or failed: each is the work
+   *  done on its day; the status says how it came out. */
+  doneAll: number;
+  /** "12 programs · 9 done — 5 passed, 3 at baseline, 1 failed · 3 to do". */
   says: string;
 }
 
@@ -77,15 +80,11 @@ function programWords(p: Program, tests: Test[], today: string): Pick<ProgramLin
   return { word: `${state} · no test yet`, tone: 'n', bucket: 'open' };
 }
 
-/** A part of a programs stage in words (lib/noted resultNow). */
+/** A part of a programs stage in words — the one rule (lib/noted
+ *  partStatus): a status is the program done on its day. */
 function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'tone' | 'bucket' | 'note'> {
-  const r = resultNow(i);
-  const note = r?.note ? { note: r.note } : {};
-  if (i.doneAt != null) return { word: r ? resultWords(r) : `done ${niceDay(todayISO(new Date(i.doneAt)))}`, tone: 'g', bucket: 'done', ...note };
-  if (r?.is === 'failed') return { word: resultWords(r), tone: 'r', bucket: 'failed', ...note };
-  if (partLate(i, today)) return { word: `late · was ${niceDay(i.due)}${r ? ` · ${resultWords(r)}` : ''}`, tone: 'r', bucket: 'late', ...note };
-  if (r) return { word: resultWords(r), tone: 'w', bucket: 'baseline', ...note };
-  return { word: i.due ? `by ${niceDay(i.due)}` : 'to do', tone: i.due ? 'w' : 'n', bucket: 'open' };
+  const st = partStatus(i, today, 0, 2);
+  return { word: st.word, tone: st.tone, bucket: st.bucket, ...(st.said?.note ? { note: st.said.note } : {}) };
 }
 
 export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; today?: string }): ProgramsReading | undefined {
@@ -140,10 +139,12 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   if (!lines.length) return undefined;
   const n = (b: ProgBucket) => lines.filter(l => l.bucket === b).length;
   const total = lines.length, done = n('done'), baseline = n('baseline'), failed = n('failed'), late = n('late'), open = n('open');
-  const says = [`${total} program${total === 1 ? '' : 's'}`, `${done} passed`, baseline ? `${baseline} at baseline` : '',
-    failed ? `${failed} failed` : '', late ? `${late} late` : '', open ? `${open} to do` : ''].filter(Boolean).join(' · ');
+  const doneAll = done + baseline + failed;
+  const how = [`${done} passed`, baseline ? `${baseline} at baseline` : '', failed ? `${failed} failed` : ''].filter(Boolean).join(', ');
+  const says = [`${total} program${total === 1 ? '' : 's'}`, `${doneAll} done${doneAll ? ` — ${how}` : ''}`,
+    late ? `${late} late` : '', open ? `${open} to do` : ''].filter(Boolean).join(' · ');
   return {
     lines, machines,
-    total, done, baseline, failed, late, open, says,
+    total, done, baseline, failed, late, open, doneAll, says,
   };
 }

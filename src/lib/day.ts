@@ -24,7 +24,7 @@ import type { MediaRef } from '../types';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
 import { isRunTest, readRuns, runsOpen, runsSay } from './run';
-import { RESULT_WORD, partLate, partOnStage, partsOnStages } from './noted';
+import { RESULT_WORD, partDone, partLate, partOnStage, partsOnStages } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 
 export interface DayInput {
@@ -259,9 +259,10 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
        passed is done, failed went wrong, baseline achieved is under way. */
     const said = (p.results ?? []).filter(r => r.on === date).pop();
     const saidText = said && `${text} — ${RESULT_WORD[said.is]}${said.note ? `: ${said.note}` : ''}.`;
+    /* A status is the work done that day — baseline achieved and passed are
+       done; failed was done and went wrong. */
     if (said && saidText && said.is === 'failed') wrong.push({ text: saidText, detail, tone: 'slipped', id: stage.id });
-    else if (said && saidText && said.is === 'baseline') going.push({ text: saidText, detail, tone: 'booked', id: stage.id });
-    else if (said && saidText && doneOn === date) done.push({ text: saidText, detail, tone: 'done', id: stage.id });
+    else if (said && saidText) done.push({ text: saidText, detail, tone: 'done', id: stage.id });
     else if (doneOn === date) done.push({ text: `${text}.`, detail, tone: 'done', id: stage.id });
     else if (p.due === date && !(doneOn && doneOn < date)) {
       if (past) wrong.push({ text: `${text} — was due and not done.`, detail, tone: 'slipped', id: stage.id });
@@ -492,7 +493,7 @@ function nextBooked(input: DayInput, date: string, today: string): { date: strin
   for (const a of live(input.assets)) if (!a.onSiteOn && within(a.dueOn)) dates.push(a.dueOn as string);
   for (const m of live(input.materials)) if (!isHere(m) && within(m.due)) dates.push(m.due as string);
   /* A part of a stage with a day, not done — under its stage's name. */
-  const parts = partsOnStages(input.tests, input.items).filter(x => x.part.doneAt == null && !!x.part.due);
+  const parts = partsOnStages(input.tests, input.items).filter(x => !partDone(x.part) && !!x.part.due);
   for (const { part } of parts) if (within(part.due)) dates.push(part.due as string);
   const next = dates.sort()[0];
   if (!next) return undefined;

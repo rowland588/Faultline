@@ -83,7 +83,7 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
     /* WHERE THE PROGRAMS ARE — a tile per state, the abnormal in its colour;
        a zero is grey (CLAUDE.md, visual management rule 3). */
     const tiles: { n: number; word: string; c: string }[] = [
-      { n: r.done, word: 'passed', c: OK }, { n: r.baseline, word: 'at baseline', c: BLUE },
+      { n: r.done, word: 'passed or done', c: OK }, { n: r.baseline, word: 'at baseline', c: OK },
       { n: r.failed, word: 'failed', c: DANGER }, { n: r.late, word: 'late', c: DANGER }, { n: r.open, word: 'to do', c: INK2 },
     ];
     out.push(box(() => 46 + gap(d, 'm'), (f, y) => {

@@ -65,9 +65,14 @@ export function partMoved(stepId: string, items: TestItem[], id: string, by: -1 
   return list.map((p, k) => ({ p, sort: k + 1 })).filter(x => x.p.sort !== x.sort).map(x => ({ ...x.p, sort: x.sort }));
 }
 
+/** DONE — ticked, or any status said on it (a status is the work done on its
+ *  day, whatever came of it). A status said before this rule kept no doneAt;
+ *  it is done all the same. */
+export const partDone = (i: TestItem): boolean => i.doneAt != null || !!i.results?.length;
+
 /** Past its day and not done — the one rule the drawer, the grid, the day,
  *  Needs you and the band all read. */
-export const partLate = (i: TestItem, today: string): boolean => i.doneAt == null && !!i.due && i.due < today;
+export const partLate = (i: TestItem, today: string): boolean => !partDone(i) && !!i.due && i.due < today;
 
 /* ITS STATUS, WITH WHAT WAS SEEN (TestItem.results). Rowland, 8 October: "in
    programs we need to show status of program, not just problem — pass, fail,
@@ -79,24 +84,55 @@ export const RESULT_WORD: Record<PartResultIs, string> = { baseline: 'baseline a
 /** The status said last on a part, if any. */
 export const lastResult = (p: TestItem): PartResult | undefined => (p.results?.length ? p.results[p.results.length - 1] : undefined);
 
-/** THE STATUS THE PART STANDS ON NOW — passed only while it is ticked done;
- *  failed or baseline achieved only while it is not (ticking it done after a
- *  failure is the failure sorted, and unticking a pass takes the pass back). */
-export function resultNow(p: TestItem): PartResult | undefined {
-  const r = lastResult(p);
-  if (!r) return undefined;
-  return (r.is === 'passed') === (p.doneAt != null) ? r : undefined;
-}
+/** The status a part stands on — the last one said. A status is the work
+ *  DONE, on the day it was said (Rowland, 8 October: "baseline achieved —
+ *  well, yeah, equals done. Passed, failed, it'll show the same, but it still
+ *  got done on the date it got done"); the status says how it came out. */
+export const resultNow = (p: TestItem): PartResult | undefined => lastResult(p);
 
-/** "baseline achieved 8 Oct" · "failed 8 Oct" · "passed 8 Oct". */
+/** "baseline achieved 8 Oct" · "failed 8 Oct" · "passed 8 Oct" — a status as
+ *  the history lists it. */
 export const resultWords = (r: PartResult): string => `${RESULT_WORD[r.is]} ${niceDay(r.on)}`;
 
-/** A status said on a part: its list grows by one. Passed ticks it done;
- *  failed or baseline achieved means it is not done yet. */
+/** A status said on a part: its list grows by one, and the part is done on
+ *  that day, whatever the outcome. */
 export function saidResult(p: TestItem, is: PartResultIs, note: string, now = Date.now()): TestItem {
   const said = note.trim();
   const r: PartResult = { is, on: dayOfMs(now), ...(said ? { note: said } : {}), at: now };
-  return { ...p, results: [...(p.results ?? []), r], doneAt: is === 'passed' ? p.doneAt ?? now : undefined };
+  return { ...p, results: [...(p.results ?? []), r], doneAt: now };
+}
+
+export type PartTone = 'g' | 'r' | 'w' | 'a' | 'n';
+/** What a part counts as: done (passed, or done with no status), at baseline
+ *  (done, baseline achieved), failed (done, and it failed), late, or still to
+ *  do. Done, at baseline and failed are all DONE. */
+export type PartBucket = 'done' | 'baseline' | 'failed' | 'late' | 'open';
+export interface PartStatus { word: string; tone: PartTone; bucket: PartBucket; done: boolean; said?: PartResult }
+
+/** HOW A PART STANDS — ONE RULE, read by its line (ui/StageParts), the plan
+ *  (lib/gantt), the programs (lib/programsReport), the paper (partWords) and
+ *  the counts (partsSaid), so none of them can say it differently.
+ *    a status   "baseline achieved — done 8 Oct" green · "passed — done 8 Oct"
+ *               green · "failed — done 8 Oct" red (a failure, though done)
+ *    no status  a problem open (red) · "done 6 Oct" green · "late · was 5 Oct"
+ *               red · "due soon" amber · "by 12 Oct" indigo · "to do" grey */
+export function partStatus(p: TestItem, today: string, openProblems = 0, soonDays = 3): PartStatus {
+  const r = lastResult(p);
+  const done = partDone(p);
+  if (r) {
+    const word = `${RESULT_WORD[r.is]} — done ${niceDay(r.on)}`;
+    if (r.is === 'failed') return { word, tone: 'r', bucket: 'failed', done, said: r };
+    return { word, tone: 'g', bucket: r.is === 'baseline' ? 'baseline' : 'done', done, said: r };
+  }
+  if (openProblems > 0 && !done) return { word: openProblems === 1 ? 'a problem' : `${openProblems} problems`, tone: 'r', bucket: 'late', done };
+  if (done) return { word: `done ${niceDay(dayOfMs(p.doneAt as number))}`, tone: 'g', bucket: 'done', done };
+  if (partLate(p, today)) return { word: `late · was ${niceDay(p.due)}`, tone: 'r', bucket: 'late', done };
+  if (p.due) {
+    const soon = new Date(Date.parse(`${today}T12:00:00Z`) + soonDays * 86_400_000).toISOString().slice(0, 10);
+    if (p.due <= soon) return { word: p.due === today ? 'due today' : 'due soon', tone: 'a', bucket: 'open', done };
+    return { word: `by ${niceDay(p.due)}`, tone: 'w', bucket: 'open', done };
+  }
+  return { word: 'to do', tone: 'n', bucket: 'open', done };
 }
 
 /* EDITING WHAT WAS SAID. Rowland, 8 October: "I don't have ability to edit
@@ -116,23 +152,19 @@ export function editedResult(p: TestItem, is: PartResultIs, note: string, now = 
     return { ...p, results: [...rest, { is: last.is, on: last.on, at: last.at, ...(said ? { note: said } : {}) }] };
   }
   if (last.on === dayOfMs(now)) {
-    return { ...p, results: [...rest, { is, on: last.on, at: now, ...(said ? { note: said } : {}) }],
-      doneAt: is === 'passed' ? p.doneAt ?? now : undefined };
+    return { ...p, results: [...rest, { is, on: last.on, at: now, ...(said ? { note: said } : {}) }], doneAt: p.doneAt ?? now };
   }
   return saidResult(p, is, said, now);
 }
 
 /** One status taken off its history (the owner's, as deleting always is).
- *  Taking off the one it stands on hands the part to the one before — a
- *  pass taken back is no longer done. */
+ *  Taking off the one it stands on hands the part to the one before, done on
+ *  that one's day; taking off the last of them leaves it not done. */
 export function withoutResult(p: TestItem, at: number): TestItem {
   const results = (p.results ?? []).filter(r => r.at !== at);
   const before = lastResult(p), after = results[results.length - 1];
-  const wasPass = before?.at === at && before.is === 'passed';
-  return {
-    ...p, results,
-    ...(after?.is === 'passed' ? { doneAt: p.doneAt ?? after.at } : wasPass ? { doneAt: undefined } : {}),
-  };
+  if (before?.at !== at) return { ...p, results };
+  return { ...p, results, doneAt: after ? after.at : undefined };
 }
 
 /** "Panels to run Express 1.25 kg — Ilapak UK · by 9 Oct" / "— done 6 Oct" /
@@ -140,12 +172,8 @@ export function withoutResult(p: TestItem, at: number): TestItem {
  *  ppm, film tracking to tune". For paper: the words the line says on the
  *  stage (ui/StageParts), its status's commentary after it. */
 export const partWords = (i: TestItem, today = todayISO()): string => {
-  const r = resultNow(i);
-  const state = r && r.is !== 'baseline' ? resultWords(r)
-    : i.doneAt != null ? `done ${niceDay(dayOfMs(i.doneAt))}`
-    : partLate(i, today) ? `late · was ${niceDay(i.due)}${r ? ` · ${resultWords(r)}` : ''}`
-    : r ? resultWords(r) : i.due ? `by ${niceDay(i.due)}` : 'to do';
-  return `${i.what} — ${[i.owner?.trim(), state].filter(Boolean).join(' · ')}${r?.note ? `: ${r.note}` : ''}`;
+  const st = partStatus(i, today);
+  return `${i.what} — ${[i.owner?.trim(), st.word].filter(Boolean).join(' · ')}${st.said?.note ? `: ${st.said.note}` : ''}`;
 };
 
 /** A STAGE'S PARTS IN A FEW WORDS — the branch mark on its square, its card
@@ -153,12 +181,11 @@ export const partWords = (i: TestItem, today = todayISO()): string => {
  *  or "· 1 late" when one is — the only numbers in it that carry a colour. */
 export function partsSaid(parts: TestItem[], today: string): { text: string; head: string; late: number; failed: number } | undefined {
   if (!parts.length) return undefined;
-  const done = parts.filter(p => p.doneAt != null).length;
+  const st = parts.map(p => partStatus(p, today));
+  const done = st.filter(x => x.done).length;
   const late = parts.filter(p => partLate(p, today)).length;
-  const now = parts.map(resultNow);
-  const failed = now.filter(r => r?.is === 'failed').length;
-  const baseline = now.filter(r => r?.is === 'baseline').length;
-  const head = `${parts.length} part${parts.length === 1 ? '' : 's'}${done ? ` · ${done} done` : ''}${baseline ? ` · ${baseline} at baseline` : ''}`;
+  const failed = st.filter(x => x.bucket === 'failed').length;
+  const head = `${parts.length} part${parts.length === 1 ? '' : 's'}${done ? ` · ${done} done` : ''}`;
   return { text: [head, failed ? `${failed} failed` : '', late ? `${late} late` : ''].filter(Boolean).join(' · '), head, late, failed };
 }
 
@@ -184,5 +211,5 @@ export function partsOnStages(tests: Test[], items: TestItem[]): { part: TestIte
  *  "What we're waiting on") and lib/portfolio jobItems (Needs you, the
  *  control room's week), so the counts and the rows cannot disagree. */
 export const owedParts = (tests: Test[], items: TestItem[]): { part: TestItem; stage: Test }[] =>
-  partsOnStages(tests, items).filter(x => !!x.part.due && x.part.doneAt == null);
+  partsOnStages(tests, items).filter(x => !!x.part.due && !partDone(x.part));
 

@@ -355,8 +355,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
   if (progs) {
     setup.programs = progs;
     setup.says = setup.says === 'Nothing kept at this gate yet'
-      ? `${progs.done} of ${progs.total} programs passed`
-      : `${setup.says} · ${progs.done} of ${progs.total} programs passed`;
+      ? `${progs.doneAll} of ${progs.total} programs done`
+      : `${setup.says} · ${progs.doneAll} of ${progs.total} programs done`;
   }
 
   const proofs = tests.filter(t => (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);

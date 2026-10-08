@@ -29,8 +29,8 @@ import { useState } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import { isProgramsStage } from '../lib/programs';
-import { RESULT_WORD, editedResult, lastResult, partLate, partMoved, partsOf, resultNow, resultWords, withoutResult } from '../lib/noted';
-import { addDays, niceDay, todayISO } from '../lib/weeks';
+import { RESULT_WORD, editedResult, lastResult, partMoved, partStatus, partsOf, resultNow, resultWords, withoutResult } from '../lib/noted';
+import { niceDay, todayISO } from '../lib/weeks';
 import { DUE_SOON_DAYS } from '../lib/actions';
 import { isWholeDate } from './DateInput';
 import { offerUndo } from './Undo';
@@ -41,22 +41,10 @@ import type { Can } from '../lib/access';
 type TT = ReturnType<typeof useTesting>;
 type Draft = { id: string; what: string; owner: string; due: string; is?: PartResultIs; note: string };
 
-/** How a part stands, in words and in one of the house colours. A problem
- *  written on it and not sorted is the louder fact, as it is on a stage; then
- *  its status when it has one (lib/noted resultNow) — passed green, failed
- *  red, baseline achieved indigo, under way. */
-function stateOf(p: TestItem, today: string, openProblems = 0): { word: string; tone: 'g' | 'r' | 'a' | 'w' | 'n' } {
-  if (openProblems > 0 && p.doneAt == null) return { word: openProblems === 1 ? 'a problem' : `${openProblems} problems`, tone: 'r' };
-  const r = resultNow(p);
-  if (p.doneAt != null) return { word: r ? resultWords(r) : `done ${niceDay(todayISO(new Date(p.doneAt)))}`, tone: 'g' };
-  if (r?.is === 'failed') return { word: resultWords(r), tone: 'r' };
-  if (partLate(p, today)) return { word: r ? `late · ${RESULT_WORD[r.is]}` : 'late', tone: 'r' };
-  if (r) return { word: resultWords(r), tone: 'w' };
-  if (p.due && p.due <= addDays(today, DUE_SOON_DAYS)) {
-    return { word: p.due === today ? 'due today' : p.due === addDays(today, 1) ? 'due tomorrow' : 'due soon', tone: 'a' };
-  }
-  return { word: 'to do', tone: 'n' };
-}
+/** How a part stands — lib/noted partStatus, the one rule the plan, the
+ *  programs and the reports read too. A status is the work done on its day:
+ *  "baseline achieved — done 8 Oct". */
+const stateOf = (p: TestItem, today: string, openProblems = 0) => partStatus(p, today, openProblems, DUE_SOON_DAYS);
 
 /** The three a part can be said to be — in the order work goes. */
 const RESULTS: PartResultIs[] = ['baseline', 'passed', 'failed'];
@@ -167,15 +155,16 @@ export function StageParts({ step, tt, can, onProblem, only }: {
         <ul className="spp-list">
           {parts.map((p, k) => {
             const probs = problemsOf(p);
-            const st = stateOf(p, today, probs.filter(x => x.doneAt == null).length);
+            const openProbs = probs.filter(x => x.doneAt == null).length;
+            const st = stateOf(p, today, openProbs);
             /* The status it stands on — said with what was seen under its name. */
             const said = resultNow(p);
             const history = (p.results ?? []).slice().reverse();
-            const meta = [p.owner?.trim(), p.due && p.doneAt == null ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
+            const meta = [p.owner?.trim(), p.due && !st.done ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
             const isOpen = open === p.id && !!draft;
             const last = lastResult(p);
             return (
-              <li key={p.id} className={'spp-row' + (p.doneAt != null ? ' is-done' : '') + (isOpen ? ' is-open' : '')}>
+              <li key={p.id} className={'spp-row' + (st.done ? ' is-done' : '') + (isOpen ? ' is-open' : '')}>
                 {can.edit && !only && parts.length > 1 && (
                   <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
                     <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => move(p, -1)}>▲</button>
@@ -193,6 +182,8 @@ export function StageParts({ step, tt, can, onProblem, only }: {
                   <span className="spp-top">
                     <span className="spp-name">{p.what}</span>
                     <span className={'spp-pill is-' + st.tone}>{st.word}</span>
+                    {/* A problem open on it is said even when its status is. */}
+                    {st.said && openProbs > 0 && <span className="spp-pill is-r">{openProbs === 1 ? 'a problem' : `${openProbs} problems`}</span>}
                   </span>
                   {meta && <span className="spp-meta">{meta}</span>}
                   {said?.note && <span className="spp-said">{said.note}</span>}
@@ -254,6 +245,10 @@ export function StageParts({ step, tt, can, onProblem, only }: {
                     )}
                     {can.edit && (
                       <span className="sp-row-acts spp-panel-acts">
+                        {/* A plain job with no status is done by saying so. */}
+                        {prog && !last && (p.doneAt == null
+                          ? <button type="button" className="btn btn-sm" onClick={() => toggle(p)}>Mark done</button>
+                          : <button type="button" className="cw-link" onClick={() => toggle(p)}>Not done</button>)}
                         {onProblem && <button type="button" className="btn btn-sm spp-prob" onClick={() => onProblem(p)}>Hit a problem</button>}
                         {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove(p)}>Delete this {noun}</button>}
                       </span>

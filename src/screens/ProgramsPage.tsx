@@ -40,10 +40,10 @@ import { navReplace } from '../state/useRoute';
 type Filter = 'all' | ProgBucket;
 const FILTERS: { key: Filter; word: string }[] = [
   { key: 'all', word: 'All' }, { key: 'failed', word: 'Failed' }, { key: 'late', word: 'Late' },
-  { key: 'baseline', word: 'At baseline' }, { key: 'open', word: 'To do' }, { key: 'done', word: 'Passed' },
+  { key: 'baseline', word: 'At baseline' }, { key: 'open', word: 'To do' }, { key: 'done', word: 'Passed or done' },
 ];
 /* Only the abnormal count wears colour; a zero is grey (CLAUDE.md). */
-const TILE_TONE: Record<ProgBucket, string> = { done: 'g', baseline: 'w', failed: 'r', late: 'r', open: 'n' };
+const TILE_TONE: Record<ProgBucket, string> = { done: 'g', baseline: 'g', failed: 'r', late: 'r', open: 'n' };
 
 export function ProgramsPage({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
@@ -134,12 +134,12 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
         const mine = lines.filter(l => (l.assetId ?? '') === m.id);
         /* On the Programs list only — no line on the stage yet. */
         const listOnly = mine.filter(l => !l.partId && keep(l));
-        const n = mine.length, done = mine.filter(l => l.bucket === 'done').length, bad = mine.filter(l => l.bucket === 'failed' || l.bucket === 'late').length;
+        const n = mine.length, done = mine.filter(l => l.bucket === 'done' || l.bucket === 'baseline' || l.bucket === 'failed').length, bad = mine.filter(l => l.bucket === 'failed' || l.bucket === 'late').length;
         return (
           <section key={m.id || 'line'} className="pp-m" aria-label={m.name}>
             <div className="pp-mh">
               <h2>{m.name}</h2>
-              <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} passed` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
+              <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {stage
               ? <StageParts step={stage} tt={tt} can={can} only={onlyKept}

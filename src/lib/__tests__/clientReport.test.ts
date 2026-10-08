@@ -69,7 +69,7 @@ describe('the stage-gate client report', () => {
   });
   it('Set up carries the programs; Commission the tests with their outcome', () => {
     expect(r.sections[1].programs).toMatchObject({ done: 1, total: 2 });
-    expect(r.sections[1].says).toMatch(/1 of 2 programs passed/);
+    expect(r.sections[1].says).toMatch(/1 of 2 programs done/);
     const c = r.sections[2];
     expect(c.says).toBe('1 of 2 passed · 1 didn’t pass');
     expect(c.tests?.map(t => t.tone)).toEqual(['failed', 'done']);
