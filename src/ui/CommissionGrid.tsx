@@ -234,9 +234,8 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
         </table>
       </div>
       )}
-      <p className="sub tw-note cg-key">
-        Tap a square to open its test · <b>+</b> adds that test to the machine
-      </p>
+      {/* No key saying where a tap goes (docs/DOORS.md): a square opens its
+          test, and an empty one's + is labelled "Add <test> to <machine>". */}
     </section>
   );
 }

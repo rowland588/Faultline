@@ -90,7 +90,7 @@ export function Evidence({ media, kind, onAdd, onView }: {
     <div className="tw-ev">
       <span className="tw-ev-h">
         <b>Evidence</b>
-        <span className="sub">{count || 'none yet'}</span>
+        {count && <span className="sub">{count}</span>}
       </span>
       {media.length > 0
         ? <div className="tw-ev-grid">

@@ -263,10 +263,12 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                           const rp = problemsOnRun(tt.items, test.id, pr.run.id);
                           return (
                             <div key={pr.run.id} className="spp-run-one">
-                              <p className="spp-run-row">
+                              {/* The run is its own door — it opens its test in the
+                                  drawer — not a row with "Open the run ›" beside it. */}
+                              <button type="button" className="sp-door spp-run-row" disabled={!onOpen} onClick={() => onOpen?.(test.id)}>
                                 <b className={'is-' + (pr.state === 'met' ? 'g' : pr.state === 'short' ? 'r' : 'w')}>{pr.word}</b>
                                 {' '}{pr.run.product}{f.agreed ? ` · agreed ${f.agreed}` : ''}{f.net !== '—' ? ` · netted ${f.net}` : ''}{pr.gap ? ` · ${pr.gap}` : ''}
-                              </p>
+                              </button>
                               {/* What was seen on the run, and its problems — the
                                   run's own, as the program's are above. */}
                               {pr.run.note && <p className="spp-run-row spp-run-note">{pr.run.note}</p>}
@@ -281,7 +283,6 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                                 </ul>
                               )}
                               <span className="spp-panel-acts">
-                                {onOpen && <button type="button" className="cw-link" onClick={() => onOpen(test.id)}>Open the run ›</button>}
                                 {can.edit && onRunProblem && <button type="button" className="cw-link spp-prob" onClick={() => onRunProblem(test.id, pr.run.id)}>Hit a problem on the run</button>}
                               </span>
                             </div>

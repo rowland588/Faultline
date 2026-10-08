@@ -414,7 +414,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         <div><dt>Who</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
         <div><dt>Changed</dt><dd>{lastMove
           ? <>moved {short(lastMove.from)} → {short(lastMove.to)}{lastMove.why ? `: ${lastMove.why}` : ''}{moves.length > 1 && <span className="sub"> · {moves.length - 1} earlier move{moves.length > 2 ? 's' : ''} below</span>}</>
-          : <span className="sub">not moved since it was planned</span>}</dd></div>
+          : <span className="sub">not moved</span>}</dd></div>
         {/* What was done, in its own words — written in Edit or said. */}
         {t.result?.trim() && <div><dt>{wordsOf(t).happened}</dt><dd className="rd-said">{t.result}</dd></div>}
       </dl>
@@ -460,7 +460,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             )}
             {/* A stage can hit more than one problem — the button stays. */}
             <button type="button" className="btn ig-bad" onClick={() => setProblem(true)}>
-              {t.outcome === 'failed' ? 'Another problem — write it up' : 'Hit a problem — write it up'}
+              {t.outcome === 'failed' ? 'Another problem' : 'Hit a problem'}
             </button>
             <button type="button" className="btn" onClick={() => setEditing(true)}>Edit</button>
             {(t.outcome !== 'planned' || !!t.ranOn) && (
@@ -561,18 +561,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
         onProblem={can.edit && kind === 'install' ? p => { setProblemPart(p); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
-      {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (
+      {/* WHAT HAPPENED — only when something has: "nothing has happened, it
+          is running to plan" said what the state above already says. */}
+      {storyLength(t.id, tt) > 0 && (
         <div className="rd-blk">
           <small>What happened</small>
-          <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} onOpenFix={onOpen} onOpenProblem={onOpen}
-            empty="Nothing has happened to this one yet — it is running to plan." />
-          {/* A fix for it planned on its own, on the Fixes page with this one
-              picked — a problem's own fix is "Make it a fix" on the problem. */}
-          {can.edit && kind !== 'fix' && (
-            <button type="button" className="cw-add" onClick={() => nav(`/project/${projectId}/fixes?for=${encodeURIComponent(t.id)}`)}>
-              <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a fix for this {kind === 'install' ? 'stage' : 'test'}
-            </button>
-          )}
+          <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} onOpenFix={onOpen} onOpenProblem={onOpen} />
         </div>
       )}
 
@@ -598,8 +592,15 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
               placeholder="Something to raise about this?" empty="Write it here so it isn’t forgotten at the next meeting." />
           </>
         )}
-        {can.edit && (docs.length === 0 || (!notes.length && !meeting)) && (
+        {can.edit && (kind !== 'fix' || docs.length === 0 || (!notes.length && !meeting)) && (
           <div className="tc-adds">
+            {/* A fix for it planned on its own, on the Fixes page with this one
+                picked — a problem's own fix is "Make it a fix" on the problem. */}
+            {kind !== 'fix' && (
+              <button type="button" className="cw-add" onClick={() => nav(`/project/${projectId}/fixes?for=${encodeURIComponent(t.id)}`)}>
+                <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a fix for this {kind === 'install' ? 'stage' : 'test'}
+              </button>
+            )}
             {docs.length === 0 && <RecordFiles test={t} tt={tt} can={can} />}
             {!notes.length && !meeting && (
               <button type="button" className="cw-add" onClick={() => setMeeting(true)}>
@@ -658,7 +659,8 @@ function OnTodaysPlan({ t, title, tt, can, today }: { t: Test; title: string; tt
   if (!lines.length && (!can.edit || t.outcome === 'passed')) return null;
   return (
     <div className="rd-blk dp-branch">
-      <small>On today’s plan</small>
+      {/* The heading heads lines; before there are any, the one button says it. */}
+      {lines.length > 0 && <small>On today’s plan</small>}
       {lines.map(i => (
         <label key={i.id} className="dp-tick">
           <input type="checkbox" checked={i.doneAt != null} disabled={!can.edit}

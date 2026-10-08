@@ -182,7 +182,6 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix, onOpe
           <b>{hoursWord(tally.hours)} lost</b> here to problems
           {tally.pushedDays ? ` · pushed the finish ${tally.pushedDays} day${tally.pushedDays === 1 ? '' : 's'}` : ''}
           {tally.banked > 0 ? ` · ${hoursWord(tally.banked)} towards the next day (${daysWord(tally.banked, day)})` : ''}
-          <span className="sub"> · a day here is {hoursWord(day)}</span>
         </p>
       )}
       <ol className="sp-list">

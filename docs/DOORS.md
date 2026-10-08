@@ -80,7 +80,11 @@ it, when flagged · book a fix. The same form edits it.
    Moving that harness onto the drawer, and then the page to the printable
    card only, is the work left.
 4. **The notes and "›" links** across every screen: the row is the door; notes
-   that restate go.
+   that restate go. Begun in the drawer: "write it up" off "Hit a problem",
+   "not moved since it was planned" → "not moved", no "What happened" heading
+   over "nothing has happened", no "none yet" on Evidence, no "a day here is
+   8 h", no heading over "Put it on today's plan", and a program's run is its
+   own door (no "Open the run ›" beside it). The other screens are next.
 
 Each slice says, for everything it removes, what it was for and where that now
 lives (CLAUDE.md, "Nothing is removed until we can say why it was there").
