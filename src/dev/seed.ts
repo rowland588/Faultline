@@ -362,6 +362,17 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     ],
   }));
   await putTestItem(item(programsLoaded.id, 'next', 'Back up the six programs to the site server', { owner: 'Dave', due: iso(-3), doneAt: t - 3 * day, sort: 2 }));
+  /* PROGRAMS WITH A STATUS AND WHAT WAS SEEN (lib/noted resultNow) — one at
+     its baseline after failing the day before, one failed. Rowland, 8
+     October: "status of program, not just problem — pass, fail, baseline
+     achieved ... status with commentary." */
+  await putTestItem(item(programsLoaded.id, 'next', 'PR-12 Express 1.25 kg', { owner: 'Ilapak UK', sort: 5, results: [
+    { is: 'failed', on: iso(-1), note: 'Seal jaws not reaching temperature — film creasing on every pack', at: t - day },
+    { is: 'baseline', on: iso(0), note: 'Running 32 ppm at baseline settings; film tracking still to tune', at: t },
+  ] }));
+  await putTestItem(item(programsLoaded.id, 'next', 'PR-04 Finest Red 2 kg', { owner: 'Ilapak UK', sort: 6, results: [
+    { is: 'failed', on: iso(0), note: 'Bag length short by 8 mm — the 2 kg will not close', at: t },
+  ] }));
   const regulator = fix({ title: 'Send the regulator', fromTestId: airDrop.id, assetId: weigher.id,
     withWhom: 'Ishida Europe', plannedFor: iso(1), passesIf: 'Regulator missing from the kit — running on a loan one' });
   await putTest(regulator);

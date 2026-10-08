@@ -16,11 +16,19 @@
  * amber, done green, to do plain. A part with a day is owed like anything
  * else: it is on Needs you, the control room's week and the day's story, and
  * its stage's square carries it as a branch (lib/noted owedParts, partsSaid).
- * The one-line add stays one line; the day and the who fold behind a link. */
+ * The one-line add stays one line; the day and the who fold behind a link.
+ *
+ * ITS STATUS, WITH WHAT WAS SEEN (8 October): "in programs we need to show
+ * status of program, not just problem — pass, fail, baseline achieved ... I
+ * need status with commentary." Status, beside Hit a problem: baseline
+ * achieved, passed or failed, and what was seen. The newest is said under the
+ * line in its colour; the ones before it fold behind "N earlier". Passed
+ * ticks it done. A failed one is on the gate's Needs you, the plan (screen
+ * and paper), the day, and both reports as "Didn't pass" (lib/noted). */
 import { useState } from 'react';
-import type { Test, TestItem } from '../lib/testing';
+import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
-import { partLate, partMoved, partsOf } from '../lib/noted';
+import { RESULT_WORD, partLate, partMoved, partsOf, resultNow, resultWords, saidResult } from '../lib/noted';
 import { addDays, niceDay, todayISO } from '../lib/weeks';
 import { DUE_SOON_DAYS } from '../lib/actions';
 import { isWholeDate } from './DateInput';
@@ -33,25 +41,34 @@ type TT = ReturnType<typeof useTesting>;
 type Draft = { id: string; what: string; owner: string; due: string };
 
 /** How a part stands, in words and in one of the house colours. A problem
- *  written on it and not sorted is the louder fact, as it is on a stage. */
-function stateOf(p: TestItem, today: string, openProblems = 0): { word: string; tone: 'g' | 'r' | 'a' | 'n' } {
+ *  written on it and not sorted is the louder fact, as it is on a stage; then
+ *  its status when it has one (lib/noted resultNow) — passed green, failed
+ *  red, baseline achieved indigo, under way. */
+function stateOf(p: TestItem, today: string, openProblems = 0): { word: string; tone: 'g' | 'r' | 'a' | 'w' | 'n' } {
   if (openProblems > 0 && p.doneAt == null) return { word: openProblems === 1 ? 'a problem' : `${openProblems} problems`, tone: 'r' };
-  if (p.doneAt != null) return { word: `done ${niceDay(todayISO(new Date(p.doneAt)))}`, tone: 'g' };
-  if (partLate(p, today)) return { word: 'late', tone: 'r' };
+  const r = resultNow(p);
+  if (p.doneAt != null) return { word: r ? resultWords(r) : `done ${niceDay(todayISO(new Date(p.doneAt)))}`, tone: 'g' };
+  if (r?.is === 'failed') return { word: resultWords(r), tone: 'r' };
+  if (partLate(p, today)) return { word: r ? `late · ${RESULT_WORD[r.is]}` : 'late', tone: 'r' };
+  if (r) return { word: resultWords(r), tone: 'w' };
   if (p.due && p.due <= addDays(today, DUE_SOON_DAYS)) {
     return { word: p.due === today ? 'due today' : p.due === addDays(today, 1) ? 'due tomorrow' : 'due soon', tone: 'a' };
   }
   return { word: 'to do', tone: 'n' };
 }
 
+/** The three a part can be said to be — in the order work goes. */
+const RESULTS: PartResultIs[] = ['baseline', 'passed', 'failed'];
+const RESULT_TONE: Record<PartResultIs, 'w' | 'g' | 'r'> = { baseline: 'w', passed: 'g', failed: 'r' };
+
 /** A STAGE'S PARTS AS A BRANCH OFF IT — on its square, its phone card row and
  *  beside its state in the drawer: "2 parts · 1 done", and "· 1 late" in red
  *  when one is. Only the abnormal number carries colour (CLAUDE.md). */
-export function PartsMark({ said, className }: { said?: { head: string; late: number }; className?: string }) {
+export function PartsMark({ said, className }: { said?: { head: string; late: number; failed?: number }; className?: string }) {
   if (!said) return null;
   return (
     <span className={'pt-mark' + (className ? ` ${className}` : '')}>
-      {said.head}{said.late > 0 && <> · <b className="pt-late">{said.late} late</b></>}
+      {said.head}{(said.failed ?? 0) > 0 && <> · <b className="pt-late">{said.failed} failed</b></>}{said.late > 0 && <> · <b className="pt-late">{said.late} late</b></>}
     </span>
   );
 }
@@ -75,6 +92,10 @@ export function StageParts({ step, tt, can, onProblem }: {
   const [by, setBy] = useState('');
   const [who, setWho] = useState('');
   const [editing, setEditing] = useState<Draft | null>(null);
+  /* SAY ITS STATUS — the part being said, what it is, and what was seen. */
+  const [stating, setStating] = useState<{ id: string; is?: PartResultIs; note: string } | null>(null);
+  /* The parts whose earlier statuses are open. */
+  const [story, setStory] = useState<Set<string>>(new Set());
   if (!parts.length && !can.edit) return null;
 
   /* Everyone named anywhere on the job, for the "who" box. */
@@ -107,6 +128,11 @@ export function StageParts({ step, tt, can, onProblem }: {
     setEditing(null);
   };
   const remove = async (p: TestItem) => offerUndo(`Took off “${p.what}”`, await deleteTestItem(p.id));
+  const state = (p: TestItem, is: PartResultIs, note: string) => {
+    void tt.saveItem(saidResult(p, is, note));
+    offerUndo(`“${p.what}” — ${RESULT_WORD[is]}`, () => tt.saveItem(p));
+    setStating(null);
+  };
   /* ▲ ▼ — the parts in the order the person wants them (lib/noted partMoved). */
   const move = (p: TestItem, by: -1 | 1) => { for (const x of partMoved(step.id, tt.items, p.id, by)) void tt.saveItem(x); };
 
@@ -120,6 +146,9 @@ export function StageParts({ step, tt, can, onProblem }: {
           {parts.map((p, k) => {
             const probs = problemsOf(p);
             const st = stateOf(p, today, probs.filter(x => x.doneAt == null).length);
+            /* The status it stands on, and every one said before, newest first. */
+            const said = resultNow(p);
+            const earlier = (p.results ?? []).filter(r => r !== said).slice().reverse();
             const meta = [p.owner?.trim(), p.due && p.doneAt == null ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
             return (
               <li key={p.id} className={'spp-row' + (p.doneAt != null ? ' is-done' : '')}>
@@ -147,14 +176,52 @@ export function StageParts({ step, tt, can, onProblem }: {
                       <input type="checkbox" checked={p.doneAt != null} disabled={!can.edit} onChange={() => toggle(p)} />
                       <span>{p.what}{meta && <span className="spp-meta"> — {meta}</span>}</span>
                     </label>
-                    <span className={'spp-state is-' + st.tone}>{st.word}</span>
+                    {/* The state beside the line — unless it is the status,
+                        which is said once, with its commentary, under it. */}
+                    {(!said || st.word !== resultWords(said)) && <span className={'spp-state is-' + st.tone}>{st.word}</span>}
+                    {/* ITS STATUS AND WHAT WAS SEEN under the line, and the ones
+                        said before it one tap away — newest first. */}
+                    {said && (
+                      <p className="spp-said"><b className={'is-' + RESULT_TONE[said.is]}>{resultWords(said)}</b>{said.note ? ` — ${said.note}` : ''}</p>
+                    )}
+                    {earlier.length > 0 && (
+                      <button type="button" className="cw-link spp-story" aria-expanded={story.has(p.id)}
+                        onClick={() => setStory(o => { const n = new Set(o); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; })}>
+                        {story.has(p.id) ? 'Hide' : `${earlier.length} earlier`}
+                      </button>
+                    )}
+                    {story.has(p.id) && (
+                      <ul className="spp-earlier">
+                        {earlier.map(r => (
+                          <li key={r.at}><b className={'is-' + RESULT_TONE[r.is]}>{resultWords(r)}</b>{r.note ? ` — ${r.note}` : ''}</li>
+                        ))}
+                      </ul>
+                    )}
                     {can.edit && (
                       <span className="sp-row-acts">
+                        <button type="button" className="cw-link spp-stat" onClick={() => setStating({ id: p.id, note: '' })}>Status</button>
                         {onProblem && <button type="button" className="cw-link spp-prob" onClick={() => onProblem(p)}>Hit a problem</button>}
                         <button type="button" className="cw-link" onClick={() => setEditing({ id: p.id, what: p.what, owner: p.owner ?? '', due: p.due ?? '' })}>Edit</button>
                         {/* Taking a line off is the owner's (lib/access) — the database keeps it for anyone else. */}
                         {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove(p)}>Delete</button>}
                       </span>
+                    )}
+                    {stating?.id === p.id && (
+                      <form className="spp-statf" onSubmit={e => { e.preventDefault(); if (stating.is) state(p, stating.is, stating.note); }}>
+                        <span className="spp-pick" role="group" aria-label={`How ${p.what} stands`}>
+                          {RESULTS.map(is => (
+                            <button key={is} type="button" className={'spp-opt is-' + RESULT_TONE[is] + (stating.is === is ? ' is-on' : '')}
+                              aria-pressed={stating.is === is} onClick={() => setStating({ ...stating, is })}>{RESULT_WORD[is][0].toUpperCase() + RESULT_WORD[is].slice(1)}</button>
+                          ))}
+                        </span>
+                        <textarea className="spp-note" rows={2} value={stating.note} aria-label="What you saw"
+                          placeholder="What you saw — e.g. Running 32 ppm at baseline settings, film tracking still to tune"
+                          onChange={e => setStating({ ...stating, note: e.target.value })} />
+                        <span className="spp-acts">
+                          <button type="submit" className="btn btn-sm btn-primary" disabled={!stating.is}>Save</button>
+                          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setStating(null)}>Cancel</button>
+                        </span>
+                      </form>
                     )}
                     {/* ITS PROBLEMS, as a branch under it — what, and how it
                         stands; the whole story is under "What happened". */}

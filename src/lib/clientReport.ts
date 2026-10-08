@@ -34,7 +34,7 @@ import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
-import { notedProblems, partsOf, partWords } from './noted';
+import { notedProblems, partsOf, partWords, resultNow } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 import type { WalkSnag } from './walkSnags';
 
@@ -59,6 +59,11 @@ export interface GateSection {
   /** The stages that hit a problem and lost no time — amber, said apart from
    *  what is late (Rowland, 6 October: never "late or a problem"). */
   problems: string[];
+  /** THE PARTS SAID TO HAVE FAILED — a program that did not pass, with what
+   *  was seen (lib/noted resultNow): "Filler — Programs loaded — Tesco Express
+   *  1.25 kg: seal temperature low". Red, its own list; never folded into
+   *  late or a problem. Absent when none has. */
+  failed?: string[];
   /** Install, Set up, Hand over: how each stage went, in the team's own words
    *  (the step's "What was done" — typed or said into "Say how it went"), for
    *  every step that has one, in the grid's order: machine, then stage. A step
@@ -296,6 +301,10 @@ export function clientReport(x: ClientReportInput): ClientReport {
       .filter(({ s, w }) => w?.which === 'late' || (!w && cellOf(s) === 'late'))
       .map(({ r, s, w }) => { const h = heldUpBy(s.step, tests, items, today, usual); return `${named(r, s)}${w?.lost ? ` — ${hoursWord(w.lost)} lost` : ''}${h ? ` — ${h.words}` : ''}`; });
     const problemSteps = all.filter(({ w }) => w?.which === 'problem').map(({ r, s }) => named(r, s));
+    const failedParts = all.flatMap(({ r, s }) => partsOf(s.step.id, items).flatMap(p => {
+      const said = resultNow(p);
+      return said?.is === 'failed' ? [`${named(r, s)} — ${p.what}${said.note ? `: ${said.note}` : ''}`] : [];
+    }));
     /* Rowland, 6 October: "2 hours here, 1 hour there, 5 hours here ... that
        was one day fully missed, or half a day." */
     const day = dayLength(project);
@@ -330,6 +339,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       grid: rows.length ? { columns: g.columns, rows } : undefined,
       late: lateSteps,
       problems: problemSteps,
+      ...(failedParts.length ? { failed: failedParts } : {}),
       ...(hourLines.length ? { hours: { total: `${hoursWord(lostAll)} lost to problems — ${daysWord(lostAll, day)} at ${hoursWord(day)} a day`, lines: hourLines } } : {}),
       ...(accounts.length ? { accounts } : {}),
     };

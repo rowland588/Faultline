@@ -11,7 +11,7 @@
  * nothing else pointed at it. These are those, open until somebody says it is
  * sorted (doneAt — the item's own "closed"), whatever the stage's state. No
  * new list: read off what is already kept. */
-import { live, type Asset, type Test, type TestItem } from './testing';
+import { live, type Asset, type PartResult, type PartResultIs, type Test, type TestItem } from './testing';
 import { niceDay, todayISO } from './weeks';
 
 export interface Noted {
@@ -69,24 +69,61 @@ export function partMoved(stepId: string, items: TestItem[], id: string, by: -1 
  *  Needs you and the band all read. */
 export const partLate = (i: TestItem, today: string): boolean => i.doneAt == null && !!i.due && i.due < today;
 
+/* ITS STATUS, WITH WHAT WAS SEEN (TestItem.results). Rowland, 8 October: "in
+   programs we need to show status of program, not just problem — pass, fail,
+   baseline achieved ... I need status with commentary." A problem is what
+   went wrong; a status is where the part has got to — both are kept. */
+
+export const RESULT_WORD: Record<PartResultIs, string> = { baseline: 'baseline achieved', passed: 'passed', failed: 'failed' };
+
+/** The status said last on a part, if any. */
+export const lastResult = (p: TestItem): PartResult | undefined => (p.results?.length ? p.results[p.results.length - 1] : undefined);
+
+/** THE STATUS THE PART STANDS ON NOW — passed only while it is ticked done;
+ *  failed or baseline achieved only while it is not (ticking it done after a
+ *  failure is the failure sorted, and unticking a pass takes the pass back). */
+export function resultNow(p: TestItem): PartResult | undefined {
+  const r = lastResult(p);
+  if (!r) return undefined;
+  return (r.is === 'passed') === (p.doneAt != null) ? r : undefined;
+}
+
+/** "baseline achieved 8 Oct" · "failed 8 Oct" · "passed 8 Oct". */
+export const resultWords = (r: PartResult): string => `${RESULT_WORD[r.is]} ${niceDay(r.on)}`;
+
+/** A status said on a part: its list grows by one. Passed ticks it done;
+ *  failed or baseline achieved means it is not done yet. */
+export function saidResult(p: TestItem, is: PartResultIs, note: string, now = Date.now()): TestItem {
+  const said = note.trim();
+  const r: PartResult = { is, on: dayOfMs(now), ...(said ? { note: said } : {}), at: now };
+  return { ...p, results: [...(p.results ?? []), r], doneAt: is === 'passed' ? p.doneAt ?? now : undefined };
+}
+
 /** "Panels to run Express 1.25 kg — Ilapak UK · by 9 Oct" / "— done 6 Oct" /
- *  "— late · was 5 Oct" / "— to do". For paper: the words the line says on
- *  the stage (ui/StageParts). */
+ *  "— late · was 5 Oct" / "— to do" / "— baseline achieved 8 Oct: running 32
+ *  ppm, film tracking to tune". For paper: the words the line says on the
+ *  stage (ui/StageParts), its status's commentary after it. */
 export const partWords = (i: TestItem, today = todayISO()): string => {
-  const state = i.doneAt != null ? `done ${niceDay(dayOfMs(i.doneAt))}`
-    : partLate(i, today) ? `late · was ${niceDay(i.due)}` : i.due ? `by ${niceDay(i.due)}` : 'to do';
-  return `${i.what} — ${[i.owner?.trim(), state].filter(Boolean).join(' · ')}`;
+  const r = resultNow(i);
+  const state = r && r.is !== 'baseline' ? resultWords(r)
+    : i.doneAt != null ? `done ${niceDay(dayOfMs(i.doneAt))}`
+    : partLate(i, today) ? `late · was ${niceDay(i.due)}${r ? ` · ${resultWords(r)}` : ''}`
+    : r ? resultWords(r) : i.due ? `by ${niceDay(i.due)}` : 'to do';
+  return `${i.what} — ${[i.owner?.trim(), state].filter(Boolean).join(' · ')}${r?.note ? `: ${r.note}` : ''}`;
 };
 
 /** A STAGE'S PARTS IN A FEW WORDS — the branch mark on its square, its card
- *  row and its drawer: "2 parts · 1 done", and "· 1 late" when one is, the
- *  only part of it that carries a colour. */
-export function partsSaid(parts: TestItem[], today: string): { text: string; head: string; late: number } | undefined {
+ *  row and its drawer: "2 parts · 1 done · 1 at baseline", and "· 1 failed"
+ *  or "· 1 late" when one is — the only numbers in it that carry a colour. */
+export function partsSaid(parts: TestItem[], today: string): { text: string; head: string; late: number; failed: number } | undefined {
   if (!parts.length) return undefined;
   const done = parts.filter(p => p.doneAt != null).length;
   const late = parts.filter(p => partLate(p, today)).length;
-  const head = `${parts.length} part${parts.length === 1 ? '' : 's'}${done ? ` · ${done} done` : ''}`;
-  return { text: late ? `${head} · ${late} late` : head, head, late };
+  const now = parts.map(resultNow);
+  const failed = now.filter(r => r?.is === 'failed').length;
+  const baseline = now.filter(r => r?.is === 'baseline').length;
+  const head = `${parts.length} part${parts.length === 1 ? '' : 's'}${done ? ` · ${done} done` : ''}${baseline ? ` · ${baseline} at baseline` : ''}`;
+  return { text: [head, failed ? `${failed} failed` : '', late ? `${late} late` : ''].filter(Boolean).join(' · '), head, late, failed };
 }
 
 /** "Programs loaded — first program to verify Tesco Express 1.25 packs

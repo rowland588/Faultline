@@ -280,6 +280,14 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'First program to verify Tesco Express 1.25 packs through the de-nester and the pick and place', owner: 'Ilapak UK', due: iso(2), sort: 1, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'Back up every program to the site server', owner: 'Dave', due: iso(-6), doneAt: t - 5 * 86_400_000, sort: 2, createdAt: t, updatedAt: t },
     { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'Agree the recipe naming with the planners', sort: 3, createdAt: t, updatedAt: t },
+    /* Programs with a status and what was seen — the commentary at its
+       longest, so its end has to reach the paper. */
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-12 Express 1.25 kg', owner: 'Ilapak UK', sort: 4, createdAt: t, updatedAt: t,
+      results: [{ is: 'baseline', on: iso(0), note: LONG[0], at: t }] },
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-04 Finest Red 2 kg', owner: 'Ilapak UK', sort: 5, createdAt: t, updatedAt: t,
+      results: [{ is: 'failed', on: iso(0), note: LONG[1], at: t }] },
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-07 Baking Potatoes 2 kg', sort: 6, createdAt: t, updatedAt: t, doneAt: t,
+      results: [{ is: 'passed', on: iso(0), note: 'Ran 45 ppm for the hour, no rejects', at: t }] },
   );
   for (const i of items) await putTestItem(i);
 

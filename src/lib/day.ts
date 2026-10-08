@@ -24,7 +24,7 @@ import type { MediaRef } from '../types';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
 import { isRunTest, readRuns, runsOpen, runsSay } from './run';
-import { partLate, partOnStage, partsOnStages } from './noted';
+import { RESULT_WORD, partLate, partOnStage, partsOnStages } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 
 export interface DayInput {
@@ -108,6 +108,8 @@ export function activeDays(input: DayInput): string[] {
   for (const i of live(input.items)) if (i.kind === 'today') add(i.due);
   /* A part of a stage ticked done (ui/StageParts) is something that happened. */
   for (const { part } of partsOnStages(input.tests, input.items)) if (part.doneAt != null) add(dayOfMs(part.doneAt));
+  /* …and so is its status said, with what was seen (lib/noted). */
+  for (const { part } of partsOnStages(input.tests, input.items)) for (const r of part.results ?? []) add(r.on);
   for (const a of live(input.assets)) { add(a.onSiteOn); add(a.installedOn); add(a.runningOn); }
   for (const m of live(input.materials)) add(m.inOn);
   for (const p of live(input.programs)) add(p.provedOn);
@@ -253,7 +255,14 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     const text = partOnStage(p, stage, where(stage));
     const detail = partDetail(p);
     const doneOn = p.doneAt != null ? dayOfMs(p.doneAt) : undefined;
-    if (doneOn === date) done.push({ text: `${text}.`, detail, tone: 'done', id: stage.id });
+    /* ITS STATUS SAID THAT DAY — the last one said on it, with what was seen:
+       passed is done, failed went wrong, baseline achieved is under way. */
+    const said = (p.results ?? []).filter(r => r.on === date).pop();
+    const saidText = said && `${text} — ${RESULT_WORD[said.is]}${said.note ? `: ${said.note}` : ''}.`;
+    if (said && saidText && said.is === 'failed') wrong.push({ text: saidText, detail, tone: 'slipped', id: stage.id });
+    else if (said && saidText && said.is === 'baseline') going.push({ text: saidText, detail, tone: 'booked', id: stage.id });
+    else if (said && saidText && doneOn === date) done.push({ text: saidText, detail, tone: 'done', id: stage.id });
+    else if (doneOn === date) done.push({ text: `${text}.`, detail, tone: 'done', id: stage.id });
     else if (p.due === date && !(doneOn && doneOn < date)) {
       if (past) wrong.push({ text: `${text} — was due and not done.`, detail, tone: 'slipped', id: stage.id });
       else booked.push({ text: `${text}.`, detail, tone: 'booked', id: stage.id });

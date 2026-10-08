@@ -10593,6 +10593,30 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .spp-open { font-size: var(--t-detail); flex-basis: 100%; text-align: left; }
 .spp-acts { display: inline-flex; gap: 8px; }
 .spp-why { margin: 6px 0 0; }
+/* ITS STATUS (lib/noted resultNow) — baseline achieved is under way, indigo;
+   passed green; failed red. Its commentary under the line, in the team's own
+   words; the statuses said before it fold behind "N earlier". */
+.spp-state.is-w { color: var(--st-w); font-weight: 700; }
+/* Under the line, starting where its words start (after the tick, and the
+   ▲ ▼ when there are). */
+.spp-said, .spp-story, .spp-earlier { flex-basis: 100%; margin: 0 0 0 26px; box-sizing: border-box; font-size: var(--t-detail); }
+.pg-move.is-inline ~ .spp-said, .pg-move.is-inline ~ .spp-story, .pg-move.is-inline ~ .spp-earlier { margin-left: 96px; }
+.spp-said { color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.spp-story { text-align: left; }
+.spp-earlier { list-style: none; padding: 0; display: grid; gap: 2px; color: var(--ink-2); overflow-wrap: anywhere; }
+.spp-said b, .spp-earlier b { font-weight: 700; }
+.spp-said b.is-g, .spp-earlier b.is-g { color: var(--st-g); }
+.spp-said b.is-r, .spp-earlier b.is-r { color: var(--st-r); }
+.spp-said b.is-w, .spp-earlier b.is-w { color: var(--st-w); }
+.spp-statf { flex-basis: 100%; display: grid; gap: 8px; margin: 4px 0 2px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2, var(--surface)); }
+.spp-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.spp-opt { all: unset; cursor: pointer; padding: 7px 12px; border: 1.5px solid var(--line); border-radius: 999px; font-size: var(--t-detail); font-weight: 700; color: var(--ink); background: var(--surface); }
+.spp-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* The one picked wears its state's colour — it IS that state. */
+.spp-opt.is-on.is-w { border-color: var(--st-w); color: var(--st-w); background: color-mix(in srgb, var(--st-w) 12%, var(--surface)); }
+.spp-opt.is-on.is-g { border-color: var(--st-g); color: var(--st-g); background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); }
+.spp-opt.is-on.is-r { border-color: var(--st-r); color: #fff; background: var(--st-r); }
+.spp-note { min-height: 56px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: var(--t-body); background: var(--surface); color: var(--ink); resize: vertical; box-sizing: border-box; width: 100%; }
 
 /* A STAGE'S PARTS, AS A BRANCH OFF IT (lib/noted partsSaid) — the corner of
    a branch line, then "2 parts · 1 done" in neutral ink; red, with "late" in
@@ -10714,6 +10738,10 @@ button.gt-fixlab small { font-size: 11.5px; }
 .gt-part.is-done { border-color: color-mix(in srgb, var(--st-g) 60%, transparent); background: color-mix(in srgb, var(--st-g) 22%, var(--surface)); }
 .gt-part.is-late { border: 3px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 16%, var(--surface)); }
 .gt-part.is-soon { border-color: var(--st-a); background: color-mix(in srgb, var(--st-a) 22%, var(--surface)); }
+/* Its status: failed solid red; baseline achieved under way, indigo. */
+.gt-part.is-failed { border: 3px solid var(--st-r); background: var(--st-r); }
+.gt-part.is-baseline { border-color: var(--st-w); background: color-mix(in srgb, var(--st-w) 18%, var(--surface)); }
+.gt-part-says.is-failed { color: var(--st-r); }
 .gt-part:hover, .gt-part:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent); outline: none; }
 .gt.is-stacked .gt-part { top: 7px; }
 .gt-k-part { display: inline-block; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--st-w); background: color-mix(in srgb, var(--st-w) 18%, var(--surface)); }

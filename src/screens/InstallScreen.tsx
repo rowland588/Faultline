@@ -34,6 +34,7 @@ import { nav } from '../state/useRoute';
 import { InstallGrid, stageWord } from '../ui/InstallGrid';
 import { openRecord } from '../ui/RecordDrawer';
 import { todayISO } from '../lib/weeks';
+import { partsOf, resultNow } from '../lib/noted';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { GATE_WORD, installGrid, installOf, usualStages } from '../lib/install';
@@ -153,10 +154,17 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         const needs = grid.rows.flatMap(r => r.cells.filter((c): c is NonNullable<typeof c> => !!c && (c.tone === 'problem' || c.tone === 'late' || (c.late && c.tone !== 'done')))
           .map(c => ({ c, machine: r.asset?.name ?? 'The line' })))
           .sort((a, b) => Number(b.c.tone === 'problem') - Number(a.c.tone === 'problem'));
+        /* A PART SAID TO HAVE FAILED — a program that did not pass (lib/noted
+           resultNow), a branch of its stage: it opens the stage. */
+        const failed = grid.rows.flatMap(r => r.cells.flatMap(c => (!c ? [] : partsOf(c.step.id, tt.items).flatMap(p => {
+          const said = resultNow(p);
+          return said?.is === 'failed' ? [{ c, p, note: said.note, machine: r.asset?.name ?? 'The line' }] : [];
+        }))));
+        const n = needs.length + failed.length;
         return (
           <section className="cmp-sec cg-needs" aria-label="Needs you">
-            <div className="cw-sec-h"><h2 className="cmp-h">Needs you</h2>{needs.length > 0 && <span className="cmp-h-n">{needs.length}</span>}</div>
-            {needs.length === 0
+            <div className="cw-sec-h"><h2 className="cmp-h">Needs you</h2>{n > 0 && <span className="cmp-h-n">{n}</span>}</div>
+            {n === 0
               ? <p className="sub tw-note">Nothing — no stage is late or stuck on a problem.</p>
               : (
                 <ul className="nd-list">
@@ -165,6 +173,15 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                       <button type="button" className="nd-main" onClick={() => openRecord(projectId, c.step.id)}>
                         <span className={'nd-tag is-' + (c.tone === 'problem' ? 'failed' : 'late')}>{stageWord(c)}</span>
                         <b>{machine} — {c.step.title}</b>
+                      </button>
+                    </li>
+                  ))}
+                  {failed.map(({ c, p, note, machine }) => (
+                    <li key={p.id} className="nd-row is-failed">
+                      <button type="button" className="nd-main" onClick={() => openRecord(projectId, c.step.id)}>
+                        <span className="nd-tag is-failed">Failed</span>
+                        <b>{machine} — {c.step.title} — {p.what}</b>
+                        {note && <span className="sub">{note}</span>}
                       </button>
                     </li>
                   ))}

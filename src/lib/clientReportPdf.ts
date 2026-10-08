@@ -293,7 +293,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      printed a heading per gate, each saying "nothing kept" — three of a
      page's sections telling the client nothing. They are named together. */
   const said2 = (s: ClientReport['sections'][number]) =>
-    !!(s.grid?.rows.length || s.late.length || s.problems.length || s.accounts?.length || s.programs?.total || s.tests?.length);
+    !!(s.grid?.rows.length || s.late.length || s.problems.length || s.failed?.length || s.accounts?.length || s.programs?.total || s.tests?.length);
   const quiet = r.sections.filter(s => !said2(s));
   for (const s of r.sections.filter(said2)) {
     out.push(heading(s.label, s.says));
@@ -345,6 +345,12 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     if (s.late.length && s.gate !== 'commission') {
       out.push(text({ text: 'Late', size: S.small, style: 'bold', colour: DANGER, after: 3 }));
       s.late.forEach((l, i) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === s.late.length - 1 ? gap(d, 's') : 1 })));
+    }
+    /* What was said to have FAILED (a part's status, lib/noted resultNow) —
+       red, with what was seen. */
+    if (s.failed?.length) {
+      out.push(text({ text: 'Didn’t pass', size: S.small, style: 'bold', colour: DANGER, after: 3 }));
+      s.failed.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
     }
     if (s.problems.length) {
       out.push(text({ text: 'A problem — no time lost', size: S.small, style: 'bold', colour: AMBER, after: 3 }));

@@ -86,6 +86,9 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
     ...r.sections.flatMap(s => s.late.map((l): StatusWhy => (s.gate === 'commission'
       ? { kind: 'failed', tag: 'DIDN’T PASS', what: l }
       : { kind: 'late', tag: 'LATE', what: l }))),
+    /* A part said to have failed — a program that did not pass, and what
+       was seen (lib/clientReport GateSection.failed). */
+    ...r.sections.flatMap(s => (s.failed ?? []).map((l): StatusWhy => ({ kind: 'failed', tag: 'DIDN’T PASS', what: l }))),
     ...r.sections.flatMap(s => s.problems.map((l): StatusWhy => ({ kind: 'problem', tag: 'PROBLEM', what: l }))),
   ];
   /* Late first, then soonest due — the order somebody acts in. */

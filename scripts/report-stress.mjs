@@ -201,17 +201,21 @@ for (const size of SIZES) {
     from = 'gates'; for (const g of r.gates) add('client', g.label, g.says);
     from = 'machines'; for (const mc of r.machines) add('client', mc.name, mc.at);
     for (const s2 of r.sections) {
-      const said = s2.grid?.rows.length || s2.late.length || s2.problems.length || s2.accounts?.length || s2.programs?.total || s2.tests?.length;
+      const said = s2.grid?.rows.length || s2.late.length || s2.problems.length || s2.failed?.length || s2.accounts?.length || s2.programs?.total || s2.tests?.length;
       if (!said) continue;
       from = `section ${s2.gate}`; add('client', s2.label, s2.says);
       for (const row of s2.grid?.rows ?? []) add('client', row.machine);
       /* Late, and a problem that lost no time — two lists (lib/install lateOrProblem). */
       if (s2.gate !== 'commission') add('client', ...s2.late, ...s2.problems);
+      /* What was said to have failed — a part's status, with what was seen. */
+      from = `section ${s2.gate} didn't pass`; add('client', ...(s2.failed ?? []));
       for (const pr of s2.programs?.notYet ?? []) add('client', pr.what);
       /* How each stage went: every account whole — to its last word — with
          the step it is about, its day and its state. */
       from = `section ${s2.gate} account`; for (const a of s2.accounts ?? []) add('client', a.machine, a.stage, a.when, a.state, a.said);
       from = `section ${s2.gate} account, its end`; for (const a of s2.accounts ?? []) if (a.said.length > 120) add('client', a.said.slice(-60));
+      /* Its parts — each to its last word, a status's commentary included. */
+      from = `section ${s2.gate} account, a part`; for (const a of s2.accounts ?? []) add('client', ...(a.parts ?? []));
       from = `section ${s2.gate} test`; for (const t of s2.tests ?? []) add('client', t.title, t.passesIf, t.result, t.outcome);
       /* The performance runs: every product, its figures and its verdict (lib/run). */
       from = `section ${s2.gate} performance run`; for (const rr of s2.runs ?? []) add('client', rr.product, rr.net, rr.rejects, rr.outcome, rr.say);

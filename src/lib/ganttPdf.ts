@@ -81,6 +81,9 @@ const PART: Record<PartState, { fill: string; stroke: string; words: string }> =
   done: { fill: '#e3f0e9', stroke: OK, words: MUTED }, late: { fill: '#f8ecea', stroke: DANGER, words: DANGER },
   soon: { fill: '#f7eedb', stroke: AMBER, words: AMBER }, booked: { fill: '#e6e4f6', stroke: BOOKED, words: MUTED },
   todo: { fill: SURF2, stroke: MUTED, words: MUTED },
+  /* Its status (lib/noted resultNow): failed is a failure, solid red;
+     baseline achieved is under way, indigo, its words quiet. */
+  failed: { fill: DANGER, stroke: DANGER, words: DANGER }, baseline: { fill: '#e6e4f6', stroke: BOOKED, words: MUTED },
 };
 /* A reminder's state, in the words the screen uses. */
 const noteSays = (t: GanttTone) => (t === 'done' ? 'talked about' : t === 'late' ? 'the day has gone' : 'to come');
@@ -475,11 +478,11 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         doc.setDrawColor(LINE); doc.setLineWidth(0.4); doc.line(M, y + RH, PW - M, y + RH);
         const pl = partLabel(pt, l.nest);
         font(6.5, 'bold', INK2); doc.text(pl, px0, y + 7.5 * k, { lineHeightFactor: 7.5 * k / 6.5 });
-        font(5.5, pt.state === 'late' || pt.state === 'soon' ? 'bold' : 'normal', pc.words);
+        font(5.5, pt.state === 'late' || pt.state === 'soon' || pt.state === 'failed' ? 'bold' : 'normal', pc.words);
         doc.text(san(pt.says), px0, y + (7.5 + pl.length * 7.5 - 1.5) * k);
         if (pt.at != null) {
           const cx = X(pt.at + 0.5), cy = y + RH / 2;
-          doc.setDrawColor(pc.stroke); doc.setFillColor(pc.fill); doc.setLineWidth(pt.state === 'late' ? 1.1 : 0.8);
+          doc.setDrawColor(pc.stroke); doc.setFillColor(pc.fill); doc.setLineWidth(pt.state === 'late' || pt.state === 'failed' ? 1.1 : 0.8);
           doc.circle(cx, cy, 3, 'FD');
           font(5.5, 'bold', INK2);
           const tw = doc.getTextWidth(san(pt.says));

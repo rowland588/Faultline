@@ -311,3 +311,49 @@ describe('a stage\'s parts in the order the person sets', () => {
     expect(partsOf('s1', flat.map(r => partMoved('s1', flat, 'b', -1).find(u => u.id === r.id) ?? r)).map(p => p.id)).toEqual(['b', 'a']);
   });
 });
+
+describe('a part\'s status, with what was seen', () => {
+  const T = '2026-10-08';
+  const P = (extra: Partial<TestItem> = {}): TestItem => ({ id: 'a', projectId: 'p', testId: 's1', kind: 'next', what: 'PR-12 Express 1.25 kg', sort: 1, createdAt: 1, updatedAt: 1, ...extra });
+  const at = Date.parse(`${T}T10:00:00`);
+  it('keeps every status said, newest last; passed ticks it done, failed or baseline unticks it', async () => {
+    const { saidResult, resultNow } = await import('../noted');
+    const b = saidResult(P({ doneAt: 5 }), 'baseline', '  Running 32 ppm at baseline  ', at);
+    expect(b.doneAt).toBeUndefined();
+    expect(b.results).toEqual([{ is: 'baseline', on: T, note: 'Running 32 ppm at baseline', at }]);
+    const f = saidResult(b, 'failed', '', at + 1);
+    expect(f.results?.map(r => r.is)).toEqual(['baseline', 'failed']);
+    expect(f.results?.[1].note).toBeUndefined();
+    expect(resultNow(f)?.is).toBe('failed');
+    const ok = saidResult(f, 'passed', 'Ran 45 ppm for the hour', at + 2);
+    expect(ok.doneAt).toBe(at + 2);
+    expect(resultNow(ok)?.is).toBe('passed');
+    /* Unticked after a pass: the pass is taken back, nothing is claimed. */
+    expect(resultNow({ ...ok, doneAt: undefined })).toBeUndefined();
+    /* Ticked done after a failure: the failure is sorted — it reads done. */
+    expect(resultNow({ ...f, doneAt: at + 3 })).toBeUndefined();
+  });
+  it('says it on paper, the commentary after it, and counts it on the square', async () => {
+    const { partWords, partsSaid, saidResult } = await import('../noted');
+    const b = saidResult(P(), 'baseline', 'Running 32 ppm', at);
+    expect(partWords(b, T)).toBe('PR-12 Express 1.25 kg — baseline achieved 8 Oct: Running 32 ppm');
+    const f = saidResult(P({ id: 'b', owner: 'Ilapak UK' }), 'failed', 'Bag length short by 8 mm', at);
+    expect(partWords(f, T)).toBe('PR-12 Express 1.25 kg — Ilapak UK · failed 8 Oct: Bag length short by 8 mm');
+    const ok = saidResult(P({ id: 'c' }), 'passed', '', at);
+    expect(partWords(ok, T)).toBe('PR-12 Express 1.25 kg — passed 8 Oct');
+    /* Late and at its baseline: late leads, the baseline after it. */
+    expect(partWords({ ...b, due: '2026-10-06' }, T)).toBe('PR-12 Express 1.25 kg — late · was 6 Oct · baseline achieved 8 Oct: Running 32 ppm');
+    expect(partsSaid([b, f, ok], T)).toEqual({ text: '3 parts · 1 done · 1 at baseline · 1 failed', head: '3 parts · 1 done · 1 at baseline', late: 0, failed: 1 });
+  });
+  it('draws on the plan in its state: failed red, baseline under way, passed done', async () => {
+    const { saidResult } = await import('../noted');
+    const { partOf, partsWords } = await import('../gantt');
+    const f = partOf(saidResult(P(), 'failed', 'x', at), T);
+    const b = partOf(saidResult(P({ due: '2026-10-20' }), 'baseline', 'x', at), T);
+    const ok = partOf(saidResult(P(), 'passed', 'x', at), T);
+    expect([f.state, f.says]).toEqual(['failed', 'failed 8 Oct']);
+    expect([b.state, b.says]).toEqual(['baseline', 'baseline achieved 8 Oct']);
+    expect([ok.state, ok.says]).toEqual(['done', 'passed 8 Oct']);
+    expect(partsWords([f, b, ok])).toBe('3 parts · 1 done · 1 at baseline · 1 failed');
+  });
+});

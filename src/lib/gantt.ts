@@ -20,7 +20,7 @@ import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, 
 import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
 import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
-import { partsOf } from './noted';
+import { partsOf, resultNow, resultWords } from './noted';
 import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 import type { Program } from './programs';
@@ -95,8 +95,9 @@ export interface GanttRow {
 }
 
 /** A part's state: done, past its day, due within two days, booked on a day
- *  further off, or written with no day. */
-export type PartState = 'done' | 'late' | 'soon' | 'booked' | 'todo';
+ *  further off, or written with no day — and, when its status says so
+ *  (lib/noted resultNow), failed, or baseline achieved (under way). */
+export type PartState = 'done' | 'failed' | 'late' | 'baseline' | 'soon' | 'booked' | 'todo';
 export interface GanttPart {
   id: string;
   label: string;
@@ -112,8 +113,11 @@ export interface GanttPart {
 /** A part as the plan draws it — the same reading the stage's own list makes. */
 export function partOf(i: TestItem, today: string): Omit<GanttPart, 'at'> {
   const soon = isoDay(new Date(Date.parse(`${today}T12:00:00Z`) + 2 * 86_400_000));
-  const state: PartState = i.doneAt != null ? 'done' : !i.due ? 'todo' : i.due < today ? 'late' : i.due <= soon ? 'soon' : 'booked';
-  const says = state === 'done' ? `done ${niceDay(isoDay(new Date(i.doneAt as number)))}`
+  const r = resultNow(i);
+  const state: PartState = i.doneAt != null ? 'done' : r?.is === 'failed' ? 'failed' : i.due && i.due < today ? 'late'
+    : r ? 'baseline' : !i.due ? 'todo' : i.due <= soon ? 'soon' : 'booked';
+  const says = state === 'done' ? (r ? resultWords(r) : `done ${niceDay(isoDay(new Date(i.doneAt as number)))}`)
+    : (state === 'failed' || state === 'baseline') && r ? resultWords(r)
     : state === 'late' ? `late — due ${niceDay(i.due)}` : state === 'todo' ? 'to do' : `due ${niceDay(i.due)}`;
   return { id: i.id, label: i.what.trim() || 'A part', ...(i.owner ? { owner: i.owner } : {}), ...(i.due ? { due: i.due } : {}), state, says };
 }
@@ -121,7 +125,8 @@ export function partOf(i: TestItem, today: string): Omit<GanttPart, 'at'> {
 /** "2 parts · 1 done · 1 late" — counted by what each is. */
 export function partsWords(parts: Pick<GanttPart, 'state'>[]): string {
   const n = (st: PartState) => parts.filter(p => p.state === st).length;
-  return [`${parts.length} part${parts.length === 1 ? '' : 's'}`, n('done') ? `${n('done')} done` : '', n('late') ? `${n('late')} late` : ''].filter(Boolean).join(' · ');
+  return [`${parts.length} part${parts.length === 1 ? '' : 's'}`, n('done') ? `${n('done')} done` : '', n('baseline') ? `${n('baseline')} at baseline` : '',
+    n('failed') ? `${n('failed')} failed` : '', n('late') ? `${n('late')} late` : ''].filter(Boolean).join(' · ');
 }
 
 export interface GanttGroup {

@@ -446,6 +446,18 @@ export interface Test {
    day's story and Today's update say how the plan went. */
 export type ItemKind = 'found' | 'next' | 'note' | 'today';
 
+/** A part's status, said on a day with what was seen (TestItem.results).
+ *  Baseline achieved is under way; passed is done; failed is a failure. */
+export type PartResultIs = 'baseline' | 'passed' | 'failed';
+export interface PartResult {
+  is: PartResultIs;
+  /** ISO day it was said. */
+  on: string;
+  /** What was seen — "Running 32 ppm at baseline settings, film tracking to tune". */
+  note?: string;
+  at: number;
+}
+
 /** One way round a critical problem (TestItem.ways). `agreed` marks the one
  *  the job is going with; several can be written and none agreed yet. */
 export interface WayRound { id: ID; what: string; agreed?: boolean }
@@ -497,6 +509,11 @@ export interface TestItem {
   couldLose?: number;
   /** Closed, or done. Absent means open. */
   doneAt?: number;
+  /** HOW A PART STANDS, IN WORDS — each time it is said, newest last
+   *  (supabase/PART_STATUS.sql; lib/noted partState). Rowland, 8 October:
+   *  "show status of program, not just problem — pass, fail, baseline
+   *  achieved ... I need status with commentary." Only on a part ('next'). */
+  results?: PartResult[];
   media?: MediaRef[];
   /** Where it is on the line — a spot on a frame of the filmed walk, the same
    *  as a fix's pin. An install problem or a test finding can be pointed at. */
