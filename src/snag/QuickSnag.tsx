@@ -14,15 +14,16 @@
  * the line's own Evidence list, and — once sent — the job's Fixes page and
  * client report as a problem.
  *
- * A SNAG FOR A JOB GOES TO IT. Rowland, 8 October: "snags attached to a
- * project show nowhere on the reports … maybe we need project but then turn
- * to a fix — and for any fix have a critical or high risk." Naming a
- * stage-gate job used to be a label; the snag reached the job only when it
- * was sent again from the Snags page. Now naming one asks the rest of that
- * send here — the stage it was found on, the flag, and whether to book its
- * fix (on, by default) — and Save sends it (snag/quick sendSnags): a problem
- * on that stage, flagged, with its fix, on the Fixes page, the plan and the
- * reports. */
+ * A SNAG FOR A JOB MOVES TO IT. Rowland, 8 October: "it just allows me to
+ * label it, but it does nothing ... does it move from a snag and go to the
+ * fix page, to keep things clean and transitional?" Naming a job you can
+ * change says, in the sheet, what Save will do with it — and Save does it:
+ *   a stage-gate job  a FIX on its Fixes page (snag/quick sendSnags), on the
+ *                     stage it was found on when one is named, flagged if
+ *                     flagged; unticked, a problem on that stage only;
+ *   a 6M or lever-tree job  an ACTION on its board (moveSnagsToActions).
+ * The snag is then closed as "Moved to <job>", and the Snags page lists it
+ * under "Moved to jobs", a door to what it became. */
 import { useEffect, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { Evidence } from '../ui/EvidenceDoors';
@@ -38,7 +39,7 @@ import { useProjects } from '../lib/useProjects';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
-import { pinSnag, recall, remember, sendSnags } from './quick';
+import { moveSnagsToActions, pinSnag, recall, remember, sendSnags } from './quick';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 type Opener = (s?: Snag) => void;
@@ -93,13 +94,13 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   /* THE JOB IT GOES TO — a stage-gate job you can change, not sent there yet. */
   const accessOn = useAccessByJob(projects);
   const job = projects.find(p => p.id === project);
-  const toJob = job && planModel(job) === 'commissioning' && accessOn(job.id).edit
-    && !snag?.sent?.some(x => x.projectId === job.id) ? job : undefined;
+  const toJob = job && accessOn(job.id).edit && !snag?.sent?.some(x => x.projectId === job.id) ? job : undefined;
+  const gated = !!toJob && planModel(toJob) === 'commissioning';
   const [stages, setStages] = useState<{ id: string; label: string; machine?: string }[] | null>(null);
   const [stage, setStage] = useState('');
   const [flag, setFlag] = useState<'none' | 'risk' | 'critical'>('none');
   const [asFix, setAsFix] = useState(true);
-  const toJobId = toJob?.id;
+  const toJobId = gated ? toJob?.id : undefined;
   useEffect(() => {
     let alive = true;
     setStages(null);
@@ -111,9 +112,10 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         return { id: t.id, label: `${m ?? 'The line'} — ${t.title}`, ...(m ? { machine: m } : {}) };
       }).sort((a, b) => a.label.localeCompare(b.label));
       setStages(rows);
-      /* The snag's machine, when the job has a stage on a machine of that name. */
+      /* The snag's machine's stage, when the job has one of that name — else
+         none: a fix needs no stage, and a guessed one is a wrong one. */
       const mine = machine && rows.find(r => r.machine?.toLowerCase() === machine.toLowerCase());
-      setStage(s => (rows.some(r => r.id === s) ? s : (mine || rows[0])?.id ?? ''));
+      setStage(s => (rows.some(r => r.id === s) ? s : mine ? mine.id : ''));
     });
     return () => { alive = false; };
   }, [toJobId, machine]);
@@ -160,10 +162,14 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         kept = { id: uid(), ...fields, status: 'open', raisedAt: t, updatedAt: t };
         await addSnag(kept);
       }
-      /* TO THE JOB — a problem on its stage, flagged, its fix booked. */
-      if (toJob && stage) {
-        const undo = await sendSnags([kept], toJob.id, stage, { ...(flag !== 'none' ? { flag } : {}), fix: asFix });
-        offerUndo(`On ${toJob.name} as a problem${asFix && kept.status !== 'closed' ? ', with its fix' : ''}`, undo);
+      /* IT MOVES TO THE JOB — a fix (or a problem on its stage), or an action. */
+      if (toJob && gated) {
+        const fix = asFix || !stage;
+        const undo = await sendSnags([kept], toJob.id, stage || undefined, { ...(flag !== 'none' ? { flag } : {}), fix }, toJob.name);
+        offerUndo(`Moved to ${toJob.name} — ${fix ? 'a fix on its Fixes page' : 'a problem on its stage'}`, undo);
+      } else if (toJob) {
+        const undo = await moveSnagsToActions([kept], toJob.id, toJob.name);
+        offerUndo(`Moved to ${toJob.name} — an action on its board`, undo);
       }
       remember('line', workspaceId); remember('project', project);
       if (another) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
@@ -213,14 +219,18 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
             </div>
           </div>
         )}
-        {/* WHAT GOES TO THE JOB — asked once a stage-gate job is named. */}
+        {/* WHERE SAVE MOVES IT — said, and asked, once a job is named. */}
         {toJob && (
-          <div className="qs-job" role="group" aria-label={`To ${toJob.name}`}>
-            {stages && stages.length > 0 ? <>
-              <label className="cw-f cw-f-wide"><span>FOUND ON WHICH STAGE</span>
-                <select value={stage} onChange={e => setStage(e.target.value)}>
-                  {stages.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                </select></label>
+          <div className="qs-job" role="group" aria-label={`Moves to ${toJob.name}`}>
+            <span className="qs-l">MOVES TO {toJob.name.toUpperCase()}</span>
+            {gated ? <>
+              {stages && stages.length > 0 && (
+                <label className="cw-f cw-f-wide"><span>FOUND ON <i className="cw-f-opt">if it was a stage</i></span>
+                  <select value={stage} onChange={e => setStage(e.target.value)}>
+                    <option value="">Not on a stage</option>
+                    {stages.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select></label>
+              )}
               <div className="qs-mach">
                 <span className="qs-l">FLAG IT</span>
                 <div className="chip-row" role="group" aria-label="How serious is it?">
@@ -229,9 +239,11 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
                   ))}
                 </div>
               </div>
-              <label className="why-check"><input type="checkbox" checked={asFix} onChange={e => setAsFix(e.target.checked)} />
-                <span>Make it a fix on {toJob.name}</span></label>
-            </> : stages && <p className="sub">{toJob.name} has no stages yet — it stays a snag until it has.</p>}
+              {/* With no stage it can only be a fix; on a stage it can be left
+                  as a problem there. */}
+              <label className="why-check"><input type="checkbox" checked={asFix || !stage} disabled={!stage} onChange={e => setAsFix(e.target.checked)} />
+                <span>Make it a fix</span></label>
+            </> : <p className="sub qs-job-says">As an action on its board, with its pictures.</p>}
           </div>
         )}
         {snag && <>

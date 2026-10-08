@@ -81,6 +81,8 @@ const RECORD_ROUTES = new Set<RouteName>([
   /* The plan, since it became a page of its own: "Tap a row to open it" set
      ?open= and nothing opened. */
   'plan', 'testing', 'test', 'trialCard', 'notes', 'materials', 'programs', 'clientReport', 'asset',
+  /* The Snags page: a snag moved to a job opens what it became over it. */
+  'quickSnags',
 ]);
 
 const split = (): [string, URLSearchParams] => {
