@@ -299,7 +299,8 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     .map(c => ({
       text: `Critical: ${critLine(c)} · ${c.sorted ? 'open' : criticalState(c)}.`,
       ...(c.item.impact?.trim() ? { detail: c.item.impact.trim() } : {}),
-      tone: 'bad' as const, ...(c.on ? { id: c.on.id } : {}), which: 'critical' as const, mark: 'Critical',
+      /* The line opens the problem itself (ui/ProblemRecord, docs/DOORS.md). */
+      tone: 'bad' as const, id: c.item.id, which: 'critical' as const, mark: 'Critical',
     }));
 
   /* HIGH RISKS open that evening, after the critical ones, in amber — not
@@ -309,7 +310,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   const risky: DayLine[] = riskThen.sort((a, b) => a.item.createdAt - b.item.createdAt).map(c => ({
     text: `High risk: ${critLine(c)}${c.item.couldLose ? ` · ${couldWords(c.item)}` : ''} · ${c.sorted ? 'open' : criticalState(c)}.`,
     ...(c.item.impact?.trim() ? { detail: c.item.impact.trim() } : {}),
-    tone: 'problem' as const, ...(c.on ? { id: c.on.id } : {}), which: 'problem' as const, mark: 'High risk',
+    tone: 'problem' as const, id: c.item.id, which: 'problem' as const, mark: 'High risk',
   }));
 
   /* ---------------------------- what was found ---------------------------- */
@@ -324,14 +325,14 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     if (c) {
       wrong.push({
         text: `Critical: ${critLine(c)}.`, ...(i.impact?.trim() ? { detail: i.impact.trim() } : {}),
-        tone: 'bad', ...(onRec ? { id: onRec.id } : {}), which: 'critical', mark: 'Critical',
+        tone: 'bad', id: i.id, which: 'critical', mark: 'Critical',
       });
       continue;
     }
     found.push({
       text: i.what,
       detail: onRec ? `Found on ${named(onRec)}` : undefined,
-      tone: 'found', id: onRec?.id,
+      tone: 'found', id: i.id,
     });
   }
   /* A fix planned that day is the decision about what was found. */
