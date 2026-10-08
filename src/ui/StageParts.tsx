@@ -29,6 +29,10 @@ import { useState } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import { isProgramsStage } from '../lib/programs';
+import { agreedBefore, plannedRun, programRunSays, runsOfProgram, runTestsOn } from '../lib/programRun';
+import { COMMISSION_TESTS } from '../lib/testing';
+import { cleanRun, patchRuns, productFigures, productRuns } from '../lib/run';
+import { uid } from '../lib/ids';
 import { RESULT_WORD, editedResult, lastResult, partMoved, partStatus, partsOf, resultNow, resultWords, withoutResult } from '../lib/noted';
 import { niceDay, todayISO } from '../lib/weeks';
 import { DUE_SOON_DAYS } from '../lib/actions';
@@ -62,8 +66,10 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can, onProblem, only }: {
-  step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem'>; can: Can;
+export function StageParts({ step, tt, can, onProblem, only, onOpen }: {
+  step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem' | 'planTests' | 'patchTest'>; can: Can;
+  /** Open a record — a program's run in Commission. */
+  onOpen?: (id: string) => void;
   /** HIT A PROBLEM ON A PART — the stage's own write-up (ui/WhyMoved
    *  ProblemForm), opened for this part. Rowland, 8 October: "I want to click
    *  on the subsection and write the problem in the subsection ... exactly the
@@ -94,6 +100,8 @@ export function StageParts({ step, tt, can, onProblem, only }: {
      the tools come out on the line being worked on (CLAUDE.md, simplicity 2). */
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  /* PLAN ITS RUN — the product and the numbers agreed, for the program open. */
+  const [runPlan, setRunPlan] = useState<{ product: string; rate: string; minutes: string; rejectsMax: string } | null>(null);
   if (!all.length && !can.edit) return null;
 
   /* Everyone named anywhere on the job, for the "who" box. */
@@ -117,6 +125,7 @@ export function StageParts({ step, tt, can, onProblem, only }: {
     offerUndo(p.doneAt != null ? `“${p.what}” — not done` : `“${p.what}” — done`, () => tt.saveItem(p));
   };
   const openIt = (p: TestItem) => {
+    setRunPlan(null);
     if (open === p.id) { setOpen(null); setDraft(null); return; }
     const last = lastResult(p);
     setOpen(p.id);
@@ -143,6 +152,23 @@ export function StageParts({ step, tt, can, onProblem, only }: {
     void tt.saveItem(next);
     offerUndo('Status taken off', () => tt.saveItem(p));
   };
+  /* A PROGRAM'S RUN IN COMMISSION (lib/programRun) — a product row on the
+     machine's performance run, naming the program; the run is made on the
+     machine if it has none. */
+  const num = (v: string) => { const n = Number(v.replace(',', '.')); return v.trim() && Number.isFinite(n) ? n : undefined; };
+  const planRun = async (p: TestItem) => {
+    if (!runPlan || !runPlan.product.trim()) return;
+    const agreed = cleanRun({ rate: num(runPlan.rate), minutes: num(runPlan.minutes), rejectsMax: num(runPlan.rejectsMax) });
+    const row = plannedRun(p, runPlan.product, agreed, uid());
+    const today = todayISO();
+    const onRun = runTestsOn(tt.tests, step.assetId)[0];
+    const testId = onRun?.id ?? (await tt.planTests([{ title: COMMISSION_TESTS[1], ...(step.assetId ? { assetId: step.assetId } : {}) }]))[0];
+    if (!testId) return;
+    await tt.patchTest(testId, cur => patchRuns(cur, [...productRuns(cur), row], today));
+    offerUndo(`${row.product} planned on the run in Commission`,
+      () => tt.patchTest(testId, cur => patchRuns(cur, productRuns(cur).filter(x => x.id !== row.id), today)));
+    setRunPlan(null);
+  };
   /* ▲ ▼ — the parts in the order the person wants them (lib/noted partMoved). */
   const move = (p: TestItem, by: -1 | 1) => { for (const x of partMoved(step.id, tt.items, p.id, by)) void tt.saveItem(x); };
 
@@ -162,6 +188,9 @@ export function StageParts({ step, tt, can, onProblem, only }: {
             const history = (p.results ?? []).slice().reverse();
             const meta = [p.owner?.trim(), p.due && !st.done ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
             const isOpen = open === p.id && !!draft;
+            /* Its run in Commission — a program's next step (lib/programRun). */
+            const runs = prog ? runsOfProgram(p, step.assetId, tt.tests) : [];
+            const run = programRunSays(runs);
             const last = lastResult(p);
             return (
               <li key={p.id} className={'spp-row' + (st.done ? ' is-done' : '') + (isOpen ? ' is-open' : '')}>
@@ -182,6 +211,7 @@ export function StageParts({ step, tt, can, onProblem, only }: {
                   <span className="spp-top">
                     <span className="spp-name">{p.what}</span>
                     <span className={'spp-pill is-' + st.tone}>{st.word}</span>
+                    {run && <span className={'spp-pill is-' + run.tone}>{run.word}</span>}
                     {/* A problem open on it is said even when its status is. */}
                     {st.said && openProbs > 0 && <span className="spp-pill is-r">{openProbs === 1 ? 'a problem' : `${openProbs} problems`}</span>}
                   </span>
@@ -217,6 +247,45 @@ export function StageParts({ step, tt, can, onProblem, only }: {
                           <button type="button" className="btn btn-sm btn-ghost" onClick={() => { setOpen(null); setDraft(null); }}>Close</button>
                         </span>
                       </form>
+                    )}
+                    {/* IN COMMISSION — its run at the agreed rate: what it netted
+                        against what was agreed, or the run planned from here. */}
+                    {prog && (
+                      <div className="spp-run">
+                        <span className="spp-f-h">In Commission — its run at speed</span>
+                        {runs.map(({ test, p: pr }) => {
+                          const f = productFigures(pr);
+                          return (
+                            <p key={pr.run.id} className="spp-run-row">
+                              <b className={'is-' + (pr.state === 'met' ? 'g' : pr.state === 'short' ? 'r' : 'w')}>{pr.word}</b>
+                              {' '}{pr.run.product}{f.agreed ? ` · agreed ${f.agreed}` : ''}{f.net !== '—' ? ` · netted ${f.net}` : ''}{pr.gap ? ` · ${pr.gap}` : ''}
+                              {onOpen && <> · <button type="button" className="cw-link" onClick={() => onOpen(test.id)}>Open the run ›</button></>}
+                            </p>
+                          );
+                        })}
+                        {!runs.length && !runPlan && (can.edit
+                          ? <button type="button" className="btn btn-sm" onClick={() => {
+                              const a = agreedBefore(tt.tests, step.assetId);
+                              setRunPlan({ product: p.what, rate: a?.rate != null ? String(a.rate) : '', minutes: a?.minutes != null ? String(a.minutes) : '', rejectsMax: a?.rejectsMax != null ? String(a.rejectsMax) : '' });
+                            }}>Plan its run in Commission</button>
+                          : <p className="sub">No run planned for it yet.</p>)}
+                        {runPlan && (
+                          <form className="spp-runf" onSubmit={e => { e.preventDefault(); void planRun(p); }}>
+                            <label className="spp-f spp-f-wide"><span>Product to run</span>
+                              <input value={runPlan.product} aria-label="Product to run" onChange={e => setRunPlan({ ...runPlan, product: e.target.value })} /></label>
+                            <label className="spp-f"><span>Net rate, ppm</span>
+                              <input inputMode="decimal" value={runPlan.rate} placeholder="e.g. 60" aria-label="Agreed net rate, packs a minute" onChange={e => setRunPlan({ ...runPlan, rate: e.target.value })} /></label>
+                            <label className="spp-f"><span>For, min</span>
+                              <input inputMode="decimal" value={runPlan.minutes} placeholder="e.g. 60" aria-label="Agreed minutes" onChange={e => setRunPlan({ ...runPlan, minutes: e.target.value })} /></label>
+                            <label className="spp-f"><span>Rejects at most, %</span>
+                              <input inputMode="decimal" value={runPlan.rejectsMax} placeholder="e.g. 1" aria-label="Rejects at most, per cent" onChange={e => setRunPlan({ ...runPlan, rejectsMax: e.target.value })} /></label>
+                            <span className="spp-acts">
+                              <button type="submit" className="btn btn-sm btn-primary" disabled={!runPlan.product.trim()}>Plan the run</button>
+                              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setRunPlan(null)}>Cancel</button>
+                            </span>
+                          </form>
+                        )}
+                      </div>
                     )}
                     {history.length > 0 && (
                       <div className="spp-hist">

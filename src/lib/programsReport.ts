@@ -20,6 +20,7 @@
 import { live, type Asset, type Test, type TestItem } from './testing';
 import { STATE_WORD, inOrder, isProved, isProgramsStage, stateOf, type Program } from './programs';
 import { provingTestOf, testCell } from './commission';
+import { programRunSays, runsOfProgram } from './programRun';
 import { partStatus, partsOf, resultNow, resultWords } from './noted';
 import { niceDay, todayISO } from './weeks';
 
@@ -51,6 +52,10 @@ export interface ProgramLine {
   /** Its proving in Commission, when the status above is the floor's and
    *  Commission has a word too — "proved 7 Oct in Commission". */
   proving?: string;
+  /** ITS RUN AT SPEED in Commission (lib/programRun) — "run passed 9 Oct —
+   *  45 ppm net", "run short — net rate 1.5 ppm short", "run planned". */
+  run?: string;
+  runTone?: ProgTone;
 }
 
 export interface ProgramsReading {
@@ -114,7 +119,9 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         const proved = p && provedFirst ? programWords(p, tests, today) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
+        const run = programRunSays(runsOfProgram(part, m || undefined, tests, [p?.runs ?? '', p?.what ?? '']));
         group.push({
+          ...(run ? { run: run.word, runTone: run.tone } : {}),
           machine, partId: part.id, stageId: st.id, ...(p ? { programId: p.id } : {}), ...(m ? { assetId: m } : {}),
           what: part.what.trim(), ...(p?.runs ? { runs: p.runs } : {}),
           ...(part.owner?.trim() ? { who: part.owner.trim() } : p?.from ? { who: p.from } : {}),
@@ -128,7 +135,9 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
       }
     }
     for (const p of mine.filter(q => !used.has(q.id))) {
+      const run = programRunSays(runsOfProgram({ id: '', what: p.what }, m || undefined, tests, [p.runs ?? '']));
       group.push({
+        ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tests, today), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
       });

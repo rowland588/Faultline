@@ -542,7 +542,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       <OnTodaysPlan t={t} title={kind === 'install' ? `${machine} — ${t.title}` : t.title} tt={tt} can={can} today={today} />
       <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can}
         onPatch={patch => void tt.patchTest(t.id, patch)} />
-      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can}
+      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} onOpen={onOpen}
         onProblem={can.edit && kind === 'install' ? p => { setProblemPart(p); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (

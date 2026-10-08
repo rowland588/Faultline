@@ -864,7 +864,7 @@ export function nextFrom(t: Test, mkId: () => string, at: number, title?: string
        did not pass (or never ran) are what is run again — every one when the
        verdict was given against the numbers. */
     ...(!fix && t.runAgreed && !t.runs ? { runAgreed: { ...t.runAgreed } } : {}),
-    ...(!fix && t.runs?.length ? { runs: rerunOf(t.runs).map(p => ({ id: mkId(), product: p.product, ...(p.agreed ? { agreed: { ...p.agreed } } : {}) })) } : {}),
+    ...(!fix && t.runs?.length ? { runs: rerunOf(t.runs).map(p => ({ id: mkId(), product: p.product, ...(p.program ? { program: p.program } : {}), ...(p.agreed ? { agreed: { ...p.agreed } } : {}) })) } : {}),
     withWhom: t.withWhom,
     fromTestId: t.id,
     outcome: 'planned',

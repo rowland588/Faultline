@@ -11085,3 +11085,14 @@ button.gt-fixlab small { font-size: 11.5px; }
 /* In a stage's parts and its machine's programs: in the row, first, not floated. */
 .pg-move.is-inline { position: static; align-self: center; flex: none; }
 .spp-panel .spp-probs { margin: 0; font-size: var(--t-detail); }
+/* A PROGRAM'S RUN IN COMMISSION (lib/programRun), in its panel — what it
+   netted against what was agreed, or the run planned from here. */
+.spp-run { display: grid; gap: 6px; }
+.spp-run-row { margin: 0; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.spp-run-row b.is-g { color: var(--st-g); } .spp-run-row b.is-r { color: var(--st-r); } .spp-run-row b.is-w { color: var(--st-w); }
+.spp-runf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; }
+.spp-runf > .spp-f-wide, .spp-runf > .spp-acts { grid-column: 1 / -1; }
+@media (max-width: 520px) { .spp-runf { grid-template-columns: 1fr 1fr; } }
+/* The programs stage's drawer: one door to the Programs page. */
+.rd-prog-door { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.pr-prog { font-size: var(--t-detail); margin-left: 8px; }

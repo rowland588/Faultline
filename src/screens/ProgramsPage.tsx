@@ -31,7 +31,7 @@ import { programsReading, type ProgBucket, type ProgramLine } from '../lib/progr
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import { StageParts } from '../ui/StageParts';
-import { openRecordAt } from '../ui/RecordDrawer';
+import { openRecord, openRecordAt } from '../ui/RecordDrawer';
 import { AccessNote } from '../ui/AccessNote';
 import { Fold } from '../ui/Fold';
 import { ProgramsScreen } from './ProgramsScreen';
@@ -142,7 +142,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
               <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {stage
-              ? <StageParts step={stage} tt={tt} can={can} only={onlyKept}
+              ? <StageParts step={stage} tt={tt} can={can} only={onlyKept} onOpen={id => openRecord(projectId, id)}
                   onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined} />
               : can.edit && m.id
                 ? <p className="sub pp-nostage">No programs stage on this machine yet.{' '}

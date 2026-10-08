@@ -14,7 +14,7 @@
 import { usePrograms } from '../lib/usePrograms';
 import { STATE_WORD, isProgramsStage, isProved, stateOf, type Program } from '../lib/programs';
 import { provingTestOf, testCell } from '../lib/commission';
-import { live, type Test } from '../lib/testing';
+import type { Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import type { Can } from '../lib/access';
@@ -30,13 +30,14 @@ const progWords = (p: Program, tests: Test[], today: string): { word: string; to
    offered from here for the screens that read it from here. */
 export { isProgramsStage };
 
-export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
+export function ProgramLink({ projectId, t, tests, onPatch, can }: {
   projectId: string; t: Test; tests: Test[];
-  onOpen: (id: string) => void;
+  /** Kept for the callers; a program's run opens from its own line now. */
+  onOpen?: (id: string) => void;
   onPatch: (patch: Partial<Test>) => void;
   can: Can;
 }) {
-  const { programs, loading, move } = usePrograms(projectId);
+  const { programs, loading } = usePrograms(projectId);
   const today = todayISO();
   const all = programs.filter(p => !p.deletedAt);
   if (loading) return null;
@@ -68,40 +69,16 @@ export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
   }
 
   if (!isProgramsStage(t)) return null;
-  const onThis = (p: Program) => (p.assetId ?? '') === (t.assetId ?? '');
-  const mine = all.filter(onThis);
-  const proved = mine.filter(isProved).length;
+  /* ONE DOOR. Rowland, 8 October: "what door do I use?" The programs stage on
+     Set up is the quick look — its programs, above, the same list as the
+     Programs page — and the Programs page is their home: every machine,
+     the filters, the report, the Programs list and its test days. The list of
+     Programs-list records this drawer also drew was a second list of the
+     same programs; they are on the Programs page, beside their lines. */
   return (
-    <div className="rd-blk">
-      <small>On the Programs list{mine.length ? ` · ${proved} of ${mine.length} proved in Commission` : ''}</small>
-      {mine.length ? (
-        <ul className="cg-plist">
-          {mine.map((p, k) => {
-            const said = progWords(p, tests, today);
-            const test = provingTestOf(p, live(tests));
-            return (
-              <li key={p.id} className="cg-prow">
-                {/* ▲ ▼ — this machine's programs in the order the person wants
-                    them; the Programs page and the report read the same order. */}
-                {can.edit && mine.length > 1 && (
-                  <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
-                    <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => void move(p.id, -1, onThis)}>▲</button>
-                    <button type="button" className="pg-move-b" disabled={k === mine.length - 1} aria-label={`Move ${p.what} down`} onClick={() => void move(p.id, 1, onThis)}>▼</button>
-                  </span>
-                )}
-                <span className="cg-pwhat"><b>{p.what}</b>{p.runs && <span className="sub"> runs {p.runs}</span>}</span>
-                <span className={'cg-pstate is-' + said.tone}>{said.word}</span>
-                {test && <button type="button" className="cw-link" onClick={() => onOpen(test.id)}>Open its test</button>}
-              </li>
-            );
-          })}
-        </ul>
-      ) : <p className="sub">No programs on this machine yet.</p>}
-      <span className="rd-prog">
-        <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/programs`)}>Programs ›</button>
-        <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/testing`)}>Prove them in Commission ›</button>
-        <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=programs`)}>Programs report ›</button>
-      </span>
+    <div className="rd-blk rd-prog-door">
+      <button type="button" className="btn btn-sm btn-primary" onClick={() => nav(`/project/${projectId}/programs`)}>Open Programs ›</button>
+      <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=programs`)}>Programs report ›</button>
     </div>
   );
 }

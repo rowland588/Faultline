@@ -39,6 +39,7 @@ import { mayWriteAgreement, type Can } from '../lib/access';
 import { readNumber } from '../lib/format';
 import { uid } from '../lib/ids';
 import { niceDay, todayISO } from '../lib/weeks';
+import { nav } from '../state/useRoute';
 import { DraftField, DraftNumber } from './Draft';
 import { offerUndo } from './Undo';
 
@@ -103,7 +104,7 @@ export function RunProducts({ t, can, patch, compact }: { t: Test; can: Can; pat
       {rr.products.length > 0 && (
         <ol className="pr-list">
           {rr.products.map(p => (
-            <ProductRow key={p.run.id} p={p} can={can} compact={compact}
+            <ProductRow key={p.run.id} p={p} can={can} compact={compact} programsHref={`/project/${t.projectId}/programs`}
               boxes={can.edit && (boxes.has(p.run.id) || p.state === 'toRun' || p.state === 'partial')}
               changing={changing?.id === p.run.id ? changing : null}
               onChange={() => setChanging(c => (c?.id === p.run.id ? null : { id: p.run.id, agreed: p.run.agreed }))}
@@ -129,8 +130,10 @@ export function RunProducts({ t, can, patch, compact }: { t: Test; can: Can; pat
 }
 
 /** ONE PRODUCT — what it is judged on, the numbers, what they say. */
-function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain }: {
+function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref }: {
   p: ProductReading; can: Can; compact?: boolean; boxes: boolean;
+  /** Where its program is, when it was planned from one. */
+  programsHref?: string;
   changing: { id: string; agreed?: RunAgreed } | null;
   onChange: () => void;
   onDay: (k: keyof RunDay, v: number | undefined) => void;
@@ -144,13 +147,15 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
   const lockAgreed = !mayWriteAgreement(can, agreedWords(changing?.agreed ?? {}) ? 'agreed' : '');
   const setAgreed = (k: keyof RunAgreed) => (v?: number) => onPlan(x => {
     const agreed = cleanRun({ ...(x.agreed ?? {}), [k]: v });
-    return { id: x.id, product: x.product, ...(agreed ? { agreed } : {}), ...(x.day ? { day: x.day } : {}), ...(x.ranOn ? { ranOn: x.ranOn } : {}) };
+    return { id: x.id, product: x.product, ...(x.program ? { program: x.program } : {}), ...(agreed ? { agreed } : {}), ...(x.day ? { day: x.day } : {}), ...(x.ranOn ? { ranOn: x.ranOn } : {}) };
   });
   const tone = (t: string) => (t ? ` is-${t}` : '');
   return (
     <li className={'pr-row is-' + state + (p.rerun ? ' is-rerun' : '')}>
       <div className="pr-top">
         <b className="pr-name">{productName(run)}</b>
+        {/* PLANNED FROM ITS PROGRAM (lib/programRun) — back to it. */}
+        {run.program && programsHref && <button type="button" className="cw-link pr-prog" onClick={() => nav(programsHref)}>its program ›</button>}
         <span className={'pr-word is-' + (p.rerun ? 'rerun' : state)}>{p.rerun ? `${p.word} — run again below` : p.word}</span>
       </div>
       <p className="pr-agreed">{f.agreed ? <>Judged on {f.agreed}</> : 'Nothing agreed to judge it on yet'}{run.ranOn ? ` · ran ${niceDay(run.ranOn)}` : ''}</p>

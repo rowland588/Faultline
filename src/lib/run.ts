@@ -208,6 +208,10 @@ export interface ProductRun {
   day?: RunDay;
   /** The day its first number went in. */
   ranOn?: string;
+  /** THE PROGRAM IT PROVES — a line of Set up's programs stage (its id),
+   *  when it was planned from the program (lib/programRun). A row typed here
+   *  is matched to a program by name instead. */
+  program?: string;
 }
 
 type RunHolder = Pick<Test, 'id'> & Partial<Pick<Test, 'runs' | 'run' | 'runAgreed' | 'product' | 'planned' | 'ranOn'>>;
@@ -337,7 +341,7 @@ export function patchRuns(cur: Test, next: ProductRun[], today: string): Partial
 /** One product's day numbers changed: kept clean, and its own day stamped. */
 export function withDay(p: ProductRun, k: keyof RunDay, v: number | undefined, today: string): ProductRun {
   const day = cleanRun({ ...(p.day ?? {}), [k]: v });
-  const rest: ProductRun = { id: p.id, product: p.product, ...(p.agreed ? { agreed: p.agreed } : {}), ...(p.ranOn ? { ranOn: p.ranOn } : {}) };
+  const rest: ProductRun = { id: p.id, product: p.product, ...(p.program ? { program: p.program } : {}), ...(p.agreed ? { agreed: p.agreed } : {}), ...(p.ranOn ? { ranOn: p.ranOn } : {}) };
   return { ...rest, ...(day ? { day } : {}), ...(!p.ranOn && v != null ? { ranOn: today } : {}) };
 }
 
@@ -345,7 +349,7 @@ export function withDay(p: ProductRun, k: keyof RunDay, v: number | undefined, t
  *  the same agreed numbers, its day empty: the later row is what counts. */
 export function runAgain(runs: ProductRun[], ids: string[], mkId: () => string): ProductRun[] {
   return runs.flatMap(p => (ids.includes(p.id)
-    ? [p, { id: mkId(), product: p.product, ...(p.agreed ? { agreed: { ...p.agreed } } : {}) }] : [p]));
+    ? [p, { id: mkId(), product: p.product, ...(p.program ? { program: p.program } : {}), ...(p.agreed ? { agreed: { ...p.agreed } } : {}) }] : [p]));
 }
 
 /** "Jacks Piper 1.25kg — net rate 4 ppm short" — the products that missed. */

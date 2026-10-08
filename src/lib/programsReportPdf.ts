@@ -22,6 +22,7 @@ const sanLine = (l: ProgramLine): ProgramLine => ({
   ...l, machine: san(l.machine), what: san(l.what), word: san(l.word), earlier: l.earlier.map(san),
   ...(l.runs ? { runs: san(l.runs) } : {}), ...(l.who ? { who: san(l.who) } : {}),
   ...(l.note ? { note: san(l.note) } : {}), ...(l.proving ? { proving: san(l.proving) } : {}),
+  ...(l.run ? { run: san(l.run) } : {}),
 });
 
 /** Each machine's programs, a row each: the program and its state on one
@@ -36,10 +37,11 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     note: l.note ? wrap(f.doc, l.note, f.w - 12, 8.5) : [],
     earlier: l.earlier.flatMap(e => wrap(f.doc, `Before: ${e}`, f.w - 12, 8)),
     proving: l.proving ? wrap(f.doc, l.proving, f.w - 12, 8) : [],
+    run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - 12, 8.5, 'bold') : [],
   });
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 6 + Math.max(p.head.length * 12 + p.who.length * 10, p.word.length * 11) + p.note.length * 11 + (p.earlier.length + p.proving.length) * 10 + 6;
+    return 6 + Math.max(p.head.length * 12 + p.who.length * 10, p.word.length * 11) + p.note.length * 11 + p.run.length * 11 + (p.earlier.length + p.proving.length) * 10 + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -59,6 +61,8 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           ty = Math.max(ty, y + 13 + p.word.length * 11);
           if (p.note.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.note, f.x + 12, ty); ty += p.note.length * 11; }
           if (p.proving.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.proving, f.x + 12, ty); ty += p.proving.length * 10; }
+          /* Its run at speed — the colour only when it fell short or passed. */
+          if (p.run.length) { font(f.doc, 8.5, 'bold', l.runTone ? TONE[l.runTone] : INK2); f.doc.text(p.run, f.x + 12, ty); ty += p.run.length * 11; }
           if (p.earlier.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.earlier, f.x + 12, ty); }
         },
       })),
