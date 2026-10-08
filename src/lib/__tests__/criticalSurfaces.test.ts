@@ -69,7 +69,8 @@ describe('the day', () => {
     expect(d.sections[0].lines.map(l => l.text)).toEqual([
       'Critical: Programs cannot be copied over (Pick and place) — Programs loaded · open · going with: A belt to bypass the robot.',
     ]);
-    expect(d.sections[0].lines[0]).toMatchObject({ id: programs.id, tone: 'bad', mark: 'Critical', detail: crit.impact });
+    /* The line opens the problem itself (ui/ProblemRecord, docs/DOORS.md). */
+    expect(d.sections[0].lines[0]).toMatchObject({ id: crit.id, tone: 'bad', mark: 'Critical', detail: crit.impact });
     expect(d.headline.startsWith('1 critical open. ')).toBe(true);
   });
 
