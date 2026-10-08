@@ -11123,3 +11123,9 @@ button.gt-fixlab small { font-size: 11.5px; }
 .re-agreed { margin: 0; font-size: var(--t-detail); }
 .re-l { font-weight: 700; color: var(--ink-2); margin-right: 4px; }
 .rd-said { white-space: pre-wrap; }
+
+/* THE DRAWER'S FOOT (ui/RecordMore) — the lines that start something, the
+   blocks once they hold something, and the card: one column, one gap, no
+   rule of its own between them (the page's foot had one). */
+.rd-more { display: grid; gap: 10px; }
+.rd-more .tc-send.is-foot { margin: 0; padding-top: 0; border-top: 0; }

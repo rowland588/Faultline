@@ -375,7 +375,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
       {can.edit && <datalist id="spp-names">{names.map(n => <option key={n} value={n} />)}</datalist>}
       {!all.length && can.edit && <p className="sub spp-why">{prog
         ? 'Each program this machine has to run — then tap one to say how it stands: baseline achieved, passed or failed.'
-        : 'Planned work inside this stage. Not a problem — a problem is for what went wrong.'}</p>}
+        : `Planned work inside this ${(step.kind ?? 'test') === 'install' ? 'stage' : 'test'}. Not a problem — a problem is for what went wrong.`}</p>}
     </div>
   );
 }
