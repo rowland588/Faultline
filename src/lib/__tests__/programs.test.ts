@@ -265,3 +265,21 @@ describe('which machine the add form starts on', () => {
     expect(busiestMachine(rows, [m('b'), m('a')])).toBe('b');
   });
 });
+
+describe('the order the person sets', () => {
+  const P = (id: string, sort: number): Program => ({ id, projectId: 'p', what: id, state: 'needed', sort, createdAt: sort, updatedAt: sort } as Program);
+  it('reads in the order set, new ones last', async () => {
+    const { inOrder } = await import('../programs');
+    expect(inOrder([P('c', 30), P('a', 10), P('b', 20)]).map(p => p.id)).toEqual(['a', 'b', 'c']);
+  });
+  it('moves one a place, renumbered, writing only what moved', async () => {
+    const { inOrder, movedOne } = await import('../programs');
+    const rows = [P('a', 10), P('b', 20), P('c', 30)];
+    const up = movedOne(rows, 'c', -1);
+    expect(up.map(p => [p.id, p.sort])).toEqual([['c', 20], ['b', 30]]);
+    const after = rows.map(r => up.find(u => u.id === r.id) ?? r);
+    expect(inOrder(after).map(p => p.id)).toEqual(['a', 'c', 'b']);
+    expect(movedOne(rows, 'a', -1)).toEqual([]);   // already first
+    expect(movedOne(rows, 'c', 1)).toEqual([]);    // already last
+  });
+});

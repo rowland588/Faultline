@@ -165,8 +165,10 @@ function PutAllOn({ state, assets, addAsset }: {
   );
 }
 
-function Row({ p, today, lineName, assets, state, weeks, can, tt }: {
+function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }: {
   p: Program; today: string; lineName?: string; assets: Asset[]; weeks: Week[];
+  /** Its place in the list — the ends have no further up or down. */
+  first?: boolean; last?: boolean;
   state: ReturnType<typeof usePrograms>;
   /** The job's tests — the one that proves this program in Commission. */
   tt: ReturnType<typeof useTesting>;
@@ -196,6 +198,14 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt }: {
   return (
     <div className={'mt-row is-pg-' + where}>
       <div className="mt-row-main">
+        {/* UP AND DOWN — the list reads in the order set here (lib/programs
+            inOrder); on Set up, the Programs page and the report alike. */}
+        {can.edit && (
+          <span className="pg-move" role="group" aria-label={`Move ${p.what}`}>
+            <button type="button" className="pg-move-b" disabled={first} aria-label={`Move ${p.what} up`} onClick={() => void state.move(p.id, -1)}>▲</button>
+            <button type="button" className="pg-move-b" disabled={last} aria-label={`Move ${p.what} down`} onClick={() => void state.move(p.id, 1)}>▼</button>
+          </span>
+        )}
         {can.edit
           ? <DraftText className="mt-what" value={p.what} placeholder="Program name or number"
               onSave={v => void state.save({ ...p, what: v || p.what })} />
@@ -519,13 +529,14 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">What the line has to run</h2>
-              <p className="pace-sec-sub">Test dates that have gone first, then what is booked, then what nobody has dated, then what is proved · green from the week it was proved · this prints on the report</p>
+              <p className="pace-sec-sub">In the order you set — ▲ ▼ moves one · its state on each row · green from the week it was proved · this prints on the report</p>
             </div>
             {can.edit && <PutAllOn state={state} assets={assets} addAsset={addAsset} />}
             <div className="mt-list">
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
-              {state.programs.map(p => (
-                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} can={can} tt={tt} />
+              {state.programs.map((p, i) => (
+                <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} can={can} tt={tt}
+                  first={i === 0} last={i === state.programs.length - 1} />
               ))}
             </div>
             <p className="pg-key">

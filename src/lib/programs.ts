@@ -128,7 +128,26 @@ export function daysOverdue(p: Program, today = todayISO()): number | undefined 
   return standingOf(p, today) === 'overdue' && p.testOn ? daysBetween(p.testOn, today) : undefined;
 }
 
-/** The order the list reads in: what has slipped, then what is coming, then
+/** THE ORDER THE PERSON SET. Rowland, 8 October: "add the ability to move the
+ *  order of programs in Set up up and down." The list reads in this order —
+ *  each program's state still shows on its row (colour and words), and one
+ *  whose test day has gone is still named on Commission's Needs you. New
+ *  programs go to the bottom. */
+export const inOrder = (rows: Program[]): Program[] =>
+  live(rows).slice().sort((a, b) => a.sort - b.sort || a.createdAt - b.createdAt);
+
+/** One program moved a place up (-1) or down (+1): the list renumbered
+ *  10, 20, 30 … so the order is exact, and only the rows whose place changed
+ *  are returned to be written. */
+export function movedOne(rows: Program[], id: string, by: -1 | 1): Program[] {
+  const list = inOrder(rows);
+  const i = list.findIndex(p => p.id === id), j = i + by;
+  if (i < 0 || j < 0 || j >= list.length) return [];
+  [list[i], list[j]] = [list[j], list[i]];
+  return list.map((p, k) => ({ p, sort: (k + 1) * 10 })).filter(x => x.p.sort !== x.sort).map(x => ({ ...x.p, sort: x.sort }));
+}
+
+/** The order the list used to read in (kept for anything that wants urgency first): what has slipped, then what is coming, then
  *  what nobody has dated, and last what is already proved.
  *
  *  Inside the undated group a program that does not exist yet comes before one

@@ -5,14 +5,16 @@ import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange } fr
 import { uid, now } from './ids';
 import { offerUndo } from '../ui/Undo';
 import {
-  byUrgency, ontoMachine, tally, todayISO, weeksFor,
+  inOrder, movedOne, ontoMachine, tally, todayISO, weeksFor,
   type Program, type ProgramState, type Tally, type Week,
 } from './programs';
 
 export interface ProgramsState {
   loading: boolean;
-  /** In the order the list reads: overdue, then booked, then undated, then proved. */
+  /** In the order the person set (lib/programs inOrder). */
   programs: Program[];
+  /** Move one a place up (-1) or down (+1). */
+  move: (id: string, by: -1 | 1) => Promise<void>;
   tally: Tally;
   /** The columns of the grid — this week forward, far enough to cover the last
    *  test anybody has booked. */
@@ -98,12 +100,17 @@ export function usePrograms(projectId: string): ProgramsState {
     await putProgram({ ...p, state: 'onMachine', provedOn: undefined });
   }, [rows]);
 
+  const move = useCallback(async (id: string, by: -1 | 1) => {
+    const changed = movedOne(rows, id, by);
+    if (changed.length) await putPrograms(changed);
+  }, [rows]);
+
   const today = todayISO();
   return {
     loading,
-    programs: byUrgency(rows, today),
+    programs: inOrder(rows),
     tally: tally(rows, today),
     weeks: weeksFor(rows, today),
-    add, save, remove, markProved, markUnproved, putAllOn,
+    add, save, remove, markProved, markUnproved, putAllOn, move,
   };
 }
