@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
@@ -79,6 +79,8 @@ const ROUTES = [
   ['notes — 6M', `#/project/${seeded.pacedProjectId}/notes`],
   ['line standard', `#/project/${seeded.projectId}/standard`],
   ['line standard — a map', `#/project/${seeded.projectId}/standard/${seeded.standardId}`],
+  /* A line's own map, on no job, opened from Line balance at its balance. */
+  ['line standard on a line — at its balance', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
   /* The record's page is the card now; an old /card link must land on it. */

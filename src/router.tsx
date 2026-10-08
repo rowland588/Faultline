@@ -41,6 +41,7 @@ const NotesScreen = lazy(() => import('./screens/NotesScreen').then(m => ({ defa
 const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').then(m => ({ default: m.ClientReportScreen })));
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
+const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
@@ -121,6 +122,7 @@ function app(route: Route) {
   // and a redirect into a project that may not exist is not.
   if (route.name === 'projects') return <ProjectsScreen />;
   if (route.name === 'quickSnags') return <QuickSnagsScreen />;
+  if (route.name === 'lineTools') return <LineToolsScreen tool={route.view === 'balance' ? 'balance' : 'map'} />;
   /* THE PACED SURFACES, each behind the model it belongs to. Binding the id
      once keeps the assertion count where it was — the ratchet only ever comes
      down; see CLAUDE.md. */

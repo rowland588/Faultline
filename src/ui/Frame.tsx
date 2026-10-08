@@ -38,7 +38,7 @@ import { ReportsSheet } from './ReportsSheet';
 import { useJobStands } from './railJobs';
 import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
 import {
-  controlRoom, snagsPlace, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
+  controlRoom, toolPlaces, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
   type RailGroup, type RailLine,
 } from './rail';
 
@@ -50,7 +50,7 @@ import {
 function projectOf(route: Route, chainProject?: string): string | undefined {
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
-  if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags') return undefined;
+  if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools') return undefined;
   return route.id;
 }
 
@@ -70,7 +70,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
         : projectId && (loading || (route.wsId && chain === null))
-          ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }]} bar={[controlRoom(here)]} />
+          ? <NavChrome groups={[{ lines: [controlRoom(here), ...toolPlaces(here)] }]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null} />}
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId} projectId={projectId} />
@@ -178,7 +178,7 @@ interface NavProps {
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
+    { lines: [controlRoom(p.here), ...toolPlaces(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
       (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
     gatesGroup(p.project.id, p.here, stand.counts),
     workGroup(p.project.id, p.model, p.here, stand.counts),
@@ -191,7 +191,7 @@ function GateNav(p: NavProps) {
 function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const counts = useMethodCounts(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, counts.board?.late ?? 0)] },
+    { lines: [controlRoom(p.here), ...toolPlaces(p.here), jobLine(p.project.id, p.project.name, p.here, counts.board?.late ?? 0)] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
     workGroup(p.project.id, p.model, p.here, counts),
@@ -226,7 +226,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     return () => { live = false; };
   }, [wsId]);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(here), snagsPlace(here), ...(loose && wsId ? [
+    { lines: [controlRoom(here), ...toolPlaces(here), ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
     ] : [])] },

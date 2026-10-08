@@ -328,6 +328,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const [icons, setIcons] = useState(false);
   const [picture, setPicture] = useState(false);
   const [copying, setCopying] = useState(false);
+  /* Opened from Line balance (screens/LineToolsScreen, ?at=balance): straight
+     to the balance under the map. */
+  useEffect(() => {
+    if (!/[?&]at=balance\b/.test(window.location.hash)) return;
+    const id = window.setTimeout(() => document.getElementById('ls-balance')?.scrollIntoView({ block: 'start' }), 120);
+    return () => window.clearTimeout(id);
+  }, [s.id]);
   const [printing, setPrinting] = useState(false);
   const [product, setProduct] = useState(s.product);
   const [size, setSize] = useState({ bw: 0, bh: 0 });
@@ -628,9 +635,11 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           order, each at its own speed, and the one that holds the line back.
           The same panel a 6M line uses, without its board: nothing here is
           raised as an action unless it is on a job's board. */}
-      <CapacityPanel projectId={s.projectId} board={false} can={can}
-        line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-        onSave={cap => save({ capacity: cap })} />
+      <div id="ls-balance" className="ls-balance">
+        <CapacityPanel projectId={s.projectId} board={false} can={can}
+          line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
+          onSave={cap => save({ capacity: cap })} />
+      </div>
 
       <Sheet open={!!editingMark && !ro} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}
         title={editingMark ? (isShape(editingMark) ? SHAPES.find(x => x.shape === editingMark.shape)?.word ?? 'Shape' : markOf(editingMark.kind).word) : ''}>

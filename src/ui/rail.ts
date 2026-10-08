@@ -101,6 +101,7 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
     case 'quickSnags': return 'quicksnags';
+    case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -153,6 +154,17 @@ export const controlRoom = (here: string): RailLine =>
  *  snag is taken from anywhere (snag/QuickSnag) and sent on from there. */
 export const snagsPlace = (here: string): RailLine =>
   ({ key: 'quicksnags', label: 'Snags', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
+
+/** THE TOOLS, beside the control room on every rail — the snags, the line
+ *  standard and the line balance. Rowland, 8 October: "we want line standard
+ *  and line balancing as tools like snag ... same principle: use independent
+ *  or connect to project." Each is used on a line with no job, and attached
+ *  to one when it is wanted (LINE_TOOLS.sql, screens/LineToolsScreen). */
+export const toolPlaces = (here: string): RailLine[] => [
+  snagsPlace(here),
+  { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
+  { key: 'linebalance', label: 'Line balance', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
+];
 
 /** The job itself — on its front page, where the method's answer is. */
 export const jobLine = (projectId: string, name: string, here: string, late = 0, problem = 0): RailLine =>

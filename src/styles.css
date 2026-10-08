@@ -10538,6 +10538,21 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 }
 
 .qsl-f { margin: 4px 0 10px; gap: 8px; }
+/* THE LINE TOOLS (screens/LineToolsScreen) — every line standard or balance,
+   by line: the product, what it says, and the job it is on, if any. Only a
+   balance short of its target wears red, in its words. */
+.lt-rows { list-style: none; margin: 0; padding: 0; }
+.lt-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; width: 100%; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.lt-row:hover .lt-what, .lt-row:focus-visible .lt-what { color: var(--brand); }
+.lt-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lt-what { flex: 1 1 200px; min-width: 0; font-size: var(--t-body); color: var(--ink); overflow-wrap: anywhere; }
+.lt-says { font-size: var(--t-detail); color: var(--ink-2); }
+.lt-says.is-short { color: var(--st-r); font-weight: 700; }
+.lt-where { flex-basis: 100%; font-size: var(--t-detail); color: var(--muted); }
+.lt-new { display: grid; gap: 12px; }
+.lt-new .field { display: grid; gap: 4px; }
+.lt-new select { min-height: 40px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--surface); color: var(--ink); }
+.ls-balance { scroll-margin-top: 64px; }
 .qsl-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px 0; }
 .qsl-g { margin-top: 14px; }
 .qsl-gh { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
