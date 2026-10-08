@@ -10,6 +10,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, heading, label, pagesOf, rows, space, text, wrap } from './report/blocks';
 import { byStage, gantt, withMachines, withNext, type GanttBy } from './gantt';
 import { drawGantt } from './ganttPdf';
+import { programsBlocks } from './programsReportPdf';
 import { moveLines } from './story';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
@@ -380,12 +381,12 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       });
     }
 
+    /* THE PROGRAMS — every one, machine by machine: its state in words and
+       its colour, what was seen, what was said before (lib/programsReport).
+       The rows the programs report prints, so the two cannot disagree. */
     if (s.programs && s.programs.total) {
-      out.push(text({ text: `Programs — ${s.programs.proved} of ${s.programs.total} proved`, size: S.h2, style: 'bold', before: 4, after: 3 }));
-      s.programs.notYet.forEach((p, i, all) => out.push(text({
-        text: `${p.what}${p.machine ? ` — ${p.machine}` : ''}: ${p.state}`, size: 9, colour: INK2, indent: 12, bullet: '•',
-        after: i === all.length - 1 ? gap(d, 's') : 1,
-      })));
+      out.push(text({ text: `Programs — ${s.programs.says}`, size: S.h2, style: 'bold', before: 4, after: 4 }));
+      out.push(...programsBlocks(s.programs, d));
     }
 
     /* THE PERFORMANCE RUNS — a row per product: what it netted against what
@@ -679,6 +680,11 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
         font(f.doc, 8, 'normal', INK2); f.doc.text(ls[i], x + 7, y + 27);
       });
     }, f => gap(f.density, 'l')));
+
+    /* THE PROGRAMS, in one line under the gates (lib/programsReport) — a
+       failed one is also a DIDN'T PASS line below; every one is in the full
+       report and the programs report. */
+    if (s.programs) out.push(text({ text: `Programs: ${s.programs}`, size: 9.5, style: 'bold', colour: INK2, after: gap(d, 'l') }));
 
     /* 2 · WHY WE ARE NOT WHERE WE SHOULD BE — only the abnormal, a tag in
        its colour, what, and its cause or cost under it. */

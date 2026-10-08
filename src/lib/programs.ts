@@ -37,6 +37,7 @@
  * and if not, when do we find out.
  */
 import type { ID } from '../types';
+import type { Test } from './testing';
 import { daysBetween, todayISO, weeksFrom, type Week } from './weeks';
 export { todayISO, monthSpans, weekIndexOf, type Week } from './weeks';
 
@@ -102,6 +103,12 @@ export function stateOf(p: Program): ProgramState {
 }
 
 export const isProved = (p: Program): boolean => stateOf(p) === 'proved';
+
+/** Set up's stage about programs — "Programs loaded", or any Set up stage
+ *  that says "program". Its parts are the programs as the floor says them
+ *  (lib/programsReport). */
+export const isProgramsStage = (t: Pick<Test, 'kind' | 'gate' | 'title'>): boolean =>
+  t.kind === 'install' && t.gate === 'setup' && /program/i.test(t.title);
 
 /* ============================== where it stands =============================
  *

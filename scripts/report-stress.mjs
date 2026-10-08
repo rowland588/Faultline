@@ -191,7 +191,7 @@ for (const size of SIZES) {
     const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
     const today = todayISO();
     const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], today });
-    const out = { client: [], card: [], fix: [], day: [], status: [] };
+    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
     /* ARE WE ON TARGET? leads the first page, the word and its reason
@@ -209,7 +209,16 @@ for (const size of SIZES) {
       if (s2.gate !== 'commission') add('client', ...s2.late, ...s2.problems);
       /* What was said to have failed — a part's status, with what was seen. */
       from = `section ${s2.gate} didn't pass`; add('client', ...(s2.failed ?? []));
-      for (const pr of s2.programs?.notYet ?? []) add('client', pr.what);
+      /* The programs — every one, its state and what was seen, and the
+         statuses said before it, in the full report and its own report alike. */
+      if (s2.programs) {
+        from = `section ${s2.gate} programs`;
+        for (const k of ['client', 'programs']) {
+          add(k, s2.programs.says);
+          for (const l of s2.programs.lines) add(k, l.what, l.word, l.note, l.proving, ...l.earlier.map(e => `Before: ${e}`));
+          for (const m of s2.programs.machines) add(k, m.name);
+        }
+      }
       /* How each stage went: every account whole — to its last word — with
          the step it is about, its day and its state. */
       from = `section ${s2.gate} account`; for (const a of s2.accounts ?? []) add('client', a.machine, a.stage, a.when, a.state, a.said);
@@ -237,6 +246,7 @@ for (const size of SIZES) {
     from = 'status: what next'; for (const n of st.next) add('status', n.what, n.who, n.when);
     from = 'status: waiting'; for (const w of st.waiting) add('status', w);
     from = 'status: runs'; for (const rr of st.runs) add('status', rr.product, rr.net, rr.outcome, rr.say);
+    from = 'status: programs'; add('status', st.programs);
     /* "and N more" only when even the longest lists cannot hold them all. */
     from = 'status: more'; if (statusReport(r).whyMore) add('status', 'more — in the full report');
     const cardOf = (id, k) => {
@@ -272,6 +282,8 @@ for (const size of SIZES) {
        report is the other choice (docs/SIMPLE.md). */
     ['status', `#/project/${job.projectId}/report`, [['Status — 1 page'], ['PDF']], must.status],
     ['client', `#/project/${job.projectId}/report`, [['Full report'], ['PDF']], must.client],
+    /* The programs, a report of their own (8 October). */
+    ['programs', `#/project/${job.projectId}/report`, [['Programs'], ['PDF']], must.programs],
     /* The card is the record's own page now (screens/TestScreen); its button
        says what it makes — "Test card — PDF", "Fix card — PDF", "Install step
        card — PDF" — so it is pressed by that name, whichever face it wears. */

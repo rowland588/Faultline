@@ -27,8 +27,8 @@ import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machi
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
-import { stateOf, type Program } from './programs';
-import { provingTestOf, testCell } from './commission';
+import { isProgramsStage, type Program } from './programs';
+import { programsReading, type ProgramsReading } from './programsReport';
 import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
 import type { Standard } from './standard';
@@ -73,8 +73,10 @@ export interface GateSection {
    *  and a line per stage that lost any — what pushed its finish, what is
    *  still short of a day, and the problems that cost them. */
   hours?: { total: string; lines: string[] };
-  /** Set up only: the programs. */
-  programs?: { proved: number; total: number; notYet: { what: string; machine?: string; state: string }[] };
+  /** Set up only: THE PROGRAMS, every one, machine by machine — the floor's
+   *  status and what was seen, and its proving in Commission
+   *  (lib/programsReport). The same reading the programs report prints. */
+  programs?: ProgramsReading;
   /** Commission only: the tests, in the order they were planned. */
   tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string;
     /** A run at a rate, in one line (lib/run runLine). */
@@ -275,9 +277,11 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const accounts: StepAccount[] = g.rows.flatMap(r => {
       const inGrid = r.cells.filter((c): c is StepView => !!c);
       const rest = r.view.steps.filter(s => !inGrid.includes(s));
-      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || partsOf(s.step.id, items).length).map(s => {
+      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || (!isProgramsStage(s.step) && partsOf(s.step.id, items).length)).map(s => {
         const tone = cellOf(s);
-        const parts = partsOf(s.step.id, items).map(p => partWords(p, today));
+        /* A programs stage's parts are the programs — said once, under
+           Programs, with their status and what was seen. */
+        const parts = isProgramsStage(s.step) ? [] : partsOf(s.step.id, items).map(p => partWords(p, today));
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
@@ -347,21 +351,12 @@ export function clientReport(x: ClientReportInput): ClientReport {
 
   const install = stepGate('install');
   const setup = stepGate('setup');
-  const proved = programs.filter(p => stateOf(p) === 'proved').length;
-  if (programs.length) {
-    setup.programs = {
-      proved, total: programs.length,
-      notYet: programs.filter(p => stateOf(p) !== 'proved').map(p => ({
-        what: p.what, machine: machine(p.assetId),
-        /* Its test in Commission, when it has one — proved there, so the
-           paper says how the proving stands (lib/commission). */
-        state: [stateOf(p) === 'onMachine' ? 'on the machine, not proved' : 'not written yet',
-          ((t?: Test) => (t ? `test in Commission ${testCell(t, today).word}` : 'no test in Commission yet'))(provingTestOf(p, tests))].join(' · '),
-      })),
-    };
+  const progs = programsReading({ tests, items, assets, programs, today });
+  if (progs) {
+    setup.programs = progs;
     setup.says = setup.says === 'Nothing kept at this gate yet'
-      ? `${proved} of ${programs.length} programs proved`
-      : `${setup.says} · ${proved} of ${programs.length} programs proved`;
+      ? `${progs.done} of ${progs.total} programs passed`
+      : `${setup.says} · ${progs.done} of ${progs.total} programs passed`;
   }
 
   const proofs = tests.filter(t => (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);

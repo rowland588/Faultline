@@ -529,7 +529,8 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           <section className="pace-sec">
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">What the line has to run</h2>
-              <p className="pace-sec-sub">In the order you set — ▲ ▼ moves one · its state on each row · green from the week it was proved · this prints on the report</p>
+              <p className="pace-sec-sub">In the order you set — ▲ ▼ moves one · its state on each row · green from the week it was proved · this prints on the report
+                {' '}· <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=programs`)}>Programs report ›</button></p>
             </div>
             {can.edit && <PutAllOn state={state} assets={assets} addAsset={addAsset} />}
             <div className="mt-list">

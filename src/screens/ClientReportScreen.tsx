@@ -29,8 +29,12 @@ function Says({ says }: { says: string }) {
 /* WHICH REPORT. The status report is one page and is the one that gets sent
    (lib/statusReport, docs/SIMPLE.md) — Rowland, 7 October: "I can't send that
    report out. It's too massive." The full report is the whole record, for
-   whoever wants it. Both read the same reading, so they cannot disagree. */
-type Which = 'status' | 'full';
+   whoever wants it. Both read the same reading, so they cannot disagree.
+   THE PROGRAMS have a report of their own (8 October: "on programs they are
+   missing from the reports — need its own report"): every program, machine
+   by machine, its state and what was seen (lib/programsReport) — the rows the
+   full report's Programs section prints. */
+type Which = 'status' | 'full' | 'programs';
 
 async function buildStatus(r: ClientReport): Promise<jsPDF> {
   const { loadPdfLib } = await import('../lib/savePdf');
@@ -38,6 +42,17 @@ async function buildStatus(r: ClientReport): Promise<jsPDF> {
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   await drawStatusReport(doc, r);
+  return doc;
+}
+
+async function buildPrograms(r: ClientReport): Promise<jsPDF> {
+  const { loadPdfLib } = await import('../lib/savePdf');
+  const { drawProgramsReport } = await import('../lib/programsReportPdf');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  const reading = r.sections.find(s => s.gate === 'setup')?.programs;
+  await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed,
+    reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, says: 'No programs yet' } });
   return doc;
 }
 
@@ -67,7 +82,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
   return doc;
 }
 
-const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : 'client report', todayISO());
+const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : which === 'programs' ? 'programs' : 'client report', todayISO());
 
 export function ClientReportScreen({ projectId }: { projectId: string }) {
   const { projects, loading } = useProjects();
@@ -78,7 +93,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const standards = useStandards(projectId);
   const walk = useWalkSnags(projectId);
   const [withStandards, setWithStandards] = useState(true);
-  const [which, setWhich] = useState<Which>('status');
+  /* ?doc=programs — opened from the Reports sheet or the Programs page. */
+  const [which, setWhich] = useState<Which>(() => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs' : 'status'));
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing
@@ -106,7 +122,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   /* The preview is the PDF itself, redrawn when what is on it changes — and
      only then (lib/usePdfPreview). */
   const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(report)}` : null), [report, withStandards, wide, which]);
-  const build = () => (which === 'status' ? buildStatus(report as ClientReport) : buildPdf(report as ClientReport, withStandards));
+  const build = () => (which === 'status' ? buildStatus(report as ClientReport)
+    : which === 'programs' ? buildPrograms(report as ClientReport) : buildPdf(report as ClientReport, withStandards));
   const preview = usePdfPreview(previewKey, build);
   const status = useMemo(() => (report ? statusReport(report) : null), [report]);
 
@@ -129,14 +146,17 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     <div className="wrap pace cr">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Client report</h1>
+          <h1 className="pace-title">{which === 'programs' ? 'Programs report' : 'Client report'}</h1>
           <p className="pace-lede">{which === 'status'
             ? 'One page: where we are, why we are not where we should be, and what we are doing about it. The one to send.'
-            : 'The whole record, in the order the job is run — for whoever wants every detail.'}</p>
+            : which === 'programs'
+              ? 'Every program, machine by machine — where each stands, what was seen, and what was said before.'
+              : 'The whole record, in the order the job is run — for whoever wants every detail.'}</p>
           {/* The answer the first page leads with (lib/onTarget). */}
           {/* On the status view, the verdict and the handover only — what
               is wrong is listed under it, once. */}
-          <OnTargetLine v={which === 'status' && status ? status.verdict : report.onTarget} />
+          {/* Not on the programs report, which is about the programs alone. */}
+          {which !== 'programs' && <OnTargetLine v={which === 'status' && status ? status.verdict : report.onTarget} />}
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
@@ -149,7 +169,31 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
+        <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs</button>
       </span>
+
+      {which === 'programs' && (() => {
+        const pr = report.sections.find(s => s.gate === 'setup')?.programs;
+        return (
+          <div className={'cr-body' + (wide ? ' is-wide' : '')}>
+            <ol className="cr-toc">
+              <li><b>Programs</b><span>{pr ? pr.says : 'No programs yet — write them on Set up’s programs stage, or on the Programs page.'}</span></li>
+              {pr?.machines.map(m => (
+                <li key={m.name}><b>{m.name}</b>
+                  {m.lines.map((l, i) => (
+                    <span key={i}>{l.what} — <b className={'cr-prog is-' + l.tone}>{l.word}</b>{l.note ? `: ${l.note}` : ''}</span>
+                  ))}
+                </li>
+              ))}
+            </ol>
+            {wide && (
+              <div className="cr-page">
+                {preview ? <iframe title="The programs report" src={preview} /> : <p className="sub">Drawing the report…</p>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {which === 'status' && status && (
         <div className={'cr-body' + (wide ? ' is-wide' : '')}>
@@ -161,6 +205,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             <li><b>What we are doing about it</b>
               {status.next.length ? status.next.map((n, i) => <span key={i}>{n.what} — <span className={n.late ? 'in-late' : undefined}>{n.when}</span></span>) : <span>No fixes open.</span>}
               {status.nextMore > 0 && <span className="sub">and {status.nextMore} more open — in the full report</span>}</li>
+            {status.programs && <li><b>Programs</b><span>{status.programs}</span></li>}
             {status.runs.length > 0 && <li><b>Performance runs</b>{status.runs.map((r, i) => <span key={i}>{r.title}{r.machine ? ` — ${r.machine}` : ''}: net {r.net} · {r.outcome}</span>)}</li>}
           </ol>
           {wide && (

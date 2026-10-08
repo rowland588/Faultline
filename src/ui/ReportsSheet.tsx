@@ -56,6 +56,7 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
             the one printable thing this index did not list. */}
         {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
         {stageGate && <Door title="Today" says="The day's story — what got done, what was found, with the pictures — one page." onClick={() => go(`/project/${project.id}/day`)} />}
+        {stageGate && <Door title="Programs" says="Every program, machine by machine — where each stands and what was seen." onClick={() => go(`/project/${project.id}/report?doc=programs`)} />}
         {stageGate && <Door title="Line standard" says="Who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
         {walk && <Door title="Evidence cards" says="One page per snag on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
         {withWalk.map(l => (

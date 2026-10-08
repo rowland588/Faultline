@@ -12,7 +12,7 @@
  *
  * The program record stays the one on the Programs page; nothing is copied. */
 import { usePrograms } from '../lib/usePrograms';
-import { STATE_WORD, isProved, stateOf, type Program } from '../lib/programs';
+import { STATE_WORD, isProgramsStage, isProved, stateOf, type Program } from '../lib/programs';
 import { provingTestOf, testCell } from '../lib/commission';
 import { live, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -26,10 +26,9 @@ const progWords = (p: Program, tests: Test[], today: string): { word: string; to
   return { word: `${STATE_WORD[stateOf(p)].toLowerCase()} · no test yet`, tone: 'n' };
 };
 
-/** Set up's stage about programs — "Programs loaded" or any stage that says
- *  "program". */
-export const isProgramsStage = (t: Pick<Test, 'kind' | 'gate' | 'title'>): boolean =>
-  t.kind === 'install' && t.gate === 'setup' && /program/i.test(t.title);
+/* Set up's stage about programs (lib/programs isProgramsStage), still
+   offered from here for the screens that read it from here. */
+export { isProgramsStage };
 
 export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
   projectId: string; t: Test; tests: Test[];
@@ -101,6 +100,7 @@ export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
       <span className="rd-prog">
         <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/programs`)}>Programs ›</button>
         <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/testing`)}>Prove them in Commission ›</button>
+        <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=programs`)}>Programs report ›</button>
       </span>
     </div>
   );

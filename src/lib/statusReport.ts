@@ -57,6 +57,10 @@ export interface StatusReport {
   waiting: string[];
   runs: RunRow[];
   runsMore: number;
+  /** "12 programs · 5 passed · 3 at baseline · 2 failed · 2 to do" — the
+   *  programs in one line, under where we are (lib/programsReport); a failed
+   *  one is also a DIDN'T PASS line. */
+  programs?: string;
 }
 
 /** What one page holds — enough to be the answer, few enough to be read.
@@ -115,5 +119,6 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
     next: next.slice(0, L.next), nextMore: Math.max(0, next.length - L.next),
     waiting: waiting.slice(0, L.waiting),
     runs: runs.slice(0, L.runs), runsMore: Math.max(0, runs.length - L.runs),
+    ...((p => (p ? { programs: p.says } : {}))(r.sections.find(s => s.gate === 'setup')?.programs)),
   };
 }

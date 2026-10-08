@@ -10541,6 +10541,12 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 /* THE LINE TOOLS (screens/LineToolsScreen) — every line standard or balance,
    by line: the product, what it says, and the job it is on, if any. Only a
    balance short of its target wears red, in its words. */
+/* A program's state on the report screen, in its colour and its words. */
+.cr-prog.is-g { color: var(--st-g); }
+.cr-prog.is-r { color: var(--st-r); }
+.cr-prog.is-w { color: var(--st-w); }
+.cr-prog.is-a { color: var(--st-a); }
+.cr-prog.is-n { color: var(--muted); }
 .lt-rows { list-style: none; margin: 0; padding: 0; }
 .lt-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; width: 100%; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .lt-row:hover .lt-what, .lt-row:focus-visible .lt-what { color: var(--brand); }
