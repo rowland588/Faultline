@@ -60,6 +60,8 @@ import { RunBlock } from './RunPanel';
 
 const OPEN = 'open';
 const JOB = 'job';
+/** A part of the stage to open "Hit a problem" on (openRecordAt). */
+const PROBLEM = 'problem';
 
 /** The routes a record can be opened over. The fishbone's own ?open=1 (a new
  *  problem) is not one of ours, so the 6M surfaces are left alone. A frame of
@@ -97,6 +99,15 @@ export function openRecord(projectId: string, id: string): void {
   nav(recordHref(projectId, id));
 }
 
+/** Open a stage with "Hit a problem" already open on one of its parts — the
+ *  Programs page's own button (screens/ProgramsPage): the same write-up the
+ *  stage gives, without hunting for the part in the drawer. */
+export function openRecordAt(projectId: string, id: string, problemOn: string): void {
+  pushed++;
+  const href = recordHref(projectId, id);
+  nav(`${href}&${PROBLEM}=${encodeURIComponent(problemOn)}`);
+}
+
 /** Show another record in the drawer already open — the parent of a fix, a
  *  fix under a stage — without adding to the trail the back button walks. */
 export function openRecordInPlace(id: string): void {
@@ -107,7 +118,7 @@ export function closeRecord(): void {
   if (pushed > 0) { pushed = 0; history.back(); return; }
   /* Reached by a link or a reload: nothing of ours to go back to. */
   const [path, params] = split();
-  params.delete(OPEN); params.delete(JOB);
+  params.delete(OPEN); params.delete(JOB); params.delete(PROBLEM);
   const qs = params.toString();
   navReplace(qs ? `${path}?${qs}` : path);
 }
@@ -233,6 +244,15 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
   useEffect(() => { setProblem(false); setProblemPart(null); setPlanning(false); setEditingProblem(null); setDayEdit(null); }, [id]);
+  /* Opened with a part named (openRecordAt): its problem form, open. */
+  useEffect(() => {
+    const want = split()[1].get(PROBLEM);
+    if (!want) return;
+    const part = live(tt.items).find(i => i.id === want && i.testId === id && i.kind === 'next');
+    if (!part) return;
+    setProblemPart(part); setProblem(true);
+    withQuery(PROBLEM, null, true);
+  }, [id, tt.items]);
 
   const t = live(tt.tests).find(x => x.id === id);
   const from = trail.length ? live(tt.tests).find(x => x.id === trail[trail.length - 1]) : undefined;

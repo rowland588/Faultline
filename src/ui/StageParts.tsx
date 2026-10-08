@@ -28,6 +28,7 @@
 import { useState } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
+import { isProgramsStage } from '../lib/programs';
 import { RESULT_WORD, partLate, partMoved, partsOf, resultNow, resultWords, saidResult } from '../lib/noted';
 import { addDays, niceDay, todayISO } from '../lib/weeks';
 import { DUE_SOON_DAYS } from '../lib/actions';
@@ -73,15 +74,22 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can, onProblem }: {
+export function StageParts({ step, tt, can, onProblem, only }: {
   step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem'>; can: Can;
   /** HIT A PROBLEM ON A PART — the stage's own write-up (ui/WhyMoved
    *  ProblemForm), opened for this part. Rowland, 8 October: "I want to click
    *  on the subsection and write the problem in the subsection ... exactly the
    *  same as have a problem, write it up." */
   onProblem?: (part: TestItem) => void;
+  /** Only these, when the list is filtered (screens/ProgramsPage) — ▲ ▼ are
+   *  offered only on the whole list, so a move is never to a place unseen. */
+  only?: (p: TestItem) => boolean;
 }) {
-  const parts = partsOf(step.id, tt.items);
+  const all = partsOf(step.id, tt.items);
+  const parts = only ? all.filter(only) : all;
+  /* On Set up's programs stage its parts ARE the programs — said so, here
+     and on the Programs page that lists them (screens/ProgramsPage). */
+  const prog = isProgramsStage(step);
   /* The problems written on each part (kept on the problem as fromItemId). */
   const problemsOf = (p: TestItem) => live(tt.items).filter(i => i.kind === 'found' && i.testId === step.id && i.fromItemId === p.id)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -96,7 +104,7 @@ export function StageParts({ step, tt, can, onProblem }: {
   const [stating, setStating] = useState<{ id: string; is?: PartResultIs; note: string } | null>(null);
   /* The parts whose earlier statuses are open. */
   const [story, setStory] = useState<Set<string>>(new Set());
-  if (!parts.length && !can.edit) return null;
+  if (!all.length && !can.edit) return null;
 
   /* Everyone named anywhere on the job, for the "who" box. */
   const names = [...new Set([
@@ -140,7 +148,7 @@ export function StageParts({ step, tt, can, onProblem }: {
     <div className="rd-blk sp-parts">
       {/* How many, and how many done, is said once — beside the stage's state
           at the top of the drawer (ui/RecordDrawer). */}
-      <small>Part of the plan</small>
+      <small>{prog ? 'Programs on this machine' : 'Part of the plan'}</small>
       {parts.length > 0 && (
         <ul className="spp-list">
           {parts.map((p, k) => {
@@ -166,7 +174,7 @@ export function StageParts({ step, tt, can, onProblem }: {
                   </form>
                 ) : (
                   <>
-                    {can.edit && parts.length > 1 && (
+                    {can.edit && !only && parts.length > 1 && (
                       <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
                         <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => move(p, -1)}>▲</button>
                         <button type="button" className="pg-move-b" disabled={k === parts.length - 1} aria-label={`Move ${p.what} down`} onClick={() => move(p, 1)}>▼</button>
@@ -243,7 +251,8 @@ export function StageParts({ step, tt, can, onProblem }: {
       )}
       {can.edit && (
         <form className="spp-add" onSubmit={e => { e.preventDefault(); add(); }}>
-          <input value={adding} placeholder="Add a part — e.g. Panels to run Express 1.25 kg" aria-label="Add a part of the plan" onChange={e => setAdding(e.target.value)} />
+          <input value={adding} placeholder={prog ? 'Add a program — e.g. PR-12 Express 1.25 kg' : 'Add a part — e.g. Panels to run Express 1.25 kg'}
+            aria-label={prog ? 'Add a program' : 'Add a part of the plan'} onChange={e => setAdding(e.target.value)} />
           <button type="submit" className="btn btn-sm" disabled={!adding.trim()}>Add</button>
           {more ? (
             <span className="spp-more">
@@ -258,7 +267,9 @@ export function StageParts({ step, tt, can, onProblem }: {
         </form>
       )}
       {can.edit && <datalist id="spp-names">{names.map(n => <option key={n} value={n} />)}</datalist>}
-      {!parts.length && can.edit && <p className="sub spp-why">Planned work inside this stage. Not a problem — a problem is for what went wrong.</p>}
+      {!all.length && can.edit && <p className="sub spp-why">{prog
+        ? 'Each program this machine has to run — then say how each stands: baseline achieved, passed or failed.'
+        : 'Planned work inside this stage. Not a problem — a problem is for what went wrong.'}</p>}
     </div>
   );
 }

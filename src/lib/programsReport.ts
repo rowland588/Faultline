@@ -31,6 +31,10 @@ export type ProgBucket = 'done' | 'baseline' | 'failed' | 'late' | 'open';
 
 export interface ProgramLine {
   machine: string;
+  /** Which records it is: the part on the programs stage (and that stage),
+   *  the program on the Programs page — one or both. The Programs page acts
+   *  on these; paper never prints them. */
+  partId?: string; stageId?: string; programId?: string; assetId?: string;
   what: string;
   /** What it runs — the product or the film, off the Programs page. */
   runs?: string;
@@ -112,7 +116,8 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
         group.push({
-          machine, what: part.what.trim(), ...(p?.runs ? { runs: p.runs } : {}),
+          machine, partId: part.id, stageId: st.id, ...(p ? { programId: p.id } : {}), ...(m ? { assetId: m } : {}),
+          what: part.what.trim(), ...(p?.runs ? { runs: p.runs } : {}),
           ...(part.owner?.trim() ? { who: part.owner.trim() } : p?.from ? { who: p.from } : {}),
           /* Proved in Commission is the stronger word; the floor's status
              and what was seen stay beside it. */
@@ -125,7 +130,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
     }
     for (const p of mine.filter(q => !used.has(q.id))) {
       group.push({
-        machine, what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
+        machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tests, today), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
       });
     }

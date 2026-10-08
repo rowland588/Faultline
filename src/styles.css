@@ -10541,6 +10541,34 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 /* THE LINE TOOLS (screens/LineToolsScreen) — every line standard or balance,
    by line: the product, what it says, and the job it is on, if any. Only a
    balance short of its target wears red, in its words. */
+/* THE PROGRAMS PAGE (screens/ProgramsPage) — a tile per state that is also
+   its filter, then each machine's programs the whole width of the page. Only
+   the abnormal count wears colour; a zero is grey. */
+.pp-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.pp-tile { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); }
+.pp-tile b { font-size: 22px; line-height: 1.1; color: var(--ink); }
+.pp-tile span { font-size: var(--t-detail); color: var(--ink-2); }
+.pp-tile.is-g b { color: var(--st-g); }
+.pp-tile.is-w b { color: var(--st-w); }
+.pp-tile.is-r { border-color: var(--st-r); }
+.pp-tile.is-r b { color: var(--st-r); }
+.pp-tile.is-z b, .pp-tile.is-z span { color: var(--muted); }
+.pp-tile.on { box-shadow: 0 0 0 2px var(--brand); border-color: var(--brand); }
+.pp-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) { .pp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.pp-mf { margin-bottom: 6px; }
+.pp-m { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.pp-mh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.pp-mh h2 { margin: 0; font-size: 17px; flex: 1 1 auto; min-width: 0; }
+.pp-m .sp-parts { margin-top: 4px; }
+.pp-nostage { margin: 8px 0 0; }
+.pp-listonly { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.pp-listonly li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 6px 0; border-top: 1px dashed var(--line); }
+.pp-listonly li > b { flex: 1 1 200px; min-width: 0; }
+.pp-word { font-size: var(--t-detail); font-weight: 700; color: var(--muted); }
+.pp-word.is-g { color: var(--st-g); } .pp-word.is-r { color: var(--st-r); } .pp-word.is-w { color: var(--st-w); } .pp-word.is-a { color: var(--st-a); }
+.pp-door p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 6px 0 0; }
+
 /* A program's state on the report screen, in its colour and its words. */
 .cr-prog.is-g { color: var(--st-g); }
 .cr-prog.is-r { color: var(--st-r); }

@@ -18,8 +18,8 @@ import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
 import { DateInput } from '../ui/DateInput';
 import { keyOf } from '../lib/story';
-import { useEffect, useRef, useState } from 'react';
-import { nav, navReplace } from '../state/useRoute';
+import { useRef, useState } from 'react';
+import { nav } from '../state/useRoute';
 import { DraftText } from '../ui/Draft';
 import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
@@ -568,15 +568,4 @@ export function ProgramsScreen({ projectId, embedded = false }: {
 }
 
 
-/* PROGRAMS ARE SHOWN ONCE ON A JOB. They are set up under Set up on a stage-gate
- * job and live under Materials on a 3P or tree job; this page drew them a
- * second time on their own, with the Materials tab lit. A link to /programs —
- * from the plan, from a date's story — lands on the page that holds them. */
-export function ProgramsDoor({ projectId }: { projectId: string }) {
-  const { loading, project } = useProject(projectId);
-  useEffect(() => {
-    if (loading) return;
-    navReplace(`/project/${projectId}/${project?.commissioning ? 'set-up' : 'materials'}`);
-  }, [loading, project, projectId]);
-  return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-}
+

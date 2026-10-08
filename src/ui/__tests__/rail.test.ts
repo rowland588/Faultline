@@ -23,7 +23,7 @@ describe('which line is on, from the address alone', () => {
     expect(here(`#/project/${P}`)).toBe('job');
     expect(here(`#/project/${P}/install`)).toBe('install');
     expect(here(`#/project/${P}/set-up`)).toBe('setup');
-    expect(here(`#/project/${P}/programs`)).toBe('setup');      // programs are set up under Set up
+    expect(here(`#/project/${P}/programs`)).toBe('programs');   // programs are a page of their own (8 October)
     expect(here(`#/project/${P}/testing`)).toBe('testing');
     expect(here(`#/project/${P}/handover`)).toBe('handover');
     expect(here(`#/project/${P}/fixes`)).toBe('fixes');
@@ -97,21 +97,20 @@ describe('the gates, in the order the job goes through them', () => {
   };
   const g = gatesGroup(P, 'setup', counts);
 
-  it('reads Install · Set up · Commission · Hand over, to the URLs that already exist', () => {
-    expect(labels(g)).toEqual(['Install', 'Set up', 'Commission', 'Hand over']);
-    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/set-up`, `/project/${P}/testing`, `/project/${P}/handover`]);
+  it('reads Install · Set up · Programs · Commission · Hand over — programs between where they are loaded and where they are proved', () => {
+    expect(labels(g)).toEqual(['Install', 'Set up', 'Programs', 'Commission', 'Hand over']);
+    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/set-up`, `/project/${P}/programs`, `/project/${P}/testing`, `/project/${P}/handover`]);
   });
 
-  it('Set up counts its steps and the programs not yet proved together, as its tab did', () => {
-    const setup = g.lines[1];
+  it('Set up counts its steps; Programs counts its own', () => {
+    const [, setup, programs] = g.lines;
     expect(setup.on).toBe(true);
-    expect(setup.n).toBe(3);
-    expect(setup.late).toBe(1);
-    expect(setup.state).toBe('r');
+    expect([setup.n, setup.late, setup.state]).toEqual([1, 1, 'r']);
+    expect([programs.on, programs.n, programs.late, programs.state]).toEqual([false, 2, undefined, 'w']);
   });
 
   it('a gate with nothing left and something done is green, with no count', () => {
-    const hand = g.lines[3];
+    const hand = g.lines[4];
     expect(hand.state).toBe('g');
     expect(hand.n).toBeUndefined();
   });

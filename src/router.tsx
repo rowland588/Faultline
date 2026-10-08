@@ -15,7 +15,7 @@ import { ProjectsScreen } from './screens/ProjectsScreen';
 import { ProjectSetupScreen } from './screens/ProjectSetupScreen';
 import { ProjectLineScreen } from './screens/ProjectLineScreen';
 import { MaterialsScreen } from './screens/MaterialsScreen';
-import { ProgramsDoor } from './screens/ProgramsScreen';
+import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { InstallScreen } from './screens/InstallScreen';

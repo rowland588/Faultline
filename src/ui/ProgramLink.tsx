@@ -73,7 +73,7 @@ export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
   const proved = mine.filter(isProved).length;
   return (
     <div className="rd-blk">
-      <small>The programs{mine.length ? ` · ${proved} of ${mine.length} proved in Commission` : ''}</small>
+      <small>On the Programs list{mine.length ? ` · ${proved} of ${mine.length} proved in Commission` : ''}</small>
       {mine.length ? (
         <ul className="cg-plist">
           {mine.map((p, k) => {

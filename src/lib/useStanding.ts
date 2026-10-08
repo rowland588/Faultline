@@ -14,6 +14,7 @@ import { standing, type Standing } from './standing';
 import { gateOf, live } from './testing';
 import { lateOrProblem } from './install';
 import { todayISO } from './weeks';
+import { programsReading } from './programsReport';
 
 export interface StandingState {
   loading: boolean;
@@ -80,12 +81,15 @@ export function useStanding(projectId: string): StandingState {
       fixes: row('fixes', fixes?.open ?? 0, fixes?.late ?? 0),
       install: { ...row('install', by('install')?.open ?? 0, by('install')?.late ?? 0), problem: problems('install') },
       materials: row('materials', by('materials')?.open ?? 0, by('materials')?.late ?? 0),
-      programs: row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0),
-      /* The gates after Install — Set up's line adds the programs to this. */
+      /* THE PROGRAMS line — every program (lib/programsReport): open is what
+         has not passed, late what failed or is past its day. */
+      programs: (r => (r ? { n: r.total - r.done, late: r.failed + r.late, done: r.done } : row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0)))(
+        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today })),
+      /* The gates after Install. */
       setup: { ...row('setup', by('setup')?.open ?? 0, by('setup')?.late ?? 0), problem: problems('setup') },
       handover: { ...row('handover', by('handover')?.open ?? 0, by('handover')?.late ?? 0), problem: problems('handover') },
     };
-  }, [answer.rows, loading, tt.tests, tt.items, mats.materials, progs.programs]);
+  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs]);
 
   return { loading, standing: answer, counts, expectedAt, plannedAt };
 }

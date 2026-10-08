@@ -109,7 +109,8 @@ export function hereOf(route: Route): string {
       return !v || v === 'overview' ? 'job' : v === 'next' ? 'board' : v;
     }
     case 'install': return 'install';
-    case 'gateSetup': case 'programs': return 'setup';
+    case 'gateSetup': return 'setup';
+    case 'programs': return 'programs';
     case 'testing': case 'test': case 'trialCard': return 'testing';
     case 'handover': return 'handover';
     case 'fixes': return 'fixes';
@@ -180,7 +181,10 @@ export function gatesGroup(projectId: string, here: string, counts: Counts): Rai
     label: 'Gates',
     lines: [
       counted('install', 'Install', `${p}/install`, here, counts, ['install'], 'machine'),
-      counted('setup', 'Set up', `${p}/set-up`, here, counts, ['setup', 'programs'], 'machine'),
+      counted('setup', 'Set up', `${p}/set-up`, here, counts, ['setup'], 'machine'),
+      /* PROGRAMS, a page of their own between Set up and Commission — loaded
+         at one, proved at the other (screens/ProgramsPage). */
+      counted('programs', 'Programs', `${p}/programs`, here, counts, ['programs'], 'list'),
       counted('testing', 'Commission', `${p}/testing`, here, counts, ['testing'], 'machine'),
       counted('handover', 'Hand over', `${p}/handover`, here, counts, ['handover'], 'machine'),
     ],

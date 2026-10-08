@@ -39,7 +39,8 @@ import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { GATE_WORD, installGrid, installOf, usualStages } from '../lib/install';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
-import { ProgramsScreen } from './ProgramsScreen';
+import { usePrograms } from '../lib/usePrograms';
+import { programsReading } from '../lib/programsReport';
 import { AddAsset } from './TestsScreen';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
@@ -223,12 +224,32 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         </Fold>
       )}
 
-      {gate === 'setup' && <ProgramsScreen projectId={projectId} embedded />}
+      {/* THE PROGRAMS have a page of their own now (screens/ProgramsPage) — the
+          Programs list that sat here moved there, with every program's
+          status. One line here says where they stand and opens it. */}
+      {gate === 'setup' && <ProgramsLine projectId={projectId} tt={tt} />}
 
       {/* HOW THE LINE IS RUN, PRODUCT BY PRODUCT — handed over with the line.
           The line standard is a tool; Hand over is where a stage-gate job
           uses it. */}
       {gate === 'handover' && <StandardsCard projectId={projectId} can={can} />}
     </div>
+  );
+}
+
+/** Set up's line about the programs — where they stand, and the door to
+ *  their page. */
+function ProgramsLine({ projectId, tt }: { projectId: string; tt: ReturnType<typeof useTesting> }) {
+  const progs = usePrograms(projectId);
+  if (progs.loading) return null;
+  const r = programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today: todayISO() });
+  return (
+    <section className="cmp-sec pp-door" aria-label="Programs">
+      <div className="cw-sec-h"><h2 className="cmp-h">Programs</h2></div>
+      <p>
+        <span>{r ? r.says : 'No programs yet — write each one the machines have to run.'}</span>{' '}
+        <button type="button" className="btn btn-sm btn-primary" onClick={() => nav(`/project/${projectId}/programs`)}>Open Programs</button>
+      </p>
+    </section>
   );
 }
