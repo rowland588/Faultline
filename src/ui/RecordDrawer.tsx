@@ -412,6 +412,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <span className={t.ranOn ? '' : 'sub'}>{actualWords}</span>
         </dd></div>
         <div><dt>Who</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
+        {/* WHAT WAS AGREED — what the result is measured against ("passes if",
+            "done means"); a fix's is its problem, said under "The problem". */}
+        {kind !== 'fix' && t.passesIf?.trim() && <div><dt>{kind === 'install' ? 'Done means' : 'Passes if'}</dt><dd className="rd-said">{t.passesIf}</dd></div>}
         <div><dt>Changed</dt><dd>{lastMove
           ? <>moved {short(lastMove.from)} → {short(lastMove.to)}{lastMove.why ? `: ${lastMove.why}` : ''}{moves.length > 1 && <span className="sub"> · {moves.length - 1} earlier move{moves.length > 2 ? 's' : ''} below</span>}</>
           : <span className="sub">not moved</span>}</dd></div>
