@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import type { Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
-import { partLate, partsOf } from '../lib/noted';
+import { partLate, partMoved, partsOf } from '../lib/noted';
 import { addDays, niceDay, todayISO } from '../lib/weeks';
 import { DUE_SOON_DAYS } from '../lib/actions';
 import { isWholeDate } from './DateInput';
@@ -107,6 +107,8 @@ export function StageParts({ step, tt, can, onProblem }: {
     setEditing(null);
   };
   const remove = async (p: TestItem) => offerUndo(`Took off “${p.what}”`, await deleteTestItem(p.id));
+  /* ▲ ▼ — the parts in the order the person wants them (lib/noted partMoved). */
+  const move = (p: TestItem, by: -1 | 1) => { for (const x of partMoved(step.id, tt.items, p.id, by)) void tt.saveItem(x); };
 
   return (
     <div className="rd-blk sp-parts">
@@ -115,7 +117,7 @@ export function StageParts({ step, tt, can, onProblem }: {
       <small>Part of the plan</small>
       {parts.length > 0 && (
         <ul className="spp-list">
-          {parts.map(p => {
+          {parts.map((p, k) => {
             const probs = problemsOf(p);
             const st = stateOf(p, today, probs.filter(x => x.doneAt == null).length);
             const meta = [p.owner?.trim(), p.due && p.doneAt == null ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
@@ -135,6 +137,12 @@ export function StageParts({ step, tt, can, onProblem }: {
                   </form>
                 ) : (
                   <>
+                    {can.edit && parts.length > 1 && (
+                      <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
+                        <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => move(p, -1)}>▲</button>
+                        <button type="button" className="pg-move-b" disabled={k === parts.length - 1} aria-label={`Move ${p.what} down`} onClick={() => move(p, 1)}>▼</button>
+                      </span>
+                    )}
                     <label className="spp-tick">
                       <input type="checkbox" checked={p.doneAt != null} disabled={!can.edit} onChange={() => toggle(p)} />
                       <span>{p.what}{meta && <span className="spp-meta"> — {meta}</span>}</span>

@@ -37,7 +37,7 @@ export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
   onPatch: (patch: Partial<Test>) => void;
   can: Can;
 }) {
-  const { programs, loading } = usePrograms(projectId);
+  const { programs, loading, move } = usePrograms(projectId);
   const today = todayISO();
   const all = programs.filter(p => !p.deletedAt);
   if (loading) return null;
@@ -69,18 +69,27 @@ export function ProgramLink({ projectId, t, tests, onOpen, onPatch, can }: {
   }
 
   if (!isProgramsStage(t)) return null;
-  const mine = all.filter(p => (p.assetId ?? '') === (t.assetId ?? ''));
+  const onThis = (p: Program) => (p.assetId ?? '') === (t.assetId ?? '');
+  const mine = all.filter(onThis);
   const proved = mine.filter(isProved).length;
   return (
     <div className="rd-blk">
       <small>The programs{mine.length ? ` · ${proved} of ${mine.length} proved in Commission` : ''}</small>
       {mine.length ? (
         <ul className="cg-plist">
-          {mine.map(p => {
+          {mine.map((p, k) => {
             const said = progWords(p, tests, today);
             const test = provingTestOf(p, live(tests));
             return (
               <li key={p.id} className="cg-prow">
+                {/* ▲ ▼ — this machine's programs in the order the person wants
+                    them; the Programs page and the report read the same order. */}
+                {can.edit && mine.length > 1 && (
+                  <span className="pg-move is-inline" role="group" aria-label={`Move ${p.what}`}>
+                    <button type="button" className="pg-move-b" disabled={k === 0} aria-label={`Move ${p.what} up`} onClick={() => void move(p.id, -1, onThis)}>▲</button>
+                    <button type="button" className="pg-move-b" disabled={k === mine.length - 1} aria-label={`Move ${p.what} down`} onClick={() => void move(p.id, 1, onThis)}>▼</button>
+                  </span>
+                )}
                 <span className="cg-pwhat"><b>{p.what}</b>{p.runs && <span className="sub"> runs {p.runs}</span>}</span>
                 <span className={'cg-pstate is-' + said.tone}>{said.word}</span>
                 {test && <button type="button" className="cw-link" onClick={() => onOpen(test.id)}>Open its test</button>}

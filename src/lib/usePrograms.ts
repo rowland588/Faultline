@@ -13,8 +13,9 @@ export interface ProgramsState {
   loading: boolean;
   /** In the order the person set (lib/programs inOrder). */
   programs: Program[];
-  /** Move one a place up (-1) or down (+1). */
-  move: (id: string, by: -1 | 1) => Promise<void>;
+  /** Move one a place up (-1) or down (+1) — among the ones on screen, when
+   *  that is one machine's (lib/programs movedOne). */
+  move: (id: string, by: -1 | 1, among?: (p: Program) => boolean) => Promise<void>;
   tally: Tally;
   /** The columns of the grid — this week forward, far enough to cover the last
    *  test anybody has booked. */
@@ -100,8 +101,8 @@ export function usePrograms(projectId: string): ProgramsState {
     await putProgram({ ...p, state: 'onMachine', provedOn: undefined });
   }, [rows]);
 
-  const move = useCallback(async (id: string, by: -1 | 1) => {
-    const changed = movedOne(rows, id, by);
+  const move = useCallback(async (id: string, by: -1 | 1, among?: (p: Program) => boolean) => {
+    const changed = movedOne(rows, id, by, among);
     if (changed.length) await putPrograms(changed);
   }, [rows]);
 

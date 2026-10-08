@@ -47,9 +47,23 @@ export function notedProblems(tests: Test[], items: TestItem[], assets: Asset[])
 /* PART OF THE PLAN (ui/StageParts) — a stage's own lines, which are not
    problems: the item kind 'next', ticked done by doneAt. */
 
-/** A stage's parts, in the order they were written. */
+/** A stage's parts, in the order the person set (▲ ▼ in ui/StageParts) —
+ *  which is the order they were written until somebody moves one. */
 export const partsOf = (stepId: string, items: TestItem[]): TestItem[] =>
   live(items).filter(i => i.testId === stepId && i.kind === 'next').sort((a, b) => a.sort - b.sort || a.createdAt - b.createdAt);
+
+/** One part moved a place up (-1) or down (+1) on its stage. Rowland, 8
+ *  October: "when I've got all the programs there, helping me to organize my
+ *  programs, I need to be able to move them up and down." The stage's parts
+ *  are renumbered 1, 2, 3 … so the order is exact, and only the parts whose
+ *  place changed come back to be written. */
+export function partMoved(stepId: string, items: TestItem[], id: string, by: -1 | 1): TestItem[] {
+  const list = partsOf(stepId, items);
+  const i = list.findIndex(p => p.id === id), j = i + by;
+  if (i < 0 || j < 0 || j >= list.length) return [];
+  [list[i], list[j]] = [list[j], list[i]];
+  return list.map((p, k) => ({ p, sort: k + 1 })).filter(x => x.p.sort !== x.sort).map(x => ({ ...x.p, sort: x.sort }));
+}
 
 /** Past its day and not done — the one rule the drawer, the grid, the day,
  *  Needs you and the band all read. */

@@ -11003,3 +11003,5 @@ button.gt-fixlab small { font-size: 11.5px; }
 .pg-move-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .mt-row-main:has(.pg-move) { position: relative; }
 .mt-row-main:has(.pg-move) > .mt-what { padding-right: 68px; box-sizing: border-box; }
+/* In a stage's parts and its machine's programs: in the row, first, not floated. */
+.pg-move.is-inline { position: static; align-self: center; flex: none; }

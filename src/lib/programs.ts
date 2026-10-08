@@ -138,13 +138,17 @@ export const inOrder = (rows: Program[]): Program[] =>
 
 /** One program moved a place up (-1) or down (+1): the list renumbered
  *  10, 20, 30 … so the order is exact, and only the rows whose place changed
- *  are returned to be written. */
-export function movedOne(rows: Program[], id: string, by: -1 | 1): Program[] {
+ *  are returned to be written. `among` is the list the person is looking at —
+ *  one machine's programs in Set up's programs stage (ui/ProgramLink) — so ▲
+ *  passes the program above it THERE, not one on another machine. */
+export function movedOne(rows: Program[], id: string, by: -1 | 1, among: (p: Program) => boolean = () => true): Program[] {
   const list = inOrder(rows);
-  const i = list.findIndex(p => p.id === id), j = i + by;
-  if (i < 0 || j < 0 || j >= list.length) return [];
+  const seen = list.filter(among);
+  const k = seen.findIndex(p => p.id === id), other = seen[k + by];
+  if (k < 0 || !other) return [];
+  const i = list.indexOf(seen[k]), j = list.indexOf(other);
   [list[i], list[j]] = [list[j], list[i]];
-  return list.map((p, k) => ({ p, sort: (k + 1) * 10 })).filter(x => x.p.sort !== x.sort).map(x => ({ ...x.p, sort: x.sort }));
+  return list.map((p, n) => ({ p, sort: (n + 1) * 10 })).filter(x => x.p.sort !== x.sort).map(x => ({ ...x.p, sort: x.sort }));
 }
 
 /** The order the list used to read in (kept for anything that wants urgency first): what has slipped, then what is coming, then

@@ -12,6 +12,7 @@ import {
   stateOf, tally, testedIn, weeksFor,
   type Program,
 } from '../programs';
+import type { TestItem } from '../testing';
 
 const TODAY = '2026-09-21';   // a Monday
 
@@ -281,5 +282,32 @@ describe('the order the person sets', () => {
     expect(inOrder(after).map(p => p.id)).toEqual(['a', 'c', 'b']);
     expect(movedOne(rows, 'a', -1)).toEqual([]);   // already first
     expect(movedOne(rows, 'c', 1)).toEqual([]);    // already last
+  });
+  it('moves among one machine\'s programs, passing the one above it there', async () => {
+    const { inOrder, movedOne } = await import('../programs');
+    /* a and c are the filler's, b is another machine's between them. */
+    const rows = [{ ...P('a', 10), assetId: 'f' }, { ...P('b', 20), assetId: 'x' }, { ...P('c', 30), assetId: 'f' }];
+    const onFiller = (p: Program) => p.assetId === 'f';
+    const up = movedOne(rows, 'c', -1, onFiller);
+    const after = rows.map(r => up.find(u => u.id === r.id) ?? r);
+    expect(inOrder(after).filter(onFiller).map(p => p.id)).toEqual(['c', 'a']);
+    expect(movedOne(rows, 'a', -1, onFiller)).toEqual([]);   // first on its machine
+  });
+});
+
+describe('a stage\'s parts in the order the person sets', () => {
+  const I = (id: string, sort: number, testId = 's1') => ({ id, projectId: 'p', testId, kind: 'next', what: id, sort, createdAt: sort, updatedAt: sort }) as TestItem;
+  it('moves one a place on its own stage, renumbered, writing only what moved', async () => {
+    const { partMoved, partsOf } = await import('../noted');
+    const items = [I('a', 1), I('b', 2), I('c', 3), I('z', 1, 's2')];
+    const up = partMoved('s1', items, 'c', -1);
+    expect(up.map(p => [p.id, p.sort])).toEqual([['c', 2], ['b', 3]]);
+    const after = items.map(r => up.find(u => u.id === r.id) ?? r);
+    expect(partsOf('s1', after).map(p => p.id)).toEqual(['a', 'c', 'b']);
+    expect(partMoved('s1', items, 'a', -1)).toEqual([]);
+    expect(partMoved('s1', items, 'c', 1)).toEqual([]);
+    /* Parts all written with the same number still move — renumbered 1, 2, 3. */
+    const flat = [I('a', 0), I('b', 0)].map((x, k) => ({ ...x, createdAt: k }));
+    expect(partsOf('s1', flat.map(r => partMoved('s1', flat, 'b', -1).find(u => u.id === r.id) ?? r)).map(p => p.id)).toEqual(['b', 'a']);
   });
 });
