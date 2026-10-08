@@ -11096,3 +11096,12 @@ button.gt-fixlab small { font-size: 11.5px; }
 /* The programs stage's drawer: one door to the Programs page. */
 .rd-prog-door { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .pr-prog { font-size: var(--t-detail); margin-left: 8px; }
+/* One product's run in a program's panel: its words, then what was seen and
+   its problems, then its doors. */
+.spp-run-one { display: grid; gap: 4px; padding-top: 4px; border-top: 1px dashed var(--line); }
+.spp-run-one:first-of-type { border-top: 0; padding-top: 0; }
+.spp-run-note { font-style: italic; }
+/* A product's run in Commission — what was seen, and its problems. */
+.pr-note-f { display: grid; gap: 2px; margin-top: 6px; }
+.pr-note { margin: 6px 0 0; font-size: var(--t-detail); color: var(--ink-2); font-style: italic; overflow-wrap: anywhere; }
+.pr-probs { margin: 6px 0 0; }

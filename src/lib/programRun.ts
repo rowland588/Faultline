@@ -58,3 +58,9 @@ export function agreedBefore(tests: Test[], assetId?: string): RunAgreed | undef
   const runs = runTestsOn(tests, assetId).flatMap(t => readRuns(t).products.map(p => p.run));
   return runs[runs.length - 1]?.agreed;
 }
+
+/** THE PROBLEMS WRITTEN ON ONE PRODUCT'S RUN — found on the run test, kept
+ *  with the product row they were written on (fromItemId = the row's id),
+ *  oldest first. A product's run hits a problem as a program does. */
+export const problemsOnRun = (items: TestItem[], testId: string, runId: string): TestItem[] =>
+  live(items).filter(i => i.kind === 'found' && i.testId === testId && i.fromItemId === runId).sort((a, b) => a.createdAt - b.createdAt);

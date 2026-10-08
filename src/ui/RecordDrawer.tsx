@@ -48,13 +48,15 @@ import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
 import { DatesForm, spanShort } from './InstallGrid';
-import { ProblemForm, changeTests, followingSummary, moveTestsWithWhy, recordProblem, type ProblemFill } from './WhyMoved';
+import { ProblemForm, changeTests, followingSummary, moveTestsWithWhy, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
 import { SayIt, SayStep } from './RecordSay';
 import { movedLater, overlapOf, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
-import { isRunTest, runsUnderWay } from '../lib/run';
+import { isRunTest, productName, productRuns, runsUnderWay } from '../lib/run';
+import { problemsOnRun } from '../lib/programRun';
 import { RunBlock } from './RunPanel';
+import { offerUndo } from './Undo';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -232,8 +234,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const job = jobs.projects.find(p => p.id === projectId);
   const today = todayISO();
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
-  /* The part of the plan a problem is being written on, when it is one. */
-  const [problemPart, setProblemPart] = useState<TestItem | null>(null);
+  /* The part of the plan — or the product on a performance run — a problem is
+     being written on, when it is one. A product's problem does not fail the
+     whole run: one product out of five is not the test. */
+  const [problemPart, setProblemPart] = useState<{ id: string; what: string; product?: boolean } | null>(null);
   const top = useRef<HTMLDivElement>(null);
   const [planning, setPlanning] = useState(false);
   const [dayEdit, setDayEdit] = useState<string | null>(null);
@@ -249,10 +253,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
     const want = split()[1].get(PROBLEM);
     if (!want) return;
     const part = live(tt.items).find(i => i.id === want && i.testId === id && i.kind === 'next');
-    if (!part) return;
-    setProblemPart(part); setProblem(true);
+    const rec = live(tt.tests).find(x => x.id === id);
+    const run = !part && rec ? productRuns(rec).find(r => r.id === want) : undefined;
+    if (!part && !run) return;
+    setProblemPart(part ?? (run ? { id: run.id, what: productName(run), product: true } : null)); setProblem(true);
     withQuery(PROBLEM, null, true);
-  }, [id, tt.items]);
+  }, [id, tt.items, tt.tests]);
 
   const t = live(tt.tests).find(x => x.id === id);
   const from = trail.length ? live(tt.tests).find(x => x.id === trail[trail.length - 1]) : undefined;
@@ -431,7 +437,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
 
       {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
           it ran, what it netted, the rejects, against what was agreed. */}
-      {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)} />}
+      {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
+        problemsOf={rid => problemsOnRun(tt.items, t.id, rid)}
+        onProblem={can.edit ? r => { setProblemPart({ id: r.id, what: productName(r), product: true }); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       <div ref={top} aria-hidden />
       {/* THE FLOOR'S ACTIONS, first — the same buttons the square's sheet and
@@ -443,8 +451,15 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           on={problemPart?.what} onCancel={() => { setProblem(false); setProblemPart(null); }}
           day={dayLength(job)} onDay={h => { if (job) void jobs.rename(job, { dayHours: h }); }}
           onSave={a => {
-            andClose(recordProblem(tt, t, { ...a, ...(problemPart ? { partId: problemPart.id } : {}) },
-              `${problemPart ? `${problemPart.what} (${t.title})` : t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`));
+            if (problemPart?.product) {
+              /* ON ONE PRODUCT'S RUN — written, its fix booked if one was, the
+                 run's verdict left to its numbers. */
+              const said = `${problemPart.what} (${t.title}) hit a problem${a.fix ? ', fix booked' : ''}`;
+              andClose(recordMove(tt, [{ step: t }], { ...a, partId: problemPart.id }).then(back => offerUndo(said, back)));
+            } else {
+              andClose(recordProblem(tt, t, { ...a, ...(problemPart ? { partId: problemPart.id } : {}) },
+                `${problemPart ? `${problemPart.what} (${t.title})` : t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`));
+            }
             setProblem(false); setProblemPart(null);
           }} />
       ) : kind === 'install' ? (
@@ -543,6 +558,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can}
         onPatch={patch => void tt.patchTest(t.id, patch)} />
       {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} onOpen={onOpen}
+        onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
         onProblem={can.edit && kind === 'install' ? p => { setProblemPart(p); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (

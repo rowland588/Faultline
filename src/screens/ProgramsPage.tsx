@@ -143,6 +143,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
             </div>
             {stage
               ? <StageParts step={stage} tt={tt} can={can} only={onlyKept} onOpen={id => openRecord(projectId, id)}
+                  onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
                   onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined} />
               : can.edit && m.id
                 ? <p className="sub pp-nostage">No programs stage on this machine yet.{' '}

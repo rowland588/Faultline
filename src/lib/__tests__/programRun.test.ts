@@ -47,3 +47,23 @@ describe('the link survives the run being worked', () => {
     expect(runAgain([row], ['a'], () => 'b')[1]).toMatchObject({ id: 'b', program: 'part-12' });
   });
 });
+
+describe('a product run has its own words and problems', () => {
+  it('keeps what was seen through its numbers going in, and finds the problems written on it', async () => {
+    const { withDay } = await import('../run');
+    const { problemsOnRun } = await import('../programRun');
+    expect(withDay({ id: 'a', product: 'x', note: 'Seals good' }, 'minutes', 60, '2026-10-08').note).toBe('Seals good');
+    const items = [
+      { id: 'f1', projectId: 'p', testId: 't1', kind: 'found', what: 'Film drifts', fromItemId: 'a', sort: 1, createdAt: 2, updatedAt: 2 },
+      { id: 'f2', projectId: 'p', testId: 't1', kind: 'found', what: 'Another product', fromItemId: 'b', sort: 2, createdAt: 3, updatedAt: 3 },
+      { id: 'f3', projectId: 'p', testId: 't1', kind: 'found', what: 'Gone', fromItemId: 'a', deletedAt: 5, sort: 3, createdAt: 4, updatedAt: 4 },
+    ] as TestItem[];
+    expect(problemsOnRun(items, 't1', 'a').map(i => i.id)).toEqual(['f1']);
+  });
+  it('says on the test card which product a problem was written on', async () => {
+    const { trialCard } = await import('../trialCard');
+    const t = run('t1', 'w', [{ id: 'a', product: 'PR-12 Express 1.25 kg' }]);
+    const items = [{ id: 'f1', projectId: 'p', testId: 't1', kind: 'found', what: 'Film drifts after 40 min', fromItemId: 'a', sort: 1, createdAt: 2, updatedAt: 2 }] as TestItem[];
+    expect(trialCard(t, [t], items, []).findings.map(f => f.what)).toEqual(['On PR-12 Express 1.25 kg: Film drifts after 40 min']);
+  });
+});

@@ -16,6 +16,7 @@
  * opens the fix in the drawer (ui/RecordDrawer) — the same one this list is
  * usually read in — never on another page.
  */
+import { productName, productRuns } from '../lib/run';
 import { useState } from 'react';
 import type { MediaRef } from '../types';
 import type { Test, TestItem } from '../lib/testing';
@@ -102,7 +103,16 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
      Undo puts it back. */
   const itemOf = (id: string) => tt.items.find(i => i.id === id);
   /* The part of the plan a problem was written on (ui/StageParts), by name. */
-  const partOf = (id: string) => { const from = itemOf(id)?.fromItemId; const p = from ? tt.items.find(i => i.id === from && i.kind === 'next' && !i.deletedAt) : undefined; return p?.what; };
+  const partOf = (id: string) => {
+    const it = itemOf(id), from = it?.fromItemId;
+    if (!it || !from) return undefined;
+    const p = tt.items.find(i => i.id === from && i.kind === 'next' && !i.deletedAt);
+    if (p) return p.what;
+    /* …or the product on a performance run it was written on (lib/programRun). */
+    const t = tt.tests.find(x => x.id === it.testId);
+    const run = t ? productRuns(t).find(r => r.id === from) : undefined;
+    return run ? productName(run) : undefined;
+  };
   const editor = (id: string) => {
     const it = itemOf(id);
     return it ? <ProblemEdit item={it} tt={tt} can={can} onDone={() => setEditing(null)} /> : null;

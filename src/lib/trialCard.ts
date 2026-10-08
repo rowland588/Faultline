@@ -18,7 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
-import { isRunTest, productFigures, productName, readRuns, runsSay, type ProductFigures, type ProductState } from './run';
+import { isRunTest, productFigures, productName, productRuns, readRuns, runsSay, type ProductFigures, type ProductState } from './run';
 import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
@@ -188,8 +188,10 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
       /* What it became, when it became something — a fix with its own page,
          or (on a device that has not converted yet) the old line. */
       const became = f.becameTestId ? live(tests).find(t => t.id === f.becameTestId)?.title : undefined;
+      /* Written on one product of a performance run — said so (lib/programRun). */
+      const on = f.fromItemId ? productRuns(test).find(r => r.id === f.fromItemId) : undefined;
       return {
-        what: f.what,
+        what: on ? `On ${productName(on)}: ${f.what}` : f.what,
         owner: f.owner,
         decision: DECISION[standingOfItem(f, items)],
         action: became ?? actionOf(f, items)?.what,

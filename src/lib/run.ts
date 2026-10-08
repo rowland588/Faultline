@@ -212,6 +212,9 @@ export interface ProductRun {
    *  when it was planned from the program (lib/programRun). A row typed here
    *  is matched to a program by name instead. */
   program?: string;
+  /** WHAT WAS SEEN on this product's run, in the team's words — its own
+   *  commentary, as a program's status has (8 October). */
+  note?: string;
 }
 
 type RunHolder = Pick<Test, 'id'> & Partial<Pick<Test, 'runs' | 'run' | 'runAgreed' | 'product' | 'planned' | 'ranOn'>>;
@@ -341,7 +344,7 @@ export function patchRuns(cur: Test, next: ProductRun[], today: string): Partial
 /** One product's day numbers changed: kept clean, and its own day stamped. */
 export function withDay(p: ProductRun, k: keyof RunDay, v: number | undefined, today: string): ProductRun {
   const day = cleanRun({ ...(p.day ?? {}), [k]: v });
-  const rest: ProductRun = { id: p.id, product: p.product, ...(p.program ? { program: p.program } : {}), ...(p.agreed ? { agreed: p.agreed } : {}), ...(p.ranOn ? { ranOn: p.ranOn } : {}) };
+  const rest: ProductRun = { id: p.id, product: p.product, ...(p.program ? { program: p.program } : {}), ...(p.note ? { note: p.note } : {}), ...(p.agreed ? { agreed: p.agreed } : {}), ...(p.ranOn ? { ranOn: p.ranOn } : {}) };
   return { ...rest, ...(day ? { day } : {}), ...(!p.ranOn && v != null ? { ranOn: today } : {}) };
 }
 

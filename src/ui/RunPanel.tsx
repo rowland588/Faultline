@@ -29,7 +29,7 @@
  * carries red; met is a quiet green; still to run is indigo; nothing agreed
  * is plain ink. */
 import { useRef, useState } from 'react';
-import type { Test } from '../lib/testing';
+import type { Test, TestItem } from '../lib/testing';
 import { OUTCOME_WORD } from '../lib/testing';
 import {
   agreedWords, cleanRun, productFigures, productName, productRuns, patchRuns, readRuns, runAgain, runsSay, withDay,
@@ -55,7 +55,14 @@ const DAY_BOXES: { k: keyof RunDay; label: string; unit?: string; hint: string; 
 
 /** THE RUN — the totals line, a row per product, and the form that adds the
  *  next. `compact` for the drawer: the same rows, narrower. */
-export function RunProducts({ t, can, patch, compact }: { t: Test; can: Can; patch: Patch; compact?: boolean }) {
+export function RunProducts({ t, can, patch, compact, onProblem, problemsOf }: {
+  t: Test; can: Can; patch: Patch; compact?: boolean;
+  /** HIT A PROBLEM ON ONE PRODUCT — the record's own write-up, opened for
+   *  that product's run (ui/RecordDrawer), as a program line hits one. */
+  onProblem?: (run: ProductRun) => void;
+  /** The problems written on a product's run (lib/programRun problemsOnRun). */
+  problemsOf?: (runId: string) => TestItem[];
+}) {
   const rr = readRuns(t);
   /* THE BOXES STAY OUT on a row that was still to run when the run was
      opened, or was added since — the last number typed must not fold them
@@ -105,6 +112,7 @@ export function RunProducts({ t, can, patch, compact }: { t: Test; can: Can; pat
         <ol className="pr-list">
           {rr.products.map(p => (
             <ProductRow key={p.run.id} p={p} can={can} compact={compact} programsHref={`/project/${t.projectId}/programs`}
+              problems={problemsOf?.(p.run.id) ?? []} onProblem={onProblem && !p.rerun ? () => onProblem(p.run) : undefined}
               boxes={can.edit && (boxes.has(p.run.id) || p.state === 'toRun' || p.state === 'partial')}
               changing={changing?.id === p.run.id ? changing : null}
               onChange={() => setChanging(c => (c?.id === p.run.id ? null : { id: p.run.id, agreed: p.run.agreed }))}
@@ -130,10 +138,12 @@ export function RunProducts({ t, can, patch, compact }: { t: Test; can: Can; pat
 }
 
 /** ONE PRODUCT — what it is judged on, the numbers, what they say. */
-function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref }: {
+function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref, problems = [], onProblem }: {
   p: ProductReading; can: Can; compact?: boolean; boxes: boolean;
   /** Where its program is, when it was planned from one. */
   programsHref?: string;
+  problems?: TestItem[];
+  onProblem?: () => void;
   changing: { id: string; agreed?: RunAgreed } | null;
   onChange: () => void;
   onDay: (k: keyof RunDay, v: number | undefined) => void;
@@ -147,7 +157,7 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
   const lockAgreed = !mayWriteAgreement(can, agreedWords(changing?.agreed ?? {}) ? 'agreed' : '');
   const setAgreed = (k: keyof RunAgreed) => (v?: number) => onPlan(x => {
     const agreed = cleanRun({ ...(x.agreed ?? {}), [k]: v });
-    return { id: x.id, product: x.product, ...(x.program ? { program: x.program } : {}), ...(agreed ? { agreed } : {}), ...(x.day ? { day: x.day } : {}), ...(x.ranOn ? { ranOn: x.ranOn } : {}) };
+    return { id: x.id, product: x.product, ...(x.program ? { program: x.program } : {}), ...(x.note ? { note: x.note } : {}), ...(agreed ? { agreed } : {}), ...(x.day ? { day: x.day } : {}), ...(x.ranOn ? { ranOn: x.ranOn } : {}) };
   });
   const tone = (t: string) => (t ? ` is-${t}` : '');
   return (
@@ -199,6 +209,23 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
         })}
       </div>
 
+      {/* WHAT WAS SEEN on this product's run — its own words, as a program's
+          status carries them. */}
+      {can.edit && (open || run.note) ? (
+        <label className="cw-f pr-note-f"><span>What was seen</span>
+          <DraftField value={run.note ?? ''} max={400} placeholder="e.g. Seals good at 45 ppm; film tracking drifts after 40 minutes"
+            ariaLabel={`${productName(run)} — what was seen`} onSave={v => onPlan(x => { const note = v.trim(); const { note: _old, ...rest } = x; return note ? { ...rest, note } : rest; })} /></label>
+      ) : run.note ? <p className="pr-note">{run.note}</p> : null}
+      {/* ITS PROBLEMS, as a branch under it — what, and how each stands. */}
+      {problems.length > 0 && (
+        <ul className="spp-probs pr-probs">
+          {problems.map(x => (
+            <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
+              <b>Problem:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}
+            </li>
+          ))}
+        </ul>
+      )}
       {state === 'short' && p.gap && <p className="pr-gap">Short: {p.gap}</p>}
       {state === 'partial' && p.missing.length > 0 && <p className="pr-missing">Put in the {p.missing.join(' and ')} and it is judged.</p>}
       {state === 'unjudged' && <p className="pr-missing">No rate agreed, so the numbers cannot judge it{can.agree ? ' — Change to agree one' : ''}.</p>}
@@ -206,6 +233,7 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
       {can.edit && (
         <div className="pr-acts">
           {state === 'short' && !p.rerun && <button type="button" className="btn btn-sm" onClick={onAgain}>Run it again</button>}
+          {onProblem && <button type="button" className="btn btn-sm spp-prob" onClick={onProblem}>Hit a problem</button>}
           <button type="button" className="cw-link" aria-expanded={!!changing} onClick={onChange}>{changing ? 'Done' : 'Change'}</button>
           {changing && can.remove && <button type="button" className="cw-link pr-remove" onClick={onRemove}>Take it off the run</button>}
         </div>
@@ -261,11 +289,13 @@ function AddProduct({ before, first, onSave, onDone }: {
 }
 
 /** THE RUN IN THE DRAWER — the same list, compact. */
-export function RunBlock({ t, can, patch }: { t: Test; can: Can; patch: Patch }) {
+export function RunBlock({ t, can, patch, onProblem, problemsOf }: {
+  t: Test; can: Can; patch: Patch; onProblem?: (run: ProductRun) => void; problemsOf?: (runId: string) => TestItem[];
+}) {
   return (
     <div className="rd-blk run-blk">
       <small>The run</small>
-      <RunProducts t={t} can={can} patch={patch} compact />
+      <RunProducts t={t} can={can} patch={patch} compact onProblem={onProblem} problemsOf={problemsOf} />
     </div>
   );
 }

@@ -29,7 +29,7 @@ import { useState } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import { isProgramsStage } from '../lib/programs';
-import { agreedBefore, plannedRun, programRunSays, runsOfProgram, runTestsOn } from '../lib/programRun';
+import { agreedBefore, plannedRun, problemsOnRun, programRunSays, runsOfProgram, runTestsOn } from '../lib/programRun';
 import { COMMISSION_TESTS } from '../lib/testing';
 import { cleanRun, patchRuns, productFigures, productRuns } from '../lib/run';
 import { uid } from '../lib/ids';
@@ -66,10 +66,13 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can, onProblem, only, onOpen }: {
+export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem }: {
   step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem' | 'planTests' | 'patchTest'>; can: Can;
   /** Open a record — a program's run in Commission. */
   onOpen?: (id: string) => void;
+  /** Hit a problem on a program's run — the run's record, its write-up open
+   *  on that product (ui/RecordDrawer openRecordAt). */
+  onRunProblem?: (testId: string, runId: string) => void;
   /** HIT A PROBLEM ON A PART — the stage's own write-up (ui/WhyMoved
    *  ProblemForm), opened for this part. Rowland, 8 October: "I want to click
    *  on the subsection and write the problem in the subsection ... exactly the
@@ -191,6 +194,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen }: {
             /* Its run in Commission — a program's next step (lib/programRun). */
             const runs = prog ? runsOfProgram(p, step.assetId, tt.tests) : [];
             const run = programRunSays(runs);
+            const runProbs = runs.reduce((n, x) => n + problemsOnRun(tt.items, x.test.id, x.p.run.id).filter(i => i.doneAt == null).length, 0);
             const last = lastResult(p);
             return (
               <li key={p.id} className={'spp-row' + (st.done ? ' is-done' : '') + (isOpen ? ' is-open' : '')}>
@@ -212,6 +216,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen }: {
                     <span className="spp-name">{p.what}</span>
                     <span className={'spp-pill is-' + st.tone}>{st.word}</span>
                     {run && <span className={'spp-pill is-' + run.tone}>{run.word}</span>}
+                    {runProbs > 0 && <span className="spp-pill is-r">{runProbs === 1 ? 'a problem on the run' : `${runProbs} problems on the run`}</span>}
                     {/* A problem open on it is said even when its status is. */}
                     {st.said && openProbs > 0 && <span className="spp-pill is-r">{openProbs === 1 ? 'a problem' : `${openProbs} problems`}</span>}
                   </span>
@@ -255,12 +260,30 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen }: {
                         <span className="spp-f-h">In Commission — its run at speed</span>
                         {runs.map(({ test, p: pr }) => {
                           const f = productFigures(pr);
+                          const rp = problemsOnRun(tt.items, test.id, pr.run.id);
                           return (
-                            <p key={pr.run.id} className="spp-run-row">
-                              <b className={'is-' + (pr.state === 'met' ? 'g' : pr.state === 'short' ? 'r' : 'w')}>{pr.word}</b>
-                              {' '}{pr.run.product}{f.agreed ? ` · agreed ${f.agreed}` : ''}{f.net !== '—' ? ` · netted ${f.net}` : ''}{pr.gap ? ` · ${pr.gap}` : ''}
-                              {onOpen && <> · <button type="button" className="cw-link" onClick={() => onOpen(test.id)}>Open the run ›</button></>}
-                            </p>
+                            <div key={pr.run.id} className="spp-run-one">
+                              <p className="spp-run-row">
+                                <b className={'is-' + (pr.state === 'met' ? 'g' : pr.state === 'short' ? 'r' : 'w')}>{pr.word}</b>
+                                {' '}{pr.run.product}{f.agreed ? ` · agreed ${f.agreed}` : ''}{f.net !== '—' ? ` · netted ${f.net}` : ''}{pr.gap ? ` · ${pr.gap}` : ''}
+                              </p>
+                              {/* What was seen on the run, and its problems — the
+                                  run's own, as the program's are above. */}
+                              {pr.run.note && <p className="spp-run-row spp-run-note">{pr.run.note}</p>}
+                              {rp.length > 0 && (
+                                <ul className="spp-probs">
+                                  {rp.map(x => (
+                                    <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
+                                      <b>Problem on the run:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              <span className="spp-panel-acts">
+                                {onOpen && <button type="button" className="cw-link" onClick={() => onOpen(test.id)}>Open the run ›</button>}
+                                {can.edit && onRunProblem && <button type="button" className="cw-link spp-prob" onClick={() => onRunProblem(test.id, pr.run.id)}>Hit a problem on the run</button>}
+                              </span>
+                            </div>
                           );
                         })}
                         {!runs.length && !runPlan && (can.edit
