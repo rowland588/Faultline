@@ -31,9 +31,10 @@ const plain: TestItem = { id: 'c2', projectId: 'j', testId: programs.id, kind: '
 const j: JobInput = { project, tests: [programs, dry], items: [crit, plain], materials: [], programs: [], assets: [wrapper] };
 
 describe('Needs you and the control room', () => {
-  it('reads each open critical problem as a row that opens its stage, with where, impact and state', () => {
+  it('reads each open critical problem as a row that opens the problem itself, with where, impact and state', () => {
+    /* One door (docs/DOORS.md): the row opens the problem; its stage is one tap from it. */
     expect(criticalItems(j)).toEqual([expect.objectContaining({
-      id: programs.id, kind: 'setup', what: 'Programs cannot be copied over', who: 'Ilapak UK', late: false,
+      id: 'c1', kind: 'setup', what: 'Programs cannot be copied over', who: 'Ilapak UK', late: false,
       critical: { where: 'Pick and place — Programs loaded', impact: 'The line cannot go back to production on the agreed day.', state: 'open · going with: A belt to bypass the robot' },
     })]);
   });

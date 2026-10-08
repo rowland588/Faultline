@@ -36,6 +36,10 @@ export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string
   /** Critical, what it means for the business, and the ways round it
    *  (lib/critical, ui/CriticalFields) — the problem form asks. */
   critical?: boolean; impact?: string; ways?: WayRound[];
+  /** HIGH RISK and what it could cost (an estimate, never counted as lost) —
+   *  asked in the same form, and kept: a high risk flagged when it was
+   *  written was dropped on save until 8 October. */
+  risk?: boolean; couldLose?: number;
   /** WHICH PART OF THE PLAN it was found on, when it was one (ui/StageParts):
    *  kept on the problem as fromItemId — "where it came from" — so the part
    *  shows its problem under it. Rowland, 8 October. */
@@ -196,6 +200,8 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
       ...(fixId ? { becameTestId: fixId } : {}),
       ...(a.hoursLost && steps.length === 1 ? { hoursLost: a.hoursLost } : {}),
       ...(a.critical ? { critical: true } : {}),
+      ...(a.risk && !a.critical ? { risk: true } : {}),
+      ...(a.couldLose ? { couldLose: a.couldLose } : {}),
       ...(a.impact ? { impact: a.impact } : {}),
       ...(a.ways?.length ? { ways: a.ways } : {}),
       ...(a.partId && steps.length === 1 ? { fromItemId: a.partId } : {}),
@@ -243,8 +249,12 @@ export async function recordThingMove(projectId: string, key: string, from: stri
  * whether it pushes the finish — and to when — and a fix, are one answer. A
  * later finish is kept as a move with this problem as its reason, so the Gantt
  * shows the overrun and why. */
-export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay, on }: {
+export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay, on, item }: {
   step: Test;
+  /** THE PROBLEM, OPENED TO CHANGE IT (docs/DOORS.md) — the same form that
+   *  wrote it, filled. A finish it moved is the stage's (its dates), and a
+   *  fix is booked from the problem's own record, so neither is asked here. */
+  item?: TestItem;
   /** The part of the plan it is written on, when it is one — said at the top. */
   on?: string;
   /** The job's steps — for what follows on the machine. */
@@ -262,8 +272,9 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
   onCancel: () => void;
 }) {
   const end = plannedEnd(step);
-  const [why, setWhy] = useState(initial?.why ?? '');
-  const [media, setMedia] = useState<MediaRef[]>([]);
+  const editing = !!item;
+  const [why, setWhy] = useState(item?.what ?? initial?.why ?? '');
+  const [media, setMedia] = useState<MediaRef[]>(item?.media ?? []);
   const [to, setTo] = useState(initial?.to ?? '');
   const [fix, setFix] = useState(!!initial?.fix);
   const [fixOn, setFixOn] = useState(initial?.fixOn ?? '');
@@ -282,17 +293,25 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* CRITICAL (lib/critical) — said when it is written, or later on the
      stage's story; the boxes open only when it is ticked. */
-  const [crit, setCrit] = useState(criticalDraftOf());
+  const [crit, setCrit] = useState(() => criticalDraftOf(item));
   /* DAYS OR HOURS. Rowland, 6 October: "it only gives me ability to put days,
      but in some occasions I find out that actually it's hours." A problem
      that cost hours says so; the stage's hours add up (lib/hoursLost), and
      the one that makes a full working day offers to push the finish by it. */
-  const [cost, setCost] = useState<'none' | 'hours' | 'date'>(initial?.to ? 'date' : 'none');
-  const [hoursText, setHoursText] = useState('');
+  /* ONE HOURS BOX (docs/DOORS.md — "it asks me how many hours, then I put the
+     same hours down at the bottom"). Its meaning follows the flag: hours LOST,
+     or — for a high risk, which has not happened — what it COULD cost, an
+     estimate never counted as lost. */
+  const wasRisk = !!item?.risk && !item.critical;
+  const [cost, setCost] = useState<'none' | 'hours' | 'date'>(initial?.to ? 'date' : item?.hoursLost || (wasRisk && item?.couldLose) ? 'hours' : 'none');
+  const [hoursText, setHoursText] = useState(item?.hoursLost ? String(item.hoursLost) : wasRisk && item?.couldLose ? String(item.couldLose) : '');
+  const isRisk = crit.risk && !crit.critical;
+  /* A finish moved when it was written is the stage's to change (its dates). */
+  const showCost = !item?.movedFrom || !!item.hoursLost;
   const [dayText, setDayText] = useState<string | null>(null);
   const hours = Math.max(0, Number(hoursText.replace(',', '.')) || 0);
   const tally = hoursTally(step.id, items, day);
-  const daysMade = cost === 'hours' && hours > 0 ? fullDays(tally.banked, hours, day) : 0;
+  const daysMade = !editing && !isRisk && cost === 'hours' && hours > 0 ? fullDays(tally.banked, hours, day) : 0;
   const [pushPicked, setPush] = useState<boolean | null>(null);
   const push = daysMade > 0 && !!end && (pushPicked ?? true);
   const target = cost === 'date' ? to : push && end ? addDays(end, daysMade) : '';
@@ -322,19 +341,21 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
           onChange={e => setWhy(e.target.value)} /></label>
       <BetterWords text={why} field="problem" onUse={setWhy} names={[step.title, ...assets.map(a => a.name)]} />
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
-      <CriticalFields value={crit} onChange={setCrit} names={[step.title, ...assets.map(a => a.name)]} />
-      <div className="why-cost">
-        <span className="why-cost-h">What did it cost? <span className="cw-f-opt">finish {end ? `now ${niceDay(end)}` : 'not dated yet'}</span></span>
-        <span className="cw-seg" role="group" aria-label="What did it cost?">
-          {([['none', 'Nothing yet'], ['hours', 'Hours lost'], ['date', 'A new finish']] as const).map(([k, w]) => (
+      <CriticalFields value={crit} onChange={setCrit} names={[step.title, ...assets.map(a => a.name)]} noCould />
+      {showCost && <div className="why-cost">
+        <span className="why-cost-h">{isRisk ? 'What could it cost?' : 'What did it cost?'}{!editing && !isRisk && <span className="cw-f-opt"> finish {end ? `now ${niceDay(end)}` : 'not dated yet'}</span>}</span>
+        <span className="cw-seg" role="group" aria-label={isRisk ? 'What could it cost?' : 'What did it cost?'}>
+          {(editing || isRisk
+            ? [['none', 'Nothing yet'], ['hours', isRisk ? 'Hours it could cost' : 'Hours lost']] as const
+            : [['none', 'Nothing yet'], ['hours', 'Hours lost'], ['date', 'A new finish']] as const).map(([k, w]) => (
             <button key={k} type="button" className={'chip' + (cost === k ? ' on' : '')} aria-pressed={cost === k} onClick={() => setCost(k)}>{w}</button>
           ))}
         </span>
         {cost === 'hours' && (
           <>
-            <label className="cw-f why-hours"><span>Hours lost</span>
-              <input inputMode="decimal" value={hoursText} placeholder="2" autoFocus onChange={e => setHoursText(e.target.value)} /></label>
-            <p className="why-s why-tally">
+            <label className="cw-f why-hours"><span>{isRisk ? 'Could cost, hours — an estimate' : 'Hours lost'}</span>
+              <input inputMode="decimal" value={hoursText} placeholder="2" autoFocus={!editing} aria-label={isRisk ? 'Hours it could cost' : 'Hours lost'} onChange={e => setHoursText(e.target.value)} /></label>
+            {!editing && !isRisk && <p className="why-s why-tally">
               {tally.banked > 0
                 ? <>This stage has lost <b>{hoursWord(tally.banked)}</b> towards the next day{tally.pushedDays ? ` (and pushed ${tally.pushedDays} day${tally.pushedDays === 1 ? '' : 's'} already)` : ''}. </>
                 : tally.pushedDays ? <>Hours lost here have pushed the finish {tally.pushedDays} day{tally.pushedDays === 1 ? '' : 's'} so far. </> : null}
@@ -347,24 +368,35 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
                     if (v > 0 && v <= 24) onDay?.(v);
                     setDayText(null);
                   }}>Set</button></span>}
-            </p>
+            </p>}
             {daysMade > 0 && (end
               ? <label className="why-check"><input type="checkbox" checked={push} onChange={e => setPush(e.target.checked)} />
                 <span>That makes {daysMade} full day{daysMade === 1 ? '' : 's'} lost — push the finish {niceDay(end)} → <b>{niceDay(addDays(end, daysMade))}</b></span></label>
               : <p className="why-s">That makes {daysMade} full day{daysMade === 1 ? '' : 's'} lost — give the stage a finish date to push it.</p>)}
           </>
         )}
-        {cost === 'date' && (
+        {cost === 'date' && !editing && !isRisk && (
           <label className="cw-f why-fix-on" style={{ flex: '0 1 260px' }}><span>New finish</span>
             <input type="date" value={to} min={step.plannedFor ?? undefined} onChange={e => setTo(e.target.value)} /></label>
         )}
-      </div>
-      {later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(target)}</b> · <b>+{daysBetween(end, target)} day{daysBetween(end, target) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
-      {following && end && <KnockOn following={following} days={daysBetween(end, target)} on={shift} set={setShift} />}
-      <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />
+      </div>}
+      {!editing && later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(target)}</b> · <b>+{daysBetween(end, target)} day{daysBetween(end, target) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
+      {!editing && following && end && <KnockOn following={following} days={daysBetween(end, target)} on={shift} set={setShift} />}
+      {!editing && <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />}
       <span className="why-acts">
         <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => onSave({ why: why.trim(), media, ...(target ? { to: target } : {}), ...(cost === 'hours' && hours > 0 ? { hoursLost: hours } : {}), ...(fix ? { fix: bookedFix(fixOn, fixWhat) } : {}), ...(following?.n && shift ? { shiftFollowing: true } : {}), ...criticalPatch(crit) })}>Save the problem</button>
+          onClick={() => {
+            /* The one hours box, said as what it is: lost, or could cost. A
+               could-cost on a critical problem written before stays as it was. */
+            const counted = cost === 'hours' && hours > 0 ? hours : undefined;
+            const flags = criticalPatch({ ...crit, could: isRisk ? (counted ? String(counted) : '') : crit.critical ? crit.could : '' });
+            onSave({
+              why: why.trim(), media, ...(!editing && target ? { to: target } : {}),
+              ...(!isRisk && counted ? { hoursLost: counted } : {}),
+              ...(!editing && fix ? { fix: bookedFix(fixOn, fixWhat) } : {}),
+              ...(!editing && following?.n && shift ? { shiftFollowing: true } : {}), ...flags,
+            });
+          }}>{editing ? 'Save' : 'Save the problem'}</button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}

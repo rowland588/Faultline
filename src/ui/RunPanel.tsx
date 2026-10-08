@@ -55,13 +55,14 @@ const DAY_BOXES: { k: keyof RunDay; label: string; unit?: string; hint: string; 
 
 /** THE RUN — the totals line, a row per product, and the form that adds the
  *  next. `compact` for the drawer: the same rows, narrower. */
-export function RunProducts({ t, can, patch, compact, onProblem, problemsOf }: {
+export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onOpenProblem }: {
   t: Test; can: Can; patch: Patch; compact?: boolean;
   /** HIT A PROBLEM ON ONE PRODUCT — the record's own write-up, opened for
    *  that product's run (ui/RecordDrawer), as a program line hits one. */
   onProblem?: (run: ProductRun) => void;
   /** The problems written on a product's run (lib/programRun problemsOnRun). */
   problemsOf?: (runId: string) => TestItem[];
+  onOpenProblem?: (id: string) => void;
 }) {
   const rr = readRuns(t);
   /* THE BOXES STAY OUT on a row that was still to run when the run was
@@ -112,7 +113,7 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf }: {
         <ol className="pr-list">
           {rr.products.map(p => (
             <ProductRow key={p.run.id} p={p} can={can} compact={compact} programsHref={`/project/${t.projectId}/programs`}
-              problems={problemsOf?.(p.run.id) ?? []} onProblem={onProblem && !p.rerun ? () => onProblem(p.run) : undefined}
+              problems={problemsOf?.(p.run.id) ?? []} onProblem={onProblem && !p.rerun ? () => onProblem(p.run) : undefined} onOpenProblem={onOpenProblem}
               boxes={can.edit && (boxes.has(p.run.id) || p.state === 'toRun' || p.state === 'partial')}
               changing={changing?.id === p.run.id ? changing : null}
               onChange={() => setChanging(c => (c?.id === p.run.id ? null : { id: p.run.id, agreed: p.run.agreed }))}
@@ -138,12 +139,13 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf }: {
 }
 
 /** ONE PRODUCT — what it is judged on, the numbers, what they say. */
-function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref, problems = [], onProblem }: {
+function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref, problems = [], onProblem, onOpenProblem }: {
   p: ProductReading; can: Can; compact?: boolean; boxes: boolean;
   /** Where its program is, when it was planned from one. */
   programsHref?: string;
   problems?: TestItem[];
   onProblem?: () => void;
+  onOpenProblem?: (id: string) => void;
   changing: { id: string; agreed?: RunAgreed } | null;
   onChange: () => void;
   onDay: (k: keyof RunDay, v: number | undefined) => void;
@@ -221,7 +223,8 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
         <ul className="spp-probs pr-probs">
           {problems.map(x => (
             <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
-              <b>Problem:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}
+              <button type="button" className="sp-door" disabled={!onOpenProblem} onClick={() => onOpenProblem?.(x.id)}>
+                <b>Problem:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}</button>
             </li>
           ))}
         </ul>
@@ -289,13 +292,15 @@ function AddProduct({ before, first, onSave, onDone }: {
 }
 
 /** THE RUN IN THE DRAWER — the same list, compact. */
-export function RunBlock({ t, can, patch, onProblem, problemsOf }: {
+export function RunBlock({ t, can, patch, onProblem, problemsOf, onOpenProblem }: {
   t: Test; can: Can; patch: Patch; onProblem?: (run: ProductRun) => void; problemsOf?: (runId: string) => TestItem[];
+  /** Open a problem written on a product, as itself (docs/DOORS.md). */
+  onOpenProblem?: (id: string) => void;
 }) {
   return (
     <div className="rd-blk run-blk">
       <small>The run</small>
-      <RunProducts t={t} can={can} patch={patch} compact onProblem={onProblem} problemsOf={problemsOf} />
+      <RunProducts t={t} can={can} patch={patch} compact onProblem={onProblem} problemsOf={problemsOf} onOpenProblem={onOpenProblem} />
     </div>
   );
 }

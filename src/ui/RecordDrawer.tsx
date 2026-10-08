@@ -38,7 +38,7 @@ import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
 import { Icon } from './Icon';
 import { useDismiss } from './Sheet';
-import { ProblemEdit, StageStory, storyLength } from './StageStory';
+import { StageStory, storyLength } from './StageStory';
 import { PartsMark, StageParts } from './StageParts';
 import { ProgramLink } from './ProgramLink';
 import { planOn, TODAY_KIND } from '../lib/huddle';
@@ -57,6 +57,7 @@ import { isRunTest, productName, productRuns, runsUnderWay } from '../lib/run';
 import { problemsOnRun } from '../lib/programRun';
 import { RunBlock } from './RunPanel';
 import { offerUndo } from './Undo';
+import { ProblemRecord, problemOf } from './ProblemRecord';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -244,10 +245,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* "Is the overlap OK?" answered on the dates form, saved with the dates. */
   const overlapAnswer = useRef<boolean | undefined>(undefined);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
-  const [editingProblem, setEditingProblem] = useState<string | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setProblemPart(null); setPlanning(false); setEditingProblem(null); setDayEdit(null); }, [id]);
+  useEffect(() => { setProblem(false); setProblemPart(null); setPlanning(false); setDayEdit(null); }, [id]);
   /* Opened with a part named (openRecordAt): its problem form, open. */
   useEffect(() => {
     const want = split()[1].get(PROBLEM);
@@ -261,10 +261,29 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   }, [id, tt.items, tt.tests]);
 
   const t = live(tt.tests).find(x => x.id === id);
-  const from = trail.length ? live(tt.tests).find(x => x.id === trail[trail.length - 1]) : undefined;
+  /* Back to the record this one was opened from — a stage, a test, a fix, or
+     a problem (ui/ProblemRecord). */
+  const fromId = trail.length ? trail[trail.length - 1] : undefined;
+  const from = fromId ? live(tt.tests).find(x => x.id === fromId) ?? (p => (p ? { title: p.what } : undefined))(problemOf(fromId, tt.items)) : undefined;
   const label = t?.title ?? 'The record';
 
   if (tt.loading) return <DrawerShell label={label} onClose={onClose}><p className="sub">Loading…</p></DrawerShell>;
+  /* A PROBLEM, opened as itself (docs/DOORS.md) — from the Fixes page, a
+     stage's story, a program, a run, the front page. */
+  const asProblem = !t ? problemOf(id, tt.items) : undefined;
+  if (asProblem) {
+    return (
+      <DrawerShell label={asProblem.what} onClose={onClose}>
+        {from && (
+          <button type="button" className="rd-back" onClick={onBack}>
+            <Icon name="chevronLeft" size="1.1em" /> back to {from.title}
+          </button>
+        )}
+        <ProblemRecord item={asProblem} tt={tt} can={can} onOpen={onOpen}
+          day={dayLength(job)} onDay={h => { if (job) void jobs.rename(job, { dayHours: h }); }} />
+      </DrawerShell>
+    );
+  }
   if (!t) {
     return (
       <DrawerShell label="Not here any more" onClose={onClose}>
@@ -438,7 +457,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
           it ran, what it netted, the rejects, against what was agreed. */}
       {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
-        problemsOf={rid => problemsOnRun(tt.items, t.id, rid)}
+        problemsOf={rid => problemsOnRun(tt.items, t.id, rid)} onOpenProblem={onOpen}
         onProblem={can.edit ? r => { setProblemPart({ id: r.id, what: productName(r), product: true }); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       <div ref={top} aria-hidden />
@@ -517,17 +536,14 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {kind === 'fix' && (problems.length > 0 || problemText || parent) && (
         <div className="rd-blk">
           {(problems.length > 0 || problemText) && <small>The problem</small>}
+          {/* The problem opens as itself (docs/DOORS.md) — its words, pictures,
+              cost and flag, and Edit; one door, the same everywhere. */}
           {problems.map(p => (
             <div key={p.id} className="rd-problem">
-              {editingProblem === p.id
-                ? <ProblemEdit item={p} tt={tt} can={can} onDone={() => setEditingProblem(null)} />
-                : <>
-                  <p>{p.what}</p>
-                  {(p.media ?? []).length > 0 && (
-                    <span className="sp-ev">{(p.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={64} onClick={() => setViewing(m)} />)}</span>
-                  )}
-                  {can.edit && <span className="sp-row-acts"><button type="button" className="cw-link" onClick={() => setEditingProblem(p.id)}>Edit the problem</button></span>}
-                </>}
+              <button type="button" className="sp-door" onClick={() => onOpen(p.id)}><span className="sp-why">{p.what}</span></button>
+              {(p.media ?? []).length > 0 && (
+                <span className="sp-ev">{(p.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={64} onClick={() => setViewing(m)} />)}</span>
+              )}
             </div>
           ))}
           {!problems.length && problemText && <p className="rd-problem-t">{problemText}</p>}
@@ -564,7 +580,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (
         <div className="rd-blk">
           <small>What happened</small>
-          <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} onOpenFix={onOpen}
+          <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} onOpenFix={onOpen} onOpenProblem={onOpen}
             empty="Nothing has happened to this one yet — it is running to plan." />
         </div>
       )}

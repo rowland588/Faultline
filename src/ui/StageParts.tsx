@@ -274,7 +274,8 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                                 <ul className="spp-probs">
                                   {rp.map(x => (
                                     <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
-                                      <b>Problem on the run:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}
+                                      <button type="button" className="sp-door" disabled={!onOpen} onClick={() => onOpen?.(x.id)}>
+                                        <b>Problem on the run:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}</button>
                                     </li>
                                   ))}
                                 </ul>
@@ -330,7 +331,8 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                       <ul className="spp-probs">
                         {probs.map(x => (
                           <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
-                            <b>Problem:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}
+                            <button type="button" className="sp-door" disabled={!onOpen} onClick={() => onOpen?.(x.id)}>
+                              <b>Problem:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}</button>
                           </li>
                         ))}
                       </ul>

@@ -49,8 +49,6 @@ import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
 import { notedProblems, type Noted } from '../lib/noted';
 import { hoursWord } from '../lib/hoursLost';
-import { offerUndo } from '../ui/Undo';
-import { removeProblem } from '../ui/StageStory';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { CriticalTag } from '../ui/CriticalFields';
@@ -269,7 +267,9 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {/* PROBLEMS WITH NO FIX — the journey's other half (lib/noted). Rowland,
           6 October: "I don't want that problem just to disappear, because I
           want to show the story and the journey." Open until sorted, whether
-          or not its stage is done; tap one for its stage. */}
+          or not its stage is done. A row is the door to the problem itself
+          (ui/ProblemRecord): Sorted, Make it a fix, Edit and Delete are on it
+          there, not three small links on every row (docs/DOORS.md). */}
       {(noted.open.length > 0 || noted.sorted.length > 0) && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
@@ -278,17 +278,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
           <div className="fxl" role="list">
             {[...openNoted, ...noted.sorted].map(n => (
-              <NotedRow key={n.item.id} n={n} canEdit={can.edit} onView={setViewing}
-                onDelete={can.remove ? () => void removeProblem(tt, n.item.id) : undefined}
-                onOpen={() => n.on && open(n.on.id)}
-                onSorted={sorted => {
-                  const before = n.item;
-                  void tt.saveItem({ ...before, ...(sorted ? { doneAt: Date.now() } : { doneAt: undefined }) });
-                  offerUndo(sorted ? `Sorted — ${before.what}` : `Open again — ${before.what}`, () => tt.saveItem(before));
-                }}
-                onFix={n.on ? () => void (async () => {
-                  open(await tt.planNextFrom(n.on as Test, n.item.id, n.item.what, 'fix', n.item.what));
-                })() : undefined} />
+              <NotedRow key={n.item.id} n={n} onView={setViewing} onOpen={() => open(n.item.id)} />
             ))}
           </div>
         </section>
@@ -342,12 +332,10 @@ function FixRow({ t, machine, from, critical, onOpen }: {
 /** A problem with no fix: amber while open (it is waiting on something — the
  *  colour rules), a quiet green once sorted; where it was found, the day, the
  *  hours it cost; and the two things to do with it. */
-function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete, onView }: {
-  n: Noted; canEdit: boolean; onOpen: () => void; onSorted: (sorted: boolean) => void; onFix?: () => void;
+function NotedRow({ n, onOpen, onView }: {
+  n: Noted; onOpen: () => void;
   /** A picture of it, opened large — with what is marked on it. */
   onView: (m: MediaRef) => void;
-  /** The owner's (can.remove): a problem written by mistake goes. */
-  onDelete?: () => void;
 }) {
   const sorted = n.item.doneAt != null;
   const moved = n.item.movedFrom && n.item.movedTo;
@@ -360,7 +348,7 @@ function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete, onView }: {
           snag sent here as a problem shows what was photographed and the
           marks on it ("2 marks") — tap one for the marks and their words. */}
       <span className="fxl-mcol">
-        <button type="button" className="fxl-m fxl-open" onClick={onOpen} disabled={!n.on}>
+        <button type="button" className="fxl-m fxl-open" onClick={onOpen}>
           <b>{crit && <CriticalTag sorted={sorted} />}{!crit && n.item.risk && <CriticalTag sorted={sorted} risk />}{n.item.what}</b>
           <small>
             {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}
@@ -372,13 +360,6 @@ function NotedRow({ n, canEdit, onOpen, onSorted, onFix, onDelete, onView }: {
       </span>
       <span className="fxl-side">
         <em className="fxl-when">{sorted ? `Sorted ${niceDay(todayISO(new Date(n.item.doneAt as number)))}` : 'Open'}</em>
-        {canEdit && (
-          <span className="fxl-acts">
-            <button type="button" className="cw-link" onClick={() => onSorted(!sorted)}>{sorted ? 'Open again' : 'Sorted'}</button>
-            {!sorted && onFix && <button type="button" className="cw-link" onClick={onFix}>Make it a fix</button>}
-            {onDelete && <button type="button" className="cw-link sp-rm" onClick={onDelete}>Delete</button>}
-          </span>
-        )}
       </span>
     </div>
   );

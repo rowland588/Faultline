@@ -335,7 +335,8 @@ export function criticalItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 
     return {
       jobId: p.id, job: shortName(p.name), color: p.color,
       kind: !c.on ? 'test' as const : c.on.kind === 'install' ? gateOf(c.on) : c.on.kind ?? 'test',
-      ...(c.on ? { id: c.on.id } : {}),
+      /* The problem itself opens (docs/DOORS.md) — its stage is one tap from it. */
+      id: c.item.id,
       what: c.item.what.trim() || 'A critical problem', who: c.item.owner?.trim() ?? '', late: false,
       critical: { where: c.where, ...(impact ? { impact } : {}), state: criticalState(c) },
     };
@@ -352,7 +353,7 @@ export function riskItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 'ass
     return {
       jobId: p.id, job: shortName(p.name), color: p.color,
       kind: !c.on ? 'test' as const : c.on.kind === 'install' ? gateOf(c.on) : c.on.kind ?? 'test',
-      ...(c.on ? { id: c.on.id } : {}),
+      id: c.item.id,
       what: c.item.what.trim() || 'A high risk', who: c.item.owner?.trim() ?? '', late: false,
       critical: { where: c.where, ...(impact ? { impact } : {}), state: [could, criticalState(c)].filter(Boolean).join(' · '), risk: true },
     };

@@ -135,8 +135,9 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
           onPinTap={id => {
             if (id.startsWith('fix:') && job) { openRecord(job.projectId, id.slice(4)); return; }
             if (id.startsWith('item:') && job) {
+              /* A problem pinned on the picture opens as itself (docs/DOORS.md). */
               const hit = job.found.find(f => f.item.id === id.slice(5));
-              if (hit) openRecord(job.projectId, hit.item.testId);
+              if (hit) openRecord(job.projectId, hit.item.id);
               return;
             }
             const s = snags.find(x => x.id === id); if (s) { setDraft(null); setFixDraft(null); setEditing(s); }
@@ -155,7 +156,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
         <div className="card" style={{ marginTop: 12 }}>
           <div className="field-label" style={{ marginBottom: 8 }}>Found here</div>
           {job.found.map(({ item, on }) => (
-            <button key={item.id} className="snag-line-row" onClick={() => openRecord(job.projectId, item.testId)}>
+            <button key={item.id} className="snag-line-row" onClick={() => openRecord(job.projectId, item.id)}>
               <span className="snag-dot-sm" style={{ background: 'var(--warn)' }} />
               <span className="snag-line-main">
                 <span className="snag-line-problem">{item.what}</span>

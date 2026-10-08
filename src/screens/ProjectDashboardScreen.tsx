@@ -263,8 +263,8 @@ function NeedsYouPanel({ items, today, door, split, max }: {
         <ol className="fp-rows">
           {n.rows.map(({ item, urgency }, i) => item.critical ? (
             /* A CRITICAL PROBLEM (lib/critical) — what it is, where, what it
-               means for the business and how it stands; the row opens its
-               stage, where the ways round it are written. */
+               means for the business and how it stands; the row opens the
+               problem itself, with the ways round it (ui/ProblemRecord). */
             <li key={`crit:${item.id ?? ''}:${i}`}>
               <button className={'fp-row is-crit' + (item.critical.risk ? ' is-risk' : '')}
                 onClick={() => (item.id ? openRecord(item.jobId, item.id) : nav(`/project/${item.jobId}/fixes`))}>
