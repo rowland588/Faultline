@@ -57,7 +57,7 @@ describe('the Gantt calendar', () => {
   });
 
   it('opens the record a row was drawn from', () => {
-    expect(ganttHref('p', { id: 't1', kind: 'install' })).toBe('/project/p/testing/t1');
+    expect(ganttHref('p', { id: 't1', kind: 'install' })).toBe('/project/p/install?open=t1');
     expect(ganttHref('p', { kind: 'material' })).toBe('/project/p/materials');
     expect(ganttHref('p', { kind: 'test' })).toBeUndefined();
   });

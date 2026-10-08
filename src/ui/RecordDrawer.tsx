@@ -11,8 +11,9 @@
  * a laptop a panel from the right, on a phone the sheet from the bottom that
  * the stage's sheet already was. × takes you back to where you were. "For
  * <parent> ›" opens the parent in the same drawer, with a way back to the
- * fix. The record's page — files, the meeting note, the PDF card, delete —
- * is one link away, for the one time in ten it is wanted.
+ * fix. It is the record's one home (docs/DOORS.md): one Edit for every box
+ * (ui/RecordEdit), and at its foot what the record's own page used to add —
+ * files, what to raise at the meeting, the card PDF (ui/RecordMore).
  *
  * THE URL CARRIES IT: ?open=<id> on the route you are on (state/useRoute
  * withQuery), so it survives a reload, the phone's back button closes it, and
@@ -31,7 +32,7 @@ import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
 import { GATE_WORD, doneLateBy, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
 import {
-  isOverdue, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion, wordsOf,
+  isOverdue, itemsOf, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion, wordsOf,
   gateOf, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import { daysBetween, niceDay, todayISO } from '../lib/weeks';
@@ -50,6 +51,11 @@ import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
 import { spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
 import { RecordEdit } from './RecordEdit';
+import { CardPdf, RecordFiles, RecordItems, removeMedia } from './RecordMore';
+import { OnTheLine } from './OnTheLine';
+import { SharedLinks } from './ShareLink';
+import { supabase } from '../cloud/client';
+import { useSession } from '../cloud/session';
 import { movedLater, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
@@ -242,10 +248,17 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const top = useRef<HTMLDivElement>(null);
   /* EDIT — the one door to change it (ui/RecordEdit, docs/DOORS.md). */
   const [editing, setEditing] = useState(false);
+  /* "For the meeting", opened to write the first thing to raise. */
+  const [meeting, setMeeting] = useState(false);
+  /* Bumped when a link to a picture is made, so the list of them reads again. */
+  const [shareRev, setShareRev] = useState(0);
+  /* SENDING A PICTURE OUTSIDE is the owner's call (supabase/SHARE_LINKS.sql),
+     and only means anything with the cloud there to serve the link. */
+  const { session } = useSession();
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setProblemPart(null); setEditing(false); }, [id]);
+  useEffect(() => { setProblem(false); setProblemPart(null); setEditing(false); setMeeting(false); }, [id]);
   /* Opened with a part named (openRecordAt): its problem form, open. */
   useEffect(() => {
     const want = split()[1].get(PROBLEM);
@@ -313,6 +326,11 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
      thing found on the stage, not on the fix (lib/story). */
   const problems = kind === 'fix' ? live(tt.items).filter(i => i.kind === 'found' && i.becameTestId === t.id) : [];
   const problemText = kind === 'fix' && !problems.length && t.passesIf && t.passesIf.trim() !== t.title.trim() ? t.passesIf : undefined;
+  /* The re-tests it led to, its files and what to raise at the meeting. */
+  const ledTo = kind === 'test' ? live(tt.tests).filter(x => x.fromTestId === t.id && (x.kind ?? 'test') !== 'fix') : [];
+  const docs = t.docs ?? [];
+  const notes = itemsOf(tt.items, t.id, 'note');
+  const mayShare = can.people && !!supabase && !!session;
   /* Everyone named anywhere on the job, for the "who" box. */
   const names = [...new Set([
     ...live(tt.tests).map(x => x.withWhom?.trim()),
@@ -425,7 +443,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
               andClose(recordMove(tt, [{ step: t }], { ...a, partId: problemPart.id }).then(back => offerUndo(said, back)));
             } else {
               andClose(recordProblem(tt, t, { ...a, ...(problemPart ? { partId: problemPart.id } : {}) },
-                `${problemPart ? `${problemPart.what} (${t.title})` : t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`));
+                `${problemPart ? `${problemPart.what} (${t.title})` : t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`,
+                /* A test's verdict is its own — "didn't pass" is said above. */
+                { keepOutcome: kind === 'test' }));
             }
             setProblem(false); setProblemPart(null);
           }} />
@@ -479,7 +499,16 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             ))}
           </span>
           <div className="rd-acts">
+            {/* WHAT WAS SEEN ON IT — the problem form, as on a stage; the
+                verdict stays the one pressed above (it was the record's page's
+                "What we found"). */}
+            <button type="button" className="btn ig-bad" onClick={() => setProblem(true)}>Hit a problem</button>
             <button type="button" className="btn" onClick={() => setEditing(true)}>Edit</button>
+            {/* A run that did not prove it is run again: the machine, the
+                product and what it passes on carried forward. */}
+            {(t.outcome === 'failed' || t.outcome === 'notRun') && (
+              <button type="button" className="btn btn-ghost" onClick={() => void (async () => onOpen(await tt.planNextFrom(t)))()}>Plan the re-test</button>
+            )}
           </div>
         </>
       ))}
@@ -507,9 +536,11 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           )}
         </div>
       )}
-      {kind === 'test' && parent && (
+      {/* WHERE IT SITS — the test it follows, and the re-tests it led to. */}
+      {kind === 'test' && (parent || ledTo.length > 0) && (
         <div className="rd-blk">
-          <button type="button" className="rd-link" onClick={() => onOpen(parent.id)}>Follows {parent.title} ›</button>
+          {parent && <button type="button" className="rd-link" onClick={() => onOpen(parent.id)}>Follows {parent.title} ›</button>}
+          {ledTo.map(x => <button key={x.id} type="button" className="rd-link" onClick={() => onOpen(x.id)}>Led to {x.title} ›</button>)}
         </div>
       )}
 
@@ -535,6 +566,13 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <small>What happened</small>
           <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} onOpenFix={onOpen} onOpenProblem={onOpen}
             empty="Nothing has happened to this one yet — it is running to plan." />
+          {/* A fix for it planned on its own, on the Fixes page with this one
+              picked — a problem's own fix is "Make it a fix" on the problem. */}
+          {can.edit && kind !== 'fix' && (
+            <button type="button" className="cw-add" onClick={() => nav(`/project/${projectId}/fixes?for=${encodeURIComponent(t.id)}`)}>
+              <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a fix for this {kind === 'install' ? 'stage' : 'test'}
+            </button>
+          )}
         </div>
       )}
 
@@ -546,17 +584,36 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         </div>
       )}
 
-      {/* ONE LINK to the whole page: files, the meeting note, the PDF card,
-          delete — for the one time in ten they are wanted. */}
-      <div className="rd-blk">
-        <button type="button" className="rd-link rd-go" onClick={() => {
-          nav(`/project/${projectId}/testing/${encodeURIComponent(t.id)}`);
-          /* A new page starts at its top, not where the list under the drawer
-             was scrolled to. */
-          requestAnimationFrame(() => window.scrollTo(0, 0));
-        }}>
-          Everything about it › <span className="sub">files · notes · PDF card</span>
-        </button>
+      {/* WHAT IT CARRIES BESIDE ITS BOXES (ui/RecordMore) — its files, what
+          to raise at the meeting, where a fix is on the line, the links sent
+          to its pictures, and the card on paper. They were on the record's
+          own page, one link away; the drawer is its one home (docs/DOORS.md).
+          Each is a block once it holds something, a line to start it before. */}
+      <div className="rd-blk rd-more">
+        {docs.length > 0 && <><small>Files</small><RecordFiles test={t} tt={tt} can={can} /></>}
+        {(notes.length > 0 || meeting) && (
+          <>
+            <small>For the meeting</small>
+            <RecordItems kind="note" test={t} tt={tt} can={can} onView={setViewing} focus={meeting && !notes.length}
+              placeholder="Something to raise about this?" empty="Write it here so it isn’t forgotten at the next meeting." />
+          </>
+        )}
+        {can.edit && (docs.length === 0 || (!notes.length && !meeting)) && (
+          <div className="tc-adds">
+            {docs.length === 0 && <RecordFiles test={t} tt={tt} can={can} />}
+            {!notes.length && !meeting && (
+              <button type="button" className="cw-add" onClick={() => setMeeting(true)}>
+                <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Something to raise at the meeting
+              </button>
+            )}
+          </div>
+        )}
+        {/* WHERE IT IS ON THE LINE — a fix pinned on a frame of the filmed walk. */}
+        {kind === 'fix' && (can.edit || t.pin) && (
+          <OnTheLine projectId={projectId} pin={t.pin} onSave={can.edit ? pin => void tt.patchTest(t.id, { pin }) : undefined} />
+        )}
+        {mayShare && <SharedLinks key={shareRev} projectId={projectId} testId={t.id} />}
+        {job && <CardPdf test={t} tt={tt} project={job} />}
       </div>
 
       {/* A FALSE FIX GOES FROM HERE. Rowland, 5 October: "need ability to
@@ -586,7 +643,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {/* Its own pictures and its problem's, pointed at where they are wrong
           (ui/Evidence) — written back on whichever record holds the picture. */}
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
-        onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined} />}
+        onPins={can.edit ? pinsOnJob(tt, viewing.id) : undefined}
+        share={mayShare && (t.media ?? []).some(m => m.id === viewing.id)
+          ? { projectId, testId: t.id, onMade: () => setShareRev(r => r + 1) } : undefined}
+        onRemove={!can.remove ? undefined : () => { const gone = viewing; setViewing(null); void removeMedia(tt, t, gone); }} />}
     </DrawerShell>
   );
 }

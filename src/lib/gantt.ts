@@ -19,7 +19,7 @@ import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { appStages, installOf, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
+import { appStages, installOf, recordHref, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
 import { partStatus, partsOf } from './noted';
 import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
@@ -374,7 +374,7 @@ export function ganttHref(projectId: string, row: Pick<GanttRow, 'id' | 'kind'>)
   if (row.kind === 'machine') return `/project/${projectId}/install`;
   if (row.kind === 'action') return `/project/${projectId}/board`;
   if (row.kind === 'note') return `/project/${projectId}/notes`;
-  return row.id ? `/project/${projectId}/testing/${encodeURIComponent(row.id)}` : undefined;
+  return row.id ? recordHref(projectId, row.id, row.kind) : undefined;
 }
 
 /* ------------------------------ BY MACHINE ------------------------------

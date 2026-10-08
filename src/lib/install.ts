@@ -293,6 +293,14 @@ export const GATE_WORD: Record<StepGate, string> = { install: 'Install', setup: 
 /** Where its screen is. "set-up" because /setup is the project's Details. */
 export const GATE_PATH: Record<StepGate, string> = { install: 'install', setup: 'set-up', handover: 'handover' };
 
+/** WHERE A RECORD OPENS — in the drawer (?open=, ui/RecordDrawer), over the
+ *  list it is kept on: a stage over its gate, a fix over the Fixes, a test
+ *  over the tests. Its own page is not a door any more (docs/DOORS.md). */
+export function recordHref(projectId: string, id: string, kind?: string): string {
+  const list = kind === 'fix' ? 'fixes' : kind === 'install' || kind === 'setup' || kind === 'handover' ? GATE_PATH[kind] : 'testing';
+  return `/project/${projectId}/${list}?open=${encodeURIComponent(id)}`;
+}
+
 export function usualStages<P extends StageHolder>(
   project: P | undefined, all: readonly P[] = [], gate: ListGate = 'install',
 ): { stages: string[]; from: 'job' | 'other' | 'app'; otherId?: string } {

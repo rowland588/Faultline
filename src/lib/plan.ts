@@ -36,6 +36,7 @@
  * verdict card says "the date has moved 8 days"; this is those 8 days at the
  * scale of the job, which is the difference between a number and an argument.
  */
+import { recordHref } from './install';
 import type { PlanMark } from './standing';
 
 /** A mark, placed. `at` and `until` are fractions of the axis, 0 at the left. */
@@ -392,8 +393,8 @@ const LIST_OF: Record<PlanMark['kind'], string> = {
 /** WHERE A MARK OPENS — the record it was drawn from. Rowland: "having nodes
  *  that don't open is unacceptable." The same doors the board's own list
  *  (JobsBoard whereTo) and the project page's Gantt (gantt ganttHref) use for
- *  the same kinds: an action on its own sheet, a test, fix or step on its own
- *  page, and the lists kept whole on one screen (materials, programs, notes,
+ *  the same kinds: an action on its own sheet, a test, fix or step in the
+ *  drawer over its list (lib/install recordHref), and the lists kept whole on one screen (materials, programs, notes,
  *  machines on Install) on that screen. A bunch stands for several, so it
  *  opens its lane's list rather than picking one of them. */
 export function planHref(projectId: string, m: { kind: PlanMark['kind']; id?: string; count?: number }): string {
@@ -401,7 +402,7 @@ export function planHref(projectId: string, m: { kind: PlanMark['kind']; id?: st
   const one = m.id && !m.count ? m.id : undefined;
   if (one && m.kind === 'action') return `${base}/board?a=${encodeURIComponent(one)}`;
   if (one && (m.kind === 'test' || m.kind === 'fix' || m.kind === 'install' || m.kind === 'setup' || m.kind === 'handover')) {
-    return `${base}/testing/${encodeURIComponent(one)}`;
+    return recordHref(projectId, one, m.kind);
   }
   return `${base}/${LIST_OF[m.kind]}`;
 }

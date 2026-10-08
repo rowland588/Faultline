@@ -245,7 +245,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
         {st.upcoming.length === 0 && !(adding && can.edit) && (can.edit ? (
           <p className="sub tw-note">
-            Every fix is planned here. Pick the test it is for, and it shows on that test's page and
+            Every fix is planned here. Pick the test or stage it is for, and it shows under it and
             in its card on the client report.
           </p>
         ) : <p className="sub tw-note">Nothing still to do.</p>)}

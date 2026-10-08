@@ -40,6 +40,9 @@ export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string
    *  asked in the same form, and kept: a high risk flagged when it was
    *  written was dropped on save until 8 October. */
   risk?: boolean; couldLose?: number;
+  /** WHOSE IT IS — asked when a problem is opened to change it (the record's
+   *  page asked it of what was found; ui/ProblemRecord). */
+  owner?: string;
   /** WHICH PART OF THE PLAN it was found on, when it was one (ui/StageParts):
    *  kept on the problem as fromItemId — "where it came from" — so the part
    *  shows its problem under it. Rowland, 8 October. */
@@ -275,6 +278,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
   const editing = !!item;
   const [why, setWhy] = useState(item?.what ?? initial?.why ?? '');
   const [media, setMedia] = useState<MediaRef[]>(item?.media ?? []);
+  const [owner, setOwner] = useState(item?.owner ?? '');
   const [to, setTo] = useState(initial?.to ?? '');
   const [fix, setFix] = useState(!!initial?.fix);
   const [fixOn, setFixOn] = useState(initial?.fixOn ?? '');
@@ -341,6 +345,10 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
           onChange={e => setWhy(e.target.value)} /></label>
       <BetterWords text={why} field="problem" onUse={setWhy} names={[step.title, ...assets.map(a => a.name)]} />
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
+      {editing && (
+        <label className="cw-f"><span>Whose it is</span>
+          <input value={owner} placeholder="Ilapak UK" onChange={e => setOwner(e.target.value)} /></label>
+      )}
       <CriticalFields value={crit} onChange={setCrit} names={[step.title, ...assets.map(a => a.name)]} noCould />
       {showCost && <div className="why-cost">
         <span className="why-cost-h">{isRisk ? 'What could it cost?' : 'What did it cost?'}{!editing && !isRisk && <span className="cw-f-opt"> finish {end ? `now ${niceDay(end)}` : 'not dated yet'}</span>}</span>
@@ -391,7 +399,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
             const counted = cost === 'hours' && hours > 0 ? hours : undefined;
             const flags = criticalPatch({ ...crit, could: isRisk ? (counted ? String(counted) : '') : crit.critical ? crit.could : '' });
             onSave({
-              why: why.trim(), media, ...(!editing && target ? { to: target } : {}),
+              why: why.trim(), media, ...(!editing && target ? { to: target } : {}), ...(editing ? { owner: owner.trim() || undefined } : {}),
               ...(!isRisk && counted ? { hoursLost: counted } : {}),
               ...(!editing && fix ? { fix: bookedFix(fixOn, fixWhat) } : {}),
               ...(!editing && following?.n && shift ? { shiftFollowing: true } : {}), ...flags,
@@ -409,14 +417,17 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
 /** Keep a problem on a step: marks it as having hit one, moves its finish when
  *  a later one was given (kept as a move, this problem its reason), books the
  *  fix if asked. One Undo takes all of it back. */
-export async function recordProblem(tt: TT, step: Test, a: WhyAnswer & { to?: string }, said: string): Promise<void> {
+export async function recordProblem(tt: TT, step: Test, a: WhyAnswer & { to?: string }, said: string,
+  /** A TEST'S verdict is its own: what was seen on it is written, its finish
+   *  moved if asked, and "didn't pass" is said by the verdict, not by this. */
+  opts: { keepOutcome?: boolean } = {}): Promise<void> {
   const before = { outcome: step.outcome, ranOn: step.ranOn, plannedFor: step.plannedFor, plannedTo: step.plannedTo };
   const end = plannedEnd(step);
   const moved = !!a.to && movedLater(end, a.to);
   const dates = a.to
     ? (step.plannedFor && a.to > step.plannedFor ? { plannedTo: a.to } : { plannedFor: a.to, plannedTo: undefined })
     : {};
-  await tt.patchTest(step.id, { outcome: 'failed', ranOn: step.ranOn ?? todayISO(), ...dates });
+  await tt.patchTest(step.id, opts.keepOutcome ? dates : { outcome: 'failed', ranOn: step.ranOn ?? todayISO(), ...dates });
   const back = await recordMove(tt, [{ step, ...(moved ? { from: end, to: a.to } : {}) }], a);
   offerUndo(said, async () => { await tt.patchTest(step.id, before); await back(); });
 }

@@ -1,3 +1,4 @@
+import { recordHref } from '../lib/install';
 import { useEffect, useRef, useState } from 'react';
 import type { Observation } from '../types';
 import { useWorkspace } from '../state/WorkspaceProvider';
@@ -316,7 +317,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         sort: t, createdAt: t, updatedAt: t,
       });
       await updateSnag({ ...snag, status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
-      nav(`/project/${jobId}/testing/${encodeURIComponent(id)}`);
+      nav(recordHref(jobId, id, 'fix'));
     } finally { setBusy(false); }
   };
   const remove = async () => { if (snag && window.confirm('Delete this? The photo and everything written about it go with it.')) { await deleteSnag(snag.id); onSaved(); } };
@@ -450,7 +451,7 @@ function RaiseFix({ projectId, frameId, at, still, onClose }: {
         title: (fix || problem).trim(), passesIf: problem.trim(),
         pin: { frameId, x: at.xPct, y: at.yPct }, sort: t, createdAt: t, updatedAt: t,
       });
-      nav(`/project/${projectId}/testing/${encodeURIComponent(id)}`);
+      nav(recordHref(projectId, id, 'fix'));
     } finally { setBusy(false); }
   };
   return (

@@ -63,13 +63,22 @@ it, when flagged · book a fix. The same form edits it.
 
 ## Slices — each live before the next
 
-1. **Problems.** A problem opens in the drawer on its own, from the Fixes page,
-   a stage's story, a program, a run, the day and the front page; one form for
-   writing and editing; hours asked once.
-2. **One edit door.** The drawer: five lines, one Edit, the actions, then folds.
-   "change", "Change the dates or who ›" and "Say how it went" merge into Edit.
-3. **One home.** Files, notes and the PDF card fold into the drawer; the
-   record's page is the printable card only.
+1. **Problems** — *live 8 October.* A problem opens in the drawer on its own
+   (`ui/ProblemRecord`), from the Fixes page, a stage's story, a program, a
+   run, the fix it became, the front page, the control room and the snag
+   picture; one form for writing and editing; hours asked once.
+2. **One edit door.** The drawer: its lines, one Edit (`ui/RecordEdit`), the
+   actions. "change", "Change the dates or who ›" and "Say how it went" merge
+   into Edit.
+3. **One home.** Files, what to raise at the meeting, the pin on the line, the
+   links sent, the card PDF and taking a picture off move into the drawer
+   (`ui/RecordMore`); a test gets "Hit a problem", "Plan the re-test" and
+   "Led to" there too, and a problem "Whose it is" and its pin. Every link —
+   the plan, the board, the snag screen — opens the drawer
+   (`lib/install recordHref`). The record's page is no longer a door: it stays
+   for old links, and because the two-device harness still drives its boxes.
+   Moving that harness onto the drawer, and then the page to the printable
+   card only, is the work left.
 4. **The notes and "›" links** across every screen: the row is the door; notes
    that restate go.
 

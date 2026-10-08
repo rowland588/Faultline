@@ -25,6 +25,7 @@ import { CriticalStory, CriticalTag } from './CriticalFields';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
 import { removeProblem } from './StageStory';
 import { offerUndo } from './Undo';
+import { OnTheLine } from './OnTheLine';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -38,17 +39,19 @@ type TT = ReturnType<typeof useTesting>;
  *  are the same, so Save on an untouched problem changes nothing. */
 const said = (i: TestItem): string => JSON.stringify([
   i.what, i.media?.length ? i.media : null, i.hoursLost ?? null, !!i.critical, !!i.risk,
-  i.couldLose ?? null, i.impact ?? null, i.ways?.length ? i.ways : null,
+  i.couldLose ?? null, i.impact ?? null, i.ways?.length ? i.ways : null, i.owner ?? null,
 ]);
 
 export function saveProblemEdit(tt: Pick<TT, 'tests' | 'saveItem' | 'patchTest'>, item: TestItem, a: WhyAnswer, can: Can): void {
-  const { critical: _c, impact: _i, ways: _w, risk: _r, couldLose: _l, hoursLost: _h, ...rest } = item;
+  const { critical: _c, impact: _i, ways: _w, risk: _r, couldLose: _l, hoursLost: _h, owner: _o, ...rest } = item;
   const next: TestItem = {
     ...rest, what: a.why.trim() || item.what, media: a.media,
     ...(a.hoursLost ? { hoursLost: a.hoursLost } : {}),
     ...(a.critical ? { critical: true } : {}), ...(a.risk && !a.critical ? { risk: true } : {}),
     ...(a.couldLose ? { couldLose: a.couldLose } : {}), ...(a.impact ? { impact: a.impact } : {}),
     ...(a.ways?.length ? { ways: a.ways } : {}),
+    /* Whose it is, as the form says — kept as it was when the form did not ask. */
+    ...('owner' in a ? (a.owner ? { owner: a.owner } : {}) : item.owner ? { owner: item.owner } : {}),
   };
   if (said(next) === said(item)) return;
   const fix = item.becameTestId ? tt.tests.find(t => t.id === item.becameTestId) : undefined;
@@ -127,7 +130,8 @@ export function ProblemRecord({ item, tt, can, day, onDay, onOpen }: {
           {on && <> · on <b>{on}</b></>}
         </dd></div>
         <div><dt>Cost</dt><dd>{cost || 'nothing said'}</dd></div>
-        <div><dt>Written</dt><dd>{niceDay(todayISO(new Date(item.createdAt)))}{item.owner ? ` · ${item.owner}` : ''}</dd></div>
+        <div><dt>Written</dt><dd>{niceDay(todayISO(new Date(item.createdAt)))}</dd></div>
+        {item.owner && <div><dt>Whose</dt><dd>{item.owner}</dd></div>}
         {fix && <div><dt>Fix</dt><dd><button type="button" className="rd-inline" onClick={() => onOpen(fix.id)}>{fix.title}</button>{fix.withWhom ? ` · ${fix.withWhom}` : ''}</dd></div>}
       </dl>
       {(item.critical || item.risk) && (
@@ -137,6 +141,14 @@ export function ProblemRecord({ item, tt, can, day, onDay, onOpen }: {
       )}
       {(item.media ?? []).length > 0 && (
         <span className="sp-ev">{(item.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={72} onClick={() => setViewing(m)} />)}</span>
+      )}
+      {/* WHERE ON THE LINE — the problem pointed at on a frame of the filmed
+          walk (it was on the record's page; ui/OnTheLine). Nothing is said
+          when nothing has been filmed. */}
+      {(can.edit || item.pin) && (
+        <div className="rd-blk">
+          <OnTheLine projectId={item.projectId} pin={item.pin} quiet onSave={can.edit ? pin => void tt.saveItem({ ...item, pin }) : undefined} />
+        </div>
       )}
       {can.edit && (
         <div className="rd-acts">

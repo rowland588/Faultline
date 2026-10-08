@@ -422,11 +422,11 @@ describe('where a mark opens', () => {
   const P = 'job1';
   it('a record with an id opens itself', () => {
     expect(planHref(P, { kind: 'action', id: 'a 1' })).toBe('/project/job1/board?a=a%201');
-    expect(planHref(P, { kind: 'test', id: 't1' })).toBe('/project/job1/testing/t1');
-    expect(planHref(P, { kind: 'fix', id: 'f1' })).toBe('/project/job1/testing/f1');
+    expect(planHref(P, { kind: 'test', id: 't1' })).toBe('/project/job1/testing?open=t1');
+    expect(planHref(P, { kind: 'fix', id: 'f1' })).toBe('/project/job1/fixes?open=f1');
     // a step is a record of its own, opened the way the Gantt and the board's list open it
-    expect(planHref(P, { kind: 'install', id: 's1' })).toBe('/project/job1/testing/s1');
-    expect(planHref(P, { kind: 'handover', id: 'h1' })).toBe('/project/job1/testing/h1');
+    expect(planHref(P, { kind: 'install', id: 's1' })).toBe('/project/job1/install?open=s1');
+    expect(planHref(P, { kind: 'handover', id: 'h1' })).toBe('/project/job1/handover?open=h1');
   });
 
   it('a list kept on one screen opens that screen', () => {

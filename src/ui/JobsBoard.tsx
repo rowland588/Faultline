@@ -54,7 +54,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { openRecord } from './RecordDrawer';
 import { Timeline } from './Timeline';
-import { GATE_TONE_WORD } from '../lib/install';
+import { GATE_TONE_WORD, recordHref } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
 import { publishJobStands } from './railJobs';
@@ -82,7 +82,7 @@ function whereTo(x: JobItem): string {
      board with the one you tapped somewhere in it. */
   if (x.kind === 'action') return `/project/${x.jobId}/board${x.id ? `?a=${encodeURIComponent(x.id)}` : ''}`;
   if (x.kind === 'note') return `/project/${x.jobId}/notes`;
-  if (x.id) return `/project/${x.jobId}/testing/${encodeURIComponent(x.id)}`;
+  if (x.id) return recordHref(x.jobId, x.id, x.kind);
   if (x.kind === 'material') return `/project/${x.jobId}/materials`;
   if (x.kind === 'program') return `/project/${x.jobId}/programs`;
   return `/project/${x.jobId}/testing`;
