@@ -32,8 +32,10 @@ import type { Can } from '../lib/access';
 type TT = ReturnType<typeof useTesting>;
 type Draft = { id: string; what: string; owner: string; due: string };
 
-/** How a part stands, in words and in one of the house colours. */
-function stateOf(p: TestItem, today: string): { word: string; tone: 'g' | 'r' | 'a' | 'n' } {
+/** How a part stands, in words and in one of the house colours. A problem
+ *  written on it and not sorted is the louder fact, as it is on a stage. */
+function stateOf(p: TestItem, today: string, openProblems = 0): { word: string; tone: 'g' | 'r' | 'a' | 'n' } {
+  if (openProblems > 0 && p.doneAt == null) return { word: openProblems === 1 ? 'a problem' : `${openProblems} problems`, tone: 'r' };
   if (p.doneAt != null) return { word: `done ${niceDay(todayISO(new Date(p.doneAt)))}`, tone: 'g' };
   if (partLate(p, today)) return { word: 'late', tone: 'r' };
   if (p.due && p.due <= addDays(today, DUE_SOON_DAYS)) {
@@ -54,8 +56,18 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can }: { step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem'>; can: Can }) {
+export function StageParts({ step, tt, can, onProblem }: {
+  step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem'>; can: Can;
+  /** HIT A PROBLEM ON A PART — the stage's own write-up (ui/WhyMoved
+   *  ProblemForm), opened for this part. Rowland, 8 October: "I want to click
+   *  on the subsection and write the problem in the subsection ... exactly the
+   *  same as have a problem, write it up." */
+  onProblem?: (part: TestItem) => void;
+}) {
   const parts = partsOf(step.id, tt.items);
+  /* The problems written on each part (kept on the problem as fromItemId). */
+  const problemsOf = (p: TestItem) => live(tt.items).filter(i => i.kind === 'found' && i.testId === step.id && i.fromItemId === p.id)
+    .sort((a, b) => a.createdAt - b.createdAt);
   const today = todayISO();
   const [adding, setAdding] = useState('');
   /* The day and the who, folded until asked for. */
@@ -104,7 +116,8 @@ export function StageParts({ step, tt, can }: { step: Test; tt: Pick<TT, 'items'
       {parts.length > 0 && (
         <ul className="spp-list">
           {parts.map(p => {
-            const st = stateOf(p, today);
+            const probs = problemsOf(p);
+            const st = stateOf(p, today, probs.filter(x => x.doneAt == null).length);
             const meta = [p.owner?.trim(), p.due && p.doneAt == null ? `by ${niceDay(p.due)}` : ''].filter(Boolean).join(' · ');
             return (
               <li key={p.id} className={'spp-row' + (p.doneAt != null ? ' is-done' : '')}>
@@ -129,10 +142,22 @@ export function StageParts({ step, tt, can }: { step: Test; tt: Pick<TT, 'items'
                     <span className={'spp-state is-' + st.tone}>{st.word}</span>
                     {can.edit && (
                       <span className="sp-row-acts">
+                        {onProblem && <button type="button" className="cw-link spp-prob" onClick={() => onProblem(p)}>Hit a problem</button>}
                         <button type="button" className="cw-link" onClick={() => setEditing({ id: p.id, what: p.what, owner: p.owner ?? '', due: p.due ?? '' })}>Edit</button>
                         {/* Taking a line off is the owner's (lib/access) — the database keeps it for anyone else. */}
                         {can.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove(p)}>Delete</button>}
                       </span>
+                    )}
+                    {/* ITS PROBLEMS, as a branch under it — what, and how it
+                        stands; the whole story is under "What happened". */}
+                    {probs.length > 0 && (
+                      <ul className="spp-probs">
+                        {probs.map(x => (
+                          <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
+                            <b>Problem:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </>
                 )}

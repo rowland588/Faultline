@@ -35,7 +35,11 @@ export interface WhyAnswer { why: string; media: MediaRef[]; fix?: { on?: string
   hoursLost?: number;
   /** Critical, what it means for the business, and the ways round it
    *  (lib/critical, ui/CriticalFields) — the problem form asks. */
-  critical?: boolean; impact?: string; ways?: WayRound[] }
+  critical?: boolean; impact?: string; ways?: WayRound[];
+  /** WHICH PART OF THE PLAN it was found on, when it was one (ui/StageParts):
+   *  kept on the problem as fromItemId — "where it came from" — so the part
+   *  shows its problem under it. Rowland, 8 October. */
+  partId?: string }
 
 /** The problem sheet's boxes as a voice note filled them (lib/voice problemFill). */
 export interface ProblemFill { why: string; to: string; fix: boolean; fixOn: string; said?: string }
@@ -194,6 +198,7 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
       ...(a.critical ? { critical: true } : {}),
       ...(a.impact ? { impact: a.impact } : {}),
       ...(a.ways?.length ? { ways: a.ways } : {}),
+      ...(a.partId && steps.length === 1 ? { fromItemId: a.partId } : {}),
       sort: at + k, createdAt: at + k, updatedAt: at + k,
     });
     made.push({ item: id, ...(fixId ? { fix: fixId } : {}) });
@@ -238,8 +243,10 @@ export async function recordThingMove(projectId: string, key: string, from: stri
  * whether it pushes the finish — and to when — and a fix, are one answer. A
  * later finish is kept as a move with this problem as its reason, so the Gantt
  * shows the overrun and why. */
-export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay }: {
+export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay, on }: {
   step: Test;
+  /** The part of the plan it is written on, when it is one — said at the top. */
+  on?: string;
   /** The job's steps — for what follows on the machine. */
   tests?: Test[];
   /** What was found on them — for the hours this stage has already lost. */
@@ -299,8 +306,9 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
   const shift = picked ?? !!following?.into.length;
   return (
     <div className="why">
+      {on && <p className="why-on">On <b>{on}</b></p>}
       <span className="why-say">
-        <p className="why-h">What's the problem?</p>
+        <p className="why-h">{on ? 'What’s the problem with it?' : 'What\'s the problem?'}</p>
         <VoiceNote form="problem" label="Say it"
           context={() => ({ ...contextFor(assets, tests, todayISO(), step), on: { title: step.title, machine: assets.find(a => a.id === step.assetId)?.name, ...(why.trim() ? { result: why.trim() } : {}) } })}
           onHeard={heard} />

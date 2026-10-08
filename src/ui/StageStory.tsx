@@ -101,6 +101,8 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
      leaves the dates where they are and stops drawing it as an overrun — and
      Undo puts it back. */
   const itemOf = (id: string) => tt.items.find(i => i.id === id);
+  /* The part of the plan a problem was written on (ui/StageParts), by name. */
+  const partOf = (id: string) => { const from = itemOf(id)?.fromItemId; const p = from ? tt.items.find(i => i.id === from && i.kind === 'next' && !i.deletedAt) : undefined; return p?.what; };
   const editor = (id: string) => {
     const it = itemOf(id);
     return it ? <ProblemEdit item={it} tt={tt} can={can} onDone={() => setEditing(null)} /> : null;
@@ -175,7 +177,7 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix }: {
     ...st.found.map(f => ({ on: f.on, key: f.id, at: itemOf(f.id)?.createdAt, node: (
       <>
         <span className="sp-k is-found">Found</span>
-        {editing === f.id ? editor(f.id) : <><p className="sp-why">{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}{stateOf(f.id)}</p>{critOf(f.id)}</>}
+        {editing === f.id ? editor(f.id) : <><p className="sp-why">{partOf(f.id) && <span className="sp-part">On {partOf(f.id)}: </span>}{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}{stateOf(f.id)}</p>{critOf(f.id)}</>}
         {pics(f.media)}
         {editing !== f.id && entryActs(f.id, f.what)}
         {fixOf(f.fixId) && fixNode(fixOf(f.fixId) as Test, true)}

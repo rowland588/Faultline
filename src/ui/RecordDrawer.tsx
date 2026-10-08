@@ -221,6 +221,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const job = jobs.projects.find(p => p.id === projectId);
   const today = todayISO();
   const [problem, setProblem] = useState<boolean | ProblemFill>(false);
+  /* The part of the plan a problem is being written on, when it is one. */
+  const [problemPart, setProblemPart] = useState<TestItem | null>(null);
+  const top = useRef<HTMLDivElement>(null);
   const [planning, setPlanning] = useState(false);
   const [dayEdit, setDayEdit] = useState<string | null>(null);
   /* "Is the overlap OK?" answered on the dates form, saved with the dates. */
@@ -229,7 +232,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [editingProblem, setEditingProblem] = useState<string | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setPlanning(false); setEditingProblem(null); setDayEdit(null); }, [id]);
+  useEffect(() => { setProblem(false); setProblemPart(null); setPlanning(false); setEditingProblem(null); setDayEdit(null); }, [id]);
 
   const t = live(tt.tests).find(x => x.id === id);
   const from = trail.length ? live(tt.tests).find(x => x.id === trail[trail.length - 1]) : undefined;
@@ -410,16 +413,19 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           it ran, what it netted, the rejects, against what was agreed. */}
       {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)} />}
 
+      <div ref={top} aria-hidden />
       {/* THE FLOOR'S ACTIONS, first — the same buttons the square's sheet and
           the record's page had, in the face's own words. A client reads. */}
       {can.edit && (problem ? (
         /* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
            the finish and to when, a fix. The plan hears all of it. */
-        <ProblemForm step={t} tests={tt.tests} items={tt.items} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined} onCancel={() => setProblem(false)}
+        <ProblemForm step={t} tests={tt.tests} items={tt.items} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined}
+          on={problemPart?.what} onCancel={() => { setProblem(false); setProblemPart(null); }}
           day={dayLength(job)} onDay={h => { if (job) void jobs.rename(job, { dayHours: h }); }}
           onSave={a => {
-            andClose(recordProblem(tt, t, a, `${t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`));
-            setProblem(false);
+            andClose(recordProblem(tt, t, { ...a, ...(problemPart ? { partId: problemPart.id } : {}) },
+              `${problemPart ? `${problemPart.what} (${t.title})` : t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`));
+            setProblem(false); setProblemPart(null);
           }} />
       ) : kind === 'install' ? (
         <>
@@ -516,7 +522,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       <OnTodaysPlan t={t} title={kind === 'install' ? `${machine} — ${t.title}` : t.title} tt={tt} can={can} today={today} />
       <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can}
         onPatch={patch => void tt.patchTest(t.id, patch)} />
-      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} />}
+      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can}
+        onProblem={can.edit && kind === 'install' ? p => { setProblemPart(p); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       {(kind !== 'fix' || storyLength(t.id, tt) > 0) && (
         <div className="rd-blk">

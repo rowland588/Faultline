@@ -10986,3 +10986,12 @@ button.gt-fixlab small { font-size: 11.5px; }
 .igm-done .igm-sq { background: var(--st-g); border-color: var(--st-g); }
 .igm-done .cw-link { margin-left: auto; font-size: var(--t-label); }
 .igm-done .ig-late-by { display: inline; font-size: inherit; }
+
+/* A problem written on a part of the plan (ui/StageParts) — its button, and
+   the problem as a branch under the part, red while open. */
+.spp-prob { color: var(--st-r); font-weight: 700; }
+.spp-probs { list-style: none; margin: 4px 0 2px 26px; padding: 0; display: grid; gap: 2px; font-size: var(--t-label); width: 100%; }
+.spp-probs li.is-open { color: var(--st-r); }
+.spp-probs li.is-sorted { color: var(--muted); }
+.why-on { margin: 0 0 6px; font-size: var(--t-body); color: var(--ink-2); }
+.sp-part { font-weight: 700; color: var(--ink-2); }
