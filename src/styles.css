@@ -10468,7 +10468,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 /* In the editor's column, nothing grows: a field or the evidence block is as tall as what it holds. */
 .sp-edit > * { flex: none; }
 
-/* IS THE OVERLAP OK? (ui/InstallGrid DatesForm) — asked once when a step's
+/* IS THE OVERLAP OK? (ui/RecordEdit) — asked once when a step's
    dates start inside the one ahead; a yes stops the plan flagging it. */
 .ig-over { display: grid; gap: 6px; font-size: var(--t-detail); color: var(--ink-2); margin-top: 6px; }
 
@@ -11115,3 +11115,12 @@ button.gt-fixlab small { font-size: 11.5px; }
 .rd-inline { all: unset; cursor: pointer; color: var(--brand); font-weight: 600; }
 .rd-inline:hover { text-decoration: underline; }
 .rd-inline:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* EDIT (ui/RecordEdit, docs/DOORS.md) — the one door to change a stage, a
+   test or a fix: every box it has, in the order its lines read, one Save. */
+.re-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 12px; margin: 8px 0 4px; }
+.re-wide, .re-say { grid-column: 1 / -1; }
+.re-form .cw-f input, .re-form .cw-f select { width: 100%; min-height: var(--tap, 44px); }
+.re-agreed { margin: 0; font-size: var(--t-detail); }
+.re-l { font-weight: 700; color: var(--ink-2); margin-right: 4px; }
+.rd-said { white-space: pre-wrap; }

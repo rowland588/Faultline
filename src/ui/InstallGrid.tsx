@@ -18,7 +18,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
-import { WhyMoved, changeTests, moveTestsWithWhy, type Following, type WhyAnswer } from './WhyMoved';
+import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
 import type { Project } from '../types';
@@ -582,84 +582,6 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
   );
 }
 
-/** ONE STEP'S START AND FINISH, held until Save. */
-export function DatesForm({ start, finish, was, onSave, onMove, following, who, onCancel, overlap }: {
-  start?: string; finish?: string;
-  /** "It overlaps — is that OK?" Rowland, 6 October: "perhaps a question on
-   *  a date range: it overlaps, okay, yes or no." `with` names the step
-   *  these dates would start inside; `ok` is the answer kept; `set` keeps a
-   *  new one, called before the dates are saved. */
-  overlap?: { with: (from: string, to: string) => string | undefined; ok?: boolean; set: (ok: boolean) => void };
-  /** What follows on the machine, for a finish this late — the knock-on. */
-  following?: (end: string) => Following;
-  /** The finish it has now — a push past it asks why. */
-  was?: string;
-  /** Who is doing it, in the same form and kept by the same Save (the stage
-   *  sheet). The third argument of each save is the new name when it changed. */
-  who?: { names: string[]; value: string };
-  onSave: (from: string | undefined, to: string | undefined, who?: string) => void;
-  onMove: (from: string, to: string | undefined, a: WhyAnswer, who?: string) => void;
-  /** A way to close it without saving, where it was opened on purpose. */
-  onCancel?: () => void;
-}) {
-  const [from, setFrom] = useState(start ?? '');
-  const [to, setTo] = useState(finish ?? '');
-  const [name, setName] = useState(who?.value ?? '');
-  const [asking, setAsking] = useState(false);
-  const whoNow = who && name.trim() !== who.value.trim() ? name.trim() : undefined;
-  const end = from ? (to || from) : undefined;
-  const over = from && end && overlap ? overlap.with(from, end) : undefined;
-  const [ok, setOk] = useState<boolean | undefined>(overlap?.ok);
-  const okNow = over && ok !== undefined && ok !== overlap?.ok ? ok : undefined;
-  const changed = from !== (start ?? '') || to !== (finish ?? '') || whoNow !== undefined || okNow !== undefined;
-  const keepOk = () => { if (okNow !== undefined) overlap?.set(okNow); };
-  if (asking && was && end) {
-    return <WhyMoved from={was} to={end} following={following?.(end)} onCancel={() => setAsking(false)} onSave={a => { keepOk(); onMove(from, to || undefined, a, whoNow); }}
-      onSkip={() => { keepOk(); onSave(from || undefined, from ? (to || undefined) : undefined, whoNow); }} />;
-  }
-  /* A FORM, so Enter in a date box saves, as it does in "Who is doing it"
-     beside it. On a laptop the dates were the one pair Enter did nothing in. */
-  return (
-    <form className="ig-plan" onSubmit={e => {
-      e.preventDefault();
-      if (!changed) return;
-      /* PUSHED LATER? Then it asks why before anything is kept. */
-      if (movedLater(was, end)) { setAsking(true); return; }
-      keepOk();
-      onSave(from || undefined, from ? (to || undefined) : undefined, whoNow);
-    }}>
-      <div className="ig-dates">
-        <label className="cw-f ig-f"><span>Starts</span>
-          <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
-        <label className="cw-f ig-f"><span>Finishes <span className="cw-f-opt">blank = one day</span></span>
-          <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
-        {!who && <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>}
-      </div>
-      {who && <>
-        <label className="cw-f ig-f"><span>Who is doing it</span>
-          <input list="ig-names" value={name} onChange={e => setName(e.target.value)} placeholder="Brillopak fitter, site electrician…" /></label>
-        <datalist id="ig-names">{who.names.map(n => <option key={n} value={n} />)}</datalist>
-      </>}
-      {over && (
-        <div className="ig-over">
-          <span>These dates start before <b>{over}</b> has finished. Is the overlap OK?</span>
-          <span className="cw-seg" role="group" aria-label="Is the overlap OK?">
-            <button type="button" className={'chip' + (ok === true ? ' on' : '')} aria-pressed={ok === true} onClick={() => setOk(true)}>Yes — it’s the plan</button>
-            <button type="button" className={'chip' + (ok === false ? ' on' : '')} aria-pressed={ok === false} onClick={() => setOk(false)}>No — flag it</button>
-          </span>
-        </div>
-      )}
-      {movedLater(was, end) && <p className="sub ig-why-note">That is later than it was ({short(was)}) — Save will ask why.</p>}
-      {who && (
-        <span className="ig-plan-acts">
-          <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>
-          {onCancel && <button className="btn btn-ghost" type="button" onClick={onCancel}>Cancel</button>}
-        </span>
-      )}
-    </form>
-  );
-}
-
 /** A START AND A FINISH for several steps at once, applied together with one
  *  tap so a half-chosen window is never written. Finish empty = one day. */
 function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
@@ -678,7 +600,7 @@ function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
       onSkip={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); setAsking(false); }}
       onSave={a => { onMove(from, to || undefined, a); setFrom(''); setTo(''); setAsking(false); }} />;
   }
-  /* A form for the same reason as DatesForm: Enter saves. */
+  /* A form, so Enter in a date box saves (as in a record's Edit). */
   return (
     <form className="ig-plan" onSubmit={e => {
       e.preventDefault();

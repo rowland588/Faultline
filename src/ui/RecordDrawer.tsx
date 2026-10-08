@@ -31,7 +31,7 @@ import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
 import { GATE_WORD, doneLateBy, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
 import {
-  isOverdue, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion,
+  isOverdue, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion, wordsOf,
   gateOf, type Outcome, type Test, type TestItem,
 } from '../lib/testing';
 import { daysBetween, niceDay, todayISO } from '../lib/weeks';
@@ -47,10 +47,10 @@ import { criticalCount, criticalOn, riskOn } from '../lib/critical';
 import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
-import { DatesForm, spanShort } from './InstallGrid';
-import { ProblemForm, changeTests, followingSummary, moveTestsWithWhy, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
-import { SayIt, SayStep } from './RecordSay';
-import { movedLater, overlapOf, storyOf } from '../lib/story';
+import { spanShort } from './InstallGrid';
+import { ProblemForm, changeTests, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
+import { RecordEdit } from './RecordEdit';
+import { movedLater, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
 import { isRunTest, productName, productRuns, runsUnderWay } from '../lib/run';
@@ -240,14 +240,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
      whole run: one product out of five is not the test. */
   const [problemPart, setProblemPart] = useState<{ id: string; what: string; product?: boolean } | null>(null);
   const top = useRef<HTMLDivElement>(null);
-  const [planning, setPlanning] = useState(false);
-  const [dayEdit, setDayEdit] = useState<string | null>(null);
-  /* "Is the overlap OK?" answered on the dates form, saved with the dates. */
-  const overlapAnswer = useRef<boolean | undefined>(undefined);
+  /* EDIT — the one door to change it (ui/RecordEdit, docs/DOORS.md). */
+  const [editing, setEditing] = useState(false);
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setProblemPart(null); setPlanning(false); setDayEdit(null); }, [id]);
+  useEffect(() => { setProblem(false); setProblemPart(null); setEditing(false); }, [id]);
   /* Opened with a part named (openRecordAt): its problem form, open. */
   useEffect(() => {
     const want = split()[1].get(PROBLEM);
@@ -385,8 +383,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           same questions in the same order, before any button. Rowland, 7
           October: "if I click on something, what is it? Was it part of the
           plan? Planned? Was it done? Changed the dates? Who?" The state is the
-          badge above, in words; these are the rest. Changing the dates, who,
-          or the day it was done is right here, under what it changes. */}
+          badge above, in words; these are the rest. Changing any of them is
+          one Edit, under them with the floor's actions (ui/RecordEdit). */}
       <dl className="rd-facts">
         <div><dt>What</dt><dd>{whatItIs}</dd></div>
         <div><dt>{kind === 'fix' ? 'Agreed' : 'Planned'}</dt><dd>
@@ -394,66 +392,14 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           {slip > 0 && <em className="rd-slip"> · first planned {short(first)}</em>}
           <span className="rd-arrow"> → </span>
           <span className={t.ranOn ? '' : 'sub'}>{actualWords}</span>
-          {t.ranOn && can.edit && dayEdit === null && <> <button type="button" className="cw-link" onClick={() => setDayEdit(t.ranOn ?? today)}>change</button></>}
         </dd></div>
         <div><dt>Who</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
         <div><dt>Changed</dt><dd>{lastMove
           ? <>moved {short(lastMove.from)} → {short(lastMove.to)}{lastMove.why ? `: ${lastMove.why}` : ''}{moves.length > 1 && <span className="sub"> · {moves.length - 1} earlier move{moves.length > 2 ? 's' : ''} below</span>}</>
           : <span className="sub">not moved since it was planned</span>}</dd></div>
+        {/* What was done, in its own words — written in Edit or said. */}
+        {t.result?.trim() && <div><dt>{wordsOf(t).happened}</dt><dd className="rd-said">{t.result}</dd></div>}
       </dl>
-      {/* THE PLANNING, BEHIND ONE BUTTON. Rowland, 5 October: "too much on a
-          screen." The dates and who are read here; changing them is one tap
-          away, and one Save keeps both (and asks why when the finish moves
-          later, as before). */}
-      <div className="rd-blk">
-        {dayEdit !== null && (
-          <div className="rd-dayedit"><span className="sub">The day it was done</span>
-                <span className="rd-day">
-                  <input type="date" value={dayEdit} aria-label="The day it was done" onChange={e => setDayEdit(e.target.value)} />
-                  <button type="button" className="btn btn-sm btn-primary" disabled={!dayEdit} onClick={() => {
-                    if (dayEdit && dayEdit !== t.ranOn) void changeTests(tt, [t], () => ({ ranOn: dayEdit }), `${t.title} — day changed to ${short(dayEdit)}`);
-                    setDayEdit(null);
-                  }}>Save</button>
-                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDayEdit(null)}>Cancel</button>
-                </span>
-          </div>
-        )}
-        {can.edit && (planning ? (
-          <DatesForm key={t.id} start={t.plannedFor} finish={t.plannedTo}
-            /* A finished one's dates are corrected, not overrun: no "why did it move?". */
-            was={t.outcome === 'passed' ? undefined : plannedEnd(t)}
-            who={{ names, value: t.withWhom ?? '' }}
-            following={end => followingSummary(t, tt.tests, end)}
-            overlap={kind === 'fix' ? undefined : {
-              with: (fromD, toD) => overlapOf({ ...t, plannedFor: fromD, plannedTo: toD > fromD ? toD : undefined }, tt.tests, true)?.title,
-              ok: t.overlapOk,
-              /* Kept by the same write as the dates: two writes at once raced,
-                 and the second put the first one's answer back. */
-              set: ok => { overlapAnswer.current = ok; },
-            }}
-            onMove={(fromD, to, a, who) => {
-              void (async () => {
-                await moveTestsWithWhy(tt, [t], fromD, to, a, `${t.title} moved to ${short(to ?? fromD)} — reason kept${a.fix ? ', fix booked' : ''}${who !== undefined ? ` · ${who || 'nobody named'}` : ''}`);
-                if (who !== undefined) await tt.patchTest(t.id, { withWhom: who || undefined });
-                if (overlapAnswer.current !== undefined) await tt.patchTest(t.id, { overlapOk: overlapAnswer.current });
-              })();
-              setPlanning(false);
-            }}
-            onSave={(fromD, to, who) => {
-              const changed = fromD !== t.plannedFor || to !== t.plannedTo;
-              const okAns = overlapAnswer.current;
-              void changeTests(tt, [t], () => ({ plannedFor: fromD, plannedTo: to, ...(who !== undefined ? { withWhom: who || undefined } : {}), ...(okAns !== undefined ? { overlapOk: okAns } : {}) }),
-                [changed ? `${t.title} ${fromD ? (to && to > fromD ? `planned ${short(fromD)} to ${short(to)}` : `planned ${short(fromD)}`) : 'has no dates'}` : t.title,
-                  who !== undefined ? (who || 'nobody named') : ''].filter(Boolean).join(' — '));
-              setPlanning(false);
-            }}
-            onCancel={() => setPlanning(false)} />
-        ) : (
-          <button type="button" className="rd-link" onClick={() => setPlanning(true)}>Change the dates or who ›</button>
-        ))}
-      </div>
-
-
       {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
           it ran, what it netted, the rejects, against what was agreed. */}
       {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
@@ -462,7 +408,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
 
       <div ref={top} aria-hidden />
       {/* THE FLOOR'S ACTIONS, first — the same buttons the square's sheet and
-          the record's page had, in the face's own words. A client reads. */}
+          the record's page had, in the face's own words — and the one Edit
+          beside them: dates, who, the day it was done, what was done, and
+          "Say it" for all of them (docs/DOORS.md). A client reads. */}
       {can.edit && (problem ? (
         /* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
            the finish and to when, a fix. The plan hears all of it. */
@@ -481,6 +429,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             }
             setProblem(false); setProblemPart(null);
           }} />
+      ) : editing ? (
+        <RecordEdit key={'edit-' + t.id} t={t} tt={tt} can={can} names={names} onClose={() => setEditing(false)}
+          onProblem={f => { setEditing(false); setProblem(f); }} />
       ) : kind === 'install' ? (
         <>
           <div className="rd-acts">
@@ -491,10 +442,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             <button type="button" className="btn ig-bad" onClick={() => setProblem(true)}>
               {t.outcome === 'failed' ? 'Another problem — write it up' : 'Hit a problem — write it up'}
             </button>
+            <button type="button" className="btn" onClick={() => setEditing(true)}>Edit</button>
             {(t.outcome !== 'planned' || !!t.ranOn) && (
               <button type="button" className="btn btn-ghost" onClick={() => andClose(setOutcome('planned', `${t.title} back to planned`))}>{backWord(t)}</button>
             )}
-            <SayStep step={t} tt={tt} onDone={onClose} onProblem={f => setProblem(f)} />
           </div>
         </>
       ) : kind === 'fix' ? (
@@ -506,12 +457,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             {t.outcome !== 'failed' && (
               <button type="button" className="btn ig-bad" onClick={() => andClose(setOutcome('failed', `${t.title} — didn’t fix it`))}>Didn’t fix it</button>
             )}
+            <button type="button" className="btn" onClick={() => setEditing(true)}>Edit</button>
             {t.outcome !== 'planned' && (
               <button type="button" className="btn btn-ghost" onClick={() => andClose(setOutcome('planned', `${t.title} back to planned`))}>
                 {t.outcome === 'passed' ? 'Not fixed after all — put it back' : 'Put it back to planned'}
               </button>
             )}
-            <SayIt test={t} tt={tt} can={can} onFilled={() => undefined} />
           </div>
         </>
       ) : (
@@ -527,7 +478,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
               </button>
             ))}
           </span>
-          <SayIt test={t} tt={tt} can={can} onFilled={() => undefined} />
+          <div className="rd-acts">
+            <button type="button" className="btn" onClick={() => setEditing(true)}>Edit</button>
+          </div>
         </>
       ))}
 
