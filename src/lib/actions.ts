@@ -77,7 +77,7 @@ export function stepAction(s: PaceTodoRow, lines: PaceLineRow[], today = todayIS
     status: s.state === 'done' ? 'Done' : s.state === 'waiting' ? 'Waiting' : 'To do',
     /* Overdue, or due soon. Only Overdue was ever set, so the meeting's
        "due soon" count read 0 whatever was coming up. */
-    flag: isLate(s, today) ? 'Overdue' : isDueSoon(s, today) ? 'Due soon' : '',
+    flag: isLate(s, today) ? 'Late' : isDueSoon(s, today) ? 'Due soon' : '',
     pillar: boneWord(s.pillar) || undefined,
   };
 }

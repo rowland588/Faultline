@@ -86,7 +86,7 @@ const PART: Record<PartState, { fill: string; stroke: string; words: string }> =
   failed: { fill: DANGER, stroke: DANGER, words: DANGER }, baseline: { fill: '#e6e4f6', stroke: BOOKED, words: MUTED },
 };
 /* A reminder's state, in the words the screen uses. */
-const noteSays = (t: GanttTone) => (t === 'done' ? 'talked about' : t === 'late' ? 'the day has gone' : 'to come');
+const noteSays = (t: GanttTone) => (t === 'done' ? 'talked about' : t === 'late' ? 'late' : 'to come');
 
 /* The screen's order of what is most abnormal (lib/gantt WORST). */
 const worst = (ts: GanttTone[]): GanttTone => WORST.find(t => ts.includes(t)) ?? 'none';
@@ -672,7 +672,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       font(7, 'normal', INK2);
       if (kx + extra + doc.getTextWidth(san(word)) > PW - M) { kx = M; ky += 11; lastKey = ky; }
     };
-    for (const [tone, word] of [['done', 'done'], ['failed', 'ran, didn’t pass'], ['ran', 'ran, not yet called'], ['late', 'late — the day has gone, or hours lost'], ['problem', 'a problem — no time lost'], ['booked', 'still ahead']] as [GanttTone, string][]) {
+    for (const [tone, word] of [['done', 'done'], ['failed', 'ran, didn’t pass'], ['ran', 'ran, not yet called'], ['late', 'late — or hours lost'], ['problem', 'a problem — no time lost'], ['booked', 'still ahead']] as [GanttTone, string][]) {
       fit(word, 24);
       const c = TONE[tone];
       doc.setDrawColor(c.stroke); doc.setFillColor(c.fill); doc.setLineWidth(0.7);

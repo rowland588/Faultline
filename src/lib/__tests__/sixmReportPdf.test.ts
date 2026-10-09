@@ -213,8 +213,8 @@ describe('the 6M client report', () => {
       todo('b', 'Ask the OEM', { pillar: 'people', state: 'waiting', due: '2026-10-09' }),
       todo('c', 'Done one', { pillar: 'method', state: 'done', doneOn: '2026-10-02' }),
     ]);
-    expect(r.slip).toBe('1 problem — acting on it · 2 open: People 1 · Machine 1, 1 past its day, 1 waiting on somebody.');
-    expect(r.slipSaid.filter(x => x.tone).map(x => [x.text, x.tone])).toEqual([['1 past its day', 'late'], ['1 waiting on somebody', 'waiting']]);
+    expect(r.slip).toBe('1 problem — acting on it · 2 open: People 1 · Machine 1, 1 late, 1 waiting on somebody.');
+    expect(r.slipSaid.filter(x => x.tone).map(x => [x.text, x.tone])).toEqual([['1 late', 'late'], ['1 waiting on somebody', 'waiting']]);
     const { flat } = await paper(r);
     expect(has(flat, r.slip)).toBe(true);
   });

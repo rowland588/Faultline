@@ -38,7 +38,7 @@ const BAND_TONE: Record<GanttTone, string> = {
 };
 const TONE_WORD: Record<GanttTone, string> = {
   done: 'done', failed: 'ran, didn’t pass', ran: 'ran — nobody has said how it went',
-  booked: 'still ahead', late: 'the day has gone', problem: 'a problem — no time lost', none: 'no date agreed',
+  booked: 'still ahead', late: 'late', problem: 'a problem — no time lost', none: 'no date agreed',
 };
 
 export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs, dayHours, stages }: {
@@ -276,7 +276,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const w = Math.max(r.span * px - 4, 10);
     const inside = w >= r.when.length * 7.2 + 18;
     const note = r.kind === 'note';
-    const noteSays = r.tone === 'done' ? 'talked about' : r.tone === 'late' ? 'the day has gone' : 'to come';
+    const noteSays = r.tone === 'done' ? 'talked about' : r.tone === 'late' ? 'late' : 'to come';
     const tip = note
       ? `Reminder: ${r.label} · ${r.when} · ${noteSays}`
       : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}${r.critical ? ` · ${criticalCount(r.critical)}` : ''}${r.risk ? ` · ${r.risk} high risk` : ''}`;
@@ -564,7 +564,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         <span><i className="gt-k is-done" />done</span>
         <span><i className="gt-k is-failed" />ran, didn’t pass</span>
         <span><i className="gt-k is-ran" />ran, not yet called</span>
-        <span><i className="gt-k is-late" />late — the day has gone, or hours lost</span>
+        <span><i className="gt-k is-late" />late — or hours lost</span>
         <span><i className="gt-k is-problem" />a problem — no time lost</span>
         <span><i className="gt-k is-booked" />still ahead</span>
         {g.groups.some(x => x.kind === 'note') && <span><i className="gt-k-rem" />a reminder from the notes — tap its words for all of them</span>}

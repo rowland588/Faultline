@@ -751,7 +751,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   key('failed', 'ran, didn’t pass');
   /* Only when there is one on the sheet — the key is the rule, not a menu. */
   if (pl.lanes.some(l => l.rows.some(r => r.some(m => m.tone === 'ran')))) key('ran', 'ran, no verdict yet');
-  key('late', 'the day has gone');
+  key('late', 'late');
   key('booked', 'still ahead');
   setFont(d, 6.5, 'normal', MUTED);
   d.text('Filled means it happened.', right, keyY, { align: 'right' });
@@ -1465,7 +1465,7 @@ function programsSheet(d: Doc, data: PaceReportData, page: number, pages: number
   const M = 26, CW = W - 2 * M;
 
   const sub = pg.overdue > 0
-    ? `${pg.overdue} past its test date · ${pg.proved} of ${pg.total} proved`
+    ? `${pg.overdue} late for ${pg.overdue === 1 ? 'its' : 'their'} test · ${pg.proved} of ${pg.total} proved`
     : `${pg.proved} of ${pg.total} proved · ${pg.onMachine} on the machine · ${pg.needed} not written`;
 
   /* THE SHEET IS AS TALL AS THE LIST, and as wide as it needs to be.
@@ -1584,7 +1584,7 @@ const TREE_STATUS: Record<string, { c: string; label: string }> = {
   n: { c: MUTED,  label: 'Not started' },
   w: { c: BLUE, label: 'In progress' },
   a: { c: WARN,   label: 'At risk' },
-  r: { c: DANGER, label: 'Overdue' },
+  r: { c: DANGER, label: 'Late' },
   g: { c: OK,     label: 'Done' },
 };
 
@@ -1648,7 +1648,7 @@ export const boardLaneW = (cw: number): number =>
 /** What the state is called on the board. Red on the board is only ever an
  *  action past its day, amber one waiting on somebody. */
 export const boardStatus = (rag: string): string =>
-  rag === 'r' ? 'Overdue' : rag === 'a' ? 'Waiting' : (TREE_STATUS[rag] ?? TREE_STATUS.n).label;
+  rag === 'r' ? 'Late' : rag === 'a' ? 'Waiting' : (TREE_STATUS[rag] ?? TREE_STATUS.n).label;
 
 type BoardRow = PaceReportData['board'][number];
 interface BlockPlan { area: string; part: number; total: number; done: number; lanes: { key: PillarKey; label: string; count: number; rows: BoardRow[] }[] }
@@ -1956,7 +1956,7 @@ export function flowOwes(parties: { rows: number[]; askH: number }[], cols: numb
 export const owesColumns = (n: number): number => (n <= 2 ? 2 : 3);
 
 const partyTitle = (p: Party, cont: boolean): string =>
-  (p.kind === 'nobody' ? 'Nobody named yet — needs an owner' : `${p.who} owes`) + (cont ? ' — continued' : '');
+  (p.kind === 'nobody' ? 'No one named yet — needs an owner' : `${p.who} owes`) + (cont ? ' — continued' : '');
 
 function drawOwesSeg(d: Doc, pt: OwesParty, seg: OwesSeg, x: number, y: number, w: number): void {
   const { p } = pt;
@@ -1967,7 +1967,7 @@ function drawOwesSeg(d: Doc, pt: OwesParty, seg: OwesSeg, x: number, y: number, 
   d.roundedRect(x, y, 3.5, seg.h, 1.5, 1.5, 'F');
 
   const count = `${p.lines.length} thing${p.lines.length === 1 ? '' : 's'}`
-    + (p.late ? ` · ${p.late} past the day` : '');
+    + (p.late ? ` · ${p.late} late` : '');
   setFont(d, 8, p.late ? 'bold' : 'normal', p.late ? DANGER : MUTED);
   const countW = d.getTextWidth(count);
   d.text(count, x + w - O_PAD, y + 22, { align: 'right' });
@@ -2187,7 +2187,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
        and a share complete is the work, not good news. */
     [`${data.pctDone}%`, 'Actions complete', `${data.complete} of ${data.total}`, MUTED],
     [String(data.openTotal), 'Still open', 'in flight', MUTED],
-    [String(data.late), 'Overdue', 'past their date', data.late > 0 ? DANGER : MUTED],
+    [String(data.late), 'Late', 'actions',  data.late > 0 ? DANGER : MUTED],
     [String(data.openSnags), 'Open evidence', 'from the line walk', data.openSnags > 0 ? WARN : MUTED],
     [String(data.winsThisWeek), 'Wins this week', 'what worked', data.winsThisWeek > 0 ? OK : MUTED],
   ];
@@ -2983,7 +2983,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
     .forEach(([v, c]) => { const sw = seg(v); if (sw > 0.5) { d.setFillColor(c); d.rect(sx, barY, sw, 14, 'F'); sx += sw; } });
 
   let lx = barX;
-  ([['Complete', data.complete, OK], ['Open', data.openOnTrack, BRAND], ['Overdue', data.late, DANGER]] as [string, number, string][])
+  ([['Complete', data.complete, OK], ['Open', data.openOnTrack, BRAND], ['Late', data.late, DANGER]] as [string, number, string][])
     .forEach(([lab, v, c]) => {
       d.setFillColor(c); d.roundedRect(lx, barY + 22, 7, 7, 1.5, 1.5, 'F');
       setFont(d, 7.5, 'normal', INK);
@@ -3026,7 +3026,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
 
   /* 3 — overdue & at risk (spans two columns) */
   const odX = M + colW + gap, odW = colW * 2 + gap;
-  const odRule = panel(d, odX, r1y, odW, rowH1, String(first + 1), 'Overdue & at risk', 'The actions past their date — where help is needed');
+  const odRule = panel(d, odX, r1y, odW, rowH1, String(first + 1), 'Late & at risk', 'The actions that are late — where help is needed');
   const endY = table(d, odX + 12, odRule + 14, odW - 24,
     [{ head: 'Line', width: 0.10 }, { head: 'Action', width: 0.55 },
      { head: 'Owner', width: 0.22 }, { head: 'Due', width: 0.13, align: 'right' }],
@@ -3039,7 +3039,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
     r1y + rowH1 - 22);
   if (data.lateMore > 0) {
     setFont(d, 7, 'bold', DANGER);
-    d.text(`+${data.lateMore} more overdue — see the board`, odX + 12, endY + 16);
+    d.text(`+${data.lateMore} more late — see the board`, odX + 12, endY + 16);
   }
 
   /* 4 — next steps */

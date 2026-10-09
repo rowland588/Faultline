@@ -11211,3 +11211,43 @@ button.gt-lab small b { display: inline; font-size: inherit; font-weight: 800; }
 .gt-mrow.has-next { height: 58px; }
 .gt-mgo small.gt-mnext { font-size: 10.5px; color: var(--ink-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
 .gt.is-stacked .gt-mgo small.gt-mnext { font-size: 11px; }
+
+/* =====================================================================
+   SLICE: THE CONTROL ROOM (docs/CONTROLROOM.md) — the week as a list, the
+   parties capped, a job's why in one line and whole when opened.
+   ===================================================================== */
+.jb-wl { display: grid; gap: 10px; }
+.jb-wl-g { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 8px 14px 6px; border-left: 4px solid var(--job, var(--line)); }
+.jb-wl-job { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; font-size: var(--t-label); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+.jb-wl-job i { width: 8px; height: 8px; border-radius: 50%; background: var(--job, var(--muted)); }
+.jb-wl-g ul { list-style: none; margin: 0; padding: 0; }
+.jb-wl-g li + li { border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.jb-wl-row {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; align-items: baseline;
+  padding: 7px 0; min-height: 40px;
+}
+.jb-wl-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.jb-wl-row:hover .jb-wl-what { text-decoration: underline; }
+.jb-wl-l { display: grid; gap: 1px; min-width: 0; }
+.jb-wl-what { font-size: var(--t-body); font-weight: 650; color: var(--ink); overflow-wrap: anywhere; }
+.jb-wl-m { font-size: var(--t-detail); color: var(--muted); overflow-wrap: anywhere; }
+.jb-wl-when { font-size: var(--t-detail); font-weight: 700; color: var(--st-w); white-space: nowrap; }
+.jb-wl-row.is-late .jb-wl-when { color: var(--st-r); }
+.jb-wl-row.is-note .jb-wl-when { color: var(--ink-2); }
+.jb-wl-more { justify-self: start; margin-left: 4px; }
+@media (max-width: 560px) { .jb-wl-row { grid-template-columns: 1fr; } .jb-wl-when { white-space: normal; } }
+
+/* "and N more" parties: the same pill, quieter. */
+.jb-owe.is-more { background: transparent; border: 1px dashed var(--shell-line); color: var(--shell-dim); }
+
+/* The whole reason, in the opened row. */
+.jb-why { margin: 0 0 8px; font-size: var(--t-detail); line-height: 1.45; color: var(--ink-2); }
+.jb-why b { font-weight: 800; }
+.jb-why.is-behind b { color: var(--st-r); }
+.jb-why.is-risk b { color: var(--st-a); }
+.jb-why.is-on b { color: var(--st-g); }
+/* The control room report's button, in the band as the job's is in its own. */
+.jb-report { align-self: center; margin-left: auto; margin-top: 0; }
+.jb-printed { margin: 8px 0 0; font-size: var(--t-detail); color: var(--shell-dim, #c9d6ea); }
+@media (max-width: 720px) { .jb-report { margin-left: 0; width: 100%; } }

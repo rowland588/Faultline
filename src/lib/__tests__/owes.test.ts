@@ -56,7 +56,7 @@ describe('who owes what, by when', () => {
   /* A debt nobody owns is the thing most worth putting in front of both sides. */
   it('gives what nobody owns a block of its own', () => {
     const o = owes([debt({ who: '', what: 'Get it on site', about: 'Domino coder' })]);
-    expect(o.parties[0]).toMatchObject({ who: 'Nobody named yet', kind: 'nobody' });
+    expect(o.parties[0]).toMatchObject({ who: 'No one named yet', kind: 'nobody' });
     expect(o.parties[0].lines[0]).toMatchObject({ when: 'no date agreed', tone: 'none' });
   });
 
@@ -68,7 +68,7 @@ describe('who owes what, by when', () => {
       debt({ who: 'Ishida Europe', what: 'B', about: 'b', on: '2026-09-20', late: true }),
     ]);
     expect(o.parties.map(p => p.kind + ':' + p.who)).toEqual([
-      'oem:Ishida Europe', 'oem:Ilapak UK', 'nobody:Nobody named yet', 'site:The site',
+      'oem:Ishida Europe', 'oem:Ilapak UK', 'nobody:No one named yet', 'site:The site',
     ]);
   });
 
@@ -139,7 +139,7 @@ describe('who owes what, by when', () => {
       debt({ who: 'Ilapak UK', what: 'B', about: 'b', on: '2026-09-30' }),
       debt({ who: 'the site', what: 'C', about: 'c' }),
     ]);
-    expect(o.says).toBe('Ilapak UK 2 · the site 1 — 1 past the day');
+    expect(o.says).toBe('Ilapak UK 2 · the site 1 — 1 late');
   });
 
   it('says nothing is owed when nothing is', () => {

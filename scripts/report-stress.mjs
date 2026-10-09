@@ -436,6 +436,67 @@ for (const size of SIXM_SIZES) {
   if (errors.length) rows.push({ size: `6m-${size}`, report: '(console)', pages: 0, faults: errors });
   await ctx.close();
 }
+/* THE CONTROL ROOM REPORT — every job on one page (lib/controlRoomReport,
+   docs/CONTROLROOM.md), downloaded from its door on the control room: the
+   ordinary seed's three jobs, and the board at its busiest (the ordinary
+   seed, both long jobs and seven random ones of every method — or, with
+   --fuzz or --seeds, eight of the random jobs and four random 6M jobs). What
+   must reach the paper is what the board itself shows: its sentence, every
+   job's name and its verdict. And it is ONE page, whatever the board holds. */
+const CR_SIZES = fuzzAt > 0 || seedsAt > 0 ? ['random-many'] : ['ordinary', 'many'];
+for (const size of CR_SIZES) {
+  const { ctx, page, errors } = await device();
+  await page.evaluate(async ({ size, random }) => {
+    const seeds = await import('/src/dev/reportSeeds.ts');
+    if (size !== 'random-many') await (await import('/src/dev/seed.ts')).seedForSmokeTest();
+    if (size === 'many') {
+      await seeds.seedReportJob('huge'); await seeds.seedSixMJob('huge');
+      for (const n of [11, 12, 13, 14]) await seeds.seedRandomJob(n);
+      for (const n of [21, 22, 23]) await seeds.seedRandomSixMJob(n);
+    }
+    if (size === 'random-many') {
+      /* --seeds 5,17 names two: the rest are made up to eight, so the board is busy. */
+      const pick = [...random, 101, 102, 103, 104, 105, 106, 107, 108].slice(0, 8);
+      for (const n of pick) await seeds.seedRandomJob(n);
+      for (const n of pick.slice(0, 4)) await seeds.seedRandomSixMJob(n);
+    }
+  }, { size, random: SIZES.map(s => Number(s.slice(7))).filter(Boolean) });
+  const file = `${OUT}/control-room-${size}.pdf`;
+  try {
+    await page.goto(`${BASE}/#/snags`); await page.waitForTimeout(500);
+    await page.goto(`${BASE}/#/`);
+    await page.locator('.jb-says').filter({ hasNotText: 'Reading every job' }).waitFor({ timeout: 30000 });
+    await page.waitForTimeout(1500);
+    const must = await page.evaluate(async () => {
+      const { san } = await import('/src/lib/reportKit.ts');
+      await (await import('/src/lib/savePdf.ts')).loadPdfLib();
+      const out = [];
+      const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
+      add('the sentence', document.querySelector('.jb-says')?.textContent?.trim());
+      /* A job's name runs on one line on paper (lib/onTarget nameIn, 60):
+         a longer one is checked to its first forty characters. */
+      for (const row of document.querySelectorAll('.jb-row-h')) {
+        const name = row.querySelector('.jb-name')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+        add('a job', name.length > 60 ? name.slice(0, 40) : name);
+        add(`${name.slice(0, 30)}: its verdict`, row.querySelector('.jb-ot-w')?.textContent?.trim());
+      }
+      return out;
+    });
+    const [dl] = await Promise.all([
+      page.waitForEvent('download', { timeout: 30000 }),
+      page.getByRole('button', { name: 'Control room report — 1 page', exact: true }).click(),
+    ]);
+    await dl.saveAs(file);
+    const r = check(file, must);
+    if (r.pages > 1) r.faults.push(`${r.pages} pages — the control room report must be one`);
+    if (must.filter(m => m[2] === 'a job').length < 3) r.faults.push('fewer than three jobs on the control room — the seed did not load');
+    rows.push({ size: `cr-${size}`, report: 'control room', pages: r.pages, faults: r.faults, said: r.said });
+  } catch (e) {
+    rows.push({ size: `cr-${size}`, report: 'control room', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+  }
+  if (errors.length) rows.push({ size: `cr-${size}`, report: '(console)', pages: 0, faults: errors });
+  await ctx.close();
+}
 await browser.close();
 
 let bad = 0;

@@ -71,7 +71,7 @@ describe('due soon', () => {
   });
   it('is flagged on the action, so the meeting can count it', () => {
     expect(stepAction(step({ due: '2026-10-03' }), lines, T).flag).toBe('Due soon');
-    expect(stepAction(step({ due: '2026-09-20' }), lines, T).flag).toBe('Overdue');
+    expect(stepAction(step({ due: '2026-09-20' }), lines, T).flag).toBe('Late');
     expect(stepAction(step({ due: '2026-10-20' }), lines, T).flag).toBe('');
     const roster = buildRoster([stepAction(step({ id: 'a', due: '2026-10-02' }), lines, T), stepAction(step({ id: 'b', due: '2026-10-30' }), lines, T)]);
     expect(roster.find(p => p.name === 'Rob')?.dueSoon).toBe(1);

@@ -421,7 +421,7 @@ export function planSays(marks: PlanMark[], today: string): string {
   const bits = [`${marks.length} date${marks.length === 1 ? '' : 's'}`, `${done} done`];
   if (ahead) bits.push(`${ahead} still ahead`);
   if (ran) bits.push(`${ran} waiting on a verdict`);
-  if (late) bits.push(`${late} past the day`);
+  if (late) bits.push(`${late} late`);
   return bits.join(' · ');
 }
 

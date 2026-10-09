@@ -309,7 +309,7 @@ export function CauseSheet(p: CauseSheetProps) {
                           <span className="cs-cm-t">{a.action || a.problem || 'An action with no words yet'}</span>
                           {a.expect && <span className="cs-cm-x">Should change: {a.expect}</span>}
                           <span className="cs-cm-s">
-                            {[a.owner || a.who || 'Nobody named', a.due ? `due ${a.due}` : 'no date'].join(' · ')} · <span className={'cs-cm-st is-' + t}>{ACTION_STATE[t]}</span>
+                            {[a.owner || a.who || 'No one named', a.due ? `due ${a.due}` : 'no date'].join(' · ')} · <span className={'cs-cm-st is-' + t}>{ACTION_STATE[t]}</span>
                           </span>
                         </span>
                       </li>

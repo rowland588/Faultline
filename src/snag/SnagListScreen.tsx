@@ -33,7 +33,7 @@ const byText = (a: string, b: string) => a.localeCompare(b, undefined, { numeric
 
 const SORTS: Record<SortKey, { label: string; cmp: (x: Row, y: Row) => number }> = {
   review:  { label: 'Walk order',      cmp: (x, y) => x.sequence - y.sequence || x.timestampS - y.timestampS || x.snag.raisedAt - y.snag.raisedAt },
-  due:     { label: 'Most overdue',    cmp: (x, y) => (x.snag.dueAt ?? Infinity) - (y.snag.dueAt ?? Infinity) || x.snag.raisedAt - y.snag.raisedAt },
+  due:     { label: 'Most late',      cmp: (x, y) => (x.snag.dueAt ?? Infinity) - (y.snag.dueAt ?? Infinity) || x.snag.raisedAt - y.snag.raisedAt },
   oldest:  { label: 'Oldest first',    cmp: (x, y) => x.snag.raisedAt - y.snag.raisedAt },
   newest:  { label: 'Newest first',    cmp: (x, y) => y.snag.raisedAt - x.snag.raisedAt },
   asset:   { label: 'By asset',        cmp: (x, y) => byText(x.assetName, y.assetName) || x.snag.raisedAt - y.snag.raisedAt },
@@ -202,7 +202,7 @@ export function SnagListScreen() {
   const activeFilters = [
     statusF !== 'all' ? SNAG_STATUS_META[statusF].label : null,
     ageF === 'stale' ? `stale (open > ${SNAG_STALE_DAYS}d)` : null,
-    ageF === 'overdue' ? 'overdue' : null,
+    ageF === 'overdue' ? 'late' : null,
     assetF !== 'all' ? (assets.find(a => a.id === assetF)?.name ?? 'one asset') : null,
     ownerF !== 'all' ? ownerF : null,
     search.trim() ? `“${search.trim()}”` : null,
@@ -278,7 +278,7 @@ export function SnagListScreen() {
         ))}
         <button type="button" aria-pressed={ageF === 'overdue'} title="Open past their due date"
           className={'ss-pill' + (counts.overdue > 0 ? ' ss-over' : '') + (ageF === 'overdue' ? ' on' : '')}
-          onClick={() => setAgeF(ageF === 'overdue' ? 'all' : 'overdue')}><b>{counts.overdue}</b> overdue</button>
+          onClick={() => setAgeF(ageF === 'overdue' ? 'all' : 'overdue')}><b>{counts.overdue}</b> late</button>
         <button type="button" aria-pressed={ageF === 'stale'} title={`Open snags older than ${SNAG_STALE_DAYS} days`}
           className={'ss-pill' + (counts.stale > 0 ? ' ss-stale' : '') + (ageF === 'stale' ? ' on' : '')}
           onClick={() => setAgeF(ageF === 'stale' ? 'all' : 'stale')}><b>{counts.stale}</b> open &gt; {SNAG_STALE_DAYS}d</button>
@@ -349,7 +349,7 @@ export function SnagListScreen() {
                     <Fragment key={g.name}>
                       <tr className="owner-head"><td colSpan={7}>
                         {g.name}
-                        <span className="oh-counts">{g.open} open{g.overdue > 0 ? <b className="oh-over"> · {g.overdue} overdue</b> : null}</span>
+                        <span className="oh-counts">{g.open} open{g.overdue > 0 ? <b className="oh-over"> · {g.overdue} late</b> : null}</span>
                       </td></tr>
                       {g.rows.map(renderRow)}
                     </Fragment>
@@ -390,7 +390,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
           <span className="report-stat st-open"><b>{c.open}</b> open</span>
           <span className="report-stat st-prog"><b>{c.in_progress}</b> in progress</span>
           <span className="report-stat st-closed"><b>{c.closed}</b> closed</span>
-          {c.overdue > 0 && <span className="report-stat st-overdue"><b>{c.overdue}</b> overdue</span>}
+          {c.overdue > 0 && <span className="report-stat st-overdue"><b>{c.overdue}</b> late</span>}
           {c.stale > 0 && <span className="report-stat st-stale"><b>{c.stale}</b> stale</span>}
         </div>
       </header>
@@ -432,7 +432,7 @@ function PrintSnagBody({ snag: s, target }: { snag: Snag; target?: string }) {
         {s.owner ? <span>· {s.owner}</span> : null}
         <span>· raised {dateNice(s.raisedAt)}</span>
         {s.dueAt ? <span>· due {dateNice(s.dueAt)}</span> : null}
-        {s.status !== 'closed' && d != null && d < 0 ? <b className="print-over">· {-d}d overdue</b> : null}
+        {s.status !== 'closed' && d != null && d < 0 ? <b className="print-over">· {-d}d late</b> : null}
         {s.closedAt ? <span>· closed {dateNice(s.closedAt)}{late != null ? (late <= 0 ? ' (on time)' : ` (${late}d late)`) : ''}</span> : <span>· {ageDays(s.raisedAt)}d old</span>}
       </div>
       {s.latestUpdate ? <div className="print-snag-update"><Icon name="refresh" size="1.15em" /> {s.latestUpdate}{s.latestUpdateAt ? ` — ${dateNice(s.latestUpdateAt)}` : ''}</div> : null}

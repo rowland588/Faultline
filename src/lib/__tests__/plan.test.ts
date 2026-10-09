@@ -194,7 +194,7 @@ describe('what the plan says about itself', () => {
       mark({ at: '2026-09-02', tone: 'late' }),
       mark({ at: '2026-10-30', tone: 'booked' }),
     ], '2026-09-22');
-    expect(s).toBe('3 dates · 1 done · 1 still ahead · 1 past the day');
+    expect(s).toBe('3 dates · 1 done · 1 still ahead · 1 late');
   });
 
   it('does not invent a count it has nothing for', () => {

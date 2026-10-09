@@ -26,7 +26,8 @@ describe('a stage-gate job — is the handover on target?', () => {
 
   it('on target: the handover as agreed and nothing late', () => {
     const v = job({ tests: [ahead], plannedAt: '2026-10-25', expectedAt: '2026-10-25' });
-    expect(v).toEqual({ tone: 'on', word: 'On target', reason: `handover ${D('2026-10-25')} as agreed · nothing late` });
+    expect(v).toEqual({ tone: 'on', word: 'On target', reason: `handover ${D('2026-10-25')} as agreed · nothing late`,
+      brief: `handover ${D('2026-10-25')} as agreed · nothing late` });
   });
 
   it('behind: the handover expected after the date agreed, both days named', () => {
@@ -43,14 +44,18 @@ describe('a stage-gate job — is the handover on target?', () => {
        poor information" — each late thing is named now, with the hours its
        problems lost or the day it was due, so the line can be checked. */
     expect(v).toEqual({ tone: 'behind', word: 'Behind target',
-      reason: `handover ${D('2026-10-25')} as agreed · 2 late: Ishida checkweigher — Sensors and controls checked (2 h lost); Ishida checkweigher — Air connected (was due ${D('2026-10-02')})` });
+      reason: `handover ${D('2026-10-25')} as agreed · 2 late: Ishida checkweigher — Sensors and controls checked (2 h lost); Ishida checkweigher — Air connected (was due ${D('2026-10-02')})`,
+      /* The control room's one line: the date and the counts, no names
+         (docs/CONTROLROOM.md) — the names are the reason's. */
+      brief: `handover ${D('2026-10-25')} as agreed · 2 late` });
   });
 
   it('at risk: nothing late, but a problem that lost no time', () => {
     const none = step({ title: 'Dry run', plannedFor: '2026-10-12', ranOn: '2026-10-06', outcome: 'failed' });
     const v = job({ tests: [none], items: [found(none.id)], plannedAt: '2026-10-25' });
     /* "1 a problem" read badly and named nothing; the problem is named. */
-    expect(v).toEqual({ tone: 'risk', word: 'At risk', reason: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost: Ishida checkweigher — Dry run` });
+    expect(v).toEqual({ tone: 'risk', word: 'At risk', reason: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost: Ishida checkweigher — Dry run`,
+      brief: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost` });
   });
 
   it('one handover date is the handover — never "no date agreed yet" (Rowland, 7 October)', () => {
@@ -85,7 +90,7 @@ describe('a 6M or lever tree job — are its lines at target?', () => {
   });
   it('on target when every line judged is at its target', () => {
     expect(linesOnTarget([{ name: 'Line 2A', series: series(62, 60) }, { name: 'Line 7', series: series(55, 50) }]))
-      .toEqual({ tone: 'on', word: 'On target', reason: '2 of 2 lines at target' });
+      .toEqual({ tone: 'on', word: 'On target', reason: '2 of 2 lines at target', brief: '2 of 2 lines at target' });
   });
   it('behind, naming the line that is short and by how much', () => {
     const v = linesOnTarget([{ name: 'Line 2A', series: series(62, 60) }, { name: 'Line 4', series: series(41, 50) }, { name: 'Line 7', series: series(55, 50) }]);

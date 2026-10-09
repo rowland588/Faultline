@@ -99,7 +99,7 @@ export function whoOwes(debts: Debt[], opts: {
     const k = key(res(who));
     const supplier = suppliers.get(k);
     const [pk, name, kind]: [string, string, Party['kind']] = !k
-      ? ['\u0000nobody', 'Nobody named yet', 'nobody']
+      ? ['\u0000nobody', 'No one named yet', 'nobody']
       : supplier ? [k, supplier, 'oem']
         : ['\u0000site', 'The site', 'site'];
     let p = parties.get(pk);
@@ -146,7 +146,7 @@ export function whoOwes(debts: Debt[], opts: {
   const says = list.length === 0
     ? 'nothing owed by anybody'
     : list.map(p => `${p.kind === 'site' ? 'the site' : p.who} ${p.lines.length}`).join(' · ')
-      + (late ? ` — ${late} past the day` : ' — none of it late');
+      + (late ? ` — ${late} late` : ' — none of it late');
   return { parties: list, says };
 }
 

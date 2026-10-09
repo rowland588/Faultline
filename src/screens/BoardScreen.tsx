@@ -40,7 +40,7 @@ import type { NodeStatus } from '../db';
 import { Icon } from '../ui/Icon';
 
 const STATUS: Record<NodeStatus, string> = {
-  n: 'To do', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done',
+  n: 'To do', w: 'In progress', a: 'Waiting', r: 'Late', g: 'Done',
 };
 
 const NOBODY = '__nobody__';

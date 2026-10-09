@@ -320,7 +320,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span, onOpen }: 
           <span className="tl-key-i"><span className="tl-k is-done" />done</span>
           <span className="tl-key-i"><span className="tl-k is-failed" />ran, didn’t pass</span>
           {anyRan && <span className="tl-key-i"><span className="tl-k is-ran" />ran, no verdict yet</span>}
-          <span className="tl-key-i"><span className="tl-k is-late" />the day has gone</span>
+          <span className="tl-key-i"><span className="tl-k is-late" />late</span>
           <span className="tl-key-i"><span className="tl-k is-booked" />still ahead</span>
           {axis.today != null && <span className="tl-key-i"><span className="tl-kl is-today" />today</span>}
           {axis.expected && <span className="tl-key-i"><span className="tl-kl is-rate" />at rate</span>}
@@ -371,7 +371,7 @@ export function Timeline({ marks, today, expectedAt, plannedAt, span, onOpen }: 
           <span className="tl-key-i"><span className="tl-k is-done" />done</span>
           <span className="tl-key-i"><span className="tl-k is-failed" />ran, didn’t pass</span>
           {anyRan && <span className="tl-key-i"><span className="tl-k is-ran" />ran, no verdict yet</span>}
-          <span className="tl-key-i"><span className="tl-k is-late" />the day has gone</span>
+          <span className="tl-key-i"><span className="tl-k is-late" />late</span>
           <span className="tl-key-i"><span className="tl-k is-booked" />still ahead</span>
         </li>
       </ol>

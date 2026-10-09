@@ -115,6 +115,11 @@ cannot:
      as typed (the second is what caught the font dropping "Ł" from Łukasz).
      It prints how many facts it checked per report, so a check that found
      nothing to check cannot pass quietly.
+
+   The control room report is downloaded from the control room's own door,
+   with the ordinary seed's three jobs and a board of twelve, every method,
+   both long jobs among them. The board's sentence and every job's name and
+   verdict must be on the paper, and it must be one page.
 3. **Random jobs** — `report-stress.mjs --fuzz 40` makes forty jobs of random
    size and shape — no machines or sixteen, nothing written or pages of it,
    names from across Europe, a 60-character part number, quotes, `<`, `&`,

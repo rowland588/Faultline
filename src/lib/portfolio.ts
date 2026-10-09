@@ -79,6 +79,10 @@ export interface PacedInput {
   gaps?: { lineId: string; line: string; says: string; short?: string }[];
   /** Are its lines on target? (lib/onTarget linesOnTarget) */
   onTarget?: OnTarget;
+  /** What the job waits on — its materials and programs. Late ones are late
+   *  on the job, as its own Needs you lists them (pacedOwed). */
+  materials?: Material[];
+  programs?: Program[];
 }
 
 /** One 6M problem as the control room needs it: enough to say where it is and
@@ -249,7 +253,10 @@ const addDays = (iso: string, n: number): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const NOBODY = 'Nobody named';
+/* "No one named" — the chip's words, the sentence's and the list's alike
+   (docs/CONTROLROOM.md: the chip said "No one named", the sentence "Nobody
+   named's"). */
+export const NOBODY = 'No one named';
 export const SITE = 'The site';
 
 /** Is this item filed under this party on the board? */
@@ -370,6 +377,18 @@ export function pacedItems(j: PacedInput, today: string): JobItem[] {
   }));
 }
 
+/** EVERYTHING A 6M OR LEVER TREE JOB OWES — its board's open actions and the
+ *  materials and programs not in yet: the list its own front page's Needs you
+ *  shows, so "late" counts the same things on the control room, the rail, the
+ *  job's header and its report (docs/CONTROLROOM.md, one count for late). A
+ *  6M job's late used to be its board's actions only. */
+export function pacedOwed(j: PacedInput, today: string): JobItem[] {
+  return [
+    ...pacedItems(j, today),
+    ...jobItems({ project: j.project, tests: [], items: [], materials: j.materials ?? [], programs: j.programs ?? [], assets: [] }, today),
+  ];
+}
+
 /** The actions with a day on them, as marks on the shared calendar. */
 function pacedPlan(j: PacedInput, today: string): PlanMark[] {
   return j.steps.filter(s => !!s.due).map(s => ({
@@ -384,7 +403,7 @@ export function pacedSays(a: { atTarget: number; judged: number; lines?: number;
   const onTarget = a.judged > 0 ? `${a.atTarget} of ${a.judged} line${a.judged === 1 ? '' : 's'} at target` : '';
   const onBoard = !a.any ? ''
     : a.open === 0 ? 'nothing open on the board'
-    : `${a.open} action${a.open === 1 ? '' : 's'} open${a.late ? ` — ${a.late} past ${a.late === 1 ? 'its' : 'their'} day` : ''}`;
+    : `${a.open} action${a.open === 1 ? '' : 's'} open${a.late ? ` — ${a.late} late` : ''}`;
   const said = [onTarget, onBoard].filter(Boolean).join(', with ');
   return said ? said.charAt(0).toUpperCase() + said.slice(1) + '.' : 'Nothing on the board yet.';
 }
@@ -427,7 +446,7 @@ export function problemsSaid(phases: Phase[]): Said[] {
   return out;
 }
 
-/** "7 open: Machine 3 · People 2 · Material 2, 2 past their day": the board's
+/** "7 open: Machine 3 · People 2 · Material 2, 2 late": the board's
  *  open countermeasures by bone, the biggest bone first (the fishbone's order
  *  between equals), and only then what is abnormal — past its day in red,
  *  waiting on somebody in amber. */
@@ -442,7 +461,7 @@ export function bonesSaid(steps: Pick<PaceTodoRow, 'pillar' | 'state' | 'due'>[]
   const waiting = open.filter(s => s.state === 'waiting' && !stepIsLate(s, today)).length;
   const by = [...bones.map(b => `${b.label} ${b.open}`), ...(unboned ? [`${unboned} not on a bone yet`] : [])];
   const out: Said[] = [{ text: `${open.length} open: ${by.join(' · ')}` }];
-  if (late) out.push({ text: ', ' }, { text: `${late} past ${late === 1 ? 'its' : 'their'} day`, tone: 'late' });
+  if (late) out.push({ text: ', ' }, { text: `${late} late`, tone: 'late' });
   if (waiting) out.push({ text: ', ' }, { text: `${waiting} waiting on somebody`, tone: 'waiting' });
   return out;
 }
@@ -545,7 +564,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       });
       return { project: j.project, plan: st.plan, items: jobItems(j, today), critical: criticalItems(j), gate: { j, st } };
     }),
-    ...pacedIn.map((j): Entry => ({ project: j.project, plan: pacedPlan(j, today), items: pacedItems(j, today), critical: [], paced: j })),
+    ...pacedIn.map((j): Entry => ({ project: j.project, plan: pacedPlan(j, today), items: pacedOwed(j, today), critical: [], paced: j })),
   ];
   const when = (e: Entry) => e.project.expectedAt ?? e.project.plannedAt ?? '\uffff';
   entries.sort((a, b) => when(a).localeCompare(when(b)) || a.project.name.localeCompare(b.project.name));
@@ -583,7 +602,10 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     };
     if (e.paced) {
       const j = e.paced;
+      /* The job's late is everything it owes that is late; the sentence is
+         about its board, and counts the board's actions. */
       const open = items.length, late = items.filter(x => x.late).length;
+      const actions = items.filter(x => x.kind === 'action');
       const daysToGo = p.expectedAt
         ? Math.round((Date.parse(p.expectedAt + 'T12:00:00') - Date.parse(today + 'T12:00:00')) / 86_400_000) : undefined;
       return {
@@ -592,7 +614,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
            what it is being run against; the board is the work under them. */
         /* A tree job with no tree yet says so — its board alone would read
            "Nothing open", as if the job were in hand. */
-        sentence: (j.tree ? `${j.tree.says}. ` : planModel(p) === 'tree' ? 'No tree yet — it starts from the outcome. ' : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open, late, any: j.steps.length > 0 }),
+        sentence: (j.tree ? `${j.tree.says}. ` : planModel(p) === 'tree' ? 'No tree yet — it starts from the outcome. ' : '') + pacedSays({ atTarget: j.atTarget, judged: j.judged, open: actions.length, late: actions.filter(x => x.late).length, any: j.steps.length > 0 }),
         tree: j.tree,
         lines: j.lines.map(l => ({ id: l.id, key: l.key, name: l.name, owner: l.owner || undefined })),
         slip: undefined, daysToGo, outstanding: open, late,
@@ -654,6 +676,11 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
        is whoever is doing it, which is as often the site's own fitter. */
     for (const t of live(j.tests)) if (isTestFace(t) && t.withWhom) supplierTyped.push(t.withWhom);
   }
+  for (const e of entries) {
+    if (!e.paced) continue;
+    for (const m of live(e.paced.materials ?? [])) if (m.from) supplierTyped.push(m.from);
+    for (const pr of live(e.paced.programs ?? [])) if (pr.from) supplierTyped.push(pr.from);
+  }
   const allTyped = [...supplierTyped, ...all.flat().map(x => x.who)];
   const res = resolver(allTyped);
   const supplierSet = new Set(supplierTyped.map(n => res(n).toLowerCase()));
@@ -713,22 +740,33 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
 }
 
 /** The whole board in one sentence, the way somebody would answer "how are
- *  the jobs going" in a corridor. */
+ *  the jobs going" in a corridor — the most urgent job first (docs/
+ *  CONTROLROOM.md): a job already past the date it is expected on comes
+ *  before the next one due. It named the next handover while another job was
+ *  two days past its own. */
 function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
   if (jobs.length === 0) return 'No job running yet.';
-  const next = jobs
-    .filter(v => v.daysToGo != null && v.daysToGo >= 0)
-    .sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0))[0];
   const bits = [plural(jobs.length, 'job') + ' running'];
   /* "Hands over" is a stage-gate job's word. A running line is not handed
      over: its date is the day it should be at target. */
+  const past = jobs.filter(v => v.daysToGo != null && v.daysToGo < 0).sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0));
+  if (past[0]) {
+    const v = past[0], d = -(v.daysToGo ?? 0);
+    bits.push(`${v.name} is ${plural(d, 'day')} past its ${v.method === 'commissioning' ? 'expected handover' : 'date'}${past.length > 1 ? ` (and ${past.length - 1} more past theirs)` : ''}`);
+  }
+  const next = jobs
+    .filter(v => v.daysToGo != null && v.daysToGo >= 0)
+    .sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0))[0];
   if (next) bits.push(next.method === 'commissioning'
-    ? `${next.name} hands over first, in ${plural(next.daysToGo ?? 0, 'day')}`
-    : `${next.name}’s date comes first, in ${plural(next.daysToGo ?? 0, 'day')}`);
-  if (late === 0) return `${bits.join(' · ')}. Nothing is past its day.`;
+    ? `${next.name} hands over ${past.length ? 'next' : 'first'}, in ${plural(next.daysToGo ?? 0, 'day')}`
+    : `${next.name}’s date comes ${past.length ? 'next' : 'first'}, in ${plural(next.daysToGo ?? 0, 'day')}`);
+  if (late === 0) return `${bits.join(' · ')}. Nothing is late.`;
   const top = [...owes].sort((a, b) => b.late - a.late)[0];
-  const owner = top ? (top.kind === 'site' ? 'the site' : top.who) : '';
-  const whose = top && top.late * 2 > late ? ` — ${top.late === late ? 'all' : `${top.late}`} of them ${owns(owner)}` : '';
+  const share = top && top.late * 2 > late ? (top.late === late ? 'all' : `${top.late}`) : '';
+  /* Whose most of it is — "4 of them Ilapak UK's", "all of them the site's",
+     or, when nobody owns them, "92 of them with no one named". */
+  const whose = !share ? '' : top.kind === 'nobody' ? ` — ${share} of them with no one named`
+    : ` — ${share} of them ${owns(top.kind === 'site' ? 'the site' : top.who)}`;
   /* "late", not "past the day": a stage is late when its problems lost hours,
      before its day goes (lib/install lateOrProblem). */
   return `${bits.join(' · ')}. ${plural(late, 'thing')} late${whose}.`;

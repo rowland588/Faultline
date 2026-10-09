@@ -294,7 +294,7 @@ export function MeetingScreen() {
               </button>
               <button className="meet-tile" onClick={() => setAct(3)}>
                 <span className="mt-eyebrow">3 · Actions</span>
-                <span className="mt-line">{overdueN > 0 ? <b className="mt-bad">{overdueN} overdue</b> : <b>0 overdue</b>} · {dueSoonN} due this week</span>
+                <span className="mt-line">{overdueN > 0 ? <b className="mt-bad">{overdueN} late</b> : <b>0 late</b>} · {dueSoonN} due this week</span>
                 <span className="mt-sub">{plural(openActions.filter(s => s.status !== 'closed').length, 'open action')}</span>
               </button>
               <button className="meet-tile" onClick={() => setAct(4)}>
@@ -398,7 +398,7 @@ export function MeetingScreen() {
               .sort((a, b) => (a.name === 'Unassigned' ? 1 : 0) - (b.name === 'Unassigned' ? 1 : 0) || b.overdue - a.overdue || b.open - a.open || a.name.localeCompare(b.name));
             return ordered.map(g => (
               <div key={g.name} className="meet-owner">
-                <div className="mo-head">{g.name}<span className="oh-counts">{g.open} open{g.overdue > 0 ? <b className="oh-over"> · {g.overdue} overdue</b> : null}</span></div>
+                <div className="mo-head">{g.name}<span className="oh-counts">{g.open} open{g.overdue > 0 ? <b className="oh-over"> · {g.overdue} late</b> : null}</span></div>
                 {g.list.map(s => (
                   <div key={s.id} className={'meet-action' + (isOverdueNow(s) ? ' over' : '') + (s.status === 'closed' ? ' done' : '')}>
                     <div className="ma-main">

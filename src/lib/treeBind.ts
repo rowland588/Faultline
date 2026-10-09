@@ -592,7 +592,7 @@ export function treeStanding(rows: TreeNodeRow[]): TreeStanding | undefined {
   const off = late + risk;
   const plural = (k: number) => `condition${k === 1 ? '' : 's'}`;
   const conditions = n === 0 ? 'nothing written under it yet'
-    : off > 0 ? `${off} of ${n} ${plural(n)} off track — ${[late && `${late} overdue`, risk && `${risk} at risk`].filter(Boolean).join(', ')}`
+    : off > 0 ? `${off} of ${n} ${plural(n)} off track — ${[late && `${late} late`, risk && `${risk} at risk`].filter(Boolean).join(', ')}`
     : done === n ? `all ${n} ${plural(n)} done`
     : `${n} ${plural(n)}, none off track`;
   return {

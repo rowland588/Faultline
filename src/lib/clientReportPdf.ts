@@ -129,7 +129,7 @@ const cellPath = (doc: jsPDF, c: CellTone, x: number, y: number, w = 14, h = 10)
 
 /* The key says the rule: late is the day gone OR hours lost; a problem lost
    none — the same words the plan's key prints. */
-const KEY: [CellTone, string][] = [['late', 'late — the day has gone, or hours lost'], ['problem', 'a problem — no time lost'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']];
+const KEY: [CellTone, string][] = [['late', 'late — or hours lost'], ['problem', 'a problem — no time lost'], ['asking', 'waiting on a verdict'], ['booked', 'still ahead'], ['ahead', 'no day yet'], ['done', 'done'], ['none', 'not added yet']];
 
 /** The colour key, wrapping onto a second line when the page is narrow. */
 function keyBlock(only: Set<CellTone>): Block {

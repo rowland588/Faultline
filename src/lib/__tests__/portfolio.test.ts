@@ -117,7 +117,7 @@ describe('the edges', () => {
   it('says so when nothing is past its day', () => {
     const calm = job(project({ id: 'c', name: 'Line 3', expectedAt: '2026-12-01' }),
       { tests: [test({ plannedFor: '2026-10-30' })] });
-    expect(portfolio([calm], TODAY).says).toBe('1 job running · Line 3 hands over first, in 63 days. Nothing is past its day.');
+    expect(portfolio([calm], TODAY).says).toBe('1 job running · Line 3 hands over first, in 63 days. Nothing is late.');
   });
 
   it('puts a job with no handover date last', () => {
@@ -154,7 +154,7 @@ describe('what the review asked for', () => {
   it('finds what one party owes across jobs, whatever case it was typed in', () => {
     const pf = portfolio([twoA, twoB], TODAY);
     expect(pf.items.filter(x => owedBy(x, 'Ilapak UK')).map(x => x.what).sort()).toEqual(['Case erector', 'Changeover']);
-    expect(pf.items.filter(x => owedBy(x, 'Nobody named')).length).toBe(0);
+    expect(pf.items.filter(x => owedBy(x, 'No one named')).length).toBe(0);
   });
 
   describe('dots that land on top of each other', () => {
@@ -205,7 +205,7 @@ describe('who owes what, on a real mess', () => {
   });
 
   it('gives a fix nobody owns a party of its own', () => {
-    expect(pf.owes.find(o => o.kind === 'nobody')).toMatchObject({ who: 'Nobody named', open: 1 });
+    expect(pf.owes.find(o => o.kind === 'nobody')).toMatchObject({ who: 'No one named', open: 1 });
   });
 
   it('orders them the way page 3 does: suppliers, then nobody, then the site', () => {
@@ -256,7 +256,7 @@ describe('every job on every method', () => {
     expect(v.late).toBe(1);
     expect(v.reach).toBe('1 of 2 at target');
     expect(v.reachShort).toBe(true);   // a line short of target is the abnormal one
-    expect(v.sentence).toBe('1 of 2 lines at target, with 3 actions open — 1 past its day.');
+    expect(v.sentence).toBe('1 of 2 lines at target, with 3 actions open — 1 late.');
   });
   it('gives it its open countermeasures by bone — only the bones with any open, old words read across — not four gates', () => {
     const v = pf.jobs.find(j => j.id === 'p3')!;
@@ -321,8 +321,8 @@ describe('a 6M job in the control room', () => {
       step({ pillar: 'material' }), step({ pillar: 'material' }),
       step({ pillar: 'method', state: 'done' }),
     ], TODAY);
-    expect(saidText(said)).toBe('7 open: Machine 3 · People 2 · Material 2, 2 past their day, 1 waiting on somebody');
-    expect(tones(said)).toEqual([['2 past their day', 'late'], ['1 waiting on somebody', 'waiting']]);
+    expect(saidText(said)).toBe('7 open: Machine 3 · People 2 · Material 2, 2 late, 1 waiting on somebody');
+    expect(tones(said)).toEqual([['2 late', 'late'], ['1 waiting on somebody', 'waiting']]);
   });
   it('counts an action on no bone, and says nothing open in grey', () => {
     expect(saidText(bonesSaid([step({ pillar: 'people' }), step({})], TODAY))).toBe('2 open: People 1 · 1 not on a bone yet');
@@ -344,7 +344,7 @@ describe('a 6M job in the control room', () => {
     const pf = portfolio([], TODAY, [sixm, tree]);
     const v = pf.jobs.find(j => j.id === 's6')!;
     expect(saidText(v.sixm!.phases)).toBe('1 problem — acting on it · 1 slipped back');
-    expect(saidText(v.sixm!.bones)).toBe('1 open: Machine 1, 1 past its day');
+    expect(saidText(v.sixm!.bones)).toBe('1 open: Machine 1, 1 late');
     expect(v.sixm!.problems.map(x => [x.id, x.word, x.slipped])).toEqual([['b', 'Slipped back', true], ['a', 'Acting on it', false]]);
     expect(v.sixm!.gaps[0].short).toBe('8 ppm short of target');
     expect(pf.jobs.find(j => j.id === 't')!.sixm).toBeUndefined();
@@ -504,5 +504,38 @@ describe('a stage’s parts, owed by a day', () => {
     const pf = portfolio([j], TODAY);
     expect(pf.jobs[0]).toMatchObject({ outstanding: 2, late: 1 });
     expect(pf.week.map(x => x.what)).toHaveLength(2);
+  });
+});
+
+/* THE CONTROL ROOM, ONE COUNT AND ONE WORD (docs/CONTROLROOM.md). */
+describe('the control room says late once, the same way, and the most urgent job first', () => {
+  const step = (o: Record<string, unknown>) =>
+    ({ id: `s${++n}`, projectId: 'p', what: 'An action', where: '', why: '', who: '', when: '', state: 'todo', createdAt: 1, updatedAt: 1, ...o }) as PacedInput['steps'][number];
+
+  it('counts a 6M job\'s late materials and programs as late on the job, as its own Needs you does', () => {
+    const sixm: PacedInput = {
+      project: project({ id: 'm', name: 'Line 9', commissioning: false, planModel: 'board' } as Partial<Project> & { id: string; name: string }),
+      steps: [step({ what: 'Train nights on the splice', who: 'Rob', due: '2026-09-25' })],          // late
+      lines: [], atTarget: 0, judged: 0,
+      materials: [mat({ what: 'Splice tape', from: 'Amcor', due: '2026-09-27' })],                    // late
+    };
+    const v = portfolio([], TODAY, [sixm]).jobs[0];
+    expect(v.late).toBe(2);
+    /* The sentence is about the board, and counts the board's actions. */
+    expect(v.sentence).toContain('1 action open — 1 late');
+  });
+
+  it('names a job already past its expected handover before the next one due', () => {
+    const past = job(project({ id: 'x', name: 'Line 11', expectedAt: '2026-09-27', plannedAt: '2026-09-27' }), {
+      tests: [test({ title: 'Dry run', withWhom: 'Ilapak UK', plannedFor: '2026-09-25' })],
+    });
+    expect(portfolio([twoB, past], TODAY).says).toMatch(/^2 jobs running · Line 11 is 2 days past its expected handover · Line 2B hands over next, in 27 days\./);
+  });
+
+  it('says "with no one named" when nobody owns most of what is late, never "Nobody named\'s"', () => {
+    const lone = job(project({ id: 'z', name: 'Line 12', expectedAt: '2026-11-20' }), {
+      tests: [test({ kind: 'fix', title: 'Fit the guard', plannedFor: '2026-09-20' })],
+    });
+    expect(portfolio([lone], TODAY).says).toMatch(/1 thing late — all of them with no one named\.$/);
   });
 });

@@ -202,7 +202,7 @@ describe('the tree, as the control room reads it', () => {
     const s = treeStanding([box('Hold 60 ppm', 'a'), box('lever', 'w', 'Hold 60 ppm'), box('c1', 'r', 'lever'), box('c2', 'a', 'lever'), box('c3', 'g', 'lever')])!;
     expect(s.outcome).toMatchObject({ text: 'Hold 60 ppm', rag: 'a', word: 'at risk' });
     expect([s.total, s.late, s.risk, s.done]).toEqual([4, 1, 1, 1]);
-    expect(s.says).toBe('The outcome is at risk · 2 of 4 conditions off track — 1 overdue, 1 at risk');
+    expect(s.says).toBe('The outcome is at risk · 2 of 4 conditions off track — 1 late, 1 at risk');
   });
   it('leaves the board rows hung under a box to the board', () => {
     const s = treeStanding([box('out', 'w'), box('c1', 'g', 'out'), box('tracker:abc', 'r', 'c1')])!;

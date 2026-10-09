@@ -191,7 +191,9 @@ function GateNav(p: NavProps) {
 function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const counts = useMethodCounts(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), ...toolPlaces(p.here), jobLine(p.project.id, p.project.name, p.here, counts.board?.late ?? 0)] },
+    /* The job's square is red for anything late on it — its board's actions
+       and what it waits on — the count its header and the control room say. */
+    { lines: [controlRoom(p.here), ...toolPlaces(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
     workGroup(p.project.id, p.model, p.here, counts),

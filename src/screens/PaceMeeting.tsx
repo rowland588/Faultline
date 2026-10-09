@@ -144,7 +144,7 @@ export function PaceMeeting({ actions, roster, onOpen }: {
 
   const STATUSES: { id: typeof status; label: string }[] = [
     { id: 'open', label: 'Open' },
-    { id: 'overdue', label: 'Overdue' },
+    { id: 'overdue', label: 'Late' },
     { id: 'done', label: 'Done' },
     { id: 'all', label: 'All' },
   ];
@@ -192,7 +192,7 @@ export function PaceMeeting({ actions, roster, onOpen }: {
               {p.open === 0
                 ? <span className="pm-clear">nothing open</span>
                 : <>
-                    {p.overdue > 0 && <span className="pm-pip is-over">{p.overdue} overdue</span>}
+                    {p.overdue > 0 && <span className="pm-pip is-over">{p.overdue} late</span>}
                     {p.dueSoon > 0 && <span className="pm-pip is-soon">{p.dueSoon} due soon</span>}
                     <span className="pm-pip">{p.open} open</span>
                   </>}

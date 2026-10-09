@@ -387,7 +387,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       const h = p.hold;
       const due = h.lastChecked ? new Date(Date.parse(`${h.lastChecked}T12:00:00`) + h.everyDays * DAY) : undefined;
       const overdue = !h.lastChecked || (due ? todayISO(due) < today : false);
-      const word = v.phase === 'slipped' ? 'Slipped back' : v.phase === 'holding' ? (overdue ? 'Holding · check overdue' : 'Holding') : 'Check set';
+      const word = v.phase === 'slipped' ? 'Slipped back' : v.phase === 'holding' ? (overdue ? 'Holding · check is late' : 'Holding') : 'Check set';
       const tone: Tone = v.phase === 'slipped' ? 'failed' : overdue ? 'waiting' : v.phase === 'holding' ? 'done' : 'going';
       return {
         what: h.what, who: h.who?.trim() || undefined, every: h.everyDays === 1 ? 'every day' : h.everyDays === 7 ? 'every week' : `every ${h.everyDays} days`,

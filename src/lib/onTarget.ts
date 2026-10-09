@@ -43,6 +43,10 @@ export interface OnTarget {
   word: string;
   /** Why, in words: the dates and the counts. */
   reason: string;
+  /** WHY, IN ONE LINE — the date and the counts, no names (the control
+   *  room's row, docs/CONTROLROOM.md): the names are on the row's "Critical"
+   *  and "Next" lines, and the whole reason is one tap away. */
+  brief?: string;
 }
 
 /** Something owed due within this many days puts a job at risk. */
@@ -157,18 +161,23 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
     ? `${risk.length} high risk: ${risk.slice(0, 2).map(c => `${nameIn(c.item.what)}${c.item.couldLose ? `, ${couldWords(c.item)}` : ''}`).join('; ')}${risk.length > 2 ? ` and ${risk.length - 2} more` : ''}`
     : '';
 
+  /* The one line: the handover and the counts — late first, then what holds
+     it at risk. The critical has its own red line on the row. */
+  const brief = [when, s.late ? `${s.late} late` : 'nothing late', problems ? `${problems} problem${problems === 1 ? '' : 's'}, no time lost` : '',
+    risk.length ? `${risk.length} high risk` : '', dueSoon && !s.late ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · ');
   if (slipped || s.late > 0) {
-    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords, riskWords].filter(Boolean).join(' · ') };
+    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords, riskWords].filter(Boolean).join(' · '), brief };
   }
   if (critical || risk.length || problems || dueSoon) {
     return {
       tone: 'risk', word: 'At risk',
       reason: [when, criticalWords, riskWords, late, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
+      brief,
     };
   }
   /* Nothing late and no date to be on target FOR — said, not guessed. */
-  if (!expectedAt && !plannedAt) return { tone: 'none', word: 'No target date', reason: `${when} · nothing late` };
-  return { tone: 'on', word: 'On target', reason: `${when} · ${late}` };
+  if (!expectedAt && !plannedAt) return { tone: 'none', word: 'No target date', reason: `${when} · nothing late`, brief };
+  return { tone: 'on', word: 'On target', reason: `${when} · ${late}`, brief };
 }
 
 /** A 6M or lever tree job: every line judged is at its target, or which are
@@ -183,11 +192,13 @@ export function linesOnTarget(lines: { name: string; series?: LineSeries }[]): O
   const head = `${judged.length - short.length} of ${judged.length} line${judged.length === 1 ? '' : 's'} at target`;
   const unjudged = lines.length - judged.length;
   const tail = unjudged ? ` · ${unjudged} not measured yet` : '';
-  if (!short.length) return { tone: 'on', word: 'On target', reason: head + tail };
+  if (!short.length) return { tone: 'on', word: 'On target', reason: head + tail, brief: head + tail };
   const each = short.slice(0, 2).map(l => {
     const s = l.series as LineSeries;
     return `${l.name}: ${say(s.latest as number)} vs ${say(s.target as number, s.measure.unit)}`;
   });
   const more = short.length > 2 ? `; and ${short.length - 2} more` : '';
-  return { tone: 'behind', word: 'Behind target', reason: `${head} (${each.join('; ')}${more})${tail}` };
+  return { tone: 'behind', word: 'Behind target', reason: `${head} (${each.join('; ')}${more})${tail}`,
+    /* The line: how many are short; which and by how much is the reason's. */
+    brief: `${head} · ${short.length} short${tail}` };
 }

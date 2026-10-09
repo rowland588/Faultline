@@ -120,7 +120,10 @@ database agree.
   able to as well?
 - A client is shown **"Needs you"** on screens where they owe nothing.
 
-## Proposed, for your decision — nothing built yet
+## Proposed, for your decision
+
+Items 1 to 6 were agreed on 9 October and are built — see "Decided and
+built" below. Item 7 is still open.
 
 1. **One count for late.** Late on every job is everything past its day that
    the job's own Needs you lists — a 6M job's materials and programs too —
@@ -142,3 +145,59 @@ database agree.
    document, so it is yours to say yes to.
 7. **Roles** — your answers to the three questions above, and the live
    database read-back when the connector is back.
+
+## Decided and built — 9 October
+
+Rowland: "Go ahead with 1 to 5, and the report." What changed, where it
+lives, and what it does on the screen and on paper together (house rule 2):
+
+1. **One count for late.** A 6M or lever tree job's late is now everything
+   its own Needs you lists: the board's open actions and the materials and
+   programs not in yet (`lib/portfolio` `pacedOwed`). The control room, the
+   rail (`ui/Frame`), the job's header and Needs you
+   (`screens/ProjectDashboardScreen`) and the control room report all read
+   that one list. Line 7 says "5 late" in every one of them. The job's
+   sentence still talks about its board, so it counts the board's actions
+   ("N actions open — N late"). A Stage Gate job already counted its
+   materials and programs, so its numbers do not move.
+2. **One word for late.** "Late" everywhere on screen and paper: "past its
+   day", "past their day", "overdue" and "the day has gone" are gone from
+   the control room, the 6M board and its bones, the lever tree, the
+   meeting, the snags list, the plan's key and the 6M, client, plan and
+   snag-card PDFs. A date stays where it helps ("was 3 Oct"). Nobody owning
+   something is "No one named" everywhere, and the sentence reads "81 of
+   them with no one named" (it said "Nobody named's").
+3. **The sentence names the most urgent job first.** A job already past
+   its expected handover (or, on a running line, its date) leads: "Line 11
+   is 2 days past its expected handover · Line 2B hands over next, in 26
+   days". Before, it named only the next handover.
+4. **A job's row says why in one line.** The date against what was agreed
+   and the counts: "handover expected Thu, 5 Nov, 8 days after the agreed
+   Wed, 28 Oct · 4 late · 1 high risk" (`lib/onTarget` `brief`). The
+   paragraph (every late item, the critical, the risk and its cost) is one
+   tap away: it opens with the row, under the verdict. Hovering the line
+   shows the paragraph too. The chips stay.
+5. **This week is a list, not a strip.** Late first, grouped by job, the
+   first eight with "Show all N", and the same for "No date agreed" and the
+   reminders (`ui/JobsBoard` `WeekList`). Who owes what shows the first five
+   parties, then "and N more" opens the rest. With ten jobs the strip was
+   145 cards across. Now it is eight rows, plus the opener.
+6. **The control room report** — "Control room report — 1 page", a door
+   under the board's numbers (`lib/controlRoomReport`, drawn by
+   `lib/controlRoomPdf` through the report engine). One A4 page in four parts:
+   - the board's own sentence and its counts;
+   - every job: its name and kind of change, its verdict pill in its colour,
+     the one-line why, its critical in red and what is owed next;
+   - who owes what across the jobs, split by job;
+   - what is late and what is due this week: job, what, who, when.
+
+   It reads `lib/portfolio`, the same reading as the board, so the page and
+   the screen cannot disagree. Every job is always on it. The lists step down
+   until it fits, each saying "and N more — on the control room". On a board
+   too busy for any list, a job's critical joins its reason as a count. Proved
+   one page with three jobs, with twelve busy jobs and with twelve random
+   ones, by `scripts/report-stress.mjs` from its real button, and by
+   `src/lib/__tests__/controlRoomReport.test.ts`.
+
+Still open: item 7 (the three roles questions and the live database
+read-back).

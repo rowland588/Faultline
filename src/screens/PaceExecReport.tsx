@@ -513,7 +513,7 @@ function OwesPage({ o, title, scale, sheetH, n, of }: {
                     <h3>{p.kind === 'nobody' ? 'Nobody named yet — needs an owner' : `${p.who} owes`}</h3>
                     <span className="ow-n">
                       {p.lines.length} thing{p.lines.length === 1 ? '' : 's'}
-                      {p.late > 0 && <b> · {p.late} past the day</b>}
+                      {p.late > 0 && <b> · {p.late} late</b>}
                     </span>
                   </header>
                   <ol className="ow-lines">
@@ -1338,7 +1338,7 @@ function PaceExecReportA3() {
   /* Until the file has been read, the preview's own sheets: the same plan by
      count, each card one block of words that wraps by itself. Once it has, the
      file's — see BoardPage. */
-  const LABEL: Record<string, string> = { n: 'Not started', w: 'In progress', a: 'Waiting', r: 'Overdue', g: 'Done' };
+  const LABEL: Record<string, string> = { n: 'Not started', w: 'In progress', a: 'Waiting', r: 'Late', g: 'Done' };
   const fileBoard = file?.board && file.boardKey === JSON.stringify(boardRows) ? file.board : undefined;
   const boardPlan: BoardSheetDrawn[] = fileBoard ?? boardGuess.map(areas => ({
     scale: boardScale(runHeight(areas)),
@@ -2044,7 +2044,7 @@ function PaceExecReportA3() {
                 a zero is grey, and "17% complete" is the work, not good news. */}
             <Stat n={`${pctDone}%`} label="Actions complete" sub={`${complete} of ${actions.length}`} tone="flat" />
             <Stat n={String(openTotal)} label="Still open" sub="in flight" tone="flat" />
-            <Stat n={String(late)} label="Overdue" sub="past their date" tone={late > 0 ? 'bad' : 'flat'} />
+            <Stat n={String(late)} label="Late" sub="actions" tone={late > 0 ? 'bad' : 'flat'} />
             <Stat n={String(openSnags.length)} label="Open evidence" sub="from the line walk" tone={openSnags.length > 0 ? 'warn' : 'flat'} />
             <Stat n={String(winsThisWeek.length)} label="Wins this week" sub="what worked" tone={winsThisWeek.length > 0 ? 'good' : 'flat'} />
           </>}

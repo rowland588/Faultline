@@ -39,7 +39,7 @@ import { usePrograms } from '../lib/usePrograms';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedItems, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
 import { criticalCount } from '../lib/critical';
@@ -672,10 +672,16 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      so the two methods' front pages read alike. */
   const openActions = actions.length - done;
   const judged = ppm.lines.filter(l => standing.get(l.id)?.meeting != null).length;
+  /* EVERYTHING THE JOB OWES (lib/portfolio pacedOwed) — its board's actions
+     and the materials and programs not in yet. Its counts are the job's:
+     "late" here, on its header, on the control room and in the rail is the
+     same number, and is what its Needs you lists (docs/CONTROLROOM.md). */
+  const owedNow = project ? pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs }, todayISO()) : [];
+  const owedLate = owedNow.filter(x => x.late).length;
   const verdict: Standing = {
-    // The same sentence the Home control room says of this job.
+    // The same sentence the Home control room says of this job — about its board.
     sentence: pacedSays({ atTarget, judged, open: openActions, late: overdue, any: actions.length > 0 }),
-    outstanding: openActions, late: overdue, rows: [], plan: [], lateThings: [],
+    outstanding: owedNow.length, late: owedLate, rows: [], plan: [], lateThings: [],
   };
   /* The actions closed on a known day, newest first, and what the numbers say. */
   const closed = ax.steps.filter(s => s.state === 'done' && !!s.doneOn)
@@ -720,7 +726,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   /* What is past its day, said in red on the header's one line — the
      verdict's own late count on a stage-gate job, the board's late actions on
      the others (the same numbers the rail's lines carry). */
-  const pastDay = model === 'commissioning' ? stand.standing.late : overdue;
+  const pastDay = model === 'commissioning' ? stand.standing.late : owedLate;
   const start = model === 'board' || model === 'tree'
     ? startSteps({ model, lines: ppm.lines.length, measures: nums.measures.length, targets: nums.targets.length,
       readings: nums.readings.length, problems: probs.problems.length, treeNodes: (treeRows ?? []).length })
@@ -785,10 +791,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         /* Everything owed on the job, one row each: the board's open actions
            (the control room reads the same, lib/portfolio pacedItems), and
            the materials and programs not in yet (jobItems). */
-        const owed = [
-          ...pacedItems({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged }, today),
-          ...jobItems({ project, tests: [], items: [], materials: mats.materials, programs: progs.programs, assets: [] }, today),
-        ];
+        const owed = pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs }, today);
         return (
           <>
             <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'}

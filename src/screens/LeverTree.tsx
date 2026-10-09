@@ -68,7 +68,7 @@ const STATUSES: { k: NodeStatus; label: string }[] = [
   { k: 'w', label: 'In progress' },
   { k: 'a', label: 'At risk' },
   /* Red is the day that has gone — the word the board uses for it too. */
-  { k: 'r', label: 'Overdue' },
+  { k: 'r', label: 'Late' },
   { k: 'g', label: 'Done' },
 ];
 const statusLabel = (k: NodeStatus) => STATUSES.find(s => s.k === k)?.label ?? 'Not started';

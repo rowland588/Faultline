@@ -31,7 +31,7 @@
  * jobs already keep — standing() for each job, the same call its own screen
  * makes — so the board and the job cannot disagree.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Project } from '../types';
 import {
   listAssets, listMaterials, listPrograms, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
@@ -65,6 +65,8 @@ import { accessOf, can as canOf, type Can } from '../lib/access';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
+/** How many parties the band names before "and N more". */
+const OWES_FIRST = 5;
 const SEEN_KEY = 'faultline.jobs.seen';
 
 /* (The word each row is filed under is lib/portfolio's kindWord — the same
@@ -73,7 +75,7 @@ const SEEN_KEY = 'faultline.jobs.seen';
 /* Late and a problem said apart — never "late or a problem" (lib/install). */
 const GATE_WORD = GATE_TONE_WORD;
 const TONE_WORD: Record<string, string> = {
-  done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'the day has gone', booked: 'still ahead',
+  done: 'done', failed: 'ran, didn’t pass', ran: 'ran, no verdict yet', late: 'late', booked: 'still ahead',
 };
 
 /** Where a thing on the board opens. */
@@ -155,8 +157,10 @@ function useJobs(projects: Project[]): Jobs | null {
         programs: await listPrograms(project.id),
       })));
       const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
-        const [steps, lines, targets, readings, items] = await Promise.all([
+        const [steps, lines, targets, readings, items, materials, programs] = await Promise.all([
           listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id), listTestItems(project.id),
+          /* What it waits on — late here is late on the job (lib/portfolio pacedOwed). */
+          listMaterials(project.id), listPrograms(project.id),
         ]);
         // The same call the project's own page makes, so the row and the page agree.
         const series = lines.map(l => lineSeries(project.measures ?? [], project.periods ?? [], targets, readings, l.id));
@@ -187,7 +191,7 @@ function useJobs(projects: Project[]): Jobs | null {
             : [];
         }
         return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps,
+          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, materials, programs,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
           /* Are its lines on target? — the answer its front page leads with. */
@@ -224,7 +228,7 @@ function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
   const items = pf.items.filter(x => owedBy(x, f.who));
   const jobs = new Set(items.map(x => x.jobId)).size;
   const across = jobs > 1 ? ` across ${jobs} jobs` : '';
-  return { title: f.who === SITE ? `What the site owes — ${items.length}${across}` : f.who === NOBODY ? `${items.length} with nobody named${across}` : `What ${f.who} owes — ${items.length}${across}`, items };
+  return { title: f.who === SITE ? `What the site owes — ${items.length}${across}` : f.who === NOBODY ? `${items.length} with no one named${across}` : `What ${f.who} owes — ${items.length}${across}`, items };
 }
 
 /** The list as text, for pasting into an email or reading down the phone. */
@@ -324,6 +328,28 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
      something that has to survive. */
   const [open, setOpen] = useState<Set<string>>(readOpen);
   const [focus, setFocus] = useState<Focus | null>(null);
+  /* The parties beyond the first five, opened on request. */
+  const [allOwes, setAllOwes] = useState(false);
+  /* The control room report, made from this board's own reading. */
+  const [printing, setPrinting] = useState(false);
+  const [printed, setPrinted] = useState('');
+  const printReport = async () => {
+    setPrinting(true); setPrinted('');
+    try {
+      const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
+      const { drawControlRoomReport } = await import('../lib/controlRoomPdf');
+      const { pdfFileName } = await import('../lib/fileName');
+      const { jsPDF } = await loadPdfLib();
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      titlePdf(doc, 'Control room report');
+      if (!pf) return;
+      await drawControlRoomReport(doc, pf, today);
+      const how = await deliverPdf(doc, pdfFileName('Control room', 'report', today));
+      setPrinted(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+    } catch (e) {
+      setPrinted(`The report could not be made — ${e instanceof Error ? e.message : 'try again'}.`);
+    } finally { setPrinting(false); }
+  };
   const [tip, setTip] = useState<string | null>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
   const weekRef = useRef<HTMLDivElement>(null);
@@ -388,11 +414,20 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
           <button className="jb-stat" onClick={() => weekRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.week} still={still} /></b>this week
           </button>
+          {/* THE PAGE FOR THE BUSINESS (docs/CONTROLROOM.md): every job on one
+              A4 — where each is, why, who owes what — read off this board
+              (lib/controlRoomReport), where the job's band has its own. */}
+          <button type="button" className="btn vd-report jb-report" disabled={printing} onClick={() => void printReport()}>
+            {printing ? 'Making it…' : 'Control room report — 1 page'}
+          </button>
         </div>
+        {printed && <p className="jb-printed" role="status">{printed}</p>}
         {pf.owes.length > 0 && (
           <div className="jb-owes">
             <span className="jb-owes-h">Who owes what</span>
-            {pf.owes.slice(0, 8).map(o => {
+            {/* THE FIRST FIVE, then "and N more" (docs/CONTROLROOM.md): with
+                ten jobs the parties ran over seven rows of the band. */}
+            {(allOwes ? pf.owes : pf.owes.slice(0, OWES_FIRST)).map(o => {
               const label = o.kind === 'site' ? 'The site' : o.kind === 'nobody' ? 'No one named' : o.who;
               const split = pf.jobs.length > 1 && o.byJob.length > 0;
               return (
@@ -409,6 +444,11 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
                 </button>
               );
             })}
+            {pf.owes.length > OWES_FIRST && (
+              <button type="button" className="jb-owe is-more" onClick={() => setAllOwes(a => !a)} aria-expanded={allOwes}>
+                {allOwes ? 'Fewer' : `and ${pf.owes.length - OWES_FIRST} more`}
+              </button>
+            )}
           </div>
         )}
         {/* THE RECORDS DISAGREE. The same company typed two ways is counted as
@@ -442,7 +482,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
                 return `${pf.reminders.length} from your notes${now ? ` — ${now} today or gone` : ' — coming up this week'}`; })()}
             </span>
           </div>
-          <WeekStrip items={pf.reminders} />
+          <WeekList items={pf.reminders} />
         </div>
       )}
 
@@ -455,7 +495,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
             <h3>No date agreed</h3>
             <span className="sub">{pf.undated.length} fix{pf.undated.length === 1 ? '' : 'es'} — agree a date with whoever has {pf.undated.length === 1 ? 'it' : 'them'}</span>
           </div>
-          <WeekStrip items={pf.undated} />
+          <WeekList items={pf.undated} />
         </div>
       )}
 
@@ -465,7 +505,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
           <h3>This week, across every job</h3>
           <span className="sub">{pf.week.length ? `${pf.week.length} to chase — late first` : 'nothing due, nothing late'}</span>
         </div>
-        {pf.week.length > 0 && <WeekStrip items={pf.week} />}
+        {pf.week.length > 0 && <WeekList items={pf.week} />}
       </div>
 
       {/* ----------------------------- the Gantt ----------------------------- */}
@@ -490,7 +530,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
         <p className="jb-key sub">
           <span><i className="jb-k is-done" />done</span>
           <span><i className="jb-k is-failed" />ran, didn’t pass</span>
-          <span><i className="jb-k is-late" />the day has gone</span>
+          <span><i className="jb-k is-late" />late</span>
           <span><i className="jb-k is-booked" />still ahead</span>
           <span><i className="jb-k is-many">3</i>several on the same days</span>
           <span><i className="jb-kf" />handover</span>
@@ -501,39 +541,51 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   );
 }
 
-/* THE WEEK STRIP says there is more to the side. On a desk it scrolled with
-   nothing to show that it could; now it has arrows, and the edge fades where
-   more cards are waiting. */
-function WeekStrip({ items }: { items: JobItem[] }) {
-  const ref = useRef<HTMLOListElement>(null);
-  const [edges, setEdges] = useState({ left: false, right: false });
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const read = () => setEdges({ left: el.scrollLeft > 4, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
-    read();
-    el.addEventListener('scroll', read, { passive: true });
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(read) : undefined;
-    ro?.observe(el);
-    return () => { el.removeEventListener('scroll', read); ro?.disconnect(); };
-  }, [items.length]);
-  const by = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: reduced() ? 'auto' : 'smooth' });
+/* THE WEEK, AS A LIST (docs/CONTROLROOM.md). It was one sideways strip of
+   cards — 22 with three jobs, 145 with ten, five on the screen at a time — so
+   the one view stopped being one view as the jobs grew. Now a list, late
+   first, grouped by job (each job where its most urgent row falls), the
+   first eight shown and the rest one tap away. The same list holds the
+   reminders and the fixes with no date agreed. */
+const WEEK_FIRST = 8;
+function WeekList({ items }: { items: JobItem[] }) {
+  const [all, setAll] = useState(false);
+  const today = todayISO();
+  const shown = all ? items : items.slice(0, WEEK_FIRST);
+  const groups: { jobId: string; job: string; color: string; rows: JobItem[] }[] = [];
+  for (const x of shown) {
+    let g = groups.find(y => y.jobId === x.jobId);
+    if (!g) { g = { jobId: x.jobId, job: x.job, color: x.color, rows: [] }; groups.push(g); }
+    g.rows.push(x);
+  }
+  const when = (x: JobItem) => (x.on
+    ? (x.kind === 'note' && x.on === today ? 'Today' : x.late ? lateWhen(x, today) : niceDay(x.on, { weekday: 'short' }))
+    : x.late ? lateWhen(x, today) : x.kind === 'fix' ? 'No date agreed' : 'no date');
   return (
-    <div className={'jb-wk-wrap' + (edges.left ? ' more-left' : '') + (edges.right ? ' more-right' : '')}>
-      {edges.left && <button className="jb-wk-arrow is-left" onClick={() => by(-1)} aria-label="Earlier">‹</button>}
-      <ol className="jb-wk-list" ref={ref}>
-        {items.map((x, i) => (
-          <li key={`${x.jobId}-${x.kind}-${x.id ?? x.what}-${i}`} style={{ '--job': x.color, '--i': Math.min(i, 8) } as CSSProperties}>
-            <button className={'jb-wk' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => openItem(x)}>
-              <span className="jb-wk-job">{x.job}</span>
-              <b className="jb-wk-what">{x.what}</b>
-              <span className="jb-wk-m">{x.kind === 'note' ? 'Reminder · from the notes' : `${kindWord(x)} · ${x.who || 'nobody yet'}`}</span>
-              <span className="jb-wk-when">{x.on ? (x.kind === 'note' && x.on === todayISO() ? 'TODAY' : x.late ? lateWhen(x, todayISO()).toUpperCase() : niceDay(x.on, { weekday: 'short' })) : x.late ? lateWhen(x, todayISO()).toUpperCase() : x.kind === 'fix' ? 'NO DATE AGREED' : 'no date'}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
-      {edges.right && <button className="jb-wk-arrow is-right" onClick={() => by(1)} aria-label="More">›</button>}
+    <div className="jb-wl">
+      {groups.map(g => (
+        <section key={g.jobId} className="jb-wl-g" style={{ '--job': g.color } as CSSProperties}>
+          <h4 className="jb-wl-job"><i aria-hidden />{g.job}</h4>
+          <ul>
+            {g.rows.map((x, i) => (
+              <li key={`${x.kind}-${x.id ?? x.what}-${i}`}>
+                <button className={'jb-wl-row' + (x.late ? ' is-late' : '') + (x.kind === 'note' ? ' is-note' : '')} onClick={() => openItem(x)}>
+                  <span className="jb-wl-l">
+                    <b className="jb-wl-what">{x.what}</b>
+                    <span className="jb-wl-m">{x.kind === 'note' ? 'Reminder · from the notes' : `${kindWord(x)} · ${x.who || 'no one named'}`}</span>
+                  </span>
+                  <span className="jb-wl-when">{when(x)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {items.length > WEEK_FIRST && (
+        <button type="button" className="cw-link jb-wl-more" onClick={() => setAll(a => !a)} aria-expanded={all}>
+          {all ? `Show the first ${WEEK_FIRST}` : `Show all ${items.length}`}
+        </button>
+      )}
     </div>
   );
 }
@@ -578,7 +630,10 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
           {v.onTarget && (
             <span className={'jb-ot is-' + v.onTarget.tone}>
               <b className="jb-ot-w">{v.onTarget.word}</b>
-              <span className="jb-ot-r">{v.onTarget.reason}</span>
+              {/* WHY, IN ONE LINE (docs/CONTROLROOM.md) — the date and the
+                  counts; the names are on the Critical and Next lines below,
+                  and the whole reason is in the row when it is opened. */}
+              <span className="jb-ot-r" title={v.onTarget.reason}>{v.onTarget.brief ?? v.onTarget.reason}</span>
             </span>
           )}
           <span className="jb-chips">
@@ -631,7 +686,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                colour, and each says its state in words. */
             <span className="jb-gates" aria-label={v.tree.says}>
               <span className={'jb-gate is-wide is-' + TREE_TONE[v.tree.outcome.rag]} title={v.tree.says}>Outcome {v.tree.outcome.word}</span>
-              {v.tree.late > 0 && <span className="jb-gate is-late">{v.tree.late} overdue</span>}
+              {v.tree.late > 0 && <span className="jb-gate is-late">{v.tree.late} late</span>}
               {v.tree.risk > 0 && <span className="jb-gate is-risk">{v.tree.risk} at risk</span>}
               {v.tree.total > 0 && v.tree.late + v.tree.risk === 0 && (
                 <span className={'jb-gate is-' + (v.tree.done === v.tree.total ? 'done' : 'none')}>{v.tree.done} of {v.tree.total} done</span>
@@ -655,7 +710,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 ? <span className="jb-gate is-none">Nothing open</span>
                 : v.pillars.map(x => (
                   <span key={x.key} className={'jb-gate jb-bone' + (x.tone === 'late' ? ' is-late' : '')}
-                    title={`${x.label}: ${x.open} open${x.tone === 'late' ? ', some past their day' : ''}`}>
+                    title={`${x.label}: ${x.open} open${x.tone === 'late' ? ', some late' : ''}`}>
                     {x.label} {x.open}
                   </span>
                 ))}
@@ -795,6 +850,10 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
               <aside className="jb-aside">
                 {/* A 6M job's countermeasures by bone take the sentence's place:
                     its lines against target are the gap above, its actions here. */}
+                {/* The whole reason, one tap from the row's one line. */}
+                {v.onTarget && v.onTarget.brief && v.onTarget.reason !== v.onTarget.brief && (
+                  <p className={'jb-why is-' + v.onTarget.tone}><b>{v.onTarget.word}</b> — {v.onTarget.reason}</p>
+                )}
                 {v.sixm
                   ? <SaidLine className="jb-6m-l jb-6m-d" parts={v.sixm.bones} />
                   : <p className="jb-sent">{v.sentence}{v.slip ? ` ${v.slip}` : ''}</p>}
