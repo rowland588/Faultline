@@ -89,7 +89,17 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
      (lib/critical fixFlag): "for any fix have a critical or high risk". */
   const fixProblem = kind === 'fix' ? fixFlag(t.id, tt.items).problem : undefined;
   const [crit, setCrit] = useState(() => criticalDraftOf(fixProblem));
-  const critChanged = kind === 'fix' && JSON.stringify(criticalPatch(crit)) !== JSON.stringify(criticalPatch(criticalDraftOf(fixProblem)));
+  /* A FIX READS AS ITS STORY (Rowland, 9 October): what's the problem, the
+     concerns and consequences to the business, then what's the fix — every
+     part editable here. The problem and its concerns are the fix's problem
+     record (made when the fix has none), its words mirrored as the fix's
+     "The problem" where the owner may write it. */
+  const probWas = (fixProblem?.what ?? t.passesIf ?? '').trim();
+  const [probText, setProbText] = useState(probWas);
+  const [concern, setConcern] = useState(fixProblem?.impact ?? '');
+  const flagsNow = criticalPatch({ ...crit, impact: concern });
+  const critChanged = kind === 'fix' && (JSON.stringify(flagsNow) !== JSON.stringify(criticalPatch(criticalDraftOf(fixProblem)))
+    || probText.trim() !== probWas);
   const isRun = isRunTest(t);
   const done = !!t.ranOn || t.outcome !== 'planned';
 
@@ -100,7 +110,10 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
   const over = kind !== 'fix' && b.plannedFor && end
     ? overlapOf({ ...t, plannedFor: b.plannedFor, plannedTo: end > b.plannedFor ? end : undefined }, tt.tests, true)?.title
     : undefined;
-  const patch = editPatch(t, b, mayAgree);
+  const patch: Partial<Test> = { ...editPatch(t, b, mayAgree),
+    /* The fix's own "The problem" follows the problem's words, where the
+       owner may write it. */
+    ...(kind === 'fix' && mayAgree && probText.trim() && probText.trim() !== (t.passesIf ?? '').trim() ? { passesIf: probText.trim() } : {}) };
   const okNow = over && ok !== undefined && ok !== t.overlapOk ? ok : undefined;
   const all: Partial<Test> = { ...patch, ...(okNow !== undefined ? { overlapOk: okNow } : {}) };
   const changed = Object.keys(all).length > 0 || critChanged;
@@ -114,21 +127,23 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
     /* The flag, on the fix's problem — or on one made now from "The problem",
        found on what the fix is for (the fix itself when it is for nothing). */
     let flagBack: (() => Promise<void>) | undefined;
-    const flags = criticalPatch(crit);
+    const flags = flagsNow;
     if (critChanged && fixProblem) {
       const { critical: _c, risk: _r, impact: _i, ways: _w, ...rest } = fixProblem;
-      await tt.saveItem({ ...rest, ...flags, updatedAt: Date.now() });
+      await tt.saveItem({ ...rest, what: probText.trim() || fixProblem.what, ...flags, updatedAt: Date.now() });
       flagBack = () => tt.saveItem(fixProblem);
-    } else if (critChanged && (flags.critical || flags.risk)) {
+    } else if (critChanged && (flags.critical || flags.risk || flags.impact || probText.trim())) {
       const at = Date.now();
       const made: TestItem = {
         id: uid(), projectId: t.projectId, testId: t.fromTestId ?? t.id, kind: 'found',
-        what: (b.passesIf.trim() || b.title.trim() || t.title), becameTestId: t.id, ...flags, sort: at, createdAt: at, updatedAt: at,
+        what: (probText.trim() || b.title.trim() || t.title), becameTestId: t.id, ...flags, sort: at, createdAt: at, updatedAt: at,
       };
       await tt.saveItem(made);
       flagBack = () => tt.saveItem({ ...made, deletedAt: Date.now() });
     }
-    const flagWord = critChanged ? (flags.critical ? ', flagged critical' : flags.risk ? ', flagged high risk' : ', flag taken off') : '';
+    const wasFlag = fixProblem?.critical ? 'critical' : fixProblem?.risk ? 'risk' : 'none';
+    const nowFlag = flags.critical ? 'critical' : flags.risk ? 'risk' : 'none';
+    const flagWord = critChanged && wasFlag !== nowFlag ? (nowFlag === 'critical' ? ', flagged critical' : nowFlag === 'risk' ? ', flagged high risk' : ', flag taken off') : '';
     offerUndo(`${(all.title as string | undefined) ?? t.title} — changed${a ? ', reason kept' : ''}${a?.fix ? ', fix booked' : ''}${flagWord}`, async () => {
       if (Object.keys(before).length) await tt.patchTest(t.id, before);
       if (back) await back();
@@ -163,8 +178,25 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
           : <SayIt test={t} tt={tt} can={can} onFilled={() => undefined} />}
       </div>
 
-      <label className="cw-f re-wide"><span>{kind === 'fix' ? 'The fix' : kind === 'install' ? 'The stage' : 'The test'}</span>
-        <input value={b.title} onChange={e => set('title')(e.target.value)} /></label>
+      {/* A FIX: the problem, its concerns and consequences, the flag, then
+          the fix — the order it is thought through, and read. */}
+      {kind === 'fix' ? <>
+        <label className="cw-f re-wide"><span>What’s the problem?</span>
+          <textarea className="text-area" rows={2} value={probText} placeholder="Film creases as the web enters the former"
+            onChange={e => setProbText(e.target.value)} /></label>
+        <label className="cw-f re-wide"><span>Concerns and consequences to the business</span>
+          <textarea className="text-area" rows={3} value={concern}
+            placeholder="Every 2 kg pack creased is a reject — at 60 ppm that is the Tesco trial on Thursday at risk."
+            onChange={e => setConcern(e.target.value)} /></label>
+        <div className="re-wide">
+          <CriticalFields value={crit} onChange={setCrit} names={[t.title, ...tt.assets.map(x => x.name)]} noCould noImpact />
+        </div>
+        <label className="cw-f re-wide"><span>What’s the fix?</span>
+          <input value={b.title} placeholder="Re-set the former shoulder and re-track the film" onChange={e => set('title')(e.target.value)} /></label>
+      </> : (
+        <label className="cw-f re-wide"><span>{kind === 'install' ? 'The stage' : 'The test'}</span>
+          <input value={b.title} onChange={e => set('title')(e.target.value)} /></label>
+      )}
 
       {kind === 'fix' && (
         <label className="cw-f re-wide"><span>What is it for?</span>
@@ -213,24 +245,16 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
           <input value={b.planned} placeholder="Jacks Piper 2kg" onChange={e => set('planned')(e.target.value)} /></label>
       )}
 
-      {/* WHAT WAS AGREED — the owner's once written (lib/access). */}
-      {mayAgree ? (
+      {/* WHAT WAS AGREED — the owner's once written (lib/access). A fix's is
+          its problem, asked above. */}
+      {kind === 'fix' ? null : mayAgree ? (
         <label className="cw-f re-wide"><span>{words.expectation}</span>
           <textarea className="text-area" rows={2} value={b.passesIf} onChange={e => set('passesIf')(e.target.value)}
-            placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
-              : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
-                : '65 ppm held for 30 minutes, under 2% waste'} /></label>
+            placeholder={kind === 'install' ? 'Bolted down, level to 1 mm, guards on' : '65 ppm held for 30 minutes, under 2% waste'} /></label>
       ) : t.passesIf ? (
         <p className="re-wide re-agreed"><span className="re-l">{words.expectation}</span> {t.passesIf} <span className="sub">· agreed, the owner’s to change</span></p>
       ) : null}
 
-      {/* FLAG IT — any fix, critical or high risk, what it means for the
-          business and the ways round it; kept on its problem. */}
-      {kind === 'fix' && (
-        <div className="re-wide">
-          <CriticalFields value={crit} onChange={setCrit} names={[t.title, ...tt.assets.map(x => x.name)]} noCould />
-        </div>
-      )}
 
       {/* THE DAY — once it has been done, or worked on. */}
       {done && <>

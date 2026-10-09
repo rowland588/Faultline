@@ -43,13 +43,16 @@ export function criticalPatch(d: CriticalDraft): { critical?: boolean; risk?: bo
   };
 }
 
-export function CriticalFields({ value, onChange, names, noCould }: {
+export function CriticalFields({ value, onChange, names, noCould, noImpact }: {
   value: CriticalDraft; onChange: (d: CriticalDraft) => void;
   /** Machine and stage names, kept as spelled by Better wording. */
   names?: string[];
 
   /** The problem form asks the hours once, itself (docs/DOORS.md). */
   noCould?: boolean;
+  /** A fix's Edit asks the concerns and consequences itself, flagged or not
+   *  (ui/RecordEdit) — not again under the flag. */
+  noImpact?: boolean;
 }) {
   const set = (p: Partial<CriticalDraft>) => onChange({ ...value, ...p });
   const setWay = (id: string, p: Partial<WayRound>) => set({ ways: value.ways.map(w => (w.id === id ? { ...w, ...p } : w)) });
@@ -71,11 +74,13 @@ export function CriticalFields({ value, onChange, names, noCould }: {
         <>
           {!noCould && <label className="cw-f crit-could"><span>Could cost <span className="cw-f-opt">hours — an estimate, not counted as lost</span></span>
             <input inputMode="decimal" className="text-input" value={value.could} placeholder="100" onChange={e => set({ could: e.target.value })} /></label>}
-          <label className="cw-f cw-f-wide"><span>{value.critical ? 'What it means for the business' : 'The consequence if it happens'}</span>
-            <textarea className="text-area" rows={3} value={value.impact}
-              placeholder="The line cannot go back to production on the agreed day — the launch on 2 November is at risk."
-              onChange={e => set({ impact: e.target.value })} /></label>
-          <BetterWords text={value.impact} field="other" onUse={v => set({ impact: v })} names={names} />
+          {!noImpact && <>
+            <label className="cw-f cw-f-wide"><span>{value.critical ? 'What it means for the business' : 'The consequence if it happens'}</span>
+              <textarea className="text-area" rows={3} value={value.impact}
+                placeholder="The line cannot go back to production on the agreed day — the launch on 2 November is at risk."
+                onChange={e => set({ impact: e.target.value })} /></label>
+            <BetterWords text={value.impact} field="other" onUse={v => set({ impact: v })} names={names} />
+          </>}
           <div className="crit-ways">
             <span className="crit-ways-h">Ways round it <span className="cw-f-opt">tick the one agreed</span></span>
             {value.ways.map((w, i) => (

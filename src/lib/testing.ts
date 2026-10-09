@@ -303,7 +303,7 @@ export const WORDS: Record<TestKind, {
     expectation: 'The problem',
     happened: 'The end result',
     withWhom: 'Who is doing it',
-    plan: 'What we are fixing', day: 'What was done',
+    plan: 'What’s the fix', day: 'What was done',
     noPlan: 'The problem was not written down', found: 'What we found doing it', pictures: 'The problem, and it fixed',
   },
   install: {

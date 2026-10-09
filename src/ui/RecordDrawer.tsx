@@ -532,6 +532,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           {problems.map(p => (
             <div key={p.id} className="rd-problem">
               <button type="button" className="sp-door" onClick={() => onOpen(p.id)}><span className="sp-why">{p.what}</span></button>
+              {/* Its concerns and consequences to the business, as written. */}
+              {p.impact?.trim() && <p className="rd-problem-t"><b>Concerns:</b> {p.impact}</p>}
               {(p.media ?? []).length > 0 && (
                 <span className="sp-ev">{(p.media ?? []).map(m => <EvidenceThumb key={m.id} media={m} size={64} onClick={() => setViewing(m)} />)}</span>
               )}

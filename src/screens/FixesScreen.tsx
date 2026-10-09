@@ -35,6 +35,8 @@
  * every row says its state in words beside its colour.
  */
 import { useState } from 'react';
+import { listTests } from '../db';
+import { uid } from '../lib/ids';
 import { useRoute } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
 import { Verdicts } from '../ui/Verdicts';
@@ -66,6 +68,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const forParam = useRoute().query.get('for') ?? '';
   const [adding, setAdding] = useState(!!forParam);
   const [title, setTitle] = useState('');
+  const [problem, setProblem] = useState('');
+  const [concern, setConcern] = useState('');
   const [on, setOn] = useState<string[]>([]);
   const [forId, setForId] = useState(forParam);
   const [onTouched, setOnTouched] = useState(false);
@@ -97,12 +101,29 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   /* The machine follows the test unless somebody has picked one themselves. */
   const machines = onTouched ? on : forTest?.assetId ? [forTest.assetId] : on;
 
+  /* PLANNED AS ITS STORY (Rowland, 9 October: "we call everything 'what are
+     we fixing' — it's what's the problem, the concerns and consequences to
+     the business, then what's the fix"). The problem and its concerns are
+     the fix's problem record, so they print with it and open to be edited. */
   const plan = () => {
-    const clean = title.trim();
+    const fixWords = title.trim(), probWords = problem.trim(), worry = concern.trim();
+    const clean = fixWords || probWords;
     if (!clean) return;
     const target = forTest?.id;
-    void (async () => { open(await tt.planTest(clean, machines.length ? machines : [undefined], 'fix', target)); })();
-    setTitle(''); setOn([]); setOnTouched(false); setForId(''); setAdding(false);
+    void (async () => {
+      const at = Date.now();
+      const first = await tt.planTest(clean, machines.length ? machines : [undefined], 'fix', target);
+      if (probWords || worry) {
+        const made = (await listTests(projectId)).filter(t => t.kind === 'fix' && t.title === clean && t.createdAt >= at - 1000 && !t.deletedAt);
+        for (const [k, f] of made.entries()) {
+          if (probWords) await tt.patchTest(f.id, { passesIf: probWords });
+          await tt.saveItem({ id: uid(), projectId, testId: target ?? f.id, kind: 'found', what: probWords || clean,
+            ...(worry ? { impact: worry } : {}), becameTestId: f.id, sort: at + k, createdAt: at + k, updatedAt: at + k });
+        }
+      }
+      open(first);
+    })();
+    setTitle(''); setProblem(''); setConcern(''); setOn([]); setOnTouched(false); setForId(''); setAdding(false);
   };
 
   const machine = (t: Test) => tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line';
@@ -163,7 +184,12 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
         {!can.edit ? null : adding ? (
           <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
-            <input autoFocus placeholder="What are we fixing?" value={title} onChange={e => setTitle(e.target.value)} />
+            <label className="tw-plan-l" htmlFor="fix-problem">What’s the problem?</label>
+            <textarea id="fix-problem" className="text-area" rows={2} autoFocus placeholder="Film creases as the web enters the former" value={problem} onChange={e => setProblem(e.target.value)} />
+            <label className="tw-plan-l" htmlFor="fix-concern">Concerns and consequences to the business <i className="cw-f-opt">if any</i></label>
+            <textarea id="fix-concern" className="text-area" rows={2} placeholder="Every 2 kg pack creased is a reject — the Tesco trial on Thursday is at risk." value={concern} onChange={e => setConcern(e.target.value)} />
+            <label className="tw-plan-l" htmlFor="fix-what">What’s the fix?</label>
+            <input id="fix-what" placeholder="Re-set the former shoulder and re-track the film" value={title} onChange={e => setTitle(e.target.value)} />
             <label className="tw-plan-l" htmlFor="fix-for">{stepsToPick.length ? 'What is it for?' : 'Which test is it for?'}</label>
             <select id="fix-for" className="tw-plan-sel" value={forId} onChange={e => setForId(e.target.value)}>
               <option value="">{stepsToPick.length ? 'Not from a test or an install step' : 'Not from a test'}</option>
@@ -197,7 +223,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
               </>
             )}
             <span className="tw-plan-go">
-              <button className="btn" type="submit" disabled={!title.trim()}>
+              <button className="btn" type="submit" disabled={!title.trim() && !problem.trim()}>
                 {machines.length > 1 ? `Plan ${machines.length} fixes` : 'Plan it'}
               </button>
               <button className="btn btn-ghost" type="button" onClick={() => { setAdding(false); setOn([]); setOnTouched(false); setForId(''); }}>Cancel</button>

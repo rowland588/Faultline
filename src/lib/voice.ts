@@ -141,7 +141,7 @@ export function changesFor(t: Test, fields: Record<string, unknown>, assets: Ass
     const v = s(key as string);
     if (v && v !== (t[key] ?? '')) out.push({ key: key as string, label, before: String(t[key] ?? ''), after: v, patch: { [key]: v } as Partial<Test> });
   };
-  if (t.kind === 'fix') text('title', 'What we are fixing');
+  if (t.kind === 'fix') text('title', 'What’s the fix');
   const m = machineNamed(s('machine'), assets);
   if (m && m.id !== t.assetId) {
     out.push({ key: 'machine', label: 'Machine', before: assets.find(a => a.id === t.assetId)?.name ?? 'The line itself', after: m.name, patch: { assetId: m.id } });

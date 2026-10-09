@@ -67,7 +67,7 @@ describe('what a voice note would change', () => {
     const fix = rec({ kind: 'fix', title: 'New fix' });
     const c = changesFor(fix, { title: 'Replace sensor 2', machine: 'denester', problem: 'Sensor 2 keeps dropping out', withWhom: 'Brillopak', plannedFor: '2026-10-02' }, [denester, packer], TODAY);
     expect(c.map(x => [x.label, x.after])).toEqual([
-      ['What we are fixing', 'Replace sensor 2'], ['Machine', 'Denester'], ['The problem', 'Sensor 2 keeps dropping out'],
+      ['What’s the fix', 'Replace sensor 2'], ['Machine', 'Denester'], ['The problem', 'Sensor 2 keeps dropping out'],
       ['Who is doing it', 'Brillopak'], ['Planned for', expect.stringMatching(/2 Oct/)],
     ]);
     expect(Object.assign({}, ...c.map(x => x.patch))).toMatchObject({ assetId: 'a1', passesIf: 'Sensor 2 keeps dropping out', plannedFor: '2026-10-02' });
