@@ -1,7 +1,14 @@
 # Handover — the end of a Stage Gate job — audit
 
 Rowland, 9 October: audit the handover, from Commission to "Handed over".
-Findings first. Nothing is changed until he has seen them, and then the
+Findings first.
+
+Who it is for (Rowland, the same day): "The client could be the team. It's
+also an internal tool, not an outside business tool — it is for a team to
+ensure things are done correctly inside their own factory." So the handover
+here is the project team handing a line to the people who will run it,
+inside one factory, and the person who signs off may well be on the team.
+The proposal below is written that way. Nothing is changed until he has seen them, and then the
 handover's improvements and the gates' Needs you buttons (STAGEGATE.md,
 flagged item 4) are built together.
 
@@ -72,7 +79,7 @@ these open" is never said.
 - **There is no list the client accepted at handover.** The open things
   after handover are simply the open fixes and hand-over lines.
 
-**4. Is there one page both sides sign?** No.
+**4. Is there one page to sign the line over on?** No.
 - **The status report, sent first, never says the job was handed over.**
   For Line 5 it says "On target — handover Thu, 8 Oct as agreed".
 - **The full client report gives two dates for one event.** It says the
@@ -105,13 +112,16 @@ No.
 
 **7. Who can mark a machine handed over, and who signs?**
 - **Anyone on the team can tick the sign-offs.** They can press "Done
-  today" on "Client signed off" and "Safety sign-off (PUWER)". That
-  includes an OEM engineer invited as team, so the OEM can record that the
-  client signed off. The database allows it: a stage's outcome is work, not
-  something agreed.
-- **The client, whose sign-off it is, cannot sign.** On "Client signed
-  off" they are offered only Close and the line's card.
-- **The owner can do everything,** as intended.
+  today" on "Client signed off" and "Safety sign-off (PUWER)". The
+  database allows it: a stage's outcome is work, not something agreed. For
+  a tool used inside one factory, where the person signing off is often on
+  the team, that is right.
+- **What the tick does not keep is the sign-off itself.** It keeps the day
+  and the name on the line ("who"), which was typed when the line was
+  planned. It does not keep what was still open when it was signed, so
+  afterwards nobody can tell what was accepted with it.
+- **Someone invited as a client can only read,** as the access rules
+  intend. **The owner can do everything,** as intended.
 
 **Small words:**
 - **"1 days past handover"** should be "1 day".
@@ -159,27 +169,26 @@ signed off" line already on every job's list.
    - **Screen:** the front page, Needs you, the control room and Fixes.
    - **Paper:** the status report's "what we are doing about it" and the
      client report's Fixes.
-4. **The client signs, the team does not.** "Client signed off" becomes
-   the one line a **client** can complete, with a "Sign off" button. It
-   records who signed (their sign-in) and the day, and lists what was still
-   open at that moment, as accepted with it.
-   - **The team cannot tick it.** The owner can record it for the client:
-     "signed on paper by …", the name typed.
-   - **"Safety sign-off (PUWER)" goes the same way**, to the owner or a
-     named person. Yours to decide.
-   - **This needs one database change.** A mark on the line saying it is
-     the sign-off, who signed, and a narrow rule letting a client write
-     only that. It would ship as an SQL file in the house shape. It is
-     applied through the Supabase connector, which did not connect this
-     session; otherwise it is pasted into the SQL editor. The screen
-     changes after the database does.
-5. **A handover page both sides sign** (a new document, yours to say yes
-   to). One A4 page per job, or per machine when machines go one at a
+4. **A sign-off keeps what it accepted.** Whoever on the team ticks
+   "Client signed off" or "Safety sign-off (PUWER)" does it as now, and
+   the line keeps who and the day. The tick also writes down what was still
+   open on that machine at that moment, e.g. "Signed off with 1 open:
+   Replace the worn sealing jaw · Ilapak UK · 16 Oct". If the line has no
+   name on it, ticking it asks who signed.
+   - **No role restriction and no database change.** It is written into
+     the line's own account, which every report already prints whole.
+   - **Screen:** the line's drawer and the Hand over grid. **Paper:** the
+     client report's hand-over account and the handover page (item 5).
+5. **A handover page — the line signed over** (a new document, yours to
+   say yes to). One A4 page per job, or per machine when machines go one at a
    time. It would say:
    - each machine: its tests passed against what each had to show, and its
      hand-over list with dates;
    - what is still open, with an owner and a date;
-   - the sign-off: who signed, and when, or lines to sign when printed.
+   - the sign-off: who signed, and when, or lines to sign when printed
+     (handed over by, taken over by, safety).
+   It is the record a team inside the factory keeps that the line was
+   handed over correctly.
 
    It is read off the same records as the client report, so the two cannot
    disagree. It would be printed from Hand over and Reports, and checked by
@@ -196,8 +205,8 @@ exact markup and place (`nd-acts`, a small button at the row's right), for
 `can.edit` only, so a client sees none:
 
 - **A late stage → "Done today".** The drawer's own Done today, the same
-  write. On "Client signed off", if item 4 is agreed, the client's "Sign
-  off" takes its place, and the team sees no button.
+  write. On a sign-off line it keeps what was still open, as item 4
+  says.
 - **A stage that hit a problem → "Plan a fix".** The drawer's own "Plan a
   fix for this stage", the same form.
 - **A part said to have failed → no button,** as now. A part is re-done by

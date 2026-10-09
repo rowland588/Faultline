@@ -375,3 +375,11 @@ default, and sometimes the OEM. `GM` was parochial and made the document sound
 internal. It is the **client report**, and the person is the **client**,
 whichever of them is reading it. When you find an older `GM` in the code or on
 a screen, change it.
+
+**It is an internal tool.** Rowland, 9 October: "The client could be the team.
+It's also an internal tool, not an outside business tool — it is for a team to
+ensure things are done correctly inside their own factory." So do not design
+the site against an outside party: a sign-off, a handover or an acceptance is
+usually one part of the factory to another (the project team to production),
+and the person signing is often on the team. What such a step must keep is
+who did it, when, and what was still open — not a wall between roles.
