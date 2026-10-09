@@ -514,7 +514,10 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   ctx.media = t?.media ?? []; ctx.docs = t?.docs ?? [];
 
   await p.getByRole('button', { name: 'Add a fix for this test' }).click();
-  await p.getByPlaceholder('What are we fixing?').fill('Replace the splice sensor');
+  /* A fix is planned as its story (9 October): the problem, its concerns, then the fix. */
+  await p.getByLabel('What’s the problem?').fill('Splice sensor misses the film join');
+  await p.getByLabel(/Concerns and consequences/).fill('Every missed splice crashes the infeed');
+  await p.getByLabel('What’s the fix?').fill('Replace the splice sensor');
   await p.getByRole('button', { name: 'Case packer', exact: true }).click();
   await p.getByRole('button', { name: 'Plan it' }).click();
   ctx.fixId = await recordJustPlanned(p);
@@ -557,6 +560,9 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   check(page.includes('Film splice jams the infeed'), 'the laptop shows the finding');
   check(page.includes('Ask Brillopak about the splice sensor'), 'the laptop shows the note');
   check(page.includes('Replace the splice sensor'), 'the laptop shows the fix under the test');
+  const told = (await idb(l, 'test_items')).find(i => i.becameTestId === ctx.fixId);
+  check(told?.what === 'Splice sensor misses the film join' && told?.impact === 'Every missed splice crashes the infeed',
+    'the laptop holds the fix’s problem and its concerns', JSON.stringify(told && { what: told.what, impact: told.impact }));
   check(page.includes('Brillopak FAT report'), 'the laptop shows the PDF by name');
   await openEvidence(l);
   const evidence = await text(l);
